@@ -1,0 +1,99 @@
+version: '3.9'
+
+services:
+  # ── MongoDB ────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: lawie_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS:-changeme}
+      MONGO_INITDB_DATABASE: lawie
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
+    networks:
+      - lawie_net
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', 'db.adminCommand("ping")']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── API (Express.js) ────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: builder          # Use builder stage for dev hot-reload
+    container_name: lawie_api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
+    ports:
+      - '5000:5000'
+    volumes:
+      - ./apps/api/src:/app/apps/api/src    # Hot reload
+      - ./packages/shared/src:/app/packages/shared/src
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - lawie_net
+    command: yarn workspace @lawie/api dev
+
+  # ── Web (Next.js) ───────────────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: deps
+    container_name: lawie_web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:5000
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./apps/web/src:/app/apps/web/src    # Hot reload
+      - ./packages/shared/src:/app/packages/shared/src
+    depends_on:
+      - api
+    networks:
+      - lawie_net
+    command: yarn workspace @lawie/web dev
+
+  # ── Mongo Express (Dev DB UI) ───────────────────────────────────────────────
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: lawie_mongo_ui
+    restart: unless-stopped
+    ports:
+      - '8081:8081'
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USER:-admin}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASS:-changeme}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/
+      ME_CONFIG_BASICAUTH: 'false'
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - lawie_net
+    profiles:
+      - dev-tools
+
+volumes:
+  mongo_data:
+
+networks:
+  lawie_net:
+    driver: bridge

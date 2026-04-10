@@ -1,0 +1,14 @@
+{
+  "name": "@lawie/shared",
+  "version": "1.0.0",
+  "description": "Shared types, constants, and utilities for Lawie",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint 'src/**/*.ts' --fix"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

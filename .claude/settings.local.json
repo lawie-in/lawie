@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/abhinavanand/Files/Lawie status)",
+      "Bash(gh auth:*)",
+      "Bash(git --version)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/abhinavanand/.yarn/bin/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(/opt/homebrew/bin/npm install:*)",
+      "Bash(wait)",
+      "Bash(node -e \"require\\('/Users/abhinavanand/Files/Lawie/node_modules/tailwindcss/package.json'\\)\")",
+      "Bash(/Users/abhinavanand/Files/Lawie/node_modules/.bin/tailwindcss --config apps/web/tailwind.config.js --input apps/web/src/app/globals.css --dry-run)"
+    ]
+  }
+}
