@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Build shared package
+        run: yarn workspace @lawie/shared build
+
       - name: Lint Gateway
         run: yarn workspace @lawie/gateway lint
 
@@ -66,6 +69,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Build shared package
+        run: yarn workspace @lawie/shared build
+
       - name: Run Gateway tests
         run: yarn workspace @lawie/gateway test
 
@@ -96,6 +102,9 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+
+      - name: Build shared package
+        run: yarn workspace @lawie/shared build
 
       - name: Run Auth tests
         run: yarn workspace @lawie/auth test
@@ -128,6 +137,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Build shared package
+        run: yarn workspace @lawie/shared build
+
       - name: Run Drafting tests
         run: yarn workspace @lawie/drafting test
 
@@ -158,6 +170,9 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+
+      - name: Build shared package
+        run: yarn workspace @lawie/shared build
 
       - name: Run Billing tests
         run: yarn workspace @lawie/billing test
