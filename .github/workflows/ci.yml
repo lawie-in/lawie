@@ -30,33 +30,29 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Lint API
-        run: yarn workspace @lawie/api lint
+      - name: Lint Gateway
+        run: yarn workspace @lawie/gateway lint
+
+      - name: Lint Auth
+        run: yarn workspace @lawie/auth lint
+
+      - name: Lint Drafting
+        run: yarn workspace @lawie/drafting lint
+
+      - name: Lint Billing
+        run: yarn workspace @lawie/billing lint
 
       - name: Lint Web
         run: yarn workspace @lawie/web lint
 
-  # ── Test API ─────────────────────────────────────────────────────────────────
-  test-api:
-    name: Test — API
+  # ── Test Gateway ────────────────────────────────────────────────────────────
+  test-gateway:
+    name: Test — Gateway
     runs-on: ubuntu-latest
     needs: lint
-
-    services:
-      mongo:
-        image: mongo:7.0
-        ports: ['27017:27017']
-        options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     env:
       NODE_ENV: test
-      MONGO_URI: mongodb://localhost:27017/lawie_test
-      JWT_SECRET: test-secret-key-ci
-      JWT_REFRESH_SECRET: test-refresh-secret-ci
 
     steps:
       - uses: actions/checkout@v4
@@ -70,21 +66,25 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Run API tests
-        run: yarn workspace @lawie/api test
+      - name: Run Gateway tests
+        run: yarn workspace @lawie/gateway test
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         if: always()
         with:
-          flags: api
+          flags: gateway
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  # ── Test Web ─────────────────────────────────────────────────────────────────
-  test-web:
-    name: Test — Web
+  # ── Test Auth ───────────────────────────────────────────────────────────────
+  test-auth:
+    name: Test — Auth
     runs-on: ubuntu-latest
     needs: lint
+
+    env:
+      NODE_ENV: test
+
     steps:
       - uses: actions/checkout@v4
 
@@ -97,21 +97,83 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Run Web tests
-        run: yarn workspace @lawie/web test
+      - name: Run Auth tests
+        run: yarn workspace @lawie/auth test
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         if: always()
         with:
-          flags: web
+          flags: auth
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ── Test Drafting ───────────────────────────────────────────────────────────
+  test-drafting:
+    name: Test — Drafting
+    runs-on: ubuntu-latest
+    needs: lint
+
+    env:
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run Drafting tests
+        run: yarn workspace @lawie/drafting test
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          flags: drafting
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ── Test Billing ────────────────────────────────────────────────────────────
+  test-billing:
+    name: Test — Billing
+    runs-on: ubuntu-latest
+    needs: lint
+
+    env:
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run Billing tests
+        run: yarn workspace @lawie/billing test
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          flags: billing
           token: ${{ secrets.CODECOV_TOKEN }}
 
   # ── Build ────────────────────────────────────────────────────────────────────
   build:
     name: Build Docker Images
     runs-on: ubuntu-latest
-    needs: [test-api, test-web]
+    needs: [test-gateway, test-auth, test-drafting, test-billing]
     if: github.event_name == 'push'
 
     steps:
@@ -129,16 +191,55 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: Build API image
+      - name: Build Gateway image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: apps/api/Dockerfile
+          file: apps/gateway/Dockerfile
           target: production
           push: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
           tags: |
-            ${{ secrets.ECR_REGISTRY }}/lawie-api:${{ github.sha }}
-            ${{ secrets.ECR_REGISTRY }}/lawie-api:latest
+            ${{ secrets.ECR_REGISTRY }}/lawie-gateway:${{ github.sha }}
+            ${{ secrets.ECR_REGISTRY }}/lawie-gateway:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Auth image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/auth/Dockerfile
+          target: production
+          push: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
+          tags: |
+            ${{ secrets.ECR_REGISTRY }}/lawie-auth:${{ github.sha }}
+            ${{ secrets.ECR_REGISTRY }}/lawie-auth:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Drafting image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/drafting/Dockerfile
+          target: production
+          push: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
+          tags: |
+            ${{ secrets.ECR_REGISTRY }}/lawie-drafting:${{ github.sha }}
+            ${{ secrets.ECR_REGISTRY }}/lawie-drafting:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Billing image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/billing/Dockerfile
+          target: production
+          push: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
+          tags: |
+            ${{ secrets.ECR_REGISTRY }}/lawie-billing:${{ github.sha }}
+            ${{ secrets.ECR_REGISTRY }}/lawie-billing:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

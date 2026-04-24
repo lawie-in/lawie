@@ -13,13 +13,12 @@ out/
 *.tsbuildinfo
 
 # ── Environment & secrets ─────────────────────────────────────────────────────
+# Block ALL .env files — real values live in AWS Secrets Manager only
 .env
-.env.local
-.env.*.local
-.env.development
-.env.staging
-.env.production
+.env.*
+# Allow template files (no real values — documentation only)
 !.env.example
+!.env.*.example
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 logs/
@@ -55,4 +54,8 @@ package-lock.json
 
 # ── Local documents ───────────────────────────────────────────────────────────
 *.docx
+docs/
 *.pdf
+
+# -- claude -----------------------──────────────────────────────────────────────────────────────
+.claude/

@@ -1,0 +1,101 @@
+version: '3.9'
+
+# Staging compose — single EC2 (t3.medium), ap-south-1
+# Images pulled from ECR with :staging-latest tags.
+# Env vars written to .env.staging by CI/CD from AWS Secrets Manager (never committed).
+
+services:
+  # ── Nginx — SSL termination + routing ──────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: lawie_nginx_staging
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./docker/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      - gateway
+      - auth
+      - drafting
+      - billing
+    networks:
+      - lawie_staging
+
+  # ── Gateway Service ─────────────────────────────────────────────────────────
+  gateway:
+    image: ${ECR_REGISTRY}/lawie-staging-gateway:staging-latest
+    container_name: lawie_gateway_staging
+    restart: unless-stopped
+    env_file: .env.staging
+    environment:
+      NODE_ENV: staging
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth:3001
+      DRAFTING_SERVICE_URL: http://drafting:3002
+      BILLING_SERVICE_URL: http://billing:3003
+    networks:
+      - lawie_staging
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Auth Service ─────────────────────────────────────────────────────────────
+  auth:
+    image: ${ECR_REGISTRY}/lawie-staging-auth:staging-latest
+    container_name: lawie_auth_staging
+    restart: unless-stopped
+    env_file: .env.staging
+    environment:
+      NODE_ENV: staging
+      PORT: 3001
+    networks:
+      - lawie_staging
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Drafting Service ─────────────────────────────────────────────────────────
+  drafting:
+    image: ${ECR_REGISTRY}/lawie-staging-drafting:staging-latest
+    container_name: lawie_drafting_staging
+    restart: unless-stopped
+    env_file: .env.staging
+    environment:
+      NODE_ENV: staging
+      PORT: 3002
+    networks:
+      - lawie_staging
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3002/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Billing Service ──────────────────────────────────────────────────────────
+  billing:
+    image: ${ECR_REGISTRY}/lawie-staging-billing:staging-latest
+    container_name: lawie_billing_staging
+    restart: unless-stopped
+    env_file: .env.staging
+    environment:
+      NODE_ENV: staging
+      PORT: 3003
+    networks:
+      - lawie_staging
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3003/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  lawie_staging:
+    driver: bridge
