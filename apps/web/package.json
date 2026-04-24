@@ -7,7 +7,7 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint 'src/**/*.{ts,tsx}' --fix",
     "test": "jest --coverage --passWithNoTests",
     "test:watch": "jest --watch"
   },
