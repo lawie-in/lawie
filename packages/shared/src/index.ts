@@ -6,6 +6,7 @@ export * from './types/api.types';
 // Constants
 export * from './constants/roles';
 export * from './constants/status';
+export * from './constants/docs';
 
 // Utils
 export * from './utils/validators';

@@ -23,30 +23,107 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── API (Express.js) ────────────────────────────────────────────────────────
-  api:
+  # ── Gateway Service ─────────────────────────────────────────────────────────
+  gateway:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
-      target: builder          # Use builder stage for dev hot-reload
-    container_name: lawie_api
+      dockerfile: apps/gateway/Dockerfile
+      target: builder
+    container_name: lawie_gateway
     restart: unless-stopped
     env_file: .env
     environment:
       NODE_ENV: development
-      PORT: 5000
+      PORT: 4000
+      AUTH_SERVICE_URL: http://auth:4001
+      DRAFTING_SERVICE_URL: http://drafting:4002
+      BILLING_SERVICE_URL: http://billing:4003
+    ports:
+      - '4000:4000'
+    volumes:
+      - ./apps/gateway/src:/app/apps/gateway/src
+    depends_on:
+      - auth
+      - drafting
+      - billing
+    networks:
+      - lawie_net
+    command: yarn workspace @lawie/gateway dev
+
+  # ── Auth Service ────────────────────────────────────────────────────────────
+  auth:
+    build:
+      context: .
+      dockerfile: apps/auth/Dockerfile
+      target: builder
+    container_name: lawie_auth
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      PORT: 4001
       MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
     ports:
-      - '5000:5000'
+      - '4001:4001'
     volumes:
-      - ./apps/api/src:/app/apps/api/src    # Hot reload
+      - ./apps/auth/src:/app/apps/auth/src
       - ./packages/shared/src:/app/packages/shared/src
     depends_on:
       mongo:
         condition: service_healthy
     networks:
       - lawie_net
-    command: yarn workspace @lawie/api dev
+    command: yarn workspace @lawie/auth dev
+
+  # ── Drafting Service ────────────────────────────────────────────────────────
+  drafting:
+    build:
+      context: .
+      dockerfile: apps/drafting/Dockerfile
+      target: builder
+    container_name: lawie_drafting
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      PORT: 4002
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
+    ports:
+      - '4002:4002'
+    volumes:
+      - ./apps/drafting/src:/app/apps/drafting/src
+      - ./packages/shared/src:/app/packages/shared/src
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - lawie_net
+    command: yarn workspace @lawie/drafting dev
+
+  # ── Billing Service ─────────────────────────────────────────────────────────
+  billing:
+    build:
+      context: .
+      dockerfile: apps/billing/Dockerfile
+      target: builder
+    container_name: lawie_billing
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      PORT: 4003
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
+    ports:
+      - '4003:4003'
+    volumes:
+      - ./apps/billing/src:/app/apps/billing/src
+      - ./packages/shared/src:/app/packages/shared/src
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - lawie_net
+    command: yarn workspace @lawie/billing dev
 
   # ── Web (Next.js) ───────────────────────────────────────────────────────────
   web:
@@ -59,14 +136,14 @@ services:
     env_file: .env
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_URL: http://localhost:5000
+      NEXT_PUBLIC_API_URL: http://localhost:4000
     ports:
       - '3000:3000'
     volumes:
-      - ./apps/web/src:/app/apps/web/src    # Hot reload
+      - ./apps/web/src:/app/apps/web/src
       - ./packages/shared/src:/app/packages/shared/src
     depends_on:
-      - api
+      - gateway
     networks:
       - lawie_net
     command: yarn workspace @lawie/web dev

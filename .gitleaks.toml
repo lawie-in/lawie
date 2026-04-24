@@ -1,0 +1,40 @@
+# Gitleaks config — scans staged diffs for secrets before every commit.
+# Ships with a solid default ruleset; we extend it with Lawie-specific rules.
+
+[extend]
+useDefault = true
+
+# ── Project-specific rules ────────────────────────────────────────────────────
+[[rules]]
+id = "lawie-jwt-secret"
+description = "Lawie JWT secret env var with a real value"
+regex = '''(?i)(jwt_secret|jwt_refresh_secret)\s*=\s*['"]?[A-Za-z0-9+/=]{32,}['"]?'''
+tags = ["secret", "lawie"]
+
+[[rules]]
+id = "lawie-mongo-uri-with-password"
+description = "MongoDB connection string containing a password"
+regex = '''mongodb(?:\+srv)?:\/\/[^:]+:[^@]{6,}@'''
+tags = ["secret", "database"]
+
+# ── Allowlist (things that look like secrets but aren't) ──────────────────────
+[allowlist]
+description = "Known-safe files and placeholders"
+paths = [
+  '''\.env\.example''',
+  '''\.env\.staging\.example''',
+  '''\.env\.production\.example''',
+  '''\.env\.development''',
+  '''docker-compose\.yml''',
+  '''docker/mongo/init\.js''',
+  '''docs/.*\.md''',
+]
+regexes = [
+  '''CHANGE_ME''',
+  '''your-super-secret-.*-change-in-production''',
+  '''dev-jwt-.*-not-for-production''',
+  '''changeme''',
+  '''REPLACE_ME''',
+  # Dev-only all-zeros ENCRYPTION_KEY placeholder (zero entropy — safe)
+  '''^0{64}$''',
+]

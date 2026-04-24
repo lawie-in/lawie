@@ -1,24 +1,33 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+
+import { AuthProvider } from '@/context/AuthContext';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Lawie — Legal Tech Platform',
-  description: 'Modern legal management for lawyers and clients',
-  keywords: ['legal', 'law', 'case management', 'documents'],
+  title: 'Lawie — AI Legal Drafting for Indian Advocates',
+  description:
+    'Stop Googling legal formats. Lawie is an AI-powered drafting tool built for young Indian advocates. Generate bail applications, legal notices, and more — court-ready, in under 5 minutes.',
+  keywords: [
+    'legal drafting',
+    'AI legal tool',
+    'Indian advocates',
+    'bail application',
+    'legal notice',
+    'court-ready documents',
+    'BNS',
+    'BNSS',
+    'BSA',
+  ],
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

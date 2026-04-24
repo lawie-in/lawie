@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# 1. Scan staged changes for leaked secrets (API keys, tokens, private keys).
+#    Fails the commit if anything matches the rules in .gitleaks.toml.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --config .gitleaks.toml
+else
+  echo "⚠️  gitleaks not installed — skipping secret scan."
+  echo "   Install via: brew install gitleaks  (or see https://github.com/gitleaks/gitleaks)"
+fi
+
+# 2. Lint + format staged files
+npx lint-staged

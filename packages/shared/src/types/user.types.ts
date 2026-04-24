@@ -5,6 +5,11 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  plan: 'free' | 'pro';
+  docCount: number;
+  googleId?: string;
+  barCouncilState?: string;
+  enrollmentNumber?: string;
   createdAt: string;
   updatedAt: string;
 }
