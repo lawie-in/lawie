@@ -6,13 +6,16 @@ const envSchema = z.object({
 
   MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
 
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 chars'),
+  INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
 
   // AES-256-GCM key — must be exactly 64 hex chars (32 bytes)
   ENCRYPTION_KEY: z
     .string()
     .length(64, 'ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)')
     .regex(/^[0-9a-fA-F]+$/, 'ENCRYPTION_KEY must be a valid hex string'),
+
+  // Anthropic API key — drafting service only
+  ANTHROPIC_API_KEY: z.string().min(20, 'ANTHROPIC_API_KEY is required'),
 
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
 });

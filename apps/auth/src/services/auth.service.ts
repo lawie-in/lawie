@@ -6,9 +6,11 @@ import { AppError } from '../middleware/errorHandler';
 import { User, IUser } from '../models/User.model';
 
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
+import { createSession, deleteSession, hashToken, SessionMeta } from './session.service';
 
 export async function registerUser(
   payload: RegisterPayload,
+  meta: SessionMeta = {},
 ): Promise<{ user: IUser; tokens: { accessToken: string; refreshToken: string } }> {
   const existing = await User.findOne({ email: payload.email.toLowerCase() });
   if (existing) {
@@ -30,11 +32,20 @@ export async function registerUser(
     plan: user.plan,
   });
 
+  await createSession(
+    user._id.toString(),
+    tokens.accessToken,
+    tokens.refreshToken,
+    { plan: user.plan, email: user.email, role: user.role, name: user.name },
+    meta,
+  );
+
   return { user, tokens };
 }
 
 export async function loginUser(
   payload: LoginPayload,
+  meta: SessionMeta = {},
 ): Promise<{ user: IUser; tokens: { accessToken: string; refreshToken: string } }> {
   const user = await User.findOne({ email: payload.email.toLowerCase() }).select('+password');
 
@@ -59,11 +70,20 @@ export async function loginUser(
     plan: user.plan,
   });
 
+  await createSession(
+    user._id.toString(),
+    tokens.accessToken,
+    tokens.refreshToken,
+    { plan: user.plan, email: user.email, role: user.role, name: user.name },
+    meta,
+  );
+
   return { user, tokens };
 }
 
 export async function refreshTokens(
   refreshToken: string,
+  meta: SessionMeta = {},
 ): Promise<{ accessToken: string; refreshToken: string }> {
   let payload;
   try {
@@ -77,13 +97,38 @@ export async function refreshTokens(
     throw new AppError(401, 'User not found or inactive');
   }
 
-  return generateTokenPair({
+  // Delete old session (rotate-on-refresh)
+  const oldRefreshHash = hashToken(refreshToken);
+  const oldRefreshData = await (
+    await import('../config/redis')
+  ).default.get(`session:refresh:${payload.sub}:${oldRefreshHash}`);
+  if (oldRefreshData) {
+    const { accessTokenHash } = JSON.parse(oldRefreshData);
+    await deleteSession(payload.sub, accessTokenHash);
+  }
+
+  const tokens = generateTokenPair({
     sub: user._id.toString(),
     email: user.email,
     name: user.name,
     role: user.role,
     plan: user.plan,
   });
+
+  await createSession(
+    user._id.toString(),
+    tokens.accessToken,
+    tokens.refreshToken,
+    { plan: user.plan, email: user.email, role: user.role, name: user.name },
+    meta,
+  );
+
+  return tokens;
+}
+
+export async function logoutUser(userId: string, accessToken: string): Promise<void> {
+  const accessHash = hashToken(accessToken);
+  await deleteSession(userId, accessHash);
 }
 
 export async function initiatePasswordReset(email: string): Promise<string> {

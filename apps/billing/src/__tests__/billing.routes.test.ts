@@ -1,6 +1,5 @@
 import './setupDb';
 import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import request from 'supertest';
 import { User } from '../models/User.model';
@@ -19,13 +18,25 @@ jest.mock('../config/razorpay', () => ({
 import { razorpay } from '../config/razorpay';
 import app from '../app';
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET!;
 
-function signToken(payload: Record<string, unknown>): string {
-  return jwt.sign({ type: 'access', role: 'user', plan: 'free', ...payload }, JWT_SECRET, {
-    expiresIn: '15m',
-  });
+/** Build internal headers that simulate gateway-forwarded requests */
+function internalHeaders(payload: {
+  sub: string;
+  email: string;
+  name: string;
+  plan?: string;
+  role?: string;
+}) {
+  return {
+    'x-internal-secret': INTERNAL_SECRET,
+    'x-user-id': payload.sub,
+    'x-user-email': payload.email,
+    'x-user-name': payload.name,
+    'x-user-plan': payload.plan ?? 'free',
+    'x-user-role': payload.role ?? 'Client',
+  };
 }
 
 describe('Billing Routes', () => {
@@ -43,29 +54,27 @@ describe('Billing Routes', () => {
   // ─── POST /subscribe ─────────────────────────────────────────────────
 
   describe('POST /subscribe', () => {
-    it('returns 401 without auth token', async () => {
+    it('returns 401 without internal secret', async () => {
       const res = await request(app).post('/subscribe');
       expect(res.status).toBe(401);
-      expect(res.body.error).toBe('No token provided');
+      expect(res.body.error).toBe('Unauthorized');
     });
 
-    it('returns 401 with invalid token', async () => {
-      const res = await request(app)
-        .post('/subscribe')
-        .set('Authorization', 'Bearer invalid-token');
+    it('returns 401 with wrong internal secret', async () => {
+      const res = await request(app).post('/subscribe').set('x-internal-secret', 'wrong-secret');
       expect(res.status).toBe(401);
     });
 
-    it('creates subscription and returns payment link with valid token', async () => {
+    it('creates subscription and returns payment link with valid headers', async () => {
       const userId = new mongoose.Types.ObjectId().toString();
-      const token = signToken({ sub: userId, email: 'test@example.com', name: 'Test' });
+      const headers = internalHeaders({ sub: userId, email: 'test@example.com', name: 'Test' });
 
       (razorpay.subscriptions.create as jest.Mock).mockResolvedValue({
         id: 'sub_route_test',
         short_url: 'https://rzp.io/route-test',
       });
 
-      const res = await request(app).post('/subscribe').set('Authorization', `Bearer ${token}`);
+      const res = await request(app).post('/subscribe').set(headers);
 
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('success');
@@ -77,16 +86,20 @@ describe('Billing Routes', () => {
   // ─── GET /status ──────────────────────────────────────────────────────
 
   describe('GET /status', () => {
-    it('returns 401 without auth token', async () => {
+    it('returns 401 without internal secret', async () => {
       const res = await request(app).get('/status');
       expect(res.status).toBe(401);
     });
 
     it('returns free plan for user with no subscription', async () => {
       const user = await User.create({ email: 'free@test.com', plan: 'free' });
-      const token = signToken({ sub: user._id.toString(), email: user.email, name: 'Free' });
+      const headers = internalHeaders({
+        sub: user._id.toString(),
+        email: user.email,
+        name: 'Free',
+      });
 
-      const res = await request(app).get('/status').set('Authorization', `Bearer ${token}`);
+      const res = await request(app).get('/status').set(headers);
 
       expect(res.status).toBe(200);
       expect(res.body.data.plan).toBe('free');

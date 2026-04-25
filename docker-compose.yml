@@ -38,6 +38,9 @@ services:
       AUTH_SERVICE_URL: http://auth:4001
       DRAFTING_SERVICE_URL: http://drafting:4002
       BILLING_SERVICE_URL: http://billing:4003
+      REDIS_URL: ${REDIS_URL:-redis://localhost:6379}
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:-dev-internal-secret-change-me-32chars}
     ports:
       - '4000:4000'
     volumes:
@@ -63,6 +66,8 @@ services:
       NODE_ENV: development
       PORT: 4001
       MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
+      REDIS_URL: ${REDIS_URL:-redis://localhost:6379}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:-dev-internal-secret-change-me-32chars}
     ports:
       - '4001:4001'
     volumes:
@@ -88,6 +93,7 @@ services:
       NODE_ENV: development
       PORT: 4002
       MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
+      INTERNAL_SECRET: ${INTERNAL_SECRET:-dev-internal-secret-change-me-32chars}
     ports:
       - '4002:4002'
     volumes:
@@ -113,6 +119,7 @@ services:
       NODE_ENV: development
       PORT: 4003
       MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
+      INTERNAL_SECRET: ${INTERNAL_SECRET:-dev-internal-secret-change-me-32chars}
     ports:
       - '4003:4003'
     volumes:

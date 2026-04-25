@@ -9,6 +9,7 @@ import app from './app';
 import { connectDatabase } from './config/database';
 import { env } from './config/env';
 import logger from './config/logger';
+import { disconnectRedis } from './config/redis';
 
 async function bootstrap() {
   try {
@@ -24,3 +25,9 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received — shutting down gracefully');
+  await disconnectRedis();
+  process.exit(0);
+});

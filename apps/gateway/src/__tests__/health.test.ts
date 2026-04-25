@@ -1,4 +1,7 @@
 import request from 'supertest';
+
+jest.mock('ioredis', () => require('ioredis-mock'));
+
 import app from '../app';
 
 describe('Gateway', () => {

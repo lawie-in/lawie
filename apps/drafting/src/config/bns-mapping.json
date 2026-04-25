@@ -1,0 +1,131 @@
+{
+  "bail_application": {
+    "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+    "sections": [
+      { "number": "480", "description": "Bail in bailable offences" },
+      { "number": "481", "description": "Bail in non-bailable offences" },
+      { "number": "482", "description": "Bail to person accused of non-bailable offence" },
+      {
+        "number": "483",
+        "description": "Special powers of High Court or Court of Session regarding bail"
+      },
+      { "number": "484", "description": "Bail when trial of offence is not concluded" },
+      { "number": "485", "description": "Cancellation of bail" },
+      { "number": "436", "description": "Direction for bail or placement under supervision" }
+    ],
+    "bns_offences": {
+      "103": "Murder",
+      "105": "Culpable homicide not amounting to murder",
+      "109": "Abetment of suicide",
+      "111": "Organised crime",
+      "113": "Terrorist act",
+      "115": "Voluntarily causing hurt",
+      "117": "Voluntarily causing grievous hurt",
+      "126": "Wrongful confinement",
+      "132": "Assault",
+      "140": "Kidnapping",
+      "141": "Abduction",
+      "190": "Dacoity",
+      "191": "Robbery",
+      "303": "Theft",
+      "308": "Extortion",
+      "316": "Criminal breach of trust",
+      "318": "Cheating",
+      "351": "Criminal intimidation"
+    }
+  },
+  "legal_notice": {
+    "act": "Code of Civil Procedure, 1908 / Bharatiya Nyaya Sanhita (BNS), 2023",
+    "sections": [
+      {
+        "number": "80",
+        "description": "Notice to government or public officer before suit",
+        "act": "CPC"
+      },
+      { "number": "106", "description": "Service of notice", "act": "Transfer of Property Act" }
+    ],
+    "bns_offences": {
+      "318": "Cheating and dishonestly inducing delivery of property",
+      "316": "Criminal breach of trust",
+      "308": "Extortion",
+      "351": "Criminal intimidation",
+      "356": "Defamation"
+    }
+  },
+  "petition": {
+    "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 / Constitution of India",
+    "sections": [
+      { "number": "528", "description": "High Court's inherent powers" },
+      { "number": "442", "description": "Direction by Sessions Judge" }
+    ]
+  },
+  "affidavit": {
+    "act": "Oaths Act, 1969 / Bharatiya Sakshya Adhiniyam (BSA), 2023",
+    "sections": [{ "number": "85", "description": "Affidavit", "act": "BSA" }]
+  },
+  "complaint": {
+    "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+    "sections": [
+      { "number": "173", "description": "Information in cognizable cases" },
+      { "number": "175", "description": "Police officer's power to investigate cognizable case" },
+      { "number": "223", "description": "Complaint to Magistrate" },
+      { "number": "226", "description": "Examination of complainant" }
+    ]
+  },
+  "plaint": {
+    "act": "Code of Civil Procedure, 1908",
+    "sections": [
+      {
+        "number": "Order VII Rule 1",
+        "description": "Particulars to be contained in plaint",
+        "act": "CPC"
+      },
+      {
+        "number": "Order VII Rule 14",
+        "description": "Production of document on which plaintiff sues",
+        "act": "CPC"
+      }
+    ]
+  },
+  "written_statement": {
+    "act": "Code of Civil Procedure, 1908",
+    "sections": [
+      { "number": "Order VIII Rule 1", "description": "Written statement", "act": "CPC" },
+      { "number": "Order VIII Rule 6", "description": "Particulars of set-off", "act": "CPC" }
+    ]
+  },
+  "injunction": {
+    "act": "Specific Relief Act, 1963 / Code of Civil Procedure, 1908",
+    "sections": [
+      { "number": "37", "description": "Kinds of injunctions", "act": "Specific Relief Act" },
+      {
+        "number": "38",
+        "description": "Perpetual injunctions when granted",
+        "act": "Specific Relief Act"
+      },
+      { "number": "39", "description": "Mandatory injunctions", "act": "Specific Relief Act" },
+      {
+        "number": "Order XXXIX Rule 1",
+        "description": "Cases in which temporary injunction may be granted",
+        "act": "CPC"
+      },
+      {
+        "number": "Order XXXIX Rule 2",
+        "description": "Injunction to restrain repetition or continuance of breach",
+        "act": "CPC"
+      }
+    ]
+  },
+  "vakalatnama": {
+    "act": "Advocates Act, 1961",
+    "sections": [
+      { "number": "30", "description": "Right of advocates to practise", "act": "Advocates Act" }
+    ]
+  },
+  "reply": {
+    "act": "Code of Civil Procedure, 1908",
+    "sections": [
+      { "number": "Order VIII Rule 9", "description": "Subsequent pleadings", "act": "CPC" }
+    ]
+  }
+}

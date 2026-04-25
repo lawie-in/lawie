@@ -6,7 +6,7 @@ const envSchema = z.object({
 
   MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
 
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 chars'),
+  INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
 
   RAZORPAY_KEY_ID: z.string().min(1, 'RAZORPAY_KEY_ID is required'),
   RAZORPAY_KEY_SECRET: z.string().min(1, 'RAZORPAY_KEY_SECRET is required'),

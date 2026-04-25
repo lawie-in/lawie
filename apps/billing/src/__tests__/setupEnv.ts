@@ -1,7 +1,7 @@
 process.env.NODE_ENV = 'test';
 process.env.PORT = '4003';
 process.env.MONGO_URI = 'mongodb://placeholder:27017/test';
-process.env.JWT_SECRET = 'test-jwt-secret-key-at-least-32-chars-long';
+process.env.INTERNAL_SECRET = 'test-internal-secret-at-least-16';
 process.env.RAZORPAY_KEY_ID = 'rzp_test_dummy_key_id';
 process.env.RAZORPAY_KEY_SECRET = 'rzp_test_dummy_key_secret';
 process.env.RAZORPAY_PLAN_ID = 'plan_test_dummy_plan_id';

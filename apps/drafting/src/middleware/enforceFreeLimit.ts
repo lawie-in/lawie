@@ -2,8 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 
 import { Generation } from '../models/Generation.model';
 
-// Free tier: 3 document generations per calendar month
-export const FREE_TIER_MONTHLY_LIMIT = 3;
+// Free tier: 5 document generations per calendar month (Ajay/CLO — SCRUM-10)
+export const FREE_TIER_MONTHLY_LIMIT = 5;
 
 export async function enforceFreeLimit(
   req: Request,
