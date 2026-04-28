@@ -11,6 +11,8 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://demo.lawie.in
     container_name: lawie_web
     restart: unless-stopped
     env_file: .env.demo
