@@ -1,55 +1,11 @@
 # Demo compose — single EC2 t3.micro (2 vCPU, 1GB RAM)
-# Everything runs on the box: Mongo, Redis, Nginx, 4 services.
+# MongoDB Atlas (free tier) + Redis Cloud — no local DB containers needed.
 # Builds from source — no ECR needed.
 #
 # Setup: docs/demo-deploy.md
 # Run:   docker compose -f docker-compose.demo.yml up -d --build
 
 services:
-  # ── MongoDB ────────────────────────────────────────────────────────────────
-  mongo:
-    image: mongo:7.0
-    container_name: lawie_mongo
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS:-changeme}
-      MONGO_INITDB_DATABASE: lawie
-    volumes:
-      - mongo_data:/data/db
-      - ./docker/mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
-    networks:
-      - lawie_demo
-    healthcheck:
-      test: ['CMD', 'mongosh', '--eval', 'db.adminCommand("ping")']
-      interval: 30s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-
-  # ── Redis ──────────────────────────────────────────────────────────────────
-  redis:
-    image: redis:7.4-alpine
-    container_name: lawie_redis
-    restart: unless-stopped
-    command: redis-server --maxmemory 48mb --maxmemory-policy allkeys-lru
-    volumes:
-      - redis_data:/data
-    networks:
-      - lawie_demo
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 30s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 64M
-
   # ── Nginx — SSL termination + routing ──────────────────────────────────────
   nginx:
     image: nginx:1.27-alpine
@@ -86,7 +42,6 @@ services:
       AUTH_SERVICE_URL: http://auth:4001
       DRAFTING_SERVICE_URL: http://drafting:4002
       BILLING_SERVICE_URL: http://billing:4003
-      REDIS_URL: redis://redis:6379
     networks:
       - lawie_demo
     healthcheck:
@@ -94,9 +49,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    depends_on:
-      redis:
-        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -113,8 +65,6 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4001
-      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
-      REDIS_URL: redis://redis:6379
     networks:
       - lawie_demo
     healthcheck:
@@ -122,11 +72,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    depends_on:
-      mongo:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -143,8 +88,6 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4002
-      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
-      REDIS_URL: redis://redis:6379
     networks:
       - lawie_demo
     healthcheck:
@@ -152,11 +95,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    depends_on:
-      mongo:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -173,7 +111,6 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4003
-      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
     networks:
       - lawie_demo
     healthcheck:
@@ -181,17 +118,10 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    depends_on:
-      mongo:
-        condition: service_healthy
     deploy:
       resources:
         limits:
           memory: 128M
-
-volumes:
-  mongo_data:
-  redis_data:
 
 networks:
   lawie_demo:
