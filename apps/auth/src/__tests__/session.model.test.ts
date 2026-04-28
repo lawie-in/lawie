@@ -5,6 +5,10 @@ import mongoose from 'mongoose';
 import { Session } from '../models/Session.model';
 
 describe('Session model', () => {
+  beforeAll(async () => {
+    await Session.syncIndexes();
+  });
+
   const validSession = {
     userId: new mongoose.Types.ObjectId(),
     jwtTokenHash: 'sha256_hash_of_jwt_token_abc123',

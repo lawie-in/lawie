@@ -5,6 +5,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4002),
 
   MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
+  REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
 
   INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
 
@@ -14,10 +15,11 @@ const envSchema = z.object({
     .length(64, 'ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)')
     .regex(/^[0-9a-fA-F]+$/, 'ENCRYPTION_KEY must be a valid hex string'),
 
-  // Anthropic API key — drafting service only
-  ANTHROPIC_API_KEY: z.string().min(20, 'ANTHROPIC_API_KEY is required'),
+  // Anthropic API key — drafting service only (required in staging/prod)
+  ANTHROPIC_API_KEY: z.string().default(''),
 
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+  SENTRY_DSN: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

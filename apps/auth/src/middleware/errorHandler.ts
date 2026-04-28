@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import { Request, Response, NextFunction } from 'express';
 
 import logger from '../config/logger';
@@ -28,6 +29,11 @@ export function errorHandler(
     req: { method: req.method, url: req.url, ip: req.ip },
     statusCode,
   });
+
+  // Send non-operational (unexpected) errors to Sentry
+  if (!isAppError || !err.isOperational) {
+    Sentry.captureException(err);
+  }
 
   res.status(statusCode).json({
     status: 'error',

@@ -1,9 +1,11 @@
+import * as Sentry from '@sentry/node';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 
 import logger from './config/logger';
 import documentsRoutes from './routes/documents.routes';
+import sectionsRoutes from './routes/sections.routes';
 import templatesRoutes from './routes/templates.routes';
 
 const app = express();
@@ -17,7 +19,10 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/', documentsRoutes);
+app.use('/sections', sectionsRoutes);
 app.use('/templates', templatesRoutes);
+
+Sentry.setupExpressErrorHandler(app);
 
 app.use((req, res) => {
   logger.debug({ method: req.method, url: req.url }, 'Route not found');

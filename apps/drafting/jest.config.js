@@ -6,6 +6,9 @@ module.exports = {
   displayName: 'drafting',
   rootDir: '.',
   setupFiles: ['./src/__tests__/setupEnv.ts'],
+  moduleNameMapper: {
+    '^ioredis$': 'ioredis-mock',
+  },
   // Only health check tests for now — coverage improves as feature tests are added per ticket
   coverageThreshold: {
     global: {

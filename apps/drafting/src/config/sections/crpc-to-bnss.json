@@ -1,0 +1,1143 @@
+{
+  "meta": {
+    "old_code": "CrPC",
+    "old_code_full": "Code of Criminal Procedure, 1973",
+    "new_code": "BNSS",
+    "new_code_full": "Bharatiya Nagarik Suraksha Sanhita, 2023",
+    "act_number": "Act No. 46 of 2023",
+    "effective_date": "2024-07-01",
+    "total_old_sections": 484,
+    "total_new_sections": 531,
+    "validated_by": "Pending CLO review",
+    "last_updated": "2026-04-26"
+  },
+  "mappings": {
+    "1": {
+      "new": "1",
+      "old_title": "Short title, extent and commencement",
+      "new_title": "Short title, extent and commencement",
+      "type": "direct"
+    },
+    "2": { "new": "2", "old_title": "Definitions", "new_title": "Definitions", "type": "direct" },
+    "3": {
+      "new": "3",
+      "old_title": "Construction of references",
+      "new_title": "Construction of references",
+      "type": "direct"
+    },
+    "4": {
+      "new": "4",
+      "old_title": "Trial of offences under IPC and other laws",
+      "new_title": "Trial of offences under BNS and other laws",
+      "type": "direct"
+    },
+    "5": { "new": "5", "old_title": "Saving", "new_title": "Saving", "type": "direct" },
+    "6": {
+      "new": "6",
+      "old_title": "Classes of Criminal Courts",
+      "new_title": "Classes of Criminal Courts",
+      "type": "direct"
+    },
+    "7": {
+      "new": "7",
+      "old_title": "Territorial divisions",
+      "new_title": "Territorial divisions",
+      "type": "direct"
+    },
+    "9": {
+      "new": "9",
+      "old_title": "Court of Session",
+      "new_title": "Court of Session",
+      "type": "direct"
+    },
+    "10": {
+      "new": "10",
+      "old_title": "Assistant Sessions Judges",
+      "new_title": "Assistant Sessions Judges",
+      "type": "direct"
+    },
+    "11": {
+      "new": "11",
+      "old_title": "Courts of Judicial Magistrates",
+      "new_title": "Courts of Judicial Magistrates",
+      "type": "direct"
+    },
+    "12": {
+      "new": "12",
+      "old_title": "Chief Judicial Magistrate and Additional Chief Judicial Magistrate",
+      "new_title": "Chief Judicial Magistrate and Additional Chief Judicial Magistrate",
+      "type": "direct"
+    },
+    "13": {
+      "new": "13",
+      "old_title": "Courts of Metropolitan Magistrates",
+      "new_title": "Courts of Metropolitan Magistrates",
+      "type": "direct"
+    },
+    "14": {
+      "new": "14",
+      "old_title": "Chief Metropolitan Magistrate",
+      "new_title": "Chief Metropolitan Magistrate",
+      "type": "direct"
+    },
+    "15": {
+      "new": "15",
+      "old_title": "Special Judicial Magistrates",
+      "new_title": "Special Judicial Magistrates",
+      "type": "direct"
+    },
+    "16": {
+      "new": "16",
+      "old_title": "Courts of Executive Magistrates",
+      "new_title": "Courts of Executive Magistrates",
+      "type": "direct"
+    },
+    "20": {
+      "new": "20",
+      "old_title": "Executive Magistrates",
+      "new_title": "Executive Magistrates",
+      "type": "direct"
+    },
+    "24": {
+      "new": "24",
+      "old_title": "Public Prosecutors",
+      "new_title": "Public Prosecutors",
+      "type": "direct"
+    },
+    "25": {
+      "new": "25",
+      "old_title": "Assistant Public Prosecutors",
+      "new_title": "Assistant Public Prosecutors",
+      "type": "direct"
+    },
+    "26": {
+      "new": "26",
+      "old_title": "Courts by which offences are triable",
+      "new_title": "Courts by which offences are triable",
+      "type": "direct"
+    },
+    "29": {
+      "new": "29",
+      "old_title": "Sentences which Magistrates may pass",
+      "new_title": "Sentences which Magistrates may pass",
+      "type": "direct"
+    },
+    "41": {
+      "new": "35",
+      "old_title": "When police may arrest without warrant",
+      "new_title": "When police may arrest without warrant",
+      "type": "direct"
+    },
+    "41A": {
+      "new": "35(3)",
+      "old_title": "Notice of appearance before police officer",
+      "new_title": "Notice of appearance before police officer",
+      "type": "merged"
+    },
+    "41B": {
+      "new": "37",
+      "old_title": "Procedure of arrest and duties of officer making arrest",
+      "new_title": "Procedure of arrest and duties of officer making arrest",
+      "type": "direct"
+    },
+    "41C": {
+      "new": "37(2)",
+      "old_title": "Control room at districts",
+      "new_title": "Control room at districts",
+      "type": "merged"
+    },
+    "41D": {
+      "new": "36",
+      "old_title": "Right of arrested person to meet an advocate of his choice during interrogation",
+      "new_title": "Right of arrested person to meet advocate during interrogation",
+      "type": "direct"
+    },
+    "42": {
+      "new": "38",
+      "old_title": "Arrest on refusal to give name and residence",
+      "new_title": "Arrest on refusal to give name and residence",
+      "type": "direct"
+    },
+    "43": {
+      "new": "39",
+      "old_title": "Arrest by private person and procedure on such arrest",
+      "new_title": "Arrest by private person",
+      "type": "direct"
+    },
+    "44": {
+      "new": "40",
+      "old_title": "Arrest by Magistrate",
+      "new_title": "Arrest by Magistrate",
+      "type": "direct"
+    },
+    "45": {
+      "new": "41",
+      "old_title": "Protection of members of the Armed Forces from arrest",
+      "new_title": "Protection of members of Armed Forces from arrest",
+      "type": "direct"
+    },
+    "46": {
+      "new": "42",
+      "old_title": "How arrests are made",
+      "new_title": "How arrests are made",
+      "type": "direct"
+    },
+    "47": {
+      "new": "43",
+      "old_title": "Search of place entered by person sought to be arrested",
+      "new_title": "Search of place entered by person sought to be arrested",
+      "type": "direct"
+    },
+    "49": {
+      "new": "45",
+      "old_title": "No unnecessary restraint",
+      "new_title": "No unnecessary restraint",
+      "type": "direct"
+    },
+    "50": {
+      "new": "46",
+      "old_title": "Person arrested to be informed of grounds of arrest and of right to bail",
+      "new_title": "Person arrested to be informed of grounds of arrest and right to bail",
+      "type": "direct"
+    },
+    "50A": {
+      "new": "47",
+      "old_title": "Obligation of person making arrest to inform about the arrest",
+      "new_title": "Obligation of person making arrest to inform about arrest",
+      "type": "direct"
+    },
+    "51": {
+      "new": "48",
+      "old_title": "Search of arrested persons",
+      "new_title": "Search of arrested persons",
+      "type": "direct"
+    },
+    "54": {
+      "new": "51",
+      "old_title": "Examination of person in custody by medical practitioner",
+      "new_title": "Examination of arrested person by medical practitioner",
+      "type": "direct"
+    },
+    "55": {
+      "new": "52",
+      "old_title": "Procedure when police officer deputes subordinate to arrest without warrant",
+      "new_title": "Procedure when police officer deputes subordinate to arrest without warrant",
+      "type": "direct"
+    },
+    "56": {
+      "new": "53",
+      "old_title": "Person arrested to be taken before Magistrate or officer in charge of police station",
+      "new_title": "Person arrested to be taken before Magistrate or officer in charge of police station",
+      "type": "direct"
+    },
+    "57": {
+      "new": "54",
+      "old_title": "Person arrested not to be detained more than twenty-four hours",
+      "new_title": "Person arrested not to be detained more than twenty-four hours",
+      "type": "direct"
+    },
+    "61": {
+      "new": "60",
+      "old_title": "Form of summons",
+      "new_title": "Form of summons",
+      "type": "direct"
+    },
+    "62": {
+      "new": "61",
+      "old_title": "Summons how served",
+      "new_title": "Summons how served",
+      "type": "direct"
+    },
+    "70": {
+      "new": "68",
+      "old_title": "Form of warrant of arrest and duration",
+      "new_title": "Form of warrant of arrest and duration",
+      "type": "direct"
+    },
+    "72": {
+      "new": "70",
+      "old_title": "Warrant to whom directed",
+      "new_title": "Warrant to whom directed",
+      "type": "direct"
+    },
+    "73": {
+      "new": "71",
+      "old_title": "Warrant may be directed to any person",
+      "new_title": "Warrant may be directed to any person",
+      "type": "direct"
+    },
+    "75": {
+      "new": "73",
+      "old_title": "Notification of substance of warrant",
+      "new_title": "Notification of substance of warrant",
+      "type": "direct"
+    },
+    "82": {
+      "new": "84",
+      "old_title": "Proclamation for person absconding",
+      "new_title": "Proclamation for person absconding",
+      "type": "direct"
+    },
+    "83": {
+      "new": "85",
+      "old_title": "Attachment of property of person absconding",
+      "new_title": "Attachment of property of person absconding",
+      "type": "direct"
+    },
+    "91": {
+      "new": "94",
+      "old_title": "Summons to produce document or other thing",
+      "new_title": "Summons to produce document or other thing",
+      "type": "direct"
+    },
+    "93": {
+      "new": "96",
+      "old_title": "When search-warrant may be issued",
+      "new_title": "When search-warrant may be issued",
+      "type": "direct"
+    },
+    "94": {
+      "new": "97",
+      "old_title": "Search warrant for document, parcel or thing in custody of postal or telegraph authority",
+      "new_title": "Search warrant for document, parcel or thing in custody of postal or telegraph authority",
+      "type": "direct"
+    },
+    "96": {
+      "new": "99",
+      "old_title": "Application for search-warrant to court when search-warrant may issue",
+      "new_title": "Application for search-warrant to court",
+      "type": "direct"
+    },
+    "97": {
+      "new": "100",
+      "old_title": "Search for persons wrongfully confined",
+      "new_title": "Search for persons wrongfully confined",
+      "type": "direct"
+    },
+    "100": {
+      "new": "103",
+      "old_title": "Persons in charge of closed place to allow search",
+      "new_title": "Persons in charge of closed place to allow search",
+      "type": "direct"
+    },
+    "102": {
+      "new": "105",
+      "old_title": "Power of police officer to seize certain property",
+      "new_title": "Power of police officer to seize certain property",
+      "type": "direct"
+    },
+    "107": {
+      "new": "126",
+      "old_title": "Security for keeping the peace in other cases",
+      "new_title": "Security for keeping the peace in other cases",
+      "type": "direct"
+    },
+    "110": {
+      "new": "129",
+      "old_title": "Security for good behaviour from habitual offenders",
+      "new_title": "Security for good behaviour from habitual offenders",
+      "type": "direct"
+    },
+    "125": {
+      "new": "144",
+      "old_title": "Order for maintenance of wives, children and parents",
+      "new_title": "Order for maintenance of wives, children and parents",
+      "type": "direct"
+    },
+    "126": {
+      "new": "145",
+      "old_title": "Procedure for maintenance",
+      "new_title": "Procedure for maintenance",
+      "type": "direct"
+    },
+    "127": {
+      "new": "146",
+      "old_title": "Alteration in allowance",
+      "new_title": "Alteration in allowance",
+      "type": "direct"
+    },
+    "128": {
+      "new": "147",
+      "old_title": "Enforcement of order of maintenance",
+      "new_title": "Enforcement of order of maintenance",
+      "type": "direct"
+    },
+    "129": {
+      "new": "148",
+      "old_title": "Order for maintenance of wives etc — limitation",
+      "new_title": "Limitation on granting maintenance",
+      "type": "direct"
+    },
+    "133": {
+      "new": "163",
+      "old_title": "Conditional order for removal of nuisance",
+      "new_title": "Conditional order for removal of nuisance",
+      "type": "direct"
+    },
+    "144": {
+      "new": "163",
+      "old_title": "Power to issue order in urgent cases of nuisance or apprehended danger",
+      "new_title": "Power to issue order in urgent cases of nuisance or apprehended danger",
+      "type": "direct"
+    },
+    "145": {
+      "new": "164",
+      "old_title": "Procedure where dispute concerning land or water",
+      "new_title": "Procedure where dispute concerning land or water",
+      "type": "direct"
+    },
+    "154": {
+      "new": "173",
+      "old_title": "Information in cases of cognizable offences (FIR)",
+      "new_title": "Information in cognizable cases (FIR)",
+      "type": "direct"
+    },
+    "155": {
+      "new": "174",
+      "old_title": "Information as to non-cognizable cases and investigation of such cases",
+      "new_title": "Information as to non-cognizable cases",
+      "type": "direct"
+    },
+    "156": {
+      "new": "175",
+      "old_title": "Police officer's power to investigate cognizable cases",
+      "new_title": "Police officer's power to investigate cognizable cases",
+      "type": "direct"
+    },
+    "157": {
+      "new": "176",
+      "old_title": "Procedure for investigation",
+      "new_title": "Procedure for investigation",
+      "type": "direct"
+    },
+    "158": {
+      "new": "177",
+      "old_title": "Report how submitted",
+      "new_title": "Report how submitted",
+      "type": "direct"
+    },
+    "159": {
+      "new": "178",
+      "old_title": "Power to hold investigation or preliminary inquiry",
+      "new_title": "Power to hold investigation or preliminary inquiry",
+      "type": "direct"
+    },
+    "160": {
+      "new": "179",
+      "old_title": "Police officer's power to require attendance of witnesses",
+      "new_title": "Police officer's power to require attendance of witnesses",
+      "type": "direct"
+    },
+    "161": {
+      "new": "180",
+      "old_title": "Examination of witnesses by police",
+      "new_title": "Examination of witnesses by police",
+      "type": "direct"
+    },
+    "162": {
+      "new": "181",
+      "old_title": "Statements to police not to be signed: Use of statements in evidence",
+      "new_title": "Statements to police not to be signed",
+      "type": "direct"
+    },
+    "163": {
+      "new": "182",
+      "old_title": "No inducement to be offered",
+      "new_title": "No inducement to be offered",
+      "type": "direct"
+    },
+    "164": {
+      "new": "183",
+      "old_title": "Recording of confessions and statements",
+      "new_title": "Recording of confessions and statements",
+      "type": "direct"
+    },
+    "164A": {
+      "new": "184",
+      "old_title": "Medical examination of the victim of rape",
+      "new_title": "Medical examination of victim of rape",
+      "type": "direct"
+    },
+    "165": {
+      "new": "185",
+      "old_title": "Search by police officer",
+      "new_title": "Search by police officer",
+      "type": "direct"
+    },
+    "167": {
+      "new": "187",
+      "old_title": "Procedure when investigation cannot be completed in twenty-four hours",
+      "new_title": "Procedure when investigation cannot be completed in twenty-four hours",
+      "type": "direct"
+    },
+    "169": {
+      "new": "189",
+      "old_title": "Release of accused when evidence is deficient",
+      "new_title": "Release of accused when evidence is deficient",
+      "type": "direct"
+    },
+    "170": {
+      "new": "190",
+      "old_title": "Cases to be sent to Magistrate when evidence is sufficient",
+      "new_title": "Cases to be sent to Magistrate when evidence is sufficient",
+      "type": "direct"
+    },
+    "173": {
+      "new": "193",
+      "old_title": "Report of police officer on completion of investigation (Charge sheet)",
+      "new_title": "Report of police officer on completion of investigation (Charge sheet)",
+      "type": "direct"
+    },
+    "174": {
+      "new": "194",
+      "old_title": "Police to inquire and report on suicide",
+      "new_title": "Police to inquire and report on suicide etc.",
+      "type": "direct"
+    },
+    "175": {
+      "new": "195",
+      "old_title": "Power to summon persons",
+      "new_title": "Power to summon persons",
+      "type": "direct"
+    },
+    "176": {
+      "new": "196",
+      "old_title": "Inquiry by Magistrate into cause of death",
+      "new_title": "Inquiry by Magistrate into cause of death",
+      "type": "direct"
+    },
+    "177": {
+      "new": "197",
+      "old_title": "Ordinary place of inquiry and trial",
+      "new_title": "Ordinary place of inquiry and trial",
+      "type": "direct"
+    },
+    "190": {
+      "new": "210",
+      "old_title": "Cognizance of offences by Magistrates",
+      "new_title": "Cognizance of offences by Magistrates",
+      "type": "direct"
+    },
+    "191": {
+      "new": "211",
+      "old_title": "Transfer on application of the accused",
+      "new_title": "Transfer on application of accused",
+      "type": "direct"
+    },
+    "192": {
+      "new": "212",
+      "old_title": "Making over of cases to Magistrates",
+      "new_title": "Making over cases to Magistrates",
+      "type": "direct"
+    },
+    "193": {
+      "new": "213",
+      "old_title": "Cognizance of offences by Courts of Session",
+      "new_title": "Cognizance of offences by Courts of Session",
+      "type": "direct"
+    },
+    "200": {
+      "new": "223",
+      "old_title": "Examination of complainant",
+      "new_title": "Examination of complainant",
+      "type": "direct"
+    },
+    "202": {
+      "new": "225",
+      "old_title": "Postponement of issue of process",
+      "new_title": "Postponement of issue of process",
+      "type": "direct"
+    },
+    "203": {
+      "new": "226",
+      "old_title": "Dismissal of complaint",
+      "new_title": "Dismissal of complaint",
+      "type": "direct"
+    },
+    "204": {
+      "new": "227",
+      "old_title": "Issue of process",
+      "new_title": "Issue of process",
+      "type": "direct"
+    },
+    "205": {
+      "new": "228",
+      "old_title": "Magistrate may dispense with personal attendance of accused",
+      "new_title": "Magistrate may dispense with personal attendance of accused",
+      "type": "direct"
+    },
+    "207": {
+      "new": "230",
+      "old_title": "Supply to the accused of copy of police report and other documents",
+      "new_title": "Supply to accused of copy of police report and other documents",
+      "type": "direct"
+    },
+    "208": {
+      "new": "231",
+      "old_title": "Supply of copies of statements and documents to accused in other cases triable by Court of Session",
+      "new_title": "Supply of copies to accused in cases triable by Court of Session",
+      "type": "direct"
+    },
+    "209": {
+      "new": "232",
+      "old_title": "Commitment of case to Court of Session when offence is triable exclusively by it",
+      "new_title": "Commitment of case to Court of Session",
+      "type": "direct"
+    },
+    "225": {
+      "new": "251",
+      "old_title": "Trial before a Court of Session — Trial to be conducted by Public Prosecutor",
+      "new_title": "Trial before Court of Session conducted by Public Prosecutor",
+      "type": "direct"
+    },
+    "226": {
+      "new": "252",
+      "old_title": "Opening case for prosecution",
+      "new_title": "Opening case for prosecution",
+      "type": "direct"
+    },
+    "227": { "new": "253", "old_title": "Discharge", "new_title": "Discharge", "type": "direct" },
+    "228": {
+      "new": "254",
+      "old_title": "Framing of charge",
+      "new_title": "Framing of charge",
+      "type": "direct"
+    },
+    "229": {
+      "new": "255",
+      "old_title": "Conviction on plea of guilty",
+      "new_title": "Conviction on plea of guilty",
+      "type": "direct"
+    },
+    "230": {
+      "new": "256",
+      "old_title": "Date for prosecution evidence",
+      "new_title": "Date for prosecution evidence",
+      "type": "direct"
+    },
+    "231": {
+      "new": "257",
+      "old_title": "Evidence for prosecution",
+      "new_title": "Evidence for prosecution",
+      "type": "direct"
+    },
+    "232": { "new": "258", "old_title": "Acquittal", "new_title": "Acquittal", "type": "direct" },
+    "233": {
+      "new": "259",
+      "old_title": "Entering upon defence",
+      "new_title": "Entering upon defence",
+      "type": "direct"
+    },
+    "234": { "new": "260", "old_title": "Arguments", "new_title": "Arguments", "type": "direct" },
+    "235": {
+      "new": "261",
+      "old_title": "Judgment of acquittal or conviction",
+      "new_title": "Judgment of acquittal or conviction",
+      "type": "direct"
+    },
+    "239": {
+      "new": "268",
+      "old_title": "When accused shall be discharged — warrant cases by police",
+      "new_title": "When accused shall be discharged",
+      "type": "direct"
+    },
+    "240": {
+      "new": "269",
+      "old_title": "Framing of charge — warrant cases",
+      "new_title": "Framing of charge",
+      "type": "direct"
+    },
+    "241": {
+      "new": "270",
+      "old_title": "Conviction on plea of guilty — warrant cases",
+      "new_title": "Conviction on plea of guilty",
+      "type": "direct"
+    },
+    "242": {
+      "new": "271",
+      "old_title": "Evidence for prosecution — warrant cases",
+      "new_title": "Evidence for prosecution",
+      "type": "direct"
+    },
+    "243": {
+      "new": "272",
+      "old_title": "Evidence for defence — warrant cases",
+      "new_title": "Evidence for defence",
+      "type": "direct"
+    },
+    "244": {
+      "new": "273",
+      "old_title": "Evidence for prosecution — warrant cases on complaint",
+      "new_title": "Evidence for prosecution",
+      "type": "direct"
+    },
+    "245": {
+      "new": "274",
+      "old_title": "When accused shall be discharged — warrant cases on complaint",
+      "new_title": "When accused shall be discharged",
+      "type": "direct"
+    },
+    "246": {
+      "new": "275",
+      "old_title": "Procedure where accused is not discharged — warrant cases on complaint",
+      "new_title": "Procedure where accused is not discharged",
+      "type": "direct"
+    },
+    "247": {
+      "new": "276",
+      "old_title": "Evidence for defence — warrant cases on complaint",
+      "new_title": "Evidence for defence",
+      "type": "direct"
+    },
+    "248": {
+      "new": "277",
+      "old_title": "Acquittal or conviction",
+      "new_title": "Acquittal or conviction",
+      "type": "direct"
+    },
+    "251": {
+      "new": "283",
+      "old_title": "Substance of accusation to be stated — summons cases",
+      "new_title": "Substance of accusation to be stated",
+      "type": "direct"
+    },
+    "252": {
+      "new": "284",
+      "old_title": "Conviction on plea of guilty — summons cases",
+      "new_title": "Conviction on plea of guilty",
+      "type": "direct"
+    },
+    "254": {
+      "new": "286",
+      "old_title": "Procedure for trial — summons cases",
+      "new_title": "Procedure for trial",
+      "type": "direct"
+    },
+    "255": {
+      "new": "287",
+      "old_title": "Acquittal or conviction — summons cases",
+      "new_title": "Acquittal or conviction",
+      "type": "direct"
+    },
+    "256": {
+      "new": "288",
+      "old_title": "Non-appearance or death of complainant — summons cases",
+      "new_title": "Non-appearance or death of complainant",
+      "type": "direct"
+    },
+    "260": {
+      "new": "292",
+      "old_title": "Summary trials — who may try summarily",
+      "new_title": "Summary trials",
+      "type": "direct"
+    },
+    "262": {
+      "new": "294",
+      "old_title": "Procedure for summary trials",
+      "new_title": "Procedure for summary trials",
+      "type": "direct"
+    },
+    "265A": {
+      "new": "290",
+      "old_title": "Application for plea bargaining",
+      "new_title": "Application for plea bargaining",
+      "type": "direct"
+    },
+    "265B": {
+      "new": "291",
+      "old_title": "Guidelines for plea bargaining",
+      "new_title": "Guidelines for plea bargaining",
+      "type": "direct"
+    },
+    "300": {
+      "new": "337",
+      "old_title": "Person once convicted or acquitted not to be tried for same offence",
+      "new_title": "Person once convicted or acquitted not to be tried for same offence",
+      "type": "direct"
+    },
+    "301": {
+      "new": "338",
+      "old_title": "Appearance by Public Prosecutors",
+      "new_title": "Appearance by Public Prosecutors",
+      "type": "direct"
+    },
+    "302": {
+      "new": "339",
+      "old_title": "Permission to conduct prosecution",
+      "new_title": "Permission to conduct prosecution",
+      "type": "direct"
+    },
+    "306": {
+      "new": "343",
+      "old_title": "Tender of pardon to accomplice",
+      "new_title": "Tender of pardon to accomplice",
+      "type": "direct"
+    },
+    "309": {
+      "new": "346",
+      "old_title": "Power to postpone or adjourn proceedings",
+      "new_title": "Power to postpone or adjourn proceedings",
+      "type": "direct"
+    },
+    "311": {
+      "new": "348",
+      "old_title": "Power to summon material witness or examine person present",
+      "new_title": "Power to summon material witness or examine person present",
+      "type": "direct"
+    },
+    "313": {
+      "new": "351",
+      "old_title": "Power to examine the accused",
+      "new_title": "Power to examine accused",
+      "type": "direct"
+    },
+    "315": {
+      "new": "353",
+      "old_title": "Accused person to be competent witness",
+      "new_title": "Accused person to be competent witness",
+      "type": "direct"
+    },
+    "319": {
+      "new": "357",
+      "old_title": "Power to proceed against other persons appearing to be guilty of offence",
+      "new_title": "Power to proceed against other persons appearing to be guilty",
+      "type": "direct"
+    },
+    "320": {
+      "new": "359",
+      "old_title": "Compounding of offences",
+      "new_title": "Compounding of offences",
+      "type": "direct"
+    },
+    "354": {
+      "new": "392",
+      "old_title": "Language and contents of judgment",
+      "new_title": "Language and contents of judgment",
+      "type": "direct"
+    },
+    "357": {
+      "new": "395",
+      "old_title": "Order to pay compensation",
+      "new_title": "Order to pay compensation",
+      "type": "direct"
+    },
+    "357A": {
+      "new": "396",
+      "old_title": "Victim compensation scheme",
+      "new_title": "Victim compensation scheme",
+      "type": "direct"
+    },
+    "360": {
+      "new": "399",
+      "old_title": "Order to release on probation of good conduct or after admonition",
+      "new_title": "Order to release on probation of good conduct or after admonition",
+      "type": "direct"
+    },
+    "362": {
+      "new": "401",
+      "old_title": "Court not to alter judgment",
+      "new_title": "Court not to alter judgment",
+      "type": "direct"
+    },
+    "363": {
+      "new": "402",
+      "old_title": "Copy of judgment to be given to the accused",
+      "new_title": "Copy of judgment to be given to accused",
+      "type": "direct"
+    },
+    "366": {
+      "new": "405",
+      "old_title": "Sentence of death to be submitted to High Court for confirmation",
+      "new_title": "Sentence of death to be submitted to High Court for confirmation",
+      "type": "direct"
+    },
+    "372": {
+      "new": "411",
+      "old_title": "No appeal to lie unless otherwise provided",
+      "new_title": "No appeal to lie unless otherwise provided",
+      "type": "direct"
+    },
+    "373": {
+      "new": "412",
+      "old_title": "Appeal from orders requiring security or refusal to accept or rejecting surety for keeping peace etc.",
+      "new_title": "Appeal from orders requiring security etc.",
+      "type": "direct"
+    },
+    "374": {
+      "new": "413",
+      "old_title": "Appeals from convictions",
+      "new_title": "Appeals from convictions",
+      "type": "direct"
+    },
+    "377": {
+      "new": "416",
+      "old_title": "Appeal by State Government against sentence",
+      "new_title": "Appeal by State Government against sentence",
+      "type": "direct"
+    },
+    "378": {
+      "new": "417",
+      "old_title": "Appeal in case of acquittal",
+      "new_title": "Appeal in case of acquittal",
+      "type": "direct"
+    },
+    "386": {
+      "new": "425",
+      "old_title": "Powers of the Appellate Court",
+      "new_title": "Powers of Appellate Court",
+      "type": "direct"
+    },
+    "389": {
+      "new": "428",
+      "old_title": "Suspension of sentence pending appeal; release of appellant on bail",
+      "new_title": "Suspension of sentence pending appeal; release on bail",
+      "type": "direct"
+    },
+    "395": {
+      "new": "434",
+      "old_title": "Reference to High Court",
+      "new_title": "Reference to High Court",
+      "type": "direct"
+    },
+    "397": {
+      "new": "436",
+      "old_title": "Calling for records to exercise powers of revision",
+      "new_title": "Calling for records to exercise powers of revision",
+      "type": "direct"
+    },
+    "399": {
+      "new": "438",
+      "old_title": "Sessions Judge's powers of revision",
+      "new_title": "Sessions Judge's powers of revision",
+      "type": "direct"
+    },
+    "401": {
+      "new": "440",
+      "old_title": "High Court's powers of revision",
+      "new_title": "High Court's powers of revision",
+      "type": "direct"
+    },
+    "406": {
+      "new": "445",
+      "old_title": "Power of Supreme Court to transfer cases and appeals",
+      "new_title": "Power of Supreme Court to transfer cases and appeals",
+      "type": "direct"
+    },
+    "407": {
+      "new": "446",
+      "old_title": "Power of High Court to transfer cases and appeals",
+      "new_title": "Power of High Court to transfer cases and appeals",
+      "type": "direct"
+    },
+    "408": {
+      "new": "447",
+      "old_title": "Power of Sessions Judge to transfer cases and appeals",
+      "new_title": "Power of Sessions Judge to transfer cases and appeals",
+      "type": "direct"
+    },
+    "413": {
+      "new": "452",
+      "old_title": "Execution of order passed under section 368",
+      "new_title": "Execution of order",
+      "type": "direct"
+    },
+    "416": {
+      "new": "455",
+      "old_title": "Postponement of execution of sentence of death in case of appeal",
+      "new_title": "Postponement of execution of sentence of death",
+      "type": "direct"
+    },
+    "417": {
+      "new": "456",
+      "old_title": "Power to appoint place of imprisonment",
+      "new_title": "Power to appoint place of imprisonment",
+      "type": "direct"
+    },
+    "421": {
+      "new": "460",
+      "old_title": "Warrant for levy of fine",
+      "new_title": "Warrant for levy of fine",
+      "type": "direct"
+    },
+    "427": {
+      "new": "466",
+      "old_title": "Sentence on offender already sentenced for another offence",
+      "new_title": "Sentence on offender already sentenced for another offence",
+      "type": "direct"
+    },
+    "428": {
+      "new": "467",
+      "old_title": "Period of detention undergone by the accused to be set off against the sentence of imprisonment",
+      "new_title": "Period of detention to be set off against sentence",
+      "type": "direct"
+    },
+    "432": {
+      "new": "471",
+      "old_title": "Power to suspend or remit sentences",
+      "new_title": "Power to suspend or remit sentences",
+      "type": "direct"
+    },
+    "433": {
+      "new": "472",
+      "old_title": "Power to commute sentence",
+      "new_title": "Power to commute sentence",
+      "type": "direct"
+    },
+    "433A": {
+      "new": "473",
+      "old_title": "Restriction on powers of remission or commutation in certain cases",
+      "new_title": "Restriction on powers of remission or commutation",
+      "type": "direct"
+    },
+    "434": {
+      "new": "474",
+      "old_title": "Concurrent power of Central Government in case of death sentences",
+      "new_title": "Concurrent power of Central Government in case of death sentences",
+      "type": "direct"
+    },
+    "436": {
+      "new": "478",
+      "old_title": "In what cases bail to be taken — bailable offences",
+      "new_title": "In what cases bail to be taken",
+      "type": "direct"
+    },
+    "437": {
+      "new": "479",
+      "old_title": "When bail may be taken in case of non-bailable offence",
+      "new_title": "When bail may be taken in non-bailable offence",
+      "type": "direct"
+    },
+    "438": {
+      "new": "482",
+      "old_title": "Direction for grant of bail to person apprehending arrest (Anticipatory bail)",
+      "new_title": "Direction for grant of bail to person apprehending arrest (Anticipatory bail)",
+      "type": "direct"
+    },
+    "439": {
+      "new": "483",
+      "old_title": "Special powers of High Court or Court of Session regarding bail",
+      "new_title": "Special powers of High Court or Court of Session regarding bail",
+      "type": "direct"
+    },
+    "440": {
+      "new": "484",
+      "old_title": "Amount of bond and reduction thereof",
+      "new_title": "Amount of bond and reduction thereof",
+      "type": "direct"
+    },
+    "441": {
+      "new": "485",
+      "old_title": "Bond of accused and sureties",
+      "new_title": "Bond of accused and sureties",
+      "type": "direct"
+    },
+    "446": {
+      "new": "490",
+      "old_title": "Procedure when bond has been forfeited",
+      "new_title": "Procedure when bond has been forfeited",
+      "type": "direct"
+    },
+    "451": {
+      "new": "495",
+      "old_title": "Order for custody and disposal of property pending trial",
+      "new_title": "Order for custody and disposal of property pending trial",
+      "type": "direct"
+    },
+    "452": {
+      "new": "496",
+      "old_title": "Order for disposal of property at conclusion of trial",
+      "new_title": "Order for disposal of property at conclusion of trial",
+      "type": "direct"
+    },
+    "457": {
+      "new": "501",
+      "old_title": "Procedure by police upon seizure of property",
+      "new_title": "Procedure by police upon seizure of property",
+      "type": "direct"
+    },
+    "460": {
+      "new": "506",
+      "old_title": "Irregularities which do not vitiate proceedings",
+      "new_title": "Irregularities which do not vitiate proceedings",
+      "type": "direct"
+    },
+    "461": {
+      "new": "507",
+      "old_title": "Irregularities which vitiate proceedings",
+      "new_title": "Irregularities which vitiate proceedings",
+      "type": "direct"
+    },
+    "468": {
+      "new": "512",
+      "old_title": "Limitation for taking cognizance of certain offences",
+      "new_title": "Limitation for taking cognizance of certain offences",
+      "type": "direct"
+    },
+    "473": {
+      "new": "517",
+      "old_title": "Extension of period of limitation in certain cases",
+      "new_title": "Extension of period of limitation in certain cases",
+      "type": "direct"
+    },
+    "475": {
+      "new": "519",
+      "old_title": "Delivery to military authorities of persons liable to be tried by Court-martial",
+      "new_title": "Delivery to military authorities of persons liable to be tried by Court-martial",
+      "type": "direct"
+    },
+    "478": {
+      "new": "522",
+      "old_title": "Not to be tried by Court-martial when once tried by a court",
+      "new_title": "Not to be tried by Court-martial when once tried by court",
+      "type": "direct"
+    },
+    "479": {
+      "new": "523",
+      "old_title": "Saving of certain rights of accused",
+      "new_title": "Saving of certain rights of accused",
+      "type": "direct"
+    },
+    "482": {
+      "new": "528",
+      "old_title": "Saving of inherent powers of High Court",
+      "new_title": "Saving of inherent powers of High Court",
+      "type": "direct"
+    },
+    "484": {
+      "new": "531",
+      "old_title": "Repeal",
+      "new_title": "Repeal and savings",
+      "type": "direct"
+    }
+  },
+  "new_provisions": {
+    "173(3)": {
+      "title": "E-FIR — information by electronic communication",
+      "notes": "New — allows filing FIR electronically"
+    },
+    "176(2)": {
+      "title": "Preliminary inquiry within 14 days for offences punishable 3-7 years",
+      "notes": "New — mandatory preliminary inquiry timeline"
+    },
+    "187(3)": {
+      "title": "Maximum 90 days custody for offences punishable with death/life/10+ years; 60 days for others",
+      "notes": "Replaces old 90/60 day formula with explicit provision"
+    },
+    "193(3)": {
+      "title": "Police report to be filed within 90 days; extendable up to 180 days by Court",
+      "notes": "New — mandatory charge sheet filing timeline"
+    },
+    "356": {
+      "title": "Mandatory supply of police report etc. to victim within 90 days",
+      "notes": "New — victim's right to information"
+    },
+    "398": {
+      "title": "Victim appeal against acquittal or inadequate compensation",
+      "notes": "New — expanded victim rights"
+    },
+    "530": {
+      "title": "Trials, inquiries and proceedings to be held in electronic mode",
+      "notes": "New — enables virtual court proceedings"
+    }
+  }
+}

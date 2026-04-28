@@ -4,6 +4,8 @@ import { Response } from 'express';
 import bnsMapping from '../config/bns-mapping.json';
 import { env } from '../config/env';
 
+import { convertOldReferencesInText } from './sections.service';
+
 const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
 const DISCLAIMER =
@@ -34,7 +36,7 @@ export interface GenerateDocumentInput {
  * Build a structured prompt for the given document type.
  * References BNS/BNSS sections (not old IPC/CrPC) where applicable.
  */
-function buildPrompt(input: GenerateDocumentInput): string {
+async function buildPrompt(input: GenerateDocumentInput): Promise<string> {
   const mapping = bnsMapping[input.docType as DocTypeKey];
   const sectionHints = mapping
     ? `\nRelevant statutory provisions under ${mapping.act}:\n` +
@@ -46,6 +48,10 @@ function buildPrompt(input: GenerateDocumentInput): string {
     .map(([role, name]) => `${role.charAt(0).toUpperCase() + role.slice(1)}: ${name}`)
     .join('\n');
 
+  // Auto-convert any old-law references (IPC/CrPC/IEA) in user input to new codes
+  const { converted: convertedFacts } = await convertOldReferencesInText(input.keyFacts);
+  const { converted: convertedRelief } = await convertOldReferencesInText(input.reliefPrayer);
+
   return `You are a senior Indian advocate drafting a court-ready legal document.
 Document type: ${input.docType.replace(/_/g, ' ').toUpperCase()}
 Court: ${input.courtName} (${input.courtType.replace(/_/g, ' ')})
@@ -54,10 +60,10 @@ Parties:
 ${partyLines || 'Not specified'}
 
 Key facts:
-${input.keyFacts}
+${convertedFacts}
 
 Relief/Prayer sought:
-${input.reliefPrayer}
+${convertedRelief}
 ${sectionHints}
 
 IMPORTANT INSTRUCTIONS:
@@ -101,7 +107,7 @@ export async function streamGenerateDocument(
   input: GenerateDocumentInput,
   res: Response,
 ): Promise<string> {
-  const prompt = buildPrompt(input);
+  const prompt = await buildPrompt(input);
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');

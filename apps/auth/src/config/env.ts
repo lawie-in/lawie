@@ -25,6 +25,7 @@ const envSchema = z.object({
   INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
 
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+  SENTRY_DSN: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

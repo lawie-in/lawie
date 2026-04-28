@@ -38,17 +38,23 @@ services:
       AUTH_SERVICE_URL: http://auth:4001
       DRAFTING_SERVICE_URL: http://drafting:4002
       BILLING_SERVICE_URL: http://billing:4003
-      REDIS_URL: ${REDIS_URL:-redis://localhost:6379}
+      REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_SECRET: ${INTERNAL_SECRET:-dev-internal-secret-change-me-32chars}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - '4000:4000'
     volumes:
       - ./apps/gateway/src:/app/apps/gateway/src
     depends_on:
-      - auth
-      - drafting
-      - billing
+      redis:
+        condition: service_healthy
+      auth:
+        condition: service_started
+      drafting:
+        condition: service_started
+      billing:
+        condition: service_started
     networks:
       - lawie_net
     command: yarn workspace @lawie/gateway dev
@@ -66,8 +72,9 @@ services:
       NODE_ENV: development
       PORT: 4001
       MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
-      REDIS_URL: ${REDIS_URL:-redis://localhost:6379}
+      REDIS_URL: redis://redis:6379
       INTERNAL_SECRET: ${INTERNAL_SECRET:-dev-internal-secret-change-me-32chars}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - '4001:4001'
     volumes:
@@ -75,6 +82,8 @@ services:
       - ./packages/shared/src:/app/packages/shared/src
     depends_on:
       mongo:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - lawie_net
@@ -93,7 +102,9 @@ services:
       NODE_ENV: development
       PORT: 4002
       MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
+      REDIS_URL: redis://redis:6379
       INTERNAL_SECRET: ${INTERNAL_SECRET:-dev-internal-secret-change-me-32chars}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - '4002:4002'
     volumes:
@@ -101,6 +112,8 @@ services:
       - ./packages/shared/src:/app/packages/shared/src
     depends_on:
       mongo:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - lawie_net
@@ -120,6 +133,7 @@ services:
       PORT: 4003
       MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
       INTERNAL_SECRET: ${INTERNAL_SECRET:-dev-internal-secret-change-me-32chars}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - '4003:4003'
     volumes:
@@ -175,8 +189,26 @@ services:
     profiles:
       - dev-tools
 
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.4-alpine
+    container_name: lawie_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - lawie_net
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   mongo_data:
+  redis_data:
 
 networks:
   lawie_net:

@@ -2,6 +2,7 @@ import http from 'http';
 import type { Socket } from 'net';
 
 import { INTERNAL_HEADERS } from '@lawie/shared';
+import * as Sentry from '@sentry/node';
 import compression from 'compression';
 import cors from 'cors';
 import express from 'express';
@@ -87,6 +88,10 @@ function createPublicProxy(target: string) {
 // login, register, forgot-password, reset-password, Google OAuth, refresh
 app.use('/api/auth', publicRateLimiter, createPublicProxy(env.AUTH_SERVICE_URL));
 
+// ── PUBLIC sections routes (no JWT required) ────────────────────────────────
+// Section mapping API is public — powers free tools (SCRUM-46/47/48)
+app.use('/api/sections', publicRateLimiter, createPublicProxy(env.DRAFTING_SERVICE_URL));
+
 // ── AUTHENTICATED routes ────────────────────────────────────────────────────
 // Everything else goes through: JWT validation → session check → rate limit → proxy
 
@@ -113,6 +118,9 @@ app.use(
   planRateLimiter,
   createAuthenticatedProxy(env.BILLING_SERVICE_URL),
 );
+
+// ── Sentry error handler ────────────────────────────────────────────────────
+Sentry.setupExpressErrorHandler(app);
 
 // ── 404 ──────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {
