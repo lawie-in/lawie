@@ -35,7 +35,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup -S lawie && adduser -S lawie -G lawie
 
-COPY --from=builder /app/apps/web/public ./public
+COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=lawie:lawie /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=lawie:lawie /app/apps/web/.next/static ./apps/web/.next/static
 
