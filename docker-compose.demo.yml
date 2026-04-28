@@ -6,6 +6,29 @@
 # Run:   docker compose -f docker-compose.demo.yml up -d --build
 
 services:
+  # ── Web (Next.js) ──────────────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: lawie_web
+    restart: unless-stopped
+    env_file: .env.demo
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://demo.lawie.in
+    networks:
+      - lawie_demo
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+
   # ── Nginx — SSL termination + routing ──────────────────────────────────────
   nginx:
     image: nginx:1.27-alpine
@@ -20,6 +43,8 @@ services:
       - /var/www/certbot:/var/www/certbot:ro
     depends_on:
       gateway:
+        condition: service_healthy
+      web:
         condition: service_healthy
     networks:
       - lawie_demo
