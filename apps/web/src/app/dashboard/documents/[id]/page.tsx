@@ -28,6 +28,8 @@ interface DocumentData {
   content: string;
   status: 'draft' | 'finalised' | 'exported';
   sectionsCited: string[];
+  filingChecklist: string[];
+  checklistState: boolean[];
   exportedAs: string[];
   version: number;
   createdAt: string;
@@ -132,17 +134,24 @@ export default function DocumentEditorPage() {
     };
   }, []);
 
-  // Initialise checklist from sectionsCited (will be replaced with real checklist from API later)
+  // Initialise checklist from API response (real filing checklist from template config)
   useEffect(() => {
-    if (doc?.sectionsCited && doc.sectionsCited.length > 0 && checklist.length === 0) {
-      setChecklist([
-        { text: 'Verify all section references', checked: false },
-        { text: 'Review cause title formatting', checked: false },
-        { text: 'Confirm party details are correct', checked: false },
-        { text: 'Check verification clause details', checked: false },
-        { text: 'Attach supporting documents', checked: false },
-        { text: 'Print on legal-size paper', checked: false },
-      ]);
+    if (doc && checklist.length === 0) {
+      const items =
+        doc.filingChecklist.length > 0
+          ? doc.filingChecklist.map((text, i) => ({
+              text,
+              checked: doc.checklistState[i] ?? false,
+            }))
+          : [
+              { text: 'Verify all section references', checked: false },
+              { text: 'Review cause title formatting', checked: false },
+              { text: 'Confirm party details are correct', checked: false },
+              { text: 'Check verification clause details', checked: false },
+              { text: 'Attach supporting documents', checked: false },
+              { text: 'Print on legal-size paper', checked: false },
+            ];
+      setChecklist(items);
     }
   }, [doc, checklist.length]);
 
@@ -150,6 +159,30 @@ export default function DocumentEditorPage() {
     if (!doc) return;
     setExporting(true);
     try {
+      const token = getAccessToken();
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/api/documents/${id}/export/pdf`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        // Fallback to client-side export
+        await exportPdf(latestHtmlRef.current, doc.title, isFree);
+        return;
+      }
+
+      const blob = await response.blob();
+      const filename = `${doc.title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}.pdf`;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      // Fallback to client-side export
       await exportPdf(latestHtmlRef.current, doc.title, isFree);
     } finally {
       setExporting(false);
@@ -161,15 +194,43 @@ export default function DocumentEditorPage() {
     setExporting(true);
     try {
       await exportDocx(latestHtmlRef.current, doc.title, isFree);
+
+      // Track DOCX export on server for activation telemetry
+      const token = getAccessToken();
+      if (token) {
+        fetch(`${API_URL}/api/documents/${id}/export/docx`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {
+          /* non-critical */
+        });
+      }
     } finally {
       setExporting(false);
     }
   };
 
   const toggleCheckItem = (index: number) => {
-    setChecklist((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, checked: !item.checked } : item)),
-    );
+    setChecklist((prev) => {
+      const updated = prev.map((item, i) =>
+        i === index ? { ...item, checked: !item.checked } : item,
+      );
+      // Persist checklist state to API
+      const token = getAccessToken();
+      if (token && id) {
+        fetch(`${API_URL}/api/documents/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ checklistState: updated.map((c) => c.checked) }),
+        }).catch(() => {
+          /* non-critical — state persists on next save */
+        });
+      }
+      return updated;
+    });
   };
 
   // Loading state

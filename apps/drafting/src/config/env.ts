@@ -18,6 +18,9 @@ const envSchema = z.object({
   // Anthropic API key — drafting service only (required in staging/prod)
   ANTHROPIC_API_KEY: z.string().default(''),
 
+  // Helicone — LLM cost observability proxy (optional, disabled if empty)
+  HELICONE_API_KEY: z.string().default(''),
+
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),
 });

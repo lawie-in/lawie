@@ -41,11 +41,42 @@ import {
   buildSectionsCited,
 } from './validator';
 
-const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+/**
+ * Create Anthropic client — routes through Helicone proxy when HELICONE_API_KEY is set.
+ * Helicone provides cost observability, per-user spend tracking, and caching.
+ */
+function createAnthropicClient(): Anthropic {
+  if (env.HELICONE_API_KEY) {
+    return new Anthropic({
+      apiKey: env.ANTHROPIC_API_KEY,
+      baseURL: 'https://anthropic.helicone.ai/v1',
+      defaultHeaders: {
+        'Helicone-Auth': `Bearer ${env.HELICONE_API_KEY}`,
+      },
+    });
+  }
+  return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+}
+
+const client = createAnthropicClient();
+
+/**
+ * Build per-request Helicone headers for user attribution and template tracking.
+ * Returns empty object when Helicone is not configured.
+ */
+function heliconeHeaders(userId?: string, templateId?: string): Record<string, string> {
+  if (!env.HELICONE_API_KEY) return {};
+  const headers: Record<string, string> = {};
+  if (userId) headers['Helicone-User-Id'] = userId;
+  if (templateId) headers['Helicone-Property-Template'] = templateId;
+  return headers;
+}
 
 export type DocTypeKey = keyof typeof bnsMapping;
 
-export interface GenerateDocumentInput extends PromptInput {}
+export interface GenerateDocumentInput extends PromptInput {
+  userId?: string;
+}
 
 export interface GenerateDocumentResult {
   /** Full formatted text (after post-processing) */
@@ -103,12 +134,15 @@ export async function streamGenerateDocument(
   // ── Stream AI Response ──────────────────────────────────────────────────────
   let rawText = '';
 
-  const stream = await client.messages.stream({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
-  });
+  const stream = await client.messages.stream(
+    {
+      model: 'claude-sonnet-4',
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    },
+    { headers: heliconeHeaders(input.userId, input.docType) },
+  );
 
   for await (const chunk of stream) {
     if (
@@ -188,6 +222,7 @@ export interface TemplateGenerateInput {
   formData: Record<string, unknown>;
   advocateName?: string;
   enrollmentNumber?: string;
+  userId?: string;
 }
 
 export interface TemplateGenerateResult {
@@ -292,12 +327,15 @@ export async function streamGenerateFromTemplate(
 
       let aiText = '';
 
-      const stream = await client.messages.stream({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8192,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
-      });
+      const stream = await client.messages.stream(
+        {
+          model: 'claude-sonnet-4',
+          max_tokens: 8192,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userPrompt }],
+        },
+        { headers: heliconeHeaders(input.userId, templateConfig.template_id) },
+      );
 
       for await (const chunk of stream) {
         if (

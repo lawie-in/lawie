@@ -158,7 +158,7 @@ export async function exportDocx(html: string, title: string, isFree: boolean): 
       {
         properties: {
           page: {
-            margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 },
+            margin: { top: 1440, bottom: 1440, left: 2160, right: 1440 }, // 1.5" left (court standard)
           },
         },
         children: paragraphs,

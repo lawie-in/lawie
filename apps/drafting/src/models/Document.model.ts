@@ -19,6 +19,9 @@ export interface IDocument extends Document {
 
   sectionsCited: string[]; // ["BNS 103", "BNSS 190"]
 
+  filingChecklist: string[]; // checklist items from template config
+  checklistState: boolean[]; // per-item checked state (parallel array)
+
   version: number;
   isDeleted: boolean; // soft delete — never hard delete
 
@@ -86,6 +89,15 @@ const DocumentSchema = new Schema<IDocument>(
 
     sectionsCited: {
       type: [String],
+      default: [],
+    },
+
+    filingChecklist: {
+      type: [String],
+      default: [],
+    },
+    checklistState: {
+      type: [Boolean],
       default: [],
     },
 

@@ -5,9 +5,12 @@ import { z } from 'zod';
 
 import { authenticate } from '../middleware/authenticate';
 import { enforceFreeLimit, FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
+import { spendCapCheck } from '../middleware/spendCap';
 import { LawieDocument } from '../models/Document.model';
+import { Event } from '../models/Event.model';
 import { Generation } from '../models/Generation.model';
 import { streamGenerateDocument, streamGenerateFromTemplate } from '../services/ai.service';
+import { contentToHtml, renderPdf } from '../services/pdf-export.service';
 import {
   loadTemplateConfig,
   listTemplateConfigs,
@@ -165,6 +168,7 @@ router.post(
   '/generate-from-template',
   authenticate,
   enforceFreeLimit,
+  spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {
     const parsed = templateGenerateSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -205,6 +209,7 @@ router.post(
         formData: form_data,
         advocateName: payload.name || undefined,
         enrollmentNumber: undefined,
+        userId: payload.sub,
       },
       res,
     );
@@ -228,6 +233,8 @@ router.post(
           formInputs: { template_id, ...form_data },
           generatedContent: encryptedContent,
           sectionsCited: result.sectionsCited,
+          filingChecklist: result.filingChecklist,
+          checklistState: result.filingChecklist.map(() => false),
           status: 'draft',
         }),
         Generation.create({
@@ -268,6 +275,7 @@ router.post(
   '/generate',
   authenticate,
   enforceFreeLimit,
+  spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {
     const parsed = generateSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -295,7 +303,7 @@ router.post(
     }
 
     // Stream the AI response via three-layer pipeline
-    const result = await streamGenerateDocument(input, res);
+    const result = await streamGenerateDocument({ ...input, userId: payload.sub }, res);
 
     // Save to DB — must happen before done event so we can include docId
     const encryptedContent = encrypt(result.fullText);
@@ -310,6 +318,8 @@ router.post(
         formInputs: input,
         generatedContent: encryptedContent,
         sectionsCited: result.sectionsCited,
+        filingChecklist: result.filingChecklist,
+        checklistState: result.filingChecklist.map(() => false),
         status: 'draft',
       }),
       Generation.create({
@@ -337,8 +347,9 @@ router.post(
 );
 
 const patchSchema = z.object({
-  finalContent: z.string().min(1).max(200_000),
+  finalContent: z.string().min(1).max(200_000).optional(),
   status: z.enum(['draft', 'finalised']).optional(),
+  checklistState: z.array(z.boolean()).optional(),
 });
 
 // GET /documents/:id — fetch a single document for the editor
@@ -370,6 +381,8 @@ router.get(
       content,
       status: doc.status,
       sectionsCited: doc.sectionsCited,
+      filingChecklist: doc.filingChecklist ?? [],
+      checklistState: doc.checklistState ?? [],
       exportedAs: doc.exportedAs,
       version: doc.version,
       createdAt: doc.createdAt,
@@ -394,11 +407,20 @@ router.patch(
     }
 
     const payload = req.jwtPayload!;
-    const setFields: Record<string, unknown> = {
-      finalContent: encrypt(parsed.data.finalContent),
-    };
+    const setFields: Record<string, unknown> = {};
+    if (parsed.data.finalContent) {
+      setFields.finalContent = encrypt(parsed.data.finalContent);
+    }
     if (parsed.data.status) {
       setFields.status = parsed.data.status;
+    }
+    if (parsed.data.checklistState) {
+      setFields.checklistState = parsed.data.checklistState;
+    }
+
+    if (Object.keys(setFields).length === 0) {
+      res.status(400).json({ error: 'No fields to update' });
+      return;
     }
 
     const doc = await LawieDocument.findOneAndUpdate(
@@ -413,6 +435,117 @@ router.patch(
     }
 
     res.json({ version: doc.version, status: doc.status, updatedAt: doc.updatedAt });
+  },
+);
+
+// POST /documents/:id/export/pdf — server-side PDF export
+router.post(
+  '/:id/export/pdf',
+  validateObjectId,
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    const payload = req.jwtPayload!;
+    const doc = await LawieDocument.findOne({
+      _id: req.params.id,
+      userId: payload.sub,
+      isDeleted: { $ne: true },
+    }).lean();
+
+    if (!doc) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
+    const isFree = payload.plan !== 'pro';
+
+    const html = contentToHtml(content, isFree);
+    const pdfBuffer = await renderPdf(html);
+
+    // Track export in exportedAs
+    await LawieDocument.updateOne(
+      { _id: req.params.id },
+      { $addToSet: { exportedAs: 'pdf' }, $set: { status: 'exported' } },
+    );
+
+    // Activation telemetry — fire activation_first_export once per user
+    const existingActivation = await Event.findOne({
+      userId: payload.sub,
+      type: 'activation_first_export',
+    }).lean();
+
+    if (!existingActivation) {
+      await Event.create({
+        userId: payload.sub,
+        type: 'activation_first_export',
+        docId: doc._id,
+        metadata: { format: 'pdf', docType: doc.docType },
+      });
+    }
+
+    // Always log the export event
+    await Event.create({
+      userId: payload.sub,
+      type: 'draft.exported',
+      docId: doc._id,
+      metadata: { format: 'pdf', docType: doc.docType },
+    });
+
+    const filename = `${doc.title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  },
+);
+
+// POST /documents/:id/export/docx — track DOCX export (client-side generation, server tracks event)
+router.post(
+  '/:id/export/docx',
+  validateObjectId,
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    const payload = req.jwtPayload!;
+    const doc = await LawieDocument.findOne({
+      _id: req.params.id,
+      userId: payload.sub,
+      isDeleted: { $ne: true },
+    }).lean();
+
+    if (!doc) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    // Track export
+    await LawieDocument.updateOne(
+      { _id: req.params.id },
+      { $addToSet: { exportedAs: 'docx' }, $set: { status: 'exported' } },
+    );
+
+    // Activation telemetry
+    const existingActivation = await Event.findOne({
+      userId: payload.sub,
+      type: 'activation_first_export',
+    }).lean();
+
+    if (!existingActivation) {
+      await Event.create({
+        userId: payload.sub,
+        type: 'activation_first_export',
+        docId: doc._id,
+        metadata: { format: 'docx', docType: doc.docType },
+      });
+    }
+
+    await Event.create({
+      userId: payload.sub,
+      type: 'draft.exported',
+      docId: doc._id,
+      metadata: { format: 'docx', docType: doc.docType },
+    });
+
+    res.json({ success: true });
   },
 );
 
