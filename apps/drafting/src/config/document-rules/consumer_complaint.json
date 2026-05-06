@@ -1,0 +1,119 @@
+{
+  "docType": "consumer_complaint",
+  "parentDocType": "complaint",
+  "displayName": "Consumer Complaint",
+  "category": "consumer",
+  "causeTitle": {
+    "format": "BEFORE THE {courtDesignation}\n\n{caseNomenclature}\n\n{applicant} ... Complainant\nVERSUS\n{respondent} ... Opposite Party",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Complainant" },
+      { "role": "respondent", "label": "Opposite Party" }
+    ],
+    "caseNomenclature": "CONSUMER COMPLAINT No. _____ of [YEAR]"
+  },
+  "mandatoryClauses": [
+    {
+      "id": "consumer_status",
+      "name": "Consumer Status",
+      "required": true,
+      "description": "Establish that complainant is a 'consumer' within meaning of S.2(7) Consumer Protection Act, 2019"
+    },
+    {
+      "id": "deficiency_details",
+      "name": "Deficiency in Service / Defect in Goods",
+      "required": true,
+      "description": "Specific details of deficiency in service or defect in goods"
+    },
+    {
+      "id": "consideration",
+      "name": "Consideration Paid",
+      "required": true,
+      "description": "Amount paid for goods/services, date, mode of payment, receipt/invoice details"
+    },
+    {
+      "id": "grievance_attempts",
+      "name": "Prior Grievance Attempts",
+      "required": false,
+      "description": "Prior attempts to resolve the grievance with the opposite party"
+    },
+    {
+      "id": "territorial_jurisdiction",
+      "name": "Territorial Jurisdiction",
+      "required": true,
+      "description": "Basis for filing before this particular forum"
+    },
+    {
+      "id": "pecuniary_jurisdiction",
+      "name": "Pecuniary Jurisdiction",
+      "required": true,
+      "description": "Total claim amount falls within the forum's pecuniary jurisdiction"
+    },
+    {
+      "id": "limitation",
+      "name": "Limitation",
+      "required": true,
+      "description": "Complaint filed within 2 years of cause of action (S.69 CPA 2019)"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Clause",
+      "required": true,
+      "description": "Specific reliefs sought — refund, replacement, compensation, costs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Commission/Forum may graciously be pleased to:\n\na) Direct the Opposite Party to refund the amount of Rs. {amount}/- paid by the Complainant;\nb) Direct the Opposite Party to pay compensation of Rs. {compensationAmount}/- for mental agony, harassment, and deficiency in service;\nc) Direct the Opposite Party to pay Rs. {litigationCost}/- as cost of litigation;\nd) Pass any other order(s) as this Hon'ble Commission/Forum may deem fit and proper in the interest of justice and equity.\n\nAnd for this act of kindness, the complainant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {relation} of {parentName}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above complaint are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "filingChecklist": [
+    "Complaint (original + copies for each opposite party + 1 for office)",
+    "Vakalatnama / Memo of Appearance",
+    "Affidavit in support of complaint",
+    "Copy of bill / invoice / receipt",
+    "Copy of product / service agreement",
+    "Correspondence with opposite party (complaints, emails, letters)",
+    "Photographs / videos of defective goods (if applicable)",
+    "Expert opinion / technical report (if applicable)",
+    "Proof of payment (bank statement, UPI screenshot)",
+    "Court fee as per state rules",
+    "Index of documents"
+  ],
+  "relevantActs": [
+    {
+      "act": "Consumer Protection Act, 2019",
+      "sections": [
+        { "number": "2(7)", "description": "Definition of Consumer" },
+        { "number": "2(11)", "description": "Definition of Defect" },
+        { "number": "2(12)", "description": "Definition of Deficiency" },
+        { "number": "34", "description": "Jurisdiction of District Commission" },
+        { "number": "35", "description": "Complaint to District Commission" },
+        { "number": "38", "description": "Procedure on receipt of complaint" },
+        { "number": "39", "description": "Findings of District Commission" },
+        { "number": "69", "description": "Limitation period" }
+      ]
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Consumer Complaint under the Consumer Protection Act, 2019.",
+    "Establish the complainant's status as a 'consumer' under Section 2(7) CPA 2019.",
+    "Describe the deficiency in service or defect in goods with specific dates, amounts, and particulars.",
+    "State the consideration paid — amount, date, mode of payment, invoice/receipt details.",
+    "Describe prior attempts to resolve the grievance with the opposite party.",
+    "Establish territorial jurisdiction — where the opposite party resides/carries on business OR where the cause of action arose.",
+    "Establish pecuniary jurisdiction: District Commission (up to Rs.1 crore), State Commission (Rs.1-10 crore), National Commission (above Rs.10 crore).",
+    "State that the complaint is within limitation (2 years from cause of action under S.69).",
+    "Reference unfair trade practice or restrictive trade practice if applicable.",
+    "Use numbered paragraphs throughout.",
+    "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
+  ]
+}

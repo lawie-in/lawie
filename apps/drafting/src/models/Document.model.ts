@@ -1,4 +1,4 @@
-import { DocType, DOC_TYPES } from '@lawie/shared';
+import { DocType, DOC_TYPES, COURT_TYPES } from '@lawie/shared';
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IDocument extends Document {
@@ -8,7 +8,7 @@ export interface IDocument extends Document {
   title: string;
   docType: DocType;
   courtType?: string;
-  courtName: string;
+  courtName?: string;
 
   formInputs?: Record<string, unknown>;
   generatedContent: string; // AI-generated draft (encrypted)
@@ -52,18 +52,11 @@ const DocumentSchema = new Schema<IDocument>(
     },
     courtType: {
       type: String,
-      enum: [
-        'district_court',
-        'high_court',
-        'supreme_court',
-        'tribunal',
-        'consumer_forum',
-        'family_court',
-      ],
+      enum: Object.values(COURT_TYPES),
     },
     courtName: {
       type: String,
-      required: [true, 'courtName is required'],
+      default: '',
       trim: true,
       maxlength: [200, 'courtName too long'],
     },

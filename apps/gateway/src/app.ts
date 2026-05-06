@@ -90,31 +90,78 @@ app.use('/api/auth', publicRateLimiter, createPublicProxy(env.AUTH_SERVICE_URL))
 
 // ── PUBLIC sections routes (no JWT required) ────────────────────────────────
 // Section mapping API is public — powers free tools (SCRUM-46/47/48)
-app.use('/api/sections', publicRateLimiter, createPublicProxy(env.DRAFTING_SERVICE_URL));
+// pathRewrite: proxy strips '/api/sections' mount → '/map'; prepend '/sections' for drafting
+app.use(
+  '/api/sections',
+  publicRateLimiter,
+  createProxyMiddleware({
+    target: env.DRAFTING_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/': '/sections/' },
+    on: { error: onProxyError },
+  }),
+);
+
+// ── PUBLIC courts routes (no JWT required) ──────────────────────────────────
+// Courts reference data powers cascading dropdowns in document forms (SCRUM-50)
+app.use(
+  '/api/courts',
+  publicRateLimiter,
+  createProxyMiddleware({
+    target: env.DRAFTING_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/': '/courts/' },
+    on: { error: onProxyError },
+  }),
+);
+
+// ── Dev bypass middleware (development only) ────────────────────────────────
+// Postman: set header X-Dev-Bypass: true to skip JWT + session check.
+// Optionally set X-Dev-User-Plan: pro|free, X-Dev-User-Email, X-Dev-User-Name.
+function devBypass(req: express.Request, res: express.Response, next: express.NextFunction): void {
+  if (env.NODE_ENV !== 'development' || req.headers['x-dev-bypass'] !== 'true') {
+    next();
+    return;
+  }
+  // Inject mock JWT payload so downstream middleware/proxy sees a valid user
+  req.jwtPayload = {
+    sub: (req.headers['x-dev-user-id'] as string) ?? '000000000000000000000000',
+    email: (req.headers['x-dev-user-email'] as string) ?? 'dev@lawie.in',
+    name: (req.headers['x-dev-user-name'] as string) ?? 'Dev User',
+    role: 'Client',
+    plan: (req.headers['x-dev-user-plan'] as string) ?? 'pro',
+    type: 'access',
+  };
+  req.tokenHash = 'dev-bypass-no-token-hash';
+  next();
+}
 
 // ── AUTHENTICATED routes ────────────────────────────────────────────────────
 // Everything else goes through: JWT validation → session check → rate limit → proxy
+// In development, X-Dev-Bypass: true skips JWT + session check.
+
+const authChain =
+  env.NODE_ENV === 'development'
+    ? [devBypass, authenticate, sessionCheck]
+    : [authenticate, sessionCheck];
 
 app.use(
   '/api/documents',
-  authenticate,
-  sessionCheck,
+  ...authChain,
   planRateLimiter,
   createAuthenticatedProxy(env.DRAFTING_SERVICE_URL),
 );
 
 app.use(
   '/api/templates',
-  authenticate,
-  sessionCheck,
+  ...authChain,
   planRateLimiter,
   createAuthenticatedProxy(env.DRAFTING_SERVICE_URL),
 );
 
 app.use(
   '/api/billing',
-  authenticate,
-  sessionCheck,
+  ...authChain,
   planRateLimiter,
   createAuthenticatedProxy(env.BILLING_SERVICE_URL),
 );

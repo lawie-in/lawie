@@ -1,0 +1,68 @@
+{
+  "courtId": "allahabad_hc",
+  "courtType": "high_court",
+  "designation": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
+  "jurisdictionNote": "High Court for the State of Uttar Pradesh with principal bench at Prayagraj (Allahabad) and a permanent bench at Lucknow. Has original, appellate, and writ jurisdiction.",
+  "eFilingMandatory": true,
+  "lucknowBenchDistricts": [
+    "Lucknow",
+    "Sitapur",
+    "Lakhimpur Kheri",
+    "Hardoi",
+    "Unnao",
+    "Rae Bareli",
+    "Barabanki",
+    "Sultanpur",
+    "Faizabad",
+    "Pratapgarh",
+    "Bahraich",
+    "Gonda"
+  ],
+  "cause_title_format": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD\n{caseNomenclature}\n\n{petitioner} ... APPLICANT(S)\n\nVERSUS\n\n{respondent} ... OPPOSITE PARTY(S)",
+  "party_designation": {
+    "petitioner": "Applicant",
+    "respondent": "Opposite Party",
+    "applicant": "Applicant",
+    "opposite_party": "Opposite Party",
+    "appellant": "Appellant",
+    "state": "State of U.P. through Principal Secretary, Home Department, Lucknow"
+  },
+  "case_nomenclature": {
+    "anticipatory_bail": "Criminal Misc. Bail Application No. _____ of {year}",
+    "regular_bail": "Criminal Misc. Bail Application No. _____ of {year}",
+    "quashing": "Application U/S 528 BNSS No. _____ of {year}",
+    "criminal_appeal": "Criminal Appeal No. _____ of {year}",
+    "criminal_writ": "Criminal Misc. Writ Petition No. _____ of {year}",
+    "civil_writ": "Writ-C No. _____ of {year}",
+    "criminal_revision": "Criminal Revision No. _____ of {year}",
+    "civil_revision": "Civil Revision No. _____ of {year}",
+    "first_appeal": "First Appeal From Order No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may graciously be pleased to:",
+    "closing": "And for this act of kindness, the applicant shall ever pray.",
+    "tone": "humble"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly affirm and declare that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to my knowledge and belief. No part of it is false and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": ["en", "hi"],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD\n{benchDesignation}"
+  },
+  "localRules": [
+    "All petitions must be filed through an advocate enrolled with the Bar Council of UP.",
+    "Bail applications listed as 'Criminal Misc. Bail Application No. _____ of [YEAR]'.",
+    "Anticipatory bail under S.482 BNSS must be accompanied by a duly sworn affidavit.",
+    "Lucknow Bench has territorial jurisdiction over 12 specified districts.",
+    "Synopsis and list of dates are required for all criminal miscellaneous applications.",
+    "E-filing is mandatory since 2024."
+  ]
+}

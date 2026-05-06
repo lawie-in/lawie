@@ -26,6 +26,12 @@ declare global {
 }
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
+  // Dev bypass already populated jwtPayload — skip JWT validation
+  if (req.jwtPayload) {
+    next();
+    return;
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {

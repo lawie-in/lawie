@@ -1,0 +1,28 @@
+{
+  "template_id": "bail_regular",
+  "form_data": {
+    "fir_number": "78/2026",
+    "fir_date": "2026-04-01",
+    "police_station": "Lalpur",
+    "sections_charged": ["BNS 303", "BNS 351"],
+    "currently_in_custody": "yes_judicial",
+    "custody_since": "2026-04-02",
+    "state": "jharkhand",
+    "court_type": "sessions",
+    "court_name": "jharkhand_sessions_ranchi",
+    "applicant_name": "Amit Kumar Sahu",
+    "father_name": "Shri Birendra Sahu",
+    "applicant_age": 28,
+    "address": "House No. 14, Harmu Housing Colony, Ranchi - 834002",
+    "language": "en",
+    "facts_narrative": "The applicant was falsely implicated in FIR No. 78/2026 arising out of a property dispute between the complainant and the applicant's family. The applicant was not present at the spot at the time of the alleged incident and has CCTV evidence from a nearby shop establishing his presence elsewhere. He was arrested on 02.04.2026 and has been in judicial custody since then.",
+    "grounds_for_bail": [
+      "false_implication",
+      "no_flight_risk",
+      "no_criminal_antecedent",
+      "cooperation"
+    ],
+    "respondent_name": "State of Jharkhand",
+    "relief_sought": "Regular bail under Section 480 BNSS"
+  }
+}

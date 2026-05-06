@@ -4,6 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 
 import logger from './config/logger';
+import courtsRoutes from './routes/courts.routes';
 import documentsRoutes from './routes/documents.routes';
 import sectionsRoutes from './routes/sections.routes';
 import templatesRoutes from './routes/templates.routes';
@@ -18,9 +19,10 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'drafting', timestamp: new Date().toISOString() });
 });
 
-app.use('/', documentsRoutes);
-app.use('/sections', sectionsRoutes);
 app.use('/templates', templatesRoutes);
+app.use('/sections', sectionsRoutes);
+app.use('/courts', courtsRoutes);
+app.use('/', documentsRoutes);
 
 Sentry.setupExpressErrorHandler(app);
 

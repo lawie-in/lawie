@@ -16,6 +16,7 @@ export const DOC_TYPES = {
   INJUNCTION: 'injunction',
   REPLY: 'reply',
   COMPLAINT: 'complaint',
+  RENT_AGREEMENT: 'rent_agreement',
 } as const;
 
 export type DocType = (typeof DOC_TYPES)[keyof typeof DOC_TYPES];
@@ -26,7 +27,12 @@ export const COURT_TYPES = {
   SUPREME_COURT: 'supreme_court',
   TRIBUNAL: 'tribunal',
   CONSUMER_FORUM: 'consumer_forum',
+  CONSUMER_COMMISSION: 'consumer_commission',
   FAMILY_COURT: 'family_court',
+  SESSIONS: 'sessions',
+  CJM: 'cjm',
+  JMFC: 'jmfc',
+  CIVIL_COURT: 'civil_court',
 } as const;
 
 export type CourtType = (typeof COURT_TYPES)[keyof typeof COURT_TYPES];

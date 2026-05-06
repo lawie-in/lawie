@@ -11,13 +11,21 @@ export default function Navbar() {
           <LawieLogoMark variant="light" className="h-9 w-auto" />
         </Link>
 
-        {/* Nav CTA */}
-        <Link
-          href="/login"
-          className="bg-lawie-600 hover:bg-lawie-700 shadow-lawie-600/20 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all active:scale-[0.97]"
-        >
-          Get Started
-        </Link>
+        {/* Nav Links + CTA */}
+        <div className="flex items-center gap-6">
+          <Link
+            href="/tools"
+            className="text-sm font-medium text-slate-300 transition-colors hover:text-white"
+          >
+            Free Tools
+          </Link>
+          <Link
+            href="/login"
+            className="bg-lawie-600 hover:bg-lawie-700 shadow-lawie-600/20 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all active:scale-[0.97]"
+          >
+            Get Started
+          </Link>
+        </div>
       </div>
     </nav>
   );

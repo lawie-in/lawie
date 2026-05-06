@@ -1,0 +1,28 @@
+{
+  "template_id": "bail_anticipatory",
+  "form_data": {
+    "fir_number": "142/2026",
+    "fir_date": "2026-04-18",
+    "police_station": "Doranda",
+    "sections_charged": ["BNS 318(4)", "BNS 336(3)"],
+    "currently_in_custody": "no",
+    "state": "jharkhand",
+    "court_type": "high_court",
+    "court_name": "jharkhand_hc",
+    "applicant_name": "Rajesh Mahto",
+    "father_name": "Late Shri Dhananjay Mahto",
+    "applicant_age": 42,
+    "address": "Flat 3A, Ashok Nagar, Main Road, Ranchi - 834002",
+    "language": "en",
+    "facts_narrative": "The applicant apprehends arrest in connection with FIR No. 142/2026 dated 18.04.2026 lodged at PS Doranda, Ranchi. The FIR has been lodged on the basis of a false and frivolous complaint by the de-facto complainant arising out of a commercial partnership dispute involving a transport business. The applicant is a well-known transporter in Ranchi with no criminal antecedents. He undertakes to cooperate fully with the investigation and not to leave the territorial jurisdiction of Jharkhand without prior permission of the Hon'ble Court.",
+    "grounds_for_bail": [
+      "false_implication",
+      "business_dispute_civil_in_nature",
+      "no_criminal_antecedent",
+      "cooperation_with_investigation",
+      "deep_roots_in_community"
+    ],
+    "respondent_name": "State of Jharkhand",
+    "relief_sought": "Anticipatory bail under Section 482 BNSS, 2023"
+  }
+}

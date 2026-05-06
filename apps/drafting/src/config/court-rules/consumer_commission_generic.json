@@ -1,0 +1,47 @@
+{
+  "courtId": "consumer_commission_generic",
+  "courtType": "consumer_commission",
+  "designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION",
+  "jurisdictionNote": "District Consumer Disputes Redressal Commission constituted under Section 28 of the Consumer Protection Act, 2019. Pecuniary jurisdiction: value of goods/services paid as consideration not exceeding Rs. 50 Lakh (per CPA Jurisdiction Notification dated 21 December 2021). Hears complaints under Section 35 CPA 2019.",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{complainant} ... COMPLAINANT\n\nVERSUS\n\n{opposite_party} ... OPPOSITE PARTY",
+  "party_designation": {
+    "petitioner": "Complainant",
+    "respondent": "Opposite Party",
+    "applicant": "Complainant",
+    "opposite_party": "Opposite Party",
+    "complainant": "Complainant",
+    "state": "State through the Collector / District Magistrate, {district}"
+  },
+  "case_nomenclature": {
+    "consumer_complaint": "Consumer Complaint No. _____ of {year}",
+    "execution": "Execution Application No. _____ of {year}",
+    "misc": "Misc. Application No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+    "closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+    "tone": "humble"
+  },
+  "verification_format": "I, {deponent_name}, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nCOMPLAINANT",
+  "supported_languages": ["en", "hi"],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "BEFORE THE {courtDesignation}, {city}"
+  },
+  "localRules": [
+    "Consumer complaint must be accompanied by an affidavit in support (Section 35(2) CPA 2019).",
+    "Original or certified copies of all documents relied upon must be filed.",
+    "Three sets of the complaint with documents to be filed (original + 2 copies).",
+    "Court fee as per state Consumer Commission rules (typically Rs. 100-500 for District Commission).",
+    "Complaint must be filed within 2 years from the date of cause of action (Section 69 CPA 2019).",
+    "Pecuniary jurisdiction: District Commission hears complaints where value does not exceed Rs. 50 Lakh (per Notification dated 21 December 2021)."
+  ]
+}

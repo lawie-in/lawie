@@ -1,0 +1,122 @@
+{
+  "template_id": "legal_notice_s80",
+  "display_name": "Legal Notice under Section 80 CPC",
+  "category": "civil",
+  "description": "Mandatory pre-suit notice to Government / Public Officer under Section 80 of CPC, 1908",
+  "icon": "mail",
+  "plan_access": "free",
+  "applicable_courts": {
+    "court_levels": ["district_court", "high_court"],
+    "states": ["all"]
+  },
+  "supported_languages": ["en", "hi", "bilingual"],
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Sender & Recipient",
+        "fields": [
+          { "field_id": "state", "label": "State", "type": "dropdown_search", "source": "courts_db.states", "required": true },
+          { "field_id": "applicant_name", "label": "Sender / Client Name", "type": "text", "required": true, "inject_into": ["header", "body", "closing"] },
+          { "field_id": "applicant_address", "label": "Sender Address", "type": "textarea", "required": true, "inject_into": ["header"] },
+          { "field_id": "respondent_name", "label": "Noticee Name (Government body / Public Officer)", "type": "text", "required": true, "inject_into": ["header", "body"] },
+          { "field_id": "respondent_address", "label": "Noticee Address", "type": "textarea", "required": true, "inject_into": ["header"] },
+          { "field_id": "language", "label": "Document Language", "type": "dropdown", "options_from": "supported_languages", "default": "en", "required": true }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Advocate Details",
+        "fields": [
+          { "field_id": "advocate_name", "label": "Advocate Name", "type": "text", "required": true, "inject_into": ["header", "closing"] },
+          { "field_id": "advocate_address", "label": "Advocate Chamber Address", "type": "textarea", "required": true, "inject_into": ["header"] },
+          { "field_id": "advocate_enrollment", "label": "Bar Council Enrollment No.", "type": "text", "required": true, "inject_into": ["closing"] }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Facts & Demand",
+        "fields": [
+          { "field_id": "facts_narrative", "label": "Facts of the Case (detailed)", "type": "textarea", "required": true, "min_length": 100, "max_length": 3000, "placeholder": "Describe the cause of action, relevant dates, documents, and how the Government / officer has wronged your client...", "inject_into": ["ai_prompt"] },
+          { "field_id": "demand", "label": "What do you demand the noticee to do?", "type": "textarea", "required": true, "min_length": 20, "max_length": 1000, "placeholder": "e.g., release outstanding payment of Rs. X with interest...", "inject_into": ["ai_prompt", "closing"] }
+        ]
+      }
+    ]
+  },
+  "computed_fields": {
+    "notice_date": {
+      "logic": "'current_date'"
+    },
+    "response_deadline": {
+      "logic": "'two months from receipt of this notice'"
+    }
+  },
+  "document_structure": {
+    "sections": [
+      {
+        "section_id": "header",
+        "type": "template",
+        "alignment": "left",
+        "template": "LEGAL NOTICE\n(Under Section 80 of the Code of Civil Procedure, 1908)\n\nDate: {current_date}\n\nTo,\n{respondent_name}\n{respondent_address}\n\nFrom,\n{applicant_name}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
+      },
+      {
+        "section_id": "subject_line",
+        "type": "template",
+        "alignment": "left",
+        "template": "Subject: Legal Notice under Section 80 CPC — prior to institution of suit against the Government / Public Officer\n\nSir/Madam,\n\nUnder instructions from and on behalf of my client, {applicant_name}, I hereby serve upon you this legal notice under Section 80 of the Code of Civil Procedure, 1908, and call upon you to note the following:"
+      },
+      {
+        "section_id": "body",
+        "type": "ai_generated",
+        "prompt_context": "Generate 5-8 numbered paragraphs for a Legal Notice under Section 80 CPC. This is a NOTICE, not a petition — the tone should be firm but professional (advocate writing to a government officer). Para 1: Introduce the client ({applicant_name}) and their standing. Paras 2-5: Narrate the facts chronologically based on: {facts_narrative}. Include specific dates, amounts, document references. Para 6-7: State the legal basis — S.80 CPC mandates 2-month notice before suing Government. Final para: State the demand clearly. Do NOT generate the closing or advocate signature — those are template-handled. Use numbered paragraphs.",
+        "numbering": "numeric",
+        "min_paragraphs": 5,
+        "max_paragraphs": 8
+      },
+      {
+        "section_id": "demand_clause",
+        "type": "template",
+        "alignment": "left",
+        "template": "DEMAND\n\nYou are hereby called upon to {demand} within a period of two (2) months from the date of receipt of this notice, failing which my client shall be constrained to initiate appropriate legal proceedings before the competent civil court, at your risk, cost, and consequences, without any further reference to you."
+      },
+      {
+        "section_id": "closing",
+        "type": "template",
+        "alignment": "left",
+        "template": "A copy of this notice is retained in my office for record and further action.\n\nYours faithfully,\n\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {advocate_enrollment}\n{advocate_address}\n\n(Counsel for {applicant_name})"
+      },
+      {
+        "section_id": "disclaimer",
+        "type": "template",
+        "alignment": "center",
+        "style": "footer_small_gray",
+        "template": "AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice."
+      }
+    ]
+  },
+  "related_acts": ["CPC Section 80", "Limitation Act 1963"],
+  "special_prayer_additions": [],
+  "filing_checklist": [
+    "Send via Registered Post AD (Acknowledgement Due) — retain receipt",
+    "Send additional copy via Speed Post",
+    "Retain photocopy of notice with postal receipts",
+    "Keep proof of delivery (AD card) safely — needed at time of filing suit",
+    "Wait mandatory 2 months from date of receipt before filing suit",
+    "Attach all supporting documents referenced in the notice",
+    "Verify noticee's correct designation and office address"
+  ],
+  "validation_rules": {
+    "section_codes_allowed": ["CPC", "BNS", "BNSS", "BSA"],
+    "reject_old_codes": [],
+    "auto_convert_old_to_new": false,
+    "mandatory_sections": ["header", "subject_line", "body", "demand_clause", "closing", "disclaimer"],
+    "fact_alteration_check": true,
+    "min_body_paragraphs": 5
+  },
+  "metadata": {
+    "version": "1.0",
+    "created_by": "Ajay · CLO",
+    "reviewed_at": "2026-05-04",
+    "status": "active"
+  }
+}

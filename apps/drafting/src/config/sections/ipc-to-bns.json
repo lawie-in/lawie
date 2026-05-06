@@ -1383,6 +1383,13 @@
       "type": "merged"
     },
     "415": { "new": "318", "old_title": "Cheating", "new_title": "Cheating", "type": "direct" },
+    "416": {
+      "new": "319",
+      "old_title": "Cheating by personation",
+      "new_title": "Cheating by personation",
+      "type": "direct",
+      "notes": "IPC 416 (Cheating by personation) maps directly to BNS 319. Commonly cited alongside IPC 419/420 in fraud cases."
+    },
     "417": {
       "new": "318(2)",
       "old_title": "Punishment for cheating",

@@ -1,0 +1,25 @@
+{
+  "template_id": "legal_notice_s138",
+  "form_data": {
+    "state": "bihar",
+    "applicant_name": "Mr. Ankit Sharma",
+    "applicant_address": "House No. 22, Rajendra Nagar, Patna - 800016",
+    "respondent_name": "Mr. Vikram Yadav",
+    "respondent_address": "Plot 7, Anisabad, Patna - 800002",
+    "respondent_type": "individual",
+    "language": "en",
+    "advocate_name": "Adv. Rohit Kumar",
+    "advocate_address": "Chamber 15, Civil Court Compound, Patna - 800001",
+    "advocate_enrollment": "BCB/3127/2016",
+    "cheque_number": "458823",
+    "cheque_date": "2026-03-25",
+    "cheque_amount": 350000,
+    "amount_in_words": "Three Lakh Fifty Thousand only",
+    "drawee_bank": "HDFC Bank",
+    "drawee_branch": "Boring Road Branch, Patna",
+    "presentation_date": "2026-04-02",
+    "dishonour_date": "2026-04-04",
+    "dishonour_reason": "Funds Insufficient",
+    "underlying_liability": "Repayment of friendly loan of Rs. 3,50,000/- advanced by my client to the noticee on 15.11.2025 for a period of four months, which loan was acknowledged in writing by the noticee vide acknowledgment dated 15.11.2025"
+  }
+}

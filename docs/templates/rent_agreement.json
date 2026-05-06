@@ -1,0 +1,131 @@
+{
+  "template_id": "rent_agreement",
+  "display_name": "Residential Rent Agreement",
+  "category": "civil",
+  "description": "Standard 11-month residential lease agreement with registration-exempt tenure",
+  "icon": "home",
+  "plan_access": "free",
+  "applicable_courts": {
+    "court_levels": ["district_court", "civil_court"],
+    "states": ["all"]
+  },
+  "supported_languages": ["en", "hi", "bilingual"],
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Parties",
+        "fields": [
+          { "field_id": "state", "label": "State", "type": "dropdown_search", "source": "courts_db.states", "required": true },
+          { "field_id": "execution_place", "label": "Place of Execution", "type": "text", "required": true, "inject_into": ["header", "closing"] },
+          { "field_id": "execution_date", "label": "Date of Execution", "type": "date", "required": true, "inject_into": ["header"] },
+          { "field_id": "applicant_name", "label": "Landlord Name", "type": "text", "required": true, "inject_into": ["header", "body", "closing"] },
+          { "field_id": "applicant_address", "label": "Landlord Permanent Address", "type": "textarea", "required": true, "inject_into": ["header"] },
+          { "field_id": "applicant_pan", "label": "Landlord PAN", "type": "text", "required": true, "inject_into": ["header"] },
+          { "field_id": "respondent_name", "label": "Tenant Name", "type": "text", "required": true, "inject_into": ["header", "body", "closing"] },
+          { "field_id": "respondent_address", "label": "Tenant Permanent Address", "type": "textarea", "required": true, "inject_into": ["header"] },
+          { "field_id": "respondent_pan", "label": "Tenant PAN", "type": "text", "required": true, "inject_into": ["header"] },
+          { "field_id": "language", "label": "Document Language", "type": "dropdown", "options_from": "supported_languages", "default": "en", "required": true }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Property & Rent",
+        "fields": [
+          { "field_id": "property_address", "label": "Property Address (full)", "type": "textarea", "required": true, "inject_into": ["body"] },
+          { "field_id": "property_area_sqft", "label": "Area (sq. ft.)", "type": "number", "required": true, "inject_into": ["body"] },
+          { "field_id": "property_type", "label": "Property Type", "type": "dropdown", "options": [{"id": "residential", "label": "Residential"}, {"id": "commercial", "label": "Commercial"}], "required": true, "inject_into": ["body"] },
+          { "field_id": "rent_amount", "label": "Monthly Rent (Rs.)", "type": "number", "required": true, "inject_into": ["body"] },
+          { "field_id": "rent_amount_words", "label": "Rent in Words", "type": "text", "required": true, "inject_into": ["body"] },
+          { "field_id": "rent_due_date", "label": "Rent Due Date", "type": "text", "required": true, "placeholder": "e.g., 5th of every month", "inject_into": ["body"] },
+          { "field_id": "payment_mode", "label": "Payment Mode", "type": "text", "required": true, "placeholder": "e.g., Bank transfer / Cheque", "inject_into": ["body"] },
+          { "field_id": "escalation_percent", "label": "Annual Escalation (%)", "type": "number", "required": true, "inject_into": ["body"] },
+          { "field_id": "security_deposit", "label": "Security Deposit (Rs.)", "type": "number", "required": true, "inject_into": ["body"] },
+          { "field_id": "security_deposit_words", "label": "Security Deposit in Words", "type": "text", "required": true, "inject_into": ["body"] }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Tenure & Terms",
+        "fields": [
+          { "field_id": "tenure_months", "label": "Lease Duration (months)", "type": "number", "required": true, "inject_into": ["body"] },
+          { "field_id": "lease_start_date", "label": "Lease Start Date", "type": "date", "required": true, "inject_into": ["body"] },
+          { "field_id": "lease_end_date", "label": "Lease End Date", "type": "date", "required": true, "inject_into": ["body"] },
+          { "field_id": "notice_period_months", "label": "Notice Period for Termination (months)", "type": "number", "required": true, "inject_into": ["body"] },
+          { "field_id": "permitted_use", "label": "Permitted Use", "type": "text", "required": true, "placeholder": "e.g., Residential — for self and family only", "inject_into": ["body"] },
+          { "field_id": "maintenance_responsibility", "label": "Maintenance Responsibility", "type": "textarea", "required": true, "inject_into": ["body"] },
+          { "field_id": "facts_narrative", "label": "Additional Terms / Special Conditions (optional)", "type": "textarea", "required": false, "max_length": 800, "inject_into": ["ai_prompt"] }
+        ]
+      }
+    ]
+  },
+  "computed_fields": {
+    "agreement_type": {
+      "logic": "'Rent Agreement'"
+    }
+  },
+  "document_structure": {
+    "sections": [
+      {
+        "section_id": "header",
+        "type": "template",
+        "alignment": "center",
+        "template": "RENT AGREEMENT\n\nThis Rent Agreement is executed at {execution_place} on {execution_date}\n\nBETWEEN\n\n{applicant_name}\nR/o {applicant_address}\nPAN: {applicant_pan}\n(Hereinafter referred to as the \"LANDLORD\" which expression shall include his/her heirs, executors, administrators, and assigns)\n\nAND\n\n{respondent_name}\nR/o {respondent_address}\nPAN: {respondent_pan}\n(Hereinafter referred to as the \"TENANT\" which expression shall include his/her heirs, executors, administrators, and assigns)"
+      },
+      {
+        "section_id": "recitals",
+        "type": "template",
+        "alignment": "left",
+        "template": "WHEREAS the Landlord is the absolute owner of the property described herein and is desirous of letting out the same to the Tenant, and the Tenant has agreed to take the said property on rent on the terms and conditions set forth herein.\n\nNOW THIS AGREEMENT WITNESSETH AS FOLLOWS:"
+      },
+      {
+        "section_id": "body",
+        "type": "ai_generated",
+        "prompt_context": "Generate 12-18 numbered clauses for a residential rent agreement. This is a LEGAL CONTRACT — tone should be formal and precise. Use the following details:\n- Property: {property_address}, measuring {property_area_sqft} sq. ft., for {property_type} use\n- Tenure: {tenure_months} months from {lease_start_date} to {lease_end_date}\n- Rent: Rs. {rent_amount}/- ({rent_amount_words}) per month, due on {rent_due_date}, payable via {payment_mode}\n- Annual escalation: {escalation_percent}%\n- Security deposit: Rs. {security_deposit}/- ({security_deposit_words}), refundable on vacating (less deductions)\n- Notice period: {notice_period_months} months for termination by either party\n- Permitted use: {permitted_use}\n- Maintenance: {maintenance_responsibility}\n\nMust include clauses on: (1) Grant of tenancy and tenure, (2) Rent and due date, (3) Security deposit terms and refund conditions, (4) Escalation, (5) Maintenance and repairs, (6) Permitted use, (7) Sub-letting prohibition, (8) Structural alterations, (9) Termination and notice period, (10) Consequences of default, (11) Force majeure, (12) Dispute resolution (jurisdiction). Additional terms if any: {facts_narrative}. Do NOT generate signature block — that is template-handled.",
+        "numbering": "numeric",
+        "min_paragraphs": 12,
+        "max_paragraphs": 18
+      },
+      {
+        "section_id": "closing",
+        "type": "template",
+        "alignment": "left",
+        "template": "IN WITNESS WHEREOF, the parties hereto have set their hands on this Rent Agreement on the day and year first above written at {execution_place}.\n\n\nLANDLORD:\n\n_________________________\n{applicant_name}\n\n\nTENANT:\n\n_________________________\n{respondent_name}\n\n\nWITNESSES:\n\n1. Name: _________________________\n   Address: _________________________\n   Signature: _________________________\n\n2. Name: _________________________\n   Address: _________________________\n   Signature: _________________________"
+      },
+      {
+        "section_id": "disclaimer",
+        "type": "template",
+        "alignment": "center",
+        "style": "footer_small_gray",
+        "template": "AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice."
+      }
+    ]
+  },
+  "related_acts": ["Transfer of Property Act 1882 — Section 107", "Registration Act 1908 — Section 17", "Indian Stamp Act 1899"],
+  "special_prayer_additions": [],
+  "filing_checklist": [
+    "Print on stamp paper of appropriate value (varies by state)",
+    "Both parties to sign on all pages",
+    "Two witnesses required with full name, address, and signature",
+    "Attach passport-size photographs of Landlord and Tenant",
+    "Attach photocopy of Landlord's property ownership proof",
+    "Attach ID proof of both parties (Aadhaar/PAN)",
+    "For tenure > 11 months: compulsory registration at Sub-Registrar",
+    "Retain one executed copy with each party",
+    "Tenant to obtain NOC from housing society (if applicable)"
+  ],
+  "validation_rules": {
+    "section_codes_allowed": ["TPA", "Registration Act", "Stamp Act"],
+    "reject_old_codes": [],
+    "auto_convert_old_to_new": false,
+    "mandatory_sections": ["header", "recitals", "body", "closing", "disclaimer"],
+    "fact_alteration_check": true,
+    "min_body_paragraphs": 12
+  },
+  "metadata": {
+    "version": "1.0",
+    "created_by": "Ajay · CLO",
+    "reviewed_at": "2026-05-04",
+    "status": "active"
+  }
+}

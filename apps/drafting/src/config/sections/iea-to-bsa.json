@@ -199,10 +199,11 @@
       "type": "direct"
     },
     "32": {
-      "new": "26",
+      "new": "32",
       "old_title": "Cases in which statement of relevant fact by person who is dead or cannot be found etc. is relevant (Dying declaration)",
-      "new_title": "Dying declaration and other statements",
-      "type": "partial"
+      "new_title": "Cases in which statement of relevant fact by person who is dead or cannot be found etc. is relevant",
+      "type": "partial",
+      "notes": "CLO fix: was incorrectly mapped to BSA 26 (which is IEA 27). Corrected to BSA 32."
     },
     "33": {
       "new": "32",

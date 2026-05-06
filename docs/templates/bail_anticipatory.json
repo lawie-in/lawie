@@ -1,0 +1,163 @@
+{
+  "template_id": "bail_anticipatory",
+  "display_name": "Anticipatory Bail Application",
+  "category": "criminal",
+  "description": "Application for anticipatory bail under Section 482 BNSS, 2023 (apprehension of arrest)",
+  "icon": "shield",
+  "plan_access": "free",
+  "applicable_courts": {
+    "court_levels": ["sessions", "high_court"],
+    "states": ["all"]
+  },
+  "supported_languages": ["en", "hi", "bilingual"],
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Case Details",
+        "fields": [
+          { "field_id": "fir_number", "label": "FIR Number", "type": "text", "required": true, "placeholder": "e.g., 215/2026", "inject_into": ["cause_title", "body_para_1", "prayer"] },
+          { "field_id": "fir_date", "label": "FIR Date", "type": "date", "required": true, "inject_into": ["body_para_1", "prayer"] },
+          { "field_id": "police_station", "label": "Police Station", "type": "text", "required": true, "inject_into": ["body_para_1", "prayer"] },
+          { "field_id": "sections_charged", "label": "Sections Charged in FIR", "type": "multi_select_search", "source": "bns_mapping", "required": true, "auto_convert_old": true, "inject_into": ["body_para_1", "ai_prompt"] },
+          { "field_id": "currently_in_custody", "label": "Is the applicant currently in custody?", "type": "dropdown", "options": [{"id": "no", "label": "No — apprehends arrest"}], "required": true, "default": "no", "inject_into": ["ai_prompt"] }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Court & Parties",
+        "fields": [
+          { "field_id": "state", "label": "State", "type": "dropdown_search", "source": "courts_db.states", "required": true, "cascades_to": ["court_type", "court_name"] },
+          { "field_id": "court_type", "label": "Court Type", "type": "dropdown", "source": "courts_db.court_types", "filtered_by": ["state"], "required": true, "cascades_to": ["court_name"] },
+          { "field_id": "court_name", "label": "Court Name", "type": "dropdown_search", "source": "courts_db.courts", "filtered_by": ["state", "court_type"], "required": true, "links_to_formatting": true, "inject_into": ["cause_title"] },
+          { "field_id": "applicant_name", "label": "Applicant Full Name", "type": "text", "required": true, "inject_into": ["cause_title", "verification", "prayer"] },
+          { "field_id": "father_name", "label": "Father's / Husband's Name", "type": "text", "required": true, "inject_into": ["cause_title"] },
+          { "field_id": "applicant_age", "label": "Age", "type": "number", "required": true, "inject_into": ["cause_title"] },
+          { "field_id": "address", "label": "Residential Address", "type": "textarea", "required": true, "inject_into": ["cause_title"] },
+          { "field_id": "language", "label": "Document Language", "type": "dropdown", "options_from": "supported_languages", "default": "en", "required": true }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Facts & Grounds",
+        "fields": [
+          { "field_id": "facts_narrative", "label": "Brief Facts — why do you apprehend arrest? (3-5 lines)", "type": "textarea", "required": true, "min_length": 50, "max_length": 1500, "placeholder": "Describe the circumstances — what is the dispute, why do you believe arrest is imminent...", "inject_into": ["ai_prompt"] },
+          { "field_id": "grounds_for_bail", "label": "Grounds for Anticipatory Bail (select all applicable)", "type": "checkbox_group", "required": true, "min_select": 2, "options": [
+            { "id": "false_implication", "label": "Falsely implicated due to enmity / business dispute" },
+            { "id": "business_dispute_civil_in_nature", "label": "Dispute is essentially civil in nature" },
+            { "id": "no_criminal_antecedent", "label": "No prior criminal record" },
+            { "id": "cooperation_with_investigation", "label": "Will cooperate with investigation" },
+            { "id": "deep_roots_in_community", "label": "Deep roots in community — not a flight risk" },
+            { "id": "no_evidence_tampering", "label": "No possibility of tampering with evidence" },
+            { "id": "abuse_of_process", "label": "Criminal process being abused for civil recovery" },
+            { "id": "complainant_motive", "label": "Complainant has ulterior motive" },
+            { "id": "medical_grounds", "label": "Medical / health grounds" },
+            { "id": "professional_reputation", "label": "Arrest would ruin professional reputation irreparably" }
+          ], "inject_into": ["ai_prompt"] },
+          { "field_id": "additional_context", "label": "Anything else the court should know? (optional)", "type": "textarea", "required": false, "max_length": 800, "inject_into": ["ai_prompt"] }
+        ]
+      }
+    ]
+  },
+  "computed_fields": {
+    "bail_section": {
+      "logic": "'482'"
+    },
+    "bail_type_label": {
+      "logic": "'Anticipatory Bail'"
+    },
+    "court_designation": {
+      "logic": "courts_db.lookup(court_name).designation"
+    },
+    "court_header": {
+      "logic": "courts_db.lookup(court_name).header"
+    },
+    "court_city": {
+      "logic": "courts_db.lookup(court_name).city"
+    },
+    "case_nomenclature": {
+      "logic": "court_rules[court_name].case_nomenclature || 'Anticipatory Bail Application'"
+    }
+  },
+  "document_structure": {
+    "sections": [
+      {
+        "section_id": "cause_title",
+        "type": "template",
+        "alignment": "center",
+        "template": "{court_header}\n\n{case_nomenclature}\n\nIN THE MATTER OF:\n\n{applicant_name}\nS/o {father_name}\nAge: {applicant_age} years\nR/o {address}\n                                              ... {party_label_petitioner}\n\nVersus\n\n{state_respondent}\n                                              ... {party_label_respondent}"
+      },
+      {
+        "section_id": "application_heading",
+        "type": "template",
+        "alignment": "center",
+        "template": "APPLICATION FOR ANTICIPATORY BAIL UNDER SECTION 482 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023"
+      },
+      {
+        "section_id": "addressing_clause",
+        "type": "template",
+        "alignment": "left",
+        "template": "TO,\nTHE HONOURABLE {court_designation},\n{court_city}\n\nMOST RESPECTFULLY SHOWETH:"
+      },
+      {
+        "section_id": "body",
+        "type": "ai_generated",
+        "prompt_context": "Generate 8-12 numbered paragraphs for an Anticipatory Bail application under Section 482 BNSS. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Sections {sections_charged} of BNS, 2023. State that the applicant APPREHENDS arrest and has NOT been arrested yet. Paragraphs 2-4 should narrate the facts: {facts_narrative}. Subsequent paragraphs should establish grounds: {grounds_for_bail}. Include reference to: (i) Article 21 of Constitution, (ii) Sushila Aggarwal v. State (2020) 5 SCC 1 on conditions for anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation. Do NOT generate the prayer clause or verification — those are template-handled.",
+        "numbering": "numeric",
+        "min_paragraphs": 8,
+        "max_paragraphs": 12
+      },
+      {
+        "section_id": "prayer",
+        "type": "template",
+        "alignment": "left",
+        "template": "PRAYER\n\n{prayer_opening}\n\na) Grant Anticipatory Bail to the {party_label_petitioner}, {applicant_name}, in the event of arrest in connection with FIR No. {fir_number} dated {fir_date}, PS {police_station}, under Section 482 of BNSS, 2023, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Direct that in the event of arrest, the {party_label_petitioner} shall be released on bail forthwith;\n\nc) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\n{prayer_closing}"
+      },
+      {
+        "section_id": "verification",
+        "type": "template",
+        "alignment": "left",
+        "template": "VERIFICATION\n\n{verification_text}\n\n\n_________________________\n{applicant_name}\n({party_label_petitioner})"
+      },
+      {
+        "section_id": "advocate_block",
+        "type": "template",
+        "alignment": "right",
+        "template": "THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {court_city}\nDate: {current_date}"
+      },
+      {
+        "section_id": "disclaimer",
+        "type": "template",
+        "alignment": "center",
+        "style": "footer_small_gray",
+        "template": "AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice."
+      }
+    ]
+  },
+  "related_acts": ["BNS", "BNSS", "Constitution Article 21"],
+  "special_prayer_additions": [],
+  "filing_checklist": [
+    "Certified copy of FIR No. {fir_number}",
+    "Vakalatnama duly executed",
+    "Address proof of applicant (Aadhaar/Voter ID)",
+    "Affidavit disclosing all pending cases (if any)",
+    "Identity proof (PAN/Passport/Driving License)",
+    "Details of proposed surety",
+    "Verify all BNS/BNSS section numbers before filing",
+    "Court fee as per state schedule"
+  ],
+  "validation_rules": {
+    "section_codes_allowed": ["BNS", "BNSS", "BSA"],
+    "reject_old_codes": ["IPC", "CrPC", "IEA"],
+    "auto_convert_old_to_new": true,
+    "mandatory_sections": ["cause_title", "application_heading", "addressing_clause", "body", "prayer", "verification", "advocate_block", "disclaimer"],
+    "fact_alteration_check": true,
+    "min_body_paragraphs": 8
+  },
+  "metadata": {
+    "version": "1.0",
+    "created_by": "Ajay · CLO",
+    "reviewed_at": "2026-05-04",
+    "status": "active"
+  }
+}

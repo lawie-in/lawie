@@ -1,0 +1,51 @@
+{
+  "courtId": "cjm_generic",
+  "courtType": "cjm",
+  "designation": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE",
+  "jurisdictionNote": "Chief Judicial Magistrate — jurisdiction under S.16 BNSS. Tries offences punishable with imprisonment up to 7 years. Has powers of remand (S.187 BNSS), first bail hearing for non-bailable offences within CJM jurisdiction, and supervisory authority over JMFCs in the district.",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT/ACCUSED\n\nVERSUS\n\n{respondent} ... COMPLAINANT/STATE",
+  "party_designation": {
+    "petitioner": "Applicant",
+    "respondent": "Complainant",
+    "applicant": "Applicant",
+    "opposite_party": "Opposite Party",
+    "complainant": "Complainant",
+    "accused": "Accused",
+    "state": "State through the S.H.O., P.S. {policeStation}"
+  },
+  "case_nomenclature": {
+    "regular_bail": "Criminal Case No. _____ of {year}",
+    "default_bail": "Criminal Case No. _____ of {year}",
+    "complaint_case": "Complaint Case No. _____ of {year}",
+    "misc_criminal": "Criminal Misc. No. _____ of {year}",
+    "remand_application": "Remand Application No. _____ of {year}",
+    "warrant_case": "Warrant Trial No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
+    "closing": "And for this act of kindness, the applicant/accused shall ever pray.",
+    "tone": "humble"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": ["en", "hi"],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "{courtDesignation}, {city}"
+  },
+  "localRules": [
+    "CJM has jurisdiction over offences punishable up to 7 years (S.16 BNSS).",
+    "Bail applications for non-bailable offences within CJM jurisdiction to mention FIR details and custody period.",
+    "All applications to be filed with index and pagination.",
+    "Vakalatnama to be filed at the first instance.",
+    "Certified copy of FIR and remand order to be attached with bail applications.",
+    "Default bail under S.187(2) BNSS if charge sheet not filed within 60/90 days."
+  ]
+}

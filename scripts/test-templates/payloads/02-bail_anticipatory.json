@@ -1,0 +1,28 @@
+{
+  "template_id": "bail_anticipatory",
+  "form_data": {
+    "fir_number": "215/2026",
+    "fir_date": "2026-04-10",
+    "police_station": "Gandhi Maidan",
+    "sections_charged": ["BNS 318(4)", "BNS 336(3)"],
+    "currently_in_custody": "no",
+    "state": "bihar",
+    "court_type": "high_court",
+    "court_name": "patna_hc",
+    "applicant_name": "Suresh Prasad Singh",
+    "father_name": "Late Shri Ramesh Prasad Singh",
+    "applicant_age": 45,
+    "address": "Flat 4B, Boring Road, Patna, Bihar - 800001",
+    "language": "en",
+    "facts_narrative": "The applicant apprehends arrest in connection with FIR No. 215/2026 dated 10.04.2026 lodged at PS Gandhi Maidan, Patna. The FIR has been lodged on the basis of a false complaint by the de-facto complainant arising out of a business dispute. The applicant is a businessman of standing in the community with no criminal antecedents. He undertakes to cooperate fully with the investigation and not to leave the territorial jurisdiction of the State of Bihar without prior permission of the Hon'ble Court.",
+    "grounds_for_bail": [
+      "false_implication",
+      "business_dispute_civil_in_nature",
+      "no_criminal_antecedent",
+      "cooperation_with_investigation",
+      "deep_roots_in_community"
+    ],
+    "respondent_name": "State of Bihar",
+    "relief_sought": "Anticipatory bail under Section 482 BNSS, 2023"
+  }
+}

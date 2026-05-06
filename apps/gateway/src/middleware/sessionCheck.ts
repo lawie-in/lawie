@@ -16,6 +16,12 @@ export async function sessionCheck(req: Request, res: Response, next: NextFuncti
     return;
   }
 
+  // Dev bypass — skip Redis session lookup
+  if (tokenHash === 'dev-bypass-no-token-hash') {
+    next();
+    return;
+  }
+
   try {
     const session = await redis.get(sessionKey(jwtPayload.sub, tokenHash));
 

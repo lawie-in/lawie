@@ -113,6 +113,38 @@ async function seedSections() {
       mappingType: 'direct',
       effectiveDate: EFFECTIVE_DATE,
     },
+    // CLO patch: IEA 32 → BSA 32 (was incorrectly BSA 26)
+    {
+      oldCode: 'IEA',
+      oldCodeFull: 'Indian Evidence Act, 1872',
+      newCode: 'BSA',
+      newCodeFull: 'Bharatiya Sakshya Adhiniyam, 2023',
+      oldSection: '32',
+      newSection: '32',
+      oldTitle:
+        'Cases in which statement of relevant fact by person who is dead or cannot be found etc. is relevant (Dying declaration)',
+      newTitle:
+        'Cases in which statement of relevant fact by person who is dead or cannot be found etc. is relevant',
+      mappingType: 'partial',
+      notes: 'CLO fix: was incorrectly mapped to BSA 26. Corrected to BSA 32.',
+      validatedBy: 'Ajay - CLO',
+      effectiveDate: EFFECTIVE_DATE,
+    },
+    // CLO patch: IPC 416 → BNS 319 (new row)
+    {
+      oldCode: 'IPC',
+      oldCodeFull: 'Indian Penal Code, 1860',
+      newCode: 'BNS',
+      newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
+      oldSection: '416',
+      newSection: '319',
+      oldTitle: 'Cheating by personation',
+      newTitle: 'Cheating by personation',
+      mappingType: 'direct',
+      notes: 'IPC 416 (Cheating by personation) maps directly to BNS 319.',
+      validatedBy: 'Ajay - CLO',
+      effectiveDate: EFFECTIVE_DATE,
+    },
     // New provision (BNS)
     {
       oldCode: 'IPC',
@@ -308,6 +340,45 @@ describe('Sections Routes', () => {
       expect(ipc.new_code).toBe('BNS');
       expect(ipc.effective_date).toBe('2024-07-01');
       expect(ipc.mapped_sections).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('CLO patch validation (SCRUM-27)', () => {
+    it('maps IEA 32 → BSA 32 (NOT BSA 26 — CLO fix)', async () => {
+      const res = await request(app).get('/sections/map?old=32-IEA');
+      expect(res.status).toBe(200);
+      expect(res.body.result.old_code).toBe('IEA');
+      expect(res.body.result.old_section).toBe('32');
+      expect(res.body.result.new_code).toBe('BSA');
+      expect(res.body.result.new_section).toBe('32');
+      // Must NOT be 26 — that was the incorrect mapping
+      expect(res.body.result.new_section).not.toBe('26');
+    });
+
+    it('maps IPC 416 → BNS 319 (Cheating by personation — new row)', async () => {
+      const res = await request(app).get('/sections/map?old=416-IPC');
+      expect(res.status).toBe(200);
+      expect(res.body.result.old_code).toBe('IPC');
+      expect(res.body.result.old_section).toBe('416');
+      expect(res.body.result.new_code).toBe('BNS');
+      expect(res.body.result.new_section).toBe('319');
+      expect(res.body.result.old_title).toContain('personation');
+    });
+
+    it('reverse lookup: BSA 32 → IEA 32 (dying declaration)', async () => {
+      const res = await request(app).get('/sections/map?new=32-BSA');
+      expect(res.status).toBe(200);
+      expect(res.body.direction).toBe('new_to_old');
+      expect(res.body.results[0].old_code).toBe('IEA');
+      expect(res.body.results[0].old_section).toBe('32');
+    });
+
+    it('reverse lookup: BNS 319 → IPC 416 (cheating by personation)', async () => {
+      const res = await request(app).get('/sections/map?new=319-BNS');
+      expect(res.status).toBe(200);
+      expect(res.body.direction).toBe('new_to_old');
+      expect(res.body.results[0].old_code).toBe('IPC');
+      expect(res.body.results[0].old_section).toBe('416');
     });
   });
 

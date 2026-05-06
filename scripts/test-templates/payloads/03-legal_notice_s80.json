@@ -1,0 +1,16 @@
+{
+  "template_id": "legal_notice_s80",
+  "form_data": {
+    "state": "bihar",
+    "applicant_name": "M/s Ganga Construction Pvt. Ltd.",
+    "applicant_address": "Plot No. 17, Industrial Area, Patliputra, Patna - 800013",
+    "respondent_name": "The Executive Engineer, Bihar Road Construction Department, Government of Bihar",
+    "respondent_address": "Vishweshwaraiya Bhawan, Bailey Road, Patna - 800015",
+    "language": "en",
+    "advocate_name": "Adv. Anjali Verma",
+    "advocate_address": "Chamber No. 42, Patna High Court Bar Association, Patna - 800001",
+    "advocate_enrollment": "BCB/4521/2018",
+    "facts_narrative": "My client M/s Ganga Construction Pvt. Ltd. was awarded contract for construction of culverts on NH-31 vide Work Order No. BRCD/PAT/2024/118 dated 12.06.2024 for a contract value of Rs. 2,75,00,000/-. My client completed all the contracted work by 28.02.2026 and submitted final running bills along with measurement books duly signed by the site engineer. Despite repeated requests and reminders dated 05.03.2026, 22.03.2026, and 18.04.2026, the Executive Engineer has failed to release the final payment of Rs. 87,50,000/- which is outstanding since 28.02.2026. The wrongful withholding of payment has caused severe financial loss and reputational damage to my client.",
+    "demand": "release the outstanding payment of Rs. 87,50,000/- along with interest at the rate of 12% per annum from 28.02.2026 till actual payment, and pay damages of Rs. 5,00,000/- for the wrongful withholding"
+  }
+}

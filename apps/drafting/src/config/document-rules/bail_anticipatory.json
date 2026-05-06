@@ -1,0 +1,94 @@
+{
+  "docType": "bail_anticipatory",
+  "parentDocType": "bail_application",
+  "displayName": "Anticipatory Bail Application",
+  "category": "criminal",
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\n{applicant} ... Applicant\nVERSUS\nState of {state} / {respondent} ... Respondent",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant" },
+      { "role": "respondent", "label": "Respondent" }
+    ],
+    "caseNomenclature": "ANTICIPATORY BAIL APPLICATION No. _____ of [YEAR]"
+  },
+  "mandatoryClauses": [
+    {
+      "id": "apprehension",
+      "name": "Reason to believe arrest",
+      "required": true,
+      "description": "Grounds showing applicant has reason to believe they may be arrested"
+    },
+    {
+      "id": "fir_details",
+      "name": "FIR/Complaint Details",
+      "required": true,
+      "description": "FIR number or complaint details, police station, offences alleged"
+    },
+    {
+      "id": "false_implication",
+      "name": "False Implication / Malafide",
+      "required": false,
+      "description": "Allegation of false implication or malafide intention of complainant if applicable"
+    },
+    {
+      "id": "no_flight_risk",
+      "name": "No Flight Risk",
+      "required": true,
+      "description": "Assertion that applicant will cooperate with investigation"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Clause",
+      "required": true,
+      "description": "Prayer for anticipatory bail direction"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Direct that in the event of arrest of the applicant {applicant} in connection with {firDetails}, the applicant shall be released on bail;\nb) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {relation} of {parentName}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "filingChecklist": [
+    "Application (original + 2 copies)",
+    "Vakalatnama / Memo of Appearance",
+    "Copy of FIR / Complaint (if available)",
+    "Documents showing apprehension of arrest",
+    "Identity proof of applicant",
+    "Address proof of applicant",
+    "Proof of social standing / community ties"
+  ],
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        {
+          "number": "482",
+          "description": "Direction for grant of bail to person apprehending arrest"
+        },
+        {
+          "number": "483",
+          "description": "Special powers of High Court or Court of Session regarding bail"
+        }
+      ]
+    }
+  ],
+  "promptInstructions": [
+    "Draft an Anticipatory Bail Application under Section 482 BNSS, 2023.",
+    "Begin with facts establishing the applicant's apprehension of arrest — threat of FIR, complaint filed, summons received.",
+    "State grounds for anticipatory bail: no prima facie case, false implication, malafide intention of complainant, clean antecedents, cooperation with investigation.",
+    "Reference the three-part test from Sushila Aggarwal v. State (NCT of Delhi) (2020) 5 SCC 1 — nature of offence, role of applicant, likelihood of fleeing.",
+    "Reference Bharatiya Nyaya Sanhita (BNS) section numbers — NEVER use old IPC section numbers.",
+    "Include standard conditions the applicant is willing to comply with: joining investigation, not leaving jurisdiction, surrendering passport.",
+    "Use formal, respectful legal language appropriate for Indian courts.",
+    "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
+  ]
+}

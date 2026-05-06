@@ -1,0 +1,148 @@
+{
+  "template_id": "consumer_complaint",
+  "display_name": "Consumer Complaint (District Commission)",
+  "category": "civil",
+  "description": "Consumer complaint under Section 35 of the Consumer Protection Act, 2019 before District Commission",
+  "icon": "alert-triangle",
+  "plan_access": "free",
+  "applicable_courts": {
+    "court_levels": ["district_court", "consumer_commission"],
+    "states": ["all"]
+  },
+  "supported_languages": ["en", "hi", "bilingual"],
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Court & Parties",
+        "fields": [
+          { "field_id": "state", "label": "State", "type": "dropdown_search", "source": "courts_db.states", "required": true, "cascades_to": ["court_type", "court_name"] },
+          { "field_id": "court_type", "label": "Court Type", "type": "dropdown", "source": "courts_db.court_types", "filtered_by": ["state"], "required": true, "cascades_to": ["court_name"] },
+          { "field_id": "court_name", "label": "Forum Name", "type": "dropdown_search", "source": "courts_db.courts", "filtered_by": ["state", "court_type"], "required": true, "links_to_formatting": true, "inject_into": ["cause_title"] },
+          { "field_id": "applicant_name", "label": "Complainant Name", "type": "text", "required": true, "inject_into": ["cause_title", "body", "verification"] },
+          { "field_id": "father_name", "label": "Father's / Husband's Name", "type": "text", "required": true, "inject_into": ["cause_title"] },
+          { "field_id": "applicant_age", "label": "Age", "type": "number", "required": true, "inject_into": ["cause_title"] },
+          { "field_id": "address", "label": "Complainant Address", "type": "textarea", "required": true, "inject_into": ["cause_title"] },
+          { "field_id": "respondent_name", "label": "Opposite Party (full name & address)", "type": "textarea", "required": true, "inject_into": ["cause_title", "body"] },
+          { "field_id": "language", "label": "Document Language", "type": "dropdown", "options_from": "supported_languages", "default": "en", "required": true }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Transaction Details",
+        "fields": [
+          { "field_id": "deficiency_details", "label": "Deficiency in Service / Defect in Goods (detailed narrative)", "type": "textarea", "required": true, "min_length": 100, "max_length": 3000, "placeholder": "Describe what you purchased/availed, when, the defect/deficiency, attempts to resolve, dates of correspondence...", "inject_into": ["ai_prompt"] },
+          { "field_id": "consideration_amount", "label": "Amount Paid (Rs.)", "type": "number", "required": true, "inject_into": ["body", "prayer"] },
+          { "field_id": "purchase_date", "label": "Date of Purchase / Service", "type": "date", "required": true, "inject_into": ["body"] },
+          { "field_id": "invoice_number", "label": "Invoice / Receipt Number", "type": "text", "required": true, "inject_into": ["body"] },
+          { "field_id": "payment_mode", "label": "Mode of Payment", "type": "text", "required": true, "inject_into": ["body"] },
+          { "field_id": "compensation_claimed", "label": "Compensation Claimed (Rs.)", "type": "number", "required": true, "inject_into": ["prayer"] },
+          { "field_id": "litigation_cost", "label": "Litigation Cost Claimed (Rs.)", "type": "number", "required": true, "inject_into": ["prayer"] }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Jurisdiction & Limitation",
+        "fields": [
+          { "field_id": "territorial_basis", "label": "Territorial Jurisdiction (why this forum?)", "type": "textarea", "required": true, "min_length": 30, "max_length": 500, "inject_into": ["body"] },
+          { "field_id": "pecuniary_basis", "label": "Pecuniary Jurisdiction (total claim within limit?)", "type": "textarea", "required": true, "min_length": 20, "max_length": 500, "inject_into": ["body"] },
+          { "field_id": "limitation_basis", "label": "Limitation (complaint within 2 years?)", "type": "textarea", "required": true, "min_length": 20, "max_length": 500, "inject_into": ["body"] }
+        ]
+      }
+    ]
+  },
+  "computed_fields": {
+    "court_designation": {
+      "logic": "courts_db.lookup(court_name).designation"
+    },
+    "court_city": {
+      "logic": "courts_db.lookup(court_name).city"
+    },
+    "total_claim": {
+      "logic": "'consideration_amount + compensation_claimed + litigation_cost'"
+    }
+  },
+  "document_structure": {
+    "sections": [
+      {
+        "section_id": "cause_title",
+        "type": "template",
+        "alignment": "center",
+        "template": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION\nAT {court_city}\n\nConsumer Complaint No. _____ of {current_year}\n\nIN THE MATTER OF:\n\n{applicant_name}\nS/o / W/o {father_name}\nAge: {applicant_age} years\nR/o {address}\n                                              ... Complainant\n\nVersus\n\n{respondent_name}\n                                              ... Opposite Party"
+      },
+      {
+        "section_id": "complaint_heading",
+        "type": "template",
+        "alignment": "center",
+        "template": "CONSUMER COMPLAINT UNDER SECTION 35 OF THE CONSUMER PROTECTION ACT, 2019"
+      },
+      {
+        "section_id": "addressing_clause",
+        "type": "template",
+        "alignment": "left",
+        "template": "TO,\nTHE HONOURABLE PRESIDENT AND MEMBERS,\nDISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION,\n{court_city}\n\nMOST RESPECTFULLY SHOWETH:"
+      },
+      {
+        "section_id": "body",
+        "type": "ai_generated",
+        "prompt_context": "Generate 8-12 numbered paragraphs for a Consumer Complaint under Section 35 of the Consumer Protection Act, 2019. Structure:\nPara 1: Introduce the complainant — {applicant_name}, S/o {father_name}, aged {applicant_age} years, R/o {address} — as a 'consumer' within the meaning of Section 2(7) CPA 2019. Use these EXACT identity details as provided; do NOT invent or substitute any party name, parentage, age, or address.\nPara 2: Identify the Opposite Party and their business.\nPara 3-6: Narrate the facts chronologically — purchase/service, defect/deficiency, attempts to resolve: {deficiency_details}. Mention Invoice No. {invoice_number}, dated {purchase_date}, amount Rs. {consideration_amount}/- paid via {payment_mode}.\nPara 7: Establish that the Opposite Party's conduct amounts to 'deficiency in service' (Section 2(11)) and/or 'defect' (Section 2(10)) and constitutes an 'unfair trade practice' (Section 2(47)).\nPara 8: Territorial jurisdiction: {territorial_basis}\nPara 9: Pecuniary jurisdiction: {pecuniary_basis}. NOTE: Per CPA (Jurisdiction) Notification dated 21 December 2021, District Commission has jurisdiction where value of goods/services paid as consideration does NOT EXCEED Rs. 50 Lakh. State Commission: above Rs. 50 Lakh up to Rs. 2 Crore. National Commission: above Rs. 2 Crore. Do NOT use the old Section 34(1) limits (Rs. 1 Crore) — those were superseded by this notification.\nPara 10: Limitation: {limitation_basis}\nPara 11: State that the complainant is entitled to refund, compensation for mental agony and harassment (Rs. {compensation_claimed}/-), and litigation costs (Rs. {litigation_cost}/-).\nDo NOT generate the prayer or verification — those are template-handled.",
+        "numbering": "numeric",
+        "min_paragraphs": 8,
+        "max_paragraphs": 12
+      },
+      {
+        "section_id": "prayer",
+        "type": "template",
+        "alignment": "left",
+        "template": "PRAYER\n\nIn view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:\n\na) Direct the Opposite Party to refund the entire consideration of Rs. {consideration_amount}/- paid by the Complainant along with interest at the rate of 12% per annum from the date of payment till actual refund;\n\nb) Direct the Opposite Party to pay compensation of Rs. {compensation_claimed}/- towards mental agony, harassment, and inconvenience suffered by the Complainant;\n\nc) Direct the Opposite Party to pay Rs. {litigation_cost}/- towards the cost of litigation;\n\nd) Pass such other and further orders as this Honourable Commission may deem fit and proper in the facts and circumstances of the case."
+      },
+      {
+        "section_id": "verification",
+        "type": "template",
+        "alignment": "left",
+        "template": "VERIFICATION\n\nI, {applicant_name}, the Complainant herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at {court_city} on this _____ day of _________, {current_year}.\n\n\n_________________________\n{applicant_name}\n(Complainant)"
+      },
+      {
+        "section_id": "advocate_block",
+        "type": "template",
+        "alignment": "right",
+        "template": "THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {court_city}\nDate: {current_date}"
+      },
+      {
+        "section_id": "disclaimer",
+        "type": "template",
+        "alignment": "center",
+        "style": "footer_small_gray",
+        "template": "AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice."
+      }
+    ]
+  },
+  "related_acts": ["Consumer Protection Act 2019 — Sections 2, 34, 35, 38, 39, 69 (Pecuniary per 21 Dec 2021 Notification: District Commission up to Rs.50 Lakh, State Commission Rs.50L-2Cr, National Commission above Rs.2Cr)", "CPC Order VII Rule 1"],
+  "special_prayer_additions": [],
+  "filing_checklist": [
+    "Original + 2 copies of the complaint (total 3 sets)",
+    "Affidavit in support of complaint (format per local rules)",
+    "Copy of invoice / receipt / bill (Invoice No. {invoice_number})",
+    "Copy of all correspondence with Opposite Party (emails, letters)",
+    "Copy of product/service warranty card (if applicable)",
+    "Photographs / videos of defective product (if applicable)",
+    "Court fee (as per state Consumer Commission rules — typically Rs. 100-500)",
+    "Proof of payment (bank statement / credit card statement)",
+    "ID proof of Complainant (Aadhaar/PAN)",
+    "Vakalatnama (if filing through advocate)"
+  ],
+  "validation_rules": {
+    "section_codes_allowed": ["CPA 2019", "CPC", "BNS"],
+    "reject_old_codes": ["CPA 1986"],
+    "auto_convert_old_to_new": false,
+    "mandatory_sections": ["cause_title", "complaint_heading", "addressing_clause", "body", "prayer", "verification", "advocate_block", "disclaimer"],
+    "fact_alteration_check": true,
+    "min_body_paragraphs": 8
+  },
+  "metadata": {
+    "version": "1.0",
+    "created_by": "Ajay · CLO",
+    "reviewed_at": "2026-05-04",
+    "status": "active"
+  }
+}

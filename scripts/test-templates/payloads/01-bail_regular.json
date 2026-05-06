@@ -1,0 +1,28 @@
+{
+  "template_id": "bail_regular",
+  "form_data": {
+    "fir_number": "124/2026",
+    "fir_date": "2026-03-15",
+    "police_station": "Kotwali",
+    "sections_charged": ["BNS 303", "BNS 351"],
+    "currently_in_custody": "yes_judicial",
+    "custody_since": "2026-03-16",
+    "state": "bihar",
+    "court_type": "sessions",
+    "court_name": "bihar_sessions_patna",
+    "applicant_name": "Rajan Kumar",
+    "father_name": "Shri Mohan Kumar",
+    "applicant_age": 32,
+    "address": "Village Danapur, District Patna, Bihar",
+    "language": "en",
+    "facts_narrative": "The applicant was falsely implicated in FIR No. 124/2026 due to a land dispute with the complainant. The applicant was not present at the time of the alleged incident and has witnesses to prove his alibi. He was arrested on 16.03.2026 and has been in judicial custody since then.",
+    "grounds_for_bail": [
+      "false_implication",
+      "no_flight_risk",
+      "no_criminal_antecedent",
+      "cooperation"
+    ],
+    "respondent_name": "State of Bihar",
+    "relief_sought": "Regular bail under Section 480 BNSS"
+  }
+}

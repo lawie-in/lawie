@@ -1,0 +1,24 @@
+{
+  "template_id": "consumer_complaint",
+  "form_data": {
+    "state": "bihar",
+    "court_type": "consumer_commission",
+    "court_name": "patna_dccdrc",
+    "applicant_name": "Mr. Deepak Ranjan",
+    "father_name": "Shri Kameshwar Ranjan",
+    "applicant_age": 38,
+    "address": "Flat 7C, Mahavir Apartments, Patliputra Colony, Patna - 800013",
+    "language": "en",
+    "respondent_name": "ElectroMart India Pvt. Ltd., 4th Floor, Cyber Tower, DLF Phase II, Gurugram - 122002 (Through its Authorised Service Centre at Patna)",
+    "deficiency_details": "On 12.01.2026, the complainant purchased a Samsung 55-inch QLED Smart TV (Model QA55Q60CAKLXL) from the opposite party's official online portal for a consideration of Rs. 89,990/- vide Invoice No. EM-2026-00045178. The TV was delivered on 18.01.2026 and installed by the opposite party's authorised technician. Within 22 days of installation, on 09.02.2026, the display panel started showing vertical lines and the TV would intermittently shut down. The complainant raised complaint ticket No. SAM-PAT-114578 on 10.02.2026. Despite three site visits by the service technician between 12.02.2026 and 28.03.2026, the defect persists. The opposite party has refused to replace the unit despite the manufacturing defect being clearly within the warranty period and visible from the very first failure. Multiple emails dated 02.03.2026, 18.03.2026, and 05.04.2026 have gone unanswered.",
+    "consideration_amount": 89990,
+    "purchase_date": "2026-01-12",
+    "invoice_number": "EM-2026-00045178",
+    "payment_mode": "Credit card transaction (HDFC Bank, ending 4421)",
+    "compensation_claimed": 50000,
+    "litigation_cost": 15000,
+    "territorial_basis": "Cause of action arose at Patna where the goods were delivered, installed, and where the deficiency manifested. The opposite party's authorised service centre is also located at Patna.",
+    "pecuniary_basis": "Total claim (refund + compensation + cost) = Rs. 1,54,990/-. Falls within pecuniary jurisdiction of District Commission (up to Rs. 1 crore under S.34 CPA 2019).",
+    "limitation_basis": "Cause of action arose on 09.02.2026 (date of first defect) and continues. Complaint filed well within 2-year limitation under S.69 CPA 2019."
+  }
+}
