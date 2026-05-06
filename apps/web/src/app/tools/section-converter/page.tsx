@@ -188,7 +188,8 @@ function SearchTab() {
         const data = await res.json();
 
         if (data.direction === 'old_to_new') {
-          setResult(data.result);
+          // ?old= returns singular `result`; ?section=&code= (autoLookup) returns `results` array
+          setResult(data.result ?? (Array.isArray(data.results) ? data.results[0] : data.results));
         } else if (data.direction === 'new_to_old') {
           setReverseResults(Array.isArray(data.results) ? data.results : [data.results]);
         } else if (data.result) {

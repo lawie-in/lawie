@@ -23,7 +23,7 @@ const tools = [
       'Check if an offence is bailable or non-bailable under BNS/BNSS, and which court to approach.',
     href: '/tools/bail-checker',
     icon: Scale,
-    available: false,
+    available: true,
   },
   {
     title: 'BNSS Investigation Timeline Tracker',
@@ -31,7 +31,7 @@ const tools = [
       'Calculate custody limits, chargesheet deadlines, and investigation timelines under BNSS.',
     href: '/tools/timeline-tracker',
     icon: Clock,
-    available: false,
+    available: true,
   },
 ];
 

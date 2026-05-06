@@ -12,7 +12,7 @@ import { resolveDocRule, resolveCourtRule } from '../services/prompt-assembler';
 
 // Mock sections.service to avoid Redis/Mongo dependency
 jest.mock('../services/sections.service', () => ({
-  convertOldReferencesInText: jest.fn(async (text: string) => ({
+  convertOldReferencesInText: jest.fn(async (text) => ({
     converted: text,
     conversions: [],
   })),
