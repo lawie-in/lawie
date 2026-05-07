@@ -13,6 +13,8 @@ const envSchema = z.object({
   RAZORPAY_PLAN_ID: z.string().min(1, 'RAZORPAY_PLAN_ID is required'),
   RAZORPAY_WEBHOOK_SECRET: z.string().min(1, 'RAZORPAY_WEBHOOK_SECRET is required'),
 
+  FRONTEND_URL: z.string().default('http://localhost:3000'),
+
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),
 });

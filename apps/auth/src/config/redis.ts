@@ -9,6 +9,10 @@ const redis = new Redis(env.REDIS_URL, {
     const delay = Math.min(times * 200, 2000);
     return delay;
   },
+  // Keep connection alive — Redis Cloud drops idle TCP connections after ~5 min
+  keepAlive: 30000,
+  enableOfflineQueue: true,
+  lazyConnect: false,
 });
 
 redis.on('connect', () => logger.info('Redis connected'));

@@ -1,10 +1,26 @@
 'use client';
 
-import { Scale, Home, Megaphone, AlignLeft } from 'lucide-react';
+import { Scale, Home, Megaphone, AlignLeft, Clock, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
 import { useUsage } from '@/hooks/useUsage';
+import { apiFetch } from '@/lib/apiFetch';
+
+interface DocumentSummary {
+  _id: string;
+  title: string;
+  docType: string;
+  status: 'draft' | 'finalised' | 'exported';
+  createdAt: string;
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  draft: 'bg-slate-100 text-slate-600',
+  finalised: 'bg-green-100 text-green-700',
+  exported: 'bg-blue-100 text-blue-700',
+};
 
 const QUICK_CREATE = [
   {
@@ -70,9 +86,27 @@ function QuickCreateGrid() {
 }
 
 function RecentDocumentsTable() {
+  const [docs, setDocs] = useState<DocumentSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiFetch('/api/documents')
+      .then((r) => (r.ok ? r.json() : { documents: [] }))
+      .then((data) => setDocs((data.documents ?? []).slice(0, 5)))
+      .catch(() => setDocs([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div>
-      <h2 className="text-sm font-semibold text-slate-700">Recent documents</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-700">Recent documents</h2>
+        {docs.length > 0 && (
+          <Link href="/dashboard/documents" className="text-xs text-amber-600 hover:underline">
+            View all →
+          </Link>
+        )}
+      </div>
       <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-sm">
           <thead>
@@ -83,12 +117,53 @@ function RecentDocumentsTable() {
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">Status</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td colSpan={4} className="px-4 py-10 text-center text-xs text-slate-400">
-                No documents yet — use Quick create above to draft your first one
-              </td>
-            </tr>
+          <tbody className="divide-y divide-slate-50">
+            {loading && (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center">
+                  <Loader2 size={14} className="mx-auto animate-spin text-slate-300" />
+                </td>
+              </tr>
+            )}
+            {!loading && docs.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-10 text-center text-xs text-slate-400">
+                  No documents yet — use Quick create above to draft your first one
+                </td>
+              </tr>
+            )}
+            {!loading &&
+              docs.map((doc) => (
+                <tr key={doc._id} className="group hover:bg-slate-50">
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/dashboard/documents/${doc._id}`}
+                      className="block max-w-[200px] truncate text-xs font-medium text-slate-800 group-hover:text-amber-600"
+                    >
+                      {doc.title}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-xs capitalize text-slate-500">
+                    {doc.docType.replace(/_/g, ' ')}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="flex items-center gap-1 text-xs text-slate-400">
+                      <Clock size={11} />
+                      {new Date(doc.createdAt).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                      })}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${STATUS_STYLES[doc.status] ?? 'bg-slate-100 text-slate-600'}`}
+                    >
+                      {doc.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>

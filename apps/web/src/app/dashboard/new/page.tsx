@@ -27,7 +27,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 
 import DynamicFormRenderer from '@/components/form/DynamicFormRenderer';
 import { useAuth } from '@/context/AuthContext';
-import { getAccessToken } from '@/lib/auth';
+import { apiFetch } from '@/lib/apiFetch';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -85,54 +85,47 @@ function NewDocumentContent() {
   const [done, setDone] = useState(false);
   const [docId, setDocId] = useState<string | null>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-
   // ── Fetch template list on mount ──────────────────────────────────────────
   useEffect(() => {
     async function fetchTemplates() {
       try {
-        const token = getAccessToken();
-        const res = await fetch(`${apiUrl}/api/documents/template-configs`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch('/api/documents/template-configs');
         if (res.ok) {
           const data = await res.json();
           setTemplates(data.templates ?? []);
+        } else if (res.status === 503) {
+          setError('Service temporarily unavailable. Please try again in a moment.');
+        } else {
+          setError('Failed to load templates. Please refresh the page.');
         }
       } catch {
-        // Silently fail — we'll show empty state
+        setError('Could not connect to Lawie. Check your connection and refresh.');
       } finally {
         setLoadingTemplates(false);
       }
     }
     fetchTemplates();
-  }, [apiUrl]);
+  }, []);
 
   // ── Select a template → fetch full config ─────────────────────────────────
-  const handleSelectTemplate = useCallback(
-    async (templateId: string) => {
-      setLoadingConfig(true);
-      try {
-        const token = getAccessToken();
-        const res = await fetch(`${apiUrl}/api/documents/template-configs/${templateId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSelectedConfig(data.config);
-          setPhase('form');
-        } else {
-          const data = await res.json();
-          setError(data.error ?? 'Failed to load template');
-        }
-      } catch {
-        setError('Network error loading template');
-      } finally {
-        setLoadingConfig(false);
+  const handleSelectTemplate = useCallback(async (templateId: string) => {
+    setLoadingConfig(true);
+    try {
+      const res = await apiFetch(`/api/documents/template-configs/${templateId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedConfig(data.config);
+        setPhase('form');
+      } else {
+        const data = await res.json();
+        setError(data.error ?? 'Failed to load template');
       }
-    },
-    [apiUrl],
-  );
+    } catch {
+      setError('Network error loading template');
+    } finally {
+      setLoadingConfig(false);
+    }
+  }, []);
 
   // ── Submit form → generate document (SSE stream) ──────────────────────────
   const handleSubmit = useCallback(
@@ -146,15 +139,10 @@ function NewDocumentContent() {
       setError('');
       setDone(false);
 
-      const token = getAccessToken();
-
       try {
-        const res = await fetch(`${apiUrl}/api/documents/generate-from-template`, {
+        const res = await apiFetch('/api/documents/generate-from-template', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             template_id: selectedConfig.template_id,
             form_data: formData,
@@ -232,7 +220,7 @@ function NewDocumentContent() {
         setError(err instanceof Error ? err.message : 'Network error');
       }
     },
-    [user, selectedConfig, apiUrl],
+    [user, selectedConfig],
   );
 
   // ── Redirect to editor on done ────────────────────────────────────────────

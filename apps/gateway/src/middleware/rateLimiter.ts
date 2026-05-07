@@ -5,13 +5,19 @@ import rateLimit from 'express-rate-limit';
 import { env } from '../config/env';
 
 /**
- * Build the rate-limit store. Uses Redis in non-test environments,
- * falls back to in-memory store in tests (ioredis-mock doesn't support `.call()`).
+ * Build the rate-limit store.
+ * - test / development: in-memory (single instance, no Redis dependency)
+ * - staging / production: Redis store (shared across instances)
+ *
+ * In-memory is intentional for dev — Redis store uses Lua scripts (SCRIPT LOAD)
+ * which cause "unexpected reply" errors when the connection is unstable.
  */
 function buildStore() {
-  if (env.NODE_ENV === 'test') return undefined; // in-memory default
+  if (env.NODE_ENV === 'test' || env.NODE_ENV === 'development') {
+    return undefined; // express-rate-limit in-memory default
+  }
 
-  // Dynamic import to avoid loading Redis store during tests
+  // Dynamic import to avoid loading Redis store in test/dev
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
   const RedisStore = require('rate-limit-redis').default;
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
@@ -26,11 +32,10 @@ function buildStore() {
 /**
  * Per-user, plan-based rate limiter.
  * Free = 60 req/min, Pro = 300 req/min.
- * Uses Redis as the backing store (shared across gateway instances).
  */
 export function createPlanRateLimiter() {
   return rateLimit({
-    windowMs: 60 * 1000, // 1 minute
+    windowMs: 60 * 1000,
     max: (req: Request) => {
       const plan = req.jwtPayload?.plan;
       return plan === 'pro' ? RATE_LIMITS.pro : RATE_LIMITS.free;

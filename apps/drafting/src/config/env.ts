@@ -17,9 +17,11 @@ const envSchema = z.object({
 
   // Anthropic API key — drafting service only (required in staging/prod)
   ANTHROPIC_API_KEY: z.string().default(''),
+  ANTHROPIC_MODEL: z.string().default('claude-4.6-sonnet'),
 
   // Helicone — LLM cost observability proxy (optional, disabled if empty)
   HELICONE_API_KEY: z.string().default(''),
+  HELICONE_GATEWAY_URL: z.string().default('https://ai-gateway.helicone.ai/v1/chat/completions'),
 
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),

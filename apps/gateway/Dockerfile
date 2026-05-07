@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json yarn.lock ./
@@ -6,10 +7,7 @@ COPY packages/shared/package.json ./packages/shared/
 RUN yarn install --frozen-lockfile
 COPY apps/gateway/ ./apps/gateway/
 COPY packages/shared/ ./packages/shared/
-WORKDIR /app/packages/shared
-RUN yarn build
-WORKDIR /app/apps/gateway
-RUN yarn build
+RUN yarn workspace @lawie/shared build && yarn workspace @lawie/gateway build
 
 FROM node:20-alpine AS production
 WORKDIR /app

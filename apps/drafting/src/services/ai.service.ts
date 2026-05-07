@@ -42,26 +42,94 @@ import {
 } from './validator';
 
 /**
- * Create Anthropic client — routes through Helicone proxy when HELICONE_API_KEY is set.
- * Helicone provides cost observability, per-user spend tracking, and caching.
+ * Anthropic SDK client — used only when HELICONE_API_KEY is NOT set (direct API calls).
  */
-function createAnthropicClient(): Anthropic {
-  if (env.HELICONE_API_KEY) {
-    return new Anthropic({
-      apiKey: env.ANTHROPIC_API_KEY,
-      baseURL: 'https://anthropic.helicone.ai/v1',
-      defaultHeaders: {
-        'Helicone-Auth': `Bearer ${env.HELICONE_API_KEY}`,
-      },
-    });
-  }
-  return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-}
-
-const client = createAnthropicClient();
+const directClient = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
 /**
- * Build per-request Helicone headers for user attribution and template tracking.
+ * Stream text tokens from the LLM.
+ *
+ * - When HELICONE_API_KEY is set: calls Helicone AI Gateway (OpenAI-compat endpoint)
+ *   using native fetch — this is the same endpoint verified working in Postman.
+ * - When not set: falls back to Anthropic SDK directly.
+ *
+ * Yields raw text chunks as they arrive.
+ */
+async function* streamLLM(
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens: number,
+  trackingHeaders: Record<string, string> = {},
+): AsyncGenerator<string> {
+  if (env.HELICONE_API_KEY) {
+    // Helicone AI Gateway — OpenAI-compatible, supports Claude model aliases
+    const resp = await fetch(env.HELICONE_GATEWAY_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.HELICONE_API_KEY}`,
+        ...trackingHeaders,
+      },
+      body: JSON.stringify({
+        model: env.ANTHROPIC_MODEL,
+        max_tokens: maxTokens,
+        stream: true,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      throw new Error(`Helicone AI Gateway ${resp.status}: ${err}`);
+    }
+
+    if (!resp.body) throw new Error('Helicone AI Gateway returned no response body');
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ') || line.trim() === 'data: [DONE]') continue;
+        try {
+          const data = JSON.parse(line.slice(6));
+          const text = data.choices?.[0]?.delta?.content;
+          if (text) yield text;
+        } catch {
+          // malformed SSE line — skip
+        }
+      }
+    }
+  } else {
+    // Direct Anthropic SDK — no proxy
+    const stream = await directClient.messages.stream({
+      model: env.ANTHROPIC_MODEL,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+    for await (const chunk of stream) {
+      if (
+        chunk.type === 'content_block_delta' &&
+        chunk.delta.type === 'text_delta' &&
+        chunk.delta.text
+      ) {
+        yield chunk.delta.text;
+      }
+    }
+  }
+}
+
+/**
+ * Build per-request Helicone tracking headers for the AI Gateway.
  * Returns empty object when Helicone is not configured.
  */
 function heliconeHeaders(userId?: string, templateId?: string): Record<string, string> {
@@ -134,25 +202,14 @@ export async function streamGenerateDocument(
   // ── Stream AI Response ──────────────────────────────────────────────────────
   let rawText = '';
 
-  const stream = await client.messages.stream(
-    {
-      model: 'claude-sonnet-4',
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    },
-    { headers: heliconeHeaders(input.userId, input.docType) },
-  );
-
-  for await (const chunk of stream) {
-    if (
-      chunk.type === 'content_block_delta' &&
-      chunk.delta.type === 'text_delta' &&
-      chunk.delta.text
-    ) {
-      rawText += chunk.delta.text;
-      res.write(`data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`);
-    }
+  for await (const text of streamLLM(
+    systemPrompt,
+    userPrompt,
+    4096,
+    heliconeHeaders(input.userId, input.docType),
+  )) {
+    rawText += text;
+    res.write(`data: ${JSON.stringify({ text })}\n\n`);
   }
 
   // ── Layer 2: Post-Processing ────────────────────────────────────────────────
@@ -327,25 +384,14 @@ export async function streamGenerateFromTemplate(
 
       let aiText = '';
 
-      const stream = await client.messages.stream(
-        {
-          model: 'claude-sonnet-4',
-          max_tokens: 8192,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userPrompt }],
-        },
-        { headers: heliconeHeaders(input.userId, templateConfig.template_id) },
-      );
-
-      for await (const chunk of stream) {
-        if (
-          chunk.type === 'content_block_delta' &&
-          chunk.delta.type === 'text_delta' &&
-          chunk.delta.text
-        ) {
-          aiText += chunk.delta.text;
-          res.write(`data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`);
-        }
+      for await (const text of streamLLM(
+        systemPrompt,
+        userPrompt,
+        8192,
+        heliconeHeaders(input.userId, templateConfig.template_id),
+      )) {
+        aiText += text;
+        res.write(`data: ${JSON.stringify({ text })}\n\n`);
       }
 
       renderedSections.push({

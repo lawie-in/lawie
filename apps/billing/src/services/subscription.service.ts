@@ -27,10 +27,12 @@ export async function createSubscription(
     };
   }
 
-  const sub = await razorpay.subscriptions.create({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sub = await (razorpay.subscriptions.create as any)({
     plan_id: env.RAZORPAY_PLAN_ID,
     customer_notify: 1,
     total_count: 120, // 10 years max — effectively perpetual
+    callback_url: `${env.FRONTEND_URL}/dashboard/payment/success`,
     notes: { userId, email },
   });
 

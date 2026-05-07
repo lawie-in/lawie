@@ -196,6 +196,18 @@ function DropdownSearchField({
 }) {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch('');
+      }
+    }
+    if (open) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
 
   const filtered = useMemo(
     () =>
@@ -208,7 +220,7 @@ function DropdownSearchField({
   const selectedLabel = options.find((o) => o.id === value)?.label ?? '';
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <FieldLabel field={field} />
       <div
         className={`${inputClasses} flex cursor-pointer items-center gap-2`}
@@ -275,11 +287,13 @@ function MultiSelectSearchField({
   value,
   onChange,
   options,
+  allowFreeText = false,
 }: {
   field: FormField;
   value: string[];
   onChange: (v: string[]) => void;
   options: FieldOption[];
+  allowFreeText?: boolean;
 }) {
   const [search, setSearch] = useState('');
 
@@ -293,13 +307,25 @@ function MultiSelectSearchField({
     [options, search, value],
   );
 
-  const selectedItems = value
-    .map((id) => options.find((o) => o.id === id))
-    .filter(Boolean) as FieldOption[];
+  const selectedItems: FieldOption[] = value.map((id) => {
+    const found = options.find((o) => o.id === id);
+    return found ?? { id, label: id };
+  });
+
+  function addFreeText() {
+    const trimmed = search.trim();
+    if (trimmed && !value.includes(trimmed)) {
+      onChange([...value, trimmed]);
+      setSearch('');
+    }
+  }
 
   return (
     <div>
       <FieldLabel field={field} />
+      {allowFreeText && (
+        <p className="mt-0.5 text-xs text-slate-400">Type a section and press Enter to add</p>
+      )}
       {/* Selected items as tags */}
       {selectedItems.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">
@@ -326,9 +352,24 @@ function MultiSelectSearchField({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (allowFreeText && (e.key === 'Enter' || e.key === ',')) {
+                e.preventDefault();
+                addFreeText();
+              }
+            }}
             placeholder={field.placeholder || 'Search and select…'}
             className="flex-1 bg-transparent text-sm outline-none"
           />
+          {allowFreeText && search.trim() && (
+            <button
+              type="button"
+              onClick={addFreeText}
+              className="flex-shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200"
+            >
+              Add
+            </button>
+          )}
         </div>
         {search.length > 0 && filtered.length > 0 && (
           <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
@@ -716,6 +757,7 @@ export default function DynamicFormRenderer({
                     value={Array.isArray(value) ? (value as string[]) : []}
                     onChange={(v) => setField(field.field_id, v)}
                     options={options}
+                    allowFreeText={field.source === 'bns_mapping'}
                   />
                 )}
 

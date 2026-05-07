@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json yarn.lock ./
@@ -6,10 +7,8 @@ COPY packages/shared/package.json ./packages/shared/
 RUN yarn install --frozen-lockfile
 COPY apps/drafting/ ./apps/drafting/
 COPY packages/shared/ ./packages/shared/
-WORKDIR /app/packages/shared
-RUN yarn build
-WORKDIR /app/apps/drafting
-RUN yarn build
+COPY docs/templates ./docs/templates
+RUN yarn workspace @lawie/shared build && yarn workspace @lawie/drafting build
 
 FROM node:20-alpine AS production
 WORKDIR /app
@@ -20,6 +19,7 @@ COPY packages/shared/package.json ./packages/shared/
 RUN yarn install --frozen-lockfile --production && yarn cache clean
 COPY --from=builder /app/apps/drafting/dist ./apps/drafting/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY docs/templates ./docs/templates
 WORKDIR /app/apps/drafting
 RUN addgroup -S lawie && adduser -S lawie -G lawie
 USER lawie
