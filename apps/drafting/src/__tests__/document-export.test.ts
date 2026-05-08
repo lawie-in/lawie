@@ -142,15 +142,13 @@ I verify the contents are true.`;
     expect(html).toContain('class="disclaimer"');
   });
 
-  it('adds watermark for free tier', () => {
-    const html = contentToHtml(sampleContent, true);
-    expect(html).toContain('class="watermark"');
-    expect(html).toContain('Lawie Free Tier');
-  });
-
-  it('omits watermark for pro tier', () => {
-    const html = contentToHtml(sampleContent, false);
-    expect(html).not.toContain('class="watermark"');
+  it('never includes watermark regardless of tier (policy: no watermark on any output)', () => {
+    const htmlFree = contentToHtml(sampleContent, true);
+    const htmlPro = contentToHtml(sampleContent, false);
+    expect(htmlFree).not.toContain('class="watermark"');
+    expect(htmlPro).not.toContain('class="watermark"');
+    expect(htmlFree).not.toContain('Free Tier');
+    expect(htmlPro).not.toContain('Free Tier');
   });
 
   it('detects headings (all-caps lines)', () => {
@@ -161,10 +159,17 @@ I verify the contents are true.`;
     expect(html).toMatch(/class="heading"[^>]*>VERIFICATION/);
   });
 
-  it('escapes HTML in content', () => {
-    const html = contentToHtml('<script>alert(1)</script>', false);
-    expect(html).not.toContain('<script>');
-    expect(html).toContain('&lt;script&gt;');
+  it('escapes HTML entities in plain-text content', () => {
+    // Plain text that contains angle brackets (not TipTap HTML) — markdownBoldItalic escapes them
+    const html = contentToHtml('Text with <b>inline</b> tags', false);
+    expect(html).not.toContain('<b>inline</b>');
+    expect(html).toContain('&lt;b&gt;inline&lt;/b&gt;');
+  });
+
+  it('embeds TipTap HTML content as-is (trusted editor output)', () => {
+    // Content that starts with < is treated as TipTap HTML and embedded directly
+    const html = contentToHtml('<p>Hello <strong>world</strong></p>', false);
+    expect(html).toContain('<p>Hello <strong>world</strong></p>');
   });
 
   it('handles bold markdown', () => {

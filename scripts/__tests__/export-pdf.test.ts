@@ -98,15 +98,39 @@ describe('renderToHtml', () => {
     expect(html).toContain('Check item 2');
   });
 
-  it('omits watermark when clean=true', () => {
-    const html = renderToHtml(parsed, true);
-    expect(html).not.toContain('class="watermark"');
+  it('never includes watermark regardless of clean flag (A3 — policy: no watermark on any output)', () => {
+    const htmlClean = renderToHtml(parsed, true);
+    const htmlDirty = renderToHtml(parsed, false);
+    expect(htmlClean).not.toContain('class="watermark"');
+    expect(htmlDirty).not.toContain('class="watermark"');
+    expect(htmlDirty).not.toContain('Free Tier');
   });
 
-  it('includes watermark when clean=false', () => {
-    const html = renderToHtml(parsed, false);
-    expect(html).toContain('class="watermark"');
-    expect(html).toContain('DRAFT');
+  it('renders **bold** as <strong> not raw asterisks (A1)', () => {
+    const boldSection = parseSSEResponse(
+      `event: template_sections\ndata: {"sections":[{"section_id":"body","type":"ai_generated","content":"This is **important** text.","alignment":"left"}]}\n`,
+    );
+    const html = renderToHtml(boldSection, true);
+    expect(html).toContain('<strong>important</strong>');
+    expect(html).not.toMatch(/\*\*important\*\*/);
+  });
+
+  it('renders *italic* as <em> not raw asterisks (A5)', () => {
+    const italicSection = parseSSEResponse(
+      `event: template_sections\ndata: {"sections":[{"section_id":"body","type":"ai_generated","content":"inter *alia* the accused","alignment":"left"}]}\n`,
+    );
+    const html = renderToHtml(italicSection, true);
+    expect(html).toContain('<em>alia</em>');
+    expect(html).not.toMatch(/\*alia\*/);
+  });
+
+  it('renders --- as <hr> not literal text (A4)', () => {
+    const hrSection = parseSSEResponse(
+      `event: template_sections\ndata: {"sections":[{"section_id":"body","type":"ai_generated","content":"First para.\\n\\n---\\n\\nSecond para.","alignment":"left"}]}\n`,
+    );
+    const html = renderToHtml(hrSection, true);
+    expect(html).toContain('<hr>');
+    expect(html).not.toContain('>---<');
   });
 
   it('escapes HTML entities in content', () => {

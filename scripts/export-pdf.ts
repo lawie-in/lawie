@@ -22,6 +22,7 @@
 import fs from 'fs';
 import path from 'path';
 
+import { marked } from 'marked';
 import puppeteer from 'puppeteer';
 
 // ---------------------------------------------------------------------------
@@ -101,12 +102,10 @@ function escapeHtml(text: string): string {
 }
 
 function markdownToHtml(text: string): string {
-  // Bold: **text**
-  let html = escapeHtml(text);
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  // Italic: *text*
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  return html;
+  // Escape HTML entities first, then parse inline markdown (**bold**, *italic*, `code`).
+  // Pre-escaping prevents XSS while still letting marked handle formatting tokens.
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return marked.parseInline(escaped) as string;
 }
 
 function renderSectionToHtml(section: TemplateSection): string {
@@ -125,6 +124,12 @@ function renderSectionToHtml(section: TemplateSection): string {
 
   for (const para of paragraphs) {
     if (!para.trim()) continue;
+
+    // Horizontal rule — Ajay audit A4
+    if (para.trim() === '---') {
+      html += '<hr>\n';
+      continue;
+    }
 
     const lines = para.split('\n');
     const lineHtml = lines.map((l) => markdownToHtml(l)).join('<br>');
@@ -152,7 +157,7 @@ function renderSectionToHtml(section: TemplateSection): string {
   return html;
 }
 
-export function renderToHtml(parsed: ParsedResponse, clean: boolean): string {
+export function renderToHtml(parsed: ParsedResponse, _clean: boolean): string {
   let body = '';
 
   for (const section of parsed.sections) {
@@ -171,7 +176,7 @@ export function renderToHtml(parsed: ParsedResponse, clean: boolean): string {
     body += '</div>';
   }
 
-  const watermark = clean ? '' : `<div class="watermark">DRAFT — Lawie Free Tier</div>`;
+  // Watermark permanently removed — founder + CLO policy: no watermark on any output
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -233,18 +238,6 @@ export function renderToHtml(parsed: ParsedResponse, clean: boolean): string {
     margin-bottom: 0.3em;
   }
 
-  .watermark {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-45deg);
-    font-size: 60pt;
-    color: rgba(0, 0, 0, 0.06);
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 9999;
-  }
-
   strong {
     font-weight: bold;
   }
@@ -255,7 +248,6 @@ export function renderToHtml(parsed: ParsedResponse, clean: boolean): string {
 </style>
 </head>
 <body>
-${watermark}
 ${body}
 </body>
 </html>`;

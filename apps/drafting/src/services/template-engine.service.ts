@@ -14,6 +14,12 @@ import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import bnsBailability from '../config/bns-bailability.json';
+import bnsOffences from '../config/bns-offences.json';
+
+/** Sorted list of valid BNS section numbers for system-prompt injection (SCRUM-64). */
+const BNS_VALID_SECTIONS = Object.keys(bnsOffences.offences).sort(
+  (a, b) => parseFloat(a) - parseFloat(b),
+);
 
 // ── Types — match the JSON schema from CLO ──────────────────────────────────
 
@@ -375,6 +381,22 @@ function extractCityFromCourtName(courtName: string): string {
   return courtName;
 }
 
+/**
+ * SCRUM-63: Strip a leading prefix (and optional trailing space/dot) from a field value.
+ * @param value — raw form input (e.g. "PS Chanho" or "P.S. Chanho")
+ * @param prefixes — array of regex fragments to try (e.g. ['Police Station', 'P\\.?S\\.?'])
+ * @returns value with the leading prefix removed, or the original value if none matched
+ */
+function stripLeadingPrefix(value: string, prefixes: string[]): string {
+  for (const prefix of prefixes) {
+    const re = new RegExp(`^${prefix}[\\s.]+`, 'i');
+    if (re.test(value)) {
+      return value.replace(re, '').trim();
+    }
+  }
+  return value;
+}
+
 // ── Placeholder Replacement ─────────────────────────────────────────────────
 
 export interface PlaceholderContext {
@@ -523,6 +545,27 @@ export function buildPlaceholderContext(
     ctx.verification_text = `I, ${ctx.applicant_name ?? '_____'}, the ${ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${ctx.court_city ?? '_____'} on this _____ day of _________, ${ctx.current_year}.`;
   }
 
+  // Recursive placeholder pass — resolve {token} references that may exist inside
+  // ctx values themselves (e.g. caseNomenclature from courts DB contains "{current_year}"
+  // or "{year}" tokens that were not yet substituted during resolveComputedFields).
+  // Only replaces keys already present in ctx; unknown tokens (including deferred
+  // {body_para_count}) are left as-is for the template rendering pass.
+  for (const key of Object.keys(ctx)) {
+    if (ctx[key].includes('{')) {
+      ctx[key] = ctx[key].replace(/\{(\w+)\}/g, (match: string, k: string) =>
+        ctx[k] !== undefined ? ctx[k] : match,
+      );
+    }
+  }
+
+  // SCRUM-63: Strip duplicate prefixes from known fields (A8 fix).
+  // Templates hardcode "PS {police_station}" — if the user already typed "PS Chanho"
+  // the output becomes "PS PS Chanho". Strip the leading prefix from the value so the
+  // template-provided prefix is the canonical one.
+  if (ctx.police_station) {
+    ctx.police_station = stripLeadingPrefix(ctx.police_station, ['Police Station', 'P\\.?S\\.?']);
+  }
+
   return ctx;
 }
 
@@ -593,6 +636,28 @@ export function renderTemplateSection(
 }
 
 /**
+ * SCRUM-62: Strip cause-title blocks (A7) and disclaimer text (A6) that AI
+ * sometimes injects into the body despite instructions not to.
+ * Both are already rendered by template sections — duplicates corrupt the PDF.
+ */
+export function sanitiseAIBody(text: string): string {
+  const paras = text.split(/\n\n+/);
+  const cleaned = paras.filter((para) => {
+    const t = para.trim();
+    if (!t) return false;
+    // A7: cause-title / court-header block
+    if (/^IN THE (HIGH )?COURT OF/i.test(t)) return false;
+    if (/^IN THE HIGH COURT/i.test(t)) return false;
+    // A6: AI disclaimer text
+    if (/AI[\s-]assisted draft/i.test(t)) return false;
+    if (/^DISCLAIMER\s*:/i.test(t)) return false;
+    if (/Lawie does not provide legal advice/i.test(t)) return false;
+    return true;
+  });
+  return cleaned.join('\n\n').trim();
+}
+
+/**
  * Build the AI system prompt for config-driven generation.
  */
 export function buildAISystemPrompt(
@@ -619,7 +684,10 @@ CRITICAL RULES:
 3. Use formal, respectful legal language appropriate for Indian courts.
 4. Do NOT include any commentary or notes outside the document content.
 5. NEVER alter, embellish, or contradict the user's stated facts. Reproduce FIR numbers, dates, names, and amounts EXACTLY as provided.
-6. Generate ONLY the body paragraphs as instructed. Do NOT generate cause title, prayer, verification, advocate block, or disclaimer — those are handled by the template engine.
+6. Generate ONLY the numbered body paragraphs as instructed. Do NOT include:
+   - Any court header or cause-title block ("IN THE COURT OF..." / "IN THE HIGH COURT OF...") — the cause title is already rendered above by the template engine; a second copy corrupts the document (A7)
+   - The prayer clause, verification clause, or advocate block
+   - The AI disclaimer text ("AI-assisted draft" / "Lawie does not provide legal advice") — it is auto-appended to the export footer and must NOT appear in the body (A6)
 7. Use today's date format (DD/MM/YYYY) where needed.${contractRule}
 
 ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
@@ -634,6 +702,10 @@ RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ?
       ? `\n\nPARTY DESIGNATIONS FOR THIS COURT:\n${Object.entries(courtRule.party_designation)
           .map(([k, v]) => `- ${k}: "${v}"`)
           .join('\n')}`
+      : ''
+  }${
+    config.category === 'criminal'
+      ? `\n\nBNS SECTION WHITELIST (MANDATORY — SCRUM-64): You MUST ONLY cite BNS sections from this verified First Schedule list: ${BNS_VALID_SECTIONS.join(', ')}. Any BNS section number NOT in this list does not exist in the Bharatiya Nyaya Sanhita — do NOT use it under any circumstances.`
       : ''
   }`;
 }

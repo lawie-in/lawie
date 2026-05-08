@@ -1,0 +1,578 @@
+{
+  "_meta": {
+    "description": "BNS 2023 offence classification — bail, punishment, cognizability, compoundability per First Schedule",
+    "source": "Bharatiya Nyaya Sanhita, 2023 (Act No. 45 of 2023), First Schedule",
+    "effective_date": "2024-07-01",
+    "validated_by": "Pending CLO review",
+    "last_updated": "2026-05-06"
+  },
+  "offences": {
+    "103": {
+      "title": "Murder",
+      "punishment": "Death or imprisonment for life, and fine",
+      "max_years": 99,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "103(1)": {
+      "title": "Murder (by group of 5 or more on grounds of caste, etc.)",
+      "punishment": "Death or imprisonment for life, and fine",
+      "max_years": 99,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "104": {
+      "title": "Culpable homicide not amounting to murder",
+      "punishment": "Imprisonment for life, or up to 10 years, and fine",
+      "max_years": 10,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "105": {
+      "title": "Death by negligence",
+      "punishment": "Up to 5 years, and fine; if by registered medical practitioner: up to 2 years",
+      "max_years": 5,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "106": {
+      "title": "Causing death by rash or negligent act not amounting to culpable homicide",
+      "punishment": "Up to 5 years, and fine",
+      "max_years": 5,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "106(2)": {
+      "title": "Death by rash driving / hit-and-run (not reporting to police/magistrate)",
+      "punishment": "Up to 10 years, and fine",
+      "max_years": 10,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "109": {
+      "title": "Attempt to murder",
+      "punishment": "Up to 10 years, and fine; if hurt caused: imprisonment for life or up to 10 years",
+      "max_years": 10,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "111": {
+      "title": "Organised crime",
+      "punishment": "Death or imprisonment for life, and fine not less than 10 lakh",
+      "max_years": 99,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "113": {
+      "title": "Terrorist act",
+      "punishment": "Death or imprisonment for life, and fine",
+      "max_years": 99,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "115": {
+      "title": "Voluntarily causing hurt",
+      "punishment": "Up to 1 year, or fine up to 10,000, or both",
+      "max_years": 1,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "115(2)": {
+      "title": "Voluntarily causing grievous hurt",
+      "punishment": "Up to 7 years, and fine",
+      "max_years": 7,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "117": {
+      "title": "Voluntarily causing grievous hurt by dangerous weapons or means",
+      "punishment": "Up to 7 years, and fine",
+      "max_years": 7,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "118": {
+      "title": "Voluntarily causing hurt or grievous hurt to deter public servant",
+      "punishment": "Up to 3 years or fine or both; grievous: up to 10 years and fine",
+      "max_years": 10,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "119": {
+      "title": "Voluntarily causing hurt to extort confession",
+      "punishment": "Up to 7 years, and fine",
+      "max_years": 7,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "121": {
+      "title": "Voluntarily causing hurt or grievous hurt by acid",
+      "punishment": "Up to 7 years and fine; grievous: 10 years to life and fine",
+      "max_years": 99,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "124": {
+      "title": "Kidnapping from lawful guardianship",
+      "punishment": "Up to 7 years, and fine",
+      "max_years": 7,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "125": {
+      "title": "Wrongful restraint",
+      "punishment": "Up to 1 month, or fine up to 5,000, or both",
+      "max_years": 0,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "126": {
+      "title": "Wrongful confinement",
+      "punishment": "Up to 1 year, or fine up to 5,000, or both",
+      "max_years": 1,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "127": {
+      "title": "Wrongful confinement for three or more days",
+      "punishment": "Up to 2 years, or fine, or both",
+      "max_years": 2,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "128": {
+      "title": "Wrongful confinement for 10 or more days",
+      "punishment": "Up to 3 years, and fine",
+      "max_years": 3,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "129": {
+      "title": "Wrongful confinement to extort property/confession",
+      "punishment": "Up to 3 years, and fine",
+      "max_years": 3,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "130": {
+      "title": "Wrongful confinement to extort confession — illegal to compel",
+      "punishment": "Up to 3 years, and fine",
+      "max_years": 3,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "131": {
+      "title": "Use of criminal force",
+      "punishment": "Up to 3 months, or fine up to 1,000, or both",
+      "max_years": 0,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "132": {
+      "title": "Assault or use of criminal force to deter public servant",
+      "punishment": "Up to 2 years, or fine, or both",
+      "max_years": 2,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "140": {
+      "title": "Kidnapping, abducting to compel marriage",
+      "punishment": "Up to 10 years and fine",
+      "max_years": 10,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "VI — Of Offences Affecting the Human Body"
+    },
+    "191": {
+      "title": "Dacoity",
+      "punishment": "Imprisonment for life, or rigorous imprisonment up to 10 years, and fine",
+      "max_years": 10,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "192": {
+      "title": "Dacoity with murder",
+      "punishment": "Death or imprisonment for life, and fine",
+      "max_years": 99,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "194": {
+      "title": "Robbery",
+      "punishment": "Rigorous imprisonment up to 10 years, and fine",
+      "max_years": 10,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "195": {
+      "title": "Robbery with attempt to cause death/grievous hurt",
+      "punishment": "Imprisonment for life, or rigorous up to 10 years, and fine",
+      "max_years": 10,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "196": {
+      "title": "Gang robbery",
+      "punishment": "Up to 7 years, and fine",
+      "max_years": 7,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "218": {
+      "title": "Criminal breach of trust by public servant/banker/merchant/agent",
+      "punishment": "Imprisonment for life, or up to 10 years, and fine",
+      "max_years": 10,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "251": {
+      "title": "Delivering coin as genuine which is known to be altered",
+      "punishment": "Up to 5 years, and fine",
+      "max_years": 5,
+      "bailable": true,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XIX — Of Offences Relating to Coin and Government Stamps"
+    },
+    "270": {
+      "title": "Public nuisance",
+      "punishment": "Fine up to 1,000",
+      "max_years": 0,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XX — Public Nuisance"
+    },
+    "274": {
+      "title": "Adulteration of food or drink",
+      "punishment": "Up to 6 months, or fine up to 5,000, or both",
+      "max_years": 0,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XX — Public Nuisance"
+    },
+    "281": {
+      "title": "Rash driving on public way",
+      "punishment": "Up to 6 months, or fine up to 1,000, or both",
+      "max_years": 0,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XX — Public Nuisance"
+    },
+    "290": {
+      "title": "Cruelty to animals",
+      "punishment": "Up to 1 year, or fine, or both; or community service",
+      "max_years": 1,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XXI"
+    },
+    "296": {
+      "title": "Obscene acts and songs",
+      "punishment": "Up to 3 months, or fine, or both",
+      "max_years": 0,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XXI"
+    },
+    "300": {
+      "title": "Criminal intimidation",
+      "punishment": "Up to 2 years, or fine, or both",
+      "max_years": 2,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XXI"
+    },
+    "301": {
+      "title": "Criminal intimidation by anonymous communication",
+      "punishment": "Up to 2 years, and fine",
+      "max_years": 2,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XXI"
+    },
+    "302": {
+      "title": "Intentional insult to provoke breach of peace",
+      "punishment": "Up to 2 years, or fine, or both",
+      "max_years": 2,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XXI"
+    },
+    "303": {
+      "title": "Theft",
+      "punishment": "Up to 3 years, or fine, or both",
+      "max_years": 3,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": true,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "303(2)": {
+      "title": "Theft in a dwelling house or means of transport",
+      "punishment": "Up to 7 years, and fine",
+      "max_years": 7,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "304": {
+      "title": "Snatching",
+      "punishment": "Up to 3 years, and fine",
+      "max_years": 3,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "307": {
+      "title": "Extortion",
+      "punishment": "Up to 3 years, or fine, or both",
+      "max_years": 3,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "308": {
+      "title": "Robbery",
+      "punishment": "Rigorous up to 10 years, and fine; if on highway: up to 14 years",
+      "max_years": 14,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "309": {
+      "title": "Dacoity",
+      "punishment": "Imprisonment for life, or rigorous up to 10 years, and fine",
+      "max_years": 10,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "310": {
+      "title": "Dishonest receiving of stolen property",
+      "punishment": "Up to 3 years, or fine, or both",
+      "max_years": 3,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": true,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "311": {
+      "title": "Cheating",
+      "punishment": "Up to 3 years, or fine, or both",
+      "max_years": 3,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": true,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "312": {
+      "title": "Cheating and dishonestly inducing delivery of property",
+      "punishment": "Up to 7 years, and fine",
+      "max_years": 7,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "316": {
+      "title": "Criminal breach of trust",
+      "punishment": "Up to 7 years, or fine, or both",
+      "max_years": 7,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": true,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "318": {
+      "title": "Mischief",
+      "punishment": "Up to 3 months, or fine, or both",
+      "max_years": 0,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "319": {
+      "title": "Cheating by personation",
+      "punishment": "Up to 5 years, or fine, or both",
+      "max_years": 5,
+      "bailable": true,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "326": {
+      "title": "Criminal trespass",
+      "punishment": "Up to 3 months, or fine up to 5,000, or both",
+      "max_years": 0,
+      "bailable": false,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "329": {
+      "title": "House-trespass after preparation for hurt/assault/wrongful restraint",
+      "punishment": "Up to 7 years, and fine",
+      "max_years": 7,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "331": {
+      "title": "Forgery",
+      "punishment": "Up to 2 years, or fine, or both",
+      "max_years": 2,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVIII — Of Offences Relating to Documents"
+    },
+    "332": {
+      "title": "Forgery for purpose of cheating",
+      "punishment": "Up to 7 years, and fine",
+      "max_years": 7,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVIII — Of Offences Relating to Documents"
+    },
+    "333": {
+      "title": "Forgery of valuable security or will",
+      "punishment": "Imprisonment for life, or up to 10 years, and fine",
+      "max_years": 10,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVIII — Of Offences Relating to Documents"
+    },
+    "336": {
+      "title": "Using forged document or electronic record as genuine",
+      "punishment": "Same as if forged — varies by underlying forgery section",
+      "max_years": 7,
+      "bailable": false,
+      "cognizable": true,
+      "compoundable": false,
+      "chapter": "XVIII — Of Offences Relating to Documents"
+    },
+    "340": {
+      "title": "Dishonest or fraudulent removal or concealment of property to prevent creditor",
+      "punishment": "Up to 2 years, or fine, or both",
+      "max_years": 2,
+      "bailable": false,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "341": {
+      "title": "Fraudulent removal of property to prevent seizure",
+      "punishment": "Up to 2 years, or fine, or both",
+      "max_years": 2,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XVII — Of Offences Against Property"
+    },
+    "351": {
+      "title": "Criminal intimidation",
+      "punishment": "Up to 2 years, or fine, or both",
+      "max_years": 2,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XXI — Of Criminal Intimidation"
+    },
+    "352": {
+      "title": "Intentional insult to provoke breach of peace",
+      "punishment": "Up to 2 years, or fine, or both",
+      "max_years": 2,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XXI"
+    },
+    "356": {
+      "title": "Defamation",
+      "punishment": "Up to 2 years, or fine, or both",
+      "max_years": 2,
+      "bailable": true,
+      "cognizable": false,
+      "compoundable": true,
+      "chapter": "XXI"
+    }
+  }
+}

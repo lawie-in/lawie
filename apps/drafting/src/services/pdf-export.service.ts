@@ -6,8 +6,6 @@
  */
 import puppeteer from 'puppeteer';
 
-const WATERMARK_TEXT = 'DRAFT — Lawie Free Tier';
-
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -24,42 +22,48 @@ function markdownBoldItalic(text: string): string {
 }
 
 /**
- * Convert plain/markdown document content to court-formatted HTML.
+ * Convert document content to court-formatted HTML.
+ * Handles two content formats:
+ *  - TipTap HTML (saved after user edits): embedded directly, no escaping
+ *  - Plain text / markdown (original AI output): converted to paragraphs
  */
-export function contentToHtml(content: string, isFree: boolean): string {
-  // Split into paragraphs
-  const paragraphs = content.split('\n\n');
+export function contentToHtml(content: string, _isFree: boolean): string {
   let body = '';
 
-  for (const para of paragraphs) {
-    if (!para.trim()) continue;
-    const lines = para.split('\n');
-    const lineHtml = lines.map((l) => markdownBoldItalic(l)).join('<br>');
+  if (content.trimStart().startsWith('<')) {
+    // Already HTML from TipTap editor — embed as-is
+    body = content;
+  } else {
+    // Plain text / markdown — convert to paragraphs
+    const paragraphs = content.split('\n\n');
 
-    // Detect headings (all-caps short lines, or known heading patterns)
-    const isHeading =
-      lines.length === 1 &&
-      lines[0].length < 120 &&
-      (lines[0] === lines[0].toUpperCase() ||
-        lines[0].startsWith('PRAYER') ||
-        lines[0].startsWith('VERIFICATION') ||
-        lines[0].startsWith('DEMAND') ||
-        lines[0].startsWith('APPLICATION FOR') ||
-        lines[0].startsWith('THROUGH:') ||
-        lines[0].startsWith('LEGAL NOTICE') ||
-        lines[0].startsWith('Subject:'));
+    for (const para of paragraphs) {
+      if (!para.trim()) continue;
+      const lines = para.split('\n');
+      const lineHtml = lines.map((l) => markdownBoldItalic(l)).join('<br>');
 
-    if (isHeading) {
-      body += `<p class="heading">${lineHtml}</p>\n`;
-    } else {
-      body += `<p>${lineHtml}</p>\n`;
+      const isHeading =
+        lines.length === 1 &&
+        lines[0].length < 120 &&
+        (lines[0] === lines[0].toUpperCase() ||
+          lines[0].startsWith('PRAYER') ||
+          lines[0].startsWith('VERIFICATION') ||
+          lines[0].startsWith('DEMAND') ||
+          lines[0].startsWith('APPLICATION FOR') ||
+          lines[0].startsWith('THROUGH:') ||
+          lines[0].startsWith('LEGAL NOTICE') ||
+          lines[0].startsWith('Subject:'));
+
+      if (isHeading) {
+        body += `<p class="heading">${lineHtml}</p>\n`;
+      } else {
+        body += `<p>${lineHtml}</p>\n`;
+      }
     }
   }
 
   // AI disclaimer footer
   body += `<div class="disclaimer">AI-assisted draft &mdash; verify with applicable law before filing. Lawie does not provide legal advice.</div>`;
-
-  const watermark = isFree ? `<div class="watermark">${escapeHtml(WATERMARK_TEXT)}</div>` : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -100,23 +104,19 @@ export function contentToHtml(content: string, isFree: boolean): string {
     line-height: 1.4;
     page-break-inside: avoid;
   }
-  .watermark {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-45deg);
-    font-size: 60pt;
-    color: rgba(0, 0, 0, 0.06);
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 9999;
-  }
   strong { font-weight: bold; }
   em { font-style: italic; }
+  u { text-decoration: underline; }
+  s { text-decoration: line-through; }
+  h1 { font-size: 14pt; font-weight: bold; text-align: center; margin: 0.8em 0 0.4em; }
+  h2 { font-size: 13pt; font-weight: bold; margin: 0.6em 0 0.3em; }
+  h3 { font-size: 12pt; font-weight: bold; margin: 0.4em 0 0.2em; }
+  ul, ol { margin: 0.4em 0 0.4em 1.5em; padding: 0; }
+  li { margin-bottom: 0.2em; }
+  hr { border: none; border-top: 1px solid #999; margin: 1em 0; }
 </style>
 </head>
 <body>
-${watermark}
 ${body}
 </body>
 </html>`;
@@ -128,7 +128,8 @@ ${body}
 export async function renderPdf(html: string): Promise<Buffer> {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
 
   try {

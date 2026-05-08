@@ -5,6 +5,12 @@
  * AI prompt building, document assembly, form validation, show_if.
  */
 import {
+  extractBNSSectionNumbers,
+  validateBNSWhitelist,
+  checkFactSectionSanity,
+} from '../services/validator';
+
+import {
   loadTemplateConfig,
   listTemplateConfigs,
   clearConfigCache,
@@ -17,6 +23,7 @@ import {
   assembleDocument,
   validateFormData,
   evaluateShowIf,
+  sanitiseAIBody,
   TemplateConfig,
   RenderedSection,
   CourtLookupData,
@@ -325,7 +332,7 @@ describe('AI Prompt Building', () => {
     expect(prompt).toContain('criminal');
     expect(prompt).toContain('BNS');
     expect(prompt).toContain('BNSS');
-    expect(prompt).toContain('Do NOT generate cause title');
+    expect(prompt).toContain('cause-title block');
   });
 
   test('buildAIUserPrompt replaces placeholders in prompt_context', () => {
@@ -682,5 +689,315 @@ describe('court header city resolution', () => {
     // court_city should extract "Dccdrc" from the courtId (last segment), NOT print raw "ranchi_dccdrc"
     // More importantly, it should never contain underscores (raw courtId pattern)
     expect(ctx.court_city).not.toContain('_');
+  });
+
+  test('recursive placeholder pass: {current_year} in caseNomenclature resolves to current year (A2)', () => {
+    // Simulates indian-courts.json caseNomenclature = "Cr. Misc. No. _____ of {current_year}"
+    const courtData: CourtLookupData = {
+      designation: 'IN THE HIGH COURT OF JUDICATURE AT JHARKHAND AT RANCHI',
+      city: 'Ranchi',
+      caseNomenclature: 'Cr. Misc. No. _____ of {current_year}',
+      formattingRulesRef: 'jharkhand_hc',
+      courtRule: loadCourtRule('jharkhand_hc') ?? undefined,
+    };
+    const ctx = buildPlaceholderContext(
+      bailConfig,
+      {
+        court_name: 'jharkhand_hc_ranchi',
+        state: 'jharkhand',
+        court_type: 'high_court',
+        applicant_name: 'Ramesh Singh',
+        father_name: 'Laxman Singh',
+        applicant_age: 35,
+        address: 'Ranchi',
+        fir_number: '10/2026',
+        fir_date: '2026-04-01',
+        police_station: 'PS Chanho',
+        sections_charged: ['BNS 109'],
+        currently_in_custody: 'no',
+        custody_since: '',
+        language: 'en',
+        facts_narrative: 'Test facts',
+        grounds_for_bail: ['no_prior_record'],
+        respondent_name: 'State of Jharkhand',
+        relief_sought: 'Anticipatory bail',
+      },
+      { advocateName: 'Adv Test', enrollmentNumber: 'JHC/99' },
+      courtData,
+    );
+    const currentYear = String(new Date().getFullYear());
+    // {current_year} inside case_nomenclature must be resolved — never literal
+    expect(ctx.case_nomenclature).toContain(currentYear);
+    expect(ctx.case_nomenclature).not.toContain('{current_year}');
+    expect(ctx.case_nomenclature).not.toContain('{year}');
+  });
+
+  test('no unresolved {..} tokens survive in any rendered template section (A2)', () => {
+    // Renders all template sections of bail_anticipatory with Jharkhand HC court data.
+    // No {token} (other than deferred {body_para_count}) should appear in rendered output.
+    const config = loadTemplateConfig('bail_anticipatory')!;
+    const courtData: CourtLookupData = {
+      designation: 'IN THE HIGH COURT OF JUDICATURE AT JHARKHAND AT RANCHI',
+      city: 'Ranchi',
+      caseNomenclature: 'Cr. Misc. No. _____ of {current_year}',
+      formattingRulesRef: 'jharkhand_hc',
+      courtRule: loadCourtRule('jharkhand_hc') ?? undefined,
+    };
+    const ctx = buildPlaceholderContext(
+      config,
+      {
+        court_name: 'jharkhand_hc_ranchi',
+        state: 'jharkhand',
+        court_type: 'high_court',
+        applicant_name: 'Ramesh Singh',
+        father_name: 'Laxman Singh',
+        applicant_age: 35,
+        address: 'Ranchi',
+        fir_number: '10/2026',
+        fir_date: '2026-04-01',
+        police_station: 'PS Chanho',
+        sections_charged: ['BNS 109'],
+        currently_in_custody: 'no',
+        custody_since: '',
+        language: 'en',
+        facts_narrative: 'Test facts',
+        grounds_for_bail: ['no_prior_record'],
+        respondent_name: 'State of Jharkhand',
+        relief_sought: 'Anticipatory bail',
+      },
+      { advocateName: 'Adv Test', enrollmentNumber: 'JHC/99' },
+      courtData,
+    );
+    const templateSections = config.document_structure.sections.filter(
+      (s) => s.type === 'template' && s.template,
+    );
+    for (const section of templateSections) {
+      const rendered = section.template!.replace(/\{(\w+)\}/g, (_m: string, k: string) =>
+        ctx[k] !== undefined ? ctx[k] : `{${k}}`,
+      );
+      // Only {body_para_count} is allowed to survive (deferred until after AI generation)
+      const unresolved = [...rendered.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+      const nonDeferred = unresolved.filter((k) => k !== 'body_para_count');
+      expect(nonDeferred).toHaveLength(0);
+    }
+  });
+});
+
+// ── SCRUM-62: sanitiseAIBody ─────────────────────────────────────────────────
+
+describe('sanitiseAIBody', () => {
+  test('strips sessions court cause-title block from body (A7)', () => {
+    const dirty =
+      'IN THE COURT OF SESSIONS JUDGE, RANCHI\n\n1. The applicant apprehends arrest.\n\n2. Facts follow.';
+    const clean = sanitiseAIBody(dirty);
+    expect(clean).not.toMatch(/IN THE COURT OF/i);
+    expect(clean).toContain('1. The applicant apprehends arrest.');
+    expect(clean).toContain('2. Facts follow.');
+  });
+
+  test('strips high court cause-title block from body (A7)', () => {
+    const dirty = 'IN THE HIGH COURT OF JHARKHAND AT RANCHI\n\n1. Para one.\n\n2. Para two.';
+    const clean = sanitiseAIBody(dirty);
+    expect(clean).not.toMatch(/IN THE HIGH COURT/i);
+    expect(clean).toContain('1. Para one.');
+  });
+
+  test('strips AI-assisted disclaimer from body (A6)', () => {
+    const dirty =
+      '1. Grounds for bail.\n\nAI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.';
+    const clean = sanitiseAIBody(dirty);
+    expect(clean).not.toMatch(/AI[\s-]assisted draft/i);
+    expect(clean).not.toMatch(/Lawie does not provide/i);
+    expect(clean).toContain('1. Grounds for bail.');
+  });
+
+  test('strips DISCLAIMER: prefix block (A6)', () => {
+    const dirty = '1. Facts.\n\nDISCLAIMER: This is an AI-generated draft.';
+    const clean = sanitiseAIBody(dirty);
+    expect(clean).not.toMatch(/^DISCLAIMER\s*:/im);
+    expect(clean).toContain('1. Facts.');
+  });
+
+  test('passes clean body through unchanged', () => {
+    const body =
+      '1. The applicant is a resident of Ranchi.\n\n2. The FIR is false and frivolous.\n\n3. Relief is sought.';
+    expect(sanitiseAIBody(body)).toBe(body);
+  });
+
+  test('handles body that has BOTH cause-title and disclaimer (A6 + A7 together)', () => {
+    const dirty = [
+      'IN THE COURT OF DISTRICT & SESSIONS JUDGE, PATNA',
+      '1. Body paragraph.',
+      'AI-assisted draft — verify before filing.',
+    ].join('\n\n');
+    const clean = sanitiseAIBody(dirty);
+    expect(clean).toBe('1. Body paragraph.');
+  });
+});
+
+// ── SCRUM-64: BNS whitelist validator + fact↔section sanity ──────────────────
+
+describe('extractBNSSectionNumbers', () => {
+  test('extracts short form "BNS 103"', () => {
+    expect(extractBNSSectionNumbers('under BNS 103 of the Act')).toContain('103');
+  });
+
+  test('extracts short form with sub-clause "BNS 103(1)"', () => {
+    expect(extractBNSSectionNumbers('BNS 103(1) applies here')).toContain('103(1)');
+  });
+
+  test('extracts long form "Section 103 of BNS"', () => {
+    expect(extractBNSSectionNumbers('Section 103 of BNS is applicable')).toContain('103');
+  });
+
+  test('extracts long form "Section 109 of Bharatiya Nyaya Sanhita"', () => {
+    expect(
+      extractBNSSectionNumbers('Section 109 of Bharatiya Nyaya Sanhita and Section 117 of BNS'),
+    ).toEqual(expect.arrayContaining(['109', '117']));
+  });
+
+  test('returns empty array when no BNS sections found', () => {
+    expect(extractBNSSectionNumbers('The applicant was arrested under BNSS 187.')).toHaveLength(0);
+  });
+
+  test('deduplicates repeated references', () => {
+    const text = 'BNS 103 and again BNS 103 appear twice';
+    const result = extractBNSSectionNumbers(text);
+    expect(result.filter((n) => n === '103')).toHaveLength(1);
+  });
+});
+
+describe('validateBNSWhitelist', () => {
+  test('no warnings for valid First Schedule sections', () => {
+    // 103 (Murder), 109 (Attempt), 117 (Grievous Hurt) are all in the First Schedule
+    expect(validateBNSWhitelist(['103', '109', '117'])).toHaveLength(0);
+  });
+
+  test('flags a hallucinated section not in First Schedule (e.g. 400)', () => {
+    const warnings = validateBNSWhitelist(['400']);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].type).toBe('invalid_section');
+    expect(warnings[0].message).toMatch(/400/);
+    expect(warnings[0].message).toMatch(/whitelist/i);
+  });
+
+  test('flags multiple hallucinated sections while passing valid ones', () => {
+    const warnings = validateBNSWhitelist(['103', '400', '450', '109']);
+    expect(warnings).toHaveLength(2);
+    const flagged = warnings.map((w) => w.details?.section);
+    expect(flagged).toContain('400');
+    expect(flagged).toContain('450');
+  });
+
+  test('returns empty array for empty input', () => {
+    expect(validateBNSWhitelist([])).toHaveLength(0);
+  });
+});
+
+describe('checkFactSectionSanity', () => {
+  test('no warning when BNS 103 is cited and facts mention death', () => {
+    const facts = 'The deceased was killed by the accused on 01/01/2025.';
+    expect(checkFactSectionSanity(facts, ['103'])).toHaveLength(0);
+  });
+
+  test('flags BNS 103 when facts mention only injury, not death', () => {
+    const facts = 'The accused beat the complainant with a stick causing injury.';
+    const warnings = checkFactSectionSanity(facts, ['103']);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].type).toBe('invalid_section');
+    expect(warnings[0].message).toMatch(/109|117/);
+    expect(warnings[0].details?.suggestedReplacement).toMatch(/BNS 109/);
+  });
+
+  test('flags BNS 103(1) sub-clause when facts lack death keywords', () => {
+    const facts = 'Accused attacked the complainant causing grievous hurt.';
+    const warnings = checkFactSectionSanity(facts, ['103(1)']);
+    expect(warnings).toHaveLength(1);
+  });
+
+  test('no warning when BNS 109 is cited without death keywords', () => {
+    // 109 = Attempt to Murder — does not require proven death
+    const facts = 'Accused attempted to stab the complainant.';
+    expect(checkFactSectionSanity(facts, ['109'])).toHaveLength(0);
+  });
+
+  test('no warning when no BNS sections cited at all', () => {
+    expect(checkFactSectionSanity('any facts', [])).toHaveLength(0);
+  });
+
+  test('detects "deceased" as a death keyword', () => {
+    const facts = 'The deceased was found at the scene.';
+    expect(checkFactSectionSanity(facts, ['103'])).toHaveLength(0);
+  });
+});
+
+// ── SCRUM-63: Duplicate-prefix normaliser (A8 fix) ───────────────────────────
+
+describe('buildPlaceholderContext — police_station prefix dedup (A8)', () => {
+  const minimalData = {
+    currently_in_custody: 'yes_judicial',
+    fir_number: '124/2026',
+    fir_date: '15/03/2026',
+    sections_charged: 'BNS 103',
+    facts_narrative: 'Facts.',
+    grounds_for_bail: ['false_implication'],
+    applicant_name: 'Ram Kumar',
+    father_name: 'Shyam Kumar',
+  };
+
+  test('strips leading "PS " so template "PS {police_station}" does not double-prefix (bail_anticipatory)', () => {
+    const config = loadTemplateConfig('bail_anticipatory')!;
+    const ctx = buildPlaceholderContext(config, { ...minimalData, police_station: 'PS Chanho' });
+    // Value stored in ctx must NOT start with "PS " — template provides the prefix
+    expect(ctx.police_station).toBe('Chanho');
+  });
+
+  test('strips leading "P.S. " variant', () => {
+    const config = loadTemplateConfig('bail_anticipatory')!;
+    const ctx = buildPlaceholderContext(config, { ...minimalData, police_station: 'P.S. Chanho' });
+    expect(ctx.police_station).toBe('Chanho');
+  });
+
+  test('strips leading "Police Station " prefix', () => {
+    const config = loadTemplateConfig('bail_anticipatory')!;
+    const ctx = buildPlaceholderContext(config, {
+      ...minimalData,
+      police_station: 'Police Station Chanho',
+    });
+    expect(ctx.police_station).toBe('Chanho');
+  });
+
+  test('plain name without prefix passes through unchanged', () => {
+    const config = loadTemplateConfig('bail_regular')!;
+    const ctx = buildPlaceholderContext(config, { ...minimalData, police_station: 'Chanho' });
+    expect(ctx.police_station).toBe('Chanho');
+  });
+
+  test('rendered prayer for bail_anticipatory never contains "PS PS"', () => {
+    const config = loadTemplateConfig('bail_anticipatory')!;
+    const prayerSection = config.document_structure.sections.find(
+      (s) => s.section_id === 'prayer',
+    )!;
+    const ctx = buildPlaceholderContext(config, { ...minimalData, police_station: 'PS Chanho' });
+    const rendered = renderTemplateSection(prayerSection, ctx);
+    expect(rendered.content).not.toContain('PS PS');
+    expect(rendered.content).toMatch(/PS Chanho/);
+  });
+
+  test('rendered prayer for bail_regular never contains "PS PS"', () => {
+    const config = loadTemplateConfig('bail_regular')!;
+    const prayerSection = config.document_structure.sections.find(
+      (s) => s.section_id === 'prayer',
+    )!;
+    const ctx = buildPlaceholderContext(config, {
+      ...minimalData,
+      police_station: 'PS Kotwali',
+      currently_in_custody: 'yes_judicial',
+      bail_section: '480',
+      bail_type_label: 'Regular Bail',
+    });
+    const rendered = renderTemplateSection(prayerSection, ctx);
+    expect(rendered.content).not.toContain('PS PS');
+    expect(rendered.content).toMatch(/PS Kotwali/);
   });
 });

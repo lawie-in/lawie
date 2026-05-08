@@ -7,6 +7,8 @@
  * - Check mandatory clauses are present
  * - Auto-add missing mandatory sections from templates
  */
+import bnsOffences from '../config/bns-offences.json';
+
 import { DocumentRuleConfig } from './prompt-assembler';
 import { lookupOldToNew } from './sections.service';
 
@@ -290,6 +292,68 @@ export function buildSectionsCited(text: string): string[] {
   }
 
   return [...cited];
+}
+
+// ── SCRUM-64: BNS Whitelist Validator + Fact↔Section Sanity ─────────────────
+
+/** All valid BNS section numbers per the First Schedule (CLO-validated). */
+const BNS_SECTION_WHITELIST = new Set(Object.keys(bnsOffences.offences));
+
+/**
+ * Extract BNS section numbers cited in AI-generated text.
+ * Matches "BNS 103", "BNS 103(1)", "Section 103 of BNS/Bharatiya Nyaya Sanhita".
+ */
+export function extractBNSSectionNumbers(text: string): string[] {
+  const found = new Set<string>();
+  // "BNS 103" / "BNS 103(1)"
+  const shortPat = /\bBNS\s+(\d+(?:\(\d+\))?)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = shortPat.exec(text)) !== null) found.add(m[1]);
+  // "Section 103 of BNS" / "Section 103(1) of Bharatiya Nyaya Sanhita"
+  const longPat =
+    /\bSection\s+(\d+(?:\(\d+\))?)\s+of\s+(?:the\s+)?(?:BNS|Bharatiya Nyaya Sanhita)/gi;
+  while ((m = longPat.exec(text)) !== null) found.add(m[1]);
+  return [...found];
+}
+
+/**
+ * SCRUM-64 (b): Flag BNS sections that are not in the CLO-validated whitelist.
+ * Catches hallucinated section numbers like BNS 301 that don't exist in the First Schedule.
+ */
+export function validateBNSWhitelist(bnsNumbers: string[]): ValidationWarning[] {
+  return bnsNumbers
+    .filter((n) => !BNS_SECTION_WHITELIST.has(n))
+    .map((n) => ({
+      type: 'invalid_section' as const,
+      message: `BNS Section ${n} cited but not found in the First Schedule whitelist — likely hallucinated. Please verify or replace.`,
+      details: { section: n, code: 'BNS' },
+    }));
+}
+
+/**
+ * SCRUM-64 (c): Fact↔section sanity check.
+ * BNS 103 (Murder) requires facts to mention death/killing.
+ * If facts only allege injury without fatality → flag and suggest S.109 or S.117.
+ */
+const DEATH_TERMS = /\b(died?|death|kill(?:ed|ing)?|murder(?:ed)?|deceased|fatal(?:ly)?)\b/i;
+
+export function checkFactSectionSanity(
+  factsNarrative: string,
+  bnsNumbersCited: string[],
+): ValidationWarning[] {
+  const hasMurderSection = bnsNumbersCited.some((n) => n === '103' || n.startsWith('103('));
+  if (hasMurderSection && !DEATH_TERMS.test(factsNarrative)) {
+    return [
+      {
+        type: 'invalid_section',
+        message:
+          'Section 103 of BNS (Murder) is cited but the facts do not mention death, killing, or fatality. ' +
+          'If the allegation is injury only, consider Section 109 (Attempt to Murder) or Section 117 (Grievous Hurt) instead.',
+        details: { section: '103', code: 'BNS', suggestedReplacement: 'BNS 109 or BNS 117' },
+      },
+    ];
+  }
+  return [];
 }
 
 // ── Main Validator ───────────────────────────────────────────────────────────

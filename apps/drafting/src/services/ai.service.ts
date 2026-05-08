@@ -33,12 +33,16 @@ import {
   assembleDocument,
   loadCourtRule,
   detectLeakedPlaceholders,
+  sanitiseAIBody,
 } from './template-engine.service';
 import {
   validate,
   ValidationWarning,
   detectOldLawReferences,
   buildSectionsCited,
+  extractBNSSectionNumbers,
+  validateBNSWhitelist,
+  checkFactSectionSanity,
 } from './validator';
 
 /**
@@ -394,10 +398,11 @@ export async function streamGenerateFromTemplate(
         res.write(`data: ${JSON.stringify({ text })}\n\n`);
       }
 
+      // SCRUM-62: strip duplicate cause-title (A7) and disclaimer (A6) injected by AI
       renderedSections.push({
         section_id: section.section_id,
         type: 'ai_generated',
-        content: aiText,
+        content: sanitiseAIBody(aiText),
         alignment: section.alignment,
       });
     }
@@ -471,6 +476,18 @@ export async function streamGenerateFromTemplate(
 
   const oldLawWarnings = await detectOldLawReferences(aiText);
   allWarnings.push(...oldLawWarnings);
+
+  // SCRUM-64 (b): BNS whitelist validation — flag hallucinated section numbers
+  const bnsCited = extractBNSSectionNumbers(aiText);
+  const bnsWhitelistWarnings = validateBNSWhitelist(bnsCited);
+  allWarnings.push(...bnsWhitelistWarnings);
+
+  // SCRUM-64 (c): Fact↔section sanity — BNS 103 (Murder) requires death keywords in facts
+  if (templateConfig.category === 'criminal') {
+    const factsNarrative = String(convertedFormData.facts_narrative ?? '');
+    const sanitySanityWarnings = checkFactSectionSanity(factsNarrative, bnsCited);
+    allWarnings.push(...sanitySanityWarnings);
+  }
 
   const sectionsCited = buildSectionsCited(fullText);
 
