@@ -95,7 +95,7 @@ describe('Billing Routes', () => {
       const user = await User.create({ email: 'free@test.com', plan: 'free' });
       const headers = internalHeaders({
         sub: user._id.toString(),
-        email: user.email,
+        email: user.email ?? 'free@test.com',
         name: 'Free',
       });
 

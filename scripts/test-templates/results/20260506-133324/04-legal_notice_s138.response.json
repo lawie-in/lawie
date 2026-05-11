@@ -1,0 +1,48 @@
+data: {"text":"1. That my client had entered into a sale agreement dated 01.02.2026 with the no"}
+
+data: {"text":"ticee for the sale of a used Mahindra Thar vehicle bearing registration number JH-01-AB-1234. As per the terms"}
+
+data: {"text":" of the said agreement, there remained an outstanding balance amount of Rs. 2,25,000/- (Rupees Two Lakh Twenty Five Thousand only) towards the sale consideration"}
+
+data: {"text":" payable by the noticee to my client.\n\n2. That towards the discharge of the"}
+
+data: {"text":" aforesaid liability of Rs. 2,25,000/- (Rupees Two Lakh Twenty Five Thousand only), the noticee Mr. Dilip Kumar Singh issued Cheque No. 672145 "}
+
+data: {"text":"dated 10.04.2026 for Rs. 225000/- (Two Lakh Twenty Five Thousand only) drawn on State Bank of India, Main Branch, Ranchi in favour of my"}
+
+data: {"text":" client.\n\n3. That the said cheque was duly presented for encashment to my client's banker on 15.04.2026"}
+
+data: {"text":" within the period of its validity. However, the same was returned dishonoured vide the bank's return memo dated 17."}
+
+data: {"text":"04.2026 with the endorsement 'Account Closed'.\n\n4. That the dishonour of the aforesaid cheque by the noticee constitutes a criminal offence pun"}
+
+data: {"text":"ishable under Section 138 of the Negotiable Instruments Act, 1881, which prescribes punishment with imprisonment for"}
+
+data: {"text":" a term which may extend to two years, or with fine which may extend to twice the amount of the cheque, or with both.\n\n5. That as per the prov"}
+
+data: {"text":"iso (b) to Section 138 of the Negotiable Instruments Act, 1881, the payee or the holder in"}
+
+data: {"text":" due course of the cheque is required to make a demand for the payment of the said amount of money"}
+
+data: {"text":" by giving notice in writing to the drawer of the cheque within thirty days of the receipt of information"}
+
+data: {"text":" by him from the bank regarding the return of the cheque as unpaid.\n\n6"}
+
+data: {"text":". That my client received information about the dishonour of the cheque on 17.04.2026 through the bank's return memo,"}
+
+data: {"text":" and this notice is being served well within the statutory period of thirty days as"}
+
+data: {"text":" mandated under the Negotiable Instruments Act, 1881."}
+
+event: template_sections
+data: {"sections":[{"section_id":"header","type":"template","content":"LEGAL NOTICE\n(Under Section 138 read with Section 142 of the Negotiable Instruments Act, 1881)\n\nDate: 06 May 2026\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\nMr. Dilip Kumar Singh\nHouse No. 102, Bariatu, Ranchi - 834009\n\nFrom,\nMr. Sanjay Prasad\nThrough: Adv. Neelam Kumari, Advocate\nChamber 21, District Court Compound, Ranchi - 834001","alignment":"left"},{"section_id":"subject_line","type":"template","content":"Subject: Statutory Demand Notice under Section 138 of the Negotiable Instruments Act, 1881 — Cheque No. 672145 dated 10.04.2026 for Rs. 225000/- (Two Lakh Twenty Five Thousand only) drawn on State Bank of India, Main Branch, Ranchi — dishonoured on 17.04.2026\n\nSir/Madam,\n\nUnder instructions from and on behalf of my client, Mr. Sanjay Prasad, I hereby serve upon you this statutory notice under Section 138 of the Negotiable Instruments Act, 1881, and call upon you to note as under:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. That my client had entered into a sale agreement dated 01.02.2026 with the noticee for the sale of a used Mahindra Thar vehicle bearing registration number JH-01-AB-1234. As per the terms of the said agreement, there remained an outstanding balance amount of Rs. 2,25,000/- (Rupees Two Lakh Twenty Five Thousand only) towards the sale consideration payable by the noticee to my client.\n\n2. That towards the discharge of the aforesaid liability of Rs. 2,25,000/- (Rupees Two Lakh Twenty Five Thousand only), the noticee Mr. Dilip Kumar Singh issued Cheque No. 672145 dated 10.04.2026 for Rs. 225000/- (Two Lakh Twenty Five Thousand only) drawn on State Bank of India, Main Branch, Ranchi in favour of my client.\n\n3. That the said cheque was duly presented for encashment to my client's banker on 15.04.2026 within the period of its validity. However, the same was returned dishonoured vide the bank's return memo dated 17.04.2026 with the endorsement 'Account Closed'.\n\n4. That the dishonour of the aforesaid cheque by the noticee constitutes a criminal offence punishable under Section 138 of the Negotiable Instruments Act, 1881, which prescribes punishment with imprisonment for a term which may extend to two years, or with fine which may extend to twice the amount of the cheque, or with both.\n\n5. That as per the proviso (b) to Section 138 of the Negotiable Instruments Act, 1881, the payee or the holder in due course of the cheque is required to make a demand for the payment of the said amount of money by giving notice in writing to the drawer of the cheque within thirty days of the receipt of information by him from the bank regarding the return of the cheque as unpaid.\n\n6. That my client received information about the dishonour of the cheque on 17.04.2026 through the bank's return memo, and this notice is being served well within the statutory period of thirty days as mandated under the Negotiable Instruments Act, 1881."},{"section_id":"demand_clause","type":"template","content":"DEMAND\n\nYou are hereby called upon to make payment of the said sum of Rs. 225000/- (Two Lakh Twenty Five Thousand only) to my client within a period of fifteen (15) days from the date of receipt of this notice, failing which my client shall be constrained to initiate criminal proceedings against you under Section 138 of the Negotiable Instruments Act, 1881, before the competent Magistrate having jurisdiction, at your risk, cost, and consequences.\n\nPlease note that under Section 138, if you fail to make payment within 15 days of receipt of this notice, my client shall file a criminal complaint within 30 days thereafter, and upon conviction you shall be liable to imprisonment for a term which may extend to two years, or with fine which may extend to twice the amount of the cheque, or with both.","alignment":"left"},{"section_id":"closing","type":"template","content":"A copy of this notice is retained in my office for record and further legal action.\n\nYours faithfully,\n\n\n_________________________\nAdv. Neelam Kumari\nAdvocate\nEnrollment No. JHC/1893/2019\nChamber 21, District Court Compound, Ranchi - 834001\n\n(Counsel for Mr. Sanjay Prasad)","alignment":"left"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Send within 30 days of receiving dishonour information (bank memo date)","Send via Registered Post AD — retain postal receipt","Send additional copy via Speed Post / UPC for safety","Retain original dishonoured cheque safely (primary evidence)","Retain bank return memo / dishonour slip","Wait 15 days from date of receipt by noticee","If no payment within 15 days — file complaint within next 30 days (S.142(1)(b))","Keep AD card as proof of service","Verify noticee's correct residential / business address"]}
+
+event: warning
+data: {"warnings":[{"type":"fact_alteration","message":"AI body does not contain the applicant name \"Mr. Sanjay Prasad\" as provided in form data. The AI may have substituted party identity.","details":{"field":"applicant_name","expected":"Mr. Sanjay Prasad"}}]}
+
+event: done
+data: {"complete":true,"docId":"69faf60b4096fa40592ee67a","sectionsCited":["NI Act 142","NI Act 138"],"mandatoryClausesComplete":true}
+

@@ -1,0 +1,65 @@
+data: {"text":"1. My client, M/s Chotanagpur Construction Co., is a reputed construction company engaged in the business of civil construction"}
+
+data: {"text":" works including road construction, building construction, and infrastructure development projects across the"}
+
+data: {"text":" State of Jharkhand. My client has been executing various government contracts with utmost diligence and has"}
+
+data: {"text":" maintained an impeccable track record in timely completion of projects entrusted to them.\n\n2."}
+
+data: {"text":" My client was awarded the contract for road widening and resurfacing of Ranchi-Khunti Road (SH-4) vide Work Order No. JRCD/RAN/2025/042 dated 20.08.2025"}
+
+data: {"text":" for a contract value of Rs. 1,85,00,000/-. The said work order was issued by your office after following"}
+
+data: {"text":" due tender process and my client commenced the work immediately upon receipt of the said"}
+
+data: {"text":" work order.\n\n3. My client executed the contracted work with utmost care"}
+
+data: {"text":" and diligence, deploying adequate machinery, skilled manpower, and quality materials as"}
+
+data: {"text":" per the specifications laid down in the contract. My client completed all the contracted work within the stipulated time frame on"}
+
+data: {"text":" 15.01.2026 and submitted the final running bills along with measurement books duly verified by the site engineer appointed for the project.\n\n4. Upon completion"}
+
+data: {"text":" of the work, my client submitted all necessary documents including the final bills for payment of the outstanding amount."}
+
+data: {"text":" However, despite completion of all contractual obligations, the final payment of Rs. 62,30,000/- remains outstanding and unpaid since"}
+
+data: {"text":" 15.01.2026. The quality of work executed by my client has been found satisfactory as per the inspection reports."}
+
+data: {"text":"\n\n5. My client has made repeated representations to your office seeking release of the outstanding payment amount, specifically v"}
+
+data: {"text":"ide letters dated 10.02.2026, 15.03.2026, and 25.04.2026, but no positive response has been received from"}
+
+data: {"text":" your end. The wrongful withholding of the legitimately due payment has caused severe financial hardship to my client who has outstanding vendor liabilities"}
+
+data: {"text":" and is facing difficulties in meeting operational expenses.\n\n6. The conduct of your office in"}
+
+data: {"text":" wrongfully withholding the payment despite completion of all contractual obligations by my client amounts to breach of contract and "}
+
+data: {"text":"unjust enrichment at the expense of my client. Section 80 of the Code of Civil Procedure, 1908 mandates that no suit"}
+
+data: {"text":" shall be instituted against the Government without giving two months' prior notice to the concerned"}
+
+data: {"text":" authority.\n\n7. In compliance with the mandatory provisions of Section 80 of the Code of Civil Procedure, 1908, this"}
+
+data: {"text":" legal notice is being served upon you to provide an opportunity to settle the matter"}
+
+data: {"text":" amicably and avoid unnecessary litigation which would be time-consuming and expensive for both parties.\n\n8. TAKE"}
+
+data: {"text":" NOTICE that you are hereby called upon to release the outstanding payment of Rs. 62,30,000/- along with applicable"}
+
+data: {"text":" interest within a period of sixty (60) days from the receipt of this notice, failing which my client shall"}
+
+data: {"text":" be constrained to initiate appropriate legal proceedings against you for recovery of the said amount along with interest, costs, and damages"}
+
+data: {"text":" without any further reference to you in the matter."}
+
+event: template_sections
+data: {"sections":[{"section_id":"header","type":"template","content":"LEGAL NOTICE\n(Under Section 80 of the Code of Civil Procedure, 1908)\n\nDate: 06 May 2026\n\nTo,\nThe Executive Engineer, Road Construction Department, Government of Jharkhand\nProject Bhawan, Doranda, Ranchi - 834002\n\nFrom,\nM/s Chotanagpur Construction Co.\nThrough: Adv. Pradeep Topno, Advocate\nChamber No. 18, Jharkhand High Court Bar Association, Ranchi - 834001","alignment":"left"},{"section_id":"subject_line","type":"template","content":"Subject: Legal Notice under Section 80 CPC — prior to institution of suit against the Government / Public Officer\n\nSir/Madam,\n\nUnder instructions from and on behalf of my client, M/s Chotanagpur Construction Co., I hereby serve upon you this legal notice under Section 80 of the Code of Civil Procedure, 1908, and call upon you to note the following:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. My client, M/s Chotanagpur Construction Co., is a reputed construction company engaged in the business of civil construction works including road construction, building construction, and infrastructure development projects across the State of Jharkhand. My client has been executing various government contracts with utmost diligence and has maintained an impeccable track record in timely completion of projects entrusted to them.\n\n2. My client was awarded the contract for road widening and resurfacing of Ranchi-Khunti Road (SH-4) vide Work Order No. JRCD/RAN/2025/042 dated 20.08.2025 for a contract value of Rs. 1,85,00,000/-. The said work order was issued by your office after following due tender process and my client commenced the work immediately upon receipt of the said work order.\n\n3. My client executed the contracted work with utmost care and diligence, deploying adequate machinery, skilled manpower, and quality materials as per the specifications laid down in the contract. My client completed all the contracted work within the stipulated time frame on 15.01.2026 and submitted the final running bills along with measurement books duly verified by the site engineer appointed for the project.\n\n4. Upon completion of the work, my client submitted all necessary documents including the final bills for payment of the outstanding amount. However, despite completion of all contractual obligations, the final payment of Rs. 62,30,000/- remains outstanding and unpaid since 15.01.2026. The quality of work executed by my client has been found satisfactory as per the inspection reports.\n\n5. My client has made repeated representations to your office seeking release of the outstanding payment amount, specifically vide letters dated 10.02.2026, 15.03.2026, and 25.04.2026, but no positive response has been received from your end. The wrongful withholding of the legitimately due payment has caused severe financial hardship to my client who has outstanding vendor liabilities and is facing difficulties in meeting operational expenses.\n\n6. The conduct of your office in wrongfully withholding the payment despite completion of all contractual obligations by my client amounts to breach of contract and unjust enrichment at the expense of my client. Section 80 of the Code of Civil Procedure, 1908 mandates that no suit shall be instituted against the Government without giving two months' prior notice to the concerned authority.\n\n7. In compliance with the mandatory provisions of Section 80 of the Code of Civil Procedure, 1908, this legal notice is being served upon you to provide an opportunity to settle the matter amicably and avoid unnecessary litigation which would be time-consuming and expensive for both parties.\n\n8. TAKE NOTICE that you are hereby called upon to release the outstanding payment of Rs. 62,30,000/- along with applicable interest within a period of sixty (60) days from the receipt of this notice, failing which my client shall be constrained to initiate appropriate legal proceedings against you for recovery of the said amount along with interest, costs, and damages without any further reference to you in the matter."},{"section_id":"demand_clause","type":"template","content":"DEMAND\n\nYou are hereby called upon to release the outstanding payment of Rs. 62,30,000/- along with interest at the rate of 12% per annum from 15.01.2026 till actual payment, and pay damages of Rs. 3,00,000/- for the wrongful withholding within a period of two (2) months from the date of receipt of this notice, failing which my client shall be constrained to initiate appropriate legal proceedings before the competent civil court, at your risk, cost, and consequences, without any further reference to you.","alignment":"left"},{"section_id":"closing","type":"template","content":"A copy of this notice is retained in my office for record and further action.\n\nYours faithfully,\n\n\n_________________________\nAdv. Pradeep Topno\nAdvocate\nEnrollment No. JHC/2845/2017\nChamber No. 18, Jharkhand High Court Bar Association, Ranchi - 834001\n\n(Counsel for M/s Chotanagpur Construction Co.)","alignment":"left"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Send via Registered Post AD (Acknowledgement Due) — retain receipt","Send additional copy via Speed Post","Retain photocopy of notice with postal receipts","Keep proof of delivery (AD card) safely — needed at time of filing suit","Wait mandatory 2 months from date of receipt before filing suit","Attach all supporting documents referenced in the notice","Verify noticee's correct designation and office address"]}
+
+event: done
+data: {"complete":true,"docId":null,"sectionsCited":["CPC 80"],"mandatoryClausesComplete":true}
+

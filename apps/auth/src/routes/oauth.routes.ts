@@ -3,6 +3,7 @@ import passport from 'passport';
 
 import { env } from '../config/env';
 import { IUser } from '../models/User.model';
+import { tryGrantDailyLoginBonus } from '../services/credit-bonus.service';
 import { generateTokenPair } from '../services/jwt.service';
 import { createSession } from '../services/session.service';
 
@@ -51,6 +52,9 @@ router.get(
       { plan: user.plan, email: user.email, role: user.role, name: user.name },
       { ip: req.ip, userAgent: req.headers['user-agent'] },
     );
+
+    // SCRUM-73 — daily login bonus, non-blocking on the OAuth hot path.
+    void tryGrantDailyLoginBonus(user.id as string);
 
     // Redirect browser to frontend callback page with tokens in query params.
     // The frontend callback page immediately strips them from the URL and stores

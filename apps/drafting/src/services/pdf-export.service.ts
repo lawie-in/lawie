@@ -124,13 +124,23 @@ ${body}
 
 /**
  * Render HTML to PDF buffer using Puppeteer.
+ *
+ * `executablePath` is only passed when explicitly set (production via Docker env)
+ * — when omitted, Puppeteer auto-resolves to the bundled Chromium installed by
+ * `puppeteer install` (works out of the box in `yarn dev` locally and in CI).
+ * Passing `executablePath: undefined` previously triggered intermittent launch
+ * failures in dev where the value evaluated to undefined but the option was
+ * still present in the options object.
  */
 export async function renderPdf(html: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({
+  const launchOpts: Parameters<typeof puppeteer.launch>[0] = {
     headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+  };
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    launchOpts.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  const browser = await puppeteer.launch(launchOpts);
 
   try {
     const page = await browser.newPage();

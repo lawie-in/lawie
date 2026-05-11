@@ -1,0 +1,83 @@
+{
+  "_meta": {
+    "description": "Goa district & sessions court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — National Batch 9 (Goa) 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "applies_to_state": "Goa",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "ga_district",
+  "courtType": "district_court",
+  "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
+  "jurisdictionNote": "District-level criminal and civil courts in Goa, governed by the Goa, Daman and Diu Civil Courts Act, 1965 read with the Practice Directions of the Bombay High Court at Goa. Sessions courts try offences punishable with imprisonment exceeding 7 years. Goa retains the Portuguese Civil Code, 1867 (as continued in force by the Goa, Daman and Diu (Administration) Act, 1962) — uniquely in India, succession, marriage and matrimonial property are governed by the Civil Code rather than personal laws, and inventory (Inventário) proceedings under the Portuguese Code of Civil Procedure (Code of Civil Registration) continue to be the prescribed forum for succession matters. The subordinate judiciary is supervised by the High Court of Bombay at Goa (Panaji bench). Konkani (Devanagari script) is the official language under the Goa Daman & Diu Official Language Act, 1987; English and Marathi are also working languages of the courts.",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Applicant",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant",
+    "complainant": "Complainant",
+    "accused": "Accused",
+    "interested_party": "Interested Party (Inventory Proceedings)",
+    "state": "State of Goa through the Chief Secretary, Government of Goa, Porvorim"
+  },
+  "case_nomenclature": {
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
+    "sessions_case": "Sessions Case No. _____ of {year}",
+    "calendar_case": "Criminal Case No. _____ of {year}",
+    "civil_suit": "Civil Suit No. _____ of {year}",
+    "execution": "Execution Application No. _____ of {year}",
+    "misc_criminal": "Criminal Misc. Application No. _____ of {year}",
+    "misc_civil": "Misc. Civil Application No. _____ of {year}",
+    "special_case": "Special Sessions Case No. _____ of {year}",
+    "atrocity_case": "Special Sessions (SC/ST Atrocities) Case No. _____ of {year}",
+    "ndps_case": "Special Sessions (NDPS) Case No. _____ of {year}",
+    "pocso_case": "Special Sessions (POCSO) Case No. _____ of {year}",
+    "inventory_proceedings": "Inventory Proceedings No. _____ of {year}",
+    "matrimonial_petition": "Matrimonial Petition No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may graciously be pleased to:",
+    "closing": "And for this act of kindness, the petitioner shall, as in duty bound, ever pray.",
+    "tone": "respectful"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly verify and declare that the contents of paragraphs ___ to ___ of the above petition are true to my personal knowledge and the contents of paragraphs ___ to ___ are based on information received and legal advice tendered, which I believe to be true. Nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": [
+    "en",
+    "kok",
+    "mr",
+    "pt"
+  ],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "{courtDesignation}, {city}"
+  },
+  "localRules": [
+    "Goa uniquely retains the Portuguese Civil Code, 1867 (Código Civil Português) as continued in force by Section 5(1) of the Goa, Daman and Diu (Administration) Act, 1962. The Civil Code governs succession (intestate and testate), marriage and matrimonial property regimes (Communion of Assets being the default) for all Goan domiciles irrespective of religion — uniquely in India, the Hindu Succession Act, 1956, Indian Succession Act, 1925 (in major part), Muslim Personal Law (Shariat) Application Act, 1937 and the Special Marriage Act, 1954 do NOT apply to Goan domiciles. Pleadings touching succession, partition of family property or matrimonial property must apply Civil Code provisions and the related Portuguese Code of Civil Procedure / Code of Civil Registration provisions still in force.",
+    "Succession of a Goan domicile is by way of Inventory Proceedings (Inventário) before the Civil Judge (Senior Division) / District Court of the place where the deceased had last residence or where the principal assets lie; the proceedings are inquisitorial in character, with the court actively superintending the partition. Standard cause-title for such matters: 'Inventory Proceedings No. ___ of ___ — In the matter of the estate of late {deceased}'. The legal heirs are arrayed as 'Interested Parties' (not plaintiffs/defendants).",
+    "Marriage in Goa is governed by the Civil Code (compulsory civil registration before the Civil Registrar); religious marriages have no legal effect unless registered. Matrimonial petitions for divorce, judicial separation and annulment lie before the Civil Judge (Senior Division) under the Goa, Daman and Diu (Administration) Act provisions and the Portuguese Civil Code as locally amended. The Hindu Marriage Act, 1955 and Special Marriage Act, 1954 do NOT apply.",
+    "Konkani (Devanagari script) is the official language under the Goa Daman & Diu Official Language Act, 1987; English remains the principal language of pleadings in the High Court at Goa and the district courts. Marathi is also a working language and pleadings in Marathi or Konkani with English translation are accepted in mofussil courts.",
+    "Bail applications under S.483 BNSS (formerly S.439 CrPC) before the Sessions Court must disclose any prior rejection by a Magistrate or co-ordinate court; the application is to be accompanied by a certified copy of the FIR, case diary extract (where available) and the bail order, if any.",
+    "Anticipatory bail applications (S.482 BNSS) must be accompanied by an affidavit, certified copy of the FIR and grounds of apprehension. The Bombay High Court at Goa entertains AB in serious offences; Sessions Court entertains AB concurrently subject to S.482(4) BNSS.",
+    "Vakalatnama in the form prescribed under the Bombay High Court (Original Side) Rules / Goa Civil Manual to be filed at the first instance with requisite court-fee stamp; mofussil districts follow the same form.",
+    "Court-fee under the Court-Fees Act, 1870 as in force in Goa (Goa amendments via the Goa, Daman and Diu Court-Fees Act, 1965 where applicable); ad valorem fee structure applies to civil suits.",
+    "SC/ST (Prevention of Atrocities) Act, POCSO and NDPS cases are tried by designated Special Courts notified by the State Government — typically the District & Sessions Judge or an Additional Sessions Judge at the district headquarters (Panaji for North Goa; Margao for South Goa).",
+    "Goa has 2 revenue districts — North Goa (HQ Panaji) and South Goa (HQ Margao). The principal Sessions divisions follow the same — Panaji (North Goa) and Margao (South Goa). The CJM is stationed at Panaji and exercises jurisdiction state-wide subject to local notifications.",
+    "Land matters: the Goa Land Revenue Code, 1968 and the Goa, Daman and Diu Mundkars (Protection from Eviction) Act, 1975 create specialised Mamlatdar and Deputy Collector forums for tenancy, mundkar and land-revenue disputes; advocate must check forum jurisdiction (Mamlatdar vs. Civil Court) before filing.",
+    "Tourism-related and shack-policy matters often interface with the Goa Town & Country Planning Act, the Goa Coastal Zone Management Authority and the Goa Pollution Control Board — quasi-judicial bodies distinct from the regular civil courts."
+  ],
+  "e_filing_mandatory": false,
+  "e_filing_note": "e-Filing is operational at Panaji and Margao district courts via the eCourts portal and the Bombay High Court at Goa e-filing portal; not yet mandatory state-wide."
+}

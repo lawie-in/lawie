@@ -4,13 +4,21 @@ import mongoose from 'mongoose';
 import { z } from 'zod';
 
 import { authenticate } from '../middleware/authenticate';
+import { enforceCredits } from '../middleware/enforceCredits';
 import { enforceFreeLimit, FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
 import { spendCapCheck } from '../middleware/spendCap';
 import { LawieDocument } from '../models/Document.model';
 import { Event } from '../models/Event.model';
 import { Generation } from '../models/Generation.model';
-import { streamGenerateDocument, streamGenerateFromTemplate } from '../services/ai.service';
+import {
+  GenerationFailedError,
+  streamGenerateDocument,
+  streamGenerateFromTemplate,
+} from '../services/ai.service';
+import { buildAnnexuresPack, estimateBodyParaCount } from '../services/annexures.service';
+import { spendCredits } from '../services/credits.service';
 import { contentToHtml, renderPdf } from '../services/pdf-export.service';
+import { preflightCheck } from '../services/preflight.service';
 import {
   loadTemplateConfig,
   listTemplateConfigs,
@@ -163,11 +171,48 @@ const templateGenerateSchema = z.object({
   language: z.enum(['en', 'hi', 'bilingual']).default('en'),
 });
 
+// POST /documents/preflight — pre-generation verification layer (SCRUM-69)
+// Runs before /generate to catch input errors cheaply (~50ms rules + ~1.5s Haiku).
+// FAIL-OPEN: if the verifier itself fails, returns { verdict: "pass" } so drafting is never blocked.
+router.post(
+  '/preflight',
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    const { template_id, form_data } = req.body as {
+      template_id?: string;
+      form_data?: Record<string, unknown>;
+    };
+
+    if (!template_id || typeof template_id !== 'string') {
+      res.status(400).json({ error: 'template_id is required' });
+      return;
+    }
+    if (!form_data || typeof form_data !== 'object') {
+      res.status(400).json({ error: 'form_data is required' });
+      return;
+    }
+
+    try {
+      const userId = req.jwtPayload?.sub;
+      const result = await preflightCheck(template_id, form_data, userId);
+
+      // Strip internal meta before sending to client
+      const { _meta, ...clientResult } = result;
+      void _meta; // suppress unused var warning
+
+      res.json(clientResult);
+    } catch {
+      // FAIL-OPEN: verifier error never blocks generation
+      res.json({ verdict: 'pass', questions: [] });
+    }
+  },
+);
+
 // POST /documents/generate-from-template — config-driven generation (SCRUM-43)
 router.post(
   '/generate-from-template',
   authenticate,
-  enforceFreeLimit,
+  enforceCredits, // SCRUM-73 / SCRUM-59 — credit gate; replaces enforceFreeLimit
   spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {
     const parsed = templateGenerateSchema.safeParse(req.body);
@@ -203,16 +248,42 @@ router.post(
     }
 
     // Stream the AI response via config-driven pipeline
-    const result = await streamGenerateFromTemplate(
-      {
-        templateConfig,
-        formData: form_data,
-        advocateName: payload.name || undefined,
-        enrollmentNumber: undefined,
-        userId: payload.sub,
-      },
-      res,
-    );
+    let result;
+    try {
+      result = await streamGenerateFromTemplate(
+        {
+          templateConfig,
+          formData: form_data,
+          advocateName: payload.name || undefined,
+          enrollmentNumber: undefined,
+          userId: payload.sub,
+        },
+        res,
+      );
+    } catch (genErr) {
+      // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
+      // already emitted and the response is closed — nothing else to do.
+      if (genErr instanceof GenerationFailedError) return;
+
+      // Anything else (template-config bug, prompt build error, etc.) — emit
+      // a structured error before headers go stale, then close.
+      const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
+      console.error(`[drafting] generate-from-template threw:`, msg);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Generation failed', message: msg });
+      } else {
+        res.write(
+          `event: error\ndata: ${JSON.stringify({
+            reason:
+              'The drafting service hit an unexpected error. Please try again — your inputs are saved.',
+            retryable: true,
+            code: 'unknown',
+          })}\n\n`,
+        );
+        res.end();
+      }
+      return;
+    }
 
     // Save to DB — must not block the done event if DB is unavailable
     let docId: string | null = null;
@@ -257,6 +328,27 @@ router.post(
       );
     }
 
+    // SCRUM-73 / SCRUM-59 — deduct credits AFTER successful generation. Failed
+    // streams don't take credits (the error event already fired earlier).
+    let creditsSpent: Array<{ bucket: string; amount: number }> = [];
+    try {
+      const cost = (req as Request & { creditCost?: number }).creditCost ?? 1;
+      const result = await spendCredits({
+        userId: payload.sub,
+        amount: cost,
+        templateId: template_id,
+        reference: docId ? `${templateConfig.display_name} (${docId})` : templateConfig.display_name,
+      });
+      creditsSpent = result.spent;
+    } catch (spendErr) {
+      // Should never happen — middleware pre-checked. Log and continue so the
+      // user gets their draft; we'll reconcile on the founder ledger.
+      console.error(
+        '[drafting] spendCredits failed AFTER successful generation:',
+        spendErr instanceof Error ? spendErr.message : spendErr,
+      );
+    }
+
     // Send done event — always fires, even if DB save failed
     res.write(
       `event: done\ndata: ${JSON.stringify({
@@ -264,6 +356,7 @@ router.post(
         docId,
         sectionsCited: result.sectionsCited,
         mandatoryClausesComplete: result.mandatoryClausesComplete,
+        creditsSpent,
       })}\n\n`,
     );
     res.end();
@@ -460,7 +553,14 @@ router.post(
     const isFree = payload.plan !== 'pro';
 
     const html = contentToHtml(content, isFree);
-    const pdfBuffer = await renderPdf(html);
+    let pdfBuffer: Buffer;
+    try {
+      pdfBuffer = await renderPdf(html);
+    } catch (pdfErr) {
+      console.error('[drafting] Puppeteer PDF render failed:', pdfErr instanceof Error ? pdfErr.message : pdfErr);
+      res.status(500).json({ error: 'PDF rendering failed' });
+      return;
+    }
 
     // Track export in exportedAs
     await LawieDocument.updateOne(
@@ -546,6 +646,70 @@ router.post(
     });
 
     res.json({ success: true });
+  },
+);
+
+// POST /documents/:id/annexures-pack — SCRUM-65: generate 7 mandatory annexures as a multi-page PDF
+// Court-rule aware: designation, verification language, party labels from court_rules JSON.
+// Returns: application/pdf — single PDF with each annexure on a fresh page.
+router.post(
+  '/:id/annexures-pack',
+  validateObjectId,
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    const payload = req.jwtPayload!;
+    const doc = await LawieDocument.findOne({
+      _id: req.params.id,
+      userId: payload.sub,
+      isDeleted: { $ne: true },
+    }).lean();
+
+    if (!doc) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    // Decrypt content for paragraph count estimation
+    const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
+    const bodyParaCount = estimateBodyParaCount(content);
+
+    // form_data is stored as formInputs on the document
+    const formData = (doc.formInputs ?? {}) as Record<string, unknown>;
+
+    let pdfBuffer: Buffer;
+    try {
+      pdfBuffer = await buildAnnexuresPack({
+        formData,
+        bodyParaCount,
+        advocateName: payload.name || undefined,
+      });
+    } catch (err) {
+      console.error(
+        '[drafting] Annexures pack render failed:',
+        err instanceof Error ? err.message : err,
+      );
+      res.status(500).json({ error: 'Annexures pack generation failed' });
+      return;
+    }
+
+    // Track export
+    await LawieDocument.updateOne(
+      { _id: req.params.id },
+      { $addToSet: { exportedAs: 'annexures' } },
+    );
+
+    await Event.create({
+      userId: payload.sub,
+      type: 'draft.exported',
+      docId: doc._id,
+      metadata: { format: 'annexures_pdf', docType: doc.docType },
+    });
+
+    const filename = `${doc.title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}_annexures.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
   },
 );
 

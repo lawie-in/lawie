@@ -1,4 +1,12 @@
 {
+  "_meta": {
+    "description": "Court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 hardening 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "cjm",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
   "courtId": "cjm_generic",
   "courtType": "cjm",
   "designation": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE",
@@ -33,7 +41,10 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": ["en", "hi"],
+  "supported_languages": [
+    "en",
+    "hi"
+  ],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",
@@ -47,5 +58,6 @@
     "Vakalatnama to be filed at the first instance.",
     "Certified copy of FIR and remand order to be attached with bail applications.",
     "Default bail under S.187(2) BNSS if charge sheet not filed within 60/90 days."
-  ]
+  ],
+  "e_filing_mandatory": false
 }

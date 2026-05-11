@@ -8,1669 +8,597 @@
     "effective_date": "2024-07-01",
     "total_old_sections": 511,
     "total_new_sections": 358,
-    "validated_by": "Pending CLO review",
-    "last_updated": "2026-04-26"
+    "validated_by": "Ajay (CLO) — completed 2026-05-10 in Batch 2a; full coverage of IPC 1-511",
+    "last_updated": "2026-05-10",
+    "source": "BNS Section-Wise Comparison Table (Ministry of Law & Justice 2023) cross-referenced with Indian Penal Code 1860",
+    "change_protocol": "CLO sign-off required; no AI-authored entries",
+    "description": "IPC 1860 -> BNS 2023 section mapping — supports free tool 'section converter' (SCRUM-46) and AI prompt context for advocates citing old IPC numbers",
+    "owner": "Ajay (CLO)"
   },
   "mappings": {
-    "1": {
-      "new": "1",
-      "old_title": "Title and extent of operation of the Code",
-      "new_title": "Short title, commencement and application",
-      "type": "direct"
-    },
-    "2": {
-      "new": "2",
-      "old_title": "Punishment of offences committed within India",
-      "new_title": "Punishment of offences committed within India",
-      "type": "direct"
-    },
-    "3": {
-      "new": "3",
-      "old_title": "Punishment of offences committed beyond India",
-      "new_title": "Punishment of offences committed beyond but triable within India",
-      "type": "direct"
-    },
-    "4": {
-      "new": "4",
-      "old_title": "Extension of Code to extra-territorial offences",
-      "new_title": "Applicability of Code to extra-territorial offences",
-      "type": "direct"
-    },
-    "5": {
-      "new": "5",
-      "old_title": "Certain laws not to be affected by this Act",
-      "new_title": "Certain laws not to be affected by this Sanhita",
-      "type": "direct"
-    },
-    "6": {
-      "new": "6(1)",
-      "old_title": "Definitions – 'offence'",
-      "new_title": "Definitions",
-      "type": "partial"
-    },
-    "7": {
-      "new": "6(2)",
-      "old_title": "Sense of expression once explained",
-      "new_title": "Definitions",
-      "type": "merged"
-    },
+    "1": { "new": "1", "old_title": "Title and extent of operation of the Code", "new_title": "Short title, commencement and application", "type": "direct" },
+    "2": { "new": "2", "old_title": "Punishment of offences committed within India", "new_title": "Punishment of offences committed within India", "type": "direct" },
+    "3": { "new": "3", "old_title": "Punishment of offences committed beyond India", "new_title": "Punishment of offences committed beyond but triable within India", "type": "direct" },
+    "4": { "new": "4", "old_title": "Extension of Code to extra-territorial offences", "new_title": "Applicability of Code to extra-territorial offences", "type": "direct" },
+    "5": { "new": "5", "old_title": "Certain laws not to be affected by this Act", "new_title": "Certain laws not to be affected by this Sanhita", "type": "direct" },
+    "6": { "new": "6(1)", "old_title": "Definitions – 'offence'", "new_title": "Definitions", "type": "partial" },
+    "7": { "new": "6(2)", "old_title": "Sense of expression once explained", "new_title": "Definitions", "type": "merged" },
     "8": { "new": "7", "old_title": "Gender", "new_title": "Gender", "type": "direct" },
     "9": { "new": "8", "old_title": "Number", "new_title": "Number", "type": "direct" },
     "10": { "new": "9", "old_title": "Man, Woman", "new_title": "Man, Woman", "type": "direct" },
     "11": { "new": "10", "old_title": "Person", "new_title": "Person", "type": "direct" },
-    "12": {
-      "new": "2(6)",
-      "old_title": "Public",
-      "new_title": "Definitions — Public",
-      "type": "merged"
-    },
+    "12": { "new": "2(6)", "old_title": "Public", "new_title": "Definitions — Public", "type": "merged" },
+    "13": { "new": null, "old_title": "Queen (omitted)", "new_title": null, "type": "repealed", "notes": "Repealed by Act 3 of 1951; no BNS equivalent" },
+    "14": { "new": "2", "old_title": "Servant of Government", "new_title": "Definitions", "type": "merged", "notes": "Subsumed under BNS general definitions" },
+    "15": { "new": null, "old_title": "British India (omitted)", "new_title": null, "type": "repealed", "notes": "Repealed by AO 1937; no BNS equivalent" },
+    "16": { "new": null, "old_title": "Government of India (omitted)", "new_title": null, "type": "repealed", "notes": "Repealed by AO 1937; subsumed under BNS 11" },
     "17": { "new": "11", "old_title": "Government", "new_title": "Government", "type": "direct" },
+    "18": { "new": "2", "old_title": "India", "new_title": "Definitions", "type": "merged", "notes": "Subsumed under BNS general definitions" },
     "19": { "new": "12", "old_title": "Judge", "new_title": "Judge", "type": "direct" },
-    "20": {
-      "new": "13",
-      "old_title": "Court of Justice",
-      "new_title": "Court of Justice",
-      "type": "direct"
-    },
-    "21": {
-      "new": "14",
-      "old_title": "Public servant",
-      "new_title": "Public servant",
-      "type": "direct"
-    },
-    "22": {
-      "new": "15",
-      "old_title": "Moveable property",
-      "new_title": "Moveable property",
-      "type": "direct"
-    },
-    "23": {
-      "new": "16",
-      "old_title": "Wrongful gain / Wrongful loss",
-      "new_title": "Wrongful gain and wrongful loss",
-      "type": "direct"
-    },
+    "20": { "new": "13", "old_title": "Court of Justice", "new_title": "Court of Justice", "type": "direct" },
+    "21": { "new": "14", "old_title": "Public servant", "new_title": "Public servant", "type": "direct" },
+    "22": { "new": "15", "old_title": "Moveable property", "new_title": "Moveable property", "type": "direct" },
+    "23": { "new": "16", "old_title": "Wrongful gain / Wrongful loss", "new_title": "Wrongful gain and wrongful loss", "type": "direct" },
     "24": { "new": "17", "old_title": "Dishonestly", "new_title": "Dishonestly", "type": "direct" },
-    "25": {
-      "new": "18",
-      "old_title": "Fraudulently",
-      "new_title": "Fraudulently",
-      "type": "direct"
-    },
-    "26": {
-      "new": "19",
-      "old_title": "Reason to believe",
-      "new_title": "Reason to believe",
-      "type": "direct"
-    },
-    "27": {
-      "new": "20",
-      "old_title": "Property in possession of wife, clerk or servant",
-      "new_title": "Property in possession of spouse, clerk or servant",
-      "type": "direct"
-    },
+    "25": { "new": "18", "old_title": "Fraudulently", "new_title": "Fraudulently", "type": "direct" },
+    "26": { "new": "19", "old_title": "Reason to believe", "new_title": "Reason to believe", "type": "direct" },
+    "27": { "new": "20", "old_title": "Property in possession of wife, clerk or servant", "new_title": "Property in possession of spouse, clerk or servant", "type": "direct" },
     "28": { "new": "21", "old_title": "Counterfeit", "new_title": "Counterfeit", "type": "direct" },
     "29": { "new": "22", "old_title": "Document", "new_title": "Document", "type": "direct" },
-    "29A": {
-      "new": "23",
-      "old_title": "Electronic record",
-      "new_title": "Electronic record",
-      "type": "direct"
-    },
-    "30": {
-      "new": "24",
-      "old_title": "Valuable security",
-      "new_title": "Valuable security",
-      "type": "direct"
-    },
-    "34": {
-      "new": "3(5)",
-      "old_title": "Acts done by several persons in furtherance of common intention",
-      "new_title": "Common intention",
-      "type": "direct"
-    },
-    "35": {
-      "new": "34",
-      "old_title": "When such an act is criminal by reason of its being done with a criminal knowledge or intention",
-      "new_title": "Act criminal by reason of criminal knowledge or intention",
-      "type": "direct"
-    },
-    "36": {
-      "new": "35",
-      "old_title": "Effect caused partly by act and partly by omission",
-      "new_title": "Effect caused partly by act and partly by omission",
-      "type": "direct"
-    },
-    "37": {
-      "new": "36",
-      "old_title": "Co-operation by doing one of several acts constituting an offence",
-      "new_title": "Co-operation by doing one of several acts constituting offence",
-      "type": "direct"
-    },
-    "38": {
-      "new": "37",
-      "old_title": "Persons concerned in criminal act may be guilty of different offences",
-      "new_title": "Several persons engaged in commission of criminal act",
-      "type": "direct"
-    },
+    "29A": { "new": "23", "old_title": "Electronic record", "new_title": "Electronic record", "type": "direct" },
+    "30": { "new": "24", "old_title": "Valuable security", "new_title": "Valuable security", "type": "direct" },
+    "31": { "new": "2", "old_title": "A will", "new_title": "Definitions", "type": "merged" },
+    "32": { "new": "2", "old_title": "Words referring to acts include illegal omissions", "new_title": "Definitions", "type": "merged" },
+    "33": { "new": "2(1)", "old_title": "Act / Omission", "new_title": "Definitions — Act", "type": "merged" },
+    "34": { "new": "3(5)", "old_title": "Acts done by several persons in furtherance of common intention", "new_title": "Common intention", "type": "direct" },
+    "35": { "new": "34", "old_title": "When such an act is criminal by reason of its being done with a criminal knowledge or intention", "new_title": "Act criminal by reason of criminal knowledge or intention", "type": "direct" },
+    "36": { "new": "35", "old_title": "Effect caused partly by act and partly by omission", "new_title": "Effect caused partly by act and partly by omission", "type": "direct" },
+    "37": { "new": "36", "old_title": "Co-operation by doing one of several acts constituting an offence", "new_title": "Co-operation by doing one of several acts constituting offence", "type": "direct" },
+    "38": { "new": "37", "old_title": "Persons concerned in criminal act may be guilty of different offences", "new_title": "Several persons engaged in commission of criminal act", "type": "direct" },
     "39": { "new": "38", "old_title": "Voluntarily", "new_title": "Voluntarily", "type": "direct" },
-    "40": {
-      "new": "2(8)",
-      "old_title": "Offence",
-      "new_title": "Offence (definition)",
-      "type": "merged"
-    },
-    "43": {
-      "new": "2(5)",
-      "old_title": "Illegal / Legally bound to do",
-      "new_title": "Illegal",
-      "type": "merged"
-    },
+    "40": { "new": "2(8)", "old_title": "Offence", "new_title": "Offence (definition)", "type": "merged" },
+    "41": { "new": "2", "old_title": "Special law", "new_title": "Definitions", "type": "merged" },
+    "42": { "new": "2", "old_title": "Local law", "new_title": "Definitions", "type": "merged" },
+    "43": { "new": "2(5)", "old_title": "Illegal / Legally bound to do", "new_title": "Illegal", "type": "merged" },
     "44": { "new": "2(4)", "old_title": "Injury", "new_title": "Injury", "type": "merged" },
+    "45": { "new": "2", "old_title": "Life", "new_title": "Definitions", "type": "merged" },
     "46": { "new": "25", "old_title": "Death", "new_title": "Death", "type": "direct" },
+    "47": { "new": "2", "old_title": "Animal", "new_title": "Definitions", "type": "merged" },
+    "48": { "new": "2", "old_title": "Vessel", "new_title": "Definitions", "type": "merged" },
     "49": { "new": "39", "old_title": "Year, Month", "new_title": "Year, Month", "type": "direct" },
+    "50": { "new": "2", "old_title": "Section", "new_title": "Definitions", "type": "merged" },
     "51": { "new": "40", "old_title": "Oath", "new_title": "Oath", "type": "direct" },
     "52": { "new": "26", "old_title": "Good faith", "new_title": "Good faith", "type": "direct" },
     "52A": { "new": "27", "old_title": "Harbour", "new_title": "Harbour", "type": "direct" },
     "53": { "new": "4", "old_title": "Punishments", "new_title": "Punishments", "type": "direct" },
-    "54": {
-      "new": "5",
-      "old_title": "Commutation of sentence",
-      "new_title": "Commutation of sentence",
-      "type": "direct"
-    },
-    "55": {
-      "new": "5(b)",
-      "old_title": "Commutation of sentence of imprisonment for life",
-      "new_title": "Commutation — imprisonment for life",
-      "type": "merged"
-    },
-    "57": {
-      "new": "6(3)",
-      "old_title": "Fractions of terms of punishment",
-      "new_title": "Fractions of terms of punishment",
-      "type": "merged"
-    },
-    "63": {
-      "new": "41",
-      "old_title": "Amount of fine",
-      "new_title": "Amount of fine",
-      "type": "direct"
-    },
-    "64": {
-      "new": "42",
-      "old_title": "Sentence of imprisonment for non-payment of fine",
-      "new_title": "Imprisonment for non-payment of fine",
-      "type": "direct"
-    },
-    "65": {
-      "new": "43",
-      "old_title": "Limit to imprisonment for non-payment of fine",
-      "new_title": "Limit to imprisonment for non-payment of fine",
-      "type": "direct"
-    },
-    "66": {
-      "new": "44",
-      "old_title": "Description of imprisonment for non-payment of fine",
-      "new_title": "Description of imprisonment for non-payment of fine",
-      "type": "direct"
-    },
-    "67": {
-      "new": "45",
-      "old_title": "Imprisonment for non-payment of fine, when offence punishable with fine only",
-      "new_title": "Imprisonment for non-payment of fine when offence punishable with fine only",
-      "type": "direct"
-    },
-    "68": {
-      "new": "46",
-      "old_title": "Imprisonment to terminate on payment of fine",
-      "new_title": "Imprisonment to terminate on payment of fine",
-      "type": "direct"
-    },
-    "69": {
-      "new": "47",
-      "old_title": "Termination of imprisonment on payment of proportional part of fine",
-      "new_title": "Termination of imprisonment on payment of proportional part of fine",
-      "type": "direct"
-    },
-    "70": {
-      "new": "48",
-      "old_title": "Fine levied within six years",
-      "new_title": "Fine levied within six years or during imprisonment",
-      "type": "direct"
-    },
-    "71": {
-      "new": "49",
-      "old_title": "Limit of punishment of offence made up of several offences",
-      "new_title": "Limit of punishment of offence made up of several offences",
-      "type": "direct"
-    },
-    "72": {
-      "new": "50",
-      "old_title": "Punishment of person guilty of one of several offences, judgment stating that it is doubtful of which",
-      "new_title": "Punishment in cases of doubt",
-      "type": "direct"
-    },
-    "73": {
-      "new": "51",
-      "old_title": "Solitary confinement",
-      "new_title": "Solitary confinement",
-      "type": "direct"
-    },
-    "74": {
-      "new": "52",
-      "old_title": "Limit of solitary confinement",
-      "new_title": "Limit of solitary confinement",
-      "type": "direct"
-    },
-    "75": {
-      "new": "9",
-      "old_title": "Enhanced punishment for certain offences after previous conviction",
-      "new_title": "Enhanced punishment for certain offences on second or subsequent conviction",
-      "type": "direct"
-    },
-    "76": {
-      "new": "14",
-      "old_title": "Act done by a person bound or by mistake of fact believing himself bound by law",
-      "new_title": "Act done by person bound by law",
-      "type": "direct"
-    },
-    "77": {
-      "new": "15",
-      "old_title": "Act of Judge when acting judicially",
-      "new_title": "Act of Judge when acting judicially",
-      "type": "direct"
-    },
-    "78": {
-      "new": "16",
-      "old_title": "Act done pursuant to judgment or order of Court",
-      "new_title": "Act done pursuant to judgment or order of Court",
-      "type": "direct"
-    },
-    "79": {
-      "new": "17",
-      "old_title": "Act done by a person justified or by mistake of fact believing himself justified by law",
-      "new_title": "Act done by person justified by law",
-      "type": "direct"
-    },
-    "80": {
-      "new": "18",
-      "old_title": "Accident in doing a lawful act",
-      "new_title": "Accident in doing a lawful act",
-      "type": "direct"
-    },
-    "81": {
-      "new": "19",
-      "old_title": "Act likely to cause harm, but done without criminal intent, and to prevent other harm",
-      "new_title": "Act likely to cause harm done without criminal intent to prevent other harm",
-      "type": "direct"
-    },
-    "82": {
-      "new": "20",
-      "old_title": "Act of child under seven years of age",
-      "new_title": "Act of child under seven years of age",
-      "type": "direct"
-    },
-    "83": {
-      "new": "21",
-      "old_title": "Act of child above seven and under twelve, of immature understanding",
-      "new_title": "Act of child above seven and under twelve of immature understanding",
-      "type": "direct"
-    },
-    "84": {
-      "new": "22",
-      "old_title": "Act of a person of unsound mind",
-      "new_title": "Act of person of unsound mind",
-      "type": "direct"
-    },
-    "85": {
-      "new": "23",
-      "old_title": "Act of a person incapable of judgment by reason of intoxication caused against his will",
-      "new_title": "Act of person incapable of judgment by reason of intoxication against his will",
-      "type": "direct"
-    },
-    "86": {
-      "new": "24",
-      "old_title": "Offence requiring a particular intent or knowledge committed by one who is intoxicated",
-      "new_title": "Offence requiring particular intent or knowledge committed by intoxicated person",
-      "type": "direct"
-    },
-    "87": {
-      "new": "25",
-      "old_title": "Act not intended and not known to be likely to cause death or grievous hurt done by consent",
-      "new_title": "Act not intended to cause death done by consent",
-      "type": "direct"
-    },
-    "88": {
-      "new": "26",
-      "old_title": "Act not intended to cause death, done by consent in good faith for person's benefit",
-      "new_title": "Act not intended to cause death done by consent in good faith",
-      "type": "direct"
-    },
-    "89": {
-      "new": "27",
-      "old_title": "Act done in good faith for benefit of child or insane person, by or by consent of guardian",
-      "new_title": "Act done in good faith for benefit of child or person of unsound mind",
-      "type": "direct"
-    },
-    "90": {
-      "new": "28",
-      "old_title": "Consent known to be given under fear or misconception",
-      "new_title": "Consent known to be given under fear or misconception",
-      "type": "direct"
-    },
-    "91": {
-      "new": "29",
-      "old_title": "Exclusion of acts which are offences independently of harm caused",
-      "new_title": "Exclusion of acts which are offences independently of harm caused",
-      "type": "direct"
-    },
-    "92": {
-      "new": "30",
-      "old_title": "Act done in good faith for benefit of a person without consent",
-      "new_title": "Act done in good faith for benefit of person without consent",
-      "type": "direct"
-    },
-    "96": {
-      "new": "34",
-      "old_title": "Things done in private defence",
-      "new_title": "Right of private defence",
-      "type": "direct"
-    },
-    "97": {
-      "new": "35",
-      "old_title": "Right of private defence of the body and of property",
-      "new_title": "Right of private defence of body and property",
-      "type": "direct"
-    },
-    "98": {
-      "new": "36",
-      "old_title": "Right of private defence against the act of a person of unsound mind",
-      "new_title": "Right of private defence against act of person of unsound mind",
-      "type": "direct"
-    },
-    "99": {
-      "new": "37",
-      "old_title": "Acts against which there is no right of private defence",
-      "new_title": "Acts against which there is no right of private defence",
-      "type": "direct"
-    },
-    "100": {
-      "new": "38",
-      "old_title": "When the right of private defence of the body extends to causing death",
-      "new_title": "When right of private defence of body extends to causing death",
-      "type": "direct"
-    },
-    "101": {
-      "new": "39",
-      "old_title": "When such right extends to causing any harm other than death",
-      "new_title": "When such right extends to causing any harm other than death",
-      "type": "direct"
-    },
-    "102": {
-      "new": "40",
-      "old_title": "Commencement and continuance of the right of private defence of the body",
-      "new_title": "Commencement and continuance of right of private defence of body",
-      "type": "direct"
-    },
-    "103": {
-      "new": "41",
-      "old_title": "When the right of private defence of property extends to causing death",
-      "new_title": "When right of private defence of property extends to causing death",
-      "type": "direct"
-    },
-    "104": {
-      "new": "42",
-      "old_title": "When such right extends to causing any harm other than death",
-      "new_title": "When such right extends to causing any harm other than death",
-      "type": "direct"
-    },
-    "105": {
-      "new": "43",
-      "old_title": "Commencement and continuance of the right of private defence of property",
-      "new_title": "Commencement and continuance of right of private defence of property",
-      "type": "direct"
-    },
-    "106": {
-      "new": "44",
-      "old_title": "Right of private defence against deadly assault when there is risk of harm to innocent person",
-      "new_title": "Right of private defence against deadly assault when risk of harm to innocent person",
-      "type": "direct"
-    },
-    "107": {
-      "new": "45",
-      "old_title": "Abetment of a thing",
-      "new_title": "Abetment of a thing",
-      "type": "direct"
-    },
+    "53A": { "new": null, "old_title": "Construction of reference to transportation", "new_title": null, "type": "repealed", "notes": "Obsolete colonial provision; subsumed by BNS 4 punishment scheme" },
+    "54": { "new": "5", "old_title": "Commutation of sentence", "new_title": "Commutation of sentence", "type": "direct" },
+    "55": { "new": "5(b)", "old_title": "Commutation of sentence of imprisonment for life", "new_title": "Commutation — imprisonment for life", "type": "merged" },
+    "55A": { "new": "2", "old_title": "Definition of 'appropriate Government'", "new_title": "Definitions", "type": "merged" },
+    "56": { "new": null, "old_title": "Sentence of Europeans and Americans to penal servitude", "new_title": null, "type": "repealed", "notes": "Repealed by Act 17 of 1949; no BNS equivalent" },
+    "57": { "new": "6(3)", "old_title": "Fractions of terms of punishment", "new_title": "Fractions of terms of punishment", "type": "merged" },
+    "58": { "new": null, "old_title": "Offenders sentenced to transportation, how dealt with", "new_title": null, "type": "repealed", "notes": "Obsolete; transportation abolished" },
+    "59": { "new": null, "old_title": "Transportation instead of imprisonment", "new_title": null, "type": "repealed", "notes": "Obsolete; transportation abolished" },
+    "60": { "new": "4(f)", "old_title": "Sentence may be wholly or partly rigorous or simple", "new_title": "Sentence rigorous or simple", "type": "merged" },
+    "61": { "new": null, "old_title": "Sentence of forfeiture of property", "new_title": null, "type": "repealed", "notes": "Repealed by Act 16 of 1921" },
+    "62": { "new": null, "old_title": "Forfeiture of property in respect of offenders punishable with death", "new_title": null, "type": "repealed", "notes": "Repealed by Act 16 of 1921" },
+    "63": { "new": "41", "old_title": "Amount of fine", "new_title": "Amount of fine", "type": "direct" },
+    "64": { "new": "42", "old_title": "Sentence of imprisonment for non-payment of fine", "new_title": "Imprisonment for non-payment of fine", "type": "direct" },
+    "65": { "new": "43", "old_title": "Limit to imprisonment for non-payment of fine", "new_title": "Limit to imprisonment for non-payment of fine", "type": "direct" },
+    "66": { "new": "44", "old_title": "Description of imprisonment for non-payment of fine", "new_title": "Description of imprisonment for non-payment of fine", "type": "direct" },
+    "67": { "new": "45", "old_title": "Imprisonment for non-payment of fine, when offence punishable with fine only", "new_title": "Imprisonment for non-payment of fine when offence punishable with fine only", "type": "direct" },
+    "68": { "new": "46", "old_title": "Imprisonment to terminate on payment of fine", "new_title": "Imprisonment to terminate on payment of fine", "type": "direct" },
+    "69": { "new": "47", "old_title": "Termination of imprisonment on payment of proportional part of fine", "new_title": "Termination of imprisonment on payment of proportional part of fine", "type": "direct" },
+    "70": { "new": "48", "old_title": "Fine levied within six years", "new_title": "Fine levied within six years or during imprisonment", "type": "direct" },
+    "71": { "new": "49", "old_title": "Limit of punishment of offence made up of several offences", "new_title": "Limit of punishment of offence made up of several offences", "type": "direct" },
+    "72": { "new": "50", "old_title": "Punishment of person guilty of one of several offences, judgment stating that it is doubtful of which", "new_title": "Punishment in cases of doubt", "type": "direct" },
+    "73": { "new": "51", "old_title": "Solitary confinement", "new_title": "Solitary confinement", "type": "direct" },
+    "74": { "new": "52", "old_title": "Limit of solitary confinement", "new_title": "Limit of solitary confinement", "type": "direct" },
+    "75": { "new": "9", "old_title": "Enhanced punishment for certain offences after previous conviction", "new_title": "Enhanced punishment for certain offences on second or subsequent conviction", "type": "direct" },
+    "76": { "new": "14", "old_title": "Act done by a person bound or by mistake of fact believing himself bound by law", "new_title": "Act done by person bound by law", "type": "direct" },
+    "77": { "new": "15", "old_title": "Act of Judge when acting judicially", "new_title": "Act of Judge when acting judicially", "type": "direct" },
+    "78": { "new": "16", "old_title": "Act done pursuant to judgment or order of Court", "new_title": "Act done pursuant to judgment or order of Court", "type": "direct" },
+    "79": { "new": "17", "old_title": "Act done by a person justified or by mistake of fact believing himself justified by law", "new_title": "Act done by person justified by law", "type": "direct" },
+    "80": { "new": "18", "old_title": "Accident in doing a lawful act", "new_title": "Accident in doing a lawful act", "type": "direct" },
+    "81": { "new": "19", "old_title": "Act likely to cause harm, but done without criminal intent, and to prevent other harm", "new_title": "Act likely to cause harm done without criminal intent to prevent other harm", "type": "direct" },
+    "82": { "new": "20", "old_title": "Act of child under seven years of age", "new_title": "Act of child under seven years of age", "type": "direct" },
+    "83": { "new": "21", "old_title": "Act of child above seven and under twelve, of immature understanding", "new_title": "Act of child above seven and under twelve of immature understanding", "type": "direct" },
+    "84": { "new": "22", "old_title": "Act of a person of unsound mind", "new_title": "Act of person of unsound mind", "type": "direct" },
+    "85": { "new": "23", "old_title": "Act of a person incapable of judgment by reason of intoxication caused against his will", "new_title": "Act of person incapable of judgment by reason of intoxication against his will", "type": "direct" },
+    "86": { "new": "24", "old_title": "Offence requiring a particular intent or knowledge committed by one who is intoxicated", "new_title": "Offence requiring particular intent or knowledge committed by intoxicated person", "type": "direct" },
+    "87": { "new": "25", "old_title": "Act not intended and not known to be likely to cause death or grievous hurt done by consent", "new_title": "Act not intended to cause death done by consent", "type": "direct" },
+    "88": { "new": "26", "old_title": "Act not intended to cause death, done by consent in good faith for person's benefit", "new_title": "Act not intended to cause death done by consent in good faith", "type": "direct" },
+    "89": { "new": "27", "old_title": "Act done in good faith for benefit of child or insane person, by or by consent of guardian", "new_title": "Act done in good faith for benefit of child or person of unsound mind", "type": "direct" },
+    "90": { "new": "28", "old_title": "Consent known to be given under fear or misconception", "new_title": "Consent known to be given under fear or misconception", "type": "direct" },
+    "91": { "new": "29", "old_title": "Exclusion of acts which are offences independently of harm caused", "new_title": "Exclusion of acts which are offences independently of harm caused", "type": "direct" },
+    "92": { "new": "30", "old_title": "Act done in good faith for benefit of a person without consent", "new_title": "Act done in good faith for benefit of person without consent", "type": "direct" },
+    "93": { "new": "31", "old_title": "Communication made in good faith", "new_title": "Communication made in good faith", "type": "direct" },
+    "94": { "new": "32", "old_title": "Act to which a person is compelled by threats", "new_title": "Act to which person is compelled by threats", "type": "direct" },
+    "95": { "new": "33", "old_title": "Act causing slight harm", "new_title": "Act causing slight harm", "type": "direct" },
+    "96": { "new": "34", "old_title": "Things done in private defence", "new_title": "Right of private defence", "type": "direct" },
+    "97": { "new": "35", "old_title": "Right of private defence of the body and of property", "new_title": "Right of private defence of body and property", "type": "direct" },
+    "98": { "new": "36", "old_title": "Right of private defence against the act of a person of unsound mind", "new_title": "Right of private defence against act of person of unsound mind", "type": "direct" },
+    "99": { "new": "37", "old_title": "Acts against which there is no right of private defence", "new_title": "Acts against which there is no right of private defence", "type": "direct" },
+    "100": { "new": "38", "old_title": "When the right of private defence of the body extends to causing death", "new_title": "When right of private defence of body extends to causing death", "type": "direct" },
+    "101": { "new": "39", "old_title": "When such right extends to causing any harm other than death", "new_title": "When such right extends to causing any harm other than death", "type": "direct" },
+    "102": { "new": "40", "old_title": "Commencement and continuance of the right of private defence of the body", "new_title": "Commencement and continuance of right of private defence of body", "type": "direct" },
+    "103": { "new": "41", "old_title": "When the right of private defence of property extends to causing death", "new_title": "When right of private defence of property extends to causing death", "type": "direct" },
+    "104": { "new": "42", "old_title": "When such right extends to causing any harm other than death", "new_title": "When such right extends to causing any harm other than death", "type": "direct" },
+    "105": { "new": "43", "old_title": "Commencement and continuance of the right of private defence of property", "new_title": "Commencement and continuance of right of private defence of property", "type": "direct" },
+    "106": { "new": "44", "old_title": "Right of private defence against deadly assault when there is risk of harm to innocent person", "new_title": "Right of private defence against deadly assault when risk of harm to innocent person", "type": "direct" },
+    "107": { "new": "45", "old_title": "Abetment of a thing", "new_title": "Abetment of a thing", "type": "direct" },
     "108": { "new": "46", "old_title": "Abettor", "new_title": "Abettor", "type": "direct" },
-    "108A": {
-      "new": "47",
-      "old_title": "Abetment in India of offences outside India",
-      "new_title": "Abetment in India of offences outside India",
-      "type": "direct"
-    },
-    "109": {
-      "new": "48",
-      "old_title": "Punishment of abetment if the act abetted is committed",
-      "new_title": "Punishment of abetment if act abetted is committed",
-      "type": "direct"
-    },
-    "110": {
-      "new": "49",
-      "old_title": "Punishment of abetment if person abetted does act with different intention",
-      "new_title": "Punishment of abetment if person abetted does act with different intention",
-      "type": "direct"
-    },
-    "111": {
-      "new": "50",
-      "old_title": "Liability of abettor when one act abetted and different act done",
-      "new_title": "Liability of abettor when one act abetted and different act done",
-      "type": "direct"
-    },
-    "112": {
-      "new": "51",
-      "old_title": "Abettor when liable to cumulative punishment for act abetted and for act done",
-      "new_title": "Abettor liable to cumulative punishment",
-      "type": "direct"
-    },
-    "113": {
-      "new": "52",
-      "old_title": "Liability of abettor for an effect caused by the act abetted different from that intended by the abettor",
-      "new_title": "Liability of abettor for effect different from intended",
-      "type": "direct"
-    },
-    "114": {
-      "new": "53",
-      "old_title": "Abettor present when offence is committed",
-      "new_title": "Abettor present when offence committed",
-      "type": "direct"
-    },
-    "115": {
-      "new": "54",
-      "old_title": "Abetment of offence punishable with death or imprisonment for life",
-      "new_title": "Abetment of offence punishable with death or imprisonment for life",
-      "type": "direct"
-    },
-    "116": {
-      "new": "55",
-      "old_title": "Abetment of offence punishable with imprisonment",
-      "new_title": "Abetment of offence punishable with imprisonment",
-      "type": "direct"
-    },
-    "117": {
-      "new": "56",
-      "old_title": "Abetting commission of offence by the public or by more than ten persons",
-      "new_title": "Abetting commission of offence by public or by more than ten persons",
-      "type": "direct"
-    },
-    "118": {
-      "new": "57",
-      "old_title": "Concealing design to commit offence punishable with death or imprisonment for life",
-      "new_title": "Concealing design to commit offence punishable with death or imprisonment for life",
-      "type": "direct"
-    },
-    "120": {
-      "new": "58",
-      "old_title": "Concealing design to commit offence punishable with imprisonment",
-      "new_title": "Concealing design to commit offence punishable with imprisonment",
-      "type": "direct"
-    },
-    "120A": {
-      "new": "61",
-      "old_title": "Definition of criminal conspiracy",
-      "new_title": "Criminal conspiracy",
-      "type": "direct"
-    },
-    "120B": {
-      "new": "61(2)",
-      "old_title": "Punishment of criminal conspiracy",
-      "new_title": "Punishment of criminal conspiracy",
-      "type": "merged"
-    },
-    "121": {
-      "new": "147",
-      "old_title": "Waging or attempting to wage war against the Government of India",
-      "new_title": "Waging war against Government of India",
-      "type": "direct"
-    },
-    "121A": {
-      "new": "148",
-      "old_title": "Conspiracy to commit offences punishable by section 121",
-      "new_title": "Conspiracy to commit offences punishable by section 147",
-      "type": "direct"
-    },
-    "122": {
-      "new": "149",
-      "old_title": "Collecting arms with intention of waging war against Government of India",
-      "new_title": "Collecting arms etc. with intention of waging war against Government of India",
-      "type": "direct"
-    },
-    "124": {
-      "new": "150",
-      "old_title": "Assaulting President, Governor, etc. with intent to compel or restrain exercise of lawful power",
-      "new_title": "Assaulting President, Governor, etc.",
-      "type": "direct"
-    },
-    "124A": {
-      "new": "152",
-      "old_title": "Sedition",
-      "new_title": "Acts endangering sovereignty, unity and integrity of India",
-      "type": "direct",
-      "notes": "Sedition replaced with broader provision on acts endangering sovereignty"
-    },
-    "141": {
-      "new": "189",
-      "old_title": "Unlawful assembly",
-      "new_title": "Unlawful assembly",
-      "type": "direct"
-    },
-    "142": {
-      "new": "190",
-      "old_title": "Being member of unlawful assembly",
-      "new_title": "Being member of unlawful assembly",
-      "type": "direct"
-    },
-    "143": {
-      "new": "191",
-      "old_title": "Punishment for unlawful assembly",
-      "new_title": "Punishment for unlawful assembly",
-      "type": "direct"
-    },
-    "144": {
-      "new": "192",
-      "old_title": "Joining unlawful assembly armed with deadly weapon",
-      "new_title": "Joining unlawful assembly armed with deadly weapon",
-      "type": "direct"
-    },
-    "146": { "new": "193", "old_title": "Rioting", "new_title": "Rioting", "type": "direct" },
-    "147": {
-      "new": "194",
-      "old_title": "Punishment for rioting",
-      "new_title": "Punishment for rioting",
-      "type": "direct"
-    },
-    "148": {
-      "new": "195",
-      "old_title": "Rioting armed with deadly weapon",
-      "new_title": "Rioting armed with deadly weapon",
-      "type": "direct"
-    },
-    "149": {
-      "new": "196",
-      "old_title": "Every member of unlawful assembly guilty of offence committed in prosecution of common object",
-      "new_title": "Every member of unlawful assembly guilty of offence committed in prosecution of common object",
-      "type": "direct"
-    },
-    "153A": {
-      "new": "196",
-      "old_title": "Promoting enmity between different groups on ground of religion, race, etc.",
-      "new_title": "Promoting enmity between different groups",
-      "type": "direct"
-    },
-    "153B": {
-      "new": "197",
-      "old_title": "Imputations, assertions prejudicial to national integration",
-      "new_title": "Imputations, assertions prejudicial to national integration",
-      "type": "direct"
-    },
-    "166": {
-      "new": "208",
-      "old_title": "Public servant disobeying law with intent to cause injury to any person",
-      "new_title": "Public servant disobeying law with intent to cause injury",
-      "type": "direct"
-    },
-    "167": {
-      "new": "209",
-      "old_title": "Public servant framing incorrect document with intent to cause injury",
-      "new_title": "Public servant framing incorrect document",
-      "type": "direct"
-    },
-    "170": {
-      "new": "204",
-      "old_title": "Personating a public servant",
-      "new_title": "Personating a public servant",
-      "type": "direct"
-    },
-    "171": {
-      "new": "205",
-      "old_title": "Wearing garb or carrying token used by public servant with fraudulent intent",
-      "new_title": "Wearing garb or carrying token of public servant",
-      "type": "direct"
-    },
-    "186": {
-      "new": "221",
-      "old_title": "Obstructing public servant in discharge of public functions",
-      "new_title": "Obstructing public servant in discharge of public functions",
-      "type": "direct"
-    },
-    "191": {
-      "new": "229",
-      "old_title": "Giving false evidence",
-      "new_title": "Giving false evidence",
-      "type": "direct"
-    },
-    "192": {
-      "new": "230",
-      "old_title": "Fabricating false evidence",
-      "new_title": "Fabricating false evidence",
-      "type": "direct"
-    },
-    "193": {
-      "new": "231",
-      "old_title": "Punishment for false evidence",
-      "new_title": "Punishment for false evidence",
-      "type": "direct"
-    },
-    "195": {
-      "new": "233",
-      "old_title": "Giving or fabricating false evidence with intent to procure conviction of offence punishable with imprisonment for life or imprisonment",
-      "new_title": "Giving false evidence with intent to procure conviction of capital offence",
-      "type": "direct"
-    },
-    "196": {
-      "new": "234",
-      "old_title": "Using evidence known to be false",
-      "new_title": "Using evidence known to be false",
-      "type": "direct"
-    },
-    "199": {
-      "new": "237",
-      "old_title": "False statement made in declaration which is by law receivable as evidence",
-      "new_title": "False statement in declaration receivable as evidence",
-      "type": "direct"
-    },
-    "200": {
-      "new": "238",
-      "old_title": "Using as true declaration known to be false",
-      "new_title": "Using as true declaration known to be false",
-      "type": "direct"
-    },
-    "201": {
-      "new": "239",
-      "old_title": "Causing disappearance of evidence of offence, or giving false information to screen offender",
-      "new_title": "Causing disappearance of evidence or giving false information to screen offender",
-      "type": "direct"
-    },
-    "204": {
-      "new": "242",
-      "old_title": "Destruction of document to prevent its production as evidence",
-      "new_title": "Destruction of document or electronic record to prevent its production as evidence",
-      "type": "direct"
-    },
-    "211": {
-      "new": "248",
-      "old_title": "False charge of offence made with intent to injure",
-      "new_title": "False charge of offence made with intent to injure",
-      "type": "direct"
-    },
-    "212": {
-      "new": "249",
-      "old_title": "Harbouring offender",
-      "new_title": "Harbouring offender",
-      "type": "direct"
-    },
-    "213": {
-      "new": "250",
-      "old_title": "Taking gift to screen an offender from punishment",
-      "new_title": "Taking gift to screen offender from punishment",
-      "type": "direct"
-    },
-    "216A": {
-      "new": "253",
-      "old_title": "Penalty for harbouring robbers or dacoits",
-      "new_title": "Penalty for harbouring robbers or dacoits",
-      "type": "direct"
-    },
-    "218": {
-      "new": "255",
-      "old_title": "Public servant framing incorrect record or writing with intent to save person from punishment",
-      "new_title": "Public servant framing incorrect record to save person from punishment",
-      "type": "direct"
-    },
-    "224": {
-      "new": "260",
-      "old_title": "Resistance or obstruction by a person to his lawful apprehension",
-      "new_title": "Resistance or obstruction to lawful apprehension",
-      "type": "direct"
-    },
-    "225": {
-      "new": "261",
-      "old_title": "Resistance or obstruction to lawful apprehension of another person",
-      "new_title": "Resistance or obstruction to lawful apprehension of another person",
-      "type": "direct"
-    },
-    "228": {
-      "new": "264",
-      "old_title": "Intentional insult or interruption to public servant sitting in judicial proceeding",
-      "new_title": "Intentional insult or interruption to public servant in judicial proceeding",
-      "type": "direct"
-    },
-    "231": {
-      "new": "178",
-      "old_title": "Counterfeiting coin",
-      "new_title": "Counterfeiting coin",
-      "type": "direct"
-    },
-    "255": {
-      "new": "185",
-      "old_title": "Counterfeiting Government stamp",
-      "new_title": "Counterfeiting Government stamp",
-      "type": "direct"
-    },
-    "268": {
-      "new": "270",
-      "old_title": "Public nuisance",
-      "new_title": "Public nuisance",
-      "type": "direct"
-    },
-    "269": {
-      "new": "271",
-      "old_title": "Negligent act likely to spread infection of disease dangerous to life",
-      "new_title": "Negligent act likely to spread infection of dangerous disease",
-      "type": "direct"
-    },
-    "270": {
-      "new": "272",
-      "old_title": "Malignant act likely to spread infection of disease dangerous to life",
-      "new_title": "Malignant act likely to spread infection of disease dangerous to life",
-      "type": "direct"
-    },
-    "272": {
-      "new": "274",
-      "old_title": "Adulteration of food or drink intended for sale",
-      "new_title": "Adulteration of food or drink intended for sale",
-      "type": "direct"
-    },
-    "274": {
-      "new": "276",
-      "old_title": "Adulteration of drugs",
-      "new_title": "Adulteration of drugs",
-      "type": "direct"
-    },
-    "279": {
-      "new": "281",
-      "old_title": "Rash driving or riding on a public way",
-      "new_title": "Rash driving or riding on public way",
-      "type": "direct"
-    },
-    "284": {
-      "new": "286",
-      "old_title": "Negligent conduct with respect to poisonous substance",
-      "new_title": "Negligent conduct with respect to poisonous substance",
-      "type": "direct"
-    },
-    "292": {
-      "new": "294",
-      "old_title": "Sale of obscene books",
-      "new_title": "Sale etc. of obscene books etc.",
-      "type": "direct"
-    },
-    "295": {
-      "new": "297",
-      "old_title": "Injuring or defiling place of worship, with intent to insult the religion of any class",
-      "new_title": "Injuring or defiling place of worship",
-      "type": "direct"
-    },
-    "295A": {
-      "new": "298",
-      "old_title": "Deliberate and malicious acts intended to outrage religious feelings",
-      "new_title": "Deliberate and malicious acts intended to outrage religious feelings",
-      "type": "direct"
-    },
-    "296": {
-      "new": "299",
-      "old_title": "Disturbing religious assembly",
-      "new_title": "Disturbing religious assembly",
-      "type": "direct"
-    },
-    "297": {
-      "new": "300",
-      "old_title": "Trespassing on burial places",
-      "new_title": "Trespassing on burial places",
-      "type": "direct"
-    },
-    "298": {
-      "new": "302",
-      "old_title": "Uttering words with deliberate intent to wound religious feelings",
-      "new_title": "Uttering words with deliberate intent to wound religious feelings",
-      "type": "direct"
-    },
-    "299": {
-      "new": "100",
-      "old_title": "Culpable homicide",
-      "new_title": "Culpable homicide",
-      "type": "direct"
-    },
+    "108A": { "new": "47", "old_title": "Abetment in India of offences outside India", "new_title": "Abetment in India of offences outside India", "type": "direct" },
+    "109": { "new": "48", "old_title": "Punishment of abetment if the act abetted is committed", "new_title": "Punishment of abetment if act abetted is committed", "type": "direct" },
+    "110": { "new": "49", "old_title": "Punishment of abetment if person abetted does act with different intention", "new_title": "Punishment of abetment if person abetted does act with different intention", "type": "direct" },
+    "111": { "new": "50", "old_title": "Liability of abettor when one act abetted and different act done", "new_title": "Liability of abettor when one act abetted and different act done", "type": "direct" },
+    "112": { "new": "51", "old_title": "Abettor when liable to cumulative punishment for act abetted and for act done", "new_title": "Abettor liable to cumulative punishment", "type": "direct" },
+    "113": { "new": "52", "old_title": "Liability of abettor for an effect caused by the act abetted different from that intended by the abettor", "new_title": "Liability of abettor for effect different from intended", "type": "direct" },
+    "114": { "new": "53", "old_title": "Abettor present when offence is committed", "new_title": "Abettor present when offence committed", "type": "direct" },
+    "115": { "new": "54", "old_title": "Abetment of offence punishable with death or imprisonment for life", "new_title": "Abetment of offence punishable with death or imprisonment for life", "type": "direct" },
+    "116": { "new": "55", "old_title": "Abetment of offence punishable with imprisonment", "new_title": "Abetment of offence punishable with imprisonment", "type": "direct" },
+    "117": { "new": "56", "old_title": "Abetting commission of offence by the public or by more than ten persons", "new_title": "Abetting commission of offence by public or by more than ten persons", "type": "direct" },
+    "118": { "new": "57", "old_title": "Concealing design to commit offence punishable with death or imprisonment for life", "new_title": "Concealing design to commit offence punishable with death or imprisonment for life", "type": "direct" },
+    "119": { "new": "59", "old_title": "Public servant concealing design to commit offence which it is his duty to prevent", "new_title": "Public servant concealing design to commit offence", "type": "direct" },
+    "120": { "new": "58", "old_title": "Concealing design to commit offence punishable with imprisonment", "new_title": "Concealing design to commit offence punishable with imprisonment", "type": "direct" },
+    "120A": { "new": "61", "old_title": "Definition of criminal conspiracy", "new_title": "Criminal conspiracy", "type": "direct" },
+    "120B": { "new": "61(2)", "old_title": "Punishment of criminal conspiracy", "new_title": "Punishment of criminal conspiracy", "type": "merged" },
+    "121": { "new": "147", "old_title": "Waging or attempting to wage war against the Government of India", "new_title": "Waging war against Government of India", "type": "direct" },
+    "121A": { "new": "148", "old_title": "Conspiracy to commit offences punishable by section 121", "new_title": "Conspiracy to commit offences punishable by section 147", "type": "direct" },
+    "122": { "new": "149", "old_title": "Collecting arms with intention of waging war against Government of India", "new_title": "Collecting arms etc. with intention of waging war against Government of India", "type": "direct" },
+    "123": { "new": "150", "old_title": "Concealing with intent to facilitate design to wage war", "new_title": "Concealing with intent to facilitate design to wage war", "type": "direct" },
+    "124": { "new": "150", "old_title": "Assaulting President, Governor, etc. with intent to compel or restrain exercise of lawful power", "new_title": "Assaulting President, Governor, etc.", "type": "direct" },
+    "124A": { "new": "152", "old_title": "Sedition", "new_title": "Acts endangering sovereignty, unity and integrity of India", "type": "direct", "notes": "Sedition replaced with broader provision on acts endangering sovereignty" },
+    "125": { "new": "151", "old_title": "Waging war against any Asiatic Power in alliance with Government of India", "new_title": "Waging war against any Asiatic Power in alliance with Government of India", "type": "direct" },
+    "126": { "new": "152", "old_title": "Committing depredation on territories of Power at peace with Government of India", "new_title": "Committing depredation on territories at peace with India", "type": "direct" },
+    "127": { "new": "153", "old_title": "Receiving property taken by war or depredation", "new_title": "Receiving property taken by war or depredation", "type": "direct" },
+    "128": { "new": "154", "old_title": "Public servant voluntarily allowing prisoner of State or war to escape", "new_title": "Public servant allowing prisoner of State or war to escape", "type": "direct" },
+    "129": { "new": "155", "old_title": "Public servant negligently suffering such prisoner to escape", "new_title": "Public servant negligently suffering such prisoner to escape", "type": "direct" },
+    "130": { "new": "156", "old_title": "Aiding escape of, rescuing or harbouring such prisoner", "new_title": "Aiding escape of, rescuing or harbouring such prisoner", "type": "direct" },
+    "131": { "new": "157", "old_title": "Abetting mutiny, or attempting to seduce a soldier from his duty", "new_title": "Abetting mutiny or seducing soldier from duty", "type": "direct" },
+    "132": { "new": "158", "old_title": "Abetment of mutiny, if mutiny is committed in consequence thereof", "new_title": "Abetment of mutiny if mutiny is committed", "type": "direct" },
+    "133": { "new": "159", "old_title": "Abetment of assault by soldier on his superior officer", "new_title": "Abetment of assault by soldier on superior officer", "type": "direct" },
+    "134": { "new": "160", "old_title": "Abetment of such assault, if the assault is committed", "new_title": "Abetment of such assault if assault is committed", "type": "direct" },
+    "135": { "new": "161", "old_title": "Abetment of desertion of soldier, sailor or airman", "new_title": "Abetment of desertion of soldier, sailor or airman", "type": "direct" },
+    "136": { "new": "162", "old_title": "Harbouring deserter", "new_title": "Harbouring deserter", "type": "direct" },
+    "137": { "new": "163", "old_title": "Deserter concealed on board merchant vessel through negligence of master", "new_title": "Deserter concealed on board merchant vessel through negligence", "type": "direct" },
+    "138": { "new": "164", "old_title": "Abetment of act of insubordination by soldier, sailor or airman", "new_title": "Abetment of act of insubordination", "type": "direct" },
+    "138A": { "new": null, "old_title": "Application of foregoing sections to the Indian Marine Service", "new_title": null, "type": "repealed", "notes": "Repealed by Act 35 of 1934" },
+    "139": { "new": "165", "old_title": "Persons subject to certain Acts", "new_title": "Persons subject to certain Acts", "type": "direct" },
+    "140": { "new": "166", "old_title": "Wearing garb or carrying token used by soldier, sailor or airman", "new_title": "Wearing garb or carrying token of soldier", "type": "direct" },
+    "141": { "new": "189(1)", "old_title": "Unlawful assembly", "new_title": "Unlawful assembly", "type": "direct" },
+    "142": { "new": "189(2)", "old_title": "Being member of unlawful assembly", "new_title": "Being member of unlawful assembly", "type": "direct" },
+    "143": { "new": "189(2)", "old_title": "Punishment for unlawful assembly", "new_title": "Punishment for unlawful assembly", "type": "direct" },
+    "144": { "new": "189(4)", "old_title": "Joining unlawful assembly armed with deadly weapon", "new_title": "Joining unlawful assembly armed with deadly weapon", "type": "direct" },
+    "145": { "new": "189(5)", "old_title": "Joining or continuing in unlawful assembly knowing it has been commanded to disperse", "new_title": "Joining unlawful assembly commanded to disperse", "type": "direct" },
+    "146": { "new": "191(1)", "old_title": "Rioting", "new_title": "Rioting", "type": "direct" },
+    "147": { "new": "191(2)", "old_title": "Punishment for rioting", "new_title": "Punishment for rioting", "type": "direct" },
+    "148": { "new": "191(3)", "old_title": "Rioting armed with deadly weapon", "new_title": "Rioting armed with deadly weapon", "type": "direct" },
+    "149": { "new": "190", "old_title": "Every member of unlawful assembly guilty of offence committed in prosecution of common object", "new_title": "Every member of unlawful assembly guilty of offence committed in prosecution of common object", "type": "direct" },
+    "150": { "new": "189(6)", "old_title": "Hiring persons to join unlawful assembly", "new_title": "Hiring persons to join unlawful assembly", "type": "direct" },
+    "151": { "new": "189(7)", "old_title": "Knowingly joining or continuing in assembly of five or more persons after being commanded to disperse", "new_title": "Knowingly joining assembly of five or more after command to disperse", "type": "direct" },
+    "152": { "new": "195", "old_title": "Assaulting or obstructing public servant when suppressing riot, etc.", "new_title": "Assaulting or obstructing public servant suppressing riot", "type": "direct" },
+    "153": { "new": "192", "old_title": "Wantonly giving provocation with intent to cause riot", "new_title": "Wantonly giving provocation with intent to cause riot", "type": "direct" },
+    "153A": { "new": "196", "old_title": "Promoting enmity between different groups on ground of religion, race, etc.", "new_title": "Promoting enmity between different groups", "type": "direct" },
+    "153AA": { "new": null, "old_title": "Punishment for knowingly carrying arms in any procession or organising or holding mass drill or mass training with arms", "new_title": null, "type": "repealed", "notes": "Subsumed under BNS 196; state-specific provision" },
+    "153B": { "new": "197", "old_title": "Imputations, assertions prejudicial to national integration", "new_title": "Imputations, assertions prejudicial to national integration", "type": "direct" },
+    "154": { "new": "193", "old_title": "Owner or occupier of land on which an unlawful assembly is held", "new_title": "Owner or occupier of land on which unlawful assembly is held", "type": "direct" },
+    "155": { "new": "193(2)", "old_title": "Liability of person for whose benefit riot is committed", "new_title": "Liability of person for whose benefit riot is committed", "type": "direct" },
+    "156": { "new": "193(3)", "old_title": "Liability of agent of owner or occupier for whose benefit riot is committed", "new_title": "Liability of agent of owner for whose benefit riot is committed", "type": "direct" },
+    "157": { "new": "194", "old_title": "Harbouring persons hired for an unlawful assembly", "new_title": "Harbouring persons hired for unlawful assembly", "type": "direct" },
+    "158": { "new": "194(2)", "old_title": "Being hired to take part in an unlawful assembly or riot", "new_title": "Being hired to take part in unlawful assembly or riot", "type": "direct" },
+    "159": { "new": "194(3)", "old_title": "Affray", "new_title": "Affray", "type": "direct" },
+    "160": { "new": "194(4)", "old_title": "Punishment for committing affray", "new_title": "Punishment for committing affray", "type": "direct" },
+    "161": { "new": null, "old_title": "Public servant taking gratification", "new_title": null, "type": "repealed", "notes": "Now covered under Prevention of Corruption Act, 1988" },
+    "162": { "new": null, "old_title": "Taking gratification, in order, by corrupt or illegal means, to influence public servant", "new_title": null, "type": "repealed", "notes": "Now covered under Prevention of Corruption Act, 1988" },
+    "163": { "new": null, "old_title": "Taking gratification, for exercise of personal influence with public servant", "new_title": null, "type": "repealed", "notes": "Now covered under Prevention of Corruption Act, 1988" },
+    "164": { "new": null, "old_title": "Punishment for abetment by public servant of offences defined in section 162 or 163", "new_title": null, "type": "repealed", "notes": "Now covered under Prevention of Corruption Act, 1988" },
+    "165": { "new": null, "old_title": "Public servant obtaining valuable thing, without consideration", "new_title": null, "type": "repealed", "notes": "Now covered under Prevention of Corruption Act, 1988" },
+    "165A": { "new": null, "old_title": "Punishment for abetment of offences defined in section 161 or 165", "new_title": null, "type": "repealed", "notes": "Now covered under Prevention of Corruption Act, 1988" },
+    "166": { "new": "198", "old_title": "Public servant disobeying law with intent to cause injury to any person", "new_title": "Public servant disobeying law with intent to cause injury", "type": "direct" },
+    "166A": { "new": "199", "old_title": "Public servant disobeying direction under law", "new_title": "Public servant disobeying direction under law", "type": "direct" },
+    "166B": { "new": "200", "old_title": "Punishment for non-treatment of victim", "new_title": "Punishment for non-treatment of victim", "type": "direct" },
+    "167": { "new": "201", "old_title": "Public servant framing incorrect document with intent to cause injury", "new_title": "Public servant framing incorrect document", "type": "direct" },
+    "168": { "new": "202", "old_title": "Public servant unlawfully engaging in trade", "new_title": "Public servant unlawfully engaging in trade", "type": "direct" },
+    "169": { "new": "203", "old_title": "Public servant unlawfully buying or bidding for property", "new_title": "Public servant unlawfully buying or bidding for property", "type": "direct" },
+    "170": { "new": "204", "old_title": "Personating a public servant", "new_title": "Personating a public servant", "type": "direct" },
+    "171": { "new": "205", "old_title": "Wearing garb or carrying token used by public servant with fraudulent intent", "new_title": "Wearing garb or carrying token of public servant", "type": "direct" },
+    "171A": { "new": "169", "old_title": "'Candidate', 'Electoral right' defined", "new_title": "Candidate, electoral right defined", "type": "direct" },
+    "171B": { "new": "170", "old_title": "Bribery", "new_title": "Bribery", "type": "direct" },
+    "171C": { "new": "171", "old_title": "Undue influence at elections", "new_title": "Undue influence at elections", "type": "direct" },
+    "171D": { "new": "172", "old_title": "Personation at elections", "new_title": "Personation at elections", "type": "direct" },
+    "171E": { "new": "173", "old_title": "Punishment for bribery", "new_title": "Punishment for bribery", "type": "direct" },
+    "171F": { "new": "174", "old_title": "Punishment for undue influence or personation at an election", "new_title": "Punishment for undue influence or personation at election", "type": "direct" },
+    "171G": { "new": "175", "old_title": "False statement in connection with an election", "new_title": "False statement in connection with election", "type": "direct" },
+    "171H": { "new": "176", "old_title": "Illegal payments in connection with an election", "new_title": "Illegal payments in connection with election", "type": "direct" },
+    "171I": { "new": "177", "old_title": "Failure to keep election accounts", "new_title": "Failure to keep election accounts", "type": "direct" },
+    "172": { "new": "206", "old_title": "Absconding to avoid service of summons or other proceeding", "new_title": "Absconding to avoid service of summons", "type": "direct" },
+    "173": { "new": "207", "old_title": "Preventing service of summons or other proceeding, or preventing publication thereof", "new_title": "Preventing service of summons", "type": "direct" },
+    "174": { "new": "208", "old_title": "Non-attendance in obedience to an order from public servant", "new_title": "Non-attendance in obedience to order from public servant", "type": "direct" },
+    "174A": { "new": "209", "old_title": "Non-appearance in response to a proclamation under section 82 of CrPC", "new_title": "Non-appearance in response to proclamation", "type": "direct" },
+    "175": { "new": "210", "old_title": "Omission to produce document to public servant by person legally bound to produce it", "new_title": "Omission to produce document to public servant", "type": "direct" },
+    "176": { "new": "211", "old_title": "Omission to give notice or information to public servant by person legally bound to give it", "new_title": "Omission to give notice or information to public servant", "type": "direct" },
+    "177": { "new": "212", "old_title": "Furnishing false information", "new_title": "Furnishing false information", "type": "direct" },
+    "178": { "new": "213", "old_title": "Refusing oath or affirmation when duly required by public servant", "new_title": "Refusing oath or affirmation", "type": "direct" },
+    "179": { "new": "214", "old_title": "Refusing to answer public servant authorised to question", "new_title": "Refusing to answer public servant authorised to question", "type": "direct" },
+    "180": { "new": "215", "old_title": "Refusing to sign statement", "new_title": "Refusing to sign statement", "type": "direct" },
+    "181": { "new": "216", "old_title": "False statement on oath or affirmation to public servant", "new_title": "False statement on oath to public servant", "type": "direct" },
+    "182": { "new": "217", "old_title": "False information, with intent to cause public servant to use his lawful power to injury of another person", "new_title": "False information with intent to cause public servant to use power to injure", "type": "direct" },
+    "183": { "new": "218", "old_title": "Resistance to the taking of property by the lawful authority of a public servant", "new_title": "Resistance to taking of property by lawful authority", "type": "direct" },
+    "184": { "new": "219", "old_title": "Obstructing sale of property offered for sale by authority of public servant", "new_title": "Obstructing sale of property offered for sale by authority of public servant", "type": "direct" },
+    "185": { "new": "220", "old_title": "Illegal purchase or bid for property offered for sale by authority of public servant", "new_title": "Illegal purchase or bid for property offered for sale by public servant", "type": "direct" },
+    "186": { "new": "221", "old_title": "Obstructing public servant in discharge of public functions", "new_title": "Obstructing public servant in discharge of public functions", "type": "direct" },
+    "187": { "new": "222", "old_title": "Omission to assist public servant when bound by law to give assistance", "new_title": "Omission to assist public servant when bound by law", "type": "direct" },
+    "188": { "new": "223", "old_title": "Disobedience to order duly promulgated by public servant", "new_title": "Disobedience to order duly promulgated by public servant", "type": "direct" },
+    "189": { "new": "224", "old_title": "Threat of injury to public servant", "new_title": "Threat of injury to public servant", "type": "direct" },
+    "190": { "new": "225", "old_title": "Threat of injury to induce person to refrain from applying for protection to public servant", "new_title": "Threat of injury to induce refrain from applying for protection", "type": "direct" },
+    "191": { "new": "227", "old_title": "Giving false evidence", "new_title": "Giving false evidence", "type": "direct" },
+    "192": { "new": "228", "old_title": "Fabricating false evidence", "new_title": "Fabricating false evidence", "type": "direct" },
+    "193": { "new": "229", "old_title": "Punishment for false evidence", "new_title": "Punishment for false evidence", "type": "direct" },
+    "194": { "new": "230", "old_title": "Giving or fabricating false evidence with intent to procure conviction of capital offence", "new_title": "Giving false evidence with intent to procure capital conviction", "type": "direct" },
+    "195": { "new": "231", "old_title": "Giving or fabricating false evidence with intent to procure conviction of offence punishable with imprisonment for life or imprisonment", "new_title": "Giving false evidence with intent to procure conviction of capital offence", "type": "direct" },
+    "195A": { "new": "232", "old_title": "Threatening any person to give false evidence", "new_title": "Threatening any person to give false evidence", "type": "direct" },
+    "196": { "new": "233", "old_title": "Using evidence known to be false", "new_title": "Using evidence known to be false", "type": "direct" },
+    "197": { "new": "234", "old_title": "Issuing or signing false certificate", "new_title": "Issuing or signing false certificate", "type": "direct" },
+    "198": { "new": "235", "old_title": "Using as true a certificate known to be false", "new_title": "Using as true a certificate known to be false", "type": "direct" },
+    "199": { "new": "236", "old_title": "False statement made in declaration which is by law receivable as evidence", "new_title": "False statement in declaration receivable as evidence", "type": "direct" },
+    "200": { "new": "237", "old_title": "Using as true declaration known to be false", "new_title": "Using as true declaration known to be false", "type": "direct" },
+    "201": { "new": "238", "old_title": "Causing disappearance of evidence of offence, or giving false information to screen offender", "new_title": "Causing disappearance of evidence or giving false information to screen offender", "type": "direct" },
+    "202": { "new": "239", "old_title": "Intentional omission to give information of offence by person bound to inform", "new_title": "Intentional omission to give information of offence", "type": "direct" },
+    "203": { "new": "240", "old_title": "Giving false information respecting an offence committed", "new_title": "Giving false information respecting an offence committed", "type": "direct" },
+    "204": { "new": "241", "old_title": "Destruction of document to prevent its production as evidence", "new_title": "Destruction of document or electronic record to prevent its production as evidence", "type": "direct" },
+    "205": { "new": "242", "old_title": "False personation for purpose of act or proceeding in suit or prosecution", "new_title": "False personation for purpose of suit or prosecution", "type": "direct" },
+    "206": { "new": "243", "old_title": "Fraudulent removal or concealment of property to prevent its seizure as forfeited or in execution", "new_title": "Fraudulent removal of property to prevent seizure", "type": "direct" },
+    "207": { "new": "244", "old_title": "Fraudulent claim to property to prevent its seizure as forfeited or in execution", "new_title": "Fraudulent claim to property to prevent seizure", "type": "direct" },
+    "208": { "new": "245", "old_title": "Fraudulently suffering decree for sum not due", "new_title": "Fraudulently suffering decree for sum not due", "type": "direct" },
+    "209": { "new": "246", "old_title": "Dishonestly making false claim in Court", "new_title": "Dishonestly making false claim in Court", "type": "direct" },
+    "210": { "new": "247", "old_title": "Fraudulently obtaining decree for sum not due", "new_title": "Fraudulently obtaining decree for sum not due", "type": "direct" },
+    "211": { "new": "248", "old_title": "False charge of offence made with intent to injure", "new_title": "False charge of offence made with intent to injure", "type": "direct" },
+    "212": { "new": "249", "old_title": "Harbouring offender", "new_title": "Harbouring offender", "type": "direct" },
+    "213": { "new": "250", "old_title": "Taking gift to screen an offender from punishment", "new_title": "Taking gift to screen offender from punishment", "type": "direct" },
+    "214": { "new": "251", "old_title": "Offering gift or restoration of property in consideration of screening offender", "new_title": "Offering gift in consideration of screening offender", "type": "direct" },
+    "215": { "new": "252", "old_title": "Taking gift to help to recover stolen property, etc.", "new_title": "Taking gift to help recover stolen property", "type": "direct" },
+    "216": { "new": "253", "old_title": "Harbouring offender who has escaped from custody or whose apprehension has been ordered", "new_title": "Harbouring offender escaped from custody", "type": "direct" },
+    "216A": { "new": "253", "old_title": "Penalty for harbouring robbers or dacoits", "new_title": "Penalty for harbouring robbers or dacoits", "type": "direct" },
+    "216B": { "new": null, "old_title": "Definition of 'harbour' in sections 212, 216 and 216A", "new_title": null, "type": "repealed", "notes": "Subsumed under BNS 27 (Harbour) definition" },
+    "217": { "new": "254", "old_title": "Public servant disobeying direction of law with intent to save person from punishment or property from forfeiture", "new_title": "Public servant disobeying direction to save person from punishment", "type": "direct" },
+    "218": { "new": "255", "old_title": "Public servant framing incorrect record or writing with intent to save person from punishment", "new_title": "Public servant framing incorrect record to save person from punishment", "type": "direct" },
+    "219": { "new": "256", "old_title": "Public servant in judicial proceeding corruptly making report contrary to law", "new_title": "Public servant in judicial proceeding corruptly making report contrary to law", "type": "direct" },
+    "220": { "new": "257", "old_title": "Commitment for trial or confinement by person having authority who knows that he is acting contrary to law", "new_title": "Commitment for trial by authority contrary to law", "type": "direct" },
+    "221": { "new": "258", "old_title": "Intentional omission to apprehend on the part of public servant bound to apprehend", "new_title": "Intentional omission to apprehend by public servant bound to apprehend", "type": "direct" },
+    "222": { "new": "259", "old_title": "Intentional omission to apprehend on the part of public servant bound to apprehend person under sentence or lawfully committed", "new_title": "Intentional omission to apprehend person under sentence", "type": "direct" },
+    "223": { "new": "260", "old_title": "Escape from confinement or custody negligently suffered by public servant", "new_title": "Escape negligently suffered by public servant", "type": "direct" },
+    "224": { "new": "262", "old_title": "Resistance or obstruction by a person to his lawful apprehension", "new_title": "Resistance or obstruction to lawful apprehension", "type": "direct" },
+    "225": { "new": "263", "old_title": "Resistance or obstruction to lawful apprehension of another person", "new_title": "Resistance or obstruction to lawful apprehension of another person", "type": "direct" },
+    "225A": { "new": "264", "old_title": "Omission to apprehend, or sufferance of escape, on part of public servant, in cases not otherwise provided for", "new_title": "Omission to apprehend in cases not otherwise provided", "type": "direct" },
+    "225B": { "new": "265", "old_title": "Resistance or obstruction to lawful apprehension, or escape or rescue in cases not otherwise provided for", "new_title": "Resistance or obstruction to lawful apprehension in cases not otherwise provided", "type": "direct" },
+    "226": { "new": null, "old_title": "Unlawful return from transportation", "new_title": null, "type": "repealed", "notes": "Obsolete; transportation abolished" },
+    "227": { "new": "266", "old_title": "Violation of condition of remission of punishment", "new_title": "Violation of condition of remission of punishment", "type": "direct" },
+    "228": { "new": "267", "old_title": "Intentional insult or interruption to public servant sitting in judicial proceeding", "new_title": "Intentional insult or interruption to public servant in judicial proceeding", "type": "direct" },
+    "228A": { "new": "72", "old_title": "Disclosure of identity of victim of certain offences", "new_title": "Disclosure of identity of victim of certain offences", "type": "direct" },
+    "229": { "new": "268", "old_title": "Personation of a juror or assessor", "new_title": "Personation of a juror or assessor", "type": "direct" },
+    "229A": { "new": "269", "old_title": "Failure by person released on bail or bond to appear in Court", "new_title": "Failure by person released on bail to appear in Court", "type": "direct" },
+    "230": { "new": "178(1)", "old_title": "Coin defined", "new_title": "Coin defined", "type": "direct" },
+    "231": { "new": "178(2)", "old_title": "Counterfeiting coin", "new_title": "Counterfeiting coin", "type": "direct" },
+    "232": { "new": "178(3)", "old_title": "Counterfeiting Indian coin", "new_title": "Counterfeiting Indian coin", "type": "merged" },
+    "233": { "new": "178(4)", "old_title": "Making or selling instrument for counterfeiting coin", "new_title": "Making or selling instrument for counterfeiting coin", "type": "merged" },
+    "234": { "new": "178(5)", "old_title": "Making or selling instrument for counterfeiting Indian coin", "new_title": "Making or selling instrument for counterfeiting Indian coin", "type": "merged" },
+    "235": { "new": "178(6)", "old_title": "Possession of instrument or material for purpose of using same for counterfeiting coin", "new_title": "Possession of instrument for counterfeiting coin", "type": "merged" },
+    "236": { "new": "178(7)", "old_title": "Abetting in India the counterfeiting out of India of coin", "new_title": "Abetting in India counterfeiting out of India of coin", "type": "merged" },
+    "237": { "new": "178(8)", "old_title": "Import or export of counterfeit coin", "new_title": "Import or export of counterfeit coin", "type": "merged" },
+    "238": { "new": "178(9)", "old_title": "Import or export of counterfeits of the Indian coin", "new_title": "Import or export of counterfeits of Indian coin", "type": "merged" },
+    "239": { "new": "178(10)", "old_title": "Delivery of coin, possessed with knowledge that it is counterfeit", "new_title": "Delivery of counterfeit coin", "type": "merged" },
+    "240": { "new": "178(11)", "old_title": "Delivery of Indian coin, possessed with knowledge that it is counterfeit", "new_title": "Delivery of counterfeit Indian coin", "type": "merged" },
+    "241": { "new": "178(12)", "old_title": "Delivery of coin as genuine, which when first possessed deliverer did not know to be counterfeit", "new_title": "Delivery of coin as genuine without prior knowledge", "type": "merged" },
+    "242": { "new": "178(13)", "old_title": "Possession of counterfeit coin by person who knew it to be counterfeit when he became possessed thereof", "new_title": "Possession of counterfeit coin with knowledge", "type": "merged" },
+    "243": { "new": "178(14)", "old_title": "Possession of Indian coin by person who knew it to be counterfeit when he became possessed thereof", "new_title": "Possession of Indian counterfeit coin with knowledge", "type": "merged" },
+    "244": { "new": "178(15)", "old_title": "Person employed in mint causing coin to be of different weight or composition from that fixed by law", "new_title": "Person employed in mint causing coin of different weight or composition", "type": "merged" },
+    "245": { "new": "178(16)", "old_title": "Unlawfully taking coining instrument from mint", "new_title": "Unlawfully taking coining instrument from mint", "type": "merged" },
+    "246": { "new": "178(17)", "old_title": "Fraudulently or dishonestly diminishing weight or altering composition of coin", "new_title": "Fraudulently diminishing weight of coin", "type": "merged" },
+    "247": { "new": "178(18)", "old_title": "Fraudulently or dishonestly diminishing weight or altering composition of Indian coin", "new_title": "Fraudulently diminishing weight of Indian coin", "type": "merged" },
+    "248": { "new": "178(19)", "old_title": "Altering appearance of coin with intent that it shall pass as coin of different description", "new_title": "Altering appearance of coin", "type": "merged" },
+    "249": { "new": "178(20)", "old_title": "Altering appearance of Indian coin with intent that it shall pass as Indian coin of different description", "new_title": "Altering appearance of Indian coin", "type": "merged" },
+    "250": { "new": "178(21)", "old_title": "Delivery of coin, possessed with knowledge that it is altered", "new_title": "Delivery of altered coin", "type": "merged" },
+    "251": { "new": "178(22)", "old_title": "Delivery of Indian coin, possessed with knowledge that it is altered", "new_title": "Delivery of altered Indian coin", "type": "merged" },
+    "252": { "new": "178(23)", "old_title": "Possession of coin by person who knew it to be altered when he became possessed thereof", "new_title": "Possession of altered coin with knowledge", "type": "merged" },
+    "253": { "new": "178(24)", "old_title": "Possession of Indian coin by person who knew it to be altered when he became possessed thereof", "new_title": "Possession of altered Indian coin with knowledge", "type": "merged" },
+    "254": { "new": "178(25)", "old_title": "Delivery of coin as genuine, which when first possessed deliverer did not know to be altered", "new_title": "Delivery of altered coin as genuine without prior knowledge", "type": "merged" },
+    "255": { "new": "178", "old_title": "Counterfeiting Government stamp", "new_title": "Counterfeiting Government stamp", "type": "direct" },
+    "256": { "new": "178", "old_title": "Having possession of instrument or material for counterfeiting Government stamp", "new_title": "Possession of instrument for counterfeiting Government stamp", "type": "merged" },
+    "257": { "new": "178", "old_title": "Making or selling instrument for counterfeiting Government stamp", "new_title": "Making or selling instrument for counterfeiting Government stamp", "type": "merged" },
+    "258": { "new": "178", "old_title": "Sale of counterfeit Government stamp", "new_title": "Sale of counterfeit Government stamp", "type": "merged" },
+    "259": { "new": "178", "old_title": "Having possession of counterfeit Government stamp", "new_title": "Possession of counterfeit Government stamp", "type": "merged" },
+    "260": { "new": "178", "old_title": "Using as genuine a Government stamp known to be counterfeit", "new_title": "Using counterfeit Government stamp as genuine", "type": "merged" },
+    "261": { "new": "178", "old_title": "Effacing writing from substance bearing Government stamp, or removing from document a stamp used for it, with intent to cause loss to Government", "new_title": "Effacing writing from substance bearing Government stamp", "type": "merged" },
+    "262": { "new": "178", "old_title": "Using Government stamp known to have been before used", "new_title": "Using Government stamp known to have been before used", "type": "merged" },
+    "263": { "new": "178", "old_title": "Erasure of mark denoting that stamp has been used", "new_title": "Erasure of mark denoting stamp has been used", "type": "merged" },
+    "263A": { "new": null, "old_title": "Prohibition of fictitious stamps", "new_title": null, "type": "repealed", "notes": "Subsumed under BNS 178 counterfeiting provisions" },
+    "264": { "new": "279", "old_title": "Fraudulent use of false instrument for weighing", "new_title": "Fraudulent use of false instrument for weighing", "type": "direct" },
+    "265": { "new": "279", "old_title": "Fraudulent use of false weight or measure", "new_title": "Fraudulent use of false weight or measure", "type": "merged" },
+    "266": { "new": "279", "old_title": "Being in possession of false weight or measure", "new_title": "Being in possession of false weight or measure", "type": "merged" },
+    "267": { "new": "279", "old_title": "Making or selling false weight or measure", "new_title": "Making or selling false weight or measure", "type": "merged" },
+    "268": { "new": "270", "old_title": "Public nuisance", "new_title": "Public nuisance", "type": "direct" },
+    "269": { "new": "271", "old_title": "Negligent act likely to spread infection of disease dangerous to life", "new_title": "Negligent act likely to spread infection of dangerous disease", "type": "direct" },
+    "270": { "new": "272", "old_title": "Malignant act likely to spread infection of disease dangerous to life", "new_title": "Malignant act likely to spread infection of disease dangerous to life", "type": "direct" },
+    "271": { "new": "273", "old_title": "Disobedience to quarantine rule", "new_title": "Disobedience to quarantine rule", "type": "direct" },
+    "272": { "new": "274", "old_title": "Adulteration of food or drink intended for sale", "new_title": "Adulteration of food or drink intended for sale", "type": "direct" },
+    "273": { "new": "275", "old_title": "Sale of noxious food or drink", "new_title": "Sale of noxious food or drink", "type": "direct" },
+    "274": { "new": "276", "old_title": "Adulteration of drugs", "new_title": "Adulteration of drugs", "type": "direct" },
+    "275": { "new": "277", "old_title": "Sale of adulterated drugs", "new_title": "Sale of adulterated drugs", "type": "direct" },
+    "276": { "new": "278", "old_title": "Sale of drug as a different drug or preparation", "new_title": "Sale of drug as different drug or preparation", "type": "direct" },
+    "277": { "new": "279", "old_title": "Fouling water of public spring or reservoir", "new_title": "Fouling water of public spring or reservoir", "type": "direct" },
+    "278": { "new": "280", "old_title": "Making atmosphere noxious to health", "new_title": "Making atmosphere noxious to health", "type": "direct" },
+    "279": { "new": "281", "old_title": "Rash driving or riding on a public way", "new_title": "Rash driving or riding on public way", "type": "direct" },
+    "280": { "new": "282", "old_title": "Rash navigation of vessel", "new_title": "Rash navigation of vessel", "type": "direct" },
+    "281": { "new": "283", "old_title": "Exhibition of false light, mark or buoy", "new_title": "Exhibition of false light, mark or buoy", "type": "direct" },
+    "282": { "new": "284", "old_title": "Conveying person by water for hire in unsafe or overloaded vessel", "new_title": "Conveying person by water in unsafe or overloaded vessel", "type": "direct" },
+    "283": { "new": "285", "old_title": "Danger or obstruction in public way or line of navigation", "new_title": "Danger or obstruction in public way or line of navigation", "type": "direct" },
+    "284": { "new": "286", "old_title": "Negligent conduct with respect to poisonous substance", "new_title": "Negligent conduct with respect to poisonous substance", "type": "direct" },
+    "285": { "new": "287", "old_title": "Negligent conduct with respect to fire or combustible matter", "new_title": "Negligent conduct with respect to fire or combustible matter", "type": "direct" },
+    "286": { "new": "288", "old_title": "Negligent conduct with respect to explosive substance", "new_title": "Negligent conduct with respect to explosive substance", "type": "direct" },
+    "287": { "new": "289", "old_title": "Negligent conduct with respect to machinery", "new_title": "Negligent conduct with respect to machinery", "type": "direct" },
+    "288": { "new": "290", "old_title": "Negligent conduct with respect to pulling down or repairing buildings", "new_title": "Negligent conduct with respect to buildings", "type": "direct" },
+    "289": { "new": "291", "old_title": "Negligent conduct with respect to animal", "new_title": "Negligent conduct with respect to animal", "type": "direct" },
+    "290": { "new": "292", "old_title": "Punishment for public nuisance in cases not otherwise provided for", "new_title": "Punishment for public nuisance not otherwise provided", "type": "direct" },
+    "291": { "new": "293", "old_title": "Continuance of nuisance after injunction to discontinue", "new_title": "Continuance of nuisance after injunction", "type": "direct" },
+    "292": { "new": "294", "old_title": "Sale of obscene books", "new_title": "Sale etc. of obscene books etc.", "type": "direct" },
+    "292A": { "new": "294", "old_title": "Printing, etc., of grossly indecent or scurrilous matter or matter intended for blackmail", "new_title": "Printing of grossly indecent matter", "type": "merged" },
+    "293": { "new": "295", "old_title": "Sale of obscene objects to young person", "new_title": "Sale of obscene objects to young person", "type": "direct" },
+    "294": { "new": "296", "old_title": "Obscene acts and songs", "new_title": "Obscene acts and songs", "type": "direct" },
+    "294A": { "new": null, "old_title": "Keeping lottery office", "new_title": null, "type": "repealed", "notes": "Now covered under state Public Gambling Acts; not in BNS" },
+    "295": { "new": "297", "old_title": "Injuring or defiling place of worship, with intent to insult the religion of any class", "new_title": "Injuring or defiling place of worship", "type": "direct" },
+    "295A": { "new": "298", "old_title": "Deliberate and malicious acts intended to outrage religious feelings", "new_title": "Deliberate and malicious acts intended to outrage religious feelings", "type": "direct" },
+    "296": { "new": "299", "old_title": "Disturbing religious assembly", "new_title": "Disturbing religious assembly", "type": "direct" },
+    "297": { "new": "300", "old_title": "Trespassing on burial places", "new_title": "Trespassing on burial places", "type": "direct" },
+    "298": { "new": "302", "old_title": "Uttering words with deliberate intent to wound religious feelings", "new_title": "Uttering words with deliberate intent to wound religious feelings", "type": "direct" },
+    "299": { "new": "100", "old_title": "Culpable homicide", "new_title": "Culpable homicide", "type": "direct" },
     "300": { "new": "101", "old_title": "Murder", "new_title": "Murder", "type": "direct" },
-    "301": {
-      "new": "102",
-      "old_title": "Culpable homicide by causing death of person other than person whose death was intended",
-      "new_title": "Culpable homicide by causing death of other than intended person",
-      "type": "direct"
-    },
-    "302": {
-      "new": "103(1)",
-      "old_title": "Punishment for murder",
-      "new_title": "Punishment for murder",
-      "type": "direct"
-    },
-    "303": {
-      "new": null,
-      "old_title": "Punishment for murder by life-convict",
-      "new_title": null,
-      "type": "repealed",
-      "notes": "Struck down by Supreme Court in Mithu v. State of Punjab (1983)"
-    },
-    "304": {
-      "new": "105",
-      "old_title": "Punishment for culpable homicide not amounting to murder",
-      "new_title": "Punishment for culpable homicide not amounting to murder",
-      "type": "direct"
-    },
-    "304A": {
-      "new": "106(1)",
-      "old_title": "Causing death by negligence",
-      "new_title": "Causing death by negligence",
-      "type": "direct"
-    },
-    "304B": {
-      "new": "80",
-      "old_title": "Dowry death",
-      "new_title": "Dowry death",
-      "type": "direct"
-    },
-    "305": {
-      "new": "108",
-      "old_title": "Abetment of suicide of child or insane person",
-      "new_title": "Abetment of suicide of child or person of unsound mind",
-      "type": "direct"
-    },
-    "306": {
-      "new": "108",
-      "old_title": "Abetment of suicide",
-      "new_title": "Abetment of suicide",
-      "type": "direct"
-    },
-    "307": {
-      "new": "109",
-      "old_title": "Attempt to murder",
-      "new_title": "Attempt to murder",
-      "type": "direct"
-    },
-    "308": {
-      "new": "110",
-      "old_title": "Attempt to commit culpable homicide",
-      "new_title": "Attempt to commit culpable homicide",
-      "type": "direct"
-    },
-    "309": {
-      "new": null,
-      "old_title": "Attempt to commit suicide",
-      "new_title": null,
-      "type": "repealed",
-      "notes": "Decriminalized — attempt to suicide no longer an offence under BNS. Mental Healthcare Act, 2017 S.115 presumes stress"
-    },
-    "312": {
-      "new": null,
-      "old_title": "Causing miscarriage",
-      "new_title": null,
-      "type": "repealed",
-      "notes": "Governed by Medical Termination of Pregnancy Act, 1971 (as amended 2021)"
-    },
+    "301": { "new": "102", "old_title": "Culpable homicide by causing death of person other than person whose death was intended", "new_title": "Culpable homicide by causing death of other than intended person", "type": "direct" },
+    "302": { "new": "103(1)", "old_title": "Punishment for murder", "new_title": "Punishment for murder", "type": "direct" },
+    "303": { "new": null, "old_title": "Punishment for murder by life-convict", "new_title": null, "type": "repealed", "notes": "Struck down by Supreme Court in Mithu v. State of Punjab (1983)" },
+    "304": { "new": "105", "old_title": "Punishment for culpable homicide not amounting to murder", "new_title": "Punishment for culpable homicide not amounting to murder", "type": "direct" },
+    "304A": { "new": "106(1)", "old_title": "Causing death by negligence", "new_title": "Causing death by negligence", "type": "direct" },
+    "304B": { "new": "80", "old_title": "Dowry death", "new_title": "Dowry death", "type": "direct" },
+    "305": { "new": "107", "old_title": "Abetment of suicide of child or insane person", "new_title": "Abetment of suicide of child or person of unsound mind", "type": "direct" },
+    "306": { "new": "108", "old_title": "Abetment of suicide", "new_title": "Abetment of suicide", "type": "direct" },
+    "307": { "new": "109", "old_title": "Attempt to murder", "new_title": "Attempt to murder", "type": "direct" },
+    "308": { "new": "110", "old_title": "Attempt to commit culpable homicide", "new_title": "Attempt to commit culpable homicide", "type": "direct" },
+    "309": { "new": null, "old_title": "Attempt to commit suicide", "new_title": null, "type": "repealed", "notes": "Decriminalized — attempt to suicide no longer an offence under BNS. Mental Healthcare Act, 2017 S.115 presumes stress" },
+    "310": { "new": null, "old_title": "Thug", "new_title": null, "type": "repealed", "notes": "Obsolete colonial provision; not in BNS" },
+    "311": { "new": null, "old_title": "Punishment for being a thug", "new_title": null, "type": "repealed", "notes": "Obsolete colonial provision; not in BNS" },
+    "312": { "new": null, "old_title": "Causing miscarriage", "new_title": null, "type": "repealed", "notes": "Governed by Medical Termination of Pregnancy Act, 1971 (as amended 2021)" },
+    "313": { "new": "88", "old_title": "Causing miscarriage without woman's consent", "new_title": "Causing miscarriage without woman's consent", "type": "direct" },
+    "314": { "new": "89", "old_title": "Death caused by act done with intent to cause miscarriage", "new_title": "Death caused by act done with intent to cause miscarriage", "type": "direct" },
+    "315": { "new": "90", "old_title": "Act done with intent to prevent child being born alive or to cause it to die after birth", "new_title": "Act with intent to prevent child being born alive", "type": "direct" },
+    "316": { "new": "91", "old_title": "Causing death of quick unborn child by act amounting to culpable homicide", "new_title": "Causing death of quick unborn child", "type": "direct" },
+    "317": { "new": "92", "old_title": "Exposure and abandonment of child under twelve years, by parent or person having care of it", "new_title": "Exposure and abandonment of child under twelve years", "type": "direct" },
+    "318": { "new": "93", "old_title": "Concealment of birth by secret disposal of dead body", "new_title": "Concealment of birth by secret disposal of dead body", "type": "direct" },
     "319": { "new": "114", "old_title": "Hurt", "new_title": "Hurt", "type": "direct" },
-    "320": {
-      "new": "114(2)",
-      "old_title": "Grievous hurt",
-      "new_title": "Grievous hurt",
-      "type": "merged"
-    },
-    "321": {
-      "new": "115(1)",
-      "old_title": "Voluntarily causing hurt",
-      "new_title": "Voluntarily causing hurt",
-      "type": "direct"
-    },
-    "322": {
-      "new": "117(1)",
-      "old_title": "Voluntarily causing grievous hurt",
-      "new_title": "Voluntarily causing grievous hurt",
-      "type": "direct"
-    },
-    "323": {
-      "new": "115(2)",
-      "old_title": "Punishment for voluntarily causing hurt",
-      "new_title": "Punishment for voluntarily causing hurt",
-      "type": "direct"
-    },
-    "324": {
-      "new": "118(1)",
-      "old_title": "Voluntarily causing hurt by dangerous weapons or means",
-      "new_title": "Voluntarily causing hurt by dangerous weapons or means",
-      "type": "direct"
-    },
-    "325": {
-      "new": "117(2)",
-      "old_title": "Punishment for voluntarily causing grievous hurt",
-      "new_title": "Punishment for voluntarily causing grievous hurt",
-      "type": "direct"
-    },
-    "326": {
-      "new": "118(2)",
-      "old_title": "Voluntarily causing grievous hurt by dangerous weapons or means",
-      "new_title": "Voluntarily causing grievous hurt by dangerous weapons or means",
-      "type": "direct"
-    },
-    "326A": {
-      "new": "124",
-      "old_title": "Voluntarily causing grievous hurt by use of acid",
-      "new_title": "Voluntarily causing grievous hurt by use of acid etc.",
-      "type": "direct"
-    },
-    "326B": {
-      "new": "125",
-      "old_title": "Voluntarily throwing or attempting to throw acid",
-      "new_title": "Voluntarily throwing or attempting to throw acid",
-      "type": "direct"
-    },
-    "328": {
-      "new": "123",
-      "old_title": "Causing hurt by means of poison, etc., with intent to commit an offence",
-      "new_title": "Causing hurt by means of poison etc.",
-      "type": "direct"
-    },
-    "330": {
-      "new": "119",
-      "old_title": "Voluntarily causing hurt to extort confession or to compel restoration of property",
-      "new_title": "Voluntarily causing hurt to extort confession or compel restoration of property",
-      "type": "direct"
-    },
-    "331": {
-      "new": "120",
-      "old_title": "Voluntarily causing grievous hurt to extort confession or to compel restoration of property",
-      "new_title": "Voluntarily causing grievous hurt to extort confession",
-      "type": "direct"
-    },
-    "332": {
-      "new": "121",
-      "old_title": "Voluntarily causing hurt to deter public servant from his duty",
-      "new_title": "Voluntarily causing hurt to deter public servant from duty",
-      "type": "direct"
-    },
-    "333": {
-      "new": "122",
-      "old_title": "Voluntarily causing grievous hurt to deter public servant from his duty",
-      "new_title": "Voluntarily causing grievous hurt to deter public servant from duty",
-      "type": "direct"
-    },
-    "336": {
-      "new": "125(a)",
-      "old_title": "Act endangering life or personal safety of others",
-      "new_title": "Act endangering life or personal safety of others",
-      "type": "direct"
-    },
-    "337": {
-      "new": "125(b)",
-      "old_title": "Causing hurt by act endangering life or personal safety of others",
-      "new_title": "Causing hurt by act endangering life or personal safety",
-      "type": "direct"
-    },
-    "338": {
-      "new": "125(c)",
-      "old_title": "Causing grievous hurt by act endangering life or personal safety of others",
-      "new_title": "Causing grievous hurt by act endangering life or personal safety",
-      "type": "direct"
-    },
-    "339": {
-      "new": "126(1)",
-      "old_title": "Wrongful restraint",
-      "new_title": "Wrongful restraint",
-      "type": "direct"
-    },
-    "340": {
-      "new": "127(1)",
-      "old_title": "Wrongful confinement",
-      "new_title": "Wrongful confinement",
-      "type": "direct"
-    },
-    "341": {
-      "new": "126(2)",
-      "old_title": "Punishment for wrongful restraint",
-      "new_title": "Punishment for wrongful restraint",
-      "type": "merged"
-    },
-    "342": {
-      "new": "127(2)",
-      "old_title": "Punishment for wrongful confinement",
-      "new_title": "Punishment for wrongful confinement",
-      "type": "merged"
-    },
-    "343": {
-      "new": "128",
-      "old_title": "Wrongful confinement for three or more days",
-      "new_title": "Wrongful confinement for three or more days",
-      "type": "direct"
-    },
-    "344": {
-      "new": "129",
-      "old_title": "Wrongful confinement for ten or more days",
-      "new_title": "Wrongful confinement for ten or more days",
-      "type": "direct"
-    },
-    "345": {
-      "new": "130",
-      "old_title": "Wrongful confinement of person for whose liberation writ has been issued",
-      "new_title": "Wrongful confinement of person for whose liberation writ has been issued",
-      "type": "direct"
-    },
-    "346": {
-      "new": "131",
-      "old_title": "Wrongful confinement in secret",
-      "new_title": "Wrongful confinement in secret",
-      "type": "direct"
-    },
-    "349": { "new": "130(1)", "old_title": "Force", "new_title": "Force", "type": "merged" },
-    "350": {
-      "new": "131",
-      "old_title": "Criminal force",
-      "new_title": "Criminal force",
-      "type": "direct"
-    },
-    "351": { "new": "132", "old_title": "Assault", "new_title": "Assault", "type": "direct" },
-    "352": {
-      "new": "131(2)",
-      "old_title": "Punishment for assault or use of criminal force otherwise than on grave provocation",
-      "new_title": "Punishment for criminal force",
-      "type": "merged"
-    },
-    "354": {
-      "new": "74",
-      "old_title": "Assault or criminal force to woman with intent to outrage her modesty",
-      "new_title": "Assault or use of criminal force to woman with intent to outrage her modesty",
-      "type": "direct"
-    },
-    "354A": {
-      "new": "75",
-      "old_title": "Sexual harassment",
-      "new_title": "Sexual harassment",
-      "type": "direct"
-    },
-    "354B": {
-      "new": "76",
-      "old_title": "Assault or use of criminal force to woman with intent to disrobe",
-      "new_title": "Assault or criminal force to woman with intent to disrobe",
-      "type": "direct"
-    },
+    "320": { "new": "114(2)", "old_title": "Grievous hurt", "new_title": "Grievous hurt", "type": "merged" },
+    "321": { "new": "115(1)", "old_title": "Voluntarily causing hurt", "new_title": "Voluntarily causing hurt", "type": "direct" },
+    "322": { "new": "117(1)", "old_title": "Voluntarily causing grievous hurt", "new_title": "Voluntarily causing grievous hurt", "type": "direct" },
+    "323": { "new": "115(2)", "old_title": "Punishment for voluntarily causing hurt", "new_title": "Punishment for voluntarily causing hurt", "type": "direct" },
+    "324": { "new": "118(1)", "old_title": "Voluntarily causing hurt by dangerous weapons or means", "new_title": "Voluntarily causing hurt by dangerous weapons or means", "type": "direct" },
+    "325": { "new": "117(2)", "old_title": "Punishment for voluntarily causing grievous hurt", "new_title": "Punishment for voluntarily causing grievous hurt", "type": "direct" },
+    "326": { "new": "118(2)", "old_title": "Voluntarily causing grievous hurt by dangerous weapons or means", "new_title": "Voluntarily causing grievous hurt by dangerous weapons or means", "type": "direct" },
+    "326A": { "new": "124(1)", "old_title": "Voluntarily causing grievous hurt by use of acid", "new_title": "Voluntarily causing grievous hurt by use of acid etc.", "type": "direct" },
+    "326B": { "new": "124(2)", "old_title": "Voluntarily throwing or attempting to throw acid", "new_title": "Voluntarily throwing or attempting to throw acid", "type": "direct" },
+    "327": { "new": "119(1)", "old_title": "Voluntarily causing hurt to extort property, or to constrain to an illegal act", "new_title": "Voluntarily causing hurt to extort property", "type": "direct" },
+    "328": { "new": "123", "old_title": "Causing hurt by means of poison, etc., with intent to commit an offence", "new_title": "Causing hurt by means of poison etc.", "type": "direct" },
+    "329": { "new": "119(2)", "old_title": "Voluntarily causing grievous hurt to extort property, or to constrain to an illegal act", "new_title": "Voluntarily causing grievous hurt to extort property", "type": "direct" },
+    "330": { "new": "120(1)", "old_title": "Voluntarily causing hurt to extort confession or to compel restoration of property", "new_title": "Voluntarily causing hurt to extort confession or compel restoration of property", "type": "direct" },
+    "331": { "new": "120(2)", "old_title": "Voluntarily causing grievous hurt to extort confession or to compel restoration of property", "new_title": "Voluntarily causing grievous hurt to extort confession", "type": "direct" },
+    "332": { "new": "121(1)", "old_title": "Voluntarily causing hurt to deter public servant from his duty", "new_title": "Voluntarily causing hurt to deter public servant from duty", "type": "direct" },
+    "333": { "new": "121(2)", "old_title": "Voluntarily causing grievous hurt to deter public servant from his duty", "new_title": "Voluntarily causing grievous hurt to deter public servant from duty", "type": "direct" },
+    "334": { "new": "122(1)", "old_title": "Voluntarily causing hurt on provocation", "new_title": "Voluntarily causing hurt on provocation", "type": "direct" },
+    "335": { "new": "122(2)", "old_title": "Voluntarily causing grievous hurt on provocation", "new_title": "Voluntarily causing grievous hurt on provocation", "type": "direct" },
+    "336": { "new": "125(a)", "old_title": "Act endangering life or personal safety of others", "new_title": "Act endangering life or personal safety of others", "type": "direct" },
+    "337": { "new": "125(b)", "old_title": "Causing hurt by act endangering life or personal safety of others", "new_title": "Causing hurt by act endangering life or personal safety", "type": "direct" },
+    "338": { "new": "125(c)", "old_title": "Causing grievous hurt by act endangering life or personal safety of others", "new_title": "Causing grievous hurt by act endangering life or personal safety", "type": "direct" },
+    "339": { "new": "126(1)", "old_title": "Wrongful restraint", "new_title": "Wrongful restraint", "type": "direct" },
+    "340": { "new": "127(1)", "old_title": "Wrongful confinement", "new_title": "Wrongful confinement", "type": "direct" },
+    "341": { "new": "126(2)", "old_title": "Punishment for wrongful restraint", "new_title": "Punishment for wrongful restraint", "type": "merged" },
+    "342": { "new": "127(2)", "old_title": "Punishment for wrongful confinement", "new_title": "Punishment for wrongful confinement", "type": "merged" },
+    "343": { "new": "127(3)", "old_title": "Wrongful confinement for three or more days", "new_title": "Wrongful confinement for three or more days", "type": "direct" },
+    "344": { "new": "127(4)", "old_title": "Wrongful confinement for ten or more days", "new_title": "Wrongful confinement for ten or more days", "type": "direct" },
+    "345": { "new": "127(5)", "old_title": "Wrongful confinement of person for whose liberation writ has been issued", "new_title": "Wrongful confinement of person for whose liberation writ has been issued", "type": "direct" },
+    "346": { "new": "127(6)", "old_title": "Wrongful confinement in secret", "new_title": "Wrongful confinement in secret", "type": "direct" },
+    "347": { "new": "127(7)", "old_title": "Wrongful confinement to extort property, or constrain to illegal act", "new_title": "Wrongful confinement to extort property", "type": "direct" },
+    "348": { "new": "127(8)", "old_title": "Wrongful confinement to extort confession, or compel restoration of property", "new_title": "Wrongful confinement to extort confession", "type": "direct" },
+    "349": { "new": "130", "old_title": "Force", "new_title": "Force", "type": "merged" },
+    "350": { "new": "131", "old_title": "Criminal force", "new_title": "Criminal force", "type": "direct" },
+    "351": { "new": "130", "old_title": "Assault", "new_title": "Assault", "type": "direct" },
+    "352": { "new": "131(2)", "old_title": "Punishment for assault or use of criminal force otherwise than on grave provocation", "new_title": "Punishment for criminal force", "type": "merged" },
+    "353": { "new": "132", "old_title": "Assault or criminal force to deter public servant from discharge of his duty", "new_title": "Assault to deter public servant from discharge of duty", "type": "direct" },
+    "354": { "new": "74", "old_title": "Assault or criminal force to woman with intent to outrage her modesty", "new_title": "Assault or use of criminal force to woman with intent to outrage her modesty", "type": "direct" },
+    "354A": { "new": "75", "old_title": "Sexual harassment", "new_title": "Sexual harassment", "type": "direct" },
+    "354B": { "new": "76", "old_title": "Assault or use of criminal force to woman with intent to disrobe", "new_title": "Assault or criminal force to woman with intent to disrobe", "type": "direct" },
     "354C": { "new": "77", "old_title": "Voyeurism", "new_title": "Voyeurism", "type": "direct" },
     "354D": { "new": "78", "old_title": "Stalking", "new_title": "Stalking", "type": "direct" },
+    "355": { "new": "133", "old_title": "Assault or criminal force with intent to dishonour person, otherwise than on grave provocation", "new_title": "Assault or criminal force with intent to dishonour", "type": "direct" },
+    "356": { "new": "134", "old_title": "Assault or criminal force in attempt to commit theft of property carried by a person", "new_title": "Assault in attempt to commit theft of property carried", "type": "direct" },
+    "357": { "new": "135", "old_title": "Assault or criminal force in attempt wrongfully to confine a person", "new_title": "Assault in attempt to wrongfully confine person", "type": "direct" },
+    "358": { "new": "136", "old_title": "Assault or criminal force on grave provocation", "new_title": "Assault on grave provocation", "type": "direct" },
     "359": { "new": "135", "old_title": "Kidnapping", "new_title": "Kidnapping", "type": "direct" },
-    "360": {
-      "new": "136",
-      "old_title": "Kidnapping from India",
-      "new_title": "Kidnapping from India",
-      "type": "direct"
-    },
-    "361": {
-      "new": "137",
-      "old_title": "Kidnapping from lawful guardianship",
-      "new_title": "Kidnapping from lawful guardianship",
-      "type": "direct"
-    },
+    "360": { "new": "136", "old_title": "Kidnapping from India", "new_title": "Kidnapping from India", "type": "direct" },
+    "361": { "new": "137", "old_title": "Kidnapping from lawful guardianship", "new_title": "Kidnapping from lawful guardianship", "type": "direct" },
     "362": { "new": "138", "old_title": "Abduction", "new_title": "Abduction", "type": "direct" },
-    "363": {
-      "new": "139",
-      "old_title": "Punishment for kidnapping",
-      "new_title": "Punishment for kidnapping",
-      "type": "direct"
-    },
-    "363A": {
-      "new": "141",
-      "old_title": "Kidnapping or maiming a minor for purposes of begging",
-      "new_title": "Kidnapping or maiming minor for purposes of begging",
-      "type": "direct"
-    },
-    "364": {
-      "new": "140(1)",
-      "old_title": "Kidnapping or abducting in order to murder",
-      "new_title": "Kidnapping or abducting in order to murder",
-      "type": "direct"
-    },
-    "364A": {
-      "new": "140(2)",
-      "old_title": "Kidnapping for ransom",
-      "new_title": "Kidnapping for ransom",
-      "type": "merged"
-    },
-    "365": {
-      "new": "140(3)",
-      "old_title": "Kidnapping or abducting with intent secretly and wrongfully to confine person",
-      "new_title": "Kidnapping with intent to confine person",
-      "type": "merged"
-    },
-    "366": {
-      "new": "140(4)",
-      "old_title": "Kidnapping, abducting or inducing woman to compel her marriage",
-      "new_title": "Kidnapping woman to compel her for marriage",
-      "type": "merged"
-    },
-    "366A": {
-      "new": "142",
-      "old_title": "Procuration of minor girl",
-      "new_title": "Procuration of minor girl",
-      "type": "direct"
-    },
-    "366B": {
-      "new": "143",
-      "old_title": "Importation of girl from foreign country",
-      "new_title": "Importation of girl from foreign country",
-      "type": "direct"
-    },
-    "370": {
-      "new": "143",
-      "old_title": "Trafficking of person",
-      "new_title": "Trafficking of person",
-      "type": "direct"
-    },
-    "370A": {
-      "new": "144",
-      "old_title": "Exploitation of a trafficked person",
-      "new_title": "Exploitation of a trafficked person",
-      "type": "direct"
-    },
+    "363": { "new": "139", "old_title": "Punishment for kidnapping", "new_title": "Punishment for kidnapping", "type": "direct" },
+    "363A": { "new": "141", "old_title": "Kidnapping or maiming a minor for purposes of begging", "new_title": "Kidnapping or maiming minor for purposes of begging", "type": "direct" },
+    "364": { "new": "140(1)", "old_title": "Kidnapping or abducting in order to murder", "new_title": "Kidnapping or abducting in order to murder", "type": "direct" },
+    "364A": { "new": "140(2)", "old_title": "Kidnapping for ransom", "new_title": "Kidnapping for ransom", "type": "merged" },
+    "365": { "new": "140(3)", "old_title": "Kidnapping or abducting with intent secretly and wrongfully to confine person", "new_title": "Kidnapping with intent to confine person", "type": "merged" },
+    "366": { "new": "140(4)", "old_title": "Kidnapping, abducting or inducing woman to compel her marriage", "new_title": "Kidnapping woman to compel her for marriage", "type": "merged" },
+    "366A": { "new": "96", "old_title": "Procuration of minor girl", "new_title": "Procuration of child", "type": "direct" },
+    "366B": { "new": "141", "old_title": "Importation of girl from foreign country", "new_title": "Importation of girl from foreign country", "type": "direct" },
+    "367": { "new": "140(5)", "old_title": "Kidnapping or abducting in order to subject person to grievous hurt, slavery, etc.", "new_title": "Kidnapping to subject to grievous hurt, slavery", "type": "direct" },
+    "368": { "new": "139(2)", "old_title": "Wrongfully concealing or keeping in confinement, kidnapped or abducted person", "new_title": "Wrongfully concealing kidnapped or abducted person", "type": "direct" },
+    "369": { "new": "139(3)", "old_title": "Kidnapping or abducting child under ten years with intent to steal from its person", "new_title": "Kidnapping child under ten with intent to steal", "type": "direct" },
+    "370": { "new": "143", "old_title": "Trafficking of person", "new_title": "Trafficking of person", "type": "direct" },
+    "370A": { "new": "144", "old_title": "Exploitation of a trafficked person", "new_title": "Exploitation of a trafficked person", "type": "direct" },
+    "371": { "new": "145", "old_title": "Habitual dealing in slaves", "new_title": "Habitual dealing in slaves", "type": "direct" },
+    "372": { "new": "98", "old_title": "Selling minor for purposes of prostitution, etc.", "new_title": "Selling child for purposes of prostitution etc.", "type": "direct" },
+    "373": { "new": "99", "old_title": "Buying minor for purposes of prostitution, etc.", "new_title": "Buying child for purposes of prostitution etc.", "type": "direct" },
+    "374": { "new": "146", "old_title": "Unlawful compulsory labour", "new_title": "Unlawful compulsory labour", "type": "direct" },
     "375": { "new": "63", "old_title": "Rape", "new_title": "Rape", "type": "direct" },
-    "376": {
-      "new": "64",
-      "old_title": "Punishment for rape",
-      "new_title": "Punishment for rape",
-      "type": "direct"
-    },
-    "376A": {
-      "new": "66",
-      "old_title": "Punishment for causing death or resulting in persistent vegetative state of victim",
-      "new_title": "Punishment for causing death or persistent vegetative state of victim",
-      "type": "direct"
-    },
-    "376AB": {
-      "new": "65(1)",
-      "old_title": "Punishment for rape on woman under twelve years of age",
-      "new_title": "Punishment for rape on woman under eighteen years",
-      "type": "direct"
-    },
-    "376B": {
-      "new": "67",
-      "old_title": "Sexual intercourse by husband upon his wife during separation",
-      "new_title": "Sexual intercourse by husband upon wife during separation",
-      "type": "direct"
-    },
-    "376C": {
-      "new": "68",
-      "old_title": "Sexual intercourse by a person in authority",
-      "new_title": "Sexual intercourse by person in authority",
-      "type": "direct"
-    },
-    "376D": {
-      "new": "70(1)",
-      "old_title": "Gang rape",
-      "new_title": "Gang rape",
-      "type": "direct"
-    },
-    "376DA": {
-      "new": "70(2)",
-      "old_title": "Gang rape on woman under sixteen years of age",
-      "new_title": "Gang rape on woman under eighteen years",
-      "type": "merged"
-    },
-    "376DB": {
-      "new": "70(2)",
-      "old_title": "Gang rape on woman under twelve years of age",
-      "new_title": "Gang rape on woman under eighteen years",
-      "type": "merged"
-    },
-    "376E": {
-      "new": "71",
-      "old_title": "Punishment for repeat offenders",
-      "new_title": "Punishment for repeat offenders",
-      "type": "direct"
-    },
-    "377": {
-      "new": null,
-      "old_title": "Unnatural offences",
-      "new_title": null,
-      "type": "repealed",
-      "notes": "Struck down by Supreme Court in Navtej Singh Johar v. Union of India (2018). Not included in BNS"
-    },
+    "376": { "new": "64", "old_title": "Punishment for rape", "new_title": "Punishment for rape", "type": "direct" },
+    "376A": { "new": "66", "old_title": "Punishment for causing death or resulting in persistent vegetative state of victim", "new_title": "Punishment for causing death or persistent vegetative state of victim", "type": "direct" },
+    "376AB": { "new": "65(2)", "old_title": "Punishment for rape on woman under twelve years of age", "new_title": "Punishment for rape on woman under twelve years", "type": "direct" },
+    "376B": { "new": "67", "old_title": "Sexual intercourse by husband upon his wife during separation", "new_title": "Sexual intercourse by husband upon wife during separation", "type": "direct" },
+    "376C": { "new": "68", "old_title": "Sexual intercourse by a person in authority", "new_title": "Sexual intercourse by person in authority", "type": "direct" },
+    "376D": { "new": "70(1)", "old_title": "Gang rape", "new_title": "Gang rape", "type": "direct" },
+    "376DA": { "new": "70(2)", "old_title": "Gang rape on woman under sixteen years of age", "new_title": "Gang rape on woman under eighteen years", "type": "merged" },
+    "376DB": { "new": "70(2)", "old_title": "Gang rape on woman under twelve years of age", "new_title": "Gang rape on woman under eighteen years", "type": "merged" },
+    "376E": { "new": "71", "old_title": "Punishment for repeat offenders", "new_title": "Punishment for repeat offenders", "type": "direct" },
+    "377": { "new": null, "old_title": "Unnatural offences", "new_title": null, "type": "repealed", "notes": "Struck down by Supreme Court in Navtej Singh Johar v. Union of India (2018). Not included in BNS" },
     "378": { "new": "303(1)", "old_title": "Theft", "new_title": "Theft", "type": "direct" },
-    "379": {
-      "new": "303(2)",
-      "old_title": "Punishment for theft",
-      "new_title": "Punishment for theft",
-      "type": "merged"
-    },
-    "380": {
-      "new": "305(a)",
-      "old_title": "Theft in dwelling house",
-      "new_title": "Theft in dwelling house etc.",
-      "type": "direct"
-    },
-    "381": {
-      "new": "305(b)",
-      "old_title": "Theft by clerk or servant of property in possession of master",
-      "new_title": "Theft by clerk or servant",
-      "type": "direct"
-    },
-    "382": {
-      "new": "304",
-      "old_title": "Theft after preparation made for causing death, hurt or restraint in order to committing of theft",
-      "new_title": "Snatching",
-      "type": "direct",
-      "notes": "New concept of 'snatching' introduced in BNS"
-    },
-    "383": { "new": "308", "old_title": "Extortion", "new_title": "Extortion", "type": "direct" },
-    "384": {
-      "new": "308(2)",
-      "old_title": "Punishment for extortion",
-      "new_title": "Punishment for extortion",
-      "type": "merged"
-    },
-    "385": {
-      "new": "309",
-      "old_title": "Putting person in fear of injury in order to commit extortion",
-      "new_title": "Putting person in fear of injury for extortion",
-      "type": "direct"
-    },
-    "386": {
-      "new": "310",
-      "old_title": "Extortion by putting a person in fear of death or grievous hurt",
-      "new_title": "Extortion by putting person in fear of death or grievous hurt",
-      "type": "direct"
-    },
-    "390": { "new": "309(2)", "old_title": "Robbery", "new_title": "Robbery", "type": "merged" },
-    "391": { "new": "310(2)", "old_title": "Dacoity", "new_title": "Dacoity", "type": "merged" },
-    "392": {
-      "new": "309(3)",
-      "old_title": "Punishment for robbery",
-      "new_title": "Punishment for robbery",
-      "type": "merged"
-    },
-    "393": {
-      "new": "311",
-      "old_title": "Attempt to commit robbery",
-      "new_title": "Attempt to commit robbery",
-      "type": "direct"
-    },
-    "395": {
-      "new": "310(3)",
-      "old_title": "Punishment for dacoity",
-      "new_title": "Punishment for dacoity",
-      "type": "merged"
-    },
-    "396": {
-      "new": "310(4)",
-      "old_title": "Dacoity with murder",
-      "new_title": "Dacoity with murder",
-      "type": "merged"
-    },
-    "397": {
-      "new": "312",
-      "old_title": "Robbery or dacoity with attempt to cause death or grievous hurt",
-      "new_title": "Robbery or dacoity with attempt to cause death or grievous hurt",
-      "type": "direct"
-    },
-    "398": {
-      "new": "313",
-      "old_title": "Attempt to commit robbery or dacoity when armed with deadly weapon",
-      "new_title": "Attempt to commit robbery or dacoity when armed with deadly weapon",
-      "type": "direct"
-    },
-    "399": {
-      "new": "314",
-      "old_title": "Making preparation to commit dacoity",
-      "new_title": "Making preparation to commit dacoity",
-      "type": "direct"
-    },
-    "400": {
-      "new": "315",
-      "old_title": "Punishment for belonging to gang of dacoits",
-      "new_title": "Punishment for belonging to gang of dacoits",
-      "type": "direct"
-    },
-    "403": {
-      "new": "314",
-      "old_title": "Dishonest misappropriation of property",
-      "new_title": "Dishonest misappropriation of property",
-      "type": "direct"
-    },
-    "405": {
-      "new": "316",
-      "old_title": "Criminal breach of trust",
-      "new_title": "Criminal breach of trust",
-      "type": "direct"
-    },
-    "406": {
-      "new": "316(2)",
-      "old_title": "Punishment for criminal breach of trust",
-      "new_title": "Punishment for criminal breach of trust",
-      "type": "merged"
-    },
-    "407": {
-      "new": "316(3)",
-      "old_title": "Criminal breach of trust by carrier, wharfinger or warehouse-keeper",
-      "new_title": "Criminal breach of trust by carrier etc.",
-      "type": "merged"
-    },
-    "408": {
-      "new": "316(4)",
-      "old_title": "Criminal breach of trust by clerk or servant",
-      "new_title": "Criminal breach of trust by clerk or servant",
-      "type": "merged"
-    },
-    "409": {
-      "new": "316(5)",
-      "old_title": "Criminal breach of trust by public servant, or by banker, merchant or agent",
-      "new_title": "Criminal breach of trust by public servant or banker etc.",
-      "type": "merged"
-    },
-    "411": {
-      "new": "317(1)",
-      "old_title": "Dishonestly receiving stolen property",
-      "new_title": "Dishonestly receiving stolen property",
-      "type": "direct"
-    },
-    "413": {
-      "new": "317(3)",
-      "old_title": "Habitually dealing in stolen property",
-      "new_title": "Habitually dealing in stolen property",
-      "type": "merged"
-    },
-    "415": { "new": "318", "old_title": "Cheating", "new_title": "Cheating", "type": "direct" },
-    "416": {
-      "new": "319",
-      "old_title": "Cheating by personation",
-      "new_title": "Cheating by personation",
-      "type": "direct",
-      "notes": "IPC 416 (Cheating by personation) maps directly to BNS 319. Commonly cited alongside IPC 419/420 in fraud cases."
-    },
-    "417": {
-      "new": "318(2)",
-      "old_title": "Punishment for cheating",
-      "new_title": "Punishment for cheating",
-      "type": "merged"
-    },
-    "418": {
-      "new": "318(3)",
-      "old_title": "Cheating with knowledge that wrongful loss may ensue to person whose interest offender is bound to protect",
-      "new_title": "Cheating person whose interest offender bound to protect",
-      "type": "merged"
-    },
-    "419": {
-      "new": "319(1)",
-      "old_title": "Punishment for cheating by personation",
-      "new_title": "Cheating by personation",
-      "type": "direct"
-    },
-    "420": {
-      "new": "318(4)",
-      "old_title": "Cheating and dishonestly inducing delivery of property",
-      "new_title": "Cheating and dishonestly inducing delivery of property",
-      "type": "merged"
-    },
-    "421": {
-      "new": "320",
-      "old_title": "Dishonest or fraudulent removal or concealment of property to prevent distribution among creditors",
-      "new_title": "Dishonest or fraudulent removal of property to prevent distribution among creditors",
-      "type": "direct"
-    },
-    "422": {
-      "new": "321",
-      "old_title": "Dishonestly or fraudulently preventing debt being available for creditors",
-      "new_title": "Dishonestly preventing debt being available for creditors",
-      "type": "direct"
-    },
+    "379": { "new": "303(2)", "old_title": "Punishment for theft", "new_title": "Punishment for theft", "type": "merged" },
+    "380": { "new": "305(a)", "old_title": "Theft in dwelling house", "new_title": "Theft in dwelling house etc.", "type": "direct" },
+    "381": { "new": "305(b)", "old_title": "Theft by clerk or servant of property in possession of master", "new_title": "Theft by clerk or servant", "type": "direct" },
+    "382": { "new": "304", "old_title": "Theft after preparation made for causing death, hurt or restraint in order to committing of theft", "new_title": "Snatching", "type": "direct", "notes": "New concept of 'snatching' introduced in BNS" },
+    "383": { "new": "308(1)", "old_title": "Extortion", "new_title": "Extortion", "type": "direct" },
+    "384": { "new": "308(2)", "old_title": "Punishment for extortion", "new_title": "Punishment for extortion", "type": "merged" },
+    "385": { "new": "308(3)", "old_title": "Putting person in fear of injury in order to commit extortion", "new_title": "Putting person in fear of injury for extortion", "type": "direct" },
+    "386": { "new": "308(4)", "old_title": "Extortion by putting a person in fear of death or grievous hurt", "new_title": "Extortion by putting person in fear of death or grievous hurt", "type": "direct" },
+    "387": { "new": "308(5)", "old_title": "Putting person in fear of death or grievous hurt, in order to commit extortion", "new_title": "Putting person in fear of death or grievous hurt for extortion", "type": "direct" },
+    "388": { "new": "308(6)", "old_title": "Extortion by threat of accusation of an offence punishable with death or imprisonment for life, etc.", "new_title": "Extortion by threat of accusation of capital offence", "type": "direct" },
+    "389": { "new": "308(7)", "old_title": "Putting person in fear of accusation of offence, in order to commit extortion", "new_title": "Putting person in fear of accusation for extortion", "type": "direct" },
+    "390": { "new": "309(1)", "old_title": "Robbery", "new_title": "Robbery", "type": "merged" },
+    "391": { "new": "310(1)", "old_title": "Dacoity", "new_title": "Dacoity", "type": "merged" },
+    "392": { "new": "309(2)", "old_title": "Punishment for robbery", "new_title": "Punishment for robbery", "type": "merged" },
+    "393": { "new": "309(4)", "old_title": "Attempt to commit robbery", "new_title": "Attempt to commit robbery", "type": "direct" },
+    "394": { "new": "309(5)", "old_title": "Voluntarily causing hurt in committing robbery", "new_title": "Voluntarily causing hurt in committing robbery", "type": "direct" },
+    "395": { "new": "310(2)", "old_title": "Punishment for dacoity", "new_title": "Punishment for dacoity", "type": "merged" },
+    "396": { "new": "310(3)", "old_title": "Dacoity with murder", "new_title": "Dacoity with murder", "type": "merged" },
+    "397": { "new": "311", "old_title": "Robbery or dacoity with attempt to cause death or grievous hurt", "new_title": "Robbery or dacoity with attempt to cause death or grievous hurt", "type": "direct" },
+    "398": { "new": "312", "old_title": "Attempt to commit robbery or dacoity when armed with deadly weapon", "new_title": "Attempt to commit robbery or dacoity when armed with deadly weapon", "type": "direct" },
+    "399": { "new": "310(4)", "old_title": "Making preparation to commit dacoity", "new_title": "Making preparation to commit dacoity", "type": "direct" },
+    "400": { "new": "310(5)", "old_title": "Punishment for belonging to gang of dacoits", "new_title": "Punishment for belonging to gang of dacoits", "type": "direct" },
+    "401": { "new": "313", "old_title": "Punishment for belonging to gang of thieves", "new_title": "Punishment for belonging to gang of thieves", "type": "direct" },
+    "402": { "new": "310(6)", "old_title": "Assembling for purpose of committing dacoity", "new_title": "Assembling for purpose of committing dacoity", "type": "direct" },
+    "403": { "new": "314", "old_title": "Dishonest misappropriation of property", "new_title": "Dishonest misappropriation of property", "type": "direct" },
+    "404": { "new": "315", "old_title": "Dishonest misappropriation of property possessed by deceased person at the time of his death", "new_title": "Dishonest misappropriation of property of deceased person", "type": "direct" },
+    "405": { "new": "316(1)", "old_title": "Criminal breach of trust", "new_title": "Criminal breach of trust", "type": "direct" },
+    "406": { "new": "316(2)", "old_title": "Punishment for criminal breach of trust", "new_title": "Punishment for criminal breach of trust", "type": "merged" },
+    "407": { "new": "316(3)", "old_title": "Criminal breach of trust by carrier, wharfinger or warehouse-keeper", "new_title": "Criminal breach of trust by carrier etc.", "type": "merged" },
+    "408": { "new": "316(4)", "old_title": "Criminal breach of trust by clerk or servant", "new_title": "Criminal breach of trust by clerk or servant", "type": "merged" },
+    "409": { "new": "316(5)", "old_title": "Criminal breach of trust by public servant, or by banker, merchant or agent", "new_title": "Criminal breach of trust by public servant or banker etc.", "type": "merged" },
+    "410": { "new": "317(1)", "old_title": "Stolen property", "new_title": "Stolen property", "type": "direct" },
+    "411": { "new": "317(2)", "old_title": "Dishonestly receiving stolen property", "new_title": "Dishonestly receiving stolen property", "type": "direct" },
+    "412": { "new": "317(4)", "old_title": "Dishonestly receiving property stolen in the commission of a dacoity", "new_title": "Dishonestly receiving property stolen in dacoity", "type": "direct" },
+    "413": { "new": "317(3)", "old_title": "Habitually dealing in stolen property", "new_title": "Habitually dealing in stolen property", "type": "merged" },
+    "414": { "new": "317(5)", "old_title": "Assisting in concealment of stolen property", "new_title": "Assisting in concealment of stolen property", "type": "direct" },
+    "415": { "new": "318(1)", "old_title": "Cheating", "new_title": "Cheating", "type": "direct" },
+    "416": { "new": "319(1)", "old_title": "Cheating by personation", "new_title": "Cheating by personation", "type": "direct", "notes": "IPC 416 (Cheating by personation) maps directly to BNS 319. Commonly cited alongside IPC 419/420 in fraud cases." },
+    "417": { "new": "318(2)", "old_title": "Punishment for cheating", "new_title": "Punishment for cheating", "type": "merged" },
+    "418": { "new": "318(3)", "old_title": "Cheating with knowledge that wrongful loss may ensue to person whose interest offender is bound to protect", "new_title": "Cheating person whose interest offender bound to protect", "type": "merged" },
+    "419": { "new": "319(2)", "old_title": "Punishment for cheating by personation", "new_title": "Cheating by personation", "type": "direct" },
+    "420": { "new": "318(4)", "old_title": "Cheating and dishonestly inducing delivery of property", "new_title": "Cheating and dishonestly inducing delivery of property", "type": "merged" },
+    "421": { "new": "320", "old_title": "Dishonest or fraudulent removal or concealment of property to prevent distribution among creditors", "new_title": "Dishonest or fraudulent removal of property to prevent distribution among creditors", "type": "direct" },
+    "422": { "new": "321", "old_title": "Dishonestly or fraudulently preventing debt being available for creditors", "new_title": "Dishonestly preventing debt being available for creditors", "type": "direct" },
+    "423": { "new": "322", "old_title": "Dishonest or fraudulent execution of deed of transfer containing false statement of consideration", "new_title": "Dishonest execution of deed of transfer with false statement", "type": "direct" },
+    "424": { "new": "323", "old_title": "Dishonest or fraudulent removal or concealment of property", "new_title": "Dishonest or fraudulent removal or concealment of property", "type": "direct" },
     "425": { "new": "324(1)", "old_title": "Mischief", "new_title": "Mischief", "type": "direct" },
-    "426": {
-      "new": "324(2)",
-      "old_title": "Punishment for mischief",
-      "new_title": "Punishment for mischief",
-      "type": "merged"
-    },
-    "427": {
-      "new": "324(3)",
-      "old_title": "Mischief causing damage to the amount of fifty rupees",
-      "new_title": "Mischief causing damage",
-      "type": "merged"
-    },
-    "429": {
-      "new": "325(1)",
-      "old_title": "Mischief by killing or maiming cattle",
-      "new_title": "Mischief by killing or maiming animal",
-      "type": "direct"
-    },
-    "430": {
-      "new": "326(a)",
-      "old_title": "Mischief by injury to works of irrigation or by wrongfully diverting water",
-      "new_title": "Mischief by injury to works of irrigation",
-      "type": "direct"
-    },
-    "435": {
-      "new": "326(b)",
-      "old_title": "Mischief by fire or explosive substance with intent to cause damage",
-      "new_title": "Mischief by fire or explosive substance",
-      "type": "direct"
-    },
-    "441": {
-      "new": "329(1)",
-      "old_title": "Criminal trespass",
-      "new_title": "Criminal trespass",
-      "type": "direct"
-    },
-    "442": {
-      "new": "329(2)",
-      "old_title": "House-trespass",
-      "new_title": "House-trespass",
-      "type": "merged"
-    },
-    "443": {
-      "new": "330",
-      "old_title": "Lurking house-trespass",
-      "new_title": "Lurking house-trespass",
-      "type": "direct"
-    },
-    "447": {
-      "new": "329(3)",
-      "old_title": "Punishment for criminal trespass",
-      "new_title": "Punishment for criminal trespass",
-      "type": "merged"
-    },
-    "448": {
-      "new": "329(4)",
-      "old_title": "Punishment for house-trespass",
-      "new_title": "Punishment for house-trespass",
-      "type": "merged"
-    },
-    "449": {
-      "new": "331(1)",
-      "old_title": "House-trespass in order to commit offence punishable with death",
-      "new_title": "House-trespass to commit offence punishable with death",
-      "type": "direct"
-    },
-    "450": {
-      "new": "331(2)",
-      "old_title": "House-trespass in order to commit offence punishable with imprisonment for life",
-      "new_title": "House-trespass to commit offence punishable with imprisonment for life",
-      "type": "direct"
-    },
-    "452": {
-      "new": "333",
-      "old_title": "House-trespass after preparation for hurt, assault or wrongful restraint",
-      "new_title": "House-trespass after preparation for hurt, assault or wrongful restraint",
-      "type": "direct"
-    },
-    "453": {
-      "new": "334",
-      "old_title": "Punishment for lurking house-trespass or house-breaking",
-      "new_title": "Punishment for lurking house-trespass or house-breaking",
-      "type": "direct"
-    },
-    "457": {
-      "new": "331(3)",
-      "old_title": "Lurking house-trespass or house-breaking by night in order to commit offence punishable with imprisonment",
-      "new_title": "Lurking house-trespass by night to commit offence punishable with imprisonment",
-      "type": "direct"
-    },
-    "461": {
-      "new": "335",
-      "old_title": "Dishonestly breaking open receptacle containing property",
-      "new_title": "Dishonestly breaking open receptacle containing property",
-      "type": "direct"
-    },
+    "426": { "new": "324(2)", "old_title": "Punishment for mischief", "new_title": "Punishment for mischief", "type": "merged" },
+    "427": { "new": "324(3)", "old_title": "Mischief causing damage to the amount of fifty rupees", "new_title": "Mischief causing damage", "type": "merged" },
+    "428": { "new": "325", "old_title": "Mischief by killing or maiming animal of value of ten rupees", "new_title": "Mischief by killing or maiming animal", "type": "direct" },
+    "429": { "new": "325(1)", "old_title": "Mischief by killing or maiming cattle", "new_title": "Mischief by killing or maiming animal", "type": "direct" },
+    "430": { "new": "326(a)", "old_title": "Mischief by injury to works of irrigation or by wrongfully diverting water", "new_title": "Mischief by injury to works of irrigation", "type": "direct" },
+    "431": { "new": "326(b)", "old_title": "Mischief by injury to public road, bridge, river or channel", "new_title": "Mischief by injury to public road, bridge, river or channel", "type": "direct" },
+    "432": { "new": "326(c)", "old_title": "Mischief by causing inundation or obstruction to public drainage attended with damage", "new_title": "Mischief by causing inundation or obstruction to public drainage", "type": "direct" },
+    "433": { "new": "326(d)", "old_title": "Mischief by destroying, moving or rendering less useful a lighthouse or sea-mark", "new_title": "Mischief by destroying lighthouse or sea-mark", "type": "direct" },
+    "434": { "new": "326(e)", "old_title": "Mischief by destroying or moving, etc., a landmark fixed by public authority", "new_title": "Mischief by destroying landmark fixed by public authority", "type": "direct" },
+    "435": { "new": "326(f)", "old_title": "Mischief by fire or explosive substance with intent to cause damage", "new_title": "Mischief by fire or explosive substance", "type": "direct" },
+    "436": { "new": "326(g)", "old_title": "Mischief by fire or explosive substance with intent to destroy house, etc.", "new_title": "Mischief by fire or explosive substance to destroy house", "type": "direct" },
+    "437": { "new": "327(1)", "old_title": "Mischief with intent to destroy or make unsafe a decked vessel or vessel of twenty tons burden", "new_title": "Mischief to decked vessel", "type": "direct" },
+    "438": { "new": "327(2)", "old_title": "Punishment for the mischief described in section 437 committed by fire or explosive substance", "new_title": "Mischief to vessel by fire or explosive", "type": "direct" },
+    "439": { "new": "327(3)", "old_title": "Punishment for intentionally running vessel aground or ashore with intent to commit theft, etc.", "new_title": "Intentionally running vessel aground", "type": "direct" },
+    "440": { "new": "328", "old_title": "Mischief committed after preparation made for causing death or hurt", "new_title": "Mischief after preparation for causing death or hurt", "type": "direct" },
+    "441": { "new": "329(1)", "old_title": "Criminal trespass", "new_title": "Criminal trespass", "type": "direct" },
+    "442": { "new": "329(2)", "old_title": "House-trespass", "new_title": "House-trespass", "type": "merged" },
+    "443": { "new": "330(1)", "old_title": "Lurking house-trespass", "new_title": "Lurking house-trespass", "type": "direct" },
+    "444": { "new": "330(2)", "old_title": "Lurking house-trespass by night", "new_title": "Lurking house-trespass by night", "type": "direct" },
+    "445": { "new": "331(1)", "old_title": "House-breaking", "new_title": "House-breaking", "type": "direct" },
+    "446": { "new": "331(2)", "old_title": "House-breaking by night", "new_title": "House-breaking by night", "type": "direct" },
+    "447": { "new": "329(3)", "old_title": "Punishment for criminal trespass", "new_title": "Punishment for criminal trespass", "type": "merged" },
+    "448": { "new": "329(4)", "old_title": "Punishment for house-trespass", "new_title": "Punishment for house-trespass", "type": "merged" },
+    "449": { "new": "332(a)", "old_title": "House-trespass in order to commit offence punishable with death", "new_title": "House-trespass to commit offence punishable with death", "type": "direct" },
+    "450": { "new": "332(b)", "old_title": "House-trespass in order to commit offence punishable with imprisonment for life", "new_title": "House-trespass to commit offence punishable with imprisonment for life", "type": "direct" },
+    "451": { "new": "332(c)", "old_title": "House-trespass in order to commit offence punishable with imprisonment", "new_title": "House-trespass to commit offence punishable with imprisonment", "type": "direct" },
+    "452": { "new": "333", "old_title": "House-trespass after preparation for hurt, assault or wrongful restraint", "new_title": "House-trespass after preparation for hurt, assault or wrongful restraint", "type": "direct" },
+    "453": { "new": "334(1)", "old_title": "Punishment for lurking house-trespass or house-breaking", "new_title": "Punishment for lurking house-trespass or house-breaking", "type": "direct" },
+    "454": { "new": "334(2)", "old_title": "Lurking house-trespass or house-breaking in order to commit offence punishable with imprisonment", "new_title": "Lurking house-trespass to commit offence punishable with imprisonment", "type": "direct" },
+    "455": { "new": "334(3)", "old_title": "Lurking house-trespass or house-breaking after preparation for hurt, assault, etc.", "new_title": "Lurking house-trespass after preparation for hurt", "type": "direct" },
+    "456": { "new": "334(4)", "old_title": "Punishment for lurking house-trespass or house-breaking by night", "new_title": "Punishment for lurking house-trespass or house-breaking by night", "type": "direct" },
+    "457": { "new": "334(5)", "old_title": "Lurking house-trespass or house-breaking by night in order to commit offence punishable with imprisonment", "new_title": "Lurking house-trespass by night to commit offence punishable with imprisonment", "type": "direct" },
+    "458": { "new": "334(6)", "old_title": "Lurking house-trespass or house-breaking by night after preparation for hurt, assault, etc.", "new_title": "Lurking house-trespass by night after preparation for hurt", "type": "direct" },
+    "459": { "new": "334(7)", "old_title": "Grievous hurt caused whilst committing lurking house-trespass or house-breaking", "new_title": "Grievous hurt caused whilst committing house-trespass", "type": "direct" },
+    "460": { "new": "334(8)", "old_title": "All persons jointly concerned in lurking house-trespass or house-breaking by night punishable where death or grievous hurt caused by one of them", "new_title": "Jointly concerned in lurking house-trespass by night", "type": "direct" },
+    "461": { "new": "335", "old_title": "Dishonestly breaking open receptacle containing property", "new_title": "Dishonestly breaking open receptacle containing property", "type": "direct" },
+    "462": { "new": "335(2)", "old_title": "Punishment for same offence when committed by person entrusted with custody", "new_title": "Punishment for breaking open receptacle by entrusted person", "type": "direct" },
     "463": { "new": "336(1)", "old_title": "Forgery", "new_title": "Forgery", "type": "direct" },
-    "465": {
-      "new": "336(2)",
-      "old_title": "Punishment for forgery",
-      "new_title": "Punishment for forgery",
-      "type": "merged"
-    },
-    "467": {
-      "new": "338(1)",
-      "old_title": "Forgery of valuable security, will, etc.",
-      "new_title": "Forgery of valuable security, will etc.",
-      "type": "direct"
-    },
-    "468": {
-      "new": "338(2)",
-      "old_title": "Forgery for purpose of cheating",
-      "new_title": "Forgery for purpose of cheating",
-      "type": "direct"
-    },
-    "471": {
-      "new": "340(1)",
-      "old_title": "Using as genuine a forged document",
-      "new_title": "Using as genuine a forged document or electronic record",
-      "type": "direct"
-    },
-    "489A": {
-      "new": "179",
-      "old_title": "Counterfeiting currency notes or bank notes",
-      "new_title": "Counterfeiting currency notes or bank notes",
-      "type": "direct"
-    },
-    "489B": {
-      "new": "180",
-      "old_title": "Using as genuine forged or counterfeit currency notes or bank notes",
-      "new_title": "Using as genuine forged or counterfeit currency notes or bank notes",
-      "type": "direct"
-    },
-    "489C": {
-      "new": "181",
-      "old_title": "Possession of forged or counterfeit currency notes or bank notes",
-      "new_title": "Possession of forged or counterfeit currency notes or bank notes",
-      "type": "direct"
-    },
-    "494": {
-      "new": "82",
-      "old_title": "Marrying again during lifetime of husband or wife",
-      "new_title": "Marrying again during lifetime of husband or wife",
-      "type": "direct"
-    },
-    "495": {
-      "new": "83",
-      "old_title": "Same offence with concealment of former marriage from person with whom subsequent marriage is contracted",
-      "new_title": "Concealment of former marriage",
-      "type": "direct"
-    },
-    "496": {
-      "new": "84",
-      "old_title": "Marriage ceremony fraudulently gone through without lawful marriage",
-      "new_title": "Marriage ceremony fraudulently gone through without lawful marriage",
-      "type": "direct"
-    },
-    "497": {
-      "new": null,
-      "old_title": "Adultery",
-      "new_title": null,
-      "type": "repealed",
-      "notes": "Struck down by Supreme Court in Joseph Shine v. Union of India (2018). Not included in BNS"
-    },
-    "498": {
-      "new": "84",
-      "old_title": "Enticing or taking away or detaining with criminal intent a married woman",
-      "new_title": "Marriage ceremony gone through fraudulently",
-      "type": "partial"
-    },
-    "498A": {
-      "new": "85",
-      "old_title": "Husband or relative of husband of a woman subjecting her to cruelty",
-      "new_title": "Cruelty by husband or relatives of husband",
-      "type": "direct"
-    },
-    "499": { "new": "356", "old_title": "Defamation", "new_title": "Defamation", "type": "direct" },
-    "500": {
-      "new": "356(2)",
-      "old_title": "Punishment for defamation",
-      "new_title": "Punishment for defamation",
-      "type": "merged"
-    },
-    "503": {
-      "new": "351",
-      "old_title": "Criminal intimidation",
-      "new_title": "Criminal intimidation",
-      "type": "direct"
-    },
-    "504": {
-      "new": "352",
-      "old_title": "Intentional insult with intent to provoke breach of the peace",
-      "new_title": "Intentional insult with intent to provoke breach of peace",
-      "type": "direct"
-    },
-    "506": {
-      "new": "351(2)",
-      "old_title": "Punishment for criminal intimidation",
-      "new_title": "Punishment for criminal intimidation",
-      "type": "merged"
-    },
-    "507": {
-      "new": "351(3)",
-      "old_title": "Criminal intimidation by an anonymous communication",
-      "new_title": "Criminal intimidation by anonymous communication",
-      "type": "merged"
-    },
-    "509": {
-      "new": "79",
-      "old_title": "Word, gesture or act intended to insult the modesty of a woman",
-      "new_title": "Word, gesture or act intended to insult modesty of woman",
-      "type": "direct"
-    },
-    "510": {
-      "new": "355",
-      "old_title": "Misconduct in public by a drunken person",
-      "new_title": "Misconduct in public by drunken person",
-      "type": "direct"
-    },
-    "511": {
-      "new": "62",
-      "old_title": "Punishment for attempting to commit offences punishable with imprisonment for life or other imprisonment",
-      "new_title": "Attempt to commit offences",
-      "type": "direct"
-    }
+    "464": { "new": "335", "old_title": "Making a false document", "new_title": "Making a false document", "type": "direct" },
+    "465": { "new": "336(2)", "old_title": "Punishment for forgery", "new_title": "Punishment for forgery", "type": "merged" },
+    "466": { "new": "337", "old_title": "Forgery of record of Court or of public register, etc.", "new_title": "Forgery of record of Court or public register", "type": "direct" },
+    "467": { "new": "338", "old_title": "Forgery of valuable security, will, etc.", "new_title": "Forgery of valuable security, will etc.", "type": "direct" },
+    "468": { "new": "336(3)", "old_title": "Forgery for purpose of cheating", "new_title": "Forgery for purpose of cheating", "type": "direct" },
+    "469": { "new": "336(4)", "old_title": "Forgery for purpose of harming reputation", "new_title": "Forgery for purpose of harming reputation", "type": "direct" },
+    "470": { "new": "339", "old_title": "Forged document or electronic record", "new_title": "Forged document or electronic record", "type": "direct" },
+    "471": { "new": "340(1)", "old_title": "Using as genuine a forged document", "new_title": "Using as genuine a forged document or electronic record", "type": "direct" },
+    "472": { "new": "341(1)", "old_title": "Making or possessing counterfeit seal, etc., with intent to commit forgery punishable under section 467", "new_title": "Making counterfeit seal with intent to commit forgery", "type": "direct" },
+    "473": { "new": "341(2)", "old_title": "Making or possessing counterfeit seal, etc., with intent to commit forgery punishable otherwise", "new_title": "Making counterfeit seal with intent to commit forgery (otherwise)", "type": "direct" },
+    "474": { "new": "340(2)", "old_title": "Having possession of document described in section 466 or 467, knowing it to be forged and intending to use it as genuine", "new_title": "Possession of forged document with intent to use", "type": "direct" },
+    "475": { "new": "341(3)", "old_title": "Counterfeiting device or mark used for authenticating documents described in section 467, or possessing counterfeit marked material", "new_title": "Counterfeiting device for authenticating documents", "type": "direct" },
+    "476": { "new": "341(4)", "old_title": "Counterfeiting device or mark used for authenticating documents other than those described in section 467, or possessing counterfeit marked material", "new_title": "Counterfeiting device for authenticating other documents", "type": "direct" },
+    "477": { "new": "342", "old_title": "Fraudulent cancellation, destruction, etc., of will, authority to adopt, or valuable security", "new_title": "Fraudulent destruction of will or valuable security", "type": "direct" },
+    "477A": { "new": "344", "old_title": "Falsification of accounts", "new_title": "Falsification of accounts", "type": "direct" },
+    "478": { "new": null, "old_title": "Trade marks (omitted)", "new_title": null, "type": "repealed", "notes": "Now covered under Trade Marks Act, 1999" },
+    "479": { "new": "345(1)", "old_title": "Property mark", "new_title": "Property mark", "type": "direct" },
+    "480": { "new": null, "old_title": "Using a false trade mark (omitted)", "new_title": null, "type": "repealed", "notes": "Now covered under Trade Marks Act, 1999" },
+    "481": { "new": "345(2)", "old_title": "Using a false property mark", "new_title": "Using a false property mark", "type": "direct" },
+    "482": { "new": "345(3)", "old_title": "Punishment for using a false property mark", "new_title": "Punishment for using a false property mark", "type": "direct" },
+    "483": { "new": "345(4)", "old_title": "Counterfeiting a property mark used by another", "new_title": "Counterfeiting a property mark used by another", "type": "direct" },
+    "484": { "new": "345(5)", "old_title": "Counterfeiting a mark used by a public servant", "new_title": "Counterfeiting a mark used by a public servant", "type": "direct" },
+    "485": { "new": "346(1)", "old_title": "Making or possession of any instrument for counterfeiting a property mark", "new_title": "Making instrument for counterfeiting property mark", "type": "direct" },
+    "486": { "new": "346(2)", "old_title": "Selling goods marked with a counterfeit property mark", "new_title": "Selling goods marked with counterfeit property mark", "type": "direct" },
+    "487": { "new": "347(1)", "old_title": "Making a false mark upon any receptacle containing goods", "new_title": "Making false mark upon receptacle containing goods", "type": "direct" },
+    "488": { "new": "347(2)", "old_title": "Punishment for making use of any such false mark", "new_title": "Punishment for using such false mark", "type": "direct" },
+    "489": { "new": "348", "old_title": "Tampering with property mark with intent to cause injury", "new_title": "Tampering with property mark with intent to cause injury", "type": "direct" },
+    "489A": { "new": "178(3)", "old_title": "Counterfeiting currency notes or bank notes", "new_title": "Counterfeiting currency notes or bank notes", "type": "direct" },
+    "489B": { "new": "178(4)", "old_title": "Using as genuine forged or counterfeit currency notes or bank notes", "new_title": "Using as genuine forged or counterfeit currency notes or bank notes", "type": "direct" },
+    "489C": { "new": "178(5)", "old_title": "Possession of forged or counterfeit currency notes or bank notes", "new_title": "Possession of forged or counterfeit currency notes or bank notes", "type": "direct" },
+    "489D": { "new": "178(6)", "old_title": "Making or possessing instruments or materials for forging or counterfeiting currency notes or bank notes", "new_title": "Making instruments for forging currency notes", "type": "direct" },
+    "489E": { "new": "178(7)", "old_title": "Making or using documents resembling currency notes or bank notes", "new_title": "Making documents resembling currency notes", "type": "direct" },
+    "490": { "new": null, "old_title": "Breach of contract of service during voyage or journey", "new_title": null, "type": "repealed", "notes": "Repealed by Workmen's Breach of Contract (Repealing) Act 1925" },
+    "491": { "new": "349", "old_title": "Breach of contract to attend on and supply wants of helpless person", "new_title": "Breach of contract to attend helpless person", "type": "direct" },
+    "492": { "new": null, "old_title": "Breach of contract to serve at distant place (omitted)", "new_title": null, "type": "repealed", "notes": "Repealed by Workmen's Breach of Contract (Repealing) Act 1925" },
+    "493": { "new": "81", "old_title": "Cohabitation caused by a man deceitfully inducing a belief of lawful marriage", "new_title": "Cohabitation caused by man deceitfully inducing belief of lawful marriage", "type": "direct" },
+    "494": { "new": "82", "old_title": "Marrying again during lifetime of husband or wife", "new_title": "Marrying again during lifetime of husband or wife", "type": "direct" },
+    "495": { "new": "82(2)", "old_title": "Same offence with concealment of former marriage from person with whom subsequent marriage is contracted", "new_title": "Concealment of former marriage", "type": "direct" },
+    "496": { "new": "83", "old_title": "Marriage ceremony fraudulently gone through without lawful marriage", "new_title": "Marriage ceremony fraudulently gone through without lawful marriage", "type": "direct" },
+    "497": { "new": null, "old_title": "Adultery", "new_title": null, "type": "repealed", "notes": "Struck down by Supreme Court in Joseph Shine v. Union of India (2018). Not included in BNS" },
+    "498": { "new": "84", "old_title": "Enticing or taking away or detaining with criminal intent a married woman", "new_title": "Enticing or detaining married woman", "type": "direct" },
+    "498A": { "new": "85", "old_title": "Husband or relative of husband of a woman subjecting her to cruelty", "new_title": "Cruelty by husband or relatives of husband", "type": "direct" },
+    "499": { "new": "356(1)", "old_title": "Defamation", "new_title": "Defamation", "type": "direct" },
+    "500": { "new": "356(2)", "old_title": "Punishment for defamation", "new_title": "Punishment for defamation", "type": "merged" },
+    "501": { "new": "356(3)", "old_title": "Printing or engraving matter known to be defamatory", "new_title": "Printing or engraving matter known to be defamatory", "type": "direct" },
+    "502": { "new": "356(4)", "old_title": "Sale of printed or engraved substance containing defamatory matter", "new_title": "Sale of substance containing defamatory matter", "type": "direct" },
+    "503": { "new": "351(1)", "old_title": "Criminal intimidation", "new_title": "Criminal intimidation", "type": "direct" },
+    "504": { "new": "352", "old_title": "Intentional insult with intent to provoke breach of the peace", "new_title": "Intentional insult with intent to provoke breach of peace", "type": "direct" },
+    "505": { "new": "353", "old_title": "Statements conducing to public mischief", "new_title": "Statements conducing to public mischief", "type": "direct" },
+    "506": { "new": "351(2)", "old_title": "Punishment for criminal intimidation", "new_title": "Punishment for criminal intimidation", "type": "merged" },
+    "507": { "new": "351(3)", "old_title": "Criminal intimidation by an anonymous communication", "new_title": "Criminal intimidation by anonymous communication", "type": "merged" },
+    "508": { "new": "354", "old_title": "Act caused by inducing person to believe that he will be rendered an object of the Divine displeasure", "new_title": "Act caused by inducing belief of divine displeasure", "type": "direct" },
+    "509": { "new": "79", "old_title": "Word, gesture or act intended to insult the modesty of a woman", "new_title": "Word, gesture or act intended to insult modesty of woman", "type": "direct" },
+    "510": { "new": "355", "old_title": "Misconduct in public by a drunken person", "new_title": "Misconduct in public by drunken person", "type": "direct" },
+    "511": { "new": "62", "old_title": "Punishment for attempting to commit offences punishable with imprisonment for life or other imprisonment", "new_title": "Attempt to commit offences", "type": "direct" }
   },
   "new_provisions": {
-    "111": {
-      "title": "Organised crime",
-      "notes": "New provision — covers organised crime syndicates, no IPC equivalent"
-    },
+    "111": { "title": "Organised crime", "notes": "New provision — covers organised crime syndicates, no IPC equivalent" },
     "112": { "title": "Petty organised crime", "notes": "New provision — no IPC equivalent" },
-    "113": {
-      "title": "Terrorist act",
-      "notes": "New provision — was previously only in UAPA; now in general criminal code"
-    },
-    "69": {
-      "title": "Sexual intercourse by employing deceitful means etc.",
-      "notes": "New provision — sexual intercourse on false promise of marriage etc."
-    },
-    "106(2)": {
-      "title": "Causing death by rash and negligent driving and fleeing",
-      "notes": "New provision — hit and run specifically addressed"
-    },
+    "113": { "title": "Terrorist act", "notes": "New provision — was previously only in UAPA; now in general criminal code" },
+    "69": { "title": "Sexual intercourse by employing deceitful means etc.", "notes": "New provision — sexual intercourse on false promise of marriage etc." },
+    "106(2)": { "title": "Causing death by rash and negligent driving and fleeing", "notes": "New provision — hit and run specifically addressed" },
     "304": { "title": "Snatching", "notes": "New offence — snatching as distinct crime from theft" }
   }
 }

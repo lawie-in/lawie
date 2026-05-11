@@ -1,0 +1,76 @@
+data: {"text":"1. That the above-named applicant has been falsely implicated in FIR No. 124/2026 dated 15/03/2026,"}
+
+data: {"text":" registered at Police Station Kotwali, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023,"}
+
+data: {"text":" and has been languishing in judicial custody since his arrest on 16/03/2026.\n\n2. That the present case"}
+
+data: {"text":" against the applicant has arisen out of a civil dispute pertaining to land ownership between"}
+
+data: {"text":" the applicant and the complainant, which has been deliberately given a criminal color to har"}
+
+data: {"text":"ass and intimidate the applicant. The complainant, being unable to succeed in the civil proceedings"}
+
+data: {"text":", has resorted to filing false criminal allegations against the applicant.\n\n3. That the applicant was not present at the place of the alleged incident at"}
+
+data: {"text":" the time when it is purported to have occurred. The applicant has credible witnesses who"}
+
+data: {"text":" can substantiate his whereabouts during the relevant time, thereby establishing a complete alibi in"}
+
+data: {"text":" his favor. The applicant was at his workplace and can"}
+
+data: {"text":" produce documentary evidence and witness testimony to prove the same.\n\n4. That the applicant has been fals"}
+
+data: {"text":"ely implicated in the present case due to the ulterior motives of the complainant who seeks to settle scores"}
+
+data: {"text":" arising from the ongoing land dispute. The allegations leveled against the applicant are completely baseless,"}
+
+data: {"text":" fabricated, and without any merit whatsoever.\n\n5. That the applicant is a law-abiding citizen with"}
+
+data: {"text":" deep roots in the community and has no propensity to flee from justice. He has full faith"}
+
+data: {"text":" in the judicial system and is committed to facing the trial and proving"}
+
+data: {"text":" his innocence. The applicant has a permanent residence, stable employment, and family ties in the locality"}
+
+data: {"text":", which eliminate any possibility of him absconding.\n\n6. That the applicant has no previous"}
+
+data: {"text":" criminal antecedents and has never been involved in any criminal activity. His conduct has always been exemplary, and he enjoys a good"}
+
+data: {"text":" reputation in society. This being his first brush with the criminal justice system, he deserves the"}
+
+data: {"text":" benefit of liberal consideration for bail.\n\n7. That the applicant has been fully cooperating with the investigation and has appeared before the investigating authorities whenever"}
+
+data: {"text":" called upon. He has not tampered with any evidence nor influenced any witnesses, and there"}
+
+data: {"text":" is no apprehension of him doing so in the future.\n\n8. That the continued detention of the applicant in judicial custody would serve no useful purpose as"}
+
+data: {"text":" the investigation has been completed and the chargesheet has been filed. The applicant's further inc"}
+
+data: {"text":"arceration would amount to punishment before trial, which is contrary to the established principles"}
+
+data: {"text":" of criminal jurisprudence.\n\n9. That the fundamental right to life and personal liberty guaranteed"}
+
+data: {"text":" under Article 21 of the Constitution of India includes the right to bail, and the same cannot be denied arbitrarily. The applicant has"}
+
+data: {"text":" been in custody for a considerable period, and his continued detention without bail"}
+
+data: {"text":" would be a violation of his constitutional rights.\n\n10. That considering the nature of the allegations, the evidence on record, and the fact that the applicant poses no threat"}
+
+data: {"text":" to society or the investigation, this Hon'ble Court may be pleased to exercise"}
+
+data: {"text":" its discretionary power under Section 479 of the Bharatiya Nagarik Suraksha Sanhita, 2023, and grant bail to the applicant on such terms"}
+
+data: {"text":" and conditions as deemed fit."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"IN THE COURT OF Court of Sessions Judge, Patna\nAT Patna\n\nCriminal Miscellaneous Case No. _____ of 2026\n\nIN THE MATTER OF:\n\nRajan Kumar\nS/o Shri Mohan Kumar\nAge: 32 years\nR/o Village Danapur, District Patna, Bihar\n                                              ... Petitioner / Accused\n\nVersus\n\nState of bihar\nThrough Public Prosecutor\n                                              ... Respondent / State","alignment":"center"},{"section_id":"application_heading","type":"template","content":"APPLICATION FOR Regular Bail UNDER SECTION 480 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE Court of Sessions Judge, Patna,\nPatna\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. That the above-named applicant has been falsely implicated in FIR No. 124/2026 dated 15/03/2026, registered at Police Station Kotwali, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023, and has been languishing in judicial custody since his arrest on 16/03/2026.\n\n2. That the present case against the applicant has arisen out of a civil dispute pertaining to land ownership between the applicant and the complainant, which has been deliberately given a criminal color to harass and intimidate the applicant. The complainant, being unable to succeed in the civil proceedings, has resorted to filing false criminal allegations against the applicant.\n\n3. That the applicant was not present at the place of the alleged incident at the time when it is purported to have occurred. The applicant has credible witnesses who can substantiate his whereabouts during the relevant time, thereby establishing a complete alibi in his favor. The applicant was at his workplace and can produce documentary evidence and witness testimony to prove the same.\n\n4. That the applicant has been falsely implicated in the present case due to the ulterior motives of the complainant who seeks to settle scores arising from the ongoing land dispute. The allegations leveled against the applicant are completely baseless, fabricated, and without any merit whatsoever.\n\n5. That the applicant is a law-abiding citizen with deep roots in the community and has no propensity to flee from justice. He has full faith in the judicial system and is committed to facing the trial and proving his innocence. The applicant has a permanent residence, stable employment, and family ties in the locality, which eliminate any possibility of him absconding.\n\n6. That the applicant has no previous criminal antecedents and has never been involved in any criminal activity. His conduct has always been exemplary, and he enjoys a good reputation in society. This being his first brush with the criminal justice system, he deserves the benefit of liberal consideration for bail.\n\n7. That the applicant has been fully cooperating with the investigation and has appeared before the investigating authorities whenever called upon. He has not tampered with any evidence nor influenced any witnesses, and there is no apprehension of him doing so in the future.\n\n8. That the continued detention of the applicant in judicial custody would serve no useful purpose as the investigation has been completed and the chargesheet has been filed. The applicant's further incarceration would amount to punishment before trial, which is contrary to the established principles of criminal jurisprudence.\n\n9. That the fundamental right to life and personal liberty guaranteed under Article 21 of the Constitution of India includes the right to bail, and the same cannot be denied arbitrarily. The applicant has been in custody for a considerable period, and his continued detention without bail would be a violation of his constitutional rights.\n\n10. That considering the nature of the allegations, the evidence on record, and the fact that the applicant poses no threat to society or the investigation, this Hon'ble Court may be pleased to exercise its discretionary power under Section 479 of the Bharatiya Nagarik Suraksha Sanhita, 2023, and grant bail to the applicant on such terms and conditions as deemed fit."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIn view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Court may be pleased to:\n\na) Grant Regular Bail to the Petitioner, Rajan Kumar, in connection with FIR No. 124/2026 dated 2026-03-15, PS Kotwali, under Section 480 of BNSS, 2023, on such terms and conditions as this Honourable Court may deem fit;\n\nb) Pass such other orders as this Honourable Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.","alignment":"left"},{"section_id":"verification","type":"template","content":"VERIFICATION\n\nI, Rajan Kumar, the Petitioner herein above named, do hereby verify that the contents of paragraphs 1 to _____ of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at Patna on this _____ day of _________, 2026.\n\n\n_________________________\nRajan Kumar\n(Petitioner)","alignment":"left"},{"section_id":"advocate_block","type":"template","content":"THROUGH:\n\n_________________________\nDev User\nAdvocate\nEnrollment No. ____________________\n\nPlace: Patna\nDate: 04 May 2026","alignment":"right"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Certified copy of FIR No. 124/2026","Vakalatnama duly executed","Surety Bond with ID proof of surety (Aadhaar/PAN)","Address proof of applicant (Aadhaar/Voter ID)","Affidavit of applicant (if required by court)","Verify all BNS/BNSS section numbers before filing","Court fee as per state schedule"]}
+
+event: warning
+data: {"warnings":[{"type":"missing_clause","message":"Fact-alteration warning: the following user-provided details may not appear in the AI draft: Date 16.03.2026. Please verify."}]}
+
+event: done
+data: {"complete":true,"docId":"69f79b711b38392dd279da26","sectionsCited":["BNSS 480","BNSS 479"],"mandatoryClausesComplete":true}
+

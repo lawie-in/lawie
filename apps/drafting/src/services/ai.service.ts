@@ -19,6 +19,7 @@ import bnsMapping from '../config/bns-mapping.json';
 import { env } from '../config/env';
 import { Court } from '../models/Court.model';
 
+import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-settings.service';
 import { postProcess } from './post-processor';
 import { assemblePrompt, PromptInput } from './prompt-assembler';
 import { convertOldReferencesInText } from './sections.service';
@@ -31,6 +32,7 @@ import {
   buildAISystemPrompt,
   buildAIUserPrompt,
   assembleDocument,
+  detectCoherenceMismatches,
   loadCourtRule,
   detectLeakedPlaceholders,
   sanitiseAIBody,
@@ -65,6 +67,13 @@ async function* streamLLM(
   maxTokens: number,
   trackingHeaders: Record<string, string> = {},
 ): AsyncGenerator<string> {
+  // Model lives in the AppSetting Mongo collection — NOT in env or in the
+  // codebase (per founder instruction 2026-05-11). If unset, getAppSetting
+  // throws AppSettingMissingError which propagates to the route → emitted as
+  // SSE `event: error` so the advocate sees a clear "configure ai.drafting_model
+  // in /admin/ai-config" message.
+  const model = await getAppSetting(APP_SETTING_KEYS.DRAFTING_MODEL);
+
   if (env.HELICONE_API_KEY) {
     // Helicone AI Gateway — OpenAI-compatible, supports Claude model aliases
     const resp = await fetch(env.HELICONE_GATEWAY_URL, {
@@ -75,7 +84,7 @@ async function* streamLLM(
         ...trackingHeaders,
       },
       body: JSON.stringify({
-        model: env.ANTHROPIC_MODEL,
+        model,
         max_tokens: maxTokens,
         stream: true,
         messages: [
@@ -115,7 +124,7 @@ async function* streamLLM(
   } else {
     // Direct Anthropic SDK — no proxy
     const stream = await directClient.messages.stream({
-      model: env.ANTHROPIC_MODEL,
+      model,
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
@@ -129,6 +138,103 @@ async function* streamLLM(
         yield chunk.delta.text;
       }
     }
+  }
+}
+
+// ── AI error classification ────────────────────────────────────────────────
+//
+// Surfaces a user-readable reason + a retryable flag for every kind of failure
+// the LLM stream can produce (Helicone gateway non-2xx, Anthropic 429/5xx,
+// network/socket drop, missing response body, etc). The route handler emits
+// this via `event: error` SSE; the frontend renders it in the
+// generation_failed pipeline state.
+
+interface ClassifiedLlmError {
+  /** Stable code for telemetry / future translation */
+  code: 'rate_limited' | 'provider_unavailable' | 'auth' | 'invalid_request' | 'network' | 'unknown';
+  /** One-line copy shown directly to the advocate */
+  userMessage: string;
+  /** Whether re-clicking "Try again" is likely to succeed */
+  retryable: boolean;
+}
+
+function classifyLlmError(err: unknown): ClassifiedLlmError {
+  // App-setting missing — model not configured in DB. Surface the exact key
+  // so the founder knows what to set in /admin/ai-config.
+  if (err instanceof AppSettingMissingError) {
+    return {
+      code: 'auth',
+      userMessage: `AI model is not configured. The founder must set "${err.key}" in /admin/ai-config before drafts can be generated.`,
+      retryable: false,
+    };
+  }
+
+  const msg = err instanceof Error ? err.message : String(err);
+
+  // Helicone gateway throws "Helicone AI Gateway <status>: <body>"
+  const heliconeStatus = msg.match(/Helicone AI Gateway (\d{3})/);
+  const status = heliconeStatus ? parseInt(heliconeStatus[1], 10) : undefined;
+
+  if (status === 429 || /rate.?limit|too many requests/i.test(msg)) {
+    return {
+      code: 'rate_limited',
+      userMessage:
+        'The AI service is currently rate-limited. Please wait a few seconds and try again.',
+      retryable: true,
+    };
+  }
+  if ((status && status >= 500) || /overload|unavailable|temporarily/i.test(msg)) {
+    return {
+      code: 'provider_unavailable',
+      userMessage:
+        'The AI service is temporarily unavailable. Please try again in a moment — your inputs are saved.',
+      retryable: true,
+    };
+  }
+  if (status === 401 || status === 403 || /unauthorized|forbidden|invalid.?api.?key/i.test(msg)) {
+    return {
+      code: 'auth',
+      userMessage:
+        'The drafting service could not authenticate with the AI provider. Please contact support — this is a server-side configuration issue.',
+      retryable: false,
+    };
+  }
+  if (status === 400 || /invalid.?request|bad.?request|context.?length|max.?tokens/i.test(msg)) {
+    return {
+      code: 'invalid_request',
+      userMessage:
+        'The AI rejected the prompt for this draft. Try shortening the facts narrative, then generate again.',
+      retryable: false,
+    };
+  }
+  if (
+    /ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|fetch failed|network|socket hang up|no response body/i.test(
+      msg,
+    )
+  ) {
+    return {
+      code: 'network',
+      userMessage:
+        'Network error reaching the AI service. Check your connection and try again.',
+      retryable: true,
+    };
+  }
+  return {
+    code: 'unknown',
+    userMessage:
+      'The AI service returned an unexpected error. Please try again. If this keeps happening, contact support.',
+    retryable: true,
+  };
+}
+
+/** Sentinel thrown after a mid-stream LLM failure so the route handler knows
+ *  the SSE has already been ended and not to re-emit `done`. */
+export class GenerationFailedError extends Error {
+  readonly code: ClassifiedLlmError['code'];
+  constructor(message: string, code: ClassifiedLlmError['code']) {
+    super(message);
+    this.name = 'GenerationFailedError';
+    this.code = code;
   }
 }
 
@@ -168,8 +274,13 @@ export interface GenerateDocumentResult {
  * The new validator.ts provides richer validation.
  */
 export function validateBnsSections(docType: string, generatedText: string): string[] {
-  const mapping = bnsMapping[docType as DocTypeKey];
-  if (!mapping) return [];
+  // bns-mapping.json now carries non-doctype keys (_meta, alias maps) that the
+  // TS type widens into the union. Narrow with a structural guard so the legacy
+  // doc-type-keyed lookup still works.
+  const mapping = bnsMapping[docType as DocTypeKey] as
+    | { sections?: { number: string; description?: string }[] }
+    | undefined;
+  if (!mapping || !Array.isArray(mapping.sections)) return [];
 
   const knownSections = new Set(mapping.sections.map((s) => s.number));
   const sectionPattern = /(?:section|sec\.?|u\/s)\s+(\d+[A-Z]?(?:\([a-z0-9]+\))?)/gi;
@@ -388,14 +499,38 @@ export async function streamGenerateFromTemplate(
 
       let aiText = '';
 
-      for await (const text of streamLLM(
-        systemPrompt,
-        userPrompt,
-        8192,
-        heliconeHeaders(input.userId, templateConfig.template_id),
-      )) {
-        aiText += text;
-        res.write(`data: ${JSON.stringify({ text })}\n\n`);
+      try {
+        for await (const text of streamLLM(
+          systemPrompt,
+          userPrompt,
+          8192,
+          heliconeHeaders(input.userId, templateConfig.template_id),
+        )) {
+          aiText += text;
+          res.write(`data: ${JSON.stringify({ text })}\n\n`);
+        }
+      } catch (llmErr) {
+        // AI provider / Helicone / network failure mid-stream. SSE headers are
+        // already on the wire so we CAN'T set a 5xx status — emit a structured
+        // `event: error` instead. The frontend renders this in the
+        // generation_failed pipeline state with the reason + a retry button.
+        const classified = classifyLlmError(llmErr);
+        if (process.env.NODE_ENV !== 'test') {
+          console.error(
+            `[drafting] LLM stream failed (section ${section.section_id}):`,
+            llmErr instanceof Error ? llmErr.message : llmErr,
+          );
+        }
+        res.write(
+          `event: error\ndata: ${JSON.stringify({
+            section: section.section_id,
+            reason: classified.userMessage,
+            retryable: classified.retryable,
+            code: classified.code,
+          })}\n\n`,
+        );
+        res.end();
+        throw new GenerationFailedError(classified.userMessage, classified.code);
       }
 
       // SCRUM-62: strip duplicate cause-title (A7) and disclaimer (A6) injected by AI
@@ -487,6 +622,30 @@ export async function streamGenerateFromTemplate(
     const factsNarrative = String(convertedFormData.facts_narrative ?? '');
     const sanitySanityWarnings = checkFactSectionSanity(factsNarrative, bnsCited);
     allWarnings.push(...sanitySanityWarnings);
+  }
+
+  // SCRUM-67: Grounds-vs-facts coherence — emit a warning per mismatch so the
+  // frontend can show review chips on the editor. The actual prompt-side
+  // reconciliation already happened in buildAIUserPrompt before generation.
+  const groundsValue =
+    convertedFormData.grounds_for_bail ??
+    convertedFormData.grounds_for_quashing ??
+    convertedFormData.grounds;
+  const factsForCoherence = String(
+    convertedFormData.facts_narrative ?? convertedFormData.facts ?? '',
+  );
+  if (groundsValue && factsForCoherence) {
+    const coherenceMismatches = detectCoherenceMismatches(
+      groundsValue as string | string[],
+      factsForCoherence,
+    );
+    for (const m of coherenceMismatches) {
+      allWarnings.push({
+        type: 'coherence_mismatch',
+        message: m.warning_message,
+        details: { rule: m.rule_id, ground: m.ground_label },
+      });
+    }
   }
 
   const sectionsCited = buildSectionsCited(fullText);

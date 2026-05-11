@@ -1,0 +1,70 @@
+data: {"text":"1. That the applicant has been falsely implicated in FIR No. 124/2026 dated 15/03/2026, registered at Police"}
+
+data: {"text":" Station Kotwali, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023, and"}
+
+data: {"text":" is presently languishing in judicial custody since his arrest on 16/03/2026.\n\n2. That the applicant submits that he has"}
+
+data: {"text":" been falsely implicated in the aforesaid FIR solely due to a pre-existing land dispute between the applicant and the complainant. The said"}
+
+data: {"text":" dispute pertains to agricultural land and has been the subject of civil litigation between"}
+
+data: {"text":" the parties for a considerable period of time.\n\n3. That the applicant was not present at the time and place of the alleged incident and has cred"}
+
+data: {"text":"ible witnesses who can establish his alibi beyond any shadow of doubt. The applicant was attending to his agricultural"}
+
+data: {"text":" work at his farm, which is situated at a considerable distance from the alleged"}
+
+data: {"text":" scene of occurrence, at the relevant time.\n\n4. That the case against"}
+
+data: {"text":" the applicant is based entirely on false and concocted allegations made by the complainant with mal"}
+
+data: {"text":"afide intentions to settle scores in the ongoing civil dispute. The complainant has deliberately supp"}
+
+data: {"text":"ressed material facts and has presented a distorted version of events to implicate the applicant.\n\n5. That the applicant has"}
+
+data: {"text":" deep roots in the society and has been residing at the same address"}
+
+data: {"text":" for several decades. He owns agricultural land and immovable property in the locality"}
+
+data: {"text":" and has no intention or inclination to flee from justice or ab"}
+
+data: {"text":"scond from the legal proceedings.\n\n6. That the applicant is a law-abiding citizen with"}
+
+data: {"text":" no previous criminal antecedents whatsoever. His conduct throughout his life has been exemplary and there"}
+
+data: {"text":" is no material on record to suggest that he has ever been involved in any criminal activity or has any"}
+
+data: {"text":" propensity to commit crimes.\n\n7. That the applicant has been fully cooperating with the investigation since the registration of the FIR and has never"}
+
+data: {"text":" attempted to tamper with evidence or influence witnesses. He voluntarily appeared"}
+
+data: {"text":" before the investigating officer whenever called upon and has extended complete cooperation in the investigation.\n\n8. That the continued"}
+
+data: {"text":" detention of the applicant in judicial custody is a grave violation of his fundamental right to life and liberty as guaranteed under"}
+
+data: {"text":" Article 21 of the Constitution of India, especially when the allegations against him are manifestly false and baseless.\n\n9. That the applic"}
+
+data: {"text":"ant undertakes to abide by all conditions that this Hon'ble Court may deem fit to impose upon him and shall"}
+
+data: {"text":" not misuse the liberty granted to him in any manner whatsoever. He further"}
+
+data: {"text":" undertakes not to leave the jurisdiction of this Hon'ble Court without prior permission.\n\n10. That the present application is being filed b"}
+
+data: {"text":"ona fide and in the interest of justice, and the applicant has no other efficacious remedy available except to approach"}
+
+data: {"text":" this Hon'ble Court for the grant of regular bail in the peculiar facts and circumstances of the"}
+
+data: {"text":" case."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"IN THE COURT OF Court of Sessions Judge, Patna\nAT Patna\n\nCriminal Miscellaneous Case No. _____ of 2026\n\nIN THE MATTER OF:\n\nRajan Kumar\nS/o Shri Mohan Kumar\nAge: 32 years\nR/o Village Danapur, District Patna, Bihar\n                                              ... Petitioner / Accused\n\nVersus\n\nState of bihar\nThrough Public Prosecutor\n                                              ... Respondent / State","alignment":"center"},{"section_id":"application_heading","type":"template","content":"APPLICATION FOR Regular Bail UNDER SECTION 480 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE Court of Sessions Judge, Patna,\nPatna\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. That the applicant has been falsely implicated in FIR No. 124/2026 dated 15/03/2026, registered at Police Station Kotwali, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023, and is presently languishing in judicial custody since his arrest on 16/03/2026.\n\n2. That the applicant submits that he has been falsely implicated in the aforesaid FIR solely due to a pre-existing land dispute between the applicant and the complainant. The said dispute pertains to agricultural land and has been the subject of civil litigation between the parties for a considerable period of time.\n\n3. That the applicant was not present at the time and place of the alleged incident and has credible witnesses who can establish his alibi beyond any shadow of doubt. The applicant was attending to his agricultural work at his farm, which is situated at a considerable distance from the alleged scene of occurrence, at the relevant time.\n\n4. That the case against the applicant is based entirely on false and concocted allegations made by the complainant with malafide intentions to settle scores in the ongoing civil dispute. The complainant has deliberately suppressed material facts and has presented a distorted version of events to implicate the applicant.\n\n5. That the applicant has deep roots in the society and has been residing at the same address for several decades. He owns agricultural land and immovable property in the locality and has no intention or inclination to flee from justice or abscond from the legal proceedings.\n\n6. That the applicant is a law-abiding citizen with no previous criminal antecedents whatsoever. His conduct throughout his life has been exemplary and there is no material on record to suggest that he has ever been involved in any criminal activity or has any propensity to commit crimes.\n\n7. That the applicant has been fully cooperating with the investigation since the registration of the FIR and has never attempted to tamper with evidence or influence witnesses. He voluntarily appeared before the investigating officer whenever called upon and has extended complete cooperation in the investigation.\n\n8. That the continued detention of the applicant in judicial custody is a grave violation of his fundamental right to life and liberty as guaranteed under Article 21 of the Constitution of India, especially when the allegations against him are manifestly false and baseless.\n\n9. That the applicant undertakes to abide by all conditions that this Hon'ble Court may deem fit to impose upon him and shall not misuse the liberty granted to him in any manner whatsoever. He further undertakes not to leave the jurisdiction of this Hon'ble Court without prior permission.\n\n10. That the present application is being filed bona fide and in the interest of justice, and the applicant has no other efficacious remedy available except to approach this Hon'ble Court for the grant of regular bail in the peculiar facts and circumstances of the case."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIn view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Court may be pleased to:\n\na) Grant Regular Bail to the Petitioner, Rajan Kumar, in connection with FIR No. 124/2026 dated 2026-03-15, PS Kotwali, under Section 480 of BNSS, 2023, on such terms and conditions as this Honourable Court may deem fit;\n\nb) Pass such other orders as this Honourable Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.","alignment":"left"},{"section_id":"verification","type":"template","content":"VERIFICATION\n\nI, Rajan Kumar, the Petitioner herein above named, do hereby verify that the contents of paragraphs 1 to _____ of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at Patna on this _____ day of _________, 2026.\n\n\n_________________________\nRajan Kumar\n(Petitioner)","alignment":"left"},{"section_id":"advocate_block","type":"template","content":"THROUGH:\n\n_________________________\nDev User\nAdvocate\nEnrollment No. ____________________\n\nPlace: Patna\nDate: 04 May 2026","alignment":"right"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Certified copy of FIR No. 124/2026","Vakalatnama duly executed","Surety Bond with ID proof of surety (Aadhaar/PAN)","Address proof of applicant (Aadhaar/Voter ID)","Affidavit of applicant (if required by court)","Verify all BNS/BNSS section numbers before filing","Court fee as per state schedule"]}
+
+event: warning
+data: {"warnings":[{"type":"missing_clause","message":"Fact-alteration warning: the following user-provided details may not appear in the AI draft: Date 16.03.2026. Please verify."}]}
+
+event: done
+data: {"complete":true,"docId":"69f799d71b38392dd279da21","sectionsCited":["BNSS 480"],"mandatoryClausesComplete":true}
+

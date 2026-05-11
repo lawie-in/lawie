@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "description": "DRT / DRAT formatting rules — Recovery of Debts and Bankruptcy Act 1993 (RDB Act) and SARFAESI Act 2002",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — created in National Batch 11 (2026-05-10)",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "tribunal",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "drt",
+  "courtType": "tribunal",
+  "designation": "BEFORE THE DEBTS RECOVERY TRIBUNAL",
+  "jurisdictionNote": "Debts Recovery Tribunal constituted under Section 3 of the Recovery of Debts and Bankruptcy Act, 1993. Original jurisdiction over applications by banks/FIs for recovery of debts exceeding Rs. 20 lakh; also hears securitisation applications under Section 17 SARFAESI Act, 2002. Appellate forum: DRAT (uses the same rule file).",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{applicant} ... APPLICANT BANK / FINANCIAL INSTITUTION\n\nVERSUS\n\n{defendant} ... DEFENDANT BORROWER",
+  "party_designation": {
+    "petitioner": "Applicant",
+    "respondent": "Defendant",
+    "applicant": "Applicant Bank / Financial Institution",
+    "defendant": "Defendant Borrower",
+    "complainant": "Applicant",
+    "counter_party": "Defendant",
+    "state": "Union of India through Secretary, Ministry of Finance, Department of Financial Services"
+  },
+  "case_nomenclature": {
+    "original_application": "O.A. No. _____ of {year}",
+    "securitisation_application": "S.A. No. _____ of {year}",
+    "appeal": "Appeal No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, prayed that this Hon'ble Tribunal may be pleased to",
+    "closing": "And for this act of kindness, the applicant shall ever pray.",
+    "tone": "neutral"
+  },
+  "verification_format": "I, {deponent_name}, the duly authorised officer of the Applicant Bank / Financial Institution herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge derived from the records maintained in the ordinary course of business, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nAUTHORISED OFFICER, APPLICANT BANK / FI",
+  "supported_languages": ["en"],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "BEFORE THE DEBTS RECOVERY TRIBUNAL, {city}"
+  },
+  "localRules": [
+    "Pleadings governed by the Debts Recovery Tribunal (Procedure) Rules, 1993 and the Security Interest (Enforcement) Rules, 2002 for SARFAESI matters.",
+    "Original Applications under Section 19 RDB Act must be accompanied by the prescribed court fee (ad valorem, capped at Rs. 1,50,000).",
+    "Securitisation Applications under Section 17 SARFAESI must be filed within 45 days from the date of the impugned measure.",
+    "Authorised officer / Principal Officer of the Bank must verify the application; resolution of the Board authorising filing must be annexed.",
+    "Original loan documents, statement of account certified under the Bankers' Books Evidence Act, 1891 must be filed.",
+    "E-filing via DRT-eCourt portal (drt.gov.in) is operational at most benches; physical filing supplemental.",
+    "Appeals from DRT lie to DRAT within 30 days under Section 20 RDB Act / Section 18 SARFAESI; pre-deposit of 50% of debt due ordinarily required for SARFAESI appeals."
+  ],
+  "e_filing_mandatory": false
+}

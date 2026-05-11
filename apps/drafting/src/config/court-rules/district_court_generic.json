@@ -1,4 +1,12 @@
 {
+  "_meta": {
+    "description": "Court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 hardening 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
   "courtId": "district_court_generic",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION)",
@@ -33,7 +41,10 @@
     "tone": "assertive"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above plaint/application are true and correct to my knowledge. The documents annexed herewith are true copies of their respective originals.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": ["en", "hi"],
+  "supported_languages": [
+    "en",
+    "hi"
+  ],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",
@@ -46,5 +57,6 @@
     "All documents relied upon to be filed with the plaint (Order VII Rule 14 CPC).",
     "Valuation of suit to be clearly stated for pecuniary jurisdiction.",
     "Written statements to be filed within 30 days of service of summons (extendable to 120 days)."
-  ]
+  ],
+  "e_filing_mandatory": false
 }

@@ -77,7 +77,8 @@ describe('Template Config Loading', () => {
     expect(sectionIds).toContain('prayer');
     expect(sectionIds).toContain('verification');
     expect(sectionIds).toContain('advocate_block');
-    expect(sectionIds).toContain('disclaimer');
+    // 'disclaimer' is no longer a body section — appended at PDF render time only.
+    expect(sectionIds).not.toContain('disclaimer');
   });
 
   test('bail_regular body section is ai_generated', () => {
@@ -305,14 +306,9 @@ describe('renderTemplateSection', () => {
     expect(rendered.content).toContain('124/2026');
   });
 
-  test('renders disclaimer without placeholders', () => {
-    const config = loadTemplateConfig('bail_regular')!;
-    const section = config.document_structure.sections.find((s) => s.section_id === 'disclaimer')!;
-
-    const rendered = renderTemplateSection(section, {});
-    expect(rendered.content).toContain('AI-assisted draft');
-    expect(rendered.content).toContain('Lawie does not provide legal advice');
-  });
+  // The disclaimer is no longer a body section — appended at PDF render time
+  // by pdf-export.service.ts (contentToHtml). See document-export.test.ts for
+  // the render-time disclaimer assertion.
 
   test('throws for non-template section', () => {
     const config = loadTemplateConfig('bail_regular')!;
@@ -366,19 +362,38 @@ describe('AI Prompt Building', () => {
 // ── Document Assembly ───────────────────────────────────────────────────────
 
 describe('assembleDocument', () => {
-  test('joins sections in order', () => {
+  // assembleDocument now emits styled HTML so per-section alignment + headings
+  // (cause-title, prayer, verification) survive into the saved content and into
+  // the PDF render. Tests assert structural HTML containment rather than exact
+  // plain-text shape.
+  test('emits HTML with sections in order — body lines + headings preserved', () => {
     const sections: RenderedSection[] = [
-      { section_id: 'title', type: 'template', content: 'CAUSE TITLE' },
+      { section_id: 'title', type: 'template', alignment: 'center', content: 'CAUSE TITLE' },
       {
         section_id: 'body',
         type: 'ai_generated',
         content: '1. Para one.\n2. Para two.\n3. Para three.',
       },
-      { section_id: 'prayer', type: 'template', content: 'PRAYER' },
+      { section_id: 'prayer', type: 'template', alignment: 'left', content: 'PRAYER' },
     ];
 
     const { fullText, bodyParaCount } = assembleDocument(sections);
-    expect(fullText).toBe('CAUSE TITLE\n\n1. Para one.\n2. Para two.\n3. Para three.\n\nPRAYER');
+    // Order preserved
+    const titleIdx = fullText.indexOf('CAUSE TITLE');
+    const bodyIdx = fullText.indexOf('Para one.');
+    const prayerIdx = fullText.indexOf('PRAYER');
+    expect(titleIdx).toBeGreaterThan(-1);
+    expect(bodyIdx).toBeGreaterThan(titleIdx);
+    expect(prayerIdx).toBeGreaterThan(bodyIdx);
+
+    // Headings rendered as bold (CAUSE TITLE and PRAYER both match the heading
+    // heuristic — all-caps single-line).
+    expect(fullText).toContain('<strong>CAUSE TITLE</strong>');
+    expect(fullText).toContain('<strong>PRAYER</strong>');
+
+    // Body paragraphs flow into <p> elements; numbered shape preserved.
+    expect(fullText).toMatch(/<p[^>]*>1\. Para one\.<br>2\. Para two\.<br>3\. Para three\.<\/p>/);
+
     expect(bodyParaCount).toBe(3);
   });
 
@@ -395,6 +410,23 @@ describe('assembleDocument', () => {
     const { fullText, bodyParaCount } = assembleDocument(sections);
     expect(bodyParaCount).toBe(5);
     expect(fullText).toContain('paragraphs 1 to 5');
+  });
+
+  test('per-section alignment is carried through to the <p> style', () => {
+    const sections: RenderedSection[] = [
+      { section_id: 'cause_title', type: 'template', alignment: 'center', content: 'In the Court of …\n\nState of Jharkhand' },
+      { section_id: 'advocate_block', type: 'template', alignment: 'right', content: 'Advocate signature line' },
+    ];
+    const { fullText } = assembleDocument(sections);
+    // "In the Court of …" matches the heading-line regex, so it's bolded +
+    // centred regardless of section alignment (matches the smoke-test pipeline).
+    expect(fullText).toMatch(
+      /<p style="text-align:center"><strong>In the Court of …<\/strong><\/p>/,
+    );
+    // "State of Jharkhand" — non-heading paragraph in a center-aligned section.
+    expect(fullText).toMatch(/<p style="text-align:center">State of Jharkhand<\/p>/);
+    // "Advocate signature line" — non-heading paragraph in a right-aligned section.
+    expect(fullText).toMatch(/<p style="text-align:right">Advocate signature line<\/p>/);
   });
 });
 

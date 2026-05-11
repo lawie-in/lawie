@@ -5,11 +5,13 @@ import { RegisterPayload, LoginPayload } from '@lawie/shared';
 import { AppError } from '../middleware/errorHandler';
 import { User, IUser } from '../models/User.model';
 
+import { tryGrantDailyLoginBonus } from './credit-bonus.service';
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
+import { applyReferralCode } from './referral.service';
 import { createSession, deleteSession, hashToken, SessionMeta } from './session.service';
 
 export async function registerUser(
-  payload: RegisterPayload,
+  payload: RegisterPayload & { referralCode?: string },
   meta: SessionMeta = {},
 ): Promise<{ user: IUser; tokens: { accessToken: string; refreshToken: string } }> {
   const existing = await User.findOne({ email: payload.email.toLowerCase() });
@@ -23,6 +25,11 @@ export async function registerUser(
     name: payload.name,
     role: payload.role ?? 'Client',
   });
+
+  // Apply referral code non-blocking — never fails registration
+  if (payload.referralCode) {
+    void applyReferralCode(user._id.toString(), payload.referralCode);
+  }
 
   const tokens = generateTokenPair({
     sub: user._id.toString(),
@@ -77,6 +84,9 @@ export async function loginUser(
     { plan: user.plan, email: user.email, role: user.role, name: user.name },
     meta,
   );
+
+  // SCRUM-73 — daily login bonus, non-blocking on the login hot path.
+  void tryGrantDailyLoginBonus(user._id.toString());
 
   return { user, tokens };
 }

@@ -1,4 +1,12 @@
 {
+  "_meta": {
+    "description": "Court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 hardening 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "high_court",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
   "courtId": "allahabad_hc",
   "courtType": "high_court",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
@@ -50,7 +58,10 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly affirm and declare that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to my knowledge and belief. No part of it is false and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": ["en", "hi"],
+  "supported_languages": [
+    "en",
+    "hi"
+  ],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",
@@ -58,6 +69,17 @@
     "causeListFormat": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD\n{benchDesignation}"
   },
   "localRules": [
+    "All petitions must be filed through an advocate enrolled with the Bar Council of UP.",
+    "Bail applications listed as 'Criminal Misc. Bail Application No. _____ of [YEAR]'.",
+    "Anticipatory bail under S.482 BNSS must be accompanied by a duly sworn affidavit.",
+    "Lucknow Bench has territorial jurisdiction over 12 specified districts.",
+    "Synopsis and list of dates are required for all criminal miscellaneous applications.",
+    "E-filing is mandatory since 2024."
+  ],
+  "e_filing_mandatory": true,
+  "e_filing_effective_from": "2024-01-01",
+  "state_capital_default_respondent": "State of Uttar Pradesh through the Principal Secretary, Home Department, Government of Uttar Pradesh, Lucknow",
+  "local_rules": [
     "All petitions must be filed through an advocate enrolled with the Bar Council of UP.",
     "Bail applications listed as 'Criminal Misc. Bail Application No. _____ of [YEAR]'.",
     "Anticipatory bail under S.482 BNSS must be accompanied by a duly sworn affidavit.",

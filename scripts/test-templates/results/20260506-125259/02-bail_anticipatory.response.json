@@ -1,0 +1,75 @@
+data: {"text":"1. That the Applicant apprehends arrest in connection with FIR No. 215/2026 dated 10.04.2026 registered at Police Station Gandhi Maidan, Pat"}
+
+data: {"text":"na, under Sections 318(4) and 336(3) of the Bharatiya Nyaya Sanhita, 2023. The Applicant has"}
+
+data: {"text":" not been arrested yet but genuinely apprehends arrest in the said case and therefore seeks"}
+
+data: {"text":" anticipatory bail from this Hon'ble Court under Section 482 of the Bharatiya Nagarik Suraksha Sanhita, 2023.\n\n2. That"}
+
+data: {"text":" the Applicant apprehends arrest in connection with FIR No. 215/2026 dated 10.04.2026 lodged at Police Station Gandhi Maidan, Patna. The said FIR has been registered"}
+
+data: {"text":" under non-bailable provisions of the Bharatiya Nyaya Sanhita, 2023, namely Sections 318(4) and 336(3)."}
+
+data: {"text":"\n\n3. That the FIR has been lodged on the basis of a false complaint by the de-facto complainant arising out of a purely civil business dispute between"}
+
+data: {"text":" the parties. The matter is essentially commercial in nature and the criminal law is"}
+
+data: {"text":" being misused to settle the civil dispute and to press"}
+
+data: {"text":"urize the Applicant.\n\n4. That the Applicant is a businessman of standing in the community with no criminal antecedents whatsoever. He has deep roots in the society and is a"}
+
+data: {"text":" law-abiding citizen who has never been involved in any criminal activity. The Applicant undertakes to cooperate fully with the investigation and not to leave the territorial jurisdiction of the State of Bihar without prior permission of this"}
+
+data: {"text":" Hon'ble Court.\n\n5. That the present case is nothing but a case of false implication of the Applicant by"}
+
+data: {"text":" the de-facto complainant with malicious intent. The dispute between the parties is purely of civil nature pertaining to business"}
+
+data: {"text":" transactions and does not involve any criminal liability on the part of the Applicant.\n\n6. That the Applicant has no criminal antecedents and has never been involved in any criminal case"}
+
+data: {"text":". He is a respectable member of the society and has been conducting his business activities in a lawful manner. There"}
+
+data: {"text":" is no likelihood of the Applicant fleeing from justice or tampering with evidence.\n\n7. That the Applic"}
+
+data: {"text":"ant is ready and willing to cooperate with the investigation and join the same as and"}
+
+data: {"text":" when required by the investigating agency. Custodial interrogation of the Applicant is not necessary for the purpose of investigation as he undert"}
+
+data: {"text":"akes to make himself available for interrogation whenever called upon by the investigating officer.\n\n8. That the fundamental right to"}
+
+data: {"text":" life and personal liberty as enshrined under Article 21 of the Constitution of India encompasses"}
+
+data: {"text":" within its ambit the right to be protected from arrest in appropriate cases. The Hon'ble Supreme Court in the case of Sushila Ag"}
+
+data: {"text":"garwal v. State (2020) 5 SCC 1 has laid down the parameters for grant of anticipatory bail and held that anticipatory bail should"}
+
+data: {"text":" be granted when the applicant satisfies the court that he has deep roots in the society and is not likely to abscond.\n\n9. That the investigation in"}
+
+data: {"text":" the present case is still pending and no material evidence has been collected against the Applicant. The allegations made in the FIR are v"}
+
+data: {"text":"ague and general in nature and do not disclose the commission of any cognizable offence by the Applicant."}
+
+data: {"text":"\n\n10. That the Applicant has deep roots in the community and is a permanent resident of Bihar with imm"}
+
+data: {"text":"ovable properties and business establishments. He has no intention to flee from justice and is ready to face"}
+
+data: {"text":" the trial in accordance with law.\n\n11. That the grant of anticipatory bail to the Applicant will not prejudice the investigation in any manner as"}
+
+data: {"text":" he undertakes to cooperate with the investigating agency and make himself available for interrogation whenever required.\n\n12. That the Applicant undert"}
+
+data: {"text":"akes that in case anticipatory bail is granted, he shall comply with all the conditions that may be imposed by this"}
+
+data: {"text":" Hon'ble Court and shall not misuse the liberty granted to him. He further undertakes not to directly or indirectly make"}
+
+data: {"text":" any inducement, threat or promise to any person acquainted with the facts of the case so as to dis"}
+
+data: {"text":"suade him from disclosing such facts to the court or to any police officer."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"IN THE HIGH COURT OF JUDICATURE AT PATNA\n\nCr. Misc. No. _____ of 2026\n\nIN THE MATTER OF:\n\nSuresh Prasad Singh\nS/o Late Shri Ramesh Prasad Singh\nAge: 45 years\nR/o Flat 4B, Boring Road, Patna, Bihar - 800001\n                                              ... Petitioner\n\nVersus\n\nState of Bihar through the Principal Secretary, Home Department, Government of Bihar, Patna\n                                              ... Respondent","alignment":"center"},{"section_id":"application_heading","type":"template","content":"APPLICATION FOR ANTICIPATORY BAIL UNDER SECTION 482 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE HIGH COURT OF JUDICATURE AT PATNA,\nPatna\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. That the Applicant apprehends arrest in connection with FIR No. 215/2026 dated 10.04.2026 registered at Police Station Gandhi Maidan, Patna, under Sections 318(4) and 336(3) of the Bharatiya Nyaya Sanhita, 2023. The Applicant has not been arrested yet but genuinely apprehends arrest in the said case and therefore seeks anticipatory bail from this Hon'ble Court under Section 482 of the Bharatiya Nagarik Suraksha Sanhita, 2023.\n\n2. That the Applicant apprehends arrest in connection with FIR No. 215/2026 dated 10.04.2026 lodged at Police Station Gandhi Maidan, Patna. The said FIR has been registered under non-bailable provisions of the Bharatiya Nyaya Sanhita, 2023, namely Sections 318(4) and 336(3).\n\n3. That the FIR has been lodged on the basis of a false complaint by the de-facto complainant arising out of a purely civil business dispute between the parties. The matter is essentially commercial in nature and the criminal law is being misused to settle the civil dispute and to pressurize the Applicant.\n\n4. That the Applicant is a businessman of standing in the community with no criminal antecedents whatsoever. He has deep roots in the society and is a law-abiding citizen who has never been involved in any criminal activity. The Applicant undertakes to cooperate fully with the investigation and not to leave the territorial jurisdiction of the State of Bihar without prior permission of this Hon'ble Court.\n\n5. That the present case is nothing but a case of false implication of the Applicant by the de-facto complainant with malicious intent. The dispute between the parties is purely of civil nature pertaining to business transactions and does not involve any criminal liability on the part of the Applicant.\n\n6. That the Applicant has no criminal antecedents and has never been involved in any criminal case. He is a respectable member of the society and has been conducting his business activities in a lawful manner. There is no likelihood of the Applicant fleeing from justice or tampering with evidence.\n\n7. That the Applicant is ready and willing to cooperate with the investigation and join the same as and when required by the investigating agency. Custodial interrogation of the Applicant is not necessary for the purpose of investigation as he undertakes to make himself available for interrogation whenever called upon by the investigating officer.\n\n8. That the fundamental right to life and personal liberty as enshrined under Article 21 of the Constitution of India encompasses within its ambit the right to be protected from arrest in appropriate cases. The Hon'ble Supreme Court in the case of Sushila Aggarwal v. State (2020) 5 SCC 1 has laid down the parameters for grant of anticipatory bail and held that anticipatory bail should be granted when the applicant satisfies the court that he has deep roots in the society and is not likely to abscond.\n\n9. That the investigation in the present case is still pending and no material evidence has been collected against the Applicant. The allegations made in the FIR are vague and general in nature and do not disclose the commission of any cognizable offence by the Applicant.\n\n10. That the Applicant has deep roots in the community and is a permanent resident of Bihar with immovable properties and business establishments. He has no intention to flee from justice and is ready to face the trial in accordance with law.\n\n11. That the grant of anticipatory bail to the Applicant will not prejudice the investigation in any manner as he undertakes to cooperate with the investigating agency and make himself available for interrogation whenever required.\n\n12. That the Applicant undertakes that in case anticipatory bail is granted, he shall comply with all the conditions that may be imposed by this Hon'ble Court and shall not misuse the liberty granted to him. He further undertakes not to directly or indirectly make any inducement, threat or promise to any person acquainted with the facts of the case so as to dissuade him from disclosing such facts to the court or to any police officer."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIt is, therefore, most humbly prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant Anticipatory Bail to the Petitioner, Suresh Prasad Singh, in the event of arrest in connection with FIR No. 215/2026 dated 10.04.2026, PS Gandhi Maidan, under Section 482 of BNSS, 2023, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Direct that in the event of arrest, the Petitioner shall be released on bail forthwith;\n\nc) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\nAnd for this act of kindness, the petitioner shall ever pray.","alignment":"left"},{"section_id":"verification","type":"template","content":"VERIFICATION\n\nI, Suresh Prasad Singh, the Petitioner herein above named, do hereby solemnly affirm and state that the contents of paragraphs 1 to 12 of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at Patna on this _____ day of _________, 2026.\n\nDEPONENT\n\n\n_________________________\nSuresh Prasad Singh\n(Petitioner)","alignment":"left"},{"section_id":"advocate_block","type":"template","content":"THROUGH:\n\n_________________________\nSmoke Test\nAdvocate\nEnrollment No. ____________________\n\nPlace: Patna\nDate: 06 May 2026","alignment":"right"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Certified copy of FIR No. 215/2026","Vakalatnama duly executed","Address proof of applicant (Aadhaar/Voter ID)","Affidavit disclosing all pending cases (if any)","Identity proof (PAN/Passport/Driving License)","Details of proposed surety","Verify all BNS/BNSS section numbers before filing","Court fee as per state schedule"]}
+
+event: done
+data: {"complete":true,"docId":"69faec77456b13a3b07d8366","sectionsCited":["BNSS 482"],"mandatoryClausesComplete":true}
+

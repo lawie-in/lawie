@@ -1,4 +1,12 @@
 {
+  "_meta": {
+    "description": "Court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 hardening 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "high_court",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
   "courtId": "delhi_hc",
   "courtType": "high_court",
   "designation": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
@@ -38,7 +46,10 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above petition are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.\n\nVerified at New Delhi on this {date}.\n\nDEPONENT",
-  "supported_languages": ["en", "hi"],
+  "supported_languages": [
+    "en",
+    "hi"
+  ],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",
@@ -46,6 +57,18 @@
     "causeListFormat": "IN THE HIGH COURT OF DELHI AT NEW DELHI\n{benchDesignation}"
   },
   "localRules": [
+    "All petitions must be filed through an advocate enrolled with the Bar Council of Delhi or an AOR.",
+    "Anticipatory bail applications must be accompanied by a duly sworn affidavit.",
+    "Certified copy of FIR, remand order, and charge sheet (if filed) must be annexed.",
+    "Memo of parties to include complete addresses.",
+    "Index of documents with page numbering is mandatory.",
+    "E-filing is mandatory — hard copies to be filed within two working days.",
+    "Court fee stamp of appropriate denomination to be affixed."
+  ],
+  "e_filing_mandatory": true,
+  "e_filing_effective_from": "2021-09-01",
+  "state_capital_default_respondent": "Government of NCT of Delhi through the Principal Secretary (Home), Delhi",
+  "local_rules": [
     "All petitions must be filed through an advocate enrolled with the Bar Council of Delhi or an AOR.",
     "Anticipatory bail applications must be accompanied by a duly sworn affidavit.",
     "Certified copy of FIR, remand order, and charge sheet (if filed) must be annexed.",

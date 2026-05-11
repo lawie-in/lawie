@@ -1,0 +1,81 @@
+{
+  "_meta": {
+    "description": "Andaman & Nicobar Islands district & sessions court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — National Batch 9 (A&N) 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "applies_to_state": "Andaman and Nicobar Islands",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "an_district",
+  "courtType": "district_court",
+  "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
+  "jurisdictionNote": "District-level criminal and civil courts in the Union Territory of Andaman & Nicobar Islands, governed by the Andaman and Nicobar Islands (Civil Courts) Regulation read with the Practice Directions of the Calcutta High Court. High Court jurisdiction over the UT is exercised by the Calcutta High Court through its Circuit Bench at Port Blair (constituted under the Calcutta High Court (Establishment of a Permanent Bench at Port Blair) Order). Sessions courts try offences punishable with imprisonment exceeding 7 years. The UT comprises 3 revenue districts — North & Middle Andaman (HQ Mayabunder), South Andaman (HQ Port Blair) and Nicobar (HQ Car Nicobar). English is the principal language of the courts; Hindi and Bengali are widely used; Nicobarese tribal languages are recognised in tribal-area matters.",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Applicant",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant",
+    "complainant": "Complainant",
+    "accused": "Accused",
+    "state": "Union Territory of Andaman and Nicobar Islands through the Chief Secretary, UT Administration, Port Blair"
+  },
+  "case_nomenclature": {
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
+    "sessions_case": "Sessions Case No. _____ of {year}",
+    "calendar_case": "G.R. Case No. _____ of {year}",
+    "civil_suit": "Civil Suit No. _____ of {year}",
+    "execution": "Execution Application No. _____ of {year}",
+    "misc_criminal": "Criminal Misc. Application No. _____ of {year}",
+    "misc_civil": "Misc. Civil Application No. _____ of {year}",
+    "special_case": "Special Sessions Case No. _____ of {year}",
+    "atrocity_case": "Special Sessions (SC/ST Atrocities) Case No. _____ of {year}",
+    "ndps_case": "Special Sessions (NDPS) Case No. _____ of {year}",
+    "pocso_case": "Special Sessions (POCSO) Case No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may graciously be pleased to:",
+    "closing": "And for this act of kindness, the petitioner shall, as in duty bound, ever pray.",
+    "tone": "respectful"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly verify and declare that the contents of paragraphs ___ to ___ of the above petition are true to my personal knowledge and the contents of paragraphs ___ to ___ are based on information received and legal advice tendered, which I believe to be true. Nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": [
+    "en",
+    "hi",
+    "bn",
+    "ta"
+  ],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "{courtDesignation}, {city}"
+  },
+  "localRules": [
+    "High Court jurisdiction over the A&N Islands UT is exercised by the Calcutta High Court Circuit Bench at Port Blair; appeals, revisions and writ petitions from A&N courts lie before the Circuit Bench. Pleadings before the Circuit Bench follow Calcutta High Court Original/Appellate Side Rules with local adaptations.",
+    "The UT has 3 revenue districts: (i) North & Middle Andaman with HQ at Mayabunder, (ii) South Andaman with HQ at Port Blair, and (iii) Nicobar district with HQ at Car Nicobar. The principal District & Sessions Court is at Port Blair, which also functions as the territorial District Court for the UT in addition to the local district arrangement.",
+    "The Chief Judicial Magistrate is stationed at Port Blair and exercises jurisdiction UT-wide subject to notifications; outlying islands are served by Judicial Magistrates First Class and circuit-court arrangements (e.g., periodic sittings at Mayabunder, Diglipur, Car Nicobar, Campbell Bay).",
+    "English is the working language of pleadings; Hindi pleadings are accepted in mofussil courts. Bengali is widely used given the resettlement population. Tamil and Telugu are also significantly represented.",
+    "The Andaman and Nicobar Islands (Protection of Aboriginal Tribes) Regulation, 1956 (PAT Regulation) creates restricted areas (Jarawa, Sentinelese, Onge, Shompen, Great Andamanese reserves). Entry permits and tribal-welfare considerations apply; advocates filing matters touching tribal land or persons must verify PAT compliance and notification status.",
+    "Forest matters: the Indian Forest Act, 1927 read with the A&N Forest (Conservation) Regulation; the Andaman and Nicobar Islands Land Revenue and Land Reforms Regulation, 1966 governs land tenure (no freehold by non-domiciles outside Port Blair Municipal area; lease tenure prevails).",
+    "Bail applications under S.483 BNSS (formerly S.439 CrPC) before the Sessions Court must disclose any prior rejection by a Magistrate or co-ordinate court; the application is to be accompanied by a certified copy of the FIR, case diary extract (where available) and the bail order, if any.",
+    "Anticipatory bail applications (S.482 BNSS) must be accompanied by an affidavit, certified copy of the FIR and grounds of apprehension. The Calcutta High Court Circuit Bench at Port Blair entertains AB in serious offences; Sessions Court entertains AB concurrently subject to S.482(4) BNSS.",
+    "Vakalatnama in the form prescribed under the Calcutta High Court Rules (as applied) to be filed at the first instance with requisite court-fee stamp.",
+    "Court-fee under the Court-Fees Act, 1870 as extended to the UT; ad valorem fee structure applies to civil suits.",
+    "SC/ST (Prevention of Atrocities) Act, POCSO and NDPS cases are tried by designated Special Courts notified by the UT Administration — typically the District & Sessions Judge or an Additional Sessions Judge at Port Blair.",
+    "Maritime and admiralty matters of significant value lie before the Calcutta High Court (admiralty jurisdiction); local maritime / fisheries disputes may lie before the District Court at Port Blair subject to pecuniary limits and forum-selection clauses.",
+    "Inter-island transport delays are a recognised ground for condonation of delay under S.5 of the Limitation Act in this UT; affidavits should disclose ferry/flight schedules where delay is attributed to inter-island connectivity."
+  ],
+  "e_filing_mandatory": false,
+  "e_filing_note": "e-Filing is operational at Port Blair district court via the eCourts portal; outlying island establishments rely on physical filing. The Calcutta High Court Circuit Bench at Port Blair uses Calcutta HC's e-filing portal."
+}

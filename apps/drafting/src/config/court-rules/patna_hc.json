@@ -1,4 +1,12 @@
 {
+  "_meta": {
+    "description": "Court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 hardening 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "high_court",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
   "courtId": "patna_hc",
   "courtType": "high_court",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
@@ -37,7 +45,10 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": ["en", "hi"],
+  "supported_languages": [
+    "en",
+    "hi"
+  ],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",
@@ -45,6 +56,17 @@
     "causeListFormat": "IN THE HIGH COURT OF JUDICATURE AT PATNA\n{benchDesignation}"
   },
   "localRules": [
+    "All petitions must be filed through an advocate enrolled with the Bar Council of Bihar or an AOR.",
+    "Anticipatory bail applications must be accompanied by a duly sworn affidavit.",
+    "Certified copy of the impugned order must be annexed.",
+    "Index of documents is mandatory.",
+    "All copies to be legible and paginated.",
+    "E-filing is mandatory since 2024."
+  ],
+  "e_filing_mandatory": true,
+  "e_filing_effective_from": "2024-01-01",
+  "state_capital_default_respondent": "State of Bihar through the Principal Secretary, Home Department, Government of Bihar, Patna",
+  "local_rules": [
     "All petitions must be filed through an advocate enrolled with the Bar Council of Bihar or an AOR.",
     "Anticipatory bail applications must be accompanied by a duly sworn affidavit.",
     "Certified copy of the impugned order must be annexed.",

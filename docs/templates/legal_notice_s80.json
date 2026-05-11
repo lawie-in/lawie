@@ -6,39 +6,144 @@
   "icon": "mail",
   "plan_access": "free",
   "applicable_courts": {
-    "court_levels": ["district_court", "high_court"],
-    "states": ["all"]
+    "court_levels": [
+      "district_court",
+      "high_court"
+    ],
+    "states": [
+      "all"
+    ]
   },
-  "supported_languages": ["en", "hi", "bilingual"],
+  "supported_languages": [
+    "en",
+    "hi",
+    "bilingual"
+  ],
   "form_schema": {
     "steps": [
       {
         "step": 1,
         "title": "Sender & Recipient",
         "fields": [
-          { "field_id": "state", "label": "State", "type": "dropdown_search", "source": "courts_db.states", "required": true },
-          { "field_id": "applicant_name", "label": "Sender / Client Name", "type": "text", "required": true, "inject_into": ["header", "body", "closing"] },
-          { "field_id": "applicant_address", "label": "Sender Address", "type": "textarea", "required": true, "inject_into": ["header"] },
-          { "field_id": "respondent_name", "label": "Noticee Name (Government body / Public Officer)", "type": "text", "required": true, "inject_into": ["header", "body"] },
-          { "field_id": "respondent_address", "label": "Noticee Address", "type": "textarea", "required": true, "inject_into": ["header"] },
-          { "field_id": "language", "label": "Document Language", "type": "dropdown", "options_from": "supported_languages", "default": "en", "required": true }
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Sender / Client Name",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "header",
+              "body",
+              "closing"
+            ]
+          },
+          {
+            "field_id": "applicant_address",
+            "label": "Sender Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "respondent_name",
+            "label": "Noticee Name (Government body / Public Officer)",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "header",
+              "body"
+            ]
+          },
+          {
+            "field_id": "respondent_address",
+            "label": "Noticee Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
         ]
       },
       {
         "step": 2,
         "title": "Advocate Details",
         "fields": [
-          { "field_id": "advocate_name", "label": "Advocate Name", "type": "text", "required": true, "inject_into": ["header", "closing"] },
-          { "field_id": "advocate_address", "label": "Advocate Chamber Address", "type": "textarea", "required": true, "inject_into": ["header"] },
-          { "field_id": "advocate_enrollment", "label": "Bar Council Enrollment No.", "type": "text", "required": true, "inject_into": ["closing"] }
+          {
+            "field_id": "advocate_name",
+            "label": "Advocate Name",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "header",
+              "closing"
+            ]
+          },
+          {
+            "field_id": "advocate_address",
+            "label": "Advocate Chamber Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "advocate_enrollment",
+            "label": "Bar Council Enrollment No.",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "closing"
+            ]
+          }
         ]
       },
       {
         "step": 3,
         "title": "Facts & Demand",
         "fields": [
-          { "field_id": "facts_narrative", "label": "Facts of the Case (detailed)", "type": "textarea", "required": true, "min_length": 100, "max_length": 3000, "placeholder": "Describe the cause of action, relevant dates, documents, and how the Government / officer has wronged your client...", "inject_into": ["ai_prompt"] },
-          { "field_id": "demand", "label": "What do you demand the noticee to do?", "type": "textarea", "required": true, "min_length": 20, "max_length": 1000, "placeholder": "e.g., release outstanding payment of Rs. X with interest...", "inject_into": ["ai_prompt", "closing"] }
+          {
+            "field_id": "facts_narrative",
+            "label": "Facts of the Case (detailed)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 100,
+            "max_length": 3000,
+            "placeholder": "Describe the cause of action, relevant dates, documents, and how the Government / officer has wronged your client...",
+            "inject_into": [
+              "ai_prompt"
+            ]
+          },
+          {
+            "field_id": "demand",
+            "label": "What do you demand the noticee to do?",
+            "type": "textarea",
+            "required": true,
+            "min_length": 20,
+            "max_length": 1000,
+            "placeholder": "e.g., release outstanding payment of Rs. X with interest...",
+            "inject_into": [
+              "ai_prompt",
+              "closing"
+            ]
+          }
         ]
       }
     ]
@@ -84,17 +189,13 @@
         "type": "template",
         "alignment": "left",
         "template": "A copy of this notice is retained in my office for record and further action.\n\nYours faithfully,\n\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {advocate_enrollment}\n{advocate_address}\n\n(Counsel for {applicant_name})"
-      },
-      {
-        "section_id": "disclaimer",
-        "type": "template",
-        "alignment": "center",
-        "style": "footer_small_gray",
-        "template": "AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice."
       }
     ]
   },
-  "related_acts": ["CPC Section 80", "Limitation Act 1963"],
+  "related_acts": [
+    "CPC Section 80",
+    "Limitation Act 1963"
+  ],
   "special_prayer_additions": [],
   "filing_checklist": [
     "Send via Registered Post AD (Acknowledgement Due) — retain receipt",
@@ -106,10 +207,21 @@
     "Verify noticee's correct designation and office address"
   ],
   "validation_rules": {
-    "section_codes_allowed": ["CPC", "BNS", "BNSS", "BSA"],
+    "section_codes_allowed": [
+      "CPC",
+      "BNS",
+      "BNSS",
+      "BSA"
+    ],
     "reject_old_codes": [],
     "auto_convert_old_to_new": false,
-    "mandatory_sections": ["header", "subject_line", "body", "demand_clause", "closing", "disclaimer"],
+    "mandatory_sections": [
+      "header",
+      "subject_line",
+      "body",
+      "demand_clause",
+      "closing"
+    ],
     "fact_alteration_check": true,
     "min_body_paragraphs": 5
   },

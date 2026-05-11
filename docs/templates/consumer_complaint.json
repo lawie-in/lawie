@@ -6,47 +6,232 @@
   "icon": "alert-triangle",
   "plan_access": "free",
   "applicable_courts": {
-    "court_levels": ["district_court", "consumer_commission"],
-    "states": ["all"]
+    "court_levels": [
+      "district_court",
+      "consumer_commission"
+    ],
+    "states": [
+      "all"
+    ]
   },
-  "supported_languages": ["en", "hi", "bilingual"],
+  "supported_languages": [
+    "en",
+    "hi",
+    "bilingual"
+  ],
   "form_schema": {
     "steps": [
       {
         "step": 1,
         "title": "Court & Parties",
         "fields": [
-          { "field_id": "state", "label": "State", "type": "dropdown_search", "source": "courts_db.states", "required": true, "cascades_to": ["court_type", "court_name"] },
-          { "field_id": "court_type", "label": "Court Type", "type": "dropdown", "source": "courts_db.court_types", "filtered_by": ["state"], "required": true, "cascades_to": ["court_name"] },
-          { "field_id": "court_name", "label": "Forum Name", "type": "dropdown_search", "source": "courts_db.courts", "filtered_by": ["state", "court_type"], "required": true, "links_to_formatting": true, "inject_into": ["cause_title"] },
-          { "field_id": "applicant_name", "label": "Complainant Name", "type": "text", "required": true, "inject_into": ["cause_title", "body", "verification"] },
-          { "field_id": "father_name", "label": "Father's / Husband's Name", "type": "text", "required": true, "inject_into": ["cause_title"] },
-          { "field_id": "applicant_age", "label": "Age", "type": "number", "required": true, "inject_into": ["cause_title"] },
-          { "field_id": "address", "label": "Complainant Address", "type": "textarea", "required": true, "inject_into": ["cause_title"] },
-          { "field_id": "respondent_name", "label": "Opposite Party (full name & address)", "type": "textarea", "required": true, "inject_into": ["cause_title", "body"] },
-          { "field_id": "language", "label": "Document Language", "type": "dropdown", "options_from": "supported_languages", "default": "en", "required": true }
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true,
+            "cascades_to": [
+              "court_type",
+              "court_name"
+            ]
+          },
+          {
+            "field_id": "court_type",
+            "label": "Court Type",
+            "type": "dropdown",
+            "source": "courts_db.court_types",
+            "filtered_by": [
+              "state"
+            ],
+            "required": true,
+            "cascades_to": [
+              "court_name"
+            ]
+          },
+          {
+            "field_id": "court_name",
+            "label": "Forum Name",
+            "type": "dropdown_search",
+            "source": "courts_db.courts",
+            "filtered_by": [
+              "state",
+              "court_type"
+            ],
+            "required": true,
+            "links_to_formatting": true,
+            "inject_into": [
+              "cause_title"
+            ]
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Complainant Name",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "cause_title",
+              "body",
+              "verification"
+            ]
+          },
+          {
+            "field_id": "father_name",
+            "label": "Father's / Husband's Name",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "cause_title"
+            ]
+          },
+          {
+            "field_id": "applicant_age",
+            "label": "Age",
+            "type": "number",
+            "required": true,
+            "inject_into": [
+              "cause_title"
+            ]
+          },
+          {
+            "field_id": "address",
+            "label": "Complainant Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "cause_title"
+            ]
+          },
+          {
+            "field_id": "respondent_name",
+            "label": "Opposite Party (full name & address)",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "cause_title",
+              "body"
+            ]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
         ]
       },
       {
         "step": 2,
         "title": "Transaction Details",
         "fields": [
-          { "field_id": "deficiency_details", "label": "Deficiency in Service / Defect in Goods (detailed narrative)", "type": "textarea", "required": true, "min_length": 100, "max_length": 3000, "placeholder": "Describe what you purchased/availed, when, the defect/deficiency, attempts to resolve, dates of correspondence...", "inject_into": ["ai_prompt"] },
-          { "field_id": "consideration_amount", "label": "Amount Paid (Rs.)", "type": "number", "required": true, "inject_into": ["body", "prayer"] },
-          { "field_id": "purchase_date", "label": "Date of Purchase / Service", "type": "date", "required": true, "inject_into": ["body"] },
-          { "field_id": "invoice_number", "label": "Invoice / Receipt Number", "type": "text", "required": true, "inject_into": ["body"] },
-          { "field_id": "payment_mode", "label": "Mode of Payment", "type": "text", "required": true, "inject_into": ["body"] },
-          { "field_id": "compensation_claimed", "label": "Compensation Claimed (Rs.)", "type": "number", "required": true, "inject_into": ["prayer"] },
-          { "field_id": "litigation_cost", "label": "Litigation Cost Claimed (Rs.)", "type": "number", "required": true, "inject_into": ["prayer"] }
+          {
+            "field_id": "deficiency_details",
+            "label": "Deficiency in Service / Defect in Goods (detailed narrative)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 100,
+            "max_length": 3000,
+            "placeholder": "Describe what you purchased/availed, when, the defect/deficiency, attempts to resolve, dates of correspondence...",
+            "inject_into": [
+              "ai_prompt"
+            ]
+          },
+          {
+            "field_id": "consideration_amount",
+            "label": "Amount Paid (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": [
+              "body",
+              "prayer"
+            ]
+          },
+          {
+            "field_id": "purchase_date",
+            "label": "Date of Purchase / Service",
+            "type": "date",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "invoice_number",
+            "label": "Invoice / Receipt Number",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "payment_mode",
+            "label": "Mode of Payment",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "compensation_claimed",
+            "label": "Compensation Claimed (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": [
+              "prayer"
+            ]
+          },
+          {
+            "field_id": "litigation_cost",
+            "label": "Litigation Cost Claimed (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": [
+              "prayer"
+            ]
+          }
         ]
       },
       {
         "step": 3,
         "title": "Jurisdiction & Limitation",
         "fields": [
-          { "field_id": "territorial_basis", "label": "Territorial Jurisdiction (why this forum?)", "type": "textarea", "required": true, "min_length": 30, "max_length": 500, "inject_into": ["body"] },
-          { "field_id": "pecuniary_basis", "label": "Pecuniary Jurisdiction (total claim within limit?)", "type": "textarea", "required": true, "min_length": 20, "max_length": 500, "inject_into": ["body"] },
-          { "field_id": "limitation_basis", "label": "Limitation (complaint within 2 years?)", "type": "textarea", "required": true, "min_length": 20, "max_length": 500, "inject_into": ["body"] }
+          {
+            "field_id": "territorial_basis",
+            "label": "Territorial Jurisdiction (why this forum?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 30,
+            "max_length": 500,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "pecuniary_basis",
+            "label": "Pecuniary Jurisdiction (total claim within limit?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 20,
+            "max_length": 500,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "limitation_basis",
+            "label": "Limitation (complaint within 2 years?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 20,
+            "max_length": 500,
+            "inject_into": [
+              "body"
+            ]
+          }
         ]
       }
     ]
@@ -107,17 +292,13 @@
         "type": "template",
         "alignment": "right",
         "template": "THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {court_city}\nDate: {current_date}"
-      },
-      {
-        "section_id": "disclaimer",
-        "type": "template",
-        "alignment": "center",
-        "style": "footer_small_gray",
-        "template": "AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice."
       }
     ]
   },
-  "related_acts": ["Consumer Protection Act 2019 — Sections 2, 34, 35, 38, 39, 69 (Pecuniary per 21 Dec 2021 Notification: District Commission up to Rs.50 Lakh, State Commission Rs.50L-2Cr, National Commission above Rs.2Cr)", "CPC Order VII Rule 1"],
+  "related_acts": [
+    "Consumer Protection Act 2019 — Sections 2, 34, 35, 38, 39, 69 (Pecuniary per 21 Dec 2021 Notification: District Commission up to Rs.50 Lakh, State Commission Rs.50L-2Cr, National Commission above Rs.2Cr)",
+    "CPC Order VII Rule 1"
+  ],
   "special_prayer_additions": [],
   "filing_checklist": [
     "Original + 2 copies of the complaint (total 3 sets)",
@@ -132,10 +313,24 @@
     "Vakalatnama (if filing through advocate)"
   ],
   "validation_rules": {
-    "section_codes_allowed": ["CPA 2019", "CPC", "BNS"],
-    "reject_old_codes": ["CPA 1986"],
+    "section_codes_allowed": [
+      "CPA 2019",
+      "CPC",
+      "BNS"
+    ],
+    "reject_old_codes": [
+      "CPA 1986"
+    ],
     "auto_convert_old_to_new": false,
-    "mandatory_sections": ["cause_title", "complaint_heading", "addressing_clause", "body", "prayer", "verification", "advocate_block", "disclaimer"],
+    "mandatory_sections": [
+      "cause_title",
+      "complaint_heading",
+      "addressing_clause",
+      "body",
+      "prayer",
+      "verification",
+      "advocate_block"
+    ],
     "fact_alteration_check": true,
     "min_body_paragraphs": 8
   },

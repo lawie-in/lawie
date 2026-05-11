@@ -1,4 +1,12 @@
 {
+  "_meta": {
+    "description": "Court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 hardening 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "consumer_commission",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
   "courtId": "consumer_commission_generic",
   "courtType": "consumer_commission",
   "designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION",
@@ -29,7 +37,10 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nCOMPLAINANT",
-  "supported_languages": ["en", "hi"],
+  "supported_languages": [
+    "en",
+    "hi"
+  ],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",
@@ -43,5 +54,6 @@
     "Court fee as per state Consumer Commission rules (typically Rs. 100-500 for District Commission).",
     "Complaint must be filed within 2 years from the date of cause of action (Section 69 CPA 2019).",
     "Pecuniary jurisdiction: District Commission hears complaints where value does not exceed Rs. 50 Lakh (per Notification dated 21 December 2021)."
-  ]
+  ],
+  "e_filing_mandatory": false
 }

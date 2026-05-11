@@ -1,14 +1,24 @@
 {
+  "_meta": {
+    "description": "Court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 hardening 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
   "courtId": "delhi_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE",
   "jurisdictionNote": "District-level criminal courts in Delhi across six court complexes: Saket, Patiala House, Tis Hazari, Karkardooma, Rohini, and Dwarka. Sessions courts try offences punishable with imprisonment exceeding 7 years.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
-    "petitioner": "Applicant",
-    "respondent": "Respondent",
+    "petitioner": "Plaintiff (civil) / Applicant (criminal)",
+    "respondent": "Defendant (civil) / Opposite Party (criminal)",
     "applicant": "Applicant",
     "opposite_party": "Opposite Party",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant",
     "complainant": "Complainant",
     "accused": "Accused",
     "state": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}"
@@ -33,7 +43,10 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": ["en", "hi"],
+  "supported_languages": [
+    "en",
+    "hi"
+  ],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",
@@ -47,5 +60,6 @@
     "If bail was previously rejected, mention the changed circumstances warranting fresh application.",
     "E-filing is available — hard copies to be filed within stipulated time.",
     "Court fee stamp of appropriate denomination to be affixed."
-  ]
+  ],
+  "e_filing_mandatory": false
 }

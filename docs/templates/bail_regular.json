@@ -6,56 +6,275 @@
   "icon": "scales",
   "plan_access": "free",
   "applicable_courts": {
-    "court_levels": ["jmfc", "cjm", "sessions", "high_court"],
-    "states": ["all"]
+    "court_levels": [
+      "jmfc",
+      "cjm",
+      "sessions",
+      "high_court"
+    ],
+    "states": [
+      "all"
+    ]
   },
-  "supported_languages": ["en", "hi", "bilingual"],
+  "supported_languages": [
+    "en",
+    "hi",
+    "bilingual"
+  ],
   "form_schema": {
     "steps": [
       {
         "step": 1,
         "title": "Case Details",
         "fields": [
-          { "field_id": "fir_number", "label": "FIR Number", "type": "text", "required": true, "placeholder": "e.g., 124/2026", "inject_into": ["cause_title", "body_para_1", "prayer"] },
-          { "field_id": "fir_date", "label": "FIR Date", "type": "date", "required": true, "inject_into": ["body_para_1", "prayer"] },
-          { "field_id": "police_station", "label": "Police Station", "type": "text", "required": true, "inject_into": ["body_para_1", "prayer"] },
-          { "field_id": "sections_charged", "label": "Sections Charged in FIR", "type": "multi_select_search", "source": "bns_mapping", "required": true, "auto_convert_old": true, "inject_into": ["body_para_1", "ai_prompt"] },
-          { "field_id": "currently_in_custody", "label": "Is the applicant currently in custody?", "type": "dropdown", "options": [{"id": "yes_judicial", "label": "Yes — Judicial custody"}, {"id": "yes_police", "label": "Yes — Police custody"}, {"id": "no", "label": "No — anticipating arrest"}], "required": true, "inject_into": ["ai_prompt"] },
-          { "field_id": "custody_since", "label": "In custody since (date)", "type": "date", "required": false, "show_if": "currently_in_custody !== no", "inject_into": ["ai_prompt"] }
+          {
+            "field_id": "fir_number",
+            "label": "FIR Number",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., 124/2026",
+            "inject_into": [
+              "cause_title",
+              "body_para_1",
+              "prayer"
+            ]
+          },
+          {
+            "field_id": "fir_date",
+            "label": "FIR Date",
+            "type": "date",
+            "required": true,
+            "inject_into": [
+              "body_para_1",
+              "prayer"
+            ]
+          },
+          {
+            "field_id": "police_station",
+            "label": "Police Station",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "body_para_1",
+              "prayer"
+            ]
+          },
+          {
+            "field_id": "sections_charged",
+            "label": "Sections Charged in FIR",
+            "type": "multi_select_search",
+            "source": "bns_mapping",
+            "required": true,
+            "auto_convert_old": true,
+            "inject_into": [
+              "body_para_1",
+              "ai_prompt"
+            ]
+          },
+          {
+            "field_id": "currently_in_custody",
+            "label": "Is the applicant currently in custody?",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes_judicial",
+                "label": "Yes — Judicial custody"
+              },
+              {
+                "id": "yes_police",
+                "label": "Yes — Police custody"
+              },
+              {
+                "id": "no",
+                "label": "No — anticipating arrest"
+              }
+            ],
+            "required": true,
+            "inject_into": [
+              "ai_prompt"
+            ]
+          },
+          {
+            "field_id": "custody_since",
+            "label": "In custody since (date)",
+            "type": "date",
+            "required": false,
+            "show_if": "currently_in_custody !== no",
+            "inject_into": [
+              "ai_prompt"
+            ]
+          }
         ]
       },
       {
         "step": 2,
         "title": "Court & Parties",
         "fields": [
-          { "field_id": "state", "label": "State", "type": "dropdown_search", "source": "courts_db.states", "required": true, "cascades_to": ["court_type", "court_name"] },
-          { "field_id": "court_type", "label": "Court Type", "type": "dropdown", "source": "courts_db.court_types", "filtered_by": ["state"], "required": true, "cascades_to": ["court_name"] },
-          { "field_id": "court_name", "label": "Court Name", "type": "dropdown_search", "source": "courts_db.courts", "filtered_by": ["state", "court_type"], "required": true, "links_to_formatting": true, "inject_into": ["cause_title"] },
-          { "field_id": "applicant_name", "label": "Applicant / Accused Full Name", "type": "text", "required": true, "inject_into": ["cause_title", "verification", "prayer"] },
-          { "field_id": "father_name", "label": "Father's / Husband's Name", "type": "text", "required": true, "inject_into": ["cause_title"] },
-          { "field_id": "applicant_age", "label": "Age", "type": "number", "required": true, "inject_into": ["cause_title"] },
-          { "field_id": "address", "label": "Residential Address", "type": "textarea", "required": true, "inject_into": ["cause_title"] },
-          { "field_id": "language", "label": "Document Language", "type": "dropdown", "options_from": "supported_languages", "default": "en", "required": true }
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true,
+            "cascades_to": [
+              "court_type",
+              "court_name"
+            ]
+          },
+          {
+            "field_id": "court_type",
+            "label": "Court Type",
+            "type": "dropdown",
+            "source": "courts_db.court_types",
+            "filtered_by": [
+              "state"
+            ],
+            "required": true,
+            "cascades_to": [
+              "court_name"
+            ]
+          },
+          {
+            "field_id": "court_name",
+            "label": "Court Name",
+            "type": "dropdown_search",
+            "source": "courts_db.courts",
+            "filtered_by": [
+              "state",
+              "court_type"
+            ],
+            "required": true,
+            "links_to_formatting": true,
+            "inject_into": [
+              "cause_title"
+            ]
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Applicant / Accused Full Name",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "cause_title",
+              "verification",
+              "prayer"
+            ]
+          },
+          {
+            "field_id": "father_name",
+            "label": "Father's / Husband's Name",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "cause_title"
+            ]
+          },
+          {
+            "field_id": "applicant_age",
+            "label": "Age",
+            "type": "number",
+            "required": true,
+            "inject_into": [
+              "cause_title"
+            ]
+          },
+          {
+            "field_id": "address",
+            "label": "Residential Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "cause_title"
+            ]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
         ]
       },
       {
         "step": 3,
         "title": "Facts & Grounds",
         "fields": [
-          { "field_id": "facts_narrative", "label": "Brief Facts of the Case (3-5 lines)", "type": "textarea", "required": true, "min_length": 50, "max_length": 1500, "placeholder": "Describe what happened from the applicant's perspective...", "inject_into": ["ai_prompt"] },
-          { "field_id": "grounds_for_bail", "label": "Grounds for Bail (select all applicable)", "type": "checkbox_group", "required": true, "min_select": 2, "options": [
-            { "id": "false_implication", "label": "Falsely implicated due to enmity / mistaken identity" },
-            { "id": "no_flight_risk", "label": "Not a flight risk — deep roots in society" },
-            { "id": "no_criminal_antecedent", "label": "No prior criminal record / first-time offender" },
-            { "id": "cooperation", "label": "Will cooperate with investigation and trial" },
-            { "id": "no_evidence_tampering", "label": "No possibility of tampering with evidence" },
-            { "id": "prolonged_custody", "label": "Already in prolonged custody" },
-            { "id": "investigation_complete", "label": "Investigation is complete / chargesheet filed" },
-            { "id": "medical_grounds", "label": "Medical / health grounds" },
-            { "id": "willing_mediation", "label": "Willing to participate in mediation / counselling" },
-            { "id": "youth_first_time", "label": "Young person, no prior offence" }
-          ], "inject_into": ["ai_prompt"] },
-          { "field_id": "additional_context", "label": "Anything else the court should know? (optional)", "type": "textarea", "required": false, "max_length": 800, "inject_into": ["ai_prompt"] }
+          {
+            "field_id": "facts_narrative",
+            "label": "Brief Facts of the Case (3-5 lines)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 50,
+            "max_length": 1500,
+            "placeholder": "Describe what happened from the applicant's perspective...",
+            "inject_into": [
+              "ai_prompt"
+            ]
+          },
+          {
+            "field_id": "grounds_for_bail",
+            "label": "Grounds for Bail (select all applicable)",
+            "type": "checkbox_group",
+            "required": true,
+            "min_select": 2,
+            "options": [
+              {
+                "id": "false_implication",
+                "label": "Falsely implicated due to enmity / mistaken identity"
+              },
+              {
+                "id": "no_flight_risk",
+                "label": "Not a flight risk — deep roots in society"
+              },
+              {
+                "id": "no_criminal_antecedent",
+                "label": "No prior criminal record / first-time offender"
+              },
+              {
+                "id": "cooperation",
+                "label": "Will cooperate with investigation and trial"
+              },
+              {
+                "id": "no_evidence_tampering",
+                "label": "No possibility of tampering with evidence"
+              },
+              {
+                "id": "prolonged_custody",
+                "label": "Already in prolonged custody"
+              },
+              {
+                "id": "investigation_complete",
+                "label": "Investigation is complete / chargesheet filed"
+              },
+              {
+                "id": "medical_grounds",
+                "label": "Medical / health grounds"
+              },
+              {
+                "id": "willing_mediation",
+                "label": "Willing to participate in mediation / counselling"
+              },
+              {
+                "id": "youth_first_time",
+                "label": "Young person, no prior offence"
+              }
+            ],
+            "inject_into": [
+              "ai_prompt"
+            ]
+          },
+          {
+            "field_id": "additional_context",
+            "label": "Anything else the court should know? (optional)",
+            "type": "textarea",
+            "required": false,
+            "max_length": 800,
+            "inject_into": [
+              "ai_prompt"
+            ]
+          }
         ]
       }
     ]
@@ -63,7 +282,10 @@
   "computed_fields": {
     "bail_section": {
       "logic": "if currently_in_custody === 'no' then '482' else '480'",
-      "label_map": { "480": "Regular Bail", "482": "Anticipatory Bail" }
+      "label_map": {
+        "480": "Regular Bail",
+        "482": "Anticipatory Bail"
+      }
     },
     "bail_type_label": {
       "logic": "label_map[bail_section]"
@@ -126,17 +348,14 @@
         "type": "template",
         "alignment": "right",
         "template": "THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {court_city}\nDate: {current_date}"
-      },
-      {
-        "section_id": "disclaimer",
-        "type": "template",
-        "alignment": "center",
-        "style": "footer_small_gray",
-        "template": "AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice."
       }
     ]
   },
-  "related_acts": ["BNS", "BNSS", "Constitution Article 21"],
+  "related_acts": [
+    "BNS",
+    "BNSS",
+    "Constitution Article 21"
+  ],
   "special_prayer_additions": [],
   "filing_checklist": [
     "Certified copy of FIR No. {fir_number}",
@@ -148,10 +367,26 @@
     "Court fee as per state schedule"
   ],
   "validation_rules": {
-    "section_codes_allowed": ["BNS", "BNSS", "BSA"],
-    "reject_old_codes": ["IPC", "CrPC", "IEA"],
+    "section_codes_allowed": [
+      "BNS",
+      "BNSS",
+      "BSA"
+    ],
+    "reject_old_codes": [
+      "IPC",
+      "CrPC",
+      "IEA"
+    ],
     "auto_convert_old_to_new": true,
-    "mandatory_sections": ["cause_title", "application_heading", "addressing_clause", "body", "prayer", "verification", "advocate_block", "disclaimer"],
+    "mandatory_sections": [
+      "cause_title",
+      "application_heading",
+      "addressing_clause",
+      "body",
+      "prayer",
+      "verification",
+      "advocate_block"
+    ],
     "fact_alteration_check": true,
     "min_body_paragraphs": 7
   },
@@ -160,6 +395,12 @@
     "created_by": "Ajay · CLO",
     "reviewed_at": "2026-04-28",
     "status": "active",
-    "next_templates_in_pipeline": ["legal_notice_s138", "bail_anticipatory", "bail_dv_dowry", "rent_agreement_residential", "consumer_complaint_district"]
+    "next_templates_in_pipeline": [
+      "legal_notice_s138",
+      "bail_anticipatory",
+      "bail_dv_dowry",
+      "rent_agreement_residential",
+      "consumer_complaint_district"
+    ]
   }
 }

@@ -2,26 +2,81 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } fro
 import { saveAs } from 'file-saver';
 
 /**
- * Export the editor HTML content as a PDF file.
- * Uses html2pdf.js (client-side, no puppeteer needed).
+ * Export the editor HTML content as a PDF file (CLIENT-SIDE FALLBACK).
+ *
+ * IMPORTANT: This is the fallback path used only when the server-side
+ * Puppeteer render in apps/drafting/src/services/pdf-export.service.ts is
+ * unreachable. The server route is the source of truth for filing-grade
+ * formatting; this function MUST mirror its output as closely as possible:
+ * Times New Roman 12pt, double-spaced, 1.5" left margin, single AI disclaimer
+ * footer with the .disclaimer divider line.
+ *
+ * Style is injected via a <style> tag inside the wrapper rather than inline
+ * on the wrapper element, because TipTap's inner HTML carries its own
+ * inherited styling that would otherwise override a wrapper-level fontFamily.
  */
 export async function exportPdf(html: string, title: string, _isFree: boolean): Promise<void> {
   // Dynamic import — html2pdf.js is a large bundle, only load when needed
   const html2pdf = (await import('html2pdf.js')).default;
 
   const wrapper = document.createElement('div');
-  wrapper.innerHTML = html;
-  wrapper.style.fontFamily = 'serif';
-  wrapper.style.fontSize = '12pt';
-  wrapper.style.lineHeight = '1.6';
-  wrapper.style.padding = '40px';
-  wrapper.style.maxWidth = '210mm';
+  // Court-grade CSS — mirrors apps/drafting/src/services/pdf-export.service.ts
+  // contentToHtml() so server-side and client-side fallback paths produce
+  // visually-identical PDFs. If you change one, change the other.
+  wrapper.innerHTML = `
+    <style>
+      .lawie-pdf-root, .lawie-pdf-root * {
+        font-family: "Times New Roman", Times, serif !important;
+        color: #000;
+      }
+      .lawie-pdf-root {
+        font-size: 12pt;
+        line-height: 2;
+        margin: 0;
+        padding: 0;
+      }
+      .lawie-pdf-root p {
+        margin: 0 0 0.5em 0;
+        orphans: 2;
+        widows: 2;
+        font-size: 12pt;
+        line-height: 2;
+      }
+      .lawie-pdf-root h1, .lawie-pdf-root h2, .lawie-pdf-root h3 {
+        font-weight: bold;
+        margin: 0.6em 0 0.3em;
+      }
+      .lawie-pdf-root h1 { font-size: 14pt; text-align: center; }
+      .lawie-pdf-root h2 { font-size: 13pt; }
+      .lawie-pdf-root h3 { font-size: 12pt; }
+      .lawie-pdf-root strong, .lawie-pdf-root b { font-weight: bold; }
+      .lawie-pdf-root em, .lawie-pdf-root i { font-style: italic; }
+      .lawie-pdf-root u { text-decoration: underline; }
+      .lawie-pdf-root ul, .lawie-pdf-root ol { margin: 0.4em 0 0.4em 1.5em; padding: 0; }
+      .lawie-pdf-root li { margin-bottom: 0.2em; }
+      .lawie-pdf-root .disclaimer {
+        margin-top: 2em;
+        padding-top: 1em;
+        border-top: 1px solid #999;
+        font-size: 9pt;
+        color: #666;
+        text-align: center;
+        line-height: 1.4;
+        page-break-inside: avoid;
+      }
+    </style>
+    <div class="lawie-pdf-root">
+      ${html}
+      <div class="disclaimer">AI-assisted draft &mdash; verify with applicable law before filing. Lawie does not provide legal advice.</div>
+    </div>
+  `;
 
   const filename = `${title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}.pdf`;
 
   await html2pdf()
     .set({
-      margin: [15, 15, 15, 15],
+      // 1.5" left, 1" top/bottom/right — court convention (matches server margins)
+      margin: [25.4, 25.4, 25.4, 38.1], // mm: 1in, 1in, 1in, 1.5in
       filename,
       image: { type: 'jpeg', quality: 0.95 },
       html2canvas: { scale: 2, useCORS: true },

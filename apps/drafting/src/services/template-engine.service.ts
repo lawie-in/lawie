@@ -772,6 +772,18 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
     }
   }
 
+  // SCRUM-67: Grounds-vs-facts coherence — inject reconciliation rules when the
+  // selected grounds aren't supported by keywords in the facts narrative.
+  // (See detectCoherenceMismatches for the full rule list and per-rule prompts.)
+  const groundsRaw = ctx.grounds_for_bail ?? ctx.grounds_for_quashing ?? ctx.grounds;
+  const factsRaw = ctx.facts_narrative ?? ctx.facts ?? '';
+  if (groundsRaw && factsRaw) {
+    const mismatches = detectCoherenceMismatches(groundsRaw, factsRaw);
+    for (const m of mismatches) {
+      prompt += `\n\n${m.prompt_injection}`;
+    }
+  }
+
   if (section.min_paragraphs || section.max_paragraphs) {
     const min = section.min_paragraphs ?? 5;
     const max = section.max_paragraphs ?? 12;
@@ -781,6 +793,144 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
   prompt += '\n\nDraft the body paragraphs now:';
 
   return prompt;
+}
+
+// ── SCRUM-67: Grounds-vs-facts coherence rules ──────────────────────────────
+//
+// When an advocate selects a ground (e.g. "false_implication") but the facts
+// narrative doesn't contain any of the keywords that would normally substantiate
+// that ground, the AI is told to explicitly reconcile the mismatch in the body,
+// and a coherence_mismatch warning surfaces in the drafting `done` event so the
+// frontend can show a review chip on the editor.
+//
+// Reviewer: Ajay (CLO) for the prompt language. Each rule's `prompt_injection`
+// is rendered verbatim into the AI user prompt — keep wording strict.
+
+export interface CoherenceRule {
+  /** Form field value (e.g. `false_implication`) — must match one of the checkbox options */
+  groundId: string;
+  /** Human-readable label for warnings */
+  groundLabel: string;
+  /** Regex run against facts narrative — ANY match = coherent (no injection) */
+  narrativeKeywords: RegExp;
+  /** Verbatim text injected into the AI user prompt when this rule fires */
+  promptInjection: string;
+  /** Short warning surfaced to the frontend via the SSE `done` event */
+  warningMessage: string;
+}
+
+export const COHERENCE_RULES: CoherenceRule[] = [
+  {
+    groundId: 'false_implication',
+    groundLabel: 'False implication',
+    narrativeKeywords:
+      /\b(rendered|aid|took|brought|drove|carried|hospital|help|assist|first[- ]?aid|rescue|good[- ]?samaritan|misunderstood|misidentif|wrongly[- ]?named|mistaken[- ]?identity|cross[- ]?complain)/i,
+    promptInjection:
+      'COHERENCE: The applicant has selected "False implication" as a ground, but the facts narrative does not clearly show either (a) positive deeds by the applicant (rendering aid, taking the victim to hospital, etc.) or (b) why blame was misattributed. In the body paragraphs, explicitly reconcile the false-implication ground with the narrative — explain HOW the applicant\'s passive presence or absence led to wrongful blame. Do not paraphrase generically.',
+    warningMessage:
+      'False implication ground selected, but the facts narrative does not show positive deeds or explain why blame was misattributed.',
+  },
+  {
+    groundId: 'business_dispute_civil_in_nature',
+    groundLabel: 'Business / civil dispute',
+    narrativeKeywords:
+      /\b(business|commercial|transaction|partnership|partner|contract|payment|debt|loan|firm|account|trade|supplier|client|civil[- ]nature|recovery|cheque|invoice|consignment|stock|shareholding)/i,
+    promptInjection:
+      'COHERENCE: The applicant has selected "Business dispute civil in nature" as a ground, but the facts narrative does not identify the underlying business or commercial relationship. In the body, explicitly state the business / commercial relationship between the applicant and the de-facto complainant, the nature of the transaction in dispute, and how a purely civil dispute was wrongly converted into a criminal complaint.',
+    warningMessage:
+      'Business dispute ground selected, but the facts narrative does not identify the business relationship.',
+  },
+  {
+    groundId: 'complainant_motive',
+    groundLabel: 'Complainant motive',
+    narrativeKeywords:
+      /\b(dispute|feud|grudge|previous|earlier|history|enmity|enemity|rivalry|prior[- ]complain|cross[- ]case|land[- ]dispute|family[- ]dispute|panchayat|altercation|quarrel|verbal[- ]exchange|motive|malafide|malicious|ulterior|vendetta|harass)/i,
+    promptInjection:
+      'COHERENCE: The applicant has selected "Complainant motive" as a ground, but the facts narrative does not establish prior friction, dispute, or motive. In the body, explicitly identify the prior dispute, feud, or motive that explains why the complainant filed a false or motivated complaint against the applicant.',
+    warningMessage:
+      'Complainant motive ground selected, but the facts narrative does not establish prior friction.',
+  },
+  {
+    groundId: 'medical_grounds',
+    groundLabel: 'Medical grounds',
+    narrativeKeywords:
+      /\b(medical|health|illness|hospital|treatment|surgery|diabet|cardiac|hyperten|cancer|tumour|tumor|pregnan|disabled|disability|asthma|respiratory|kidney|dialysis|stroke|paralysi|chronic|prescript|medication|physician|specialist|RIMS|AIIMS)/i,
+    promptInjection:
+      'COHERENCE: The applicant has selected "Medical grounds" as a ground, but the facts narrative does not describe any medical condition. In the body, explicitly identify the medical condition, name the treating hospital or doctor, and explain why custodial interrogation would aggravate the condition.',
+    warningMessage:
+      'Medical grounds selected, but the facts narrative does not describe any medical condition.',
+  },
+  {
+    groundId: 'deep_roots_in_community',
+    groundLabel: 'Deep roots in community',
+    narrativeKeywords:
+      /\b(resid|family|employ|since|years|own[- ]?property|owner|landed|ancestral|local|community|generation|childhood|born|spouse|husband|wife|children|elder|aged[- ]?parent|business[- ]?in|works[- ]?as|profession|practice|teach|nurse|engineer|doctor|farm)/i,
+    promptInjection:
+      'COHERENCE: The applicant has selected "Deep roots in community" as a ground, but the facts narrative does not establish ties to the jurisdiction. In the body, explicitly state how long the applicant has resided / been employed in the jurisdiction, family ties (dependants, elderly parents, school-going children), and property or business interests that prevent any flight risk.',
+    warningMessage:
+      'Deep roots ground selected, but the facts narrative does not establish residence, family, or property ties.',
+  },
+  {
+    groundId: 'professional_reputation',
+    groundLabel: 'Professional reputation',
+    narrativeKeywords:
+      /\b(profession|occupation|employed|works[- ]?as|teacher|doctor|engineer|advocate|lawyer|nurse|officer|manager|director|professor|judge|civil[- ]servant|government[- ]servant|industry|practice|reputation|standing|client|patient|student|colleague|firm)/i,
+    promptInjection:
+      'COHERENCE: The applicant has selected "Professional reputation" as a ground, but the facts narrative does not identify the applicant\'s profession or standing. In the body, explicitly identify the applicant\'s profession, employer, and how arrest would damage a professional reputation built over years.',
+    warningMessage:
+      'Professional reputation ground selected, but the facts narrative does not identify a profession.',
+  },
+];
+
+export interface CoherenceMismatch {
+  rule_id: string;
+  ground_label: string;
+  warning_message: string;
+  prompt_injection: string;
+}
+
+/**
+ * Detect grounds-vs-facts coherence mismatches.
+ *
+ * `grounds` accepts either a string array (raw form value) or a comma/space-
+ * separated string (already-flattened placeholder-context value). Each ground
+ * id is checked against COHERENCE_RULES — if its narrativeKeywords regex does
+ * NOT match the facts narrative, a mismatch is emitted.
+ *
+ * Used in two places:
+ *   1. buildAIUserPrompt → injects each mismatch's promptInjection into the AI prompt.
+ *   2. ai.service.ts → emits each mismatch as a `coherence_mismatch` warning
+ *      on the SSE `done` event so the frontend can show a review chip.
+ */
+export function detectCoherenceMismatches(
+  grounds: string | string[] | undefined | null,
+  facts: string | undefined | null,
+): CoherenceMismatch[] {
+  if (!grounds || !facts) return [];
+
+  // Normalise grounds → array of ground ids
+  const groundsArr = Array.isArray(grounds)
+    ? grounds.map((g) => String(g).trim())
+    : String(grounds)
+        .split(/[,\n;]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+  const factsStr = String(facts);
+  if (!factsStr.trim()) return [];
+
+  const out: CoherenceMismatch[] = [];
+  for (const rule of COHERENCE_RULES) {
+    if (!groundsArr.includes(rule.groundId)) continue;
+    if (rule.narrativeKeywords.test(factsStr)) continue; // narrative substantiates the ground
+    out.push({
+      rule_id: rule.groundId,
+      ground_label: rule.groundLabel,
+      warning_message: rule.warningMessage,
+      prompt_injection: rule.promptInjection,
+    });
+  }
+  return out;
 }
 
 // ── Full Document Assembly ──────────────────────────────────────────────────
@@ -813,8 +963,94 @@ export function assembleDocument(sections: RenderedSection[]): {
     return s;
   });
 
-  const fullText = assembled.map((s) => s.content).join('\n\n');
+  // Emit styled HTML so that per-section alignment + headings survive into the
+  // saved content. Before this, `assembled.map(s => s.content).join('\n\n')`
+  // produced a plain-text blob and the cause-title / application-heading lost
+  // their `alignment: 'center'` + bold styling. The PDF export's heading-
+  // detection heuristic only caught all-caps single-line paragraphs, leaving
+  // multi-line cause-title flush-left in the rendered PDF.
+  //
+  // Both `contentToHtml` (server PDF route) and the TipTap editor / client
+  // `exportPdf` fallback detect HTML via the leading `<` and embed as-is —
+  // no other code path needs to change.
+  const fullText = assembled.map((s) => sectionToStyledHtml(s)).join('\n');
   return { fullText, bodyParaCount };
+}
+
+// ── HTML emitter for assembleDocument ───────────────────────────────────────
+//
+// Each rendered section becomes a sequence of `<p style="text-align:...">` —
+// alignment from the section's `alignment` field, headings auto-promoted to
+// `<strong>` + centred when they look like a court-document heading line.
+//
+// Heading detection (matches the smoke-test export-pdf.ts heuristic so both
+// pipelines agree on what counts as a heading):
+//   • Single-line paragraph, ≤120 chars
+//   • Either fully UPPERCASE, OR starts with one of the well-known prefixes
+//     (PRAYER / VERIFICATION / DEMAND / LEGAL NOTICE / APPLICATION FOR /
+//      THROUGH: / Subject: / IN THE [HIGH] COURT / MOST RESPECTFULLY)
+
+function isHeadingLine(line: string): boolean {
+  const t = line.trim();
+  if (!t || t.length > 120) return false;
+  if (
+    /^(MOST RESPECTFULLY|PRAYER|VERIFICATION|DEMAND|LEGAL NOTICE|APPLICATION FOR|THROUGH:|Subject:|IN THE (HIGH )?COURT|TO,?\s*$)/i.test(
+      t,
+    )
+  ) {
+    return true;
+  }
+  // All-caps line with at least one letter
+  return t === t.toUpperCase() && /[A-Z]/.test(t);
+}
+
+function escapeHtmlForAssembly(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function markdownInline(s: string): string {
+  // Convert **bold** and *italic* tokens after escaping. Conservative — only
+  // these two markers are commonly produced by the AI and we don't want to
+  // misinterpret stray asterisks in legal text.
+  let html = escapeHtmlForAssembly(s);
+  html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+  return html;
+}
+
+export function sectionToStyledHtml(section: RenderedSection): string {
+  const align = section.alignment ?? 'left';
+  // Paragraphs separated by blank lines; lines within a paragraph become <br>.
+  const paragraphs = section.content.split(/\n\n+/);
+  const parts: string[] = [];
+
+  for (const para of paragraphs) {
+    const trimmed = para.trim();
+    if (!trimmed) continue;
+
+    // SCRUM-44 horizontal rule support (---)
+    if (trimmed === '---') {
+      parts.push('<hr>');
+      continue;
+    }
+
+    const lines = trimmed.split('\n');
+    // Heading: single-line paragraph that matches the heading regex
+    if (lines.length === 1 && isHeadingLine(lines[0])) {
+      // Headings are centred and bold regardless of section alignment.
+      parts.push(`<p style="text-align:center"><strong>${markdownInline(lines[0])}</strong></p>`);
+      continue;
+    }
+
+    const lineHtml = lines.map((l) => markdownInline(l)).join('<br>');
+    parts.push(`<p style="text-align:${align}">${lineHtml}</p>`);
+  }
+
+  return parts.join('\n');
 }
 
 // ── Form Validation ─────────────────────────────────────────────────────────

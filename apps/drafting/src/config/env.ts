@@ -15,9 +15,11 @@ const envSchema = z.object({
     .length(64, 'ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)')
     .regex(/^[0-9a-fA-F]+$/, 'ENCRYPTION_KEY must be a valid hex string'),
 
-  // Anthropic API key — drafting service only (required in staging/prod)
+  // Anthropic API key — drafting service only (required in staging/prod).
+  // Model IDs are intentionally NOT here — they live in the AppSetting Mongo
+  // collection (keys: ai.drafting_model, ai.preflight_model) so the founder
+  // can change them at runtime via /admin/ai-config without redeploy.
   ANTHROPIC_API_KEY: z.string().default(''),
-  ANTHROPIC_MODEL: z.string().default('claude-4.6-sonnet'),
 
   // Helicone — LLM cost observability proxy (optional, disabled if empty)
   HELICONE_API_KEY: z.string().default(''),

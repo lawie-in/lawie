@@ -1,0 +1,60 @@
+data: {"text":"1. That the Applicant seeks regular bail in connection with FIR No. 124/2026 dated 15."}
+
+data: {"text":"03.2026, registered at Police Station Kotwali, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023, wherein"}
+
+data: {"text":" the Applicant has been falsely implicated by the Opposite Party.\n\n2. That the facts giving rise to the present FIR are that"}
+
+data: {"text":" the Applicant has been falsely implicated in the aforementioned FIR due to a land dispute with the complainant. The entire case"}
+
+data: {"text":" against the Applicant is based on false and fabricated allegations made with malicious intent to har"}
+
+data: {"text":"ass and implicate the Applicant in a criminal case.\n\n3. That the Applicant submits that he was not present at the time and"}
+
+data: {"text":" place of the alleged incident and has credible witnesses who can establish his alibi. The Applicant was"}
+
+data: {"text":" elsewhere at the time when the alleged offence is said to have been committed,"}
+
+data: {"text":" and this fact can be substantiated through reliable evidence and witness testimony"}
+
+data: {"text":".\n\n4. That the Applicant was arrested on 16.03.2026 and has been languishing in judicial custody since then without any justifiable reason. The continued"}
+
+data: {"text":" detention of the Applicant is causing irreparable hardship and violates his fundamental right to life and liberty guaranteed under"}
+
+data: {"text":" Article 21 of the Constitution of India.\n\n5. That the Applicant has been falsely implicated in the present case due to the existing land dispute with the complainant. The"}
+
+data: {"text":" complainant, having failed to succeed in civil proceedings, has now resorted to filing"}
+
+data: {"text":" false criminal complaints to pressurize and harass the Applicant. The allegations made against"}
+
+data: {"text":" the Applicant are entirely baseless and without any merit.\n\n6. That the Applicant is a respectable member of society with deep"}
+
+data: {"text":" roots in the community and has no intention or inclination to flee from justice. He"}
+
+data: {"text":" has been residing at the same address for several years and has strong family"}
+
+data: {"text":" and social ties that ensure his presence during the trial proceedings.\n\n7. That the Applicant has no"}
+
+data: {"text":" criminal antecedents whatsoever and has never been involved in any criminal activity in the past. His character and conduct have always been exemplary, and there"}
+
+data: {"text":" is nothing on record to suggest that he would misuse his liberty if granted"}
+
+data: {"text":" bail.\n\n8. That the Applicant undertakes to cooperate fully with the investigation and trial proceedings. He shall remain present"}
+
+data: {"text":" before the investigating agency and the Court as and when required and"}
+
+data: {"text":" shall not tamper with any evidence or influence any witnesses in the case.\n\n9. That Section"}
+
+data: {"text":" 351 of BNS, 2023 under which the Applicant is charged is a bailable offence, and the Applicant is entitled"}
+
+data: {"text":" to bail as a matter of right. Even in respect of Section"}
+
+data: {"text":" 303 of BNS, 2023, which is non-bailable, the circumstances of the present case warrant the grant of bail in"}
+
+data: {"text":" favour of the Applicant.\n\n10. That the investigation in the matter is pending, and there"}
+
+data: {"text":" is no likelihood of the same being completed in the near future. The continued detention of the Applicant serves no useful"}
+
+data: {"text":" purpose and would only result in unnecessary harassment and violation of his fundamental rights without any corresponding benefit to the cause of justice."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"IN THE COURT OF DISTRICT & SESSIONS JUDGE\nAT Patna\n\nCriminal Miscellaneous Case No. _____ of 2026\n\nIN THE MATTER OF:\n\nRajan Kumar\nS/o Shri Mohan Kumar\nAge: 32 years\nR/o Village Danapur, District Patna, Bihar\n                                              ... Applicant\n\nVersus\n\nState of Bihar through the District Magistrate / S.P., Patna\n                                              ... Opposite Party","alignment":"center"},{"section_id":"application_heading","type":"template","content":"APPLICATION FOR Regular Bail UNDER SECTION 480 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE DISTRICT & SESSIONS JUDGE,\nPatna\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. That the Applicant seeks regular bail in connection with FIR No. 124/2026 dated 15.03.2026, registered at Police Station Kotwali, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023, wherein the Applicant has been falsely implicated by the Opposite Party.\n\n2. That the facts giving rise to the present FIR are that the Applicant has been falsely implicated in the aforementioned FIR due to a land dispute with the complainant. The entire case against the Applicant is based on false and fabricated allegations made with malicious intent to harass and implicate the Applicant in a criminal case.\n\n3. That the Applicant submits that he was not present at the time and place of the alleged incident and has credible witnesses who can establish his alibi. The Applicant was elsewhere at the time when the alleged offence is said to have been committed, and this fact can be substantiated through reliable evidence and witness testimony.\n\n4. That the Applicant was arrested on 16.03.2026 and has been languishing in judicial custody since then without any justifiable reason. The continued detention of the Applicant is causing irreparable hardship and violates his fundamental right to life and liberty guaranteed under Article 21 of the Constitution of India.\n\n5. That the Applicant has been falsely implicated in the present case due to the existing land dispute with the complainant. The complainant, having failed to succeed in civil proceedings, has now resorted to filing false criminal complaints to pressurize and harass the Applicant. The allegations made against the Applicant are entirely baseless and without any merit.\n\n6. That the Applicant is a respectable member of society with deep roots in the community and has no intention or inclination to flee from justice. He has been residing at the same address for several years and has strong family and social ties that ensure his presence during the trial proceedings.\n\n7. That the Applicant has no criminal antecedents whatsoever and has never been involved in any criminal activity in the past. His character and conduct have always been exemplary, and there is nothing on record to suggest that he would misuse his liberty if granted bail.\n\n8. That the Applicant undertakes to cooperate fully with the investigation and trial proceedings. He shall remain present before the investigating agency and the Court as and when required and shall not tamper with any evidence or influence any witnesses in the case.\n\n9. That Section 351 of BNS, 2023 under which the Applicant is charged is a bailable offence, and the Applicant is entitled to bail as a matter of right. Even in respect of Section 303 of BNS, 2023, which is non-bailable, the circumstances of the present case warrant the grant of bail in favour of the Applicant.\n\n10. That the investigation in the matter is pending, and there is no likelihood of the same being completed in the near future. The continued detention of the Applicant serves no useful purpose and would only result in unnecessary harassment and violation of his fundamental rights without any corresponding benefit to the cause of justice."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIt is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:\n\na) Grant Regular Bail to the Applicant, Rajan Kumar, in connection with FIR No. 124/2026 dated 15.03.2026, PS Kotwali, under Section 480 of BNSS, 2023, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Pa

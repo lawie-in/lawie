@@ -1,0 +1,79 @@
+{
+  "_meta": {
+    "description": "Ladakh (UT) district & sessions court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — National Batch 6b (UK+JK+LD+Chd) 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "applies_to_state": "Ladakh (UT)",
+    "post_reorganisation_note": "Post the Jammu and Kashmir Reorganisation Act, 2019 (in force 31 October 2019), the Union Territory of Ladakh was carved out without a legislature. The Constitution of India applies in full; BNS / BNSS / BSA apply (subject to transitional savings). The common High Court of Jammu & Kashmir and Ladakh continues to supervise the subordinate judiciary.",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "ld_district",
+  "courtType": "district_court",
+  "designation": "IN THE COURT OF PRINCIPAL DISTRICT & SESSIONS JUDGE",
+  "jurisdictionNote": "District-level criminal and civil courts in the Union Territory of Ladakh, governed by the Jammu and Kashmir Reorganisation Act, 2019 read with the Code of Civil Procedure, 1908 and BNSS, 2023 (extended to the UT post-2019). Sessions courts try offences punishable with imprisonment exceeding 7 years. The UT of Ladakh comprises two districts — Leh and Kargil — and the subordinate judiciary is supervised by the common High Court of Jammu & Kashmir and Ladakh. English is the predominant language of pleadings; vernacular (Bhoti / Urdu / Hindi) translations are permitted.",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Applicant",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant",
+    "complainant": "Complainant",
+    "accused": "Accused",
+    "state": "Union Territory of Ladakh through the Administrator, UT of Ladakh, Leh"
+  },
+  "case_nomenclature": {
+    "regular_bail": "Bail Appl. No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Appl. No. _____ of {year}",
+    "sessions_case": "Sessions Case No. _____ of {year}",
+    "calendar_case": "Criminal Case No. _____ of {year}",
+    "civil_suit": "Civil Suit No. _____ of {year}",
+    "execution": "Execution Petition No. _____ of {year}",
+    "misc_criminal": "Crl. Misc. No. _____ of {year}",
+    "misc_civil": "Civil Misc. Application No. _____ of {year}",
+    "special_case": "Spl. Sessions Case No. _____ of {year}",
+    "atrocity_case": "Spl. Sessions (Atrocities) Case No. _____ of {year}",
+    "ndps_case": "Spl. Sessions (NDPS) Case No. _____ of {year}",
+    "pocso_case": "Spl. Sessions (POCSO) Case No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may graciously be pleased to:",
+    "closing": "And for this act of kindness, the petitioner shall, as in duty bound, ever pray.",
+    "tone": "respectful"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly verify and declare that the contents of paragraphs ___ to ___ of the above petition are true to my personal knowledge and the contents of paragraphs ___ to ___ are based on information received and legal advice tendered, which I believe to be true. Nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": [
+    "en",
+    "hi",
+    "ur"
+  ],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "{courtDesignation}, {city}"
+  },
+  "localRules": [
+    "Post Article 370 abrogation (5 August 2019) and the Jammu and Kashmir Reorganisation Act, 2019, all Central laws apply in full to the UT of Ladakh. Ranbir Penal Code, J&K CrPC and J&K Evidence Act stand repealed; BNS, BNSS and BSA apply (subject to savings under S.531 BNSS).",
+    "Pleadings before the High Court of J&K and Ladakh and the subordinate courts are predominantly in English. Bhoti (Ladakhi), Urdu and Hindi vernacular filings are permitted at district level with English translation.",
+    "Bail applications under S.483 BNSS (formerly S.439 CrPC) before the Sessions Court must disclose any prior rejection by a Magistrate or co-ordinate court.",
+    "Anticipatory bail applications (S.482 BNSS) must be accompanied by an affidavit, certified copy of the FIR and grounds of apprehension.",
+    "Vakalatnama in the form prescribed under the J&K High Court Rules, 1999 (as adapted for Ladakh) to be filed at the first instance with requisite court-fee stamp.",
+    "All civil pleadings to be paginated, indexed and accompanied by a list of documents under Order VII / Order VIII CPC.",
+    "Court-fee under the Court-Fees Act, 1870 (extended to Ladakh vide the Reorganisation Act); ad valorem fee structure applies to civil suits.",
+    "Atrocities (SC/ST), POCSO, NDPS and UAPA cases are tried by designated Special Courts notified by the UT administration — typically the Principal District & Sessions Judge at Leh / Kargil.",
+    "Ladakh has been notified as a Scheduled Area; Sixth Schedule status is under consideration. Customary practices recognised by the Ladakh Autonomous Hill Development Councils (LAHDC) at Leh and Kargil interface with civil jurisdiction in matters of land and inheritance.",
+    "Both Leh and Kargil districts follow seasonal court calendars on account of high-altitude winter closure of certain sub-divisions (Zanskar, Nubra, Drass, Changthang); record-of-rights and revenue forums under the J&K Land Revenue Act (as adapted) interface frequently with civil jurisdiction.",
+    "Leh (UT HQ) and Kargil host the only district court establishments in the UT. The Designation of the senior-most judge in each district is 'Principal District & Sessions Judge'."
+  ],
+  "e_filing_mandatory": false,
+  "e_filing_note": "e-Filing is at a nascent stage at Leh and Kargil via the eCourts portal; connectivity-dependent and not yet mandatory. CIS 3.2 is in the process of being rolled out."
+}

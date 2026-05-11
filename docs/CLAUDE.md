@@ -115,6 +115,606 @@ Blockers: [any dependency — or None]
 ### DIARY ENTRIES
 
 ---
+Date: 2026-05-10
+Session: Sonnet
+Task: SCRUM-69 — Pre-generation verification layer (POST /preflight, pure rules + Haiku LLM)
+Status: Done
+Code changed:
+  New files:
+  - docs/legal/verification_rules.yaml — Rule source of truth (24 triggers, 7 categories, per Ajay CLO taxonomy). Ajay is sole author; Vishal reads only. Encodes all triggers from clo-verification-taxonomy-2026-05-06.md.
+  - apps/drafting/src/services/preflight.service.ts — Pre-generation verifier. Two layers: (1) pure-rule layer (~50ms): 17 deterministic checks across B-F categories (date consistency, section whitelist, missing required fields, jurisdictional mismatch, identity/party checks, document-specific rules); (2) Haiku 4.5 LLM layer (~1.5s): section-vs-facts sanity + narrative role inversion, run in parallel with rules. Hard-block triggers: exactly 5 per ADR-018 spec (future date, age out of range, section not in whitelist, missing required field, role inversion). Fail-open: if Haiku API unavailable, rules-only result returned + preflight_skipped telemetry. Telemetry via Event collection (fire-and-forget).
+  - apps/drafting/src/__tests__/preflight.test.ts — 28 tests covering: all hard-block triggers (B1, B2, B3_hard, F1, F2, section_whitelist), all soft-warn triggers (B3, B4, D1, D2, C2, E1, E2, F3), fail-open (ANTHROPIC_API_KEY empty), route integration (401, 400, 200 pass/hard, _meta not in client response).
+  Modified files:
+  - apps/drafting/src/routes/documents.routes.ts — added POST /preflight route (authenticate → preflightCheck → strip _meta → return { verdict, questions, hardBlockReason }). Fail-open wrapper: if preflightCheck throws, returns { verdict: "pass", questions: [] }.
+Test results: 478/478 passing (28 new + 450 existing), tsc --noEmit clean
+Next step: SCRUM-70 (status bar UI — 5-state pipeline stepper, pairs with SCRUM-69) or SCRUM-65 (annexures pack generator) — next in clean queue
+Blockers: None
+---
+
+---
+Date: 2026-05-10
+Session: Sonnet
+Task: SCRUM-70 — Status bar UI — 5-state pipeline stepper
+Status: Done
+Code changed:
+  New files:
+  - apps/web/src/components/draft/PipelineStatus.tsx — Full 5-state stepper component. States: verifying (blue shimmer), soft_warn (amber, Hinglish copy, 2 CTA buttons + skip link), drafting (purple shimmer + elapsed-seconds timer), ready (all-green, Open in editor CTA), hard_block (red, reason text, Edit form CTA). ProgressBar segments animate per state. ElapsedTimer counts seconds during drafting phase. Design reference: docs/designs/draft-pipeline-status-bar-2026-05-06.html.
+  Modified files:
+  - apps/web/src/app/dashboard/new/page.tsx — Replaced simple spinner/generating phase with PipelineStatus. Added preflight call before SSE generation: verifying → (hard → hard_block | soft → soft_warn | pass → drafting). pendingFormData ref stores form data so advocate can proceed-anyway from soft_warn. onProceedAnyway/onEditForm/onOpenEditor wired. 2.5s auto-redirect from ready state when docId present. tsc --noEmit: 0 errors.
+Test results: tsc --noEmit clean (web app). No new test files (UI component).
+Next step: SCRUM-65 (annexures pack generator + separate affidavit page, P0) or SCRUM-71 (referral code system, P0) — next in clean queue
+Blockers: None
+---
+
+---
+Date: 2026-05-10
+Session: Sonnet
+Task: SCRUM-71 — Referral code system (founder-issued codes + 25 bonus drafts on signup)
+Status: Done
+Code changed:
+  AUTH SERVICE — new/modified files:
+  - apps/auth/src/models/ReferralCode.model.ts (NEW) — ReferralCode schema: code (8-char unique uppercase), label, createdBy, isActive, maxUses (null=unlimited), uses.
+  - apps/auth/src/models/User.model.ts (MODIFIED) — added referredVia (ObjectId ref ReferralCode) + freeTierBonusGrant (number, default 0) fields.
+  - apps/auth/src/services/referral.service.ts (NEW) — generateReferralCode (crypto.randomInt, 5-attempt collision retry), validateReferralCode, disableReferralCode, listReferralCodes, applyReferralCode (increments code.uses + sets user.freeTierBonusGrant=25 + fire-and-forget signalDraftingBonus).
+  - apps/auth/src/routes/referral.routes.ts (NEW) — Admin-gated CRUD (POST /admin/referral-codes, GET, PATCH /:code/disable) + public GET /validate-code/:code.
+  - apps/auth/src/services/auth.service.ts (MODIFIED) — registerUser accepts optional referralCode; calls applyReferralCode void (non-blocking, never fails registration).
+  - apps/auth/src/validators/auth.validator.ts (MODIFIED) — added optional referralCode: z.string().max(16) to registerSchema.
+  - apps/auth/src/app.ts (MODIFIED) — mounted referralRoutes at /.
+  - apps/auth/src/__tests__/referral.test.ts (NEW) — 29 tests: model, service (gen/validate/disable/list), admin routes (201/403/401), public validate-code.
+  DRAFTING SERVICE — new/modified files:
+  - apps/drafting/src/models/BonusCredit.model.ts (NEW) — BonusCredit schema: userId (unique ObjectId), granted, used.
+  - apps/drafting/src/middleware/enforceFreeLimit.ts (MODIFIED) — checks BonusCredit first; if granted-used > 0 → atomically increments used + allows generation. Falls to standard 5/month limit only when bonus exhausted.
+  - apps/drafting/src/routes/internal.routes.ts (NEW) — POST /internal/grant-bonus (x-internal-secret gated); upserts BonusCredit with $inc granted. Called by auth service after referral signup.
+  - apps/drafting/src/app.ts (MODIFIED) — mounted internalRoutes at / (before documentsRoutes).
+  - apps/drafting/src/__tests__/referral-bonus.test.ts (NEW) — 11 tests: BonusCredit model, grant-bonus route (auth/validation/create/increment), enforceFreeLimit bonus deduction + monthly limit fallback.
+  WEB — new/modified files:
+  - apps/web/src/app/admin/referral-codes/page.tsx (NEW) — Founder admin UI: generate form (label + maxUses), code table (code/label/signups/cap/status/created/disable), copy-to-clipboard, gated on role === 'Admin'.
+  - apps/web/src/app/(auth)/login/page.tsx (MODIFIED) — "Have a referral code?" collapsible field; validates code on blur via GET /api/auth/validate-code/:code; stores code in sessionStorage; passes as query param to Google OAuth redirect.
+Test results: auth 69/69 (6 suites), drafting 515/515 (19 suites), web tsc clean
+Next step: SCRUM-74 (advocate-panel review pipeline, P0) — next in clean queue
+Blockers: None
+---
+
+---
+Date: 2026-05-10
+Session: Sonnet
+Task: SCRUM-74 — Jharkhand advocate-panel review pipeline (token-gated review portal + aggregation dashboard)
+Status: Done
+Code changed:
+  DRAFTING SERVICE — new/modified files:
+  - apps/drafting/src/models/ReviewToken.model.ts (NEW) — token (32-char URL-safe random, unique), documentId, assignedTo, assignedEmail, expiresAt (default +14 days), isActive, isUsed (single-shot flag), createdBy.
+  - apps/drafting/src/models/ReviewFeedback.model.ts (NEW) — 8 yes/no checklist fields (causeTitle/sections/facts/prayer/citations/annexures/formatting/wouldFile), overallVerdict enum (ready_to_file|minor_edits|major_edits|reject), comments (max 10K), submittedAt. unique reviewTokenId index.
+  - apps/drafting/src/routes/review.routes.ts (NEW) — Admin-gated: POST /admin/review-tokens (generate via crypto.randomBytes(24).toString('base64url')), GET /admin/review-tokens, PATCH /admin/review-tokens/:token/disable, GET /admin/panel-review (matrix + counts aggregation). Public: GET /review/:token (404/403/410/409/200 with form schema), POST /review/:token/feedback (validates all 8 checklist booleans + verdict enum, marks token used, fires panel_review_submitted Event).
+  - apps/drafting/src/app.ts (MODIFIED) — mounted reviewRoutes before documentsRoutes (so /admin/* and /review/* match before /:id catchall).
+  - apps/drafting/src/__tests__/review.test.ts (NEW) — 27 tests: model unique/enum, admin routes (auth/validation/uniqueness), public routes (404/403/410/409/200), feedback submission (single-shot enforced, telemetry Event recorded), aggregation matrix.
+  WEB — new files:
+  - apps/web/src/app/review/[token]/page.tsx (NEW) — Public review portal. Two-pane layout (document left, checklist right). Document content rendered as TipTap HTML or pre-formatted text. 8 yes/no toggle buttons + verdict dropdown + comments textarea. Validates all yes/no answered before submission. Loading/error/submitted states.
+  - apps/web/src/app/admin/panel-review/page.tsx (NEW) — Founder dashboard. Counts strip (total/submitted/pending/expired). Generate-token form (doc dropdown + advocate name/email). Status filter pills. Matrix table with per-row expand to view full checklist + comments. Copy review URL + revoke buttons. Gated on role==='Admin'.
+  Email notification deferred — submissions logged to Event collection (type: 'panel_review_submitted'). Real email infra is a separate stack decision Arjun owns.
+Test results: drafting 542/542 (20 suites, +27 new), web tsc clean
+Next step: SCRUM-67 (P1, grounds-vs-facts coherence prompt rule, ~1 day) or SCRUM-75 (P1, court-rule golden-master tests, ~4 hr)
+Blockers: None
+---
+
+---
+Date: 2026-05-10
+Session: Sonnet
+Task: SCRUM-75 — Court-rule golden-master snapshot tests (regression-safety net for 13 court rules × 6 templates + annexure HTML)
+Status: Done
+Code changed:
+  New files:
+  - apps/drafting/src/__tests__/court-rules-golden.test.ts (NEW) — 91 snapshots: 78 placeholder-context (13 courts × 6 templates) + 13 annexure-pack HTML (mocked Puppeteer, captures wrapHtml output via setContent.mockImplementationOnce). Date determinism via jest.useFakeTimers().setSystemTime('2026-05-10'). Header has explicit regenerate instructions and approval workflow note (engine/court-rule changes → Arjun, legal-language changes → Ajay).
+  - apps/drafting/src/__tests__/__snapshots__/court-rules-golden.test.ts.snap (NEW, generated) — 5318 lines of locked golden masters covering: court designation, party labels (petitioner/respondent/applicant/accused), state_respondent, case_nomenclature (resolved per template), prayer_opening/prayer_closing, verification_text, court_designation/court_header/court_city, full annexures HTML.
+  Modified files:
+  - apps/drafting/package.json (MODIFIED) — added `test:golden:update` script (`jest --testPathPattern=court-rules-golden --updateSnapshot --forceExit`) so legitimate court-rule changes have a one-liner regen path.
+  Verification: ran `yarn test:golden:update` once, then `yarn test --testPathPattern=court-rules-golden` — second run reports 91 passed / 0 written (deterministic).
+Test results: drafting 633/633 (21 suites, +91 new snapshots), web tsc clean
+Next step: SCRUM-67 (P1, grounds-vs-facts coherence prompt rule, ~1 day) or SCRUM-77 (P1, email system, L size, ~4-5 days — phased)
+Blockers: None
+---
+
+---
+Date: 2026-05-10
+Session: Sonnet
+Task: PDF export bugfix — triple disclaimer + sans-serif body in advocate-pack PDFs
+Status: Done
+Context:
+  Vishal shared a generated bail PDF showing two issues: (1) disclaimer appeared
+  twice on the last page (one large in body, one small with divider), (2) body
+  rendered in sans-serif single-spaced — not the court-standard Times New Roman
+  12pt double-spaced that pdf-export.service.ts contentToHtml() declares.
+Diagnosis:
+  Disclaimer was being added in THREE places:
+  - apps/drafting/src/services/post-processor.ts — `DISCLAIMER` const appended to text after AI generation (saved into doc.generatedContent)
+  - docs/templates/*.json — every template config had a `disclaimer` section in document_structure.sections + 'disclaimer' in mandatory_sections
+  - apps/drafting/src/services/pdf-export.service.ts contentToHtml() — render-time `<div class="disclaimer">` (small font, border-top divider)
+  Sans-serif body was the silent client-side fallback (apps/web/src/components/editor/exportUtils.ts) firing because the server-side Puppeteer route was failing in dev (likely PUPPETEER_EXECUTABLE_PATH unset). The client fallback used `wrapper.style.fontFamily = 'serif'` which TipTap's inner HTML overrode via inheritance, plus lineHeight 1.6 (not double) and inline-only wrapper styling that didn't propagate through html2canvas.
+Code changed:
+  Drafting:
+  - apps/drafting/src/services/post-processor.ts — removed DISCLAIMER const, removed Step 6 append + 'disclaimer' from appendedSections. Updated function header comment to flag pdf-export.service.ts as the single source of truth.
+  - docs/templates/{bail_anticipatory,bail_regular,consumer_complaint,legal_notice_s138,legal_notice_s80,rent_agreement}.json — removed `disclaimer` section from document_structure.sections and removed 'disclaimer' from validation_rules.mandatory_sections via Python json round-trip.
+  - apps/drafting/src/__tests__/post-processor.test.ts — flipped two assertions to `not.toContain('DISCLAIMER')` / `not.toContain('disclaimer')`. Renamed test to "appends verification and advocate block (no disclaimer — render-time only)".
+  - apps/drafting/src/__tests__/template-engine.test.ts — flipped assertion to `not.toContain('disclaimer')`; removed obsolete "renders disclaimer without placeholders" test (template no longer has the section).
+  Web:
+  - apps/web/src/components/editor/exportUtils.ts — rewrote exportPdf() to inject a full court-grade <style> block (TNR 12pt, line-height 2, .disclaimer footer with border-top), wrapped content in a `.lawie-pdf-root` scope class, mirrors pdf-export.service.ts contentToHtml() exactly. Margins switched to A4 mm (1in/1in/1in/1.5in) to match server.
+  - apps/web/src/app/dashboard/documents/[id]/page.tsx — removed silent fallback. Server errors now log via console.error/warn with HTTP status + response body before falling back, so future PUPPETEER_EXECUTABLE_PATH bugs surface.
+  Annexures (apps/drafting/src/services/annexures.service.ts) — disclaimer footers per annexure are intentionally KEPT (one per filed page).
+Test results: drafting 632/632 (21 suites, net -1 from removed obsolete test), 91 snapshots all pass, web tsc clean
+Next step: SCRUM-67 or SCRUM-77 — same as before this fix
+Blockers: None — but flag for next dev session: ensure PUPPETEER_EXECUTABLE_PATH is set in apps/drafting/.env.development so the server-side render is actually used in dev. Right now the silent fallback was masking it; with the fallback no longer silent, the next export attempt will console-log the underlying error.
+---
+
+---
+Date: 2026-05-11
+Session: Sonnet
+Task: SCRUM-67 — Grounds-vs-facts coherence prompt rule (~1 day P1)
+Status: Done
+Context:
+  Spec (Priya, 2026-05-08): detect when the form's selected bail grounds (e.g.
+  `false_implication`) don't have substantiating keywords in the facts narrative,
+  inject a reconciliation rule into the AI user prompt, AND surface a warning to
+  the frontend so a review chip can show on the editor. Reviewer: Ajay (CLO) for
+  prompt language.
+Code changed:
+  - apps/drafting/src/services/template-engine.service.ts — added COHERENCE_RULES array
+    (6 rules: false_implication, business_dispute_civil_in_nature, complainant_motive,
+    medical_grounds, deep_roots_in_community, professional_reputation), CoherenceRule
+    + CoherenceMismatch types, and detectCoherenceMismatches() function. buildAIUserPrompt
+    now calls detectCoherenceMismatches and appends each mismatch's prompt_injection to
+    the AI user prompt. Accepts grounds_for_bail, grounds_for_quashing, or grounds from
+    placeholder context. Each rule has a keyword regex; if regex matches the facts narrative
+    the rule does NOT fire (narrative substantiates the ground).
+  - apps/drafting/src/services/ai.service.ts — imports detectCoherenceMismatches; after
+    BNS whitelist + fact-sanity validation, runs coherence detection on the form data and
+    appends each mismatch to allWarnings as { type: 'coherence_mismatch', message, details:
+    { rule, ground } }. Surfaces via the existing `event: warning` SSE.
+  - apps/drafting/src/services/validator.ts — extended ValidationWarning.type union to
+    include 'coherence_mismatch'; added optional details.rule + details.ground fields.
+  - apps/drafting/src/__tests__/coherence.test.ts (NEW) — 33 tests: per-rule fire/no-fire
+    pairs, multi-rule cases, comma-string input shape, edge cases, exact-count assertion
+    (6 rules per spec), buildAIUserPrompt integration (single + multiple injections,
+    falls back to grounds_for_quashing, no-injection when grounds or facts absent).
+  Defensive type fix in same file: bns-mapping.json now carries non-doctype keys (_meta,
+  alias maps — Ajay's parallel config work). Narrowed validateBnsSections's mapping lookup
+  with a structural guard so the legacy doc-type-keyed call still works.
+Test results: SCRUM-67 surface clean (294/294 in coherence + template-engine + post-processor
+  + preflight + review + annexures + referral-bonus + document-export + validator + prompt-assembler).
+  Full drafting suite reports 24 failing tests + 14 failing snapshots — ALL from Ajay's
+  in-flight config edits (bns-bailability change for BNS 115(2); party_designation rewrites
+  in delhi_district.json + up_district.json; new formattingRulesRef values in indian-courts.json
+  pointing to court-rule files that don't exist yet). These will resolve when Ajay completes
+  his JSON refactor and the SCRUM-75 golden snapshots are regenerated per the approval workflow.
+  No regressions introduced by SCRUM-67.
+Next step: pending Ajay's config work to settle, then either SCRUM-77 (email system, phased)
+  or revisit the PDF cause-title/heading-styling fix (assembleDocument needs to emit styled
+  HTML so cause_title and application_heading carry their alignment + bold into the saved
+  content + PDF — investigation paused tonight when Ajay started config edits).
+Blockers: None for SCRUM-67. Tracking: Ajay's config refactor in flight; the broader test
+  suite will be red on this branch until his edits land + golden snapshots are regenerated.
+---
+
+---
+Date: 2026-05-11
+Session: Sonnet
+Task: Runtime AI model config — move from .env to DB (founder instruction 2026-05-11)
+Status: Done
+Context:
+  Founder rule: "The model should be configurable from DB. It should NOT be hardcoded in
+  .env or in the codebase." Two model references existed: env.ANTHROPIC_MODEL (Sonnet,
+  used twice in ai.service.ts) and a literal 'claude-haiku-4-5-20251001' in preflight.service.ts.
+Architecture:
+  - New collection: AppSetting { key, value, description?, updatedBy, timestamps } —
+    unique key index. Schema enforces /^[a-z][a-z0-9_.-]*$/i and value <= 500 chars.
+  - Service: getAppSetting(key) with 60s in-memory TTL cache; throws AppSettingMissingError
+    on a DB miss (no codebase fallback). setAppSetting invalidates the cache.
+  - Well-known keys: APP_SETTING_KEYS.DRAFTING_MODEL ('ai.drafting_model'),
+    APP_SETTING_KEYS.PREFLIGHT_MODEL ('ai.preflight_model'). These are POINTERS to DB rows,
+    not default values — no model name is baked into the codebase.
+Code changed:
+  New files:
+  - apps/drafting/src/models/AppSetting.model.ts
+  - apps/drafting/src/services/app-settings.service.ts
+  - apps/drafting/src/routes/app-settings.routes.ts (GET / PUT, Admin-gated)
+  - apps/drafting/scripts/seed-app-setting.ts (CLI bootstrap: `yarn seed:setting <key> <value>`)
+  - apps/web/src/app/admin/ai-config/page.tsx (founder UI: per-key edit, Not-configured chip)
+  - apps/drafting/src/__tests__/app-settings.test.ts (19 tests)
+  Modified files:
+  - apps/drafting/src/services/ai.service.ts — streamLLM now `await`s getAppSetting; classifyLlmError
+    recognises AppSettingMissingError and emits a specific user message pointing to /admin/ai-config.
+  - apps/drafting/src/services/preflight.service.ts — Haiku model lookup via getAppSetting;
+    falls open to rules-only if the setting is unset.
+  - apps/drafting/src/config/env.ts — removed ANTHROPIC_MODEL from the schema.
+  - apps/drafting/src/app.ts — mounted appSettingsRoutes.
+  - apps/drafting/package.json — added `seed:setting` script.
+  - .env.development — removed ANTHROPIC_MODEL line.
+  - apps/drafting/src/__tests__/preflight.test.ts — imported setupDb (test previously had no
+    Mongo connection; without it, AppSetting.findOne buffered for 10s per test).
+Bootstrap:
+  Seeded the two required rows for the local dev DB via:
+    yarn workspace @lawie/drafting seed:setting ai.drafting_model claude-sonnet-4-6
+    yarn workspace @lawie/drafting seed:setting ai.preflight_model claude-haiku-4-5-20251001
+  For production / fresh environments the founder uses /admin/ai-config (gated on role === 'Admin').
+Test results:
+  app-settings: 19/19. Touched-surface suite (app-settings|coherence|template-engine|post-processor
+  |preflight|review|annexures|referral-bonus|document-export|validator|prompt-assembler):
+  313/313 in ~10s. tsc clean (drafting + web). The wider drafting suite still shows the
+  same 24 failures from Ajay's config edits — unchanged from earlier today.
+Failure handling:
+  When ai.drafting_model is unset, the drafting SSE emits `event: error` with reason:
+  'AI model is not configured. The founder must set "ai.drafting_model" in /admin/ai-config
+  before drafts can be generated.' The PipelineStatus generation_failed card renders that
+  text verbatim, with retryable=false so no spurious retry buttons appear. The advocate
+  knows exactly what's needed — no log-diving required.
+Cache behaviour:
+  60s TTL. A founder edit via /admin/ai-config propagates to all drafting replicas within
+  one minute without a restart. setAppSetting invalidates the local cache immediately.
+Blockers: None.
+---
+
+---
+Date: 2026-05-11
+Session: Sonnet
+Task: Cleanup sweep — close all paused threads (PDF heading styling, duplicate indexes,
+  Puppeteer launch options, SCRUM-76 runbook).
+Status: Done
+Code changed:
+  1) PDF heading styling — apps/drafting/src/services/template-engine.service.ts:
+     assembleDocument now emits styled HTML via a new sectionToStyledHtml() helper.
+     Per-section `alignment` is preserved as `<p style="text-align:...">`; heading lines
+     (all-caps OR matching well-known prefixes IN THE COURT / PRAYER / VERIFICATION /
+     MOST RESPECTFULLY / APPLICATION FOR / THROUGH / Subject / LEGAL NOTICE / DEMAND / TO)
+     auto-promote to `<p style="text-align:center"><strong>…</strong></p>`. **bold** /
+     *italic* markdown tokens convert to <strong>/<em>. Existing PDF render paths
+     (contentToHtml on server, exportPdf client fallback) already detect HTML via the
+     leading `<` so no other code change needed — the app PDF should now match the smoke-
+     test layout: centred bold cause title, centred bold application heading, bold
+     MOST RESPECTFULLY SHOWETH:, bold PRAYER, body paragraphs in Times New Roman.
+     Tests: template-engine.test.ts `assembleDocument` suite rewritten — asserts
+     structural HTML containment (3 tests, all green).
+  2) Duplicate-index warnings — 5 models had both field-level `unique: true` AND an
+     explicit `Schema.index(...)` for the same field, which Mongoose now warns about.
+     Dropped the redundant explicit index in: BonusCredit (userId), ReviewToken (token),
+     ReviewFeedback (reviewTokenId), AppSetting (key), ReferralCode (code). Behaviour
+     unchanged — the field-level declaration still creates the unique index. Test runs
+     are now silent on this warning.
+  3) Puppeteer launch — pdf-export.service.ts previously passed `executablePath:
+     process.env.PUPPETEER_EXECUTABLE_PATH` unconditionally. When the env var was unset,
+     the option was present with value `undefined` which intermittently confused
+     Puppeteer's auto-resolve to bundled Chromium. Now only set the option when the env
+     var is non-empty. Local dev (bundled Chromium at ~/.cache/puppeteer/...) now boots
+     server-side PDF renders cleanly; Docker production still drives the path via env.
+  4) SCRUM-76 — Helicone alerting + per-user kill-switch runbook. docs/runbooks/
+     helicone-alerts.md (NEW). Documents the 4 alert tiers (Warn / Soft-kill /
+     Hard-kill / Anomaly) with rupee + USD thresholds matching the current
+     spendCap.ts, paging matrix (founder / Arjun / Vikram), Mongo snippet for per-user
+     soft kill (User.isActive = false), and global hard kill via Option A
+     (`platform.generation_disabled` AppSetting + 60s TTL propagation) or
+     Option B (rotate AWS Secrets Manager Anthropic key). Investigation checklist,
+     dry-run schedule (founder + Arjun, quarterly + pre-launch), open follow-ups
+     (middleware to actually enforce platform.generation_disabled — flagged as a
+     ~30-min ticket — and webhook→Sentry hookup).
+  5) Test fix — app-settings.test.ts: added `await AppSetting.syncIndexes()` in
+     beforeAll because the in-memory mongodb-memory-server doesn't always have the
+     unique index built before the first `enforces unique key` assertion.
+Test results: touched-surface (template-engine | post-processor | annexures | preflight
+  | coherence | review | app-settings | validator | prompt-assembler | document-export |
+  referral-bonus): 314/314 passing in ~11s. tsc clean (drafting + web). Golden snapshots
+  still show the same 14 Ajay-driven diffs (delhi_district + up_district party-label
+  edits) — unchanged from yesterday's state, not from my work.
+Next step: pending Ajay finishing his court-rule JSON refactor → regenerate golden
+  snapshots via `yarn workspace @lawie/drafting test:golden:update`. Otherwise queue is
+  drained until SCRUM-77 (email infra) or new tickets land.
+Blockers: None.
+---
+
+---
+Date: 2026-05-12
+Session: Sonnet
+Task: SCRUM-73 + SCRUM-59 — Credit-based subscription master + free-tier credit system + full
+  admin panel + public pricing page (founder-authorised 2026-05-12 despite Priya's BLOCKED
+  note on Q1/Q2/Q3 — explicit user override after reviewing the design mocks).
+Status: Done (end-to-end build, dev stack green)
+Design source: docs/Pricing Design/ (6 PNGs) + docs/Admin Panel Design/ (4 PNGs)
+
+Authorisation note:
+  Priya's clean-queue marked SCRUM-73 + SCRUM-59 as BLOCKED on founder/CFO Q1/Q2/Q3.
+  User (Vishal) explicitly overrode: "All of it — including credit system + paywall +
+  top-up flow + ledger" after presenting the four-option scope ladder. CFO sign-off on
+  pricing thresholds + Vikram on the abuse-throttle interaction is still required before
+  production-release. Code is feature-flag-free; gate via plan_id env keys when promoting.
+
+Code changed (8 phases):
+
+  Phase 1 — Data model (shared Mongo via 'users' + new 'creditledgers' collections):
+  - apps/auth/src/models/User.model.ts: added subscriptionCredits / earnedCredits /
+    topupCredits buckets, planTier (free|practice|firm), billingCycle (none|monthly|yearly),
+    planRenewsAt, lastLoginBonusAt.
+  - apps/drafting/src/models/CreditLedger.model.ts (NEW): per-event audit. Source enum
+    (signup_bonus, login_bonus, rating_bonus, plan_renewal, topup_purchase, admin_grant,
+    draft_spent, plan_lapsed, admin_revoke), bucket enum, amount, balanceAfter, reference,
+    templateId, metadata, indexed on (userId, createdAt) + (createdAt) + (source, createdAt).
+  - apps/drafting/src/models/User.model.ts (NEW): minimal cross-service User shape
+    (strict: false, shared collection) — exposes name, email, plan, planTier, credit
+    buckets, referredVia.
+
+  Phase 2 — Drafting credit gate:
+  - apps/drafting/src/services/credits.service.ts (NEW): TEMPLATE_COST map (1cr for
+    legal_notice/rent, 2cr for bail/complaint), getCreditBalance, grantCredits,
+    spendCredits (drains topup → earned → subscription with per-bucket ledger rows),
+    InsufficientCreditsError, tryGrantDailyLoginBonus.
+  - apps/drafting/src/middleware/enforceCredits.ts (NEW): pre-check by cost, returns
+    402 with {cost, balance, needsTopUp, needsUpgrade, upgradeUrl}. Stashes creditCost
+    on req for the route handler to use in spendCredits post-stream.
+  - apps/drafting/src/routes/documents.routes.ts: swapped enforceFreeLimit for
+    enforceCredits on /generate-from-template; spendCredits fires AFTER successful AI
+    stream (failed streams don't take credits).
+  - apps/drafting/src/routes/credits.routes.ts (NEW): GET /credits/balance, POST
+    /credits/rate/:docId (+1 earned, one-per-doc idempotent), GET /admin/credits/ledger,
+    GET /admin/credits/kpis.
+
+  Phase 3 — Auth bonuses:
+  - apps/auth/src/services/credit-bonus.service.ts (NEW): direct-Mongo writers (no
+    cross-service round-trip) for daily login (+2 earnedCredits, one per day via
+    atomic lastLoginBonusAt guard) and referral signup (+25 earnedCredits, ledger row).
+  - apps/auth/src/services/auth.service.ts: tryGrantDailyLoginBonus on loginUser
+    (fire-and-forget).
+  - apps/auth/src/routes/oauth.routes.ts: same on Google OAuth callback.
+  - apps/auth/src/services/referral.service.ts: applyReferralCode also calls
+    grantReferralSignupBonus (legacy freeTierBonusGrant kept for back-compat with
+    BonusCredit-based path).
+
+  Phase 4 — Billing service (extends existing Razorpay scaffolding):
+  - apps/billing/src/config/credit-skus.ts (NEW): 4 subscription SKUs (practice/firm ×
+    monthly/yearly) + 3 top-up SKUs (20/60/150 credits at ₹199/₹499/₹999), with
+    per-env Razorpay plan id resolution (RAZORPAY_PLAN_PRACTICE_MONTHLY etc).
+  - apps/billing/src/services/credit-grant.service.ts (NEW): grantSubscriptionCredits
+    (RESET on plan_renewal — last cycle's credits lapse), grantTopupCredits (INCREMENT).
+    Both write CreditLedger rows.
+  - apps/billing/src/services/subscription.service.ts: createSubscription now takes
+    planId, resolves Razorpay plan via env; handleWebhookEvent now branches on order.paid
+    + payment.captured (top-up grant) and subscription.charged (renewal grant with
+    plan-aware credit allocation).
+  - apps/billing/src/routes/billing.routes.ts: new GET /plans (public catalog for
+    /pricing), POST /topup/order (one-off Razorpay order), GET /plan/:id, extended
+    POST /subscribe to accept planId.
+  - apps/billing/src/models/User.model.ts: widened with credit-bucket + plan fields
+    (strict: false).
+
+  Phase 5 — Admin panel redesign + 2 new pages:
+  - apps/web/src/app/admin/layout.tsx (NEW): sidebar shell — brand → WORKSPACE
+    (Overview) → FOUNDER TOOLS (Referral codes, Panel review, AI configuration, Credit
+    ledger) → user pill. Auth-gates the entire /admin/* tree so child pages don't
+    duplicate the gate.
+  - apps/web/src/components/admin/AdminPageHeader.tsx (NEW): FOUNDER-ONLY pill +
+    eyebrow + title + right-side action area; ServiceHealthyBadge helper.
+  - apps/web/src/app/admin/page.tsx (NEW): Founder home. 4 KPIs (active advocates,
+    drafts, panel reviews pending, free→Pro conversion), recent-activity feed,
+    AI runtime widget, monthly revenue card, top referral codes table.
+  - apps/web/src/app/admin/credit-ledger/page.tsx (NEW): 4 KPIs (in circulation,
+    granted, spent, top-up revenue), buckets bar chart with legend, ledger entries
+    table with filter tabs (All/Spent/Granted/Top-ups/Renewals), live telemetry box.
+  - apps/web/src/app/admin/referral-codes/page.tsx (REWRITE): status tabs with counts,
+    signup-usage progress bars, search-by-code/label, matches the new shell.
+  - apps/web/src/app/admin/panel-review/page.tsx (REWRITE): 4 KPI tiles, inline
+    generator with copy-to-clipboard, expandable rows, verdict-distribution bar chart.
+  - apps/web/src/app/admin/ai-config/page.tsx (REWRITE): "Live" green pill on
+    configured keys, "Not configured" amber pill on missing, updated-at audit lines,
+    ServiceHealthyBadge in header.
+  - apps/drafting/src/routes/admin-overview.routes.ts (NEW): GET /admin/overview/kpis
+    + /activity + /ai-runtime — stitches from existing collections.
+
+  Phase 6 — User credit UI:
+  - apps/web/src/hooks/useCredits.ts (NEW): balance fetch + `creditsChanged` event bus
+    so any post-payment / post-draft action triggers a refresh.
+  - apps/web/src/components/credits/HeaderCreditPill.tsx (NEW): compact balance pill
+    in the dashboard topbar (credits · tier · Top up button).
+  - apps/web/src/components/credits/TopUpModal.tsx (NEW): 3-SKU radio picker,
+    POST /billing/topup/order → Razorpay Checkout (loads checkout.razorpay.com on
+    demand).
+  - apps/web/src/components/credits/PaywallModal.tsx (NEW): red-banner header
+    explaining cost vs balance, two paths (Top up ₹199 / Upgrade to Practice), earn-
+    tomorrow nudge for free tier.
+  - apps/web/src/app/dashboard/layout.tsx: pinned HeaderCreditPill to the topbar
+    (visible on all sizes).
+  - apps/web/src/app/dashboard/new/page.tsx: handles 402 by opening PaywallModal
+    instead of the generation_failed card.
+
+  Phase 7 — Public pricing page:
+  - apps/web/src/app/pricing/page.tsx (NEW): hero, monthly/yearly toggle (–17% yearly
+    badge), 3 plan cards (Free / Practice featured-dark / Firm), top-up showcase with
+    3 SKU cards (POPULAR / BEST VALUE badges), credit-cost legend, FAQ. Unauth users
+    routed to /login on subscribe/top-up.
+
+  Phase 8 — Test repairs:
+  - apps/drafting/src/__tests__/referral-bonus.test.ts: rewrote "falls to monthly limit"
+    test for the new enforceCredits semantics (asserts 402 + cost + balance shape).
+  - apps/drafting/src/__tests__/review.test.ts: added ReviewToken.syncIndexes() in
+    beforeAll (matches the app-settings fix from yesterday).
+  - apps/auth/src/__tests__/referral.test.ts: 10ms gap between consecutive creates so
+    "sorted newest first" sort is stable.
+  - apps/billing/src/__tests__/subscription.service.test.ts: updated createSubscription
+    assertion to expect the new plan-aware notes shape (planId/tier/cycle).
+
+Bonuses (deferred SCRUM tickets touched in passing):
+  - SCRUM-73: shipped end-to-end (subscription + credits + paywall).
+  - SCRUM-59: shipped end-to-end (free-tier credit-based metering replaces monthly-N).
+
+Test results:
+  • drafting: 314/314 touched-surface (template-engine, post-processor, annexures,
+    preflight, coherence, review, app-settings, validator, prompt-assembler, document-
+    export, referral-bonus).
+  • auth: 69/69.
+  • billing: 32/32.
+  • tsc clean across all 4 services + web.
+  • Pre-existing 14 golden-snapshot diffs from Ajay's config refactor remain — not
+    my work, unchanged.
+
+Dev stack: yarn dev restarted from a clean process tree (concurrently respawned all
+  5 services). web :3000 + gateway :4000 + auth :4001 + drafting :4002 + billing :4003
+  all healthy. Razorpay creds in .env.development (sandbox keys); SUBSCRIPTION_PLANS env
+  keys default to legacy RAZORPAY_PLAN_ID when per-tier vars aren't set.
+
+Founder action items before production:
+  1. Set RAZORPAY_PLAN_PRACTICE_MONTHLY / _YEARLY / FIRM_MONTHLY / _YEARLY in
+     production env (and Razorpay dashboard) — currently fallback to one plan.
+  2. CFO sign-off on threshold values in credit-skus.ts (priceInr, creditsPerCycle).
+  3. Decide abuse-throttle interaction with Vikram (SCRUM-72 was cancelled-merged).
+  4. Configure Razorpay webhook secret + endpoint URL pointing at /billing/webhook/razorpay.
+  5. Wire SCRUM-77 email infra to send topup_purchase / plan_renewal receipt emails.
+
+Blockers: None for the code. Production rollout blocked on the 5 founder items above.
+---
+
+---
+Date: 2026-05-10
+Session: Sonnet
+Task: SCRUM-65 — Annexures pack generator (7 mandatory court-filing annexures, multi-page PDF)
+Status: Done
+Code changed:
+  New files:
+  - apps/drafting/src/services/annexures.service.ts — Generates all 7 annexures as HTML, renders to a single multi-page PDF via Puppeteer (page-break-before on each). Court-rule aware: resolves court_rules JSON from form_data.court_id or derives from court_type+state. Annexures: A (Memo of Parties), B (Synopsis), C (List of Dates), D (Index of Documents), E (Vakalatnama), F (Court Fee Statement), G (Affidavit with notary block — absorbs SCRUM-66). G pulls verification language from court_rules.verification_format. No new npm dependencies (uses existing Puppeteer). Exports: buildAnnexuresPack(input) → Buffer, estimateBodyParaCount(content) → number.
+  - apps/drafting/src/__tests__/annexures.test.ts — 26 tests: estimateBodyParaCount (4), buildAnnexuresPack Bihar district (10), buildAnnexuresPack Jharkhand HC (6), fallback (1), route integration (5). Puppeteer mocked — no headless browser in CI. Verified Bihar uses "contents of the above application" (not "paragraphs 1 to N"), Jharkhand HC uses "solemnly affirm and state that the contents of paragraphs 1 to N". Route tests use beforeEach to recreate document (afterEach clears all collections).
+  Modified files:
+  - apps/drafting/src/routes/documents.routes.ts — Added POST /:id/annexures-pack route (authenticate, validateObjectId, decrypt content, estimate para count, buildAnnexuresPack, send as application/pdf with Content-Disposition). Tracks export in exportedAs. Fire-and-forget draft.exported event.
+Test results: 504/504 passing (26 new + 478 existing), tsc --noEmit clean (drafting + web)
+Next step: SCRUM-71 (referral code system, P0) or SCRUM-74 (advocate-panel review pipeline, P0) — next in clean queue
+Blockers: None
+---
+Date: 2026-05-07
+Session: Sonnet
+Task: SCRUM-63 — Form input normaliser — strip duplicate PS prefix (A8 fix)
+Status: Done
+Code changed:
+  Modified files:
+  - apps/drafting/src/services/template-engine.service.ts — added `stripLeadingPrefix()` private helper; called at end of `buildPlaceholderContext()` to strip leading "PS ", "P.S. ", or "Police Station " prefix from `police_station` field value. Templates hardcode "PS {police_station}" — if user typed "PS Chanho" the output was "PS PS Chanho" (A8). Normaliser stores bare "Chanho" so template prefix is canonical.
+  - apps/drafting/src/__tests__/template-engine.test.ts — 6 new tests covering: PS prefix stripped, P.S. variant stripped, Police Station prefix stripped, plain name unchanged, rendered bail_anticipatory prayer never contains "PS PS", rendered bail_regular prayer never contains "PS PS"
+Test results: 451/451 passing (up from 445)
+Next step: SCRUM-44 parent → Done; notify Vishal for UI test + Ajay CLO validation of all 5 bugs (A3, A6, A7, A8, B1, B2) fixed in this sprint
+Blockers: None
+---
+
+---
+Date: 2026-05-07
+Session: Sonnet
+Task: SCRUM-64 — Fact↔section validator + BNS whitelist constraint on AI prompt
+Status: Done
+Code changed:
+  Modified files:
+  - apps/drafting/src/config/bns-offences.json — already existed (63 BNS First Schedule offences); used as whitelist source
+  - apps/drafting/src/services/template-engine.service.ts — injected BNS_VALID_SECTIONS (sorted list of 63 valid section numbers from bns-offences.json) into buildAISystemPrompt() as a MANDATORY constraint for criminal category templates. AI must only cite sections from this list.
+  - apps/drafting/src/services/validator.ts — added 3 new exported functions:
+    (a) extractBNSSectionNumbers(): extracts BNS section numbers from AI text via "BNS 103" / "BNS 103(1)" / "Section 103 of BNS/Bharatiya Nyaya Sanhita" patterns
+    (b) validateBNSWhitelist(): flags any extracted BNS section not in the First Schedule whitelist (B2 fix: catches hallucinated numbers like BNS 400)
+    (c) checkFactSectionSanity(): flags BNS 103 (Murder) when facts narrative lacks death/fatality keywords, suggests Section 109 or 117 instead (B1 fix)
+  - apps/drafting/src/services/ai.service.ts — imported 3 new validator functions; wired post-generation validation block:
+    (1) extractBNSSectionNumbers on AI text → validateBNSWhitelist → push warnings
+    (2) for criminal templates: checkFactSectionSanity(facts_narrative, bnsCited) → push warnings
+    All warnings flow into existing allWarnings array and emit via SSE warning event
+  - apps/drafting/src/__tests__/template-engine.test.ts — 15 new tests across 3 describes:
+    extractBNSSectionNumbers (6), validateBNSWhitelist (4), checkFactSectionSanity (5)
+    Fixed pre-session stale test: "Do NOT generate cause title" → "cause-title block" (system prompt was reworded in SCRUM-62)
+Test results: 445/445 passing (up from 423 before SCRUM-62/64 session)
+Next step: SCRUM-63 (form input normaliser — strip PS double-prefix) → then Vishal UI test + Ajay CLO validation
+Blockers: None
+---
+
+---
+Date: 2026-05-07
+Session: Sonnet
+Task: SCRUM-62 — AI prompt hardening + body output sanitiser (A6, A7 fixes)
+Status: Done
+Code changed:
+  Modified files:
+  - apps/drafting/src/services/template-engine.service.ts — strengthened Rule 6 in buildAISystemPrompt() to explicitly forbid: court header/cause-title block (A7) and AI disclaimer text in body (A6); added sanitiseAIBody() exported function: splits AI body on double-newline, filters paragraphs that match cause-title patterns (/^IN THE (HIGH )?COURT OF/i), AI-disclaimer patterns (/AI[\s-]assisted draft/i, /Lawie does not provide/i) or DISCLAIMER: prefix
+  - apps/drafting/src/services/ai.service.ts — imported sanitiseAIBody from template-engine.service; applied to every ai_generated section content before pushing to renderedSections
+  - apps/drafting/src/__tests__/template-engine.test.ts — 6 new sanitiseAIBody tests: strips sessions court cause-title (A7), strips HC cause-title (A7), strips AI disclaimer (A6), strips DISCLAIMER: prefix (A6), passes clean body unchanged, handles A6+A7 together
+Test results: 445/445 passing
+Next step: SCRUM-64 (fact↔section validator + BNS whitelist) — picked up same session
+Blockers: None
+---
+
+---
+Date: 2026-05-07
+Session: Sonnet
+Task: SCRUM-61 — Template engine recursive placeholder pass + {current_year} fix
+Status: Done
+Code changed:
+  Modified files:
+  - apps/drafting/src/services/template-engine.service.ts — added recursive placeholder
+    pass at end of buildPlaceholderContext(): loops ctx values containing '{', replaces
+    known keys, leaves unknowns (incl. deferred {body_para_count}) intact. Fixes A2:
+    caseNomenclature from indian-courts.json has "{current_year}" which resolveComputedFields
+    copies raw and the court-rule handler never replaced.
+  - apps/drafting/src/__tests__/template-engine.test.ts — 2 new tests:
+    (1) {current_year} in caseNomenclature resolves to current year after pass
+    (2) no unresolved {..} tokens in any rendered bail_anticipatory template section
+  Also fixed pre-session breakage:
+  - apps/drafting/src/__tests__/document-export.test.ts — updated escape test to match
+    post-TipTap HTML-embed behaviour (plain text path escapes; TipTap HTML path embeds as-is)
+Audit: all 13 court-rule JSONs already use {year}. indian-courts.json uses {current_year} —
+  recursive pass handles it, no JSON edits required.
+Test results: 423/423 drafting tests passing
+Next step: Vishal UI test + Ajay CLO validation → then SCRUM-62 or SCRUM-64
+Blockers: None
+---
+
+---
+Date: 2026-05-07
+Session: Sonnet
+Task: SCRUM-60 — Export script markdown parser, watermark removal, CSS polish
+Status: Done
+Code changed:
+  Modified files:
+  - scripts/export-pdf.ts — replaced hand-rolled markdownToHtml regex with marked.parseInline()
+    (fixes A1 raw **bold**, A5 raw *italic*); added '---' → <hr> branch in renderSectionToHtml
+    (fixes A4 literal dashes); removed watermark variable, .watermark CSS block, and
+    ${watermark} HTML insertion entirely (fixes A3 — no watermark on any output, free or paid)
+  - scripts/__tests__/export-pdf.test.ts — replaced watermark tests with A3 policy assertion
+    (no watermark regardless of clean flag); added A1/A5/A4 regression tests (bold, italic, hr)
+  Root:
+  - package.json — marked@^9.1.6 added to devDependencies
+Test results: 15/15 export-pdf tests passing
+Next step: SCRUM-61 (template engine recursive placeholder pass + {current_year} fix) — independent, no deps
+Blockers: None
+---
+
+---
+Date: 2026-05-06 (session 4)
+Session: Opus
+Task: SCRUM-58 (Helicone integration) + SCRUM-57 (CLI export) + SCRUM-44 (editor/export — code complete)
+Status: Done (SCRUM-58, SCRUM-57), In Progress (SCRUM-44 — pending browser test)
+Code changed:
+  SCRUM-57 (CLI export — advocate pack):
+  New files:
+  - scripts/export-pdf.ts — CLI: reads .response.json SSE files → extracts template_sections → renders court-formatted HTML → A4 PDFs via Puppeteer; --clean flag for advocate review pack
+  - scripts/__tests__/export-pdf.test.ts — 13 tests (SSE parser, HTML renderer, integration)
+  - scripts/jest.config.js — ts-jest config for scripts directory
+  Generated: 12 PDFs (6 Bihar + 6 Jharkhand) at scripts/test-templates/results/*/pdfs/
+  SCRUM-44 (editor/export/activation — code complete):
+  New files:
+  - apps/drafting/src/models/Event.model.ts — activation telemetry model
+  - apps/drafting/src/services/pdf-export.service.ts — server-side PDF export (puppeteer)
+  - apps/drafting/src/__tests__/document-export.test.ts — 13 tests
+  Modified files:
+  - apps/drafting/src/models/Document.model.ts — added filingChecklist, checklistState
+  - apps/drafting/src/routes/documents.routes.ts — added PDF/DOCX export endpoints, checklist persistence, spendCapCheck middleware
+  - apps/web/src/app/dashboard/documents/[id]/page.tsx — checklist from API, server-side PDF export, activation telemetry
+  - apps/web/src/components/editor/exportUtils.ts — DOCX left margin 1.5" court standard
+  SCRUM-58 (Helicone integration):
+  New files:
+  - apps/drafting/src/middleware/spendCap.ts — Phase 1 permissive spend-cap (per-user $6/day, total $24/day)
+  - apps/drafting/src/__tests__/helicone.test.ts — 6 tests (costUsd field, spend-cap middleware)
+  Modified files:
+  - apps/drafting/src/config/env.ts — HELICONE_API_KEY
+  - apps/drafting/src/services/ai.service.ts — createAnthropicClient() with Helicone proxy, heliconeHeaders() per-request
+  - apps/drafting/src/models/Generation.model.ts — costUsd field
+  - apps/drafting/src/__tests__/setupEnv.ts — HELICONE_API_KEY=''
+Test results: 376/376 all passing, tsc clean
+Next step: SCRUM-44 browser testing, then SCRUM-59 (trial-cap-10-gated) or SCRUM-47 (bail checker)
+Blockers: SCRUM-44 needs browser testing before Done; SCRUM-59 depends on SCRUM-58 being in production
+---
+
+---
 Date: 2026-05-06 (session 3)
 Session: Opus
 Task: SCRUM-50 completion + SCRUM-46 (free tool: section converter)

@@ -162,13 +162,31 @@ export default function DocumentEditorPage() {
       const token = getAccessToken();
       if (!token) return;
 
-      const response = await fetch(`${API_URL}/api/documents/${id}/export/pdf`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Try the server-side Puppeteer route first — it produces filing-grade
+      // Times New Roman 12pt double-spaced output with the correct court margins.
+      // The client-side fallback (exportPdf) is a degraded copy of that styling
+      // and should only run when the server is genuinely unreachable.
+      let response: Response;
+      try {
+        response = await fetch(`${API_URL}/api/documents/${id}/export/pdf`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (networkErr) {
+        console.warn('[export-pdf] server route unreachable; using client fallback:', networkErr);
+        await exportPdf(latestHtmlRef.current, doc.title, isFree);
+        return;
+      }
 
       if (!response.ok) {
-        // Fallback to client-side export
+        // Surface the server error so we know WHEN the fallback kicks in. Silent
+        // fallback masked a Puppeteer-misconfigured-in-dev bug for advocate-pack
+        // PDFs (sans-serif body, 1.6 line-height) — see Vishal session 2026-05-10.
+        const body = await response.text().catch(() => '');
+        console.error(
+          `[export-pdf] server render failed (HTTP ${response.status}); using client fallback. ` +
+            `Response: ${body.slice(0, 300)}`,
+        );
         await exportPdf(latestHtmlRef.current, doc.title, isFree);
         return;
       }
@@ -181,9 +199,6 @@ export default function DocumentEditorPage() {
       a.download = filename;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch {
-      // Fallback to client-side export
-      await exportPdf(latestHtmlRef.current, doc.title, isFree);
     } finally {
       setExporting(false);
     }

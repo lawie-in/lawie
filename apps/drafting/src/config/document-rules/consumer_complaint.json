@@ -1,4 +1,11 @@
 {
+  "_meta": {
+    "description": "Document-rules config for consumer_complaint — drives prompt, validation, mandatory clauses",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass",
+    "last_updated": "2026-05-10",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
   "docType": "consumer_complaint",
   "parentDocType": "complaint",
   "displayName": "Consumer Complaint",
@@ -110,7 +117,7 @@
     "State the consideration paid — amount, date, mode of payment, invoice/receipt details.",
     "Describe prior attempts to resolve the grievance with the opposite party.",
     "Establish territorial jurisdiction — where the opposite party resides/carries on business OR where the cause of action arose.",
-    "Establish pecuniary jurisdiction: District Commission (up to Rs.1 crore), State Commission (Rs.1-10 crore), National Commission (above Rs.10 crore).",
+    "Establish pecuniary jurisdiction per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021 (Notification dated 30 December 2021): District Commission (up to Rs. 50 lakh), State Commission (above Rs. 50 lakh up to Rs. 2 crore), National Commission (above Rs. 2 crore).",
     "State that the complaint is within limitation (2 years from cause of action under S.69).",
     "Reference unfair trade practice or restrictive trade practice if applicable.",
     "Use numbered paragraphs throughout.",

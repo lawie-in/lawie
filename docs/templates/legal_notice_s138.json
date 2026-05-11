@@ -6,48 +6,240 @@
   "icon": "file-warning",
   "plan_access": "free",
   "applicable_courts": {
-    "court_levels": ["jmfc", "cjm"],
-    "states": ["all"]
+    "court_levels": [
+      "jmfc",
+      "cjm"
+    ],
+    "states": [
+      "all"
+    ]
   },
-  "supported_languages": ["en", "hi", "bilingual"],
+  "supported_languages": [
+    "en",
+    "hi",
+    "bilingual"
+  ],
   "form_schema": {
     "steps": [
       {
         "step": 1,
         "title": "Parties",
         "fields": [
-          { "field_id": "state", "label": "State", "type": "dropdown_search", "source": "courts_db.states", "required": true },
-          { "field_id": "applicant_name", "label": "Payee / Notice Sender", "type": "text", "required": true, "inject_into": ["header", "body"] },
-          { "field_id": "applicant_address", "label": "Payee Address", "type": "textarea", "required": true, "inject_into": ["header"] },
-          { "field_id": "respondent_name", "label": "Drawer / Noticee", "type": "text", "required": true, "inject_into": ["header", "body"] },
-          { "field_id": "respondent_address", "label": "Drawer Address", "type": "textarea", "required": true, "inject_into": ["header"] },
-          { "field_id": "respondent_type", "label": "Drawer Type", "type": "dropdown", "options": [{"id": "individual", "label": "Individual"}, {"id": "company", "label": "Company / LLP"}, {"id": "partnership", "label": "Partnership Firm"}, {"id": "huf", "label": "HUF"}], "required": true, "default": "individual", "inject_into": ["header"] },
-          { "field_id": "language", "label": "Document Language", "type": "dropdown", "options_from": "supported_languages", "default": "en", "required": true }
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Payee / Notice Sender",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "header",
+              "body"
+            ]
+          },
+          {
+            "field_id": "applicant_address",
+            "label": "Payee Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "respondent_name",
+            "label": "Drawer / Noticee",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "header",
+              "body"
+            ]
+          },
+          {
+            "field_id": "respondent_address",
+            "label": "Drawer Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "respondent_type",
+            "label": "Drawer Type",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "individual",
+                "label": "Individual"
+              },
+              {
+                "id": "company",
+                "label": "Company / LLP"
+              },
+              {
+                "id": "partnership",
+                "label": "Partnership Firm"
+              },
+              {
+                "id": "huf",
+                "label": "HUF"
+              }
+            ],
+            "required": true,
+            "default": "individual",
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
         ]
       },
       {
         "step": 2,
         "title": "Advocate Details",
         "fields": [
-          { "field_id": "advocate_name", "label": "Advocate Name", "type": "text", "required": true, "inject_into": ["header", "closing"] },
-          { "field_id": "advocate_address", "label": "Advocate Chamber Address", "type": "textarea", "required": true, "inject_into": ["header"] },
-          { "field_id": "advocate_enrollment", "label": "Bar Council Enrollment No.", "type": "text", "required": true, "inject_into": ["closing"] }
+          {
+            "field_id": "advocate_name",
+            "label": "Advocate Name",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "header",
+              "closing"
+            ]
+          },
+          {
+            "field_id": "advocate_address",
+            "label": "Advocate Chamber Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "advocate_enrollment",
+            "label": "Bar Council Enrollment No.",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "closing"
+            ]
+          }
         ]
       },
       {
         "step": 3,
         "title": "Cheque Details",
         "fields": [
-          { "field_id": "cheque_number", "label": "Cheque Number", "type": "text", "required": true, "inject_into": ["body"] },
-          { "field_id": "cheque_date", "label": "Cheque Date", "type": "date", "required": true, "inject_into": ["body"] },
-          { "field_id": "cheque_amount", "label": "Cheque Amount (Rs.)", "type": "number", "required": true, "inject_into": ["body", "demand"] },
-          { "field_id": "amount_in_words", "label": "Amount in Words", "type": "text", "required": true, "inject_into": ["body"] },
-          { "field_id": "drawee_bank", "label": "Drawee Bank Name", "type": "text", "required": true, "inject_into": ["body"] },
-          { "field_id": "drawee_branch", "label": "Drawee Branch", "type": "text", "required": true, "inject_into": ["body"] },
-          { "field_id": "presentation_date", "label": "Date of Presentation to Bank", "type": "date", "required": true, "inject_into": ["body"] },
-          { "field_id": "dishonour_date", "label": "Date of Dishonour / Return Memo", "type": "date", "required": true, "inject_into": ["body"] },
-          { "field_id": "dishonour_reason", "label": "Reason for Dishonour (as per memo)", "type": "text", "required": true, "placeholder": "e.g., Funds Insufficient, Account Closed", "inject_into": ["body"] },
-          { "field_id": "underlying_liability", "label": "Underlying Liability (why was cheque issued?)", "type": "textarea", "required": true, "min_length": 30, "max_length": 1000, "inject_into": ["ai_prompt"] }
+          {
+            "field_id": "cheque_number",
+            "label": "Cheque Number",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "cheque_date",
+            "label": "Cheque Date",
+            "type": "date",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "cheque_amount",
+            "label": "Cheque Amount (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": [
+              "body",
+              "demand"
+            ]
+          },
+          {
+            "field_id": "amount_in_words",
+            "label": "Amount in Words",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "drawee_bank",
+            "label": "Drawee Bank Name",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "drawee_branch",
+            "label": "Drawee Branch",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "presentation_date",
+            "label": "Date of Presentation to Bank",
+            "type": "date",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "dishonour_date",
+            "label": "Date of Dishonour / Return Memo",
+            "type": "date",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "dishonour_reason",
+            "label": "Reason for Dishonour (as per memo)",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Funds Insufficient, Account Closed",
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "underlying_liability",
+            "label": "Underlying Liability (why was cheque issued?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 30,
+            "max_length": 1000,
+            "inject_into": [
+              "ai_prompt"
+            ]
+          }
         ]
       }
     ]
@@ -96,17 +288,13 @@
         "type": "template",
         "alignment": "left",
         "template": "A copy of this notice is retained in my office for record and further legal action.\n\nYours faithfully,\n\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {advocate_enrollment}\n{advocate_address}\n\n(Counsel for {applicant_name})"
-      },
-      {
-        "section_id": "disclaimer",
-        "type": "template",
-        "alignment": "center",
-        "style": "footer_small_gray",
-        "template": "AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice."
       }
     ]
   },
-  "related_acts": ["Negotiable Instruments Act 1881 — Sections 138, 139, 141, 142", "BNS"],
+  "related_acts": [
+    "Negotiable Instruments Act 1881 — Sections 138, 139, 141, 142",
+    "BNS"
+  ],
   "special_prayer_additions": [],
   "filing_checklist": [
     "Send within 30 days of receiving dishonour information (bank memo date)",
@@ -120,10 +308,20 @@
     "Verify noticee's correct residential / business address"
   ],
   "validation_rules": {
-    "section_codes_allowed": ["NI Act", "BNS", "CPC"],
+    "section_codes_allowed": [
+      "NI Act",
+      "BNS",
+      "CPC"
+    ],
     "reject_old_codes": [],
     "auto_convert_old_to_new": false,
-    "mandatory_sections": ["header", "subject_line", "body", "demand_clause", "closing", "disclaimer"],
+    "mandatory_sections": [
+      "header",
+      "subject_line",
+      "body",
+      "demand_clause",
+      "closing"
+    ],
     "fact_alteration_check": true,
     "min_body_paragraphs": 5
   },

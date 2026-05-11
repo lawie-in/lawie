@@ -1,0 +1,41 @@
+data: {"text":"1. That my client had advanced a friendly loan of Rs. 3,50,000/- (Rupees Three Lakh Fifty Thousand only) to you"}
+
+data: {"text":" on 15.11.2025 for a period of four months. The said loan was duly acknowledged in writing by you vide acknowledgment dated 15.11.2025, thereby"}
+
+data: {"text":" creating a legally enforceable debt and liability upon you to repay the said amount to"}
+
+data: {"text":" my client.\n\n2. That towards the discharge of the aforesaid liability, you issued Cheque No. 458823 dated 25.03.2026 for Rs. 3,50,000/- ("}
+
+data: {"text":"Rupees Three Lakh Fifty Thousand only) drawn on HDFC Bank, Boring Road Branch, Patna, in favour of my client for the settlement"}
+
+data: {"text":" of the outstanding loan amount.\n\n3. That the aforesaid cheque was duly presented by my client to his"}
+
+data: {"text":" banker for collection on 02.04.2026. However, the said cheque was returned dishonoured by your bank vide return memo dated "}
+
+data: {"text":"04.04.2026 with the endorsement \"Funds Insufficient\", thereby causing grave prejudice, financial"}
+
+data: {"text":" loss and mental agony to my client.\n\n4. That the dishonour of the aforesaid cheque constitutes a criminal offence under Section 138 of the"}
+
+data: {"text":" Negotiable Instruments Act, 1881, which is punishable with imprisonment for a term which may extend to two years, or with fine which may extend to twice the amount"}
+
+data: {"text":" of the cheque, or with both.\n\n5. That as per the proviso (b) to Section 138 of the Negotiable Instruments Act, 1881, the payee is required to make a demand for"}
+
+data: {"text":" the payment of the said amount of money to the drawer of the cheque within thirty days of the"}
+
+data: {"text":" receipt of information by him from the bank regarding the return of the cheque as"}
+
+data: {"text":" unpaid.\n\n6. That my client received information about the dishonour of the cheque on 04.04.2026, and"}
+
+data: {"text":" this notice is being served upon you well within the statutory period of thirty days as mandated under the"}
+
+data: {"text":" provisions of Section 138 of the Negotiable Instruments Act, 1881."}
+
+event: template_sections
+data: {"sections":[{"section_id":"header","type":"template","content":"LEGAL NOTICE\n(Under Section 138 read with Section 142 of the Negotiable Instruments Act, 1881)\n\nDate: 06 May 2026\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\nMr. Vikram Yadav\nPlot 7, Anisabad, Patna - 800002\n\nFrom,\nMr. Ankit Sharma\nThrough: Adv. Rohit Kumar, Advocate\nChamber 15, Civil Court Compound, Patna - 800001","alignment":"left"},{"section_id":"subject_line","type":"template","content":"Subject: Statutory Demand Notice under Section 138 of the Negotiable Instruments Act, 1881 — Cheque No. 458823 dated 25.03.2026 for Rs. 350000/- (Three Lakh Fifty Thousand only) drawn on HDFC Bank, Boring Road Branch, Patna — dishonoured on 04.04.2026\n\nSir/Madam,\n\nUnder instructions from and on behalf of my client, Mr. Ankit Sharma, I hereby serve upon you this statutory notice under Section 138 of the Negotiable Instruments Act, 1881, and call upon you to note as under:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. That my client had advanced a friendly loan of Rs. 3,50,000/- (Rupees Three Lakh Fifty Thousand only) to you on 15.11.2025 for a period of four months. The said loan was duly acknowledged in writing by you vide acknowledgment dated 15.11.2025, thereby creating a legally enforceable debt and liability upon you to repay the said amount to my client.\n\n2. That towards the discharge of the aforesaid liability, you issued Cheque No. 458823 dated 25.03.2026 for Rs. 3,50,000/- (Rupees Three Lakh Fifty Thousand only) drawn on HDFC Bank, Boring Road Branch, Patna, in favour of my client for the settlement of the outstanding loan amount.\n\n3. That the aforesaid cheque was duly presented by my client to his banker for collection on 02.04.2026. However, the said cheque was returned dishonoured by your bank vide return memo dated 04.04.2026 with the endorsement \"Funds Insufficient\", thereby causing grave prejudice, financial loss and mental agony to my client.\n\n4. That the dishonour of the aforesaid cheque constitutes a criminal offence under Section 138 of the Negotiable Instruments Act, 1881, which is punishable with imprisonment for a term which may extend to two years, or with fine which may extend to twice the amount of the cheque, or with both.\n\n5. That as per the proviso (b) to Section 138 of the Negotiable Instruments Act, 1881, the payee is required to make a demand for the payment of the said amount of money to the drawer of the cheque within thirty days of the receipt of information by him from the bank regarding the return of the cheque as unpaid.\n\n6. That my client received information about the dishonour of the cheque on 04.04.2026, and this notice is being served upon you well within the statutory period of thirty days as mandated under the provisions of Section 138 of the Negotiable Instruments Act, 1881."},{"section_id":"demand_clause","type":"template","content":"DEMAND\n\nYou are hereby called upon to make payment of the said sum of Rs. 350000/- (Three Lakh Fifty Thousand only) to my client within a period of fifteen (15) days from the date of receipt of this notice, failing which my client shall be constrained to initiate criminal proceedings against you under Section 138 of the Negotiable Instruments Act, 1881, before the competent Magistrate having jurisdiction, at your risk, cost, and consequences.\n\nPlease note that under Section 138, if you fail to make payment within 15 days of receipt of this notice, my client shall file a criminal complaint within 30 days thereafter, and upon conviction you shall be liable to imprisonment for a term which may extend to two years, or with fine which may extend to twice the amount of the cheque, or with both.","alignment":"left"},{"section_id":"closing","type":"template","content":"A copy of this notice is retained in my office for record and further legal action.\n\nYours faithfully,\n\n\n_________________________\nAdv. Rohit Kumar\nAdvocate\nEnrollment No. BCB/3127/2016\nChamber 15, Civil Court Compound, Patna - 800001\n\n(Counsel for Mr. Ankit Sharma)","alignment":"left"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Send within 30 days of receiving dishonour information (bank memo date)","Send via Registered Post AD — retain postal receipt","Send additional copy via Speed Post / UPC for safety","Retain original dishonoured cheque safely (primary evidence)","Retain bank return memo / dishonour slip","Wait 15 days from date of receipt by noticee","If no payment within 15 days — file complaint within next 30 days (S.142(1)(b))","Keep AD card as proof of service","Verify noticee's correct residential / business address"]}
+
+event: done
+data: {"complete":true,"docId":null,"sectionsCited":["BNS 138","NI Act 142","NI Act 138"],"mandatoryClausesComplete":true}
+

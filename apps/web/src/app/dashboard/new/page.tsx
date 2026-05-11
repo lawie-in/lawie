@@ -7,24 +7,19 @@
  * 1. Fetch available template configs from API
  * 2. User selects a template → fetch full config
  * 3. DynamicFormRenderer renders the multi-step form
- * 4. On submit → POST /documents/generate-from-template (SSE stream)
- * 5. On done → redirect to /dashboard/documents/:id (editor)
+ * 4. On submit → POST /documents/preflight (verifying state)
+ *    - hard  → hard_block state (stop)
+ *    - soft  → soft_warn state (advocate can override)
+ *    - pass  → proceed directly
+ * 5. POST /documents/generate-from-template (SSE stream) → drafting → ready
+ * 6. On done → redirect to /dashboard/documents/:id (editor)
  */
-import {
-  Scale,
-  Megaphone,
-  Home,
-  AlignLeft,
-  FileText,
-  ShieldCheck,
-  Loader2,
-  AlertTriangle,
-  CheckCircle2,
-  ArrowLeft,
-} from 'lucide-react';
+import { Scale, Megaphone, Home, AlignLeft, FileText, ShieldCheck, Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
+import { PaywallModal } from '@/components/credits/PaywallModal';
+import PipelineStatus, { PipelineState } from '@/components/draft/PipelineStatus';
 import DynamicFormRenderer from '@/components/form/DynamicFormRenderer';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/apiFetch';
@@ -77,13 +72,25 @@ function NewDocumentContent() {
   const [selectedConfig, setSelectedConfig] = useState<TemplateConfig | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
 
-  // Generation state
-  const [generatedText, setGeneratedText] = useState('');
-  const [warnings, setWarnings] = useState<{ type: string; message: string }[]>([]);
-  const [checklist, setChecklist] = useState<string[]>([]);
-  const [error, setError] = useState('');
-  const [done, setDone] = useState(false);
+  // Pipeline state (drives PipelineStatus)
+  const [pipelineState, setPipelineState] = useState<PipelineState>('verifying');
+  const [preflightQuestions, setPreflightQuestions] = useState<string[]>([]);
+  const [hardBlockReason, setHardBlockReason] = useState<string | undefined>(undefined);
+  const [sectionsCited, setSectionsCited] = useState<string[]>([]);
+  const [paragraphCount, setParagraphCount] = useState<number | undefined>(undefined);
+  const [warningCount, setWarningCount] = useState<number | undefined>(undefined);
   const [docId, setDocId] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  // Generation error (AI service failed mid-stream — surfaces in PipelineStatus)
+  const [generationError, setGenerationError] = useState<string | undefined>(undefined);
+  const [generationRetryable, setGenerationRetryable] = useState<boolean>(true);
+  // Paywall (SCRUM-73 — opens when enforceCredits returns 402)
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallCost, setPaywallCost] = useState(0);
+  const [paywallBalance, setPaywallBalance] = useState(0);
+
+  // Saved form data so the advocate can proceed after soft-warn
+  const pendingFormData = useRef<Record<string, unknown> | null>(null);
 
   // ── Fetch template list on mount ──────────────────────────────────────────
   useEffect(() => {
@@ -127,17 +134,15 @@ function NewDocumentContent() {
     }
   }, []);
 
-  // ── Submit form → generate document (SSE stream) ──────────────────────────
-  const handleSubmit = useCallback(
+  // ── SSE generation stream ─────────────────────────────────────────────────
+  const runGeneration = useCallback(
     async (formData: Record<string, unknown>) => {
-      if (!user || !selectedConfig) return;
+      if (!selectedConfig) return;
 
-      setPhase('generating');
-      setGeneratedText('');
-      setWarnings([]);
-      setChecklist([]);
+      setPipelineState('drafting');
       setError('');
-      setDone(false);
+      setGenerationError(undefined);
+      setGenerationRetryable(true);
 
       try {
         const res = await apiFetch('/api/documents/generate-from-template', {
@@ -150,21 +155,48 @@ function NewDocumentContent() {
         });
 
         if (!res.ok) {
-          const data = await res.json();
-          setError(data.error ?? data.message ?? 'Generation failed');
+          let reason = 'Generation could not start.';
+          let paywallInfo: { cost: number; balance: number } | null = null;
+          try {
+            const data = await res.json();
+            reason = data.error ?? data.message ?? reason;
+            // 402 Insufficient credits — open the paywall modal instead of the
+            // generation_failed card. The shape is { cost, balance: {...} } from
+            // enforceCredits.
+            if (res.status === 402 && data.cost && data.balance) {
+              paywallInfo = { cost: data.cost, balance: data.balance.total ?? 0 };
+            }
+          } catch {
+            /* non-JSON error body */
+          }
+          if (paywallInfo) {
+            setPaywallCost(paywallInfo.cost);
+            setPaywallBalance(paywallInfo.balance);
+            setShowPaywall(true);
+            // Bounce back to the form view; the paywall sits on top.
+            setPhase('form');
+            return;
+          }
+          setGenerationError(reason);
+          setGenerationRetryable(res.status !== 402 && res.status !== 403);
+          setPipelineState('generation_failed');
           return;
         }
 
         if (!res.body) {
-          setError('No response body');
+          setGenerationError('The drafting service returned no response body. Please try again.');
+          setGenerationRetryable(true);
+          setPipelineState('generation_failed');
           return;
         }
 
-        // Read SSE stream
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
         let currentEvent = '';
+        const citedSections: string[] = [];
+        let paraCount = 0;
+        let warnCount = 0;
 
         let reading = true;
         while (reading) {
@@ -187,124 +219,186 @@ function NewDocumentContent() {
 
                 switch (currentEvent) {
                   case 'warning':
-                    if (payload.warnings) setWarnings(payload.warnings);
+                    if (payload.warnings) warnCount += payload.warnings.length;
                     break;
                   case 'checklist':
-                    if (payload.items) setChecklist(payload.items);
+                    // checklist available but not shown in new pipeline UI
                     break;
                   case 'template_sections':
-                    // Template sections are pre-rendered — no action needed here
-                    // The full document is assembled server-side
+                    if (payload.sections) {
+                      citedSections.push(
+                        ...(payload.sections as string[]).filter(
+                          (s: string) => !citedSections.includes(s),
+                        ),
+                      );
+                    }
                     break;
                   case 'done':
                     if (payload.docId) setDocId(payload.docId);
-                    setDone(true);
+                    if (payload.paragraphCount) paraCount = payload.paragraphCount;
                     break;
+                  case 'error':
+                    // Server emitted a structured error mid-stream (AI failure,
+                    // rate-limit, etc). Stop reading, switch to the failure state.
+                    setGenerationError(
+                      typeof payload.reason === 'string'
+                        ? payload.reason
+                        : 'The AI service returned an error.',
+                    );
+                    setGenerationRetryable(payload.retryable !== false);
+                    setPipelineState('generation_failed');
+                    reading = false;
+                    return;
                   default:
-                    // Streamed AI text chunks
                     if (payload.text) {
-                      setGeneratedText((prev) => prev + payload.text);
+                      // Count paragraph breaks as a proxy for paragraph count
+                      paraCount += (payload.text.match(/\n\n/g) ?? []).length;
                     }
                     break;
                 }
               } catch {
-                // malformed SSE line — skip
+                // malformed SSE — skip
               }
               currentEvent = '';
             }
           }
         }
 
-        setDone(true);
+        setSectionsCited(citedSections);
+        setParagraphCount(paraCount > 0 ? paraCount : undefined);
+        setWarningCount(warnCount > 0 ? warnCount : undefined);
+        setPipelineState('ready');
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Network error');
+        // Network drop or unexpected client-side error during the SSE read.
+        // Surface in the generation_failed card with a retry button.
+        const reason =
+          err instanceof Error ? err.message : 'Lost connection to the drafting service.';
+        setGenerationError(reason);
+        setGenerationRetryable(true);
+        setPipelineState('generation_failed');
       }
     },
-    [user, selectedConfig],
+    [selectedConfig],
   );
 
-  // ── Redirect to editor on done ────────────────────────────────────────────
-  useEffect(() => {
-    if (done && docId && !error) {
+  // ── Retry handler (generation_failed card) ────────────────────────────────
+  const handleRetry = useCallback(async () => {
+    if (pendingFormData.current) {
+      await runGeneration(pendingFormData.current);
+    }
+  }, [runGeneration]);
+
+  // ── Submit form → preflight first ────────────────────────────────────────
+  const handleSubmit = useCallback(
+    async (formData: Record<string, unknown>) => {
+      if (!user || !selectedConfig) return;
+
+      pendingFormData.current = formData;
+      setPhase('generating');
+      setPipelineState('verifying');
+      setPreflightQuestions([]);
+      setHardBlockReason(undefined);
+      setSectionsCited([]);
+      setParagraphCount(undefined);
+      setWarningCount(undefined);
+      setDocId(null);
+      setError('');
+
+      try {
+        const res = await apiFetch('/api/documents/preflight', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            template_id: selectedConfig.template_id,
+            form_data: formData,
+          }),
+        });
+
+        // Fail-open: if preflight itself errors, proceed to generation
+        if (!res.ok) {
+          await runGeneration(formData);
+          return;
+        }
+
+        const preflight = await res.json();
+
+        if (preflight.verdict === 'hard') {
+          setHardBlockReason(preflight.hardBlockReason ?? 'Input cannot be used to generate a valid document.');
+          setPipelineState('hard_block');
+          return;
+        }
+
+        if (preflight.verdict === 'soft') {
+          setPreflightQuestions(preflight.questions ?? []);
+          setPipelineState('soft_warn');
+          return;
+        }
+
+        // verdict === 'pass' — proceed straight to generation
+        await runGeneration(formData);
+      } catch {
+        // Fail-open: preflight network error → still generate
+        await runGeneration(formData);
+      }
+    },
+    [user, selectedConfig, runGeneration],
+  );
+
+  // ── Proceed anyway (soft-warn override) ───────────────────────────────────
+  const handleProceedAnyway = useCallback(async () => {
+    if (pendingFormData.current) {
+      await runGeneration(pendingFormData.current);
+    }
+  }, [runGeneration]);
+
+  // ── Edit form (go back from soft-warn or hard-block) ─────────────────────
+  const handleEditForm = useCallback(() => {
+    setPhase('form');
+  }, []);
+
+  // ── Open editor on ready ──────────────────────────────────────────────────
+  const handleOpenEditor = useCallback(() => {
+    if (docId) {
       router.push(`/dashboard/documents/${docId}`);
     }
-  }, [done, docId, error, router]);
+  }, [docId, router]);
+
+  // ── Auto-redirect when docId lands and state is ready ────────────────────
+  useEffect(() => {
+    if (pipelineState === 'ready' && docId && !error) {
+      // Small delay so the ready card renders before navigating
+      const t = setTimeout(() => {
+        router.push(`/dashboard/documents/${docId}`);
+      }, 2500);
+      return () => clearTimeout(t);
+    }
+  }, [pipelineState, docId, error, router]);
 
   // ── Render: Generation phase ──────────────────────────────────────────────
   if (phase === 'generating') {
     return (
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-slate-900">
-            {done && !error ? 'Redirecting to editor…' : done ? 'Document ready' : 'Generating…'}
-          </h1>
-          {done && error && (
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-700"
-            >
-              Back to dashboard
-            </button>
-          )}
-        </div>
-
-        {error && (
+        {error && pipelineState !== 'hard_block' && (
           <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
             <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-red-500" />
             <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
-
-        {warnings.length > 0 && (
-          <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-            <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-amber-500" />
-            <div>
-              <p className="text-sm font-medium text-amber-700">Validation warnings:</p>
-              <ul className="mt-1 space-y-0.5">
-                {warnings.map((w, i) => (
-                  <li key={i} className="text-xs text-amber-600">
-                    {'\u2022'} {w.message}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {checklist.length > 0 && (
-          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-            <p className="text-sm font-medium text-blue-700">Filing checklist:</p>
-            <ul className="mt-1 space-y-0.5">
-              {checklist.map((item, i) => (
-                <li key={i} className="text-xs text-blue-600">
-                  {'\u2610'} {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {done && !error && (
-          <div className="mb-3 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3">
-            <CheckCircle2 size={14} className="flex-shrink-0 text-green-600" />
-            <p className="text-sm text-green-700">Draft saved — opening editor…</p>
-          </div>
-        )}
-
-        <div className="min-h-[400px] rounded-xl border border-slate-200 bg-white p-6">
-          {!generatedText && !done && (
-            <div className="flex items-center gap-2 text-slate-400">
-              <Loader2 size={16} className="animate-spin" />
-              <span className="text-sm">AI is drafting the body…</span>
-            </div>
-          )}
-          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-800">
-            {generatedText}
-          </pre>
-          {!done && generatedText && (
-            <span className="inline-block h-4 w-0.5 animate-pulse bg-amber-500 align-bottom" />
-          )}
-        </div>
+        <PipelineStatus
+          state={pipelineState}
+          questions={preflightQuestions}
+          hardBlockReason={hardBlockReason}
+          templateName={selectedConfig?.display_name}
+          sectionsCited={sectionsCited}
+          paragraphCount={paragraphCount}
+          warningCount={warningCount}
+          onProceedAnyway={handleProceedAnyway}
+          onEditForm={handleEditForm}
+          onOpenEditor={handleOpenEditor}
+          generationError={generationError}
+          generationRetryable={generationRetryable}
+          onRetry={handleRetry}
+        />
       </div>
     );
   }
@@ -329,6 +423,14 @@ function NewDocumentContent() {
           onSubmit={handleSubmit}
           onCancel={() => router.push('/dashboard')}
         />
+        {showPaywall && (
+          <PaywallModal
+            documentLabel={selectedConfig.display_name ?? 'document'}
+            cost={paywallCost}
+            balance={paywallBalance}
+            onClose={() => setShowPaywall(false)}
+          />
+        )}
       </div>
     );
   }

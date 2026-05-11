@@ -1,4 +1,11 @@
 {
+  "_meta": {
+    "description": "Document-rules config for rent_agreement — drives prompt, validation, mandatory clauses",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass",
+    "last_updated": "2026-05-10",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
   "docType": "rent_agreement",
   "parentDocType": null,
   "displayName": "Rent Agreement / Lease Deed",

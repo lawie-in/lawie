@@ -169,7 +169,7 @@ PRAYER
 
 The applicant humbly prays that this Hon'ble Court may grant regular bail.`;
 
-    it('appends verification, advocate block, and disclaimer', () => {
+    it('appends verification and advocate block (no disclaimer — render-time only)', () => {
       const docRule = resolveDocRule('bail_application');
       const courtRule = resolveCourtRule('district_court', 'JMFC Ranchi');
       const result = postProcess({
@@ -185,10 +185,11 @@ The applicant humbly prays that this Hon'ble Court may grant regular bail.`;
       expect(result.formattedText).toContain('VERIFICATION');
       expect(result.formattedText).toContain('Adv. Sharma');
       expect(result.formattedText).toContain('JH/001/2020');
-      expect(result.formattedText).toContain('DISCLAIMER');
+      // Disclaimer is appended at render time by pdf-export.service.ts, not here.
+      expect(result.formattedText).not.toContain('DISCLAIMER');
       expect(result.appendedSections).toContain('verification');
       expect(result.appendedSections).toContain('advocate_details');
-      expect(result.appendedSections).toContain('disclaimer');
+      expect(result.appendedSections).not.toContain('disclaimer');
     });
 
     it('returns filing checklist from config', () => {
@@ -213,9 +214,10 @@ The applicant humbly prays that this Hon'ble Court may grant regular bail.`;
         courtName: 'Unknown Court',
       });
 
-      // Should still append disclaimer
-      expect(result.formattedText).toContain('DISCLAIMER');
-      expect(result.appendedSections).toContain('disclaimer');
+      // Disclaimer is render-time only — body text passes through clean
+      expect(result.formattedText).toContain('Some plain text document.');
+      expect(result.formattedText).not.toContain('DISCLAIMER');
+      expect(result.appendedSections).not.toContain('disclaimer');
       expect(result.filingChecklist).toEqual([]);
     });
   });

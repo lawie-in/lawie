@@ -1,6 +1,6 @@
 import { UserRole, UserPlan } from '@lawie/shared';
 import bcrypt from 'bcryptjs';
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IUser extends Document {
   email: string;
@@ -25,6 +25,19 @@ export interface IUser extends Document {
   emailVerified: boolean;
   isActive: boolean;
   lastLoginAt?: Date;
+
+  referredVia?: Types.ObjectId;   // ReferralCode._id used at signup (SCRUM-71)
+  freeTierBonusGrant: number;     // bonus drafts granted via referral (default 0)
+
+  // ── SCRUM-73 / SCRUM-59 — credit system (founder-authorised 2026-05-12) ──
+  // Three credit buckets, consumed in priority order: topup → earned → subscription.
+  subscriptionCredits: number;    // Granted on plan renewal. Lapses on monthly/yearly cycle.
+  earnedCredits: number;          // From daily login + rating bonuses. Permanent.
+  topupCredits: number;           // One-time top-up purchases. Permanent.
+  planTier: 'free' | 'practice' | 'firm';
+  billingCycle: 'none' | 'monthly' | 'yearly';
+  planRenewsAt?: Date;
+  lastLoginBonusAt?: Date;        // Used by daily-login-bonus dedupe
 
   passwordResetToken?: string;
   passwordResetExpires?: Date;
@@ -119,6 +132,34 @@ const UserSchema = new Schema<IUser>(
       default: true,
     },
     lastLoginAt: Date,
+
+    referredVia: {
+      type: Schema.Types.ObjectId,
+      ref: 'ReferralCode',
+      default: null,
+    },
+    freeTierBonusGrant: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // SCRUM-73 / SCRUM-59 — credit system
+    subscriptionCredits: { type: Number, default: 0, min: 0 },
+    earnedCredits: { type: Number, default: 0, min: 0 },
+    topupCredits: { type: Number, default: 0, min: 0 },
+    planTier: {
+      type: String,
+      enum: ['free', 'practice', 'firm'],
+      default: 'free',
+    },
+    billingCycle: {
+      type: String,
+      enum: ['none', 'monthly', 'yearly'],
+      default: 'none',
+    },
+    planRenewsAt: { type: Date, default: null },
+    lastLoginBonusAt: { type: Date, default: null },
 
     passwordResetToken: {
       type: String,

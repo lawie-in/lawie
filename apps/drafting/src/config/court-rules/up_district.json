@@ -1,14 +1,24 @@
 {
+  "_meta": {
+    "description": "Court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 hardening 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
   "courtId": "up_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "jurisdictionNote": "District-level criminal and civil courts in Uttar Pradesh. Sessions courts try offences punishable with imprisonment exceeding 7 years.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT\n\nVERSUS\n\n{respondent} ... OPPOSITE PARTY",
   "party_designation": {
-    "petitioner": "Applicant",
-    "respondent": "Opposite Party",
+    "petitioner": "Plaintiff (civil) / Applicant (criminal)",
+    "respondent": "Defendant (civil) / Opposite Party (criminal)",
     "applicant": "Applicant",
     "opposite_party": "Opposite Party",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant",
     "complainant": "Complainant",
     "accused": "Accused",
     "state": "State of U.P. through the District Magistrate / S.P., {district}"
@@ -33,7 +43,10 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": ["en", "hi"],
+  "supported_languages": [
+    "en",
+    "hi"
+  ],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",
@@ -47,5 +60,6 @@
     "If bail was previously rejected, mention the changed circumstances warranting fresh application.",
     "Vakalatnama to be filed at the first instance.",
     "Hindi translation of English documents may be required in certain districts."
-  ]
+  ],
+  "e_filing_mandatory": false
 }

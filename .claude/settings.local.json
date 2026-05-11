@@ -11,7 +11,9 @@
       "Bash(/opt/homebrew/bin/npm install:*)",
       "Bash(wait)",
       "Bash(node -e \"require\\('/Users/abhinavanand/Files/Lawie/node_modules/tailwindcss/package.json'\\)\")",
-      "Bash(/Users/abhinavanand/Files/Lawie/node_modules/.bin/tailwindcss --config apps/web/tailwind.config.js --input apps/web/src/app/globals.css --dry-run)"
+      "Bash(/Users/abhinavanand/Files/Lawie/node_modules/.bin/tailwindcss --config apps/web/tailwind.config.js --input apps/web/src/app/globals.css --dry-run)",
+      "mcp__claude_ai_Atlassian_Rovo__transitionJiraIssue",
+      "Bash(corepack yarn:*)"
     ]
   }
 }

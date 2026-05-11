@@ -15,7 +15,12 @@ import { lookupOldToNew } from './sections.service';
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface ValidationWarning {
-  type: 'invalid_section' | 'old_law_reference' | 'missing_clause' | 'fact_alteration';
+  type:
+    | 'invalid_section'
+    | 'old_law_reference'
+    | 'missing_clause'
+    | 'fact_alteration'
+    | 'coherence_mismatch';
   message: string;
   details?: {
     section?: string;
@@ -24,6 +29,10 @@ export interface ValidationWarning {
     clauseId?: string;
     field?: string;
     expected?: string;
+    /** SCRUM-67 — coherence rule id (e.g. "false_implication") */
+    rule?: string;
+    /** SCRUM-67 — human-readable ground label (e.g. "False implication") */
+    ground?: string;
   };
 }
 

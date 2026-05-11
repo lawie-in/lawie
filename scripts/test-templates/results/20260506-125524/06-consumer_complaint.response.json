@@ -1,0 +1,81 @@
+data: {"text":"1. The Complainant, Mr. Manoj Kumar Tirkey, son of Late Shri Birsa"}
+
+data: {"text":" Tirkey, aged 34 years, resident of Flat No. 301, Sunrise Apartments, Lalpur, Ranchi -"}
+
+data: {"text":" 834001, is a 'consumer' within the meaning of Section 2(7) of the Consumer Protection Act, 2019, having purchased goods"}
+
+data: {"text":" for consideration which has been paid or promised"}
+
+data: {"text":" or partly paid and partly promised, or under any system of de"}
+
+data: {"text":"ferred payment.\n\n2. The Opposite Party, Reliance Digital Retail Ltd., Ground Floor, Nucleus Mall, East Jail Road, Ranchi - 834001, is a company engaged in the business of selling consumer electronics, home"}
+
+data: {"text":" appliances, and related products through retail outlets across India, and is"}
+
+data: {"text":" liable to be proceeded against in the present complaint.\n\n3. On 25.02.2026,"}
+
+data: {"text":" the complainant purchased a Whirlpool 300L Double Door Refrigerator (Model IF INV CNV 355 COOL ILLUSIA) from the opposite party's store at Nucleus Mall, Ranchi for a consideration of Rs. 42,990/- vide Invoice"}
+
+data: {"text":" No. RD-RAN-2026-008741, dated 25.02.2026. The said amount was paid via Debit card transaction"}
+
+data: {"text":" through SBI ending with digits 7890.\n\n4. The refrigerator was delivered on 27.02.2026 and installed by the opposite party's technician at"}
+
+data: {"text":" the complainant's residence. The complainant was assured of"}
+
+data: {"text":" quality service and warranty coverage for the purchased product."}
+
+data: {"text":"\n\n5. Within 15 days of installation, on 14.03.2026, the compressor started making loud rattling noises and the cooling capacity dropped significantly, rendering the refrigerator defective and"}
+
+data: {"text":" unfit for the purpose for which it was purchased. The complainant immediately informed the service centre and raised ticket No. WP-RAN-22891 on 15.03.2026.\n\n6. Two technicians visited the"}
+
+data: {"text":" complainant's premises on 20.03.2026 and 10.04.2026 respectively, but could not resolve the issue despite their"}
+
+data: {"text":" attempts. The opposite party has refused to replace the defective unit, claiming 'normal operational sounds' despite the product being clearly defective. The"}
+
+data: {"text":" complainant's emails dated 25.03.2026 and 20.04.2026 seeking replacement of the defective refrigerator have been completely ignored by"}
+
+data: {"text":" the opposite party.\n\n7. The conduct of the Opposite Party amounts to 'deficiency in service' as defined under Section 2(11) of the"}
+
+data: {"text":" Consumer Protection Act, 2019, and the refrigerator supplied constitutes a 'defect' within the meaning of Section 2(10"}
+
+data: {"text":") of the said Act. The refusal to replace a genuinely defective product and ignoring consumer complaints constit"}
+
+data: {"text":"utes an 'unfair trade practice' as defined under Section 2(47) of the Consumer Protection Act, 2019.\n\n8. This Hon'ble Commission has territorial"}
+
+data: {"text":" jurisdiction to entertain and try the present complaint as the cause of action arose at Ranchi where"}
+
+data: {"text":" the goods were purchased, delivered, and where the deficiency in service manifested. The opposite party's store and authorised service centre are also located at Ranchi, within the territorial limits of this"}
+
+data: {"text":" Hon'ble Commission.\n\n9. This Hon'ble Commission has pecuniary jurisdiction to entertain the present complaint as the total claim including refund and compensation amounts"}
+
+data: {"text":" to Rs. 82,990/-, which falls well within the pecuniary jurisdiction of the District Commission as per the Consumer"}
+
+data: {"text":" Protection Act (Jurisdiction) Notification dated 21 December 2021, whereby District Commission has jurisdiction where the value of goods or services paid as consideration does not exceed Rs. 50 L"}
+
+data: {"text":"akh.\n\n10. The present complaint is well within the limitation period prescribed under Section 69 of the Consumer Protection Act, 2019. The cause of action arose on 14.03.2026 when the def"}
+
+data: {"text":"ect first manifested and continues till date due to the opposite party's persistent refusal to provide red"}
+
+data: {"text":"ressal. The complaint is being filed well within the prescribed limitation period of"}
+
+data: {"text":" two years.\n\n11. The complainant has suffered mental agony, harassment, and financial loss due to the deficient service and"}
+
+data: {"text":" defective product supplied by the opposite party. The complainant is entitled to refund of the purchase amount"}
+
+data: {"text":" of Rs. 42,990/-, compensation for mental agony and harassment of Rs. 30,000/-, and litigation costs of Rs. 10,000/-.\n\n12. The opposite party,"}
+
+data: {"text":" despite being duty-bound to provide quality products and after-sales service, has failed in its obligations and has caused"}
+
+data: {"text":" immense hardship to the complainant. The present complaint is filed seeking appropriate relief and directions from"}
+
+data: {"text":" this Hon'ble Commission for redressal of the grievances suffered by the complainant."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION\nAT jharkhand_district_ranchi\n\nConsumer Complaint No. _____ of 2026\n\nIN THE MATTER OF:\n\nMr. Manoj Kumar Tirkey\nS/o / W/o Shri Laxman Tirkey\nAge: 35 years\nR/o Quarter No. B-12, HEC Township, Dhurwa, Ranchi - 834004\n                                              ... Complainant\n\nVersus\n\nReliance Digital Retail Ltd., Ground Floor, Nucleus Mall, East Jail Road, Ranchi - 834001\n                                              ... Opposite Party","alignment":"center"},{"section_id":"complaint_heading","type":"template","content":"CONSUMER COMPLAINT UNDER SECTION 35 OF THE CONSUMER PROTECTION ACT, 2019","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE PRESIDENT AND MEMBERS,\nDISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION,\njharkhand_district_ranchi\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. The Complainant, Mr. Manoj Kumar Tirkey, son of Late Shri Birsa Tirkey, aged 34 years, resident of Flat No. 301, Sunrise Apartments, Lalpur, Ranchi - 834001, is a 'consumer' within the meaning of Section 2(7) of the Consumer Protection Act, 2019, having purchased goods for consideration which has been paid or promised or partly paid and partly promised, or under any system of deferred payment.\n\n2. The Opposite Party, Reliance Digital Retail Ltd., Ground Floor, Nucleus Mall, East Jail Road, Ranchi - 834001, is a company engaged in the business of selling consumer electronics, home appliances, and related products through retail outlets across India, and is liable to be proceeded against in the present complaint.\n\n3. On 25.02.2026, the complainant purchased a Whirlpool 300L Double Door Refrigerator (Model IF INV CNV 355 COOL ILLUSIA) from the opposite party's store at Nucleus Mall, Ranchi for a consideration of Rs. 42,990/- vide Invoice No. RD-RAN-2026-008741, dated 25.02.2026. The said amount was paid via Debit card transaction through SBI ending with digits 7890.\n\n4. The refrigerator was delivered on 27.02.2026 and installed by the opposite party's technician at the complainant's residence. The complainant was assured of quality service and warranty coverage for the purchased product.\n\n5. Within 15 days of installation, on 14.03.2026, the compressor started making loud rattling noises and the cooling capacity dropped significantly, rendering the refrigerator defective and unfit for the purpose for which it was purchased. The complainant immediately informed the service centre and raised ticket No. WP-RAN-22891 on 15.03.2026.\n\n6. Two technicians visited the complainant's premises on 20.03.2026 and 10.04.2026 respectively, but could not resolve the issue despite their attempts. The opposite party has refused to replace the defective unit, claiming 'normal operational sounds' despite the product being clearly defective. The complainant's emails dated 25.03.2026 and 20.04.2026 seeking replacement of the defective refrigerator have been completely ignored by the opposite party.\n\n7. The conduct of the Opposite Party amounts to 'deficiency in service' as defined under Section 2(11) of the Consumer Protection Act, 2019, and the refrigerator supplied constitutes a 'defect' within the meaning of Section 2(10) of the said Act. The refusal to replace a genuinely defective product and ignoring consumer complaints constitutes an 'unfair trade practice' as defined under Section 2(47) of the Consumer Protection Act, 2019.\n\n8. This Hon'ble Commission has territorial jurisdiction to entertain and try the present complaint as the cause of action arose at Ranchi where the goods were purchased, delivered, and where the deficiency in service manifested. The opposite party's store and authorised service centre are also located at Ranchi, within the territorial limits of this Hon'ble Commission.\n\n9. This Hon'ble Commission has pecuniary jurisdiction to entertain the present complaint as the total claim including refund and compensation amounts to Rs. 82,990/-, which falls well within the pecuniary jurisdiction of the District Commission as per the Consumer Protection Act (Jurisdiction) Notification dated 21 December 2021, whereby District Commission has jurisdiction where the value of goods or services paid as consideration does not exceed Rs. 50 Lakh.\n\n10. The present complaint is well within the limitation period prescribed under Section 69 of the Consumer Protection Act, 2019. The cause of action arose on 14.03.2026 when the defect first manifested and continues till date due to the opposite party's persistent refusal to provide redressal. The complaint is being filed well within the prescribed limitation period of two years.\n\n11. The complainant has suffered mental agony, harassment, and financial loss due to the deficient service and defective product supplied by the opposite party. The complainant is entitled to refund of the purchase amount of Rs. 42,990/-, compensation for mental agony and harassment of Rs. 30,000/-, and litigation costs of Rs. 10,000/-.\n\n12. The opposite party, despite being duty-bound to provide quality products and after-sales service, has failed in its obligations and has caused immense hardship to the complainant. The present complaint is filed seeking appropriate relief and directions from this Hon'ble Commission for redressal of the grievances suffered by the complainant."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIn view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:\n\na) Direct the Opposite Party to refund the entire consideration of Rs. 42990/- paid by the Complainant along with interest at the rate of 12% per annum from the date of payment till actual refund;\n\nb) Direct the Opposite Party to pay compensation of Rs. 30000/- towards mental agony, harassment, and inconvenience suffered by the Complainant;\n\nc) Direct the Opposite Party to pay Rs. 10000/- towards the cost of litigation;\n\nd) Pass such other and further orders as this Honourable Commission may deem fit and proper in the facts and circumstances of the case.","alignment":"left"},{"section_id":"verification","type":"template","content":"VERIFICATION\n\nI, Mr. Manoj Kumar Tirkey, the Complainant herein above named, do hereby verify that the contents of paragraphs 1 to 12 of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at jharkhand_district_ranchi on this _____ day of _________, 2026.\n\n\n_________________________\nMr. Manoj Kumar Tirkey\n(Complainant)","alignment":"left"},{"section_id":"advocate_block","type":"template","content":"THROUGH:\n\n_________________________\nSmoke Test\nAdvocate\nEnrollment No. ____________________\n\nPlace: jharkhand_district_ranchi\nDate: 06 May 2026","alignment":"right"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Original + 2 copies of the complaint (total 3 sets)","Affidavit in support of complaint (format per local rules)","Copy of invoice / receipt / bill (Invoice No. RD-RAN-2026-008741)","Copy of all correspondence with Opposite Party (emails, letters)","Copy of product/service warranty card (if applicable)","Photographs / videos of defective product (if applicable)","Court fee (as per state Consumer Commission rules — typically Rs. 100-500)","Proof of payment (bank statement / credit card statement)","ID proof of Complainant (Aadhaar/PAN)","Vakalatnama (if filing through advocate)"]}
+
+event: done
+data: {"complete":true,"docId":"69faed45456b13a3b07d838c","sectionsCited":["CPA 35","CPA 2(7)","CPA 2(11)","BNS 2(10)","CPA 2(47)","CPA 69"],"mandatoryClausesComplete":true}
+

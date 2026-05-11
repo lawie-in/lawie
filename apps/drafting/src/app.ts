@@ -4,8 +4,13 @@ import express from 'express';
 import helmet from 'helmet';
 
 import logger from './config/logger';
+import adminOverviewRoutes from './routes/admin-overview.routes';
+import appSettingsRoutes from './routes/app-settings.routes';
 import courtsRoutes from './routes/courts.routes';
+import creditsRoutes from './routes/credits.routes';
 import documentsRoutes from './routes/documents.routes';
+import internalRoutes from './routes/internal.routes';
+import reviewRoutes from './routes/review.routes';
 import sectionsRoutes from './routes/sections.routes';
 import templatesRoutes from './routes/templates.routes';
 
@@ -22,6 +27,11 @@ app.get('/health', (_req, res) => {
 app.use('/templates', templatesRoutes);
 app.use('/sections', sectionsRoutes);
 app.use('/courts', courtsRoutes);
+app.use('/', internalRoutes);
+app.use('/', appSettingsRoutes);
+app.use('/', creditsRoutes);
+app.use('/', adminOverviewRoutes);
+app.use('/', reviewRoutes);
 app.use('/', documentsRoutes);
 
 Sentry.setupExpressErrorHandler(app);

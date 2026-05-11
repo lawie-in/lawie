@@ -6,8 +6,12 @@
  * - Numbered paragraphs
  * - Verification clause (template-generated, NOT AI-generated)
  * - Advocate details block from user profile
- * - Disclaimer footer
  * - Filing checklist from document-rules config
+ *
+ * The AI disclaimer footer is appended ONCE at PDF render time by
+ * pdf-export.service.ts (single source of truth). Post-processor must NOT add
+ * it to the body — that produced duplicate disclaimers in advocate-pack PDFs
+ * when both the template-config "disclaimer" section and contentToHtml ran.
  */
 import { DocumentRuleConfig, CourtRuleConfig } from './prompt-assembler';
 
@@ -40,9 +44,6 @@ export interface PostProcessResult {
   /** Sections that were auto-appended (for transparency) */
   appendedSections: string[];
 }
-
-const DISCLAIMER =
-  '\n\n---\n**DISCLAIMER:** AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.';
 
 // ── Formatting Functions ─────────────────────────────────────────────────────
 
@@ -232,10 +233,13 @@ export function generateFilingChecklist(docRule: DocumentRuleConfig | null): str
  * Steps:
  * 1. Normalize paragraph numbering
  * 2. Format cause title using court rules
- * 3. Append verification clause (template, not AI)
- * 4. Append advocate details block
- * 5. Append disclaimer
+ * 3. Append prayer clause from template
+ * 4. Append verification clause (template, not AI)
+ * 5. Append advocate details block
  * 6. Generate filing checklist
+ *
+ * NOTE: The AI disclaimer footer is appended at render time by
+ * pdf-export.service.ts (contentToHtml). Do NOT add it to the body here.
  */
 export function postProcess(input: PostProcessInput): PostProcessResult {
   const appendedSections: string[] = [];
@@ -276,11 +280,7 @@ export function postProcess(input: PostProcessInput): PostProcessResult {
     appendedSections.push('advocate_details');
   }
 
-  // Step 6: Append disclaimer
-  text += DISCLAIMER;
-  appendedSections.push('disclaimer');
-
-  // Step 7: Generate filing checklist
+  // Step 6: Generate filing checklist
   const filingChecklist = generateFilingChecklist(input.docRule);
 
   return {

@@ -1,0 +1,67 @@
+data: {"text":"1. That the Applicant has been falsely implicated in FIR No. 78/2026 dated 01.04.2026, registered at Police"}
+
+data: {"text":" Station Lalpur, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023, and is"}
+
+data: {"text":" presently languishing in judicial custody since 02.04.2026, without any justifiable cause.\n\n2. That"}
+
+data: {"text":" the present case arises out of a property dispute between the Complainant and the Applicant's family. The Applicant subm"}
+
+data: {"text":"its that he has been falsely implicated in the said FIR due to the ongoing civil dispute regarding"}
+
+data: {"text":" the property, and the Complainant has misused the criminal law machinery to settle"}
+
+data: {"text":" personal scores and to harass the Applicant and his family members.\n\n3. That the Applicant was not present at the spot at the time of the alleged incident and has been"}
+
+data: {"text":" falsely implicated with malicious intent. The Applicant has CCTV evidence from a nearby shop which clearly establishes his presence elsewhere at the time when"}
+
+data: {"text":" the alleged incident is said to have occurred. This electronic evidence conclusively proves that the Applicant could not have committed"}
+
+data: {"text":" the alleged offence and that the allegations levelled against him are completely baseless and"}
+
+data: {"text":" fabricated.\n\n4. That the Applicant was arrested on 02.04.2026 and has been in judicial custody since then. The investigation is pending and"}
+
+data: {"text":" the Applicant has not been given an opportunity to present the exonerating evidence in"}
+
+data: {"text":" his possession, including the CCTV footage that establishes his alibi.\n\n5. That the Applicant is"}
+
+data: {"text":" a respectable member of society with deep roots in the community and has no previous criminal ant"}
+
+data: {"text":"ecedents. He is not a person who would abscond or evade the process"}
+
+data: {"text":" of law. The Applicant undertakes to cooperate fully with the investigation and to appear before the investigating agency as"}
+
+data: {"text":" and when required.\n\n6. That there is no flight risk involved as the Applicant belongs to a respectable family and has permanent residence in the area. He"}
+
+data: {"text":" has been cooperating with the investigation since the beginning and has never attempted to influence any witness or tam"}
+
+data: {"text":"per with any evidence. The Applicant poses no threat to the society or to any witness"}
+
+data: {"text":" in the case.\n\n7. That the continued detention of the Applicant in judicial custody is violative of his fundamental right to life and personal liberty as"}
+
+data: {"text":" guaranteed under Article 21 of the Constitution of India. The Applicant has already suffered sufficient incarceration and his"}
+
+data: {"text":" further detention would amount to pre-trial punishment.\n\n8. That while Section 303 of BNS is"}
+
+data: {"text":" non-bailable and Section 351 of BNS is bailable, the facts and circumstances of the present case warrant the grant of bail to the Applicant. The allegations are"}
+
+data: {"text":" completely false and fabricated, and there is credible evidence to support the Applicant's innocence in the form of CCTV footage establishing"}
+
+data: {"text":" his presence elsewhere at the time of the alleged incident.\n\n9. That the Applicant undertakes to abide by all conditions that this"}
+
+data: {"text":" Hon'ble Court may deem fit to impose while granting bail. He shall not leave the jurisdiction of this Hon"}
+
+data: {"text":"'ble Court without prior permission, shall cooperate with the investigation, and shall not influence any witness or tamper with any evidence.\n\n10. That the Applic"}
+
+data: {"text":"ant has not made any previous application for bail before any Court in connection"}
+
+data: {"text":" with the present case, and this is the first application for regular bail being moved before this Hon'ble Court."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"IN THE COURT OF DISTRICT & SESSIONS JUDGE, RANCHI\n\nCriminal Miscellaneous Case No. _____ of 2026\n\nIN THE MATTER OF:\n\nAmit Kumar Sahu\nS/o Shri Birendra Sahu\nAge: 28 years\nR/o House No. 14, Harmu Housing Colony, Ranchi - 834002\n                                              ... Applicant\n\nVersus\n\nState of Jharkhand through the District Magistrate / S.P., Ranchi\n                                              ... Opposite Party","alignment":"center"},{"section_id":"application_heading","type":"template","content":"APPLICATION FOR Regular Bail UNDER SECTION 480 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE DISTRICT & SESSIONS JUDGE, RANCHI,\nRanchi\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. That the Applicant has been falsely implicated in FIR No. 78/2026 dated 01.04.2026, registered at Police Station Lalpur, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023, and is presently languishing in judicial custody since 02.04.2026, without any justifiable cause.\n\n2. That the present case arises out of a property dispute between the Complainant and the Applicant's family. The Applicant submits that he has been falsely implicated in the said FIR due to the ongoing civil dispute regarding the property, and the Complainant has misused the criminal law machinery to settle personal scores and to harass the Applicant and his family members.\n\n3. That the Applicant was not present at the spot at the time of the alleged incident and has been falsely implicated with malicious intent. The Applicant has CCTV evidence from a nearby shop which clearly establishes his presence elsewhere at the time when the alleged incident is said to have occurred. This electronic evidence conclusively proves that the Applicant could not have committed the alleged offence and that the allegations levelled against him are completely baseless and fabricated.\n\n4. That the Applicant was arrested on 02.04.2026 and has been in judicial custody since then. The investigation is pending and the Applicant has not been given an opportunity to present the exonerating evidence in his possession, including the CCTV footage that establishes his alibi.\n\n5. That the Applicant is a respectable member of society with deep roots in the community and has no previous criminal antecedents. He is not a person who would abscond or evade the process of law. The Applicant undertakes to cooperate fully with the investigation and to appear before the investigating agency as and when required.\n\n6. That there is no flight risk involved as the Applicant belongs to a respectable family and has permanent residence in the area. He has been cooperating with the investigation since the beginning and has never attempted to influence any witness or tamper with any evidence. The Applicant poses no threat to the society or to any witness in the case.\n\n7. That the continued detention of the Applicant in judicial custody is violative of his fundamental right to life and personal liberty as guaranteed under Article 21 of the Constitution of India. The Applicant has already suffered sufficient incarceration and his further detention would amount to pre-trial punishment.\n\n8. That while Section 303 of BNS is non-bailable and Section 351 of BNS is bailable, the facts and circumstances of the present case warrant the grant of bail to the Applicant. The allegations are completely false and fabricated, and there is credible evidence to support the Applicant's innocence in the form of CCTV footage establishing his presence elsewhere at the time of the alleged incident.\n\n9. That the Applicant undertakes to abide by all conditions that this Hon'ble Court may deem fit to impose while granting bail. He shall not leave the jurisdiction of this Hon'ble Court without prior permission, shall cooperate with the investigation, and shall not influence any witness or tamper with any evidence.\n\n10. That the Applicant has not made any previous application for bail before any Court in connection with the present case, and this is the first application for regular bail being moved before this Hon'ble Court."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIt is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:\n\na) Grant Regular Bail to the Applicant, Amit Kumar Sahu, in connection with FIR No. 78/2026 dated 01.04.2026, PS Lalpur, under Section 480 of BNSS, 2023, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.","alignment":"left"},{"section_id":"verification","type":"template","content":"VERIFICATION\n\nI, Amit Kumar Sahu, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at Ranchi on this _____ day of _________, 2026.\n\nDEPONENT\n\n\n_________________________\nAmit Kumar Sahu\n(Applicant)","alignment":"left"},{"section_id":"advocate_block","type":"template","content":"THROUGH:\n\n_________________________\nSmoke Test\nAdvocate\nEnrollment No. ____________________\n\nPlace: Ranchi\nDate: 06 May 2026","alignment":"right"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Certified copy of FIR No. 78/2026","Vakalatnama duly executed","Surety Bond with ID proof of surety (Aadhaar/PAN)","Address proof of applicant (Aadhaar/Voter ID)","Affidavit of applicant (if required by court)","Verify all BNS/BNSS section numbers before filing","Court fee as per state schedule"]}
+
+event: done
+data: {"complete":true,"docId":"69faecf4456b13a3b07d8379","sectionsCited":["BNSS 480","BNS 303","BNS 351"],"mandatoryClausesComplete":true}
+
