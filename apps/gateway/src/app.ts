@@ -115,11 +115,11 @@ app.use(
   }),
 );
 
-// ── PUBLIC billing catalog routes (no JWT required) — SCRUM-73 ──────────────
+// ── PUBLIC billing catalog (no JWT required) — SCRUM-73 ─────────────────────
 // /api/billing/plans powers the public /pricing page (3 plans + 3 top-up SKUs).
-// /api/billing/plan/:id powers the paywall preview before login.
 // Must be declared BEFORE the authenticated /api/billing proxy below so Express
-// picks the more specific path first.
+// picks the more specific path first. Other /api/billing/* routes (subscribe,
+// topup/order, plan/:id) stay behind authChain.
 app.use(
   '/api/billing/plans',
   publicRateLimiter,
@@ -127,16 +127,6 @@ app.use(
     target: env.BILLING_SERVICE_URL,
     changeOrigin: true,
     pathRewrite: { '^/': '/plans' },
-    on: { error: onProxyError },
-  }),
-);
-app.use(
-  '/api/billing/plan',
-  publicRateLimiter,
-  createProxyMiddleware({
-    target: env.BILLING_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: { '^/': '/plan' },
     on: { error: onProxyError },
   }),
 );
