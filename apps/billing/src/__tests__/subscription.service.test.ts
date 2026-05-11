@@ -45,11 +45,20 @@ describe('subscription.service', () => {
 
       expect(result.subscriptionId).toBe('sub_test123');
       expect(result.shortUrl).toBe('https://rzp.io/test');
+      // SCRUM-73 — createSubscription now defaults to 'practice_monthly' and
+      // resolves the Razorpay plan id via env (or falls back to the legacy
+      // RAZORPAY_PLAN_ID when the per-tier env var isn't set). Notes carry the
+      // plan metadata.
       expect(mockedRazorpay.subscriptions.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          plan_id: process.env.RAZORPAY_PLAN_ID,
           customer_notify: 1,
-          notes: { userId, email },
+          notes: expect.objectContaining({
+            userId,
+            email,
+            planId: 'practice_monthly',
+            tier: 'practice',
+            cycle: 'monthly',
+          }),
         }),
       );
 

@@ -40,3 +40,24 @@
   body { @apply bg-background text-foreground; }
   html { scroll-behavior: smooth; }
 }
+
+/* TipTap editor styles */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #94a3b8;
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap {
+  outline: none;
+}
+
+.tiptap h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5em; }
+.tiptap h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.4em; }
+.tiptap h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.3em; }
+.tiptap p { margin-bottom: 0.75em; }
+.tiptap ul, .tiptap ol { padding-left: 1.5em; margin-bottom: 0.75em; }
+.tiptap li { margin-bottom: 0.25em; }
+.tiptap hr { border-top: 1px solid #e2e8f0; margin: 1em 0; }

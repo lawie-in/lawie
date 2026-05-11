@@ -1,0 +1,59 @@
+{
+  "_meta": {
+    "description": "Family Courts formatting rules — established under the Family Courts Act, 1984. Exclusive jurisdiction over matrimonial, guardianship and maintenance matters",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — created in National Batch 12 (2026-05-10)",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "tribunal",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "family_court",
+  "courtType": "tribunal",
+  "designation": "IN THE FAMILY COURT",
+  "jurisdictionNote": "Family Courts established under Section 3 of the Family Courts Act, 1984. Exclusive jurisdiction over matrimonial relief (divorce, judicial separation, restitution, nullity, RCR), maintenance under Section 125 CrPC / Section 144 BNSS, guardianship and custody under the Guardians and Wards Act 1890, and validity/legitimacy proceedings. Procedure under the Family Courts Act + applicable personal law (HMA 1955, SMA 1954, Divorce Act 1869, Muslim Personal Law, Parsi Marriage and Divorce Act 1936). Pleadings should be drafted to encourage settlement and conciliation.",
+  "cause_title_format": "{courtDesignation}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Petitioner",
+    "complainant": "Petitioner",
+    "counter_party": "Respondent",
+    "state": "Not applicable (civil / personal law proceedings)"
+  },
+  "case_nomenclature": {
+    "divorce": "M.J. No. _____ of {year}",
+    "guardianship": "G&WC No. _____ of {year}",
+    "maintenance": "M.C. No. _____ of {year}",
+    "restitution": "H.M.O.P. No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is most respectfully prayed that this Hon'ble Family Court may be pleased to",
+    "closing": "And for this act of kindness, the petitioner shall ever pray.",
+    "tone": "gentle"
+  },
+  "verification_format": "I, {deponent_name}, the Petitioner herein above named, do hereby verify that the contents of paragraphs ____ to ____ of the above petition are true to my personal knowledge and the contents of paragraphs ____ to ____ are true to my information and belief, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nPETITIONER",
+  "supported_languages": ["en", "hi"],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "IN THE FAMILY COURT AT {place}"
+  },
+  "localRules": [
+    "Procedure governed by the Family Courts Act, 1984 and Family Courts Rules framed by the respective High Court for the State.",
+    "Section 9 of the Act: duty of the Family Court to make efforts for settlement / reconciliation before adjudication; conciliation proceedings are mandatory.",
+    "Section 13 of the Act: parties not entitled to be represented by a legal practitioner as of right — leave of the court required (state practice varies).",
+    "Affidavit verifying the petition mandatory; non-judicial stamp paper requirement as per State.",
+    "In matrimonial petitions: jurisdiction follows the place of marriage solemnisation, or last residence together, or current residence of respondent / petitioner (under the applicable personal law statute).",
+    "Strict requirement of statement of caste/community where relief depends on personal law (Hindu, Muslim, Christian, Parsi, etc.).",
+    "Appeals from Family Court lie to the jurisdictional High Court under Section 19 of the Act within 30 days; orders for maintenance under Section 125 CrPC / 144 BNSS are revisable.",
+    "Tone of pleadings must remain dignified — avoid scandalous, scurrilous or unnecessarily inflammatory allegations (Order VI Rule 17 CPC principles)."
+  ],
+  "e_filing_mandatory": false
+}

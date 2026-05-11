@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
@@ -8,6 +9,7 @@ import { initPassport } from './config/passport';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
 import oauthRoutes from './routes/oauth.routes';
+import referralRoutes from './routes/referral.routes';
 
 // Initialise Passport strategies before routes
 initPassport();
@@ -33,11 +35,13 @@ app.get('/health', (_req, res) => {
 
 app.use('/', authRoutes);
 app.use('/', oauthRoutes);
+app.use('/', referralRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found', service: 'auth' });
 });
 
+Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 export default app;

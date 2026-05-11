@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -13,4 +15,9 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Upload source maps for readable stack traces in Sentry
+  silent: !process.env.CI,
+  // Disable Sentry telemetry
+  telemetry: false,
+});

@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, AlertTriangle, CheckCircle2, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -12,6 +12,32 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [notice] = useState('Email/password login coming soon. Use Google to sign in now.');
 
+  // Referral code — SCRUM-71
+  const [referralCode, setReferralCode] = useState('');
+  const [referralValid, setReferralValid] = useState<boolean | null>(null);
+  const [referralLabel, setReferralLabel] = useState('');
+  const [showReferral, setShowReferral] = useState(false);
+
+  const handleReferralBlur = async () => {
+    const code = referralCode.trim().toUpperCase();
+    if (!code) {
+      setReferralValid(null);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/validate-code/${encodeURIComponent(code)}`,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setReferralValid(data.valid);
+        setReferralLabel(data.label ?? '');
+      }
+    } catch {
+      setReferralValid(null);
+    }
+  };
+
   const handleEmailLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // Email/password auth is SCRUM-9 — not yet implemented
@@ -19,8 +45,13 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    // Full-page redirect to the auth service OAuth flow
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
+    // Store referral code in sessionStorage so the OAuth callback can pick it up
+    const code = referralCode.trim().toUpperCase();
+    if (code) sessionStorage.setItem('lawie_referral_code', code);
+    // Pass referral code as query param to the OAuth flow
+    const base = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
+    const url = code ? `${base}?referralCode=${encodeURIComponent(code)}` : base;
+    window.location.href = url;
   };
 
   return (
@@ -42,11 +73,52 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-slate-900">Sign in to Lawie</h1>
           <p className="mt-1.5 text-sm text-slate-500">Access your AI legal drafting workspace.</p>
 
+          {/* Referral code — SCRUM-71 */}
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={() => setShowReferral((v) => !v)}
+              className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700"
+            >
+              <Tag size={12} />
+              {showReferral ? 'Hide referral code' : 'Have a referral code?'}
+            </button>
+            {showReferral && (
+              <div className="mt-2">
+                <input
+                  type="text"
+                  placeholder="Enter code (e.g. LWPATNA1)"
+                  value={referralCode}
+                  onChange={(e) => {
+                    setReferralCode(e.target.value.toUpperCase());
+                    setReferralValid(null);
+                  }}
+                  onBlur={handleReferralBlur}
+                  maxLength={16}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-2.5 font-mono text-sm text-slate-900 uppercase placeholder:normal-case placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {referralValid === true && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-green-600">
+                    <CheckCircle2 size={12} />
+                    Valid code{referralLabel ? ` — ${referralLabel}` : ''}. You&apos;ll get{' '}
+                    <strong>25 bonus drafts</strong> on signup.
+                  </p>
+                )}
+                {referralValid === false && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                    <AlertTriangle size={12} />
+                    Code not recognised or no longer active.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Google OAuth */}
           <button
             onClick={handleGoogleLogin}
             type="button"
-            className="mt-7 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98]"
+            className="mt-5 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98]"
           >
             {/* Google SVG icon */}
             <svg

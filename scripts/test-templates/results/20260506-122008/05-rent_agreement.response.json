@@ -1,0 +1,79 @@
+data: {"text":"1. THAT this Rent Agreement is executed between the Landlord and the"}
+
+data: {"text":" Tenant for the demised premises being Flat No. 304, 3rd Floor, Sunshine Apartments, Boring Canal Road, Patna - 800001, measuring 1100"}
+
+data: {"text":" sq. ft., which is a furnished residential flat comprising two bedrooms, one hall, kitchen, two bathrooms, and one balcony.\n\n2. THAT the Landlord hereby"}
+
+data: {"text":" grants to the Tenant the right to use and occupy the said premises for a period of 11 months commencing from 15.05.2"}
+
+data: {"text":"026 and ending on 14.04.2027, strictly for residential purposes only.\n\n3. THAT the monthly rent for the said premises shall be Rs. "}
+
+data: {"text":"22,000/- (Rupees Twenty Two Thousand only) which shall be paid by the Tenant to the Landlord on or before the 5th day"}
+
+data: {"text":" of every month during the subsistence of this agreement.\n\n4. THAT the rent shall be paid by the Tenant through bank transfer to the Landlord's HDFC Bank"}
+
+data: {"text":" account, the details of which have been provided separately, and the Tenant shall retain proof of such"}
+
+data: {"text":" payment for record purposes.\n\n5. THAT the Tenant has paid a security deposit of Rs. 66,000/- (Rupees"}
+
+data: {"text":" Sixty Six Thousand only) to the Landlord at the time of execution of this agreement, which amount shall be refundable to the Tenant upon vacating the premises, subject"}
+
+data: {"text":" to deductions for any damages, unpaid dues, or breach of terms hereof.\n\n6. THAT the"}
+
+data: {"text":" monthly rent shall be subject to an annual escalation of 8% with effect from the completion of each year of"}
+
+data: {"text":" tenancy, and such escalated rent shall be payable from the subsequent month onwards"}
+
+data: {"text":".\n\n7. THAT the demised premises shall be used strictly for residential purposes by the Tenant for self and immediate family members only, and no"}
+
+data: {"text":" commercial, professional, or business activity of any nature shall be conducted therefrom.\n\n8. THAT"}
+
+data: {"text":" the Tenant shall not sub-let, assign, or part with the possession of the demised premises or any portion thereof to"}
+
+data: {"text":" any third party without the prior written consent of the Landlord, and any such unauthorized sub-letting shall constitute a breach of this agreement.\n\n9. THAT the Tenant shall be responsible for payment"}
+
+data: {"text":" of electricity charges, water charges, and society maintenance charges pertaining to the demised premises during the period of tenancy, and shall"}
+
+data: {"text":" produce receipts of such payments to the Landlord when demanded.\n\n10. THAT all major"}
+
+data: {"text":" structural repairs and maintenance of the building shall be borne by the Landlord, while minor repairs and day"}
+
+data: {"text":"-to-day maintenance of the demised premises shall be the responsibility of the Tenant.\n\n11. THAT the Tenant shall not make any structural alterations, additions, or modifications to the demised"}
+
+data: {"text":" premises without the prior written consent of the Landlord, and shall maintain the premises in good condition throughout the tenancy period.\n\n12. THAT either party may terminate this agreement by giving "}
+
+data: {"text":"2 months prior written notice to the other party, and upon such termination, the Tenant shall peacefully hand over vacant possession of the premises to the Landlord."}
+
+data: {"text":"\n\n13. THAT in case of default in payment of rent for a period exceeding 15 days from"}
+
+data: {"text":" the due date, the Landlord shall have the right to terminate this agreement and take possession of the premises after giving reasonable notice to the Tenant.\n\n14"}
+
+data: {"text":". THAT the Tenant, being a salaried employee of HDFC Bank, has provided employment details and"}
+
+data: {"text":" salary certificates to the Landlord as proof of financial capacity to honor"}
+
+data: {"text":" the obligations under this agreement.\n\n15. THAT neither party shall be liable for any delay or failure"}
+
+data: {"text":" in performance of their obligations under this agreement if such delay or failure is due to force majeure events including but not limited to natural calamities, government"}
+
+data: {"text":" orders, or circumstances beyond reasonable control.\n\n16. THAT any dispute arising out of or in connection with this agreement shall be subject to the jurisdiction of the competent courts at"}
+
+data: {"text":" Patna, and the parties agree to resolve disputes through mutual consultation failing which through legal"}
+
+data: {"text":" proceedings.\n\n17. THAT this agreement shall be executed in the presence of two witnesses who shall attest the same"}
+
+data: {"text":", and both parties acknowledge having read, understood, and agreed to all the terms and conditions contained herein.\n\n18. THAT this"}
+
+data: {"text":" agreement constitutes the entire understanding between the parties and supersedes all prior negotiations, representations, or agreements relating"}
+
+data: {"text":" to the subject matter hereof, and any modification shall be valid only if made in writing and signed by both parties."}
+
+event: template_sections
+data: {"sections":[{"section_id":"header","type":"template","content":"RENT AGREEMENT\n\nThis Rent Agreement is executed at Patna on 05.05.2026\n\nBETWEEN\n\nMrs. Sunita Devi\nR/o House No. 9, Lane 3, Kankarbagh, Patna - 800020\nPAN: ABCDE1234F\n(Hereinafter referred to as the \"LANDLORD\" which expression shall include his/her heirs, executors, administrators, and assigns)\n\nAND\n\nMr. Rahul Mishra\nR/o Permanent: Village Bihta, District Patna - 801103; Currently of: HDFC Bank Ltd., Boring Road Branch, Patna\nPAN: FGHIJ5678K\n(Hereinafter referred to as the \"TENANT\" which expression shall include his/her heirs, executors, administrators, and assigns)","alignment":"center"},{"section_id":"recitals","type":"template","content":"WHEREAS the Landlord is the absolute owner of the property described herein and is desirous of letting out the same to the Tenant, and the Tenant has agreed to take the said property on rent on the terms and conditions set forth herein.\n\nNOW THIS AGREEMENT WITNESSETH AS FOLLOWS:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. THAT this Rent Agreement is executed between the Landlord and the Tenant for the demised premises being Flat No. 304, 3rd Floor, Sunshine Apartments, Boring Canal Road, Patna - 800001, measuring 1100 sq. ft., which is a furnished residential flat comprising two bedrooms, one hall, kitchen, two bathrooms, and one balcony.\n\n2. THAT the Landlord hereby grants to the Tenant the right to use and occupy the said premises for a period of 11 months commencing from 15.05.2026 and ending on 14.04.2027, strictly for residential purposes only.\n\n3. THAT the monthly rent for the said premises shall be Rs. 22,000/- (Rupees Twenty Two Thousand only) which shall be paid by the Tenant to the Landlord on or before the 5th day of every month during the subsistence of this agreement.\n\n4. THAT the rent shall be paid by the Tenant through bank transfer to the Landlord's HDFC Bank account, the details of which have been provided separately, and the Tenant shall retain proof of such payment for record purposes.\n\n5. THAT the Tenant has paid a security deposit of Rs. 66,000/- (Rupees Sixty Six Thousand only) to the Landlord at the time of execution of this agreement, which amount shall be refundable to the Tenant upon vacating the premises, subject to deductions for any damages, unpaid dues, or breach of terms hereof.\n\n6. THAT the monthly rent shall be subject to an annual escalation of 8% with effect from the completion of each year of tenancy, and such escalated rent shall be payable from the subsequent month onwards.\n\n7. THAT the demised premises shall be used strictly for residential purposes by the Tenant for self and immediate family members only, and no commercial, professional, or business activity of any nature shall be conducted therefrom.\n\n8. THAT the Tenant shall not sub-let, assign, or part with the possession of the demised premises or any portion thereof to any third party without the prior written consent of the Landlord, and any such unauthorized sub-letting shall constitute a breach of this agreement.\n\n9. THAT the Tenant shall be responsible for payment of electricity charges, water charges, and society maintenance charges pertaining to the demised premises during the period of tenancy, and shall produce receipts of such payments to the Landlord when demanded.\n\n10. THAT all major structural repairs and maintenance of the building shall be borne by the Landlord, while minor repairs and day-to-day maintenance of the demised premises shall be the responsibility of the Tenant.\n\n11. THAT the Tenant shall not make any structural alterations, additions, or modifications to the demised premises without the prior written consent of the Landlord, and shall maintain the premises in good condition throughout the tenancy period.\n\n12. THAT either party may terminate this agreement by giving 2 months prior written notice to the other party, and upon such termination, the Tenant shall peacefully hand over vacant possession of the premises to the Landlord.\n\n13. THAT in case of default in payment of rent for a period exceeding 15 days from the due date, the Landlord shall have the right to terminate this agreement and take possession of the premises after giving reasonable notice to the Tenant.\n\n14. THAT the Tenant, being a salaried employee of HDFC Bank, has provided employment details and salary certificates to the Landlord as proof of financial capacity to honor the obligations under this agreement.\n\n15. THAT neither party shall be liable for any delay or failure in performance of their obligations under this agreement if such delay or failure is due to force majeure events including but not limited to natural calamities, government orders, or circumstances beyond reasonable control.\n\n16. THAT any dispute arising out of or in connection with this agreement shall be subject to the jurisdiction of the competent courts at Patna, and the parties agree to resolve disputes through mutual consultation failing which through legal proceedings.\n\n17. THAT this agreement shall be executed in the presence of two witnesses who shall attest the same, and both parties acknowledge having read, understood, and agreed to all the terms and conditions contained herein.\n\n18. THAT this agreement constitutes the entire understanding between the parties and supersedes all prior negotiations, representations, or agreements relating to the subject matter hereof, and any modification shall be valid only if made in writing and signed by both parties."},{"section_id":"closing","type":"template","content":"IN WITNESS WHEREOF, the parties hereto have set their hands on this Rent Agreement on the day and year first above written at Patna.\n\n\nLANDLORD:\n\n_________________________\nMrs. Sunita Devi\n\n\nTENANT:\n\n_________________________\nMr. Rahul Mishra\n\n\nWITNESSES:\n\n1. Name: _________________________\n   Address: _________________________\n   Signature: _________________________\n\n2. Name: _________________________\n   Address: _________________________\n   Signature: _________________________","alignment":"left"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Print on stamp paper of appropriate value (varies by state)","Both parties to sign on all pages","Two witnesses required with full name, address, and signature","Attach passport-size photographs of Landlord and Tenant","Attach photocopy of Landlord's property ownership proof","Attach ID proof of both parties (Aadhaar/PAN)","For tenure > 11 months: compulsory registration at Sub-Registrar","Retain one executed copy with each party","Tenant to obtain NOC from housing society (if applicable)"]}
+
+event: done
+data: {"complete":true,"docId":null,"sectionsCited":[],"mandatoryClausesComplete":true}
+

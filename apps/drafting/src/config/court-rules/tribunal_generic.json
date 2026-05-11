@@ -1,0 +1,51 @@
+{
+  "_meta": {
+    "description": "Generic tribunal formatting rules — fallback for any tribunal/quasi-judicial body without a dedicated rule file (CAT, ITAT, AAR, CESTAT, SAT, TDSAT, etc.)",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — created in National Batch 11 (2026-05-10)",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "tribunal",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "tribunal_generic",
+  "courtType": "tribunal",
+  "designation": "BEFORE THE HON'BLE TRIBUNAL",
+  "jurisdictionNote": "Generic tribunal rules — applies to specialised quasi-judicial bodies constituted under the relevant parent statute. Tribunal-specific procedure and pecuniary jurisdiction are governed by that statute and any rules framed thereunder.",
+  "cause_title_format": "{courtDesignation}\n{caseNomenclature}\n\n{applicant} ... APPLICANT\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Applicant",
+    "complainant": "Complainant",
+    "counter_party": "Respondent / Counter-Party",
+    "state": "Union of India through Secretary, Ministry of (as applicable)"
+  },
+  "case_nomenclature": {
+    "generic": "Application No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, prayed that this Hon'ble Tribunal may be pleased to",
+    "closing": "And for this act of kindness, the applicant shall ever pray.",
+    "tone": "neutral"
+  },
+  "verification_format": "I, {deponent_name}, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nAPPLICANT",
+  "supported_languages": ["en"],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "BEFORE THE {courtDesignation}"
+  },
+  "localRules": [
+    "Pleadings and procedure are governed by the parent statute constituting the tribunal and rules framed thereunder.",
+    "Form of application, court fee, limitation, and verification follow the tribunal's procedural rules.",
+    "Generic fallback only — replace with a tribunal-specific rule file (nclt, drt, cat, itat, etc.) where available."
+  ],
+  "e_filing_mandatory": false
+}

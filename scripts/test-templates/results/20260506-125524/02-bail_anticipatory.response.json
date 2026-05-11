@@ -1,0 +1,77 @@
+data: {"text":"1. The Applicant most respectfully submits that he apprehends arrest in connection with FIR No. 142/2026 dated 18.04.2"}
+
+data: {"text":"026, registered at PS Doranda, under Sections 318(4) and 336(3) of the Bharatiya Nyaya Sanhita, 2023."}
+
+data: {"text":" The Applicant has not been arrested yet but seeks anticipatory bail in view of the apprehension of arrest in"}
+
+data: {"text":" the aforesaid case.\n\n2. The Applicant submits that he apprehends arrest in connection with FIR No. 142/2026"}
+
+data: {"text":" dated 18.04.2026 lodged at PS Doranda, Ranchi, wherein he has been fals"}
+
+data: {"text":"ely implicated. The said FIR has been lodged on the basis of a false and frivolous complaint by the de-facto complainant arising out of a commercial partnership dispute involving a transport business.\n\n3. The Applicant subm"}
+
+data: {"text":"its that he is a well-known transporter in Ranchi and has been carrying on his legitimate business activities for several"}
+
+data: {"text":" years. The present case is nothing but a result of a commercial dispute between business partners which"}
+
+data: {"text":" has been given a criminal colour to har"}
+
+data: {"text":"ass and humiliate the Applicant.\n\n4. The Applicant further submits that he undertakes to cooperate fully with the investigation and shall not leave the territorial jurisdiction of Jharkhand without prior permission of this"}
+
+data: {"text":" Hon'ble Court. The Applicant is ready and willing to join the investigation as and when called upon by"}
+
+data: {"text":" the investigating agency.\n\n5. The Applicant submits that he has been falsely implicated in the present case and the allegations"}
+
+data: {"text":" levelled against him are completely baseless and without any substance. The matter is purely civil"}
+
+data: {"text":" in nature arising out of business disputes between partners and does not involve any criminal liability on"}
+
+data: {"text":" the part of the Applicant.\n\n6. The Applicant submits that the dispute is essentially of a civil nature pert"}
+
+data: {"text":"aining to partnership business dealings and financial transactions. The complainant, being ag"}
+
+data: {"text":"grieved by certain commercial decisions, has resorted to filing a criminal complaint to"}
+
+data: {"text":" pressurize the Applicant and gain undue advantage in the civil dispute"}
+
+data: {"text":".\n\n7. The Applicant respectfully submits that he has no criminal antecedents and has never been involved in any criminal case whatsoever. He is a resp"}
+
+data: {"text":"ectable member of society and has always conducted himself in accordance with law"}
+
+data: {"text":". His reputation and standing in the community is impeccable.\n\n8. The Applicant submits that he has"}
+
+data: {"text":" deep roots in the community and has been residing in Ranchi for several decades. He has substantial business interests and immovable properties"}
+
+data: {"text":" in Jharkhand. There is no question of his fleeing from justice or evading the"}
+
+data: {"text":" legal process.\n\n9. The Applicant submits that custodial interrogation is not necessary in the present case as he is willing to join the investigation and cooperate with"}
+
+data: {"text":" the investigating agency. His liberty should not be curtailed when he is ready to make himself"}
+
+data: {"text":" available for investigation as and when required.\n\n10. The Applicant respectfully relies upon the judgment of the Hon'ble Supreme Court in Sushila Ag"}
+
+data: {"text":"garwal v. State (2020) 5 SCC 1, wherein it has been held that while considering anticip"}
+
+data: {"text":"atory bail applications, the court must balance the freedom of the individual guaranteed under Article 21 of the Constitution with the interests of the society and the investigation."}
+
+data: {"text":"\n\n11. The Applicant submits that his fundamental right to life and personal liberty as guaranteed under Article 21 of the Constitution of"}
+
+data: {"text":" India would be violated if he is arrested in this false and frivolous case. The conditions for"}
+
+data: {"text":" grant of anticipatory bail as laid down by the Hon'ble Supreme Court are fully satisfied in the present case.\n\n12. The"}
+
+data: {"text":" Applicant submits that the investigation is pending and no useful purpose would be served by arresting him when he has already assured"}
+
+data: {"text":" full cooperation with the investigating agency. Grant of anticipatory bail would serve the ends of justice and prevent any misuse of the criminal"}
+
+data: {"text":" law process."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"IN THE HIGH COURT OF JHARKHAND AT RANCHI\n\nCr. Misc. No. _____ of 2026\n\nIN THE MATTER OF:\n\nRajesh Mahto\nS/o Late Shri Dhananjay Mahto\nAge: 42 years\nR/o Flat 3A, Ashok Nagar, Main Road, Ranchi - 834002\n                                              ... Petitioner\n\nVersus\n\nState of Jharkhand through the Principal Secretary, Home Department, Government of Jharkhand, Ranchi\n                                              ... Respondent","alignment":"center"},{"section_id":"application_heading","type":"template","content":"APPLICATION FOR ANTICIPATORY BAIL UNDER SECTION 482 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE HIGH COURT OF JHARKHAND AT RANCHI,\nRanchi\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. The Applicant most respectfully submits that he apprehends arrest in connection with FIR No. 142/2026 dated 18.04.2026, registered at PS Doranda, under Sections 318(4) and 336(3) of the Bharatiya Nyaya Sanhita, 2023. The Applicant has not been arrested yet but seeks anticipatory bail in view of the apprehension of arrest in the aforesaid case.\n\n2. The Applicant submits that he apprehends arrest in connection with FIR No. 142/2026 dated 18.04.2026 lodged at PS Doranda, Ranchi, wherein he has been falsely implicated. The said FIR has been lodged on the basis of a false and frivolous complaint by the de-facto complainant arising out of a commercial partnership dispute involving a transport business.\n\n3. The Applicant submits that he is a well-known transporter in Ranchi and has been carrying on his legitimate business activities for several years. The present case is nothing but a result of a commercial dispute between business partners which has been given a criminal colour to harass and humiliate the Applicant.\n\n4. The Applicant further submits that he undertakes to cooperate fully with the investigation and shall not leave the territorial jurisdiction of Jharkhand without prior permission of this Hon'ble Court. The Applicant is ready and willing to join the investigation as and when called upon by the investigating agency.\n\n5. The Applicant submits that he has been falsely implicated in the present case and the allegations levelled against him are completely baseless and without any substance. The matter is purely civil in nature arising out of business disputes between partners and does not involve any criminal liability on the part of the Applicant.\n\n6. The Applicant submits that the dispute is essentially of a civil nature pertaining to partnership business dealings and financial transactions. The complainant, being aggrieved by certain commercial decisions, has resorted to filing a criminal complaint to pressurize the Applicant and gain undue advantage in the civil dispute.\n\n7. The Applicant respectfully submits that he has no criminal antecedents and has never been involved in any criminal case whatsoever. He is a respectable member of society and has always conducted himself in accordance with law. His reputation and standing in the community is impeccable.\n\n8. The Applicant submits that he has deep roots in the community and has been residing in Ranchi for several decades. He has substantial business interests and immovable properties in Jharkhand. There is no question of his fleeing from justice or evading the legal process.\n\n9. The Applicant submits that custodial interrogation is not necessary in the present case as he is willing to join the investigation and cooperate with the investigating agency. His liberty should not be curtailed when he is ready to make himself available for investigation as and when required.\n\n10. The Applicant respectfully relies upon the judgment of the Hon'ble Supreme Court in Sushila Aggarwal v. State (2020) 5 SCC 1, wherein it has been held that while considering anticipatory bail applications, the court must balance the freedom of the individual guaranteed under Article 21 of the Constitution with the interests of the society and the investigation.\n\n11. The Applicant submits that his fundamental right to life and personal liberty as guaranteed under Article 21 of the Constitution of India would be violated if he is arrested in this false and frivolous case. The conditions for grant of anticipatory bail as laid down by the Hon'ble Supreme Court are fully satisfied in the present case.\n\n12. The Applicant submits that the investigation is pending and no useful purpose would be served by arresting him when he has already assured full cooperation with the investigating agency. Grant of anticipatory bail would serve the ends of justice and prevent any misuse of the criminal law process."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIt is, therefore, most humbly prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant Anticipatory Bail to the Petitioner, Rajesh Mahto, in the event of arrest in connection with FIR No. 142/2026 dated 18.04.2026, PS Doranda, under Section 482 of BNSS, 2023, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Direct that in the event of arrest, the Petitioner shall be released on bail forthwith;\n\nc) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\nAnd for this act of kindness, the petitioner shall ever pray.","alignment":"left"},{"section_id":"verification","type":"template","content":"VERIFICATION\n\nI, Rajesh Mahto, the Petitioner herein above named, do hereby solemnly affirm and state that the contents of paragraphs 1 to 12 of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at Ranchi on this _____ day of _________, 2026.\n\nDEPONENT\n\n\n_________________________\nRajesh Mahto\n(Petitioner)","alignment":"left"},{"section_id":"advocate_block","type":"template","content":"THROUGH:\n\n_________________________\nSmoke Test\nAdvocate\nEnrollment No. ____________________\n\nPlace: Ranchi\nDate: 06 May 2026","alignment":"right"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Certified copy of FIR No. 142/2026","Vakalatnama duly executed","Address proof of applicant (Aadhaar/Voter ID)","Affidavit disclosing all pending cases (if any)","Identity proof (PAN/Passport/Driving License)","Details of proposed surety","Verify all BNS/BNSS section numbers before filing","Court fee as per state schedule"]}
+
+event: done
+data: {"complete":true,"docId":"69faed05456b13a3b07d837e","sectionsCited":["BNSS 482"],"mandatoryClausesComplete":true}
+

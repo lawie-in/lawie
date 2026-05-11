@@ -1,0 +1,74 @@
+data: {"text":"1. That the applicant above named has been falsely implicated in First Information Report No. 124/2026 dated 15/"}
+
+data: {"text":"03/2026, registered at Police Station Kotwali, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023,"}
+
+data: {"text":" and seeks regular bail from this Hon'ble Court being innocent of the charges levelled against him."}
+
+data: {"text":"\n\n2. That the applicant submits that he has been falsely implicated in the aforesaid FIR due to a land dispute with the complainant. The present"}
+
+data: {"text":" case is nothing but a result of malicious prosecution arising out of civil"}
+
+data: {"text":" dispute between the parties over landed property, which the complainant is trying"}
+
+data: {"text":" to convert into a criminal matter to harass and intimidate the applicant.\n\n3. That the"}
+
+data: {"text":" applicant categorically states that he was not present at the time of the alleged incident and has credible witnesses who can vouch for his alibi. The applicant was"}
+
+data: {"text":" elsewhere at the time of the incident and can prove his innocence through documentary evidence and witness testimony that will"}
+
+data: {"text":" establish his presence at a different location during the material time.\n\n4. That the applicant was"}
+
+data: {"text":" arrested on 16/03/2026 and has been languishing in judicial custody since then without any justifiable cause. The continued incarceration of"}
+
+data: {"text":" the applicant serves no purpose as the investigation has been completed and charge sheet has already"}
+
+data: {"text":" been filed.\n\n5. That the applicant has been falsely implicated in the present case due to ulterior motives of the complainant who harb"}
+
+data: {"text":"ours personal grudge against the applicant arising out of the ongoing land dispute. The complain"}
+
+data: {"text":"ant has deliberately misused the process of law to settle"}
+
+data: {"text":" personal scores and has fabricated false allegations against the applicant.\n\n6. That the applicant poses no flight risk whatsoever and"}
+
+data: {"text":" has deep roots in the society. The applicant is a permanent resident of the locality, owns"}
+
+data: {"text":" immovable property, has family ties, and has never absconded from legal proceedings in"}
+
+data: {"text":" the past. There is no apprehension that the applicant will flee from justice if granted"}
+
+data: {"text":" bail.\n\n7. That the applicant has no criminal antecedents and is a law-abiding citizen of good character and reputation"}
+
+data: {"text":" in society. The applicant has never been involved in any criminal activity in the past and the present case is the first of"}
+
+data: {"text":" its kind against him, which itself demonstrates that he has"}
+
+data: {"text":" been falsely implicated.\n\n8. That the applicant undertakes to fully cooperate with the investigation and trial proceedings. The applicant is ready"}
+
+data: {"text":" and willing to comply with any conditions that this Hon'ble Court may deem fit to impose while"}
+
+data: {"text":" granting bail and shall not misuse the liberty granted to him.\n\n9. That the fundamental right to life"}
+
+data: {"text":" and personal liberty as guaranteed under Article 21 of the Constitution of India includes the right to bail, and prolong"}
+
+data: {"text":"ed detention without trial amounts to violation of this constitutional right. The applicant's continued incarceration without reasonable grounds"}
+
+data: {"text":" is contrary to the settled principles of criminal jurisprudence.\n\n10. That the offences"}
+
+data: {"text":" alleged against the applicant are bailable in nature and the prosecution has failed to establish any strong prima facie case against the"}
+
+data: {"text":" applicant. The evidence on record is insufficient to sustain conviction and the applicant is likely to be acquitted at the trial"}
+
+data: {"text":"."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"IN THE COURT OF Court of Sessions Judge, Patna\nAT Patna\n\nCriminal Miscellaneous Case No. _____ of 2026\n\nIN THE MATTER OF:\n\nRajan Kumar\nS/o Shri Mohan Kumar\nAge: 32 years\nR/o Village Danapur, District Patna, Bihar\n                                              ... Petitioner / Accused\n\nVersus\n\nState of bihar\nThrough Public Prosecutor\n                                              ... Respondent / State","alignment":"center"},{"section_id":"application_heading","type":"template","content":"APPLICATION FOR Regular Bail UNDER SECTION 480 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE Court of Sessions Judge, Patna,\nPatna\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. That the applicant above named has been falsely implicated in First Information Report No. 124/2026 dated 15/03/2026, registered at Police Station Kotwali, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023, and seeks regular bail from this Hon'ble Court being innocent of the charges levelled against him.\n\n2. That the applicant submits that he has been falsely implicated in the aforesaid FIR due to a land dispute with the complainant. The present case is nothing but a result of malicious prosecution arising out of civil dispute between the parties over landed property, which the complainant is trying to convert into a criminal matter to harass and intimidate the applicant.\n\n3. That the applicant categorically states that he was not present at the time of the alleged incident and has credible witnesses who can vouch for his alibi. The applicant was elsewhere at the time of the incident and can prove his innocence through documentary evidence and witness testimony that will establish his presence at a different location during the material time.\n\n4. That the applicant was arrested on 16/03/2026 and has been languishing in judicial custody since then without any justifiable cause. The continued incarceration of the applicant serves no purpose as the investigation has been completed and charge sheet has already been filed.\n\n5. That the applicant has been falsely implicated in the present case due to ulterior motives of the complainant who harbours personal grudge against the applicant arising out of the ongoing land dispute. The complainant has deliberately misused the process of law to settle personal scores and has fabricated false allegations against the applicant.\n\n6. That the applicant poses no flight risk whatsoever and has deep roots in the society. The applicant is a permanent resident of the locality, owns immovable property, has family ties, and has never absconded from legal proceedings in the past. There is no apprehension that the applicant will flee from justice if granted bail.\n\n7. That the applicant has no criminal antecedents and is a law-abiding citizen of good character and reputation in society. The applicant has never been involved in any criminal activity in the past and the present case is the first of its kind against him, which itself demonstrates that he has been falsely implicated.\n\n8. That the applicant undertakes to fully cooperate with the investigation and trial proceedings. The applicant is ready and willing to comply with any conditions that this Hon'ble Court may deem fit to impose while granting bail and shall not misuse the liberty granted to him.\n\n9. That the fundamental right to life and personal liberty as guaranteed under Article 21 of the Constitution of India includes the right to bail, and prolonged detention without trial amounts to violation of this constitutional right. The applicant's continued incarceration without reasonable grounds is contrary to the settled principles of criminal jurisprudence.\n\n10. That the offences alleged against the applicant are bailable in nature and the prosecution has failed to establish any strong prima facie case against the applicant. The evidence on record is insufficient to sustain conviction and the applicant is likely to be acquitted at the trial."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIn view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Court may be pleased to:\n\na) Grant Regular Bail to the Petitioner, Rajan Kumar, in connection with FIR No. 124/2026 dated 2026-03-15, PS Kotwali, under Section 480 of BNSS, 2023, on such terms and conditions as this Honourable Court may deem fit;\n\nb) Pass such other orders as this Honourable Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.","alignment":"left"},{"section_id":"verification","type":"template","content":"VERIFICATION\n\nI, Rajan Kumar, the Petitioner herein above named, do hereby verify that the contents of paragraphs 1 to _____ of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at Patna on this _____ day of _________, 2026.\n\n\n_________________________\nRajan Kumar\n(Petitioner)","alignment":"left"},{"section_id":"advocate_block","type":"template","content":"THROUGH:\n\n_________________________\nDev User\nAdvocate\nEnrollment No. ____________________\n\nPlace: Patna\nDate: 04 May 2026","alignment":"right"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Certified copy of FIR No. 124/2026","Vakalatnama duly executed","Surety Bond with ID proof of surety (Aadhaar/PAN)","Address proof of applicant (Aadhaar/Voter ID)","Affidavit of applicant (if required by court)","Verify all BNS/BNSS section numbers before filing","Court fee as per state schedule"]}
+
+event: warning
+data: {"warnings":[{"type":"missing_clause","message":"Fact-alteration warning: the following user-provided details may not appear in the AI draft: Date 16.03.2026. Please verify."}]}
+
+event: done
+data: {"complete":true,"docId":"69f79f05ba3d034735e4d0ca","sectionsCited":["BNSS 480"],"mandatoryClausesComplete":true}
+

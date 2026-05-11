@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "description": "Labour Courts and Industrial Tribunals formatting rules — Industrial Disputes Act 1947 (transitioning to Industrial Relations Code 2020) and connected labour statutes",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — created in National Batch 12 (2026-05-10)",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "tribunal",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "labour_court",
+  "courtType": "tribunal",
+  "designation": "BEFORE THE LABOUR COURT / INDUSTRIAL TRIBUNAL",
+  "jurisdictionNote": "Labour Courts constituted under Section 7 and Industrial Tribunals under Section 7A of the Industrial Disputes Act, 1947 (state and central). Jurisdiction over industrial disputes referred by the appropriate government, individual workman applications under Section 2A, and complaints under the Industrial Employment (Standing Orders) Act, 1946. Industrial Relations Code, 2020 (when fully notified) will subsume these provisions.",
+  "cause_title_format": "{courtDesignation}\n{caseNomenclature}\n\n{applicant} ... WORKMAN / APPLICANT\n\nVERSUS\n\n{respondent} ... EMPLOYER / MANAGEMENT",
+  "party_designation": {
+    "petitioner": "Workman / Applicant",
+    "respondent": "Employer / Management",
+    "applicant": "Workman / Applicant",
+    "complainant": "Workman / Applicant",
+    "counter_party": "Employer / Management",
+    "state": "State through Labour Commissioner (as applicable)"
+  },
+  "case_nomenclature": {
+    "reference": "Industrial Reference No. _____ of {year}",
+    "complaint": "Complaint No. _____ of {year}",
+    "id_application": "I.D. No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court / Tribunal may be pleased to",
+    "closing": "And for this act of kindness, the workman / applicant shall ever pray.",
+    "tone": "neutral"
+  },
+  "verification_format": "I, {deponent_name}, the Workman / Applicant herein above named, do hereby verify that the contents of the above application are true to my personal knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nWORKMAN / APPLICANT",
+  "supported_languages": ["en", "hi"],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "BEFORE THE {courtDesignation} AT {place}"
+  },
+  "localRules": [
+    "Procedure governed by the Industrial Disputes Act, 1947 and the Industrial Disputes (Central / State) Rules. State amendments may apply (e.g., Maharashtra MRTU & PULP Act, 1971 for complaints of unfair labour practice).",
+    "Section 2A of the I.D. Act permits an individual workman to directly approach the Labour Court / Industrial Tribunal on discharge, dismissal, retrenchment or termination after expiry of 45 days from conciliation.",
+    "Limitation under Section 2A(3): direct application within 3 years from date of dispute.",
+    "Conciliation under Section 12 by the Conciliation Officer is a pre-requisite for reference; failure report must be on record.",
+    "Court fee minimal / nil for individual workman applications under welfare statutes; standard court fee applies under Maharashtra/State Court Fees Acts otherwise.",
+    "Award of the Labour Court / Tribunal becomes enforceable after 30 days of publication in the official gazette (Section 17A).",
+    "Vakalatnama / authorisation: workman may appear in person, through an officer of a registered trade union (Section 36), or through a legal practitioner with consent of the opposite party and leave of the court.",
+    "Writ petition under Art. 226/227 lies to the jurisdictional High Court against the award; no statutory appeal under the I.D. Act."
+  ],
+  "e_filing_mandatory": false
+}

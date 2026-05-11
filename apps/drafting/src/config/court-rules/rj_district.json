@@ -1,0 +1,74 @@
+{
+  "_meta": {
+    "description": "Rajasthan district & sessions court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — National Batch 5a (RJ+MP) 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "applies_to_state": "Rajasthan",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "rj_district",
+  "courtType": "district_court",
+  "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
+  "jurisdictionNote": "District-level criminal and civil courts in Rajasthan, governed by the Rajasthan Civil Courts Ordinance, 1950 and Rajasthan High Court Rules, 1952. Sessions courts try offences punishable with imprisonment exceeding 7 years. Rajasthan was reorganised in 2023, with 19 new districts notified — current count is 50 districts. Hindi is the official language of the State courts under the Rajasthan Official Language Act, 1956.",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Applicant",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant",
+    "complainant": "Complainant",
+    "accused": "Accused",
+    "state": "State of Rajasthan through the Principal Secretary, Home Department, Government of Rajasthan, Jaipur"
+  },
+  "case_nomenclature": {
+    "regular_bail": "Crl. Misc. Bail Appln. No. _____ of {year}",
+    "anticipatory_bail": "Crl. Misc. (A.B.) Appln. No. _____ of {year}",
+    "sessions_case": "S.C. No. _____ of {year}",
+    "calendar_case": "C.C. No. _____ of {year}",
+    "civil_suit": "Civil Suit No. _____ of {year}",
+    "execution": "Execution Petition No. _____ of {year}",
+    "misc_criminal": "Crl. Misc. Appln. No. _____ of {year}",
+    "misc_civil": "Misc. Civil Application No. _____ of {year}",
+    "special_case": "Spl. C.C. No. _____ of {year}",
+    "atrocity_case": "Spl. C.C. (Atrocities) No. _____ of {year}",
+    "ndps_case": "Spl. C.C. (NDPS) No. _____ of {year}",
+    "pocso_case": "Spl. C.C. (POCSO) No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may graciously be pleased to:",
+    "closing": "And for this act of kindness, the petitioner shall, as in duty bound, ever pray.",
+    "tone": "respectful"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly verify and declare that the contents of the above petition from paragraph ___ to paragraph ___ are true to my personal knowledge and the contents of paragraphs ___ to ___ are believed to be true on the basis of information received and legal advice tendered, which I believe to be true. Nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": [
+    "en",
+    "hi"
+  ],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "{courtDesignation}, {city}"
+  },
+  "localRules": [
+    "Hindi is the official language of the Rajasthan subordinate courts; pleadings in English are accepted but Hindi translation may be insisted upon under the Rajasthan Official Language Act, 1956.",
+    "Bail applications under S.483 BNSS must disclose any earlier rejection by the Magistrate or any co-ordinate court.",
+    "Anticipatory bail applications (S.482 BNSS) must be accompanied by an affidavit, certified copy of the FIR and grounds of apprehension.",
+    "Vakalatnama in the form prescribed under the Rajasthan High Court Rules, 1952 to be filed at the first instance with requisite court-fee stamp.",
+    "All civil pleadings to be paginated, indexed and accompanied by a list of documents under Order VII / Order VIII CPC.",
+    "Court-fee under the Rajasthan Court-Fees and Suits Valuation Act, 1961.",
+    "Atrocities (SC/ST), POCSO and NDPS cases are tried by designated Special Courts notified by the State Government.",
+    "After the 2023 reorganisation, jurisdictional headquarters of several new districts (Anupgarh, Balotra, Beawar, Deeg, Didwana-Kuchaman, Dudu, Gangapur City, Jaipur Rural, Jodhpur Rural, Kekri, Khairthal-Tijara, Kotputli-Behror, Neem ka Thana, Phalodi, Salumbar, Sanchore, Shahpura) follow notifications issued by the Government of Rajasthan and the Rajasthan High Court."
+  ],
+  "e_filing_mandatory": false,
+  "e_filing_note": "e-Filing is operational at Jaipur, Jodhpur and select district HQs via the eCourts portal; not yet mandatory state-wide."
+}

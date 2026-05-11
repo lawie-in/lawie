@@ -1,0 +1,156 @@
+# Demo compose — single EC2 t3.micro (2 vCPU, 1GB RAM)
+# MongoDB Atlas (free tier) + Redis Cloud — no local DB containers needed.
+# Builds from source — no ECR needed.
+#
+# Setup: docs/demo-deploy.md
+# Run:   docker compose -f docker-compose.demo.yml up -d --build
+
+services:
+  # ── Web (Next.js) ──────────────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://demo.lawie.in
+    container_name: lawie_web
+    restart: unless-stopped
+    env_file: .env.demo
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_API_URL: https://demo.lawie.in
+    networks:
+      - lawie_demo
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+
+  # ── Nginx — SSL termination + routing ──────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: lawie_nginx
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./docker/nginx/nginx.demo.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      gateway:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - lawie_demo
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+
+  # ── Gateway Service ────────────────────────────────────────────────────────
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    container_name: lawie_gateway
+    restart: unless-stopped
+    env_file: .env.demo
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      AUTH_SERVICE_URL: http://auth:4001
+      DRAFTING_SERVICE_URL: http://drafting:4002
+      BILLING_SERVICE_URL: http://billing:4003
+    networks:
+      - lawie_demo
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4000/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # ── Auth Service ───────────────────────────────────────────────────────────
+  auth:
+    build:
+      context: .
+      dockerfile: apps/auth/Dockerfile
+    container_name: lawie_auth
+    restart: unless-stopped
+    env_file: .env.demo
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+    networks:
+      - lawie_demo
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4001/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # ── Drafting Service ───────────────────────────────────────────────────────
+  drafting:
+    build:
+      context: .
+      dockerfile: apps/drafting/Dockerfile
+    container_name: lawie_drafting
+    restart: unless-stopped
+    env_file: .env.demo
+    environment:
+      NODE_ENV: production
+      PORT: 4002
+    networks:
+      - lawie_demo
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4002/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+
+  # ── Billing Service ────────────────────────────────────────────────────────
+  billing:
+    build:
+      context: .
+      dockerfile: apps/billing/Dockerfile
+    container_name: lawie_billing
+    restart: unless-stopped
+    env_file: .env.demo
+    environment:
+      NODE_ENV: production
+      PORT: 4003
+    networks:
+      - lawie_demo
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:4003/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+networks:
+  lawie_demo:
+    driver: bridge

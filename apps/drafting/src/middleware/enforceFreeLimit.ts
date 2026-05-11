@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 
+import { BonusCredit } from '../models/BonusCredit.model';
 import { Generation } from '../models/Generation.model';
 
-// Free tier: 3 document generations per calendar month
-export const FREE_TIER_MONTHLY_LIMIT = 3;
+// Free tier: 5 document generations per calendar month (Ajay/CLO — SCRUM-10)
+export const FREE_TIER_MONTHLY_LIMIT = 5;
 
 export async function enforceFreeLimit(
   req: Request,
@@ -22,7 +24,23 @@ export async function enforceFreeLimit(
     return;
   }
 
-  // Count generations in the current calendar month
+  const userId = payload.sub;
+
+  // ── SCRUM-71: deduct from bonus grant first ─────────────────────────────────
+  if (mongoose.Types.ObjectId.isValid(userId)) {
+    const bonus = await BonusCredit.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+    if (bonus && bonus.granted - bonus.used > 0) {
+      // Consume one bonus draft atomically
+      await BonusCredit.updateOne(
+        { userId: new mongoose.Types.ObjectId(userId), used: { $lt: bonus.granted } },
+        { $inc: { used: 1 } },
+      );
+      next();
+      return;
+    }
+  }
+
+  // ── Standard trial monthly limit ────────────────────────────────────────────
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 

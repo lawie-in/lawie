@@ -5,6 +5,7 @@ export interface IGeneration extends Document {
   userId: Types.ObjectId;
   docType: DocType;
   tokensUsed: number;
+  costUsd: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,6 +25,11 @@ const GenerationSchema = new Schema<IGeneration>(
     tokensUsed: {
       type: Number,
       required: [true, 'tokensUsed is required'],
+      min: 0,
+    },
+    costUsd: {
+      type: Number,
+      default: 0,
       min: 0,
     },
   },

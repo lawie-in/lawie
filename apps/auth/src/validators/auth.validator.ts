@@ -11,6 +11,7 @@ const registerSchema = z.object({
     .regex(/\d/, 'Must contain at least one number'),
   name: z.string().min(1, 'Name is required').max(100).trim(),
   role: z.enum(['Admin', 'Lawyer', 'Client']).default('Client'),
+  referralCode: z.string().max(16).optional(), // SCRUM-71 — optional referral code at signup
 });
 
 const loginSchema = z.object({

@@ -6,7 +6,6 @@ module.exports = {
   displayName: 'auth',
   rootDir: '.',
   setupFiles: ['./src/__tests__/setupEnv.ts'],
-  // Only health check tests for now — coverage improves as feature tests are added per ticket
   coverageThreshold: {
     global: {
       branches: 5,

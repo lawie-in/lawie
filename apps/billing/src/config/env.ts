@@ -6,14 +6,17 @@ const envSchema = z.object({
 
   MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
 
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 chars'),
+  INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
 
   RAZORPAY_KEY_ID: z.string().min(1, 'RAZORPAY_KEY_ID is required'),
   RAZORPAY_KEY_SECRET: z.string().min(1, 'RAZORPAY_KEY_SECRET is required'),
   RAZORPAY_PLAN_ID: z.string().min(1, 'RAZORPAY_PLAN_ID is required'),
   RAZORPAY_WEBHOOK_SECRET: z.string().min(1, 'RAZORPAY_WEBHOOK_SECRET is required'),
 
+  FRONTEND_URL: z.string().default('http://localhost:3000'),
+
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+  SENTRY_DSN: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

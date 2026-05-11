@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
@@ -22,6 +23,8 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/', billingRoutes);
+
+Sentry.setupExpressErrorHandler(app);
 
 app.use((req, res) => {
   logger.debug({ method: req.method, url: req.url }, 'Route not found');

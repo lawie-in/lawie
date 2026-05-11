@@ -6,4 +6,6 @@ process.env.JWT_REFRESH_SECRET = 'test-jwt-refresh-secret-at-least-32-chars';
 process.env.JWT_EXPIRES_IN = '15m';
 process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 process.env.FRONTEND_URL = 'http://localhost:3000';
+process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.INTERNAL_SECRET = 'test-internal-secret-at-least-16';
 process.env.LOG_LEVEL = 'error';

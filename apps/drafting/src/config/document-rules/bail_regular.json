@@ -1,0 +1,133 @@
+{
+  "_meta": {
+    "description": "Document-rules config for bail_regular — drives prompt, validation, mandatory clauses",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass",
+    "last_updated": "2026-05-10",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "docType": "bail_regular",
+  "parentDocType": "bail_application",
+  "displayName": "Regular Bail Application",
+  "category": "criminal",
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} / {respondent} ... Respondent/Complainant",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant/Accused" },
+      { "role": "respondent", "label": "Respondent/Complainant" }
+    ],
+    "caseNomenclature": "BAIL APPLICATION No. _____ of [YEAR]"
+  },
+  "mandatoryClauses": [
+    {
+      "id": "grounds",
+      "name": "Grounds for Bail",
+      "required": true,
+      "description": "Specific grounds on which bail is sought"
+    },
+    {
+      "id": "fir_details",
+      "name": "FIR Details",
+      "required": true,
+      "description": "FIR number, police station, date of registration, and offences charged"
+    },
+    {
+      "id": "custody_status",
+      "name": "Custody Status",
+      "required": true,
+      "description": "Whether applicant is in judicial/police custody and since when"
+    },
+    {
+      "id": "no_flight_risk",
+      "name": "No Flight Risk",
+      "required": true,
+      "description": "Assertion that applicant will not abscond or tamper with evidence"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Clause",
+      "required": true,
+      "description": "Specific prayer for grant of bail"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant regular bail to the applicant {applicant} in connection with {firDetails} under Sections 480/481/482 of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023, on such terms and conditions as this Hon'ble Court may deem fit and proper;\nb) Direct the release of the applicant on furnishing personal bond with surety to the satisfaction of this Hon'ble Court;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "specialPrayerAdditions": {
+    "dv_dowry": "d) Direct the applicant to furnish an undertaking not to contact the complainant or her family members directly or indirectly;\ne) Direct the applicant to provide an undertaking regarding the return/safekeeping of stridhan and dowry articles as per the inventory;"
+  },
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {relation} of {parentName}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "filingChecklist": [
+    "Application (original + 2 copies)",
+    "Vakalatnama / Memo of Appearance",
+    "Copy of FIR",
+    "Certified copy of charge sheet (if filed)",
+    "Copy of remand order",
+    "Proof of custody period",
+    "Personal bond / surety details",
+    "Identity proof of applicant",
+    "Address proof of applicant"
+  ],
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        { "number": "480", "description": "Bail in bailable offences" },
+        { "number": "481", "description": "Bail in non-bailable offences" },
+        { "number": "482", "description": "Bail to person accused of non-bailable offence" },
+        {
+          "number": "483",
+          "description": "Special powers of High Court or Court of Session regarding bail"
+        },
+        { "number": "484", "description": "Bail when trial of offence is not concluded" }
+      ]
+    },
+    {
+      "act": "Bharatiya Nyaya Sanhita (BNS), 2023",
+      "sections": [
+        {
+          "number": "85",
+          "description": "Cruelty by husband or relatives of husband (replaces IPC 498A)"
+        },
+        { "number": "86", "description": "Dowry death (replaces IPC 304B)" },
+        { "number": "103", "description": "Murder (replaces IPC 302)" }
+      ]
+    }
+  ],
+  "relatedActs": [
+    {
+      "act": "Protection of Women from Domestic Violence Act (PWDVA), 2005",
+      "applicableWhen": "dv_dowry",
+      "sections": [
+        { "number": "12", "description": "Application to Magistrate" },
+        { "number": "18", "description": "Protection orders" },
+        { "number": "19", "description": "Residence orders" },
+        { "number": "20", "description": "Monetary reliefs" },
+        { "number": "22", "description": "Compensation orders" }
+      ],
+      "note": "When bail application involves BNS 85/86 (domestic violence/dowry), reference PWDVA provisions in the grounds."
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Regular Bail Application under Sections 480/481/482 BNSS, 2023.",
+    "Begin PARAGRAPH 1 with the exact FIR details provided — FIR number, date, police station, district, offences alleged. Use the values EXACTLY as given in the case details.",
+    "State the custody status clearly — date of arrest, whether judicial or police custody, total days in custody.",
+    "Set out specific grounds for bail: no prior criminal history, cooperation with investigation, roots in community, health conditions if any, investigation complete/charge sheet filed, parity with co-accused granted bail.",
+    "Reference Bharatiya Nyaya Sanhita (BNS) section numbers for the alleged offences — NEVER use old IPC section numbers. IPC 498A = BNS 85, IPC 304B = BNS 86.",
+    "If the case involves domestic violence (BNS 85/86), also reference the Protection of Women from Domestic Violence Act (PWDVA) 2005 where relevant, especially Sections 12, 18, 19, 20, 22.",
+    "Include standard undertakings: will not abscond, will not tamper with evidence, will appear on all dates, will not contact prosecution witnesses.",
+    "For DV/dowry cases, include specific undertakings: no contact with complainant, undertaking regarding stridhan/dowry articles.",
+    "Use formal, respectful legal language appropriate for Indian courts.",
+    "Do NOT generate the Prayer clause, Verification clause, or Advocate signature block — those are added programmatically by the system."
+  ]
+}

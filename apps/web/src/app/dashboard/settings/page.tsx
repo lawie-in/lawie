@@ -1,18 +1,46 @@
 'use client';
 
+import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
 import { useUsage } from '@/hooks/useUsage';
+import { apiFetch } from '@/lib/apiFetch';
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { data: usage } = useUsage();
   const router = useRouter();
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeError, setSubscribeError] = useState('');
 
   if (!user) return null;
 
   const isPro = user.plan === 'pro';
+
+  async function handleSubscribe() {
+    setSubscribing(true);
+    setSubscribeError('');
+    try {
+      const res = await apiFetch('/api/billing/subscribe', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        setSubscribeError(data.error ?? 'Failed to start subscription. Please try again.');
+        return;
+      }
+      const shortUrl = data.data?.shortUrl;
+      if (shortUrl) {
+        window.location.href = shortUrl;
+      } else {
+        setSubscribeError('No payment link returned. Please contact support.');
+      }
+    } catch {
+      setSubscribeError('Network error. Please try again.');
+    } finally {
+      setSubscribing(false);
+    }
+  }
 
   function handleSignOut() {
     logout();
@@ -20,13 +48,13 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
 
       {/* Profile */}
       <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-sm font-semibold text-slate-700">Profile</h2>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="block text-xs font-medium text-slate-500">Name</label>
             <input
@@ -96,12 +124,15 @@ export default function SettingsPage() {
 
         {!isPro && (
           <>
-            <a
-              href={`${process.env.NEXT_PUBLIC_API_URL}/api/billing/subscribe`}
-              className="mt-4 inline-block rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600"
+            {subscribeError && <p className="mt-3 text-xs text-red-600">{subscribeError}</p>}
+            <button
+              onClick={handleSubscribe}
+              disabled={subscribing}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
             >
+              {subscribing && <Loader2 size={12} className="animate-spin" />}
               Upgrade to Pro — ₹799/month
-            </a>
+            </button>
             <ul className="mt-4 space-y-1.5 text-xs text-slate-500">
               <li>✓ Unlimited document generations</li>
               <li>✓ All document types (bail, notice, agreements, complaints)</li>

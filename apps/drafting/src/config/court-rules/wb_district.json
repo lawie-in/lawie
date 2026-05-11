@@ -1,0 +1,76 @@
+{
+  "_meta": {
+    "description": "West Bengal district & sessions court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — National Batch 7 (WB+SK) 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "applies_to_state": "West Bengal",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "wb_district",
+  "courtType": "district_court",
+  "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
+  "jurisdictionNote": "District-level criminal and civil courts in West Bengal, governed by the Bengal, Agra and Assam Civil Courts Act, 1887 read with the Calcutta High Court (Original Side / Appellate Side) Rules and the Civil Rules and Orders of the High Court at Calcutta. Sessions courts try offences punishable with imprisonment exceeding 7 years. West Bengal presently comprises 23 revenue districts; the subordinate judiciary is supervised by the High Court at Calcutta. Bengali (Bangla) and English are the working languages of the State subordinate courts under the West Bengal Official Language Act, 1961 (as amended).",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Applicant",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant",
+    "complainant": "Complainant",
+    "accused": "Accused",
+    "state": "State of West Bengal through the Principal Secretary, Home (Police) Department, Government of West Bengal, Kolkata"
+  },
+  "case_nomenclature": {
+    "regular_bail": "Crl. Misc. (Bail) No. _____ of {year}",
+    "anticipatory_bail": "Crl. Misc. (A.B.) No. _____ of {year}",
+    "sessions_case": "Sessions Trial No. _____ of {year}",
+    "calendar_case": "G.R. Case No. _____ of {year}",
+    "civil_suit": "Title Suit No. _____ of {year}",
+    "execution": "Title Execution Case No. _____ of {year}",
+    "misc_criminal": "Crl. Misc. No. _____ of {year}",
+    "misc_civil": "Misc. (J) Case No. _____ of {year}",
+    "special_case": "Spl. Sessions Trial No. _____ of {year}",
+    "atrocity_case": "Spl. Sessions (Atrocities) Trial No. _____ of {year}",
+    "ndps_case": "Spl. Sessions (NDPS) Trial No. _____ of {year}",
+    "pocso_case": "Spl. Sessions (POCSO) Trial No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may graciously be pleased to:",
+    "closing": "And for this act of kindness, the petitioner shall, as in duty bound, ever pray.",
+    "tone": "respectful"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly verify and declare that the contents of paragraphs ___ to ___ of the above petition are true to my personal knowledge and the contents of paragraphs ___ to ___ are based on information received and legal advice tendered, which I believe to be true. Nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": [
+    "en",
+    "bn"
+  ],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "{courtDesignation}, {city}"
+  },
+  "localRules": [
+    "Bengali (Bangla) and English are working languages of the West Bengal subordinate courts under the West Bengal Official Language Act, 1961; pleadings before the High Court at Calcutta are in English. District court pleadings may be filed in English; Bengali pleadings with English translation are accepted where required.",
+    "City Civil Court at Calcutta, City Sessions Court at Calcutta and the Presidency Magistrate's Courts at Kolkata operate under separate statutes (City Civil Court Act, 1953; Presidency Magistrates' Court establishments) — these have distinct nomenclature and rosters from mofussil districts.",
+    "Bail applications under S.483 BNSS (formerly S.439 CrPC) before the Sessions Court must disclose any prior rejection by a Magistrate or co-ordinate court.",
+    "Anticipatory bail applications (S.482 BNSS) must be accompanied by an affidavit, certified copy of the FIR and grounds of apprehension. The High Court at Calcutta is the preferred forum for AB in serious offences; Sessions Court entertains AB concurrently.",
+    "Vakalatnama in the form prescribed under the Calcutta High Court Civil Rules and Orders to be filed at the first instance with requisite court-fee stamp; mofussil districts follow the same form.",
+    "All civil pleadings to be paginated, indexed and accompanied by a list of documents under Order VII / Order VIII CPC; verification on affidavit in mofussil districts.",
+    "Court-fee under the Court-Fees Act, 1870 as in force in West Bengal with State amendments (West Bengal Court-Fees Act, 1972); ad valorem fee structure applies to civil suits.",
+    "Atrocities (SC/ST), POCSO and NDPS cases are tried by designated Special Courts notified by the State Government — typically the District & Sessions Judge or an Additional Sessions Judge at the district headquarters.",
+    "Designated Special Courts also exist for offences under the West Bengal Land Reforms Act, 1955 and the West Bengal Premises Tenancy Act, 1997 where notified; revenue forums under Land Reforms Act interface with civil jurisdiction.",
+    "Border and tea-belt districts (Darjeeling, Kalimpong, Jalpaiguri, Alipurduar, Cooch Behar, Uttar Dinajpur) frequently see foreigners' tribunal references; Sundarbans (South 24 Parganas) sub-divisions follow seasonal court calendars."
+  ],
+  "e_filing_mandatory": false,
+  "e_filing_note": "e-Filing is operational at Kolkata, Howrah, Alipore and select district headquarters via the eCourts portal; not yet mandatory state-wide. City Civil Court at Calcutta has its own e-filing portal."
+}

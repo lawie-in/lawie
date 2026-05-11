@@ -1,0 +1,32 @@
+{
+  "template_id": "rent_agreement",
+  "form_data": {
+    "state": "jharkhand",
+    "execution_place": "Ranchi",
+    "execution_date": "2026-05-06",
+    "applicant_name": "Mr. Binod Kumar Oraon",
+    "applicant_address": "Bungalow No. 4, Morabadi, Ranchi - 834008",
+    "applicant_pan": "LMNOP1234Q",
+    "respondent_name": "Ms. Priya Sinha",
+    "respondent_address": "Permanent: Village Ormanjhi, District Ranchi - 835219; Currently of: TCS Ltd., IT Park, Namkum, Ranchi",
+    "respondent_pan": "RSTUV5678W",
+    "language": "en",
+    "property_address": "Flat No. 502, 5th Floor, Oraon Heights, Lalpur, Ranchi - 834001",
+    "property_area_sqft": 950,
+    "property_type": "residential",
+    "rent_amount": 15000,
+    "rent_amount_words": "Fifteen Thousand only",
+    "rent_due_date": "7th of every month",
+    "payment_mode": "UPI transfer to landlord's SBI account",
+    "escalation_percent": 10,
+    "security_deposit": 45000,
+    "security_deposit_words": "Forty Five Thousand only",
+    "tenure_months": 11,
+    "lease_start_date": "2026-06-01",
+    "lease_end_date": "2027-04-30",
+    "notice_period_months": 2,
+    "permitted_use": "Residential — for self and immediate family only",
+    "maintenance_responsibility": "Tenant to pay electricity, water, and society maintenance charges. Major structural repairs to be borne by Landlord.",
+    "facts_narrative": "Standard residential lease for 11 months in Ranchi. Semi-furnished flat with two bedrooms, hall, kitchen, and one bathroom with attached balcony. Tenant is a salaried IT professional at TCS. Two witnesses to be added at execution."
+  }
+}

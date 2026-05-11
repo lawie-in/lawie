@@ -1,0 +1,63 @@
+data: {"text":"1. That the Applicant, Amit Kumar Sahu, son of Shri Birendra Sahu, aged 28 years, resident of"}
+
+data: {"text":" House No. 14, Harmu Housing Colony, Ranchi - 834002, has been falsely implicated in FIR No. 78/2026 dated 01.04.2026, registered at Police Station Lalpur, under Sections"}
+
+data: {"text":" 303 and 351 of the Bharatiya Nyaya Sanhita, 2023, wherein Section 303 is"}
+
+data: {"text":" non-bailable and Section 351 is bailable.\n\n2. That the present case arises out of a property dispute between the complainant and the Applicant's family,"}
+
+data: {"text":" which has been pending for considerable time. The complainant, with"}
+
+data: {"text":" malafide intentions and to pressurize the Applicant's family in the said"}
+
+data: {"text":" property dispute, has falsely implicated the Applicant in the present case by lev"}
+
+data: {"text":"eling false and concocted allegations against him.\n\n3. That the Applicant submits that he was not present at the alleged"}
+
+data: {"text":" spot at the time of the incident in question and has CCTV evidence from a nearby shop which clearly establishes his presence elsewhere at the material"}
+
+data: {"text":" time. The Applicant was arrested on 02.04.2026 and has been languishing in judicial custody since then, despite being innocent of the charges leveled against him."}
+
+data: {"text":"\n\n4. That the Applicant is a law-abiding citizen with no criminal antecedents whatsoever and has never"}
+
+data: {"text":" been involved in any criminal activity in the past. The Applicant has deep roots in the society and has been residing"}
+
+data: {"text":" at the same address for years, thereby establishing that he poses no flight"}
+
+data: {"text":" risk and will not abscond from the process of law.\n\n5. That the Applicant has been"}
+
+data: {"text":" fully cooperating with the investigating agency since the beginning and has appeared"}
+
+data: {"text":" before the police whenever called upon. The Applicant has never attempted to tamper with evidence or influence"}
+
+data: {"text":" witnesses and has complete faith in the judicial system to deliver justice.\n\n6. That the continued detention of the Applicant in"}
+
+data: {"text":" judicial custody is a violation of his fundamental right to life and personal liberty as guaranteed under Article 21 of the Constitution of"}
+
+data: {"text":" India, particularly when he has been falsely implicated in the present case and the investigation is pending"}
+
+data: {"text":".\n\n7. That the Applicant undertakes to abide by any conditions that this Hon"}
+
+data: {"text":"'ble Court may deem fit to impose upon him and will not misuse the liberty if granted bail. The Applicant further undertakes not"}
+
+data: {"text":" to leave the jurisdiction of this Hon'ble Court without prior permission and will appear before the investigating agency as and when required.\n\n8. That there"}
+
+data: {"text":" is no possibility of the Applicant tampering with evidence or influencing witnesses, as the CCTV evidence clearly establishes his innocence and presence elsewhere"}
+
+data: {"text":" at the time of the alleged incident. The grant of bail to the Applicant will not prejudice the investigation in any manner.\n\n9. That the present application is being"}
+
+data: {"text":" made bonafide and in the interest of justice, and the Applicant has not suppressed any material facts from this"}
+
+data: {"text":" Hon'ble Court. The Applicant is confident that upon proper investigation, his innocence will be established and he will be acqu"}
+
+data: {"text":"itted of all charges."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"IN THE COURT OF DISTRICT & SESSIONS JUDGE, RANCHI\n\nCriminal Miscellaneous Case No. _____ of 2026\n\nIN THE MATTER OF:\n\nAmit Kumar Sahu\nS/o Shri Birendra Sahu\nAge: 28 years\nR/o House No. 14, Harmu Housing Colony, Ranchi - 834002\n                                              ... Applicant\n\nVersus\n\nState of Jharkhand through the District Magistrate / S.P., Ranchi\n                                              ... Opposite Party","alignment":"center"},{"section_id":"application_heading","type":"template","content":"APPLICATION FOR Regular Bail UNDER SECTION 480 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE DISTRICT & SESSIONS JUDGE, RANCHI,\nRanchi\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. That the Applicant, Amit Kumar Sahu, son of Shri Birendra Sahu, aged 28 years, resident of House No. 14, Harmu Housing Colony, Ranchi - 834002, has been falsely implicated in FIR No. 78/2026 dated 01.04.2026, registered at Police Station Lalpur, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023, wherein Section 303 is non-bailable and Section 351 is bailable.\n\n2. That the present case arises out of a property dispute between the complainant and the Applicant's family, which has been pending for considerable time. The complainant, with malafide intentions and to pressurize the Applicant's family in the said property dispute, has falsely implicated the Applicant in the present case by leveling false and concocted allegations against him.\n\n3. That the Applicant submits that he was not present at the alleged spot at the time of the incident in question and has CCTV evidence from a nearby shop which clearly establishes his presence elsewhere at the material time. The Applicant was arrested on 02.04.2026 and has been languishing in judicial custody since then, despite being innocent of the charges leveled against him.\n\n4. That the Applicant is a law-abiding citizen with no criminal antecedents whatsoever and has never been involved in any criminal activity in the past. The Applicant has deep roots in the society and has been residing at the same address for years, thereby establishing that he poses no flight risk and will not abscond from the process of law.\n\n5. That the Applicant has been fully cooperating with the investigating agency since the beginning and has appeared before the police whenever called upon. The Applicant has never attempted to tamper with evidence or influence witnesses and has complete faith in the judicial system to deliver justice.\n\n6. That the continued detention of the Applicant in judicial custody is a violation of his fundamental right to life and personal liberty as guaranteed under Article 21 of the Constitution of India, particularly when he has been falsely implicated in the present case and the investigation is pending.\n\n7. That the Applicant undertakes to abide by any conditions that this Hon'ble Court may deem fit to impose upon him and will not misuse the liberty if granted bail. The Applicant further undertakes not to leave the jurisdiction of this Hon'ble Court without prior permission and will appear before the investigating agency as and when required.\n\n8. That there is no possibility of the Applicant tampering with evidence or influencing witnesses, as the CCTV evidence clearly establishes his innocence and presence elsewhere at the time of the alleged incident. The grant of bail to the Applicant will not prejudice the investigation in any manner.\n\n9. That the present application is being made bonafide and in the interest of justice, and the Applicant has not suppressed any material facts from this Hon'ble Court. The Applicant is confident that upon proper investigation, his innocence will be established and he will be acquitted of all charges."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIt is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:\n\na) Grant Regular Bail to the Applicant, Amit Kumar Sahu, in connection with FIR No. 78/2026 dated 01.04.2026, PS Lalpur, under Section 480 of BNSS, 2023, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.","alignment":"left"},{"section_id":"verification","type":"template","content":"VERIFICATION\n\nI, Amit Kumar Sahu, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at Ranchi on this _____ day of _________, 2026.\n\nDEPONENT\n\n\n_________________________\nAmit Kumar Sahu\n(Applicant)","alignment":"left"},{"section_id":"advocate_block","type":"template","content":"THROUGH:\n\n_________________________\nSmoke Test\nAdvocate\nEnrollment No. ____________________\n\nPlace: Ranchi\nDate: 06 May 2026","alignment":"right"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Certified copy of FIR No. 78/2026","Vakalatnama duly executed","Surety Bond with ID proof of surety (Aadhaar/PAN)","Address proof of applicant (Aadhaar/Voter ID)","Affidavit of applicant (if required by court)","Verify all BNS/BNSS section numbers before filing","Court fee as per state schedule"]}
+
+event: done
+data: {"complete":true,"docId":"69faf5db4096fa40592ee66d","sectionsCited":["BNSS 480"],"mandatoryClausesComplete":true}
+

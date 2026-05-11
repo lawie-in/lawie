@@ -1,0 +1,63 @@
+data: {"text":"1. My client, M/s Ganga Construction Pvt. Ltd., a company duly incorporated under the provisions of the Companies Act, 2013, having"}
+
+data: {"text":" its registered office at [address], is a reputable construction company engaged in the business of civil"}
+
+data: {"text":" construction works including road construction, bridge construction, and related infrastructure projects. My"}
+
+data: {"text":" client has an impeccable track record of executing government contracts with utmost professionalism and has consistently delivered quality work within"}
+
+data: {"text":" stipulated timelines.\n\n2. My client was awarded the contract for construction of culverts on NH-31 vide Work Order No. BRCD/PAT/2024/118 dated 12"}
+
+data: {"text":".06.2024 for a contract value of Rs. 2,75,00,000/- (Rupees Two Crores Seventy-Five Lakhs only"}
+
+data: {"text":"). The said work order was issued by your office and my"}
+
+data: {"text":" client accepted the same and commenced the construction work in accordance with the terms and conditions specified therein."}
+
+data: {"text":"\n\n3. My client diligently executed the contracted work and completed all the construction"}
+
+data: {"text":" activities as per the specifications and requirements laid down in the work order. The entire contracted work was completed by 28.02"}
+
+data: {"text":".2026 within the stipulated timeline and in accordance with the prescribed quality standards and technical"}
+
+data: {"text":" specifications.\n\n4. Upon completion of the work, my client submitted the final running bills along with measurement books duly signed by the site engineer on 28.02.2026. All necessary"}
+
+data: {"text":" documentation including completion certificates, quality test reports, and other requisite papers were submitted to your office for processing the"}
+
+data: {"text":" final payment.\n\n5. Despite completion of all contracted work and submission of proper documentation, your office has failed to release the final payment of Rs. 87,50,000/"}
+
+data: {"text":"- (Rupees Eighty-Seven Lakhs Fifty Thousand only) which became due and"}
+
+data: {"text":" payable on 28.02.2026. My client has made repeated requests and sent reminders dated 05.03.2026, 22.03.2026,"}
+
+data: {"text":" and 18.04.2026 seeking release of the outstanding payment, however, no positive response has been received from your office."}
+
+data: {"text":"\n\n6. The wrongful withholding of the legitimate payment of Rs. 87,50,000/- has caused severe financial loss and reputational damage to my client. The"}
+
+data: {"text":" delay in payment has adversely affected my client's cash flow, ability to meet financial obligations to"}
+
+data: {"text":" suppliers and workers, and has caused significant hardship in conducting business"}
+
+data: {"text":" operations.\n\n7. Under Section 80 of the Code of Civil Procedure, 1908, no"}
+
+data: {"text":" suit shall be instituted against the Government or any public officer in"}
+
+data: {"text":" respect of any act purporting to be done by such public officer in his official capacity until the expiration of two months next"}
+
+data: {"text":" after notice in writing has been delivered to or left at the office of such public officer.\n\n8. Therefore, through this notice"}
+
+data: {"text":", my client demands immediate release of the outstanding payment of Rs. 87,50,000/- along with applicable interest for the delayed payment within"}
+
+data: {"text":" a period of two months from the date of receipt of this notice, failing which my client shall be constrained to institute appropriate"}
+
+data: {"text":" legal proceedings for recovery of the said amount along with interest, damages, and costs."}
+
+event: template_sections
+data: {"sections":[{"section_id":"header","type":"template","content":"LEGAL NOTICE\n(Under Section 80 of the Code of Civil Procedure, 1908)\n\nDate: 06 May 2026\n\nTo,\nThe Executive Engineer, Bihar Road Construction Department, Government of Bihar\nVishweshwaraiya Bhawan, Bailey Road, Patna - 800015\n\nFrom,\nM/s Ganga Construction Pvt. Ltd.\nThrough: Adv. Anjali Verma, Advocate\nChamber No. 42, Patna High Court Bar Association, Patna - 800001","alignment":"left"},{"section_id":"subject_line","type":"template","content":"Subject: Legal Notice under Section 80 CPC — prior to institution of suit against the Government / Public Officer\n\nSir/Madam,\n\nUnder instructions from and on behalf of my client, M/s Ganga Construction Pvt. Ltd., I hereby serve upon you this legal notice under Section 80 of the Code of Civil Procedure, 1908, and call upon you to note the following:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. My client, M/s Ganga Construction Pvt. Ltd., a company duly incorporated under the provisions of the Companies Act, 2013, having its registered office at [address], is a reputable construction company engaged in the business of civil construction works including road construction, bridge construction, and related infrastructure projects. My client has an impeccable track record of executing government contracts with utmost professionalism and has consistently delivered quality work within stipulated timelines.\n\n2. My client was awarded the contract for construction of culverts on NH-31 vide Work Order No. BRCD/PAT/2024/118 dated 12.06.2024 for a contract value of Rs. 2,75,00,000/- (Rupees Two Crores Seventy-Five Lakhs only). The said work order was issued by your office and my client accepted the same and commenced the construction work in accordance with the terms and conditions specified therein.\n\n3. My client diligently executed the contracted work and completed all the construction activities as per the specifications and requirements laid down in the work order. The entire contracted work was completed by 28.02.2026 within the stipulated timeline and in accordance with the prescribed quality standards and technical specifications.\n\n4. Upon completion of the work, my client submitted the final running bills along with measurement books duly signed by the site engineer on 28.02.2026. All necessary documentation including completion certificates, quality test reports, and other requisite papers were submitted to your office for processing the final payment.\n\n5. Despite completion of all contracted work and submission of proper documentation, your office has failed to release the final payment of Rs. 87,50,000/- (Rupees Eighty-Seven Lakhs Fifty Thousand only) which became due and payable on 28.02.2026. My client has made repeated requests and sent reminders dated 05.03.2026, 22.03.2026, and 18.04.2026 seeking release of the outstanding payment, however, no positive response has been received from your office.\n\n6. The wrongful withholding of the legitimate payment of Rs. 87,50,000/- has caused severe financial loss and reputational damage to my client. The delay in payment has adversely affected my client's cash flow, ability to meet financial obligations to suppliers and workers, and has caused significant hardship in conducting business operations.\n\n7. Under Section 80 of the Code of Civil Procedure, 1908, no suit shall be instituted against the Government or any public officer in respect of any act purporting to be done by such public officer in his official capacity until the expiration of two months next after notice in writing has been delivered to or left at the office of such public officer.\n\n8. Therefore, through this notice, my client demands immediate release of the outstanding payment of Rs. 87,50,000/- along with applicable interest for the delayed payment within a period of two months from the date of receipt of this notice, failing which my client shall be constrained to institute appropriate legal proceedings for recovery of the said amount along with interest, damages, and costs."},{"section_id":"demand_clause","type":"template","content":"DEMAND\n\nYou are hereby called upon to release the outstanding payment of Rs. 87,50,000/- along with interest at the rate of 12% per annum from 28.02.2026 till actual payment, and pay damages of Rs. 5,00,000/- for the wrongful withholding within a period of two (2) months from the date of receipt of this notice, failing which my client shall be constrained to initiate appropriate legal proceedings before the competent civil court, at your risk, cost, and consequences, without any further reference to you.","alignment":"left"},{"section_id":"closing","type":"template","content":"A copy of this notice is retained in my office for record and further action.\n\nYours faithfully,\n\n\n_________________________\nAdv. Anjali Verma\nAdvocate\nEnrollment No. BCB/4521/2018\nChamber No. 42, Patna High Court Bar Association, Patna - 800001\n\n(Counsel for M/s Ganga Construction Pvt. Ltd.)","alignment":"left"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Send via Registered Post AD (Acknowledgement Due) — retain receipt","Send additional copy via Speed Post","Retain photocopy of notice with postal receipts","Keep proof of delivery (AD card) safely — needed at time of filing suit","Wait mandatory 2 months from date of receipt before filing suit","Attach all supporting documents referenced in the notice","Verify noticee's correct designation and office address"]}
+
+event: done
+data: {"complete":true,"docId":null,"sectionsCited":["CPC 80"],"mandatoryClausesComplete":true}
+

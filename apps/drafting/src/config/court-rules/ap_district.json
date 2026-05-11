@@ -1,0 +1,75 @@
+{
+  "_meta": {
+    "description": "Andhra Pradesh district & sessions court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — National Batch 4b (TS+AP+KL) 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "applies_to_state": "Andhra Pradesh",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "ap_district",
+  "courtType": "district_court",
+  "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
+  "jurisdictionNote": "District-level criminal and civil courts in Andhra Pradesh. Following the 2022 reorganisation, AP now has 26 districts. Sessions courts try offences punishable with imprisonment exceeding 7 years. AP retains the A.P. Civil Courts Act, 1972 and A.P. Civil Rules of Practice & Circular Orders, 1980. Sessions cases are numbered 'S.C.' and special cases as 'Spl. S.C.'",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Applicant",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant",
+    "complainant": "Complainant",
+    "accused": "Accused",
+    "state": "State of Andhra Pradesh through the Principal Secretary, Home Department, Government of Andhra Pradesh, Amaravati"
+  },
+  "case_nomenclature": {
+    "regular_bail": "Crl. M.P. No. _____ of {year}",
+    "anticipatory_bail": "Crl. M.P. (A.B.) No. _____ of {year}",
+    "sessions_case": "S.C. No. _____ of {year}",
+    "calendar_case": "C.C. No. _____ of {year}",
+    "civil_suit": "O.S. No. _____ of {year}",
+    "execution": "E.P. No. _____ of {year}",
+    "misc_criminal": "Crl. M.P. No. _____ of {year}",
+    "misc_civil": "I.A. No. _____ of {year}",
+    "special_case": "Spl.S.C. No. _____ of {year}",
+    "atrocity_case": "Spl.S.C. (SC/ST) No. _____ of {year}",
+    "ndps_case": "Spl.S.C. (NDPS) No. _____ of {year}",
+    "pocso_case": "Spl.S.C. (POCSO) No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may be pleased to:",
+    "closing": "And for this act of kindness, the petitioner shall, as in duty bound, ever pray.",
+    "tone": "respectful"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly affirm and declare that the contents of the above petition from paragraph ___ to paragraph ___ are true to my personal knowledge and the contents of paragraphs ___ to ___ are believed to be true on the basis of information received and legal advice tendered, which I believe to be true. Nothing material has been concealed therefrom.\n\nSolemnly affirmed at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": [
+    "en",
+    "te",
+    "hi"
+  ],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "{courtDesignation}, {city}"
+  },
+  "localRules": [
+    "Bail applications under S.483 BNSS must disclose any earlier rejection by the Magistrate or any co-ordinate court.",
+    "Anticipatory bail applications (S.482 BNSS) must be accompanied by an affidavit and certified copy of the FIR.",
+    "Vakalatnama in the form prescribed under the A.P. Civil Rules of Practice to be filed at first instance with requisite court-fee stamp.",
+    "All civil pleadings to be paginated, indexed and accompanied by a list of documents under Order VII / Order VIII CPC.",
+    "Telugu translation may be insisted upon for English documents where parties are not conversant; cf. A.P. Official Language Act, 1966.",
+    "Sessions cases under the SC/ST (Prevention of Atrocities) Act, NDPS Act and POCSO Act are tried by designated Special Courts notified by the State Government.",
+    "Post 2022 reorganisation, district headquarters and sessions divisions have been reconstituted; cause-title must reflect the current district headquarters as notified by the AP High Court.",
+    "Service of summons supplemented by registered post AD under A.P. Civil Rules of Practice."
+  ],
+  "e_filing_mandatory": false,
+  "e_filing_note": "e-Filing is operational at Vijayawada, Visakhapatnam and select district HQs via the eCourts portal; not yet mandatory state-wide."
+}

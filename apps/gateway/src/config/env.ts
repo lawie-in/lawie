@@ -8,8 +8,13 @@ const envSchema = z.object({
   DRAFTING_SERVICE_URL: z.string().url().default('http://localhost:4002'),
   BILLING_SERVICE_URL: z.string().url().default('http://localhost:4003'),
 
+  REDIS_URL: z.string().default('redis://localhost:6379'),
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 chars'),
+  INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
+
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+  SENTRY_DSN: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

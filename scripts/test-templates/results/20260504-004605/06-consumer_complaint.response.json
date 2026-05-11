@@ -1,0 +1,77 @@
+data: {"text":"1. That the complainant, Mr. Deepak Ranjan, is a consumer within the meaning of Section 2(7) of the Consumer Protection Act, 2019,"}
+
+data: {"text":" having purchased goods for personal use and not for commercial purpose or for"}
+
+data: {"text":" resale. The complainant is a resident of Patna and is competent to file the"}
+
+data: {"text":" present complaint.\n\n2. That the Opposite Party is Samsung India Electronics Pvt. Ltd., a company incorporated under the Companies"}
+
+data: {"text":" Act and engaged in the business of manufacturing, marketing, and selling consumer electronics including televisions, mobile phones, and other electronic appl"}
+
+data: {"text":"iances. The Opposite Party operates through various retail channels including online portals and authorised dealers across India.\n\n3. That on"}
+
+data: {"text":" 12.01.2026, the complainant purchased a Samsung 55-inch QLED Smart TV (Model QA55Q60CAKLXL) from the Opposite Party's official online portal for a consideration of Rs. 89,990/- vide Invoice No. EM"}
+
+data: {"text":"-2026-00045178, dated 12.01.2026. The payment of Rs. 89,990/- was made via credit card transaction through"}
+
+data: {"text":" HDFC Bank (card ending 4421).\n\n4. That the TV was delivered to the complainant's residence at Patna on 18.01"}
+
+data: {"text":".2026 and was duly installed by the Opposite Party's authorised technician. The installation was completed satisfactorily and the TV was functioning normally at the time of installation"}
+
+data: {"text":".\n\n5. That within 22 days of installation, on 09.02.2026, the display panel of the TV started showing vertical lines across the screen and the TV would intermittently shut down without any apparent"}
+
+data: {"text":" reason. The complainant immediately raised complaint ticket No. SAM-PAT-114578 on 10.02.2026 through the Opposite Party's customer"}
+
+data: {"text":" care service.\n\n6. That despite the complainant's repeated requests for resolution, the Opposite Party's service techn"}
+
+data: {"text":"ician visited the complainant's premises on three occasions between 12.02.2026 and 28.03.2026, but"}
+
+data: {"text":" the defect persists. The Opposite Party has unreasonably refused to replace the defective unit despite the manufacturing defect being clearly within the warranty period and visible from the very first failure. The complainant sent multiple follow"}
+
+data: {"text":"-up emails dated 02.03.2026, 18.03.2026, and 05.04.2026 seeking resolution, but all such communications have gone"}
+
+data: {"text":" unanswered by the Opposite Party.\n\n7. That the Opposite Party's conduct in supplying a defective television set and"}
+
+data: {"text":" subsequently refusing to replace the same despite clear manufacturing defect amounts"}
+
+data: {"text":" to 'deficiency in service' as defined under Section 2(11) of the Consumer Protection Act, 2019, and constitutes a 'defect' within"}
+
+data: {"text":" the meaning of Section 2(10) of the said Act. The Opposite Party's refusal to honour warranty obligations despite repeated"}
+
+data: {"text":" complaints also constitutes an 'unfair trade practice' as defined under Section 2(47) of the Consumer Protection Act, 2019.\n\n8. That this"}
+
+data: {"text":" Hon'ble Commission has territorial jurisdiction to entertain the present complaint as the"}
+
+data: {"text":" cause of action arose at Patna where the goods were delivered, installed, and where the deficiency in service manifested itself. The Opposite Party's authorised service centre is also located at Patna,"}
+
+data: {"text":" and the complainant resides within the territorial limits of this Hon'ble Commission.\n\n9. That this Hon'ble District"}
+
+data: {"text":" Commission has pecuniary jurisdiction to entertain the present complaint as the total claim for refund along with compensation and costs amounts to Rs. 1,54,"}
+
+data: {"text":"990/-, which falls well within the pecuniary jurisdiction of the District Commission under Section 34 of the Consumer Protection Act, 2019, which extends up to Rs. 1 crore."}
+
+data: {"text":"\n\n10. That the present complaint is filed well within the limitation period prescribed under Section 69 of the Consumer Protection Act, 2019. The cause of action arose on 09.02"}
+
+data: {"text":".2026 when the defect first manifested and continues till date due to the Opposite Party's persistent refusal to provide"}
+
+data: {"text":" adequate remedy. The complaint is being filed within two years from the date when the cause"}
+
+data: {"text":" of action arose.\n\n11. That the complainant has suffered mental agony, harassment, and financial loss due to the Opposite Party's deficient service and unfair trade practices."}
+
+data: {"text":" The complainant is entitled to refund of the purchase amount of Rs. 89,990/-, compensation for mental agony and harassment in"}
+
+data: {"text":" the sum of Rs. 50,000/-, and litigation costs of Rs. 15,000/- for pursuing the present complaint.\n\n12. That the complainant has"}
+
+data: {"text":" no other efficacious remedy except to approach this Hon'ble Commission for redressal of grievances and seeks"}
+
+data: {"text":" appropriate relief as may be deemed fit and proper in the circumstances of the case."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION\nAT Patna\n\nConsumer Complaint No. _____ of 2026\n\nIN THE MATTER OF:\n\nMr. Deepak Ranjan\nS/o / W/o Shri Kameshwar Ranjan\nAge: 38 years\nR/o Flat 7C, Mahavir Apartments, Patliputra Colony, Patna - 800013\n                                              ... Complainant\n\nVersus\n\nElectroMart India Pvt. Ltd., 4th Floor, Cyber Tower, DLF Phase II, Gurugram - 122002 (Through its Authorised Service Centre at Patna)\n                                              ... Opposite Party","alignment":"center"},{"section_id":"complaint_heading","type":"template","content":"CONSUMER COMPLAINT UNDER SECTION 35 OF THE CONSUMER PROTECTION ACT, 2019","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE PRESIDENT AND MEMBERS,\nDISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION,\nPatna\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. That the complainant, Mr. Deepak Ranjan, is a consumer within the meaning of Section 2(7) of the Consumer Protection Act, 2019, having purchased goods for personal use and not for commercial purpose or for resale. The complainant is a resident of Patna and is competent to file the present complaint.\n\n2. That the Opposite Party is Samsung India Electronics Pvt. Ltd., a company incorporated under the Companies Act and engaged in the business of manufacturing, marketing, and selling consumer electronics including televisions, mobile phones, and other electronic appliances. The Opposite Party operates through various retail channels including online portals and authorised dealers across India.\n\n3. That on 12.01.2026, the complainant purchased a Samsung 55-inch QLED Smart TV (Model QA55Q60CAKLXL) from the Opposite Party's official online portal for a consideration of Rs. 89,990/- vide Invoice No. EM-2026-00045178, dated 12.01.2026. The payment of Rs. 89,990/- was made via credit card transaction through HDFC Bank (card ending 4421).\n\n4. That the TV was delivered to the complainant's residence at Patna on 18.01.2026 and was duly installed by the Opposite Party's authorised technician. The installation was completed satisfactorily and the TV was functioning normally at the time of installation.\n\n5. That within 22 days of installation, on 09.02.2026, the display panel of the TV started showing vertical lines across the screen and the TV would intermittently shut down without any apparent reason. The complainant immediately raised complaint ticket No. SAM-PAT-114578 on 10.02.2026 through the Opposite Party's customer care service.\n\n6. That despite the complainant's repeated requests for resolution, the Opposite Party's service technician visited the complainant's premises on three occasions between 12.02.2026 and 28.03.2026, but the defect persists. The Opposite Party has unreasonably refused to replace the defective unit despite the manufacturing defect being clearly within the warranty period and visible from the very first failure. The complainant sent multiple follow-up emails dated 02.03.2026, 18.03.2026, and 05.04.2026 seeking resolution, but all such communications have gone unanswered by the Opposite Party.\n\n7. That the Opposite Party's conduct in supplying a defective television set and subsequently refusing to replace the same despite clear manufacturing defect amounts to 'deficiency in service' as defined under Section 2(11) of the Consumer Protection Act, 2019, and constitutes a 'defect' within the meaning of Section 2(10) of the said Act. The Opposite Party's refusal to honour warranty obligations despite repeated complaints also constitutes an 'unfair trade practice' as defined under Section 2(47) of the Consumer Protection Act, 2019.\n\n8. That this Hon'ble Commission has territorial jurisdiction to entertain the present complaint as the cause of action arose at Patna where the goods were delivered, installed, and where the deficiency in service manifested itself. The Opposite Party's authorised service centre is also located at Patna, and the complainant resides within the territorial limits of this Hon'ble Commission.\n\n9. That this Hon'ble District Commission has pecuniary jurisdiction to entertain the present complaint as the total claim for refund along with compensation and costs amounts to Rs. 1,54,990/-, which falls well within the pecuniary jurisdiction of the District Commission under Section 34 of the Consumer Protection Act, 2019, which extends up to Rs. 1 crore.\n\n10. That the present complaint is filed well within the limitation period prescribed under Section 69 of the Consumer Protection Act, 2019. The cause of action arose on 09.02.2026 when the defect first manifested and continues till date due to the Opposite Party's persistent refusal to provide adequate remedy. The complaint is being filed within two years from the date when the cause of action arose.\n\n11. That the complainant has suffered mental agony, harassment, and financial loss due to the Opposite Party's deficient service and unfair trade practices. The complainant is entitled to refund of the purchase amount of Rs. 89,990/-, compensation for mental agony and harassment in the sum of Rs. 50,000/-, and litigation costs of Rs. 15,000/- for pursuing the present complaint.\n\n12. That the complainant has no other efficacious remedy except to approach this Hon'ble Commission for redressal of grievances and seeks appropriate relief as may be deemed fit and proper in the circumstances of the case."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIn view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:\n\na) Direct the Opposite Party to refund the entire consideration of Rs. 89990/- paid by the Complainant along with interest at the rate of 12% per annum from the date of payment till actual refund;\n\nb) Direct the Opposite Party to pay compensation of Rs. 50000/- towards mental agony, harassment, and inconvenience suffered by the Complainant;\n\nc) Direct the Opposite Party to pay Rs. 15000/- towards the cost of litigation;\n\nd) Pass such other and further orders as this Honourable Commission may deem fit and proper in the facts and circumstances of the case.","alignment":"left"},{"section_id":"verification","type":"template","content":"VERIFICATION\n\nI, Mr. Deepak Ranjan, the Complainant herein above named, do hereby verify that the contents of paragraphs 1 to _____ of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at Patna on this _____ day of _________, 2026.\n\n\n_________________________\nMr. Deepak Ranjan\n(Complainant)","alignment":"left"},{"section_id":"advocate_block","type":"template","content":"THROUGH:\n\n_________________________\nDev User\nAdvocate\nEnrollment No. ____________________\n\nPlace: Patna\nDate: 04 May 2026","alignment":"right"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Original + 2 copies of the complaint (total 3 sets)","Affidavit in support of complaint (format per local rules)","Copy of invoice / receipt / bill (Invoice No. EM-2026-00045178)","Copy of all correspondence with Opposite Party (emails, letters)","Copy of product/service warranty card (if applicable)","Photographs / videos of defective product (if applicable)","Court fee (as per state Consumer Commission rules — typically Rs. 100-500)","Proof of payment (bank statement / credit card statement)","ID proof of Complainant (Aadhaar/PAN)","Vakalatnama (if filing through advocate)"]}
+
+event: done
+data: {"complete":true,"docId":"69f7a091ba3d034735e4d0dd","sectionsCited":["BNS 35","BNS 2(7)","BNS 2(11)","BNS 2(10)","BNS 2(47)","BNS 34","BNS 69"],"mandatoryClausesComplete":true}
+

@@ -1,0 +1,114 @@
+{
+  "_meta": {
+    "description": "Document-rules config for rent_agreement — drives prompt, validation, mandatory clauses",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass",
+    "last_updated": "2026-05-10",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "docType": "rent_agreement",
+  "parentDocType": null,
+  "displayName": "Rent Agreement / Lease Deed",
+  "category": "civil",
+  "causeTitle": {
+    "format": "RENT AGREEMENT / LEASE DEED\n\nThis Rent Agreement is executed on this {date} at {place}.\n\nBETWEEN\n\n{applicant}, {applicantAddress}\n(hereinafter referred to as the \"LANDLORD\" / \"LESSOR\")\n\nAND\n\n{respondent}, {respondentAddress}\n(hereinafter referred to as the \"TENANT\" / \"LESSEE\")",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Landlord / Lessor" },
+      { "role": "respondent", "label": "Tenant / Lessee" }
+    ],
+    "caseNomenclature": "N/A"
+  },
+  "mandatoryClauses": [
+    {
+      "id": "property_description",
+      "name": "Property Description",
+      "required": true,
+      "description": "Complete description of the rented property including address, area, floor"
+    },
+    {
+      "id": "rent_amount",
+      "name": "Rent Amount and Payment",
+      "required": true,
+      "description": "Monthly rent, due date, mode of payment, escalation clause"
+    },
+    {
+      "id": "security_deposit",
+      "name": "Security Deposit",
+      "required": true,
+      "description": "Security deposit amount, conditions for refund"
+    },
+    {
+      "id": "tenure",
+      "name": "Tenure / Duration",
+      "required": true,
+      "description": "Lease period (start date, end date), renewal terms"
+    },
+    {
+      "id": "maintenance",
+      "name": "Maintenance Responsibilities",
+      "required": true,
+      "description": "Who bears maintenance costs — landlord vs tenant"
+    },
+    {
+      "id": "termination",
+      "name": "Termination Clause",
+      "required": true,
+      "description": "Notice period and conditions for early termination by either party"
+    },
+    {
+      "id": "witness",
+      "name": "Witnesses",
+      "required": true,
+      "description": "Signature of two witnesses"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "filingChecklist": [
+    "Agreement printed on stamp paper of appropriate value (state-specific)",
+    "Signed by both Landlord and Tenant",
+    "Signed by two witnesses with full details",
+    "Registered at Sub-Registrar office (mandatory if term > 11 months)",
+    "Aadhaar / ID proof of both parties",
+    "Address proof of property",
+    "Photographs of both parties (for registration)",
+    "Two passport-size photos each",
+    "Property tax receipt / ownership proof"
+  ],
+  "relevantActs": [
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        { "number": "105", "description": "Lease defined" },
+        {
+          "number": "106",
+          "description": "Duration of certain leases in absence of written contract"
+        },
+        { "number": "107", "description": "Leases how made" },
+        { "number": "108", "description": "Rights and liabilities of lessor and lessee" }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        { "number": "17", "description": "Documents of which registration is compulsory" }
+      ]
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Rent Agreement / Lease Deed under the Transfer of Property Act, 1882.",
+    "Include a detailed property description clause with full address, floor, area (sq ft), and built-up/carpet area if provided.",
+    "State monthly rent amount in figures and words, due date (e.g., 1st of every month), and mode of payment.",
+    "Include rent escalation clause (typically 5-10% annual increase).",
+    "State security deposit amount, conditions for deduction, and refund timeline (typically within 30 days of vacating).",
+    "Specify lease tenure with exact start and end dates, and renewal terms.",
+    "Include maintenance and utility clauses — who pays electricity, water, society maintenance.",
+    "Include termination clause with notice period (typically 1-2 months) for both parties.",
+    "Include restrictions: no subletting, no structural changes without consent, permitted use (residential/commercial).",
+    "Include dispute resolution clause (mediation/arbitration before litigation).",
+    "If tenure exceeds 11 months, note that registration is mandatory under S.17 Registration Act.",
+    "Include witness signature blocks at the end.",
+    "Use clear, plain legal language. Avoid overly archaic terms.",
+    "Do NOT generate signature blocks — they are added programmatically."
+  ]
+}

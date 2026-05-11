@@ -1,0 +1,83 @@
+{
+  "_meta": {
+    "description": "Document-rules config for legal_notice_s80 — drives prompt, validation, mandatory clauses",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass",
+    "last_updated": "2026-05-10",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "docType": "legal_notice_s80",
+  "parentDocType": "legal_notice",
+  "displayName": "Legal Notice under Section 80 CPC",
+  "category": "civil",
+  "causeTitle": {
+    "format": "LEGAL NOTICE\n(Under Section 80 of the Code of Civil Procedure, 1908)\n\nTo,\n{respondent}\n{respondentAddress}\n\nFrom,\n{applicant}\nThrough: {advocateName}, Advocate\n{advocateAddress}",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Sender / Plaintiff" },
+      { "role": "respondent", "label": "Noticee / Government / Public Officer" }
+    ],
+    "caseNomenclature": "N/A"
+  },
+  "mandatoryClauses": [
+    {
+      "id": "notice_purpose",
+      "name": "Purpose of Notice",
+      "required": true,
+      "description": "Clear statement that notice is mandatory prerequisite under S.80 CPC before filing suit against government/public officer"
+    },
+    {
+      "id": "cause_of_action",
+      "name": "Cause of Action",
+      "required": true,
+      "description": "Facts giving rise to the cause of action"
+    },
+    {
+      "id": "demand",
+      "name": "Demand / Relief Sought",
+      "required": true,
+      "description": "Specific demand or relief the sender intends to claim in the suit"
+    },
+    {
+      "id": "two_month_notice",
+      "name": "Two-Month Notice Period",
+      "required": true,
+      "description": "Statement that suit will be filed after expiry of two months from date of service of notice"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "You are hereby called upon to {demand} within a period of two months from the date of receipt of this notice, failing which my client shall be constrained to initiate appropriate legal proceedings against you before the competent court of law, at your risk, cost, and consequences.\n\nThis notice is being sent to you without prejudice to the rights and contentions of my client.",
+  "verificationTemplate": "",
+  "filingChecklist": [
+    "Notice sent by Registered Post AD / Speed Post AD",
+    "Copy of notice retained for record",
+    "Postal receipt preserved",
+    "AD card collected as proof of service",
+    "Wait 2 months from date of service before filing suit",
+    "Supporting documents referenced in notice"
+  ],
+  "relevantActs": [
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "80", "description": "Notice to government or public officer before suit" }
+      ]
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Legal Notice under Section 80 of the Code of Civil Procedure, 1908.",
+    "This is a mandatory notice before filing a suit against the Government or a public officer.",
+    "Clearly state the name and designation of the public officer or government entity being addressed.",
+    "Set out the facts giving rise to the cause of action in numbered paragraphs.",
+    "State the specific relief or compensation the sender intends to claim.",
+    "Mention that the notice is being served as a statutory requirement under Section 80 CPC.",
+    "Include a clear two-month notice period from the date of receipt.",
+    "End with a warning that legal proceedings will be initiated if the demand is not met.",
+    "Use formal legal language. Address the noticee respectfully as the notice is to a government entity.",
+    "Do NOT generate the advocate signature block — it is added programmatically."
+  ]
+}

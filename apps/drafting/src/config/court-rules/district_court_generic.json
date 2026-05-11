@@ -1,0 +1,62 @@
+{
+  "_meta": {
+    "description": "Court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 hardening 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "district_court_generic",
+  "courtType": "district_court",
+  "designation": "IN THE COURT OF DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION)",
+  "jurisdictionNote": "Civil court of original jurisdiction. Handles suits, consumer complaints (District Commission), rent disputes, and other civil matters within the district.",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PLAINTIFF\n\nVERSUS\n\n{respondent} ... DEFENDANT",
+  "party_designation": {
+    "petitioner": "Plaintiff",
+    "respondent": "Defendant",
+    "applicant": "Applicant",
+    "opposite_party": "Opposite Party",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant",
+    "complainant": "Complainant",
+    "state": "State through the Collector / District Magistrate, {district}"
+  },
+  "case_nomenclature": {
+    "civil_suit": "Civil Suit No. _____ of {year}",
+    "execution": "Execution Case No. _____ of {year}",
+    "misc_civil": "Misc. Case No. _____ of {year}",
+    "rent_suit": "Rent Suit No. _____ of {year}",
+    "consumer_complaint": "Consumer Complaint No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may be pleased to:",
+    "closing": "And any other relief which this Hon'ble Court may deem fit and proper in the facts and circumstances of the case may also be granted in favour of the plaintiff.",
+    "tone": "assertive"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above plaint/application are true and correct to my knowledge. The documents annexed herewith are true copies of their respective originals.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": [
+    "en",
+    "hi"
+  ],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "{courtDesignation}, {city}"
+  },
+  "localRules": [
+    "Plaints must comply with Order VII Rule 1 CPC — full particulars of the claim.",
+    "Court fee to be affixed as per state court fees schedule.",
+    "All documents relied upon to be filed with the plaint (Order VII Rule 14 CPC).",
+    "Valuation of suit to be clearly stated for pecuniary jurisdiction.",
+    "Written statements to be filed within 30 days of service of summons (extendable to 120 days)."
+  ],
+  "e_filing_mandatory": false
+}
