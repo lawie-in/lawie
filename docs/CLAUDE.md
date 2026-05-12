@@ -1856,3 +1856,99 @@ Blockers: None for SCRUM-80. SCRUM-81 needs Ajay sign-off on each diff
   pre-existing diffs from Ajay's parallel config edits — see SCRUM-67
   diary note — that may also need refreshing first).
 ---
+
+---
+Date: 2026-05-12
+Session: Opus
+Task: SCRUM-81 — Migrate 6 originals + golden-PDF diff gate (Sprint 1)
+Status: Done — STRUCTURAL gate only. PDF byte-diff deferred.
+Scope decision (user-confirmed mid-session):
+  Full E2E byte-diff would need (a) the promoter to synthesise
+  document_structure.sections from CLO's prayerTemplate / verificationTemplate
+  / promptInstructions (not yet shipped), (b) ~24 real Anthropic calls, (c)
+  Puppeteer-rendered PDFs of both paths, (d) Ajay reviewing each pair.
+  User chose the structural-diff alternative: programmatic comparison of
+  TemplateConfig fields between the override and the promoter output. That
+  is what this commit delivers; PDF byte-diff filed as follow-up.
+Code changed:
+  New files:
+  - apps/drafting/src/services/template-diff.service.ts — comparison engine.
+    Per-dimension drift scores in [0, 1] across form_fields (Jaccard on
+    field_id sets), document_structure (section_id Jaccard, hard-fail 1.0
+    when promoter has 0 sections vs override has > 0), validation_rules
+    (Jaccard on section_codes_allowed / reject_old_codes / mandatory_sections
+    plus boolean-flag drift), and metadata (category / plan_access / icon
+    mismatch ratio). Verdict 'retire' iff max drift ≤ tolerance (default
+    0.05 — matches ADR's "5% layout drift" budget). Otherwise 'keep' with
+    the worst-drifting dimension named in the reason. Third verdict
+    'missing_source' when either override or doc-rule is absent on disk.
+    formatReport() emits a Markdown report with summary table + per-
+    template detail blocks for Ajay (CLO) sign-off.
+  - apps/drafting/src/scripts/template-diff.ts — CLI entry point. Runs the
+    diff for the 6 SCRUM-81 originals, writes the Markdown report to
+    apps/drafting/template-promoter-diff.md, prints per-template verdicts
+    to stdout, exits 1 if any template is missing_source.
+  - apps/drafting/src/__tests__/template-diff.test.ts — 5 tests covering
+    integration against the live 6 (all yield hasOverride+hasDocRule),
+    drift bounds [0,1], non-empty reasons, missing_source semantics, and
+    Markdown report shape.
+  Modified files:
+  - apps/drafting/package.json — added `diff:templates` npm script.
+Live run result (the actual gate outcome):
+  Wrote report → apps/drafting/template-promoter-diff.md
+  bail_anticipatory             keep   (max drift 1.00)
+  bail_regular                  keep   (max drift 1.00)
+  consumer_complaint            keep   (max drift 1.00)
+  legal_notice_s138             keep   (max drift 1.00)
+  legal_notice_s80              keep   (max drift 1.00)
+  rent_agreement                keep   (max drift 1.00)
+  Summary: retire 0 · keep 6 (of 6)
+Acceptance check (per ticket spec):
+  ✅ 6/6 templates: overrides explicitly kept, reason logged in the
+     Markdown report — meets "OR overrides explicitly kept for any
+     failures (with reason logged)" branch.
+  ⏳ PDF byte-diff: deferred. Requires the promoter to first synthesise
+     document_structure.sections from CLO source fields. That's a real
+     promoter extension; filing the follow-up note in this diary so
+     Priya can ticket it.
+  ⏳ Bihar + Jharkhand payloads (reuse SCRUM-50 fixtures): deferred with
+     the PDF byte-diff.
+What the gate revealed:
+  - All 6 templates show form_fields drift = 1.00 (zero field_ids shared
+    between override and promoter output). This is the real migration
+    blocker: CLO's doc-rule JSONs use a different field naming convention
+    than the 6 production override JSONs (e.g. override uses
+    `applicant_name`, doc-rule may use a different snake_case slug).
+    Until the names are reconciled — either CLO renames doc-rule fields
+    or engineer ships a per-template renaming map — the promoter cannot
+    replace the override.
+  - All 6 show document_structure drift = 1.00 (promoter emits 0
+    sections vs override has 4–7 explicit sections). This is the
+    "promoter section synthesis" gap mentioned above.
+  - Metadata drift is small (mostly the `icon` field defaulting to
+    `'file-text'` in the promoter vs the override's chosen icon).
+    Easy fix — promoter could read an icon hint from the source if CLO
+    adds one.
+Follow-ups for Priya to file:
+  1. SCRUM-XX — Promoter section synthesis: build
+     document_structure.sections from doc-rule's prayerTemplate +
+     verificationTemplate + promptInstructions + prompt_context. This
+     is the prerequisite for full E2E PDF byte-diff.
+  2. SCRUM-XX — Field-name reconciliation across the 6 originals: either
+     CLO migrates doc-rule field IDs to match production conventions OR
+     promoter gets a per-template alias table.
+  3. SCRUM-XX — PDF byte-diff gate (post-SCRUM-XX above): the original
+     spec for SCRUM-81 in literal form.
+Test results:
+  Touched template surface (template-promoter, template-engine,
+  template-seed, template-diff, template.model, templates.routes):
+  138/138 passing. tsc clean.
+Next step:
+  - SCRUM-82 (hand-tune top-10 templates) is primarily content authoring
+    by Ajay; my role is limited to scaffolding override files once Ajay
+    starts that work. Natural session boundary.
+  - 4 commits stacked on develop (ad486d5, ae573e4, 8bb9987, plus this
+    one) waiting to push when user is ready.
+Blockers: None code-side. SCRUM-82 needs Ajay's authoring; the deferred
+  PDF byte-diff needs the promoter section-synthesis follow-up first.
+---

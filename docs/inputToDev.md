@@ -2592,7 +2592,7 @@ Dependencies: SCRUM-78 (needs promoter to exist). Can be coded in parallel; wiri
 ID: scrum-81-migrate-6-originals
 Filed by: Priya · PM
 Filed on: 2026-05-12
-Status: To Do
+Status: Done — structural gate (Vishal-Opus, 2026-05-12) — PDF byte-diff deferred
 Jira: SCRUM-81 (https://abhinava32.atlassian.net/browse/SCRUM-81)
 Figma: N/A
 Priority: P0
