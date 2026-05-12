@@ -1699,3 +1699,69 @@ Next step:
     when committing.
 Blockers: None.
 ---
+
+---
+Date: 2026-05-12
+Session: Opus
+Task: SCRUM-79 — Extend DynamicFormRenderer for file/currency/regex types + cascading dropdowns
+Status: Done
+Code changed:
+  Modified files:
+  - apps/web/src/components/form/DynamicFormRenderer.tsx — added `file` and
+    `currency` field types, regex pattern validation, `depends_on` alias of
+    `show_if`. Exported pure helpers: `evaluateConditional(expr, formData)`
+    handles quoted RHS values (`marriage_type === "registered"`) and `&&`
+    chains; `validatePattern(field, value)` returns an error message or null;
+    `formatRupee(raw)` returns INR-locale display string. Three new components:
+    `CurrencyField` (rupee glyph + `Intl.NumberFormat('en-IN', currency:'INR')`
+    preview), `FileField` (native input via hidden ref + multi-pick stacking
+    on `field.multiple === true` + accept attribute pass-through), and
+    `FieldFooter` (renders validation error or `field.help` text below any
+    input). Visibility filter now consults `show_if ?? depends_on` so CLO
+    can use either name. canAdvance also gates on `validation_pattern`
+    errors so the user can't proceed with malformed values.
+  - apps/drafting/src/services/template-engine.service.ts — FormField type
+    extended with `file` + `currency` enum values, `depends_on`,
+    `validation_pattern`, `validation_message`, `multiple`, `accept`, `help`
+    optional keys.
+  - apps/drafting/src/services/template-promoter.ts — FIELD_TYPE_MAP now
+    routes `currency/money/rupees/inr` → `currency` and `file/upload/attachment`
+    → `file` natively (no longer falls back to number/text). Promoter carries
+    forward `depends_on`, `validation_pattern` / JSON-Schema `pattern`,
+    `validation_message`, `help`, `multiple`, `accept` from source.
+Spec deviations (flagged for Priya):
+  - "All 4 features work in storybook" — apps/web has no Storybook install
+    (not in CLAUDE.md stack list, would need Arjun sign-off). Verification
+    is via tsc clean + the SCRUM-78 promoter integration test that proves
+    all 92 doc-rules emit canonical FormField types only. Browser smoke
+    deferred to next dev-server boot.
+  - "Cascading dropdowns (state → district → court)" — existing
+    DynamicFormRenderer wires state → court_type → court via the
+    `courts_db.*` source and `cascades_to` cascade reset map. There is no
+    district level in apps/drafting/src/models/Court.model.ts today
+    (state + city only). If district is needed, a separate ticket should
+    grow the courts collection + `/api/courts/districts?state=...`
+    endpoint; the renderer's cascade pattern handles arbitrary chains
+    once the data is there. Flagging this for Priya to file if Ajay's
+    templates require it.
+Acceptance check:
+  ✅ file (single + multi) — multi-pick via `multiple: true` config.
+  ✅ currency — INR formatter rendered as preview line below the input.
+  ✅ regex validation in pattern check + error message surfaced.
+  ✅ depends_on conditional rendering — supports quoted values + && chains.
+  ✅ 92 doc-rules render without unsupported-type errors — promoter maps
+     every CLO field type onto the FormField enum exhaustively. 33 currency
+     fields and 0 file fields currently in the source (Ajay can add file
+     fields as templates evolve).
+Test results:
+  Touched-surface (template-promoter, template-engine, prompt-assembler,
+  post-processor, validator, coherence, preflight): 251/251 in ~7s. tsc
+  clean on apps/web AND apps/drafting.
+Next step:
+  - SCRUM-80 (auto-seed Template Mongo collection from the registry — now
+    unblocked since SCRUM-78 + SCRUM-79 both land).
+  - Or SCRUM-81 (migrate 6 originals + golden-PDF diff gate) once SCRUM-80
+    completes the seed half.
+Blockers: None for SCRUM-79. Storybook + web test infra are open questions
+  for Priya/Arjun (separate from this ticket).
+---

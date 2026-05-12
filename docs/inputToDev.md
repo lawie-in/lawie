@@ -2515,7 +2515,7 @@ Dependencies: None — kicks off Sprint 1. Unblocks D (SCRUM-81) and C (SCRUM-80
 ID: scrum-79-dynamic-renderer-extend
 Filed by: Priya · PM
 Filed on: 2026-05-12
-Status: To Do
+Status: Done (Vishal-Opus, 2026-05-12)
 Jira: SCRUM-79 (https://abhinava32.atlassian.net/browse/SCRUM-79)
 Figma: N/A — Priya owns UX
 Priority: P0

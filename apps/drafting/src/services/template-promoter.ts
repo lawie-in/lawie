@@ -110,13 +110,14 @@ const FIELD_TYPE_MAP: Record<string, FormField['type']> = {
   bool: 'checkbox_group',
   checkbox: 'checkbox_group',
   checkbox_multi: 'checkbox_group',
-  // SCRUM-79 adds first-class currency / file rendering. Until then, fall back.
-  currency: 'number',
-  money: 'number',
-  rupees: 'number',
-  inr: 'number',
-  file: 'text',
-  upload: 'text',
+  // SCRUM-79 — first-class currency + file rendering.
+  currency: 'currency',
+  money: 'currency',
+  rupees: 'currency',
+  inr: 'currency',
+  file: 'file',
+  upload: 'file',
+  attachment: 'file',
 };
 
 function mapFieldType(raw: unknown, mismatches: string[], context: string): FormField['type'] {
@@ -443,12 +444,26 @@ export function promoteDocRuleToTemplateConfig(
     if (typeof raw.default === 'string') field.default = raw.default;
     if (options) field.options = options;
     if (typeof raw.show_if === 'string') field.show_if = raw.show_if;
+    // SCRUM-79: CLO writes `depends_on` interchangeably with `show_if`. Carry over.
+    if (typeof raw.depends_on === 'string') field.depends_on = raw.depends_on;
     if (Array.isArray(raw.inject_into) && raw.inject_into.every((v) => typeof v === 'string')) {
       field.inject_into = raw.inject_into as string[];
     }
     if (typeof raw.min_length === 'number') field.min_length = raw.min_length;
     if (typeof raw.max_length === 'number') field.max_length = raw.max_length;
     if (typeof raw.min_select === 'number') field.min_select = raw.min_select;
+    // SCRUM-79: regex validation + currency/file extras.
+    if (typeof raw.validation_pattern === 'string')
+      field.validation_pattern = raw.validation_pattern;
+    if (typeof raw.pattern === 'string' && !field.validation_pattern) {
+      // JSON-Schema authors use `pattern` rather than `validation_pattern`.
+      field.validation_pattern = raw.pattern;
+    }
+    if (typeof raw.validation_message === 'string')
+      field.validation_message = raw.validation_message;
+    if (typeof raw.help === 'string') field.help = raw.help;
+    if (raw.multiple === true) field.multiple = true;
+    if (typeof raw.accept === 'string') field.accept = raw.accept;
     return field;
   });
 

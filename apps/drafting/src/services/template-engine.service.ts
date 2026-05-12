@@ -39,7 +39,9 @@ export interface FormField {
     | 'dropdown'
     | 'dropdown_search'
     | 'multi_select_search'
-    | 'checkbox_group';
+    | 'checkbox_group'
+    | 'file' /* SCRUM-79 — single or multi file upload */
+    | 'currency' /* SCRUM-79 — INR-formatted rupee input */;
   required: boolean;
   placeholder?: string;
   default?: string;
@@ -49,12 +51,18 @@ export interface FormField {
   filtered_by?: string[];
   cascades_to?: string[];
   show_if?: string;
+  depends_on?: string /* SCRUM-79 — synonym of show_if; supports quoted values + && chains */;
   inject_into?: string[];
   auto_convert_old?: boolean;
   links_to_formatting?: boolean;
   min_length?: number;
   max_length?: number;
   min_select?: number;
+  validation_pattern?: string /* SCRUM-79 — regex (string form) the value must match */;
+  validation_message?: string /* shown below the field when validation_pattern fails */;
+  multiple?: boolean /* SCRUM-79 — for type:'file', allow multi-select */;
+  accept?: string /* SCRUM-79 — `accept` attribute for type:'file' (e.g. '.pdf,image/*') */;
+  help?: string /* CLO writes contextual help strings; passed through verbatim */;
 }
 
 export interface FormStep {
