@@ -1,0 +1,217 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "reviewed_on": "2026-05-12",
+    "legal_review_status": "approved",
+    "version": "1.0.0",
+    "batch": "B8b"
+  },
+  "template_id": "curative_petition",
+  "title": "Curative Petition before the Supreme Court (Article 137 + Order XLVIII SC Rules, 2013)",
+  "category": "writ",
+  "creditsCost": 2,
+  "court_levels": ["supreme_court"],
+  "description": "Curative petition — the final remedy after dismissal of review petition, invoking the inherent jurisdiction of the Supreme Court to prevent abuse of its process and miscarriage of justice, on the narrow grounds laid down in Rupa Ashok Hurra v. Ashok Hurra.",
+  "form_schema": {
+    "petitioner_name": { "type": "string", "required": true, "label": "Petitioner Full Name" },
+    "petitioner_age": { "type": "number", "required": true, "label": "Petitioner Age" },
+    "petitioner_occupation": { "type": "string", "required": true, "label": "Occupation" },
+    "petitioner_address": { "type": "string", "required": true, "label": "Petitioner Address" },
+    "respondent_name": {
+      "type": "string",
+      "required": true,
+      "label": "Respondent Name (as in original SC judgment)"
+    },
+    "respondent_address": { "type": "string", "required": true, "label": "Respondent Address" },
+    "original_judgment_case_no": {
+      "type": "string",
+      "required": true,
+      "label": "Original SC Case Number (CA/SLP/WP)"
+    },
+    "original_judgment_date": {
+      "type": "date",
+      "required": true,
+      "label": "Date of Original SC Final Judgment"
+    },
+    "original_judgment_bench": {
+      "type": "string",
+      "required": true,
+      "label": "Bench Composition of Final Judgment"
+    },
+    "review_petition_no": { "type": "string", "required": true, "label": "Review Petition Number" },
+    "review_petition_date_filed": {
+      "type": "date",
+      "required": true,
+      "label": "Date Review Petition Filed"
+    },
+    "review_dismissal_date": {
+      "type": "date",
+      "required": true,
+      "label": "Date of Review Petition Dismissal"
+    },
+    "review_dismissal_mode": {
+      "type": "select",
+      "required": true,
+      "options": [
+        "Dismissed in circulation (chambers)",
+        "Dismissed after oral hearing",
+        "Open court hearing"
+      ],
+      "label": "Mode of Review Dismissal"
+    },
+    "curative_ground": {
+      "type": "multi-select",
+      "required": true,
+      "options": [
+        "Violation of principles of natural justice — petitioner not heard / not party served",
+        "Apprehension of bias — judge did not disclose connection",
+        "Abuse of process of court",
+        "Manifest injustice / question of general public importance"
+      ],
+      "label": "Curative Ground (Rupa Ashok Hurra)"
+    },
+    "natural_justice_specifics": {
+      "type": "textarea",
+      "required": false,
+      "label": "Particulars of NJP breach (if invoked)"
+    },
+    "bias_specifics": {
+      "type": "textarea",
+      "required": false,
+      "label": "Particulars of bias / non-disclosure (if invoked)"
+    },
+    "abuse_specifics": {
+      "type": "textarea",
+      "required": false,
+      "label": "Particulars of abuse of process / manifest injustice"
+    },
+    "senior_advocate_name": {
+      "type": "string",
+      "required": true,
+      "label": "Senior Advocate certifying curative grounds"
+    },
+    "senior_advocate_aor": {
+      "type": "string",
+      "required": false,
+      "label": "Senior Advocate's Bar Council enrollment"
+    },
+    "aor_name": { "type": "string", "required": true, "label": "Advocate-on-Record" },
+    "open_court_hearing_sought": {
+      "type": "boolean",
+      "required": true,
+      "label": "Pray for open court hearing (default is chambers circulation)"
+    },
+    "relief_sought": {
+      "type": "textarea",
+      "required": true,
+      "label": "Relief — recall/modification of impugned final judgment"
+    },
+    "cause_title_year": { "type": "number", "required": true, "label": "Year of Filing" }
+  },
+  "mandatory_clauses": [
+    "Cause title in form 'Curative Petition (Civil/Criminal) No. ___ of ___ In Review Petition (Civil/Criminal) No. ___ of ___ In [Original case]'",
+    "Invocation of Article 137 of Constitution + Order XLVIII of SC Rules, 2013",
+    "Recital of original judgment — date, bench, citation, holding",
+    "Recital of review petition — filing, hearing mode, dismissal date",
+    "Specific ground from Rupa Ashok Hurra grounds — not merely a re-argument",
+    "Statement that grounds were either raised in review OR not available at review stage with reasons",
+    "Senior advocate's certificate certifying that curative grounds exist (mandatory — Order XLVIII Rule 2(2))",
+    "Advocate-on-Record certificate",
+    "Prayer for circulation before the bench that passed final judgment + senior-most three judges of SC",
+    "If open court sought: separate prayer with reasons",
+    "Verification under SC Rules 2013",
+    "Affidavit of petitioner",
+    "Disclaimer: Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting a Curative Petition under Article 137 of the Constitution read with Order XLVIII of the Supreme Court Rules, 2013. This is the final remedy after dismissal of a review petition. Cite Rupa Ashok Hurra v. Ashok Hurra (2002) 4 SCC 388 — the curative jurisdiction was crafted to prevent (a) violation of principles of natural justice where the petitioner was not heard or not served, (b) apprehension of bias from a judge who did not disclose connection, (c) abuse of process of the court, (d) manifest injustice. Grounds must be those NOT taken at review or, if taken, not addressed. A curative petition is NOT a second review. It is heard in chambers in circulation by the three senior-most judges and the judges who passed the impugned judgment (if available), and is dismissed without hearing unless the bench is prima facie satisfied. Order XLVIII Rule 2(2) mandates a senior advocate's certificate certifying the grounds.",
+    "tone": "extreme deference to the Court; restrained; non-repetitive of review grounds",
+    "style_notes": [
+      "Use 'Hon'ble Court' / 'Their Lordships' throughout",
+      "Do NOT re-argue the merits of the original case — that is impermissible",
+      "Explicitly state which Rupa Ashok Hurra ground is invoked",
+      "Explicitly state whether the ground was urged in review or was unavailable then",
+      "Frame prayer modestly — for recall, reconsideration, or such other relief as the Court deems fit",
+      "Senior advocate's certificate must be a separate document filed with the petition"
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Constitution of India",
+      "provisions": ["Article 137", "Article 142"],
+      "notes": "Article 137 — review jurisdiction; curative is a derivative inherent jurisdiction"
+    },
+    {
+      "act": "Supreme Court Rules, 2013",
+      "provisions": ["Order XLVIII"],
+      "notes": "Order XLVIII Rules 1-4 govern curative petitions; Rule 2(2) requires senior advocate certificate"
+    }
+  ],
+  "key_precedents": [
+    {
+      "case": "Rupa Ashok Hurra v. Ashok Hurra",
+      "citation": "(2002) 4 SCC 388",
+      "principle": "Foundational — curative jurisdiction recognised; grounds limited to NJP, judge bias non-disclosure, abuse of process, manifest injustice"
+    },
+    {
+      "case": "Sumer v. State of Uttar Pradesh",
+      "citation": "(2005) 7 SCC 220",
+      "principle": "Curative petition is exception, not rule — confined to narrow grounds"
+    },
+    {
+      "case": "Yakub Abdul Razak Memon v. State of Maharashtra",
+      "citation": "(2015) 9 SCC 552",
+      "principle": "Curative in capital cases — procedure when death warrant issued"
+    },
+    {
+      "case": "National Commission for Women v. State of Delhi",
+      "citation": "(2010) 12 SCC 599",
+      "principle": "Curative may be heard in open court in exceptional circumstances"
+    }
+  ],
+  "filing_checklist": [
+    "Curative petition with proper cause title",
+    "Senior advocate's certificate (Order XLVIII Rule 2(2)) — separately signed",
+    "Certificate of Advocate-on-Record",
+    "Certified copy of original SC judgment",
+    "Certified copy of order dismissing review petition",
+    "Affidavit of petitioner sworn before Oath Commissioner",
+    "Court fee per SC Rules 2013",
+    "Vakalatnama through AOR",
+    "Statement in petition that grounds were taken at review or were unavailable",
+    "Service copies for respondents",
+    "Filed only through AOR — direct filing not permitted",
+    "Note on prayer for open court hearing if sought"
+  ],
+  "validation_rules": [
+    {
+      "rule": "review_dismissal_date must exist and be prior to filing (curative not maintainable until review is dismissed)",
+      "severity": "blocker"
+    },
+    {
+      "rule": "At least one curative_ground from Rupa Ashok Hurra grounds must be selected",
+      "severity": "blocker"
+    },
+    {
+      "rule": "senior_advocate_name must be filled — certificate is mandatory under Order XLVIII Rule 2(2)",
+      "severity": "blocker"
+    },
+    { "rule": "aor_name must be filled — curative filed only through AOR", "severity": "blocker" },
+    {
+      "rule": "Petition must not be a re-argument of review grounds — flag if pleading reads like merits re-argument",
+      "severity": "warning"
+    },
+    {
+      "rule": "If NJP ground invoked, natural_justice_specifics must be filled",
+      "severity": "blocker"
+    },
+    { "rule": "If bias ground invoked, bias_specifics must be filled", "severity": "blocker" }
+  ],
+  "procedure_notes": {
+    "default_hearing_mode": "Chambers — circulation among three senior-most judges + judges who passed final judgment, if available",
+    "open_court": "Heard in open court only if the bench so directs after preliminary view",
+    "dismissal_pattern": "Vast majority dismissed at threshold without reasons; success rate extremely low — to be set out honestly to client",
+    "limitation": "No specific limitation; must be filed within reasonable time after review dismissal — explain any delay"
+  },
+  "advocate_disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy, jurisdictional verification, filing, and all professional conduct under the Advocates Act, 1961 and BCI Rules. Curative petitions are exceptional remedies with very low success rates; the advocate must counsel the client realistically."
+}

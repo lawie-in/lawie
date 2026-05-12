@@ -1,0 +1,231 @@
+{
+  "_meta": {
+    "description": "Document-rules config for affidavit_identity — standalone affidavit of identity for KYC, bank, property, government use",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "template_id": "affidavit_identity",
+  "docType": "affidavit_identity",
+  "parentDocType": "affidavit",
+  "title": "Affidavit of Identity",
+  "displayName": "Affidavit of Identity / Name / One-and-Same Person",
+  "category": "non_court_legal_document",
+  "creditsCost": 1,
+  "court_levels": ["notary_only"],
+  "causeTitle": {
+    "format": "BEFORE THE NOTARY PUBLIC / OATH COMMISSIONER, {city}, {state}",
+    "partyDesignations": [{ "role": "deponent", "label": "Deponent" }]
+  },
+  "form_schema": [
+    {
+      "name": "purpose",
+      "label": "Purpose of Affidavit",
+      "type": "select",
+      "options": [
+        "Same person / name variation",
+        "Identity verification (bank / property / govt)",
+        "Correction of name in records",
+        "PAN / Aadhaar / Passport name match",
+        "Change of name",
+        "Confirmation of address",
+        "Other"
+      ],
+      "required": true
+    },
+    {
+      "name": "purpose_other",
+      "label": "Specify Other Purpose",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "deponent_name",
+      "label": "Deponent Full Legal Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "deponent_parentage",
+      "label": "Father's / Husband's Name",
+      "type": "text",
+      "required": true
+    },
+    { "name": "deponent_age", "label": "Deponent Age", "type": "number", "required": true },
+    {
+      "name": "deponent_occupation",
+      "label": "Deponent Occupation",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "deponent_address",
+      "label": "Deponent Permanent Address",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "alternate_names",
+      "label": "Alternate Names / Spellings (if applicable)",
+      "type": "textarea",
+      "required": false,
+      "help": "List each name variation as it appears in different documents"
+    },
+    {
+      "name": "documents_referenced",
+      "label": "Documents Referenced (Aadhaar / PAN / Passport / etc.)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "factual_statements",
+      "label": "Specific Facts to be Stated",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "intended_recipient",
+      "label": "Intended Recipient (Bank Name / Govt Dept / etc.)",
+      "type": "text",
+      "required": false
+    },
+    { "name": "execution_date", "label": "Date of Execution", "type": "date", "required": true },
+    { "name": "execution_place", "label": "Place of Execution", "type": "text", "required": true },
+    {
+      "name": "stamp_paper_value",
+      "label": "Stamp Paper Value (₹)",
+      "type": "number",
+      "required": true,
+      "help": "Varies by state — Bihar/Jharkhand ₹10-₹100; UP ₹10-₹100; Delhi ₹10-₹100"
+    }
+  ],
+  "mandatory_clauses": [
+    "deponent identification (name, parentage, age, address)",
+    "oath opening",
+    "purpose-specific factual paragraphs",
+    "all alternate names / spellings reconciled if applicable",
+    "specific declaration of one-and-same person where applicable",
+    "purpose declaration",
+    "verification on oath",
+    "notary attestation block"
+  ],
+  "mandatoryClauses": [
+    {
+      "id": "deponent_identification",
+      "name": "Deponent Identification",
+      "required": true,
+      "description": "Full name, parentage, age, occupation, address"
+    },
+    {
+      "id": "oath_opening",
+      "name": "Oath Opening",
+      "required": true,
+      "description": "'I, [name], do hereby solemnly affirm and declare as under:'"
+    },
+    {
+      "id": "factual_paragraphs",
+      "name": "Factual Paragraphs",
+      "required": true,
+      "description": "Numbered paragraphs setting out facts relevant to purpose"
+    },
+    {
+      "id": "name_reconciliation",
+      "name": "Name Reconciliation",
+      "required": false,
+      "description": "Where alternate names exist — express statement that all names refer to one and same person"
+    },
+    {
+      "id": "purpose_declaration",
+      "name": "Purpose Declaration",
+      "required": true,
+      "description": "'This affidavit is being made for the purpose of [purpose] and submitted to [recipient]'"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath that contents are true"
+    },
+    {
+      "id": "signature",
+      "name": "Deponent Signature",
+      "required": true,
+      "description": "Signature with date and place"
+    },
+    {
+      "id": "attestation",
+      "name": "Notary Attestation",
+      "required": true,
+      "description": "Notary Public / Oath Commissioner attestation with seal and register entry"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "VERIFICATION\n\nI, the deponent above-named, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above affidavit are true to my personal knowledge. No part of it is false and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "prompt_context": "Draft an Affidavit of Identity (also called 'one-and-same person' affidavit, name affidavit, or KYC affidavit). This is a non-court document, executed before a Notary Public under the Notaries Act, 1952, or before an Oath Commissioner. Common purposes: (a) reconciling different spellings of name across documents (PAN vs Aadhaar vs school certificate); (b) confirming permanent address; (c) declaring change of name; (d) submitting to bank for KYC; (e) submitting to government department for verification. Executed on non-judicial stamp paper of value as per state (typically ₹10-₹100). STRUCTURE: (1) heading 'AFFIDAVIT' (no court cause-title since this is non-court); (2) 'Before the Notary Public, [city]' line; (3) deponent identification; (4) 'do hereby solemnly affirm and declare as under:'; (5) factual paragraphs; (6) name-reconciliation paragraph (if applicable); (7) purpose paragraph; (8) verification; (9) deponent signature; (10) notary attestation block. NEVER include any IPC reference — use BNS where relevant. False statements in affidavits attract BNS Section 229 (giving false evidence) / BNS Section 230 (fabricating false evidence) — same as IPC 191/192.",
+  "promptInstructions": [
+    "Draft a non-court Affidavit of Identity for the purpose specified.",
+    "Open with 'AFFIDAVIT' centred at the top.",
+    "Below the heading, write 'Before the Notary Public / Oath Commissioner, {city}, {state}'.",
+    "Deponent identification: 'I, {deponent_name}, S/o / W/o {parentage}, aged about {age} years, by occupation {occupation}, resident of {address}, do hereby solemnly affirm and declare as under:'",
+    "Para 1: state the basic factual position relevant to purpose.",
+    "If purpose involves name variation: include a dedicated paragraph: 'I state that I am known by the following names in different documents: (a) [name 1] in [doc 1]; (b) [name 2] in [doc 2]; that all these names refer to one and the same person, i.e. me, the deponent herein.'",
+    "Include paragraphs referencing the documents (Aadhaar, PAN, passport, etc.) with their numbers if available.",
+    "Closing paragraph: 'That this affidavit is being made to be submitted to {intended_recipient} for the purpose of {purpose} and the same may kindly be accepted.'",
+    "Add the verification clause.",
+    "Add a signature block for the deponent.",
+    "Add attestation block for Notary / Oath Commissioner with seal and register entry placeholder.",
+    "Do NOT include any IPC reference — if citing penalty for false affidavit, use BNS Sections 229-230.",
+    "Do NOT include court cause-title — this is a non-court document."
+  ],
+  "relevantActs": [
+    {
+      "act": "Notaries Act, 1952",
+      "sections": [
+        {
+          "number": "8",
+          "description": "Functions of notaries — verification, authentication, attestation of affidavits"
+        }
+      ]
+    },
+    {
+      "act": "Bharatiya Nyaya Sanhita (BNS), 2023",
+      "sections": [
+        { "number": "229", "description": "False evidence — penalty (successor to IPC 191/193)" },
+        { "number": "230", "description": "Fabricating false evidence (successor to IPC 192/194)" }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899",
+      "sections": [
+        {
+          "number": "Schedule I, Article 4",
+          "description": "Stamp duty on affidavits — varies by state"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Non-judicial stamp paper of value per state schedule (typically ₹10-₹100)",
+    "Sworn before Notary Public / Oath Commissioner",
+    "Notary seal + register entry number",
+    "Deponent identity proof at time of attestation",
+    "Photograph of deponent (some banks / govt departments require)",
+    "Original to be submitted to intended recipient"
+  ],
+  "filingChecklist": [
+    "Non-judicial stamp paper of value per state schedule (typically ₹10-₹100)",
+    "Sworn before Notary Public / Oath Commissioner",
+    "Notary seal + register entry number",
+    "Deponent identity proof at time of attestation",
+    "Photograph of deponent (some banks / govt departments require)",
+    "Original to be submitted to intended recipient"
+  ],
+  "validation_rules": [
+    "purpose must be specified",
+    "if purpose = 'Other', purpose_other must be filled",
+    "if alternate_names provided, the body must contain the name-reconciliation paragraph",
+    "documents_referenced must be non-empty",
+    "stamp_paper_value must be > 0"
+  ]
+}

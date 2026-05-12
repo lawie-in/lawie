@@ -1,0 +1,350 @@
+{
+  "_meta": {
+    "description": "Document-rules config for spa — Special Power of Attorney under Powers of Attorney Act 1882 + Indian Contract Act 1872 Chapter X. SPA is LIMITED to specific transaction (e.g., 'to execute sale deed of Property X to Y at consideration Z'). Narrower and safer than GPA. Suraj Lamp warning applies where SPA authorises sale.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. SPA MUST identify the specific transaction with precision — no open-ended powers."
+  },
+  "template_id": "spa",
+  "docType": "spa",
+  "title": "Special Power of Attorney (Powers of Attorney Act, 1882)",
+  "displayName": "Special Power of Attorney (SPA)",
+  "category": "transactional_deed",
+  "creditsCost": 1,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "SPECIAL POWER OF ATTORNEY\n\nKNOW ALL MEN BY THESE PRESENTS that I, {grantor_name}, son/daughter/wife of {grantor_father_name}, aged about {grantor_age} years, resident of {grantor_address}, (PAN: {grantor_pan}, Aadhaar last 4: {grantor_aadhaar_last4})\n(hereinafter referred to as the \"GRANTOR\" / \"PRINCIPAL\")\n\ndo hereby nominate, constitute and appoint:\n\n{attorney_name}, son/daughter/wife of {attorney_father_name}, aged about {attorney_age} years, resident of {attorney_address}, (PAN: {attorney_pan}, Aadhaar last 4: {attorney_aadhaar_last4})\n(hereinafter referred to as the \"ATTORNEY\")\n\nas my true and lawful Attorney to act in my name and on my behalf SOLELY AND EXCLUSIVELY in respect of the SPECIFIC transaction described hereinafter.",
+    "partyDesignations": [
+      { "role": "grantor", "label": "Grantor / Principal" },
+      { "role": "attorney", "label": "Attorney" }
+    ],
+    "caseNomenclature": "N/A — Transactional"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "grantor_name", "label": "Grantor full name", "type": "text", "required": true },
+      {
+        "id": "grantor_father_name",
+        "label": "Grantor father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "grantor_age", "label": "Grantor age", "type": "number", "required": true },
+      { "id": "grantor_address", "label": "Grantor address", "type": "textarea", "required": true },
+      { "id": "grantor_pan", "label": "Grantor PAN", "type": "text", "required": true },
+      {
+        "id": "grantor_aadhaar_last4",
+        "label": "Grantor Aadhaar last 4",
+        "type": "text",
+        "required": true
+      },
+      { "id": "attorney_name", "label": "Attorney full name", "type": "text", "required": true },
+      {
+        "id": "attorney_father_name",
+        "label": "Attorney father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "attorney_age", "label": "Attorney age", "type": "number", "required": true },
+      {
+        "id": "attorney_address",
+        "label": "Attorney address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "attorney_pan", "label": "Attorney PAN", "type": "text", "required": true },
+      {
+        "id": "attorney_aadhaar_last4",
+        "label": "Attorney Aadhaar last 4",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "specific_transaction_type",
+        "label": "Specific transaction authorised",
+        "type": "select",
+        "required": true,
+        "options": [
+          "execute_sale_deed_specified_property_to_specified_buyer",
+          "execute_purchase_sale_deed_specified_property_from_specified_seller",
+          "execute_lease_deed_specified_property_to_specified_lessee",
+          "represent_in_specified_case_and_court",
+          "operate_specified_bank_account_specific_purpose",
+          "register_or_mutate_specified_property",
+          "appear_before_specified_authority_for_specified_matter",
+          "execute_partition_deed_for_specified_family",
+          "transfer_specified_securities_or_demat_account",
+          "collect_specified_dues_or_payments",
+          "sign_specified_contract_specified_party_specified_subject"
+        ]
+      },
+      {
+        "id": "transaction_description",
+        "label": "FULL description of specific transaction — property/account/matter, counterparty, consideration, date range",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "property_or_subject_id",
+        "label": "Property address / account number / case number / specific identifier",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "counterparty_name",
+        "label": "Counterparty name (buyer / seller / lessee etc.)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "consideration_or_value",
+        "label": "Consideration / Value of transaction (if monetary)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "reason_for_spa",
+        "label": "Reason SPA being granted",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "duration_or_completion_event",
+        "label": "SPA expires on",
+        "type": "select",
+        "required": true,
+        "options": [
+          "completion_of_specified_transaction",
+          "fixed_end_date",
+          "earlier_of_completion_or_date"
+        ]
+      },
+      {
+        "id": "end_date",
+        "label": "Fixed end date (if applicable)",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "registration_or_notarisation",
+        "label": "Authentication mode",
+        "type": "select",
+        "required": true,
+        "options": [
+          "notarised",
+          "registered_under_S17_Registration_Act",
+          "consulate_attested_if_grantor_abroad",
+          "apostilled_if_grantor_in_apostille_country"
+        ]
+      },
+      {
+        "id": "stamp_duty_paid",
+        "label": "Stamp duty paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "state",
+        "label": "State of execution",
+        "type": "select",
+        "required": true,
+        "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi", "executed_abroad"]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "preamble_appointment",
+      "name": "Preamble & Appointment",
+      "required": true,
+      "description": "Identification of Grantor + Attorney"
+    },
+    {
+      "id": "specific_purpose_recital",
+      "name": "Specific Purpose Recital",
+      "required": true,
+      "description": "Identify with precision the transaction authorised — no open ends"
+    },
+    {
+      "id": "narrow_powers_clause",
+      "name": "Narrowly Drafted Powers Clause",
+      "required": true,
+      "description": "Only powers necessary for specified transaction"
+    },
+    {
+      "id": "limitations_clause",
+      "name": "Limitations on Powers",
+      "required": true,
+      "description": "Attorney bound by specified transaction only; no incidental powers beyond"
+    },
+    {
+      "id": "ratification_clause",
+      "name": "Ratification of Acts Within Scope",
+      "required": true,
+      "description": "Grantor ratifies acts within scope"
+    },
+    {
+      "id": "no_self_dealing_clause",
+      "name": "No Self-Dealing",
+      "required": true,
+      "description": "Attorney cannot transact for self"
+    },
+    {
+      "id": "auto_termination_clause",
+      "name": "Auto-Termination on Completion",
+      "required": true,
+      "description": "SPA terminates on completion of specified transaction OR end date — whichever earlier"
+    },
+    {
+      "id": "indemnity_clause",
+      "name": "Indemnity",
+      "required": true,
+      "description": "Attorney indemnifies grantor for ultra vires acts"
+    },
+    {
+      "id": "execution_clause",
+      "name": "Execution & Authentication",
+      "required": true,
+      "description": "Signed, witnessed, notarised / registered"
+    },
+    {
+      "id": "suraj_lamp_disclaimer",
+      "name": "Suraj Lamp Disclaimer (if power to sell)",
+      "required": false,
+      "description": "SPA does not transfer title"
+    },
+    {
+      "id": "witness_clause",
+      "name": "Two Witnesses",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a SPECIAL POWER OF ATTORNEY under the Powers-of-Attorney Act, 1882 read with Indian Contract Act, 1872 (Chapter X).",
+      "SPA is distinct from GPA: SPA confers authority for ONE specific transaction or a closely-defined set of acts; GPA confers broader general authority. SPA is SAFER because attorney's scope is narrow and ends on completion.",
+      "PRECISION IS PARAMOUNT. The transaction must be described with such specificity that:\n   (a) The subject (specific property by registration district + survey/khasra + boundaries; specific account number; specific case number; specific contract) is identifiable;\n   (b) The counterparty is named;\n   (c) The consideration / value is specified or capped;\n   (d) The act is clearly stated (execute and present for registration a sale deed; appear before SR for registration; sign and verify a written statement; etc.).",
+      "STRUCTURE:",
+      "Para 1: Preamble — identification.",
+      "Para 2: Recital of reason — Grantor is unable to personally attend the specific transaction because [abroad / ill / out-of-station / busy / NRI / advocate-only-presence-needed].",
+      "Para 3: Appointment of Attorney.",
+      "Para 4: SPECIFIC PURPOSE — set out in full detail. Examples:",
+      "    (a) Sale: 'To execute, sign, present for registration and complete all formalities for the SALE DEED in respect of [Property — full description with Schedule], in favour of [Buyer — name + address + ID], at consideration of Rs. [amount in figures and words], on terms and conditions as negotiated by the Attorney, and to receive the consideration on my behalf and deposit the same in my bank account no. [number] at [bank].'",
+      "    (b) Purchase: 'To execute, sign, present for registration and complete all formalities for purchase of [Property — full description], from [Seller — name + address], at consideration of Rs. [amount], and to pay such consideration from my bank account no. [number] OR from sources approved by me.'",
+      "    (c) Court representation: 'To engage advocates, sign and file vakalatnama, pleadings, affidavits, applications in [Case No. / Title], pending before [Court / Tribunal], and represent me in all proceedings therein.'",
+      "    (d) Lease: 'To negotiate, execute and present for registration a Lease Deed of [Property] in favour of [Lessee], for a term of [years], at monthly rent of Rs. [amount], and security deposit of Rs. [amount], on usual commercial terms.'",
+      "    (e) Bank: 'To operate my Bank Account No. [number] at [bank, branch] solely for the purpose of [withdrawing the proceeds of Sale Deed / depositing pension / paying medical bills of specified date], and for no other purpose.'",
+      "Para 5: ANCILLARY POWERS — limited to those necessary for the specific transaction (e.g., for sale: appear before SR, sign endorsements, receive consideration, give acknowledgment receipt, hand over original title deeds to buyer, sign mutation application).",
+      "Para 6: LIMITATIONS — explicit:\n   (a) Attorney has NO authority beyond the specific transaction described.\n   (b) Attorney cannot transact for himself or family.\n   (c) Attorney cannot waive any rights of Grantor without express written consent.\n   (d) Attorney cannot vary consideration / material terms without Grantor's written approval.\n   (e) Attorney cannot delegate to substitute attorney.\n   (f) Attorney cannot make any WILL on Grantor's behalf.",
+      "Para 7: SURAJ LAMP DISCLAIMER (if SPA authorises sale) — same as GPA: SPA does not itself transfer title; only registered Sale Deed transfers title.",
+      "Para 8: AUTO-TERMINATION — SPA shall ipso facto terminate upon completion of the specified transaction OR on [end date], whichever is earlier. Beyond such termination, attorney has no authority.",
+      "Para 9: RATIFICATION of lawful acts within scope.",
+      "Para 10: INDEMNITY by Attorney.",
+      "Para 11: REVOCATION — Grantor reserves right to revoke at any time by written notice; on revocation attorney must immediately cease and return all documents.",
+      "Para 12: STAMP DUTY — typically lower than GPA. State Article 48 schedule:\n   - Generally Rs.100 to Rs.500 for ordinary SPA;\n   - HIGHER where SPA authorises sale of immovable property — some states (Delhi, Haryana per Suraj Lamp directives) levy near-conveyance duty on SPA-for-sale to a non-relative; relative-SPA attracts lower duty.\n   DO NOT hardcode — flag advocate to verify.",
+      "Para 13: AUTHENTICATION — notarisation mandatory; registration recommended for sale-related SPAs (and mandatory in some states); consular attestation / apostille if executed abroad.",
+      "Para 14: WITNESSES — two adult witnesses.",
+      "Append Lawie disclaimer.",
+      "Key precedent: distinguish SPA's specificity rationale from GPA — courts construe agency narrowly per S.188 ICA (authority co-extensive with business). Suraj Lamp v. State of Haryana (2012) 1 SCC 656 applies equally — sale-SPA does not transfer title."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Powers-of-Attorney Act, 1882",
+      "sections": [
+        { "number": "S.1A", "description": "Definition of Power of Attorney" },
+        { "number": "S.2", "description": "Execution under power binds principal" }
+      ]
+    },
+    {
+      "act": "Indian Contract Act, 1872",
+      "sections": [
+        { "number": "S.182-184", "description": "Agent, principal, capacity" },
+        { "number": "S.186-188", "description": "Authority of agent — express / implied / scope" },
+        { "number": "S.201-202", "description": "Termination of agency; irrevocable agency" }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        {
+          "number": "S.17",
+          "description": "Compulsory registration; SPA for sale of immovable property may require registration per state notifications"
+        },
+        {
+          "number": "S.32(c)",
+          "description": "Power-of-Attorney holder can present for registration"
+        },
+        { "number": "S.33", "description": "Authentication of PoA — notary / SR / consular" }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899 + State Schedules",
+      "sections": [
+        {
+          "number": "Article 48",
+          "description": "Power of Attorney — special / general — sliding stamp rates"
+        }
+      ]
+    },
+    {
+      "act": "Notaries Act, 1952",
+      "sections": [
+        { "number": "S.8", "description": "Notary functions — including SPA authentication" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Stamp paper of correct denomination (state Article 48; specific to SPA type)",
+    "Grantor's ID / Address proof — PAN + Aadhaar / Passport",
+    "Attorney's ID / Address proof — PAN + Aadhaar / Passport",
+    "Two passport-size photographs of grantor + attorney",
+    "Two adult witnesses with own ID proofs",
+    "NOTARISATION standard; REGISTRATION required where SPA authorises sale of immovable property per state directives (post-Suraj Lamp)",
+    "Where executed abroad: Indian Consulate attestation OR Apostille (Hague countries); authentication under S.18 Registration Act within 3 months of arrival",
+    "Where Grantor is company: Board Resolution + MOA extract",
+    "Specific transaction documents (e.g., draft sale deed, agreement to sell, case papers) referenced and attached if circumstances permit",
+    "Lawie disclaimer included",
+    "Where SPA includes power to sell — Suraj Lamp disclaimer (sale only by registered sale deed) prominently inserted"
+  ],
+  "validation_rules": [
+    "grantor_age >= 18 and attorney_age >= 18",
+    "transaction_description must be at least 100 characters — enforces specificity",
+    "property_or_subject_id must not be empty",
+    "counterparty_name must not be empty (unless transaction is sole-grantor act like own court representation — then counterparty can be 'N/A — case-specific')",
+    "if specific_transaction_type contains 'sale' — Suraj Lamp disclaimer paragraph must be inserted",
+    "duration_or_completion_event must be specified",
+    "stamp_duty_paid > 0",
+    "if state == 'executed_abroad' — registration_or_notarisation must be consulate or apostille",
+    "advocate enrollment number required"
+  ]
+}

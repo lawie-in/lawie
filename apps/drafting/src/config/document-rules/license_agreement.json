@@ -1,0 +1,490 @@
+{
+  "_meta": {
+    "description": "Document-rules config for license_agreement — License agreement for use of immovable property under Easements Act, 1882 S.52. License is PERMISSION, not transfer of interest in land. Distinguished from lease (which transfers interest). Cite Associated Hotels of India v. R.N. Kapoor AIR 1959 SC 1262 — distinction between lease and license depends on intention, exclusive possession, and substance.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Must avoid lease-like terms (exclusive possession, transferable, long fixed term) that could cause re-characterisation as lease."
+  },
+  "template_id": "license_agreement",
+  "docType": "license_agreement",
+  "title": "License Agreement (Easements Act, 1882 — S.52)",
+  "displayName": "License Agreement",
+  "category": "transactional_deed",
+  "creditsCost": 2,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "LICENSE AGREEMENT\n\nThis License Agreement is executed on this {date} at {place}.\n\nBETWEEN\n\n{licensor_name}, having address at {licensor_address}, (PAN: {licensor_pan})\n(hereinafter referred to as the \"LICENSOR\")\n\nAND\n\n{licensee_name}, having address at {licensee_address}, (PAN: {licensee_pan})\n(hereinafter referred to as the \"LICENSEE\")",
+    "partyDesignations": [
+      { "role": "licensor", "label": "Licensor" },
+      { "role": "licensee", "label": "Licensee" }
+    ],
+    "caseNomenclature": "N/A — Transactional"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "licensor_name",
+        "label": "Licensor full name / entity name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "licensor_address",
+        "label": "Licensor address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "licensor_pan", "label": "Licensor PAN", "type": "text", "required": true },
+      {
+        "id": "licensor_entity_type",
+        "label": "Licensor type",
+        "type": "select",
+        "required": true,
+        "options": ["individual", "huf", "partnership", "company", "trust", "society"]
+      },
+      {
+        "id": "licensee_name",
+        "label": "Licensee full name / entity name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "licensee_address",
+        "label": "Licensee address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "licensee_pan", "label": "Licensee PAN", "type": "text", "required": true },
+      {
+        "id": "licensee_entity_type",
+        "label": "Licensee type",
+        "type": "select",
+        "required": true,
+        "options": ["individual", "huf", "partnership", "company", "trust", "society", "llp"]
+      },
+      {
+        "id": "license_purpose",
+        "label": "Purpose / type of license",
+        "type": "select",
+        "required": true,
+        "options": [
+          "leave_and_license_residential_maharashtra_pattern",
+          "shop_or_office_license_use",
+          "warehouse_storage_license",
+          "factory_workspace_license",
+          "co_working_seat_license",
+          "stall_or_kiosk_in_mall_or_complex",
+          "advertising_hoarding_or_billboard_license",
+          "rooftop_telecom_tower_license",
+          "event_space_license",
+          "atm_kiosk_bank_license"
+        ]
+      },
+      {
+        "id": "property_address",
+        "label": "Licensed premises address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "property_extent_being_licensed",
+        "label": "Portion / extent being licensed (e.g., specific shop, designated area, identified seat)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "license_start_date",
+        "label": "License commencement date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "license_term_months",
+        "label": "License term in months",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "renewal_option",
+        "label": "Renewal option?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "renewable_by_mutual_consent",
+          "non_renewable_on_term_end",
+          "auto_renewal_unless_notice"
+        ]
+      },
+      {
+        "id": "license_fee_monthly",
+        "label": "Monthly license fee (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "license_fee_payable_on",
+        "label": "Day of month license fee due",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "license_fee_escalation_percent",
+        "label": "Annual escalation %",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "security_deposit",
+        "label": "Security deposit (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "deposit_refund_terms",
+        "label": "Refund terms (interest-free, within 30 days of vacating subject to deductions)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "non_exclusive_use_clause",
+        "label": "Confirm: license is for non-exclusive use OR for designated portion only (preserves license character)",
+        "type": "select",
+        "required": true,
+        "options": [
+          "non_exclusive_designated_seat",
+          "exclusive_use_of_specific_portion_with_licensor_access",
+          "shared_use_with_others"
+        ]
+      },
+      {
+        "id": "licensor_retains_control",
+        "label": "Confirm: licensor retains legal possession and control",
+        "type": "select",
+        "required": true,
+        "options": [
+          "yes_licensor_retains_possession_and_keys",
+          "no_licensee_takes_keys_flag_lease_re_characterisation_risk"
+        ]
+      },
+      {
+        "id": "permitted_use_restriction",
+        "label": "Permitted use (specific)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "termination_notice_days",
+        "label": "Termination notice (days)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "tds_applicable",
+        "label": "TDS applicable?",
+        "type": "select",
+        "required": true,
+        "options": ["yes_194_I", "yes_194_IB", "no_below_threshold"]
+      },
+      {
+        "id": "gst_applicable",
+        "label": "GST applicable?",
+        "type": "select",
+        "required": true,
+        "options": ["yes_commercial_license_gst_on_fee", "no_residential_exempt"]
+      },
+      {
+        "id": "stamp_duty_paid",
+        "label": "Stamp duty paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "state",
+        "label": "State of execution",
+        "type": "select",
+        "required": true,
+        "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_recital",
+      "name": "Parties and Recitals",
+      "required": true,
+      "description": "Identification of licensor and licensee"
+    },
+    {
+      "id": "license_grant_clause",
+      "name": "License Grant Clause",
+      "required": true,
+      "description": "Licensor grants LICENSE (not lease/tenancy); specific language to preserve license character"
+    },
+    {
+      "id": "no_interest_in_land_clause",
+      "name": "No Interest in Land / No Tenancy Clause",
+      "required": true,
+      "description": "Explicit declaration that no interest in land is transferred; no tenancy, easement or proprietary right is created"
+    },
+    {
+      "id": "licensor_retains_possession_clause",
+      "name": "Licensor Retains Legal Possession & Control",
+      "required": true,
+      "description": "Critical to preserve license vs lease distinction (Associated Hotels test)"
+    },
+    {
+      "id": "purpose_clause",
+      "name": "Specific Purpose of License",
+      "required": true,
+      "description": "Permitted purpose narrowly defined"
+    },
+    {
+      "id": "term_clause",
+      "name": "Term of License",
+      "required": true,
+      "description": "Start + duration + renewal"
+    },
+    {
+      "id": "license_fee_clause",
+      "name": "License Fee — Amount, Mode, Escalation",
+      "required": true,
+      "description": "Monthly fee, payment date, escalation"
+    },
+    {
+      "id": "security_deposit_clause",
+      "name": "Security Deposit",
+      "required": true,
+      "description": "Amount + refund terms"
+    },
+    {
+      "id": "non_assignment_clause",
+      "name": "Non-Assignment / Non-Transferability",
+      "required": true,
+      "description": "License is personal to licensee; not transferable or assignable"
+    },
+    {
+      "id": "non_exclusive_or_designated_use",
+      "name": "Non-Exclusive / Designated Use",
+      "required": true,
+      "description": "Where exclusive use granted — licensor's right of access and inspection retained"
+    },
+    {
+      "id": "no_structural_alteration",
+      "name": "No Structural Alterations",
+      "required": true,
+      "description": "Licensee cannot make structural changes"
+    },
+    {
+      "id": "indemnity_clause",
+      "name": "Indemnity",
+      "required": true,
+      "description": "Licensee indemnifies licensor for any damage / liability arising from use"
+    },
+    {
+      "id": "termination_clause",
+      "name": "Termination — Notice / Default / At-Will",
+      "required": true,
+      "description": "License is revocable per S.62 Easements Act; specify notice period"
+    },
+    {
+      "id": "vacating_clause",
+      "name": "Vacating Upon Termination",
+      "required": true,
+      "description": "Licensee shall vacate immediately on termination; no claim of tenancy"
+    },
+    {
+      "id": "tds_gst_clause",
+      "name": "TDS / GST Clause",
+      "required": true,
+      "description": "Tax handling"
+    },
+    {
+      "id": "governing_law_jurisdiction",
+      "name": "Governing Law & Jurisdiction",
+      "required": true,
+      "description": "Applicable law and exclusive jurisdiction"
+    },
+    {
+      "id": "schedule_a_premises",
+      "name": "SCHEDULE A — Licensed Premises Description",
+      "required": true,
+      "description": "Detailed identification"
+    },
+    {
+      "id": "witness_clause",
+      "name": "Two Witnesses",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a LICENSE AGREEMENT under the Easements Act, 1882, Section 52.",
+      "S.52 Easements Act — LICENSE DEFINED: 'Where one person grants to another, or to a definite number of other persons, a right to do, or continue to do, in or upon the immovable property of the grantor, something which would, in the absence of such right, be unlawful, and such right does not amount to an easement or an interest in the property, the right is called a license.'",
+      "ESSENTIAL FEATURES OF LICENSE (distinguishes from lease):\n   (a) PERMISSION — not transfer of any interest.\n   (b) NO INTEREST IN LAND created.\n   (c) PERSONAL to licensee — not transferable / heritable (by default).\n   (d) REVOCABLE (S.60 Easements Act) — except where coupled with transfer of property OR where licensee has incurred expenses on faith of license (S.60 proviso).\n   (e) LICENSOR RETAINS LEGAL POSSESSION AND CONTROL of premises.",
+      "CRITICAL DISTINCTION — LICENSE vs LEASE: Cite Associated Hotels of India Ltd v. R.N. Kapoor AIR 1959 SC 1262, and Khalil Ahmed Bashir Ahmed v. Tufelhussein Samasbhai (1988) 1 SCC 155. Test:\n   (i) INTENTION of the parties.\n   (ii) EXCLUSIVE POSSESSION — if grantee has exclusive possession (i.e., right to exclude even the grantor) — strong indicator of LEASE.\n   (iii) Substance over form — labelling as 'license' is not conclusive if substance is lease.\n   (iv) Right to make structural changes / sublease — indicators of lease.",
+      "If license language is overly lease-like (e.g., 'shall have exclusive possession for the term', 'transferable', 'fixed long term with renewal'), the courts and Stamp Authority MAY RE-CHARACTERISE as lease — exposing parties to (i) higher stamp duty, (ii) tenancy rights for licensee, (iii) registration mandate, (iv) Rent Control Act applicability.",
+      "DRAFTING PRINCIPLES to preserve LICENSE character:",
+      "  - Use 'PERMISSION TO USE' language, NOT 'grants possession' or 'demises'.",
+      "  - Explicitly state: 'No interest in land or any easement or tenancy is created.'",
+      "  - Licensor retains keys / master access / right to inspect at any time.",
+      "  - Licensee occupies as PERMITTEE, not as tenant.",
+      "  - Where 'exclusive' use of a portion is given — frame as 'designated area for licensee's use; licensor retains right of access and inspection'.",
+      "  - License is PERSONAL to licensee — non-transferable, non-assignable, non-heritable.",
+      "  - REVOCABLE on notice or per terms; not a permanent right.",
+      "  - License fee, not 'rent'; deposit, not 'security against tenancy'.",
+      "  - Term typically short (11 months for leave-and-license following Maharashtra pattern); even for longer, no renewal at licensee's option without licensor consent.",
+      "STRUCTURE:",
+      "Para 1: Parties identification.",
+      "Para 2: Recital — Licensor is owner / authorised occupier of the premises described in Schedule A; Licensee has approached for permission to use the premises for the limited purpose of [specific purpose].",
+      "Para 3: Grant of License — 'Licensor doth hereby GRANT to the Licensee a BARE LICENSE under Section 52 of the Easements Act, 1882, to enter upon and use the portion described in Schedule A SOLELY for the purpose of [purpose], for a period of [months], commencing from [start date].'",
+      "Para 4: No Interest in Land — 'This is a personal license. No interest in land, no tenancy, no easement, and no proprietary right of any nature whatsoever is created in favour of the Licensee.'",
+      "Para 5: Licensor's Retained Possession — 'The Licensor shall at all times retain legal possession, control and dominion over the premises. The Licensee occupies and uses the premises as PERMITTEE / LICENSEE only, and not as tenant, lessee or any kind of holder of interest.'",
+      "Para 6: Purpose — narrowly defined; no other use without prior written consent.",
+      "Para 7: Term — [N] months from start date.",
+      "Para 8: License Fee — monthly, payable on or before [date]; mode (bank transfer); GST as applicable on commercial license.",
+      "Para 9: Security Deposit — refundable interest-free on vacating; deductions for damages / arrears.",
+      "Para 10: Non-Assignment — license is PERSONAL; cannot be transferred, sublicensed, assigned, or shared with any other person without prior written consent of Licensor.",
+      "Para 11: Licensee's Obligations:\n   - Pay license fee timely.\n   - Use only for permitted purpose.\n   - Maintain premises in good condition; no structural alteration.\n   - Comply with society rules, building regulations, local laws.\n   - Bear electricity, water, internet, society maintenance as agreed.\n   - Allow Licensor's inspection on reasonable notice.\n   - Vacate immediately on termination; surrender keys and possession.",
+      "Para 12: Licensor's Obligations:\n   - Ensure quiet use during license term, subject to licensor's retained rights.\n   - Provide basic services as agreed (water, electricity, parking).",
+      "Para 13: Termination:\n   (a) At end of term automatically.\n   (b) Either party may terminate on [X] days' notice.\n   (c) On material breach by licensee — immediate termination + forfeiture of deposit.\n   (d) On material breach by licensor — licensee may vacate and recover deposit.",
+      "Para 14: Vacating: 'Upon termination by any cause, Licensee shall forthwith vacate and hand over peaceful possession of the premises; shall not claim any tenancy, occupancy, possessory or other right; the Licensor shall be entitled to re-enter without recourse to any proceeding for possession.'",
+      "Para 15: TDS — Licensee shall deduct TDS u/s 194-I (corporate licensee, fee > Rs.2.4L p.a.) or 194-IB (individual licensee, fee > Rs.50K p.m.) — even for license fee, courts have treated it as 'rent' for TDS purposes.",
+      "Para 16: GST — for commercial license (non-residential), GST applies @ 18% on license fee where licensor's turnover > GST threshold; reverse charge for unregistered licensors leasing to registered businesses (CGST Notification 5/2022).",
+      "Para 17: Indemnity — Licensee indemnifies Licensor for damage / liability arising from use; insurance coverage required for commercial licenses.",
+      "Para 18: Dispute Resolution — Arbitration under Arbitration & Conciliation Act 1996; or civil court jurisdiction at specified place.",
+      "Para 19: Governing Law — Indian law.",
+      "Para 20: STAMP DUTY — Article 5 / 35 of State Stamp Act (varies):\n   - License is typically chargeable under 'Agreement' article OR specific 'Leave and License' article.\n   - Where state has specific Leave and License article (e.g., Maharashtra Article 36A) — applies.\n   - Bihar / Jharkhand / UP / Delhi: typically lower than lease — often Rs.100 to Rs.500 fixed OR small % for commercial.\n   - VERIFY state schedule.",
+      "Para 21: REGISTRATION — license agreements are NOT compulsorily registerable under S.17 Registration Act (since no interest in land created). HOWEVER, some states (Maharashtra, Karnataka) mandate registration of leave-and-license. Bihar / Jharkhand / UP / Delhi do not mandate.",
+      "Schedule A — Licensed Premises description.",
+      "Two witnesses' attestation.",
+      "Append Lawie disclaimer.",
+      "WHERE LICENSEE INVESTS IN PREMISES on faith of license — flag S.60 proviso Easements Act: license becomes irrevocable to extent of investment unless terms expressly negative this. Include explicit clause that no investment / improvement creates any equity / right of irrevocability."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Indian Easements Act, 1882",
+      "sections": [
+        { "number": "S.52", "description": "License defined" },
+        { "number": "S.53", "description": "Who may grant license" },
+        { "number": "S.54", "description": "License — how granted (no formality except as below)" },
+        { "number": "S.55", "description": "Accessory licenses annexed by law" },
+        {
+          "number": "S.56",
+          "description": "License — non-transferable except where licensor permits"
+        },
+        { "number": "S.60", "description": "License when revocable / irrevocable" },
+        { "number": "S.62", "description": "License when deemed revoked" },
+        { "number": "S.63", "description": "Licensee's rights on revocation" },
+        { "number": "S.64", "description": "Licensee's rights on eviction" }
+      ]
+    },
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        {
+          "number": "S.105 vs S.52 EA",
+          "description": "Distinction lease vs license — substance test"
+        }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899 + State Schedules",
+      "sections": [
+        {
+          "number": "Article 5 / Article 35 / Article 36A (state-specific)",
+          "description": "License / Leave and License agreement — stamp duty articles"
+        }
+      ]
+    },
+    {
+      "act": "Income Tax Act, 1961",
+      "sections": [
+        {
+          "number": "S.194-I",
+          "description": "TDS @ 10% on rent / license fee paid by corporate licensee > Rs.2.4L p.a."
+        },
+        {
+          "number": "S.194-IB",
+          "description": "TDS @ 5% by individual licensee where fee > Rs.50K p.m."
+        }
+      ]
+    },
+    {
+      "act": "Central Goods and Services Tax Act, 2017",
+      "sections": [
+        {
+          "number": "S.9 read with Schedule II",
+          "description": "Renting / licensing of commercial property is supply of service; GST applicable"
+        }
+      ]
+    },
+    {
+      "act": "Arbitration and Conciliation Act, 1996",
+      "sections": [
+        { "number": "S.7-11", "description": "Arbitration agreement, appointment of arbitrators" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Stamp paper per state Article (lower than lease)",
+    "Licensor's title / authorised-occupier proof",
+    "Society / RWA NOC if applicable",
+    "PAN of both parties",
+    "Aadhaar of individuals",
+    "GST registration certificates (commercial license)",
+    "Two adult witnesses with ID proofs",
+    "REGISTRATION typically NOT mandatory in Bihar / Jharkhand / UP / Delhi (verify) — voluntary",
+    "Where state mandates registration (Maharashtra / Karnataka) — comply",
+    "Where commercial / high-value — consider voluntary registration for evidentiary safety",
+    "TDS compliance by licensee (Form 26Q / 26QC) as applicable",
+    "GST invoicing by licensor (commercial)",
+    "Insurance policy (commercial license)",
+    "Lawie disclaimer included",
+    "Critical: language preserves license character — review by advocate to avoid re-characterisation as lease"
+  ],
+  "validation_rules": [
+    "license_term_months should typically be <= 11 months for leave-and-license pattern (longer terms increase lease re-characterisation risk)",
+    "license_fee_monthly > 0",
+    "security_deposit specified",
+    "non_exclusive_use_clause must be specified",
+    "licensor_retains_control must be 'yes_licensor_retains_possession_and_keys' — else flag lease re-characterisation risk",
+    "permitted_use_restriction must not be empty",
+    "termination_notice_days >= 1",
+    "if license_fee_monthly > 50000 and licensee_entity_type == 'individual' — flag TDS 194-IB",
+    "if licensee_entity_type in ['company', 'partnership', 'llp'] and (license_fee_monthly * 12) > 240000 — flag TDS 194-I",
+    "if license_purpose != 'leave_and_license_residential_maharashtra_pattern' and license_purpose != 'residential' — flag GST 18%",
+    "stamp_duty_paid > 0",
+    "witness_1 and witness_2 mandatory",
+    "advocate enrollment number required"
+  ]
+}

@@ -1,0 +1,400 @@
+{
+  "_meta": {
+    "description": "Document-rules config for ibc_application — Application before NCLT under Insolvency and Bankruptcy Code, 2016 — Section 7 (financial creditor), Section 9 (operational creditor), or Section 10 (corporate applicant) for initiation of CIRP. Minimum default threshold ₹1 crore.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Innoventive, Mobilox, Swiss Ribbons cites mandatory. Form 1/2/3/4/5 per CIRP Regulations."
+  },
+  "template_id": "ibc_application",
+  "docType": "ibc_application",
+  "title": "Application under Section 7 / 9 / 10 of the Insolvency and Bankruptcy Code, 2016 for initiation of CIRP",
+  "displayName": "IBC Application (S.7/9/10) — NCLT",
+  "category": "tribunal",
+  "creditsCost": 2,
+  "court_levels": ["nclt"],
+  "causeTitle": {
+    "format": "BEFORE THE HON'BLE NATIONAL COMPANY LAW TRIBUNAL\nBENCH AT {nclt_bench}\n\n{caseNomenclature}\n\nIN THE MATTER OF: The Insolvency and Bankruptcy Code, 2016;\nAND IN THE MATTER OF: Section {section_invoked} of the Code;\nAND IN THE MATTER OF: Application for initiation of Corporate Insolvency Resolution Process against {corporate_debtor_name};\n\n{applicant} ... Applicant\nVERSUS\n{corporate_debtor_name} ... Corporate Debtor / Respondent",
+    "partyDesignations": [
+      {
+        "role": "applicant",
+        "label": "Applicant (Financial Creditor / Operational Creditor / Corporate Applicant)"
+      },
+      { "role": "corporate_debtor", "label": "Corporate Debtor (Respondent)" }
+    ],
+    "caseNomenclature": "C.P. (IB) No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "section_invoked",
+        "label": "Section invoked",
+        "type": "select",
+        "required": true,
+        "options": [
+          "section_7_financial_creditor",
+          "section_9_operational_creditor",
+          "section_10_corporate_applicant"
+        ]
+      },
+      {
+        "id": "applicant_name",
+        "label": "Applicant name (creditor / corporate debtor itself for S.10)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "applicant_type",
+        "label": "Applicant type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "bank_nbfc",
+          "individual_financial_creditor",
+          "homebuyer_class_creditor",
+          "operational_creditor_supplier",
+          "operational_creditor_employee",
+          "operational_creditor_government_dues",
+          "corporate_applicant_self"
+        ]
+      },
+      {
+        "id": "applicant_address",
+        "label": "Applicant registered address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "applicant_authorised_rep",
+        "label": "Authorised representative + board resolution / power of attorney details",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "corporate_debtor_name",
+        "label": "Corporate Debtor name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "corporate_debtor_cin",
+        "label": "Corporate Debtor CIN",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "corporate_debtor_address",
+        "label": "Corporate Debtor registered office address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "corporate_debtor_paid_up_capital",
+        "label": "Corporate Debtor paid-up capital (₹)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "nclt_bench",
+        "label": "NCLT bench (per location of registered office)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "debt_amount",
+        "label": "Total amount in default (₹) — must be ≥ ₹1 crore",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "debt_nature",
+        "label": "Nature of debt (financial / operational + brief description)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "debt_documents",
+        "label": "Documents proving debt (loan agreement / invoices / agreements / acknowledgments)",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "default_date", "label": "Date of default", "type": "date", "required": true },
+      {
+        "id": "default_proof",
+        "label": "Proof of default (records from information utility / books of account / bank statements)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "s8_demand_notice_date",
+        "label": "S.8 demand notice date (mandatory for S.9 OC application)",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "s8_demand_notice_delivery_proof",
+        "label": "Proof of delivery of S.8 demand notice",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "s8_reply_received",
+        "label": "Reply received to S.8 notice",
+        "type": "select",
+        "required": false,
+        "options": ["yes_disputing", "yes_admitting", "no_reply", "not_applicable_section_7_or_10"]
+      },
+      {
+        "id": "pre_existing_dispute",
+        "label": "Any pre-existing dispute disclosed by CD (S.9 — Mobilox test) — details",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "irp_proposed",
+        "label": "Proposed Interim Resolution Professional (IRP) — name, IBBI registration",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "irp_consent_obtained",
+        "label": "Written consent of IRP in Form 2 obtained",
+        "type": "checkbox",
+        "required": true
+      },
+      {
+        "id": "limitation_position",
+        "label": "Limitation position — date of default + 3-year limitation; any acknowledgments u/s.18 LImitation Act",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Applicant + Corporate Debtor with CIN"
+    },
+    {
+      "id": "jurisdiction_paragraph",
+      "name": "NCLT Jurisdiction",
+      "required": true,
+      "description": "Per location of registered office of CD"
+    },
+    {
+      "id": "applicant_status_paragraph",
+      "name": "Applicant Status",
+      "required": true,
+      "description": "Financial / Operational / Corporate Applicant — establish standing"
+    },
+    {
+      "id": "debt_paragraph",
+      "name": "Particulars of Debt",
+      "required": true,
+      "description": "Amount, nature, documents, books of account / IU records"
+    },
+    {
+      "id": "default_paragraph",
+      "name": "Particulars of Default",
+      "required": true,
+      "description": "Date of default + proof"
+    },
+    {
+      "id": "threshold_paragraph",
+      "name": "Threshold (≥₹1 crore)",
+      "required": true,
+      "description": "Statutory minimum under S.4 (raised by Notification dated 24-Mar-2020)"
+    },
+    {
+      "id": "s8_notice_paragraph",
+      "name": "S.8 Demand Notice (S.9 only)",
+      "required": false,
+      "description": "Mandatory precondition for OC application"
+    },
+    {
+      "id": "pre_existing_dispute_paragraph",
+      "name": "No Pre-existing Dispute (S.9 — Mobilox)",
+      "required": false,
+      "description": "OC application barred if dispute pre-existed S.8 notice"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation",
+      "required": true,
+      "description": "3 years from default per B.K. Educational Services"
+    },
+    {
+      "id": "irp_proposal_paragraph",
+      "name": "Proposed IRP",
+      "required": true,
+      "description": "Name + IBBI registration + Form 2 written consent"
+    },
+    {
+      "id": "moratorium_paragraph",
+      "name": "Moratorium under S.14",
+      "required": false,
+      "description": "Indicate where applicable"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Admission of application + appointment of IRP + declaration of moratorium"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Affidavit verifying contents"
+    },
+    {
+      "id": "form_compliance",
+      "name": "Form Compliance",
+      "required": true,
+      "description": "Form 1 (S.7) / Form 5 (S.9) / Form 6 (S.10) of CIRP Regulations"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Tribunal may graciously be pleased to:\n\na) Admit the present application under Section {section_invoked} of the Insolvency and Bankruptcy Code, 2016, and initiate the Corporate Insolvency Resolution Process against the Corporate Debtor {corporate_debtor_name};\n\nb) Appoint Shri/Smt. {irp_proposed} (IBBI Registration No. {irp_ibbi_number}) as the Interim Resolution Professional;\n\nc) Declare moratorium in terms of Section 14 of the Code with all consequences specified therein;\n\nd) Direct the IRP to make a public announcement of the initiation of CIRP and call for submission of claims as per Section 15 of the Code;\n\ne) Pass any other order(s) as this Hon'ble Tribunal may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant_authorised_rep_name}, the authorised representative of the Applicant herein duly authorised vide {authorisation_reference}, do hereby verify under solemn affirmation that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to my personal knowledge derived from the records of the Applicant. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nAuthorised Representative",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft an application under Section 7 / 9 / 10 of the Insolvency and Bankruptcy Code, 2016 before NCLT for initiation of Corporate Insolvency Resolution Process (CIRP).",
+      "JURISDICTION: NCLT bench with territorial jurisdiction over the registered office of the Corporate Debtor (per S.60(1) IBC).",
+      "FORM: Strict adherence to forms prescribed under the IBBI (Insolvency Resolution Process for Corporate Persons) Regulations, 2016:",
+      "   - S.7 Financial Creditor: Form 1 (CIRP Regulation 2 read with Rule 4 IBC AAA Rules 2016)",
+      "   - S.9 Operational Creditor: Form 5 + S.8 Demand Notice in Form 3 or 4",
+      "   - S.10 Corporate Applicant: Form 6",
+      "MINIMUM THRESHOLD: ₹1 crore default (raised from ₹1 lakh by MCA Notification S.O. 1205(E) dated 24-Mar-2020 under S.4 IBC).",
+      "Para 1: Parties — Applicant + Corporate Debtor.",
+      "Para 2: NCLT bench jurisdiction.",
+      "Para 3: Applicant status:",
+      "   - S.7 Financial Creditor: 'financial debt' definition S.5(8) — disbursal for time value of money; loans, debentures, real estate allottees (Pioneer Urban Land), security deposits where commercial effect of borrowing.",
+      "   - S.9 Operational Creditor: 'operational debt' S.5(21) — claim in respect of provision of goods or services including employment, or debt to government for taxes.",
+      "   - S.10 Corporate Applicant: corporate debtor itself; must produce special resolution + financial statements.",
+      "Para 4: Debt particulars — amount in default; documentary basis; books of account; information utility (IU) records — NeSL records preferred (S.7(3)(a)(ii)). For S.9, invoices + demand notice + reply (if any).",
+      "Para 5: Default — date + evidence. For S.7 / S.9, default is non-payment of debt that has become due and payable, and not paid. For S.10, financial information disclosing default + special resolution authorising CIRP filing.",
+      "Para 6: Threshold compliance — confirm ≥ ₹1 crore.",
+      "Para 7 (S.9 ONLY): S.8 Demand Notice — mandatory precondition. Form 3 (general demand) or Form 4 (invoice-based demand) — delivered by registered post / hand delivery + 10-day waiting period before filing.",
+      "Para 8 (S.9 ONLY): No pre-existing dispute — Cite Mobilox Innovations Pvt Ltd v. Kirusa Software Pvt Ltd (2018) 1 SCC 353 — pre-existing dispute test: (i) dispute must be raised BEFORE receipt of demand notice, (ii) must not be a moonshine / hypothetical / illusory dispute, (iii) court only checks plausibility of dispute, not its merits.",
+      "Para 9: Limitation — Cite B.K. Educational Services v. Parag Gupta (2019) 11 SCC 633: Article 137 Limitation Act applies — 3 years from default. Acknowledgments under S.18 Limitation Act extend (Asset Reconstruction Co v. Bishal Jaiswal (2021) 6 SCC 366).",
+      "Para 10: Cite Innoventive Industries Ltd v. ICICI Bank (2018) 1 SCC 407 — IBC overrides inconsistent state laws; financial creditor application admission criteria.",
+      "Para 11: Cite Swiss Ribbons Pvt Ltd v. Union of India (2019) 4 SCC 17 — constitutionality of IBC; FC vs OC distinction upheld.",
+      "Para 12: Cite Vidarbha Industries Power Ltd v. Axis Bank (2022) 8 SCC 352 — NCLT may exercise discretion at admission stage of S.7 application; not mechanical admission.",
+      "Para 13: Cite Pioneer Urban Land v. Union of India (2019) 8 SCC 416 — homebuyers as financial creditors; threshold of 100 or 10% allottees for class application (post-2020 amendment).",
+      "Para 14: Cite Macquarie Bank Ltd v. Shilpi Cable Technologies (2018) 2 SCC 674 — strict S.8 / S.9 procedural compliance for OC.",
+      "Para 15: Proposed IRP — name + IBBI registration. WRITTEN CONSENT in Form 2 mandatory. For S.10, applicant CD must propose IRP.",
+      "Para 16: Moratorium under S.14 — automatic on admission; effects:",
+      "   (a) institution / continuation of suits / proceedings prohibited;",
+      "   (b) transferring / encumbering assets prohibited;",
+      "   (c) recovery of property in possession of CD prohibited;",
+      "   (d) enforcement of security interest under SARFAESI prohibited.",
+      "Para 17: Effect of admission — public announcement, claims invitation, COC formation, resolution professional appointment.",
+      "Para 18: Statement of affairs / list of assets (especially for S.10 corporate applicant).",
+      "Para 19: Where personal guarantor under S.95 — different track; flag for advocate.",
+      "Para 20: Pre-pack insolvency under Ch. III-A (introduced 2021) — for MSMEs only; flag if applicable.",
+      "ATTACHMENTS — strictly per Form schedule:",
+      "   - S.7 Form 1: Part I (financial creditor particulars), Part II (CD particulars), Part III (proposed IRP details), Part IV (financial debt particulars + documents), Part V (other information).",
+      "   - S.9 Form 5: Part I-IV (similar) + Part V (invoice / demand notice / dispute particulars).",
+      "   - S.10 Form 6: financial information, special resolution, audited financials.",
+      "Verification + affidavit per Form Part on solemn affirmation.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Insolvency and Bankruptcy Code, 2016",
+      "sections": [
+        { "number": "S.4", "description": "Application of Code — threshold ₹1 crore" },
+        { "number": "S.5(7)", "description": "'Financial creditor' definition" },
+        { "number": "S.5(8)", "description": "'Financial debt' definition" },
+        { "number": "S.5(20)", "description": "'Operational creditor' definition" },
+        { "number": "S.5(21)", "description": "'Operational debt' definition" },
+        { "number": "S.6", "description": "Persons who may initiate CIRP" },
+        { "number": "S.7", "description": "Initiation by financial creditor" },
+        { "number": "S.8", "description": "Demand notice by operational creditor" },
+        { "number": "S.9", "description": "Application by operational creditor" },
+        { "number": "S.10", "description": "Initiation by corporate applicant" },
+        { "number": "S.14", "description": "Moratorium" },
+        { "number": "S.15", "description": "Public announcement" },
+        { "number": "S.16", "description": "Appointment of IRP" },
+        { "number": "S.60", "description": "NCLT — adjudicating authority" },
+        { "number": "S.61", "description": "Appeal to NCLAT — 30 days (+15 condonation)" }
+      ]
+    },
+    {
+      "act": "Insolvency and Bankruptcy (Application to Adjudicating Authority) Rules, 2016",
+      "sections": [
+        { "number": "Rule 4", "description": "Form 1 — S.7 application" },
+        { "number": "Rule 5", "description": "Form 3 / Form 4 — S.8 demand notice" },
+        { "number": "Rule 6", "description": "Form 5 — S.9 application" },
+        { "number": "Rule 7", "description": "Form 6 — S.10 application" }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        { "number": "Article 137", "description": "3 years from default" },
+        { "number": "Section 18", "description": "Acknowledgment extends limitation" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application in prescribed Form (1/5/6) + copies per NCLT Rules 2016 Rule 23",
+    "Affidavit verifying application (Form Part V)",
+    "Vakalatnama",
+    "Memo of parties",
+    "Board resolution / authorisation of applicant",
+    "Power of Attorney (if authorised representative)",
+    "Loan agreement / invoices / debt documents",
+    "Information Utility (NeSL) records — preferred for default proof",
+    "Books of account / bank statements / ledger extracts",
+    "S.8 demand notice + proof of delivery (S.9 only)",
+    "Reply to S.8 notice (S.9 only)",
+    "Form 2 — written consent of IRP",
+    "Corporate Debtor MCA records (CIN proof, latest financials)",
+    "Special resolution (S.10 only)",
+    "Audited financial statements (S.10 only)",
+    "Filing fee — ₹25,000 (S.7 / S.9) / ₹25,000 (S.10) per NCLT Rules Schedule",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "section_invoked must be selected",
+    "applicant_name must not be empty",
+    "corporate_debtor_name and corporate_debtor_cin must not be empty",
+    "debt_amount must be >= 10000000 (₹1 crore threshold)",
+    "default_date must not be empty and not in future",
+    "If section_invoked = section_9_operational_creditor, s8_demand_notice_date must not be empty AND s8_demand_notice_delivery_proof must not be empty AND ≥10 days must have elapsed before filing",
+    "irp_proposed must not be empty",
+    "irp_consent_obtained must be true",
+    "limitation_position must not be empty — flag if > 3 years from default without acknowledgment",
+    "advocate_enrollment must match Bar Council format",
+    "Court level restricted to NCLT only"
+  ],
+  "key_citations": [
+    "Innoventive Industries Ltd v. ICICI Bank (2018) 1 SCC 407 — IBC override + admission test",
+    "Mobilox Innovations Pvt Ltd v. Kirusa Software (2018) 1 SCC 353 — Pre-existing dispute test for S.9",
+    "Swiss Ribbons Pvt Ltd v. Union of India (2019) 4 SCC 17 — Constitutionality + FC/OC distinction",
+    "Pioneer Urban Land v. Union of India (2019) 8 SCC 416 — Homebuyers as FC",
+    "B.K. Educational Services v. Parag Gupta (2019) 11 SCC 633 — Limitation Art. 137",
+    "Asset Reconstruction Co v. Bishal Jaiswal (2021) 6 SCC 366 — Acknowledgment u/s.18 Limitation Act",
+    "Macquarie Bank Ltd v. Shilpi Cable Technologies (2018) 2 SCC 674 — Strict S.8 / S.9 compliance",
+    "Vidarbha Industries Power Ltd v. Axis Bank (2022) 8 SCC 352 — NCLT discretion in S.7 admission",
+    "Anuj Jain (IRP for Jaypee Infratech) v. Axis Bank (2020) 8 SCC 401 — Financial debt definition"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

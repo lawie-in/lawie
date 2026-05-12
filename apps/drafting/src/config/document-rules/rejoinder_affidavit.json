@@ -1,0 +1,194 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_cycle_days": 180,
+    "legal_status": "approved",
+    "notes": "Petitioner's rejoinder to counter-affidavit. Limited scope — addresses NEW pleas in counter, not re-arguing petition. With leave of court."
+  },
+  "template_id": "rejoinder_affidavit",
+  "title": "Rejoinder Affidavit (Petitioner's Reply to Counter)",
+  "category": "procedural",
+  "creditsCost": 1,
+  "court_levels": ["district_court", "high_court", "supreme_court", "tribunal"],
+  "description": "Petitioner's affidavit in reply to counter-affidavit filed by respondent. Limited to addressing NEW pleas, fresh facts, or new documents introduced in the counter — NOT re-arguing the petition. Generally requires leave of court.",
+  "form_schema": {
+    "case_details": {
+      "case_type": {
+        "type": "string",
+        "required": true,
+        "label": "Case Type (WP / OA / Suit No.)"
+      },
+      "case_number": { "type": "string", "required": true, "label": "Case Number" },
+      "year": { "type": "string", "required": true, "label": "Year" },
+      "court_name": { "type": "string", "required": true, "label": "Court / Tribunal Name" }
+    },
+    "parties": {
+      "petitioner_name": {
+        "type": "string",
+        "required": true,
+        "label": "Petitioner Name (Deponent)"
+      },
+      "respondent_name": { "type": "string", "required": true, "label": "Respondent Name" },
+      "deponent_designation": {
+        "type": "string",
+        "required": true,
+        "label": "Deponent Designation"
+      },
+      "deponent_age": { "type": "string", "required": true, "label": "Deponent Age" },
+      "deponent_address": { "type": "string", "required": true, "label": "Deponent Address" }
+    },
+    "leave_of_court": {
+      "leave_granted_date": {
+        "type": "date",
+        "required": false,
+        "label": "Date Leave of Court Granted (if any)"
+      },
+      "scope_of_leave": {
+        "type": "textarea",
+        "required": false,
+        "label": "Scope of Leave (if leave order narrowed scope)"
+      }
+    },
+    "rejoinder_content": {
+      "preliminary_response": {
+        "type": "textarea",
+        "required": false,
+        "label": "Preliminary Response to Counter's Preliminary Objections"
+      },
+      "para_wise_response_to_new_pleas": {
+        "type": "textarea",
+        "required": true,
+        "label": "Para-wise Response to NEW Pleas in Counter (only new material)"
+      },
+      "response_to_new_documents": {
+        "type": "textarea",
+        "required": false,
+        "label": "Response to New Documents Annexed by Respondent"
+      },
+      "reaffirmation": {
+        "type": "textarea",
+        "required": false,
+        "label": "Reaffirmation of Petition Pleadings"
+      }
+    },
+    "verification": {
+      "place_of_verification": {
+        "type": "string",
+        "required": true,
+        "label": "Place of Verification"
+      },
+      "date_of_verification": { "type": "date", "required": true, "label": "Date of Verification" },
+      "paras_true_to_knowledge": {
+        "type": "string",
+        "required": true,
+        "label": "Paras True to Personal Knowledge"
+      },
+      "paras_true_to_records": {
+        "type": "string",
+        "required": false,
+        "label": "Paras True from Records / Information"
+      }
+    }
+  },
+  "mandatory_clauses": [
+    {
+      "clause_id": "cause_title",
+      "title": "Cause Title",
+      "required": true,
+      "content_guidance": "Full cause title with case number. Title: 'REJOINDER AFFIDAVIT ON BEHALF OF THE PETITIONER TO THE COUNTER-AFFIDAVIT DATED [DATE] FILED BY RESPONDENT NO. __'."
+    },
+    {
+      "clause_id": "deponent_intro",
+      "title": "Deponent Introduction",
+      "required": true,
+      "content_guidance": "'I, [petitioner name], aged about [X] years, S/o [father], R/o [address], do hereby solemnly affirm and state on oath as follows:'."
+    },
+    {
+      "clause_id": "leave_recital",
+      "title": "Recital of Leave of Court",
+      "required": false,
+      "content_guidance": "If leave granted: 'Pursuant to the leave granted by this Hon'ble Court vide order dated [date], the petitioner files this rejoinder affidavit limited to addressing the new pleas raised in the counter-affidavit of the respondent.'"
+    },
+    {
+      "clause_id": "scope_disclaimer",
+      "title": "Scope Disclaimer",
+      "required": true,
+      "content_guidance": "Para 1: 'That the contents of the petition / writ are reiterated and not repeated for brevity. This rejoinder is filed only to address new pleas, fresh assertions and documents introduced in the counter-affidavit. Save where specifically denied, the original pleadings stand affirmed.'"
+    },
+    {
+      "clause_id": "response_to_preliminary",
+      "title": "Response to Preliminary Objections in Counter",
+      "required": false,
+      "content_guidance": "If counter raises preliminary objections (jurisdiction, limitation, maintainability) — address each: 'The preliminary objection regarding [X] raised in para [Y] of the counter is misconceived because [reasons]. The petition is maintainable / within limitation / falls within jurisdiction.'"
+    },
+    {
+      "clause_id": "para_wise_new_pleas",
+      "title": "Para-wise Response to New Pleas Only",
+      "required": true,
+      "content_guidance": "ONLY address paras of counter that introduce new material. Standard formula: 'Ad para [X] of the counter-affidavit: the new plea that [summarise new plea] is incorrect / misleading and is denied. The true position is [petitioner's response].' Do NOT re-argue what was already pleaded in the petition."
+    },
+    {
+      "clause_id": "response_to_new_documents",
+      "title": "Response to Respondent's Documents (R-1, R-2 etc.)",
+      "required": false,
+      "content_guidance": "Address each document annexed to counter: authenticity, relevance, weight. Counter-documents annexed if needed (mark as PA-1, PA-2 etc.)."
+    },
+    {
+      "clause_id": "prayer",
+      "title": "Prayer",
+      "required": true,
+      "content_guidance": "'The petitioner reiterates the prayer made in the petition and prays for the relief sought therein.'"
+    },
+    {
+      "clause_id": "verification",
+      "title": "Verification Clause",
+      "required": true,
+      "content_guidance": "Standard verification — paras true to personal knowledge vs records. 'Nothing material has been concealed.'"
+    },
+    {
+      "clause_id": "attestation",
+      "title": "Attestation",
+      "required": true,
+      "content_guidance": "Sworn / affirmed before oath commissioner / notary public with seal and signature."
+    }
+  ],
+  "prompt_context": {
+    "system_prompt_addendum": "You are drafting a REJOINDER AFFIDAVIT. CRITICAL CONSTRAINTS: (1) A rejoinder is NOT a second petition. It is limited to addressing NEW pleas, fresh assertions, or new documents introduced in the counter-affidavit. (2) Petitioner cannot use rejoinder to fill gaps in the petition or to raise new grounds. (3) Reaffirm petition contents in one para; do NOT re-argue them. (4) Leave of court is generally required (analogous to Order VIII Rule 9 CPC for written statement after period). Cite *Manmohan Singh v. Punjab National Bank* (2005) on limits of rejoinder. (5) Para-wise response only to those paras of counter that contain new material. (6) Verification clause mandatory. (7) Keep rejoinder concise — courts disfavour bloated rejoinders.",
+    "tone": "Reaffirming, precise, narrowly focused. Avoid repetition of petition.",
+    "key_phrases": [
+      "pursuant to leave granted",
+      "limited to new pleas",
+      "the new plea is misconceived",
+      "the petitioner reiterates",
+      "save as specifically denied"
+    ]
+  },
+  "relevantActs": [
+    "Order VI Rule 15 CPC (Verification)",
+    "Order VIII Rule 9 CPC (Pleadings subsequent to written statement / by leave)",
+    "Order XIX CPC (Affidavits)",
+    "Supreme Court Rules 2013 Order III",
+    "Oaths Act 1969",
+    "Notaries Act 1952"
+  ],
+  "filing_checklist": [
+    "Leave of court obtained (if required by local rules / practice)",
+    "Rejoinder strictly limited to new pleas in counter (no fresh case)",
+    "Para-wise response to new material only",
+    "Petition pleadings reaffirmed in one consolidated para",
+    "Counter's preliminary objections addressed",
+    "Petitioner's additional documents marked as PA-1, PA-2 etc.",
+    "Verified before oath commissioner / notary",
+    "Advance copy served on respondent's counsel",
+    "Affidavit of service of advance copy",
+    "Filed within time directed by court"
+  ],
+  "validation_rules": {
+    "scope_check": "WARN if rejoinder appears to introduce fresh grounds not flowing from counter — flag risk of being struck off as impermissible.",
+    "leave_disclosure": "INFO — if leave date not provided, advise advocate to obtain leave or confirm local rules permit rejoinder as of right.",
+    "verification_present": "ERROR if verification clause missing.",
+    "para_wise_format": "WARN if para_wise_response_to_new_pleas does not use 'ad para' formula.",
+    "reaffirmation_present": "WARN if no reaffirmation of petition pleadings — court may treat as abandonment."
+  }
+}

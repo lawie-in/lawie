@@ -1,0 +1,219 @@
+{
+  "_meta": {
+    "description": "Document-rules config for bail_cancellation — application to cancel bail granted to accused (by State/informant) or to vary conditions (by accused)",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "template_id": "bail_cancellation",
+  "docType": "bail_cancellation",
+  "parentDocType": "bail_application",
+  "title": "Bail Cancellation Application",
+  "displayName": "Application for Cancellation of Bail",
+  "category": "criminal_bail",
+  "creditsCost": 2,
+  "court_levels": ["sessions", "high_court", "district", "cjm"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{petitioner} ... Petitioner\nVERSUS\n{respondent} ... Respondent/Accused",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner (State / Informant / Accused)" },
+      { "role": "respondent", "label": "Respondent" }
+    ],
+    "caseNomenclature": "BAIL CANCELLATION APPLICATION No. _____ of [YEAR]\n(Arising out of Bail Order dated _____ in Bail Application No. _____ of [YEAR])"
+  },
+  "form_schema": [
+    {
+      "name": "party_role",
+      "label": "Petitioner Role",
+      "type": "select",
+      "options": [
+        "State / Prosecution",
+        "Informant / Complainant",
+        "Accused (for variation of conditions)"
+      ],
+      "required": true
+    },
+    {
+      "name": "petitioner_name",
+      "label": "Petitioner Name / Designation",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "petitioner_address",
+      "label": "Petitioner Address",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "respondent_name",
+      "label": "Respondent/Accused Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "respondent_address",
+      "label": "Respondent Address",
+      "type": "textarea",
+      "required": true
+    },
+    { "name": "court_designation", "label": "Court Designation", "type": "text", "required": true },
+    {
+      "name": "state",
+      "label": "State",
+      "type": "select",
+      "options": ["Bihar", "Jharkhand", "Uttar Pradesh", "Delhi"],
+      "required": true
+    },
+    { "name": "fir_number", "label": "FIR Number", "type": "text", "required": true },
+    { "name": "fir_date", "label": "FIR Date", "type": "date", "required": true },
+    { "name": "police_station", "label": "Police Station", "type": "text", "required": true },
+    {
+      "name": "offences_alleged",
+      "label": "Offences (BNS sections)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "bail_order_date",
+      "label": "Date of Bail Order to be Cancelled",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "bail_application_number",
+      "label": "Bail Application No.",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "granting_court",
+      "label": "Court that Granted Bail",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "grounds_for_cancellation",
+      "label": "Grounds for Cancellation",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "post_bail_conduct",
+      "label": "Post-Bail Conduct of Accused",
+      "type": "textarea",
+      "required": true
+    },
+    { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
+    {
+      "name": "advocate_enrolment",
+      "label": "Bar Council Enrolment No.",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "mandatory_clauses": [
+    "petitioner locus / standing to seek cancellation",
+    "particulars of bail order sought to be cancelled",
+    "specific grounds for cancellation (tampering / threats / breach of conditions / new offence)",
+    "supervening circumstances post-bail",
+    "balance of convenience / interest of justice",
+    "prayer for cancellation",
+    "verification on oath"
+  ],
+  "mandatoryClauses": [
+    {
+      "id": "locus",
+      "name": "Locus of Petitioner",
+      "required": true,
+      "description": "Standing of State/informant/accused to move the application"
+    },
+    {
+      "id": "bail_order_particulars",
+      "name": "Bail Order Particulars",
+      "required": true,
+      "description": "Date, court, application number and conditions of the bail order"
+    },
+    {
+      "id": "grounds",
+      "name": "Grounds for Cancellation",
+      "required": true,
+      "description": "Tampering with evidence, threatening witnesses, breach of bail conditions, commission of new offence, abuse of liberty"
+    },
+    {
+      "id": "supervening",
+      "name": "Supervening Circumstances",
+      "required": true,
+      "description": "Events post-bail that justify cancellation"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Clause",
+      "required": true,
+      "description": "Specific prayer for cancellation / variation of conditions"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Cancel the bail granted to the Respondent/Accused {respondent} vide order dated {bail_order_date} in Bail Application No. {bail_application_number} by the {granting_court};\nb) Direct the Respondent/Accused to be taken into custody forthwith;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief, based on records and information received. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "prompt_context": "Draft an Application for Cancellation of Bail under BNSS Section 483(3) (High Court / Sessions Court) read with BNSS Section 480. The petitioner may be the State, informant, or even the accused (in case of seeking variation of onerous conditions imposed). Cancellation grounds are well-established (Dolat Ram v. State of Haryana (1995) 1 SCC 349; Bhagirathsinh v. State of Gujarat (1984) 1 SCC 284): (1) tampering with evidence; (2) threatening or influencing witnesses; (3) breach of bail conditions; (4) commission of similar/fresh offence while on bail; (5) abuse of concession; (6) fleeing from justice. The court that granted bail (or a superior court) has jurisdiction to cancel. The application must distinguish between 'cancellation' (for misconduct post-bail) and 'setting aside' (for being granted on irrelevant considerations). Reference BNS section numbers throughout — never IPC.",
+  "promptInstructions": [
+    "Draft an Application for Cancellation of Bail under Section 483(3) BNSS, 2023 read with Section 480 BNSS.",
+    "If party_role = 'State / Prosecution' or 'Informant', frame as cancellation due to misconduct or breach by accused.",
+    "If party_role = 'Accused', frame as application for variation/relaxation of bail conditions (NOT cancellation of own bail).",
+    "Set out the bail order particulars: date, application number, conditions imposed, granting court.",
+    "State supervening events that justify cancellation — be specific with dates, places, witness names where possible.",
+    "Cite Dolat Ram v. State of Haryana (1995) 1 SCC 349 and Bhagirathsinh v. State of Gujarat (1984) 1 SCC 284 on grounds for cancellation.",
+    "Use BNS sections for underlying offences (never IPC).",
+    "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
+  ],
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        {
+          "number": "480",
+          "description": "When bail may be taken in case of non-bailable offence"
+        },
+        {
+          "number": "483",
+          "description": "Special powers of High Court or Court of Session regarding bail"
+        },
+        {
+          "number": "483(3)",
+          "description": "Power to direct any person released on bail to be arrested and committed to custody"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + 2 copies)",
+    "Affidavit in support",
+    "Certified copy of bail order sought to be cancelled",
+    "Copy of FIR",
+    "Documentary proof of breach (CDR / witness statements / fresh FIR if any)",
+    "Vakalatnama",
+    "Court fee as per state schedule"
+  ],
+  "filingChecklist": [
+    "Application (original + 2 copies)",
+    "Affidavit in support",
+    "Certified copy of bail order sought to be cancelled",
+    "Copy of FIR",
+    "Documentary proof of breach (CDR / witness statements / fresh FIR if any)",
+    "Vakalatnama",
+    "Court fee as per state schedule"
+  ],
+  "validation_rules": [
+    "party_role must be one of: State, Informant, Accused",
+    "grounds_for_cancellation must not be empty",
+    "bail_order_date must be before today",
+    "if party_role = Accused then prayer should be re-framed as variation not cancellation"
+  ]
+}

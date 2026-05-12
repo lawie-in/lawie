@@ -1,0 +1,254 @@
+{
+  "_meta": {
+    "description": "Document-rules config for legal_notice_consumer_deficiency — pre-CPA-2019 notice demanding cure of deficiency in service/goods before filing consumer complaint",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — drafted 2026-05-12 in Batch 2 templates",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Verify pecuniary jurisdiction per CP (Jurisdiction of Commission) Rules 2021 and limitation under Section 69 CPA."
+  },
+  "docType": "legal_notice_consumer_deficiency",
+  "parentDocType": "legal_notice",
+  "displayName": "Legal Notice — Consumer Deficiency (Pre-Complaint under CPA 2019)",
+  "category": "notice",
+  "creditsCost": 1,
+  "court_levels": ["pre_litigation"],
+  "causeTitle": {
+    "format": "LEGAL NOTICE\n(Under the Consumer Protection Act, 2019 — Pre-Complaint Notice)\n\nTo,\n{respondent}\n{respondentAddress}\n\nFrom,\n{applicant}\nThrough: {advocateName}, Advocate\n{advocateAddress}",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Sender / Consumer / Complainant" },
+      { "role": "respondent", "label": "Noticee / Service Provider / Seller / Manufacturer" }
+    ],
+    "caseNomenclature": "N/A"
+  },
+  "form_schema": {
+    "sender": { "type": "object", "required": ["name", "address", "consumer_status_basis"] },
+    "recipient": {
+      "type": "object",
+      "required": ["name", "address", "capacity"],
+      "note": "capacity: seller / service provider / manufacturer / e-commerce platform"
+    },
+    "transaction": {
+      "type": "object",
+      "required": [
+        "date_of_purchase_or_service",
+        "amount_paid",
+        "mode_of_payment",
+        "invoice_or_receipt_reference",
+        "goods_or_service_description"
+      ]
+    },
+    "deficiency_or_defect": {
+      "type": "enum_set",
+      "values": [
+        "defect_in_goods",
+        "deficiency_in_service",
+        "unfair_trade_practice",
+        "restrictive_trade_practice",
+        "overcharging",
+        "hazardous_goods_or_services",
+        "misleading_advertisement",
+        "product_liability"
+      ],
+      "required": true
+    },
+    "particulars": {
+      "type": "object",
+      "required": [
+        "nature_of_deficiency",
+        "date_first_noticed",
+        "complaints_to_respondent",
+        "response_received",
+        "harm_suffered"
+      ]
+    },
+    "relief_sought": {
+      "type": "object",
+      "required": [
+        "refund_or_replacement",
+        "repair",
+        "compensation_amount",
+        "interest",
+        "litigation_costs",
+        "response_deadline_days"
+      ]
+    },
+    "pecuniary_jurisdiction": {
+      "type": "object",
+      "required": ["total_value", "forum"],
+      "note": "Per CP (Jurisdiction of Commission) Rules 2021: District up to Rs. 50 lakh; State Rs. 50 lakh to Rs. 2 crore; National above Rs. 2 crore"
+    }
+  },
+  "mandatoryClauses": [
+    {
+      "id": "consumer_status",
+      "name": "Consumer Status",
+      "required": true,
+      "description": "Establish that sender is a 'consumer' under Section 2(7) CPA — purchased goods/availed services for consideration, not for resale or commercial purpose (with exception for self-employment)"
+    },
+    {
+      "id": "transaction_particulars",
+      "name": "Transaction Particulars",
+      "required": true,
+      "description": "Date, amount, invoice/receipt reference, description of goods/service, payment mode"
+    },
+    {
+      "id": "deficiency_particulars",
+      "name": "Deficiency / Defect Particulars",
+      "required": true,
+      "description": "Specific defect (Section 2(10)) or deficiency in service (Section 2(11)) — date noticed, complaints made, response received"
+    },
+    {
+      "id": "demand_for_cure",
+      "name": "Demand for Cure",
+      "required": true,
+      "description": "Demand for one or more of: refund, replacement, repair, compensation, removal of deficiency"
+    },
+    {
+      "id": "30_day_window",
+      "name": "30-Day Response Window",
+      "required": true,
+      "description": "Reasonable response window of 30 days before approaching Consumer Commission (not statutory but customary)"
+    },
+    {
+      "id": "forum_warning",
+      "name": "Warning of Consumer Complaint",
+      "required": true,
+      "description": "Warning that failure to cure will result in filing of consumer complaint before competent District/State/National Commission as per pecuniary jurisdiction"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and BCI enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "You are hereby called upon to, within 30 (thirty) days of receipt of this notice:\n(a) {primary_relief — e.g., REFUND the entire consideration of Rs. {amount}/- paid by my client / REPLACE the defective goods with a new defect-free product / REPAIR the said goods free of cost to my client's satisfaction / REMOVE the deficiency in service complained of};\n(b) Pay compensation in the sum of Rs. {compensation_amount}/- towards mental agony, harassment, loss of time, and consequential losses suffered by my client on account of your deficiency in service / defect in goods / unfair trade practice;\n(c) Pay interest at the rate of {interest_rate}% per annum on Rs. {amount}/- from {date_of_payment} until realisation;\n(d) Reimburse litigation costs and the cost of this notice in the sum of Rs. {notice_cost}/-.\n\nFailing the above, my client shall be constrained to file a Consumer Complaint against you under Section 35 of the Consumer Protection Act, 2019 before the competent {forum} (having pecuniary jurisdiction over claims of Rs. {total_value}/-, in accordance with the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021), seeking the above reliefs along with such other reliefs as the Commission may deem fit, entirely at your risk, cost, and consequences.\n\nPLEASE TAKE FURTHER NOTICE that my client also reserves the right to file a complaint with the Central Consumer Protection Authority (CCPA) for unfair trade practice / misleading advertisement under Sections 17-19 of the Consumer Protection Act, 2019, and to claim product liability under Sections 82-87 thereof.",
+  "verificationTemplate": "",
+  "filingChecklist": [
+    "Notice sent by Registered Post AD / Speed Post AD",
+    "Also serve by email where transaction was online / e-commerce",
+    "Postal receipts, AD card preserved",
+    "Original invoice / receipt / tax invoice preserved",
+    "Photographs / videos of defective goods preserved with timestamps",
+    "Screenshots of misleading advertisements / online listings preserved",
+    "Records of prior complaints (emails, customer-care tickets, social media DMs) preserved",
+    "Bank statement showing payment preserved",
+    "Identify correct forum by pecuniary jurisdiction (CP Rules 2021): District Commission up to Rs. 50 lakh; State Commission Rs. 50 lakh to Rs. 2 crore; National Commission above Rs. 2 crore — valuation is value of goods/services + compensation claimed",
+    "Identify territorial jurisdiction under Section 34(2) — can file where opposite party resides/works/has branch OR where cause of action arose OR (post-2019) where complainant resides or personally works",
+    "Limitation under Section 69 CPA: 2 years from date on which cause of action has arisen; condonation possible on sufficient cause",
+    "Court fee per CP (Consumer Commission Procedure) Regulations 2020"
+  ],
+  "relevantActs": [
+    {
+      "act": "Consumer Protection Act, 2019",
+      "sections": [
+        {
+          "number": "2(6)",
+          "description": "Complainant — includes consumer, recognised consumer association, Central/State Government"
+        },
+        {
+          "number": "2(7)",
+          "description": "Consumer — purchases goods or avails services for consideration; excludes resale and commercial purpose, with self-employment exception"
+        },
+        {
+          "number": "2(10)",
+          "description": "Defect — fault, imperfection or shortcoming in quality, quantity, potency, purity or standard of goods"
+        },
+        {
+          "number": "2(11)",
+          "description": "Deficiency — fault, imperfection, shortcoming or inadequacy in quality, nature and manner of performance in service"
+        },
+        {
+          "number": "2(47)",
+          "description": "Unfair trade practice — includes misleading representations, false advertisements"
+        },
+        {
+          "number": "17",
+          "description": "Establishment of Central Consumer Protection Authority (CCPA)"
+        },
+        {
+          "number": "34",
+          "description": "Jurisdiction of District Commission — territorial jurisdiction including complainant's place"
+        },
+        { "number": "35", "description": "Manner of filing complaint before District Commission" },
+        {
+          "number": "39",
+          "description": "Findings of District Commission — reliefs including refund, replacement, compensation, removal of deficiency, discontinuance of unfair trade practice"
+        },
+        { "number": "47", "description": "Jurisdiction of State Commission" },
+        { "number": "58", "description": "Jurisdiction of National Commission" },
+        { "number": "69", "description": "Limitation period — 2 years from cause of action" },
+        {
+          "number": "82-87",
+          "description": "Product Liability — liability of product manufacturer, service provider, seller for harm caused by product"
+        }
+      ]
+    },
+    {
+      "act": "Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021",
+      "sections": [
+        {
+          "number": "Rule 3",
+          "description": "District Commission — value of goods/services and compensation up to Rs. 50 lakh"
+        },
+        {
+          "number": "Rule 4",
+          "description": "State Commission — above Rs. 50 lakh up to Rs. 2 crore"
+        },
+        { "number": "Rule 5", "description": "National Commission — above Rs. 2 crore" }
+      ]
+    },
+    {
+      "act": "Consumer Protection (Consumer Commission Procedure) Regulations, 2020",
+      "sections": [{ "number": "Regulation 7", "description": "Form and manner of complaint" }]
+    },
+    {
+      "act": "Consumer Protection (E-Commerce) Rules, 2020",
+      "sections": [
+        {
+          "number": "Rule 4 & 5",
+          "description": "Duties and liabilities of e-commerce entities; grievance redressal"
+        }
+      ]
+    }
+  ],
+  "validation_rules": [
+    {
+      "rule": "consumer_status_check",
+      "description": "Verify sender qualifies as 'consumer' — purchase not for resale or commercial purpose (unless self-employment for livelihood)"
+    },
+    {
+      "rule": "pecuniary_jurisdiction_2021_rules",
+      "description": "Apply CP (Jurisdiction) Rules 2021: District ≤ Rs. 50L; State Rs. 50L-2cr; National > Rs. 2cr"
+    },
+    {
+      "rule": "limitation_2_years",
+      "description": "Complaint must be filed within 2 years from cause of action (Section 69)"
+    },
+    {
+      "rule": "30_day_window_customary",
+      "description": "30-day response window is customary; not statutorily mandated unlike NI Act 138 cooling-off"
+    },
+    {
+      "rule": "no_pre_suit_notice_mandatory",
+      "description": "CPA does NOT mandate pre-complaint notice — but issuing one strengthens demand for compensation and demonstrates good faith"
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Pre-Complaint Legal Notice for Consumer Deficiency / Defect under the Consumer Protection Act, 2019.",
+    "Cite relevant provisions: Section 2(7) (consumer), 2(10) (defect), 2(11) (deficiency), 2(47) (unfair trade practice), 35 (complaint), 39 (reliefs), 69 (limitation), 82-87 (product liability).",
+    "Establish my client's status as 'consumer' under Section 2(7) — purchased for consideration, not for resale or commercial purpose. Mention self-employment exception if relevant.",
+    "Set out transaction particulars — date, amount, invoice/receipt reference, mode of payment, goods/service description.",
+    "Particularise the defect / deficiency / unfair trade practice — what was promised, what was delivered, the gap, evidence (photos/videos/correspondence).",
+    "Set out my client's complaints to the noticee and the response (or lack thereof).",
+    "Quantify harm — direct loss, mental agony, harassment, loss of time, consequential losses.",
+    "Demand reliefs: refund / replacement / repair / removal of deficiency + compensation + interest + costs.",
+    "Give a 30-day response window (customary; CPA does not statutorily mandate pre-suit notice).",
+    "State the correct forum by pecuniary jurisdiction under CP (Jurisdiction) Rules 2021: District ≤ Rs. 50 lakh; State Rs. 50 lakh - Rs. 2 crore; National > Rs. 2 crore. Aggregate value = value of goods/services + compensation claimed.",
+    "Reserve right to approach CCPA under Sections 17-19 for unfair trade practice / misleading advertisement.",
+    "Reserve product liability remedy under Sections 82-87 if harm caused by product.",
+    "Mind limitation: 2 years from cause of action under Section 69.",
+    "Use firm but professional legal language.",
+    "Do NOT generate the advocate signature block — it is added programmatically."
+  ]
+}

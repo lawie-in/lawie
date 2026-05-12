@@ -1,0 +1,218 @@
+{
+  "_meta": {
+    "description": "Document-rules config for legal_notice_eviction — quit/eviction notice under state Rent Control Acts or Transfer of Property Act Section 106",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — drafted 2026-05-12 in Batch 2 templates",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. State-specific rent law applicability is critical — advocate must confirm which Act governs the tenancy."
+  },
+  "docType": "legal_notice_eviction",
+  "parentDocType": "legal_notice",
+  "displayName": "Legal Notice — Eviction / Quit Notice (State Rent Act / TPA S.106)",
+  "category": "notice",
+  "creditsCost": 1,
+  "court_levels": ["pre_litigation"],
+  "causeTitle": {
+    "format": "LEGAL NOTICE\n(Under {governing_act} — Notice to Quit and Deliver Vacant Possession)\n\nTo,\n{respondent}\n{respondentAddress}\n\nFrom,\n{applicant}\nThrough: {advocateName}, Advocate\n{advocateAddress}",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Sender / Landlord / Lessor" },
+      { "role": "respondent", "label": "Noticee / Tenant / Lessee" }
+    ],
+    "caseNomenclature": "N/A"
+  },
+  "form_schema": {
+    "sender": { "type": "object", "required": ["name", "address", "title_basis"] },
+    "recipient": { "type": "object", "required": ["name", "address"] },
+    "tenancy": {
+      "type": "object",
+      "required": [
+        "premises_description",
+        "tenancy_type",
+        "tenancy_start_date",
+        "rent_amount",
+        "rent_period",
+        "governing_act",
+        "state"
+      ],
+      "note": "tenancy_type: monthly / annual / fixed-term. governing_act: state Rent Control Act OR Transfer of Property Act, 1882."
+    },
+    "ground_for_eviction": {
+      "type": "enum",
+      "values": [
+        "non_payment_of_rent",
+        "subletting",
+        "bona_fide_requirement",
+        "nuisance",
+        "structural_damage",
+        "expiry_of_lease",
+        "breach_of_lease_terms",
+        "personal_occupation"
+      ],
+      "required": true
+    },
+    "rent_arrears": {
+      "type": "object",
+      "required": ["amount", "period", "demand_for_payment"],
+      "optional": true
+    },
+    "notice_period": { "type": "object", "required": ["days_to_quit", "expiry_date"] },
+    "applicable_rent_law": {
+      "type": "enum",
+      "values": [
+        "Delhi Rent Control Act, 1958",
+        "Maharashtra Rent Control Act, 1999",
+        "Karnataka Rent Act, 1999",
+        "Tamil Nadu Regulation of Rights and Responsibilities of Landlords and Tenants Act, 2017",
+        "UP Urban Buildings (Regulation of Letting, Rent and Eviction) Act, 1972",
+        "Bihar Buildings (Lease, Rent and Eviction) Control Act, 1982",
+        "Jharkhand Buildings (Lease, Rent and Eviction) Control Act, 2011",
+        "West Bengal Premises Tenancy Act, 1997",
+        "Transfer of Property Act, 1882 (S.106) — for non-rent-controlled premises",
+        "Model Tenancy Act, 2021 (where adopted by State)"
+      ],
+      "required": true
+    }
+  },
+  "mandatoryClauses": [
+    {
+      "id": "landlord_title",
+      "name": "Landlord's Title",
+      "required": true,
+      "description": "Basis of landlord's ownership / right to evict — registered sale deed, allotment, succession etc."
+    },
+    {
+      "id": "tenancy_particulars",
+      "name": "Tenancy Particulars",
+      "required": true,
+      "description": "Premises description, tenancy start date, agreed rent, rent period (monthly/annual), purpose (residential/commercial)"
+    },
+    {
+      "id": "ground_for_eviction",
+      "name": "Statutory / Contractual Ground",
+      "required": true,
+      "description": "Specific ground — e.g., non-payment of rent for X months, subletting without consent, bona fide requirement, expiry of lease"
+    },
+    {
+      "id": "demand_for_arrears",
+      "name": "Demand for Arrears (if applicable)",
+      "required": false,
+      "description": "Where eviction is on non-payment ground, specify arrears and demand payment within statutory cure period"
+    },
+    {
+      "id": "notice_to_quit",
+      "name": "Notice to Quit",
+      "required": true,
+      "description": "Clear notice requiring tenant to vacate by specified date — minimum 15 days (monthly tenancy) or 6 months (annual) per TPA 106; or as per State Rent Act"
+    },
+    {
+      "id": "consequence_warning",
+      "name": "Consequence of Non-Compliance",
+      "required": true,
+      "description": "Warning that failure to vacate will result in eviction suit, mesne profits, and damages"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and BCI enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "You are hereby called upon to:\n(a) Vacate and deliver peaceful and vacant possession of the said premises being {premises_description} to my client on or before {expiry_date}, being a period of {notice_days} days from the date of receipt of this notice / from the end of the current month of tenancy as required by {governing_act};\n(b) Pay all arrears of rent amounting to Rs. {arrears_amount}/- for the period {arrears_period}, along with interest;\n(c) Pay mesne profits at the rate of Rs. {mesne_rate}/- per month for the period of continued unauthorised occupation, if any, after {expiry_date};\n(d) Hand over the keys and remove all personal belongings on or before the said date.\n\nPLEASE TAKE NOTICE that on your failure to comply with the above, my client shall be constrained to file a suit for eviction, recovery of arrears, mesne profits, and damages before the competent {court_or_rent_authority} under the provisions of {governing_act}, entirely at your risk, cost, and consequences.\n\nYour tenancy stands terminated with effect from {termination_date}.",
+  "verificationTemplate": "",
+  "filingChecklist": [
+    "Confirm which Act governs the tenancy — state Rent Control Act vs Transfer of Property Act vs Model Tenancy Act (where notified)",
+    "Notice must align with the ending of a month of tenancy for monthly tenancies under TPA 106",
+    "Minimum 15 days notice for monthly tenancy (TPA S.106 as amended in 2002 — earlier was 15 days for premises let for manufacturing, 30 days for others); confirm post-amendment position",
+    "Minimum 6 months notice for tenancy from year to year (TPA S.106)",
+    "Where state Rent Act applies, follow that Act's notice format and grounds — many require eviction only on specified statutory grounds",
+    "Notice sent by Registered Post AD / Speed Post AD",
+    "Postal receipts and AD card preserved",
+    "Copy of lease deed / rent receipts annexed",
+    "Title documents preserved for production in suit",
+    "Limitation: Eviction suit under TPA = 12 years for possession (Article 65); Rent recovery = 3 years (Article 52)"
+  ],
+  "relevantActs": [
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        {
+          "number": "106",
+          "description": "Duration of lease in absence of written contract — termination of monthly/annual tenancy by notice"
+        },
+        { "number": "111", "description": "Determination of lease" },
+        { "number": "114", "description": "Relief against forfeiture for non-payment of rent" }
+      ]
+    },
+    {
+      "act": "Specific Relief Act, 1963",
+      "sections": [
+        { "number": "6", "description": "Suit by person dispossessed of immovable property" }
+      ]
+    },
+    {
+      "act": "State Rent Control Legislation (varies)",
+      "sections": [
+        {
+          "number": "—",
+          "description": "Delhi Rent Control Act 1958 / Maharashtra Rent Control Act 1999 / Karnataka Rent Act 1999 / UP Act 1972 / Bihar Act 1982 / Jharkhand Act 2011 / Model Tenancy Act 2021 — applicable provisions on grounds for eviction (non-payment, subletting, bona fide requirement, nuisance, structural damage, etc.)"
+        }
+      ]
+    },
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "Order VII Rule 1", "description": "Plaint particulars for eviction suit" }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "Article 65",
+          "description": "Suit for possession of immovable property based on title — 12 years"
+        },
+        {
+          "number": "Article 67",
+          "description": "Suit for possession of immovable property by landlord against tenant — 12 years from determination of tenancy"
+        }
+      ]
+    }
+  ],
+  "validation_rules": [
+    {
+      "rule": "state_act_identification",
+      "description": "Applicable State Rent Act must be identified before drafting; default to TPA S.106 only for non-rent-controlled premises"
+    },
+    {
+      "rule": "monthly_tenancy_min_15_days",
+      "description": "Monthly tenancy minimum 15 days notice, ending with month of tenancy (TPA 106 post-2002 amendment)"
+    },
+    {
+      "rule": "annual_tenancy_min_6_months",
+      "description": "Annual tenancy minimum 6 months notice (TPA 106)"
+    },
+    {
+      "rule": "statutory_ground_required_under_rent_acts",
+      "description": "Most state Rent Acts permit eviction only on specified grounds — generic 'I want my premises back' is insufficient"
+    },
+    {
+      "rule": "cure_period_for_arrears",
+      "description": "For non-payment ground, give tenant statutory opportunity to pay arrears before eviction"
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Legal Notice for Eviction / Notice to Quit.",
+    "FIRST determine the governing law — state Rent Control Act (where premises are within Act's coverage) OR Transfer of Property Act, 1882 Section 106 (for non-rent-controlled premises) OR Model Tenancy Act 2021 (where adopted).",
+    "Identify the state — Delhi / Maharashtra / Karnataka / Tamil Nadu / UP / Bihar / Jharkhand / West Bengal — and apply the corresponding Rent Act provisions.",
+    "Establish landlord's title and the tenancy particulars — premises description, tenancy start date, rent, rent period, purpose.",
+    "State the specific ground for eviction — non-payment, subletting, bona fide requirement, nuisance, structural damage, expiry of lease.",
+    "Where ground is non-payment, particularise arrears (period + amount) and give a cure opportunity.",
+    "Compute the correct notice period: monthly tenancy = minimum 15 days ending with month of tenancy (TPA S.106 post-2002); annual tenancy = 6 months; state Rent Act may prescribe different period.",
+    "Demand vacant possession by a specific date.",
+    "Claim arrears and mesne profits for the period of unauthorised occupation.",
+    "State the competent forum — civil court for TPA suit, or Rent Controller / specified forum under state Rent Act.",
+    "Terminate the tenancy expressly with effect from the date of expiry of notice.",
+    "Use firm but professional legal language.",
+    "Do NOT generate the advocate signature block — it is added programmatically."
+  ]
+}

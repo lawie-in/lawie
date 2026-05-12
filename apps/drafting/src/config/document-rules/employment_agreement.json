@@ -1,0 +1,221 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_status": "Approved",
+    "legal_basis": "Indian Contract Act 1872 + Industrial Employment (Standing Orders) Act 1946 + Code on Wages 2019 + state Shops & Establishments Acts",
+    "notes": "Standard employment contract for white-collar staff. S.27 Contract Act voids post-employment non-compete (Niranjan Shankar Golikari v. Century Spinning AIR 1967 SC 1098; Superintendence Co. v. Krishan Murgai AIR 1980 SC 1717). Confidentiality and IP assignment remain enforceable post-employment. Garden leave permissible. State Shops Acts apply for working hours/leave."
+  },
+  "template_id": "employment_agreement",
+  "title": "Employment Agreement",
+  "category": "corporate",
+  "creditsCost": 2,
+  "court_levels": [],
+  "form_schema": {
+    "type": "object",
+    "required": ["employer_name", "employee_name", "designation", "joining_date", "ctc_annual"],
+    "properties": {
+      "employer_name": { "type": "string" },
+      "employer_address": { "type": "string" },
+      "employer_cin": { "type": "string" },
+      "employee_name": { "type": "string" },
+      "employee_father_name": { "type": "string" },
+      "employee_address": { "type": "string" },
+      "employee_pan": { "type": "string" },
+      "employee_aadhaar_last4": { "type": "string" },
+      "designation": { "type": "string" },
+      "department": { "type": "string" },
+      "reporting_to": { "type": "string" },
+      "place_of_work": { "type": "string" },
+      "joining_date": { "type": "string", "format": "date" },
+      "probation_months": { "type": "number", "default": 6 },
+      "ctc_annual": { "type": "number" },
+      "salary_breakdown": {
+        "type": "object",
+        "properties": {
+          "basic": { "type": "number" },
+          "hra": { "type": "number" },
+          "special_allowance": { "type": "number" },
+          "lta": { "type": "number" },
+          "pf_employer": { "type": "number" },
+          "gratuity": { "type": "number" }
+        }
+      },
+      "working_hours": { "type": "string", "default": "9 hours per day, Mon-Fri" },
+      "leave_policy": { "type": "string" },
+      "notice_period_days": { "type": "number", "default": 60 },
+      "notice_period_during_probation": { "type": "number", "default": 30 },
+      "non_solicit_term_months": { "type": "number", "default": 12 },
+      "confidentiality_term": {
+        "type": "string",
+        "default": "Survives termination indefinitely for trade secrets"
+      },
+      "ip_assignment_scope": { "type": "string" },
+      "governing_law_state": { "type": "string" },
+      "jurisdiction_court": { "type": "string" }
+    }
+  },
+  "mandatory_clauses": [
+    { "clause_id": "parties", "title": "Parties", "must_appear": true },
+    { "clause_id": "appointment", "title": "Appointment and Designation", "must_appear": true },
+    {
+      "clause_id": "joining_date",
+      "title": "Date of Joining and Place of Work",
+      "must_appear": true
+    },
+    {
+      "clause_id": "probation_confirmation",
+      "title": "Probation and Confirmation",
+      "must_appear": true,
+      "content": "The Employee shall be on probation for {{probation_months}} months from the date of joining, extendable at the Company's discretion. Confirmation is by written communication."
+    },
+    {
+      "clause_id": "duties_responsibilities",
+      "title": "Duties and Responsibilities",
+      "must_appear": true
+    },
+    {
+      "clause_id": "compensation",
+      "title": "Compensation and Benefits",
+      "must_appear": true,
+      "subclauses": ["CTC breakdown", "Statutory deductions (PF, ESI, PT, TDS)", "Reimbursements"]
+    },
+    {
+      "clause_id": "working_hours_leave",
+      "title": "Working Hours and Leave",
+      "must_appear": true,
+      "note": "Per applicable Shops & Establishments Act of state"
+    },
+    {
+      "clause_id": "code_of_conduct",
+      "title": "Code of Conduct and Policies",
+      "must_appear": true
+    },
+    {
+      "clause_id": "confidentiality",
+      "title": "Confidentiality and Trade Secrets",
+      "must_appear": true,
+      "content": "The Employee shall not, during the term of employment or thereafter, disclose or use any Confidential Information of the Company except in performance of duties. Confidentiality obligations survive termination."
+    },
+    {
+      "clause_id": "ip_assignment",
+      "title": "Intellectual Property Assignment",
+      "must_appear": true,
+      "content": "All IP created by the Employee during the course of employment or using Company resources, relating to the business of the Company, shall vest absolutely in the Company. The Employee assigns all such IP including future IP."
+    },
+    {
+      "clause_id": "non_solicit",
+      "title": "Non-Solicitation",
+      "must_appear": true,
+      "content": "For a period of {{non_solicit_term_months}} months post-cessation, the Employee shall not solicit employees, customers, or vendors of the Company. Non-solicit is enforceable as it protects Company's legitimate interest."
+    },
+    {
+      "clause_id": "non_compete_in_service",
+      "title": "Non-Compete During Employment",
+      "must_appear": true,
+      "note": "Post-employment non-compete on employees is VOID under S.27 Contract Act per Superintendence Co. v. Krishan Murgai. Do NOT include post-termination non-compete restraint."
+    },
+    { "clause_id": "garden_leave", "title": "Garden Leave / Notice Buyout", "must_appear": true },
+    {
+      "clause_id": "moonlighting",
+      "title": "Exclusive Service / No Dual Employment",
+      "must_appear": true,
+      "applies_to_during_term": true
+    },
+    {
+      "clause_id": "termination",
+      "title": "Termination",
+      "must_appear": true,
+      "subclauses": [
+        "Termination with notice",
+        "Termination for cause",
+        "Termination for misconduct",
+        "Resignation"
+      ]
+    },
+    {
+      "clause_id": "termination_consequences",
+      "title": "Consequences of Termination",
+      "must_appear": true,
+      "content": "Return of Company property, settlement of dues, deletion of Company data, exit formalities."
+    },
+    { "clause_id": "indemnity", "title": "Indemnification", "must_appear": true },
+    {
+      "clause_id": "posh_compliance",
+      "title": "Prevention of Sexual Harassment (POSH)",
+      "must_appear": true,
+      "statutory_basis": "Sexual Harassment of Women at Workplace Act 2013"
+    },
+    {
+      "clause_id": "data_privacy",
+      "title": "Data Privacy and DPDP Act Consent",
+      "must_appear": true,
+      "statutory_basis": "DPDP Act 2023"
+    },
+    { "clause_id": "dispute_resolution", "title": "Dispute Resolution", "must_appear": true },
+    {
+      "clause_id": "governing_law",
+      "title": "Governing Law and Jurisdiction",
+      "must_appear": true
+    },
+    { "clause_id": "general", "title": "General Provisions", "must_appear": true },
+    { "clause_id": "execution", "title": "Execution and Acceptance", "must_appear": true }
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting an Indian employment contract. Comply with S.27 Contract Act - NO post-employment non-compete. Confidentiality, non-solicit, and IP assignment are enforceable post-termination. Apply Shops & Establishments Act of relevant state for hours/leave/holidays.",
+    "drafting_rules": [
+      "Do NOT include post-employment non-compete (void per S.27 - cite Niranjan Shankar Golikari and Superintendence Co. v. Krishan Murgai).",
+      "Confidentiality survives termination - enforceable.",
+      "Non-solicit (employees, customers) for 12-24 months post-termination - reasonable, enforceable as protecting legitimate interest.",
+      "IP assignment - express, broad, covers during-employment IP.",
+      "Salary breakdown: basic, HRA, allowances. PF (employer 12% on Basic+DA), ESI (if <= 21k gross), PT (state-wise), TDS.",
+      "Notice period: 30-90 days typical. Probation usually shorter notice.",
+      "Garden leave / notice buyout option.",
+      "Leave per state Shops Act + Factories Act. Typically 12-21 days EL + sick + casual.",
+      "POSH clause mandatory.",
+      "DPDP Act consent for personal data processing.",
+      "Termination for cause: misconduct, fraud, breach. Termination otherwise: notice period.",
+      "Stamp on appropriate value paper (state-wise, usually INR 100-500)."
+    ],
+    "tone": "Formal employment contract, balanced, India-compliant."
+  },
+  "relevantActs": [
+    { "act": "Indian Contract Act 1872", "sections": ["S.27 (void non-compete)"] },
+    { "act": "Code on Wages 2019" },
+    { "act": "Code on Social Security 2020" },
+    {
+      "act": "Industrial Employment (Standing Orders) Act 1946",
+      "applies_when": "Industrial establishments >= 100 (or 50 in some states)"
+    },
+    { "act": "Industrial Disputes Act 1947", "applies_when": "Workmen" },
+    { "act": "Shops and Commercial Establishments Act", "state_specific": true },
+    { "act": "Employees' Provident Funds and Misc Provisions Act 1952" },
+    { "act": "Payment of Gratuity Act 1972" },
+    {
+      "act": "Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act 2013"
+    },
+    { "act": "Maternity Benefit Act 1961" },
+    { "act": "Digital Personal Data Protection Act 2023" },
+    { "act": "Copyright Act 1957", "sections": ["S.17(c)"] },
+    { "act": "Patents Act 1970", "sections": ["S.6"] }
+  ],
+  "filing_checklist": [
+    "Execute in duplicate on stamp paper of state-applicable value.",
+    "Background verification + reference check before issuance (with consent).",
+    "Register with PF/ESI within prescribed period.",
+    "Issue appointment letter and joining kit.",
+    "Maintain personnel file with KYC, education proofs, prior employment letters.",
+    "Onboarding induction including POSH and Code of Conduct."
+  ],
+  "validation_rules": [
+    {
+      "rule": "No post-employment non-compete",
+      "check": "No clause restricting employment elsewhere post-termination"
+    },
+    { "rule": "Confidentiality survives", "check": "Confidentiality term explicit" },
+    { "rule": "IP assignment present", "check": "Express IP assignment clause" },
+    { "rule": "Notice period symmetric", "check": "Same notice both ways (or buyout option)" },
+    { "rule": "POSH clause", "check": "POSH compliance acknowledgement" },
+    { "rule": "DPDP consent", "check": "Consent for personal data processing" }
+  ]
+}

@@ -1,0 +1,313 @@
+{
+  "_meta": {
+    "description": "Document-rules config for writ_petition_civil — Writ Petition (Civil) under Article 226 of the Constitution. Civil writs in HC — service matters, recovery, regulatory orders, government deficiencies, statutory bodies' actions.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Maneka Gandhi, Whirlpool, Bandhua Mukti Morcha cites mandatory."
+  },
+  "template_id": "writ_petition_civil",
+  "docType": "writ_petition_civil",
+  "title": "Writ Petition (Civil) under Article 226 of the Constitution of India",
+  "displayName": "Writ Petition (Civil) — WP(C)",
+  "category": "writ",
+  "creditsCost": 2,
+  "court_levels": ["high_court_writ_jurisdiction"],
+  "causeTitle": {
+    "format": "IN THE HON'BLE HIGH COURT OF {state} AT {courtPlace}\n(EXTRAORDINARY CIVIL / WRIT JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF: Article 226 of the Constitution of India;\nAND IN THE MATTER OF: {statute_invoked};\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner" },
+      {
+        "role": "respondents",
+        "label": "Respondents (Union / State / authority + private respondents where applicable)"
+      }
+    ],
+    "caseNomenclature": "W.P. (C) No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "petitioner_name",
+        "label": "Petitioner full name / entity name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner_father_name",
+        "label": "Father's / husband's name (if individual)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "petitioner_age",
+        "label": "Petitioner age (if individual)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "petitioner_address",
+        "label": "Petitioner address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "petitioner_type",
+        "label": "Petitioner type",
+        "type": "select",
+        "required": true,
+        "options": ["individual", "company", "partnership", "society", "trust", "huf"]
+      },
+      {
+        "id": "respondents_list",
+        "label": "List of respondents (Union of India / State / authority / private body) with addresses",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "statute_invoked",
+        "label": "Principal statute under which grievance arises",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "grievance_summary",
+        "label": "One-line grievance summary",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "writ_type",
+        "label": "Type of writ sought",
+        "type": "checkbox_multi",
+        "required": true,
+        "options": ["mandamus", "certiorari", "prohibition", "quo_warranto", "habeas_corpus"]
+      },
+      {
+        "id": "impugned_order_details",
+        "label": "Impugned order / action / inaction — date, authority, content",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "factual_background",
+        "label": "Factual background",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "grounds_constitutional",
+        "label": "Constitutional grounds (Art. 14 / 19 / 21 / 300A etc.) and statutory grounds",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "alternative_remedy_exhausted",
+        "label": "Alternative remedy — exhausted / unavailable / inadequate",
+        "type": "select",
+        "required": true,
+        "options": [
+          "exhausted",
+          "unavailable",
+          "inadequate_or_illusory",
+          "violation_of_natural_justice_or_fundamental_right_exception",
+          "vires_challenge_exception"
+        ]
+      },
+      {
+        "id": "alternative_remedy_explanation",
+        "label": "Explanation of alternative remedy position",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "interim_relief",
+        "label": "Interim relief sought",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "limitation_position",
+        "label": "Limitation — when did cause of action arise; any laches",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Petitioner + Respondents with full particulars"
+    },
+    {
+      "id": "jurisdiction_paragraph",
+      "name": "Jurisdiction of HC under Art. 226",
+      "required": true,
+      "description": "Territorial nexus — cause of action arose / respondent located within HC's territory"
+    },
+    {
+      "id": "facts_paragraph",
+      "name": "Statement of Facts",
+      "required": true,
+      "description": "Chronological narrative"
+    },
+    {
+      "id": "impugned_action_paragraph",
+      "name": "Impugned Order / Action / Inaction",
+      "required": true,
+      "description": "Precise identification of what is challenged"
+    },
+    {
+      "id": "locus_standi_paragraph",
+      "name": "Locus Standi",
+      "required": true,
+      "description": "Petitioner's standing to maintain writ"
+    },
+    {
+      "id": "grounds_paragraph",
+      "name": "Grounds (constitutional + statutory)",
+      "required": true,
+      "description": "Numbered grounds (A), (B), (C)..."
+    },
+    {
+      "id": "alternative_remedy_paragraph",
+      "name": "Alternative Remedy",
+      "required": true,
+      "description": "Whirlpool exceptions — natural justice / vires / FR violation / inadequate remedy"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation / Laches",
+      "required": true,
+      "description": "No statutory limitation but laches doctrine applies"
+    },
+    {
+      "id": "interim_relief_paragraph",
+      "name": "Interim Relief",
+      "required": false,
+      "description": "Stay / status quo"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Writ in nature of mandamus / certiorari / prohibition / quo warranto"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Mandatory under HC Rules"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Issue an appropriate writ, order or direction, more particularly a writ in the nature of {writ_type_primary}, quashing and setting aside {impugned_order_brief};\n\nb) Issue a writ in the nature of mandamus directing the Respondents to {positive_relief};\n\nc) Pending hearing and final disposal of the present petition, stay the operation and effect of {impugned_order_brief};\n\nd) Award costs of this petition; and\n\ne) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, the Petitioner herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to my personal knowledge and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a Writ Petition (Civil) under Article 226 of the Constitution of India.",
+      "Cause-title MUST include three-tier 'In the matter of' format: (1) Article 226, (2) the statute involved, (3) grievance summary, (4) parties.",
+      "Para 1: Description of parties — petitioner with full particulars; respondents in hierarchical order (Union > State > authority > private respondents).",
+      "Para 2: Jurisdiction under Article 226(2) — cause of action wholly or in part arose within this HC's territory OR respondent authority located within territory.",
+      "Para 3-6: Statement of facts in chronological order.",
+      "Para 7: Impugned order / action / inaction — date, issuing authority, content. Annex copy.",
+      "Para 8: Locus standi — petitioner's legal injury / fundamental right / statutory right affected.",
+      "Para 9: Alternative remedy — Cite Whirlpool Corporation v. Registrar of Trade Marks (1998) 8 SCC 1 — alternative remedy not absolute bar; exceptions: (i) violation of fundamental right, (ii) violation of natural justice, (iii) order without jurisdiction, (iv) vires challenge.",
+      "Para 10: Grounds — numbered (A), (B), (C)... constitutional grounds (Article 14 arbitrariness, Article 19 unreasonable restriction, Article 21 procedure not just/fair/reasonable per Maneka Gandhi v. Union of India (1978) 1 SCC 248, Article 300A property without authority of law); statutory grounds (ultra vires the statute, contrary to statutory mandate, non-application of mind, mala fides, irrelevant considerations, Wednesbury unreasonableness).",
+      "Doctrine of legitimate expectation — Cite Food Corporation of India v. Kamdhenu Cattle Feed (1993) 1 SCC 71; Navjyoti Co-operative v. Union of India (1992) 4 SCC 477.",
+      "Doctrine of proportionality — Cite Om Kumar v. Union of India (2001) 2 SCC 386.",
+      "Where action affects livelihood / human dignity, cite Bandhua Mukti Morcha v. Union of India (1984) 3 SCC 161; Olga Tellis v. BMC (1985) 3 SCC 545.",
+      "Where service matter — Cite State of UP v. Mohd Nooh AIR 1958 SC 86 (HC writ over service tribunals); B.C. Chaturvedi v. Union of India (1995) 6 SCC 749 (scope of judicial review in service matters — limited to procedural infirmity, mala fides, perversity).",
+      "Where regulatory order challenged — Cite Reliance Energy Ltd v. Maharashtra State Road Development Corp (2007) 8 SCC 1 (judicial review in commercial matters limited).",
+      "Para 11: Interim relief — stay of impugned order / status quo; balance of convenience and irreparable injury.",
+      "Para 12: Limitation / laches — no statutory limitation for Art. 226, but unreasonable delay defeats relief — Cite Tilokchand Motichand v. H.B. Munshi (1969) 1 SCC 110; State of MP v. Bhailal Bhai AIR 1964 SC 1006 (3 years as guide for monetary claims).",
+      "Prayer must specify writ type (mandamus / certiorari / prohibition / quo warranto) and consequential reliefs.",
+      "Affidavit in support is mandatory under HC Writ Rules (e.g., Allahabad HC Rules Chapter XXII; Delhi HC Rules; Patna HC Writ Rules; Jharkhand HC Rules).",
+      "Court fee per state HC fees schedule.",
+      "Append Lawie disclaimer at end."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Constitution of India",
+      "sections": [
+        {
+          "number": "Article 14",
+          "description": "Equality before law and equal protection of laws"
+        },
+        { "number": "Article 19", "description": "Fundamental freedoms" },
+        {
+          "number": "Article 21",
+          "description": "Protection of life and personal liberty — Maneka Gandhi expanded scope"
+        },
+        {
+          "number": "Article 226",
+          "description": "Power of HC to issue writs (broader than Art. 32 — also for legal rights, not only FR)"
+        },
+        {
+          "number": "Article 227",
+          "description": "Power of superintendence over courts and tribunals"
+        },
+        {
+          "number": "Article 300A",
+          "description": "No deprivation of property except by authority of law"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Petition (original + copies per HC rules)",
+    "Affidavit in support (mandatory)",
+    "Vakalatnama",
+    "Memo of parties",
+    "Index, synopsis, list of dates",
+    "Certified / true copy of impugned order",
+    "Representations made to authority + replies (showing exhaustion of departmental remedy where applicable)",
+    "Documents proving cause of action territorial nexus",
+    "Court fee per HC fee schedule",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "petitioner_name must not be empty",
+    "respondents_list must include at least one respondent and full address",
+    "statute_invoked must not be empty",
+    "writ_type must have at least one option selected",
+    "impugned_order_details must not be empty",
+    "alternative_remedy_exhausted must be selected",
+    "alternative_remedy_explanation must not be empty",
+    "limitation_position must not be empty",
+    "advocate_enrollment must match Bar Council format",
+    "Court level restricted to High Court only"
+  ],
+  "key_citations": [
+    "Maneka Gandhi v. Union of India (1978) 1 SCC 248 — Article 21 procedure just fair reasonable",
+    "Whirlpool Corp v. Registrar of Trade Marks (1998) 8 SCC 1 — Alternative remedy exceptions",
+    "Bandhua Mukti Morcha v. Union of India (1984) 3 SCC 161 — Right to live with dignity",
+    "Olga Tellis v. BMC (1985) 3 SCC 545 — Right to livelihood under Art. 21",
+    "Tilokchand Motichand v. H.B. Munshi (1969) 1 SCC 110 — Laches in writ",
+    "State of MP v. Bhailal Bhai AIR 1964 SC 1006 — Limitation as guide",
+    "B.C. Chaturvedi v. Union of India (1995) 6 SCC 749 — Service matter judicial review",
+    "Food Corp of India v. Kamdhenu Cattle Feed (1993) 1 SCC 71 — Legitimate expectation",
+    "Om Kumar v. Union of India (2001) 2 SCC 386 — Proportionality doctrine"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

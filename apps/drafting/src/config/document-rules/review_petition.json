@@ -1,0 +1,351 @@
+{
+  "_meta": {
+    "description": "Document-rules config for review_petition — Review Petition before the same court that passed the original order, under Order 47 Rule 1 CPC (civil) / Article 137 (SC) / S.413 BNSS (criminal HC). Grounds: discovery of new evidence, error apparent on face of record, sufficient reason. NOT a re-hearing.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Northern Railway, Kamlesh Verma, Lily Thomas cites mandatory."
+  },
+  "template_id": "review_petition",
+  "docType": "review_petition",
+  "title": "Review Petition under Order 47 Rule 1 CPC / Article 137",
+  "displayName": "Review Petition",
+  "category": "writ",
+  "creditsCost": 2,
+  "court_levels": [
+    "supreme_court_india",
+    "high_court_writ_jurisdiction",
+    "high_court_appellate_civil_side",
+    "high_court_appellate_criminal_side",
+    "district_court_civil_side"
+  ],
+  "causeTitle": {
+    "format": "{originalCourtHeader}\n(REVIEW JURISDICTION)\n\n{caseNomenclature}\n\n(REVIEW OF JUDGMENT / ORDER DATED {original_order_date} PASSED BY THIS HON'BLE COURT IN {original_case_no})\n\n{petitioner} ... Petitioner / Review Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "partyDesignations": [
+      {
+        "role": "review_petitioner",
+        "label": "Review Petitioner (party aggrieved by original order)"
+      },
+      {
+        "role": "respondents",
+        "label": "Respondents (party in whose favour original order operates)"
+      }
+    ],
+    "caseNomenclature": "REVIEW PETITION No. _____ of [YEAR] IN {original_case_no}"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "petitioner_name",
+        "label": "Review Petitioner full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner_address",
+        "label": "Review Petitioner address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "respondents_list",
+        "label": "Respondents with addresses",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "original_court",
+        "label": "Court which passed original order",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "original_case_no",
+        "label": "Original case number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "original_order_date",
+        "label": "Original order date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "review_court_jurisdiction",
+        "label": "Court jurisdictional basis for review",
+        "type": "select",
+        "required": true,
+        "options": [
+          "sc_article_137",
+          "hc_writ_article_226_inherent",
+          "hc_civil_order_47_cpc",
+          "hc_criminal_s413_bnss",
+          "district_court_order_47_cpc"
+        ]
+      },
+      {
+        "id": "review_ground",
+        "label": "Ground for review",
+        "type": "checkbox_multi",
+        "required": true,
+        "options": [
+          "discovery_of_new_and_important_matter_or_evidence",
+          "mistake_or_error_apparent_on_face_of_record",
+          "any_other_sufficient_reason"
+        ]
+      },
+      {
+        "id": "limitation_position",
+        "label": "Limitation — within 30 days from original order? (90 days for SC review under Art. 137; 30 days for civil review under Art. 124 Limitation Act)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "delay_condonation",
+        "label": "Delay condonation needed? Reasons?",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "new_evidence_details",
+        "label": "If new evidence ground — what is the new matter / evidence, when discovered, why not produced earlier (due diligence required)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "error_apparent_details",
+        "label": "If error apparent — what specific error (NOT a re-argument)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "sufficient_reason_details",
+        "label": "If sufficient reason — what justifies review (very narrow)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "factual_summary",
+        "label": "Brief factual summary of original case",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "what_is_NOT_being_argued",
+        "label": "Express acknowledgment of what is NOT a ground (mere re-hearing, fresh interpretation)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "appeal_status",
+        "label": "Status of appeal / SLP against original order",
+        "type": "select",
+        "required": true,
+        "options": [
+          "no_appeal_filed",
+          "appeal_pending",
+          "appeal_dismissed",
+          "slp_pending",
+          "slp_dismissed",
+          "no_appeal_available"
+        ]
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number (AOR if SC)",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Review Petitioner + Respondents"
+    },
+    {
+      "id": "original_proceedings_paragraph",
+      "name": "Original Proceedings",
+      "required": true,
+      "description": "Court, case number, date, brief outcome"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation",
+      "required": true,
+      "description": "Within statutory period or with condonation prayer"
+    },
+    {
+      "id": "ground_for_review_paragraph",
+      "name": "Ground for Review",
+      "required": true,
+      "description": "Specifically anchored in Order 47 R.1 / Art. 137 grounds"
+    },
+    {
+      "id": "no_rehearing_paragraph",
+      "name": "Not a Re-hearing — Disclaimer",
+      "required": true,
+      "description": "Express acknowledgment that review is not a re-appeal"
+    },
+    {
+      "id": "appeal_status_paragraph",
+      "name": "Status of Appellate Proceedings",
+      "required": true,
+      "description": "Whether appeal/SLP filed; disposition"
+    },
+    {
+      "id": "factual_paragraph",
+      "name": "Brief Factual Summary",
+      "required": true,
+      "description": "Material facts only"
+    },
+    {
+      "id": "ground_application_paragraph",
+      "name": "Application of Ground",
+      "required": true,
+      "description": "How facts fit the specific review ground"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Review and modify / recall / set aside original order"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Review Petitioner most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Review the judgment / order dated {original_order_date} passed by this Hon'ble Court in {original_case_no} and, upon review, modify / recall / set aside the said judgment / order to the extent of {scope_of_review};\n\nb) Pending hearing and final disposal of the present review petition, stay the operation, execution and effect of the judgment / order dated {original_order_date};\n\nc) Award costs of the present petition; and\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Review Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, the Review Petitioner herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nReview Petitioner",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a REVIEW PETITION — to be filed in the SAME COURT that passed the original order.",
+      "Jurisdictional basis depends on court:",
+      "   - Supreme Court: Article 137 + Order XLVII SC Rules 2013 (criminal review heard in chambers; civil review may also be in chambers).",
+      "   - HC (writ side): Article 226 inherent power; in some states under HC Rules.",
+      "   - HC (civil): Order 47 Rule 1 CPC.",
+      "   - HC (criminal): S.413 BNSS [S.362 CrPC bar on review — but inherent power S.528 BNSS limited]. NOTE: BNSS S.413 retains the bar on criminal review; criminal review is extremely narrow, restricted to clerical/arithmetical errors. Substantive criminal review by HC normally not permitted; remedy is SLP.",
+      "   - District court (civil): Order 47 Rule 1 CPC.",
+      "Para 1: Parties.",
+      "Para 2: Original proceedings — court, case number, date, brief outcome.",
+      "Para 3: Limitation — Article 124 of Limitation Act 1963: 30 days from original decree/order for civil review; Order XLVII SC Rules: 30 days from judgment (civil); 30 days (criminal) for SC review. Section 5 Limitation Act for condonation (with separate application + affidavit).",
+      "Para 4: Ground for review — Order 47 Rule 1 CPC three grounds (Article 137 SC equally applies):",
+      "   (i) Discovery of new and important matter or evidence which, after the exercise of due diligence, was not within the knowledge of the petitioner or could not be produced at the time when the decree was passed. Mandatory: prove due diligence + relevance.",
+      "   (ii) Some mistake or error apparent on the face of the record. Key cases: Northern Railway v. Pioneer Publicity (2017) 11 SCC 234; Kamlesh Verma v. Mayawati (2013) 8 SCC 320 (error must be obvious, not requiring elaborate reasoning); Parsion Devi v. Sumitri Devi (1997) 8 SCC 715; ITES of Indian Soap & Toiletries Makers Association v. Ozair Husain (2013) 3 SCC 641.",
+      "   (iii) Any other sufficient reason — narrowly construed as ejusdem generis with the first two. Cite Chajju Ram v. Neki AIR 1922 PC 112; Moran Mar Basselios v. Mar Poulose (1955) 1 SCR 520.",
+      "Para 5: NOT A RE-HEARING — Cite Lily Thomas v. Union of India (2000) 6 SCC 224 (review limited; cannot reagitate merits); Aribam Tuleshwar Sharma v. Aribam Pishak Sharma (1979) 4 SCC 389; Smt. Meera Bhanja v. Smt. Nirmala Kumari Choudhury (1995) 1 SCC 170 (an erroneous order is not error apparent).",
+      "Para 6: Application of ground — concrete demonstration:",
+      "   - For new evidence: what is the evidence, when discovered, due diligence proof, why material.",
+      "   - For error apparent: identify error — judgment failed to consider binding precedent / statutory provision / pleaded fact; not a debatable point.",
+      "   - For sufficient reason: typically procedural infirmity, fraud, no notice to party — Northern Railway.",
+      "Para 7: Status of appellate proceedings — disclose whether appeal/SLP filed; if SLP dismissed by speaking order, review may be barred by merger doctrine (Kunhayammed v. State of Kerala (2000) 6 SCC 359).",
+      "Para 8: Where SC review under Art. 137 — note that curative petition (Rupa Ashok Hurra v. Ashok Hurra (2002) 4 SCC 388) lies after review dismissal in extremely limited circumstances.",
+      "Para 9: For death sentence cases, oral hearing in open court mandatory (Mohd Arif v. Registrar, SC (2014) 9 SCC 737) — note this in criminal SC reviews.",
+      "Para 10: Where review of criminal HC order: only clerical/arithmetical errors under S.413 BNSS proviso. Substantive criminal review NOT permitted — pursue SLP instead. Clearly flag for advocate.",
+      "Prayer — modify / recall / set aside to extent specified.",
+      "Affidavit in support mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "Section 114", "description": "Review power" },
+        {
+          "number": "Order 47 Rule 1",
+          "description": "Grounds for review — new evidence, error apparent, any other sufficient reason"
+        },
+        { "number": "Order 47 Rule 4", "description": "Procedure on review" }
+      ]
+    },
+    {
+      "act": "Constitution of India",
+      "sections": [
+        { "number": "Article 137", "description": "SC power to review its own orders" },
+        { "number": "Article 226", "description": "HC writ review (inherent)" }
+      ]
+    },
+    {
+      "act": "Supreme Court Rules, 2013",
+      "sections": [{ "number": "Order XLVII", "description": "Review procedure in SC" }]
+    },
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)",
+      "sections": [
+        {
+          "number": "S.413",
+          "description": "Bar on alteration of criminal judgment (was S.362 CrPC) — narrow review for clerical/arithmetical errors only"
+        }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        { "number": "Article 124 Schedule", "description": "30 days for civil review" },
+        { "number": "Section 5", "description": "Condonation of delay" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Review Petition (original + copies per Rules of the original court)",
+    "Affidavit in support",
+    "Vakalatnama / AOR vakalatnama in SC",
+    "Memo of parties",
+    "Index, synopsis, list of dates",
+    "Certified copy of original judgment / order under review",
+    "Documents constituting 'new evidence' (if invoked) with due diligence affidavit",
+    "Application for condonation of delay (if applicable)",
+    "Application for stay of operation of original order",
+    "Court fee per applicable schedule",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "petitioner_name and respondents_list must not be empty",
+    "original_court and original_case_no must not be empty",
+    "original_order_date must not be in future",
+    "review_court_jurisdiction must be selected",
+    "review_ground must have at least one selected",
+    "limitation_position must not be empty — flag if delay > 30 days for civil",
+    "If 'discovery_of_new_and_important_matter_or_evidence', new_evidence_details must not be empty AND must show due diligence",
+    "If 'mistake_or_error_apparent_on_face_of_record', error_apparent_details must not be empty",
+    "If 'any_other_sufficient_reason', sufficient_reason_details must not be empty",
+    "what_is_NOT_being_argued must not be empty (express non-rehearing acknowledgment)",
+    "appeal_status must be selected",
+    "If review_court_jurisdiction = hc_criminal_s413_bnss, flag that substantive criminal review is barred",
+    "advocate_enrollment must match Bar Council format (AOR for SC)"
+  ],
+  "key_citations": [
+    "Northern Railway v. Pioneer Publicity (2017) 11 SCC 234 — Error apparent",
+    "Kamlesh Verma v. Mayawati (2013) 8 SCC 320 — Review parameters",
+    "Parsion Devi v. Sumitri Devi (1997) 8 SCC 715 — Error apparent definition",
+    "Lily Thomas v. Union of India (2000) 6 SCC 224 — Review not re-hearing",
+    "Aribam Tuleshwar Sharma v. Aribam Pishak Sharma (1979) 4 SCC 389 — Scope of review",
+    "Smt. Meera Bhanja v. Smt. Nirmala Kumari Choudhury (1995) 1 SCC 170 — Erroneous vs error apparent",
+    "Chajju Ram v. Neki AIR 1922 PC 112 — Sufficient reason ejusdem generis",
+    "Moran Mar Basselios v. Mar Poulose (1955) 1 SCR 520 — Sufficient reason",
+    "Rupa Ashok Hurra v. Ashok Hurra (2002) 4 SCC 388 — Curative petition after review",
+    "Kunhayammed v. State of Kerala (2000) 6 SCC 359 — Merger doctrine",
+    "Mohd Arif v. Registrar, SC (2014) 9 SCC 737 — Oral hearing in death penalty review"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

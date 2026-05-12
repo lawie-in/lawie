@@ -1,0 +1,236 @@
+{
+  "_meta": {
+    "description": "Document-rules config for vakalatnama — formal authorisation by client appointing advocate; multiple variants (criminal / civil / HC / SC)",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12. Court-fee schedule varies by state — flagged in form.",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "template_id": "vakalatnama",
+  "docType": "vakalatnama",
+  "parentDocType": "court_form",
+  "title": "Vakalatnama",
+  "displayName": "Vakalatnama",
+  "category": "procedural",
+  "creditsCost": 1,
+  "court_levels": ["magistrate", "cjm", "sessions", "district", "high_court", "supreme_court"],
+  "variants": [
+    { "id": "criminal_district", "name": "Criminal — District / Sessions / Magistrate" },
+    { "id": "civil_district", "name": "Civil — District / Civil Court" },
+    { "id": "high_court", "name": "High Court (Criminal / Civil)" },
+    { "id": "supreme_court", "name": "Supreme Court of India" }
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{client} ... {clientRole}\nVERSUS\n{opposingParty} ... {opposingRole}",
+    "partyDesignations": [{ "role": "client", "label": "Client" }]
+  },
+  "form_schema": [
+    {
+      "name": "variant",
+      "label": "Variant",
+      "type": "select",
+      "options": ["criminal_district", "civil_district", "high_court", "supreme_court"],
+      "required": true
+    },
+    { "name": "client_name", "label": "Client Name", "type": "text", "required": true },
+    {
+      "name": "client_parentage",
+      "label": "Client Father's / Husband's Name",
+      "type": "text",
+      "required": true
+    },
+    { "name": "client_age", "label": "Client Age", "type": "number", "required": false },
+    {
+      "name": "client_address",
+      "label": "Client Full Address",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "client_role",
+      "label": "Client Role in Case",
+      "type": "select",
+      "options": [
+        "Petitioner",
+        "Applicant",
+        "Plaintiff",
+        "Defendant",
+        "Respondent",
+        "Accused",
+        "Appellant"
+      ],
+      "required": true
+    },
+    { "name": "court_designation", "label": "Court Designation", "type": "text", "required": true },
+    { "name": "case_title", "label": "Case Title (X vs Y)", "type": "text", "required": true },
+    {
+      "name": "case_number",
+      "label": "Case / Application Number (if already filed)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "case_subject",
+      "label": "Subject Matter of Case",
+      "type": "textarea",
+      "required": true
+    },
+    { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
+    {
+      "name": "advocate_enrolment",
+      "label": "Bar Council Enrolment No.",
+      "type": "text",
+      "required": true
+    },
+    { "name": "bar_council", "label": "Bar Council of (state)", "type": "text", "required": true },
+    {
+      "name": "advocate_address",
+      "label": "Advocate Professional Address",
+      "type": "textarea",
+      "required": true
+    },
+    { "name": "advocate_email", "label": "Advocate Email", "type": "email", "required": false },
+    { "name": "advocate_phone", "label": "Advocate Phone", "type": "text", "required": false },
+    {
+      "name": "joint_advocates",
+      "label": "Joint Advocates (if any)",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "court_fee_stamp_value",
+      "label": "Court Fee Stamp Value (₹)",
+      "type": "number",
+      "required": true,
+      "help": "Varies by state — Bihar/Jharkhand ₹2-₹10; UP ₹5-₹10; Delhi ₹10; HC ₹10-₹25; SC ₹25"
+    },
+    { "name": "execution_date", "label": "Date of Execution", "type": "date", "required": true },
+    { "name": "execution_place", "label": "Place of Execution", "type": "text", "required": true }
+  ],
+  "mandatory_clauses": [
+    "client name + complete address",
+    "advocate name + Bar Council enrolment number + state",
+    "scope of authority (variant-specific)",
+    "specific case reference (court, case title, subject matter)",
+    "advocate professional address for service",
+    "client signature with date and place",
+    "advocate acceptance signature",
+    "court fee stamps affixed and cancelled"
+  ],
+  "mandatoryClauses": [
+    {
+      "id": "client_identification",
+      "name": "Client Identification",
+      "required": true,
+      "description": "Full name, parentage, address of client"
+    },
+    {
+      "id": "advocate_identification",
+      "name": "Advocate Identification",
+      "required": true,
+      "description": "Advocate name, Bar Council enrolment number, state Bar Council, professional address"
+    },
+    {
+      "id": "case_reference",
+      "name": "Case Reference",
+      "required": true,
+      "description": "Specific case title, case number (if known), court, subject matter"
+    },
+    {
+      "id": "scope_of_authority",
+      "name": "Scope of Authority",
+      "required": true,
+      "description": "Authority to appear, plead, act, defend, file applications, withdraw, compromise (variant-specific)"
+    },
+    {
+      "id": "court_fee",
+      "name": "Court Fee Stamps",
+      "required": true,
+      "description": "Affixation and cancellation of court fee stamps per state schedule"
+    },
+    {
+      "id": "client_signature",
+      "name": "Client Signature",
+      "required": true,
+      "description": "Signature of client with date and place"
+    },
+    {
+      "id": "advocate_acceptance",
+      "name": "Advocate Acceptance",
+      "required": true,
+      "description": "Counter-signature of advocate accepting the brief"
+    }
+  ],
+  "scopeLanguage": {
+    "criminal_district": "to appear, plead, defend, act, sign, verify and represent me in all proceedings before this Hon'ble Court including filing applications for bail, anticipatory bail, discharge, applications under BNSS, filing replies, cross-examining witnesses, addressing arguments, moving applications, accepting service of process, and to engage other counsel and to do all such acts as may be necessary in the interest of the case, and to receive on my behalf any sum that may be awarded.",
+    "civil_district": "to appear, plead, act, sign, verify, present and represent me in all proceedings before this Hon'ble Court including the institution / defence of the suit, filing applications, replies, written statements, rejoinders, interlocutory applications, examining and cross-examining witnesses, addressing arguments, compromising the suit or any part thereof, withdrawing the suit or any part thereof, accepting service, receiving monies, and to do all such acts as may be necessary.",
+    "high_court": "to appear, plead, act, sign, verify, present, prosecute and defend before this Hon'ble High Court in the above-mentioned matter and all proceedings arising therefrom or connected therewith including filing of petitions, applications, replies, rejoinders, affidavits, written submissions, examining and cross-examining witnesses, addressing arguments, accepting service of process, withdrawing, compromising, settling, receiving moneys, engaging junior counsel, and to do all such acts and things as may be necessary.",
+    "supreme_court": "to appear, plead, act, sign, present and conduct on my behalf the above-mentioned matter, all interlocutory and incidental proceedings, applications, special leave petitions, civil/criminal appeals, writ petitions, review petitions, curative petitions, and to file all necessary documents, accept service, withdraw, compromise, settle and to do all such acts and things as may be necessary, and to engage Senior Advocate(s) and junior counsel as may be required."
+  },
+  "prompt_context": "Draft a Vakalatnama in the variant requested. A vakalatnama is the formal instrument by which a litigant authorises an advocate to appear and act on their behalf. It is governed by Rule 39 of the Bar Council of India Rules (Part VI, Chapter II — Standards of Professional Conduct) and the procedural rules of each court. Essential elements: (1) full identification of the client (name, parentage, age, address); (2) advocate's name, Bar Council of [state] enrolment number, and professional address; (3) specific case reference (court, parties, subject matter); (4) scope of authority — varies by variant; (5) court fee stamps as per state schedule (typically ₹2-₹25 — Bihar/Jharkhand magistrate ₹2-₹10, UP ₹5-₹10, Delhi ₹10, HC ₹10-₹25, Supreme Court ₹25 per advocate); (6) client signature with date and place; (7) advocate acceptance counter-signature. Where multiple advocates are appointed, all must sign. Court-specific rules: Supreme Court vakalatnama uses prescribed Form 30 of SCR 2013 with separate identification by advocate-on-record. High Courts have their own original side rules. Bar Council Rule 36 (advertising restriction) does NOT affect vakalatnama content.",
+  "promptInstructions": [
+    "Draft a Vakalatnama in the variant specified by the user (criminal_district / civil_district / high_court / supreme_court).",
+    "Use the appropriate scope language for the variant from scopeLanguage map.",
+    "Open with 'IN THE COURT OF / IN THE HON'BLE HIGH COURT OF / IN THE SUPREME COURT OF INDIA' as applicable.",
+    "Identify client with full name, parentage, age (if available), complete address.",
+    "Set out case reference: case title, case number (if filed), subject matter.",
+    "Set out advocate identification: name, Bar Council of [state] enrolment number, professional address, email, phone (if provided).",
+    "If joint advocates appointed, include their details too.",
+    "Include the court-fee stamp note: 'Affixed with court fee stamps of ₹{court_fee_stamp_value}'.",
+    "Standard ending: 'In witness whereof, I have signed this vakalatnama at {place} on this {date}.'",
+    "Provide signature blocks for client (with attestation if required) and advocate (acceptance).",
+    "Do NOT include any IPC / CrPC / IEA references — use BNS / BNSS / BSA where citing substantive law.",
+    "Do NOT include advertising-style claims about advocate qualifications beyond enrolment — BCI Rule 36."
+  ],
+  "relevantActs": [
+    {
+      "act": "Advocates Act, 1961",
+      "sections": [{ "number": "30", "description": "Right of advocates to practise" }]
+    },
+    {
+      "act": "Bar Council of India Rules",
+      "sections": [
+        {
+          "number": "Rule 39, Part VI Ch II",
+          "description": "Standards of Professional Conduct — engagement and vakalatnama"
+        },
+        {
+          "number": "Rule 36, Part VI Ch II",
+          "description": "No advertising / soliciting by advocates"
+        }
+      ]
+    },
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        {
+          "number": "340",
+          "description": "Right of person against whom proceedings are instituted to be defended"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Court fee stamps as per state schedule (₹2-₹25 depending on court)",
+    "Advocate signature with Bar Council enrolment number",
+    "Client signature (or thumb impression with attestation)",
+    "Date and place of execution",
+    "Identification of advocate's professional address",
+    "Original + copies as per court rules (usually 1 original)"
+  ],
+  "filingChecklist": [
+    "Court fee stamps as per state schedule (₹2-₹25 depending on court)",
+    "Advocate signature with Bar Council enrolment number",
+    "Client signature (or thumb impression with attestation)",
+    "Date and place of execution",
+    "Identification of advocate's professional address",
+    "Original + copies as per court rules (usually 1 original)"
+  ],
+  "validation_rules": [
+    "variant must be one of: criminal_district, civil_district, high_court, supreme_court",
+    "advocate_enrolment must follow Bar Council enrolment format (e.g. 'BIH/1234/2020')",
+    "court_fee_stamp_value must be > 0",
+    "execution_date and execution_place must be provided",
+    "client_role must be appropriate to variant (no 'Accused' on civil variant; no 'Plaintiff/Defendant' on criminal)"
+  ]
+}

@@ -1,0 +1,490 @@
+{
+  "_meta": {
+    "description": "Document-rules config for mortgage_deed — Mortgage of immovable property under Transfer of Property Act 1882 S.58-104. Six types per S.58: simple, by conditional sale, usufructuary, English, by deposit of title deeds (equitable), anomalous. Registration / stamp duty / redemption rules vary by type. Cites Manibhai v. Bai Hina (1976) 1 SCC 256.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Type of mortgage determines registration mandate and stamp duty — must be precisely classified. Equitable mortgage by deposit of title deeds is restricted to notified towns."
+  },
+  "template_id": "mortgage_deed",
+  "docType": "mortgage_deed",
+  "title": "Mortgage Deed (Transfer of Property Act, 1882 — S.58-104)",
+  "displayName": "Mortgage Deed",
+  "category": "transactional_deed",
+  "creditsCost": 2,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "MORTGAGE DEED\n\nThis Deed of Mortgage is executed on this {date} at {place}.\n\nBETWEEN\n\n{mortgagor_name}, son/daughter/wife of {mortgagor_father_name}, aged about {mortgagor_age} years, resident of {mortgagor_address}, (PAN: {mortgagor_pan})\n(hereinafter referred to as the \"MORTGAGOR\")\n\nAND\n\n{mortgagee_name}, (PAN / CIN: {mortgagee_id}), having address at {mortgagee_address}\n(hereinafter referred to as the \"MORTGAGEE\")",
+    "partyDesignations": [
+      { "role": "mortgagor", "label": "Mortgagor" },
+      { "role": "mortgagee", "label": "Mortgagee" }
+    ],
+    "caseNomenclature": "N/A — Transactional"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "mortgagor_name", "label": "Mortgagor full name", "type": "text", "required": true },
+      {
+        "id": "mortgagor_father_name",
+        "label": "Mortgagor father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "mortgagor_age", "label": "Mortgagor age", "type": "number", "required": true },
+      {
+        "id": "mortgagor_address",
+        "label": "Mortgagor address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "mortgagor_pan", "label": "Mortgagor PAN", "type": "text", "required": true },
+      {
+        "id": "mortgagee_name",
+        "label": "Mortgagee name (bank / NBFC / individual)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "mortgagee_id",
+        "label": "Mortgagee PAN / CIN (if entity)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "mortgagee_address",
+        "label": "Mortgagee address / registered office",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "mortgagee_is_bank",
+        "label": "Is mortgagee a Bank / NBFC?",
+        "type": "select",
+        "required": true,
+        "options": ["yes_bank_or_scheduled_FI", "yes_NBFC", "no_individual_or_other"]
+      },
+      {
+        "id": "mortgage_type",
+        "label": "Type of mortgage per S.58 TPA",
+        "type": "select",
+        "required": true,
+        "options": [
+          "simple_mortgage_S58_b",
+          "mortgage_by_conditional_sale_S58_c",
+          "usufructuary_mortgage_S58_d",
+          "english_mortgage_S58_e",
+          "mortgage_by_deposit_of_title_deeds_equitable_S58_f",
+          "anomalous_mortgage_S58_g"
+        ]
+      },
+      {
+        "id": "loan_amount",
+        "label": "Loan / Mortgage money (Principal in Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "loan_amount_in_words",
+        "label": "Principal in words",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "interest_rate",
+        "label": "Interest rate per annum (%)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "interest_basis",
+        "label": "Interest basis",
+        "type": "select",
+        "required": true,
+        "options": [
+          "simple_interest",
+          "compound_monthly",
+          "compound_quarterly",
+          "floating_linked_to_repo_rate"
+        ]
+      },
+      { "id": "loan_purpose", "label": "Purpose of loan", "type": "textarea", "required": true },
+      {
+        "id": "tenure_months",
+        "label": "Loan tenure in months",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "repayment_schedule",
+        "label": "Repayment schedule — bullet / EMI / interest-only / on-demand",
+        "type": "select",
+        "required": true,
+        "options": [
+          "emi_monthly",
+          "bullet_at_end_of_tenure",
+          "interest_only_during_tenure_bullet_principal",
+          "on_demand"
+        ]
+      },
+      {
+        "id": "property_address",
+        "label": "Mortgaged property full address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "property_extent",
+        "label": "Property extent (area)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "property_boundaries",
+        "label": "Boundaries (N/S/E/W)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "khasra_or_survey_no",
+        "label": "Khasra / Survey / Plot No.",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "property_title_chain",
+        "label": "Title chain of mortgagor",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "property_market_value",
+        "label": "Market value of mortgaged property (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "possession_to_mortgagee",
+        "label": "Is possession transferred to mortgagee (usufructuary or English)?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "yes_usufructuary_possession_with_rent_offset",
+          "yes_english_with_proviso_for_redemption",
+          "no_simple_or_equitable_mortgagor_retains_possession"
+        ]
+      },
+      {
+        "id": "default_consequences",
+        "label": "Default consequences",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "redemption_clause",
+        "label": "Redemption provisions",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "is_notified_town_for_equitable_mortgage",
+        "label": "If equitable mortgage by deposit of title deeds — is execution at notified town under S.58(f)?",
+        "type": "select",
+        "required": false,
+        "options": [
+          "yes_notified_town",
+          "no_not_notified_invalid",
+          "not_applicable_different_mortgage_type"
+        ]
+      },
+      {
+        "id": "stamp_duty_paid",
+        "label": "Stamp duty paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "state",
+        "label": "State of execution",
+        "type": "select",
+        "required": true,
+        "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_recital",
+      "name": "Parties and Recitals",
+      "required": true,
+      "description": "Mortgagor + Mortgagee + identification"
+    },
+    {
+      "id": "loan_recital",
+      "name": "Recital of Loan",
+      "required": true,
+      "description": "Mortgagee has agreed to advance / has advanced loan amount"
+    },
+    {
+      "id": "title_recital_mortgagor",
+      "name": "Mortgagor's Title to Property",
+      "required": true,
+      "description": "Chain of title"
+    },
+    {
+      "id": "mortgage_type_classification",
+      "name": "Type of Mortgage — S.58 Classification",
+      "required": true,
+      "description": "Explicitly classify and apply relevant subsection"
+    },
+    {
+      "id": "operative_mortgage_clause",
+      "name": "Operative Mortgage Clause",
+      "required": true,
+      "description": "Mortgagor mortgages property — language varies by type"
+    },
+    {
+      "id": "loan_amount_clause",
+      "name": "Loan Amount & Interest",
+      "required": true,
+      "description": "Principal + rate + accrual basis"
+    },
+    {
+      "id": "repayment_schedule_clause",
+      "name": "Repayment Schedule",
+      "required": true,
+      "description": "EMIs / bullet / interest schedule"
+    },
+    {
+      "id": "property_description_schedule",
+      "name": "Schedule A — Property Description",
+      "required": true,
+      "description": "Full description with boundaries"
+    },
+    {
+      "id": "default_clause",
+      "name": "Default & Consequences",
+      "required": true,
+      "description": "Events of default + remedies"
+    },
+    {
+      "id": "redemption_clause_mandatory",
+      "name": "Redemption Clause (S.60 TPA)",
+      "required": true,
+      "description": "Mortgagor's right to redeem on payment — equity of redemption is inviolable"
+    },
+    {
+      "id": "foreclosure_or_sale_clause",
+      "name": "Foreclosure / Sale (S.67, S.69 TPA)",
+      "required": true,
+      "description": "Mortgagee's rights to sell / foreclose"
+    },
+    {
+      "id": "covenant_against_alienation",
+      "name": "Mortgagor's Covenant Against Alienation",
+      "required": true,
+      "description": "Bar on transfer during mortgage subsistence"
+    },
+    {
+      "id": "covenant_to_maintain_property",
+      "name": "Covenant to Maintain Property",
+      "required": true,
+      "description": "Mortgagor preserves property, pays taxes, insures"
+    },
+    {
+      "id": "warranty_of_title",
+      "name": "Warranty of Title",
+      "required": true,
+      "description": "Mortgagor warrants clear title; indemnifies on defect"
+    },
+    {
+      "id": "sarfaesi_notice_acknowledgment",
+      "name": "SARFAESI Acknowledgment (if mortgagee is bank/NBFC)",
+      "required": false,
+      "description": "Acknowledgment that property is security under SARFAESI Act 2002 (where applicable)"
+    },
+    {
+      "id": "schedule_a_property",
+      "name": "SCHEDULE A — Property",
+      "required": true,
+      "description": "Detailed schedule"
+    },
+    {
+      "id": "witness_clause",
+      "name": "Two Witnesses",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a MORTGAGE DEED under Transfer of Property Act, 1882, Sections 58 to 104.",
+      "S.58 TPA — Mortgage: 'A mortgage is the transfer of an interest in specific immovable property for the purpose of securing the payment of money advanced or to be advanced by way of loan, an existing or future debt, or the performance of an engagement which may give rise to a pecuniary liability.'",
+      "SIX TYPES OF MORTGAGE under S.58 — MUST classify correctly because each has distinct registration, stamp duty, possession, and remedy rules:",
+      "(a) SIMPLE MORTGAGE [S.58(b)]: Mortgagor BINDS HIMSELF PERSONALLY to pay; transfers right to mortgagee to cause property to be sold by court decree on default. MORTGAGOR RETAINS POSSESSION. Registration MANDATORY. Stamp duty per state Article 40.",
+      "(b) MORTGAGE BY CONDITIONAL SALE [S.58(c)]: Apparent sale subject to condition that on default sale becomes absolute; on payment sale is void. Three forms of conditions. Cite Pandit Chunchun Jha v. Sk. Ebadat Ali AIR 1954 SC 345 — proviso must be IN SAME DOCUMENT. Mortgagor retains possession (typically). Mandatory registration. Remedy: foreclosure (S.67) — not sale.",
+      "(c) USUFRUCTUARY MORTGAGE [S.58(d)]: POSSESSION delivered to mortgagee; mortgagee receives rents and profits in lieu of interest / principal / both. No personal liability of mortgagor. Mortgagor has right to redeem on payment per terms. Common in agricultural areas. Mandatory registration if value > Rs.100. Stamp duty under Article 40 state.",
+      "(d) ENGLISH MORTGAGE [S.58(e)]: Mortgagor binds himself to repay AND TRANSFERS PROPERTY ABSOLUTELY to mortgagee, subject to proviso for re-conveyance on payment. Possession often retained by mortgagor or mortgagee per terms. Power of sale without court intervention available under S.69 to (i) mortgagee in Calcutta/Madras/Bombay metros OR (ii) where mortgagee is Govt OR (iii) where contract provides. Mandatory registration. Stamp duty highest among types — close to conveyance rate in some states.",
+      "(e) MORTGAGE BY DEPOSIT OF TITLE DEEDS / EQUITABLE MORTGAGE [S.58(f)]: A person in any of the following towns — Calcutta, Madras, Bombay, and any other town which State Govt notifies — delivers to a creditor or his agent documents of title to immovable property, with intent to create security thereon. ALSO CALLED MORTGAGE BY DEPOSIT OF TITLE DEEDS. KEY ADVANTAGES: (i) NO MANDATORY REGISTRATION (subject to memorandum not being conveyancing instrument); (ii) Lower stamp duty than other types. KEY RESTRICTION: Only in notified towns. Memorandum of deposit of title deeds (MoDT) usually drawn up — must NOT contain operative mortgage words (else becomes registerable mortgage). Cite Veerappa Pillai v. Rajan AIR 1952 SC 222.",
+      "(f) ANOMALOUS MORTGAGE [S.58(g)]: Any mortgage not falling within (b)-(f). Terms entirely as agreed. Less common — mostly tribal customs / commercial structures.",
+      "STRUCTURE OF DEED:",
+      "Para 1: Parties identification.",
+      "Para 2: Recital — Mortgagor is absolute owner of property; chain of title.",
+      "Para 3: Recital — Mortgagor has approached Mortgagee for loan of Rs. [amount] for [purpose]; Mortgagee has agreed subject to security of immovable property described in Schedule A.",
+      "Para 4: TYPE OF MORTGAGE — explicitly classify. Examples:\n   - Simple: 'NOW THIS DEED WITNESSES that in consideration of the loan of Rs. [amount] advanced this day by the Mortgagee to the Mortgagor (the receipt whereof Mortgagor hereby acknowledges), the Mortgagor doth hereby bind himself personally to pay the said sum together with interest at [rate] per annum to the Mortgagee, AND the Mortgagor doth hereby mortgage and transfer unto the Mortgagee, by way of SIMPLE MORTGAGE under Section 58(b) of the Transfer of Property Act, 1882, the immovable property more particularly described in Schedule A hereunder as security for due repayment of the said sum together with interest. PROVIDED that on default of payment as herein provided, the Mortgagee shall be entitled to cause the said property to be sold by a decree of a competent court and recover the dues from sale proceeds.'\n   - English: '...the Mortgagor doth hereby absolutely transfer and convey unto the Mortgagee the immovable property described in Schedule A by way of ENGLISH MORTGAGE under Section 58(e) of the Transfer of Property Act, 1882, SUBJECT TO A PROVISO that the Mortgagee shall re-transfer the said property to the Mortgagor upon payment of the mortgage money together with interest as herein provided.'\n   - Usufructuary: 'The Mortgagor doth hereby deliver possession of the property described in Schedule A unto the Mortgagee by way of USUFRUCTUARY MORTGAGE under Section 58(d) of the TPA, and authorises the Mortgagee to receive and appropriate the rents and profits of the property in lieu of interest / principal as herein provided.'",
+      "Para 5: REPAYMENT SCHEDULE — EMI / bullet / interest-only.",
+      "Para 6: COVENANTS BY MORTGAGOR:\n   (a) Pay principal + interest as agreed.\n   (b) Pay all property taxes, water, electricity, society dues.\n   (c) Maintain property in good condition; do not commit waste.\n   (d) Insure property against fire and other risks; mortgagee named as loss payee.\n   (e) Not transfer / alienate / further mortgage during subsistence without mortgagee's consent.\n   (f) Permit mortgagee to inspect.\n   (g) Notify mortgagee of any litigation / acquisition affecting property.",
+      "Para 7: REDEMPTION (S.60 TPA): At any time after principal money has become due, mortgagor is entitled, on payment of full mortgage money + interest + costs, to require the mortgagee (a) to deliver back mortgaged property + title deeds; (b) re-transfer / re-convey property; (c) acknowledge in writing that all rights in mortgage are extinguished. CRITICAL — Equity of redemption is INVIOLABLE — any clog on the equity of redemption is VOID. Cite Stanley v. Wilde [1899] 2 Ch 474; Murarilal v. Devkaran AIR 1965 SC 225; Pomal Kanji v. Vrajlal Karsandas (1989) 1 SCC 458; Manibhai v. Bai Hina (1976) 1 SCC 256.",
+      "Para 8: FORECLOSURE / SALE (S.67 TPA):\n   - For mortgage by conditional sale and anomalous mortgages — foreclosure (taking absolute title) is available remedy.\n   - For simple, English, and usufructuary mortgages — SALE by court decree is the remedy (S.67(a)).\n   - For usufructuary mortgage — only after stipulated period during which mortgagee may retain possession; foreclosure not available.",
+      "Para 9: POWER OF SALE WITHOUT COURT INTERVENTION (S.69 TPA): Limited application — only English mortgages and where (i) mortgagee is government, (ii) mortgaged property in Bombay/Calcutta/Madras presidency-towns, or (iii) expressly contracted.",
+      "Para 10: SARFAESI ACT, 2002 — applies where mortgagee is a bank / financial institution. Bank can sell mortgaged property without court intervention after notice under S.13(2) SARFAESI on default; mortgagor's representation under S.13(3A); possession under S.13(4). DRT for borrower's grievance under S.17.",
+      "Para 11: DEFAULT — events of default: (a) non-payment for [X] days; (b) breach of covenants; (c) misrepresentation in title; (d) cross-default with other facilities; (e) insolvency / death (if individual borrower, with provision for successor liability).",
+      "Para 12: WARRANTY OF TITLE by mortgagor + indemnity.",
+      "Para 13: STAMP DUTY: state-specific Article 40 ranges (verify):\n   - Bihar: 1% of secured amount up to certain limit, with cap.\n   - Jharkhand: similar.\n   - UP: 1% with cap; reduced where bank is mortgagee + housing loan.\n   - Delhi: 0.5% on principal amount up to Rs.5 lakh; varies thereafter.\n   English mortgage attracts higher duty in some states (near conveyance).\n   Equitable mortgage (MoDT) attracts lower duty under separate article.",
+      "Para 14: REGISTRATION — mandatory for all mortgages where value > Rs.100 EXCEPT mortgage by deposit of title deeds (S.58(f)) within notified towns where memorandum is not itself the operative document.",
+      "Schedule A — property description.",
+      "Two witnesses' attestation.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        { "number": "S.58", "description": "Mortgage defined; six types" },
+        {
+          "number": "S.59",
+          "description": "Mortgage how made — by registered instrument signed by mortgagor + 2 witnesses (except equitable in notified towns)"
+        },
+        { "number": "S.60", "description": "Right of mortgagor to redeem" },
+        { "number": "S.60A", "description": "Obligation to transfer to third party" },
+        { "number": "S.60B", "description": "Right to inspect and obtain copies" },
+        { "number": "S.61", "description": "Consolidation of mortgages" },
+        {
+          "number": "S.62",
+          "description": "Right of usufructuary mortgagor to recover possession"
+        },
+        { "number": "S.65", "description": "Implied covenants by mortgagor" },
+        { "number": "S.67", "description": "Right to foreclosure or sale" },
+        { "number": "S.67A", "description": "Mortgagee when bound to bring one suit" },
+        {
+          "number": "S.69",
+          "description": "Power of sale without court intervention — limited circumstances"
+        },
+        {
+          "number": "S.83",
+          "description": "Deposit in court of money due on mortgage — redemption mechanism"
+        },
+        { "number": "S.91", "description": "Persons who may sue for redemption" }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        { "number": "S.17(1)(b)", "description": "Mandatory registration of mortgage deeds" },
+        {
+          "number": "S.17(2)(xi)",
+          "description": "Mortgage by deposit of title deeds exempt from compulsory registration"
+        }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899 + State Schedules",
+      "sections": [
+        {
+          "number": "Article 40",
+          "description": "Mortgage deed stamp duty — state-specific; varies by type"
+        },
+        {
+          "number": "Article 6",
+          "description": "Agreement relating to deposit of title deeds (equitable mortgage)"
+        }
+      ]
+    },
+    {
+      "act": "SARFAESI Act, 2002",
+      "sections": [
+        { "number": "S.13(2)", "description": "Notice of default" },
+        { "number": "S.13(3A)", "description": "Borrower's representation" },
+        { "number": "S.13(4)", "description": "Possession / sale without court intervention" },
+        { "number": "S.17", "description": "Application to DRT" }
+      ]
+    },
+    {
+      "act": "Recovery of Debts and Bankruptcy Act, 1993 (RDB Act)",
+      "sections": [{ "number": "S.19", "description": "Application to DRT for debt recovery" }]
+    },
+    {
+      "act": "Indian Contract Act, 1872",
+      "sections": [
+        {
+          "number": "S.23",
+          "description": "Lawful consideration — clogs on redemption void as opposed to public policy"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Stamp paper per state Article 40 — based on principal amount and type of mortgage",
+    "Mortgagor's original title documents — for SR / mortgagee inspection",
+    "Encumbrance Certificate (EC) — past 13/30 years",
+    "Mutation / Jamabandi / Khatauni / Khatian current extract",
+    "Property tax receipts up to date",
+    "Approved plan / Occupancy Certificate (built-up structures)",
+    "Loan sanction letter / agreement (if bank mortgagee)",
+    "Mortgagor's PAN + Aadhaar",
+    "Mortgagee's identification (bank: PAN, CIN, branch authorisation; individual: PAN, Aadhaar)",
+    "Property insurance policy with mortgagee as loss payee (recommended)",
+    "Two adult witnesses with own ID proofs",
+    "Both parties physically present at Sub-Registrar (except equitable mortgage by MoDT in notified town)",
+    "REGISTRATION at Sub-Registrar mandatory for simple, conditional sale, usufructuary, English, and anomalous mortgages",
+    "EQUITABLE MORTGAGE (MoDT) — execution at notified town with deposit of original title deeds; memorandum of deposit drawn but NOT registered (registration would render it operative mortgage requiring stamp / registration)",
+    "CERSAI registration of mortgage by financial institutions — mandatory under SARFAESI w.e.f. 2011",
+    "Post-execution: noting of mortgage in revenue records",
+    "Where bank mortgagee — SARFAESI applicability flag in deed",
+    "Where mortgage of agricultural land in Bihar/Jharkhand — additional state tenancy law compliance",
+    "Lawie disclaimer included"
+  ],
+  "validation_rules": [
+    "mortgagor_age >= 18",
+    "loan_amount > 0",
+    "interest_rate >= 0",
+    "mortgage_type must be specified",
+    "if mortgage_type == 'mortgage_by_deposit_of_title_deeds_equitable_S58_f' — is_notified_town_for_equitable_mortgage must be 'yes_notified_town'",
+    "if mortgage_type != 'mortgage_by_deposit_of_title_deeds_equitable_S58_f' — registration mandatory; flag",
+    "property_title_chain must not be empty",
+    "property_boundaries must mention N/S/E/W",
+    "redemption_clause must be present (equity of redemption is inviolable per S.60 TPA)",
+    "default_consequences must be specified",
+    "tenure_months > 0",
+    "if mortgagee_is_bank in ['yes_bank_or_scheduled_FI', 'yes_NBFC'] — SARFAESI acknowledgment recommended",
+    "stamp_duty_paid > 0",
+    "advocate enrollment number required"
+  ]
+}

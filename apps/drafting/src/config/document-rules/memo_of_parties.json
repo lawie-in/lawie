@@ -1,0 +1,233 @@
+{
+  "_meta": {
+    "description": "Document-rules config for memo_of_parties — separate document listing all parties with full correspondence and counsel addresses, filed with cause papers in HC",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "template_id": "memo_of_parties",
+  "docType": "memo_of_parties",
+  "parentDocType": "court_form",
+  "title": "Memo of Parties",
+  "displayName": "Memo of Parties",
+  "category": "procedural",
+  "creditsCost": 1,
+  "court_levels": ["high_court", "supreme_court", "district"],
+  "causeTitle": {
+    "format": "IN THE HON'BLE HIGH COURT OF {state} AT {seat}\n\n{caseNomenclature}\n\nMEMO OF PARTIES",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner" },
+      { "role": "respondent", "label": "Respondent" }
+    ]
+  },
+  "form_schema": [
+    {
+      "name": "court_designation",
+      "label": "Court Designation",
+      "type": "text",
+      "required": true,
+      "help": "e.g. 'High Court of Judicature at Patna' / 'High Court of Jharkhand at Ranchi'"
+    },
+    {
+      "name": "case_type",
+      "label": "Case Type",
+      "type": "select",
+      "options": [
+        "Criminal Writ Petition",
+        "Civil Writ Petition",
+        "Criminal Appeal",
+        "Civil Appeal",
+        "Criminal Misc. Application",
+        "Civil Revision",
+        "Letters Patent Appeal",
+        "Other"
+      ],
+      "required": true
+    },
+    {
+      "name": "case_number_year",
+      "label": "Case Number / Year (if known)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "petitioners",
+      "label": "Petitioners (list each with full address)",
+      "type": "textarea",
+      "required": true,
+      "help": "Format per petitioner: Name | Parentage | Age | Occupation | Permanent Address | Correspondence Address"
+    },
+    {
+      "name": "respondents",
+      "label": "Respondents (list each with full address)",
+      "type": "textarea",
+      "required": true,
+      "help": "For State respondent: 'State of [State], through the Chief Secretary, Govt. of [State], [address]'. For public servant respondent: 'Designation, address'. For private respondent: full personal address."
+    },
+    {
+      "name": "counsel_petitioner_name",
+      "label": "Counsel for Petitioner — Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "counsel_petitioner_enrolment",
+      "label": "Counsel — Bar Council Enrolment No.",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "counsel_petitioner_address",
+      "label": "Counsel — Address for Service",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "counsel_petitioner_email",
+      "label": "Counsel — Email",
+      "type": "email",
+      "required": false
+    },
+    {
+      "name": "counsel_petitioner_phone",
+      "label": "Counsel — Phone",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "counsel_petitioner_joint",
+      "label": "Joint / Assisting Counsel (if any)",
+      "type": "textarea",
+      "required": false
+    },
+    { "name": "filing_date", "label": "Filing Date", "type": "date", "required": true }
+  ],
+  "mandatory_clauses": [
+    "court cause-title heading",
+    "case type and number / year",
+    "complete petitioner block (name + parentage + age + occupation + permanent + correspondence address)",
+    "'VERSUS' separator",
+    "complete respondent block (each respondent numbered with role-appropriate address)",
+    "counsel-for-petitioner block (name + Bar Council enrolment + address + contact)",
+    "filing date and signature line"
+  ],
+  "mandatoryClauses": [
+    {
+      "id": "court_heading",
+      "name": "Court Heading",
+      "required": true,
+      "description": "Hon'ble High Court / Supreme Court / appellate forum with seat"
+    },
+    {
+      "id": "case_nomenclature",
+      "name": "Case Nomenclature",
+      "required": true,
+      "description": "Case type + number + year (or 'to be allotted')"
+    },
+    {
+      "id": "petitioner_block",
+      "name": "Petitioner Block",
+      "required": true,
+      "description": "Each petitioner listed with name, parentage, age, occupation, permanent address, correspondence address"
+    },
+    {
+      "id": "respondent_block",
+      "name": "Respondent Block",
+      "required": true,
+      "description": "Each respondent numbered; State respondents through Chief Secretary / relevant Secretary; public officers by designation + address"
+    },
+    {
+      "id": "counsel_block",
+      "name": "Counsel Block",
+      "required": true,
+      "description": "Counsel name, Bar Council enrolment, address for service, contact details"
+    },
+    {
+      "id": "filing_date",
+      "name": "Filing Date",
+      "required": true,
+      "description": "Date of filing with signature of counsel"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": "Draft a Memo of Parties — a SEPARATE document filed with cause papers in High Court / appellate proceedings. It is NOT the cause title within the petition; it is a standalone sheet that enumerates all parties with their complete addresses. CRITICAL — the memo of parties is the master reference for issuance of notices, service of process, and indexing — incorrect/incomplete addresses delay notice issuance, leading to dismissals and adjournments. STRUCTURE: (1) court heading — 'IN THE HIGH COURT OF [STATE] AT [SEAT]'; (2) case nomenclature — 'Criminal Writ Petition No. ___ of [year]' / 'CWJC No. ___ of [year]' (Patna HC) / 'WP(Cr) No. ___ of [year]' (Jharkhand HC) — adjust per court convention; (3) heading 'MEMO OF PARTIES'; (4) numbered petitioners — each block: name, parentage, age, occupation, permanent address (PA), correspondence address (CA — if different); (5) 'VERSUS'; (6) numbered respondents — for State respondents use format: 'State of [State], through the Chief Secretary, Govt. of [State], [Secretariat address]'; for public officers: 'The [Designation], [Department], [Address]'; for SHO: 'Station House Officer, P.S. [name], District [name]'; for private respondents: full personal address; (7) counsel block at foot: name, Bar Council enrolment number, address for service, phone, email; (8) filing date and counsel signature. State-specific conventions: Patna HC uses CWJC / Cr. Misc. nomenclature; Jharkhand HC uses W.P.(Cr) / B.A. nomenclature; Delhi HC uses W.P.(Crl.); Allahabad HC uses Habeas Corpus / Cr. Misc.",
+  "promptInstructions": [
+    "Draft a stand-alone Memo of Parties sheet — NOT part of the main petition.",
+    "Top of document: 'IN THE HON'BLE HIGH COURT OF [STATE] AT [SEAT]'.",
+    "Next line: case type and number — adjust nomenclature for the specific HC (Patna: CWJC / Cr. Misc. / Cr. Appeal; Jharkhand: W.P.(Cr) / B.A.; Delhi: W.P.(Crl.); Allahabad: Cr. Misc.).",
+    "Heading: 'MEMO OF PARTIES' centred and underlined.",
+    "Petitioner section — list each petitioner numbered (1, 2, 3...) with: name, parentage (S/o / W/o / D/o), age, occupation, permanent address, correspondence address (if different).",
+    "Centre 'VERSUS' between petitioners and respondents.",
+    "Respondent section — list each respondent numbered.",
+    "For State respondent: '1. The State of [State], through the Chief Secretary, Government of [State], [Secretariat Address].'",
+    "For Home Department: '2. The Principal Secretary, Department of Home, Government of [State], [address].'",
+    "For Police: '3. The Superintendent of Police, [District], [State].' / '4. The Station House Officer, P.S. [name], District [name].'",
+    "For private respondent: full name, parentage, address as in FIR / complaint.",
+    "Below party blocks, add a 'Counsel for the Petitioner' block: name, Bar Council of [state] enrolment number, chamber address, email, phone.",
+    "Bottom right: 'Filed by:' with signature line, name, enrolment number, and date.",
+    "NEVER include any IPC reference — if any law is cited, use BNS / BNSS / BSA.",
+    "Do NOT include affidavit / prayer / verification — those belong in the main petition.",
+    "Do NOT include any marketing language about the advocate (BCI Rule 36)."
+  ],
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        {
+          "number": "528",
+          "description": "Inherent powers of High Court (relevant where Cr. Misc. is filed)"
+        }
+      ]
+    },
+    {
+      "act": "Constitution of India",
+      "sections": [
+        { "number": "Article 226", "description": "Power of High Courts to issue writs" },
+        { "number": "Article 227", "description": "Power of superintendence over all courts" }
+      ]
+    },
+    {
+      "act": "High Court Rules — state-specific",
+      "sections": [
+        {
+          "number": "Patna HC Rules",
+          "description": "Patna High Court Rules — relating to filing of cause papers"
+        },
+        {
+          "number": "Jharkhand HC Rules",
+          "description": "Jharkhand HC Rules — filing of memo of parties"
+        },
+        {
+          "number": "Allahabad HC Rules",
+          "description": "Allahabad HC Rules — Original Side / Appellate Side procedure"
+        },
+        { "number": "Delhi HC Rules", "description": "Delhi High Court Rules — filing and listing" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Memo of Parties — single sheet (or as long as needed) — original + copies as per court rules",
+    "Stapled / paginated with main cause papers",
+    "All addresses complete and accurate",
+    "Pin codes included",
+    "Counsel Bar Council enrolment number visible",
+    "Filing-date stamp affixed by registry"
+  ],
+  "filingChecklist": [
+    "Memo of Parties — single sheet (or as long as needed) — original + copies as per court rules",
+    "Stapled / paginated with main cause papers",
+    "All addresses complete and accurate",
+    "Pin codes included",
+    "Counsel Bar Council enrolment number visible",
+    "Filing-date stamp affixed by registry"
+  ],
+  "validation_rules": [
+    "petitioners must have at least one entry",
+    "respondents must have at least one entry",
+    "counsel_petitioner_name and counsel_petitioner_enrolment must be present",
+    "addresses should be complete (recommend min 30 chars per address)",
+    "case_type must align with HC nomenclature for the state in court_designation"
+  ]
+}

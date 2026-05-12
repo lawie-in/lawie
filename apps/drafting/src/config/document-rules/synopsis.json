@@ -1,0 +1,144 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_cycle_days": 180,
+    "legal_status": "approved",
+    "notes": "HC / SC practice — concise 1-page (max 2) overview filed with petition. Issues, facts, points of law, reliefs."
+  },
+  "template_id": "synopsis",
+  "title": "Synopsis (HC / SC Practice — 1-Page Petition Overview)",
+  "category": "procedural",
+  "creditsCost": 1,
+  "court_levels": ["high_court", "supreme_court"],
+  "description": "A concise 1-2 page document filed alongside a petition / appeal in High Court Original Side or Supreme Court, summarising: (i) issues for determination, (ii) brief facts, (iii) points of law involved, (iv) reliefs sought. Mandatory under Bombay HC OS Rules, Delhi HC Rules, SC Rules.",
+  "form_schema": {
+    "case_details": {
+      "case_type": {
+        "type": "string",
+        "required": true,
+        "label": "Case Type (WP / SLP / Civil Appeal etc.)"
+      },
+      "diary_number": { "type": "string", "required": false, "label": "Diary No. (if filing)" },
+      "case_number": { "type": "string", "required": false, "label": "Case No. (if registered)" },
+      "year": { "type": "string", "required": true, "label": "Year" },
+      "court_name": { "type": "string", "required": true, "label": "Court Name" }
+    },
+    "parties": {
+      "petitioner_name": {
+        "type": "string",
+        "required": true,
+        "label": "Petitioner / Appellant Name"
+      },
+      "respondent_name": { "type": "string", "required": true, "label": "Respondent Name" }
+    },
+    "synopsis_content": {
+      "issues_for_determination": {
+        "type": "textarea",
+        "required": true,
+        "label": "Issues for Determination (numbered list)"
+      },
+      "brief_facts": {
+        "type": "textarea",
+        "required": true,
+        "label": "Brief Statement of Facts (1 paragraph, max 8-10 sentences)"
+      },
+      "points_of_law": {
+        "type": "textarea",
+        "required": true,
+        "label": "Points of Law Involved (numbered list with section citations)"
+      },
+      "reliefs_sought": {
+        "type": "textarea",
+        "required": true,
+        "label": "Reliefs Sought (bullet list mirroring prayer clause)"
+      },
+      "key_authorities": {
+        "type": "textarea",
+        "required": false,
+        "label": "Key Authorities Relied Upon (optional, max 3-5)"
+      }
+    }
+  },
+  "mandatory_clauses": [
+    {
+      "clause_id": "header",
+      "title": "Header",
+      "required": true,
+      "content_guidance": "Top of page: court name, case type, case/diary number, year, parties (petitioner vs respondent). Title centred: 'SYNOPSIS'."
+    },
+    {
+      "clause_id": "issues_section",
+      "title": "Issues for Determination",
+      "required": true,
+      "content_guidance": "Section heading: 'ISSUES FOR DETERMINATION'. Numbered list: 'Whether [issue 1]?' 'Whether [issue 2]?'. Maximum 3-5 issues, framed as questions."
+    },
+    {
+      "clause_id": "facts_section",
+      "title": "Brief Statement of Facts",
+      "required": true,
+      "content_guidance": "Section heading: 'BRIEF FACTS'. Single paragraph, 8-10 sentences. Chronological. Highlight cause of action. Cross-reference paragraph numbers of main petition (e.g., 'Para 5 of the petition')."
+    },
+    {
+      "clause_id": "points_of_law",
+      "title": "Points of Law Involved",
+      "required": true,
+      "content_guidance": "Section heading: 'POINTS OF LAW INVOLVED'. Numbered list with specific section/article citations: '1. Interpretation of Section 482 BNSS in the context of...' '2. Scope of Article 226 of the Constitution vis-à-vis...'."
+    },
+    {
+      "clause_id": "reliefs_section",
+      "title": "Reliefs Sought",
+      "required": true,
+      "content_guidance": "Section heading: 'RELIEFS SOUGHT'. Bullet list mirroring (in summary form) the prayer clause of the main petition. Maximum 4-6 bullets."
+    },
+    {
+      "clause_id": "key_authorities",
+      "title": "Key Authorities (Optional)",
+      "required": false,
+      "content_guidance": "Section heading: 'KEY AUTHORITIES'. List 3-5 most important case citations with brief proposition each. Format: 'Case name (year) volume vol citation — [proposition]'."
+    },
+    {
+      "clause_id": "advocate_signature",
+      "title": "Advocate Signature Block",
+      "required": true,
+      "content_guidance": "Bottom of synopsis: place, date, advocate name, enrolment number, contact details."
+    }
+  ],
+  "prompt_context": {
+    "system_prompt_addendum": "You are drafting a SYNOPSIS for HC / SC filing. CRITICAL CONSTRAINTS: (1) Maximum 1-2 pages — this is a brief overview, NOT a mini-petition. (2) Four mandatory sections in order: Issues, Brief Facts, Points of Law, Reliefs. (3) Issues framed as questions ('Whether...?'). (4) Brief facts: one paragraph, chronological, cross-referencing petition paragraph numbers. (5) Points of law: cite exact sections/articles (BNS, BNSS, BSA, Constitution articles, specific statutes). (6) Reliefs: mirror prayer clause in bullet form. (7) Bombay HC Original Side Rules, Delhi HC Rules, and SC Rules 2013 require synopsis with index and list of dates. (8) Synopsis is filed BEFORE the index in the petition compilation. (9) Avoid argumentation — synopsis is descriptive, not persuasive.",
+    "tone": "Concise, descriptive, neutral. Court-room professional.",
+    "key_phrases": [
+      "whether",
+      "the present petition",
+      "brief facts are",
+      "the points of law involved are",
+      "the petitioner seeks"
+    ]
+  },
+  "relevantActs": [
+    "Supreme Court Rules 2013 Order XV (Petitions for Special Leave)",
+    "Bombay High Court (Original Side) Rules",
+    "Delhi High Court (Original Side) Rules",
+    "Allahabad High Court Rules 1952 (Chapter XXII)",
+    "Patna High Court Rules",
+    "Calcutta High Court (Original Side) Rules"
+  ],
+  "filing_checklist": [
+    "Synopsis on white paper, double-spaced, font size 14 (SC Rules) / per local HC rules",
+    "Maximum 2 pages — preferably 1 page",
+    "Four sections in order: Issues, Brief Facts, Points of Law, Reliefs",
+    "Page numbering continuous with main petition compilation",
+    "Filed BEFORE the Index in the paper-book",
+    "Synopsis + List of Dates + Index filed together at front of compilation",
+    "Advocate signature with enrolment number",
+    "Cross-references to petition paragraph numbers verified",
+    "Section/article citations verified for accuracy"
+  ],
+  "validation_rules": {
+    "length_check": "WARN if synopsis_content fields combined exceed approximately 800 words (likely exceeds 2 pages).",
+    "issues_framed_as_questions": "WARN if issues_for_determination does not contain 'Whether' or '?'.",
+    "mandatory_sections_present": "ERROR if any of: issues_for_determination, brief_facts, points_of_law, reliefs_sought is empty.",
+    "sanhita_citations": "INFO — if criminal matter, ensure points_of_law cite BNS/BNSS/BSA (post 2024) not IPC/CrPC/IEA.",
+    "court_rules_compliance": "INFO — final formatting (font, spacing, paper size) must comply with destination court's rules."
+  }
+}

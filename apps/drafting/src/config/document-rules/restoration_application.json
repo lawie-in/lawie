@@ -1,0 +1,191 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_cycle_days": 180,
+    "legal_status": "approved",
+    "notes": "Order 9 Rule 9 CPC — restoration of suit dismissed in default of plaintiff's appearance. Time-bar 30 days (Limitation Act Art. 122). Sufficient cause standard — *Parimal v. Veena* (2011) 3 SCC 545."
+  },
+  "template_id": "restoration_application",
+  "title": "Application for Restoration of Suit (Order 9 Rule 9 CPC)",
+  "category": "procedural",
+  "creditsCost": 1,
+  "court_levels": ["district_court", "high_court_original_side"],
+  "description": "Application under Order IX Rule 9 of CPC 1908 by plaintiff for restoration of a suit dismissed for default of plaintiff's appearance. Limited to 30 days from date of dismissal (Limitation Act Art. 122, extendable u/s 5). Plaintiff must show 'sufficient cause' for absence.",
+  "form_schema": {
+    "case_details": {
+      "suit_number": { "type": "string", "required": true, "label": "Suit Number" },
+      "year": { "type": "string", "required": true, "label": "Year" },
+      "court_name": { "type": "string", "required": true, "label": "Court Name" }
+    },
+    "parties": {
+      "plaintiff_name": {
+        "type": "string",
+        "required": true,
+        "label": "Plaintiff / Applicant Name"
+      },
+      "plaintiff_address": { "type": "string", "required": true, "label": "Plaintiff Address" },
+      "defendant_name": {
+        "type": "string",
+        "required": true,
+        "label": "Defendant / Respondent Name"
+      },
+      "defendant_address": { "type": "string", "required": true, "label": "Defendant Address" }
+    },
+    "dismissal_details": {
+      "date_of_dismissal": { "type": "date", "required": true, "label": "Date of Dismissal Order" },
+      "next_date_missed": {
+        "type": "date",
+        "required": true,
+        "label": "Hearing Date on which Plaintiff was Absent"
+      },
+      "dismissal_order_extract": {
+        "type": "textarea",
+        "required": true,
+        "label": "Extract / Summary of Dismissal Order"
+      },
+      "knowledge_of_dismissal_date": {
+        "type": "date",
+        "required": false,
+        "label": "Date Plaintiff Came to Know of Dismissal (if different)"
+      }
+    },
+    "sufficient_cause": {
+      "reason_for_absence": {
+        "type": "textarea",
+        "required": true,
+        "label": "Reason for Plaintiff's Absence (sufficient cause)"
+      },
+      "supporting_documents": {
+        "type": "textarea",
+        "required": false,
+        "label": "Supporting Documents (medical certificate, travel proof, etc.)"
+      },
+      "advocate_role": {
+        "type": "textarea",
+        "required": false,
+        "label": "Role of Counsel (if absence attributable to counsel's mistake)"
+      }
+    },
+    "limitation": {
+      "days_from_dismissal": {
+        "type": "string",
+        "required": true,
+        "label": "Days from Dismissal to Filing (must be within 30 days, or condonation prayer)"
+      },
+      "delay_condonation_required": {
+        "type": "boolean",
+        "required": true,
+        "label": "Is Delay Condonation u/s 5 Limitation Act Sought?"
+      },
+      "delay_explanation": {
+        "type": "textarea",
+        "required": false,
+        "label": "Explanation for Delay (if filing beyond 30 days)"
+      }
+    }
+  },
+  "mandatory_clauses": [
+    {
+      "clause_id": "cause_title",
+      "title": "Cause Title",
+      "required": true,
+      "content_guidance": "Full cause title: court name, suit number, plaintiff vs defendant. Title: 'APPLICATION UNDER ORDER IX RULE 9 OF THE CODE OF CIVIL PROCEDURE, 1908 FOR RESTORATION OF SUIT'."
+    },
+    {
+      "clause_id": "preamble",
+      "title": "Preamble",
+      "required": true,
+      "content_guidance": "'The applicant / plaintiff most respectfully submits as under:' followed by numbered paragraphs."
+    },
+    {
+      "clause_id": "suit_history",
+      "title": "History of Suit",
+      "required": true,
+      "content_guidance": "Para 1: brief facts of the suit — filed on [date], cause of action, reliefs claimed, stage of proceedings. Para 2: hearings attended, evidence led (if any)."
+    },
+    {
+      "clause_id": "dismissal_facts",
+      "title": "Facts of Dismissal",
+      "required": true,
+      "content_guidance": "Para 3: 'That on [date of missed hearing], the suit was listed for [purpose]. Due to [sufficient cause], the plaintiff and his counsel could not appear. This Hon'ble Court was pleased to dismiss the suit for default of plaintiff's appearance vide order dated [date].'"
+    },
+    {
+      "clause_id": "sufficient_cause_pleading",
+      "title": "Sufficient Cause",
+      "required": true,
+      "content_guidance": "Para 4-5: detailed pleading of sufficient cause for absence — illness (with medical certificate), bereavement, unavoidable travel, miscommunication with counsel, court holiday/strike, etc. Cite specific facts and documents. Pleading must be honest — courts disfavour vague or evasive sufficient cause (*Parimal v. Veena* (2011) 3 SCC 545)."
+    },
+    {
+      "clause_id": "limitation_compliance",
+      "title": "Limitation",
+      "required": true,
+      "content_guidance": "Para 6: 'The present application is filed within 30 days from the date of dismissal order as required under Article 122 of the Limitation Act, 1963.' If delayed: 'Although the present application is filed beyond 30 days, the delay of [X] days is bona fide and is explained as follows: [reasons]. The applicant prays for condonation of delay under Section 5 of the Limitation Act.'"
+    },
+    {
+      "clause_id": "no_prejudice",
+      "title": "No Prejudice to Defendant",
+      "required": true,
+      "content_guidance": "Para 7: 'No prejudice will be caused to the defendant if the suit is restored, as [reasons — no significant delay, defendant has filed written statement, no irreversible action taken etc.]. On the contrary, the plaintiff will suffer grave injustice if the suit is not restored.'"
+    },
+    {
+      "clause_id": "bona_fides",
+      "title": "Bona Fides",
+      "required": true,
+      "content_guidance": "Para 8: 'The applicant has been diligent in prosecuting the suit and the absence on the said date was neither deliberate nor wanton. The applicant undertakes to attend all future hearings without default.'"
+    },
+    {
+      "clause_id": "prayer",
+      "title": "Prayer",
+      "required": true,
+      "content_guidance": "'It is therefore most respectfully prayed that this Hon'ble Court may be pleased to: (a) Set aside the order dated [date] dismissing the suit for default of plaintiff's appearance; (b) Restore Suit No. [X]/[year] to its original number and position; (c) Condone the delay, if any, under Section 5 of the Limitation Act; (d) Pass such other and further orders as deemed fit in the interest of justice. AND FOR THIS ACT OF KINDNESS, THE APPLICANT SHALL EVER PRAY.'"
+    },
+    {
+      "clause_id": "affidavit_in_support",
+      "title": "Affidavit in Support",
+      "required": true,
+      "content_guidance": "Mandatory supporting affidavit by plaintiff sworn before oath commissioner, verifying contents of application as true to personal knowledge, attaching medical certificate / travel proof / other supporting documents."
+    }
+  ],
+  "prompt_context": {
+    "system_prompt_addendum": "You are drafting an application for restoration of suit under Order IX Rule 9 CPC. CRITICAL POINTS: (1) Available ONLY where suit dismissed for plaintiff's NON-APPEARANCE (Order IX Rule 8 / 9). For ex-parte decree against defendant, use Order IX Rule 13 (separate template). (2) Limitation: 30 days from dismissal (Limitation Act Article 122). Beyond 30 days, plead Section 5 Limitation Act condonation with detailed reasons. (3) 'Sufficient cause' is the touchstone — must be specific, factually anchored, supported by documents. Vague pleas (e.g., 'unable to attend') will fail. Cite *Parimal v. Veena* (2011) 3 SCC 545 — sufficient cause not interpreted liberally if absence appears deliberate. (4) Affidavit in support is MANDATORY. (5) Counsel's mistake can constitute sufficient cause but must be honestly pleaded. (6) No prejudice to defendant must be affirmatively pleaded. (7) Notice to defendant required before restoration order (Order IX Rule 9(2)).",
+    "tone": "Apologetic, factual, honest. Sufficient cause must ring true.",
+    "key_phrases": [
+      "dismissed for default",
+      "sufficient cause",
+      "non-deliberate absence",
+      "diligent prosecution",
+      "no prejudice",
+      "interest of justice"
+    ]
+  },
+  "relevantActs": [
+    "Order IX Rule 9 CPC (Restoration of suit dismissed for plaintiff's default)",
+    "Order IX Rule 8 CPC (Dismissal of suit for non-appearance)",
+    "Order IX Rule 13 CPC (Setting aside ex-parte decree — different remedy)",
+    "Limitation Act 1963 Article 122 (30-day limitation)",
+    "Limitation Act 1963 Section 5 (Condonation of delay)",
+    "Order XIX CPC (Affidavits in support)"
+  ],
+  "filing_checklist": [
+    "Application filed within 30 days of dismissal order (Limitation Act Art. 122)",
+    "If beyond 30 days, separate Section 5 Limitation Act condonation prayer included",
+    "Sufficient cause pleaded with specific facts and supporting documents",
+    "Medical certificate / travel ticket / bereavement proof annexed (if applicable)",
+    "Affidavit in support sworn before oath commissioner",
+    "Court fee paid as per state schedule (typically nominal)",
+    "Copy of dismissal order annexed",
+    "Vakalatnama re-filed if counsel changed",
+    "Notice served on defendant / advance copy",
+    "Cost (if any) to be deposited as per court direction",
+    "Cause-list verification before filing"
+  ],
+  "validation_rules": {
+    "limitation_check": "ERROR if days_from_dismissal > 30 and delay_condonation_required is false.",
+    "sufficient_cause_present": "ERROR if reason_for_absence is empty or appears formulaic (e.g., 'plaintiff was unwell' without dates/medical proof).",
+    "affidavit_required": "WARN — application must be supported by affidavit; flag if no affidavit referenced.",
+    "wrong_provision_warning": "INFO — if dismissal was ex-parte decree against defendant, use Order IX Rule 13 template instead.",
+    "parimal_standard": "INFO — *Parimal v. Veena* requires bona fide explanation; vague pleas may fail.",
+    "supporting_documents": "WARN if reason_for_absence claims illness/travel but no supporting_documents listed."
+  }
+}

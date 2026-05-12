@@ -1,0 +1,394 @@
+{
+  "_meta": {
+    "description": "Document-rules config for mact_claim — Claim Petition before Motor Accidents Claims Tribunal under Section 166 of the Motor Vehicles Act, 1988 for compensation arising from road accident.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Sarla Verma, National Insurance v. Pranay Sethi multiplier method mandatory."
+  },
+  "template_id": "mact_claim",
+  "docType": "mact_claim",
+  "title": "Claim Petition under Section 166 of the Motor Vehicles Act, 1988",
+  "displayName": "MACT Claim Petition (S.166 MV Act)",
+  "category": "tribunal",
+  "creditsCost": 2,
+  "court_levels": ["district_mact"],
+  "causeTitle": {
+    "format": "BEFORE THE MOTOR ACCIDENTS CLAIMS TRIBUNAL\nAT {tribunalPlace}, DISTRICT {district}, STATE OF {state}\n\n{caseNomenclature}\n\nIN THE MATTER OF: Section 166 of the Motor Vehicles Act, 1988;\nAND IN THE MATTER OF: Road accident dated {accident_date};\nAND IN THE MATTER OF:\n\n{claimant_list} ... Claimant(s) / Petitioner(s)\nVERSUS\n1. {driver_name} (Driver) ... Respondent No.1\n2. {owner_name} (Owner) ... Respondent No.2\n3. {insurer_name} (Insurance Company) ... Respondent No.3",
+    "partyDesignations": [
+      { "role": "claimant", "label": "Claimant (injured / legal heirs of deceased)" },
+      { "role": "driver", "label": "Respondent No.1 — Driver of offending vehicle" },
+      { "role": "owner", "label": "Respondent No.2 — Owner of offending vehicle" },
+      { "role": "insurer", "label": "Respondent No.3 — Insurance Company" }
+    ],
+    "caseNomenclature": "M.A.C.T. Claim No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "claim_type",
+        "label": "Type of claim",
+        "type": "select",
+        "required": true,
+        "options": [
+          "injury_claim_by_victim",
+          "death_claim_by_legal_heirs",
+          "minor_injury_claim_by_guardian"
+        ]
+      },
+      { "id": "victim_name", "label": "Victim full name", "type": "text", "required": true },
+      {
+        "id": "victim_father_name",
+        "label": "Victim father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "victim_age_at_accident",
+        "label": "Victim age at time of accident",
+        "type": "number",
+        "required": true
+      },
+      { "id": "victim_occupation", "label": "Victim occupation", "type": "text", "required": true },
+      {
+        "id": "victim_monthly_income",
+        "label": "Victim monthly income (₹)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "victim_income_proof",
+        "label": "Income proof (salary slip / IT returns / employer certificate / self-declaration)",
+        "type": "text",
+        "required": true
+      },
+      { "id": "victim_address", "label": "Victim address", "type": "textarea", "required": true },
+      {
+        "id": "claimants_list",
+        "label": "Claimants (for death claim — legal heirs with relationship, age; for injury — victim)",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "accident_date", "label": "Date of accident", "type": "date", "required": true },
+      { "id": "accident_time", "label": "Time of accident", "type": "text", "required": true },
+      {
+        "id": "accident_place",
+        "label": "Place of accident (with PS jurisdiction)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "accident_description",
+        "label": "Detailed description of how accident occurred",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "offending_vehicle_number",
+        "label": "Offending vehicle registration number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "offending_vehicle_type",
+        "label": "Offending vehicle type",
+        "type": "select",
+        "required": true,
+        "options": ["car", "truck", "bus", "two_wheeler", "auto", "tractor", "other"]
+      },
+      { "id": "driver_name", "label": "Driver name", "type": "text", "required": true },
+      {
+        "id": "driver_license_status",
+        "label": "Driver license status at time of accident",
+        "type": "select",
+        "required": true,
+        "options": ["valid_license", "expired_license", "no_license", "unknown"]
+      },
+      { "id": "owner_name", "label": "Owner name", "type": "text", "required": true },
+      { "id": "owner_address", "label": "Owner address", "type": "textarea", "required": true },
+      { "id": "insurer_name", "label": "Insurer name", "type": "text", "required": true },
+      {
+        "id": "insurance_policy_number",
+        "label": "Insurance policy number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "insurance_validity",
+        "label": "Insurance valid on date of accident?",
+        "type": "select",
+        "required": true,
+        "options": ["yes", "no", "unknown"]
+      },
+      {
+        "id": "fir_number",
+        "label": "FIR / criminal case number",
+        "type": "text",
+        "required": true
+      },
+      { "id": "fir_date", "label": "FIR date", "type": "date", "required": true },
+      { "id": "police_station", "label": "Police station", "type": "text", "required": true },
+      {
+        "id": "sections_charged",
+        "label": "BNS sections charged (e.g., S.281 negligent driving, S.106 death by negligence) — replace IPC",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "injury_details",
+        "label": "Nature of injuries / cause of death",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "hospital_details",
+        "label": "Hospital(s) where treated — name, dates, MLC number",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "medical_expenses",
+        "label": "Medical expenses incurred (₹) with bill details",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "permanent_disability_percent",
+        "label": "Permanent disability percentage (if injury claim)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "compensation_claimed_amount",
+        "label": "Total compensation claimed (₹)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "compensation_heads",
+        "label": "Heads of compensation (loss of income / future loss / medical / pain & suffering / loss of consortium / loss of estate / funeral)",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Claimant(s) + Driver + Owner + Insurer"
+    },
+    {
+      "id": "jurisdiction_paragraph",
+      "name": "Jurisdiction of MACT",
+      "required": true,
+      "description": "Place of accident / residence of claimant / residence of respondent — S.166(2)"
+    },
+    {
+      "id": "accident_paragraph",
+      "name": "Accident Details",
+      "required": true,
+      "description": "Date, time, place, manner"
+    },
+    {
+      "id": "negligence_paragraph",
+      "name": "Negligence of Driver",
+      "required": true,
+      "description": "Particulars of rashness / negligence"
+    },
+    {
+      "id": "fir_paragraph",
+      "name": "FIR Details",
+      "required": true,
+      "description": "Criminal proceedings"
+    },
+    {
+      "id": "victim_paragraph",
+      "name": "Victim / Deceased Details",
+      "required": true,
+      "description": "Age, occupation, income, dependants"
+    },
+    {
+      "id": "injury_or_death_paragraph",
+      "name": "Injury / Death Details",
+      "required": true,
+      "description": "Medical / post-mortem details"
+    },
+    {
+      "id": "claimants_paragraph",
+      "name": "Claimants and Their Relationship",
+      "required": true,
+      "description": "For death claim — legal heirs as per personal law"
+    },
+    {
+      "id": "computation_paragraph",
+      "name": "Computation of Compensation — Multiplier Method",
+      "required": true,
+      "description": "Sarla Verma / Pranay Sethi method"
+    },
+    {
+      "id": "vehicle_insurance_paragraph",
+      "name": "Vehicle Insurance Details",
+      "required": true,
+      "description": "Policy number, validity, insurer"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Award compensation with interest and costs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "By claimant"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Claimant(s) most respectfully pray(s) that this Hon'ble Tribunal may graciously be pleased to:\n\na) Award just compensation in the sum of Rs. {compensation_claimed_amount}/- (Rupees ________ only) jointly and severally against the Respondents in favour of the Claimant(s);\n\nb) Award interest at the rate of 9% per annum on the awarded compensation from the date of filing of the claim petition till the date of realization;\n\nc) Award costs of this petition;\n\nd) Pass any other order(s) as this Hon'ble Tribunal may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Claimant(s) shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {claimant_primary_name}, the Claimant herein / one of the Claimants herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above claim petition are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nClaimant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a claim petition under Section 166 of the Motor Vehicles Act, 1988, before MACT — for compensation arising from road accident.",
+      "Jurisdiction: per S.166(2) MV Act 1988 — claim may be filed at (a) Tribunal having jurisdiction over the area where accident occurred, OR (b) where the claimant resides or carries on business, OR (c) where the respondent resides.",
+      "Limitation: S.166(3) MV Act originally provided 6 months, but was DELETED by Act 54 of 1994 — no statutory bar; however, delay must be reasonably explained. The Motor Vehicles (Amendment) Act, 2019 reintroduced a 6-month limitation effective from notified date (read with Rules) — verify current state notification. Draft on assumption of 6-month limit with condonation prayer where exceeded.",
+      "Form: Per Rule 3 of Motor Accidents Claims Tribunal Rules of the respective state — typically Form 'Comp App I' / state-specific form. Particulars required are statutory minimum.",
+      "Para 1: Parties — Claimant(s), Driver (R-1), Owner (R-2), Insurer (R-3). Where pillion / passenger of offending vehicle, may need to add additional respondents.",
+      "Para 2: Jurisdiction — invoke S.166(2) ground.",
+      "Para 3-5: Accident details — date, time, place, manner. Particulars of rashness/negligence (high speed, wrong side, signal jumping, drunk driving, overloading, inadequate brakes).",
+      "Para 6: FIR details — number, date, PS, BNS sections (S.281 BNS rash driving — was IPC 279; S.106 BNS causing death by negligence — was IPC 304A; S.125 BNS rash or negligent act endangering — was IPC 336/337/338). Annex certified copy.",
+      "Para 7: Driver details and license status. Lack of valid license relevant to insurer's defence under S.149 (now S.149 read with current law) — but Pay & Recover principle of insurer applies (National Insurance v. Swaran Singh (2004) 3 SCC 297).",
+      "Para 8: Owner details and policy details.",
+      "Para 9: Insurance — verify policy was valid on date of accident; third-party insurance is mandatory under S.146 MV Act.",
+      "Para 10: Victim / deceased details — age, occupation, income with proof (salary slips, IT returns, employer certificate, self-declaration).",
+      "Para 11: Injury / death — medical particulars; for death, post-mortem; for injury, treatment record + permanent disability certificate (if applicable).",
+      "Para 12: Claimants and their relationship — for death claim, legal heirs per personal law (Hindu Succession Act 1956 / Indian Succession Act 1925 / Muslim personal law).",
+      "Para 13: Computation — apply MULTIPLIER METHOD per Sarla Verma v. DTC (2009) 6 SCC 121 and National Insurance Co v. Pranay Sethi (2017) 16 SCC 680:",
+      "   - Age multiplier table: 15 (up to 15 years), 18 (15-20), 17 (21-25), 16 (26-30), 16 (31-35), 16 (36-40), 15 (41-45), 13 (46-50), 11 (51-55), 8 (56-60), 5 (61-65), 5 (66-70).",
+      "   - Annual income calculation.",
+      "   - Future prospects addition: 50% if deceased ≤40 with permanent job; 30% if 40-50; 15% if 50-60 with permanent job; for self-employed: 40% / 25% / 10%; for fixed salary: 30% / 20% / 10%.",
+      "   - Personal expenses deduction: 1/3 (married + dependants), 1/2 (bachelor), graduated by family size per Sarla Verma.",
+      "   - Conventional heads (Pranay Sethi): Loss of estate ₹15,000; Loss of consortium ₹40,000 per spouse; Funeral expenses ₹15,000 — to be enhanced by 10% every 3 years.",
+      "   - For minor / child death — Cite Kishan Gopal v. Lala (2014) 1 SCC 244; R.K. Malik v. Kiran Pal (2009) 14 SCC 1.",
+      "   - For non-earning member (housewife) — Cite Lata Wadhwa v. State of Bihar (2001) 8 SCC 197; Arun Kumar Agrawal v. National Insurance Co (2010) 9 SCC 218; Kirti v. Oriental Insurance (2021) 2 SCC 166.",
+      "Para 14: For injury claims — heads: medical expenses; loss of earning during treatment; future loss of earning capacity (based on permanent disability percent and age); pain & suffering; future medical expenses; loss of amenities; conveyance; attendant charges. Cite Raj Kumar v. Ajay Kumar (2011) 1 SCC 343 (permanent disability quantification).",
+      "Para 15: Pay & Recover — where insurer can plead defence (no license / breach of policy), Tribunal may direct insurer to pay and recover from owner (National Insurance v. Swaran Singh).",
+      "Para 16: Interest — 9% per annum from date of filing till realisation generally awarded.",
+      "Para 17: Reference to S.140 (no-fault liability — pre-amendment ₹50,000 for death, ₹25,000 for grievous; under MV Amendment Act 2019, S.164 provides ₹5 lakh for death and ₹2.5 lakh for grievous as no-fault).",
+      "Para 18: Reference to S.163A (structured formula — though largely superseded by Pranay Sethi computation in S.166 claims).",
+      "Annexures: FIR copy, MLC, post-mortem, hospital records, disability certificate, age proof, income proof, legal heir certificate, identity proof of claimants, RC of vehicle, DL of driver, insurance policy.",
+      "Affidavit in support mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Motor Vehicles Act, 1988",
+      "sections": [
+        { "number": "S.146", "description": "Mandatory third-party insurance" },
+        { "number": "S.147", "description": "Requirements of policy of insurance" },
+        {
+          "number": "S.149",
+          "description": "Insurer's defences (read with current amended provisions)"
+        },
+        {
+          "number": "S.164",
+          "description": "Payment in case of death / grievous hurt without proof of negligence (Amendment Act 2019)"
+        },
+        {
+          "number": "S.166",
+          "description": "Application for compensation — substantive provision"
+        },
+        { "number": "S.168", "description": "Award of Tribunal" },
+        { "number": "S.169", "description": "Procedure and powers of Tribunal" },
+        { "number": "S.170", "description": "Permission to insurer to contest on owner's grounds" },
+        { "number": "S.171", "description": "Award of interest" }
+      ]
+    },
+    {
+      "act": "Bharatiya Nyaya Sanhita, 2023 (BNS)",
+      "sections": [
+        { "number": "S.106", "description": "Causing death by negligence (was IPC 304A)" },
+        {
+          "number": "S.125",
+          "description": "Rash or negligent act endangering life (was IPC 336/337/338)"
+        },
+        { "number": "S.281", "description": "Rash driving / riding on public way (was IPC 279)" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Claim petition in prescribed form (state MACT Rules — typically Form Comp App I)",
+    "Affidavit in support",
+    "Vakalatnama",
+    "Memo of parties",
+    "FIR certified copy",
+    "Charge-sheet (if filed) / Final Report",
+    "Site plan / mechanical inspection report",
+    "Medico-Legal Certificate (MLC)",
+    "Hospital records / discharge summary / prescriptions / bills",
+    "Post-mortem report (death claim)",
+    "Death certificate (death claim)",
+    "Disability certificate (injury claim)",
+    "Age proof of victim",
+    "Income proof — salary slips / IT returns / employer certificate / self-declaration with affidavit",
+    "Legal heir certificate (death claim)",
+    "Identity proof of claimants",
+    "Vehicle registration certificate (RC) — if obtainable",
+    "Driving license details — if obtainable",
+    "Insurance policy details",
+    "Photographs of accident scene / vehicle damage",
+    "Court fee / claim fee per state MACT Rules (often nominal or waived)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "claim_type must be selected",
+    "victim_name and victim_age_at_accident must not be empty",
+    "victim_monthly_income must be > 0",
+    "accident_date must not be in future",
+    "accident_place must not be empty",
+    "offending_vehicle_number must not be empty",
+    "fir_number, fir_date, police_station must not be empty",
+    "sections_charged must use BNS sections (warn if IPC 279/304A/337/338 detected)",
+    "claimants_list must not be empty",
+    "compensation_claimed_amount must be > 0",
+    "compensation_heads must list at least one head",
+    "If claim_type = death_claim_by_legal_heirs, claimants must include all legal heirs",
+    "Insurer (Respondent No.3) must be impleaded",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Sarla Verma v. DTC (2009) 6 SCC 121 — Multiplier table + future prospects + deductions",
+    "National Insurance Co v. Pranay Sethi (2017) 16 SCC 680 — Constitution Bench — future prospects + conventional heads",
+    "National Insurance Co v. Swaran Singh (2004) 3 SCC 297 — Pay and recover principle",
+    "Magma General Insurance v. Nanu Ram (2018) 18 SCC 130 — Consortium definition expanded",
+    "Raj Kumar v. Ajay Kumar (2011) 1 SCC 343 — Permanent disability quantification",
+    "Kishan Gopal v. Lala (2014) 1 SCC 244 — Minor death compensation",
+    "R.K. Malik v. Kiran Pal (2009) 14 SCC 1 — Child death compensation",
+    "Kirti v. Oriental Insurance (2021) 2 SCC 166 — Housewife notional income",
+    "Lata Wadhwa v. State of Bihar (2001) 8 SCC 197 — Non-earning member valuation",
+    "Reshma Kumari v. Madan Mohan (2013) 9 SCC 65 — Multiplier endorsement",
+    "Sarla Dixit v. Balwant Yadav (1996) 3 SCC 179 — Compensation principles"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

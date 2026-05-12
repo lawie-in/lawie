@@ -1,0 +1,211 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_status": "Approved",
+    "legal_basis": "Companies Act 2013 Section 4 read with Schedule I",
+    "notes": "MOA is the charter document of a company. Six mandatory clauses under S.4(1). Tables A-E of Schedule I prescribe formats. Doctrine of ultra vires applies (Lakshmanaswami Mudaliar v. LIC AIR 1963 SC 1185). Alteration requires special resolution and Central Government approval for objects clause in some cases."
+  },
+  "template_id": "moa",
+  "title": "Memorandum of Association",
+  "category": "corporate",
+  "creditsCost": 2,
+  "court_levels": [],
+  "form_schema": {
+    "type": "object",
+    "required": [
+      "company_name",
+      "company_type",
+      "registered_office_state",
+      "main_objects",
+      "liability_type",
+      "authorized_capital",
+      "subscribers"
+    ],
+    "properties": {
+      "company_name": {
+        "type": "string",
+        "title": "Proposed Company Name (must end with 'Limited' or 'Private Limited')"
+      },
+      "company_type": {
+        "type": "string",
+        "enum": ["Private Limited", "Public Limited", "OPC", "Section 8"],
+        "title": "Type of Company"
+      },
+      "registered_office_state": {
+        "type": "string",
+        "title": "State of Registered Office"
+      },
+      "registered_office_address": {
+        "type": "string",
+        "title": "Full Registered Office Address (if available)"
+      },
+      "main_objects": {
+        "type": "array",
+        "items": { "type": "string" },
+        "title": "Main Objects (business activities)",
+        "minItems": 1
+      },
+      "ancillary_objects": {
+        "type": "array",
+        "items": { "type": "string" },
+        "title": "Ancillary/Incidental Objects"
+      },
+      "liability_type": {
+        "type": "string",
+        "enum": ["Limited by Shares", "Limited by Guarantee", "Unlimited"],
+        "title": "Type of Liability"
+      },
+      "authorized_capital": {
+        "type": "number",
+        "title": "Authorized Share Capital (INR)"
+      },
+      "face_value_per_share": {
+        "type": "number",
+        "title": "Face Value per Share (INR)",
+        "default": 10
+      },
+      "number_of_shares": {
+        "type": "number",
+        "title": "Number of Shares"
+      },
+      "subscribers": {
+        "type": "array",
+        "title": "Subscribers (minimum 2 for Pvt, 7 for Public, 1 for OPC)",
+        "items": {
+          "type": "object",
+          "required": ["name", "address", "occupation", "shares_subscribed"],
+          "properties": {
+            "name": { "type": "string" },
+            "father_name": { "type": "string" },
+            "address": { "type": "string" },
+            "occupation": { "type": "string" },
+            "nationality": { "type": "string", "default": "Indian" },
+            "din_pan": { "type": "string" },
+            "shares_subscribed": { "type": "number" }
+          }
+        }
+      },
+      "witness_name": { "type": "string" },
+      "witness_address": { "type": "string" },
+      "date_of_execution": { "type": "string", "format": "date" }
+    }
+  },
+  "mandatory_clauses": [
+    {
+      "clause_id": "name_clause",
+      "title": "I. Name Clause",
+      "statutory_basis": "S.4(1)(a) Cos Act 2013",
+      "content": "The name of the Company is {{company_name}}.",
+      "must_appear": true
+    },
+    {
+      "clause_id": "registered_office_clause",
+      "title": "II. Registered Office Clause",
+      "statutory_basis": "S.4(1)(b) Cos Act 2013",
+      "content": "The Registered Office of the Company will be situated in the State of {{registered_office_state}}.",
+      "must_appear": true
+    },
+    {
+      "clause_id": "objects_clause",
+      "title": "III. Objects Clause",
+      "statutory_basis": "S.4(1)(c) Cos Act 2013",
+      "subclauses": [
+        "A. The objects to be pursued by the Company on its incorporation",
+        "B. Matters considered necessary in furtherance of the main objects"
+      ],
+      "must_appear": true,
+      "note": "Ultra vires acts are void per Lakshmanaswami Mudaliar v. LIC."
+    },
+    {
+      "clause_id": "liability_clause",
+      "title": "IV. Liability Clause",
+      "statutory_basis": "S.4(1)(d) Cos Act 2013",
+      "content": "The liability of the Members is {{liability_type}}.",
+      "must_appear": true
+    },
+    {
+      "clause_id": "capital_clause",
+      "title": "V. Capital Clause",
+      "statutory_basis": "S.4(1)(e) Cos Act 2013",
+      "content": "The Authorized Share Capital of the Company is INR {{authorized_capital}} divided into {{number_of_shares}} Equity Shares of INR {{face_value_per_share}} each.",
+      "must_appear": true
+    },
+    {
+      "clause_id": "association_subscription_clause",
+      "title": "VI. Association and Subscription Clause",
+      "statutory_basis": "S.4(1)(f) Cos Act 2013",
+      "content": "We, the several persons whose names and addresses are subscribed below, are desirous of being formed into a Company in pursuance of this Memorandum of Association, and we respectively agree to take the number of shares in the capital of the Company set against our respective names.",
+      "must_appear": true
+    },
+    {
+      "clause_id": "subscriber_table",
+      "title": "Table of Subscribers",
+      "must_appear": true,
+      "fields": [
+        "Name",
+        "Father's Name",
+        "Address",
+        "Occupation",
+        "Nationality",
+        "DIN/PAN",
+        "Number of Shares",
+        "Signature"
+      ]
+    },
+    {
+      "clause_id": "witness_clause",
+      "title": "Witness Attestation",
+      "content": "Witnessed by {{witness_name}} of {{witness_address}}.",
+      "must_appear": true
+    }
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting a Memorandum of Association under Companies Act 2013 Section 4 read with Schedule I (Tables A-E). All six mandatory clauses must be present in order. Use formal corporate drafting language. Objects must be specific and lawful.",
+    "drafting_rules": [
+      "Strictly follow Table A format for company limited by shares (or Table B/C/D/E as applicable).",
+      "Name clause: must end with 'Limited' (public) or 'Private Limited' (private). Avoid prohibited words under Rule 8 of Cos (Incorporation) Rules 2014.",
+      "Objects clause: Split into 'Main Objects' (what company will do on incorporation) and 'Matters necessary for furtherance'. Be specific - avoid vague catch-alls.",
+      "Capital clause: state authorized capital, division into shares, face value.",
+      "Subscriber table at end - minimum 2 for Pvt, 7 for Public, 1 for OPC.",
+      "Each subscriber must subscribe to at least one share.",
+      "Mention witness with full address and occupation."
+    ],
+    "tone": "Formal, archaic corporate-legal English consistent with Schedule I format."
+  },
+  "relevantActs": [
+    {
+      "act": "Companies Act 2013",
+      "sections": ["S.3", "S.4", "S.7", "S.8", "Schedule I", "Schedule III"]
+    },
+    { "act": "Companies (Incorporation) Rules 2014", "sections": ["Rule 8", "Rule 9", "Rule 12"] },
+    { "act": "Indian Stamp Act 1899", "sections": ["State stamp duty on MOA per Schedule I-A"] }
+  ],
+  "filing_checklist": [
+    "File with SPICe+ (INC-32) along with AOA, INC-9 (declaration), DIR-2 (consent), proof of registered office.",
+    "Stamp duty paid per state Stamp Act (varies by authorized capital).",
+    "Subscriber's signatures with witness attestation.",
+    "DSC of all subscribers and witness.",
+    "Name approval via RUN/SPICe+ Part A before filing.",
+    "PAN/TAN application via AGILE-PRO-S."
+  ],
+  "validation_rules": [
+    { "rule": "Minimum subscribers", "check": "Pvt >= 2, Public >= 7, OPC = 1" },
+    {
+      "rule": "Each subscriber subscribes to at least 1 share",
+      "check": "shares_subscribed >= 1 per subscriber"
+    },
+    {
+      "rule": "Company name suffix",
+      "check": "Must end with 'Limited' or 'Private Limited' or 'OPC Private Limited'"
+    },
+    {
+      "rule": "Authorized capital >= total subscribed shares * face value",
+      "check": "authorized_capital >= sum(shares_subscribed) * face_value_per_share"
+    },
+    {
+      "rule": "All six clauses present",
+      "check": "name, registered_office, objects, liability, capital, association"
+    }
+  ]
+}

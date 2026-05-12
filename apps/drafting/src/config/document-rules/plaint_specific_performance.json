@@ -1,0 +1,489 @@
+{
+  "_meta": {
+    "description": "Document-rules config for plaint_specific_performance — suit for specific performance of contract under S.10-14 Specific Relief Act, 1963 (post-2018 amendment)",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 civil pleadings pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Readiness and willingness pleading is non-negotiable. Post-2018 SRA amendment treats SP as general rule."
+  },
+  "template_id": "plaint_specific_performance",
+  "docType": "plaint_specific_performance",
+  "title": "Plaint — Suit for Specific Performance of Contract",
+  "displayName": "Plaint for Specific Performance (S.10-14 SRA)",
+  "category": "civil_pleading",
+  "creditsCost": 2,
+  "court_levels": [
+    "civil_judge_senior_division",
+    "district_judge",
+    "high_court_original_side",
+    "commercial_court_district",
+    "commercial_division_high_court"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{plaintiff} ... Plaintiff\nVERSUS\n{defendant} ... Defendant",
+    "partyDesignations": [
+      { "role": "plaintiff", "label": "Plaintiff" },
+      { "role": "defendant", "label": "Defendant" }
+    ],
+    "caseNomenclature": "Civil Suit No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "plaintiff_name", "label": "Plaintiff full name", "type": "text", "required": true },
+      {
+        "id": "plaintiff_father_name",
+        "label": "Plaintiff father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "plaintiff_age", "label": "Plaintiff age", "type": "number", "required": true },
+      {
+        "id": "plaintiff_address",
+        "label": "Plaintiff address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "defendant_name", "label": "Defendant full name", "type": "text", "required": true },
+      {
+        "id": "defendant_address",
+        "label": "Defendant address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "type_of_contract",
+        "label": "Type of contract",
+        "type": "select",
+        "required": true,
+        "options": [
+          "agreement_to_sell_immovable_property",
+          "agreement_to_purchase_immovable_property",
+          "agreement_for_lease",
+          "agreement_for_transfer_of_shares",
+          "agreement_for_supply_of_specific_goods",
+          "other_contract_specifically_enforceable"
+        ]
+      },
+      {
+        "id": "contract_date",
+        "label": "Date of contract / agreement",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "contract_terms",
+        "label": "Material terms of contract (consideration, time for performance, mode)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "subject_matter_description",
+        "label": "Description of subject-matter (property schedule with boundaries / shares / goods)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "consideration_amount",
+        "label": "Total consideration (Rs.)",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "earnest_money_paid",
+        "label": "Earnest money / advance paid (Rs.) with date and mode",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "balance_consideration",
+        "label": "Balance consideration to be paid",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "time_for_performance",
+        "label": "Time stipulated for performance (and whether 'time is of essence')",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "time_essence",
+        "label": "Whether time was of the essence",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "plaintiff_performance",
+        "label": "Plaintiff's part-performance / acts done (paid earnest, ready to pay balance, possession taken)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "readiness_willingness",
+        "label": "Plaintiff's continuous readiness and willingness — specific pleadings of financial capacity and steps taken",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "defendant_breach",
+        "label": "Defendant's breach / refusal — specific acts and dates",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "legal_notice_calling_for_performance",
+        "label": "Legal notice calling upon defendant to perform — date and substance",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "defendant_reply",
+        "label": "Defendant's reply / refusal (if any)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "alternative_relief_damages",
+        "label": "Alternative relief — damages u/s 21 SRA in case SP refused",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "damages_amount",
+        "label": "Damages claimed in alternative (Rs.)",
+        "type": "currency",
+        "required": false
+      },
+      {
+        "id": "possession_sought",
+        "label": "Possession sought as consequential relief",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "section_14_check",
+        "label": "Confirm contract not barred under S.14 SRA (e.g., contracts requiring continuous supervision, personal qualifications, determinable)",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "cause_of_action_dates",
+        "label": "Cause of action — dates of breach, demand, refusal",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "limitation_basis",
+        "label": "Limitation — Art. 54 (3 years from fixed date or refusal)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "territorial_jurisdiction",
+        "label": "Territorial jurisdiction (S.16 CPC for property)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "court_fee_paid",
+        "label": "Court fee paid (Rs.) — ad valorem on consideration (state Schedule)",
+        "type": "currency",
+        "required": true
+      },
+      { "id": "valuation", "label": "Suit valuation", "type": "currency", "required": true },
+      {
+        "id": "commercial_dispute",
+        "label": "Whether commercial dispute u/s 2(1)(c) CCA 2015",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "pre_institution_mediation",
+        "label": "Pre-institution mediation completed u/s 12A CCA (if commercial)",
+        "type": "boolean",
+        "required": false
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Order VII R.1(a)(b)"
+    },
+    {
+      "id": "contract_paragraph",
+      "name": "Contract — Existence and Terms",
+      "required": true,
+      "description": "Full particulars of agreement — date, parties, consideration, time, mode"
+    },
+    {
+      "id": "subject_matter_paragraph",
+      "name": "Subject-matter Description",
+      "required": true,
+      "description": "Property schedule / shares / goods identified with certainty"
+    },
+    {
+      "id": "plaintiff_performance_paragraph",
+      "name": "Plaintiff's Performance / Part-performance",
+      "required": true,
+      "description": "Earnest paid, balance kept ready, possession (if any)"
+    },
+    {
+      "id": "readiness_willingness_paragraph",
+      "name": "Readiness and Willingness — S.16(c) SRA",
+      "required": true,
+      "description": "Continuous readiness and willingness to perform essential terms — Beemaiah v. Govindappa; Syed Dastagir v. T.R. Gopalakrishna Setty"
+    },
+    {
+      "id": "defendant_breach_paragraph",
+      "name": "Defendant's Breach / Refusal",
+      "required": true,
+      "description": "Specific acts of refusal / breach with dates"
+    },
+    {
+      "id": "section_14_compliance",
+      "name": "S.14 SRA Compliance",
+      "required": true,
+      "description": "Contract not within exceptions in S.14 — post-2018 list is exhaustive"
+    },
+    {
+      "id": "alternative_relief_paragraph",
+      "name": "Alternative Relief — Damages u/s 21 SRA",
+      "required": true,
+      "description": "Must claim damages in alternative for safety net"
+    },
+    {
+      "id": "cause_of_action",
+      "name": "Cause of Action — Order VII R.1(e)",
+      "required": true,
+      "description": "Date of fixed performance / refusal"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation — Art. 54",
+      "required": true,
+      "description": "3 years from fixed date or notice of refusal"
+    },
+    {
+      "id": "jurisdiction_paragraph",
+      "name": "Jurisdiction",
+      "required": true,
+      "description": "S.16 CPC for property"
+    },
+    {
+      "id": "valuation_paragraph",
+      "name": "Valuation and Court Fee",
+      "required": true,
+      "description": "Ad valorem on consideration (state Schedule)"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "SP + alternative damages + possession + costs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Order VI R.15"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Order VI R.15(4)"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Plaintiff most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree of specific performance of the agreement / contract dated {contract_date} directing the Defendant to execute and register a sale deed / lease / instrument of transfer in favour of the Plaintiff in respect of the suit property described in the Schedule, against payment of the balance consideration of Rs. {balance_consideration}/-, which the Plaintiff is ready and willing to pay;\n\nb) In the event the Defendant fails to execute the sale deed within the time fixed, direct that the same be executed through the process of this Hon'ble Court under Order XXI Rule 34 CPC;\n\nc) Direct the Defendant to deliver vacant and peaceful possession of the suit property to the Plaintiff;\n\nd) In the alternative, and only if specific performance cannot be granted, award the Plaintiff damages of Rs. {damages_amount}/- under Section 21 of the Specific Relief Act, 1963, along with refund of earnest money of Rs. {earnest_money_paid}/-;\n\ne) Award costs of the suit in favour of the Plaintiff;\n\nf) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Plaintiff shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {plaintiff_name}, son/daughter/wife of {plaintiff_father_name}, aged about {plaintiff_age} years, resident of {plaintiff_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above plaint are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPlaintiff",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a plaint for specific performance of contract under Sections 10-14 of the Specific Relief Act, 1963.",
+      "POST-2018 AMENDMENT (Specific Relief (Amendment) Act, 2018, w.e.f. 01.10.2018) FUNDAMENTAL CHANGE: Specific performance is now the GENERAL RULE, not the exception. Pre-amendment S.10 conferred discretion ('may be enforced') — post-amendment it MUST be enforced subject to exceptions in S.11(2), S.14, S.16.",
+      "S.10 (post-amendment): Specific performance shall be enforced subject to provisions of S.11(2), 14, and 16.",
+      "S.11: Cases in which SP enforceable when act required to be performed in performance of trust.",
+      "S.14 (post-amendment) — Contracts NOT specifically enforceable (exhaustive list): (a) where party suffered substituted performance under S.20; (b) involving continuous duty which court cannot supervise; (c) dependent on personal qualifications of parties; (d) determinable in nature.",
+      "S.16 — Personal bars to relief: (a) party who would not be entitled to recover compensation; (b) party who becomes incapable of performing; (c) party who fails to aver and prove that he has performed or has always been ready and willing to perform essential terms of the contract.",
+      "S.16(c) READINESS AND WILLINGNESS — MANDATORY PLEADING. Plaintiff MUST plead continuous readiness and willingness. Pleading of mere 'ready and willing' insufficient — must plead specific acts: earnest paid, balance kept ready, financial capacity, performance of conditions precedent.",
+      "Cite: Syed Dastagir v. T.R. Gopalakrishna Setty (1999) 6 SCC 337 — readiness implies financial capacity; willingness implies conduct.",
+      "Cite: J.P. Builders v. A. Ramadas Rao (2011) 1 SCC 429 — readiness and willingness must be continuous throughout.",
+      "Cite: Beemaiah v. Govindappa (2013) 11 SCC 754 — pleadings of readiness and willingness essential; absence fatal.",
+      "Cite: Kamal Kumar v. Premlata Joshi (2019) 3 SCC 704 — explanation to S.16(c) post-2018 — actual tender of money not necessary; willingness to pay must be averred.",
+      "Para 1-2: Parties description.",
+      "Para 3: Existence and terms of contract — date, mode (written/oral), consideration, time for performance.",
+      "Para 4: Subject-matter description — for immovable property, full schedule with boundaries.",
+      "Para 5: Plaintiff's part-performance — earnest paid, possession taken (if any), other acts.",
+      "Para 6: SPECIFIC pleading of plaintiff's readiness and willingness throughout — show source of funds, bank balance, sale of other assets if any. Plead willingness to perform balance obligations.",
+      "Para 7: Defendant's breach / refusal — specific acts and dates. Where defendant alleges time of essence and seeks to terminate, address that.",
+      "Para 8: Legal notice calling upon defendant to perform — date and reply.",
+      "Para 9: Time of essence analysis — generally in immovable property transactions, time is NOT of the essence (Chand Rani v. Kamal Rani; Saradamani Kandappan v. Rajalakshmi (2011) 12 SCC 18 — but plaintiff must still act with reasonable diligence).",
+      "Para 10: Confirm contract not within S.14 exceptions.",
+      "Para 11: Alternative relief under S.21 SRA — claim damages in alternative.",
+      "Para 12: Cause of action — date of fixed performance or, if no date fixed, date plaintiff had notice that defendant refused.",
+      "Para 13: Limitation — Article 54 Limitation Act — 3 years from date fixed for performance, or, if none fixed, from when plaintiff had notice of refusal.",
+      "Para 14: Jurisdiction — S.16 CPC for immovable property suits.",
+      "Para 15: Court fee — ad valorem on consideration (state Court Fees Act).",
+      "If commercial dispute u/s 2(1)(c) CCA 2015 and value >=Rs.3 lakh: Commercial Court track + pre-institution mediation u/s 12A (Patil Automation).",
+      "Note S.19A SRA — substituted performance of contracts (post-2018).",
+      "Tone: precise. Avoid argumentative.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Specific Relief Act, 1963 (as amended by Act 18 of 2018)",
+      "sections": [
+        {
+          "number": "S.10",
+          "description": "Cases in which specific performance enforceable — post-2018 mandatory subject to exceptions"
+        },
+        { "number": "S.11", "description": "SP in case of trust" },
+        { "number": "S.12", "description": "SP of part of contract" },
+        {
+          "number": "S.13",
+          "description": "Rights of purchaser against person with no title or imperfect title"
+        },
+        {
+          "number": "S.14",
+          "description": "Contracts not specifically enforceable (post-2018 exhaustive)"
+        },
+        { "number": "S.15", "description": "Who may obtain SP" },
+        { "number": "S.16", "description": "Personal bars — readiness and willingness" },
+        {
+          "number": "S.19",
+          "description": "Relief against parties and persons claiming under them"
+        },
+        { "number": "S.19A", "description": "Substituted performance (post-2018)" },
+        { "number": "S.20", "description": "Substituted performance — pre-conditions (post-2018)" },
+        { "number": "S.21", "description": "Power to award compensation in certain cases" },
+        {
+          "number": "S.22",
+          "description": "Power to grant relief for possession, partition, refund of earnest"
+        },
+        { "number": "S.25", "description": "Application of preceding sections to awards" }
+      ]
+    },
+    {
+      "act": "Indian Contract Act, 1872",
+      "sections": [
+        { "number": "S.10", "description": "What agreements are contracts" },
+        {
+          "number": "S.55",
+          "description": "Effect of failure to perform at fixed time, in contract where time is essential"
+        },
+        { "number": "S.73", "description": "Compensation for breach of contract" }
+      ]
+    },
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        { "number": "S.53A", "description": "Part-performance" },
+        {
+          "number": "S.54",
+          "description": "Sale defined; contract for sale does not create interest"
+        }
+      ]
+    },
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "S.16", "description": "Suits for immovable property" },
+        { "number": "S.20", "description": "Other suits" },
+        { "number": "Order VII R.1, 7", "description": "Plaint" },
+        { "number": "Order XX R.12, 12A", "description": "Decree for SP" },
+        {
+          "number": "Order XXI R.34",
+          "description": "Execution of decree for execution of document"
+        }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "Schedule Art. 54",
+          "description": "Suit for SP — 3 years from date fixed or notice of refusal"
+        }
+      ]
+    },
+    {
+      "act": "Commercial Courts Act, 2015",
+      "sections": [
+        {
+          "number": "S.2(1)(c)(vii)",
+          "description": "Construction of immovable property within commercial dispute definition"
+        },
+        { "number": "S.12A", "description": "Pre-institution mediation" }
+      ]
+    },
+    {
+      "act": "Court Fees Act, 1870 + state amendments",
+      "sections": [{ "number": "S.7(x)", "description": "SP suits — ad valorem on consideration" }]
+    }
+  ],
+  "filing_checklist": [
+    "Plaint (original + copies)",
+    "Vakalatnama",
+    "Memo of parties",
+    "Affidavit in support of plaint (Order VI R.15(4))",
+    "Statement of truth (if Commercial Court — Order VI R.15A)",
+    "Court fee — ad valorem on consideration (state Schedule)",
+    "Original agreement to sell / contract",
+    "Receipts / bank statements showing earnest payment",
+    "Title chain of defendant (sale deed, mutation, parent deeds)",
+    "Legal notice calling for performance + reply",
+    "Plaintiff's bank statement / FD / sale-proceed evidence showing financial readiness",
+    "Stamp papers ready for sale deed execution (or undertaking to procure)",
+    "Encumbrance certificate of suit property",
+    "Pre-institution mediation non-starter certificate (if commercial and applicable)",
+    "Application under Order 39 R.1-2 if status quo / restraint on alienation sought",
+    "Application u/s 52 TPA — lis pendens registration",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "plaintiff_name and defendant_name must not be empty",
+    "type_of_contract must be specified",
+    "contract_date must not be empty",
+    "contract_terms must not be empty",
+    "subject_matter_description must not be empty",
+    "consideration_amount must be > 0",
+    "earnest_money_paid must not be empty",
+    "plaintiff_performance must not be empty",
+    "readiness_willingness must not be empty — and must include specific acts (S.16(c) mandate)",
+    "defendant_breach must not be empty",
+    "section_14_check must be true",
+    "alternative_relief_damages must be true (always plead alternative damages)",
+    "cause_of_action_dates must not be empty",
+    "limitation_basis must not be empty",
+    "court_fee_paid must be > 0",
+    "If commercial_dispute=true and no urgent interim relief, pre_institution_mediation must be true",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Beemaiah v. Govindappa (2013) 11 SCC 754 — Readiness and willingness pleading mandatory",
+    "Syed Dastagir v. T.R. Gopalakrishna Setty (1999) 6 SCC 337 — Readiness = financial capacity; willingness = conduct",
+    "J.P. Builders v. A. Ramadas Rao (2011) 1 SCC 429 — Continuous readiness and willingness",
+    "Kamal Kumar v. Premlata Joshi (2019) 3 SCC 704 — Post-2018 amendment; actual tender unnecessary",
+    "Saradamani Kandappan v. Rajalakshmi (2011) 12 SCC 18 — Time of essence in immovable property — modern approach",
+    "Chand Rani v. Kamal Rani (1993) 1 SCC 519 — Time generally not of essence in property contracts",
+    "Katta Sujatha Reddy v. Siddamsetty Infra Projects (2022) — Post-2018 amendment applies prospectively to contracts entered after 01.10.2018",
+    "K.S. Vidyanadam v. Vairavan (1997) 3 SCC 1 — Plaintiff must explain delay even where time not of essence"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

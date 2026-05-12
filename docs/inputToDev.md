@@ -2458,3 +2458,232 @@ REVISED CLEAN QUEUE (Pending — pick top-down by P0 → P1 → P2):
 NEXT TOP-OF-QUEUE FOR VISHAL: **SCRUM-65** (annexures pack generator).
 SCRUM-77 is queued but should NOT be picked up until SCRUM-65 + SCRUM-71 ship.
 ---
+
+## TASKS FROM PRIYA — 12 MAY 2026 (template-wiring Sprint 1 — Arjun ADR approved)
+
+> Founder approved Arjun's template-wiring ADR 2026-05-12.
+> ADR ref: /team-warroom/2026-05-06/adr-template-wiring-2026-05-12.md
+> Goal: cut per-template build cost from 6-8 hrs to ~10 min by treating
+> CLO's 92 doc-rule JSONs (apps/drafting/src/config/document-rules/*.json)
+> as source of truth and auto-promoting them into the existing TemplateConfig
+> shape consumed by template-engine.service.ts. ~3 weeks Vishal total.
+>
+> 5 tickets filed below. Ship order locked: A+B+C in parallel → D (gate) → E.
+
+---
+ID: scrum-78-template-promoter
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: Done (Vishal-Opus, 2026-05-12)
+Jira: SCRUM-78 (https://abhinava32.atlassian.net/browse/SCRUM-78)
+Figma: N/A
+Priority: P0
+Task: Doc-rule → TemplateConfig promoter + boot-time sync
+Details: |
+  Reviewer: Arjun (CTO).
+
+  CONTEXT:
+  - CLO's 92 doc-rule JSONs at apps/drafting/src/config/document-rules/
+    remain source of truth (CLO-authored). The existing
+    template-engine.service.ts already consumes a canonical TemplateConfig
+    shape. We need a one-shot normaliser.
+
+  SCOPE:
+  - Build apps/drafting/src/services/template-promoter.ts
+  - Export promoteDocRuleToTemplateConfig(rule)
+  - Mapping rules:
+    - field_id → id
+    - flatten steps[].fields[] → fields[]
+    - carry over: mandatory_clauses, prompt_context, relevantActs,
+      validation_rules, creditsCost, court_levels
+  - Boot-time: walk config/document-rules/ directory, promote each JSON,
+    register in in-memory template registry, log mismatches
+
+  ACCEPTANCE:
+  - All 92 docs promote cleanly with zero errors
+  - Mismatch report saved on boot if any field is unmappable
+
+  TESTS:
+  - Unit on promoter for each schema variant present in the 92 JSONs
+  - Integration on template-engine.service.ts after promoter wiring
+
+  SIZE: S (1-2 days).
+Dependencies: None — kicks off Sprint 1. Unblocks D (SCRUM-81) and C (SCRUM-80).
+---
+
+---
+ID: scrum-79-dynamic-renderer-extend
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: To Do
+Jira: SCRUM-79 (https://abhinava32.atlassian.net/browse/SCRUM-79)
+Figma: N/A — Priya owns UX
+Priority: P0
+Task: Extend DynamicFormRenderer for file/currency/regex types + cascading dropdowns
+Details: |
+  Reviewer: Priya (UX), Arjun (code).
+
+  CONTEXT:
+  - Per ADR, reuse the existing apps/web/src/components/form/
+    DynamicFormRenderer.tsx instead of building per-template forms.
+  - 92 CLO doc-rules collectively need three new field types + conditional
+    + cascading rendering.
+
+  SCOPE:
+  - File: apps/web/src/components/form/DynamicFormRenderer.tsx
+  - Add field types:
+    - file (single + multi via shadcn FileUpload)
+    - currency (rupee formatter, INR locale)
+    - regex validation in zod
+  - Add depends_on conditional rendering (e.g. show Marriage Date only
+    if marriage_type === "registered")
+  - Add cascading dropdowns (state → district → court)
+
+  ACCEPTANCE:
+  - All 4 features work in storybook
+  - 92 doc-rules render without unsupported-type errors after SCRUM-78 lands
+
+  TESTS:
+  - Storybook story per new type
+  - Unit tests on conditional + cascading logic
+
+  SIZE: S (1 day).
+Dependencies: None — runs in parallel with SCRUM-78 + SCRUM-80.
+---
+
+---
+ID: scrum-80-template-auto-seed
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: To Do
+Jira: SCRUM-80 (https://abhinava32.atlassian.net/browse/SCRUM-80)
+Figma: N/A
+Priority: P0
+Task: Auto-seed Template MongoDB collection from document-rules directory at boot
+Details: |
+  Reviewer: Arjun (CTO).
+
+  CONTEXT:
+  - Per ADR, Template Mongo collection becomes a read-through cache.
+    Filesystem (config/document-rules/) is source of truth; DB is just an
+    indexed view. usage_count moves out to a new TemplateUsage collection.
+
+  SCOPE:
+  - File: apps/drafting/src/scripts/seed-templates.ts + boot hook
+  - Walks config/document-rules/, calls promoteDocRuleToTemplateConfig()
+    (from SCRUM-78), upserts to Template collection
+  - Move usage_count to a new TemplateUsage collection (separate concern)
+  - Idempotent: running boot twice produces no diffs
+
+  ACCEPTANCE:
+  - App boot populates 92 Template records
+  - Running boot twice is idempotent (no extra writes / no version churn)
+  - Manual file edit triggers re-seed on next boot
+
+  TESTS:
+  - Unit on seed function (idempotency)
+  - Integration: boot empty DB → 92 records; boot again → 0 writes
+
+  SIZE: S (1 day).
+Dependencies: SCRUM-78 (needs promoter to exist). Can be coded in parallel; wiring happens once SCRUM-78 lands.
+---
+
+---
+ID: scrum-81-migrate-6-originals
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: To Do
+Jira: SCRUM-81 (https://abhinava32.atlassian.net/browse/SCRUM-81)
+Figma: N/A
+Priority: P0
+Task: Migrate 6 original templates to promoter path with golden-PDF diff gate
+Details: |
+  Reviewer: Ajay (CLO — legal-correctness on rendered output), Priya (UX flow).
+
+  CONTEXT:
+  - Validation gate after SCRUM-78 + 79 + 80 land. We need byte-level
+    proof that the promoter path produces identical (or acceptably-close)
+    output to today's hand-tuned production templates before retiring
+    any overrides.
+
+  SCOPE — 6 original templates:
+  - bail_anticipatory
+  - bail_regular
+  - consumer_complaint
+  - legal_notice_s138
+  - legal_notice_s80
+  - rent_agreement
+
+  PER TEMPLATE:
+  1. Confirm CLO's doc-rule JSON is canonical (no drift from prod)
+  2. Run promoter → render → produce PDF
+  3. Compare byte-for-byte against current production golden PDF
+  4. If diff > 5% layout drift, keep hand-tuned docs/templates/{id}.json override
+  5. If diff is clean, retire override; rely on promoter alone
+
+  ACCEPTANCE:
+  - 6/6 golden diffs pass OR overrides explicitly kept for any failures
+    (with reason logged)
+
+  TESTS:
+  - PDF byte-diff suite per template
+  - Both Bihar + Jharkhand payloads (reuse SCRUM-50 fixtures)
+
+  SIZE: M (2-3 days).
+Dependencies: SCRUM-78 + SCRUM-79 + SCRUM-80 must all land first. Gates SCRUM-82.
+---
+
+---
+ID: scrum-82-hand-tune-top-10
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: To Do
+Jira: SCRUM-82 (https://abhinava32.atlassian.net/browse/SCRUM-82)
+Figma: N/A
+Priority: P1
+Task: Hand-tune prompt overrides for top-10 revenue-driver templates
+Details: |
+  Reviewer: Ajay (CLO).
+
+  CONTEXT:
+  - Per ADR, only top-10 revenue-driver templates get hand-tuned
+    docs/templates/{id}.json overrides. Remaining 82 ride the auto-promoter.
+  - Starts in parallel with SCRUM-81 batch shipping.
+
+  SCOPE — top 10 (per Ajay's plan):
+  1. interim_bail
+  2. vakalatnama
+  3. affidavit_in_support
+  4. plaint_recovery
+  5. written_statement
+  6. divorce_mutual_consent
+  7. maintenance_bnss_144
+  8. dv_act_complaint
+  9. temporary_injunction_o39
+  10. quashing_528_bnss
+
+  PER TEMPLATE:
+  - Create docs/templates/{id}.json with hand-tuned system prompt + few-shot examples
+  - Verify output quality against CLO checklist (court-readiness, factual
+    correctness, prayer language, citations, annexures, formatting)
+
+  ACCEPTANCE:
+  - Smoke test all 10 templates × Bihar + Jharkhand payloads → CLO sign-off
+
+  TESTS:
+  - Smoke run per template per state (20 renders)
+  - CLO checklist sign-off recorded in ticket
+
+  SIZE: M (4-5 days).
+Dependencies: Starts in parallel with SCRUM-81 batch shipping.
+---
+
+## PICKUP ORDER UPDATE — 12 May 2026 (Priya, post template-wiring ADR)
+
+> Sprint 1 = template wiring. Locked ship order:
+> 1. **SCRUM-78** (promoter) + **SCRUM-79** (renderer extend) + **SCRUM-80** (auto-seed) → parallel
+> 2. **SCRUM-81** (migrate 6 originals + golden-PDF gate) → after 78+79+80
+> 3. **SCRUM-82** (hand-tune top-10) → parallel with 81 shipping
+>
+> Sprint 1 sits AHEAD of pre-existing P0 queue (SCRUM-65, 71) only if founder explicitly switches focus. Default: finish SCRUM-65 + SCRUM-71 first per 2026-05-10 queue, then start SCRUM-78. Confirm with founder before pickup.
+---

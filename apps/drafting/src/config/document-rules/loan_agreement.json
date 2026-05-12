@@ -1,0 +1,280 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_status": "Approved",
+    "legal_basis": "Indian Contract Act 1872 + Transfer of Property Act 1882 + Interest Act 1978 + state Money-Lenders Acts + Negotiable Instruments Act 1881",
+    "notes": "Loan Agreement between private parties or NBFC/Bank. Interest Act 1978 governs interest. Each state has Money-Lenders Act regulating private lending - registration may be required for habitual lenders. SARFAESI Act applies to secured creditors (banks/NBFCs registered). Stamp duty significant on loan agreements (often 0.1-0.5% of loan value)."
+  },
+  "template_id": "loan_agreement",
+  "title": "Loan Agreement",
+  "category": "corporate",
+  "creditsCost": 2,
+  "court_levels": [],
+  "form_schema": {
+    "type": "object",
+    "required": [
+      "lender_name",
+      "borrower_name",
+      "principal_amount",
+      "interest_rate",
+      "tenure_months",
+      "purpose"
+    ],
+    "properties": {
+      "lender_name": { "type": "string" },
+      "lender_address": { "type": "string" },
+      "lender_type": {
+        "type": "string",
+        "enum": ["Individual", "Company", "Bank", "NBFC", "Partnership", "LLP"]
+      },
+      "lender_pan": { "type": "string" },
+      "borrower_name": { "type": "string" },
+      "borrower_address": { "type": "string" },
+      "borrower_type": { "type": "string" },
+      "borrower_pan": { "type": "string" },
+      "co_borrower_or_guarantor": { "type": "string" },
+      "effective_date": { "type": "string", "format": "date" },
+      "principal_amount": { "type": "number" },
+      "interest_rate": { "type": "number", "title": "Per annum %" },
+      "interest_type": {
+        "type": "string",
+        "enum": ["Fixed", "Floating", "Reducing balance", "Flat"],
+        "default": "Reducing balance"
+      },
+      "interest_compounding": { "type": "string", "enum": ["Monthly", "Quarterly", "Annually"] },
+      "default_interest_rate": { "type": "number", "title": "Penal interest % additional" },
+      "tenure_months": { "type": "number" },
+      "repayment_schedule": {
+        "type": "string",
+        "enum": ["EMI", "Bullet", "Step-up", "Step-down", "Balloon"]
+      },
+      "disbursement_mode": { "type": "string", "default": "Bank transfer to Borrower's account" },
+      "purpose": { "type": "string", "title": "End use of funds" },
+      "security_type": {
+        "type": "string",
+        "enum": [
+          "Unsecured",
+          "Mortgage of immovable property",
+          "Hypothecation of movables",
+          "Pledge of shares/securities",
+          "Personal guarantee",
+          "Corporate guarantee",
+          "Combination"
+        ]
+      },
+      "security_details": { "type": "string" },
+      "prepayment_terms": { "type": "string" },
+      "prepayment_penalty_percent": { "type": "number" },
+      "governing_law_state": { "type": "string" },
+      "jurisdiction_city": { "type": "string" }
+    }
+  },
+  "mandatory_clauses": [
+    { "clause_id": "parties", "title": "Parties", "must_appear": true },
+    {
+      "clause_id": "recitals",
+      "title": "Recitals - Loan request and purpose",
+      "must_appear": true
+    },
+    { "clause_id": "definitions", "title": "Definitions and Interpretation", "must_appear": true },
+    {
+      "clause_id": "loan_amount",
+      "title": "Loan Amount and Currency",
+      "must_appear": true,
+      "content": "The Lender agrees to lend and the Borrower agrees to borrow a sum of INR {{principal_amount}} (Rupees in words) (the 'Loan')."
+    },
+    {
+      "clause_id": "purpose",
+      "title": "Purpose of Loan",
+      "must_appear": true,
+      "content": "The Loan shall be utilised solely for {{purpose}}. The Borrower shall not divert funds for any other purpose without the Lender's prior written consent."
+    },
+    { "clause_id": "disbursement", "title": "Disbursement", "must_appear": true },
+    {
+      "clause_id": "interest",
+      "title": "Interest",
+      "must_appear": true,
+      "content": "The Loan shall carry interest at {{interest_rate}}% per annum, {{interest_type}} basis, compounded {{interest_compounding}}, computed on the outstanding principal. Interest shall be payable in accordance with the Repayment Schedule."
+    },
+    {
+      "clause_id": "default_interest",
+      "title": "Default / Penal Interest",
+      "must_appear": true,
+      "content": "In the event of any default in payment of any instalment or interest, the Borrower shall pay additional default interest at {{default_interest_rate}}% per annum on the overdue amount, without prejudice to other remedies."
+    },
+    { "clause_id": "repayment_schedule", "title": "Repayment Schedule", "must_appear": true },
+    { "clause_id": "prepayment", "title": "Prepayment", "must_appear": true },
+    { "clause_id": "mode_of_payment", "title": "Mode of Payment", "must_appear": true },
+    {
+      "clause_id": "security",
+      "title": "Security and Creation of Security Interest",
+      "must_appear": true,
+      "subclauses": [
+        "Equitable/registered mortgage of immovable property (TPA S.58-104)",
+        "Hypothecation of movables (filing of charge with ROC if Borrower is company - S.77 Cos Act)",
+        "Pledge of shares/securities",
+        "Personal/corporate guarantee",
+        "Demand promissory note + post-dated cheques"
+      ]
+    },
+    {
+      "clause_id": "representations_warranties",
+      "title": "Borrower's Representations and Warranties",
+      "must_appear": true
+    },
+    {
+      "clause_id": "covenants",
+      "title": "Covenants (Affirmative and Negative)",
+      "must_appear": true,
+      "subclauses": [
+        "Maintain financial ratios (if applicable)",
+        "No further borrowings without consent",
+        "No change in management/business",
+        "Periodic financial reporting",
+        "Compliance with laws",
+        "Insurance of secured assets"
+      ]
+    },
+    {
+      "clause_id": "events_of_default",
+      "title": "Events of Default",
+      "must_appear": true,
+      "subclauses": [
+        "Non-payment of principal/interest",
+        "Breach of covenants",
+        "Misrepresentation",
+        "Insolvency / winding up",
+        "Cross-default",
+        "Material adverse change",
+        "Loss of security value",
+        "Change of control"
+      ]
+    },
+    {
+      "clause_id": "consequences_of_default",
+      "title": "Consequences of Default",
+      "must_appear": true,
+      "subclauses": [
+        "Acceleration - entire loan becomes due",
+        "Enforcement of security",
+        "Action under SARFAESI (if applicable)",
+        "Filing recovery suit / Section 138 NI Act on bounced cheques",
+        "Levy of default interest"
+      ]
+    },
+    { "clause_id": "indemnity", "title": "Indemnification", "must_appear": true },
+    {
+      "clause_id": "tax",
+      "title": "Taxes (TDS u/s 194A on interest, GST if NBFC)",
+      "must_appear": true
+    },
+    { "clause_id": "set_off", "title": "Set-off and Lien", "must_appear": true },
+    { "clause_id": "confidentiality", "title": "Confidentiality", "must_appear": true },
+    { "clause_id": "assignment", "title": "Assignment", "must_appear": true },
+    { "clause_id": "notices", "title": "Notices", "must_appear": true },
+    {
+      "clause_id": "governing_law",
+      "title": "Governing Law and Jurisdiction",
+      "must_appear": true,
+      "content": "This Agreement shall be governed by the laws of India. Courts at {{jurisdiction_city}} shall have exclusive jurisdiction."
+    },
+    { "clause_id": "dispute_resolution", "title": "Dispute Resolution", "must_appear": true },
+    { "clause_id": "general", "title": "General Provisions", "must_appear": true },
+    { "clause_id": "execution", "title": "Execution", "must_appear": true },
+    {
+      "clause_id": "schedules",
+      "title": "Schedules - Repayment Schedule, Security Documents, Promissory Note",
+      "must_appear": true
+    }
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting a Loan Agreement under Indian law. Comply with Interest Act 1978, state Money-Lenders Acts, TPA for security creation. For company borrower, ensure charge filing under S.77 Cos Act. Interest rate must not be usurious.",
+    "drafting_rules": [
+      "Interest rate must be specified clearly. Avoid usurious rates - state Money-Lenders Acts often cap interest for private lenders.",
+      "Default/penal interest typically 2-4% additional. Courts have struck down excessive penal interest as unconscionable.",
+      "For corporate borrower: charge filing under S.77 Cos Act 2013 within 30 days, in Form CHG-1.",
+      "Security: TPA S.58-104 for mortgage. Registered mortgage requires registration under Registration Act 1908 if value > INR 100.",
+      "Equitable mortgage by deposit of title deeds: permitted in notified towns under S.58(f) TPA - no registration but stamp duty applies.",
+      "Hypothecation: SARFAESI Act applies for banks/NBFCs. Private lenders rely on contract + civil suit.",
+      "Personal guarantee: separate guarantee deed under S.126 Contract Act.",
+      "Stamp duty on loan agreement: state-specific, typically 0.1-0.5% of loan value (ad valorem). Mortgage deed higher.",
+      "TDS on interest u/s 194A at 10% (subject to thresholds).",
+      "NBFC / Bank lenders: RBI regulations apply.",
+      "Cross-border ECB: FEMA + RBI ECB Master Direction applies - check tenure, AAR, end-use restrictions.",
+      "Promissory note as separate document - stamped under Stamp Act Article 49.",
+      "Post-dated cheques: enforceability under S.138 NI Act on dishonour.",
+      "Money-Lenders Acts: in Bihar, UP, etc., registration may be required for private lenders if making it a business."
+    ],
+    "tone": "Formal banking-legal, precise on financial terms."
+  },
+  "relevantActs": [
+    { "act": "Indian Contract Act 1872", "sections": ["S.126-147 (guarantee)"] },
+    {
+      "act": "Transfer of Property Act 1882",
+      "sections": [
+        "S.58-104 (mortgage)",
+        "S.130 (assignment of actionable claim)",
+        "S.172-179 (pledge)"
+      ]
+    },
+    {
+      "act": "Indian Stamp Act 1899",
+      "sections": ["Article 6 (agreement)", "Article 40 (mortgage)", "Article 49 (promissory note)"]
+    },
+    { "act": "Registration Act 1908" },
+    { "act": "Interest Act 1978" },
+    { "act": "Negotiable Instruments Act 1881", "sections": ["S.138 (cheque dishonour)"] },
+    {
+      "act": "Companies Act 2013",
+      "sections": [
+        "S.77 (charge filing)",
+        "S.179, S.180 (borrowing powers)",
+        "S.185 (loans to directors)"
+      ]
+    },
+    { "act": "SARFAESI Act 2002", "applies_when": "Lender is Bank/NBFC" },
+    { "act": "Recovery of Debts Due to Banks and Financial Institutions Act 1993" },
+    { "act": "Insolvency and Bankruptcy Code 2016" },
+    {
+      "act": "State Money-Lenders Acts",
+      "state_specific": true,
+      "applies_when": "Private money-lending business"
+    },
+    {
+      "act": "Income Tax Act 1961",
+      "sections": ["S.194A (TDS on interest)", "S.269SS / 269T (no cash loans above 20k)"]
+    },
+    { "act": "FEMA 1999 + ECB Master Direction", "applies_when": "Foreign lender" }
+  ],
+  "filing_checklist": [
+    "Execute on stamp paper of ad valorem value per state Stamp Act.",
+    "If mortgage: register the mortgage deed with Sub-Registrar within 4 months (Registration Act).",
+    "If corporate borrower: file Form CHG-1 within 30 days for creation of charge (S.77 Cos Act).",
+    "If S.185 issue (loan to director): comply with conditions or avoid.",
+    "Deduct TDS u/s 194A on interest paid (if applicable).",
+    "No cash disbursement above INR 20,000 (S.269SS).",
+    "Maintain loan ledger, post-dated cheques, security documents.",
+    "For corporate borrower: ensure within S.180 borrowing power limits (else SR).",
+    "For ECB: file Form ECB with AD Bank, obtain LRN."
+  ],
+  "validation_rules": [
+    { "rule": "Principal in words and figures", "check": "Both representations match" },
+    {
+      "rule": "Interest rate non-usurious",
+      "check": "Within state money-lenders cap or reasonable for institutional"
+    },
+    { "rule": "Purpose specified", "check": "End-use clear and lawful" },
+    {
+      "rule": "Security creation clear",
+      "check": "Security type, asset description, perfection steps"
+    },
+    { "rule": "Events of default exhaustive", "check": "Standard EoD list included" },
+    { "rule": "Stamp duty mentioned", "check": "Reference to applicable stamp duty" },
+    {
+      "rule": "S.77 Cos Act compliance if corporate",
+      "check": "Charge filing referenced for company borrower"
+    },
+    { "rule": "S.269SS compliance", "check": "Non-cash disbursement for amount > 20k" }
+  ]
+}

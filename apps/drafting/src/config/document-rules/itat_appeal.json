@@ -1,0 +1,375 @@
+{
+  "_meta": {
+    "description": "Document-rules config for itat_appeal — Income Tax Appeal before the Income Tax Appellate Tribunal under Section 253 of the Income-tax Act, 1961, against orders of CIT(A) and certain other authorities. Time-bar 60 days. Form 36 + Form 36A (memo of cross-objections).",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Form 36 schema strictly per ITAT Rules 1963."
+  },
+  "template_id": "itat_appeal",
+  "docType": "itat_appeal",
+  "title": "Appeal under Section 253 of the Income-tax Act, 1961 before the Income Tax Appellate Tribunal",
+  "displayName": "ITAT Appeal (S.253 IT Act)",
+  "category": "tribunal",
+  "creditsCost": 2,
+  "court_levels": ["itat"],
+  "causeTitle": {
+    "format": "BEFORE THE HON'BLE INCOME TAX APPELLATE TRIBUNAL\nBENCH AT {itat_bench}\n\n{caseNomenclature}\n\nIN THE MATTER OF: Section 253 of the Income-tax Act, 1961;\nAND IN THE MATTER OF: Assessment Year {assessment_year};\nAND IN THE MATTER OF: Order passed by {first_appellate_authority} dated {impugned_order_date};\n\n{appellant} ... Appellant\nVERSUS\n{respondent} ... Respondent",
+    "partyDesignations": [
+      { "role": "appellant", "label": "Appellant (Assessee / Revenue)" },
+      { "role": "respondent", "label": "Respondent (Revenue / Assessee)" }
+    ],
+    "caseNomenclature": "ITA No. _____ / {bench_code} / [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "appellant_type",
+        "label": "Appellant type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "assessee_individual",
+          "assessee_huf",
+          "assessee_firm",
+          "assessee_company",
+          "assessee_aop_boi",
+          "assessee_trust",
+          "revenue_department"
+        ]
+      },
+      { "id": "appellant_name", "label": "Appellant name", "type": "text", "required": true },
+      { "id": "appellant_pan", "label": "Appellant PAN", "type": "text", "required": true },
+      {
+        "id": "appellant_address",
+        "label": "Appellant address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "respondent_name",
+        "label": "Respondent (typically AO/CIT for assessee appeal; assessee for revenue appeal)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "respondent_address",
+        "label": "Respondent address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "itat_bench",
+        "label": "ITAT bench (per location of AO)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "assessment_year",
+        "label": "Assessment Year (e.g., 2022-23)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "first_appellate_authority",
+        "label": "First appellate authority whose order is challenged",
+        "type": "select",
+        "required": true,
+        "options": [
+          "cit_appeals",
+          "national_faceless_appeal_centre",
+          "principal_commissioner_or_commissioner_revision_u_s_263_264",
+          "dispute_resolution_panel_drp",
+          "principal_commissioner_or_commissioner_u_s_271",
+          "other"
+        ]
+      },
+      {
+        "id": "first_appellate_order_no",
+        "label": "First appellate order number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "impugned_order_date",
+        "label": "Date of impugned order",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "service_of_order_date",
+        "label": "Date of service of order on appellant",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "appeal_filing_date",
+        "label": "Date of filing this appeal",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "delay_days",
+        "label": "Delay (if any) in filing (days)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "delay_reasons",
+        "label": "If delay > 0, reasons for delay (condonation)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "tax_effect",
+        "label": "Tax effect of dispute (₹) (relevant for court fee + jurisdiction)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "grounds_of_appeal",
+        "label": "Grounds of appeal (numbered (i), (ii)... — be specific)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "questions_of_law_facts",
+        "label": "Questions of law and questions of fact involved",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "additional_evidence_sought",
+        "label": "Additional evidence to be produced (Rule 29 ITAT Rules)? If yes — details + reasons",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "stay_petition_filed",
+        "label": "Stay application filed? (separate application)",
+        "type": "select",
+        "required": false,
+        "options": ["yes", "no", "not_applicable"]
+      },
+      {
+        "id": "advocate_name",
+        "label": "Advocate / Authorised Representative name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment / CA membership / accountant authorisation",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "form_36_caption",
+      "name": "Form 36 Caption",
+      "required": true,
+      "description": "Memorandum of Appeal as per Form 36 ITAT Rules"
+    },
+    {
+      "id": "parties_paragraph",
+      "name": "Particulars of Parties",
+      "required": true,
+      "description": "Per Form 36 — Appellant + Respondent + PAN"
+    },
+    {
+      "id": "jurisdictional_facts_paragraph",
+      "name": "Jurisdictional Facts",
+      "required": true,
+      "description": "AY, AO, first appellate authority order details"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation",
+      "required": true,
+      "description": "60 days from communication of impugned order (S.253(3))"
+    },
+    {
+      "id": "delay_condonation_paragraph",
+      "name": "Delay Condonation (if applicable)",
+      "required": false,
+      "description": "Separate application with affidavit"
+    },
+    {
+      "id": "grounds_of_appeal_paragraph",
+      "name": "Grounds of Appeal",
+      "required": true,
+      "description": "Numbered grounds (i), (ii), (iii)..."
+    },
+    {
+      "id": "facts_paragraph",
+      "name": "Statement of Facts",
+      "required": true,
+      "description": "AO assessment + CIT(A) order summary"
+    },
+    {
+      "id": "additional_grounds_provision",
+      "name": "Right to Add / Amend Grounds",
+      "required": true,
+      "description": "Standard clause"
+    },
+    {
+      "id": "court_fee_paragraph",
+      "name": "Court Fee per S.253(6)",
+      "required": true,
+      "description": "Graduated by total income / tax effect"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Set aside impugned order / direct AO"
+    },
+    {
+      "id": "verification_form_36",
+      "name": "Verification per Form 36",
+      "required": true,
+      "description": "By appellant or authorised signatory"
+    },
+    {
+      "id": "annexures",
+      "name": "Annexures",
+      "required": true,
+      "description": "Order of CIT(A), order of AO, all documents"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above and the grounds set forth hereinabove, the Appellant most respectfully prays that this Hon'ble Tribunal may graciously be pleased to:\n\na) Set aside the impugned order dated {impugned_order_date} passed by the {first_appellate_authority} in {first_appellate_order_no} for Assessment Year {assessment_year};\n\nb) Allow the appeal of the Appellant and direct the Assessing Officer to {specific_direction — delete addition / allow exemption / accept return / consequential relief};\n\nc) Grant consequential relief by way of refund of tax wrongly recovered along with interest;\n\nd) Permit the Appellant to add, alter, amend or substitute any grounds of appeal at the time of hearing of this appeal;\n\ne) Pass any other order(s) as this Hon'ble Tribunal may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Appellant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {appellant_or_authorised_signatory_name}, the Appellant / Authorised Signatory of the Appellant, do hereby verify under solemn affirmation that the contents of the present Memorandum of Appeal in Form 36, including the grounds of appeal and statement of facts, are true and correct to my personal knowledge derived from the records of the Appellant. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nAppellant / Authorised Signatory",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a Memorandum of Appeal under Section 253 of the Income-tax Act, 1961 before ITAT, in strict compliance with FORM 36 prescribed under Rule 47(1) of the Income-tax Rules, 1962 and the ITAT Rules, 1963.",
+      "JURISDICTION: ITAT bench having jurisdiction over the AO who passed the original order (refer to indian-courts.json for all 27 ITAT benches — Delhi, Mumbai, Kolkata, Chennai, Ahmedabad, Bangalore, Hyderabad, Pune, Patna, Lucknow, etc.).",
+      "WHO CAN FILE — S.253(1) & (2):",
+      "   - Assessee aggrieved by order of CIT(A) [S.250 order];",
+      "   - Assessee aggrieved by order of Pr.CIT/CIT under S.263 (revisional) or S.271 (penalty);",
+      "   - Revenue (Pr.CIT/CIT) aggrieved by order of CIT(A);",
+      "   - Order of Assessing Officer in pursuance of directions by Dispute Resolution Panel (DRP) under S.144C.",
+      "TIME-BAR: 60 days from the date on which the order sought to be appealed against is communicated to the assessee or to the Pr.CIT/CIT (S.253(3)). For appeal against DRP-directed AO order — 60 days from service of order. ITAT may admit appeal after 60 days under S.253(5) if sufficient cause shown for delay — separate condonation application + affidavit.",
+      "Para 1 (per Form 36): Particulars of appellant — PAN, address, AY.",
+      "Para 2: Address to which notices may be sent to the appellant.",
+      "Para 3: Particulars of the order appealed against — number, date of order, date of service, designation of authority.",
+      "Para 4: 'Relief claimed in appeal' (Form 36 mandate).",
+      "Para 5: Grounds of appeal — numbered, specific, not vague.",
+      "Common grounds:",
+      "   (i) CIT(A) erred in confirming addition of ₹___ under S.68 / S.69 / S.69A / S.69B / S.69C without appreciating evidence on record;",
+      "   (ii) CIT(A) erred in disallowing deduction under S.80C / S.80D / Chapter VI-A;",
+      "   (iii) CIT(A) erred in confirming disallowance under S.40(a)(ia) / S.43B;",
+      "   (iv) CIT(A) erred in confirming Transfer Pricing adjustment under S.92CA;",
+      "   (v) CIT(A) erred in confirming penalty under S.270A / S.271(1)(c);",
+      "   (vi) CIT(A) erred in confirming reassessment under S.147 / S.148 — Cite GKN Driveshafts (India) Ltd v. ITO (2003) 259 ITR 19 (SC); Ashish Agarwal v. Union of India (2022) — TOLA / S.148A safeguards;",
+      "   (vii) CIT(A) erred in not granting credit for TDS / advance tax;",
+      "   (viii) CIT(A) erred in confirming charge of interest under S.234A / 234B / 234C — Cite CIT v. Anjum M.H. Ghaswala (2002) 252 ITR 1 (SC);",
+      "   (ix) Where revision under S.263 — challenge: (a) AO order not 'erroneous' and 'prejudicial to revenue', (b) Pr.CIT did not give adequate hearing — Cite Malabar Industrial Co v. CIT (2000) 243 ITR 83 (SC).",
+      "Para 6: Statement of facts — concise: AO order > S.250 appeal to CIT(A) > impugned order. Append both AO and CIT(A) orders.",
+      "Para 7: Liberty to add / alter / amend grounds — standard clause.",
+      "Para 8: Court fee per S.253(6):",
+      "   - Total income up to ₹1,00,000: ₹500;",
+      "   - Total income > ₹1,00,000 but ≤ ₹2,00,000: ₹1,500;",
+      "   - Total income > ₹2,00,000: 1% of assessed income subject to maximum ₹10,000;",
+      "   - Other matters (penalty etc.): ₹500.",
+      "Para 9: Stay application — if recovery of demand likely, separate stay application under Rule 35A ITAT Rules 1963 + S.254(2A). Stay limited to 365 days unless delay not attributable to assessee — Cite Pepsi Foods Ltd v. ACIT (2021) 6 SCC 480 (Constitution Bench struck down third proviso to S.254(2A)).",
+      "Para 10: Additional evidence — Rule 29 ITAT Rules permits only in limited circumstances: where Tribunal requires it, where AO refused without sufficient cause, where evidence not available despite due diligence.",
+      "Para 11: Cross-objections — Form 36A. May be filed by respondent within 30 days of service of notice of appeal. Treated as appeal even if main appeal is later withdrawn.",
+      "Para 12: Where transfer pricing — S.144C(13) appeals come post-AO order; S.253(1)(d).",
+      "Para 13: Appeal to HC under S.260A within 120 days from receipt of ITAT order — substantial question of law only.",
+      "Annexures: (i) copy of CIT(A) order, (ii) copy of AO order, (iii) copy of grounds before CIT(A), (iv) copy of return + computation, (v) other documents referred in grounds. Two complete sets typically + extra copies as per ITAT rules.",
+      "Verification: per Form 36 — by appellant if individual; by Karta if HUF; by partner if firm; by principal officer / authorised signatory if company.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Income-tax Act, 1961",
+      "sections": [
+        { "number": "S.246A", "description": "Appealable orders before CIT(A)" },
+        { "number": "S.250", "description": "Procedure in appeal before CIT(A)" },
+        { "number": "S.252", "description": "Constitution of ITAT" },
+        { "number": "S.253", "description": "Appeals to ITAT — substantive provision" },
+        { "number": "S.253(3)", "description": "Time limit — 60 days" },
+        { "number": "S.253(5)", "description": "Condonation of delay" },
+        { "number": "S.253(6)", "description": "Court fee schedule" },
+        { "number": "S.254", "description": "Orders of ITAT" },
+        { "number": "S.254(2A)", "description": "Stay of demand — proviso (Pepsi Foods)" },
+        { "number": "S.255", "description": "ITAT procedure + bench composition" },
+        {
+          "number": "S.260A",
+          "description": "Appeal to HC on substantial question of law — 120 days"
+        },
+        { "number": "S.263", "description": "Revision by Pr.CIT/CIT (revenue-side)" },
+        { "number": "S.264", "description": "Revision by Pr.CIT/CIT (assessee-side)" }
+      ]
+    },
+    {
+      "act": "Income-tax Rules, 1962",
+      "sections": [
+        { "number": "Rule 47", "description": "Form 36 — Memorandum of Appeal" },
+        { "number": "Rule 47(2)", "description": "Form 36A — Memo of Cross-Objections" }
+      ]
+    },
+    {
+      "act": "Income Tax (Appellate Tribunal) Rules, 1963",
+      "sections": [
+        { "number": "Rule 4", "description": "Constitution of benches" },
+        { "number": "Rule 9", "description": "Filing of appeal" },
+        { "number": "Rule 10", "description": "Authorisation of representative" },
+        { "number": "Rule 29", "description": "Additional evidence" },
+        { "number": "Rule 35A", "description": "Stay applications" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Form 36 — original (signed) + copies as per ITAT Rules",
+    "Form 36A — for cross-objections (where applicable)",
+    "Affidavit verifying contents of appeal",
+    "Vakalatnama / Authorisation in favour of CA / Advocate / Authorised Representative under Rule 10",
+    "Copy of CIT(A) order being challenged (certified)",
+    "Copy of AO assessment order",
+    "Copy of grounds of appeal before CIT(A)",
+    "Copy of return of income for the AY",
+    "Computation of total income",
+    "Documents relied on in support of grounds",
+    "Tax payment challans (where applicable)",
+    "Application for condonation of delay (if filed beyond 60 days)",
+    "Stay application + affidavit (if needed)",
+    "Court fee per S.253(6) — by appropriate mode",
+    "Index of documents",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "appellant_type must be selected",
+    "appellant_name and appellant_pan must not be empty",
+    "appellant_pan must match PAN format (5 letters + 4 digits + 1 letter)",
+    "assessment_year must be in YYYY-YY format",
+    "first_appellate_authority must be selected",
+    "impugned_order_date must not be empty and not in future",
+    "service_of_order_date must be >= impugned_order_date",
+    "appeal_filing_date must be >= service_of_order_date",
+    "Calculate delay_days = appeal_filing_date - service_of_order_date - 60; if > 0, delay_reasons must not be empty (condonation application separately)",
+    "tax_effect must be >= 0",
+    "grounds_of_appeal must not be empty",
+    "advocate_enrollment must match Bar Council / CA / authorised rep format",
+    "Court level restricted to ITAT only"
+  ],
+  "key_citations": [
+    "Malabar Industrial Co v. CIT (2000) 243 ITR 83 (SC) — S.263 twin conditions",
+    "CIT v. Max India Ltd (2007) 295 ITR 282 (SC) — S.263 prejudicial-to-revenue test",
+    "GKN Driveshafts (India) Ltd v. ITO (2003) 259 ITR 19 (SC) — S.148 reasons procedure",
+    "Ashish Agarwal v. Union of India (2022) 444 ITR 1 (SC) — TOLA + S.148A safeguards",
+    "Pepsi Foods Ltd v. ACIT (2021) 6 SCC 480 — Stay beyond 365 days permissible",
+    "CIT v. Anjum M.H. Ghaswala (2002) 252 ITR 1 (SC) — Interest mandatory",
+    "Hindustan Coca Cola Beverage v. CIT (2007) 293 ITR 226 (SC) — TDS recovery"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

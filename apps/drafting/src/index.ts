@@ -14,10 +14,14 @@ import { connectDatabase } from './config/database';
 import { env } from './config/env';
 import logger from './config/logger';
 import { disconnectRedis } from './config/redis';
+import { getTemplateRegistry } from './services/template-promoter';
 
 async function bootstrap() {
   try {
     await connectDatabase();
+    // SCRUM-78: build the doc-rules → TemplateConfig registry once at boot. Triggers
+    // the disk walk, fills the in-memory map, writes mismatch report if any gaps exist.
+    getTemplateRegistry();
     app.listen(env.PORT, () => {
       logger.info(`📝 Drafting Service running on http://localhost:${env.PORT}`);
       logger.info(`   Environment: ${env.NODE_ENV}`);

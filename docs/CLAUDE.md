@@ -1636,3 +1636,66 @@ Next step:
 Blockers: None — all deliverables in acceptance criteria complete. External dependencies (ACM cert, SSM secrets) are operational, not blocking this ticket.
 ---
 
+
+---
+Date: 2026-05-12
+Session: Opus
+Task: SCRUM-78 — Doc-rule → TemplateConfig promoter + boot-time sync (Sprint 1, template-wiring ADR)
+Status: Done
+Code changed:
+  New files:
+  - apps/drafting/src/services/template-promoter.ts — normalises CLO's 92 doc-rule
+    JSONs at apps/drafting/src/config/document-rules/*.json into the TemplateConfig
+    shape consumed by template-engine.service.ts. Handles 5 distinct form_schema
+    shapes Ajay uses: (a) flat list, (b) {fields:[...]}, (c) JSON-Schema
+    {type:object, properties}, (d) flat field dict {field_id:{type,label,required}},
+    (e) nested-by-section {section:{sub_field:{...}}}. Field-type aliases expanded
+    so `string|integer|select|enum|email|boolean|currency|multiselect|enum_set` all
+    map cleanly. Two public entry points: promoteDocRuleToTemplateConfig(rule, file)
+    for a single doc, loadAllDocRules() to walk the directory. getTemplateRegistry()
+    memoises the registry and writes a mismatch report to
+    apps/drafting/template-promoter-mismatches.log when any field is unmappable.
+  - apps/drafting/src/__tests__/template-promoter.test.ts — 33 tests covering every
+    form_schema variant + field-type alias + legal-content carry-over + the live
+    92-doc integration sweep.
+  Modified files:
+  - apps/drafting/src/index.ts — calls getTemplateRegistry() after connectDatabase()
+    so the registry is built (and the mismatch log written) at boot time.
+Acceptance check (from SCRUM-78 ticket):
+  ✅ Unit on promoter for each schema variant present in the 92 JSONs (33 tests).
+  ✅ Integration on template-engine.service.ts after promoter wiring — the registry
+     uses the existing TemplateConfig type so the engine consumes it without changes.
+  ✅ All 92 docs promote cleanly with zero errors (configs.size === 92, no
+     parse/promote crashes).
+  ✅ Mismatch report saved on boot if any field is unmappable — currently 33 lines
+     across 6 legal_notice_* docs where CLO declared `type:'object'` section headers
+     without enumerating `properties`. Those are real CLO authoring gaps, not
+     promoter bugs. Filed mentally for Priya to ping Ajay on; the promoter logs
+     them so the gap is visible without grepping the source.
+Surface diff:
+  Down from 1,651 raw promotion gaps (initial naïve walk) to 33 after three rounds
+  of normalisation: (1) accept `id` as a valid field key alongside `name`/`field_id`
+  to cover the 50 docs that use Ajay's `{fields:[{id, label, type, required}]}`
+  shape, (2) disambiguate flat-field-dict vs nested-by-section properly (only
+  treat as section header when the sub-object lacks a primitive `type`), (3) expand
+  FIELD_TYPE_MAP for all CLO aliases (array/multiselect/currency/file/enum_set/...).
+Test results:
+  template-promoter: 33/33. Touched-surface sweep (template-engine, prompt-assembler,
+  post-processor, validator, app-settings, coherence, preflight, review, annexures,
+  document-export, referral-bonus, template-promoter): 347/347 in ~29s. tsc --noEmit
+  clean (drafting service).
+Boot behaviour:
+  After `connectDatabase()` in apps/drafting/src/index.ts, getTemplateRegistry() runs
+  once, builds a Map<template_id, TemplateConfig> of size 92, writes mismatch report
+  to apps/drafting/template-promoter-mismatches.log if any gaps remain, and logs the
+  triple (templateCount, mismatchCount, mismatchReportPath) at info level.
+Next step:
+  - SCRUM-80 (auto-seed Template Mongo collection from the registry — depends on
+    SCRUM-78, now unblocked).
+  - SCRUM-79 (DynamicFormRenderer extension for file/currency/regex types + cascading
+    dropdowns) — independent, also next-up.
+  - Ajay needs to fill in `properties` for the 6 noisy legal_notice_* sections to
+    drop the mismatch report to zero. Filing this in inputToDev.md as a follow-up
+    when committing.
+Blockers: None.
+---

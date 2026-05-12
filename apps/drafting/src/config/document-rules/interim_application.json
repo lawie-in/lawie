@@ -1,0 +1,240 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "reviewed_on": "2026-05-12",
+    "legal_review_status": "approved",
+    "version": "1.0.0",
+    "batch": "B8b"
+  },
+  "template_id": "interim_application",
+  "title": "Interim Application (IA) for Interim Relief During Pendency",
+  "category": "writ",
+  "creditsCost": 2,
+  "court_levels": ["supreme_court", "high_court", "district_court", "tribunal"],
+  "description": "Generic interim application format for seeking interim relief (stay, injunction, ad-interim direction, exemption, condonation, urgent listing, impleadment, etc.) during pendency of a main case before Supreme Court / High Court / District Court / Tribunal.",
+  "form_schema": {
+    "applicant_name": {
+      "type": "string",
+      "required": true,
+      "label": "Applicant Full Name (usually petitioner/plaintiff in main case)"
+    },
+    "applicant_status_in_main_case": {
+      "type": "select",
+      "required": true,
+      "options": ["Petitioner", "Respondent", "Intervener", "Proposed party"],
+      "label": "Status in Main Case"
+    },
+    "non_applicant_name": {
+      "type": "string",
+      "required": true,
+      "label": "Non-Applicant Name (opposite party in main case)"
+    },
+    "main_case_number": {
+      "type": "string",
+      "required": true,
+      "label": "Main Case Number (e.g., WP(C) 1234/2026 / CS 567/2026 / SLP(C) 89/2026)"
+    },
+    "main_case_title": {
+      "type": "string",
+      "required": true,
+      "label": "Main Case Title (Petitioner v. Respondent)"
+    },
+    "court": {
+      "type": "select",
+      "required": true,
+      "options": ["Supreme Court", "High Court", "District Court", "Tribunal"],
+      "label": "Court where main case is pending"
+    },
+    "state_of_filing": {
+      "type": "select",
+      "required": false,
+      "options": ["Bihar", "Jharkhand", "Uttar Pradesh", "Delhi"],
+      "label": "State (for HC/District)"
+    },
+    "ia_type": {
+      "type": "select",
+      "required": true,
+      "options": [
+        "Stay of impugned order",
+        "Ad-interim injunction",
+        "Direction for status quo",
+        "Exemption from filing",
+        "Condonation of delay",
+        "Urgent listing / hearing",
+        "Impleadment",
+        "Substitution of party",
+        "Amendment of pleading",
+        "Production of documents",
+        "Cross-examination request",
+        "Discharge / release of attached property",
+        "Recall of order",
+        "Modification of interim order",
+        "Other (specify)"
+      ],
+      "label": "Nature of IA / Specific Interim Relief"
+    },
+    "ia_type_other_specify": { "type": "string", "required": false, "label": "If Other, specify" },
+    "grounds_for_relief": {
+      "type": "textarea",
+      "required": true,
+      "label": "Grounds for interim relief (prima facie case, balance of convenience, irreparable injury)"
+    },
+    "urgency_pleaded": {
+      "type": "boolean",
+      "required": true,
+      "label": "Urgency claim (for mentioning/listing)"
+    },
+    "urgency_reasons": {
+      "type": "textarea",
+      "required": false,
+      "label": "Reasons for urgency (if claimed)"
+    },
+    "balance_of_convenience": {
+      "type": "textarea",
+      "required": false,
+      "label": "Balance of convenience in applicant's favour (for stay/injunction)"
+    },
+    "irreparable_injury": {
+      "type": "textarea",
+      "required": false,
+      "label": "Irreparable injury if interim relief denied"
+    },
+    "undertaking_offered": {
+      "type": "textarea",
+      "required": false,
+      "label": "Undertaking offered by applicant (if any) — e.g., to deposit, not to alienate"
+    },
+    "interim_relief_prayer": {
+      "type": "textarea",
+      "required": true,
+      "label": "Specific interim relief prayer (precise wording)"
+    },
+    "ex_parte_relief_sought": {
+      "type": "boolean",
+      "required": true,
+      "label": "Ex parte ad-interim relief sought before notice?"
+    },
+    "cause_title_year": { "type": "number", "required": true, "label": "Year of Filing" }
+  },
+  "mandatory_clauses": [
+    "Cause title — 'IA No. ___ of ___ in [Main Case No. ___ of ___]' followed by applicant v. non-applicant",
+    "Reference to main case — its subject matter and stage",
+    "Specific prayer for nature of interim relief",
+    "Three-fold ground for interim relief: (i) prima facie case, (ii) balance of convenience, (iii) irreparable injury (mandatory for stay/injunction prayers)",
+    "If urgency pleaded — separate paragraph with reasons for urgent listing",
+    "If ex parte ad-interim relief sought — separate paragraph justifying why notice cannot await",
+    "Undertaking by applicant (if any)",
+    "Prayer clause — interim relief + ad-interim relief during notice period",
+    "Affidavit by applicant in support of IA",
+    "Vakalatnama (if not already on record)",
+    "Service of IA on opposite parties (if not ex parte)",
+    "Disclaimer: Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting an Interim Application (IA) for interim relief in a pending case. The standard test for interim injunction/stay is the trinity: (i) prima facie case in favour of applicant, (ii) balance of convenience in applicant's favour, (iii) irreparable injury if relief is denied — see Dalpat Kumar v. Prahlad Singh (1992) 1 SCC 719 and Wander Ltd. v. Antox India (P) Ltd. 1990 (Supp) SCC 727. For an ex parte ad-interim order, the additional threshold is that delay would defeat the very purpose of the application (Order 39 Rule 3 CPC for civil suits; equivalent inherent jurisdiction for writ courts). The IA is filed as a separate paginated document with its own cause title referencing the main case number. Drafting must be tight, urgency-tested, and specific in prayer — vague prayers like 'pass appropriate orders' fail.",
+    "tone": "tight, urgency-tested, specific in prayer",
+    "style_notes": [
+      "Use 'Hon'ble Court' throughout",
+      "IA cause title format: 'IA No. ___ of ___ in [Main Case No.]' — leave IA number blank for Registry to fill",
+      "Number paragraphs sequentially within the IA (do not continue from main pleading)",
+      "Be SPECIFIC in prayer — say exactly what order is sought (stay of which order, injunction against which act, condonation of how many days)",
+      "For stay/injunction prayers, plead all three Dalpat Kumar limbs explicitly",
+      "For urgent mentioning IAs — clearly state irreparable consequences of normal listing",
+      "Always pray for ad-interim relief pending notice + final relief on IA"
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "provisions": ["Order 39 Rules 1, 2, 3", "Section 151"],
+      "notes": "Temporary injunctions, ex parte ad-interim, inherent powers"
+    },
+    {
+      "act": "Specific Relief Act, 1963",
+      "provisions": ["Section 37"],
+      "notes": "Temporary and perpetual injunctions"
+    },
+    { "act": "Supreme Court Rules, 2013", "provisions": ["Order XXXIX"], "notes": "IAs in SC" },
+    {
+      "act": "Limitation Act, 1963",
+      "provisions": ["Section 5"],
+      "notes": "Condonation of delay applications"
+    }
+  ],
+  "key_precedents": [
+    {
+      "case": "Dalpat Kumar v. Prahlad Singh",
+      "citation": "(1992) 1 SCC 719",
+      "principle": "Trinity test for temporary injunction — prima facie case, balance of convenience, irreparable injury"
+    },
+    {
+      "case": "Wander Ltd. v. Antox India (P) Ltd.",
+      "citation": "1990 (Supp) SCC 727",
+      "principle": "Principles for interim injunction; appellate restraint"
+    },
+    {
+      "case": "Morgan Stanley Mutual Fund v. Kartick Das",
+      "citation": "(1994) 4 SCC 225",
+      "principle": "Ex parte ad-interim — must be granted only in exceptional circumstances with reasoned order"
+    },
+    {
+      "case": "Shiv Kumar Chadha v. MCD",
+      "citation": "(1993) 3 SCC 161",
+      "principle": "Order 39 Rule 3 CPC mandatory — reasons must be recorded for ex parte injunction"
+    }
+  ],
+  "filing_checklist": [
+    "IA drafted with cause title referencing main case",
+    "Affidavit of applicant in support of IA",
+    "Annexures relevant to interim relief (photographs, valuation, urgency proof)",
+    "Court fee per court rules (separate fee for IA where applicable; nominal in writs/SC)",
+    "Vakalatnama (if not on record)",
+    "Service copies for all non-applicants (unless ex parte and pleaded as such)",
+    "If ex parte: compliance with Order 39 Rule 3 — gist + copy to opposite party post-order",
+    "If urgent: mentioning slip / mentioning memo per court practice",
+    "Index and pagination consistent with main case",
+    "If SC: AOR signature; if HC/District: advocate signature with enrollment number"
+  ],
+  "validation_rules": [
+    {
+      "rule": "main_case_number must be specified — IA cannot exist independently",
+      "severity": "blocker"
+    },
+    {
+      "rule": "ia_type must be specified; if 'Other', ia_type_other_specify required",
+      "severity": "blocker"
+    },
+    {
+      "rule": "For ia_type in ['Stay of impugned order','Ad-interim injunction','Direction for status quo'] — balance_of_convenience and irreparable_injury must be filled",
+      "severity": "blocker"
+    },
+    { "rule": "If urgency_pleaded=true, urgency_reasons must be filled", "severity": "blocker" },
+    {
+      "rule": "If ex_parte_relief_sought=true, plead exceptional circumstances and Order 39 Rule 3 compliance",
+      "severity": "warning"
+    },
+    {
+      "rule": "interim_relief_prayer must be specific (named order/act) — flag generic prayers",
+      "severity": "warning"
+    }
+  ],
+  "court_variations": {
+    "Supreme Court": {
+      "rules": "SC Rules 2013, Order XXXIX",
+      "filing": "Through AOR; e-filing via SC portal; mentioning slips for urgent listing"
+    },
+    "High Court": {
+      "rules": "Respective HC Rules; CPC Order 39 + inherent jurisdiction in writs",
+      "filing": "Per HC roster; mentioning before designated bench"
+    },
+    "District Court": {
+      "rules": "CPC Order 39 Rules 1-3 + Section 151",
+      "filing": "Filing counter; urgent IAs via duty judge"
+    },
+    "Tribunal": {
+      "rules": "Tribunal-specific rules + CPC principles",
+      "filing": "As per tribunal practice"
+    }
+  },
+  "advocate_disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy, jurisdictional verification, filing, and all professional conduct under the Advocates Act, 1961 and BCI Rules."
+}

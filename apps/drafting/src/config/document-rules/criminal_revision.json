@@ -1,0 +1,311 @@
+{
+  "_meta": {
+    "description": "Document-rules config for criminal_revision — Criminal Revision Petition u/S.438 BNSS (HC) or S.442 BNSS (Sessions) — supervisory jurisdiction",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 5 criminal petitions pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Revision is supervisory, not appellate — must be flagged."
+  },
+  "template_id": "criminal_revision",
+  "docType": "criminal_revision",
+  "title": "Criminal Revision Petition under BNSS",
+  "displayName": "Criminal Revision (S.438 BNSS / S.442 BNSS)",
+  "category": "criminal_petition",
+  "creditsCost": 2,
+  "court_levels": ["high_court_criminal_side", "sessions_court"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n(CRIMINAL REVISIONAL JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{petitioner} ... Petitioner / Revisionist\nVERSUS\n{respondent} ... Respondent",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner / Revisionist" },
+      { "role": "respondent", "label": "Respondent" }
+    ],
+    "caseNomenclature": "Criminal Revision No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "revisional_forum",
+        "label": "Revisional forum",
+        "type": "select",
+        "required": true,
+        "options": ["high_court_s438_bnss", "sessions_court_s442_bnss"]
+      },
+      {
+        "id": "petitioner_name",
+        "label": "Petitioner / Revisionist name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner_status",
+        "label": "Status of petitioner in original proceedings",
+        "type": "select",
+        "required": true,
+        "options": ["accused", "complainant", "victim", "informant", "third_party_aggrieved"]
+      },
+      { "id": "respondent_name", "label": "Respondent name", "type": "text", "required": true },
+      { "id": "state_party", "label": "Is State a party?", "type": "boolean", "required": true },
+      {
+        "id": "impugned_order_court",
+        "label": "Court that passed impugned order",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "impugned_order_date",
+        "label": "Date of impugned order",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "impugned_order_nature",
+        "label": "Nature of impugned order",
+        "type": "select",
+        "required": true,
+        "options": [
+          "framing_of_charge",
+          "refusal_to_discharge",
+          "cognizance_order",
+          "process_summons_order",
+          "interlocutory_no_revision",
+          "maintenance_order",
+          "conviction_by_magistrate_acquittal_appealed_separately",
+          "sentencing_only",
+          "other_final_order"
+        ]
+      },
+      {
+        "id": "fir_or_case_details",
+        "label": "FIR / case details — number, PS, BNS sections",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "grounds_of_revision",
+        "label": "Grounds — jurisdictional error / illegality / impropriety / incorrectness",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "specific_errors",
+        "label": "Specific errors in the impugned order",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "perversity_in_findings",
+        "label": "Perversity in factual findings (if any) — must reach perverse threshold",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "no_appeal_available",
+        "label": "Statement that no appeal lies / appeal-revision distinction",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "limitation_compliance",
+        "label": "Within limitation (90 days from impugned order — Art. 131 Limitation Act)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "documents_relied_on",
+        "label": "Documents relied on — certified copies, lower court record",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Petitioner / Respondent / State"
+    },
+    {
+      "id": "impugned_order_paragraph",
+      "name": "Impugned Order Details",
+      "required": true,
+      "description": "Court, date, nature, parties below"
+    },
+    {
+      "id": "factual_background_paragraph",
+      "name": "Factual Background",
+      "required": true,
+      "description": "Lower court proceedings summary"
+    },
+    {
+      "id": "jurisdictional_basis_paragraph",
+      "name": "Revisional Jurisdiction Basis",
+      "required": true,
+      "description": "S.438 BNSS (HC) or S.442 BNSS (Sessions)"
+    },
+    {
+      "id": "grounds_paragraph",
+      "name": "Grounds of Revision",
+      "required": true,
+      "description": "Jurisdictional error / illegality / impropriety / incorrectness"
+    },
+    {
+      "id": "specific_errors_paragraph",
+      "name": "Specific Errors in Impugned Order",
+      "required": true,
+      "description": "Para-wise pointing to error"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation",
+      "required": true,
+      "description": "Within 90 days / explanation for delay"
+    },
+    {
+      "id": "no_appeal_paragraph",
+      "name": "No Appeal — Revision is Appropriate Remedy",
+      "required": true,
+      "description": "Why revision, not appeal"
+    },
+    {
+      "id": "interlocutory_bar_check",
+      "name": "Interlocutory Order Bar Check",
+      "required": true,
+      "description": "S.438(2) BNSS — no revision against pure interlocutory orders"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Set aside / modify impugned order"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Affidavit accompanying petition"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner / Revisionist most respectfully prays that this Hon'ble Court, in exercise of its revisional jurisdiction under Section {applicable_section} of the Bharatiya Nagarik Suraksha Sanhita, 2023, may graciously be pleased to:\n\na) Call for the records of the case from the Court of {impugned_order_court}, examine the correctness, legality and propriety of the impugned order dated {impugned_order_date};\n\nb) Set aside / quash / modify the impugned order dated {impugned_order_date} passed by the Court of {impugned_order_court} in {case_details};\n\nc) Pending hearing and final disposal of this revision, stay the operation of the impugned order and further proceedings before the Court below;\n\nd) Award costs of this revision;\n\ne) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner / Revisionist shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, the Petitioner / Revisionist herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above revision petition are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner / Revisionist",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a Criminal Revision Petition under appropriate provision: S.438 BNSS (HC's revisional jurisdiction; was S.397 CrPC for HC) or S.442 BNSS (Sessions Court's revisional jurisdiction).",
+      "BNSS provisions: S.438 — power of HC to call for records and examine; S.439 — corresponding power of Sessions; S.440 — power of Sessions Judge to refer to HC; S.441 — procedure on revision; S.442 — high court / sessions revision; S.443 — HC's power to order inquiry; S.527 — savings.",
+      "Note: S.438(2) BNSS — like S.397(2) CrPC — bar on revision against INTERLOCUTORY orders. Final / quasi-final orders only.",
+      "Test for interlocutory: Cite Madhu Limaye v. State of Maharashtra (1977) 4 SCC 551 — orders that decide important rights or affect ends of trial are NOT interlocutory; orders of pure procedural nature ARE interlocutory.",
+      "Cite Amar Nath v. State of Haryana (1977) 4 SCC 137 — definition of interlocutory order.",
+      "Cite Rajendra Kumar Sitaram Pande v. Uttam (1999) 3 SCC 134 — order of cognizance / summons is NOT interlocutory (revisable).",
+      "Cite Krishnan v. Krishnaveni (1997) 4 SCC 241 — bar of second revision under S.397(3) CrPC (now S.438(3) BNSS — bar to apply to both HC and Sessions in same case); HC can still exercise inherent jurisdiction.",
+      "REVISION IS SUPERVISORY, NOT APPELLATE. Scope: (i) correctness, (ii) legality, (iii) propriety of finding/sentence/order; or (iv) regularity of proceedings.",
+      "Cite Kaptan Singh v. State of MP (2011) 6 SCC 705 — revisional court has limited scope; cannot re-appreciate evidence like appellate court.",
+      "Cite State of Kerala v. Puttumana Illath Jathavedan Namboodiri (1999) 2 SCC 452 — perversity threshold for interference with factual findings in revision.",
+      "Cite Sanjay Kumar Rai v. State of UP (2021) — interlocutory orders bar, scope reiterated.",
+      "Grounds for revision: (a) jurisdictional error — court acted without jurisdiction or in excess; (b) illegality — order contrary to law or in disregard of mandatory procedure; (c) impropriety — order shocks conscience or breaches established norms; (d) factual perversity — only where finding is perverse, no evidence, or based on inadmissible evidence.",
+      "Para 1: Description of parties and status.",
+      "Para 2: Impugned order details — court, date, parties, case number.",
+      "Para 3: Brief factual background — proceedings below.",
+      "Para 4: Nature of impugned order — confirm it is NOT interlocutory; cite Madhu Limaye / Rajendra Kumar Sitaram Pande as applicable.",
+      "Para 5: Limitation — Art. 131 Limitation Act — 90 days from date of order/sentence (in case of conviction, from receipt of certified copy). If delayed, file companion S.5 Limitation Act application.",
+      "Para 6: Whether appeal lay — if appeal lies, revision generally not maintainable (per S.438(4) BNSS); revision is residual.",
+      "Para 7: Whether earlier revision was filed — bar under S.438(3) BNSS — only one revision (to either HC or Sessions, not both).",
+      "Para 8: Grounds of revision — itemise each ground with relevant precedent.",
+      "Para 9: Specific errors — paragraph-by-paragraph of impugned order with reasoning.",
+      "Para 10: Where lower court took cognizance / framed charge: refer to Bhushan Kumar v. State (NCT of Delhi) (2012) 5 SCC 424 — cognizance / summoning orders, judicial mind required.",
+      "Para 11: Where Magistrate erred in framing charges: cite Asim Shariff v. NIA (2019) 7 SCC 148; State of Maharashtra v. Som Nath Thapa (1996) 4 SCC 659 (charge framing principles).",
+      "Para 12: Where lower court misapplied BNS / Special Act ingredients — section-by-section analysis.",
+      "Para 13: Where there is procedural irregularity prejudicing fair trial.",
+      "Para 14: Interim stay sought — typically of further proceedings in trial court.",
+      "Para 15: Documents relied on — certified copies of impugned order, chargesheet, witness statements, lower court order sheet.",
+      "Note: In revision, evidence cannot be re-appreciated as appellate court would. Findings of fact stand unless perverse.",
+      "Choice of forum: Where impugned order by Magistrate — revision lies to Sessions (S.442) OR HC (S.438). Where impugned order by Sessions — revision lies only to HC. Strategic — Sessions revision may be quicker but limited; HC has wider scope and inherent powers (S.528).",
+      "Affidavit in support is mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)",
+      "sections": [
+        {
+          "number": "S.438",
+          "description": "Revisional powers of HC (replaces S.397 / S.401 CrPC)"
+        },
+        { "number": "S.438(2)", "description": "Bar on revision against interlocutory orders" },
+        { "number": "S.438(3)", "description": "Bar on second revision — one revision only" },
+        { "number": "S.438(4)", "description": "Revision not where appeal lies" },
+        { "number": "S.439", "description": "Corresponding power of Sessions" },
+        { "number": "S.440", "description": "Sessions Judge's reference to HC" },
+        { "number": "S.441", "description": "Procedure on revision" },
+        { "number": "S.442", "description": "Revisional jurisdiction of Sessions" },
+        { "number": "S.443", "description": "HC's power to order inquiry" },
+        { "number": "S.528", "description": "Inherent powers of HC — concurrent / residual" }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "Schedule Art. 131",
+          "description": "Revision — 90 days from order / sentence (or from delivery of certified copy)"
+        },
+        { "number": "S.5", "description": "Condonation of delay" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Revision petition (original + copies as per court rules)",
+    "Affidavit in support",
+    "Vakalatnama",
+    "Memo of parties",
+    "Certified copy of impugned order",
+    "Certified copy of lower court order sheet / proceedings",
+    "Relevant chargesheet documents / lower court evidence",
+    "Court fee per state Schedule",
+    "Index, synopsis, list of dates",
+    "Condonation application if filed beyond 90 days",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "revisional_forum must be specified",
+    "impugned_order_date must be valid date in past",
+    "TIME-BAR CHECK: revision must be filed within 90 days of impugned_order_date else condonation needed",
+    "impugned_order_nature must not be 'interlocutory_no_revision'",
+    "grounds_of_revision must not be empty",
+    "specific_errors must not be empty",
+    "no_appeal_available must not be empty",
+    "limitation_compliance must not be empty",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Madhu Limaye v. State of Maharashtra (1977) 4 SCC 551 — Interlocutory order definition",
+    "Amar Nath v. State of Haryana (1977) 4 SCC 137 — Interlocutory order test",
+    "Rajendra Kumar Sitaram Pande v. Uttam (1999) 3 SCC 134 — Cognizance order not interlocutory",
+    "Krishnan v. Krishnaveni (1997) 4 SCC 241 — Bar on second revision; HC's inherent jurisdiction",
+    "Kaptan Singh v. State of MP (2011) 6 SCC 705 — Revisional scope limited",
+    "State of Kerala v. Puttumana Illath Jathavedan Namboodiri (1999) 2 SCC 452 — Perversity threshold",
+    "Bhushan Kumar v. State (NCT of Delhi) (2012) 5 SCC 424 — Cognizance / summoning orders",
+    "Asim Shariff v. NIA (2019) 7 SCC 148 — Charge framing principles applied",
+    "State of Maharashtra v. Som Nath Thapa (1996) 4 SCC 659 — Charge framing standard"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

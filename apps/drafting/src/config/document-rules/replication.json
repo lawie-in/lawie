@@ -1,0 +1,277 @@
+{
+  "_meta": {
+    "description": "Document-rules config for replication — Plaintiff's replication / rejoinder to defendant's Written Statement under Order VIII R.9 CPC",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 civil pleadings pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Replication is restricted to dealing with new facts in WS; not re-statement of plaint."
+  },
+  "template_id": "replication",
+  "docType": "replication",
+  "title": "Replication / Rejoinder to Written Statement (Order VIII R.9 CPC)",
+  "displayName": "Replication (Order VIII R.9 CPC)",
+  "category": "civil_pleading",
+  "creditsCost": 2,
+  "court_levels": [
+    "civil_judge_junior_division",
+    "civil_judge_senior_division",
+    "district_judge",
+    "high_court_original_side",
+    "commercial_court_district",
+    "commercial_division_high_court"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{plaintiff} ... Plaintiff\nVERSUS\n{defendant} ... Defendant",
+    "partyDesignations": [
+      { "role": "plaintiff", "label": "Plaintiff" },
+      { "role": "defendant", "label": "Defendant" }
+    ],
+    "caseNomenclature": "Civil Suit No. _____ of [YEAR] (Replication)"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "suit_number", "label": "Suit number and year", "type": "text", "required": true },
+      { "id": "plaintiff_name", "label": "Plaintiff full name", "type": "text", "required": true },
+      {
+        "id": "plaintiff_father_name",
+        "label": "Plaintiff father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "plaintiff_age", "label": "Plaintiff age", "type": "number", "required": true },
+      {
+        "id": "plaintiff_address",
+        "label": "Plaintiff address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "ws_filing_date",
+        "label": "Date WS filed by defendant",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "leave_application_filed",
+        "label": "Leave of court obtained for replication (Order VIII R.9)",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "leave_application_date",
+        "label": "Date leave granted",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "new_facts_in_ws",
+        "label": "List of NEW facts / additional pleas in WS that require reply (not facts already covered in plaint)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "set_off_response",
+        "label": "Reply to set-off claim by defendant (if any)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "counter_claim_response",
+        "label": "Written statement to defendant's counter-claim (Order VIII R.6E)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "additional_pleas_admit_deny",
+        "label": "Para-wise response to defendant's additional pleas / new facts",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "preliminary_objections_response",
+        "label": "Response to defendant's preliminary objections (jurisdiction, limitation, maintainability)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "documents_relied",
+        "label": "Additional documents relied upon (only relating to new matters)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "no_new_cause_of_action_confirmation",
+        "label": "Confirm replication does not introduce new cause of action or relief (only addresses new defence facts)",
+        "type": "boolean",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "cause_title",
+      "name": "Cause Title and Suit Reference",
+      "required": true,
+      "description": "Court, suit number, parties"
+    },
+    {
+      "id": "leave_recital",
+      "name": "Leave of Court Recital — Order VIII R.9",
+      "required": true,
+      "description": "Replication is filed with leave of court (or pursuant to court direction)"
+    },
+    {
+      "id": "scope_recital",
+      "name": "Scope Statement",
+      "required": true,
+      "description": "Confirms replication is confined to dealing with new pleas in WS, not re-iterating plaint"
+    },
+    {
+      "id": "preliminary_objections_reply",
+      "name": "Reply to Preliminary Objections",
+      "required": false,
+      "description": "Response to maintainability / jurisdiction / limitation pleas raised in WS"
+    },
+    {
+      "id": "new_facts_response",
+      "name": "Reply to New Facts / Additional Pleas in WS",
+      "required": true,
+      "description": "Specific reply to each new fact pleaded in WS — admit / deny / counter"
+    },
+    {
+      "id": "set_off_reply",
+      "name": "Reply to Set-off (if claimed)",
+      "required": false,
+      "description": "Response to defendant's set-off claim"
+    },
+    {
+      "id": "counter_claim_ws",
+      "name": "Written Statement to Counter-claim (Order VIII R.6E)",
+      "required": false,
+      "description": "Where defendant has filed counter-claim, plaintiff files WS in reply within time fixed; replication may incorporate"
+    },
+    {
+      "id": "no_new_cause",
+      "name": "No New Cause of Action / Relief",
+      "required": true,
+      "description": "Replication cannot introduce new cause of action or expand reliefs beyond plaint"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer",
+      "required": true,
+      "description": "Reiterate reliefs sought in plaint with reference to replication"
+    },
+    {
+      "id": "verification",
+      "name": "Verification — Order VI R.15",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support — Order VI R.15(4)",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the matters stated in the above Replication, the Plaintiff most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Reject the Written Statement and the preliminary objections raised by the Defendant as being untenable in law and on facts;\n\nb) Reject the counter-claim filed by the Defendant, if any, with exemplary costs;\n\nc) Decree the suit in terms of the prayer clause of the Plaint dated ____;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Plaintiff shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {plaintiff_name}, son/daughter/wife of {plaintiff_father_name}, aged about {plaintiff_age} years, resident of {plaintiff_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above Replication are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPlaintiff",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a Replication / Rejoinder strictly under Order VIII Rule 9 CPC.",
+      "Order VIII R.9 CPC: 'No pleading subsequent to the written statement of a defendant other than by way of defence to set-off or counter-claim shall be presented except by the leave of the Court and upon such terms as the Court thinks fit; but the Court may at any time require a written statement or additional written statement from any of the parties and fix a time of not more than thirty days for presenting the same.'",
+      "KEY PRINCIPLE — Replication is NOT a matter of right. It requires LEAVE of court (or court's own direction). Many courts insist on a formal application for leave before accepting replication.",
+      "SCOPE — Replication is strictly LIMITED to dealing with new pleas / new facts introduced by defendant in WS. It is NOT an opportunity to: (a) re-state or amplify plaint; (b) introduce new cause of action; (c) expand reliefs; (d) cure defects in plaint (those require amendment under Order VI R.17).",
+      "Cite: Manmohan Singh v. Punjab National Bank (2008) — replication confined to new facts in WS; cannot be vehicle for new pleadings.",
+      "Cite: Anant Construction (P) Ltd v. Ram Niwas (1994) 56 DLT 547 (Del HC) — replication permissible only where WS introduces new facts requiring reply; plaintiff cannot bring in fresh cause of action.",
+      "Para 1: Cause title and suit reference.",
+      "Para 2: Recite that replication is filed with leave of this Hon'ble Court granted on [date] on application dated [date] / pursuant to direction of court.",
+      "Para 3: Scope statement — 'This replication is confined to dealing with the new facts and pleas raised in the Written Statement dated ____ filed by the Defendant. The Plaintiff reiterates and reaffirms the averments in the Plaint and does not seek to alter, add to or modify the cause of action or the reliefs sought therein.'",
+      "Para 4 onwards: Reply to PRELIMINARY OBJECTIONS in WS — point-by-point response to maintainability / jurisdiction / limitation / cause of action pleas.",
+      "Para X onwards: Reply to NEW FACTS pleaded by defendant in WS — admit / deny / counter for each new factual allegation.",
+      "Where defendant has pleaded payment, release, discharge, fraud, illegality etc. — these require specific reply.",
+      "Where defendant has pleaded SET-OFF (Order VIII R.6) — file reply showing set-off claim untenable.",
+      "Where defendant has filed COUNTER-CLAIM (Order VIII R.6A-6G) — Order VIII R.6E mandates plaintiff to file written statement in answer to counter-claim within time fixed by court. This is technically a separate document from replication, but commonly incorporated.",
+      "Para final: Reaffirm plaint averments and reliefs.",
+      "Tone: precise, restrained. Do not be repetitive. Confine to what is genuinely new.",
+      "Verification — Order VI R.15.",
+      "Affidavit in support — Order VI R.15(4).",
+      "Note: in Commercial Courts under CCA 2015, the procedure is somewhat streamlined and statement of truth applies (Order VI R.15A). Replication is still subject to leave under Order VIII R.9.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "Order VI R.1-18", "description": "Pleadings generally" },
+        { "number": "Order VI R.15", "description": "Verification" },
+        { "number": "Order VI R.15A", "description": "Statement of Truth in commercial suits" },
+        {
+          "number": "Order VI R.17",
+          "description": "Amendment of pleadings — separate route from replication"
+        },
+        { "number": "Order VIII R.1", "description": "Written statement timeline" },
+        { "number": "Order VIII R.6E", "description": "Reply to counter-claim — WS by plaintiff" },
+        {
+          "number": "Order VIII R.9",
+          "description": "Subsequent pleadings only with leave of court"
+        },
+        {
+          "number": "Order VIII R.10",
+          "description": "Procedure when party fails to present pleading"
+        }
+      ]
+    },
+    {
+      "act": "Commercial Courts Act, 2015",
+      "sections": [
+        {
+          "number": "Schedule (CPC amendments)",
+          "description": "Order VI R.15A — Statement of Truth in commercial suits"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Replication (original + copies for defendant and court)",
+    "Application under Order VIII R.9 CPC for leave to file replication (if not already granted)",
+    "Affidavit in support of replication (Order VI R.15(4))",
+    "Statement of Truth (if Commercial Court — Order VI R.15A)",
+    "Additional documents relating only to new matters (if any) with list",
+    "WS to counter-claim (Order VIII R.6E) — if defendant filed counter-claim",
+    "Court fee — generally nominal / fixed for subsequent pleadings (refer state Schedule)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "suit_number must not be empty",
+    "plaintiff_name must not be empty",
+    "leave_application_filed must be true (leave is mandatory under Order VIII R.9)",
+    "new_facts_in_ws must not be empty — replication is restricted to dealing with new facts",
+    "additional_pleas_admit_deny must not be empty",
+    "no_new_cause_of_action_confirmation must be true",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Manmohan Singh v. Punjab National Bank — Replication scope is limited to new facts in WS",
+    "Anant Construction (P) Ltd v. Ram Niwas (1994) 56 DLT 547 — Replication cannot introduce new pleadings; confined to WS new facts",
+    "Mahabir Prasad Jain v. Ganga Singh AIR 1999 SC 3873 — Subsequent pleadings only with leave",
+    "Gian Chand v. York Exports Ltd (2014) 14 SCC 729 — Replication / rejoinder restricted scope; not amendment substitute",
+    "Sangram Singh v. Election Tribunal AIR 1955 SC 425 — Pleadings principles and fair opportunity"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

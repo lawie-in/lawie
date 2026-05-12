@@ -1,0 +1,231 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "reviewed_on": "2026-05-12",
+    "legal_review_status": "approved",
+    "version": "1.0.0",
+    "batch": "B8b"
+  },
+  "template_id": "certiorari",
+  "title": "Writ Petition — Certiorari (Article 226/32)",
+  "category": "writ",
+  "creditsCost": 2,
+  "court_levels": ["high_court", "supreme_court"],
+  "description": "Writ of certiorari to quash an order, decision, or proceeding of an inferior court, tribunal, or quasi-judicial authority for want or excess of jurisdiction, violation of natural justice, or error of law apparent on the face of the record.",
+  "form_schema": {
+    "petitioner_name": { "type": "string", "required": true, "label": "Petitioner Full Name" },
+    "petitioner_age": { "type": "number", "required": true, "label": "Petitioner Age" },
+    "petitioner_occupation": { "type": "string", "required": true, "label": "Occupation" },
+    "petitioner_address": { "type": "string", "required": true, "label": "Petitioner Address" },
+    "respondent_authority": {
+      "type": "string",
+      "required": true,
+      "label": "Tribunal/Authority/Court whose order is impugned"
+    },
+    "respondent_address": { "type": "string", "required": true, "label": "Address of Respondent" },
+    "additional_respondents": {
+      "type": "textarea",
+      "required": false,
+      "label": "Additional Respondents (private parties to original proceedings)"
+    },
+    "state_of_filing": {
+      "type": "select",
+      "required": true,
+      "options": ["Bihar", "Jharkhand", "Uttar Pradesh", "Delhi"],
+      "label": "State"
+    },
+    "court": {
+      "type": "select",
+      "required": true,
+      "options": ["High Court", "Supreme Court"],
+      "label": "Court of Filing"
+    },
+    "article_invoked": {
+      "type": "select",
+      "required": true,
+      "options": ["226", "32", "226 and 227"],
+      "label": "Constitutional Article"
+    },
+    "impugned_order_date": { "type": "date", "required": true, "label": "Date of Impugned Order" },
+    "impugned_order_authority": {
+      "type": "string",
+      "required": true,
+      "label": "Authority/Court that passed impugned order"
+    },
+    "impugned_proceeding_no": {
+      "type": "string",
+      "required": true,
+      "label": "Case/Proceeding Number of Impugned Order"
+    },
+    "ground_invoked": {
+      "type": "multi-select",
+      "required": true,
+      "options": [
+        "Want of jurisdiction",
+        "Excess of jurisdiction",
+        "Violation of natural justice",
+        "Error of law apparent on face of record",
+        "Fraud on the court",
+        "Order procured by perjury"
+      ],
+      "label": "Grounds for Certiorari"
+    },
+    "natural_justice_breach": {
+      "type": "textarea",
+      "required": false,
+      "label": "Specific NJP breach (no hearing, biased decision-maker, etc.)"
+    },
+    "error_on_face": {
+      "type": "textarea",
+      "required": false,
+      "label": "Error of law apparent on record (specify legal provision misapplied)"
+    },
+    "jurisdictional_defect": {
+      "type": "textarea",
+      "required": false,
+      "label": "Jurisdictional defect (lack of subject-matter / pecuniary / territorial jurisdiction)"
+    },
+    "alternative_remedy_status": {
+      "type": "select",
+      "required": true,
+      "options": [
+        "No alternative remedy",
+        "Alternative remedy exhausted",
+        "Alternative remedy inadequate",
+        "Fundamental right violation"
+      ],
+      "label": "Alternative Remedy Position"
+    },
+    "relief_sought": {
+      "type": "textarea",
+      "required": true,
+      "label": "Specific relief — quash which order, what consequential direction"
+    },
+    "interim_relief": {
+      "type": "textarea",
+      "required": false,
+      "label": "Interim stay of impugned order"
+    },
+    "cause_title_year": { "type": "number", "required": true, "label": "Year of Filing" }
+  },
+  "mandatory_clauses": [
+    "Cause title with petitioner v. authority (whose order impugned) + private respondents",
+    "Jurisdiction clause — Article 226 (HC) or Article 32 (SC)",
+    "Facts narrating original proceedings",
+    "Impugned order — date, authority, case number, prayer to quash",
+    "Grounds — jurisdictional error / NJP / error on face / fraud",
+    "If NJP: specific breach (no notice, no hearing, biased forum, no opportunity to cross-examine)",
+    "If error on face: quote the impugned order passage and the legal provision misapplied",
+    "Alternative remedy clause",
+    "Limitation — writ filed within reasonable time (no rigid period, but unexplained delay fatal)",
+    "Prayer to issue writ of certiorari quashing impugned order with consequential directions",
+    "Verification + Affidavit in support",
+    "Annexure: certified copy of impugned order",
+    "Disclaimer: Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting a Writ of Certiorari under Article 226/32. Certiorari issues to quash an order of an inferior tribunal/court/quasi-judicial authority on these grounds only: (1) want or excess of jurisdiction (including jurisdictional fact wrongly assumed), (2) violation of principles of natural justice (audi alteram partem, nemo judex in causa sua), (3) error of law apparent on the face of the record (must be self-evident, not requiring long argument), (4) fraud on the court. Cite Hari Vishnu Kamath v. Ahmad Ishaque AIR 1955 SC 233 (classical grounds), Surya Dev Rai v. Ram Chander Rai (2003) 6 SCC 675 (HC certiorari over civil courts and tribunals). Certiorari does NOT lie against purely administrative orders; the body must exercise judicial or quasi-judicial functions.",
+    "tone": "formal, constitutional, surgical",
+    "style_notes": [
+      "Use 'Hon'ble Court' throughout",
+      "Annex certified copy of impugned order — pleading must refer to it as Annexure P-1",
+      "For 'error on face' ground — quote the offending passage verbatim and identify the legal error",
+      "For NJP — be specific about which limb breached (notice, hearing, bias, reasoned order)",
+      "Frame prayer as 'issue a writ of certiorari or any other appropriate writ, order or direction quashing the impugned order dated ___ passed by ___ in ___'"
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Constitution of India",
+      "provisions": ["Article 226", "Article 32", "Article 227"],
+      "notes": "Article 227 supervisory jurisdiction often clubbed with certiorari"
+    },
+    {
+      "act": "Statute under which impugned order was passed",
+      "provisions": ["As applicable"],
+      "notes": "To show authority acted in judicial/quasi-judicial capacity"
+    }
+  ],
+  "key_precedents": [
+    {
+      "case": "Hari Vishnu Kamath v. Ahmad Ishaque",
+      "citation": "AIR 1955 SC 233",
+      "principle": "Classical four grounds for certiorari: jurisdictional defect, NJP breach, error on face, fraud"
+    },
+    {
+      "case": "Surya Dev Rai v. Ram Chander Rai",
+      "citation": "(2003) 6 SCC 675",
+      "principle": "HC can issue certiorari to civil courts and tribunals subordinate to it"
+    },
+    {
+      "case": "Syed Yakoob v. K.S. Radhakrishnan",
+      "citation": "AIR 1964 SC 477",
+      "principle": "Error of law apparent on face — must be self-evident, not requiring lengthy argument"
+    },
+    {
+      "case": "T.C. Basappa v. T. Nagappa",
+      "citation": "AIR 1954 SC 440",
+      "principle": "Scope and conditions for certiorari under Article 226"
+    },
+    {
+      "case": "Radhey Shyam v. Chhabi Nath",
+      "citation": "(2015) 5 SCC 423",
+      "principle": "Certiorari against judicial orders of civil courts — overruled portion of Surya Dev Rai; Article 227 is route"
+    }
+  ],
+  "filing_checklist": [
+    "Memo of writ petition with index, synopsis, list of dates",
+    "Affidavit in support sworn before Oath Commissioner",
+    "Certified copy of impugned order (Annexure P-1) — mandatory",
+    "Copy of original proceedings/pleadings relevant to ground",
+    "If NJP ground: notice records, hearing records (or absence thereof)",
+    "Court fee per State HC Rules / SC Rules",
+    "Vakalatnama",
+    "Service copies for all respondents (authority + private parties)",
+    "If SC: AOR certificate",
+    "Compliance with HC Rules of relevant State",
+    "Caveat search (private respondents likely to file caveat)"
+  ],
+  "validation_rules": [
+    { "rule": "impugned_order_date must be specified", "severity": "blocker" },
+    { "rule": "At least one ground_invoked must be selected", "severity": "blocker" },
+    {
+      "rule": "If ground includes 'Violation of natural justice', natural_justice_breach must be filled",
+      "severity": "blocker"
+    },
+    {
+      "rule": "If ground includes 'Error of law apparent', error_on_face must be filled",
+      "severity": "blocker"
+    },
+    {
+      "rule": "Annexure of certified copy of impugned order is mandatory — flag if missing",
+      "severity": "blocker"
+    },
+    {
+      "rule": "Delay > 90 days from impugned order requires delay condonation pleading",
+      "severity": "warning"
+    },
+    {
+      "rule": "Certiorari does not lie against purely administrative/legislative action — flag if pleading suggests this",
+      "severity": "warning"
+    }
+  ],
+  "state_variations": {
+    "Bihar": {
+      "court": "Patna High Court",
+      "rules": "Patna HC Rules, 1916 — Chapter on Writs",
+      "notes": "Article 227 often invoked along with 226"
+    },
+    "Jharkhand": { "court": "Jharkhand High Court at Ranchi", "rules": "Jharkhand HC Rules, 2001" },
+    "Uttar Pradesh": {
+      "court": "Allahabad HC / Lucknow Bench",
+      "rules": "Allahabad HC Rules, 1952 — Chapter XXII",
+      "notes": "CMWP (Civil Misc Writ Petition) for service matters; service tribunal orders"
+    },
+    "Delhi": {
+      "court": "Delhi High Court",
+      "rules": "Delhi HC (OS) Rules, 2018; Delhi HC Rules for writs"
+    }
+  },
+  "advocate_disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy, jurisdictional verification, filing, and all professional conduct under the Advocates Act, 1961 and BCI Rules."
+}

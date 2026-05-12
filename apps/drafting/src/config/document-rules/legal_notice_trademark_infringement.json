@@ -1,0 +1,211 @@
+{
+  "_meta": {
+    "description": "Document-rules config for legal_notice_trademark_infringement — cease & desist notice under Trade Marks Act, 1999",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — drafted 2026-05-12 in Batch 2 templates",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Verify trademark registration certificate and class before issuing infringement notice."
+  },
+  "docType": "legal_notice_trademark_infringement",
+  "parentDocType": "legal_notice",
+  "displayName": "Legal Notice — Trademark Infringement / Passing Off (Cease & Desist)",
+  "category": "notice",
+  "creditsCost": 1,
+  "court_levels": ["pre_litigation"],
+  "causeTitle": {
+    "format": "LEGAL NOTICE\n(Cease & Desist — Under the Trade Marks Act, 1999)\n\nTo,\n{respondent}\n{respondentAddress}\n\nFrom,\n{applicant}\nThrough: {advocateName}, Advocate\n{advocateAddress}",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Sender / Proprietor / Registered Owner" },
+      { "role": "respondent", "label": "Noticee / Infringer" }
+    ],
+    "caseNomenclature": "N/A"
+  },
+  "form_schema": {
+    "sender": { "type": "object", "required": ["name", "address", "business_description"] },
+    "recipient": { "type": "object", "required": ["name", "address", "business_description"] },
+    "trademark": {
+      "type": "object",
+      "required": [
+        "mark",
+        "registration_number",
+        "class_nice",
+        "date_of_registration",
+        "date_of_user",
+        "goods_or_services",
+        "registry"
+      ],
+      "note": "If unregistered, proceed on passing-off basis with proof of prior user and goodwill"
+    },
+    "infringement_particulars": {
+      "type": "object",
+      "required": [
+        "infringing_mark",
+        "date_of_first_use",
+        "medium_of_use",
+        "goods_or_services_of_infringer",
+        "evidence",
+        "similarity_basis"
+      ]
+    },
+    "relief_demanded": {
+      "type": "object",
+      "required": [
+        "cease_and_desist",
+        "delivery_up_of_infringing_goods",
+        "destruction_of_packaging_marketing_material",
+        "account_of_profits_or_damages",
+        "removal_of_online_listings",
+        "undertaking",
+        "response_deadline_days"
+      ]
+    }
+  },
+  "mandatoryClauses": [
+    {
+      "id": "proprietorship",
+      "name": "Proprietorship of Trademark",
+      "required": true,
+      "description": "Establish ownership — registration number, class, date of registration, date of user; or unregistered prior user for passing off"
+    },
+    {
+      "id": "goodwill_reputation",
+      "name": "Goodwill & Reputation",
+      "required": true,
+      "description": "Reputation accrued through long, continuous, and extensive use; sales figures, advertising spend, market reach"
+    },
+    {
+      "id": "infringement_particulars",
+      "name": "Particulars of Infringement",
+      "required": true,
+      "description": "Identify infringing mark, products/services, medium of use, similarity (visual/phonetic/conceptual), and likelihood of confusion"
+    },
+    {
+      "id": "statutory_basis",
+      "name": "Statutory Basis",
+      "required": true,
+      "description": "Sections 28 (rights of registered proprietor), 29 (infringement), 134 (jurisdiction), 135 (relief) of Trade Marks Act, 1999"
+    },
+    {
+      "id": "cease_and_desist",
+      "name": "Cease & Desist Demand",
+      "required": true,
+      "description": "Immediate cessation of use, removal of listings, recall and delivery up of infringing goods, destruction of materials"
+    },
+    {
+      "id": "damages_or_account",
+      "name": "Damages / Account of Profits",
+      "required": true,
+      "description": "Claim for damages or account of profits at proprietor's election"
+    },
+    {
+      "id": "undertaking",
+      "name": "Written Undertaking",
+      "required": true,
+      "description": "Demand for written undertaking not to repeat the infringement, supported by affidavit"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and BCI enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "You are hereby called upon to, within {response_days} ({response_days_words}) days of receipt of this notice:\n(a) IMMEDIATELY CEASE AND DESIST from all use, in any manner whatsoever — including manufacturing, marketing, advertising, selling, offering for sale, importing, exporting, or displaying on any medium including online platforms — of the mark '{infringing_mark}' or any mark deceptively similar to my client's registered trademark '{client_mark}' (Registration No. {registration_number}, Class {class_nice});\n(b) Recall from the market and DELIVER UP to my client all infringing goods, packaging, labels, brochures, signage, and marketing material bearing the impugned mark, for destruction;\n(c) DESTROY all moulds, plates, digital files, and means of production of the impugned mark;\n(d) Remove and de-list all online listings (including on e-commerce marketplaces, social media, and your own websites) bearing the impugned mark, and provide proof thereof;\n(e) Render a true and faithful account of profits earned from sale of infringing goods/services, OR pay damages in the sum of Rs. {damages_amount}/- at my client's election;\n(f) Furnish a written UNDERTAKING, supported by an affidavit, that you shall not, directly or indirectly, by yourself or through any agent or assign, use the said impugned mark or any deceptively similar mark in future;\n(g) Reimburse the cost of this notice and legal expenses.\n\nFailing the above, my client shall be constrained to file a suit for permanent injunction, delivery up, damages, account of profits, and costs, before the competent court of jurisdiction under Section 134 of the Trade Marks Act, 1999 — and seek interim and ad-interim injunctions including ex-parte orders — entirely at your risk, cost, and consequences.\n\nThis notice is without prejudice to and reserves all rights of my client, including the right to initiate criminal proceedings under Sections 103, 104 and 105 of the Trade Marks Act, 1999.",
+  "verificationTemplate": "",
+  "filingChecklist": [
+    "Notice sent by Registered Post AD / Speed Post AD",
+    "Also serve by email and courier (especially for time-sensitive online infringements)",
+    "Postal receipts, AD card, and delivery proof preserved",
+    "Trademark Registration Certificate / TM Renewal Certificate annexed",
+    "Evidence of prior, continuous, and extensive user preserved — sales invoices, advertising material, third-party recognition",
+    "Screenshots and archived copies of infringing online use (with timestamps via archive.org or notarised) preserved before issuing notice",
+    "Physical samples of infringing goods preserved with chain of custody",
+    "Suit for infringement / passing off under Section 134 — can be filed where proprietor resides or carries on business (additional forum beyond defendant's place)",
+    "Consider parallel applications: rectification of trade marks register (if infringer has separate registration), customs notice for IPR enforcement, takedown to platforms under intermediary rules"
+  ],
+  "relevantActs": [
+    {
+      "act": "Trade Marks Act, 1999",
+      "sections": [
+        { "number": "28", "description": "Rights conferred by registration of trademark" },
+        { "number": "29", "description": "Infringement of registered trademarks" },
+        { "number": "30", "description": "Limits on effect of registered trademark" },
+        {
+          "number": "103",
+          "description": "Penalty for applying false trademarks, trade descriptions, etc."
+        },
+        {
+          "number": "104",
+          "description": "Penalty for selling goods or providing services to which false trademark or false trade description applied"
+        },
+        { "number": "105", "description": "Enhanced penalty on second or subsequent conviction" },
+        {
+          "number": "134",
+          "description": "Suit for infringement — jurisdiction extended to where plaintiff resides or carries on business"
+        },
+        {
+          "number": "135",
+          "description": "Relief in suits for infringement or for passing off — injunction, damages, account of profits, delivery up"
+        }
+      ]
+    },
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "Order XXXIX Rules 1 & 2", "description": "Temporary injunctions" },
+        { "number": "Order XXXIX Rule 3", "description": "Ex parte ad-interim injunction" }
+      ]
+    },
+    {
+      "act": "Information Technology Act, 2000",
+      "sections": [
+        {
+          "number": "79",
+          "description": "Intermediary liability — basis for online takedown demand to platforms"
+        }
+      ]
+    },
+    {
+      "act": "Commercial Courts Act, 2015",
+      "sections": [
+        {
+          "number": "12A",
+          "description": "Pre-Institution Mediation — mandatory unless urgent interim relief is sought (IP suits routinely seek injunction so this is generally excluded)"
+        }
+      ]
+    }
+  ],
+  "validation_rules": [
+    {
+      "rule": "registration_or_prior_user_required",
+      "description": "Either valid registration certificate OR demonstrable prior user (for passing off) must be established"
+    },
+    {
+      "rule": "class_must_match_or_overlap",
+      "description": "Infringing goods/services should fall within same/cognate class for infringement; for dissimilar goods, S.29(4) cross-class protection requires reputation"
+    },
+    {
+      "rule": "response_window_7_to_15_days",
+      "description": "Trademark cease & desist typically allows 7-15 days; no statutory cooling-off but reasonable opportunity recommended"
+    },
+    {
+      "rule": "preserve_evidence_before_notice",
+      "description": "Capture infringement evidence (screenshots, samples) BEFORE issuing notice; addressee will likely modify on receiving notice"
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Cease & Desist Legal Notice for Trademark Infringement under the Trade Marks Act, 1999.",
+    "Cite Sections 28 (rights), 29 (infringement), 134 (jurisdiction — plaintiff's place), 135 (relief).",
+    "Establish my client's proprietorship — registration number, class (NICE classification), date of registration, date of user, goods/services covered. If unregistered, base notice on passing off and prove prior user + goodwill + misrepresentation + damage.",
+    "Set out goodwill — duration of use, sales figures, advertising spend, market presence.",
+    "Particularise the infringement — exact infringing mark, products/services on which it is used, channels (offline/online), date of first detection, evidence preserved.",
+    "Analyse similarity — visual, phonetic, structural, conceptual — and likelihood of confusion / association.",
+    "Demand: (a) immediate cease and desist, (b) recall and delivery up of infringing goods, (c) destruction of packaging and marketing material, (d) removal of online listings, (e) account of profits or damages at proprietor's election, (f) written undertaking on affidavit, (g) costs.",
+    "State that on default, suit for permanent injunction with prayer for interim and ex-parte ad-interim orders will be filed in the competent court (HC or Commercial Court) under S.134.",
+    "Reserve criminal remedy under Sections 103-105.",
+    "Reserve right to approach customs for IPR enforcement and platforms for intermediary takedown.",
+    "Allow 7-15 days response — keep window tight for IP matters; reservation of right to seek ex parte injunction if continued use.",
+    "Use firm and assertive legal language.",
+    "Do NOT generate the advocate signature block — it is added programmatically."
+  ]
+}
