@@ -2555,7 +2555,7 @@ Dependencies: None — runs in parallel with SCRUM-78 + SCRUM-80.
 ID: scrum-80-template-auto-seed
 Filed by: Priya · PM
 Filed on: 2026-05-12
-Status: To Do
+Status: Done (Vishal-Opus, 2026-05-12)
 Jira: SCRUM-80 (https://abhinava32.atlassian.net/browse/SCRUM-80)
 Figma: N/A
 Priority: P0

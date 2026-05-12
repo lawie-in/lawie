@@ -1765,3 +1765,94 @@ Next step:
 Blockers: None for SCRUM-79. Storybook + web test infra are open questions
   for Priya/Arjun (separate from this ticket).
 ---
+
+---
+Date: 2026-05-12
+Session: Opus
+Task: SCRUM-80 — Auto-seed Template Mongo collection from the doc-rules registry at boot
+Status: Done
+Code changed:
+  New files:
+  - apps/drafting/src/services/template-seed.service.ts — one-way filesystem
+    → Mongo reconciler. Exports `syncTemplateRegistry(registry)` returning
+    {inserted, updated, unchanged, deactivated}, plus `runBootSync()` that
+    wraps it with a structured log line. Diff is computed via a sha256
+    contentHash stored at `source.contentHash` so the second boot pass is
+    a pure unchanged-count.
+  - apps/drafting/src/models/TemplateUsage.model.ts — new collection.
+    usageCount was previously living on Template; per ADR-018 it moves out
+    so the app can write usage events without touching the read-through
+    Template cache.
+  - apps/drafting/src/__tests__/template-seed.test.ts — 6 tests covering
+    empty-DB insert, two-pass idempotency, content-drift update, removal
+    deactivation, re-activation when a template_id reappears, and
+    contentHash persistence.
+  Modified files:
+  - apps/drafting/src/models/Template.model.ts — REWRITTEN. Schema is now a
+    loose mirror of TemplateConfig: templateId/slug/displayName/category as
+    free strings (no narrow enums), full formSchema/documentStructure/
+    validationRules/metadata as Mixed types, creditsCost/courtLevels/states/
+    supportedLanguages/icon/planAccess/filingChecklist/relatedActs/source/
+    sourceFile/isActive/promotedAt all explicit. usageCount removed —
+    lives on TemplateUsage. Strict required-validators reduced to the
+    minimum the read-through cache cares about (templateId, slug,
+    displayName, category, sourceFile).
+  - apps/drafting/src/index.ts — boot path: after `getTemplateRegistry()`,
+    runs `await runBootSync()` before the listen() call. Errors are logged
+    but never abort startup (catalog falls back to the in-memory registry).
+  - apps/drafting/src/routes/templates.routes.ts — response shape switched
+    to the new field names (`templateId`, `displayName`, `courtLevels`,
+    `creditsCost`). Dropped `usageCount` projection (lives in
+    TemplateUsage now).
+  - apps/drafting/src/scripts/seed-templates.ts — REWRITTEN. The 5 inline
+    starter templates are gone (they were the pre-ADR seed). Script now
+    delegates to `syncTemplateRegistry()` so `yarn workspace
+    @lawie/drafting seed:templates` runs the same reconcile a fresh boot
+    does, against whichever MONGO_URI is in scope.
+  - apps/drafting/src/__tests__/template.model.test.ts — REWRITTEN. The
+    old strict-schema assertions (`rejects invalid category`, requires
+    promptTemplate / reviewedBy / etc.) no longer apply. 8 new tests
+    confirm: minimal-fields create + defaults; CLO-authored category
+    strings outside the legacy enum accepted; required fields are now
+    just templateId/displayName/sourceFile; unique on templateId;
+    planAccess still restricted to free|pro; Mixed types hold form
+    schema cleanly.
+  - apps/drafting/src/__tests__/templates.routes.test.ts — updated
+    seedTemplates() to use the new schema; route assertions unchanged.
+Acceptance check:
+  ✅ App boot populates 92 Template records — verified by live smoke
+     against dev Atlas: `Template registry → Mongo sync complete
+     inserted=0 updated=0 unchanged=92 deactivated=0` on pass 2.
+  ✅ Running boot twice is idempotent — pass 2 is pure unchanged-count;
+     no extra writes (idempotency proved both in jest + live Atlas).
+  ✅ Manual file edit triggers re-seed on next boot — contentHash diff
+     detection in syncTemplateRegistry catches any registry-side change.
+  ✅ usage_count moved to TemplateUsage.model.ts (separate concern).
+Transition detail (live Atlas):
+  Caught a real bug during smoke: pre-SCRUM-80 rows in the existing dev
+  Atlas had no `templateId` field, only `slug`. First reconcile pass
+  missed them because my existing-row lookup keyed on templateId.
+  Fixed by falling back to `slug` in both the read query and the
+  deactivation update (`{$or: [{templateId}, {slug}]}`). After the fix
+  the 5 stale seed-templates rows from yesterday are correctly marked
+  inactive on first boot, then stay quiet on subsequent boots. Final
+  dev Atlas state: 97 total rows, 92 active (registry-driven), 5
+  inactive (legacy from pre-ADR seed).
+Test results:
+  Touched-surface (template-promoter, template-engine, template-seed,
+  template.model, templates.routes, prompt-assembler, post-processor,
+  validator, coherence, preflight, app-settings, review, annexures,
+  document-export, referral-bonus): 371/371 in ~18s. tsc clean.
+Next step:
+  - SCRUM-81 (migrate 6 originals + golden-PDF diff gate) — the gating
+    ticket. Requires running the promoter path against bail_anticipatory
+    / bail_regular / consumer_complaint / legal_notice_s138 /
+    legal_notice_s80 / rent_agreement and confirming the rendered PDF
+    matches the current production output byte-for-byte (or close
+    enough per the ADR's 5% layout-drift tolerance).
+  - SCRUM-82 (hand-tune top-10 revenue templates) — parallel with 81.
+Blockers: None for SCRUM-80. SCRUM-81 needs Ajay sign-off on each diff
+  and the existing court-rules-golden snapshot baseline (which has 14
+  pre-existing diffs from Ajay's parallel config edits — see SCRUM-67
+  diary note — that may also need refreshing first).
+---
