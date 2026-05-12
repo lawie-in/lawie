@@ -2,8 +2,12 @@
  * Seed script — inserts 5 CLO-validated starter templates.
  * Run: npx ts-node src/scripts/seed-templates.ts
  */
+import path from 'path';
+
 import dotenv from 'dotenv';
-dotenv.config({ path: `.env.${process.env.NODE_ENV ?? 'development'}` });
+dotenv.config({
+  path: path.resolve(__dirname, `../../../../.env.${process.env.NODE_ENV ?? 'development'}`),
+});
 import mongoose from 'mongoose';
 
 import { Template } from '../models/Template.model';
