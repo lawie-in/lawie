@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { HeaderCreditPill } from '@/components/credits/HeaderCreditPill';
 import Sidebar from '@/components/dashboard/Sidebar';
+import { SectionFinderPanel } from '@/components/sections/SectionFinderPanel';
 import { useAuth } from '@/context/AuthContext';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -65,6 +66,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
       </div>
+
+      {/* Section finder — globally mounted, lawyer can pop it open from any page */}
+      <SectionFinderPanel />
     </div>
   );
 }
