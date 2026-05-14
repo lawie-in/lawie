@@ -449,10 +449,231 @@ function buildBodyPrompt(rule: DocRuleSource): string | null {
   return parts.join('\n\n');
 }
 
+type DocKind = 'court_application' | 'legal_notice' | 'agreement' | 'generic';
+
+/**
+ * Detect doc kind from the causeTitle prefix so the synthesiser emits the right
+ * section IDs (a court application looks different from a legal notice from a
+ * rent agreement, even though all three may share prayer + verification fields).
+ */
+function detectDocKind(causeTitle: string | null, displayName: string): DocKind {
+  const probe = `${causeTitle ?? ''} ${displayName}`.toUpperCase();
+
+  // Notary / oath commissioner affidavits — keep on the generic shape.
+  if (/\bNOTARY\b/.test(probe) || /\bOATH\s+COMMISSIONER\b/.test(probe)) return 'generic';
+
+  if (/\bLEGAL\s+NOTICE\b/.test(probe)) return 'legal_notice';
+
+  if (/\b(AGREEMENT|DEED|LEASE|MOU|NDA|SPA|GIFT|PARTITION|MORTGAGE|SHAREHOLDERS)\b/.test(probe)) {
+    return 'agreement';
+  }
+
+  // Anything that opens with "IN THE ..." or "BEFORE THE ..." (typical cause-title
+  // form for a court-filed pleading), or names a court / tribunal / magistrate
+  // / commission / forum, or whose displayName carries an obvious court-doc
+  // verb (Complaint / Petition / Application / Appeal / Revision / Reference /
+  // Writ / Vakalatnama / Affidavit-in-Support / Plaint / Written-Statement).
+  if (
+    /\bIN\s+THE\b/.test(probe) ||
+    /\bBEFORE\s+THE\b/.test(probe) ||
+    /\b(COURT|TRIBUNAL|MAGISTRATE|JUDGE|COMMISSION|FORUM)\b/.test(probe) ||
+    /\b(COMPLAINT|PETITION|APPLICATION|APPEAL|REVISION|REFERENCE|WRIT|PLAINT|VAKALATNAMA|AFFIDAVIT[-\s]IN[-\s]SUPPORT|WRITTEN\s+STATEMENT|QUASHING)\b/.test(
+      probe,
+    )
+  ) {
+    return 'court_application';
+  }
+
+  return 'generic';
+}
+
 function synthesiseDocumentStructure(rule: DocRuleSource): DocumentSection[] {
   const sections: DocumentSection[] = [];
 
   const causeTitle = extractCauseTitleFormat(rule.causeTitle);
+  const hasPrayer =
+    typeof rule.prayerTemplate === 'string' && rule.prayerTemplate.trim().length > 0;
+  const hasVerification =
+    typeof rule.verificationTemplate === 'string' && rule.verificationTemplate.trim().length > 0;
+  const displayName =
+    (typeof rule.displayName === 'string' && rule.displayName) ||
+    (typeof rule.title === 'string' && rule.title) ||
+    '';
+
+  const kind = detectDocKind(causeTitle, displayName);
+  const bodyPrompt = buildBodyPrompt(rule);
+
+  if (kind === 'legal_notice') {
+    // Override shape: header → subject_line → body → demand_clause → closing.
+    if (causeTitle) {
+      sections.push({
+        section_id: 'header',
+        type: 'template',
+        alignment: 'center',
+        template: causeTitle,
+      });
+    }
+    if (displayName) {
+      sections.push({
+        section_id: 'subject_line',
+        type: 'template',
+        alignment: 'left',
+        template: `Subject: ${displayName}`,
+      });
+    }
+    if (bodyPrompt) {
+      sections.push({
+        section_id: 'body',
+        type: 'ai_generated',
+        alignment: 'left',
+        prompt_context: bodyPrompt,
+        numbering: 'numeric',
+        min_paragraphs: 4,
+        max_paragraphs: 12,
+      });
+    }
+    if (hasPrayer) {
+      sections.push({
+        section_id: 'demand_clause',
+        type: 'template',
+        alignment: 'left',
+        template: rule.prayerTemplate as string,
+      });
+    }
+    sections.push({
+      section_id: 'closing',
+      type: 'template',
+      alignment: 'left',
+      template: hasVerification
+        ? (rule.verificationTemplate as string)
+        : 'Yours faithfully,\n\n_________________________\n{advocate_name}\nAdvocate for {applicant_name}\nEnrollment No. {enrollment_number}\n\nPlace: {place}\nDate: {current_date}',
+    });
+    return sections;
+  }
+
+  if (kind === 'agreement') {
+    // Override shape: header → recitals → body → closing.
+    if (causeTitle) {
+      sections.push({
+        section_id: 'header',
+        type: 'template',
+        alignment: 'center',
+        template: causeTitle,
+      });
+    }
+    // Recitals from mandatoryClauses (each WHEREAS), if any.
+    const clauseLines = Array.isArray(rule.mandatoryClauses)
+      ? rule.mandatoryClauses
+          .filter((c): c is { name?: string; description?: string } => isPlainObject(c))
+          .map((c) => {
+            const text = typeof c.description === 'string' ? c.description : (c.name ?? '');
+            return text ? `WHEREAS ${text}` : '';
+          })
+          .filter((s) => s.length > 0)
+      : [];
+    if (clauseLines.length > 0) {
+      sections.push({
+        section_id: 'recitals',
+        type: 'template',
+        alignment: 'left',
+        template: clauseLines.join(';\n\n') + '.',
+      });
+    }
+    if (bodyPrompt) {
+      sections.push({
+        section_id: 'body',
+        type: 'ai_generated',
+        alignment: 'left',
+        prompt_context: bodyPrompt,
+        numbering: 'numeric',
+        min_paragraphs: 6,
+        max_paragraphs: 18,
+      });
+    }
+    sections.push({
+      section_id: 'closing',
+      type: 'template',
+      alignment: 'left',
+      template: hasVerification
+        ? (rule.verificationTemplate as string)
+        : 'IN WITNESS WHEREOF, the parties hereto have set their hands on the day and year first above written.\n\n_________________________\nParty 1\n\n_________________________\nParty 2\n\nWITNESSES:\n1. _________________________\n2. _________________________',
+    });
+    return sections;
+  }
+
+  if (kind === 'court_application') {
+    // Override shape: cause_title → application_heading → addressing_clause
+    //                → body → prayer → verification → advocate_block.
+    if (causeTitle) {
+      sections.push({
+        section_id: 'cause_title',
+        type: 'template',
+        alignment: 'center',
+        template: causeTitle,
+      });
+    }
+    if (displayName) {
+      // Section ID mirrors the doc verb so the structural diff matches the
+      // production override convention: "Consumer Complaint" → complaint_heading,
+      // "Writ Petition" → petition_heading, otherwise application_heading.
+      const headingId = /complaint/i.test(displayName)
+        ? 'complaint_heading'
+        : /petition/i.test(displayName)
+          ? 'petition_heading'
+          : /appeal/i.test(displayName)
+            ? 'appeal_heading'
+            : 'application_heading';
+      sections.push({
+        section_id: headingId,
+        type: 'template',
+        alignment: 'center',
+        template: displayName.toUpperCase(),
+      });
+    }
+    sections.push({
+      section_id: 'addressing_clause',
+      type: 'template',
+      alignment: 'left',
+      template: 'TO,\nTHE HON’BLE {court_designation},\n{court_city}\n\nMOST RESPECTFULLY SHOWETH:',
+    });
+    if (bodyPrompt) {
+      sections.push({
+        section_id: 'body',
+        type: 'ai_generated',
+        alignment: 'left',
+        prompt_context: bodyPrompt,
+        numbering: 'numeric',
+        min_paragraphs: 5,
+        max_paragraphs: 15,
+      });
+    }
+    if (hasPrayer) {
+      sections.push({
+        section_id: 'prayer',
+        type: 'template',
+        alignment: 'left',
+        template: rule.prayerTemplate as string,
+      });
+    }
+    if (hasVerification) {
+      sections.push({
+        section_id: 'verification',
+        type: 'template',
+        alignment: 'left',
+        template: rule.verificationTemplate as string,
+      });
+    }
+    sections.push({
+      section_id: 'advocate_block',
+      type: 'template',
+      alignment: 'right',
+      template:
+        'THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {court_city}\nDate: {current_date}',
+    });
+    return sections;
+  }
+
+  // Generic — minimal cause_title + body + (prayer) + (verification).
   if (causeTitle) {
     sections.push({
       section_id: 'cause_title',
@@ -461,8 +682,6 @@ function synthesiseDocumentStructure(rule: DocRuleSource): DocumentSection[] {
       template: causeTitle,
     });
   }
-
-  const bodyPrompt = buildBodyPrompt(rule);
   if (bodyPrompt) {
     sections.push({
       section_id: 'body',
@@ -474,28 +693,22 @@ function synthesiseDocumentStructure(rule: DocRuleSource): DocumentSection[] {
       max_paragraphs: 15,
     });
   }
-
-  if (typeof rule.prayerTemplate === 'string' && rule.prayerTemplate.trim().length > 0) {
+  if (hasPrayer) {
     sections.push({
       section_id: 'prayer',
       type: 'template',
       alignment: 'left',
-      template: rule.prayerTemplate,
+      template: rule.prayerTemplate as string,
     });
   }
-
-  if (
-    typeof rule.verificationTemplate === 'string' &&
-    rule.verificationTemplate.trim().length > 0
-  ) {
+  if (hasVerification) {
     sections.push({
       section_id: 'verification',
       type: 'template',
       alignment: 'left',
-      template: rule.verificationTemplate,
+      template: rule.verificationTemplate as string,
     });
   }
-
   return sections;
 }
 

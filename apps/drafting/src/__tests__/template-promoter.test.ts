@@ -455,12 +455,13 @@ describe('template-promoter', () => {
       expect(config.document_structure.sections).toEqual([]);
     });
 
-    it('emits sections in canonical order: cause_title → body → prayer → verification', () => {
+    it('emits the full court-application stack when causeTitle + prayer + verification all present', () => {
       const { config } = promoteDocRuleToTemplateConfig(
         {
           template_id: 't',
-          category: 'c',
-          causeTitle: 'CAUSE',
+          category: 'criminal',
+          displayName: 'Anticipatory Bail Application',
+          causeTitle: 'IN THE COURT OF SESSIONS JUDGE',
           prompt_context: 'BODY',
           prayerTemplate: 'PRAYER',
           verificationTemplate: 'VERIFY',
@@ -469,10 +470,73 @@ describe('template-promoter', () => {
       );
       expect(config.document_structure.sections.map((s) => s.section_id)).toEqual([
         'cause_title',
+        'application_heading',
+        'addressing_clause',
         'body',
         'prayer',
         'verification',
+        'advocate_block',
       ]);
+    });
+
+    it('routes legal notices to the notice section shape (header → subject_line → body → demand_clause → closing)', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        {
+          template_id: 't',
+          category: 'civil',
+          displayName: 'Cheque Bounce Notice u/s 138 NI Act',
+          causeTitle: 'LEGAL NOTICE',
+          prompt_context: 'Draft.',
+          prayerTemplate: 'TAKE NOTICE that...',
+          verificationTemplate: 'Yours faithfully,...',
+        },
+        't.json',
+      );
+      const ids = config.document_structure.sections.map((s) => s.section_id);
+      expect(ids).toEqual(['header', 'subject_line', 'body', 'demand_clause', 'closing']);
+      expect(ids).not.toContain('cause_title');
+      expect(ids).not.toContain('advocate_block');
+    });
+
+    it('routes rent/lease/MOU/etc agreements to the agreement section shape (header → recitals → body → closing)', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        {
+          template_id: 't',
+          category: 'civil',
+          displayName: 'Rent Agreement',
+          causeTitle: 'RENT AGREEMENT / LEASE DEED',
+          prompt_context: 'Draft.',
+          mandatoryClauses: [
+            { name: 'parties', description: 'Landlord and Tenant identified' },
+            { name: 'consideration', description: 'Monthly rent of {rent} payable in advance' },
+          ],
+          verificationTemplate: 'IN WITNESS WHEREOF...',
+        },
+        't.json',
+      );
+      const ids = config.document_structure.sections.map((s) => s.section_id);
+      expect(ids).toEqual(['header', 'recitals', 'body', 'closing']);
+      const recitals = config.document_structure.sections.find((s) => s.section_id === 'recitals');
+      expect(recitals!.template).toContain('WHEREAS Landlord and Tenant identified');
+    });
+
+    it('keeps generic affidavits (non-court, non-notice, non-agreement) on the minimal shape', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        {
+          template_id: 't',
+          category: 'non_court_legal_document',
+          displayName: 'Affidavit of Identity',
+          causeTitle: 'BEFORE THE NOTARY PUBLIC',
+          prompt_context: 'BODY',
+          verificationTemplate: 'VERIFICATION',
+        },
+        't.json',
+      );
+      const ids = config.document_structure.sections.map((s) => s.section_id);
+      expect(ids).toEqual(['cause_title', 'body', 'verification']);
+      expect(ids).not.toContain('application_heading');
+      expect(ids).not.toContain('addressing_clause');
+      expect(ids).not.toContain('advocate_block');
     });
   });
 
