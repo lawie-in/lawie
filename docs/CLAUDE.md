@@ -1952,3 +1952,57 @@ Next step:
 Blockers: None code-side. SCRUM-82 needs Ajay's authoring; the deferred
   PDF byte-diff needs the promoter section-synthesis follow-up first.
 ---
+
+---
+Date: 2026-05-14
+Session: Opus
+Task: SCRUM-84 — Promoter document_structure.sections synthesis (Sprint 2)
+Status: Done
+Code changed:
+  Modified files:
+  - apps/drafting/src/services/template-promoter.ts — new
+    synthesiseDocumentStructure(rule) builds a renderable sections[] array
+    from CLO source fields. Synthesis order: cause_title (template) → body
+    (ai_generated, combines prompt_context + numbered promptInstructions +
+    mandatoryClauses listed as MUST INCLUDE requirements in one prompt
+    instead of one section per clause — kept to a single AI call to control
+    latency + spend) → prayer (template) → verification (template). Each
+    section is skipped if its source field is absent or empty.
+  - apps/drafting/src/__tests__/template-promoter.test.ts — 8 new tests
+    covering: causeTitle as {format} object, causeTitle as plain string,
+    body prompt assembly with all three input streams, fallback from
+    mandatoryClauses (objects) to mandatory_clauses (strings) when only the
+    string variant is present, prayer + verification template emission,
+    skipping empty / whitespace-only fields, fully-empty source returning
+    sections: [], canonical section order.
+Live smoke against 92 doc-rules:
+  - 77/92 templates now have ≥1 synthesised section (was 6/92 — the
+    overrides only).
+  - 48 docs have all 4 sections (cause_title + body + prayer + verification).
+  - 17 docs have just body (legal notices etc — no court prayer or
+    verification by design).
+  - 15 docs still empty: 6 are production overrides (engine bypasses the
+    promoted shape via override path — not a bug), the other 9 are CLO
+    docs with no causeTitle / prompt_context / prayerTemplate /
+    verificationTemplate / mandatoryClauses at all. Those need CLO
+    follow-up; promoter cannot fabricate prompts.
+SCRUM-81 diff impact (regenerated apps/drafting/template-promoter-diff.md):
+  - doc_structure drift on the 6 originals fell 1.00 → 0.43 for
+    bail_anticipatory / bail_regular / consumer_complaint (4 of 7 section
+    ids shared) and 1.00 → 0.80–0.86 for legal_notice_s80 /
+    legal_notice_s138 / rent_agreement (1 of 7 shared — they need synthesised
+    application_heading and addressing_clause sections the override has).
+  - Verdict still 'keep' for all 6 because form_fields drift = 1.00
+    dominates; that resolves when Ajay ships SCRUM-89 (form_schema on the
+    6 originals). SCRUM-84 alone can't retire overrides; SCRUM-84 +
+    SCRUM-89 together can.
+Test results:
+  - template-promoter: 41/41 (8 new + 33 from SCRUM-78/79).
+  - touched-surface sweep (template-promoter, template-engine, template-
+    diff, template-seed): 120/120. tsc clean.
+Next step:
+  - SCRUM-85 (in-form section-search typeahead) — also delivers the
+    /api/sections/search endpoint SCRUM-83 needs.
+  - Or wait for Ajay's SCRUM-89 to land so SCRUM-81 closeout can happen.
+Blockers: None.
+---

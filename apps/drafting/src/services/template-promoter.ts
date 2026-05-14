@@ -24,6 +24,7 @@ import { join } from 'path';
 import logger from '../config/logger';
 
 import type {
+  DocumentSection,
   FieldOption,
   FormField,
   FormStep,
@@ -378,6 +379,126 @@ function normaliseValidationRules(raw: unknown, mismatches: string[]): Validatio
   };
 }
 
+// ── Document-structure synthesis (SCRUM-84) ─────────────────────────────────
+
+/**
+ * Build a renderable `document_structure.sections[]` array from the CLO source
+ * fields. Without this, promoter-only templates land in the registry with
+ * `sections: []` and the engine renders an empty document.
+ *
+ * Synthesis order — sections present in source appear in this order, absent
+ * ones are skipped:
+ *   1. cause_title  (template)      — `rule.causeTitle.format` (or string)
+ *   2. body         (ai_generated)  — `prompt_context` + `promptInstructions[]`
+ *                                     + `mandatoryClauses[]` enumerated as
+ *                                     requirements (single AI call, not per-clause,
+ *                                     to keep generation fast + cheap)
+ *   3. prayer       (template)      — `rule.prayerTemplate`
+ *   4. verification (template)      — `rule.verificationTemplate`
+ *
+ * Production overrides (`docs/templates/<id>.json`) still beat this synthesis
+ * — the engine consults overrides first; this kicks in only for the 86
+ * commodity templates.
+ */
+function extractCauseTitleFormat(raw: unknown): string | null {
+  if (typeof raw === 'string' && raw.trim().length > 0) return raw;
+  if (isPlainObject(raw) && typeof raw.format === 'string' && raw.format.trim().length > 0) {
+    return raw.format;
+  }
+  return null;
+}
+
+function buildBodyPrompt(rule: DocRuleSource): string | null {
+  const parts: string[] = [];
+
+  if (typeof rule.prompt_context === 'string' && rule.prompt_context.trim().length > 0) {
+    parts.push(rule.prompt_context.trim());
+  }
+
+  if (Array.isArray(rule.promptInstructions) && rule.promptInstructions.length > 0) {
+    const numbered = rule.promptInstructions
+      .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+      .map((s, i) => `${i + 1}. ${s.trim()}`);
+    if (numbered.length > 0) {
+      parts.push(`INSTRUCTIONS:\n${numbered.join('\n')}`);
+    }
+  }
+
+  // mandatoryClauses (objects with name+description) OR mandatory_clauses (strings)
+  const clauseLines: string[] = [];
+  if (Array.isArray(rule.mandatoryClauses)) {
+    for (const c of rule.mandatoryClauses) {
+      if (isPlainObject(c)) {
+        const name = typeof c.name === 'string' ? c.name : '';
+        const description = typeof c.description === 'string' ? c.description : '';
+        if (name || description)
+          clauseLines.push(`- ${name}${name && description ? ': ' : ''}${description}`);
+      }
+    }
+  }
+  if (clauseLines.length === 0 && Array.isArray(rule.mandatory_clauses)) {
+    for (const c of rule.mandatory_clauses) {
+      if (typeof c === 'string' && c.trim().length > 0) clauseLines.push(`- ${c.trim()}`);
+    }
+  }
+  if (clauseLines.length > 0) {
+    parts.push(`MUST INCLUDE (mandatory clauses):\n${clauseLines.join('\n')}`);
+  }
+
+  if (parts.length === 0) return null;
+  return parts.join('\n\n');
+}
+
+function synthesiseDocumentStructure(rule: DocRuleSource): DocumentSection[] {
+  const sections: DocumentSection[] = [];
+
+  const causeTitle = extractCauseTitleFormat(rule.causeTitle);
+  if (causeTitle) {
+    sections.push({
+      section_id: 'cause_title',
+      type: 'template',
+      alignment: 'center',
+      template: causeTitle,
+    });
+  }
+
+  const bodyPrompt = buildBodyPrompt(rule);
+  if (bodyPrompt) {
+    sections.push({
+      section_id: 'body',
+      type: 'ai_generated',
+      alignment: 'left',
+      prompt_context: bodyPrompt,
+      numbering: 'numeric',
+      min_paragraphs: 5,
+      max_paragraphs: 15,
+    });
+  }
+
+  if (typeof rule.prayerTemplate === 'string' && rule.prayerTemplate.trim().length > 0) {
+    sections.push({
+      section_id: 'prayer',
+      type: 'template',
+      alignment: 'left',
+      template: rule.prayerTemplate,
+    });
+  }
+
+  if (
+    typeof rule.verificationTemplate === 'string' &&
+    rule.verificationTemplate.trim().length > 0
+  ) {
+    sections.push({
+      section_id: 'verification',
+      type: 'template',
+      alignment: 'left',
+      template: rule.verificationTemplate,
+    });
+  }
+
+  return sections;
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 /**
@@ -509,7 +630,7 @@ export function promoteDocRuleToTemplateConfig(
     supported_languages: ['en'],
     form_schema: { steps: [step] },
     computed_fields: {},
-    document_structure: { sections: [] },
+    document_structure: { sections: synthesiseDocumentStructure(rule) },
     related_acts: relatedActs,
     special_prayer_additions: [],
     filing_checklist: filingChecklist,

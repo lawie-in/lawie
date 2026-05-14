@@ -339,6 +339,143 @@ describe('template-promoter', () => {
     });
   });
 
+  describe('document_structure synthesis (SCRUM-84)', () => {
+    it('emits cause_title section from causeTitle.format', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        {
+          template_id: 't',
+          category: 'c',
+          causeTitle: { format: 'BEFORE THE COURT, {city}' },
+        },
+        't.json',
+      );
+      const sections = config.document_structure.sections;
+      const causeTitle = sections.find((s) => s.section_id === 'cause_title');
+      expect(causeTitle).toMatchObject({
+        type: 'template',
+        alignment: 'center',
+        template: 'BEFORE THE COURT, {city}',
+      });
+    });
+
+    it('accepts causeTitle as a plain string', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        { template_id: 't', category: 'c', causeTitle: 'BEFORE THE NOTARY' },
+        't.json',
+      );
+      expect(config.document_structure.sections[0]).toMatchObject({
+        section_id: 'cause_title',
+        template: 'BEFORE THE NOTARY',
+      });
+    });
+
+    it('emits ai_generated body section combining prompt_context + promptInstructions + mandatoryClauses', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        {
+          template_id: 't',
+          category: 'c',
+          prompt_context: 'Draft a bail application.',
+          promptInstructions: ['Open with cause title.', 'Use BNS sections only.'],
+          mandatoryClauses: [
+            {
+              id: 'verification',
+              name: 'Verification',
+              description: 'Standard verification clause.',
+            },
+            { id: 'prayer', name: 'Prayer', description: 'Court prayer block.' },
+          ],
+        },
+        't.json',
+      );
+      const body = config.document_structure.sections.find((s) => s.section_id === 'body');
+      expect(body).toBeDefined();
+      expect(body!.type).toBe('ai_generated');
+      expect(body!.prompt_context).toContain('Draft a bail application');
+      expect(body!.prompt_context).toContain('1. Open with cause title');
+      expect(body!.prompt_context).toContain('2. Use BNS sections only');
+      expect(body!.prompt_context).toContain('MUST INCLUDE');
+      expect(body!.prompt_context).toContain('Verification: Standard verification clause');
+    });
+
+    it('falls back to string mandatory_clauses when mandatoryClauses absent', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        {
+          template_id: 't',
+          category: 'c',
+          prompt_context: 'Draft.',
+          mandatory_clauses: ['oath opening', 'verification on oath'],
+        },
+        't.json',
+      );
+      const body = config.document_structure.sections.find((s) => s.section_id === 'body');
+      expect(body!.prompt_context).toContain('- oath opening');
+      expect(body!.prompt_context).toContain('- verification on oath');
+    });
+
+    it('emits prayer + verification template sections when source provides them', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        {
+          template_id: 't',
+          category: 'c',
+          prayerTemplate: 'PRAYER\n\nBe pleased to grant…',
+          verificationTemplate: 'VERIFICATION\n\nI verify on oath…',
+        },
+        't.json',
+      );
+      const ids = config.document_structure.sections.map((s) => s.section_id);
+      expect(ids).toContain('prayer');
+      expect(ids).toContain('verification');
+      const prayer = config.document_structure.sections.find((s) => s.section_id === 'prayer');
+      expect(prayer).toMatchObject({
+        type: 'template',
+        template: 'PRAYER\n\nBe pleased to grant…',
+      });
+    });
+
+    it('skips sections whose source field is absent or empty', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        {
+          template_id: 't',
+          category: 'c',
+          causeTitle: '',
+          prayerTemplate: '   ',
+          prompt_context: 'Generate body.',
+        },
+        't.json',
+      );
+      const ids = config.document_structure.sections.map((s) => s.section_id);
+      expect(ids).toEqual(['body']);
+    });
+
+    it('returns an empty sections array when source has no body fields at all', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        { template_id: 't', category: 'c' },
+        't.json',
+      );
+      expect(config.document_structure.sections).toEqual([]);
+    });
+
+    it('emits sections in canonical order: cause_title → body → prayer → verification', () => {
+      const { config } = promoteDocRuleToTemplateConfig(
+        {
+          template_id: 't',
+          category: 'c',
+          causeTitle: 'CAUSE',
+          prompt_context: 'BODY',
+          prayerTemplate: 'PRAYER',
+          verificationTemplate: 'VERIFY',
+        },
+        't.json',
+      );
+      expect(config.document_structure.sections.map((s) => s.section_id)).toEqual([
+        'cause_title',
+        'body',
+        'prayer',
+        'verification',
+      ]);
+    });
+  });
+
   describe('loadAllDocRules — integration against the live 92-doc directory', () => {
     beforeEach(() => clearTemplateRegistryCache());
 
