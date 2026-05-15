@@ -55,7 +55,7 @@ interface DocRuleSource {
   }>;
   prayerTemplate?: string;
   verificationTemplate?: string;
-  prompt_context?: string;
+  prompt_context?: string | Record<string, unknown>;
   promptInstructions?: string[];
   relevantActs?: unknown[];
   filing_checklist?: string[];
@@ -408,11 +408,34 @@ function extractCauseTitleFormat(raw: unknown): string | null {
   return null;
 }
 
+/** Flatten a structured `prompt_context` object into a labelled prompt string. */
+function flattenPromptContextObject(obj: Record<string, unknown>): string {
+  const lines: string[] = [];
+  for (const [key, value] of Object.entries(obj)) {
+    const label = key.replace(/[_-]+/g, ' ').toUpperCase();
+    if (typeof value === 'string' && value.trim().length > 0) {
+      lines.push(`${label}: ${value.trim()}`);
+    } else if (Array.isArray(value) && value.length > 0) {
+      const items = value
+        .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+        .map((v) => `- ${v.trim()}`);
+      if (items.length > 0) lines.push(`${label}:\n${items.join('\n')}`);
+    } else if (isPlainObject(value)) {
+      const nested = flattenPromptContextObject(value);
+      if (nested.length > 0) lines.push(`${label}:\n${nested}`);
+    }
+  }
+  return lines.join('\n\n');
+}
+
 function buildBodyPrompt(rule: DocRuleSource): string | null {
   const parts: string[] = [];
 
   if (typeof rule.prompt_context === 'string' && rule.prompt_context.trim().length > 0) {
     parts.push(rule.prompt_context.trim());
+  } else if (isPlainObject(rule.prompt_context)) {
+    const flat = flattenPromptContextObject(rule.prompt_context);
+    if (flat.length > 0) parts.push(flat);
   }
 
   if (Array.isArray(rule.promptInstructions) && rule.promptInstructions.length > 0) {
