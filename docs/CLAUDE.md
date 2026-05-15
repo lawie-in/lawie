@@ -2006,3 +2006,52 @@ Next step:
   - Or wait for Ajay's SCRUM-89 to land so SCRUM-81 closeout can happen.
 Blockers: None.
 ---
+
+---
+Date: 2026-05-15
+Session: Opus
+Task: SCRUM-85 — In-form section search typeahead (closes "sections not searchable while filing")
+Status: Done
+Code changed:
+  New / modified files:
+  - apps/drafting/src/services/sections.service.ts — added searchSections()
+    that takes a query + code + limit and returns up to N matches by
+    section-number prefix OR title substring. Prefix hits win (two-stage
+    search with dedupe). Works for both new codes (BNS/BNSS/BSA — searches
+    newSection/newTitle) and old codes (IPC/CrPC/IEA — searches
+    oldSection/oldTitle). User query is regex-escaped so paste of "(2)" or
+    "/" stays safe.
+  - apps/drafting/src/routes/sections.routes.ts — new GET /sections/search
+    endpoint. q + code required (400 otherwise), limit clamped to 25,
+    defaults to 10. Returns { query, code, results, count }.
+  - apps/drafting/src/__tests__/sections.routes.test.ts — 8 new tests
+    (missing-q 400, missing-code 400, BNS prefix match, title substring,
+    counterpart mapping shape, limit clamp, unknown code returns [], IPC
+    prefix search).
+  - apps/web/src/components/form/DynamicFormRenderer.tsx —
+    MultiSelectSearchField grows an optional `searchHandler` prop. When
+    provided, debounces input by 200ms, fetches matches, dedupes against
+    already-picked values, shows "Searching…" + "No matches" states.
+    Local-filter mode preserved when searchHandler is absent. The renderer
+    instantiates fetchBnsMappingResults() and passes it as the handler for
+    any field with `source: 'bns_mapping'` — closes the open TODO marker
+    that previously returned an empty options array.
+Acceptance check (from SCRUM-85 ticket):
+  ✅ GET /api/sections/search?q=…&code=BNS returns up to 10 matches by
+     prefix or title substring.
+  ✅ DynamicFormRenderer multi_select_search field with bns_mapping
+     source now debounce-fetches against the new endpoint.
+  ✅ All 6 codes supported (BNS, BNSS, BSA, IPC, CrPC, IEA) via explicit
+     code= param.
+  ✅ 36/36 sections.routes tests passing (8 new).
+  ✅ Touched-surface sweep (sections + template suites): 185/185.
+  ✅ tsc clean on apps/drafting + apps/web.
+Side-effect for SCRUM-83:
+  The Section Finder design-upgrade ticket needs the same
+  /api/sections/search endpoint — that's now done, so SCRUM-83 just
+  consumes it without re-implementing.
+Next step:
+  - SCRUM-83 (Section Finder design upgrade, 3-4d) — biggest remaining
+    Vishal-owned ticket. Or pause for push.
+Blockers: None.
+---

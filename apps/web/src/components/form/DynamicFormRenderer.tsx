@@ -349,24 +349,58 @@ function MultiSelectSearchField({
   onChange,
   options,
   allowFreeText = false,
+  searchHandler,
 }: {
   field: FormField;
   value: string[];
   onChange: (v: string[]) => void;
   options: FieldOption[];
   allowFreeText?: boolean;
+  /** SCRUM-85 — when provided, the dropdown is populated by debounced remote
+   *  search instead of static `options`. Returns up to N matches for `query`. */
+  searchHandler?: (query: string) => Promise<FieldOption[]>;
 }) {
   const [search, setSearch] = useState('');
+  const [remoteResults, setRemoteResults] = useState<FieldOption[]>([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
 
-  const filtered = useMemo(
-    () =>
-      search.length > 0
-        ? options.filter(
-            (o) => o.label.toLowerCase().includes(search.toLowerCase()) && !value.includes(o.id),
-          )
-        : options.filter((o) => !value.includes(o.id)),
-    [options, search, value],
-  );
+  // SCRUM-85: debounced typeahead for fields with a `searchHandler`. Tracks the
+  // latest request to discard stale ones (advocate types fast).
+  useEffect(() => {
+    if (!searchHandler) return;
+    const term = search.trim();
+    if (term.length === 0) {
+      setRemoteResults([]);
+      return;
+    }
+    let cancelled = false;
+    setRemoteLoading(true);
+    const handle = setTimeout(async () => {
+      try {
+        const results = await searchHandler(term);
+        if (!cancelled) setRemoteResults(results);
+      } finally {
+        if (!cancelled) setRemoteLoading(false);
+      }
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [search, searchHandler]);
+
+  const filtered = useMemo(() => {
+    if (searchHandler) {
+      // Remote-search mode: dropdown shows whatever the handler returned, minus
+      // anything the user has already picked.
+      return remoteResults.filter((o) => !value.includes(o.id));
+    }
+    return search.length > 0
+      ? options.filter(
+          (o) => o.label.toLowerCase().includes(search.toLowerCase()) && !value.includes(o.id),
+        )
+      : options.filter((o) => !value.includes(o.id));
+  }, [searchHandler, options, search, value, remoteResults]);
 
   const selectedItems: FieldOption[] = value.map((id) => {
     const found = options.find((o) => o.id === id);
@@ -432,8 +466,14 @@ function MultiSelectSearchField({
             </button>
           )}
         </div>
-        {search.length > 0 && filtered.length > 0 && (
-          <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+        {search.length > 0 && (
+          <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+            {remoteLoading && filtered.length === 0 && (
+              <div className="px-3 py-2 text-xs text-slate-400">Searching…</div>
+            )}
+            {!remoteLoading && filtered.length === 0 && searchHandler && (
+              <div className="px-3 py-2 text-xs text-slate-400">No matches</div>
+            )}
             {filtered.map((opt) => (
               <button
                 key={opt.id}
@@ -759,11 +799,33 @@ function resolveOptions(
   if (field.source === 'courts_db.court_types') return courtsData.courtTypes;
   if (field.source === 'courts_db.courts') return courtsData.courts;
 
-  // bns_mapping source — for now return empty, user types freely
-  // TODO: SCRUM-46 will provide the full BNS section search API
+  // bns_mapping: the dropdown is populated by remote typeahead (SCRUM-85);
+  // the MultiSelectSearchField below uses a searchHandler instead of these
+  // static options. Returning [] here keeps the local filter inert.
   if (field.source === 'bns_mapping') return [];
 
   return [];
+}
+
+// SCRUM-85 — typeahead handler for in-form section pickers (bail templates etc).
+// Fetches /api/sections/search and shapes results into FieldOption[] with the
+// new section number as the chosen value and a "<section> · <title>" label.
+async function fetchBnsMappingResults(query: string): Promise<FieldOption[]> {
+  try {
+    const res = await fetch(
+      `${API_URL}/api/sections/search?q=${encodeURIComponent(query)}&code=BNS&limit=10`,
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as {
+      results: Array<{ section: string; title: string; code: string }>;
+    };
+    return (data.results ?? []).map((r) => ({
+      id: r.section,
+      label: `${r.section} BNS · ${r.title}`,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 // ── Main Component ──────────────────────────────────────────────────────────
@@ -951,6 +1013,9 @@ export default function DynamicFormRenderer({
                     onChange={(v) => setField(field.field_id, v)}
                     options={options}
                     allowFreeText={field.source === 'bns_mapping'}
+                    searchHandler={
+                      field.source === 'bns_mapping' ? fetchBnsMappingResults : undefined
+                    }
                   />
                 )}
 

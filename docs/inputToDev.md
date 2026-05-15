@@ -2939,7 +2939,7 @@ Dependencies: SCRUM-78 (template listing — DONE) · SCRUM-82 (override pattern
 ID: in-form-section-search-typeahead
 Filed by: Priya · PM
 Filed on: 2026-05-12
-Status: Pending
+Status: Done (Vishal-Opus, 2026-05-15)
 Jira: SCRUM-85 (https://abhinava32.atlassian.net/browse/SCRUM-85)
 Figma: N/A
 Priority: P1

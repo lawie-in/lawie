@@ -404,4 +404,62 @@ describe('Sections Routes', () => {
       expect(res.body.supported).toContain('IPC');
     });
   });
+
+  describe('GET /sections/search (SCRUM-85 typeahead)', () => {
+    it('returns 400 when q is missing', async () => {
+      const res = await request(app).get('/sections/search?code=BNS');
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('q');
+    });
+
+    it('returns 400 when code is missing', async () => {
+      const res = await request(app).get('/sections/search?q=302');
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('code');
+    });
+
+    it('matches new section number by prefix (BNS)', async () => {
+      const res = await request(app).get('/sections/search?q=103&code=BNS');
+      expect(res.status).toBe(200);
+      expect(res.body.results.length).toBeGreaterThan(0);
+      expect(res.body.results.some((r: { section: string }) => r.section.startsWith('103'))).toBe(
+        true,
+      );
+    });
+
+    it('matches by title substring (case-insensitive)', async () => {
+      const res = await request(app).get('/sections/search?q=murder&code=BNS');
+      expect(res.status).toBe(200);
+      const titles: string[] = res.body.results.map((r: { title: string }) =>
+        r.title.toLowerCase(),
+      );
+      expect(titles.some((t: string) => t.includes('murder'))).toBe(true);
+    });
+
+    it('returns the counterpart mapping shape (new → mapped_to old)', async () => {
+      const res = await request(app).get('/sections/search?q=103&code=BNS');
+      const row = res.body.results.find((r: { section: string }) => r.section === '103(1)');
+      expect(row).toBeDefined();
+      expect(row.mapped_to.code).toBe('IPC');
+      expect(row.mapped_to.section).toBe('302');
+    });
+
+    it('caps results at the limit (clamped to 25 max)', async () => {
+      const res = await request(app).get('/sections/search?q=1&code=BNS&limit=2');
+      expect(res.status).toBe(200);
+      expect(res.body.results.length).toBeLessThanOrEqual(2);
+    });
+
+    it('returns empty results for unknown code', async () => {
+      const res = await request(app).get('/sections/search?q=302&code=XYZ');
+      expect(res.status).toBe(200);
+      expect(res.body.results).toEqual([]);
+    });
+
+    it('searches old codes (IPC) by prefix too', async () => {
+      const res = await request(app).get('/sections/search?q=302&code=IPC');
+      expect(res.status).toBe(200);
+      expect(res.body.results.some((r: { section: string }) => r.section === '302')).toBe(true);
+    });
+  });
 });

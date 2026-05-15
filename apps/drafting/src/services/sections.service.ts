@@ -283,6 +283,106 @@ export async function getAllMappings(code: string): Promise<{
 }
 
 /**
+ * Search sections within a single code (SCRUM-85 — typeahead for in-form
+ * multi_select_search fields with `source: 'bns_mapping'`).
+ *
+ * Matches `query` against either the section number (prefix) or the title
+ * (case-insensitive substring) of the named code. Returns up to `limit`
+ * results, ranked: section-number prefix matches first, then title hits.
+ *
+ * For new codes (BNS / BNSS / BSA) the result's `section`/`title` come from
+ * the new shape; for old codes (IPC / CrPC / IEA) from the old shape.
+ */
+export interface SectionSearchResult {
+  code: string;
+  section: string;
+  title: string;
+  /** Counterpart section in the opposite era — null for repealed or new-provisions. */
+  mapped_to: { code: string; section: string | null; title: string | null } | null;
+  mapping_type: MappingType;
+  is_new_provision: boolean;
+}
+
+export async function searchSections(
+  query: string,
+  code: string,
+  limit = 10,
+): Promise<SectionSearchResult[]> {
+  const resolved = resolveCode(code);
+  if (!resolved) return [];
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  if (limit <= 0) return [];
+
+  const isNew = NEW_CODES.has(resolved);
+  const isOld = OLD_CODES.has(resolved);
+  if (!isNew && !isOld) return [];
+
+  // Escape regex metacharacters in the user query — keeps the typeahead safe
+  // against advocates pasting "(2)" or "/" into the input.
+  const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const sectionFilter = { $regex: `^${escaped}`, $options: 'i' };
+  const titleFilter = { $regex: escaped, $options: 'i' };
+
+  const codeFilter: Record<string, unknown> = isNew ? { newCode: resolved } : { oldCode: resolved };
+  const fieldNamePrefix = isNew ? 'new' : 'old';
+
+  // Two-stage search so prefix hits always win against title-only hits when we
+  // cap at `limit` results.
+  const prefixDocs = await SectionMapping.find({
+    isActive: true,
+    ...codeFilter,
+    [`${fieldNamePrefix}Section`]: sectionFilter,
+  })
+    .limit(limit)
+    .lean<ISectionMapping[]>();
+
+  let docs = prefixDocs;
+  if (docs.length < limit) {
+    const remaining = limit - docs.length;
+    const seenIds = new Set(docs.map((d) => String(d._id)));
+    const titleDocs = await SectionMapping.find({
+      isActive: true,
+      ...codeFilter,
+      [`${fieldNamePrefix}Title`]: titleFilter,
+    })
+      .limit(remaining + docs.length) // pad so we can dedupe
+      .lean<ISectionMapping[]>();
+    for (const d of titleDocs) {
+      if (docs.length >= limit) break;
+      if (seenIds.has(String(d._id))) continue;
+      docs = docs.concat(d);
+    }
+  }
+
+  return docs.slice(0, limit).map((d) => {
+    if (isNew) {
+      const newSection = d.newSection ?? '';
+      return {
+        code: d.newCode,
+        section: newSection,
+        title: d.newTitle ?? '',
+        mapped_to: d.isNewProvision
+          ? null
+          : { code: d.oldCode, section: d.oldSection, title: d.oldTitle },
+        mapping_type: d.mappingType,
+        is_new_provision: d.isNewProvision,
+      };
+    }
+    return {
+      code: d.oldCode,
+      section: d.oldSection,
+      title: d.oldTitle,
+      mapped_to: d.newSection
+        ? { code: d.newCode, section: d.newSection, title: d.newTitle }
+        : null,
+      mapping_type: d.mappingType,
+      is_new_provision: false,
+    };
+  });
+}
+
+/**
  * Get metadata for all code pairs.
  */
 export async function getCodesMeta(): Promise<CodeMeta[]> {
