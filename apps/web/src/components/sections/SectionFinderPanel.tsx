@@ -272,6 +272,7 @@ function FinderBody({ insertEnabled, onClose }: { insertEnabled: boolean; onClos
   );
   const [recent, setRecent] = useState<RecentEntry[]>(() => readLocal(STORAGE_RECENT, []));
   const [activeDetail, setActiveDetail] = useState<SectionDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   // Hydrate bookmarks + recent from backend once.
   useEffect(() => {
@@ -303,54 +304,113 @@ function FinderBody({ insertEnabled, onClose }: { insertEnabled: boolean; onClos
   );
 
   const loadDetail = useCallback(async (code: string, section: string) => {
-    const res = await apiFetch(
-      `/api/sections/details?section=${encodeURIComponent(section)}&code=${encodeURIComponent(
-        code,
-      )}`,
-    );
-    if (!res.ok) return;
-    const detail = (await res.json()) as SectionDetail;
-    setActiveDetail(detail);
-    // Log to recent (server + local).
-    await apiFetch('/api/users/me/recent/sections', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: detail.code, section: detail.section, title: detail.title }),
-    }).catch(() => undefined);
-    setRecent((prev) => {
-      const next = [
-        {
-          code: detail.code,
-          section: detail.section,
-          title: detail.title,
-          searchedAt: new Date().toISOString(),
-        },
-        ...prev.filter((r) => !(r.code === detail.code && r.section === detail.section)),
-      ].slice(0, 20);
-      writeLocal(STORAGE_RECENT, next);
-      return next;
+    setDetailLoading(true);
+    setActiveDetail({
+      // Show a placeholder shell immediately so DetailCard mounts with the
+      // loader visible. The fetched detail replaces this shape below.
+      code,
+      section,
+      title: '',
+      statute: '',
+      chapter: null,
+      bailable: null,
+      cognizable: null,
+      compoundable: null,
+      triable_by: null,
+      punishment: null,
+      max_years: null,
+      ingredients: [],
+      bare_section_text: null,
+      related: [],
+      mapping: null,
     });
+    try {
+      const res = await apiFetch(
+        `/api/sections/details?section=${encodeURIComponent(section)}&code=${encodeURIComponent(
+          code,
+        )}`,
+      );
+      if (!res.ok) {
+        console.error('[section-finder] /sections/details failed', res.status);
+        return;
+      }
+      const detail = (await res.json()) as SectionDetail;
+      setActiveDetail(detail);
+      // Log to recent (server + local).
+      await apiFetch('/api/users/me/recent/sections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: detail.code, section: detail.section, title: detail.title }),
+      }).catch((err) => console.error('[section-finder] /recent POST failed', err));
+      setRecent((prev) => {
+        const next = [
+          {
+            code: detail.code,
+            section: detail.section,
+            title: detail.title,
+            searchedAt: new Date().toISOString(),
+          },
+          ...prev.filter((r) => !(r.code === detail.code && r.section === detail.section)),
+        ].slice(0, 20);
+        writeLocal(STORAGE_RECENT, next);
+        return next;
+      });
+    } finally {
+      setDetailLoading(false);
+    }
   }, []);
 
   const toggleBookmark = useCallback(
     async (code: string, section: string, title: string) => {
       const key = `${code}:${section}`;
       const existing = bookmarks.find((b) => `${b.code}:${b.section}` === key);
+
       if (existing) {
+        // Optimistic remove: drop from UI immediately, server call follows.
         setBookmarks((prev) => prev.filter((b) => b.id !== existing.id));
-        await apiFetch(`/api/users/me/bookmarks/sections/${existing.id}`, {
-          method: 'DELETE',
-        }).catch(() => undefined);
-      } else {
+        try {
+          const res = await apiFetch(`/api/users/me/bookmarks/sections/${existing.id}`, {
+            method: 'DELETE',
+          });
+          if (!res.ok && res.status !== 404) {
+            console.error('[section-finder] bookmark delete failed', res.status);
+            // Roll back on real failure (404 is fine — it's already gone).
+            setBookmarks((prev) => [existing, ...prev]);
+          }
+        } catch (err) {
+          console.error('[section-finder] bookmark delete threw', err);
+          setBookmarks((prev) => [existing, ...prev]);
+        }
+        return;
+      }
+
+      // Optimistic add: insert a temp row with a synthetic id so the star
+      // turns yellow immediately. Swap with the server-issued row on success.
+      const tempId = `tmp-${Date.now()}`;
+      const optimistic: BookmarkEntry = {
+        id: tempId,
+        code,
+        section,
+        title,
+        createdAt: new Date().toISOString(),
+      };
+      setBookmarks((prev) => [optimistic, ...prev]);
+      try {
         const res = await apiFetch('/api/users/me/bookmarks/sections', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code, section, title }),
         });
-        if (res.ok) {
-          const row = (await res.json()) as BookmarkEntry;
-          setBookmarks((prev) => [row, ...prev]);
+        if (!res.ok) {
+          console.error('[section-finder] bookmark create failed', res.status);
+          setBookmarks((prev) => prev.filter((b) => b.id !== tempId));
+          return;
         }
+        const row = (await res.json()) as BookmarkEntry;
+        setBookmarks((prev) => prev.map((b) => (b.id === tempId ? row : b)));
+      } catch (err) {
+        console.error('[section-finder] bookmark create threw', err);
+        setBookmarks((prev) => prev.filter((b) => b.id !== tempId));
       }
     },
     [bookmarks],
@@ -383,6 +443,7 @@ function FinderBody({ insertEnabled, onClose }: { insertEnabled: boolean; onClos
         {tab === 'lookup' && (
           <LookupTab
             activeDetail={activeDetail}
+            detailLoading={detailLoading}
             onLoadDetail={loadDetail}
             onClearDetail={() => setActiveDetail(null)}
             recent={recent}
@@ -422,6 +483,7 @@ function FinderBody({ insertEnabled, onClose }: { insertEnabled: boolean; onClos
 
 function LookupTab({
   activeDetail,
+  detailLoading,
   onLoadDetail,
   onClearDetail,
   recent,
@@ -431,6 +493,7 @@ function LookupTab({
   onClose,
 }: {
   activeDetail: SectionDetail | null;
+  detailLoading: boolean;
   onLoadDetail: (code: string, section: string) => void;
   onClearDetail: () => void;
   recent: RecentEntry[];
@@ -490,6 +553,7 @@ function LookupTab({
     return (
       <DetailCard
         detail={activeDetail}
+        loading={detailLoading}
         isBookmarked={bookmarkSet.has(`${activeDetail.code}:${activeDetail.section}`)}
         onToggleBookmark={() =>
           onToggleBookmark(activeDetail.code, activeDetail.section, activeDetail.title)
@@ -759,6 +823,7 @@ function BookmarksTab({
 
 function DetailCard({
   detail,
+  loading,
   isBookmarked,
   onToggleBookmark,
   insertEnabled,
@@ -766,6 +831,7 @@ function DetailCard({
   onClose,
 }: {
   detail: SectionDetail;
+  loading: boolean;
   isBookmarked: boolean;
   onToggleBookmark: () => void;
   insertEnabled: boolean;
@@ -777,6 +843,36 @@ function DetailCard({
   const [bareOpen, setBareOpen] = useState(true);
 
   const citation = citationText(detail);
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-700"
+        >
+          ← Back to search
+        </button>
+        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-6">
+          <Loader2 size={14} className="animate-spin text-amber-500" />
+          <span className="text-xs text-slate-500">
+            Loading {detail.section} {detail.code}…
+          </span>
+        </div>
+        <div className="space-y-2">
+          <div className="h-5 w-2/3 animate-pulse rounded bg-slate-100" />
+          <div className="h-3 w-1/2 animate-pulse rounded bg-slate-100" />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-12 animate-pulse rounded-lg bg-slate-100" />
+          ))}
+        </div>
+        <div className="h-16 animate-pulse rounded-lg bg-slate-200" />
+      </div>
+    );
+  }
 
   function onCopy() {
     navigator.clipboard.writeText(citation);
