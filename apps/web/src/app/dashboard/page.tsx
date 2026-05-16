@@ -181,8 +181,20 @@ export default function DashboardPage() {
   const docCount = usage?.used ?? 0;
   const lastName = getLastName(user.name);
 
+  // While usage is loading we don't yet know whether to show the first-time
+  // empty state or the populated dashboard. Render a neutral loading screen
+  // (visually identical to DashboardLayout's auth loader) so the user never
+  // sees the populated branch flash before "Create your first…" lands.
+  if (usageLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+      </div>
+    );
+  }
+
   // ── Empty state — free user, 0 documents ──────────────────────────────────
-  if (!isPro && !usageLoading && docCount === 0) {
+  if (!isPro && docCount === 0) {
     return (
       <div>
         <h1 className="text-2xl font-bold text-slate-900">
