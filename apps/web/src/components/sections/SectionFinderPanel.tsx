@@ -28,6 +28,8 @@ import {
   Copy,
   ExternalLink,
   Loader2,
+  Maximize2,
+  Minimize2,
   Plus,
   Search,
   Star,
@@ -40,10 +42,16 @@ import { apiFetch } from '@/lib/apiFetch';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const STORAGE_OPEN = 'lawie.sectionFinder.open';
+const STORAGE_MODE = 'lawie.sectionFinder.mode';
 const STORAGE_BOOKMARKS = 'lawie.sectionFinder.bookmarks';
 const STORAGE_RECENT = 'lawie.sectionFinder.recent';
 const INSERT_CITATION_EVENT = 'lawie:insertCitation';
 const OPEN_PANEL_EVENT = 'lawie:openSectionFinder';
+
+type Mode = 'panel' | 'drawer';
+
+// Module-level typeahead cache (lifetime = page session). Repeats are free.
+const typeaheadCache = new Map<string, SearchMatch[]>();
 
 /**
  * Returns the platform-correct keyboard shortcut label.
@@ -169,7 +177,36 @@ function citationText(detail: { code: string; section: string }): string {
 export function SectionFinderPanel({ inline = false }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<Mode>('panel');
+  // Pending preload from an open-event payload (e.g., clicked citation pill).
+  // FinderBody consumes it on mount + clears via the callback below.
+  const [pendingPreload, setPendingPreload] = useState<{ code: string; section: string } | null>(
+    null,
+  );
   const shortcutLabel = useShortcutLabel();
+
+  // Restore mode from localStorage.
+  useEffect(() => {
+    if (inline) return;
+    try {
+      const stored = window.localStorage.getItem(STORAGE_MODE);
+      if (stored === 'drawer' || stored === 'panel') setMode(stored);
+    } catch {
+      /* ignore */
+    }
+  }, [inline]);
+
+  const toggleMode = useCallback(() => {
+    setMode((prev) => {
+      const next: Mode = prev === 'panel' ? 'drawer' : 'panel';
+      try {
+        window.localStorage.setItem(STORAGE_MODE, next);
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
 
   // Restore the lawyer's last open/closed state (inline mode skips this).
   useEffect(() => {
@@ -194,7 +231,7 @@ export function SectionFinderPanel({ inline = false }: Props) {
     [inline],
   );
 
-  // ⌘K / Ctrl-K global shortcut.
+  // ⌘K / Ctrl-K global shortcut + F11 mode toggle while open.
   useEffect(() => {
     if (inline) return;
     function handler(e: KeyboardEvent) {
@@ -203,17 +240,26 @@ export function SectionFinderPanel({ inline = false }: Props) {
         toggle(!open);
       } else if (e.key === 'Escape' && open) {
         toggle(false);
+      } else if (e.key === 'F11' && open) {
+        e.preventDefault();
+        toggleMode();
       }
     }
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [open, toggle, inline]);
+  }, [open, toggle, toggleMode, inline]);
 
-  // Sidebar "Section finder" link (or any other surface) dispatches this
-  // event to pop the drawer open without routing.
+  // Sidebar "Section finder" link, inline-pill click in the editor, or any
+  // other surface dispatches this event to pop the drawer open without
+  // routing. Payload may carry `{ preload: { code, section } }` — when
+  // present, FinderBody routes straight to the result card for that section.
   useEffect(() => {
     if (inline) return;
-    function openHandler() {
+    function openHandler(e: Event) {
+      const ce = e as CustomEvent<{ preload?: { code: string; section: string } }>;
+      if (ce.detail?.preload?.code && ce.detail.preload.section) {
+        setPendingPreload(ce.detail.preload);
+      }
       toggle(true);
     }
     window.addEventListener(OPEN_PANEL_EVENT, openHandler);
@@ -225,7 +271,12 @@ export function SectionFinderPanel({ inline = false }: Props) {
   if (inline) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <FinderBody insertEnabled={false} onClose={() => undefined} />
+        <FinderBody
+          insertEnabled={false}
+          onClose={() => undefined}
+          pendingPreload={null}
+          onConsumePreload={() => undefined}
+        />
       </div>
     );
   }
@@ -258,11 +309,19 @@ export function SectionFinderPanel({ inline = false }: Props) {
         />
       )}
 
-      {/* Drawer */}
+      {/* Drawer — panel mode (full-height right-docked) or drawer mode
+          (compact floating). F11 (or the maximize button) toggles between
+          them; both inherit the same open/closed translateX. */}
       <aside
-        className={`fixed inset-y-0 right-0 z-40 flex w-full max-w-[420px] flex-col border-l border-slate-200 bg-white shadow-xl transition-transform duration-200 ${
-          open ? 'translate-x-0' : 'pointer-events-none translate-x-full'
-        }`}
+        className={
+          mode === 'drawer'
+            ? `fixed bottom-4 right-4 top-16 z-40 flex w-[320px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl transition-transform duration-200 ${
+                open ? 'translate-x-0' : 'pointer-events-none translate-x-[calc(100%+1rem)]'
+              }`
+            : `fixed inset-y-0 right-0 z-40 flex w-full max-w-[420px] flex-col border-l border-slate-200 bg-white shadow-xl transition-transform duration-200 ${
+                open ? 'translate-x-0' : 'pointer-events-none translate-x-full'
+              }`
+        }
         aria-hidden={!open}
       >
         <header className="flex items-start justify-between gap-2 border-b border-slate-200 px-5 py-4">
@@ -275,17 +334,35 @@ export function SectionFinderPanel({ inline = false }: Props) {
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => toggle(false)}
-            className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-            aria-label="Close section finder"
-          >
-            <X size={14} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={toggleMode}
+              className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              aria-label={
+                mode === 'drawer' ? 'Switch to full panel (F11)' : 'Switch to compact drawer (F11)'
+              }
+              title={mode === 'drawer' ? 'Expand to full panel (F11)' : 'Shrink to drawer (F11)'}
+            >
+              {mode === 'drawer' ? <Maximize2 size={12} /> : <Minimize2 size={12} />}
+            </button>
+            <button
+              type="button"
+              onClick={() => toggle(false)}
+              className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Close section finder"
+            >
+              <X size={14} />
+            </button>
+          </div>
         </header>
         <div className="flex-1 overflow-y-auto">
-          <FinderBody insertEnabled={insertEnabled} onClose={() => toggle(false)} />
+          <FinderBody
+            insertEnabled={insertEnabled}
+            onClose={() => toggle(false)}
+            pendingPreload={pendingPreload}
+            onConsumePreload={() => setPendingPreload(null)}
+          />
         </div>
       </aside>
     </>
@@ -294,7 +371,17 @@ export function SectionFinderPanel({ inline = false }: Props) {
 
 // ── Body (tabs + tab content) ───────────────────────────────────────────────
 
-function FinderBody({ insertEnabled, onClose }: { insertEnabled: boolean; onClose: () => void }) {
+function FinderBody({
+  insertEnabled,
+  onClose,
+  pendingPreload,
+  onConsumePreload,
+}: {
+  insertEnabled: boolean;
+  onClose: () => void;
+  pendingPreload: { code: string; section: string } | null;
+  onConsumePreload: () => void;
+}) {
   const [tab, setTab] = useState<Tab>('lookup');
   const [bookmarks, setBookmarks] = useState<BookmarkEntry[]>(() =>
     readLocal(STORAGE_BOOKMARKS, []),
@@ -388,6 +475,17 @@ function FinderBody({ insertEnabled, onClose }: { insertEnabled: boolean; onClos
       setDetailLoading(false);
     }
   }, []);
+
+  // SCRUM-83 polish: when an inline citation pill is clicked in the editor,
+  // the open-event fires with { preload: { code, section } }. Route straight
+  // to the Lookup tab + result card and clear the preload so the same pill
+  // re-click after the panel was already open still triggers a reload.
+  useEffect(() => {
+    if (!pendingPreload) return;
+    setTab('lookup');
+    void loadDetail(pendingPreload.code, pendingPreload.section);
+    onConsumePreload();
+  }, [pendingPreload, loadDetail, onConsumePreload]);
 
   const toggleBookmark = useCallback(
     async (code: string, section: string, title: string) => {
@@ -549,6 +647,16 @@ function LookupTab({
       setMatches([]);
       return;
     }
+    // SCRUM-83 polish: cache typeahead responses by (code, query) so repeat
+    // keystrokes (e.g., the lawyer typing "302" then backspacing to "30" then
+    // forward to "302") replay instantly with no network hop. TTL-free —
+    // mappings change rarely (CLO sign-off) so a session-lived cache is fine.
+    const cached = typeaheadCache.get(term);
+    if (cached) {
+      setMatches(cached);
+      setSearchLoading(false);
+      return;
+    }
     let cancelled = false;
     setSearchLoading(true);
     const handle = setTimeout(async () => {
@@ -561,11 +669,13 @@ function LookupTab({
         const res = await fetch(`${API_URL}/api/sections/search?${params}&limit=10`);
         if (!res.ok) return;
         const data = await res.json();
-        if (!cancelled) setMatches(data.results ?? []);
+        const results = (data.results ?? []) as SearchMatch[];
+        typeaheadCache.set(term, results);
+        if (!cancelled) setMatches(results);
       } finally {
         if (!cancelled) setSearchLoading(false);
       }
-    }, 150);
+    }, 100);
     return () => {
       cancelled = true;
       clearTimeout(handle);

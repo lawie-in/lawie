@@ -7,7 +7,10 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useCallback, useEffect, useRef } from 'react';
 
-import { SECTION_FINDER_INSERT_EVENT } from '../sections/SectionFinderPanel';
+import {
+  SECTION_FINDER_INSERT_EVENT,
+  SECTION_FINDER_OPEN_EVENT,
+} from '../sections/SectionFinderPanel';
 
 import Toolbar from './Toolbar';
 
@@ -70,21 +73,30 @@ export default function DocumentEditor({
   }, [editor, editable]);
 
   // SCRUM-83: listen for the Section Finder's "insert at cursor" event and
-  // splice the citation into the editor at the current selection. The freshly-
-  // inserted span carries .lawie-citation-fresh so the editor styles can flash
-  // it amber for 2s (see globals.css).
+  // splice the citation into the editor at the current selection. The
+  // wrapper span carries:
+  //   - .lawie-citation                  → permanent style (subtle pill + click)
+  //   - .lawie-citation-fresh            → 2s amber flash on insert (auto-stripped)
+  //   - data-lawie-citation="CODE:SEC"   → re-open the finder with this section
+  // (see globals.css for both styles).
   useEffect(() => {
     if (!editor) return;
     function handler(e: Event) {
       const ce = e as CustomEvent<{ citation: string; section: string; code: string }>;
       const text = ce.detail?.citation;
-      if (!text) return;
+      const code = ce.detail?.code;
+      const section = ce.detail?.section;
+      if (!text || !code || !section) return;
+      const payload = `${code}:${section}`;
       editor!
         .chain()
         .focus()
-        .insertContent(`<span class="lawie-citation-fresh">${text}</span>&nbsp;`)
+        .insertContent(
+          `<span class="lawie-citation lawie-citation-fresh" data-lawie-citation="${payload}">${text}</span>&nbsp;`,
+        )
         .run();
-      // Strip the highlight class after 2s so it doesn't persist in the saved doc.
+      // Strip the highlight class after 2s so the amber flash doesn't persist
+      // in the saved doc. The permanent .lawie-citation class stays.
       setTimeout(() => {
         const root = editor!.view.dom;
         root.querySelectorAll('.lawie-citation-fresh').forEach((el) => {
@@ -94,6 +106,32 @@ export default function DocumentEditor({
     }
     window.addEventListener(SECTION_FINDER_INSERT_EVENT, handler);
     return () => window.removeEventListener(SECTION_FINDER_INSERT_EVENT, handler);
+  }, [editor]);
+
+  // SCRUM-83 polish: clicking an inserted citation pill re-opens the panel
+  // with that section pre-loaded into the result card. Listens at the editor
+  // root via delegation so we catch clicks no matter how the user formats /
+  // reflows the surrounding paragraph.
+  useEffect(() => {
+    if (!editor) return;
+    const root = editor.view.dom;
+    function handleClick(e: Event) {
+      const target = e.target as HTMLElement | null;
+      const pill = target?.closest?.('[data-lawie-citation]') as HTMLElement | null;
+      if (!pill) return;
+      const payload = pill.dataset.lawieCitation;
+      if (!payload) return;
+      const [code, section] = payload.split(':');
+      if (!code || !section) return;
+      e.preventDefault();
+      window.dispatchEvent(
+        new CustomEvent(SECTION_FINDER_OPEN_EVENT, {
+          detail: { preload: { code, section } },
+        }),
+      );
+    }
+    root.addEventListener('click', handleClick);
+    return () => root.removeEventListener('click', handleClick);
   }, [editor]);
 
   const getHtml = useCallback(() => {

@@ -62,13 +62,25 @@
 .tiptap li { margin-bottom: 0.25em; }
 .tiptap hr { border-top: 1px solid #e2e8f0; margin: 1em 0; }
 
-/* SCRUM-83 — freshly-inserted citation flashes amber for ~2s after insert. */
-.tiptap .lawie-citation-fresh {
-  background-color: #fef3c7; /* amber-100 */
+/* SCRUM-83 — inserted citation pills.
+   .lawie-citation is the permanent style (subtle pill + clickable).
+   .lawie-citation-fresh adds an amber flash for ~2s right after insert,
+   then DocumentEditor strips the class so the highlight doesn't persist. */
+.tiptap .lawie-citation {
+  background-color: #f8fafc; /* slate-50 */
+  border: 1px solid #e2e8f0; /* slate-200 */
   border-radius: 4px;
-  padding: 1px 4px;
-  transition: background-color 1.5s ease-out 0.5s;
+  padding: 0 4px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-.tiptap .lawie-citation-fresh:not(.lawie-citation-fresh) {
-  background-color: transparent;
+.tiptap .lawie-citation:hover {
+  background-color: #fef3c7; /* amber-100 */
+  border-color: #fcd34d; /* amber-300 */
+}
+.tiptap .lawie-citation-fresh {
+  background-color: #fde68a; /* amber-200 — stronger flash than hover */
+  border-color: #fbbf24; /* amber-400 */
+  transition: background-color 1.5s ease-out 0.5s;
 }
