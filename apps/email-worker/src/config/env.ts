@@ -24,10 +24,15 @@ const schema = z.object({
   AWS_SES_ACCESS_KEY_ID: z.string().optional(),
   AWS_SES_SECRET_ACCESS_KEY: z.string().optional(),
 
-  // Sender identity (verified in SES dashboard)
+  // Sender identity — lawie.in domain is verified at the domain level in SES,
+  // so any sub-address (noreply@, contact@, admin@, …) is auto-authorised.
+  // Madhuri's brief specifies:
+  //   FROM:     noreply@lawie.in  (advocates don't reply to this — bounces ok)
+  //   REPLY_TO: contact@lawie.in  (real humans land here — must be a Google
+  //                                Workspace alias on the founder's mailbox)
   EMAIL_FROM_NAME: z.string().default('Lawie'),
-  EMAIL_FROM_ADDRESS: z.string().email().default('hello@lawie.in'),
-  EMAIL_REPLY_TO: z.string().email().default('hello@lawie.in'),
+  EMAIL_FROM_ADDRESS: z.string().email().default('noreply@lawie.in'),
+  EMAIL_REPLY_TO: z.string().email().default('contact@lawie.in'),
   EMAIL_FOUNDER: z.string().email().default('founder@lawie.in'),
 
   // BullMQ
