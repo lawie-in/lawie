@@ -182,6 +182,15 @@ app.use(
   createAuthenticatedProxy(env.BILLING_SERVICE_URL),
 );
 
+// Per-user resources owned by drafting service (Section Finder bookmarks +
+// recent searches — SCRUM-83).
+app.use(
+  '/api/users',
+  ...authChain,
+  planRateLimiter,
+  createAuthenticatedProxy(env.DRAFTING_SERVICE_URL),
+);
+
 // ── Sentry error handler ────────────────────────────────────────────────────
 Sentry.setupExpressErrorHandler(app);
 

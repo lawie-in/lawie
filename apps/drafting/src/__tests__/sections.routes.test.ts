@@ -462,4 +462,53 @@ describe('Sections Routes', () => {
       expect(res.body.results.some((r: { section: string }) => r.section === '302')).toBe(true);
     });
   });
+
+  describe('GET /sections/details (SCRUM-83 rich card)', () => {
+    it('returns 400 when section or code is missing', async () => {
+      const a = await request(app).get('/sections/details?code=BNS');
+      expect(a.status).toBe(400);
+      const b = await request(app).get('/sections/details?section=103');
+      expect(b.status).toBe(400);
+    });
+
+    it('returns the mapping envelope for a known BNS section', async () => {
+      const res = await request(app).get('/sections/details?section=103(1)&code=BNS');
+      expect(res.status).toBe(200);
+      expect(res.body.code).toBe('BNS');
+      expect(res.body.section).toBe('103(1)');
+      expect(res.body.statute).toBe('Bharatiya Nyaya Sanhita, 2023');
+      expect(res.body.mapping).toMatchObject({
+        old_code: 'IPC',
+        old_section: '302',
+        new_code: 'BNS',
+        new_section: '103(1)',
+      });
+    });
+
+    it('returns offence metadata (bailable / cognizable / compoundable / punishment) from bns-offences.json', async () => {
+      const res = await request(app).get('/sections/details?section=103&code=BNS');
+      expect(res.status).toBe(200);
+      expect(typeof res.body.bailable).toBe('boolean');
+      expect(typeof res.body.cognizable).toBe('boolean');
+      expect(['yes', 'no', 'with_permission']).toContain(res.body.compoundable);
+      expect(typeof res.body.punishment).toBe('string');
+    });
+
+    it('infers triable_by from max_years (>7 → Sessions, else Magistrate)', async () => {
+      const res = await request(app).get('/sections/details?section=103&code=BNS');
+      expect(['Sessions', 'Magistrate']).toContain(res.body.triable_by);
+    });
+
+    it('returns a placeholder envelope for unknown sections (no 404)', async () => {
+      const res = await request(app).get('/sections/details?section=999999&code=BNS');
+      expect(res.status).toBe(200);
+      expect(res.body.title).toBe('');
+      expect(res.body.mapping).toBeNull();
+    });
+
+    it('returns 400 for unsupported code', async () => {
+      const res = await request(app).get('/sections/details?section=103&code=ZZZ');
+      expect(res.status).toBe(400);
+    });
+  });
 });

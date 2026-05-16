@@ -1,3 +1,4 @@
+import bnsOffencesJson from '../config/bns-offences.json';
 import logger from '../config/logger';
 import { ISectionMapping, MappingType, SectionMapping } from '../models/SectionMapping.model';
 import { cacheHGet, cacheHSetBulk, cacheDel, cacheSet, cacheExists } from '../utils/cache';
@@ -279,6 +280,175 @@ export async function getAllMappings(code: string): Promise<{
     },
     mappings,
     newProvisions,
+  };
+}
+
+// ── Section details (SCRUM-83 — rich result card) ──────────────────────────
+
+/**
+ * Triable-by inferred from punishment severity per BNSS scheduling rules.
+ * Offences with max imprisonment > 7 years go to Sessions; the rest are
+ * Magistrate-triable. Sentinel `max_years === 99` (life / death) → Sessions.
+ */
+function inferTriableBy(maxYears: number | undefined): 'Sessions' | 'Magistrate' | 'Tribunal' {
+  if (typeof maxYears !== 'number') return 'Magistrate';
+  if (maxYears > 7) return 'Sessions';
+  return 'Magistrate';
+}
+
+export interface SectionDetail {
+  code: string;
+  section: string;
+  title: string;
+  statute: string;
+  chapter: string | null;
+  bailable: boolean | null;
+  cognizable: boolean | null;
+  compoundable: 'yes' | 'no' | 'with_permission' | null;
+  triable_by: 'Sessions' | 'Magistrate' | 'Tribunal' | null;
+  punishment: string | null;
+  max_years: number | null;
+  ingredients: string[];
+  bare_section_text: string | null;
+  related: Array<{ code: string; section: string; title: string }>;
+  mapping: {
+    old_code: string;
+    old_code_full: string;
+    old_section: string;
+    old_title: string;
+    new_code: string;
+    new_code_full: string;
+    new_section: string | null;
+    new_title: string | null;
+    mapping_type: MappingType;
+    notes?: string;
+  } | null;
+}
+
+interface BnsOffenceMeta {
+  title?: string;
+  punishment?: string;
+  max_years?: number;
+  bailable?: boolean;
+  cognizable?: boolean;
+  compoundable?: boolean | 'with_permission';
+  chapter?: string;
+}
+
+const BNS_OFFENCES: Record<string, BnsOffenceMeta> =
+  (bnsOffencesJson as { offences: Record<string, BnsOffenceMeta> }).offences ?? {};
+
+function compoundableLabel(
+  raw: boolean | 'with_permission' | undefined,
+): 'yes' | 'no' | 'with_permission' | null {
+  if (raw === undefined) return null;
+  if (raw === 'with_permission') return 'with_permission';
+  return raw ? 'yes' : 'no';
+}
+
+const STATUTE_LABEL: Record<string, string> = {
+  BNS: 'Bharatiya Nyaya Sanhita, 2023',
+  BNSS: 'Bharatiya Nagarik Suraksha Sanhita, 2023',
+  BSA: 'Bharatiya Sakshya Adhiniyam, 2023',
+  IPC: 'Indian Penal Code, 1860',
+  CrPC: 'Code of Criminal Procedure, 1973',
+  IEA: 'Indian Evidence Act, 1872',
+};
+
+/**
+ * Fetch the rich result-card payload for a single section. Returns null only
+ * when the code is invalid. An unknown section number returns an envelope with
+ * `title` empty so the UI can render "no data" gracefully instead of 404.
+ */
+export async function getSectionDetail(
+  section: string,
+  code: string,
+): Promise<SectionDetail | null> {
+  const resolved = resolveCode(code);
+  if (!resolved) return null;
+  const trimmedSection = section.trim();
+  if (!trimmedSection) return null;
+
+  const isNew = NEW_CODES.has(resolved);
+  const isOld = OLD_CODES.has(resolved);
+  if (!isNew && !isOld) return null;
+
+  // Mapping doc (single forward for old → new, first reverse for new → old).
+  let mapping: SectionDetail['mapping'] = null;
+  if (isOld) {
+    const doc = await lookupOldToNew(trimmedSection, resolved);
+    if (doc) {
+      mapping = {
+        old_code: doc.old_code,
+        old_code_full: doc.old_code_full,
+        old_section: doc.old_section,
+        old_title: doc.old_title,
+        new_code: doc.new_code,
+        new_code_full: doc.new_code_full,
+        new_section: doc.new_section,
+        new_title: doc.new_title,
+        mapping_type: doc.mapping_type,
+        notes: doc.notes,
+      };
+    }
+  } else {
+    const docs = await lookupNewToOld(trimmedSection, resolved);
+    const doc = docs?.[0];
+    if (doc) {
+      mapping = {
+        old_code: doc.old_code,
+        old_code_full: doc.old_code_full,
+        old_section: doc.old_section,
+        old_title: doc.old_title,
+        new_code: doc.new_code,
+        new_code_full: doc.new_code_full,
+        new_section: doc.new_section,
+        new_title: doc.new_title,
+        mapping_type: doc.mapping_type,
+        notes: doc.notes,
+      };
+    }
+  }
+
+  // Offence metadata (only available for BNS in the current data set).
+  const offenceCode = isNew ? resolved : mapping?.new_code;
+  const offenceSection = isNew ? trimmedSection : mapping?.new_section;
+  const offence =
+    offenceCode === 'BNS' && offenceSection ? BNS_OFFENCES[offenceSection] : undefined;
+
+  // Title — prefer the offence metadata, fall back to the mapping doc, then ''.
+  const title = offence?.title ?? (isNew ? mapping?.new_title : mapping?.old_title) ?? '';
+
+  // Related sections — derive from same BNS chapter when offence metadata
+  // is available. Skipped for old codes / non-BNS for now.
+  const related: SectionDetail['related'] = [];
+  if (offence?.chapter && offenceCode === 'BNS' && offenceSection) {
+    for (const [secKey, meta] of Object.entries(BNS_OFFENCES)) {
+      if (secKey === offenceSection) continue;
+      if (meta.chapter !== offence.chapter) continue;
+      related.push({ code: 'BNS', section: secKey, title: meta.title ?? '' });
+      if (related.length >= 3) break;
+    }
+  }
+
+  return {
+    code: resolved,
+    section: trimmedSection,
+    title,
+    statute: STATUTE_LABEL[resolved] ?? resolved,
+    chapter: offence?.chapter ?? null,
+    bailable: offence?.bailable ?? null,
+    cognizable: offence?.cognizable ?? null,
+    compoundable: compoundableLabel(offence?.compoundable),
+    triable_by: offence ? inferTriableBy(offence.max_years) : null,
+    punishment: offence?.punishment ?? null,
+    max_years: typeof offence?.max_years === 'number' ? offence.max_years : null,
+    // Ingredients + bare section text are not yet authored in bns-offences.json.
+    // Filed as CLO follow-up; UI renders empty list / null gracefully.
+    ingredients: [],
+    bare_section_text: null,
+    related,
+    mapping,
   };
 }
 
