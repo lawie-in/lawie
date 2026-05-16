@@ -6,11 +6,17 @@ import { useState } from 'react';
 
 import LawieLogoMark from '@/components/LawieLogoMark';
 
+// Founder decision 2026-05-17: Google OAuth is the only sign-in for Phase 1.
+// Keep the email/password code path intact (handlers, state, JSX block below)
+// so we can flip the flag back if Google ever goes down or a regulator demands
+// non-OAuth fallback. Flipping `ENABLE_PASSWORD_LOGIN = true` restores it.
+const ENABLE_PASSWORD_LOGIN = false;
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [notice] = useState('Email/password login coming soon. Use Google to sign in now.');
+  const [notice] = useState('Sign in with Google to continue.');
 
   // Referral code — SCRUM-71
   const [referralCode, setReferralCode] = useState('');
@@ -95,7 +101,7 @@ export default function LoginPage() {
                   }}
                   onBlur={handleReferralBlur}
                   maxLength={16}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-2.5 font-mono text-sm text-slate-900 uppercase placeholder:normal-case placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-2.5 font-mono text-sm uppercase text-slate-900 placeholder:normal-case placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {referralValid === true && (
                   <p className="mt-1 flex items-center gap-1 text-xs text-green-600">
@@ -147,78 +153,81 @@ export default function LoginPage() {
           </button>
 
           {/* Divider */}
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-slate-200" />
-            <span className="text-xs font-medium text-slate-400">or continue with email</span>
-            <div className="h-px flex-1 bg-slate-200" />
-          </div>
-
-          {/* Email + Password form */}
-          <form onSubmit={handleEmailLogin} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@legalfirm.com"
-                className="focus:ring-lawie-600 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2"
-              />
+          {ENABLE_PASSWORD_LOGIN && (
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs font-medium text-slate-400">or continue with email</span>
+              <div className="h-px flex-1 bg-slate-200" />
             </div>
+          )}
 
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-                  Password
+          {/* Email + Password form — gated by ENABLE_PASSWORD_LOGIN. Kept in
+              the tree so flipping the flag restores the full flow. */}
+          {ENABLE_PASSWORD_LOGIN && (
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Email address
                 </label>
-                <span className="text-lawie-600 hover:text-lawie-700 cursor-pointer text-xs font-medium">
-                  Forgot password?
-                </span>
-              </div>
-              <div className="relative">
                 <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  id="email"
+                  type="email"
+                  autoComplete="email"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="focus:ring-lawie-600 w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@legalfirm.com"
+                  className="focus:ring-lawie-600 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4.5 w-4.5" />
-                  ) : (
-                    <Eye className="h-4.5 w-4.5" />
-                  )}
-                </button>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              className="bg-lawie-600 shadow-lawie-600/25 hover:bg-lawie-700 mt-2 w-full rounded-xl py-3 text-sm font-semibold text-white shadow-lg transition-all active:scale-[0.98]"
-            >
-              Sign in
-            </button>
-          </form>
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                    Password
+                  </label>
+                  <span className="text-lawie-600 hover:text-lawie-700 cursor-pointer text-xs font-medium">
+                    Forgot password?
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="focus:ring-lawie-600 w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4.5 w-4.5" />
+                    ) : (
+                      <Eye className="h-4.5 w-4.5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="bg-lawie-600 shadow-lawie-600/25 hover:bg-lawie-700 mt-2 w-full rounded-xl py-3 text-sm font-semibold text-white shadow-lg transition-all active:scale-[0.98]"
+              >
+                Sign in
+              </button>
+            </form>
+          )}
 
           <p className="mt-6 text-center text-sm text-slate-500">
-            Don&apos;t have an account?{' '}
-            <span className="text-lawie-600 hover:text-lawie-700 cursor-pointer font-medium">
-              Sign up — coming soon
-            </span>
+            New advocate?{' '}
+            <span className="text-slate-700">Sign in with Google to create your account.</span>
           </p>
         </div>
       </div>

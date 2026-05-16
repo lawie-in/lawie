@@ -1,0 +1,10 @@
+process.env.NODE_ENV = 'test';
+process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.EMAIL_PROVIDER = 'dry-run';
+process.env.EMAIL_DRY_RUN = 'true';
+process.env.EMAIL_QUEUE_PREFIX = 'lawie-test';
+process.env.EMAIL_FROM_NAME = 'Lawie Test';
+process.env.EMAIL_FROM_ADDRESS = 'hello@lawie.in';
+process.env.EMAIL_REPLY_TO = 'hello@lawie.in';
+process.env.EMAIL_FOUNDER = 'founder@lawie.in';
+process.env.AWS_REGION = 'ap-south-1';

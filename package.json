@@ -8,8 +8,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"yarn workspace @lawie/gateway dev\" \"yarn workspace @lawie/auth dev\" \"yarn workspace @lawie/drafting dev\" \"yarn workspace @lawie/billing dev\" \"yarn workspace @lawie/web dev\"",
-    "dev:backend": "concurrently \"yarn workspace @lawie/gateway dev\" \"yarn workspace @lawie/auth dev\" \"yarn workspace @lawie/drafting dev\" \"yarn workspace @lawie/billing dev\"",
+    "dev": "concurrently \"yarn workspace @lawie/gateway dev\" \"yarn workspace @lawie/auth dev\" \"yarn workspace @lawie/drafting dev\" \"yarn workspace @lawie/billing dev\" \"yarn workspace @lawie/email-worker dev\" \"yarn workspace @lawie/web dev\"",
+    "dev:backend": "concurrently \"yarn workspace @lawie/gateway dev\" \"yarn workspace @lawie/auth dev\" \"yarn workspace @lawie/drafting dev\" \"yarn workspace @lawie/billing dev\" \"yarn workspace @lawie/email-worker dev\"",
     "build": "yarn workspaces run build",
     "test": "yarn workspaces run test",
     "lint": "yarn workspaces run lint",
