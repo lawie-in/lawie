@@ -61,3 +61,14 @@
 .tiptap ul, .tiptap ol { padding-left: 1.5em; margin-bottom: 0.75em; }
 .tiptap li { margin-bottom: 0.25em; }
 .tiptap hr { border-top: 1px solid #e2e8f0; margin: 1em 0; }
+
+/* SCRUM-83 — freshly-inserted citation flashes amber for ~2s after insert. */
+.tiptap .lawie-citation-fresh {
+  background-color: #fef3c7; /* amber-100 */
+  border-radius: 4px;
+  padding: 1px 4px;
+  transition: background-color 1.5s ease-out 0.5s;
+}
+.tiptap .lawie-citation-fresh:not(.lawie-citation-fresh) {
+  background-color: transparent;
+}

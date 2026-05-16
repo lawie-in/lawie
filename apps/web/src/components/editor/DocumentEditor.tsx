@@ -7,6 +7,8 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useCallback, useEffect, useRef } from 'react';
 
+import { SECTION_FINDER_INSERT_EVENT } from '../sections/SectionFinderPanel';
+
 import Toolbar from './Toolbar';
 
 interface DocumentEditorProps {
@@ -66,6 +68,33 @@ export default function DocumentEditor({
   useEffect(() => {
     if (editor) editor.setEditable(editable);
   }, [editor, editable]);
+
+  // SCRUM-83: listen for the Section Finder's "insert at cursor" event and
+  // splice the citation into the editor at the current selection. The freshly-
+  // inserted span carries .lawie-citation-fresh so the editor styles can flash
+  // it amber for 2s (see globals.css).
+  useEffect(() => {
+    if (!editor) return;
+    function handler(e: Event) {
+      const ce = e as CustomEvent<{ citation: string; section: string; code: string }>;
+      const text = ce.detail?.citation;
+      if (!text) return;
+      editor!
+        .chain()
+        .focus()
+        .insertContent(`<span class="lawie-citation-fresh">${text}</span>&nbsp;`)
+        .run();
+      // Strip the highlight class after 2s so it doesn't persist in the saved doc.
+      setTimeout(() => {
+        const root = editor!.view.dom;
+        root.querySelectorAll('.lawie-citation-fresh').forEach((el) => {
+          el.classList.remove('lawie-citation-fresh');
+        });
+      }, 2000);
+    }
+    window.addEventListener(SECTION_FINDER_INSERT_EVENT, handler);
+    return () => window.removeEventListener(SECTION_FINDER_INSERT_EVENT, handler);
+  }, [editor]);
 
   const getHtml = useCallback(() => {
     return editor?.getHTML() ?? '';

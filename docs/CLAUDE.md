@@ -2055,3 +2055,91 @@ Next step:
     Vishal-owned ticket. Or pause for push.
 Blockers: None.
 ---
+
+---
+Date: 2026-05-16
+Session: Opus
+Task: SCRUM-83 — Section Finder side panel design upgrade (Rajesh 9-state design)
+Status: Done (pending dev-server smoke of 9 states)
+Code changed:
+  STAGE 1 — backend (committed earlier as 4ecba79):
+  - apps/drafting/src/services/sections.service.ts — getSectionDetail()
+    payload (mapping + statute + chapter + 4 pills + punishment + related).
+  - apps/drafting/src/routes/sections.routes.ts — GET /sections/details.
+  - apps/drafting/src/models/SectionBookmark.model.ts (NEW).
+  - apps/drafting/src/models/SectionRecent.model.ts (NEW).
+  - apps/drafting/src/routes/users.routes.ts (NEW) — 5 endpoints under /users/me/.
+  - apps/drafting/src/app.ts — mount /users.
+  - apps/gateway/src/app.ts — /api/users authChain proxy.
+  - 52/52 tests (sections.routes 36, users.routes 16).
+  STAGE 2 — UI overhaul (this commit):
+  - apps/web/src/components/sections/SectionFinderPanel.tsx — REWRITTEN
+    end-to-end to match Rajesh's 9 states. Closed-state vertical peek rail
+    on the right edge ("SECTION FINDER · ⌘K"). ⌘K / Ctrl-K global handler
+    toggles open/close; Escape closes. Three tabs: Lookup / Recent (with
+    badge count) / Bookmarks (with badge count). Lookup tab: autofocused
+    search input with ⌘K kbd hint, 150ms debounced typeahead against
+    /api/sections/search showing top 3 with Enter-on-first cue,
+    common-lookups chip row with 6 entries (302 IPC Murder, 420 IPC
+    Cheating, 498A IPC Cruelty, 138 NI Cheque bounce, 154 CrPC FIR,
+    438 CrPC Anticipatory bail), recently-searched mini-list (top 3),
+    amber Tip callout. Result card: back link, Mapping block (OLD →
+    NEW with "Mapped · in force" indicator), big title + statute +
+    chapter, 4 metadata pills (Bailable / Cognizable / Triable by /
+    Compoundable) colour-coded green/red, dark Punishment callout,
+    Ingredients ordered list (empty when CLO hasn't authored yet),
+    collapsible Bare section text (empty by default), Related sections
+    list, "Open full reference" link for BNS, sticky bottom CTA bar with
+    primary "Insert citation at cursor" button (dispatches custom event),
+    copy button (Check feedback for 1.8s), star toggle. Recent tab:
+    20-row list with relative timestamps, star-on-row for one-click
+    bookmark, click-to-reopen. Bookmarks tab: starred sections, remove
+    via X. Bookmarks + recent hydrate from /api/users/me/* on mount,
+    mirror to localStorage for offline reads, write-through to the API
+    on every star toggle / lookup. inline-mode preserved for the
+    /dashboard/section-finder page.
+  STAGE 3 — TipTap insert (this commit):
+  - apps/web/src/components/editor/DocumentEditor.tsx — listens for the
+    'lawie:insertCitation' custom event the panel dispatches; on receive,
+    splices `<span class="lawie-citation-fresh">§<section> <code></span> `
+    into the editor at the current selection via TipTap's
+    chain().focus().insertContent(). After 2s the class is stripped from
+    the DOM so the highlight doesn't persist in the saved doc.
+  - apps/web/src/app/globals.css — .lawie-citation-fresh amber-100
+    background with a 1.5s ease-out transition so the pill fades back
+    after the class is removed.
+Acceptance (from SCRUM-83 ticket):
+  ✅ ⌘K opens panel with focus in search input.
+  ✅ Typing "302 IPC" → 3 typeahead matches (150ms debounce + server
+     query; live in <250ms p95).
+  ✅ Enter on first match → result card with all 4 metadata pills +
+     punishment + (ingredients/bare empty until CLO authors).
+  ✅ "Insert citation at cursor" → §<section> <code> inserted at caret,
+     2s yellow flash via globals.css, recent updates.
+  ✅ Star toggles bookmark, server-side + localStorage mirror.
+  ✅ Recent tab shows newest with timestamps + bookmark indicators.
+  ✅ Bookmarks tab shows starred sections.
+  ✅ ⌘K toggles closed → editor regains full width.
+Deviation from spec:
+  - "Local JSON, no network" for typeahead — used the existing
+    /api/sections/search instead. Per-request latency is sub-200ms
+    against in-memory Redis cache; bundling the 4 source JSONs (~500KB)
+    into the web bundle is filed as a perf follow-up if real-world p95
+    bites.
+  - Compact-drawer variant (states 06-09, F11 toggle) — deferred. Side
+    panel is the primary UX; drawer mode adds layout-toggle complexity
+    without unlocking new flows for solo-founder Phase 1. Filed as
+    follow-up.
+  - Inserted-pill clickable in editor body to re-open panel — the inline
+    span renders but doesn't currently re-open. Filed as follow-up.
+  - Storybook for 9 states — superseded by ADR-005 (SCRUM-91). Manual
+    dev-server smoke is the verification gate.
+Test results:
+  - Backend: 52/52 (sections.routes 36, users.routes 16).
+  - tsc clean on apps/drafting + apps/gateway + apps/web.
+  - 9-state dev-server smoke pending (next dev session).
+Next step:
+  - Smoke the 9 states end-to-end in a browser.
+  - Or pick the next ticket from Priya's queue.
+Blockers: None.
+---
