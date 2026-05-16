@@ -1,0 +1,225 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_status": "Approved",
+    "legal_basis": "Indian Contract Act 1872 + Companies Act 2013",
+    "notes": "SHA governs inter-se rights of shareholders. Must be mirrored in AOA to be enforceable against company - V.B. Rangaraj v. V.B. Gopalakrishnan (1992) 1 SCC 160. SEBI ICDR Regulations may apply for listed entities."
+  },
+  "template_id": "shareholders_agreement",
+  "title": "Shareholders Agreement (SHA)",
+  "category": "corporate",
+  "creditsCost": 2,
+  "court_levels": [],
+  "form_schema": {
+    "type": "object",
+    "required": ["company_name", "company_cin", "parties", "effective_date", "governing_law_state"],
+    "properties": {
+      "company_name": { "type": "string" },
+      "company_cin": { "type": "string" },
+      "company_registered_office": { "type": "string" },
+      "effective_date": { "type": "string", "format": "date" },
+      "parties": {
+        "type": "array",
+        "title": "Parties (Founders, Investors, Company)",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "type": { "type": "string", "enum": ["Founder", "Investor", "ESOP Trust", "Company"] },
+            "address": { "type": "string" },
+            "shareholding_percent": { "type": "number" },
+            "class_of_shares": { "type": "string" }
+          }
+        }
+      },
+      "investment_amount": { "type": "number" },
+      "valuation_pre_money": { "type": "number" },
+      "valuation_post_money": { "type": "number" },
+      "board_seats": {
+        "type": "object",
+        "properties": {
+          "founder_seats": { "type": "number" },
+          "investor_seats": { "type": "number" },
+          "independent_seats": { "type": "number" }
+        }
+      },
+      "reserved_matters": { "type": "array", "items": { "type": "string" } },
+      "tag_along_threshold": { "type": "number", "default": 25 },
+      "drag_along_threshold": { "type": "number", "default": 75 },
+      "lock_in_period_months": { "type": "number", "default": 36 },
+      "exit_period_years": { "type": "number", "default": 5 },
+      "anti_dilution_method": {
+        "type": "string",
+        "enum": [
+          "Broad-based weighted average",
+          "Narrow-based weighted average",
+          "Full ratchet",
+          "None"
+        ]
+      },
+      "liquidation_preference": { "type": "string", "default": "1x non-participating" },
+      "governing_law_state": { "type": "string" },
+      "arbitration_seat": { "type": "string" },
+      "dispute_resolution": {
+        "type": "string",
+        "default": "Arbitration under Arbitration and Conciliation Act 1996"
+      }
+    }
+  },
+  "mandatory_clauses": [
+    { "clause_id": "definitions", "title": "Definitions and Interpretation", "must_appear": true },
+    { "clause_id": "investment", "title": "Investment / Subscription", "must_appear": true },
+    {
+      "clause_id": "representations_warranties",
+      "title": "Representations and Warranties (by Company and Founders)",
+      "must_appear": true
+    },
+    {
+      "clause_id": "conditions_precedent",
+      "title": "Conditions Precedent to Closing",
+      "must_appear": true
+    },
+    {
+      "clause_id": "board_composition",
+      "title": "Board Composition and Governance",
+      "must_appear": true
+    },
+    {
+      "clause_id": "reserved_matters",
+      "title": "Reserved Matters / Affirmative Vote Items",
+      "must_appear": true,
+      "note": "Must be mirrored in AOA to bind company - V.B. Rangaraj"
+    },
+    {
+      "clause_id": "information_rights",
+      "title": "Information and Inspection Rights",
+      "must_appear": true
+    },
+    {
+      "clause_id": "transfer_restrictions",
+      "title": "Transfer Restrictions and Lock-in",
+      "must_appear": true
+    },
+    {
+      "clause_id": "rofr_rofo",
+      "title": "Right of First Refusal / Right of First Offer",
+      "must_appear": true
+    },
+    {
+      "clause_id": "tag_along",
+      "title": "Tag-Along Rights",
+      "must_appear": true,
+      "content": "If a Founder proposes to transfer shares constituting >= {{tag_along_threshold}}% of share capital, the Investor shall have the right to participate in such sale pro rata."
+    },
+    {
+      "clause_id": "drag_along",
+      "title": "Drag-Along Rights",
+      "must_appear": true,
+      "content": "If shareholders holding >= {{drag_along_threshold}}% approve a sale, remaining shareholders shall be required to sell on the same terms."
+    },
+    {
+      "clause_id": "pre_emption",
+      "title": "Pre-emptive Rights on New Issuances",
+      "must_appear": true
+    },
+    { "clause_id": "anti_dilution", "title": "Anti-Dilution Protection", "must_appear": true },
+    {
+      "clause_id": "liquidation_preference",
+      "title": "Liquidation Preference and Waterfall",
+      "must_appear": true
+    },
+    {
+      "clause_id": "exit_provisions",
+      "title": "Exit Rights (IPO, Strategic Sale, Buyback, Put Option)",
+      "must_appear": true,
+      "note": "Put options on Indian residents by non-residents face FEMA constraints - structure carefully"
+    },
+    {
+      "clause_id": "non_compete_founders",
+      "title": "Founder Non-Compete and Non-Solicit",
+      "must_appear": true,
+      "note": "Post-employment non-compete on founders qua employees void under S.27 Contract Act; non-compete qua shareholders enforceable - Niranjan Shankar Golikari"
+    },
+    {
+      "clause_id": "founder_vesting",
+      "title": "Founder Share Vesting / Reverse Vesting",
+      "must_appear": true
+    },
+    { "clause_id": "esop", "title": "ESOP Pool and Dilution Mechanics", "must_appear": false },
+    {
+      "clause_id": "indemnification",
+      "title": "Indemnification (Cap, Basket, Survival)",
+      "must_appear": true
+    },
+    { "clause_id": "confidentiality", "title": "Confidentiality", "must_appear": true },
+    { "clause_id": "term_termination", "title": "Term and Termination", "must_appear": true },
+    {
+      "clause_id": "governing_law",
+      "title": "Governing Law and Dispute Resolution",
+      "must_appear": true,
+      "content": "This Agreement is governed by the laws of India. Disputes shall be referred to arbitration under the Arbitration and Conciliation Act 1996 seated at {{arbitration_seat}}."
+    },
+    {
+      "clause_id": "amendment_aoa",
+      "title": "Amendment of AOA to Reflect SHA",
+      "must_appear": true,
+      "note": "Critical - per V.B. Rangaraj"
+    },
+    {
+      "clause_id": "miscellaneous",
+      "title": "Miscellaneous (Notices, Severability, Entire Agreement, Force Majeure)",
+      "must_appear": true
+    },
+    { "clause_id": "execution", "title": "Execution and Witness", "must_appear": true }
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting a Shareholders Agreement for an Indian private limited company. Balance founder protection and investor rights. Ensure SHA terms are mirrorable in AOA (V.B. Rangaraj). Comply with FEMA if foreign investor.",
+    "drafting_rules": [
+      "Identify parties clearly - Founders, Investors, Company, ESOP Trust.",
+      "Reserved matters list should be specific (e.g., charter amendments, M&A, debt above threshold, related party transactions, business plan changes, key hires).",
+      "Tag-along triggers on Founder exit; Drag-along requires defined threshold.",
+      "ROFR vs ROFO - distinguish clearly. ROFR = existing holder matches third-party offer; ROFO = existing holder gets first offer.",
+      "Anti-dilution: broad-based weighted average is most founder-friendly. Full ratchet most investor-friendly.",
+      "Liquidation preference - default 1x non-participating to align incentives.",
+      "Founder vesting/reverse vesting: 4 years, 1-year cliff is market standard.",
+      "Non-compete on founder qua shareholder is enforceable; qua employee post-termination void under S.27.",
+      "Put option on Indian resident by foreign investor - structure as exit assistance, not assured return (FEMA).",
+      "Stamp duty payable per state Stamp Act (avg INR 100-500 plus value-linked in some states).",
+      "Arbitration seat usually Mumbai/Delhi/Bengaluru - mention venue and seat both."
+    ],
+    "tone": "Formal commercial-legal, US-style VC document conventions adapted for Indian law."
+  },
+  "relevantActs": [
+    { "act": "Companies Act 2013" },
+    { "act": "Indian Contract Act 1872", "sections": ["S.27 (non-compete restriction)"] },
+    { "act": "Specific Relief Act 1963", "sections": ["S.14, S.41 (specific performance bars)"] },
+    { "act": "Arbitration and Conciliation Act 1996" },
+    { "act": "FEMA 1999 + FEMA (NDI) Rules 2019", "applies_when": "Foreign investor" },
+    { "act": "Income Tax Act 1961", "sections": ["S.56(2)(viib), S.79"] },
+    { "act": "SEBI ICDR Regulations 2018", "applies_when": "Pre-IPO" },
+    { "act": "Indian Stamp Act 1899" }
+  ],
+  "filing_checklist": [
+    "Stamp the agreement per state stamp duty (e.g., Maharashtra: 0.2% of consideration; Delhi: INR 100; Karnataka: 0.1%).",
+    "Amend AOA to reflect SHA clauses (esp. transfer restrictions, board nomination, affirmative vote) - file MGT-14.",
+    "If foreign investor: file FC-GPR within 30 days of share allotment (RBI).",
+    "Issue share certificates within 2 months of allotment (S.56 Cos Act).",
+    "Update ROM (Register of Members) under S.88.",
+    "PAS-3 filing for return of allotment within 15 days."
+  ],
+  "validation_rules": [
+    {
+      "rule": "All material SHA clauses mirrored in AOA",
+      "check": "Transfer restrictions, board, affirmative vote in AOA"
+    },
+    { "rule": "Tag-along threshold <= 50%", "check": "tag_along_threshold reasonable" },
+    { "rule": "Drag-along threshold >= 51%", "check": "drag_along_threshold > 50" },
+    { "rule": "Stamp duty mentioned", "check": "Stamp duty per applicable state" },
+    { "rule": "Governing law India", "check": "governing_law mentions India" },
+    {
+      "rule": "FEMA compliance if foreign party",
+      "check": "If any party non-resident, FC-GPR/FC-TRS mentioned"
+    }
+  ]
+}

@@ -1,0 +1,206 @@
+{
+  "_meta": {
+    "description": "Document-rules config for legal_notice_breach_of_contract — pre-suit notice demanding performance or damages for breach",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — drafted 2026-05-12 in Batch 2 templates",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Advocate must verify the underlying contract is valid, enforceable, and within limitation."
+  },
+  "docType": "legal_notice_breach_of_contract",
+  "parentDocType": "legal_notice",
+  "displayName": "Legal Notice — Breach of Contract",
+  "category": "notice",
+  "creditsCost": 1,
+  "court_levels": ["pre_litigation"],
+  "causeTitle": {
+    "format": "LEGAL NOTICE\n(Under the Indian Contract Act, 1872 and the Specific Relief Act, 1963)\n\nTo,\n{respondent}\n{respondentAddress}\n\nFrom,\n{applicant}\nThrough: {advocateName}, Advocate\n{advocateAddress}",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Sender / Aggrieved Party / Promisee" },
+      { "role": "respondent", "label": "Noticee / Defaulting Party / Promisor" }
+    ],
+    "caseNomenclature": "N/A"
+  },
+  "form_schema": {
+    "sender": { "type": "object", "required": ["name", "address", "capacity"] },
+    "recipient": { "type": "object", "required": ["name", "address", "capacity"] },
+    "contract": {
+      "type": "object",
+      "required": [
+        "title_or_subject",
+        "date_of_execution",
+        "place_of_execution",
+        "consideration",
+        "key_terms_breached"
+      ]
+    },
+    "breach_particulars": {
+      "type": "object",
+      "required": [
+        "nature_of_breach",
+        "date_of_breach",
+        "obligations_unperformed",
+        "period_elapsed_since_breach"
+      ]
+    },
+    "demand": {
+      "type": "object",
+      "required": ["relief_sought", "amount_claimed", "interest_rate", "response_deadline_days"],
+      "note": "Relief options: specific performance, damages, refund, restitution, declaration"
+    },
+    "dispute_resolution": {
+      "type": "object",
+      "required": ["arbitration_clause", "jurisdiction_clause"],
+      "optional": true
+    }
+  },
+  "mandatoryClauses": [
+    {
+      "id": "contract_identification",
+      "name": "Contract Identification",
+      "required": true,
+      "description": "Identify the contract by title/date/place/parties; attach copy or excerpts if available"
+    },
+    {
+      "id": "consideration",
+      "name": "Consideration & Performance by Sender",
+      "required": true,
+      "description": "Establish consideration moved from the sender and that sender has performed / is ready and willing to perform"
+    },
+    {
+      "id": "breach_particulars",
+      "name": "Particulars of Breach",
+      "required": true,
+      "description": "Specific obligations breached, date of breach, period elapsed, prior communications/reminders"
+    },
+    {
+      "id": "demand_for_relief",
+      "name": "Demand for Performance / Damages",
+      "required": true,
+      "description": "Clear demand — specific performance OR damages OR refund OR combination — with quantified amount"
+    },
+    {
+      "id": "response_window",
+      "name": "Response Window",
+      "required": true,
+      "description": "Typically 15-30 days to cure breach or pay damages"
+    },
+    {
+      "id": "reservation_of_rights",
+      "name": "Reservation of Right to Litigate",
+      "required": true,
+      "description": "Reservation of right to sue for specific performance, damages, injunction, and costs"
+    },
+    {
+      "id": "arbitration_invocation",
+      "name": "Arbitration Invocation (if applicable)",
+      "required": false,
+      "description": "If contract has arbitration clause, this notice may double as Section 21 A&C Act notice invoking arbitration"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and BCI enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "You are hereby called upon to, within {response_days} ({response_days_words}) days of receipt of this notice, either:\n(a) Specifically perform your obligations under the said {contract_title} dated {contract_date}, namely {obligations_unperformed}; OR\n(b) Pay to my client a sum of Rs. {amount}/- ({amountInWords}) towards damages / refund / compensation for breach, together with interest at {interest_rate}% per annum from {date_of_breach} until realisation; AND\n(c) Reimburse the cost of this notice.\n\nFailing the above, my client shall be constrained to initiate appropriate civil proceedings for specific performance, damages, permanent injunction, and recovery before the competent court of jurisdiction, at your sole risk, cost, and consequences. {arbitration_clause_text}\n\nThis notice is without prejudice to and reserves all rights and remedies available to my client in law and equity.",
+  "verificationTemplate": "",
+  "filingChecklist": [
+    "Notice sent by Registered Post AD / Speed Post AD to each addressee",
+    "Also serve by email where contractually permitted",
+    "Postal receipts and AD card preserved",
+    "Copy of contract / agreement annexed or referenced",
+    "Copies of prior correspondence / reminders preserved",
+    "Evidence of sender's readiness and willingness to perform (essential for specific performance)",
+    "Limitation: Suit for breach of contract = 3 years from breach (Article 55 Limitation Act); for specific performance = 3 years from date fixed for performance (Article 54)",
+    "If arbitration clause exists, this notice can be issued under Section 21 of Arbitration & Conciliation Act, 1996"
+  ],
+  "relevantActs": [
+    {
+      "act": "Indian Contract Act, 1872",
+      "sections": [
+        { "number": "37", "description": "Obligation of parties to perform" },
+        { "number": "39", "description": "Effect of refusal of party to perform promise wholly" },
+        {
+          "number": "73",
+          "description": "Compensation for loss or damage caused by breach of contract"
+        },
+        { "number": "74", "description": "Compensation for breach where penalty stipulated" },
+        {
+          "number": "75",
+          "description": "Party rightfully rescinding contract entitled to compensation"
+        }
+      ]
+    },
+    {
+      "act": "Specific Relief Act, 1963",
+      "sections": [
+        {
+          "number": "10",
+          "description": "Specific performance of contract in respect of which compensation is not adequate (post-2018 amendment — specific performance now default remedy)"
+        },
+        { "number": "14", "description": "Contracts not specifically enforceable" },
+        { "number": "16", "description": "Personal bars to relief — readiness and willingness" },
+        { "number": "20", "description": "Substituted performance" }
+      ]
+    },
+    {
+      "act": "Arbitration & Conciliation Act, 1996",
+      "sections": [
+        {
+          "number": "21",
+          "description": "Commencement of arbitral proceedings — notice invoking arbitration"
+        }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "Article 54",
+          "description": "Suit for specific performance — 3 years from date fixed for performance"
+        },
+        {
+          "number": "Article 55",
+          "description": "Suit for compensation for breach — 3 years from breach"
+        }
+      ]
+    }
+  ],
+  "validation_rules": [
+    {
+      "rule": "contract_must_exist",
+      "description": "Underlying contract must be identified — date, parties, consideration"
+    },
+    {
+      "rule": "breach_must_be_specific",
+      "description": "Generic 'you breached' is insufficient; particularise the obligations unperformed"
+    },
+    {
+      "rule": "response_window_15_to_30_days",
+      "description": "Cooling-off window typically 15-30 days; do not set unreasonable deadlines"
+    },
+    {
+      "rule": "limitation_check",
+      "description": "Issue notice well within Article 54/55 limitation; notice does not extend limitation"
+    },
+    {
+      "rule": "readiness_willingness_for_sp",
+      "description": "If seeking specific performance, sender must aver readiness and willingness (Section 16(c) SRA)"
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Legal Notice for Breach of Contract under the Indian Contract Act, 1872 and Specific Relief Act, 1963.",
+    "Identify the contract — title, date of execution, place, parties, and brief subject matter.",
+    "Set out the consideration that moved from the sender and that the sender has performed / is ready and willing to perform their obligations.",
+    "Particularise the breach — which obligations were unperformed, date of breach, prior reminders issued.",
+    "State the period elapsed since breach.",
+    "Set out the demand clearly — specific performance OR damages OR refund OR combination — with a quantified amount and interest claim where applicable.",
+    "Give a response window of 15-30 days.",
+    "If the contract has an arbitration clause, consider including a Section 21 A&C Act invocation in the alternative.",
+    "Reserve all rights — civil suit, specific performance, permanent injunction, damages, costs.",
+    "Mind limitation: 3 years from breach (Art. 55) or date fixed for performance (Art. 54) — confirm notice is issued in time.",
+    "Use firm but professional legal language.",
+    "Do NOT generate the advocate signature block — it is added programmatically."
+  ]
+}

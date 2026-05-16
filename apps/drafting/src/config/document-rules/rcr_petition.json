@@ -1,0 +1,243 @@
+{
+  "_meta": {
+    "description": "Document-rules config for rcr_petition — Restitution of Conjugal Rights u/s 9 HMA / s.22 SMA",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 3 family-law pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off."
+  },
+  "template_id": "rcr_petition",
+  "docType": "rcr_petition",
+  "title": "Petition for Restitution of Conjugal Rights",
+  "displayName": "RCR Petition (s.9 HMA / s.22 SMA)",
+  "category": "family",
+  "creditsCost": 2,
+  "court_levels": ["family_court_principal", "family_court_additional", "district_court_civil"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{petitioner} ... Petitioner\nVERSUS\n{respondent} ... Respondent",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner" },
+      { "role": "respondent", "label": "Respondent" }
+    ],
+    "caseNomenclature": "RCR Petition No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "governing_act",
+        "label": "Governing statute",
+        "type": "select",
+        "required": true,
+        "options": ["HMA_1955", "SMA_1954"]
+      },
+      { "id": "petitioner_name", "label": "Petitioner name", "type": "text", "required": true },
+      { "id": "petitioner_age", "label": "Petitioner age", "type": "number", "required": true },
+      {
+        "id": "petitioner_occupation",
+        "label": "Petitioner occupation",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner_address",
+        "label": "Petitioner address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "respondent_name", "label": "Respondent name", "type": "text", "required": true },
+      { "id": "respondent_age", "label": "Respondent age", "type": "number", "required": true },
+      {
+        "id": "respondent_address",
+        "label": "Respondent address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "marriage_date", "label": "Date of marriage", "type": "date", "required": true },
+      { "id": "marriage_place", "label": "Place of marriage", "type": "text", "required": true },
+      {
+        "id": "matrimonial_home",
+        "label": "Matrimonial home address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "children_details",
+        "label": "Children of marriage",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "date_of_withdrawal",
+        "label": "Date respondent withdrew from society of petitioner",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "circumstances_of_withdrawal",
+        "label": "Circumstances under which respondent left",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "no_reasonable_excuse_basis",
+        "label": "Why respondent has NO reasonable excuse for withdrawal",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "efforts_to_reconcile",
+        "label": "Efforts made by petitioner to bring respondent back",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "respondent_response",
+        "label": "Respondent's response (if any) to petitioner's efforts",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "jurisdiction_basis",
+        "label": "Basis for territorial jurisdiction",
+        "type": "select",
+        "required": true,
+        "options": [
+          "where_marriage_solemnised",
+          "where_respondent_resides",
+          "where_parties_last_resided_together"
+        ]
+      },
+      { "id": "court_fee_paid", "label": "Court fee paid", "type": "currency", "required": true },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "valid_marriage",
+      "name": "Valid Marriage",
+      "required": true,
+      "description": "Marriage averments per governing statute"
+    },
+    {
+      "id": "cohabitation_history",
+      "name": "Cohabitation Period",
+      "required": true,
+      "description": "Period during which parties cohabited as husband-wife"
+    },
+    {
+      "id": "withdrawal",
+      "name": "Withdrawal from Society",
+      "required": true,
+      "description": "Date and circumstances under which respondent withdrew from the society of petitioner"
+    },
+    {
+      "id": "no_reasonable_excuse",
+      "name": "Absence of Reasonable Excuse",
+      "required": true,
+      "description": "Specific pleading that respondent has no reasonable excuse for withdrawal — burden shifts to respondent under Explanation to S.9"
+    },
+    {
+      "id": "petitioner_willingness",
+      "name": "Petitioner's Willingness to Cohabit",
+      "required": true,
+      "description": "Petitioner is ready and willing to receive respondent and resume cohabitation"
+    },
+    {
+      "id": "jurisdiction",
+      "name": "Jurisdiction",
+      "required": true,
+      "description": "Court's competence"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer for Restitution Decree",
+      "required": true,
+      "description": "Direction to respondent to return to society of petitioner"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree of restitution of conjugal rights directing the Respondent to return to the society of the Petitioner and resume cohabitation;\nb) Award costs of this petition;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, aged about {petitioner_age} years, resident of {petitioner_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to the best of my knowledge and belief. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a petition for Restitution of Conjugal Rights under S.9 HMA (or S.22 SMA, as selected).",
+      "Plead valid marriage with date, place and ceremonies appropriate to governing statute.",
+      "Plead cohabitation period and matrimonial home(s).",
+      "Plead specifically: date on which respondent withdrew from the society of petitioner, and the circumstances.",
+      "Plead in detail why respondent has NO reasonable excuse for withdrawal. Under the Explanation to S.9 HMA, where a question arises as to reasonable excuse, the burden lies on the person who has withdrawn — but petitioner must still plead non-existence of reasonable excuse.",
+      "Plead efforts at reconciliation: visits, communications, intervention of family/community elders.",
+      "Plead petitioner's continuing willingness and readiness to receive respondent and resume cohabitation.",
+      "Address Saroj Rani v. Sudarshan Kumar Chadha (1984) 4 SCC 90 — RCR constitutionality upheld; remedy is consortium not coercion.",
+      "Note in instructions to advocate (not in petition body): non-compliance with RCR decree for 1+ year is itself a ground for divorce under S.13(1A)(ii) HMA / S.27(2) SMA.",
+      "Tone should be conciliatory — RCR is restorative, not punitive.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Hindu Marriage Act, 1955",
+      "sections": [
+        {
+          "number": "9",
+          "description": "Restitution of conjugal rights — court may decree restitution where spouse has, without reasonable excuse, withdrawn from society of the other; Explanation places burden of proving reasonable excuse on withdrawing spouse"
+        },
+        {
+          "number": "13(1A)(ii)",
+          "description": "Non-compliance with RCR decree for 1 year is independent ground for divorce"
+        }
+      ]
+    },
+    {
+      "act": "Special Marriage Act, 1954",
+      "sections": [
+        { "number": "22", "description": "Restitution of conjugal rights — analogous to S.9 HMA" },
+        {
+          "number": "27(2)",
+          "description": "Non-compliance with RCR decree for 1 year — ground for divorce under SMA"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Petition (original + 2 copies)",
+    "Vakalatnama",
+    "Marriage proof",
+    "Address proofs of both parties",
+    "Documents/communications evidencing reconciliation efforts",
+    "Witness affidavits (family elders / mediators)",
+    "Court fee",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "petitioner_name and respondent_name must not be empty",
+    "marriage_date must precede date_of_withdrawal",
+    "date_of_withdrawal must precede filing_date",
+    "no_reasonable_excuse_basis must not be empty",
+    "circumstances_of_withdrawal must not be empty",
+    "advocate_enrollment must match Bar Council format",
+    "court_fee_paid must be > 0"
+  ],
+  "key_citations": [
+    "Saroj Rani v. Sudarshan Kumar Chadha (1984) 4 SCC 90 — S.9 HMA constitutionally valid; RCR is restorative remedy",
+    "T. Sareetha v. T. Venkata Subbaiah AIR 1983 AP 356 — earlier AP HC striking down S.9 (overruled)",
+    "Harvinder Kaur v. Harmander Singh AIR 1984 Del 66 — RCR upheld; followed in Saroj Rani"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

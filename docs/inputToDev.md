@@ -487,17 +487,71 @@ Ticket: SCRUM-44 (https://abhinava32.atlassian.net/browse/SCRUM-44)
 What: Guided form (cards + dropdowns) + rich text editor + PDF/DOCX export. Read Priya's comment for form UX details.
 Status: Done (auto-closed via 2026-05-08 sweep — superseded by scrum-44-editor-export-activation entry below, completed 2026-05-06 Vishal-Opus, 376 tests pass)
 
-## TASK 5 — 28 Apr 2026
+## TASK 5 — 28 Apr 2026 (REWRITTEN 2026-05-13 — scope expanded from Hindi-only to 8-language i18n per founder direction 2026-05-12)
 Ticket: SCRUM-51 (https://abhinava32.atlassian.net/browse/SCRUM-51)
-What: Hindi + bilingual document generation and export
-Status: Partial — metadata only; full pipeline pending (corrected via 2026-05-10 sweep delta — Vishal's audit found `supported_languages` field plumbed through court rules + template-engine, but actual Hindi pipeline NOT built).
-Details — what's left:
-  - Translate prompt context per language (`prompt_context_hi` field per template)
-  - Anthropic prompt language flag wired in ai.service.ts
-  - Devanagari font in PDF export pipeline (pdf-export.service.ts)
-  - UI language toggle in editor / new-document form
-Reviewer: Arjun (CTO) on font + prompt path, Ajay (CLO) on Hindi legal phrasing.
-Stays In Progress — do NOT close until full Hindi draft lands end-to-end.
+Title: Multi-language drafting + UI i18n — full pipeline across major Indian languages
+Priority: P1 (advocate-pack demand will validate; not blocker for Phase 1)
+Status: Pending — full pipeline (engineering scaffold). Original Hindi-only scope absorbed.
+Reviewers: Ajay (CLO) for per-language legal phrasing, Arjun (CTO) for font + prompt pipeline, Madhuri (Content) for UI strings.
+
+Phase 1 languages (in this ticket — top 8 by Indian advocate practice volume):
+  1. Hindi (Devanagari) — North + Central India + Bihar/Jharkhand/UP + most HCs
+  2. Tamil — TN + Puducherry
+  3. Bengali — WB + Tripura
+  4. Marathi (Devanagari) — Maharashtra
+  5. Telugu — Telangana + AP
+  6. Gujarati — Gujarat + Daman/Diu
+  7. Punjabi (Gurmukhi) — Punjab + Haryana + Chandigarh
+  8. Kannada — Karnataka
+
+Phase 2 languages (DEFER — flagged here, not in scope):
+  Malayalam (Kerala), Odia (Odisha), Assamese (Assam), Urdu (J&K + parts of UP),
+  Manipuri / Mizo / Khasi / Nagamese (NE states).
+
+Scope of work (engineering scaffold — content authoring is parallel sub-ticket):
+  - Template-side: add `prompt_context_<lang>` field per template for top-10 revenue templates × 8 languages = 80 translations. Ajay authors via batched dispatches (sub-ticket below). This ticket is engineering scaffold only.
+  - AI prompt pipeline: add `language` param to drafting service; route to `prompt_context_<lang>` if exists; fallback to English. Add explicit "draft in <Language>" directive at top of system prompt.
+  - PDF export pipeline: bundle Noto Sans fonts —
+      Devanagari (Hindi + Marathi) — Noto Sans Devanagari
+      Tamil — Noto Sans Tamil
+      Bengali — Noto Sans Bengali
+      Telugu — Noto Sans Telugu
+      Gujarati — Noto Sans Gujarati
+      Gurmukhi (Punjabi) — Noto Sans Gurmukhi
+      Kannada — Noto Sans Kannada
+  - Anthropic prompt language flag: Sonnet handles all 8 natively; explicit "draft in <Language>" directive at top of system prompt is sufficient. Validate output language via post-gen Unicode-block regex (Devanagari / Tamil / Bengali / Telugu / Gujarati / Gurmukhi / Kannada blocks); fall back to English on failure.
+  - UI language toggle:
+      - New-document form: "Language" select (default English; 8 alternatives)
+      - Editor preserves language metadata
+      - Dashboard renders document title in stored language
+  - Court-based language suggestion: default the Language select based on court chosen (e.g. Karnataka HC → Kannada; Telangana → Telugu; Bihar/Jharkhand/UP → Hindi). Always overridable.
+
+Acceptance criteria:
+  - Founder can generate a bail application in Tamil with English fallback for cited sections and pleadings flow.
+  - All 8 languages render correctly in PDF export (no tofu / missing glyphs).
+  - Language flag persists end-to-end: form → AI → editor → export.
+  - Tests: snapshot one template per language; visual regression on PDF rendering.
+
+Out of scope:
+  - Phase 2 languages (Malayalam, Odia, Assamese, Urdu, NE languages).
+  - CLO content authoring (separate sub-ticket).
+  - UI string translation (separate sub-ticket — Madhuri).
+  - Font bundling specifics (separate sub-ticket — Vishal).
+
+Effort: L (5-7 days engineering scaffold; Ajay's content authoring ≈ 40 hours CLO time on parallel sub-ticket).
+
+Dependencies:
+  - SCRUM-44 editor (DONE)
+  - SCRUM-57 / SCRUM-60 PDF export (DONE)
+  - Anthropic Sonnet 4 (DONE)
+  - Noto Sans fonts bundled in EC2 Docker image or hosted on CDN
+
+Sub-tickets filed alongside this rewrite:
+  - SCRUM-93 (Ajay · CLO) — Translate `prompt_context` to 8 languages for top-10 templates (≈40 hrs CLO time)
+  - SCRUM-94 (Vishal · Dev) — Bundle Noto Sans fonts into PDF export pipeline + visual-regression tests
+  - SCRUM-95 (Madhuri · Content) — Translate UI strings (~150) into 8 languages
+
+Stays In Progress — do NOT close until end-to-end multi-language draft lands for at least 2 non-English languages (Hindi + Tamil minimum).
 
 ## TASK 6 — 28 Apr 2026
 Ticket: SCRUM-46 (https://abhinava32.atlassian.net/browse/SCRUM-46)
@@ -1933,7 +1987,7 @@ Dependencies: founder + Vikram session
 ID: credit-system-master
 Filed by: Priya · PM (founder approved credit model 2026-05-08)
 Filed on: 2026-05-08
-Status: Pending
+Status: Pending (sub-item 2: SKU catalog — RESOLVED 2026-05-12 by Vikram CFO sign-off on apps/billing/src/config/credit-skus.ts; see apps/billing/src/config/BILLING_SIGNOFF.md)
 Jira: SCRUM-73
 Figma: pending — Rajesh to design pricing page + dashboard credit widget
 Reviewers: Vikram (math), Priya (UX), Ajay (ToS), Arjun (architecture)
@@ -2450,11 +2504,829 @@ REVISED CLEAN QUEUE (Pending — pick top-down by P0 → P1 → P2):
 3. **SCRUM-67** — Grounds-vs-facts coherence prompt rule (P1, ~1 day)
 4. **SCRUM-75** — Court-rule golden-master tests (P1, ~4 hr — should land before SCRUM-65 ships)
 5. **SCRUM-77** — Email system: BullMQ + SES + React Email + cross-service producer (P1, ~4-5 days). Slots HERE — after the user-facing P0s. Unblocks SCRUM-71 founder-ping email + SCRUM-73 receipt email + founder daily digest.
-6. **SCRUM-51** — Hindi/bilingual full pipeline (Partial — resume when advocate-panel demand validates)
-7. **SCRUM-76** — Helicone alerting runbook (P2, ~2 hr, doc only)
-8. **SCRUM-59** — Credit-based free tier (P1, BLOCKED until SCRUM-73 sign-off)
-9. **SCRUM-73** — Credit-based subscription master (P0, BLOCKED on founder/CFO Q1/Q2/Q3)
+6. **SCRUM-51** — Multi-language drafting + UI i18n: 8-language full pipeline (P1, ~5-7 days, rewritten 2026-05-13 — Hindi-only scope expanded to 8 languages per founder direction)
+7. **SCRUM-93** — CLO content: translate prompt_context to 8 languages × 10 templates (P1, parallel to SCRUM-51, Ajay-owned, ~40 hrs CLO time)
+8. **SCRUM-94** — Bundle Noto Sans fonts in PDF export + visual-regression tests (P1, ~1.5-2 days, Vishal-owned, gates SCRUM-51 acceptance)
+9. **SCRUM-95** — UI string translation: ~150 strings × 8 languages (P1, parallel to SCRUM-51, Madhuri-owned, ~15-20 hrs)
+10. **SCRUM-76** — Helicone alerting runbook (P2, ~2 hr, doc only)
+11. **SCRUM-59** — Credit-based free tier (P1, BLOCKED until SCRUM-73 sign-off)
+12. **SCRUM-73** — Credit-based subscription master (P0, BLOCKED on founder/CFO Q1/Q2/Q3)
 
 NEXT TOP-OF-QUEUE FOR VISHAL: **SCRUM-65** (annexures pack generator).
 SCRUM-77 is queued but should NOT be picked up until SCRUM-65 + SCRUM-71 ship.
+SCRUM-51 + 93/94/95 i18n bundle slots AFTER SCRUM-77 (P1, not Phase-1 blocker — advocate-pack demand will validate timing).
+---
+
+## TASKS FROM PRIYA — 12 MAY 2026 (template-wiring Sprint 1 — Arjun ADR approved)
+
+> Founder approved Arjun's template-wiring ADR 2026-05-12.
+> ADR ref: /team-warroom/2026-05-06/adr-template-wiring-2026-05-12.md
+> Goal: cut per-template build cost from 6-8 hrs to ~10 min by treating
+> CLO's 92 doc-rule JSONs (apps/drafting/src/config/document-rules/*.json)
+> as source of truth and auto-promoting them into the existing TemplateConfig
+> shape consumed by template-engine.service.ts. ~3 weeks Vishal total.
+>
+> 5 tickets filed below. Ship order locked: A+B+C in parallel → D (gate) → E.
+
+---
+ID: scrum-78-template-promoter
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: Done (Vishal-Opus, 2026-05-12)
+Jira: SCRUM-78 (https://abhinava32.atlassian.net/browse/SCRUM-78)
+Figma: N/A
+Priority: P0
+Task: Doc-rule → TemplateConfig promoter + boot-time sync
+Details: |
+  Reviewer: Arjun (CTO).
+
+  CONTEXT:
+  - CLO's 92 doc-rule JSONs at apps/drafting/src/config/document-rules/
+    remain source of truth (CLO-authored). The existing
+    template-engine.service.ts already consumes a canonical TemplateConfig
+    shape. We need a one-shot normaliser.
+
+  SCOPE:
+  - Build apps/drafting/src/services/template-promoter.ts
+  - Export promoteDocRuleToTemplateConfig(rule)
+  - Mapping rules:
+    - field_id → id
+    - flatten steps[].fields[] → fields[]
+    - carry over: mandatory_clauses, prompt_context, relevantActs,
+      validation_rules, creditsCost, court_levels
+  - Boot-time: walk config/document-rules/ directory, promote each JSON,
+    register in in-memory template registry, log mismatches
+
+  ACCEPTANCE:
+  - All 92 docs promote cleanly with zero errors
+  - Mismatch report saved on boot if any field is unmappable
+
+  TESTS:
+  - Unit on promoter for each schema variant present in the 92 JSONs
+  - Integration on template-engine.service.ts after promoter wiring
+
+  SIZE: S (1-2 days).
+Dependencies: None — kicks off Sprint 1. Unblocks D (SCRUM-81) and C (SCRUM-80).
+---
+
+---
+ID: scrum-79-dynamic-renderer-extend
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: Done (Vishal-Opus, 2026-05-12)
+Jira: SCRUM-79 (https://abhinava32.atlassian.net/browse/SCRUM-79)
+Figma: N/A — Priya owns UX
+Priority: P0
+Task: Extend DynamicFormRenderer for file/currency/regex types + cascading dropdowns
+Details: |
+  Reviewer: Priya (UX), Arjun (code).
+
+  CONTEXT:
+  - Per ADR, reuse the existing apps/web/src/components/form/
+    DynamicFormRenderer.tsx instead of building per-template forms.
+  - 92 CLO doc-rules collectively need three new field types + conditional
+    + cascading rendering.
+
+  SCOPE:
+  - File: apps/web/src/components/form/DynamicFormRenderer.tsx
+  - Add field types:
+    - file (single + multi via shadcn FileUpload)
+    - currency (rupee formatter, INR locale)
+    - regex validation in zod
+  - Add depends_on conditional rendering (e.g. show Marriage Date only
+    if marriage_type === "registered")
+  - Add cascading dropdowns (state → district → court)
+
+  ACCEPTANCE:
+  - All 4 features work in storybook
+  - 92 doc-rules render without unsupported-type errors after SCRUM-78 lands
+
+  TESTS:
+  - Storybook story per new type
+  - Unit tests on conditional + cascading logic
+
+  SIZE: S (1 day).
+Dependencies: None — runs in parallel with SCRUM-78 + SCRUM-80.
+---
+
+---
+ID: scrum-80-template-auto-seed
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: Done (Vishal-Opus, 2026-05-12)
+Jira: SCRUM-80 (https://abhinava32.atlassian.net/browse/SCRUM-80)
+Figma: N/A
+Priority: P0
+Task: Auto-seed Template MongoDB collection from document-rules directory at boot
+Details: |
+  Reviewer: Arjun (CTO).
+
+  CONTEXT:
+  - Per ADR, Template Mongo collection becomes a read-through cache.
+    Filesystem (config/document-rules/) is source of truth; DB is just an
+    indexed view. usage_count moves out to a new TemplateUsage collection.
+
+  SCOPE:
+  - File: apps/drafting/src/scripts/seed-templates.ts + boot hook
+  - Walks config/document-rules/, calls promoteDocRuleToTemplateConfig()
+    (from SCRUM-78), upserts to Template collection
+  - Move usage_count to a new TemplateUsage collection (separate concern)
+  - Idempotent: running boot twice produces no diffs
+
+  ACCEPTANCE:
+  - App boot populates 92 Template records
+  - Running boot twice is idempotent (no extra writes / no version churn)
+  - Manual file edit triggers re-seed on next boot
+
+  TESTS:
+  - Unit on seed function (idempotency)
+  - Integration: boot empty DB → 92 records; boot again → 0 writes
+
+  SIZE: S (1 day).
+Dependencies: SCRUM-78 (needs promoter to exist). Can be coded in parallel; wiring happens once SCRUM-78 lands.
+---
+
+---
+ID: scrum-81-migrate-6-originals
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: Done — structural gate (Vishal-Opus, 2026-05-12) — PDF byte-diff deferred
+Jira: SCRUM-81 (https://abhinava32.atlassian.net/browse/SCRUM-81)
+Figma: N/A
+Priority: P0
+Task: Migrate 6 original templates to promoter path with golden-PDF diff gate
+Details: |
+  Reviewer: Ajay (CLO — legal-correctness on rendered output), Priya (UX flow).
+
+  CONTEXT:
+  - Validation gate after SCRUM-78 + 79 + 80 land. We need byte-level
+    proof that the promoter path produces identical (or acceptably-close)
+    output to today's hand-tuned production templates before retiring
+    any overrides.
+
+  SCOPE — 6 original templates:
+  - bail_anticipatory
+  - bail_regular
+  - consumer_complaint
+  - legal_notice_s138
+  - legal_notice_s80
+  - rent_agreement
+
+  PER TEMPLATE:
+  1. Confirm CLO's doc-rule JSON is canonical (no drift from prod)
+  2. Run promoter → render → produce PDF
+  3. Compare byte-for-byte against current production golden PDF
+  4. If diff > 5% layout drift, keep hand-tuned docs/templates/{id}.json override
+  5. If diff is clean, retire override; rely on promoter alone
+
+  ACCEPTANCE:
+  - 6/6 golden diffs pass OR overrides explicitly kept for any failures
+    (with reason logged)
+
+  TESTS:
+  - PDF byte-diff suite per template
+  - Both Bihar + Jharkhand payloads (reuse SCRUM-50 fixtures)
+
+  SIZE: M (2-3 days).
+Dependencies: SCRUM-78 + SCRUM-79 + SCRUM-80 must all land first. Gates SCRUM-82.
+---
+
+---
+ID: scrum-82-hand-tune-top-10
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: To Do
+Jira: SCRUM-82 (https://abhinava32.atlassian.net/browse/SCRUM-82)
+Figma: N/A
+Priority: P1
+Task: Hand-tune prompt overrides for top-10 revenue-driver templates
+Details: |
+  Reviewer: Ajay (CLO).
+
+  CONTEXT:
+  - Per ADR, only top-10 revenue-driver templates get hand-tuned
+    docs/templates/{id}.json overrides. Remaining 82 ride the auto-promoter.
+  - Starts in parallel with SCRUM-81 batch shipping.
+
+  SCOPE — top 10 (per Ajay's plan):
+  1. interim_bail
+  2. vakalatnama
+  3. affidavit_in_support
+  4. plaint_recovery
+  5. written_statement
+  6. divorce_mutual_consent
+  7. maintenance_bnss_144
+  8. dv_act_complaint
+  9. temporary_injunction_o39
+  10. quashing_528_bnss
+
+  PER TEMPLATE:
+  - Create docs/templates/{id}.json with hand-tuned system prompt + few-shot examples
+  - Verify output quality against CLO checklist (court-readiness, factual
+    correctness, prayer language, citations, annexures, formatting)
+
+  ACCEPTANCE:
+  - Smoke test all 10 templates × Bihar + Jharkhand payloads → CLO sign-off
+
+  TESTS:
+  - Smoke run per template per state (20 renders)
+  - CLO checklist sign-off recorded in ticket
+
+  SIZE: M (4-5 days).
+Dependencies: Starts in parallel with SCRUM-81 batch shipping.
+---
+
+## PICKUP ORDER UPDATE — 12 May 2026 (Priya, post template-wiring ADR)
+
+> Sprint 1 = template wiring. Locked ship order:
+> 1. **SCRUM-78** (promoter) + **SCRUM-79** (renderer extend) + **SCRUM-80** (auto-seed) → parallel
+> 2. **SCRUM-81** (migrate 6 originals + golden-PDF gate) → after 78+79+80
+> 3. **SCRUM-82** (hand-tune top-10) → parallel with 81 shipping
+>
+> Sprint 1 sits AHEAD of pre-existing P0 queue (SCRUM-65, 71) only if founder explicitly switches focus. Default: finish SCRUM-65 + SCRUM-71 first per 2026-05-10 queue, then start SCRUM-78. Confirm with founder before pickup.
+---
+
+## TASK FROM PRIYA — 12 MAY 2026 (Section Finder side panel — UX wired into editor)
+
+> Founder approved 2026-05-12. Design done by Rajesh (9 states across 2 layouts).
+> High-value advocate workflow on top of SCRUM-46 (section converter — shipped)
+> and SCRUM-44 (TipTap editor — shipped). Not a blocker for advocate-pack.
+
+---
+ID: section-finder-side-panel
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: To Do
+Jira: SCRUM-83 (https://abhinava32.atlassian.net/browse/SCRUM-83)
+Figma: N/A — design delivered as print PDF by Rajesh
+Design PDF: /Users/abhinavanand/Files/Lawie/docs/designs/SectionLookup/Lawie — Section Finder · Print.pdf
+Priority: P1
+Task: Section Finder — ⌘K side panel with IPC↔BNS lookup, mapping cards, insert-at-cursor
+Details: |
+  Reviewers: Priya (UX), Ajay (CLO — legal-correctness of mapping output),
+  Arjun (CTO — state-management approach).
+
+  DESIGN REFERENCE (load this before coding):
+  - /Users/abhinavanand/Files/Lawie/docs/designs/SectionLookup/Lawie — Section Finder · Print.pdf
+  - 9 states across 2 layouts: full side-panel (states 01-05, ~400px, docked
+    right of editor) + compact drawer (states 06-09, ~280-320px, floating).
+
+  CONTEXT:
+  - SCRUM-46 (section converter) is DONE — reuse its IPC↔BNS / CrPC↔BNSS /
+    IEA↔BSA mapping API and JSON sources.
+  - SCRUM-44 (TipTap editor) is DONE — this component embeds in the editor.
+  - Ajay's data sources are CLO-validated and complete:
+    - apps/drafting/src/config/sections/ipc-to-bns.json (576)
+    - apps/drafting/src/config/sections/crpc-to-bnss.json (535)
+    - apps/drafting/src/config/sections/iea-to-bsa.json (185)
+    - apps/drafting/src/config/sections/bns-offences.json (305)
+  - Reuse logic from apps/web/src/app/tools/section-converter/page.tsx (SCRUM-46).
+
+  SCOPE:
+  1. Component location:
+     apps/web/src/components/editor/SectionFinder.tsx
+     (or components/draft/SectionFinder.tsx — match existing pattern).
+     Mount into drafting screen alongside TipTap editor.
+
+  2. Activation:
+     - ⌘K shortcut from any drafting screen opens the panel/drawer.
+     - Visible rail on right when closed: vertical text "SECTION FINDER ⌘K"
+       (per design state 01).
+     - X to close. F11 / fullscreen toggle to expand to drawer mode.
+
+  3. Layout variants:
+     - Side panel (states 01-05): ~400px wide, docked right.
+     - Compact drawer (states 06-09): ~280-320px floating drawer.
+
+  4. Three tabs:
+     - Lookup (default): search box + Common Lookups chips + Recently Searched
+       + Tip box.
+     - Recent: 8-row scrollable list with bookmark stars.
+     - Bookmarks: starred sections.
+
+  5. Search behaviour:
+     - Auto-detect direction ("302 IPC" → BNS 103; "103 BNS" → IPC 302).
+     - Typeahead with 3-match preview (state 03/07).
+     - Enter selects top match → full result card.
+     - Read from local JSON (sub-200ms typeahead, no network).
+
+  6. Result card (state 04/08):
+     - Mapping block: OLD → NEW with arrow icon, "Mapped · in force" green dot.
+     - Title + statute + chapter line.
+     - 4 metadata pills: BAILABLE / COGNIZABLE / TRIABLE BY / COMPOUNDABLE
+       (data from bns-offences.json).
+     - PUNISHMENT dark-themed callout.
+     - INGREDIENTS ordered list (must-prove elements from bns-offences.json).
+     - Bare section text (collapsible chevron).
+     - Related sections (2-3 cross-refs from bns-offences.json).
+     - "Open full reference" link.
+     - "Insert citation at cursor" primary CTA — calls
+       editor.commands.insertContent('§303(2) BNS') on TipTap. Newly inserted
+       pill highlights yellow for 2s (per state 04).
+     - Copy icon + Star (bookmark) icon adjacent to CTA.
+
+  7. Common Lookups chips (state 02/06):
+     - Pre-populated: 302 IPC, 420 IPC, 498A IPC, 138 NI, 154 CrPC, 438 CrPC.
+     - Make editable in Settings later (not in this ticket).
+
+  8. Recently Searched (state 02/06 + Recent tab state 05/09):
+     - Stored in localStorage + synced to backend per-user.
+     - Bookmark stars sticky (yellow = bookmarked).
+     - Relative timestamps ("2m ago / Yest. / 2d / 3d").
+     - Click → re-run lookup.
+
+  9. Tip box (state 02/06): yellow callout explaining auto-detect.
+     Show only on empty Lookup tab.
+
+  10. Section pills in editor body (states 01, 03, 04, 05):
+      - Inserted citations render as inline pills (e.g., `379 BNS`).
+      - Click pill → re-opens Section Finder with that section pre-loaded.
+
+  11. Keyboard shortcuts within panel:
+      - ⌘K — toggle open/close
+      - Enter — select top typeahead match
+      - ↓/↑ — navigate matches
+      - Tab — cycle Lookup / Recent / Bookmarks tabs
+      - Escape — close panel
+      - Click pill on result row → copy section ID
+
+  12. API endpoints (verify existence; file sub-tickets if missing):
+      - GET  /api/sections/search?q=<query>            — typeahead w/ direction auto-detect
+      - GET  /api/sections/:section_id                 — full result card (mapping + offence + bailability + related)
+      - GET  /api/users/me/bookmarks/sections          — fetch bookmarks
+      - POST /api/users/me/bookmarks/sections          — add bookmark
+      - DEL  /api/users/me/bookmarks/sections/:id      — remove
+      - GET  /api/users/me/recent/sections             — last 20 recent
+      - POST /api/users/me/recent/sections             — log a search (server cron prunes >30 days)
+
+  FORM SCHEMA / PROPS: N/A — UI component, not form-driven.
+
+  ACCEPTANCE:
+  - ⌘K opens panel with focus in search input.
+  - Typing "302 IPC" → 3 typeahead matches within 200ms (local JSON, no network).
+  - Enter → result card loads with all 4 metadata pills + ingredients + bare text
+    (Ajay-validated source).
+  - "Insert citation at cursor" → §303(2) BNS pill inserted at editor caret,
+    pill highlights yellow for 2s, recent searches updates.
+  - Star toggles bookmark, persists across sessions.
+  - Recent tab shows 8 most-recent searches with timestamps + bookmark indicators.
+  - Bookmarks tab shows starred sections.
+  - ⌘K toggles closed → editor regains full width.
+
+  TESTS:
+  - Unit: search direction auto-detect, typeahead ranking, citation-insert function.
+  - Storybook: all 9 states from design PDF.
+  - Integration: end-to-end ⌘K → search → insert → editor caret position updated.
+  - Accessibility: keyboard-only navigation; screen reader labels on pills + buttons.
+
+  REFERENCE FILES:
+  - Design PDF: /Users/abhinavanand/Files/Lawie/docs/designs/SectionLookup/Lawie — Section Finder · Print.pdf
+  - Data: apps/drafting/src/config/sections/{ipc-to-bns,crpc-to-bnss,iea-to-bsa,bns-offences}.json
+  - Reuse logic: apps/web/src/app/tools/section-converter/page.tsx (SCRUM-46 — DONE)
+
+  SIZE: M (3-4 days).
+Dependencies: SCRUM-46 (section converter — DONE) · SCRUM-44 (TipTap editor — DONE) · Ajay's bns-mapping.json + bns-offences.json + section mappings (all COMPLETE per 2026-05-10 config work).
+
+**PRIYA NOTE (2026-05-12, post-followUp.md):** Vishal already shipped a v1 side panel mounted globally on the dashboard at commit `4676986`. This ticket is the **design-upgrade** to the full spec in `/docs/designs/SectionLookup/` — rich mapping cards (ingredients / punishment / related sections), Recent + Bookmarks tabs, typeahead with 3-match preview, "Insert citation at cursor" wired to TipTap, ⌘K shortcut handler. **Don't rebuild — extend.**
+---
+
+## TASKS FROM PRIYA — 12 MAY 2026 (Vishal followUp.md actions)
+
+> Filed 2026-05-12 in response to Vishal's post-Sprint-1 notes (items 1, 4, 6 of `/Users/abhinavanand/Files/Lawie/followUp.md`). Three tickets — none require founder pre-approval.
+
+---
+ID: promoter-section-synthesis
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: Done (Vishal-Opus, 2026-05-14)
+Jira: SCRUM-84 (https://abhinava32.atlassian.net/browse/SCRUM-84)
+Figma: N/A
+Priority: P0
+Task: Promoter — synthesise document_structure.sections for the 86 non-override templates
+Details: |
+  Why P0: unblocks the other 86 templates. After SCRUM-78, all 92 templates LIST
+  correctly on /dashboard/new but only the 6 with hand-tuned overrides generate
+  end-to-end. The other 86 promote with `document_structure.sections: []` →
+  submitting their form produces an empty document.
+
+  File to edit:
+  - apps/drafting/src/services/template-promoter.ts
+
+  What to build — synthesise document_structure.sections from CLO source fields:
+  - causeTitle.format            → {section_id: 'cause_title',   type: 'template'}
+  - mandatoryClauses[]           → one template or ai_generated section per clause
+  - prayerTemplate               → {section_id: 'prayer',        type: 'template'}
+  - verificationTemplate         → {section_id: 'verification',  type: 'template'}
+  - prompt_context +
+    promptInstructions[]         → one ai_generated body section with
+                                    prompt_context as the prompt
+
+  ACCEPTANCE:
+  - All 86 commodity templates become renderable end-to-end.
+  - Top-10 revenue templates still get hand-tuned overrides per SCRUM-82.
+
+  TESTS:
+  - Integration test that submits a sample form for each of the 86 promoter-only
+    templates and verifies a non-empty Document is produced.
+
+  REFERENCE:
+  - SCRUM-81 diary entry in docs/CLAUDE.md
+  - Structural-diff report: apps/drafting/template-promoter-diff.md
+
+  SIZE: S-M (1-2 days).
+Dependencies: SCRUM-78 (template listing — DONE) · SCRUM-82 (override pattern — DONE)
+---
+ID: in-form-section-search-typeahead
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: Done (Vishal-Opus, 2026-05-15)
+Jira: SCRUM-85 (https://abhinava32.atlassian.net/browse/SCRUM-85)
+Figma: N/A
+Priority: P1
+Task: In-form section search typeahead — ?q= API + DynamicFormRenderer wire-up
+Details: |
+  Why: multi_select_search field with source: 'bns_mapping' (used by bail
+  templates to pick BNS sections) currently allows free text only — no live
+  search API. The Section Finder side panel (SCRUM-83) is a workaround;
+  advocate feedback 2026-05-12 — "sections are not searchable while filing".
+
+  What to build:
+  - Add GET /api/sections/search?q=<term>&code=BNS endpoint in
+    apps/drafting/src/routes/sections.routes.ts
+  - Returns up to 10 matches by section number prefix OR title substring
+  - Wire DynamicFormRenderer multi_select_search field handler (around line 588
+    of apps/web/src/components/form/DynamicFormRenderer.tsx) to debounce-fetch
+    this when field.source === 'bns_mapping'
+  - Support codes: BNS / BNSS / BSA / IPC / CrPC / IEA via explicit code= param
+    (no auto-detect needed)
+
+  ACCEPTANCE:
+  - Typing "303" in a multi-section field shows live matches
+  - Selecting one chips into the form value
+
+  TESTS:
+  - API unit + integration test with debounce
+
+  REFERENCE:
+  - Existing TODO marker in apps/web/src/components/form/DynamicFormRenderer.tsx:588
+
+  SIZE: S (0.5 day).
+Dependencies: Ajay BNS/BNSS/BSA mapping JSONs (DONE)
+---
+ID: legal-notice-properties-fill
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: Pending
+Jira: SCRUM-86 (https://abhinava32.atlassian.net/browse/SCRUM-86)
+Figma: N/A
+Priority: P1
+Owner: Ajay (CLO) — NOT Vishal
+Task: Fill `properties` in 6 legal_notice_* document-rules (eliminate 33-line promoter mismatch log)
+Details: |
+  Why P1 (cosmetic — kills boot-time log noise): 6 legal_notice docs declare
+  {type: 'object'} section headers (sender, recipient, etc.) without enumerating
+  sub-fields. Promoter logs 33 mismatch lines every boot.
+
+  Files to fix in apps/drafting/src/config/document-rules/:
+  - legal_notice_breach_of_contract.json
+  - legal_notice_consumer_deficiency.json
+  - legal_notice_copyright_infringement.json
+  - legal_notice_defamation.json
+  - legal_notice_eviction.json
+  - legal_notice_trademark_infringement.json
+
+  Action per file: for each top-level section that has
+  {type: 'object', required: [...]}, add a properties: {...} map enumerating
+  the sub-fields. Use any of the other 86 docs as reference.
+
+  ACCEPTANCE:
+  - Boot-time mismatch log drops from 33 lines to 0.
+
+  REFERENCE:
+  - apps/drafting/template-promoter-mismatches.log
+
+  SIZE: S (~6 hours total).
+Dependencies: None
+---
+
+## TASK FROM PRIYA — 12 MAY 2026 (followUp item 2 — Path A picked)
+
+> Founder ask 2026-05-12. Vishal's followUp.md item 2 — field-name reconciliation across the 6 originals. Path A picked over Path B: aliases would be throwaway code retired by SCRUM-82 anyway; canonical CLO files are the durable fix and CLO already owns the format.
+
+---
+ID: clo-form-schema-6-originals
+Filed by: Priya · PM
+Filed on: 2026-05-12
+Status: Pending
+Jira: SCRUM-89 (https://abhinava32.atlassian.net/browse/SCRUM-89)
+Figma: N/A
+Priority: P0
+Owner: Ajay (CLO) — NOT Vishal
+Task: Add `form_schema` block to 6 original CLO doc-rule JSONs (field-name reconciliation)
+Details: |
+  Why P0: Per SCRUM-81 structural-diff report, all 6 originals show
+  form_fields drift = 1.00 because the CLO doc-rule files have NO `form_schema`
+  block at all, while production overrides declare 11-27 field IDs each.
+  Blocks retiring the 6 hand-tuned overrides → gates SCRUM-81 PDF byte-diff
+  closing out cleanly.
+
+  Path A (this ticket) chosen over Path B (engineer alias table):
+  - Path B = ~2 hr of dev, code retired by SCRUM-82 within weeks → cruft.
+  - Path A = ~3 hr of CLO authoring, makes CLO files the durable single source.
+
+  Files to edit (apps/drafting/src/config/document-rules/<id>.json):
+  - bail_anticipatory.json
+  - bail_regular.json
+  - consumer_complaint.json
+  - legal_notice_s138.json
+  - legal_notice_s80.json
+  - rent_agreement.json
+
+  FIELD-ID MAPPING (mirror exactly from docs/templates/<id>.json):
+
+  bail_anticipatory (16):
+    fir_number, fir_date, police_station, sections_charged,
+    currently_in_custody, state, court_type, court_name, applicant_name,
+    father_name, applicant_age, address, language, facts_narrative,
+    grounds_for_bail, additional_context
+
+  bail_regular (17):
+    fir_number, fir_date, police_station, sections_charged,
+    currently_in_custody, custody_since, state, court_type, court_name,
+    applicant_name, father_name, applicant_age, address, language,
+    facts_narrative, grounds_for_bail, additional_context
+
+  consumer_complaint (19):
+    state, court_type, court_name, applicant_name, father_name,
+    applicant_age, address, respondent_name, language, deficiency_details,
+    consideration_amount, purchase_date, invoice_number, payment_mode,
+    compensation_claimed, litigation_cost, territorial_basis,
+    pecuniary_basis, limitation_basis
+
+  legal_notice_s138 (20):
+    state, applicant_name, applicant_address, respondent_name,
+    respondent_address, respondent_type, language, advocate_name,
+    advocate_address, advocate_enrollment, cheque_number, cheque_date,
+    cheque_amount, amount_in_words, drawee_bank, drawee_branch,
+    presentation_date, dishonour_date, dishonour_reason,
+    underlying_liability
+
+  legal_notice_s80 (11):
+    state, applicant_name, applicant_address, respondent_name,
+    respondent_address, language, advocate_name, advocate_address,
+    advocate_enrollment, facts_narrative, demand
+
+  rent_agreement (27):
+    state, execution_place, execution_date, applicant_name,
+    applicant_address, applicant_pan, respondent_name, respondent_address,
+    respondent_pan, language, property_address, property_area_sqft,
+    property_type, rent_amount, rent_amount_words, rent_due_date,
+    payment_mode, escalation_percent, security_deposit,
+    security_deposit_words, tenure_months, lease_start_date,
+    lease_end_date, notice_period_months, permitted_use,
+    maintenance_responsibility, facts_narrative
+
+  HOW TO AUTHOR EACH FIELD:
+  - Copy field_id, type, required, label, placeholder, options, source
+    verbatim from the matching entry in docs/templates/<id>.json.
+  - Place at top-level in the CLO doc-rule file as a flat array:
+    "form_schema": [
+      { "field_id": "fir_number", "type": "text", "required": true,
+        "label": "FIR Number", "placeholder": "e.g., 215/2026" },
+      ...
+    ]
+  - Do NOT carry over inject_into (engine-side) or cascades_to (UI metadata)
+    — promoter only needs the field def.
+  - Promoter's normaliseFlatList handles flat arrays cleanly
+    (template-promoter.ts:191-214).
+
+  ACCEPTANCE:
+  - All 6 CLO files have a top-level form_schema array with the field IDs
+    listed above (count matches override exactly).
+  - `yarn workspace @lawie/drafting test:promoter-diff` shows
+    form_fields drift ≤ 0.05 for all 6.
+  - SCRUM-81 structural-diff report regenerates with `retire` verdict on
+    at least 3 of 6 (other dimensions handled by SCRUM-84 section synth).
+  - CLO sign-off comment on the ticket referencing each file diff.
+
+  OUT OF SCOPE:
+  - Section synthesis in promoter (SCRUM-84 — Vishal).
+  - Hand-tuning prompt content (SCRUM-82 — Ajay, top-10).
+  - PDF byte-diff gate (SCRUM-81 deferred; blocked on this + SCRUM-84).
+
+  REFERENCE:
+  - apps/drafting/template-promoter-diff.md
+  - apps/drafting/src/services/template-promoter.ts:185-214
+  - docs/templates/<id>.json (canonical field IDs)
+  - followUp.md item 2
+
+  SIZE: S (~30 min × 6 files = ~3 hrs). Pure JSON authoring, zero code.
+Dependencies: None. Unblocks SCRUM-81 PDF byte-diff retire path.
+---
+ID: scrum-73-sub4-golden-snapshots-regen
+Filed by: Ajay · CLO
+Filed on: 2026-05-12
+Status: RESOLVED (self-resolved — CLO authority)
+Jira: SCRUM-73 sub-item 4
+Figma: N/A
+Priority: P1
+Owner: Ajay (CLO)
+Task: Regenerate 14 court-rules-golden snapshots after parallel config refactor (2026-05-10)
+Details: |
+  Context: My 2026-05-10 court-rules refactor (national expansion + state-specific
+  rule files + 4 chapter-mismatch fixes) intentionally changed party_designation
+  for delhi_district and up_district from criminal-only labels
+  ("Applicant" / "Opposite Party" or "Respondent") to compound civil+criminal
+  labels: "Plaintiff (civil) / Applicant (criminal)" and
+  "Defendant (civil) / Opposite Party (criminal)".
+
+  Reason: district courts in Delhi and UP handle both civil and criminal matters
+  at the same forum, unlike sessions_generic / jmfc_generic which are
+  criminal-only. The compound label is correct legal practice and matches the
+  cause-title convention an advocate would use in those courts.
+
+  Snapshot failures observed: 14 total
+  - 6 placeholder × delhi_district (one per template)
+  - 6 placeholder × up_district (one per template)
+  - 1 annexure HTML × delhi_district
+  - 1 annexure HTML × up_district
+
+  Diff scope (per snapshot): party_label_petitioner, party_label_respondent,
+  verification_text (derived), and the annexure cause-title cell. No other
+  fields touched. No regressions in the other 11 courts (77 snapshots remain
+  unchanged).
+
+  Action taken:
+  1. Reviewed all 14 diffs — all intentional, no unintended regressions.
+  2. Ran: yarn workspace @lawie/drafting test:golden:update
+     (equivalent: node_modules/.bin/jest --testPathPattern=court-rules-golden
+      --updateSnapshot --forceExit)
+  3. Re-ran suite clean — 91/91 snapshots pass.
+
+  Files modified:
+  - apps/drafting/src/__tests__/__snapshots__/court-rules-golden.test.ts.snap
+
+  ACCEPTANCE:
+  - 14 of 91 snapshots updated, 91/91 pass on clean re-run.
+  - JSON sources (delhi_district.json, up_district.json) unchanged — already
+    correct from 2026-05-10 refactor.
+
+  REFERENCE:
+  - apps/drafting/src/config/court-rules/delhi_district.json
+  - apps/drafting/src/config/court-rules/up_district.json
+  - apps/drafting/src/__tests__/court-rules-golden.test.ts
+
+  SIZE: XS (resolved in-thread).
+Dependencies: None
+---
+
+## CTO DECISIONS — 12 MAY 2026 (Arjun, post-followUp.md items 7/8/9)
+
+> Three CTO calls waiting on me from Vishal's followUp.md, decided 2026-05-12.
+> Storybook = NO (ADR-005 filed). Atlas prod cluster = provision NOW (founder
+> action). Razorpay prod config = single bundled checklist (3 sub-items, one
+> ticket — interdependent, avoid half-configured state).
+
+---
+ID: adr-005-component-verification-standard
+Filed by: Arjun · CTO
+Filed on: 2026-05-12
+Status: Done
+Jira: SCRUM-91 (https://abhinava32.atlassian.net/browse/SCRUM-91)
+Figma: N/A
+Priority: P2
+Task: ADR-005 — component verification standard (tsc + dev-server smoke, no Storybook)
+Details: |
+  Resolves followUp.md item 7. CTO call: do NOT install Storybook in
+  apps/web. Standing gate for new UI components going forward:
+  1. tsc --noEmit clean across the workspace
+  2. Dev-server smoke render in the page that actually consumes it
+  3. Integration test through promoter/render where the component touches
+     the form pipeline
+
+  Rationale: Storybook adds ~250MB node_modules, second build pipeline, MDX
+  docs, story-per-state discipline — solo-founder scale will not honour it.
+  Half-maintained stories are worse than none. UI surface is small (one
+  renderer, one editor, ~6 form-field types). In-app smoke catches the same
+  regressions.
+
+  Revisit ONLY if (a) team >2 humans, (b) public component library, or
+  (c) a single component lands in >4 routes.
+
+  SUPERSEDES:
+  - SCRUM-79 Storybook-story requirement (dropped)
+  - SCRUM-83 "Storybook: all 9 states" line in acceptance — replace with
+    "dev-server smoke for each of the 9 states"
+
+  ADR: /docs/architecture/adr-005-component-verification-standard.md
+
+  No Vishal action required — this is the standing rule.
+Dependencies: None
+---
+ID: provision-lawie-prod-atlas
+Filed by: Arjun · CTO
+Filed on: 2026-05-12
+Status: Pending
+Jira: SCRUM-92 (https://abhinava32.atlassian.net/browse/SCRUM-92)
+Figma: N/A
+Priority: P0
+Owner: Founder (Abhinav) for cluster + secret · Vishal-Opus for redeploy
+Task: Provision lawie-prod MongoDB Atlas cluster + cut demo over to it
+Details: |
+  Resolves followUp.md item 8. CTO call: provision NOW (not at first paid
+  signup). SCRUM-73 paid rollout cannot ship while dev and demo share
+  lawie-dev.bdyi886.mongodb.net.
+
+  FOUNDER ACTION (Abhinav — Atlas dashboard, ~30 min):
+  1. Atlas → Create cluster:
+     - Name: lawie-prod
+     - Tier: M10 (lowest with backups + private endpoint + dedicated CPU)
+     - Provider: AWS, region ap-south-1 (Mumbai) — same as EC2, Indian
+       data residency
+     - Backup: enabled (daily, 7-day retention)
+     - Auto-scaling: storage YES, compute NO
+  2. Network Access → allowlist 13.202.145.184/32 (EC2 elastic IP)
+  3. Database Access → user `lawie-prod-app`, readWrite on `lawie` DB
+  4. AWS Secrets Manager → secret name `lawie/prod/MONGO_URI`, region
+     ap-south-1
+  5. Ping Vishal in this ticket when done
+
+  VISHAL ACTION (after founder ping):
+  1. Update .env.demo on EC2 (13.202.145.184) — MONGO_URI from new secret
+  2. yarn workspace @lawie/drafting seed:all against new cluster
+     (38 states + 1734 courts + 92 templates)
+  3. Verify boot logs clean (no runBootSync errors)
+  4. docker compose up -d --force-recreate web drafting
+  5. Smoke: demo.lawie.in → one bail draft → confirm writes land in new
+     cluster (check Atlas metrics)
+  6. Update docs/CLAUDE.md diary + close ticket
+
+  WHY M10 (not M0 / M20):
+  - M0: no backups, shared infra → disqualified for prod
+  - M20: overkill until ~500 active users. Re-evaluate at 50 paid
+  - M10: ~$57/mo, daily backups, dedicated CPU, private endpoint capable
+
+  ACCEPTANCE:
+  - demo.lawie.in connects to lawie-prod cluster
+  - dev cluster traffic drops to dev workstations only (Atlas metrics confirm)
+  - 7-day backup snapshot list visible in Atlas
+
+  SIZE: Founder ~30 min · Vishal ~1 hr
+Dependencies: Blocks SCRUM-73 (paid rollout). Reference: docs/seeding.md §4
+---
+ID: razorpay-prod-config-bundle
+Filed by: Arjun · CTO
+Filed on: 2026-05-12
+Status: Pending
+Jira: SCRUM-90 (https://abhinava32.atlassian.net/browse/SCRUM-90)
+Figma: N/A
+Priority: P0
+Owner: Founder (Razorpay dashboard) · Arjun (Secrets Manager review) · Vishal-Opus (env wire-up + redeploy)
+Task: Razorpay production config — plan IDs + webhook + secrets (single bundled checklist)
+Details: |
+  Resolves followUp.md item 9, sub-items 1–3. CTO call: bundle as ONE
+  ticket (not 3) — all three sub-items must land in the same secrets push
+  to avoid half-configured prod. Dependency: SCRUM-92 (prod Atlas) should
+  land first so secrets land in the same push.
+
+  FOUNDER CHECKLIST (Abhinav — Razorpay dashboard):
+  - [ ] Create 4 subscription plans (pricing per Vikram CFO-signoff on
+        credit-skus.ts — practice ₹799/mo, practice ₹7,990/yr, firm
+        monthly + yearly).
+  - [ ] Paste plan IDs into this ticket as a comment in this exact form:
+          RAZORPAY_PLAN_PRACTICE_MONTHLY=plan_xxxx
+          RAZORPAY_PLAN_PRACTICE_YEARLY=plan_xxxx
+          RAZORPAY_PLAN_FIRM_MONTHLY=plan_xxxx
+          RAZORPAY_PLAN_FIRM_YEARLY=plan_xxxx
+  - [ ] Razorpay → Webhooks → Add:
+          URL: https://demo.lawie.in/api/webhooks/razorpay
+          Events: subscription.activated/charged/cancelled/completed/halted,
+                  payment.failed, payment.captured
+  - [ ] Generate signing secret. Do NOT paste in this ticket. Write
+        directly to AWS Secrets Manager:
+          Secret name: lawie/prod/RAZORPAY_WEBHOOK_SECRET
+          Region: ap-south-1
+
+  ARJUN ACTION (after founder completes above):
+  - [ ] Review IAM policy on EC2 instance role — GetSecretValue allowed
+        for lawie/prod/*
+  - [ ] Confirm apps/billing/src/services/razorpay-webhook.ts reads from
+        process.env.RAZORPAY_WEBHOOK_SECRET (populated from Secrets Manager
+        at container boot)
+  - [ ] Sign off → hand to Vishal
+
+  VISHAL ACTION (after Arjun sign-off):
+  - [ ] Add 4 plan-ID env vars to docker-compose env block on EC2
+  - [ ] docker compose up -d --force-recreate billing
+  - [ ] Trigger Razorpay test event → verify signature-verified delivery
+        in billing logs
+  - [ ] Close ticket
+
+  NOT IN SCOPE HERE (separate items from followUp.md #9):
+  - CFO sign-off on credit-skus.ts → DONE (Vikram comment on SCRUM-73)
+  - 14 court-rules-golden snapshot diffs → DONE (Ajay self-resolved)
+  - SCRUM-77 email infrastructure → separate ticket
+
+  SIZE: Founder ~45 min · Arjun ~30 min · Vishal ~45 min
+Dependencies: SCRUM-92 (prod Atlas) should land first. Blocks SCRUM-73.
 ---

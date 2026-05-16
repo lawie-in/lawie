@@ -1,0 +1,430 @@
+{
+  "_meta": {
+    "description": "Document-rules config for cat_oa — Original Application before the Central Administrative Tribunal under Section 19 of the Administrative Tribunals Act, 1985, for grievances of Central Government employees concerning service matters. Time-bar 1 year from cause of action. Form 1 (OA) + Form 3 (Misc App).",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. L. Chandra Kumar (HC writ post-CAT), S.P. Sampath Kumar cites mandatory."
+  },
+  "template_id": "cat_oa",
+  "docType": "cat_oa",
+  "title": "Original Application under Section 19 of the Administrative Tribunals Act, 1985",
+  "displayName": "CAT Original Application (S.19 ATA 1985)",
+  "category": "tribunal",
+  "creditsCost": 2,
+  "court_levels": ["cat"],
+  "causeTitle": {
+    "format": "BEFORE THE HON'BLE CENTRAL ADMINISTRATIVE TRIBUNAL\n{cat_bench} BENCH\n\n{caseNomenclature}\n\nIN THE MATTER OF: Section 19 of the Administrative Tribunals Act, 1985;\nAND IN THE MATTER OF: {service_matter_description};\nAND IN THE MATTER OF:\n\n{applicant} ... Applicant\nVERSUS\n{respondents_list} ... Respondents",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant (Central Government employee / officer)" },
+      {
+        "role": "respondents",
+        "label": "Respondents (Union of India through concerned Ministry / Department + appointing authority + disciplinary authority)"
+      }
+    ],
+    "caseNomenclature": "O.A. No. _____ / [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "applicant_name", "label": "Applicant full name", "type": "text", "required": true },
+      {
+        "id": "applicant_father_name",
+        "label": "Father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "applicant_age", "label": "Age", "type": "number", "required": true },
+      {
+        "id": "applicant_designation",
+        "label": "Designation / post",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "applicant_grade_pay",
+        "label": "Grade pay / pay level (CPC)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "applicant_department",
+        "label": "Department / Ministry / PSU",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "applicant_service_status",
+        "label": "Service status",
+        "type": "select",
+        "required": true,
+        "options": [
+          "serving",
+          "retired",
+          "dismissed_under_challenge",
+          "removed_under_challenge",
+          "compulsorily_retired",
+          "suspended"
+        ]
+      },
+      {
+        "id": "applicant_office_address",
+        "label": "Office address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "applicant_residence",
+        "label": "Residence address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "applicant_employment_category",
+        "label": "Employment category",
+        "type": "select",
+        "required": true,
+        "options": [
+          "civilian_central_government",
+          "all_india_service",
+          "psu_employee_under_ata_jurisdiction",
+          "central_armed_force_civilian",
+          "other_central_employee"
+        ]
+      },
+      {
+        "id": "respondents_list",
+        "label": "Respondents — Union of India (through Secretary, concerned Ministry), Appointing Authority, Disciplinary Authority, Departmental Head etc.",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "cat_bench",
+        "label": "CAT bench (per place of posting / cause of action)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "service_matter_type",
+        "label": "Nature of service matter",
+        "type": "select",
+        "required": true,
+        "options": [
+          "promotion_denial",
+          "seniority_dispute",
+          "transfer_challenge",
+          "disciplinary_penalty_minor",
+          "disciplinary_penalty_major",
+          "compulsory_retirement",
+          "removal_or_dismissal",
+          "suspension_challenge",
+          "pay_fixation_or_arrears",
+          "pension_or_retirement_benefits",
+          "selection_or_recruitment_matter",
+          "leave_or_allowances",
+          "acr_or_apar_grading",
+          "deputation_or_repatriation",
+          "compassionate_appointment",
+          "other_service_grievance"
+        ]
+      },
+      {
+        "id": "service_matter_description",
+        "label": "Brief description of service matter",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "impugned_order_details",
+        "label": "Impugned order(s) — number, date, authority, content",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "cause_of_action_date",
+        "label": "Date of cause of action",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "departmental_remedy_status",
+        "label": "Departmental remedy / representation status",
+        "type": "select",
+        "required": true,
+        "options": [
+          "representation_made_no_reply_within_6_months",
+          "representation_made_rejected",
+          "departmental_appeal_made_pending",
+          "departmental_appeal_rejected",
+          "departmental_remedy_not_required_or_illusory"
+        ]
+      },
+      {
+        "id": "representation_details",
+        "label": "Details of representation / appeal (date, authority, reply if any)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "factual_narrative",
+        "label": "Detailed factual narrative",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "grounds_of_challenge",
+        "label": "Grounds of challenge — natural justice / arbitrariness / mala fides / non-application of mind / procedural infirmity / discrimination etc.",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "interim_relief_sought",
+        "label": "Interim relief sought",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "limitation_position",
+        "label": "Limitation — within 1 year from cause of action under S.21? Calculation. Any condonation needed?",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "advocate_name",
+        "label": "Advocate / Authorised representative name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment / authorised representative details",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Parties",
+      "required": true,
+      "description": "Applicant + Union of India + departmental authorities"
+    },
+    {
+      "id": "jurisdiction_paragraph",
+      "name": "Jurisdiction of CAT under S.14 ATA",
+      "required": true,
+      "description": "Service matters of Central Govt employees / Group A/B/C civilian"
+    },
+    {
+      "id": "bench_jurisdiction_paragraph",
+      "name": "Bench Jurisdiction",
+      "required": true,
+      "description": "Per Rule 6 CAT Rules — place of posting / cause of action / residence of applicant"
+    },
+    {
+      "id": "applicant_service_paragraph",
+      "name": "Applicant Service Particulars",
+      "required": true,
+      "description": "Designation, grade, post, posting"
+    },
+    {
+      "id": "impugned_order_paragraph",
+      "name": "Impugned Order(s)",
+      "required": true,
+      "description": "Precise identification + annexed copies"
+    },
+    {
+      "id": "facts_paragraph",
+      "name": "Statement of Facts",
+      "required": true,
+      "description": "Chronological"
+    },
+    {
+      "id": "departmental_remedy_paragraph",
+      "name": "Departmental Remedy / Representation",
+      "required": true,
+      "description": "S.20 — must be exhausted; 6-month period for reply"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation under S.21 ATA",
+      "required": true,
+      "description": "1 year from cause / 6 months from final order on representation"
+    },
+    {
+      "id": "grounds_paragraph",
+      "name": "Grounds of Challenge",
+      "required": true,
+      "description": "Natural justice / arbitrariness / procedural infirmity / discrimination"
+    },
+    {
+      "id": "interim_relief_paragraph",
+      "name": "Interim Relief",
+      "required": false,
+      "description": "Status quo / stay"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Quash impugned order + consequential reliefs"
+    },
+    { "id": "verification", "name": "Verification", "required": true, "description": "Per Form 1" },
+    {
+      "id": "annexures",
+      "name": "Annexures",
+      "required": true,
+      "description": "Impugned order, representation, replies, service record extract"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above and the grounds raised hereinabove, the Applicant most respectfully prays that this Hon'ble Tribunal may graciously be pleased to:\n\na) Quash and set aside the impugned order dated {impugned_order_date} passed by the Respondent No.___ in {impugned_order_no};\n\nb) Direct the Respondents to {consequential_relief — promote / restore / reinstate / pay arrears / regularise / grant pension etc.} with all consequential service benefits including notional / actual pay fixation, arrears with interest, continuity of service and seniority;\n\nc) Pending hearing and final disposal of the present Original Application, stay the operation and effect of the impugned order dated {impugned_order_date};\n\nd) Award costs of the present Original Application;\n\ne) Pass any other order(s) as this Hon'ble Tribunal may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant_name}, son/daughter/wife of {applicant_father_name}, aged about {applicant_age} years, the Applicant herein, do hereby verify under solemn affirmation that the contents of paragraphs 1 to {lastParagraph} of the above Original Application are true and correct to my personal knowledge, save and except matters of legal submission which are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nApplicant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft an Original Application (O.A.) under Section 19 of the Administrative Tribunals Act, 1985, before CAT — for grievance of Central Government employee in service matters.",
+      "JURISDICTION:",
+      "   - Subject-matter: S.14 ATA — service matters of Central Government civilian employees, Group A/B/C; employees of corporations / authorities owned or controlled by Central Government as notified.",
+      "   - EXCLUDED: members of armed forces (separate AFT); Supreme Court / HC staff; Parliament Secretariat staff (S.2 ATA).",
+      "   - Bench (Rule 6 CAT Rules): place where applicant was/is posted; or cause of action; or applicant's ordinary residence.",
+      "   - 17 CAT benches (refer indian-courts.json) — Principal Bench Delhi + Allahabad, Mumbai, Kolkata, Madras (Chennai), Ahmedabad, Bangalore, Hyderabad, Jabalpur, Jaipur, Cuttack, Patna, Chandigarh, Ernakulam, Lucknow, Guwahati, Jodhpur.",
+      "FORM: Form 1 of the Central Administrative Tribunal (Procedure) Rules, 1987 — for Original Application. Form 3 — for Miscellaneous Application.",
+      "PARALLEL HC WRIT: Post L. Chandra Kumar v. Union of India (1997) 3 SCC 261 — CAT is the first forum; HC writ under Art. 226/227 (Division Bench) lies against CAT orders. Direct writ against original cause not maintainable.",
+      "Para 1: Parties — Applicant; Union of India through Secretary of concerned Ministry; Appointing Authority; Disciplinary Authority; Reporting / Reviewing Officer where ACR / APAR challenge; named officials where mala fides alleged.",
+      "Para 2: Jurisdiction of CAT under S.14 — establish applicant is covered (Central civilian employee).",
+      "Para 3: Bench jurisdiction under Rule 6 — state cause of action / posting / residence.",
+      "Para 4: Applicant service particulars — designation, pay level, current posting, service from date.",
+      "Para 5: Impugned order(s) — exact reference; annex.",
+      "Para 6-8: Factual narrative — chronological.",
+      "Para 9: Departmental remedy — S.20 ATA — applicant must have availed of all remedies available within his service before approaching CAT, UNLESS:",
+      "   (a) No remedy is provided; OR",
+      "   (b) Final order has been made on the representation; OR",
+      "   (c) Period of 6 months has expired from making of representation without final order — S.20(2).",
+      "Para 10: Limitation under S.21 ATA:",
+      "   - Application within 1 year from date on which final order has been made by competent authority; OR",
+      "   - Where no final order made within 6 months on representation, within 1 year from expiry of those 6 months;",
+      "   - Tribunal may admit beyond 1 year if sufficient cause shown (proviso). Cite delay condonation cases.",
+      "Para 11: Grounds of challenge — typical:",
+      "   (a) Violation of natural justice (no hearing / inadequate hearing / no reasoned order) — Cite Maneka Gandhi v. Union of India (1978) 1 SCC 248; Union of India v. Tulsiram Patel (1985) 3 SCC 398.",
+      "   (b) Arbitrariness under Article 14 — Cite E.P. Royappa v. State of TN (1974) 4 SCC 3; Ajay Hasia v. Khalid Mujib Sehravardi (1981) 1 SCC 722.",
+      "   (c) Mala fides / colourable exercise of power.",
+      "   (d) Non-application of mind / irrelevant considerations.",
+      "   (e) Procedural infirmity / contravention of service Rules (CCS (Conduct) Rules / CCS (CCA) Rules / DOP&T OMs).",
+      "   (f) Discrimination — similarly situated treated differently.",
+      "   (g) For disciplinary penalty — Cite B.C. Chaturvedi v. Union of India (1995) 6 SCC 749 (limited judicial review scope — procedural infirmity, mala fides, perversity); Roop Singh Negi v. Punjab National Bank (2009) 2 SCC 570 (no evidence to support charge).",
+      "   (h) For seniority — Cite Bachan Singh v. Union of India (2013) 6 SCC 1; Rohit Pulp & Paper Mills v. Collector of Central Excise (1990) 3 SCC 447.",
+      "   (i) For compulsory retirement — Cite Baikuntha Nath Das v. Chief District Medical Officer (1992) 2 SCC 299 (limited judicial review).",
+      "   (j) For pension — Cite D.S. Nakara v. Union of India (1983) 1 SCC 305 (pension is a right, not bounty).",
+      "Para 12: For compassionate appointment — Cite Umesh Kumar Nagpal v. State of Haryana (1994) 4 SCC 138; State of Haryana v. Rani Devi (1996) 5 SCC 308; Indian Bank v. Promila (2020) 2 SCC 729.",
+      "Para 13: For ACR / APAR — Cite Dev Dutt v. Union of India (2008) 8 SCC 725 (mandatory communication of entries including 'Good'); Sukhdev Singh v. Union of India (2013) 9 SCC 566.",
+      "Para 14: For transfer — Cite Major General J.K. Bansal v. Union of India (2005) 7 SCC 227 (limited scope of interference); Cf. Somesh Tiwari v. Union of India (2009) 2 SCC 592.",
+      "Para 15: Where penalty challenged — separate ground on proportionality (Wednesbury) and where applicable, S.11(2) CCS (CCA) Rules.",
+      "Para 16: Pre-deposit — generally no pre-deposit before CAT, unlike service appeals to higher fora; verify rules.",
+      "Para 17: Interim relief — stay of impugned transfer / suspension / disciplinary inquiry / penalty till disposal.",
+      "Para 18: Where retiree challenges denial of pension/DCRG — flag continuing cause of action.",
+      "Para 19: Cost — generally not awarded against govt employees unless vexatious.",
+      "Annexures: Impugned order; representation + reply; service record extract; charge memo + inquiry report (for penalty cases); ACR / APAR (for grading challenge); recruitment / promotion rules; relevant DOP&T OMs.",
+      "Verification per Form 1 — signed by applicant.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Administrative Tribunals Act, 1985",
+      "sections": [
+        { "number": "S.2", "description": "Application of Act + excluded categories" },
+        { "number": "S.14", "description": "CAT jurisdiction over Union services" },
+        { "number": "S.15", "description": "State Administrative Tribunals jurisdiction" },
+        { "number": "S.17", "description": "Power to punish for contempt" },
+        { "number": "S.19", "description": "Applications to Tribunal — substantive provision" },
+        { "number": "S.20", "description": "Departmental remedies — must be exhausted" },
+        { "number": "S.21", "description": "Limitation — 1 year" },
+        { "number": "S.22", "description": "Procedure and powers" },
+        { "number": "S.27", "description": "Execution of orders" }
+      ]
+    },
+    {
+      "act": "Central Administrative Tribunal (Procedure) Rules, 1987",
+      "sections": [
+        { "number": "Rule 4", "description": "Form 1 — Original Application" },
+        { "number": "Rule 6", "description": "Bench jurisdiction" },
+        { "number": "Rule 13", "description": "Filing of application" },
+        { "number": "Rule 14", "description": "Form 3 — Miscellaneous Application" },
+        { "number": "Rule 24", "description": "Order on application" }
+      ]
+    },
+    {
+      "act": "Constitution of India (relevant)",
+      "sections": [
+        { "number": "Article 14", "description": "Equality + arbitrariness" },
+        {
+          "number": "Article 16",
+          "description": "Equality of opportunity in matters of public employment"
+        },
+        {
+          "number": "Article 309",
+          "description": "Recruitment and conditions of service of persons serving the Union"
+        },
+        {
+          "number": "Article 311",
+          "description": "Procedural safeguards in dismissal / removal / reduction in rank"
+        },
+        {
+          "number": "Article 323A",
+          "description": "Administrative Tribunals — constitutional basis"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Form 1 — OA (original + copies as per CAT Rule 13)",
+    "Affidavit verifying OA",
+    "Vakalatnama / Authorisation in favour of practitioner",
+    "Memo of parties",
+    "Impugned order(s) — certified copy",
+    "Representation made to authority + reply (if any)",
+    "Departmental appeal + order on it (if any)",
+    "Service record extract / pay particulars",
+    "Charge memo + inquiry report (for disciplinary cases)",
+    "ACR / APAR (for grading challenges)",
+    "Recruitment Rules / promotion rules / seniority list (as relevant)",
+    "DOP&T OMs / departmental circulars relied on",
+    "Filing fee — ₹50 (as currently prescribed under CAT Rules; verify current schedule)",
+    "Index, list of dates, synopsis",
+    "Application for condonation of delay (if filed beyond limitation)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "applicant_name and applicant_designation must not be empty",
+    "applicant_employment_category must be selected (warn if not central govt)",
+    "respondents_list must include Union of India through concerned Ministry/Department",
+    "service_matter_type must be selected",
+    "impugned_order_details must not be empty",
+    "cause_of_action_date must not be empty and not in future",
+    "departmental_remedy_status must be selected",
+    "If status = representation_made_no_reply_within_6_months, verify 6 months elapsed",
+    "limitation_position must not be empty — flag if > 1 year from cause without condonation",
+    "grounds_of_challenge must not be empty",
+    "advocate_enrollment must match Bar Council format / authorised rep details",
+    "Court level restricted to CAT only"
+  ],
+  "key_citations": [
+    "S.P. Sampath Kumar v. Union of India (1987) 1 SCC 124 — Constitutionality of CAT",
+    "L. Chandra Kumar v. Union of India (1997) 3 SCC 261 — HC writ jurisdiction over CAT preserved",
+    "Maneka Gandhi v. Union of India (1978) 1 SCC 248 — Natural justice in administrative action",
+    "Union of India v. Tulsiram Patel (1985) 3 SCC 398 — Natural justice in disciplinary",
+    "E.P. Royappa v. State of TN (1974) 4 SCC 3 — Arbitrariness antithesis of equality",
+    "B.C. Chaturvedi v. Union of India (1995) 6 SCC 749 — Service judicial review scope",
+    "Roop Singh Negi v. PNB (2009) 2 SCC 570 — No evidence test in disciplinary",
+    "D.S. Nakara v. Union of India (1983) 1 SCC 305 — Pension as right",
+    "Dev Dutt v. Union of India (2008) 8 SCC 725 — ACR communication",
+    "Baikuntha Nath Das v. Chief District Medical Officer (1992) 2 SCC 299 — Compulsory retirement",
+    "Umesh Kumar Nagpal v. State of Haryana (1994) 4 SCC 138 — Compassionate appointment"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

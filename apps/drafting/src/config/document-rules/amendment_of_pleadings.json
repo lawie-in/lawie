@@ -1,0 +1,317 @@
+{
+  "_meta": {
+    "description": "Document-rules config for amendment_of_pleadings — Application u/Order 6 R.17 CPC for amendment of plaint / written statement",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 5 civil interlocutory pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Post-trial proviso (due diligence) is non-negotiable."
+  },
+  "template_id": "amendment_of_pleadings",
+  "docType": "amendment_of_pleadings",
+  "title": "Application for Amendment of Pleadings (Order 6 R.17 CPC)",
+  "displayName": "Amendment of Pleadings Application (Order 6 R.17 CPC)",
+  "category": "civil_interlocutory",
+  "creditsCost": 1,
+  "court_levels": [
+    "civil_judge_junior_division",
+    "civil_judge_senior_division",
+    "district_judge",
+    "high_court_original_side",
+    "commercial_court",
+    "commercial_division_high_court"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant ({applicant_role_in_suit})\nVERSUS\n{respondent} ... Non-Applicant ({respondent_role_in_suit})",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant" },
+      { "role": "respondent", "label": "Non-Applicant" }
+    ],
+    "caseNomenclature": "I.A. No. _____ of [YEAR] in Civil Suit No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "suit_number",
+        "label": "Parent suit number / year",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "applicant_role_in_suit",
+        "label": "Applicant role in suit",
+        "type": "select",
+        "required": true,
+        "options": ["plaintiff", "defendant", "third_party"]
+      },
+      { "id": "applicant_name", "label": "Applicant name", "type": "text", "required": true },
+      { "id": "respondent_name", "label": "Non-Applicant name", "type": "text", "required": true },
+      {
+        "id": "respondent_role_in_suit",
+        "label": "Non-Applicant role in suit",
+        "type": "select",
+        "required": true,
+        "options": ["plaintiff", "defendant", "third_party"]
+      },
+      {
+        "id": "pleading_to_amend",
+        "label": "Pleading to be amended",
+        "type": "select",
+        "required": true,
+        "options": ["plaint", "written_statement", "replication", "counter_claim", "rejoinder"]
+      },
+      {
+        "id": "stage_of_suit",
+        "label": "Stage of suit when amendment sought",
+        "type": "select",
+        "required": true,
+        "options": [
+          "before_issues_framed",
+          "after_issues_before_evidence",
+          "during_evidence",
+          "after_evidence_before_judgment",
+          "in_appeal"
+        ]
+      },
+      {
+        "id": "trial_commenced",
+        "label": "Has trial commenced?",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "proposed_amendments",
+        "label": "Proposed amendments — paragraph-wise (insertion / deletion / modification)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "reason_for_amendment",
+        "label": "Reason / purpose of amendment (necessary for real question in controversy)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "when_facts_discovered",
+        "label": "When the facts / circumstances necessitating amendment came to applicant's knowledge",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "due_diligence_explanation",
+        "label": "Due diligence — why amendment could not be raised earlier (mandatory if trial commenced)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "no_prejudice_to_opposite",
+        "label": "Statement that amendment causes no prejudice to opposite party not compensable in costs",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "no_change_in_nature_of_suit",
+        "label": "Statement that amendment does not change nature of suit / introduce time-barred claim",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "limitation_check",
+        "label": "Limitation check for new claims being introduced",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Applicant and non-applicant"
+    },
+    {
+      "id": "suit_reference",
+      "name": "Reference to Main Suit",
+      "required": true,
+      "description": "Suit number, stage, parties"
+    },
+    {
+      "id": "pleading_identification",
+      "name": "Pleading Sought to be Amended",
+      "required": true,
+      "description": "Identify plaint/WS/replication and paragraph numbers"
+    },
+    {
+      "id": "stage_paragraph",
+      "name": "Stage of Suit",
+      "required": true,
+      "description": "Whether trial commenced — triggers proviso"
+    },
+    {
+      "id": "proposed_amendments_paragraph",
+      "name": "Proposed Amendments",
+      "required": true,
+      "description": "Para-wise insertions / deletions in tabular or marked-up format"
+    },
+    {
+      "id": "necessity_paragraph",
+      "name": "Necessity for Real Question",
+      "required": true,
+      "description": "Amendment necessary to determine real question in controversy"
+    },
+    {
+      "id": "due_diligence_paragraph",
+      "name": "Due Diligence (post-commencement of trial)",
+      "required": false,
+      "description": "Mandatory under proviso to O.6 R.17 where trial commenced"
+    },
+    {
+      "id": "no_prejudice_paragraph",
+      "name": "No Prejudice",
+      "required": true,
+      "description": "Amendment causes no irreparable prejudice not compensable in costs"
+    },
+    {
+      "id": "no_change_nature_paragraph",
+      "name": "No Change in Nature of Suit",
+      "required": true,
+      "description": "Amendment does not change cause of action / introduce new case"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation",
+      "required": true,
+      "description": "Amendment does not introduce time-barred claim (subject to relation back exceptions)"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Leave to amend + carry out amendment"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Affidavit accompanying application"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Grant leave to the Applicant under Order 6 Rule 17 read with Section 151 CPC to amend the {pleading_to_amend} in the manner shown in the proposed amendments annexed hereto (Annexure-A);\n\nb) Permit the Applicant to file the amended {pleading_to_amend} within such time as this Hon'ble Court may fix;\n\nc) Award such costs as this Hon'ble Court may deem fit and proper;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant_name}, the Applicant herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to my personal knowledge. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nApplicant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft an application for amendment of pleadings under Order 6 Rule 17 read with Section 151 CPC.",
+      "Order 6 R.17 has TWO parts: (i) Main provision — court may at any stage allow amendments necessary to determine real questions in controversy. (ii) Proviso (added 2002) — no application for amendment shall be allowed after trial has commenced, unless court concludes that despite due diligence, party could not have raised the matter before commencement of trial.",
+      "Pre-trial: liberal approach. Post-trial: strict due diligence test.",
+      "Cite Salem Advocate Bar Association v. Union of India (2005) 6 SCC 344 — proviso constitutional; due diligence test affirmed.",
+      "Cite Revajeetu Builders & Developers v. Narayanaswamy & Sons (2009) 10 SCC 84 — six factors for amendment (whether necessary for real controversy, whether bona fide, prejudice, no costs cure, fundamental change in nature of suit, delay).",
+      "Cite Rajesh Kumar Aggarwal v. K.K. Modi (2006) 4 SCC 385 — amendment to introduce new cause of action vs. clarify existing.",
+      "Cite Pankaja v. Yellappa (2004) 6 SCC 415 — amendment introducing time-barred claim not allowed unless relation-back doctrine applies.",
+      "Para 1: Reference to main suit, parties, stage.",
+      "Para 2: Pleading sought to be amended (plaint / WS / replication) and paragraph numbers.",
+      "Para 3: Stage of suit — critical. If issues framed but evidence not commenced — pre-trial. If evidence commenced — proviso engaged.",
+      "Para 4: Proposed amendments — annex marked-up copy in Annexure-A with insertions in underlined and deletions in strikethrough.",
+      "Para 5: Necessity — amendment is necessary to determine real question in controversy; without amendment, true issue cannot be adjudicated.",
+      "Para 6: When facts came to applicant's knowledge — establishes diligence timeline.",
+      "Para 7 (if trial commenced): Due diligence — specific narration showing that despite reasonable diligence, the amendment could not have been raised before commencement of trial. Examples: subsequent events, fresh documents discovered, new development of law, party's own evolved understanding ruled out unless backed by fresh discovery.",
+      "Para 8: No prejudice to opposite party that cannot be compensated by costs; amendment does not displace settled rights or destroy admissions made.",
+      "Para 9: No change in nature / character of suit. No new cause of action introduced that is time-barred.",
+      "Para 10: Limitation — if amendment introduces new claim, check if claim is within limitation OR if relation-back to original plaint is available (only in narrow circumstances).",
+      "Common permissible amendments: typographical / clerical corrections, clarification of existing pleas, adding alternative reliefs, particulars of fraud / misrepresentation, change of valuation, addition/deletion of parties (technically O.1 R.10 — but mention).",
+      "Common impermissible amendments: introducing entirely new cause of action especially time-barred; withdrawal of admissions; introducing inconsistent / contradictory pleas; changing nature of suit (e.g., possession suit to title suit fundamentally).",
+      "Cite Heeralal v. Kalyan Mal (1998) 1 SCC 278 — withdrawal of admissions ordinarily not permitted.",
+      "Cite Ragu Thilak D. John v. S. Rayappan (2001) 2 SCC 472 — amendment to introduce relief of declaration not allowed if substantive suit different.",
+      "Cite Sampath Kumar v. Ayyakannu (2002) 7 SCC 559 — amendment to alter relief from injunction to declaration permitted in appropriate cases.",
+      "For commercial courts: Order XI proceeding rules of Commercial Courts Act override certain CPC defaults; amendments more restricted.",
+      "Affidavit in support is mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "S.151", "description": "Inherent powers" },
+        { "number": "Order 6 R.17", "description": "Amendment of pleadings" },
+        { "number": "Order 6 R.17 Proviso", "description": "Post-trial — due diligence test" },
+        { "number": "Order 6 R.18", "description": "Failure to amend after order" },
+        { "number": "Order 1 R.10", "description": "Addition / striking out of parties" },
+        { "number": "Order 7 R.7", "description": "Relief in plaint to be specifically stated" },
+        { "number": "Order 8 R.9", "description": "Subsequent pleadings (replication)" }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "S.21",
+          "description": "Effect of substituting or adding new plaintiff or defendant"
+        },
+        { "number": "S.22", "description": "Continuing breaches and torts" }
+      ]
+    },
+    {
+      "act": "Commercial Courts Act, 2015",
+      "sections": [
+        {
+          "number": "Schedule — Order XI",
+          "description": "Disclosure, discovery and inspection of documents — commercial suits"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + copies)",
+    "Affidavit in support",
+    "Memo of parties",
+    "Proposed amended pleading (marked-up) as Annexure-A",
+    "Clean copy of proposed amended pleading as Annexure-B",
+    "Documents establishing late discovery (if any)",
+    "Court fee per state Schedule (usually fixed for IA)",
+    "Copy of existing pleading sought to be amended",
+    "If post-trial: due diligence proof",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "suit_number must be filled",
+    "pleading_to_amend must be specified",
+    "stage_of_suit must be specified",
+    "proposed_amendments must not be empty",
+    "reason_for_amendment must not be empty",
+    "when_facts_discovered must not be empty",
+    "If trial_commenced=true, due_diligence_explanation must not be empty",
+    "no_prejudice_to_opposite must not be empty",
+    "no_change_in_nature_of_suit must not be empty",
+    "limitation_check must not be empty",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Salem Advocate Bar Association v. Union of India (2005) 6 SCC 344 — Proviso to O.6 R.17 constitutional; due diligence test",
+    "Revajeetu Builders & Developers v. Narayanaswamy & Sons (2009) 10 SCC 84 — Six factors for amendment",
+    "Rajesh Kumar Aggarwal v. K.K. Modi (2006) 4 SCC 385 — Amendment introducing new cause of action",
+    "Pankaja v. Yellappa (2004) 6 SCC 415 — Time-barred amendments and relation back",
+    "Heeralal v. Kalyan Mal (1998) 1 SCC 278 — Withdrawal of admissions ordinarily not permitted",
+    "Sampath Kumar v. Ayyakannu (2002) 7 SCC 559 — Permissible amendment of relief",
+    "Vidyabai v. Padmalatha (2009) 2 SCC 409 — Trial commences when affidavit of examination-in-chief filed"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

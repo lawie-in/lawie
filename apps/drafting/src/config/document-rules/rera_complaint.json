@@ -1,0 +1,382 @@
+{
+  "_meta": {
+    "description": "Document-rules config for rera_complaint — Complaint before State Real Estate Regulatory Authority under Section 31 of the Real Estate (Regulation and Development) Act, 2016. By allottee / association / promoter alleging breach.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Pioneer Urban concurrent-remedy cite mandatory. State-RERA mapping required in indian-courts.json — see note."
+  },
+  "template_id": "rera_complaint",
+  "docType": "rera_complaint",
+  "title": "Complaint under Section 31 of the Real Estate (Regulation and Development) Act, 2016",
+  "displayName": "RERA Complaint (S.31 RERA)",
+  "category": "tribunal",
+  "creditsCost": 2,
+  "court_levels": ["state_rera_authority"],
+  "causeTitle": {
+    "format": "BEFORE THE HON'BLE {state} REAL ESTATE REGULATORY AUTHORITY\nAT {rera_office_location}\n\n{caseNomenclature}\n\nIN THE MATTER OF: Sections 11, 12, 13, 14, 18, 19 and 31 of the Real Estate (Regulation and Development) Act, 2016;\nAND IN THE MATTER OF: {project_name} at {project_location};\nAND IN THE MATTER OF:\n\n{complainant} ... Complainant(s)\nVERSUS\n{respondents_list} ... Respondent(s)",
+    "partyDesignations": [
+      {
+        "role": "complainant",
+        "label": "Complainant (Allottee / Association / Promoter as the case may be)"
+      },
+      { "role": "promoter", "label": "Respondent — Promoter / Developer" }
+    ],
+    "caseNomenclature": "Complaint No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "complainant_type",
+        "label": "Complainant type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "individual_allottee",
+          "joint_allottees",
+          "association_of_allottees",
+          "promoter_against_allottee",
+          "real_estate_agent"
+        ]
+      },
+      {
+        "id": "complainant_name",
+        "label": "Complainant name(s)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "complainant_address",
+        "label": "Complainant address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "complainant_email", "label": "Complainant email", "type": "text", "required": true },
+      {
+        "id": "complainant_mobile",
+        "label": "Complainant mobile",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "promoter_name",
+        "label": "Promoter / Developer name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "promoter_address",
+        "label": "Promoter registered office address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "project_name", "label": "Project name", "type": "text", "required": true },
+      {
+        "id": "project_rera_registration_no",
+        "label": "Project RERA registration number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "project_location",
+        "label": "Project location",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "unit_number",
+        "label": "Unit number / flat number / plot number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "agreement_for_sale_date",
+        "label": "Date of Agreement for Sale",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "consideration_amount",
+        "label": "Total consideration (₹)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "amount_paid",
+        "label": "Amount paid by allottee till date (₹)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "promised_possession_date",
+        "label": "Promised date of possession per agreement",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "actual_possession_date",
+        "label": "Actual possession date (if given)",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "nature_of_grievance",
+        "label": "Nature of grievance",
+        "type": "checkbox_multi",
+        "required": true,
+        "options": [
+          "delay_in_possession",
+          "refund_with_interest",
+          "non_completion_of_promised_amenities",
+          "deviation_from_sanctioned_plan",
+          "defects_in_construction",
+          "violation_of_advertisement_promises",
+          "non_registration_of_project_under_rera",
+          "failure_to_form_association",
+          "wrongful_termination_by_promoter",
+          "other"
+        ]
+      },
+      {
+        "id": "factual_narrative",
+        "label": "Detailed factual narrative",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "specific_violations_under_RERA",
+        "label": "Specific violations of RERA sections (e.g., S.11, S.12, S.13, S.14, S.18, S.19)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "previous_consumer_or_civil_proceedings",
+        "label": "Any previous Consumer / Civil proceedings on same cause? (Pioneer Urban — concurrent remedy)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "reliefs_sought",
+        "label": "Specific reliefs sought",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "interest_claimed",
+        "label": "Interest claimed — rate (typically SBI MCLR + 2%)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "compensation_claimed",
+        "label": "Compensation claimed under S.18(3) (mental harassment, loss of business etc.) (₹)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "advocate_name",
+        "label": "Advocate / Authorised Representative name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number (or authorised rep details)",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Complainant + Promoter (R-1) and others if applicable"
+    },
+    {
+      "id": "jurisdiction_paragraph",
+      "name": "Jurisdiction",
+      "required": true,
+      "description": "State RERA where project located"
+    },
+    {
+      "id": "project_paragraph",
+      "name": "Project Details",
+      "required": true,
+      "description": "Name, RERA registration, location"
+    },
+    {
+      "id": "allotment_paragraph",
+      "name": "Allotment Details",
+      "required": true,
+      "description": "Unit, agreement, consideration, payments"
+    },
+    {
+      "id": "promised_vs_actual_paragraph",
+      "name": "Promised vs Actual Possession",
+      "required": true,
+      "description": "Delay quantification"
+    },
+    {
+      "id": "factual_paragraph",
+      "name": "Factual Narrative",
+      "required": true,
+      "description": "Chronological events"
+    },
+    {
+      "id": "violations_paragraph",
+      "name": "Specific Violations of RERA Provisions",
+      "required": true,
+      "description": "Section-wise breach"
+    },
+    {
+      "id": "alternative_remedies_paragraph",
+      "name": "Position on Alternative Remedies",
+      "required": true,
+      "description": "No parallel Consumer / Civil action OR concurrent under Pioneer Urban"
+    },
+    {
+      "id": "reliefs_paragraph",
+      "name": "Specific Reliefs",
+      "required": true,
+      "description": "Refund / completion / compensation / interest"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Reliefs under S.18 + S.31 + S.38"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "By complainant"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Mandatory per state RERA Rules"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Complainant(s) most respectfully pray(s) that this Hon'ble Authority may graciously be pleased to:\n\na) Direct the Respondent-Promoter to {primary_relief — handover possession / refund consideration with interest / complete promised amenities};\n\nb) Direct the Respondent-Promoter to pay interest at the prescribed rate (SBI MCLR + 2%) from {commencement_date} till the date of actual possession / refund as the case may be, under Section 18(1) of the Real Estate (Regulation and Development) Act, 2016;\n\nc) Direct the Respondent-Promoter to pay compensation of Rs. {compensation_claimed}/- under Section 18(3) of the Act for the mental harassment and financial loss suffered by the Complainant(s);\n\nd) Direct the Respondent-Promoter to comply with the terms of the Agreement for Sale and the provisions of the Act;\n\ne) Impose penalty upon the Respondent-Promoter under Sections 59-64 of the Act for the violations specified above;\n\nf) Award costs of the present complaint;\n\ng) Pass any other order(s) as this Hon'ble Authority may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Complainant(s) shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {complainant_primary_name}, the Complainant herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above complaint are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nComplainant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a complaint under Section 31 of the Real Estate (Regulation and Development) Act, 2016, before the State RERA Authority.",
+      "NOTE TO INDIAN-COURTS-JSON: State RERA authorities must be mapped in indian-courts.json with their addresses (Bihar RERA - Patna, Jharkhand RERA - Ranchi, UP RERA - Lucknow + Gautam Buddh Nagar bench, Delhi RERA - Delhi, Maharashtra MahaRERA - Mumbai, Karnataka K-RERA - Bengaluru, etc.). Filing must be at the RERA where the project is located.",
+      "Form: Per State RERA Rules — typically Form 'M' (complaint by allottee) / Form 'N' (complaint by promoter) / Form 'O' (by real estate agent). Forms vary across states; default to Form M for individual allottee complaint.",
+      "Limitation: Act does not prescribe specific limitation for complaints, but cause of action must be live — generally treated under the Limitation Act 1963 by analogy.",
+      "Para 1: Parties — Complainant (allottee/association); Promoter (R-1) — definition under S.2(zk).",
+      "Para 2: Jurisdiction — S.20 + S.31 — State RERA where project is located. Filing fee per state Rules (e.g., Bihar RERA ₹1,000; UP RERA ₹1,000; MahaRERA ₹5,000 per unit).",
+      "Para 3: Project details — name, RERA registration number (S.3 mandatory registration), location, sanctioned plan, promised completion date.",
+      "Para 4: Allotment details — unit, agreement for sale (S.13 mandatory — agreement before accepting more than 10% of consideration), consideration, payments made.",
+      "Para 5: Promised vs actual possession — quantify delay in months. Cite Aftab Singh v. Emaar MGF (2019) NCDRC reaffirming RERA + Consumer concurrent jurisdiction.",
+      "Para 6-8: Factual narrative — chronology.",
+      "Para 9: Specific violations:",
+      "   - S.11: Promoter functions (project disclosures + maintenance till conveyance);",
+      "   - S.12: Liability for false / incorrect statements in advertisement / prospectus — allottee may claim refund + interest if induced;",
+      "   - S.13: Mandatory agreement for sale (no more than 10% advance without agreement);",
+      "   - S.14: Compliance with sanctioned plan; structural defects — 5-year warranty;",
+      "   - S.18: Return of amount + compensation on failure to give possession; interest till handover;",
+      "   - S.19: Rights and duties of allottees.",
+      "Para 10: Alternative remedies — Cite Pioneer Urban Land & Infrastructure Ltd v. Govindan Raghavan (2019) 5 SCC 725 — RERA, Consumer, and Civil court remedies are CONCURRENT, not mutually exclusive. M3M India Pvt Ltd v. Dinesh Sharma (2019) — RERA preferred for matters under the Act. Newtech Promoters v. State of UP (2021) 9 SCC 743 — RERA applies retroactively.",
+      "Para 11: Reliefs:",
+      "   - Possession with delay interest (S.18(1)) — rate at 'such rate as may be prescribed' — typically SBI MCLR + 2% per state Rules.",
+      "   - Refund (allottee's election) with same rate of interest.",
+      "   - Completion of promised amenities (S.14).",
+      "   - Compensation under S.18(3) for mental harassment / financial loss.",
+      "   - Penalty against promoter under S.59 (non-registration), S.60 (false information), S.61 (other contraventions) — these are penal and discretionary.",
+      "Para 12: Where wrongful termination — S.19(6) read with agreement; cite National Buildings Construction Corporation v. Pritam Singh Gill (2020) [where applicable].",
+      "Para 13: Where deviation from sanctioned plan — S.14(2): promoter cannot change layout/amenities/specs without consent of 2/3rds of allottees.",
+      "Para 14: Where structural defects within 5 years from handover — S.14(3) liability to rectify within 30 days without cost.",
+      "Para 15: Appeal — to State Real Estate Appellate Tribunal under S.43-44 within 60 days; further appeal to HC on substantial question of law (S.58) within 60 days. (Pre-deposit may apply for promoter appeals — Newtech Promoters.)",
+      "Para 16: Penalty — S.60-72 — penal provisions; complaint can pray for action.",
+      "Form fields: typically (i) project name, (ii) RERA registration, (iii) allotment details, (iv) date of agreement, (v) date of possession promised, (vi) date of payment made, (vii) reliefs sought, (viii) consent for online proceedings.",
+      "Affidavit in support — mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Real Estate (Regulation and Development) Act, 2016",
+      "sections": [
+        { "number": "S.3", "description": "Mandatory project registration" },
+        { "number": "S.11", "description": "Promoter functions" },
+        { "number": "S.12", "description": "Liability for false statements in advertisement" },
+        {
+          "number": "S.13",
+          "description": "Mandatory agreement for sale before accepting >10% advance"
+        },
+        {
+          "number": "S.14",
+          "description": "Compliance with sanctioned plan + structural defect 5-year warranty"
+        },
+        {
+          "number": "S.18",
+          "description": "Return of amount + compensation on failure to give possession"
+        },
+        { "number": "S.19", "description": "Rights and duties of allottees" },
+        { "number": "S.20", "description": "Establishment of State RERA Authority" },
+        { "number": "S.31", "description": "Complaint filing — substantive provision" },
+        { "number": "S.43", "description": "Real Estate Appellate Tribunal" },
+        { "number": "S.44", "description": "Appeal to Appellate Tribunal — 60 days" },
+        {
+          "number": "S.58",
+          "description": "Appeal to HC on substantial question of law — 60 days"
+        },
+        { "number": "S.59-72", "description": "Penalties for various contraventions" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Complaint in prescribed form per State RERA Rules (typically Form M)",
+    "Affidavit in support (per state Rules)",
+    "Vakalatnama / Authorisation in favour of representative",
+    "Memo of parties",
+    "Copy of Agreement for Sale / Allotment Letter",
+    "Payment receipts of all instalments paid",
+    "RERA project registration certificate / proof of non-registration",
+    "Brochure / advertisement material relied on",
+    "Sanctioned plan (if available) for deviation cases",
+    "Correspondence with promoter (notices, emails, complaint letters)",
+    "Bank statements showing payments",
+    "ID and address proof of complainant",
+    "Filing fee per State RERA Rules (electronically or by DD)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "complainant_type must be selected",
+    "complainant_name and complainant_address must not be empty",
+    "promoter_name and project_name must not be empty",
+    "project_rera_registration_no must not be empty (warn if absent — register a complaint under S.59 for non-registration)",
+    "agreement_for_sale_date must not be empty and not in future",
+    "consideration_amount and amount_paid must be > 0",
+    "promised_possession_date must not be empty",
+    "nature_of_grievance must have at least one selected",
+    "factual_narrative must not be empty",
+    "specific_violations_under_RERA must not be empty",
+    "reliefs_sought must not be empty",
+    "previous_consumer_or_civil_proceedings must not be empty (express position)",
+    "advocate_enrollment must match Bar Council format or representative authorisation valid",
+    "Court level restricted to State RERA Authority"
+  ],
+  "key_citations": [
+    "Pioneer Urban Land v. Govindan Raghavan (2019) 5 SCC 725 — Concurrent remedies (RERA / Consumer / Civil)",
+    "Newtech Promoters v. State of UP (2021) 9 SCC 743 — RERA retroactive application",
+    "Aftab Singh v. Emaar MGF (2019) NCDRC — Concurrent jurisdiction",
+    "Forum for People's Collective Efforts v. State of WB (2021) 8 SCC 599 — RERA federal supremacy on real estate",
+    "Imperia Structures Ltd v. Anil Patni (2020) 10 SCC 783 — RERA + Consumer concurrent",
+    "M3M India Pvt Ltd v. Dinesh Sharma — RERA preferred forum",
+    "Wing Commander Arifur Rahman Khan v. DLF Southern Homes (2020) 16 SCC 512 — Reasonable time for possession"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

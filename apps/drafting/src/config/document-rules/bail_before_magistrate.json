@@ -1,0 +1,230 @@
+{
+  "_meta": {
+    "description": "Document-rules config for bail_before_magistrate — regular bail at Magistrate level under BNSS 480 — distinct from Sessions/HC bail under BNSS 483",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "template_id": "bail_before_magistrate",
+  "docType": "bail_before_magistrate",
+  "parentDocType": "bail_application",
+  "title": "Bail Application before Magistrate",
+  "displayName": "Bail Application before Magistrate (BNSS 480)",
+  "category": "criminal_bail",
+  "creditsCost": 2,
+  "court_levels": ["magistrate", "cjm"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} ... Respondent",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant/Accused" },
+      { "role": "respondent", "label": "Respondent (State)" }
+    ],
+    "caseNomenclature": "BAIL APPLICATION No. _____ of [YEAR]\n(Under Section 480 BNSS, 2023)"
+  },
+  "form_schema": [
+    { "name": "applicant_name", "label": "Applicant Name", "type": "text", "required": true },
+    {
+      "name": "applicant_parentage",
+      "label": "Father's / Husband's Name",
+      "type": "text",
+      "required": true
+    },
+    { "name": "applicant_age", "label": "Applicant Age", "type": "number", "required": true },
+    {
+      "name": "applicant_occupation",
+      "label": "Applicant Occupation",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "applicant_address",
+      "label": "Applicant Address",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "court_designation",
+      "label": "Court Designation (Magistrate / CJM)",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "state",
+      "label": "State",
+      "type": "select",
+      "options": ["Bihar", "Jharkhand", "Uttar Pradesh", "Delhi"],
+      "required": true
+    },
+    { "name": "fir_number", "label": "FIR Number", "type": "text", "required": true },
+    { "name": "fir_date", "label": "FIR Date", "type": "date", "required": true },
+    { "name": "police_station", "label": "Police Station", "type": "text", "required": true },
+    {
+      "name": "offences_alleged",
+      "label": "Offences Alleged (BNS sections)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "offence_classification",
+      "label": "Offence Classification",
+      "type": "select",
+      "options": ["Bailable", "Non-bailable (within Magistrate's powers)"],
+      "required": true
+    },
+    { "name": "arrest_date", "label": "Date of Arrest", "type": "date", "required": true },
+    { "name": "days_in_custody", "label": "Days in Custody", "type": "number", "required": true },
+    {
+      "name": "investigation_status",
+      "label": "Investigation Status",
+      "type": "select",
+      "options": ["Ongoing", "Charge sheet filed", "Cognizance taken"],
+      "required": true
+    },
+    {
+      "name": "antecedents",
+      "label": "Criminal Antecedents (if any)",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "name": "grounds_for_bail",
+      "label": "Grounds for Bail",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "sureties_available",
+      "label": "Sureties Available",
+      "type": "select",
+      "options": ["Yes", "No"],
+      "required": true
+    },
+    { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
+    {
+      "name": "advocate_enrolment",
+      "label": "Bar Council Enrolment No.",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "mandatory_clauses": [
+    "particulars of FIR / Crime",
+    "fact of arrest and custody",
+    "nature of offence — bailable / non-bailable within Magistrate's competence",
+    "grounds for bail — no prima facie case / no need for further custody / triple test (Sushila Aggarwal / P. Chidambaram)",
+    "clean antecedents or explanation thereof",
+    "willingness to furnish bond and sureties",
+    "undertakings (not tamper with evidence, attend court, not leave jurisdiction)",
+    "prayer for bail",
+    "verification on oath"
+  ],
+  "mandatoryClauses": [
+    {
+      "id": "fir_particulars",
+      "name": "FIR Particulars",
+      "required": true,
+      "description": "FIR number, date, police station, offences alleged"
+    },
+    {
+      "id": "custody",
+      "name": "Custody Particulars",
+      "required": true,
+      "description": "Arrest date, current custody status, days elapsed"
+    },
+    {
+      "id": "offence_classification",
+      "name": "Offence Classification",
+      "required": true,
+      "description": "Whether offence is bailable or non-bailable (and within Magistrate's powers)"
+    },
+    {
+      "id": "grounds",
+      "name": "Grounds for Bail",
+      "required": true,
+      "description": "No prima facie case, no need for custody, clean antecedents, false implication"
+    },
+    {
+      "id": "triple_test",
+      "name": "Triple Test",
+      "required": true,
+      "description": "Flight risk, tampering with evidence, influencing witnesses — all addressed"
+    },
+    {
+      "id": "undertakings",
+      "name": "Undertakings",
+      "required": true,
+      "description": "Attend court, not tamper with evidence, not leave jurisdiction without leave"
+    },
+    { "id": "prayer", "name": "Prayer", "required": true, "description": "Prayer for bail" },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Release the applicant {applicant} on bail in connection with FIR No. {fir_number} dated {fir_date} of Police Station {police_station}, under Section 480 of the BNSS, 2023;\nb) Direct release on such bond and sureties as this Hon'ble Court may deem fit;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, S/o {parentName}, aged about {age} years, currently in judicial custody at {jail}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "prompt_context": "Draft a Bail Application before the Magistrate / CJM under Section 480 of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (corresponding to Section 437 CrPC). DISTINCTION: Section 480 BNSS deals with bail by the trial court / magistrate; Section 483 BNSS deals with special powers of High Court / Sessions Court. The Magistrate's competence is limited — it cannot grant bail in offences punishable with death or imprisonment for life, unless certain conditions are met (under-18, woman, sick/infirm, no prima facie case after the court hears the prosecution). The application must: (1) establish particulars of FIR; (2) demonstrate offence is within Magistrate's bail competence; (3) apply the triple-test (flight risk, tampering, influence) — Sushila Aggarwal v. State (NCT of Delhi) (2020) 5 SCC 1; P. Chidambaram v. Directorate of Enforcement (2019) 9 SCC 24; (4) show clean antecedents or contextualise; (5) furnish undertakings. Cite BNS for offences (never IPC), BNSS for procedural provisions.",
+  "promptInstructions": [
+    "Draft a Bail Application before the Magistrate under Section 480 BNSS, 2023 (successor to Section 437 CrPC).",
+    "Confirm at outset that the offence is within the Magistrate's bail competence under BNSS 480.",
+    "If offence is punishable with death / life imprisonment, the Magistrate's powers are restricted — flag whether applicant falls in special categories (woman / under-18 / sick / infirm).",
+    "Set out FIR particulars and circumstances of arrest.",
+    "Apply the triple-test: flight risk (no — give antecedents and roots), tampering with evidence (no — give reasons), influencing witnesses (no — distance from witnesses).",
+    "Cite Sushila Aggarwal v. State (NCT of Delhi) (2020) 5 SCC 1 on grant of bail principles.",
+    "Cite P. Chidambaram v. Directorate of Enforcement (2019) 9 SCC 24 on the triple test.",
+    "If charge sheet has been filed, mention that custody is no longer required for investigation.",
+    "Include undertakings: attend court on every date, not tamper with evidence, not leave jurisdiction.",
+    "Use BNS section numbers for offences (never IPC).",
+    "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
+  ],
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        { "number": "478", "description": "In what cases bail to be taken" },
+        {
+          "number": "480",
+          "description": "When bail may be taken in case of non-bailable offence (by Magistrate / trial court)"
+        },
+        {
+          "number": "481",
+          "description": "Bail to require accused to appear before next appellate Court"
+        },
+        {
+          "number": "482",
+          "description": "Direction for grant of bail to person apprehending arrest"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + 2 copies)",
+    "Affidavit of applicant",
+    "Copy of FIR",
+    "Copy of arrest memo",
+    "Copy of remand orders",
+    "Identity proof of applicant",
+    "Identity and address proof of sureties",
+    "Vakalatnama"
+  ],
+  "filingChecklist": [
+    "Application (original + 2 copies)",
+    "Affidavit of applicant",
+    "Copy of FIR",
+    "Copy of arrest memo",
+    "Copy of remand orders",
+    "Identity proof of applicant",
+    "Identity and address proof of sureties",
+    "Vakalatnama"
+  ],
+  "validation_rules": [
+    "offence_classification must be specified",
+    "if offence is punishable with death/life and applicant is not in special category, recommend BNSS 483 (Sessions/HC) bail instead",
+    "grounds_for_bail must be non-empty",
+    "arrest_date must be on or before today",
+    "days_in_custody must be consistent with arrest_date"
+  ]
+}

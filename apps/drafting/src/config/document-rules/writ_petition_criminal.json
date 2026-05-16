@@ -1,0 +1,337 @@
+{
+  "_meta": {
+    "description": "Document-rules config for writ_petition_criminal — Writ Petition (Criminal) WP(CRL) under Article 226 of the Constitution. Reliefs include illegal detention, custodial torture, FIR registration refusal, departmental misconduct in investigation, CBI/SIT transfer.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. D.K. Basu, Lalita Kumari, Nilabati Behera cites mandatory."
+  },
+  "template_id": "writ_petition_criminal",
+  "docType": "writ_petition_criminal",
+  "title": "Writ Petition (Criminal) under Article 226 of the Constitution of India",
+  "displayName": "Writ Petition (Criminal) — WP(CRL)",
+  "category": "writ",
+  "creditsCost": 2,
+  "court_levels": ["high_court_writ_jurisdiction"],
+  "causeTitle": {
+    "format": "IN THE HON'BLE HIGH COURT OF {state} AT {courtPlace}\n(EXTRAORDINARY CRIMINAL / WRIT JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF: Article 226 of the Constitution of India read with Article 21;\nAND IN THE MATTER OF: Bharatiya Nagarik Suraksha Sanhita, 2023;\nAND IN THE MATTER OF: {grievance_summary};\nAND IN THE MATTER OF:\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner" },
+      { "role": "state", "label": "State (through DGP / Home Secretary)" },
+      { "role": "police_officials", "label": "Police officials (where misconduct alleged)" }
+    ],
+    "caseNomenclature": "W.P. (CRL) No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "petitioner_name",
+        "label": "Petitioner full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner_father_name",
+        "label": "Father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "petitioner_age", "label": "Petitioner age", "type": "number", "required": true },
+      {
+        "id": "petitioner_address",
+        "label": "Petitioner address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "petitioner_relation_to_victim",
+        "label": "If filing on behalf of victim — relationship",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "victim_name",
+        "label": "Victim name (if different from petitioner)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "respondents_list",
+        "label": "List of respondents — State (DGP/Home Sec/SHO), police officials, others",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "grievance_type",
+        "label": "Type of grievance",
+        "type": "select",
+        "required": true,
+        "options": [
+          "illegal_detention_short_of_habeas",
+          "custodial_torture_or_death",
+          "refusal_to_register_fir",
+          "biased_or_tardy_investigation",
+          "departmental_misconduct_by_police",
+          "request_for_cbi_or_sit_transfer",
+          "compensation_for_state_action",
+          "fake_encounter_or_police_excess",
+          "other"
+        ]
+      },
+      {
+        "id": "grievance_summary",
+        "label": "One-line grievance summary",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "incident_date",
+        "label": "Date of incident / cause of action",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "factual_narrative",
+        "label": "Detailed factual narrative",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "fir_status",
+        "label": "FIR status",
+        "type": "select",
+        "required": false,
+        "options": [
+          "fir_not_registered_despite_complaint",
+          "fir_registered_but_no_investigation",
+          "fir_registered_biased_investigation",
+          "no_fir_required_for_this_grievance"
+        ]
+      },
+      {
+        "id": "representations_made",
+        "label": "Representations made to higher authorities (SP, DGP, Magistrate u/S.175(3) BNSS) — details + dates",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "fundamental_rights_violated",
+        "label": "Fundamental rights violated",
+        "type": "checkbox_multi",
+        "required": true,
+        "options": ["article_14", "article_19", "article_21", "article_22"]
+      },
+      {
+        "id": "interim_relief",
+        "label": "Interim relief sought",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "compensation_claimed",
+        "label": "Compensation claimed (if any) — amount + basis",
+        "type": "textarea",
+        "required": false
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Petitioner + State respondents + named officials"
+    },
+    {
+      "id": "jurisdiction_paragraph",
+      "name": "Jurisdiction under Art. 226",
+      "required": true,
+      "description": "Territorial nexus"
+    },
+    {
+      "id": "facts_paragraph",
+      "name": "Statement of Facts",
+      "required": true,
+      "description": "Chronological narrative of incident"
+    },
+    {
+      "id": "representations_paragraph",
+      "name": "Representations to Higher Authorities",
+      "required": true,
+      "description": "Exhaustion / inadequacy of departmental remedy"
+    },
+    {
+      "id": "fundamental_rights_paragraph",
+      "name": "Fundamental Rights Violated",
+      "required": true,
+      "description": "Art. 14 / 19 / 21 / 22 application"
+    },
+    {
+      "id": "grounds_paragraph",
+      "name": "Grounds",
+      "required": true,
+      "description": "Numbered grounds (A), (B), (C)..."
+    },
+    {
+      "id": "distinction_from_528_paragraph",
+      "name": "Distinction from S.528 BNSS Quashing",
+      "required": false,
+      "description": "Where misconduct rather than quashing sought"
+    },
+    {
+      "id": "interim_relief_paragraph",
+      "name": "Interim Relief",
+      "required": false,
+      "description": "Production / protection / stay"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Writ + compensation + directions"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Issue an appropriate writ, order or direction, more particularly a writ in the nature of mandamus, directing the Respondents to {primary_direction};\n\nb) Issue a writ directing constitution of an independent SIT / transfer of investigation to CBI in respect of {incident_brief};\n\nc) Direct the Respondents to pay compensation of Rs. {compensation_amount} for the violation of fundamental rights of the Petitioner / victim;\n\nd) Direct disciplinary action against the erring officials, namely {officials_named};\n\ne) Pending hearing and final disposal of this petition, grant such interim protection / direction as this Hon'ble Court may deem fit;\n\nf) Award costs of this petition; and\n\ng) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, son/daughter/wife of {petitioner_father_name}, aged about {petitioner_age} years, resident of {petitioner_address}, the Petitioner herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a Writ Petition (Criminal) under Article 226. DISTINGUISH from S.528 BNSS quashing: quashing targets FIR/proceedings; WP(CRL) targets misconduct, refusal to investigate, compensation, SIT/CBI transfer, custodial wrongs.",
+      "Cause-title MUST include three-tier 'In the matter of' format: (1) Article 226 read with Article 21, (2) BNSS, (3) grievance summary, (4) parties.",
+      "Para 1: Description of parties. Where petitioner not the victim (e.g., relative), state relationship and authority to sue as next friend.",
+      "Para 2: Jurisdiction — cause of action territorial nexus.",
+      "Para 3-6: Detailed factual narrative — date, time, place, persons involved, what was done, by whom, how injury caused.",
+      "Para 7: Representations made — to SHO, SP, DGP, Home Secretary, Magistrate u/S.175(3) BNSS [S.156(3) CrPC]. Lalita Kumari v. State of UP (2014) 2 SCC 1 — FIR registration mandatory for cognizable offences; refusal contestable.",
+      "Para 8: Fundamental rights violated:",
+      "   Art. 21 — Cite Maneka Gandhi v. Union of India (1978) 1 SCC 248; D.K. Basu v. State of WB (1997) 1 SCC 416 (custodial torture guidelines + compensation); Nilabati Behera v. State of Orissa (1993) 2 SCC 746 (compensation for custodial death as constitutional remedy under Art. 32 / 226).",
+      "   Art. 22 — Arrest procedures — Joginder Kumar v. State of UP (1994) 4 SCC 260; Arnesh Kumar v. State of Bihar (2014) 8 SCC 273 (arrest checklist for offences ≤ 7 years — now mirrored in S.35(7) BNSS).",
+      "   Art. 14 — Arbitrary state action; equal protection.",
+      "Para 9: For illegal detention short of habeas (where person not in absolute custody but liberty curtailed) — mention this distinction.",
+      "Para 10: For custodial torture — D.K. Basu guidelines (now substantially codified in BNSS): arrest memo, medical examination, intimation to relative, etc.",
+      "Para 11: For refusal to register FIR — Cite Lalita Kumari v. State of UP (2014) 2 SCC 1: (i) FIR registration mandatory for cognizable; (ii) preliminary inquiry permissible in limited categories (matrimonial, commercial, medical negligence, corruption, abnormal delay). Show steps under S.173(4) BNSS [S.154(3) CrPC] to SP exhausted, and S.175(3) BNSS [S.156(3) CrPC] application before Magistrate.",
+      "Para 12: For SIT / CBI transfer — Cite Vineet Narain v. Union of India (1998) 1 SCC 226 (CBI independence); State of WB v. Committee for Protection of Democratic Rights (2010) 3 SCC 571 (HC power to transfer to CBI under Art. 226 without state consent under S.6 DSPE Act); K.V. Rajendran v. Superintendent of Police (2013) 12 SCC 480 (transfer in rare circumstances).",
+      "Para 13: For compensation — Public law remedy for violation of FR. Cite Nilabati Behera; D.K. Basu; Saheli v. Commissioner of Police (1990) 1 SCC 422. Distinct from civil tort liability; awarded on principle of constitutional tort.",
+      "Para 14: For fake encounter / police excess — Cite PUCL v. State of Maharashtra (2014) 10 SCC 635 (16-point guideline on encounter deaths).",
+      "Para 15: Distinction from S.528 BNSS quashing — explicitly note that WP(CRL) does not seek to quash the FIR but to compel investigation / discipline officials / award compensation.",
+      "Para 16: Interim relief — production of victim / protection / direction to register FIR.",
+      "Prayer — specify writs, compensation amount, disciplinary direction, and CBI/SIT transfer where sought.",
+      "Affidavit in support mandatory. Where filed by next friend, affidavit must explain authority.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Constitution of India",
+      "sections": [
+        { "number": "Article 14", "description": "Equality and arbitrariness" },
+        { "number": "Article 19", "description": "Fundamental freedoms (Art. 19(1)(d) movement)" },
+        {
+          "number": "Article 21",
+          "description": "Life and personal liberty — basis for D.K. Basu / Nilabati Behera doctrines"
+        },
+        {
+          "number": "Article 22",
+          "description": "Protection against arbitrary arrest and detention"
+        },
+        { "number": "Article 226", "description": "Writ jurisdiction of HC" }
+      ]
+    },
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)",
+      "sections": [
+        {
+          "number": "S.35",
+          "description": "When police may arrest (replaces S.41 CrPC) — Arnesh Kumar checklist codified at S.35(7)"
+        },
+        { "number": "S.173", "description": "FIR registration (replaces S.154 CrPC)" },
+        {
+          "number": "S.173(4)",
+          "description": "Complaint to SP on refusal (replaces S.154(3) CrPC)"
+        },
+        {
+          "number": "S.175(3)",
+          "description": "Magistrate's power to direct investigation (replaces S.156(3) CrPC)"
+        },
+        {
+          "number": "S.528",
+          "description": "HC inherent powers — alternative jurisdictional basis"
+        }
+      ]
+    },
+    {
+      "act": "Delhi Special Police Establishment Act, 1946",
+      "sections": [
+        {
+          "number": "S.6",
+          "description": "State consent for CBI investigation — HC can dispense under Art. 226 per Committee for Protection of Democratic Rights"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Petition (original + copies per HC rules)",
+    "Affidavit in support (mandatory)",
+    "Vakalatnama",
+    "Memo of parties",
+    "Index, synopsis, list of dates",
+    "Complaints / representations to authorities (with despatch proof)",
+    "Reply / non-reply records from authorities",
+    "FIR (if any) — certified copy",
+    "Medical reports / post-mortem (for custodial torture / death)",
+    "Photographs, videos, electronic evidence",
+    "Statements of witnesses (where available)",
+    "Death / injury certificates",
+    "Court fee per HC schedule",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "petitioner_name must not be empty",
+    "respondents_list must include State respondent",
+    "grievance_type must be selected",
+    "factual_narrative must not be empty",
+    "representations_made must not be empty (exhaustion of remedy)",
+    "fundamental_rights_violated must have at least one selected",
+    "incident_date must not be in future",
+    "If grievance_type = refusal_to_register_fir, fir_status must be 'fir_not_registered_despite_complaint'",
+    "If compensation_claimed not empty, amount must be specified",
+    "advocate_enrollment must match Bar Council format",
+    "Court level restricted to High Court only"
+  ],
+  "key_citations": [
+    "D.K. Basu v. State of WB (1997) 1 SCC 416 — Custodial torture guidelines + compensation",
+    "Nilabati Behera v. State of Orissa (1993) 2 SCC 746 — Custodial death compensation under Art. 32/226",
+    "Lalita Kumari v. State of UP (2014) 2 SCC 1 — Mandatory FIR registration",
+    "Joginder Kumar v. State of UP (1994) 4 SCC 260 — Arrest safeguards",
+    "Arnesh Kumar v. State of Bihar (2014) 8 SCC 273 — Arrest checklist",
+    "Vineet Narain v. Union of India (1998) 1 SCC 226 — CBI independence",
+    "State of WB v. Committee for Protection of Democratic Rights (2010) 3 SCC 571 — CBI transfer w/o state consent",
+    "K.V. Rajendran v. Supt of Police (2013) 12 SCC 480 — CBI transfer rare",
+    "PUCL v. State of Maharashtra (2014) 10 SCC 635 — Encounter deaths guidelines",
+    "Saheli v. Commissioner of Police (1990) 1 SCC 422 — Constitutional tort"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

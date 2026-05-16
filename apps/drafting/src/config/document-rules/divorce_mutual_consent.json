@@ -1,0 +1,311 @@
+{
+  "_meta": {
+    "description": "Document-rules config for divorce_mutual_consent — joint petition u/s 13B HMA / s.28 SMA",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 3 family-law pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off."
+  },
+  "template_id": "divorce_mutual_consent",
+  "docType": "divorce_mutual_consent",
+  "title": "Joint Petition for Divorce by Mutual Consent",
+  "displayName": "Mutual Consent Divorce (s.13B HMA / s.28 SMA)",
+  "category": "family",
+  "creditsCost": 1,
+  "court_levels": ["family_court_principal", "family_court_additional", "district_court_civil"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{petitioner1} ... Petitioner No. 1 (Husband / Wife)\nAND\n{petitioner2} ... Petitioner No. 2 (Wife / Husband)",
+    "partyDesignations": [
+      { "role": "petitioner1", "label": "Petitioner No. 1" },
+      { "role": "petitioner2", "label": "Petitioner No. 2" }
+    ],
+    "caseNomenclature": "HMA/SMA Petition (Mutual Consent) No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "governing_act",
+        "label": "Governing statute",
+        "type": "select",
+        "required": true,
+        "options": ["HMA_1955", "SMA_1954"]
+      },
+      {
+        "id": "petitioner1_name",
+        "label": "Petitioner 1 full name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "petitioner1_age", "label": "Petitioner 1 age", "type": "number", "required": true },
+      {
+        "id": "petitioner1_occupation",
+        "label": "Petitioner 1 occupation",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner1_address",
+        "label": "Petitioner 1 address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "petitioner2_name",
+        "label": "Petitioner 2 full name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "petitioner2_age", "label": "Petitioner 2 age", "type": "number", "required": true },
+      {
+        "id": "petitioner2_occupation",
+        "label": "Petitioner 2 occupation",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner2_address",
+        "label": "Petitioner 2 address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "marriage_date", "label": "Date of marriage", "type": "date", "required": true },
+      { "id": "marriage_place", "label": "Place of marriage", "type": "text", "required": true },
+      {
+        "id": "marriage_rites",
+        "label": "Marriage rites / form (Hindu / civil registration)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "matrimonial_home",
+        "label": "Last matrimonial home",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "separation_date",
+        "label": "Date of separation (must be at least 1 year before filing)",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "reasons_separation",
+        "label": "Reasons for separation (concise, non-blaming)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "reconciliation_efforts",
+        "label": "Efforts at reconciliation and failure thereof",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "children_details",
+        "label": "Children of marriage (names, ages, current custody)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "custody_agreement",
+        "label": "Mutually agreed custody / visitation arrangement",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "maintenance_agreement",
+        "label": "Mutually agreed maintenance / alimony",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "permanent_alimony_amount",
+        "label": "Permanent alimony / lump sum amount",
+        "type": "currency",
+        "required": false
+      },
+      {
+        "id": "stridhan_return",
+        "label": "Stridhan / jewellery / gifts returned",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "property_settlement",
+        "label": "Movable / immovable property settlement",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "pending_litigation",
+        "label": "Pending litigation between parties to be withdrawn",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "waiver_of_cooling_period_sought",
+        "label": "Whether waiver of 6-month cooling period sought (Amardeep Singh v. Harveen Kaur grounds)",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "waiver_grounds",
+        "label": "Grounds for waiver of cooling-off (if applicable)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "jurisdiction_basis",
+        "label": "Basis for jurisdiction",
+        "type": "select",
+        "required": true,
+        "options": [
+          "where_marriage_solemnised",
+          "where_respondent_resides",
+          "where_parties_last_resided_together",
+          "where_petitioner_resides"
+        ]
+      },
+      { "id": "court_fee_paid", "label": "Court fee paid", "type": "currency", "required": true },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "valid_marriage",
+      "name": "Valid Marriage Averment",
+      "required": true,
+      "description": "Marriage solemnised on stated date / place / in accordance with governing law"
+    },
+    {
+      "id": "separation_one_year",
+      "name": "Living Separately for One Year",
+      "required": true,
+      "description": "S.13B(1) HMA / S.28(1) SMA — parties living separately for one year or more immediately before petition"
+    },
+    {
+      "id": "not_able_to_live_together",
+      "name": "Inability to Live Together",
+      "required": true,
+      "description": "Averment that parties have not been able to live together"
+    },
+    {
+      "id": "mutual_agreement_to_dissolve",
+      "name": "Mutual Agreement to Dissolve Marriage",
+      "required": true,
+      "description": "Both parties freely consent to dissolution"
+    },
+    {
+      "id": "no_force_fraud_undue_influence",
+      "name": "Free Consent",
+      "required": true,
+      "description": "Express averment that consent is free of force, fraud, undue influence"
+    },
+    {
+      "id": "settlement_terms",
+      "name": "Settlement Terms",
+      "required": true,
+      "description": "Agreed terms re: maintenance, custody, stridhan, property"
+    },
+    {
+      "id": "jurisdiction",
+      "name": "Jurisdiction",
+      "required": true,
+      "description": "Court's competence asserted"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Clause",
+      "required": true,
+      "description": "Joint prayer for decree of divorce by mutual consent"
+    },
+    {
+      "id": "joint_verification",
+      "name": "Joint Verification",
+      "required": true,
+      "description": "Both petitioners verify"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioners most respectfully pray that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree of divorce by mutual consent dissolving the marriage between Petitioner No. 1 and Petitioner No. 2 solemnised on {marriage_date} at {marriage_place} under {section_citation};\nb) Record the terms of settlement annexed hereto and incorporate the same in the decree;\nc) {waiver_prayer_if_applicable};\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Petitioners shall ever pray.",
+  "verificationTemplate": "JOINT VERIFICATION\n\nWe, {petitioner1_name} and {petitioner2_name}, the Petitioners above-named, do hereby jointly verify that the contents of paragraphs 1 to {lastParagraph} of the above joint petition are true and correct to the best of our knowledge, information and belief. No part is false and nothing material has been concealed.\n\nWe further state that this joint petition is presented voluntarily, without any force, fraud, coercion or undue influence.\n\nVerified at {place} on this {date}.\n\nPetitioner No. 1                    Petitioner No. 2",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a joint petition for divorce by mutual consent under S.13B HMA (or S.28 SMA, as selected).",
+      "Tone must be neutral and non-accusatory. Both parties are co-petitioners. Avoid blame.",
+      "Plead valid marriage with date, place, ceremonies (Hindu rites for HMA / civil registration for SMA).",
+      "Plead that parties have been living separately for one year or more immediately preceding presentation of petition (mandatory under S.13B(1) / S.28(1)).",
+      "Plead that parties have not been able to live together and have mutually agreed marriage should be dissolved.",
+      "Set out brief, neutral reasons for separation (e.g., temperamental incompatibility, irreconcilable differences). Do NOT make allegations of cruelty or fault.",
+      "Record settlement terms clearly: permanent alimony / lump sum, custody and visitation, stridhan and jewellery, movable and immovable property, pending litigation to be withdrawn.",
+      "Expressly aver free consent — no force, fraud, coercion, undue influence.",
+      "If waiver of 6-month cooling-off is sought, plead grounds permitted in Amardeep Singh v. Harveen Kaur (2017) 8 SCC 746 — long separation, settlement done, no possibility of reunion, parties' welfare.",
+      "Procedure note: First motion → 6 months minimum / 18 months maximum cooling off → second motion → decree.",
+      "Append Lawie disclaimer: 'Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.'"
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Hindu Marriage Act, 1955",
+      "sections": [
+        {
+          "number": "13B(1)",
+          "description": "Joint petition by mutual consent — living separately for 1+ year, not able to live together, mutually agreed to dissolve"
+        },
+        {
+          "number": "13B(2)",
+          "description": "Second motion — between 6 and 18 months from first motion; court satisfies itself and passes decree"
+        }
+      ]
+    },
+    {
+      "act": "Special Marriage Act, 1954",
+      "sections": [
+        {
+          "number": "28",
+          "description": "Mutual consent divorce under SMA — analogous to S.13B HMA"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Joint petition (original + 2 copies)",
+    "Vakalatnama signed by both petitioners",
+    "Marriage certificate / proof of marriage",
+    "Address proofs of both petitioners",
+    "Settlement / MoU recording agreed terms",
+    "Photographs together as husband-wife",
+    "Affidavits of both petitioners",
+    "Court fee",
+    "Application for waiver of cooling-off period (if sought)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "petitioner1_name and petitioner2_name must not be empty",
+    "marriage_date must precede separation_date",
+    "(filing_date - separation_date) must be >= 365 days",
+    "maintenance_agreement must not be empty",
+    "stridhan_return must not be empty",
+    "If waiver_of_cooling_period_sought is true, waiver_grounds must not be empty",
+    "governing_act must be HMA_1955 or SMA_1954",
+    "court_fee_paid must be > 0"
+  ],
+  "key_citations": [
+    "Amardeep Singh v. Harveen Kaur (2017) 8 SCC 746 — Supreme Court holds 6-month cooling-off under S.13B(2) is directory not mandatory; can be waived where reconciliation impossible",
+    "Sureshta Devi v. Om Prakash (1991) 2 SCC 25 — consent must subsist until second motion; either party can withdraw",
+    "Anil Kumar Jain v. Maya Jain (2009) 10 SCC 415 — limited application; reaffirmed Sureshta Devi",
+    "Smruti Pahariya v. Sanjay Pahariya (2009) 13 SCC 338 — court must be satisfied consent is free at second motion"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

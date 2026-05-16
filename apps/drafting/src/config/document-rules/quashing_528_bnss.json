@@ -1,0 +1,363 @@
+{
+  "_meta": {
+    "description": "Document-rules config for quashing_528_bnss — Petition u/S.528 BNSS for quashing of FIR / chargesheet / proceedings (HC inherent powers; was S.482 CrPC)",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 5 criminal petitions pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Bhajan Lal seven categories must be cited verbatim where invoked."
+  },
+  "template_id": "quashing_528_bnss",
+  "docType": "quashing_528_bnss",
+  "title": "Petition for Quashing under Section 528 BNSS (Inherent Powers of High Court)",
+  "displayName": "Quashing Petition (S.528 BNSS)",
+  "category": "criminal_petition",
+  "creditsCost": 2,
+  "court_levels": ["high_court_criminal_side"],
+  "causeTitle": {
+    "format": "IN THE HON'BLE HIGH COURT OF {state} AT {courtPlace}\n(CRIMINAL MISCELLANEOUS / WRIT JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{petitioner} ... Petitioner\nVERSUS\n1. State of {state}, through {prosecuting_agency} ... Respondent No.1\n2. {complainant} ... Respondent No.2 (Informant/Complainant)",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner" },
+      { "role": "state", "label": "Respondent No.1 (State)" },
+      { "role": "complainant", "label": "Respondent No.2 (Informant/Complainant)" }
+    ],
+    "caseNomenclature": "Cr.M.P. (Quashing) No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "petitioner_name",
+        "label": "Petitioner full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner_father_name",
+        "label": "Petitioner father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "petitioner_age", "label": "Petitioner age", "type": "number", "required": true },
+      {
+        "id": "petitioner_address",
+        "label": "Petitioner address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "complainant_name",
+        "label": "Complainant / Informant name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "complainant_address",
+        "label": "Complainant address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "what_to_quash",
+        "label": "What is sought to be quashed",
+        "type": "select",
+        "required": true,
+        "options": [
+          "fir_only",
+          "chargesheet_only",
+          "entire_proceedings",
+          "summons_order",
+          "cognizance_order",
+          "complaint_case_proceedings"
+        ]
+      },
+      {
+        "id": "fir_details",
+        "label": "FIR No., Date, Police Station, District, State",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "offences_alleged",
+        "label": "BNS / Special Act sections invoked (NOT IPC)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "chargesheet_details",
+        "label": "Chargesheet details (if filed) — number, date, court",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "court_taking_cognizance",
+        "label": "Court below — Magistrate / Sessions / Special Court",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "case_number_below",
+        "label": "Case number / GR number / Sessions case number before lower court",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "grounds_for_quashing",
+        "label": "Grounds for quashing",
+        "type": "checkbox_multi",
+        "required": true,
+        "options": [
+          "no_offence_disclosed_bhajan_lal_cat_1",
+          "ingredients_not_made_out_bhajan_lal_cat_2",
+          "facts_absurd_inherently_improbable_bhajan_lal_cat_3",
+          "express_legal_bar_bhajan_lal_cat_4",
+          "civil_dispute_criminal_colour_bhajan_lal_cat_5",
+          "mala_fide_personal_vendetta_bhajan_lal_cat_6",
+          "procedural_illegality_bhajan_lal_cat_7",
+          "compromise_compoundable_offence",
+          "settlement_in_matrimonial_or_commercial_dispute"
+        ]
+      },
+      {
+        "id": "factual_matrix",
+        "label": "Brief factual matrix",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "specific_ingredients_analysis",
+        "label": "Section-wise ingredient analysis — why each ingredient absent",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "documents_relied_on",
+        "label": "Documents relied on (FIR, statements, contracts, civil court records)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "settlement_terms",
+        "label": "Settlement terms (if compromise basis invoked)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "no_alternative_remedy",
+        "label": "Why no other adequate remedy / direct approach to HC justified",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Petitioner, State, Complainant"
+    },
+    {
+      "id": "fir_details_paragraph",
+      "name": "FIR / Proceedings Details",
+      "required": true,
+      "description": "FIR number, PS, district, sections"
+    },
+    {
+      "id": "factual_matrix_paragraph",
+      "name": "Factual Matrix",
+      "required": true,
+      "description": "Brief narrative of dispute"
+    },
+    {
+      "id": "ingredients_analysis_paragraph",
+      "name": "Section-wise Ingredient Analysis",
+      "required": true,
+      "description": "Why the ingredients of each BNS section are not made out"
+    },
+    {
+      "id": "bhajan_lal_paragraph",
+      "name": "Bhajan Lal Categories Invoked",
+      "required": true,
+      "description": "Which of the 7 categories applies, with reasoning"
+    },
+    {
+      "id": "documents_paragraph",
+      "name": "Documents Relied On",
+      "required": true,
+      "description": "List with chronology"
+    },
+    {
+      "id": "no_alternative_remedy_paragraph",
+      "name": "No Alternative Remedy",
+      "required": true,
+      "description": "Why HC inherent jurisdiction invoked"
+    },
+    {
+      "id": "interim_relief_paragraph",
+      "name": "Interim Relief (if any)",
+      "required": false,
+      "description": "Stay of investigation / arrest / trial"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Quashing + ancillary reliefs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Affidavit accompanying petition"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner most respectfully prays that this Hon'ble Court, in exercise of its inherent jurisdiction under Section 528 of the Bharatiya Nagarik Suraksha Sanhita, 2023, may graciously be pleased to:\n\na) Quash and set aside FIR No. {fir_number} dated {fir_date} registered at Police Station {police_station}, District {district}, State of {state}, for offences under {offences_alleged} of the Bharatiya Nyaya Sanhita, 2023 / {special_acts}, and all consequential proceedings arising therefrom including the chargesheet / cognizance order / pending proceedings in Case No. {case_number_below} pending before the Hon'ble Court of {court_taking_cognizance};\n\nb) Pending hearing and final disposal of this petition, stay further proceedings in the said case before the Court below;\n\nc) Pending hearing and final disposal of this petition, restrain the Respondents from arresting the Petitioner in connection with the said FIR;\n\nd) Award costs of this petition;\n\ne) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, son/daughter/wife of {petitioner_father_name}, aged about {petitioner_age} years, resident of {petitioner_address}, the Petitioner herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a petition for quashing under Section 528 of the Bharatiya Nagarik Suraksha Sanhita, 2023 — inherent powers of the High Court. S.528 BNSS is the direct successor to S.482 CrPC.",
+      "S.528 BNSS: 'Nothing in this Sanhita shall be deemed to limit or affect the inherent powers of the High Court to make such orders as may be necessary to give effect to any order under this Sanhita, or to prevent abuse of the process of any Court or otherwise to secure the ends of justice.'",
+      "Sparingly used jurisdiction. NOT a court of appeal at threshold; mini-trial impermissible.",
+      "MANDATORY CITATION — State of Haryana v. Bhajan Lal 1992 Supp (1) SCC 335 — the 7 categories where HC may quash FIR / proceedings: (1) where allegations in FIR / complaint, even if taken at face value and accepted in entirety, do not prima facie constitute any offence or make out a case against accused; (2) where allegations in FIR and other materials do not disclose a cognizable offence justifying investigation by police u/S.156(1) CrPC (now S.175(1) BNSS) except under order of Magistrate u/S.155(2) CrPC (now S.174(2) BNSS); (3) where uncontroverted allegations in FIR and evidence collected in support do not disclose commission of any offence; (4) where allegations in FIR do not constitute a cognizable offence but constitute only a non-cognizable offence, no investigation permitted by police without Magistrate's order u/S.155(2) CrPC; (5) where allegations made in FIR are so absurd and inherently improbable that no prudent person can ever reach a just conclusion that there is sufficient ground for proceeding against the accused; (6) where there is an express legal bar engrafted in any of the provisions of CrPC or concerned Act under which criminal proceeding is instituted, and where there is specific provision providing efficacious redress for the grievance of the aggrieved party; (7) where a criminal proceeding is manifestly attended with mala fide and/or where the proceeding is maliciously instituted with an ulterior motive for wreaking vengeance on the accused and with a view to spite him due to private and personal grudge.",
+      "Cite Madhu Limaye v. State of Maharashtra (1977) 4 SCC 551 — three principles for exercise of inherent power (now equally applicable to S.528 BNSS).",
+      "Cite Hari Vishnu Kamath v. Syed Ahmad Ishaque AIR 1955 SC 233 (cited in Madhu Limaye) — inherent jurisdiction distinguished from revisional jurisdiction.",
+      "Cite Gian Singh v. State of Punjab (2012) 10 SCC 303 — quashing on compromise — distinction between compoundable and non-compoundable offences; HC's wider power under inherent jurisdiction; categories of cases where settlement valid even in non-compoundable offences (e.g., matrimonial, family, commercial, civil flavor offences).",
+      "Cite Narinder Singh v. State of Punjab (2014) 6 SCC 466 — refining Gian Singh — categories of offences which cannot be quashed even on settlement (heinous, public interest).",
+      "Cite Parbatbhai Aahir v. State of Gujarat (2017) 9 SCC 641 — comprehensive principles on quashing on settlement.",
+      "Cite State of Madhya Pradesh v. Laxmi Narayan (2019) 5 SCC 688 — recent reiteration.",
+      "Para 1: Description of parties.",
+      "Para 2: FIR details — number, date, PS, district, sections invoked. Note: must use BNS / BNSS / BSA section numbers, not IPC / CrPC / IEA, for offences registered after 1 July 2024. Pre-1 July 2024 FIRs continue under old code.",
+      "Para 3: Factual matrix — what genuinely happened, from petitioner's perspective.",
+      "Para 4: Section-by-section ingredient analysis — for each BNS section invoked, list ingredients and demonstrate which ingredient is missing. CRITICAL paragraph.",
+      "Para 5: Bhajan Lal categories invoked — state which of the 7 categories applies and quote the relevant category VERBATIM.",
+      "Para 6: Where civil dispute given criminal colour — refer to civil court proceedings, commercial documentation, contractual nature.",
+      "Para 7: Where mala fides — show motive, prior animosity, attempt at coercion.",
+      "Para 8: Where compromise / settlement (Gian Singh / Narinder Singh) — settlement deed, joint affidavit of both parties, statement of complainant.",
+      "Para 9: Why no alternative remedy adequate — recall S.528 is invocable to prevent abuse of process and secure ends of justice; revisional jurisdiction to lower court inadequate where FIR itself bad in law.",
+      "Para 10: Interim relief — stay of investigation / arrest / further proceedings.",
+      "Para 11: Stage of proceedings — investigation pending / chargesheet filed / cognizance taken / trial commenced. The stage affects scope of inherent power.",
+      "Cite R.P. Kapur v. State of Punjab AIR 1960 SC 866 (foundational case — three categories of cases for quashing).",
+      "Cite State of Bihar v. P.P. Sharma 1992 Supp (1) SCC 222 — quashing not available where prima facie offence disclosed.",
+      "Cite State of Karnataka v. M. Devendrappa (2002) 3 SCC 89 — caution against using S.482 (now S.528) to short-circuit trial.",
+      "Cite Neeharika Infrastructure Pvt Ltd v. State of Maharashtra (2021) 19 SCC 401 — interim relief while quashing pending; principles for staying investigation.",
+      "Cite XYZ v. State of Maharashtra (2025) — recent SC decisions on quashing under S.528 BNSS as they emerge (advocate to update citations to most recent precedents).",
+      "Defendants' position / version not material — court looks only at FIR allegations and material collected during investigation, taken at face value.",
+      "Where dowry / matrimonial offences (BNS 85, 86) and settlement reached — Gian Singh applies; courts inclined to quash if no public element.",
+      "Where pure money recovery / cheque dishonour / civil contract disputes given S.318 BNS (cheating) colour — Bhajan Lal cat 5 squarely applies.",
+      "Where multiple FIRs on same incident: Cite T.T. Antony v. State of Kerala (2001) 6 SCC 181 — second FIR on same incident not permissible.",
+      "Affidavit in support is mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)",
+      "sections": [
+        { "number": "S.528", "description": "Inherent powers of High Court (replaces S.482 CrPC)" },
+        {
+          "number": "S.173",
+          "description": "Information in cognizable cases — FIR (replaces S.154 CrPC)"
+        },
+        {
+          "number": "S.174",
+          "description": "Information as to non-cognizable cases (replaces S.155 CrPC)"
+        },
+        {
+          "number": "S.175",
+          "description": "Police officer's power to investigate cognizable cases (replaces S.156 CrPC)"
+        },
+        {
+          "number": "S.193",
+          "description": "Report of police officer on completion of investigation — chargesheet (replaces S.173 CrPC)"
+        },
+        { "number": "S.210", "description": "Cognizance by Magistrate (replaces S.190 CrPC)" },
+        {
+          "number": "S.438",
+          "description": "Revisional powers of HC (replaces S.397 CrPC, partly)"
+        },
+        { "number": "S.442", "description": "Revisional powers of Court of Session" }
+      ]
+    },
+    {
+      "act": "Bharatiya Nyaya Sanhita, 2023 (BNS)",
+      "sections": [
+        {
+          "number": "Various",
+          "description": "Substantive offence sections — use BNS numbers, not IPC. Common: S.85 (cruelty by husband — was IPC 498A); S.86 (dowry death — was IPC 304B); S.103 (murder — was IPC 302); S.115 (voluntarily causing hurt — was IPC 323); S.318 (cheating — was IPC 420); S.351 (criminal intimidation — was IPC 506)"
+        }
+      ]
+    },
+    {
+      "act": "Constitution of India",
+      "sections": [
+        {
+          "number": "Article 226",
+          "description": "Power of HC to issue writs — used alternatively / cumulatively with S.528 BNSS"
+        },
+        { "number": "Article 227", "description": "Power of superintendence" },
+        {
+          "number": "Article 21",
+          "description": "Protection of life and personal liberty — fundamental right basis"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Petition (original + copies as per HC rules)",
+    "Affidavit in support of petition",
+    "Vakalatnama",
+    "Memo of parties",
+    "Certified copy of FIR",
+    "Certified copy of chargesheet (if filed)",
+    "Certified copy of cognizance / summons / committal order",
+    "Settlement deed / joint affidavit (if compromise invoked)",
+    "Documents demonstrating civil nature of dispute / mala fides",
+    "Court fee per HC Schedule",
+    "Index, synopsis, list of dates",
+    "Annexures with English translations (if vernacular)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "petitioner_name must not be empty",
+    "fir_details must not be empty",
+    "offences_alleged must use BNS sections (warn if IPC sections detected)",
+    "grounds_for_quashing must have at least one category selected",
+    "factual_matrix must not be empty",
+    "specific_ingredients_analysis must not be empty",
+    "If settlement-based ground selected, settlement_terms must not be empty",
+    "no_alternative_remedy must not be empty",
+    "advocate_enrollment must match Bar Council format",
+    "Court level restricted to High Court only"
+  ],
+  "key_citations": [
+    "State of Haryana v. Bhajan Lal 1992 Supp (1) SCC 335 — Seven categories for quashing",
+    "Madhu Limaye v. State of Maharashtra (1977) 4 SCC 551 — Principles for inherent power",
+    "Hari Vishnu Kamath v. Syed Ahmad Ishaque AIR 1955 SC 233 — Inherent vs revisional",
+    "R.P. Kapur v. State of Punjab AIR 1960 SC 866 — Three categories foundational",
+    "Gian Singh v. State of Punjab (2012) 10 SCC 303 — Quashing on settlement",
+    "Narinder Singh v. State of Punjab (2014) 6 SCC 466 — Refinement of Gian Singh",
+    "Parbatbhai Aahir v. State of Gujarat (2017) 9 SCC 641 — Compromise principles",
+    "Neeharika Infrastructure Pvt Ltd v. State of Maharashtra (2021) 19 SCC 401 — Interim stay of investigation",
+    "T.T. Antony v. State of Kerala (2001) 6 SCC 181 — Second FIR bar",
+    "State of Karnataka v. M. Devendrappa (2002) 3 SCC 89 — Caution against premature quashing"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

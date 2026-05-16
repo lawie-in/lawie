@@ -1,0 +1,222 @@
+{
+  "_meta": {
+    "description": "Document-rules config for suspension_of_sentence — application to suspend operation of conviction/sentence pending appeal under BNSS 430/431",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "template_id": "suspension_of_sentence",
+  "docType": "suspension_of_sentence",
+  "parentDocType": "criminal_application",
+  "title": "Application for Suspension of Sentence",
+  "displayName": "Application for Suspension of Sentence Pending Appeal",
+  "category": "criminal_appellate",
+  "creditsCost": 2,
+  "court_levels": ["sessions", "high_court", "district"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{appellant} ... Appellant/Convict\nVERSUS\nState of {state} ... Respondent",
+    "partyDesignations": [
+      { "role": "appellant", "label": "Appellant/Convict" },
+      { "role": "respondent", "label": "Respondent (State)" }
+    ],
+    "caseNomenclature": "CRIMINAL APPEAL No. _____ of [YEAR]\nAPPLICATION FOR SUSPENSION OF SENTENCE\n(Under Section 430 / 431 BNSS, 2023)"
+  },
+  "form_schema": [
+    {
+      "name": "appellant_name",
+      "label": "Appellant/Convict Name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "appellant_parentage",
+      "label": "Father's / Husband's Name",
+      "type": "text",
+      "required": true
+    },
+    { "name": "appellant_age", "label": "Appellant Age", "type": "number", "required": true },
+    {
+      "name": "appellant_address",
+      "label": "Appellant Address",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "court_designation",
+      "label": "Appellate Court Designation",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "state",
+      "label": "State",
+      "type": "select",
+      "options": ["Bihar", "Jharkhand", "Uttar Pradesh", "Delhi"],
+      "required": true
+    },
+    { "name": "trial_court", "label": "Trial Court Name", "type": "text", "required": true },
+    { "name": "case_number", "label": "Trial Court Case Number", "type": "text", "required": true },
+    {
+      "name": "judgment_date",
+      "label": "Date of Judgment / Conviction",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "offences_convicted",
+      "label": "Offences Convicted Under (BNS sections)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "sentence_awarded",
+      "label": "Sentence Awarded",
+      "type": "textarea",
+      "required": true
+    },
+    { "name": "fine_imposed", "label": "Fine Imposed (₹)", "type": "number", "required": false },
+    {
+      "name": "custody_status",
+      "label": "Current Custody Status",
+      "type": "select",
+      "options": ["In jail", "On bail during trial", "Surrendered post-conviction"],
+      "required": true
+    },
+    {
+      "name": "appeal_filed",
+      "label": "Appeal Filed",
+      "type": "select",
+      "options": ["Yes — filed", "Yes — being filed simultaneously"],
+      "required": true
+    },
+    {
+      "name": "grounds_of_appeal_summary",
+      "label": "Summary of Grounds of Appeal (showing arguable case)",
+      "type": "textarea",
+      "required": true
+    },
+    { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
+    {
+      "name": "advocate_enrolment",
+      "label": "Bar Council Enrolment No.",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "mandatory_clauses": [
+    "particulars of conviction and sentence",
+    "filing of appeal / simultaneous filing",
+    "arguable case on merits (without expressing opinion on appeal)",
+    "no flight risk / roots in community",
+    "long period appeal likely to take",
+    "willingness to furnish bail bond",
+    "prayer for suspension and release",
+    "verification on oath"
+  ],
+  "mandatoryClauses": [
+    {
+      "id": "conviction_particulars",
+      "name": "Conviction Particulars",
+      "required": true,
+      "description": "Trial court, case number, judgment date, offences convicted under, sentence awarded"
+    },
+    {
+      "id": "appeal_pendency",
+      "name": "Appeal Pendency",
+      "required": true,
+      "description": "Confirmation that appeal is filed or being filed simultaneously"
+    },
+    {
+      "id": "arguable_case",
+      "name": "Arguable Case",
+      "required": true,
+      "description": "Brief summary of grounds of appeal showing prima facie arguable case (without merits adjudication)"
+    },
+    {
+      "id": "delay_in_appeal",
+      "name": "Delay in Appeal Disposal",
+      "required": true,
+      "description": "Statement that appeal will take time and confinement during pendency causes irreversible prejudice"
+    },
+    {
+      "id": "no_flight_risk",
+      "name": "No Flight Risk",
+      "required": true,
+      "description": "Social roots, family responsibility, antecedents"
+    },
+    {
+      "id": "willingness",
+      "name": "Willingness to Furnish Bond",
+      "required": true,
+      "description": "Express willingness to furnish bail bond on such terms as the court may direct"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer",
+      "required": true,
+      "description": "Prayer for suspension of sentence and release on bail pending appeal"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Suspend the operation of the judgment of conviction dated {judgment_date} passed by {trial_court} in Case No. {case_number} during the pendency of the present Criminal Appeal;\nb) Release the appellant {appellant} on bail on such terms and conditions as this Hon'ble Court may deem fit;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the appellant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {appellant}, S/o {parentName}, aged about {age} years, currently lodged at {jail}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "prompt_context": "Draft an Application for Suspension of Sentence under Section 430 BNSS, 2023 (corresponding to Section 389 CrPC) before the appellate court. Section 430 BNSS empowers the appellate court to suspend the execution of the sentence or order appealed against pending appeal, and if the convict is in confinement, release him on bail or on his own bond. The application must establish: (1) particulars of conviction and sentence; (2) filing/intent to file appeal; (3) prima facie arguable case (without inviting merits adjudication); (4) likelihood of long delay in appeal disposal; (5) no flight risk; (6) willingness to furnish bond. Key precedents: Atul Tripathi v. State of U.P. (2014) 9 SCC 177; Vijay Kumar v. Narendra (2002) 9 SCC 364; Kashmira Singh v. State of Punjab (1977) 4 SCC 291 (long-pending appeal — bail ordinarily granted). Use BNS for substantive offences, BNSS for procedural sections.",
+  "promptInstructions": [
+    "Draft an Application for Suspension of Sentence under Section 430 BNSS, 2023 (successor to Section 389 CrPC).",
+    "Set out particulars: trial court, case number, date of judgment, offences and sentence.",
+    "Confirm that Criminal Appeal has been filed (or is being filed simultaneously) — application not maintainable without an appeal.",
+    "Brief outline of grounds of appeal showing arguable case — but do NOT pre-judge merits.",
+    "Emphasise that appeals routinely take 3-5+ years to be heard, and continued detention would render the appeal infructuous.",
+    "Cite Kashmira Singh v. State of Punjab (1977) 4 SCC 291 on suspending sentence where appeal not likely to be heard for long.",
+    "Cite Atul Tripathi v. State of U.P. (2014) 9 SCC 177 on principles for suspension of sentence.",
+    "Reference convict's antecedents, social roots, family responsibilities.",
+    "Include willingness to furnish bond.",
+    "Use BNS section numbers for offences of conviction (never IPC).",
+    "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
+  ],
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        {
+          "number": "430",
+          "description": "Suspension of sentence pending the appeal; release of appellant on bail"
+        },
+        { "number": "431", "description": "Arrest of accused in appeal from acquittal" },
+        { "number": "415", "description": "Appeals from convictions" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + 2 copies)",
+    "Affidavit of applicant",
+    "Certified copy of judgment of conviction",
+    "Certified copy of order on sentence",
+    "Memo of criminal appeal (or proof of filing)",
+    "Grounds of appeal",
+    "Vakalatnama",
+    "Surety bond format"
+  ],
+  "filingChecklist": [
+    "Application (original + 2 copies)",
+    "Affidavit of applicant",
+    "Certified copy of judgment of conviction",
+    "Certified copy of order on sentence",
+    "Memo of criminal appeal (or proof of filing)",
+    "Grounds of appeal",
+    "Vakalatnama",
+    "Surety bond format"
+  ],
+  "validation_rules": [
+    "appeal_filed must be one of the affirmative options — suspension cannot be sought without appeal",
+    "judgment_date must be before application_date",
+    "grounds_of_appeal_summary must be non-empty",
+    "sentence_awarded must be non-empty"
+  ]
+}

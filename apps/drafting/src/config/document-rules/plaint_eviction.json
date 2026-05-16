@@ -1,0 +1,414 @@
+{
+  "_meta": {
+    "description": "Document-rules config for plaint_eviction — suit for ejectment of tenant under Transfer of Property Act (non-rent-controlled premises)",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 civil pleadings pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Rent control vs TPA distinction is non-negotiable — wrong forum is fatal."
+  },
+  "template_id": "plaint_eviction",
+  "docType": "plaint_eviction",
+  "title": "Plaint — Suit for Ejectment / Eviction (TPA-based, Non-Rent-Controlled)",
+  "displayName": "Plaint for Ejectment (TPA S.106/111)",
+  "category": "civil_pleading",
+  "creditsCost": 2,
+  "court_levels": [
+    "civil_judge_junior_division",
+    "civil_judge_senior_division",
+    "district_judge",
+    "small_causes_court_where_applicable"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{plaintiff} ... Plaintiff / Landlord\nVERSUS\n{defendant} ... Defendant / Tenant",
+    "partyDesignations": [
+      { "role": "plaintiff", "label": "Plaintiff / Landlord" },
+      { "role": "defendant", "label": "Defendant / Tenant" }
+    ],
+    "caseNomenclature": "Civil Suit No. _____ of [YEAR] (Ejectment)"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "plaintiff_name",
+        "label": "Plaintiff / Landlord full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "plaintiff_father_name",
+        "label": "Plaintiff father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "plaintiff_address",
+        "label": "Plaintiff address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "defendant_name",
+        "label": "Defendant / Tenant full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "defendant_address",
+        "label": "Defendant address (premises in occupation)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "premises_description",
+        "label": "Premises description — boundaries, schedule, address, area, nature (residential / commercial / agricultural)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "plaintiffs_title",
+        "label": "Plaintiff's title — sale deed / inheritance / gift",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "tenancy_creation",
+        "label": "Tenancy creation — date, mode (oral / written / registered lease), monthly rent, security deposit",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "tenancy_type",
+        "label": "Tenancy type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "month_to_month_tenancy_s106_tpa",
+          "fixed_term_lease_expired",
+          "lease_for_unexpired_term_with_forfeiture_clause",
+          "tenancy_at_sufferance_after_expiry"
+        ]
+      },
+      {
+        "id": "rent_control_applicability",
+        "label": "Why rent control NOT applicable",
+        "type": "select",
+        "required": true,
+        "options": [
+          "premises_exempted_under_state_rent_act",
+          "rent_above_threshold_under_state_rent_act",
+          "non_residential_premises_excluded",
+          "newly_constructed_premises_in_exemption_period",
+          "premises_in_area_not_covered_by_rent_act",
+          "lease_to_company_or_PSU_outside_rent_act"
+        ]
+      },
+      {
+        "id": "rent_control_state",
+        "label": "State and applicable rent control statute (for cross-check)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "ground_for_eviction",
+        "label": "Ground for eviction",
+        "type": "select",
+        "required": true,
+        "options": [
+          "termination_of_month_to_month_tenancy_s106_tpa",
+          "expiry_of_fixed_term_lease",
+          "forfeiture_under_s111_g_tpa_breach_of_express_condition",
+          "forfeiture_under_s111_g_tpa_denial_of_landlord_title",
+          "non_payment_of_rent_with_forfeiture_clause",
+          "subletting_in_breach_of_lease"
+        ]
+      },
+      {
+        "id": "notice_under_s106",
+        "label": "Notice to quit u/s 106 TPA — date served, mode, period (15 days for monthly tenancy; 6 months for agricultural/manufacturing as amended)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "notice_expiry_date",
+        "label": "Date of expiry of notice / termination of tenancy",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "rent_arrears",
+        "label": "Rent arrears, if any (with break-up)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "mesne_profits_claimed",
+        "label": "Mesne profits claimed from date of termination till delivery of possession",
+        "type": "currency",
+        "required": false
+      },
+      {
+        "id": "cause_of_action_dates",
+        "label": "Cause of action — termination date and refusal",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "limitation_basis",
+        "label": "Limitation — Art. 67 (12 years for landlord from determination of tenancy)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "territorial_jurisdiction",
+        "label": "Territorial jurisdiction (S.16 CPC where premises situate)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "court_fee_paid",
+        "label": "Court fee paid (Rs.)",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "court_fee_basis",
+        "label": "Court fee basis — annual rent multiple (state Court Fees Schedule)",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "valuation", "label": "Suit valuation", "type": "currency", "required": true },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Plaintiff (landlord) and defendant (tenant) with full particulars"
+    },
+    {
+      "id": "premises_paragraph",
+      "name": "Premises Description",
+      "required": true,
+      "description": "Schedule with boundaries, address, nature"
+    },
+    {
+      "id": "title_paragraph",
+      "name": "Plaintiff's Title / Ownership",
+      "required": true,
+      "description": "Source of title — sale deed / inheritance / gift"
+    },
+    {
+      "id": "tenancy_paragraph",
+      "name": "Tenancy Creation and Terms",
+      "required": true,
+      "description": "Date, mode, rent, deposit"
+    },
+    {
+      "id": "rent_control_exclusion_paragraph",
+      "name": "Why Rent Control Inapplicable",
+      "required": true,
+      "description": "Specific ground showing state rent control act inapplicable — premises exempted, rent threshold, area, type. WRONG FORUM IS FATAL."
+    },
+    {
+      "id": "ground_of_eviction_paragraph",
+      "name": "Ground of Eviction",
+      "required": true,
+      "description": "Termination under S.106 / forfeiture under S.111 / expiry of fixed term"
+    },
+    {
+      "id": "notice_paragraph",
+      "name": "Notice to Quit — S.106 TPA",
+      "required": true,
+      "description": "15 days notice for month-to-month residential; 6 months for agricultural/manufacturing per amended S.106 (2003 amendment uniformised); registered post + acknowledgement"
+    },
+    {
+      "id": "cause_of_action",
+      "name": "Cause of Action",
+      "required": true,
+      "description": "Order VII R.1(e)"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation",
+      "required": true,
+      "description": "Article 67 — 12 years from determination of tenancy"
+    },
+    {
+      "id": "jurisdiction_paragraph",
+      "name": "Jurisdiction",
+      "required": true,
+      "description": "S.16 CPC"
+    },
+    {
+      "id": "valuation_paragraph",
+      "name": "Valuation and Court Fee",
+      "required": true,
+      "description": "Per state Schedule — typically annual rent multiple"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Possession + arrears + mesne profits + costs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Order VI R.15"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Order VI R.15(4)"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Plaintiff most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree of ejectment / eviction directing the Defendant to vacate and deliver vacant and peaceful possession of the suit premises described in the Schedule to the Plaintiff;\n\nb) Pass a decree for recovery of arrears of rent of Rs. {rent_arrears}/- from {arrears_from} to the date of termination of tenancy;\n\nc) Direct the Defendant to pay mesne profits / damages for wrongful use and occupation at the rate of Rs. ____/- per month from the date of termination of tenancy till delivery of vacant possession to the Plaintiff;\n\nd) Award future interest at the rate of 12% per annum on the decretal sums u/s 34 CPC;\n\ne) Award costs of the suit in favour of the Plaintiff;\n\nf) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Plaintiff shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {plaintiff_name}, son/daughter/wife of {plaintiff_father_name}, resident of {plaintiff_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above plaint are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPlaintiff",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a plaint for ejectment / eviction of tenant under Transfer of Property Act, 1882 — applicable ONLY to premises NOT covered by state rent control legislation.",
+      "CRITICAL STEP-1: Verify rent control applicability. Each state has its own rent control act with thresholds, exemptions, and area coverage. Filing TPA suit for rent-controlled premises is FATAL — only rent controller has jurisdiction.",
+      "State rent control statutes to cross-check (illustrative): Delhi Rent Control Act 1958 (exemption: rent > Rs. 3,500/month + premises let to MNC/govt; large bungalows); Maharashtra Rent Control Act 1999 (exemption: rent > Rs. 25,000/month, certain non-residential, etc.); UP Urban Buildings (Regulation of Letting, Rent and Eviction) Act 1972 (applies to urban areas, exemption for newly constructed for 40 years); Bihar Buildings (Lease, Rent and Eviction) Control Act 1982; Tamil Nadu Regulation of Rights and Responsibilities of Landlords and Tenants Act 2017; West Bengal Premises Tenancy Act 1997. ALWAYS verify current statute for the specific state.",
+      "FOR LAWIE PROMPT: If user indicates premises is in rent-control-covered area/category, FLAG: 'Use rent control eviction petition before Rent Controller, not civil court TPA suit.'",
+      "Para 1-2: Parties.",
+      "Para 3: Premises description — full schedule with boundaries, address, nature (residential / commercial / agricultural). Annexed site plan recommended.",
+      "Para 4: Plaintiff's title — chain of title with source documents.",
+      "Para 5: Creation of tenancy — date, mode (oral / unregistered / registered lease — note S.107 TPA requires registered lease for terms > 1 year), monthly rent, security deposit, purpose.",
+      "Para 6: WHY rent control NOT applicable — premises exempted by rent / area / type / age etc., cite the specific exemption provision of the state act.",
+      "Para 7: Ground of eviction — choose appropriate: (a) Termination of month-to-month tenancy by 15-day notice u/s 106 TPA; (b) Expiry of fixed-term lease; (c) Forfeiture u/s 111(g) TPA on breach of express condition (with forfeiture clause); (d) Forfeiture on denial of landlord's title; (e) Determination by efflux of time u/s 111(a).",
+      "Para 8: Notice to quit u/s 106 TPA. POST-2003 AMENDMENT: notice is 15 days for all leases (residential/commercial) terminating with end of month of tenancy. For agricultural and manufacturing tenancies, 6 months ending with year of tenancy. Notice must be in writing, signed by landlord/agent, served by registered post or in person. PROVISO: notice no longer rendered invalid merely by procedural defects if substance and intent clear (S.106(3) — 2003 amendment).",
+      "Cite: Aero Traders v. Ravinder Kumar (2014) 9 SCC 153 — notice substantial compliance post-amendment.",
+      "Para 9: Plead tender / refusal of possession by tenant after notice expiry.",
+      "Para 10: Rent arrears (if any) and mesne profits — Order XX R.12 CPC — court may award mesne profits up to delivery of possession.",
+      "Para 11: Cause of action — date of expiry of notice / refusal.",
+      "Para 12: Limitation — Article 67 Limitation Act — 12 years from determination of tenancy.",
+      "Para 13: Jurisdiction — S.16 CPC where premises situate.",
+      "Para 14: Valuation and court fee — state Schedule (typically annual rent or 1.5x annual rent for ejectment).",
+      "Para 15: Prayer for: (i) ejectment; (ii) recovery of arrears; (iii) mesne profits; (iv) interest u/s 34; (v) costs.",
+      "Where lease is registered, suit can be filed in regular civil court. Where in Small Causes Courts area (Bombay/Calcutta/Madras/Hyderabad), Small Causes Court has exclusive jurisdiction for premises possession suits up to certain valuation.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        { "number": "S.105", "description": "Lease defined" },
+        {
+          "number": "S.106",
+          "description": "Duration of certain leases in absence of written contract — 15 days notice (post-2003 amendment); 6 months for agricultural/manufacturing"
+        },
+        { "number": "S.107", "description": "Leases how made — registration required for >1 year" },
+        { "number": "S.108", "description": "Rights and liabilities of lessor and lessee" },
+        {
+          "number": "S.111",
+          "description": "Determination of lease — (a) efflux of time; (b) specified event; (c) merger; (d) express surrender; (e) implied surrender; (f) forfeiture (denial of title / breach of express condition / insolvency); (g) notice to quit; (h) acquisition by Government"
+        },
+        { "number": "S.114", "description": "Relief against forfeiture for non-payment of rent" },
+        { "number": "S.116", "description": "Effect of holding over" }
+      ]
+    },
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "S.9", "description": "Jurisdiction" },
+        { "number": "S.16", "description": "Immovable property suits" },
+        { "number": "S.34", "description": "Interest" },
+        { "number": "Order VII R.1, 7", "description": "Plaint particulars" },
+        { "number": "Order XX R.12", "description": "Decree for possession and mesne profits" },
+        {
+          "number": "Order XV R.5",
+          "description": "Striking off defence for non-deposit of admitted rent in rent suits"
+        }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "Schedule Art. 67",
+          "description": "By landlord to recover possession from tenant — 12 years from determination of tenancy"
+        }
+      ]
+    },
+    {
+      "act": "Indian Registration Act, 1908",
+      "sections": [
+        { "number": "S.17(1)(d)", "description": "Compulsory registration of leases > 1 year" }
+      ]
+    },
+    {
+      "act": "State Rent Control Acts (cross-reference for exclusion)",
+      "sections": [
+        { "number": "Delhi Rent Control Act 1958 S.3", "description": "Exemptions" },
+        { "number": "Maharashtra Rent Control Act 1999 S.3", "description": "Exemptions" },
+        { "number": "UP Urban Buildings Act 1972 S.2", "description": "Exemptions" },
+        { "number": "Bihar Buildings Control Act 1982 S.4", "description": "Exemptions" }
+      ]
+    },
+    {
+      "act": "Court Fees Act, 1870 + state amendments",
+      "sections": [
+        { "number": "S.7(xi)(cc)", "description": "Ejectment of tenant — annual rent multiple" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Plaint (original + copies)",
+    "Vakalatnama",
+    "Memo of parties",
+    "Affidavit in support of plaint (Order VI R.15(4))",
+    "Court fee per state Schedule",
+    "Title documents — sale deed, mutation, parent deeds, property tax receipts",
+    "Lease deed (if written; if registered, certified copy)",
+    "Rent receipts and rent ledger",
+    "Notice to quit u/s 106 TPA — original + postal receipt + AD card + tracking report",
+    "Tenant's reply to notice (if any)",
+    "Site plan / photographs of premises",
+    "Encumbrance certificate (optional)",
+    "Affidavit confirming rent control act inapplicability with reasoning",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "plaintiff_name and defendant_name must not be empty",
+    "premises_description must not be empty",
+    "plaintiffs_title must not be empty",
+    "tenancy_creation must not be empty",
+    "tenancy_type must be specified",
+    "rent_control_applicability must be specified — non-applicability ground required",
+    "rent_control_state must not be empty",
+    "ground_for_eviction must be specified",
+    "notice_under_s106 must not be empty (proof of valid notice essential)",
+    "notice_expiry_date must precede suit filing date",
+    "cause_of_action_dates must not be empty",
+    "court_fee_paid must be > 0",
+    "advocate_enrollment must match Bar Council format",
+    "If state rent control applies, REJECT and flag for rent controller petition instead"
+  ],
+  "key_citations": [
+    "Aero Traders Pvt Ltd v. Ravinder Kumar Suri (2014) 9 SCC 153 — Substantial compliance with S.106 notice post-2003 amendment",
+    "Karnataka State Industrial Investment & Development Corp v. Cavalet India Ltd (2005) 4 SCC 456 — Notice to quit principles",
+    "Pradesh Kumar Bajpai v. Binod Behari Sarkar (1980) 3 SCC 11 — Forfeiture and waiver",
+    "Murli S. Deora v. Union of India (2001) 8 SCC 765 — Wrongly invoked in some eviction matters; verify state rent law",
+    "Vinod Kumar v. Surjit Kaur (2002) 4 SCC 207 — Validity of notice under S.106",
+    "Smt. Juthika Mulick v. Dr. Mahendra Yashwant Bal (2014) 11 SCC 174 — Tenancy at sufferance and mesne profits",
+    "Bhagabandhu Sahu v. Nilamani Tripathy (2014) — Distinction between rent control and TPA jurisdiction"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

@@ -1,0 +1,384 @@
+{
+  "_meta": {
+    "description": "Document-rules config for gpa — General Power of Attorney under Powers of Attorney Act 1882 + Indian Stamp Act. Empowers a person to do general acts on behalf of grantor. NOTE — GPA-cum-Sale is NOT valid mode of transferring immovable property (Suraj Lamp v. State of Haryana 2012); GPA does NOT confer ownership. Distinguish from SPA (limited scope).",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Suraj Lamp warning must appear prominently when GPA includes power to sell. Authentication / notarisation / registration requirements differ for property powers vs general powers."
+  },
+  "template_id": "gpa",
+  "docType": "gpa",
+  "title": "General Power of Attorney (Powers of Attorney Act, 1882)",
+  "displayName": "General Power of Attorney (GPA)",
+  "category": "transactional_deed",
+  "creditsCost": 1,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "GENERAL POWER OF ATTORNEY\n\nKNOW ALL MEN BY THESE PRESENTS that I, {grantor_name}, son/daughter/wife of {grantor_father_name}, aged about {grantor_age} years, resident of {grantor_address}, (PAN: {grantor_pan}, Aadhaar last 4: {grantor_aadhaar_last4})\n(hereinafter referred to as the \"GRANTOR\" / \"PRINCIPAL\")\n\ndo hereby nominate, constitute and appoint:\n\n{attorney_name}, son/daughter/wife of {attorney_father_name}, aged about {attorney_age} years, resident of {attorney_address}, (PAN: {attorney_pan}, Aadhaar last 4: {attorney_aadhaar_last4})\n(hereinafter referred to as the \"ATTORNEY\" / \"AGENT\")\n\nas my true and lawful Attorney to act in my name and on my behalf in respect of the matters specified hereinafter.",
+    "partyDesignations": [
+      { "role": "grantor", "label": "Grantor / Principal" },
+      { "role": "attorney", "label": "Attorney / Agent" }
+    ],
+    "caseNomenclature": "N/A — Transactional"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "grantor_name", "label": "Grantor full name", "type": "text", "required": true },
+      {
+        "id": "grantor_father_name",
+        "label": "Grantor father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "grantor_age", "label": "Grantor age", "type": "number", "required": true },
+      { "id": "grantor_address", "label": "Grantor address", "type": "textarea", "required": true },
+      { "id": "grantor_pan", "label": "Grantor PAN", "type": "text", "required": true },
+      {
+        "id": "grantor_aadhaar_last4",
+        "label": "Grantor Aadhaar last 4",
+        "type": "text",
+        "required": true
+      },
+      { "id": "attorney_name", "label": "Attorney full name", "type": "text", "required": true },
+      {
+        "id": "attorney_father_name",
+        "label": "Attorney father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "attorney_age", "label": "Attorney age", "type": "number", "required": true },
+      {
+        "id": "attorney_address",
+        "label": "Attorney address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "attorney_pan", "label": "Attorney PAN", "type": "text", "required": true },
+      {
+        "id": "attorney_aadhaar_last4",
+        "label": "Attorney Aadhaar last 4",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "relationship_to_grantor",
+        "label": "Attorney's relationship to Grantor",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "reason_for_gpa",
+        "label": "Reason GPA being granted (e.g., grantor abroad, ill, employed full-time, NRI)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "powers_scope",
+        "label": "Powers to be conferred (multi-select)",
+        "type": "checkbox_multi",
+        "required": true,
+        "options": [
+          "manage_immovable_property",
+          "let_or_lease_property",
+          "collect_rent",
+          "negotiate_sale_subject_to_registered_sale_deed",
+          "operate_bank_accounts",
+          "represent_in_court_litigation",
+          "sign_legal_documents",
+          "file_tax_returns",
+          "appear_before_govt_authorities_municipal_RTO_etc",
+          "manage_business_or_partnership_interest",
+          "execute_contracts_general",
+          "give_evidence_or_swear_affidavits",
+          "appoint_advocates_and_substitute_attorneys"
+        ]
+      },
+      {
+        "id": "property_under_gpa",
+        "label": "Property described under GPA (if includes property management)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "duration",
+        "label": "Duration of GPA",
+        "type": "select",
+        "required": true,
+        "options": ["until_revoked_by_grantor", "fixed_term_with_end_date", "until_specified_event"]
+      },
+      {
+        "id": "end_date_if_fixed",
+        "label": "End date (if fixed term)",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "revocable_or_irrevocable",
+        "label": "Revocability",
+        "type": "select",
+        "required": true,
+        "options": ["revocable_at_grantor_will", "irrevocable_for_consideration_S202_ICA"]
+      },
+      {
+        "id": "registration_or_notarisation",
+        "label": "Authentication mode",
+        "type": "select",
+        "required": true,
+        "options": [
+          "notarised",
+          "registered_under_S17_Registration_Act",
+          "consulate_attested_if_grantor_abroad",
+          "apostilled_if_grantor_in_apostille_country"
+        ]
+      },
+      {
+        "id": "stamp_duty_paid",
+        "label": "Stamp duty paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "state",
+        "label": "State of execution",
+        "type": "select",
+        "required": true,
+        "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi", "executed_abroad"]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "includes_power_to_sell",
+        "label": "Does GPA include power to sell immovable property?",
+        "type": "select",
+        "required": true,
+        "options": ["yes_flag_suraj_lamp_warning", "no_only_management"]
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "preamble_appointment",
+      "name": "Preamble & Appointment",
+      "required": true,
+      "description": "Identification of Grantor + appointment of Attorney"
+    },
+    {
+      "id": "recital_of_reason",
+      "name": "Recital of Reason",
+      "required": true,
+      "description": "Why GPA is being executed (grantor abroad / ill / unable to attend)"
+    },
+    {
+      "id": "powers_clause_enumerated",
+      "name": "Enumerated Powers Clause",
+      "required": true,
+      "description": "Specific powers — must NOT be vague 'do all acts' alone; enumerate with specificity"
+    },
+    {
+      "id": "limitation_clause",
+      "name": "Limitations on Powers",
+      "required": true,
+      "description": "What attorney CANNOT do (e.g., gift / transfer to self / make will)"
+    },
+    {
+      "id": "ratification_clause",
+      "name": "Ratification of Attorney's Acts",
+      "required": true,
+      "description": "Grantor ratifies all lawful acts of Attorney done in furtherance of these powers"
+    },
+    {
+      "id": "no_self_dealing_clause",
+      "name": "No Self-Dealing / Fiduciary Duty",
+      "required": true,
+      "description": "Attorney must act in grantor's interest; bar on transferring to self"
+    },
+    {
+      "id": "duration_clause",
+      "name": "Duration / Term",
+      "required": true,
+      "description": "Period of validity; revocation mechanism"
+    },
+    {
+      "id": "revocation_clause",
+      "name": "Revocation Provisions",
+      "required": true,
+      "description": "How GPA can be revoked; effect of revocation"
+    },
+    {
+      "id": "indemnity_clause",
+      "name": "Indemnity by Attorney",
+      "required": true,
+      "description": "Attorney indemnifies grantor for acts in breach of authority"
+    },
+    {
+      "id": "execution_clause",
+      "name": "Execution & Authentication",
+      "required": true,
+      "description": "Signed by grantor, witnessed; notarised / registered as applicable"
+    },
+    {
+      "id": "suraj_lamp_disclaimer",
+      "name": "Suraj Lamp Disclaimer (if power to sell included)",
+      "required": false,
+      "description": "GPA cannot transfer title; sale only by registered sale deed"
+    },
+    {
+      "id": "witness_clause",
+      "name": "Two Witnesses",
+      "required": true,
+      "description": "Two adult attesting witnesses"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a GENERAL POWER OF ATTORNEY under the Powers-of-Attorney Act, 1882 read with Indian Contract Act, 1872 (Chapter X — Agency, S.182-238).",
+      "Powers of Attorney Act, 1882, S.1A — defines 'Power of Attorney' as any instrument empowering a specified person to act for and in the name of the person executing it.",
+      "S.2 — Execution under power of attorney is execution in name of principal; binding on principal.",
+      "CRITICAL — Suraj Lamp & Industries Pvt Ltd v. State of Haryana (2012) 1 SCC 656: GPA-cum-Sale or 'SA-cum-GPA-cum-Will' transactions are NOT valid modes of transfer of immovable property. A GPA, even if it includes power to sell, does NOT itself transfer title. Title can only pass by a registered sale deed. The Supreme Court has SPECIFICALLY held that such GPA-cum-sale shortcuts are an evasion of stamp duty + registration + tax law and not legally effective for transfer of ownership.",
+      "If user data shows GPA includes power to sell immovable property — MUST insert a prominent disclaimer in the deed: 'This GPA confers powers of management and representation. It does NOT operate as a transfer of ownership of any immovable property. Any sale of immovable property covered hereby shall be effected only by a duly stamped and registered Sale Deed. The Grantor's title shall stand transferred ONLY upon registration of such Sale Deed.'",
+      "DISTINGUISH FROM SPA: SPA (Special Power of Attorney) is for a SPECIFIC transaction (e.g., 'to execute sale deed of plot X to buyer Y at consideration Z'). GPA is broader.",
+      "STRUCTURE:",
+      "Para 1: Preamble — 'Know all men by these presents that I, [Grantor], aged [age], resident of [address], do hereby...'",
+      "Para 2: Recital of reason — grantor abroad / NRI / ill / employed elsewhere / unable to personally attend; brief, factual.",
+      "Para 3: Appointment — 'I hereby nominate, constitute and appoint [Attorney name + identification + relationship] as my true and lawful Attorney to do the following acts in my name and on my behalf'.",
+      "Para 4: ENUMERATED POWERS — be specific. Vague 'do all acts' clauses fail S.202 ICA and are construed narrowly. Common heads:\n   (a) Property management — receive rent, pay outgoings, repair, mutate records.\n   (b) Leasing — negotiate, execute and register lease agreements up to 11 months; for longer leases, [include / exclude] authority.\n   (c) Sale negotiation (NOT title transfer) — negotiate, agree price; signing of sale deed only with grantor's specific consent in writing.\n   (d) Bank operations — operate specified bank account, deposit, withdraw, sign cheques; specify account number to avoid open mandate.\n   (e) Tax — file income tax returns, GST returns, property tax; sign on grantor's behalf; receive refunds.\n   (f) Government authorities — appear before Registrar, Sub-Registrar, Tehsildar, Municipal Corporation, RTO, etc.\n   (g) Litigation — engage advocates, sign vakalatnamas, pleadings, affidavits, swear / verify on oath; receive sums awarded in favour of grantor.\n   (h) Substitution — power to appoint sub-attorney (avoid unless trust verified; default — no substitution).\n   (i) Contracts — execute service / supply / sale of goods contracts up to specified value.\n   (j) Business interest — represent grantor's partnership / shareholding (specify entity, scope of authority).",
+      "Para 5: LIMITATIONS — explicitly state what attorney CANNOT do:\n   - Cannot make a WILL on grantor's behalf (will is non-delegable; S.59 ISA — testator must himself sign).\n   - Cannot GIFT grantor's property to self or family of attorney.\n   - Cannot create any encumbrance benefiting attorney personally.\n   - Cannot waive grantor's vested rights without specific instruction.\n   - Cannot represent grantor in any matter where attorney has personal interest adverse to grantor.",
+      "Para 6: RATIFICATION — 'I hereby ratify all and singular the lawful acts performed by my said Attorney within the scope of authority herein granted'.",
+      "Para 7: FIDUCIARY DUTY / NO SELF-DEALING — attorney is fiduciary; cannot transact for personal benefit; must keep accounts.",
+      "Para 8: DURATION — until revoked / fixed term / until specified event (e.g., grantor's return to India).",
+      "Para 9: REVOCATION — grantor may revoke at any time by written notice (unless irrevocable under S.202 Contract Act — i.e., where attorney has acquired interest in subject matter — rare). On revocation, attorney must hand over all documents and accounts.",
+      "Para 10: TERMINATION on death of grantor (per S.201 ICA), insolvency, insanity.",
+      "Para 11: INDEMNITY — attorney indemnifies grantor for losses arising from unauthorised acts.",
+      "Para 12: STAMP DUTY — state-specific (verify):\n   - Bihar: Article 48 Bihar Stamp Schedule — Rs.100 to higher amounts depending on type.\n   - Jharkhand: similar.\n   - UP: Article 48 — Rs.10 to Rs.100 for general; higher where GPA authorises sale of immovable.\n   - Delhi: Article 48 Delhi Stamp Schedule — varies; for sale authorisation, higher duty applicable.",
+      "Para 13: AUTHENTICATION:\n   (a) Notarisation — minimum requirement under Notaries Act, 1952.\n   (b) Registration under S.17(1) Registration Act — NOT mandatory for ordinary GPA, BUT mandatory for GPA executed by NRIs OR for GPAs that include power to sell immovable property (per state amendments and Suraj Lamp directives). Several states (Delhi, Haryana, UP) have circulars requiring registration for property GPAs.\n   (c) GPA executed abroad — must be (i) attested by Indian Consulate / Embassy OR (ii) apostilled (if grantor in Hague Apostille Convention country) AND (iii) authenticated under S.18 Registration Act within 3 months of arrival in India.",
+      "Para 14: WITNESSES — two adult attesting witnesses (mandatory under Notaries Act / Registration Act).",
+      "Para 15: Where Grantor is a company — Board Resolution authorising execution annexed; signed by Authorised Signatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Powers-of-Attorney Act, 1882",
+      "sections": [
+        { "number": "S.1A", "description": "Power of Attorney defined" },
+        { "number": "S.2", "description": "Execution under power binds principal" },
+        { "number": "S.5", "description": "Power of attorney by married woman valid" }
+      ]
+    },
+    {
+      "act": "Indian Contract Act, 1872",
+      "sections": [
+        { "number": "S.182", "description": "Agent and principal defined" },
+        { "number": "S.183-184", "description": "Who may employ agent / who may be agent" },
+        { "number": "S.186-188", "description": "Authority of agent — express / implied / scope" },
+        {
+          "number": "S.201",
+          "description": "Termination of agency — death / insanity / insolvency / completion / mutual"
+        },
+        {
+          "number": "S.202",
+          "description": "Irrevocable agency where agent has interest in subject matter"
+        },
+        {
+          "number": "S.207-208",
+          "description": "Renunciation by agent; principal's right to revoke"
+        }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        {
+          "number": "S.17",
+          "description": "Documents of which registration is compulsory — GPA for sale of immovable property arguably falls under read with Suraj Lamp"
+        },
+        {
+          "number": "S.18",
+          "description": "Documents of which registration is optional — most GPAs"
+        },
+        {
+          "number": "S.32(c)",
+          "description": "GPA-holder can present documents for registration on behalf of executant"
+        },
+        { "number": "S.33", "description": "Authentication of GPA — by SR / notary / consular" }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899 + State Schedules",
+      "sections": [
+        {
+          "number": "Article 48 / equivalent",
+          "description": "Power of Attorney stamp duty — sliding scale by type and authority"
+        }
+      ]
+    },
+    {
+      "act": "Notaries Act, 1952",
+      "sections": [
+        { "number": "S.8", "description": "Functions of notary — including authentication of GPAs" }
+      ]
+    },
+    {
+      "act": "Foreign Exchange Management Act, 1999 (where NRI)",
+      "sections": [
+        {
+          "number": "FEMA Regulations",
+          "description": "NRI property dealing through GPA — additional compliance"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Stamp paper of correct denomination (state Article 48)",
+    "Grantor's Identity / Address proof — PAN + Aadhaar / Passport",
+    "Attorney's Identity / Address proof — PAN + Aadhaar / Passport",
+    "Two passport-size photographs of grantor and attorney",
+    "Two adult witnesses with own ID proofs",
+    "NOTARISATION by Notary Public — standard",
+    "REGISTRATION at Sub-Registrar if GPA includes power to sell immovable OR per state-specific requirements",
+    "If grantor abroad: Consular attestation by Indian Embassy / Consulate OR Apostille (Hague Convention countries); must be authenticated under S.18 Registration Act within 3 months of arrival in India",
+    "If company is grantor: Board Resolution authorising GPA + Memorandum of Association extract",
+    "Where GPA authorises operation of bank accounts: bank-specific mandate forms in addition (banks accept GPA but follow KYC)",
+    "Where GPA authorises court representation: vakalatnama in advocate's favour to be filed separately when needed",
+    "Photographs of Grantor and Attorney affixed and signed across",
+    "Lawie disclaimer included",
+    "WARNING — Suraj Lamp v. State of Haryana (2012) 1 SCC 656: GPA does NOT transfer title to immovable property. Any sale must be by registered Sale Deed."
+  ],
+  "validation_rules": [
+    "grantor_age >= 18",
+    "attorney_age >= 18",
+    "powers_scope must contain at least 1 enumerated power",
+    "if includes_power_to_sell == 'yes_flag_suraj_lamp_warning' — Suraj Lamp disclaimer paragraph must be inserted",
+    "if registration_or_notarisation == 'registered_under_S17_Registration_Act' — stamp duty must reflect registration schedule",
+    "if state == 'executed_abroad' — registration_or_notarisation must be 'consulate_attested_if_grantor_abroad' or 'apostilled_if_grantor_in_apostille_country'",
+    "duration field must be specified",
+    "if revocable_or_irrevocable == 'irrevocable_for_consideration_S202_ICA' — recital of agent's interest in subject matter required",
+    "stamp_duty_paid > 0",
+    "advocate enrollment number required"
+  ]
+}

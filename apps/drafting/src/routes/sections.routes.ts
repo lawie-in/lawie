@@ -8,6 +8,7 @@ import {
   getAllMappings,
   getCodesMeta,
   convertOldReferencesInText,
+  searchSections,
 } from '../services/sections.service';
 import { calculateTimeline } from '../services/timeline.service';
 
@@ -66,6 +67,41 @@ router.get('/map', async (req: Request, res: Response): Promise<void> => {
       auto_detect: 'GET /sections/map?section=302&code=IPC',
     },
   });
+});
+
+/**
+ * GET /sections/search?q=302&code=BNS
+ *
+ * Typeahead search within a single code. Matches by section-number prefix
+ * (e.g., "302" finds 302, 302A, 302B) or title substring (e.g., "murder"
+ * finds BNS 103). Returns up to 10 results.
+ *
+ * Powers the DynamicFormRenderer multi_select_search field when
+ * `source: 'bns_mapping'` (SCRUM-85).
+ */
+router.get('/search', async (req: Request, res: Response): Promise<void> => {
+  const { q, code, limit: limitRaw } = req.query;
+
+  if (typeof q !== 'string' || !q.trim()) {
+    res.status(400).json({
+      error: 'Missing "q" query parameter',
+      usage: 'GET /sections/search?q=302&code=BNS',
+    });
+    return;
+  }
+  if (typeof code !== 'string' || !code.trim()) {
+    res.status(400).json({
+      error: 'Missing "code" query parameter',
+      supported: ['BNS', 'BNSS', 'BSA', 'IPC', 'CrPC', 'IEA'],
+    });
+    return;
+  }
+
+  const parsedLimit = typeof limitRaw === 'string' ? parseInt(limitRaw, 10) : NaN;
+  const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 25) : 10;
+
+  const results = await searchSections(q, code, limit);
+  res.json({ query: q, code, results, count: results.length });
 });
 
 /**

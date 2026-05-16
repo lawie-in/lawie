@@ -1,0 +1,405 @@
+{
+  "_meta": {
+    "description": "Document-rules config for gift_deed — Gift deed for immovable / movable property under Transfer of Property Act 1882 S.122-129. Gratuitous transfer; mandatory registration for immovable (S.123) + acceptance during donor's lifetime. Common in HUF and family transfer scenarios.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Acceptance during donor's lifetime is non-negotiable. Concessional stamp duty for blood-relative gift varies by state — flag but do NOT hardcode."
+  },
+  "template_id": "gift_deed",
+  "docType": "gift_deed",
+  "title": "Gift Deed (Transfer of Property Act, 1882 — S.122-129)",
+  "displayName": "Gift Deed",
+  "category": "transactional_deed",
+  "creditsCost": 2,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "GIFT DEED\n\nThis Deed of Gift is executed on this {date} at {place}.\n\nBETWEEN\n\n{donor_name}, son/daughter/wife of {donor_father_name}, aged about {donor_age} years, resident of {donor_address}, (PAN: {donor_pan})\n(hereinafter referred to as the \"DONOR\")\n\nAND\n\n{donee_name}, son/daughter/wife of {donee_father_name}, aged about {donee_age} years, resident of {donee_address}, (PAN: {donee_pan})\n(hereinafter referred to as the \"DONEE\"; Relationship to Donor: {relationship})",
+    "partyDesignations": [
+      { "role": "donor", "label": "Donor" },
+      { "role": "donee", "label": "Donee" }
+    ],
+    "caseNomenclature": "N/A — Transactional"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "donor_name", "label": "Donor full name", "type": "text", "required": true },
+      {
+        "id": "donor_father_name",
+        "label": "Donor father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "donor_age",
+        "label": "Donor age (must be 18+, sound mind)",
+        "type": "number",
+        "required": true
+      },
+      { "id": "donor_address", "label": "Donor address", "type": "textarea", "required": true },
+      { "id": "donor_pan", "label": "Donor PAN", "type": "text", "required": true },
+      { "id": "donee_name", "label": "Donee full name", "type": "text", "required": true },
+      {
+        "id": "donee_father_name",
+        "label": "Donee father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "donee_age",
+        "label": "Donee age (if minor — natural guardian to accept)",
+        "type": "number",
+        "required": true
+      },
+      { "id": "donee_address", "label": "Donee address", "type": "textarea", "required": true },
+      { "id": "donee_pan", "label": "Donee PAN", "type": "text", "required": false },
+      {
+        "id": "relationship",
+        "label": "Relationship of Donee to Donor",
+        "type": "select",
+        "required": true,
+        "options": [
+          "son",
+          "daughter",
+          "wife_husband",
+          "mother",
+          "father",
+          "brother",
+          "sister",
+          "grandchild",
+          "other_relative",
+          "unrelated"
+        ]
+      },
+      {
+        "id": "is_movable_or_immovable",
+        "label": "Property type",
+        "type": "select",
+        "required": true,
+        "options": ["immovable_property", "movable_property", "shares_securities", "money_in_bank"]
+      },
+      {
+        "id": "property_description",
+        "label": "Full property description (address, extent, boundaries for immovable; description + identification for movable)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "khasra_or_survey_no",
+        "label": "Khasra / Survey / Plot No. (for immovable)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "market_value",
+        "label": "Market value of gifted property",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "motive_or_natural_love",
+        "label": "Motive of gift — natural love and affection / charity / other",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "acceptance_method",
+        "label": "Mode of acceptance by Donee",
+        "type": "select",
+        "required": true,
+        "options": [
+          "physical_acceptance_with_possession",
+          "express_signed_acceptance_in_deed",
+          "implied_acceptance_via_use",
+          "acceptance_by_natural_guardian_minor"
+        ]
+      },
+      {
+        "id": "possession_handed_over",
+        "label": "Has possession been delivered to Donee?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "yes_simultaneous_with_deed",
+          "yes_already_in_possession",
+          "no_to_be_delivered_on_registration"
+        ]
+      },
+      {
+        "id": "conditions_or_revocable",
+        "label": "Any conditions attached / revocation events specified?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "unconditional_and_absolute",
+          "conditional_subject_to_specified_events",
+          "revocable_per_S126_grounds"
+        ]
+      },
+      {
+        "id": "conditions_text",
+        "label": "Conditions (if any)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "stamp_duty_paid",
+        "label": "Stamp duty paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "state",
+        "label": "State of execution & registration",
+        "type": "select",
+        "required": true,
+        "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "recital_of_relationship",
+      "name": "Recital of Relationship",
+      "required": true,
+      "description": "Establish family / personal relationship between donor and donee (matters for concessional stamp duty)"
+    },
+    {
+      "id": "donor_competence_recital",
+      "name": "Donor's Competence & Sui Juris Declaration",
+      "required": true,
+      "description": "Donor is major, of sound mind, executing voluntarily without coercion, undue influence, fraud"
+    },
+    {
+      "id": "title_recital",
+      "name": "Donor's Title to Property",
+      "required": true,
+      "description": "How donor became absolute owner"
+    },
+    {
+      "id": "property_description_schedule",
+      "name": "Schedule A — Property Description",
+      "required": true,
+      "description": "Full description; for immovable — boundaries, extent, survey no., registration district"
+    },
+    {
+      "id": "operative_gift_clause",
+      "name": "Operative Gift Clause",
+      "required": true,
+      "description": "Donor hereby gifts, conveys, transfers, assigns out of natural love and affection, without consideration, unto Donee"
+    },
+    {
+      "id": "delivery_of_possession",
+      "name": "Delivery of Possession",
+      "required": true,
+      "description": "Symbolic / physical possession delivered"
+    },
+    {
+      "id": "acceptance_by_donee",
+      "name": "Acceptance by Donee",
+      "required": true,
+      "description": "Express acceptance during donor's lifetime — MANDATORY per S.122 TPA. Where minor — natural guardian accepts."
+    },
+    {
+      "id": "no_consideration_clause",
+      "name": "Declaration of No Consideration",
+      "required": true,
+      "description": "Explicitly state gift is without monetary consideration / for natural love and affection"
+    },
+    {
+      "id": "free_from_encumbrances",
+      "name": "Free from Encumbrances",
+      "required": true,
+      "description": "Donor warrants no charges / mortgages / liens"
+    },
+    {
+      "id": "revocation_clause",
+      "name": "Revocation Clause (per S.126 TPA)",
+      "required": false,
+      "description": "Default: gift is irrevocable. If conditional / revocable on specified events — set out clearly"
+    },
+    {
+      "id": "mutation_authorisation",
+      "name": "Mutation Authorisation",
+      "required": true,
+      "description": "Donor authorises mutation in donee's favour"
+    },
+    {
+      "id": "stamp_duty_clause",
+      "name": "Stamp Duty Clause",
+      "required": true,
+      "description": "Stamp duty paid; mention concession if blood relative under state schedule"
+    },
+    {
+      "id": "schedule_a_property",
+      "name": "SCHEDULE A — Property Description",
+      "required": true,
+      "description": "Detailed description appended at end"
+    },
+    {
+      "id": "witness_clause",
+      "name": "Two Witnesses",
+      "required": true,
+      "description": "Mandatory under S.123 TPA — attestation by 2 witnesses"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a GIFT DEED under the Transfer of Property Act, 1882, Sections 122 to 129.",
+      "S.122 TPA — Definition: 'Gift' is the transfer of certain existing movable or immovable property made VOLUNTARILY and WITHOUT CONSIDERATION, by one person, called the donor, to another, called the donee, and ACCEPTED BY OR ON BEHALF OF THE DONEE.",
+      "Three essential elements (each MUST be reflected in deed): (i) Voluntary transfer; (ii) Without consideration; (iii) Acceptance by donee during donor's lifetime AND while he is still capable of giving.",
+      "S.123 TPA — Mode: For immovable property, gift MUST be effected by a REGISTERED INSTRUMENT signed by donor + attested by AT LEAST TWO WITNESSES. For movable property — by registered instrument OR by delivery (chose). For Mohammedan gifts (hiba), TPA Chapter VII does not apply — Mohammedan law governs (declaration, acceptance, delivery — registration NOT mandatory; flag if Mohammedan parties).",
+      "S.122 acceptance: must be DURING THE LIFETIME of donor AND WHILE HE IS CAPABLE OF GIVING. If donee dies before acceptance, gift is void.",
+      "S.126 — Revocation grounds: a gift may be revoked ONLY (a) on happening of any specified event NOT depending on the will of the donor (e.g., 'if donee predeceases donor without issue, gift reverts'); or (b) in any case in which a contract is voidable (coercion, undue influence, fraud, misrepresentation). A gift cannot be revoked at mere will of donor. Set out revocation conditions explicitly if intended.",
+      "S.127 — Onerous gift: where gift comprises several things some of which are burdensome, donee must accept all or none.",
+      "S.128 — Universal donee: donee of donor's whole property is personally liable for donor's debts up to extent of gift.",
+      "S.129 — Mohammedan law saving clause.",
+      "DONOR COMPETENCE: Donor must be major (18+), of sound mind, NOT minor, NOT under guardianship, NOT insolvent (S.122 read with S.7 TPA — only competent transferor). For HUF property — Karta can only gift small portions for pious / charitable / specified family purposes (gift of entire ancestral property by Karta is VOID — cite Guramma Bhratar Chanbasappa Deshmukh v. Mallappa Chanbasappa AIR 1964 SC 510). FLAG this if HUF property being gifted.",
+      "MINOR DONEE: A minor CAN accept gift. Acceptance by natural guardian / legal guardian on behalf of minor is valid. Flag for guardian's certificate.",
+      "BLOOD-RELATIVE STAMP DUTY CONCESSIONS (state-wise — verify current rates):\n   - Bihar: Standard ~6% / concessional ~5.7% for blood relative + 2% registration.\n   - Jharkhand: Concessional for blood relative (mother, father, spouse, son, daughter, sister, brother) — typically reduced rate; verify Jharkhand Stamp Act amendment.\n   - UP: Rs.5000 fixed for blood relative gift (concessional) + 1% registration fee.\n   - Delhi: 4% (women) / 6% (men) for blood relative; significant concession via Government circulars.\n   DO NOT hardcode — state 'subject to advocate's verification of current stamp duty schedule and applicable circulars'.",
+      "INCOME TAX — S.56(2)(x) ITA: gift from relatives (spouse, brother/sister, brother/sister of spouse, brother/sister of parents, lineal ascendant/descendant of self or spouse) is NOT taxable. Gift from non-relative > Rs.50,000 in aggregate per year is taxable in donee's hands.",
+      "Structure: (1) Title 'GIFT DEED'. (2) Recital of relationship. (3) Recital of donor's title — chain of ownership. (4) Recital of motive — natural love and affection. (5) Operative gift clause. (6) Delivery of possession clause. (7) Acceptance clause (donee signs as accepting donee). (8) Free-from-encumbrances warranty. (9) Revocation clause (if applicable; otherwise state 'irrevocable absolute gift'). (10) Mutation authorisation. (11) Stamp duty clause. (12) Schedule A. (13) Witness attestation (TWO witnesses — mandatory per S.123). (14) Lawie disclaimer.",
+      "Where gift in contemplation of death (Donatio mortis causa) — different regime under S.191 Indian Succession Act 1925; flag and route to a will instead in most cases.",
+      "Where gift to charity / religious trust — additional language: irrevocable, vested for trust purposes; advise registration under S.80G Income Tax Act for tax exemption.",
+      "Where gift includes property abroad — FEMA compliance flag.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        {
+          "number": "S.122",
+          "description": "Gift defined — voluntary transfer without consideration with acceptance"
+        },
+        {
+          "number": "S.123",
+          "description": "Mode — registered instrument + 2 witnesses for immovable"
+        },
+        {
+          "number": "S.124",
+          "description": "Gift of existing and future property — void as to future"
+        },
+        {
+          "number": "S.125",
+          "description": "Gift to several donees — one not accepting = void as to him"
+        },
+        {
+          "number": "S.126",
+          "description": "Revocation grounds — specified non-volitional event or vitiated consent"
+        },
+        { "number": "S.127", "description": "Onerous gifts" },
+        { "number": "S.128", "description": "Universal donee" },
+        { "number": "S.129", "description": "Saving of Mohammedan law" }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        {
+          "number": "S.17(1)(a)",
+          "description": "Mandatory registration of gift deed of immovable property"
+        },
+        { "number": "S.23", "description": "Time for presentation — within 4 months of execution" }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899 + State Schedules",
+      "sections": [
+        {
+          "number": "Article 33 / equivalent",
+          "description": "Gift deed stamp duty — state schedules with concession for blood-relative gifts"
+        }
+      ]
+    },
+    {
+      "act": "Income Tax Act, 1961",
+      "sections": [
+        { "number": "S.56(2)(x)", "description": "Gifts > Rs.50,000 from non-relatives taxable" },
+        {
+          "number": "S.2(41) Explanation",
+          "description": "Definition of 'relative' for exemption purposes"
+        }
+      ]
+    },
+    {
+      "act": "Hindu Succession Act, 1956",
+      "sections": [
+        {
+          "number": "S.6",
+          "description": "Coparcener cannot gift away coparcenary interest except for pious / charitable purposes — Guramma case"
+        }
+      ]
+    },
+    {
+      "act": "Indian Succession Act, 1925",
+      "sections": [
+        {
+          "number": "S.191",
+          "description": "Gifts in contemplation of death (donatio mortis causa) — distinct regime"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Stamp paper of correct denomination (verify state schedule and blood-relative concession)",
+    "Original title documents of donor for SR inspection",
+    "Encumbrance Certificate (EC) covering past 13 years",
+    "Mutation / Jamabandi / Khatauni / Khatian extract — current",
+    "Donor's PAN and Aadhaar",
+    "Donee's PAN (if available) and Aadhaar",
+    "Two passport-size photographs of both parties",
+    "Relationship proof (where claiming blood-relative stamp concession) — birth certificate / school records / family register / Aadhaar showing parentage",
+    "Property tax receipts up to date",
+    "Society / RWA NOC if applicable",
+    "Two witnesses physically present at SR with own ID proofs (MANDATORY under S.123 TPA — two witnesses' attestation is essential)",
+    "Both donor and donee physically present at SR for registration",
+    "Where donee is minor — natural guardian present with guardian-proof; for gift acceptance by guardian, court permission NOT required (acceptance only benefits minor) but flag",
+    "Registration within 4 months (S.23 Registration Act)",
+    "Post-registration: apply for mutation in donee's name in revenue / municipal records",
+    "Update electricity / water / society records",
+    "Where Mohammedan parties — verify hiba requirements under Mohammedan law (declaration + acceptance + delivery); registration optional but recommended",
+    "Where gift to trust / charity — registration under S.80G ITA for tax benefit",
+    "Lawie disclaimer included"
+  ],
+  "validation_rules": [
+    "donor_age must be >= 18",
+    "if donor_age and donee_age both present and donee_age < 18 — acceptance_method must be 'acceptance_by_natural_guardian_minor'",
+    "is_movable_or_immovable == 'immovable_property' — registration mandatory; witness_1 and witness_2 mandatory under S.123 TPA",
+    "if conditions_or_revocable == 'conditional_subject_to_specified_events' — conditions_text must not be empty",
+    "motive_or_natural_love must be specified (gift requires recital of motive)",
+    "donor_pan must be provided",
+    "if relationship == 'unrelated' and market_value > 50000 — flag S.56(2)(x) IT Act taxable consequences for donee",
+    "if relationship is blood-relative — flag concessional stamp duty applicability and require relationship-proof in filing checklist",
+    "stamp_duty_paid > 0",
+    "advocate must include Bar Council enrollment number"
+  ]
+}

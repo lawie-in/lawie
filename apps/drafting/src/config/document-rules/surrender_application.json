@@ -1,0 +1,189 @@
+{
+  "_meta": {
+    "description": "Document-rules config for surrender_application — surrender before Magistrate when arrest is apprehended; court takes cognizance of surrender and decides remand/release",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12. Surrender ≠ anticipatory bail.",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "template_id": "surrender_application",
+  "docType": "surrender_application",
+  "parentDocType": "criminal_application",
+  "title": "Surrender Application",
+  "displayName": "Application for Surrender before Magistrate",
+  "category": "criminal_procedural",
+  "creditsCost": 2,
+  "court_levels": ["magistrate", "cjm", "district"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused",
+    "partyDesignations": [{ "role": "applicant", "label": "Applicant/Accused" }],
+    "caseNomenclature": "SURRENDER APPLICATION No. _____ of [YEAR]\n(In FIR No. _____ / Crime No. _____ dated _____)"
+  },
+  "form_schema": [
+    { "name": "applicant_name", "label": "Applicant Name", "type": "text", "required": true },
+    {
+      "name": "applicant_parentage",
+      "label": "Father's / Husband's Name",
+      "type": "text",
+      "required": true
+    },
+    { "name": "applicant_age", "label": "Applicant Age", "type": "number", "required": true },
+    {
+      "name": "applicant_occupation",
+      "label": "Applicant Occupation",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "applicant_address",
+      "label": "Applicant Address",
+      "type": "textarea",
+      "required": true
+    },
+    { "name": "court_designation", "label": "Court Designation", "type": "text", "required": true },
+    {
+      "name": "state",
+      "label": "State",
+      "type": "select",
+      "options": ["Bihar", "Jharkhand", "Uttar Pradesh", "Delhi"],
+      "required": true
+    },
+    { "name": "fir_number", "label": "FIR / Crime Number", "type": "text", "required": true },
+    { "name": "fir_date", "label": "FIR Date", "type": "date", "required": true },
+    { "name": "police_station", "label": "Police Station", "type": "text", "required": true },
+    {
+      "name": "offences_alleged",
+      "label": "Offences (BNS sections)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "knowledge_of_fir",
+      "label": "How Applicant Came to Know of FIR",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "apprehension_of_arrest",
+      "label": "Circumstances Showing Apprehension of Arrest",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "cooperation_with_investigation",
+      "label": "Willingness to Cooperate with Investigation",
+      "type": "select",
+      "options": ["Yes"],
+      "required": true
+    },
+    { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
+    {
+      "name": "advocate_enrolment",
+      "label": "Bar Council Enrolment No.",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "mandatory_clauses": [
+    "express surrender to jurisdiction of the court",
+    "particulars of FIR/Crime",
+    "circumstances apprehending arrest by police",
+    "willingness to cooperate with investigation",
+    "prayer for court to take cognizance of surrender and pass appropriate order",
+    "verification on oath"
+  ],
+  "mandatoryClauses": [
+    {
+      "id": "surrender",
+      "name": "Act of Surrender",
+      "required": true,
+      "description": "Express statement that applicant is surrendering before the court of his own volition"
+    },
+    {
+      "id": "fir_particulars",
+      "name": "FIR / Crime Particulars",
+      "required": true,
+      "description": "FIR number, date, police station, offences alleged with BNS sections"
+    },
+    {
+      "id": "apprehension",
+      "name": "Apprehension of Arrest",
+      "required": true,
+      "description": "Specific facts showing imminent arrest — police visits, notices, public statements, complainant threats"
+    },
+    {
+      "id": "cooperation",
+      "name": "Cooperation Undertaking",
+      "required": true,
+      "description": "Express undertaking to cooperate with investigation, not leave jurisdiction without leave"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer",
+      "required": true,
+      "description": "Prayer for court to take cognizance of surrender and pass appropriate orders (remand / bail)"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the applicant having surrendered himself before this Hon'ble Court of his own volition, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Take cognizance of the surrender of the applicant {applicant} in connection with FIR No. {fir_number} dated {fir_date} of Police Station {police_station};\nb) Pass appropriate order regarding custody / remand / release of the applicant in accordance with law;\nc) Direct the Investigating Officer concerned to be informed of the surrender;\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, S/o {parentName}, aged about {age} years, by occupation {occupation}, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "prompt_context": "Draft a Surrender Application before the Magistrate having jurisdiction. CRITICAL — surrender is NOT the same as anticipatory bail. Surrender is the voluntary act of the accused presenting himself to the court to avoid arrest by the police; the prayer is for the court to take cognizance of the surrender and pass an appropriate order — which may be remand to judicial custody OR release on bail (if offence is bailable, or if accused moves bail application simultaneously). Surrender is typically deployed when an FIR has been registered, the accused apprehends arrest, and prefers to be in the custody/under the orders of a judicial forum rather than police. The Hon'ble Supreme Court has recognised this practice in Niranjan Singh v. Prabhakar (1980) 2 SCC 559 — surrender to court's jurisdiction places the person 'in custody' for the purposes of bail under Section 480 BNSS. The application must clearly state (1) particulars of FIR; (2) genuine apprehension of arrest; (3) act of surrender; (4) prayer for court to take cognizance and pass orders. A separate bail application (regular bail / bailable offence release) is usually filed alongside.",
+  "promptInstructions": [
+    "Draft a Surrender Application — accused voluntarily appearing before the Magistrate to submit to court jurisdiction.",
+    "CRITICAL — this is NOT an anticipatory bail application. Do NOT pray for protection from arrest. Pray for the court to take cognizance of surrender.",
+    "Open with paragraph identifying applicant and disclosing FIR particulars (number, date, police station, offences).",
+    "Set out how the applicant came to know of the FIR (newspaper, social media, friend, police visit).",
+    "Establish the apprehension of arrest with concrete facts.",
+    "State express surrender to the jurisdiction of the Hon'ble Court.",
+    "Include undertaking to cooperate with investigation.",
+    "Cite Niranjan Singh v. Prabhakar (1980) 2 SCC 559 on surrender constituting custody for bail purposes under BNSS 480.",
+    "Cite BNS sections for the underlying offences (never IPC).",
+    "Prayer is for the court to take cognizance of surrender and pass appropriate orders — NOT for protection from arrest.",
+    "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
+  ],
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        {
+          "number": "480",
+          "description": "When bail may be taken in case of non-bailable offence"
+        },
+        { "number": "478", "description": "In what cases bail to be taken" },
+        {
+          "number": "479",
+          "description": "Maximum period for which undertrial prisoner can be detained"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + 2 copies)",
+    "Affidavit of applicant",
+    "Copy of FIR / news article showing FIR registered",
+    "Identity proof of applicant",
+    "Address proof",
+    "Vakalatnama",
+    "Concurrent bail application (regular / bailable release)"
+  ],
+  "filingChecklist": [
+    "Application (original + 2 copies)",
+    "Affidavit of applicant",
+    "Copy of FIR / news article showing FIR registered",
+    "Identity proof of applicant",
+    "Address proof",
+    "Vakalatnama",
+    "Concurrent bail application (regular / bailable release)"
+  ],
+  "validation_rules": [
+    "fir_number must not be empty",
+    "apprehension_of_arrest must be substantive (>20 chars)",
+    "cooperation_with_investigation must be Yes",
+    "prayer must NOT contain language seeking protection from arrest (that is anticipatory bail)"
+  ]
+}

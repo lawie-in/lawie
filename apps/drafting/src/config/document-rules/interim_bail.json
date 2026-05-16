@@ -1,0 +1,204 @@
+{
+  "_meta": {
+    "description": "Document-rules config for interim_bail — short-period bail granted pending hearing on regular/anticipatory bail application",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "template_id": "interim_bail",
+  "docType": "interim_bail",
+  "parentDocType": "bail_application",
+  "title": "Interim Bail Application",
+  "displayName": "Interim Bail Application",
+  "category": "criminal_bail",
+  "creditsCost": 2,
+  "court_levels": ["sessions", "high_court", "district", "cjm", "magistrate"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} ... Respondent",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant/Accused" },
+      { "role": "respondent", "label": "Respondent (State)" }
+    ],
+    "caseNomenclature": "INTERIM BAIL APPLICATION No. _____ of [YEAR]\n(In Bail Application No. _____ of [YEAR])"
+  },
+  "form_schema": [
+    { "name": "applicant_name", "label": "Applicant Name", "type": "text", "required": true },
+    {
+      "name": "applicant_parentage",
+      "label": "Father's / Husband's Name",
+      "type": "text",
+      "required": true
+    },
+    { "name": "applicant_age", "label": "Applicant Age", "type": "number", "required": true },
+    {
+      "name": "applicant_address",
+      "label": "Applicant Address",
+      "type": "textarea",
+      "required": true
+    },
+    { "name": "court_designation", "label": "Court Designation", "type": "text", "required": true },
+    {
+      "name": "state",
+      "label": "State",
+      "type": "select",
+      "options": ["Bihar", "Jharkhand", "Uttar Pradesh", "Delhi"],
+      "required": true
+    },
+    { "name": "fir_number", "label": "FIR Number", "type": "text", "required": true },
+    { "name": "fir_date", "label": "FIR Date", "type": "date", "required": true },
+    { "name": "police_station", "label": "Police Station", "type": "text", "required": true },
+    {
+      "name": "offences_alleged",
+      "label": "Offences Alleged (BNS sections)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "main_bail_application_number",
+      "label": "Main Bail Application No.",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "urgency_ground",
+      "label": "Ground of Urgency",
+      "type": "select",
+      "options": [
+        "Medical emergency in family",
+        "Death in family",
+        "Marriage in family",
+        "Examination/academic",
+        "Self medical treatment",
+        "Other"
+      ],
+      "required": true
+    },
+    { "name": "urgency_details", "label": "Urgency Details", "type": "textarea", "required": true },
+    {
+      "name": "duration_sought_days",
+      "label": "Duration Sought (days)",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "next_hearing_date",
+      "label": "Next Hearing Date in Main Bail",
+      "type": "date",
+      "required": false
+    },
+    { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
+    {
+      "name": "advocate_enrolment",
+      "label": "Bar Council Enrolment No.",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "mandatory_clauses": [
+    "interim relief urgency",
+    "reference to pending main bail application",
+    "specific duration of interim bail sought",
+    "undertakings to cooperate with investigation",
+    "undertaking to surrender on expiry of interim period",
+    "no flight risk assurance",
+    "prayer clause limited to interim period",
+    "verification on oath"
+  ],
+  "mandatoryClauses": [
+    {
+      "id": "urgency",
+      "name": "Urgency / Compelling Ground",
+      "required": true,
+      "description": "Specific compelling ground justifying interim relief (medical emergency, death in family, etc.)"
+    },
+    {
+      "id": "main_application_reference",
+      "name": "Reference to Main Bail Application",
+      "required": true,
+      "description": "Pending main regular/anticipatory bail application particulars"
+    },
+    {
+      "id": "duration_sought",
+      "name": "Duration Sought",
+      "required": true,
+      "description": "Specific number of days/period for which interim bail sought"
+    },
+    {
+      "id": "undertakings",
+      "name": "Undertakings",
+      "required": true,
+      "description": "Undertaking to cooperate with investigation and surrender at end of interim period"
+    },
+    {
+      "id": "no_flight_risk",
+      "name": "No Flight Risk",
+      "required": true,
+      "description": "Assertion of social roots and that applicant will not abscond"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Clause",
+      "required": true,
+      "description": "Prayer specifically for interim bail for stated duration"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant interim bail to the applicant {applicant} for a period of {duration_sought_days} days, pending the disposal of the main Bail Application No. {main_bail_application_number} of [YEAR];\nb) Direct release of the applicant on furnishing personal bond and sureties to the satisfaction of the trial court;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, S/o {parentName}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "prompt_context": "Draft an Interim Bail Application under the inherent powers of the Court read with BNSS Section 480/483. Interim bail is a short-duration release pending adjudication of the main regular bail / anticipatory bail application. The Hon'ble Supreme Court in Lal Kamlendra Pratap Singh v. State of U.P. (2009) 4 SCC 437 recognised the power of courts to grant interim bail. The application must establish: (1) pendency of a main bail application; (2) compelling urgency that cannot await the main hearing; (3) specific period sought; (4) undertakings of cooperation and surrender at end of interim period. Reference BNS section numbers for offences (never IPC). The application must be tight — interim bail is an exceptional remedy and the court must be satisfied of urgency.",
+  "promptInstructions": [
+    "Draft an Interim Bail Application invoking inherent powers read with Section 480/483 BNSS, 2023.",
+    "Open with paragraph identifying applicant, FIR particulars and pending main bail application.",
+    "Establish the compelling urgency (medical emergency / death in family / examination / other) with dates and specifics.",
+    "State that the applicant has filed Bail Application No. ___ which is pending hearing on [date] — interim relief is sought for the intervening period.",
+    "Include undertakings: cooperation with investigation, will not tamper with evidence, will surrender on expiry of interim period.",
+    "Cite BNS sections (NEVER IPC) for the underlying offences.",
+    "Prayer must be SPECIFIC to interim duration — do not seek regular bail in this application.",
+    "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
+  ],
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        {
+          "number": "480",
+          "description": "When bail may be taken in case of non-bailable offence"
+        },
+        {
+          "number": "483",
+          "description": "Special powers of High Court or Court of Session regarding bail"
+        },
+        { "number": "528", "description": "Saving of inherent powers of High Court" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + 2 copies)",
+    "Affidavit in support of urgency",
+    "Copy of main bail application",
+    "Copy of FIR",
+    "Documentary proof of urgency (medical certificate / death certificate / admit card)",
+    "Vakalatnama",
+    "Identity proof of applicant"
+  ],
+  "filingChecklist": [
+    "Application (original + 2 copies)",
+    "Affidavit in support of urgency",
+    "Copy of main bail application",
+    "Copy of FIR",
+    "Documentary proof of urgency (medical certificate / death certificate / admit card)",
+    "Vakalatnama",
+    "Identity proof of applicant"
+  ],
+  "validation_rules": [
+    "duration_sought_days <= 30 (interim bail typically not granted beyond 30 days)",
+    "urgency_details must be non-empty",
+    "main_bail_application_number should be supplied OR justify in body why interim sought without main pending"
+  ]
+}

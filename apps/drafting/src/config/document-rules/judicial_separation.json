@@ -1,0 +1,261 @@
+{
+  "_meta": {
+    "description": "Document-rules config for judicial_separation — petition u/s 10 HMA / s.23 SMA",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 3 family-law pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off."
+  },
+  "template_id": "judicial_separation",
+  "docType": "judicial_separation",
+  "title": "Petition for Judicial Separation",
+  "displayName": "Judicial Separation Petition (s.10 HMA / s.23 SMA)",
+  "category": "family",
+  "creditsCost": 2,
+  "court_levels": ["family_court_principal", "family_court_additional", "district_court_civil"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{petitioner} ... Petitioner\nVERSUS\n{respondent} ... Respondent",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner" },
+      { "role": "respondent", "label": "Respondent" }
+    ],
+    "caseNomenclature": "Judicial Separation Petition No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "governing_act",
+        "label": "Governing statute",
+        "type": "select",
+        "required": true,
+        "options": ["HMA_1955", "SMA_1954"]
+      },
+      { "id": "petitioner_name", "label": "Petitioner name", "type": "text", "required": true },
+      { "id": "petitioner_age", "label": "Petitioner age", "type": "number", "required": true },
+      {
+        "id": "petitioner_address",
+        "label": "Petitioner address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "respondent_name", "label": "Respondent name", "type": "text", "required": true },
+      { "id": "respondent_age", "label": "Respondent age", "type": "number", "required": true },
+      {
+        "id": "respondent_address",
+        "label": "Respondent address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "marriage_date", "label": "Date of marriage", "type": "date", "required": true },
+      { "id": "marriage_place", "label": "Place of marriage", "type": "text", "required": true },
+      {
+        "id": "marriage_rites",
+        "label": "Marriage rites/registration",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "matrimonial_home",
+        "label": "Last matrimonial home",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "children_details",
+        "label": "Children of marriage",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "separation_date",
+        "label": "Date of cessation of cohabitation",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "grounds_selected",
+        "label": "Grounds for judicial separation (same as S.13 HMA grounds, available under S.10)",
+        "type": "multiselect",
+        "required": true,
+        "options": [
+          "cruelty",
+          "desertion",
+          "adultery",
+          "conversion",
+          "mental_disorder",
+          "communicable_disease",
+          "renunciation",
+          "presumption_of_death",
+          "wife_specific_grounds"
+        ]
+      },
+      {
+        "id": "facts_narrative",
+        "label": "Narrative of facts grounding the petition",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "ground_particulars",
+        "label": "Particulars supporting selected ground(s)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "why_separation_not_divorce",
+        "label": "Reason petitioner seeks separation rather than divorce (optional)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "jurisdiction_basis",
+        "label": "Basis for jurisdiction",
+        "type": "select",
+        "required": true,
+        "options": [
+          "where_marriage_solemnised",
+          "where_respondent_resides",
+          "where_parties_last_resided_together",
+          "where_petitioner_resides"
+        ]
+      },
+      {
+        "id": "collusion_denial",
+        "label": "Express denial of collusion",
+        "type": "boolean",
+        "required": true
+      },
+      { "id": "court_fee_paid", "label": "Court fee paid", "type": "currency", "required": true },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "valid_marriage",
+      "name": "Valid Marriage",
+      "required": true,
+      "description": "Marriage averments per governing statute"
+    },
+    {
+      "id": "cohabitation",
+      "name": "Cohabitation History",
+      "required": true,
+      "description": "Period and place of cohabitation"
+    },
+    {
+      "id": "grounds_pleaded",
+      "name": "Statutory Grounds",
+      "required": true,
+      "description": "Grounds under S.10 HMA / S.23 SMA pleaded with particulars"
+    },
+    {
+      "id": "no_collusion",
+      "name": "No Collusion",
+      "required": true,
+      "description": "S.23(1)(a) HMA / S.34 SMA averment"
+    },
+    {
+      "id": "no_condonation",
+      "name": "No Condonation",
+      "required": true,
+      "description": "S.23(1)(b) HMA / S.34 SMA"
+    },
+    {
+      "id": "jurisdiction",
+      "name": "Jurisdiction",
+      "required": true,
+      "description": "Court's competence"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer for Judicial Separation",
+      "required": true,
+      "description": "Decree of judicial separation; suspension of cohabitation obligation; marriage continues"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree of judicial separation between the Petitioner and the Respondent under {section_citation}, thereby relieving the Petitioner of the obligation to cohabit with the Respondent while preserving the marital tie;\nb) Award costs of this petition;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, aged about {petitioner_age} years, resident of {petitioner_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to the best of my knowledge and belief. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a petition for Judicial Separation under S.10 HMA (or S.23 SMA, as selected).",
+      "Plead valid marriage averments per governing statute (Hindu rites for HMA; SMA certificate for SMA).",
+      "Plead cohabitation period and date of cessation of cohabitation.",
+      "S.10(1) HMA allows judicial separation on ANY of the grounds specified in S.13(1) (for either spouse) and S.13(2) (for wife). Same body of grounds — pleadings mirror divorce.",
+      "Key distinction: A decree of judicial separation does NOT dissolve the marriage. It only relieves parties of the obligation to cohabit. Re-marriage during subsistence is bigamy.",
+      "Explain (where relevant) why petitioner seeks separation rather than divorce — religious / personal / reconciliation hope. This strengthens bona fides.",
+      "Include S.23(1) averments: no collusion, no condonation, no improper delay, no taking advantage of own wrong.",
+      "Plead jurisdiction under S.19 HMA / S.31 SMA.",
+      "Note: After 1 year non-resumption of cohabitation following a judicial separation decree, S.13(1A)(i) HMA allows either party to seek divorce.",
+      "Tone is restrained — petitioner is preserving the marriage tie while seeking relief from cohabitation.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Hindu Marriage Act, 1955",
+      "sections": [
+        {
+          "number": "10(1)",
+          "description": "Petition for judicial separation on any ground specified in S.13(1) or, in case of wife, S.13(2)"
+        },
+        {
+          "number": "10(2)",
+          "description": "Where decree of judicial separation passed, parties not obliged to cohabit; court may rescind on application"
+        },
+        {
+          "number": "13(1A)(i)",
+          "description": "Non-resumption of cohabitation for 1 year post-judicial separation — independent ground for divorce"
+        },
+        { "number": "23", "description": "Duty of court" }
+      ]
+    },
+    {
+      "act": "Special Marriage Act, 1954",
+      "sections": [
+        { "number": "23", "description": "Judicial separation under SMA — analogous to S.10 HMA" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Petition (original + 2 copies)",
+    "Vakalatnama",
+    "Marriage proof",
+    "Address proofs",
+    "Documents evidencing grounds",
+    "Affidavit verifying petition",
+    "Court fee",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "petitioner_name and respondent_name must not be empty",
+    "marriage_date must precede filing_date",
+    "grounds_selected must contain at least one ground",
+    "collusion_denial must be true",
+    "advocate_enrollment must match Bar Council format",
+    "court_fee_paid must be > 0"
+  ],
+  "key_citations": [
+    "Samar Ghosh v. Jaya Ghosh (2007) 4 SCC 511 — cruelty principles apply equally for separation",
+    "Sureshta Devi v. Om Prakash (1991) 2 SCC 25 — withdrawal of consent applies to S.13B; not to S.10",
+    "Hirachand Srinivas Managaonkar v. Sunanda (2001) 4 SCC 125 — judicial separation decree-holder seeking divorce under S.13(1A)(i) — disqualification under S.23(1)(a) if 'wrong' continues"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

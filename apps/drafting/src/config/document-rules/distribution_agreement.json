@@ -1,0 +1,225 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_status": "Approved",
+    "legal_basis": "Indian Contract Act 1872 + Sale of Goods Act 1930 + Competition Act 2002",
+    "notes": "Distribution / Dealership Agreement. Hard exclusivity, resale price maintenance, territorial restrictions may face Competition Act 2002 S.3 scrutiny (anti-competitive agreements). CCI has examined exclusive distribution arrangements - Schott Glass India case. Permitted only if no AAEC. RPM is per se anti-competitive in India."
+  },
+  "template_id": "distribution_agreement",
+  "title": "Distribution / Dealership Agreement",
+  "category": "corporate",
+  "creditsCost": 2,
+  "court_levels": [],
+  "form_schema": {
+    "type": "object",
+    "required": ["supplier_name", "distributor_name", "products", "territory", "term_years"],
+    "properties": {
+      "supplier_name": { "type": "string" },
+      "supplier_address": { "type": "string" },
+      "supplier_gstin": { "type": "string" },
+      "distributor_name": { "type": "string" },
+      "distributor_address": { "type": "string" },
+      "distributor_gstin": { "type": "string" },
+      "effective_date": { "type": "string", "format": "date" },
+      "term_years": { "type": "number", "default": 3 },
+      "renewal_terms": { "type": "string" },
+      "products": {
+        "type": "array",
+        "items": { "type": "string" },
+        "title": "Products / SKUs covered"
+      },
+      "territory": { "type": "string", "title": "Geographic territory" },
+      "exclusivity_type": {
+        "type": "string",
+        "enum": ["Exclusive", "Non-exclusive", "Sole (Supplier may sell but no other distributor)"],
+        "default": "Non-exclusive"
+      },
+      "minimum_purchase_commitment": { "type": "string" },
+      "price_mechanism": {
+        "type": "string",
+        "enum": ["Wholesale price list", "Net of margin", "Cost plus"]
+      },
+      "margin_or_discount": { "type": "string" },
+      "credit_terms_days": { "type": "number", "default": 30 },
+      "security_deposit": { "type": "number" },
+      "marketing_support": { "type": "string" },
+      "trademark_use": { "type": "boolean", "default": true },
+      "after_sales_obligations": { "type": "string" },
+      "termination_notice_days": { "type": "number", "default": 90 },
+      "post_term_sell_off_period_days": { "type": "number", "default": 90 },
+      "governing_law_state": { "type": "string" },
+      "arbitration_seat": { "type": "string" }
+    }
+  },
+  "mandatory_clauses": [
+    { "clause_id": "parties", "title": "Parties", "must_appear": true },
+    { "clause_id": "recitals", "title": "Recitals", "must_appear": true },
+    { "clause_id": "appointment", "title": "Appointment as Distributor", "must_appear": true },
+    {
+      "clause_id": "territory_exclusivity",
+      "title": "Territory and Exclusivity",
+      "must_appear": true,
+      "note": "Competition Act 2002 S.3 - exclusivity must not cause appreciable adverse effect on competition (AAEC). Avoid absolute territorial protection."
+    },
+    { "clause_id": "products", "title": "Products and Specifications", "must_appear": true },
+    {
+      "clause_id": "minimum_off_take",
+      "title": "Minimum Purchase / Off-take Commitment",
+      "must_appear": true
+    },
+    {
+      "clause_id": "orders_supply",
+      "title": "Orders, Supply, Delivery, Risk and Title",
+      "must_appear": true,
+      "statutory_basis": "Sale of Goods Act 1930 S.18-25 (transfer of property)"
+    },
+    {
+      "clause_id": "prices_payment",
+      "title": "Prices, Discounts, Margin, GST",
+      "must_appear": true,
+      "note": "Avoid Resale Price Maintenance (RPM) - per se anti-competitive under S.3(4)(e). MRP may be communicated but not enforced as minimum resale price."
+    },
+    {
+      "clause_id": "credit_security",
+      "title": "Credit Terms and Security Deposit",
+      "must_appear": true
+    },
+    {
+      "clause_id": "warranty_quality",
+      "title": "Warranties and Quality Standards",
+      "must_appear": true
+    },
+    {
+      "clause_id": "trademark_license",
+      "title": "Trademark and Branding License",
+      "must_appear": true,
+      "content": "Supplier grants Distributor a non-exclusive, revocable license to use Supplier's trademarks solely for the purpose of marketing and selling the Products in the Territory during the Term. All goodwill accrues to Supplier."
+    },
+    {
+      "clause_id": "marketing_promotion",
+      "title": "Marketing and Promotional Support",
+      "must_appear": true
+    },
+    {
+      "clause_id": "distributor_obligations",
+      "title": "Distributor's Obligations",
+      "must_appear": true,
+      "subclauses": [
+        "Diligent marketing",
+        "Customer service",
+        "Maintain premises and stock",
+        "No counterfeits",
+        "No sale outside Territory (subject to passive sales permitted under Comp Act)"
+      ]
+    },
+    { "clause_id": "supplier_obligations", "title": "Supplier's Obligations", "must_appear": true },
+    { "clause_id": "reports_audit", "title": "Reports, Records, and Audit", "must_appear": true },
+    {
+      "clause_id": "compliance",
+      "title": "Compliance with Laws (anti-bribery, FCPA-equivalent, Consumer Protection)",
+      "must_appear": true
+    },
+    { "clause_id": "confidentiality", "title": "Confidentiality", "must_appear": true },
+    { "clause_id": "ip_rights", "title": "Intellectual Property Rights", "must_appear": true },
+    { "clause_id": "indemnification", "title": "Indemnification", "must_appear": true },
+    {
+      "clause_id": "limitation_of_liability",
+      "title": "Limitation of Liability",
+      "must_appear": true
+    },
+    { "clause_id": "insurance", "title": "Insurance", "must_appear": true },
+    { "clause_id": "force_majeure", "title": "Force Majeure", "must_appear": true },
+    { "clause_id": "term", "title": "Term and Renewal", "must_appear": true },
+    {
+      "clause_id": "termination",
+      "title": "Termination",
+      "must_appear": true,
+      "subclauses": [
+        "For convenience with notice",
+        "For cause - material breach",
+        "For insolvency",
+        "For change of control"
+      ]
+    },
+    {
+      "clause_id": "consequences_termination",
+      "title": "Consequences of Termination",
+      "must_appear": true,
+      "subclauses": [
+        "Sell-off period",
+        "Return/repurchase of inventory",
+        "Cessation of TM use",
+        "Settlement of dues",
+        "Survival clauses"
+      ]
+    },
+    {
+      "clause_id": "non_compete",
+      "title": "Non-Compete (Restraint of Trade Compliance)",
+      "must_appear": true,
+      "note": "In-term non-compete typically valid. Post-term restraint must be reasonable and limited - S.27 caution."
+    },
+    {
+      "clause_id": "dispute_resolution",
+      "title": "Dispute Resolution and Arbitration",
+      "must_appear": true
+    },
+    {
+      "clause_id": "governing_law",
+      "title": "Governing Law and Jurisdiction",
+      "must_appear": true
+    },
+    { "clause_id": "general", "title": "General Provisions", "must_appear": true },
+    { "clause_id": "execution", "title": "Execution", "must_appear": true }
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting a Distribution/Dealership Agreement under Indian law. Watch out for Competition Act 2002 S.3 issues - avoid RPM, absolute territorial restrictions, refusal to deal where market power exists.",
+    "drafting_rules": [
+      "Exclusivity: structure as territorial appointment, not absolute restraint on passive sales. CCI permits exclusive distribution if no AAEC.",
+      "Pricing: do NOT include RPM (minimum resale prices). MRP can be communicated but not enforced. RPM is per se violation under S.3(4)(e).",
+      "Tie-in / refusal to deal / bundling - avoid unless justified.",
+      "Trademark license is non-exclusive, revocable, with goodwill to Supplier.",
+      "Sale of Goods Act S.18-25 for property and risk transfer.",
+      "Minimum off-take with consequences for non-achievement (price increase, loss of exclusivity, termination).",
+      "Sell-off period 30-90 days post-termination typical.",
+      "Termination compensation: Indian law does not mandate distributor termination compensation, but contract should be clear.",
+      "Anti-bribery clauses if international.",
+      "Stamp duty per state.",
+      "Cross-border: FEMA + Customs."
+    ],
+    "tone": "Formal commercial-legal, balanced supplier-distributor."
+  },
+  "relevantActs": [
+    { "act": "Indian Contract Act 1872" },
+    { "act": "Sale of Goods Act 1930" },
+    {
+      "act": "Competition Act 2002",
+      "sections": ["S.3 (anti-competitive agreements)", "S.4 (abuse of dominance)"]
+    },
+    { "act": "Consumer Protection Act 2019" },
+    { "act": "CGST Act 2017" },
+    { "act": "Trade Marks Act 1999" },
+    { "act": "Legal Metrology Act 2009" },
+    { "act": "FEMA 1999", "applies_when": "Cross-border distributor" },
+    { "act": "Customs Act 1962", "applies_when": "Imported goods" },
+    { "act": "Indian Stamp Act 1899" }
+  ],
+  "filing_checklist": [
+    "Execute on stamp paper per state.",
+    "Verify GST registration of both parties.",
+    "Register trademark license with TM Registry if applicable (S.49 TM Act).",
+    "Maintain stock and sales records.",
+    "Cross-border: comply with FEMA, RBI reporting, Customs."
+  ],
+  "validation_rules": [
+    { "rule": "No RPM", "check": "No clause fixing minimum resale price" },
+    {
+      "rule": "Exclusivity not absolute",
+      "check": "Passive sales not prohibited if exclusivity granted"
+    },
+    { "rule": "Trademark license terms", "check": "TM license clause with goodwill to Supplier" },
+    { "rule": "Termination notice", "check": "Reasonable notice period" },
+    { "rule": "Sell-off / inventory disposition", "check": "Post-termination inventory handled" }
+  ]
+}

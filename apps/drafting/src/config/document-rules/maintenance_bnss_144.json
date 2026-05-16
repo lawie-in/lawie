@@ -1,0 +1,326 @@
+{
+  "_meta": {
+    "description": "Document-rules config for maintenance_bnss_144 — maintenance application u/s 144 BNSS (was CrPC 125)",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 3 family-law pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Section number is 144 BNSS — never use 125 CrPC."
+  },
+  "template_id": "maintenance_bnss_144",
+  "docType": "maintenance_bnss_144",
+  "title": "Application for Maintenance under Section 144 BNSS, 2023",
+  "displayName": "Maintenance Application (s.144 BNSS)",
+  "category": "family",
+  "creditsCost": 1,
+  "court_levels": ["magistrate_cjm", "magistrate_jmfc", "family_court_additional"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{applicant} ... Applicant\nVERSUS\n{respondent} ... Respondent",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant" },
+      { "role": "respondent", "label": "Respondent" }
+    ],
+    "caseNomenclature": "Maintenance Application u/s 144 BNSS No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "applicant_capacity",
+        "label": "Applicant capacity",
+        "type": "select",
+        "required": true,
+        "options": [
+          "wife",
+          "divorced_wife_not_remarried",
+          "minor_legitimate_child",
+          "minor_illegitimate_child",
+          "major_child_unable_due_to_disability",
+          "father_unable_to_maintain",
+          "mother_unable_to_maintain"
+        ]
+      },
+      { "id": "applicant_name", "label": "Applicant full name", "type": "text", "required": true },
+      { "id": "applicant_age", "label": "Applicant age", "type": "number", "required": true },
+      {
+        "id": "applicant_address",
+        "label": "Applicant address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "applicant_relation_to_respondent",
+        "label": "Relationship to respondent",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "respondent_name",
+        "label": "Respondent full name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "respondent_age", "label": "Respondent age", "type": "number", "required": true },
+      {
+        "id": "respondent_address",
+        "label": "Respondent address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "respondent_occupation",
+        "label": "Respondent occupation",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "respondent_income_monthly",
+        "label": "Respondent's estimated monthly income",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "respondent_income_sources",
+        "label": "Sources of respondent's income (salary slips, business, agricultural, rental, etc.)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "respondent_assets",
+        "label": "Respondent's known assets (movable / immovable)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "applicant_income_monthly",
+        "label": "Applicant's own monthly income (if any)",
+        "type": "currency",
+        "required": false
+      },
+      {
+        "id": "applicant_assets",
+        "label": "Applicant's own assets (if any)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "marriage_date",
+        "label": "Date of marriage (if wife)",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "marriage_place",
+        "label": "Place of marriage (if wife)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "children_dependent",
+        "label": "Children dependent on applicant",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "refusal_or_neglect",
+        "label": "Particulars of respondent's refusal / neglect to maintain",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "ground_unable_to_maintain",
+        "label": "Why applicant is unable to maintain self",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "amount_claimed_monthly",
+        "label": "Monthly maintenance claimed",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "interim_maintenance_sought",
+        "label": "Interim maintenance sought pending disposal",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "interim_amount",
+        "label": "Interim amount sought",
+        "type": "currency",
+        "required": false
+      },
+      {
+        "id": "previous_maintenance_orders",
+        "label": "Any earlier maintenance orders / proceedings",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "jurisdiction_basis",
+        "label": "Basis for territorial jurisdiction (S.145 BNSS — where respondent is, or where applicant resides, or where last resided together)",
+        "type": "select",
+        "required": true,
+        "options": ["where_respondent_is", "where_applicant_resides", "where_last_resided_together"]
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "relationship",
+      "name": "Relationship Establishing Entitlement",
+      "required": true,
+      "description": "Pleading establishing applicant falls within S.144 BNSS — wife / minor child / major disabled child / unable parent"
+    },
+    {
+      "id": "sufficient_means",
+      "name": "Respondent's Sufficient Means",
+      "required": true,
+      "description": "Respondent has sufficient means to maintain — income, occupation, assets"
+    },
+    {
+      "id": "refusal_neglect",
+      "name": "Refusal or Neglect to Maintain",
+      "required": true,
+      "description": "Specific instances of refusal or neglect"
+    },
+    {
+      "id": "applicant_unable_to_maintain_self",
+      "name": "Applicant Unable to Maintain Self",
+      "required": true,
+      "description": "Mandatory ingredient for wife and parents; presumed for minors"
+    },
+    {
+      "id": "wife_not_living_in_adultery",
+      "name": "Wife Not Living in Adultery (if wife)",
+      "required": false,
+      "description": "Negative averment — S.144(4) BNSS bars wife living in adultery / refusing without sufficient reason to live with husband / separated by mutual consent"
+    },
+    {
+      "id": "quantum",
+      "name": "Quantum Justification",
+      "required": true,
+      "description": "Income basis for monthly amount claimed"
+    },
+    {
+      "id": "interim_prayer",
+      "name": "Interim Maintenance Prayer",
+      "required": false,
+      "description": "If sought, prayer for interim maintenance pending disposal under S.144(1) proviso"
+    },
+    {
+      "id": "jurisdiction",
+      "name": "Jurisdiction u/s 145 BNSS",
+      "required": true,
+      "description": "Court's territorial competence"
+    },
+    {
+      "id": "prayer",
+      "name": "Final Prayer",
+      "required": true,
+      "description": "Monthly allowance + interim + costs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Direct the Respondent to pay to the Applicant a monthly allowance of Rs. {amount_claimed_monthly}/- for the maintenance of the Applicant {and dependent children, if any} under Section 144 of the Bharatiya Nagarik Suraksha Sanhita, 2023;\nb) Direct the Respondent to pay interim maintenance of Rs. {interim_amount}/- per month pending final disposal of this application;\nc) Direct the Respondent to pay litigation expenses;\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant_name}, aged about {applicant_age} years, resident of {applicant_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nApplicant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft an application for maintenance under Section 144 of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
+      "CRITICAL: Use Section 144 BNSS — never refer to Section 125 CrPC. BNSS replaced CrPC effective 1 July 2024.",
+      "Plead applicant's capacity clearly (wife / divorced wife not remarried / minor legitimate child / minor illegitimate child / major child unable due to physical or mental abnormality / father or mother unable to maintain self).",
+      "For WIFE: plead valid marriage. Include negative averment that wife is not living in adultery, has not refused without sufficient reason to live with husband, and parties are not living separately by mutual consent (S.144(4) BNSS).",
+      "Plead respondent's sufficient means: occupation, monthly income, assets. Attach salary slips / bank statements / business records / property documents where available.",
+      "Plead specific instances of refusal or neglect to maintain.",
+      "Plead applicant's inability to maintain self — no income / insufficient income, dependent children, illness, etc.",
+      "Quantum: Reference Rajnesh v. Neha (2020) SCC OnLine SC 903 — Supreme Court framework requiring affidavits of assets and liabilities from both parties.",
+      "Interim maintenance: Available under proviso to S.144(1). Plead specifically.",
+      "Jurisdiction under S.145 BNSS: court of Magistrate where respondent is, or where applicant resides, or where parties last resided together.",
+      "Forum: Application is filed before Judicial Magistrate First Class. Family Court has concurrent jurisdiction where established.",
+      "Tone: factual, evidence-anchored. Avoid emotional excess; magistrates respond to documents.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        {
+          "number": "144(1)",
+          "description": "Order for maintenance of wives, children and parents — where person of sufficient means neglects or refuses to maintain"
+        },
+        {
+          "number": "144(1) Proviso",
+          "description": "Interim maintenance and expenses pending disposal"
+        },
+        {
+          "number": "144(2)",
+          "description": "Allowance payable from date of order or from date of application as court may direct"
+        },
+        {
+          "number": "144(3)",
+          "description": "Enforcement — warrant for levying amount; imprisonment up to 1 month for non-payment per month"
+        },
+        {
+          "number": "144(4)",
+          "description": "Bars to wife's claim — living in adultery, refusing without sufficient reason, mutual consent separation"
+        },
+        { "number": "144(5)", "description": "Cancellation on proof of (4) circumstances" },
+        {
+          "number": "145",
+          "description": "Procedure — where application may be filed (territorial jurisdiction)"
+        },
+        { "number": "146", "description": "Alteration in allowance" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + 2 copies)",
+    "Vakalatnama",
+    "Identity proof of applicant",
+    "Address proof",
+    "Marriage proof (if wife)",
+    "Birth certificates of children",
+    "Proof of respondent's income (salary slips, bank statements, ITRs, business records)",
+    "Proof of applicant's lack of income (no-income affidavit)",
+    "Affidavit of assets and liabilities (per Rajnesh v. Neha proforma)",
+    "Court fee (nominal — maintenance applications)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "applicant_capacity must be specified",
+    "applicant_name and respondent_name must not be empty",
+    "respondent_income_monthly must be > 0",
+    "amount_claimed_monthly must be > 0 and reasonable relative to respondent_income_monthly",
+    "refusal_or_neglect must not be empty",
+    "ground_unable_to_maintain must not be empty",
+    "If applicant_capacity is 'wife' or 'divorced_wife_not_remarried', marriage_date and marriage_place must not be empty",
+    "If interim_maintenance_sought is true, interim_amount must be > 0",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Rajnesh v. Neha (2020) SCC OnLine SC 903 — uniform framework for maintenance; affidavits of assets and liabilities mandatory; overlapping reliefs to be consolidated",
+    "Bhuwan Mohan Singh v. Meena (2015) 6 SCC 353 — Supreme Court emphasis on expeditious disposal of maintenance",
+    "Chaturbhuj v. Sita Bai (2008) 2 SCC 316 — interpretation of 'unable to maintain herself'",
+    "Captain Ramesh Chander Kaushal v. Veena Kaushal (1978) 4 SCC 70 — beneficial provision; liberal construction",
+    "Shamima Farooqui v. Shahid Khan (2015) 5 SCC 705 — Muslim wife eligible; provision is secular"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

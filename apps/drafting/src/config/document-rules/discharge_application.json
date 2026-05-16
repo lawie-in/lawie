@@ -1,0 +1,337 @@
+{
+  "_meta": {
+    "description": "Document-rules config for discharge_application — Application for discharge u/S.250 BNSS (Sessions) / S.262 BNSS (warrant case before Magistrate) / S.272 BNSS (summons case)",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 5 criminal petitions pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. 'No prima facie case' standard non-negotiable; not a mini-trial."
+  },
+  "template_id": "discharge_application",
+  "docType": "discharge_application",
+  "title": "Application for Discharge under BNSS",
+  "displayName": "Discharge Application (S.250 / S.262 / S.272 BNSS)",
+  "category": "criminal_petition",
+  "creditsCost": 2,
+  "court_levels": [
+    "sessions_court",
+    "additional_sessions_court",
+    "magistrate_first_class",
+    "chief_judicial_magistrate",
+    "special_court_session_level",
+    "special_court_magistrate_level"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\nState of {state} ... Prosecution\nVERSUS\n{accused} ... Accused / Applicant",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Accused / Applicant" },
+      { "role": "respondent", "label": "Prosecution / State" }
+    ],
+    "caseNomenclature": "Application for Discharge in {case_type} No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "applicant_name",
+        "label": "Accused / Applicant name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "applicant_father_name",
+        "label": "Father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "applicant_age", "label": "Age", "type": "number", "required": true },
+      { "id": "applicant_address", "label": "Address", "type": "textarea", "required": true },
+      {
+        "id": "case_type",
+        "label": "Type of case before lower court",
+        "type": "select",
+        "required": true,
+        "options": [
+          "sessions_trial_s250",
+          "warrant_case_by_magistrate_s262",
+          "summons_case_by_magistrate_s272",
+          "special_court_session_level",
+          "special_court_magistrate_level"
+        ]
+      },
+      {
+        "id": "applicable_section",
+        "label": "Applicable BNSS section for discharge",
+        "type": "select",
+        "required": true,
+        "options": [
+          "s_250_bnss_sessions",
+          "s_262_bnss_warrant_magistrate",
+          "s_272_bnss_summons_magistrate"
+        ]
+      },
+      {
+        "id": "case_number",
+        "label": "Sessions case / GR / CC number and year",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fir_details",
+        "label": "FIR details — number, date, PS",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "offences_charged",
+        "label": "BNS / Special Act sections charged",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "chargesheet_date",
+        "label": "Date of chargesheet filing",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "stage_of_case",
+        "label": "Stage — committed / cognizance taken / charges yet to be framed",
+        "type": "select",
+        "required": true,
+        "options": [
+          "committed_to_sessions",
+          "cognizance_taken_no_charges_framed",
+          "supplementary_chargesheet_filed"
+        ]
+      },
+      {
+        "id": "grounds_for_discharge",
+        "label": "Grounds for discharge — section-wise absence of prima facie case",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "ingredient_analysis",
+        "label": "Ingredient-wise analysis showing no prima facie case",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "documentary_contradictions",
+        "label": "Documentary / statement contradictions in chargesheet material",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "no_role_or_attribution",
+        "label": "Absence of specific role / attribution to applicant",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "vicarious_liability_issues",
+        "label": "Vicarious liability misapplied (e.g., S.85 BNS to all family members without role)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "documents_relied_on",
+        "label": "Chargesheet documents relied on for discharge",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Accused and Case",
+      "required": true,
+      "description": "Accused, case number, FIR, charges"
+    },
+    {
+      "id": "stage_paragraph",
+      "name": "Stage of Case",
+      "required": true,
+      "description": "Pre-charge — discharge applicable here only"
+    },
+    {
+      "id": "applicable_section_paragraph",
+      "name": "Applicable Provision",
+      "required": true,
+      "description": "S.250 / S.262 / S.272 BNSS"
+    },
+    {
+      "id": "ingredient_analysis_paragraph",
+      "name": "Ingredient-wise Analysis",
+      "required": true,
+      "description": "No prima facie case ingredient-by-ingredient"
+    },
+    {
+      "id": "chargesheet_contradiction_paragraph",
+      "name": "Contradictions in Chargesheet Material",
+      "required": true,
+      "description": "Internal contradictions, witness inconsistencies, documents disproving"
+    },
+    {
+      "id": "no_role_paragraph",
+      "name": "Absence of Specific Role",
+      "required": true,
+      "description": "Applicant has no overt act attributed"
+    },
+    {
+      "id": "vicarious_paragraph",
+      "name": "Vicarious Liability Issue (if applicable)",
+      "required": false,
+      "description": "Generalised allegations against family / corporate officers without specific role"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Discharge from charges"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": false,
+      "description": "Affidavit advisable though not strictly required"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Accused / Applicant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Discharge the Accused / Applicant {applicant_name} from the charges under {offences_charged} in {case_type} No. {case_number} of [YEAR] under Section {applicable_section} of the Bharatiya Nagarik Suraksha Sanhita, 2023, there being no sufficient ground for proceeding against him;\n\nb) Award costs of this application;\n\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant_name}, son/daughter/wife of {applicant_father_name}, aged about {applicant_age} years, resident of {applicant_address}, the Accused / Applicant herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nApplicant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft an application for discharge under the appropriate BNSS provision based on court forum.",
+      "PROVISION MAPPING: (a) Sessions Trial — S.250 BNSS (was S.227 CrPC); (b) Warrant Case Trial by Magistrate on police report — S.262 BNSS (was S.239 CrPC); (c) Summons Case by Magistrate — S.272 BNSS (was S.245 CrPC for warrant case on complaint, and notional discharge in summons case).",
+      "S.250 BNSS — 'If, upon consideration of the record of the case and the documents submitted therewith, and after hearing the submissions of the accused and the prosecution in this behalf, the Judge considers that there is no sufficient ground for proceeding against the accused, he shall discharge the accused and record his reasons for so doing.'",
+      "Standard — 'no sufficient ground for proceeding'. NOT a mini-trial; judge must sift and weigh evidence to see if prima facie case exists.",
+      "Cite Union of India v. Prafulla Kumar Samal (1979) 3 SCC 4 — judge's role at framing/discharge stage: (i) judge to sift and weigh material; (ii) where evidence raises grave suspicion not properly explained, charge to be framed; (iii) where evidence does not show offence committed, discharge; (iv) judge has power to sift and weigh, not to act as mere post office.",
+      "Cite State of Bihar v. Ramesh Singh (1977) 4 SCC 39 — at framing stage, court not to embark on prolonged scrutiny; grave suspicion is sufficient to frame charge.",
+      "Cite Niranjan Singh Karam Singh Punjabi v. Jitendra Bhimraj Bijjaya (1990) 4 SCC 76 — meaning of 'sufficient ground'.",
+      "Cite Sajjan Kumar v. CBI (2010) 9 SCC 368 — at discharge stage, court has limited power to examine if a strong suspicion is made out.",
+      "Cite Asim Shariff v. NIA (2019) 7 SCC 148 — recent reiteration.",
+      "Cite Soma Chakravarty v. State (2007) 5 SCC 403 — material against accused must be examined; broad probabilities to be considered.",
+      "Para 1: Accused description, case number, charges.",
+      "Para 2: FIR and chargesheet history — dates, sections.",
+      "Para 3: Stage — pre-charge; reference S.250/S.262/S.272 BNSS as applicable.",
+      "Para 4: BRIEF prosecution case summary.",
+      "Para 5: Section-wise ingredient analysis — for each BNS section charged, list ingredients with statutory text, then demonstrate how chargesheet material taken at face value fails to make out one or more ingredients.",
+      "Para 6: Contradictions in chargesheet material — between FIR and S.180/181 statements, between different witnesses, between statements and documents, between documents inter se. Pin-point page numbers in chargesheet.",
+      "Para 7: Absence of role/attribution — for cases with multiple accused, demonstrate that applicant has no specific overt act attributed; generic allegations insufficient.",
+      "Para 8: Vicarious liability issues — for matrimonial cases (BNS 85, 86) where in-laws are charged without specific role: cite Geeta Mehrotra v. State of UP (2012) 10 SCC 741; Preeti Gupta v. State of Jharkhand (2010) 7 SCC 667 — caution against omnibus implication of relatives.",
+      "Para 9: Corporate cases — for accused officers without specific role: cite Pepsi Foods Ltd v. Special Judicial Magistrate (1998) 5 SCC 749; Maksud Saiyed v. State of Gujarat (2008) 5 SCC 668; Sunil Bharti Mittal v. CBI (2015) 4 SCC 609 — vicarious liability under criminal law requires specific statutory provision.",
+      "Para 10: NI Act S.138 prosecutions of company directors — Cite S.M.S. Pharmaceuticals v. Neeta Bhalla (2005) 8 SCC 89 — director must be 'in charge of and responsible to' company at time of offence.",
+      "Para 11: Where civil dispute given criminal colour — cite Indian Oil Corp v. NEPC India (2006) 6 SCC 736 — caution against criminalising contractual disputes.",
+      "Para 12: Statutory ingredients of common offences — applicant must know these (cited for reference): BNS 318 (cheating) requires inducement, deception, delivery; BNS 316 (criminal breach of trust) requires entrustment + dishonest misappropriation; BNS 85 (cruelty) requires marriage + harassment + cruelty as defined; BNS 86 (dowry death) requires death within 7 years of marriage + cruelty soon before death.",
+      "Para 13: Discharge under S.250 distinct from acquittal — discharge does NOT bar fresh trial if new evidence emerges (S.300 CrPC not attracted).",
+      "Para 14: List of chargesheet documents relied on with index references.",
+      "Burden — at discharge stage, defence cannot adduce evidence; only chargesheet material is examined. Accused may produce documents only if material in chargesheet itself supports defence (per State of Orissa v. Debendra Nath Padhi (2005) 1 SCC 568).",
+      "IMPORTANT — Cite Debendra Nath Padhi: at framing/discharge stage, court cannot consider documents produced by defence; only chargesheet material relied. EXCEPT: documents of unimpeachable character (court orders, statutory documents).",
+      "However in Nitya Dharmananda v. Gopal Sheelum Reddy (2018) 2 SCC 93 — relaxed Debendra Padhi where prosecution itself relied on certain documents.",
+      "Discharge order is appealable / revisable (S.438 BNSS revision to HC by State).",
+      "Affidavit in support is advisable.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)",
+      "sections": [
+        { "number": "S.250", "description": "Discharge — Sessions Trial (replaces S.227 CrPC)" },
+        { "number": "S.251", "description": "Framing of charge — Sessions" },
+        {
+          "number": "S.261",
+          "description": "Procedure for trial of warrant cases by Magistrate on police report"
+        },
+        {
+          "number": "S.262",
+          "description": "Discharge in warrant case on police report (replaces S.239 CrPC)"
+        },
+        { "number": "S.263", "description": "Framing of charge — warrant case" },
+        {
+          "number": "S.272",
+          "description": "Procedure in summons cases — release / discharge (replaces S.245 CrPC for warrant on complaint)"
+        },
+        { "number": "S.438", "description": "Revisional powers of HC" },
+        { "number": "S.442", "description": "Revisional powers of Court of Session" }
+      ]
+    },
+    {
+      "act": "Bharatiya Nyaya Sanhita, 2023 (BNS)",
+      "sections": [
+        {
+          "number": "S.85",
+          "description": "Cruelty by husband or relative (was IPC 498A) — strict ingredients"
+        },
+        { "number": "S.86", "description": "Dowry death (was IPC 304B) — strict ingredients" },
+        {
+          "number": "S.316",
+          "description": "Criminal breach of trust (was IPC 406) — entrustment requirement"
+        },
+        { "number": "S.318", "description": "Cheating (was IPC 420) — deception requirement" }
+      ]
+    },
+    {
+      "act": "Negotiable Instruments Act, 1881",
+      "sections": [
+        { "number": "S.138", "description": "Cheque dishonour" },
+        { "number": "S.141", "description": "Offences by companies — director liability" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + copies)",
+    "Affidavit in support (advisable)",
+    "Vakalatnama / Memo of appearance",
+    "Memo of parties",
+    "Index references to chargesheet documents",
+    "Highlighted copies of contradictory statements / documents",
+    "Court orders / judgments relied on (Prafulla Kumar Samal etc.)",
+    "Court fee per state Schedule",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "applicable_section must match case_type (s_250 with sessions; s_262 with warrant magistrate; s_272 with summons magistrate)",
+    "offences_charged must use BNS sections (warn if IPC sections detected)",
+    "chargesheet_date must be valid date in past",
+    "stage_of_case must be pre-charge (charges not yet framed)",
+    "grounds_for_discharge must not be empty",
+    "ingredient_analysis must not be empty",
+    "no_role_or_attribution must not be empty",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Union of India v. Prafulla Kumar Samal (1979) 3 SCC 4 — Judge's role at discharge: sift and weigh",
+    "State of Bihar v. Ramesh Singh (1977) 4 SCC 39 — Grave suspicion suffices to frame charge",
+    "Niranjan Singh Karam Singh Punjabi v. Jitendra Bhimraj Bijjaya (1990) 4 SCC 76 — Meaning of sufficient ground",
+    "Sajjan Kumar v. CBI (2010) 9 SCC 368 — Strong suspicion test",
+    "Soma Chakravarty v. State (2007) 5 SCC 403 — Broad probabilities at discharge",
+    "State of Orissa v. Debendra Nath Padhi (2005) 1 SCC 568 — Only chargesheet material; defence material limited",
+    "Nitya Dharmananda v. Gopal Sheelum Reddy (2018) 2 SCC 93 — Refinement of Debendra Padhi",
+    "Geeta Mehrotra v. State of UP (2012) 10 SCC 741 — Omnibus implication of in-laws",
+    "Preeti Gupta v. State of Jharkhand (2010) 7 SCC 667 — Caution in matrimonial cases",
+    "S.M.S. Pharmaceuticals v. Neeta Bhalla (2005) 8 SCC 89 — Director liability under NI Act S.138",
+    "Sunil Bharti Mittal v. CBI (2015) 4 SCC 609 — Corporate criminal liability requires statutory basis",
+    "Asim Shariff v. NIA (2019) 7 SCC 148 — Recent reiteration of discharge principles"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

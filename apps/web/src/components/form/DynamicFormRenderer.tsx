@@ -1,16 +1,18 @@
 'use client';
 
 /**
- * DynamicFormRenderer — Config-Driven Form (SCRUM-43)
+ * DynamicFormRenderer — Config-Driven Form (SCRUM-43, extended SCRUM-79).
  *
  * Reads a template config's form_schema and renders the full multi-step form.
- * Supports all field types: text, date, number, textarea, dropdown,
- * dropdown_search, multi_select_search, checkbox_group.
- * Handles show_if conditional visibility and min/max validation.
+ * Field types: text, date, number, textarea, dropdown, dropdown_search,
+ * multi_select_search, checkbox_group, file (single/multi), currency (INR).
+ * Handles show_if / depends_on conditional visibility, validation_pattern
+ * (regex), min/max length, min_select, and cascading dropdowns
+ * (state → court_type → court).
  *
  * Zero hardcoded fields — adding a new template = new JSON config only.
  */
-import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, IndianRupee, Paperclip, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // ── Types (mirrored from backend template-engine types) ─────────────────────
@@ -31,7 +33,9 @@ interface FormField {
     | 'dropdown'
     | 'dropdown_search'
     | 'multi_select_search'
-    | 'checkbox_group';
+    | 'checkbox_group'
+    | 'file'
+    | 'currency';
   required: boolean;
   placeholder?: string;
   default?: string;
@@ -41,12 +45,24 @@ interface FormField {
   filtered_by?: string[];
   cascades_to?: string[];
   show_if?: string;
+  depends_on?: string;
   inject_into?: string[];
   auto_convert_old?: boolean;
   links_to_formatting?: boolean;
   min_length?: number;
   max_length?: number;
   min_select?: number;
+  validation_pattern?: string;
+  validation_message?: string;
+  multiple?: boolean;
+  accept?: string;
+  help?: string;
+}
+
+interface UploadedFile {
+  name: string;
+  size: number;
+  type: string;
 }
 
 interface FormStep {
@@ -73,20 +89,65 @@ interface DynamicFormRendererProps {
   submitting?: boolean;
 }
 
-// ── Helper: evaluate show_if expressions ────────────────────────────────────
-
-function evaluateShowIf(expr: string, formData: Record<string, unknown>): boolean {
-  const neqMatch = expr.match(/^(\w+)\s*!==?\s*(\w+)$/);
-  if (neqMatch) {
-    const actual = String(formData[neqMatch[1]] ?? '');
-    return actual !== neqMatch[2];
-  }
-  const eqMatch = expr.match(/^(\w+)\s*===?\s*(\w+)$/);
-  if (eqMatch) {
-    const actual = String(formData[eqMatch[1]] ?? '');
-    return actual === eqMatch[2];
+// ── Helper: evaluate show_if / depends_on expressions ──────────────────────
+//
+// Supports a small predicate language used by CLO templates:
+//
+//   marriage_type === "registered"            // eq, quoted RHS
+//   currently_in_custody !== no               // neq, bare-word RHS
+//   field === "a" && other === "b"            // AND chain (no OR — kept simple)
+//
+// Anything else evaluates to `true` (fail-open) so a malformed predicate never
+// hides a required field. That matches the SCRUM-43 behaviour the engine relied on.
+export function evaluateConditional(
+  expr: string | undefined,
+  formData: Record<string, unknown>,
+): boolean {
+  if (!expr) return true;
+  const clauses = expr.split('&&').map((c) => c.trim());
+  for (const clause of clauses) {
+    if (!evaluateClause(clause, formData)) return false;
   }
   return true;
+}
+
+function evaluateClause(clause: string, formData: Record<string, unknown>): boolean {
+  // Match `<field> <op> <rhs>` where <rhs> is bare-word or quoted.
+  const m = clause.match(/^(\w+)\s*(!==?|===?)\s*(?:"([^"]*)"|'([^']*)'|(\S+))$/);
+  if (!m) return true; // fail-open on malformed clauses
+  const [, field, op, dq, sq, bare] = m;
+  const rhs = dq ?? sq ?? bare ?? '';
+  const actual = String(formData[field] ?? '');
+  const equal = actual === rhs;
+  return op.startsWith('!') ? !equal : equal;
+}
+
+// Back-compat alias for the SCRUM-43 callsite name.
+export const evaluateShowIf = evaluateConditional;
+
+// SCRUM-79 — regex validation in zod. Returns null when OK, error message otherwise.
+export function validatePattern(field: FormField, value: unknown): string | null {
+  if (!field.validation_pattern) return null;
+  if (value === undefined || value === null || value === '') return null;
+  let re: RegExp;
+  try {
+    re = new RegExp(field.validation_pattern);
+  } catch {
+    return null; // malformed pattern from CLO — don't block the user, log will surface upstream
+  }
+  return re.test(String(value)) ? null : (field.validation_message ?? 'Invalid format');
+}
+
+// SCRUM-79 — INR rupee formatting. Returns a display string for the field.
+function formatRupee(raw: string): string {
+  if (raw === '' || raw === undefined || raw === null) return '';
+  const num = Number(String(raw).replace(/[^0-9.]/g, ''));
+  if (Number.isNaN(num)) return '';
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(num);
 }
 
 // ── Field Components ────────────────────────────────────────────────────────
@@ -288,24 +349,58 @@ function MultiSelectSearchField({
   onChange,
   options,
   allowFreeText = false,
+  searchHandler,
 }: {
   field: FormField;
   value: string[];
   onChange: (v: string[]) => void;
   options: FieldOption[];
   allowFreeText?: boolean;
+  /** SCRUM-85 — when provided, the dropdown is populated by debounced remote
+   *  search instead of static `options`. Returns up to N matches for `query`. */
+  searchHandler?: (query: string) => Promise<FieldOption[]>;
 }) {
   const [search, setSearch] = useState('');
+  const [remoteResults, setRemoteResults] = useState<FieldOption[]>([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
 
-  const filtered = useMemo(
-    () =>
-      search.length > 0
-        ? options.filter(
-            (o) => o.label.toLowerCase().includes(search.toLowerCase()) && !value.includes(o.id),
-          )
-        : options.filter((o) => !value.includes(o.id)),
-    [options, search, value],
-  );
+  // SCRUM-85: debounced typeahead for fields with a `searchHandler`. Tracks the
+  // latest request to discard stale ones (advocate types fast).
+  useEffect(() => {
+    if (!searchHandler) return;
+    const term = search.trim();
+    if (term.length === 0) {
+      setRemoteResults([]);
+      return;
+    }
+    let cancelled = false;
+    setRemoteLoading(true);
+    const handle = setTimeout(async () => {
+      try {
+        const results = await searchHandler(term);
+        if (!cancelled) setRemoteResults(results);
+      } finally {
+        if (!cancelled) setRemoteLoading(false);
+      }
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [search, searchHandler]);
+
+  const filtered = useMemo(() => {
+    if (searchHandler) {
+      // Remote-search mode: dropdown shows whatever the handler returned, minus
+      // anything the user has already picked.
+      return remoteResults.filter((o) => !value.includes(o.id));
+    }
+    return search.length > 0
+      ? options.filter(
+          (o) => o.label.toLowerCase().includes(search.toLowerCase()) && !value.includes(o.id),
+        )
+      : options.filter((o) => !value.includes(o.id));
+  }, [searchHandler, options, search, value, remoteResults]);
 
   const selectedItems: FieldOption[] = value.map((id) => {
     const found = options.find((o) => o.id === id);
@@ -371,8 +466,14 @@ function MultiSelectSearchField({
             </button>
           )}
         </div>
-        {search.length > 0 && filtered.length > 0 && (
-          <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+        {search.length > 0 && (
+          <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+            {remoteLoading && filtered.length === 0 && (
+              <div className="px-3 py-2 text-xs text-slate-400">Searching…</div>
+            )}
+            {!remoteLoading && filtered.length === 0 && searchHandler && (
+              <div className="px-3 py-2 text-xs text-slate-400">No matches</div>
+            )}
             {filtered.map((opt) => (
               <button
                 key={opt.id}
@@ -432,6 +533,120 @@ function CheckboxGroupField({
           </label>
         ))}
       </div>
+    </div>
+  );
+}
+
+function CurrencyField({
+  field,
+  value,
+  onChange,
+}: {
+  field: FormField;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  // Maintain raw digits internally; show the INR-formatted preview below the input.
+  const display = formatRupee(value);
+  return (
+    <div>
+      <FieldLabel field={field} />
+      <div className={`${inputClasses} flex items-center gap-2 px-2 py-1.5`}>
+        <IndianRupee size={14} className="flex-shrink-0 text-slate-400" />
+        <input
+          type="text"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ''))}
+          placeholder={field.placeholder ?? '0'}
+          className="flex-1 bg-transparent text-sm outline-none"
+        />
+      </div>
+      {display && <p className="mt-0.5 text-xs text-slate-500">{display}</p>}
+    </div>
+  );
+}
+
+function FileField({
+  field,
+  value,
+  onChange,
+}: {
+  field: FormField;
+  value: UploadedFile[];
+  onChange: (v: UploadedFile[]) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const list = e.target.files;
+    if (!list) return;
+    const picked: UploadedFile[] = Array.from(list).map((f) => ({
+      name: f.name,
+      size: f.size,
+      type: f.type,
+    }));
+    onChange(field.multiple ? [...value, ...picked] : picked);
+    // Reset so the same file can be re-selected after removal.
+    if (inputRef.current) inputRef.current.value = '';
+  }
+  return (
+    <div>
+      <FieldLabel field={field} />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className={`${inputClasses} flex items-center gap-2 text-left text-slate-600 hover:bg-slate-50`}
+      >
+        <Paperclip size={14} className="flex-shrink-0 text-slate-400" />
+        <span className="flex-1 text-sm">
+          {value.length > 0
+            ? field.multiple
+              ? `${value.length} file(s) selected`
+              : value[0].name
+            : (field.placeholder ?? (field.multiple ? 'Choose files…' : 'Choose a file…'))}
+        </span>
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        multiple={field.multiple ?? false}
+        accept={field.accept}
+        onChange={handlePick}
+      />
+      {value.length > 0 && (
+        <ul className="mt-1 space-y-1">
+          {value.map((f, i) => (
+            <li
+              key={`${f.name}-${i}`}
+              className="flex items-center justify-between rounded border border-slate-100 px-2 py-1 text-xs text-slate-600"
+            >
+              <span className="truncate">
+                {f.name}
+                <span className="ml-2 text-slate-400">{(f.size / 1024).toFixed(0)} KB</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => onChange(value.filter((_, j) => j !== i))}
+                className="text-slate-400 hover:text-slate-600"
+                aria-label="Remove"
+              >
+                <X size={12} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function FieldFooter({ field, errorMessage }: { field: FormField; errorMessage?: string | null }) {
+  if (!errorMessage && !field.help) return null;
+  return (
+    <div className="mt-0.5 space-y-0.5 text-xs">
+      {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+      {field.help && !errorMessage && <p className="text-slate-400">{field.help}</p>}
     </div>
   );
 }
@@ -584,11 +799,33 @@ function resolveOptions(
   if (field.source === 'courts_db.court_types') return courtsData.courtTypes;
   if (field.source === 'courts_db.courts') return courtsData.courts;
 
-  // bns_mapping source — for now return empty, user types freely
-  // TODO: SCRUM-46 will provide the full BNS section search API
+  // bns_mapping: the dropdown is populated by remote typeahead (SCRUM-85);
+  // the MultiSelectSearchField below uses a searchHandler instead of these
+  // static options. Returning [] here keeps the local filter inert.
   if (field.source === 'bns_mapping') return [];
 
   return [];
+}
+
+// SCRUM-85 — typeahead handler for in-form section pickers (bail templates etc).
+// Fetches /api/sections/search and shapes results into FieldOption[] with the
+// new section number as the chosen value and a "<section> · <title>" label.
+async function fetchBnsMappingResults(query: string): Promise<FieldOption[]> {
+  try {
+    const res = await fetch(
+      `${API_URL}/api/sections/search?q=${encodeURIComponent(query)}&code=BNS&limit=10`,
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as {
+      results: Array<{ section: string; title: string; code: string }>;
+    };
+    return (data.results ?? []).map((r) => ({
+      id: r.section,
+      label: `${r.section} BNS · ${r.title}`,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 // ── Main Component ──────────────────────────────────────────────────────────
@@ -602,13 +839,18 @@ export default function DynamicFormRenderer({
   const steps = config.form_schema.steps;
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<Record<string, unknown>>(() => {
-    // Initialize with defaults from the schema
+    // Initialize with defaults from the schema. Array-shaped fields (checkbox group,
+    // multi-select, file) get `[]`, scalar fields get '' unless the config supplies a default.
     const initial: Record<string, unknown> = {};
     for (const s of steps) {
       for (const f of s.fields) {
-        if (f.default) {
+        if (f.default !== undefined) {
           initial[f.field_id] = f.default;
-        } else if (f.type === 'checkbox_group' || f.type === 'multi_select_search') {
+        } else if (
+          f.type === 'checkbox_group' ||
+          f.type === 'multi_select_search' ||
+          f.type === 'file'
+        ) {
           initial[f.field_id] = [];
         } else {
           initial[f.field_id] = '';
@@ -651,16 +893,28 @@ export default function DynamicFormRenderer({
     [cascadeMap],
   );
 
-  // Get visible fields for the current step (respecting show_if)
+  // Get visible fields for the current step (respecting show_if + depends_on).
   const currentStep = steps[step];
   const visibleFields = useMemo(
-    () => currentStep.fields.filter((f) => !f.show_if || evaluateShowIf(f.show_if, formData)),
+    () =>
+      currentStep.fields.filter((f) => evaluateConditional(f.show_if ?? f.depends_on, formData)),
     [currentStep, formData],
   );
+
+  // Surface validation-pattern errors per field so we can both gate `canAdvance`
+  // and render the error message under the input.
+  const fieldErrors = useMemo(() => {
+    const errors: Record<string, string | null> = {};
+    for (const field of visibleFields) {
+      errors[field.field_id] = validatePattern(field, formData[field.field_id]);
+    }
+    return errors;
+  }, [visibleFields, formData]);
 
   // Can we advance to the next step?
   const canAdvance = useMemo(() => {
     for (const field of visibleFields) {
+      if (fieldErrors[field.field_id]) return false;
       if (!field.required) continue;
       const value = formData[field.field_id];
       if (value === undefined || value === null || value === '') return false;
@@ -680,7 +934,7 @@ export default function DynamicFormRenderer({
         return false;
     }
     return true;
-  }, [visibleFields, formData]);
+  }, [visibleFields, formData, fieldErrors]);
 
   const isLastStep = step === steps.length - 1;
 
@@ -713,7 +967,8 @@ export default function DynamicFormRenderer({
             const isFullWidth =
               field.type === 'textarea' ||
               field.type === 'checkbox_group' ||
-              field.type === 'multi_select_search';
+              field.type === 'multi_select_search' ||
+              field.type === 'file';
 
             return (
               <div key={field.field_id} className={isFullWidth ? 'col-span-full' : ''}>
@@ -758,6 +1013,9 @@ export default function DynamicFormRenderer({
                     onChange={(v) => setField(field.field_id, v)}
                     options={options}
                     allowFreeText={field.source === 'bns_mapping'}
+                    searchHandler={
+                      field.source === 'bns_mapping' ? fetchBnsMappingResults : undefined
+                    }
                   />
                 )}
 
@@ -768,6 +1026,24 @@ export default function DynamicFormRenderer({
                     onChange={(v) => setField(field.field_id, v)}
                   />
                 )}
+
+                {field.type === 'currency' && (
+                  <CurrencyField
+                    field={field}
+                    value={String(value ?? '')}
+                    onChange={(v) => setField(field.field_id, v)}
+                  />
+                )}
+
+                {field.type === 'file' && (
+                  <FileField
+                    field={field}
+                    value={Array.isArray(value) ? (value as UploadedFile[]) : []}
+                    onChange={(v) => setField(field.field_id, v)}
+                  />
+                )}
+
+                <FieldFooter field={field} errorMessage={fieldErrors[field.field_id]} />
               </div>
             );
           })}

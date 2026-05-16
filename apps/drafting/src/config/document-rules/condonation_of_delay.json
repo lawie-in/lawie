@@ -1,0 +1,298 @@
+{
+  "_meta": {
+    "description": "Document-rules config for condonation_of_delay — Application u/S.5 Limitation Act 1963 for condoning delay in filing",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 5 civil interlocutory pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. 'Sufficient cause' is jurisdictional fact; day-by-day explanation post-30 days mandatory."
+  },
+  "template_id": "condonation_of_delay",
+  "docType": "condonation_of_delay",
+  "title": "Application for Condonation of Delay (Section 5 Limitation Act, 1963)",
+  "displayName": "Condonation of Delay Application (S.5 Limitation Act)",
+  "category": "civil_interlocutory",
+  "creditsCost": 1,
+  "court_levels": [
+    "civil_judge_junior_division",
+    "civil_judge_senior_division",
+    "district_judge",
+    "high_court_appellate_side",
+    "high_court_original_side",
+    "sessions_court",
+    "magistrate_court",
+    "tribunal"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant\nVERSUS\n{respondent} ... Non-Applicant",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant" },
+      { "role": "respondent", "label": "Non-Applicant" }
+    ],
+    "caseNomenclature": "I.A. No. _____ of [YEAR] in {proceeding_type} No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "proceeding_type",
+        "label": "Type of proceeding for which delay is sought to be condoned",
+        "type": "select",
+        "required": true,
+        "options": [
+          "appeal",
+          "revision",
+          "review",
+          "execution_petition",
+          "restoration_application",
+          "second_appeal",
+          "writ_petition",
+          "election_petition",
+          "other"
+        ]
+      },
+      { "id": "applicant_name", "label": "Applicant name", "type": "text", "required": true },
+      { "id": "respondent_name", "label": "Non-Applicant name", "type": "text", "required": true },
+      {
+        "id": "impugned_order_court",
+        "label": "Court / authority that passed the impugned order/decree",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "impugned_order_date",
+        "label": "Date of impugned order / decree",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "certified_copy_applied_date",
+        "label": "Date certified copy was applied for",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "certified_copy_received_date",
+        "label": "Date certified copy was received",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "prescribed_period",
+        "label": "Prescribed limitation period (in days/months) and Article of Limitation Act Schedule",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "due_date_of_filing",
+        "label": "Last date on which filing was due",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "actual_filing_date",
+        "label": "Actual / proposed date of filing",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "delay_in_days",
+        "label": "Length of delay in days",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "sufficient_cause",
+        "label": "Sufficient cause explanation — narrative with dates",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "day_by_day_explanation",
+        "label": "Day-by-day / week-by-week explanation (mandatory if delay > 30 days)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "supporting_evidence",
+        "label": "Supporting evidence (medical certificates, travel records, advocate negligence record)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "no_negligence",
+        "label": "Confirmation of no want of bona fides / negligence on part of applicant",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Applicant and non-applicant"
+    },
+    {
+      "id": "impugned_order_paragraph",
+      "name": "Impugned Order / Decree",
+      "required": true,
+      "description": "Court, date, nature"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Prescribed Period of Limitation",
+      "required": true,
+      "description": "Article and length"
+    },
+    {
+      "id": "delay_quantification_paragraph",
+      "name": "Quantification of Delay",
+      "required": true,
+      "description": "Exact number of days of delay"
+    },
+    {
+      "id": "sufficient_cause_paragraph",
+      "name": "Sufficient Cause",
+      "required": true,
+      "description": "Detailed explanation with dates"
+    },
+    {
+      "id": "day_by_day_paragraph",
+      "name": "Day-by-Day Explanation",
+      "required": false,
+      "description": "Mandatory where delay exceeds 30 days"
+    },
+    {
+      "id": "no_negligence_paragraph",
+      "name": "Bona Fides",
+      "required": true,
+      "description": "No want of bona fides / negligence"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Condone delay and admit the substantive matter"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Affidavit accompanying application"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Condone the delay of {delay_in_days} days in filing the accompanying {proceeding_type} under Section 5 of the Limitation Act, 1963;\n\nb) Admit the accompanying {proceeding_type} on the file of this Hon'ble Court and proceed to dispose it on merits;\n\nc) Award costs of this application;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant_name}, the Applicant herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to my personal knowledge. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nApplicant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft an application for condonation of delay under Section 5 of the Limitation Act, 1963.",
+      "S.5 applies to appeals and applications (not to suits — for suits, sec. 5 does not apply; specific extensions under sec. 12-14 may apply).",
+      "Cite Collector, Land Acquisition, Anantnag v. Mst. Katiji (1987) 2 SCC 107 — liberal approach to condone delay where 'sufficient cause' shown; substantial justice over technical considerations.",
+      "Cite Esha Bhattacharjee v. Managing Committee of Raghunathpur Nafar Academy (2013) 12 SCC 649 — fifteen principles on condonation; rejection of mechanical approach.",
+      "Cite N. Balakrishnan v. M. Krishnamurthy (1998) 7 SCC 123 — length of delay is no matter; acceptability of explanation is sole criterion.",
+      "Cite Basawaraj v. Special Land Acquisition Officer (2013) 14 SCC 81 — sufficient cause must be such as to prevent applicant from filing within time despite due diligence.",
+      "Para 1: Description of impugned order — court, date, decree/order/judgment.",
+      "Para 2: Period of limitation prescribed — cite Article of Limitation Act Schedule. Common: appeal under CPC Art. 116 (30/90 days); revision Art. 124 (90 days); review O.47 (30 days); etc.",
+      "Para 3: Date when certified copy applied for and received — to claim deduction under S.12(2).",
+      "Para 4: Last date of limitation and actual / proposed date of filing — quantify delay in days.",
+      "Para 5: Sufficient cause — must explain every day of delay where delay exceeds 30 days; for very short delays, broad explanation may suffice but day-by-day is safer.",
+      "Common grounds: medical illness (with certificate), bereavement (with death certificate), pursuit of wrong remedy in good faith, advocate's negligence (Rafiq v. Munshilal AIR 1981 SC 1400 — litigant should not suffer for counsel's lapse), administrative delays in obtaining certified copies, pendency of related proceedings.",
+      "Para 6: Specific events — date-wise narrative — what applicant did each day to pursue remedy.",
+      "Para 7: Bona fides — no negligence, no mala fide, no want of due diligence.",
+      "Where applicant is government / public body: Cite State of Nagaland v. Lipok AO (2005) 3 SCC 752 — slightly liberal but not blanket; impersonal machinery considerations.",
+      "Where delay is inordinate (years): Cite Pundlik Jalam Patil v. Executive Engineer (2008) 17 SCC 448; Postmaster General v. Living Media India (2012) 3 SCC 563 — government cannot get away with stock excuses.",
+      "Where the matter involves valuable rights or property: courts more inclined to condone if explanation reasonable.",
+      "DO NOT mechanically cite Mst. Katiji — must build factual sufficient cause first.",
+      "Note S.5 NOT applicable to suits; for suits, see S.3 (bar) and S.12-14 (exclusion/extension).",
+      "Where time-barred SARFAESI, NI Act, NCDRC matters — many have own limitation regimes (e.g., NI Act S.142(b) proviso 30-day condonation power); cite specific statute.",
+      "Affidavit in support is mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "S.3",
+          "description": "Bar of limitation — dismissal of time-barred proceedings even if not raised"
+        },
+        { "number": "S.4", "description": "Expiry of period when court is closed" },
+        {
+          "number": "S.5",
+          "description": "Extension of prescribed period — sufficient cause for appeals and applications"
+        },
+        { "number": "S.12", "description": "Exclusion of time in legal proceedings" },
+        { "number": "S.12(2)", "description": "Exclusion of time for obtaining certified copy" },
+        {
+          "number": "S.14",
+          "description": "Exclusion of time of bona fide proceeding in wrong court"
+        },
+        { "number": "Schedule Art. 116", "description": "Appeals under CPC — 30 days / 90 days" },
+        { "number": "Schedule Art. 124", "description": "Revisions — 90 days" }
+      ]
+    },
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "S.96", "description": "First appeal" },
+        { "number": "S.100", "description": "Second appeal" },
+        { "number": "S.115", "description": "Revision" },
+        { "number": "Order 47 R.1", "description": "Review" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + copies)",
+    "Affidavit in support",
+    "Memo of parties",
+    "Certified copy of impugned order/decree",
+    "Certified copy application receipt and delivery date proof",
+    "Medical certificates / death certificates / travel records (if applicable)",
+    "Advocate's correspondence / certificate (if attributing delay to counsel)",
+    "Court fee per state Schedule (usually fixed for IA)",
+    "Main substantive matter (appeal/revision/review) filed alongside",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "proceeding_type must be specified",
+    "impugned_order_date must be valid date in past",
+    "due_date_of_filing must be valid date",
+    "actual_filing_date must be after due_date_of_filing",
+    "delay_in_days must equal (actual_filing_date - due_date_of_filing) and > 0",
+    "sufficient_cause must not be empty",
+    "If delay_in_days > 30, day_by_day_explanation must not be empty",
+    "no_negligence must not be empty",
+    "advocate_enrollment must match Bar Council format",
+    "TIME-BAR CHECK: confirm impugned_order_date with relevant Article of Limitation Act"
+  ],
+  "key_citations": [
+    "Collector, Land Acquisition v. Mst. Katiji (1987) 2 SCC 107 — Liberal approach; substantial justice",
+    "N. Balakrishnan v. M. Krishnamurthy (1998) 7 SCC 123 — Length of delay is no matter; acceptability of explanation is the test",
+    "Esha Bhattacharjee v. Managing Committee, Raghunathpur Nafar Academy (2013) 12 SCC 649 — Fifteen principles on condonation",
+    "Basawaraj v. Special Land Acquisition Officer (2013) 14 SCC 81 — Sufficient cause = due diligence despite which delay occurred",
+    "Rafiq v. Munshilal AIR 1981 SC 1400 — Litigant should not suffer for advocate's lapse",
+    "Postmaster General v. Living Media India (2012) 3 SCC 563 — Government cannot rely on stock excuses",
+    "State of Nagaland v. Lipok AO (2005) 3 SCC 752 — Government delay — impersonal machinery"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

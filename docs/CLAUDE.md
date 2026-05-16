@@ -1636,3 +1636,422 @@ Next step:
 Blockers: None — all deliverables in acceptance criteria complete. External dependencies (ACM cert, SSM secrets) are operational, not blocking this ticket.
 ---
 
+
+---
+Date: 2026-05-12
+Session: Opus
+Task: SCRUM-78 — Doc-rule → TemplateConfig promoter + boot-time sync (Sprint 1, template-wiring ADR)
+Status: Done
+Code changed:
+  New files:
+  - apps/drafting/src/services/template-promoter.ts — normalises CLO's 92 doc-rule
+    JSONs at apps/drafting/src/config/document-rules/*.json into the TemplateConfig
+    shape consumed by template-engine.service.ts. Handles 5 distinct form_schema
+    shapes Ajay uses: (a) flat list, (b) {fields:[...]}, (c) JSON-Schema
+    {type:object, properties}, (d) flat field dict {field_id:{type,label,required}},
+    (e) nested-by-section {section:{sub_field:{...}}}. Field-type aliases expanded
+    so `string|integer|select|enum|email|boolean|currency|multiselect|enum_set` all
+    map cleanly. Two public entry points: promoteDocRuleToTemplateConfig(rule, file)
+    for a single doc, loadAllDocRules() to walk the directory. getTemplateRegistry()
+    memoises the registry and writes a mismatch report to
+    apps/drafting/template-promoter-mismatches.log when any field is unmappable.
+  - apps/drafting/src/__tests__/template-promoter.test.ts — 33 tests covering every
+    form_schema variant + field-type alias + legal-content carry-over + the live
+    92-doc integration sweep.
+  Modified files:
+  - apps/drafting/src/index.ts — calls getTemplateRegistry() after connectDatabase()
+    so the registry is built (and the mismatch log written) at boot time.
+Acceptance check (from SCRUM-78 ticket):
+  ✅ Unit on promoter for each schema variant present in the 92 JSONs (33 tests).
+  ✅ Integration on template-engine.service.ts after promoter wiring — the registry
+     uses the existing TemplateConfig type so the engine consumes it without changes.
+  ✅ All 92 docs promote cleanly with zero errors (configs.size === 92, no
+     parse/promote crashes).
+  ✅ Mismatch report saved on boot if any field is unmappable — currently 33 lines
+     across 6 legal_notice_* docs where CLO declared `type:'object'` section headers
+     without enumerating `properties`. Those are real CLO authoring gaps, not
+     promoter bugs. Filed mentally for Priya to ping Ajay on; the promoter logs
+     them so the gap is visible without grepping the source.
+Surface diff:
+  Down from 1,651 raw promotion gaps (initial naïve walk) to 33 after three rounds
+  of normalisation: (1) accept `id` as a valid field key alongside `name`/`field_id`
+  to cover the 50 docs that use Ajay's `{fields:[{id, label, type, required}]}`
+  shape, (2) disambiguate flat-field-dict vs nested-by-section properly (only
+  treat as section header when the sub-object lacks a primitive `type`), (3) expand
+  FIELD_TYPE_MAP for all CLO aliases (array/multiselect/currency/file/enum_set/...).
+Test results:
+  template-promoter: 33/33. Touched-surface sweep (template-engine, prompt-assembler,
+  post-processor, validator, app-settings, coherence, preflight, review, annexures,
+  document-export, referral-bonus, template-promoter): 347/347 in ~29s. tsc --noEmit
+  clean (drafting service).
+Boot behaviour:
+  After `connectDatabase()` in apps/drafting/src/index.ts, getTemplateRegistry() runs
+  once, builds a Map<template_id, TemplateConfig> of size 92, writes mismatch report
+  to apps/drafting/template-promoter-mismatches.log if any gaps remain, and logs the
+  triple (templateCount, mismatchCount, mismatchReportPath) at info level.
+Next step:
+  - SCRUM-80 (auto-seed Template Mongo collection from the registry — depends on
+    SCRUM-78, now unblocked).
+  - SCRUM-79 (DynamicFormRenderer extension for file/currency/regex types + cascading
+    dropdowns) — independent, also next-up.
+  - Ajay needs to fill in `properties` for the 6 noisy legal_notice_* sections to
+    drop the mismatch report to zero. Filing this in inputToDev.md as a follow-up
+    when committing.
+Blockers: None.
+---
+
+---
+Date: 2026-05-12
+Session: Opus
+Task: SCRUM-79 — Extend DynamicFormRenderer for file/currency/regex types + cascading dropdowns
+Status: Done
+Code changed:
+  Modified files:
+  - apps/web/src/components/form/DynamicFormRenderer.tsx — added `file` and
+    `currency` field types, regex pattern validation, `depends_on` alias of
+    `show_if`. Exported pure helpers: `evaluateConditional(expr, formData)`
+    handles quoted RHS values (`marriage_type === "registered"`) and `&&`
+    chains; `validatePattern(field, value)` returns an error message or null;
+    `formatRupee(raw)` returns INR-locale display string. Three new components:
+    `CurrencyField` (rupee glyph + `Intl.NumberFormat('en-IN', currency:'INR')`
+    preview), `FileField` (native input via hidden ref + multi-pick stacking
+    on `field.multiple === true` + accept attribute pass-through), and
+    `FieldFooter` (renders validation error or `field.help` text below any
+    input). Visibility filter now consults `show_if ?? depends_on` so CLO
+    can use either name. canAdvance also gates on `validation_pattern`
+    errors so the user can't proceed with malformed values.
+  - apps/drafting/src/services/template-engine.service.ts — FormField type
+    extended with `file` + `currency` enum values, `depends_on`,
+    `validation_pattern`, `validation_message`, `multiple`, `accept`, `help`
+    optional keys.
+  - apps/drafting/src/services/template-promoter.ts — FIELD_TYPE_MAP now
+    routes `currency/money/rupees/inr` → `currency` and `file/upload/attachment`
+    → `file` natively (no longer falls back to number/text). Promoter carries
+    forward `depends_on`, `validation_pattern` / JSON-Schema `pattern`,
+    `validation_message`, `help`, `multiple`, `accept` from source.
+Spec deviations (flagged for Priya):
+  - "All 4 features work in storybook" — apps/web has no Storybook install
+    (not in CLAUDE.md stack list, would need Arjun sign-off). Verification
+    is via tsc clean + the SCRUM-78 promoter integration test that proves
+    all 92 doc-rules emit canonical FormField types only. Browser smoke
+    deferred to next dev-server boot.
+  - "Cascading dropdowns (state → district → court)" — existing
+    DynamicFormRenderer wires state → court_type → court via the
+    `courts_db.*` source and `cascades_to` cascade reset map. There is no
+    district level in apps/drafting/src/models/Court.model.ts today
+    (state + city only). If district is needed, a separate ticket should
+    grow the courts collection + `/api/courts/districts?state=...`
+    endpoint; the renderer's cascade pattern handles arbitrary chains
+    once the data is there. Flagging this for Priya to file if Ajay's
+    templates require it.
+Acceptance check:
+  ✅ file (single + multi) — multi-pick via `multiple: true` config.
+  ✅ currency — INR formatter rendered as preview line below the input.
+  ✅ regex validation in pattern check + error message surfaced.
+  ✅ depends_on conditional rendering — supports quoted values + && chains.
+  ✅ 92 doc-rules render without unsupported-type errors — promoter maps
+     every CLO field type onto the FormField enum exhaustively. 33 currency
+     fields and 0 file fields currently in the source (Ajay can add file
+     fields as templates evolve).
+Test results:
+  Touched-surface (template-promoter, template-engine, prompt-assembler,
+  post-processor, validator, coherence, preflight): 251/251 in ~7s. tsc
+  clean on apps/web AND apps/drafting.
+Next step:
+  - SCRUM-80 (auto-seed Template Mongo collection from the registry — now
+    unblocked since SCRUM-78 + SCRUM-79 both land).
+  - Or SCRUM-81 (migrate 6 originals + golden-PDF diff gate) once SCRUM-80
+    completes the seed half.
+Blockers: None for SCRUM-79. Storybook + web test infra are open questions
+  for Priya/Arjun (separate from this ticket).
+---
+
+---
+Date: 2026-05-12
+Session: Opus
+Task: SCRUM-80 — Auto-seed Template Mongo collection from the doc-rules registry at boot
+Status: Done
+Code changed:
+  New files:
+  - apps/drafting/src/services/template-seed.service.ts — one-way filesystem
+    → Mongo reconciler. Exports `syncTemplateRegistry(registry)` returning
+    {inserted, updated, unchanged, deactivated}, plus `runBootSync()` that
+    wraps it with a structured log line. Diff is computed via a sha256
+    contentHash stored at `source.contentHash` so the second boot pass is
+    a pure unchanged-count.
+  - apps/drafting/src/models/TemplateUsage.model.ts — new collection.
+    usageCount was previously living on Template; per ADR-018 it moves out
+    so the app can write usage events without touching the read-through
+    Template cache.
+  - apps/drafting/src/__tests__/template-seed.test.ts — 6 tests covering
+    empty-DB insert, two-pass idempotency, content-drift update, removal
+    deactivation, re-activation when a template_id reappears, and
+    contentHash persistence.
+  Modified files:
+  - apps/drafting/src/models/Template.model.ts — REWRITTEN. Schema is now a
+    loose mirror of TemplateConfig: templateId/slug/displayName/category as
+    free strings (no narrow enums), full formSchema/documentStructure/
+    validationRules/metadata as Mixed types, creditsCost/courtLevels/states/
+    supportedLanguages/icon/planAccess/filingChecklist/relatedActs/source/
+    sourceFile/isActive/promotedAt all explicit. usageCount removed —
+    lives on TemplateUsage. Strict required-validators reduced to the
+    minimum the read-through cache cares about (templateId, slug,
+    displayName, category, sourceFile).
+  - apps/drafting/src/index.ts — boot path: after `getTemplateRegistry()`,
+    runs `await runBootSync()` before the listen() call. Errors are logged
+    but never abort startup (catalog falls back to the in-memory registry).
+  - apps/drafting/src/routes/templates.routes.ts — response shape switched
+    to the new field names (`templateId`, `displayName`, `courtLevels`,
+    `creditsCost`). Dropped `usageCount` projection (lives in
+    TemplateUsage now).
+  - apps/drafting/src/scripts/seed-templates.ts — REWRITTEN. The 5 inline
+    starter templates are gone (they were the pre-ADR seed). Script now
+    delegates to `syncTemplateRegistry()` so `yarn workspace
+    @lawie/drafting seed:templates` runs the same reconcile a fresh boot
+    does, against whichever MONGO_URI is in scope.
+  - apps/drafting/src/__tests__/template.model.test.ts — REWRITTEN. The
+    old strict-schema assertions (`rejects invalid category`, requires
+    promptTemplate / reviewedBy / etc.) no longer apply. 8 new tests
+    confirm: minimal-fields create + defaults; CLO-authored category
+    strings outside the legacy enum accepted; required fields are now
+    just templateId/displayName/sourceFile; unique on templateId;
+    planAccess still restricted to free|pro; Mixed types hold form
+    schema cleanly.
+  - apps/drafting/src/__tests__/templates.routes.test.ts — updated
+    seedTemplates() to use the new schema; route assertions unchanged.
+Acceptance check:
+  ✅ App boot populates 92 Template records — verified by live smoke
+     against dev Atlas: `Template registry → Mongo sync complete
+     inserted=0 updated=0 unchanged=92 deactivated=0` on pass 2.
+  ✅ Running boot twice is idempotent — pass 2 is pure unchanged-count;
+     no extra writes (idempotency proved both in jest + live Atlas).
+  ✅ Manual file edit triggers re-seed on next boot — contentHash diff
+     detection in syncTemplateRegistry catches any registry-side change.
+  ✅ usage_count moved to TemplateUsage.model.ts (separate concern).
+Transition detail (live Atlas):
+  Caught a real bug during smoke: pre-SCRUM-80 rows in the existing dev
+  Atlas had no `templateId` field, only `slug`. First reconcile pass
+  missed them because my existing-row lookup keyed on templateId.
+  Fixed by falling back to `slug` in both the read query and the
+  deactivation update (`{$or: [{templateId}, {slug}]}`). After the fix
+  the 5 stale seed-templates rows from yesterday are correctly marked
+  inactive on first boot, then stay quiet on subsequent boots. Final
+  dev Atlas state: 97 total rows, 92 active (registry-driven), 5
+  inactive (legacy from pre-ADR seed).
+Test results:
+  Touched-surface (template-promoter, template-engine, template-seed,
+  template.model, templates.routes, prompt-assembler, post-processor,
+  validator, coherence, preflight, app-settings, review, annexures,
+  document-export, referral-bonus): 371/371 in ~18s. tsc clean.
+Next step:
+  - SCRUM-81 (migrate 6 originals + golden-PDF diff gate) — the gating
+    ticket. Requires running the promoter path against bail_anticipatory
+    / bail_regular / consumer_complaint / legal_notice_s138 /
+    legal_notice_s80 / rent_agreement and confirming the rendered PDF
+    matches the current production output byte-for-byte (or close
+    enough per the ADR's 5% layout-drift tolerance).
+  - SCRUM-82 (hand-tune top-10 revenue templates) — parallel with 81.
+Blockers: None for SCRUM-80. SCRUM-81 needs Ajay sign-off on each diff
+  and the existing court-rules-golden snapshot baseline (which has 14
+  pre-existing diffs from Ajay's parallel config edits — see SCRUM-67
+  diary note — that may also need refreshing first).
+---
+
+---
+Date: 2026-05-12
+Session: Opus
+Task: SCRUM-81 — Migrate 6 originals + golden-PDF diff gate (Sprint 1)
+Status: Done — STRUCTURAL gate only. PDF byte-diff deferred.
+Scope decision (user-confirmed mid-session):
+  Full E2E byte-diff would need (a) the promoter to synthesise
+  document_structure.sections from CLO's prayerTemplate / verificationTemplate
+  / promptInstructions (not yet shipped), (b) ~24 real Anthropic calls, (c)
+  Puppeteer-rendered PDFs of both paths, (d) Ajay reviewing each pair.
+  User chose the structural-diff alternative: programmatic comparison of
+  TemplateConfig fields between the override and the promoter output. That
+  is what this commit delivers; PDF byte-diff filed as follow-up.
+Code changed:
+  New files:
+  - apps/drafting/src/services/template-diff.service.ts — comparison engine.
+    Per-dimension drift scores in [0, 1] across form_fields (Jaccard on
+    field_id sets), document_structure (section_id Jaccard, hard-fail 1.0
+    when promoter has 0 sections vs override has > 0), validation_rules
+    (Jaccard on section_codes_allowed / reject_old_codes / mandatory_sections
+    plus boolean-flag drift), and metadata (category / plan_access / icon
+    mismatch ratio). Verdict 'retire' iff max drift ≤ tolerance (default
+    0.05 — matches ADR's "5% layout drift" budget). Otherwise 'keep' with
+    the worst-drifting dimension named in the reason. Third verdict
+    'missing_source' when either override or doc-rule is absent on disk.
+    formatReport() emits a Markdown report with summary table + per-
+    template detail blocks for Ajay (CLO) sign-off.
+  - apps/drafting/src/scripts/template-diff.ts — CLI entry point. Runs the
+    diff for the 6 SCRUM-81 originals, writes the Markdown report to
+    apps/drafting/template-promoter-diff.md, prints per-template verdicts
+    to stdout, exits 1 if any template is missing_source.
+  - apps/drafting/src/__tests__/template-diff.test.ts — 5 tests covering
+    integration against the live 6 (all yield hasOverride+hasDocRule),
+    drift bounds [0,1], non-empty reasons, missing_source semantics, and
+    Markdown report shape.
+  Modified files:
+  - apps/drafting/package.json — added `diff:templates` npm script.
+Live run result (the actual gate outcome):
+  Wrote report → apps/drafting/template-promoter-diff.md
+  bail_anticipatory             keep   (max drift 1.00)
+  bail_regular                  keep   (max drift 1.00)
+  consumer_complaint            keep   (max drift 1.00)
+  legal_notice_s138             keep   (max drift 1.00)
+  legal_notice_s80              keep   (max drift 1.00)
+  rent_agreement                keep   (max drift 1.00)
+  Summary: retire 0 · keep 6 (of 6)
+Acceptance check (per ticket spec):
+  ✅ 6/6 templates: overrides explicitly kept, reason logged in the
+     Markdown report — meets "OR overrides explicitly kept for any
+     failures (with reason logged)" branch.
+  ⏳ PDF byte-diff: deferred. Requires the promoter to first synthesise
+     document_structure.sections from CLO source fields. That's a real
+     promoter extension; filing the follow-up note in this diary so
+     Priya can ticket it.
+  ⏳ Bihar + Jharkhand payloads (reuse SCRUM-50 fixtures): deferred with
+     the PDF byte-diff.
+What the gate revealed:
+  - All 6 templates show form_fields drift = 1.00 (zero field_ids shared
+    between override and promoter output). This is the real migration
+    blocker: CLO's doc-rule JSONs use a different field naming convention
+    than the 6 production override JSONs (e.g. override uses
+    `applicant_name`, doc-rule may use a different snake_case slug).
+    Until the names are reconciled — either CLO renames doc-rule fields
+    or engineer ships a per-template renaming map — the promoter cannot
+    replace the override.
+  - All 6 show document_structure drift = 1.00 (promoter emits 0
+    sections vs override has 4–7 explicit sections). This is the
+    "promoter section synthesis" gap mentioned above.
+  - Metadata drift is small (mostly the `icon` field defaulting to
+    `'file-text'` in the promoter vs the override's chosen icon).
+    Easy fix — promoter could read an icon hint from the source if CLO
+    adds one.
+Follow-ups for Priya to file:
+  1. SCRUM-XX — Promoter section synthesis: build
+     document_structure.sections from doc-rule's prayerTemplate +
+     verificationTemplate + promptInstructions + prompt_context. This
+     is the prerequisite for full E2E PDF byte-diff.
+  2. SCRUM-XX — Field-name reconciliation across the 6 originals: either
+     CLO migrates doc-rule field IDs to match production conventions OR
+     promoter gets a per-template alias table.
+  3. SCRUM-XX — PDF byte-diff gate (post-SCRUM-XX above): the original
+     spec for SCRUM-81 in literal form.
+Test results:
+  Touched template surface (template-promoter, template-engine,
+  template-seed, template-diff, template.model, templates.routes):
+  138/138 passing. tsc clean.
+Next step:
+  - SCRUM-82 (hand-tune top-10 templates) is primarily content authoring
+    by Ajay; my role is limited to scaffolding override files once Ajay
+    starts that work. Natural session boundary.
+  - 4 commits stacked on develop (ad486d5, ae573e4, 8bb9987, plus this
+    one) waiting to push when user is ready.
+Blockers: None code-side. SCRUM-82 needs Ajay's authoring; the deferred
+  PDF byte-diff needs the promoter section-synthesis follow-up first.
+---
+
+---
+Date: 2026-05-14
+Session: Opus
+Task: SCRUM-84 — Promoter document_structure.sections synthesis (Sprint 2)
+Status: Done
+Code changed:
+  Modified files:
+  - apps/drafting/src/services/template-promoter.ts — new
+    synthesiseDocumentStructure(rule) builds a renderable sections[] array
+    from CLO source fields. Synthesis order: cause_title (template) → body
+    (ai_generated, combines prompt_context + numbered promptInstructions +
+    mandatoryClauses listed as MUST INCLUDE requirements in one prompt
+    instead of one section per clause — kept to a single AI call to control
+    latency + spend) → prayer (template) → verification (template). Each
+    section is skipped if its source field is absent or empty.
+  - apps/drafting/src/__tests__/template-promoter.test.ts — 8 new tests
+    covering: causeTitle as {format} object, causeTitle as plain string,
+    body prompt assembly with all three input streams, fallback from
+    mandatoryClauses (objects) to mandatory_clauses (strings) when only the
+    string variant is present, prayer + verification template emission,
+    skipping empty / whitespace-only fields, fully-empty source returning
+    sections: [], canonical section order.
+Live smoke against 92 doc-rules:
+  - 77/92 templates now have ≥1 synthesised section (was 6/92 — the
+    overrides only).
+  - 48 docs have all 4 sections (cause_title + body + prayer + verification).
+  - 17 docs have just body (legal notices etc — no court prayer or
+    verification by design).
+  - 15 docs still empty: 6 are production overrides (engine bypasses the
+    promoted shape via override path — not a bug), the other 9 are CLO
+    docs with no causeTitle / prompt_context / prayerTemplate /
+    verificationTemplate / mandatoryClauses at all. Those need CLO
+    follow-up; promoter cannot fabricate prompts.
+SCRUM-81 diff impact (regenerated apps/drafting/template-promoter-diff.md):
+  - doc_structure drift on the 6 originals fell 1.00 → 0.43 for
+    bail_anticipatory / bail_regular / consumer_complaint (4 of 7 section
+    ids shared) and 1.00 → 0.80–0.86 for legal_notice_s80 /
+    legal_notice_s138 / rent_agreement (1 of 7 shared — they need synthesised
+    application_heading and addressing_clause sections the override has).
+  - Verdict still 'keep' for all 6 because form_fields drift = 1.00
+    dominates; that resolves when Ajay ships SCRUM-89 (form_schema on the
+    6 originals). SCRUM-84 alone can't retire overrides; SCRUM-84 +
+    SCRUM-89 together can.
+Test results:
+  - template-promoter: 41/41 (8 new + 33 from SCRUM-78/79).
+  - touched-surface sweep (template-promoter, template-engine, template-
+    diff, template-seed): 120/120. tsc clean.
+Next step:
+  - SCRUM-85 (in-form section-search typeahead) — also delivers the
+    /api/sections/search endpoint SCRUM-83 needs.
+  - Or wait for Ajay's SCRUM-89 to land so SCRUM-81 closeout can happen.
+Blockers: None.
+---
+
+---
+Date: 2026-05-15
+Session: Opus
+Task: SCRUM-85 — In-form section search typeahead (closes "sections not searchable while filing")
+Status: Done
+Code changed:
+  New / modified files:
+  - apps/drafting/src/services/sections.service.ts — added searchSections()
+    that takes a query + code + limit and returns up to N matches by
+    section-number prefix OR title substring. Prefix hits win (two-stage
+    search with dedupe). Works for both new codes (BNS/BNSS/BSA — searches
+    newSection/newTitle) and old codes (IPC/CrPC/IEA — searches
+    oldSection/oldTitle). User query is regex-escaped so paste of "(2)" or
+    "/" stays safe.
+  - apps/drafting/src/routes/sections.routes.ts — new GET /sections/search
+    endpoint. q + code required (400 otherwise), limit clamped to 25,
+    defaults to 10. Returns { query, code, results, count }.
+  - apps/drafting/src/__tests__/sections.routes.test.ts — 8 new tests
+    (missing-q 400, missing-code 400, BNS prefix match, title substring,
+    counterpart mapping shape, limit clamp, unknown code returns [], IPC
+    prefix search).
+  - apps/web/src/components/form/DynamicFormRenderer.tsx —
+    MultiSelectSearchField grows an optional `searchHandler` prop. When
+    provided, debounces input by 200ms, fetches matches, dedupes against
+    already-picked values, shows "Searching…" + "No matches" states.
+    Local-filter mode preserved when searchHandler is absent. The renderer
+    instantiates fetchBnsMappingResults() and passes it as the handler for
+    any field with `source: 'bns_mapping'` — closes the open TODO marker
+    that previously returned an empty options array.
+Acceptance check (from SCRUM-85 ticket):
+  ✅ GET /api/sections/search?q=…&code=BNS returns up to 10 matches by
+     prefix or title substring.
+  ✅ DynamicFormRenderer multi_select_search field with bns_mapping
+     source now debounce-fetches against the new endpoint.
+  ✅ All 6 codes supported (BNS, BNSS, BSA, IPC, CrPC, IEA) via explicit
+     code= param.
+  ✅ 36/36 sections.routes tests passing (8 new).
+  ✅ Touched-surface sweep (sections + template suites): 185/185.
+  ✅ tsc clean on apps/drafting + apps/web.
+Side-effect for SCRUM-83:
+  The Section Finder design-upgrade ticket needs the same
+  /api/sections/search endpoint — that's now done, so SCRUM-83 just
+  consumes it without re-implementing.
+Next step:
+  - SCRUM-83 (Section Finder design upgrade, 3-4d) — biggest remaining
+    Vishal-owned ticket. Or pause for push.
+Blockers: None.
+---

@@ -1,0 +1,512 @@
+{
+  "_meta": {
+    "description": "Document-rules config for sale_deed — Sale deed for immovable property under Transfer of Property Act 1882 S.54-55. Mandatory registration under Registration Act 1908 S.17 for property > Rs.100. Cites Suraj Lamp v. State of Haryana (2012) 1 SCC 656 — GPA-cum-Sale is NOT a valid transfer of title.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Stamp duty schedules vary by state — list state-wise references but do NOT hardcode rates. Suraj Lamp disclaimer mandatory when user proposes GPA-cum-sale shortcut."
+  },
+  "template_id": "sale_deed",
+  "docType": "sale_deed",
+  "title": "Sale Deed (Transfer of Property Act, 1882 — S.54-55)",
+  "displayName": "Sale Deed (Immovable Property)",
+  "category": "transactional_deed",
+  "creditsCost": 2,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "SALE DEED\n\nThis Sale Deed is executed on this {date} at {place}.\n\nBETWEEN\n\n{vendor_name}, son/daughter/wife of {vendor_father_name}, aged about {vendor_age} years, resident of {vendor_address}, (PAN: {vendor_pan}, Aadhaar last 4: {vendor_aadhaar_last4})\n(hereinafter referred to as the \"VENDOR\" / \"SELLER\", which expression shall, unless repugnant to the context, include his/her legal heirs, executors, administrators and assigns) of the ONE PART\n\nAND\n\n{purchaser_name}, son/daughter/wife of {purchaser_father_name}, aged about {purchaser_age} years, resident of {purchaser_address}, (PAN: {purchaser_pan}, Aadhaar last 4: {purchaser_aadhaar_last4})\n(hereinafter referred to as the \"PURCHASER\" / \"BUYER\", which expression shall, unless repugnant to the context, include his/her legal heirs, executors, administrators and assigns) of the OTHER PART.",
+    "partyDesignations": [
+      { "role": "vendor", "label": "Vendor / Seller" },
+      { "role": "purchaser", "label": "Purchaser / Buyer" }
+    ],
+    "caseNomenclature": "N/A — Transactional (not a court filing)"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "vendor_name", "label": "Vendor full name", "type": "text", "required": true },
+      {
+        "id": "vendor_father_name",
+        "label": "Vendor father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "vendor_age", "label": "Vendor age", "type": "number", "required": true },
+      { "id": "vendor_address", "label": "Vendor address", "type": "textarea", "required": true },
+      { "id": "vendor_pan", "label": "Vendor PAN", "type": "text", "required": true },
+      {
+        "id": "vendor_aadhaar_last4",
+        "label": "Vendor Aadhaar last 4 digits",
+        "type": "text",
+        "required": true
+      },
+      { "id": "purchaser_name", "label": "Purchaser full name", "type": "text", "required": true },
+      {
+        "id": "purchaser_father_name",
+        "label": "Purchaser father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "purchaser_age", "label": "Purchaser age", "type": "number", "required": true },
+      {
+        "id": "purchaser_address",
+        "label": "Purchaser address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "purchaser_pan", "label": "Purchaser PAN", "type": "text", "required": true },
+      {
+        "id": "purchaser_aadhaar_last4",
+        "label": "Purchaser Aadhaar last 4 digits",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "property_type",
+        "label": "Property type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "agricultural_land",
+          "residential_plot",
+          "residential_house",
+          "apartment_flat",
+          "commercial_shop",
+          "commercial_building",
+          "industrial_plot"
+        ]
+      },
+      {
+        "id": "property_address",
+        "label": "Property full address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "property_extent",
+        "label": "Property extent (area in sq ft / sq m / acres / decimals)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "property_boundaries",
+        "label": "Boundaries — North, South, East, West (with neighbours)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "khasra_or_survey_no",
+        "label": "Khasra / Survey / Plot No.",
+        "type": "text",
+        "required": true
+      },
+      { "id": "khata_no", "label": "Khata / Patta No.", "type": "text", "required": false },
+      {
+        "id": "registration_district",
+        "label": "Registration District / Sub-District",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "title_chain",
+        "label": "Title chain — how vendor acquired the property (prior deed no., date, registration details, mutation)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "encumbrances",
+        "label": "Encumbrances declared (mortgages, liens, pending litigation) — state NIL if none",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "consideration_amount",
+        "label": "Consideration amount (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "consideration_in_words",
+        "label": "Consideration in words",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "payment_mode",
+        "label": "Mode of payment",
+        "type": "select",
+        "required": true,
+        "options": [
+          "full_advance_cash_demand_draft",
+          "instalments_with_dates",
+          "cheque_with_no_and_bank",
+          "rtgs_neft_with_utr",
+          "mix_part_cash_part_bank"
+        ]
+      },
+      {
+        "id": "payment_details",
+        "label": "Payment details (cheque / DD / RTGS reference numbers, dates, banks)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "possession_date",
+        "label": "Date of handover of physical possession",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "stamp_duty_paid",
+        "label": "Stamp duty paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "stamp_duty_paid_by",
+        "label": "Stamp duty paid by",
+        "type": "select",
+        "required": true,
+        "options": ["purchaser", "vendor", "shared_equally"]
+      },
+      {
+        "id": "registration_fee_paid",
+        "label": "Registration fee paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "is_agricultural_land",
+        "label": "Is the property agricultural land?",
+        "type": "select",
+        "required": true,
+        "options": ["yes", "no"]
+      },
+      {
+        "id": "circle_rate_or_collector_rate",
+        "label": "Government circle rate / Collector rate of property",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "state",
+        "label": "State of execution & registration",
+        "type": "select",
+        "required": true,
+        "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "advocate_name",
+        "label": "Advocate name (drafter)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "recital_of_title",
+      "name": "Recital of Title (chain of title)",
+      "required": true,
+      "description": "How vendor became absolute owner — prior deed details, mutation, inheritance"
+    },
+    {
+      "id": "property_description_schedule",
+      "name": "Property Description / Schedule A",
+      "required": true,
+      "description": "Boundaries (N/S/E/W), extent, survey/khasra/plot number, district, registration sub-district"
+    },
+    {
+      "id": "agreement_to_sell_recital",
+      "name": "Recital of Agreement to Sell (if executed)",
+      "required": false,
+      "description": "Where an ATS preceded the sale deed"
+    },
+    {
+      "id": "consideration_clause",
+      "name": "Consideration & Receipt",
+      "required": true,
+      "description": "Amount in figures and words; mode and date of payment; full acknowledgment of receipt by vendor"
+    },
+    {
+      "id": "transfer_clause",
+      "name": "Operative Transfer Clause",
+      "required": true,
+      "description": "Vendor hereby grants, conveys, transfers, sells, assigns absolutely unto the Purchaser the property described in Schedule A — ABSOLUTE conveyance language"
+    },
+    {
+      "id": "delivery_of_possession",
+      "name": "Delivery of Possession",
+      "required": true,
+      "description": "Physical possession handed over on stated date"
+    },
+    {
+      "id": "title_warranty",
+      "name": "Vendor's Warranty of Title (S.55(2) TPA)",
+      "required": true,
+      "description": "Vendor covenants absolute marketable title, free from encumbrances, defects, etc."
+    },
+    {
+      "id": "encumbrances_declaration",
+      "name": "Declaration of Encumbrances",
+      "required": true,
+      "description": "State free from mortgages, liens, attachments, court orders, agricultural ceiling restrictions"
+    },
+    {
+      "id": "indemnity_clause",
+      "name": "Indemnity by Vendor",
+      "required": true,
+      "description": "Vendor indemnifies Purchaser for any loss arising from defect in title or breach of warranties"
+    },
+    {
+      "id": "covenant_for_further_assurance",
+      "name": "Covenant for Further Assurance",
+      "required": true,
+      "description": "Vendor agrees to execute any further documents required to perfect Purchaser's title"
+    },
+    {
+      "id": "outstanding_dues_clause",
+      "name": "Outstanding Dues / Property Tax / Utilities",
+      "required": true,
+      "description": "All outgoings up to date of sale paid by vendor; thereafter purchaser's responsibility"
+    },
+    {
+      "id": "mutation_clause",
+      "name": "Mutation Authorisation",
+      "required": true,
+      "description": "Vendor authorises Purchaser to seek mutation in revenue / municipal records"
+    },
+    {
+      "id": "stamp_duty_clause",
+      "name": "Stamp Duty & Registration Fee",
+      "required": true,
+      "description": "Who bears stamp duty + registration fee — typically Purchaser"
+    },
+    {
+      "id": "schedule_a_property",
+      "name": "SCHEDULE A — Property Description",
+      "required": true,
+      "description": "Detailed description appended at end"
+    },
+    {
+      "id": "witness_clause",
+      "name": "Witness Attestation",
+      "required": true,
+      "description": "Two witnesses with full name, father's name, address, signature"
+    },
+    {
+      "id": "registration_endorsement_space",
+      "name": "Space for Registration Endorsement",
+      "required": true,
+      "description": "Sub-Registrar's endorsement"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer — advocate is responsible for legal accuracy and execution"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a SALE DEED for ABSOLUTE conveyance of immovable property under Transfer of Property Act, 1882, Sections 54 (Sale defined) and 55 (Rights and liabilities of buyer and seller).",
+      "CRITICAL — Section 54 TPA: 'Sale' = transfer of ownership in exchange for a price paid or promised. For tangible immovable property of value Rs.100 or upwards, sale can be made ONLY by a registered instrument.",
+      "CRITICAL — Section 17(1)(b) Registration Act, 1908: Non-testamentary instruments which purport or operate to create, declare, assign, limit or extinguish any right, title or interest of value of Rs.100 and upwards, to or in immovable property, MUST be registered. UNREGISTERED SALE DEED DOES NOT TRANSFER TITLE.",
+      "CRITICAL — Suraj Lamp & Industries Pvt Ltd v. State of Haryana (2012) 1 SCC 656: 'GPA-cum-Sale' or 'SA-cum-GPA-cum-Will' transactions are NOT valid modes of transfer of immovable property. Title can pass ONLY by registered sale deed. ALWAYS WARN the advocate if any GPA-cum-sale shortcut is being attempted — explicitly flag it in the draft cover note.",
+      "Start with RECITAL OF TITLE: trace the vendor's title — prior sale deed number, date, registration details; or inheritance with succession certificate / mutation; or partition deed; or settlement deed. Include mutation entry numbers in revenue records (Bihar — Jamabandi; UP — Khatauni; Jharkhand — Khatian; Delhi — Mutation Register).",
+      "PROPERTY DESCRIPTION (Schedule A) must include: (a) Full postal address, (b) Khasra / Survey / Plot No., (c) Khata / Patta No., (d) Total extent (area in sq ft / sq m for plots and houses; acres + decimals for agricultural land), (e) Boundaries — North, South, East, West with neighbour's name/property/feature, (f) Registration Sub-District + Tehsil + District.",
+      "CONSIDERATION: state amount in figures AND words. State mode of payment — cash (NOTE: cash above Rs.20,000 attracts Income Tax Act S.269SS / 269T penalties; advise bank transfer / DD / RTGS), cheque (with number, date, bank), DD, RTGS / NEFT (with UTR). Receipt clause must explicitly acknowledge full receipt; if part payment, state schedule.",
+      "OPERATIVE TRANSFER CLAUSE: 'The Vendor doth hereby grant, convey, transfer, sell, assign and assure unto the Purchaser, his heirs, executors, administrators and assigns ABSOLUTELY AND FOREVER, ALL THAT piece and parcel of land/property more fully described in the Schedule A hereunder written, together with all rights, easements, privileges, appurtenances, structures, walls, fences, trees, water, water-courses, lights, liberties and advantages whatsoever appertaining thereto...'",
+      "DELIVERY OF POSSESSION clause: state date of physical delivery; if vacant possession or subject to existing tenant — specify.",
+      "VENDOR'S WARRANTIES under S.55(2) TPA — vendor shall be deemed to contract with buyer that the interest which the seller professes to transfer to the buyer subsists and that he has power to transfer the same. Include explicit warranties of: (a) absolute marketable title; (b) free from encumbrances, mortgages, charges, liens, attachments, court orders; (c) no pending litigation; (d) all statutory dues paid; (e) no acquisition / requisition notices; (f) urban land ceiling NOC if applicable; (g) agricultural ceiling compliance if agricultural land.",
+      "ENCUMBRANCES DECLARATION: vendor declares property is free from all encumbrances. If any subsisting mortgage being redeemed from sale proceeds — set out mechanism.",
+      "AGRICULTURAL LAND CAVEATS: state-specific restrictions on agricultural land transfer:\n   - Bihar: Bihar Tenancy Act, 1885 — restrictions on transfer of raiyati holdings; SC/ST Land Transfer Regulation (CNT / SPT Act in adjoining Jharkhand applies in some Bihar tribal areas).\n   - Jharkhand: Chotanagpur Tenancy Act, 1908 (CNT Act) — bars transfer of tribal/ST land except with permission of Deputy Commissioner. Santhal Parganas Tenancy Act, 1949 (SPT Act) — even more restrictive for Santhal Pargana.\n   - UP: UP Zamindari Abolition & Land Reforms Act, 1950; UP Revenue Code, 2006 — restrictions on transfer of agricultural land; ceiling under UP Imposition of Ceiling on Land Holdings Act, 1960.\n   - Delhi: Delhi Land Reforms Act, 1954 — bhumidhar / asami restrictions.",
+      "INDEMNITY CLAUSE: vendor indemnifies and holds harmless the purchaser against any loss, damage, expense arising from defect in title, prior charges, or breach of any covenant.",
+      "STAMP DUTY: state amount paid and on which the deed is engrossed. State-specific:\n   - Bihar: ~6% (male) / 5.7% (female) of consideration or circle rate (whichever higher) + 2% registration fee.\n   - Jharkhand: ~4% (male) / 3% (female) + 3% registration fee.\n   - UP: 7% (male) / 6% (female where 1% rebate) + 1% registration fee.\n   - Delhi: 6% (male) / 4% (female) + 1% registration fee.\n   NOTE — DO NOT hardcode rates; user must verify current rates with state's stamp duty calculator / Sub-Registrar. State 'rates current as of advocate's verification at time of execution'.",
+      "Where consideration < Circle Rate / Collector Rate — Income Tax Act S.50C / 56(2)(x) consequences: difference treated as deemed consideration for capital gains and as income from other sources for purchaser. Advise client to consult CA.",
+      "MUTATION clause: vendor authorises purchaser to apply for mutation; vendor agrees to cooperate.",
+      "Standard registration endorsement space at end.",
+      "TWO WITNESSES — full names, parentage, addresses, signatures. (Registration Act + state rules typically require two adult witnesses; for SR registration, the parties must appear personally with photographs and Aadhaar / ID.)",
+      "Where vendor / purchaser is a HUF — Karta executes; mention HUF status and that property is sold in capacity of Karta with consent of all adult coparceners.",
+      "Where vendor / purchaser is a company — board resolution annexed; signed by authorised signatory.",
+      "Where minor coparcener interest exists — court permission under Hindu Minority and Guardianship Act, 1956 OR Guardians and Wards Act, 1890 required; flag this prominently.",
+      "Where property is ancestral coparcenary — daughters' coparcenary rights post HSA 2005 amendment (Vineeta Sharma v. Rakesh Sharma 2020 — daughters are coparceners by birth even if father died before 2005); advise all coparceners must be parties or grant NOC.",
+      "Append Lawie disclaimer: 'This sale deed is a drafting assistant output. The executing advocate is responsible for legal accuracy, due diligence on title, stamp duty correctness, registration formalities, and statutory compliance. Lawie is not legal counsel to either party.'"
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        {
+          "number": "S.54",
+          "description": "Sale defined; mode of transfer; agreement to sell does not by itself create interest"
+        },
+        {
+          "number": "S.55",
+          "description": "Rights and liabilities of buyer and seller (warranties, indemnities)"
+        },
+        { "number": "S.7", "description": "Persons competent to transfer" },
+        { "number": "S.10", "description": "Conditions restraining alienation void" },
+        { "number": "S.13", "description": "Transfer for benefit of unborn person" }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        {
+          "number": "S.17",
+          "description": "Documents of which registration is compulsory — includes sale deed of immovable property of value Rs.100+"
+        },
+        { "number": "S.23", "description": "Time for presentation — within 4 months of execution" },
+        { "number": "S.32", "description": "Persons to present documents for registration" },
+        {
+          "number": "S.49",
+          "description": "Effect of non-registration — unregistered sale deed does not affect property nor be received as evidence"
+        }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899 + State Schedules",
+      "sections": [
+        { "number": "S.3", "description": "Instruments chargeable with duty" },
+        {
+          "number": "S.17",
+          "description": "Instruments executed in India to be stamped before or at execution"
+        },
+        {
+          "number": "S.35",
+          "description": "Unstamped / insufficiently stamped instruments inadmissible in evidence"
+        },
+        {
+          "number": "Schedule I-A (State)",
+          "description": "Conveyance / Sale stamp rates — state-specific"
+        }
+      ]
+    },
+    {
+      "act": "Income Tax Act, 1961",
+      "sections": [
+        {
+          "number": "S.50C",
+          "description": "Stamp duty value as deemed consideration for capital gains where consideration < SDV"
+        },
+        {
+          "number": "S.56(2)(x)",
+          "description": "Where purchaser receives property for less than SDV, difference taxed as income from other sources"
+        },
+        {
+          "number": "S.194-IA",
+          "description": "TDS at 1% on consideration where property value >= Rs.50 lakh"
+        },
+        {
+          "number": "S.269SS / 269T",
+          "description": "Bar on cash transactions above Rs.20,000 in immovable property dealings"
+        }
+      ]
+    },
+    {
+      "act": "State Land / Tenancy Acts",
+      "sections": [
+        {
+          "number": "Bihar Tenancy Act, 1885",
+          "description": "Restrictions on raiyati land transfer in Bihar"
+        },
+        {
+          "number": "Chotanagpur Tenancy Act, 1908",
+          "description": "Tribal / ST land transfer restrictions in Jharkhand"
+        },
+        {
+          "number": "Santhal Parganas Tenancy Act, 1949",
+          "description": "Santhal Pargana restrictions"
+        },
+        { "number": "UP Revenue Code, 2006", "description": "UP agricultural land regime" },
+        {
+          "number": "Delhi Land Reforms Act, 1954",
+          "description": "Bhumidhar / asami in Delhi rural"
+        }
+      ]
+    },
+    {
+      "act": "Hindu Succession Act, 1956",
+      "sections": [
+        {
+          "number": "S.6",
+          "description": "Daughters as coparceners (post 2005 amendment, Vineeta Sharma)"
+        }
+      ]
+    },
+    {
+      "act": "Real Estate (Regulation and Development) Act, 2016 (RERA)",
+      "sections": [
+        {
+          "number": "S.3",
+          "description": "Mandatory RERA registration of projects > 500 sqm or 8 units — sale by developer must be of RERA-registered project"
+        },
+        { "number": "S.13", "description": "No deposit / advance > 10% before agreement for sale" },
+        { "number": "S.14", "description": "Adherence to sanctioned plans" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Draft engrossed on Non-Judicial Stamp Paper of correct value (state-specific schedule)",
+    "Stamp duty calculated on whichever is HIGHER of (a) consideration or (b) Circle Rate / Collector Rate / Stamp Duty Value",
+    "Original title documents of vendor available for inspection by Sub-Registrar",
+    "Encumbrance Certificate (EC) for past 13/30 years from Sub-Registrar's office",
+    "Mutation entries / Jamabandi / Khatauni / Khatian extract — current",
+    "Property tax receipts up to date (vendor to clear arrears)",
+    "Society / RWA NOC if apartment / cooperative society",
+    "RERA registration certificate (if project under RERA)",
+    "Approved sanction plan / occupancy certificate (for built-up structures)",
+    "PAN of both parties (mandatory)",
+    "Aadhaar of both parties (mandatory for SR registration)",
+    "Passport-size photographs of both parties (2 each, recent)",
+    "Form 60 if PAN not available (rare)",
+    "TDS Form 26QB filed by purchaser if value >= Rs.50 lakh (1% TDS u/s 194-IA)",
+    "Two adult witnesses with own ID proofs and addresses present at SR office",
+    "Both parties physically present at Sub-Registrar office for execution & registration",
+    "Biometric / iris scan as required by SR office (Aadhaar-linked verification)",
+    "Online slot booking on state SR portal where applicable (UP — IGRSUP; Delhi — DORIS; Bihar — Bhumijankari; Jharkhand — JharBhoomi)",
+    "Registration within 4 months of execution date (S.23 Registration Act) — penalty for delay up to 10x stamp duty",
+    "After registration — apply for mutation in revenue / municipal records",
+    "Notify society / association / electricity / water utilities for name change",
+    "Update property tax record in purchaser's name",
+    "Where agricultural land in Jharkhand tribal area — Deputy Commissioner's permission under CNT/SPT Act ANNEXED",
+    "Where minor's interest involved — court permission order ANNEXED",
+    "Where company is party — Board Resolution + Memorandum of Association ANNEXED",
+    "Lawie disclaimer prominently included"
+  ],
+  "validation_rules": [
+    "consideration_amount must be > 0",
+    "stamp_duty_paid must be > 0 — flag if appears below state's minimum schedule",
+    "if consideration_amount < circle_rate_or_collector_rate — display Section 50C / 56(2)(x) IT Act warning",
+    "if consideration_amount >= 5000000 (Rs.50 lakh) — flag mandatory TDS u/s 194-IA",
+    "if property_type == 'agricultural_land' and state == 'jharkhand' — flag CNT / SPT Act permission requirement",
+    "if property_type == 'agricultural_land' and state == 'bihar' — flag Bihar Tenancy Act restrictions",
+    "property_boundaries must contain mention of all four directions (N/S/E/W)",
+    "title_chain must not be empty",
+    "encumbrances field must explicitly state 'NIL' or list encumbrances — never blank",
+    "vendor_pan and purchaser_pan must be 10 alphanumeric characters",
+    "witness_1_name_address and witness_2_name_address are both mandatory",
+    "advocate must include Bar Council enrollment number"
+  ]
+}

@@ -1,0 +1,229 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "reviewed_on": "2026-05-12",
+    "legal_review_status": "approved",
+    "version": "1.0.0",
+    "batch": "B8b"
+  },
+  "template_id": "quo_warranto",
+  "title": "Writ Petition — Quo Warranto (Article 226/32)",
+  "category": "writ",
+  "creditsCost": 2,
+  "court_levels": ["high_court", "supreme_court"],
+  "description": "Writ of quo warranto challenging the authority of a person holding a substantive public office of statutory or constitutional character without legal qualification or in breach of the appointing statute.",
+  "form_schema": {
+    "petitioner_name": { "type": "string", "required": true, "label": "Petitioner Full Name" },
+    "petitioner_age": { "type": "number", "required": true, "label": "Petitioner Age" },
+    "petitioner_occupation": { "type": "string", "required": true, "label": "Occupation" },
+    "petitioner_address": { "type": "string", "required": true, "label": "Petitioner Address" },
+    "locus_basis": {
+      "type": "select",
+      "required": true,
+      "options": [
+        "Concerned citizen / PIL",
+        "Stranger in public interest",
+        "Aggrieved person",
+        "Rival claimant to office"
+      ],
+      "label": "Locus standi basis (quo warranto allows stranger locus)"
+    },
+    "impugned_appointee": {
+      "type": "string",
+      "required": true,
+      "label": "Name of Person Holding Disputed Public Office"
+    },
+    "appointee_address": {
+      "type": "string",
+      "required": true,
+      "label": "Address of Impugned Appointee"
+    },
+    "public_office_title": {
+      "type": "string",
+      "required": true,
+      "label": "Public Office Held (designation)"
+    },
+    "appointing_authority": {
+      "type": "string",
+      "required": true,
+      "label": "Appointing Authority (also a respondent)"
+    },
+    "appointing_authority_address": {
+      "type": "string",
+      "required": true,
+      "label": "Address of Appointing Authority"
+    },
+    "statute_creating_office": {
+      "type": "string",
+      "required": true,
+      "label": "Statute / Constitutional Provision creating the office (section + Act)"
+    },
+    "qualifying_provision": {
+      "type": "string",
+      "required": true,
+      "label": "Statutory qualifying provision (eligibility/qualification/disqualification)"
+    },
+    "appointment_date": {
+      "type": "date",
+      "required": true,
+      "label": "Date of Impugned Appointment"
+    },
+    "appointment_notification": {
+      "type": "string",
+      "required": true,
+      "label": "Appointment Order/Notification number and date"
+    },
+    "ground_of_challenge": {
+      "type": "multi-select",
+      "required": true,
+      "options": [
+        "Lacks prescribed qualification",
+        "Suffers from prescribed disqualification",
+        "Appointed by authority without power",
+        "Appointment procedure violated",
+        "Office itself not validly created",
+        "Continued beyond statutory tenure"
+      ],
+      "label": "Ground for Quo Warranto"
+    },
+    "state_of_filing": {
+      "type": "select",
+      "required": true,
+      "options": ["Bihar", "Jharkhand", "Uttar Pradesh", "Delhi"],
+      "label": "State"
+    },
+    "court": {
+      "type": "select",
+      "required": true,
+      "options": ["High Court", "Supreme Court"],
+      "label": "Court of Filing"
+    },
+    "article_invoked": {
+      "type": "select",
+      "required": true,
+      "options": ["226", "32"],
+      "label": "Constitutional Article"
+    },
+    "relief_sought": {
+      "type": "textarea",
+      "required": true,
+      "label": "Specific Relief — ouster of usurper from public office"
+    },
+    "cause_title_year": { "type": "number", "required": true, "label": "Year of Filing" }
+  },
+  "mandatory_clauses": [
+    "Cause title with petitioner v. impugned appointee + appointing authority + Union/State",
+    "Jurisdiction clause — Article 226 (HC) or Article 32 (SC) [Art 32 rarely successful — fundamental right link required]",
+    "Locus standi paragraph — stranger / concerned citizen permissible for quo warranto",
+    "Identification of public office — must be substantive (not employment under contract)",
+    "Statutory source of office — quote provision creating office",
+    "Qualifying/disqualifying provision — quote verbatim",
+    "Particulars of impugned appointment (date, order number, gazette notification)",
+    "Ground — how appointee lacks qualification, suffers disqualification, or appointment is otherwise unlawful",
+    "No alternative remedy / urgency of ouster",
+    "Prayer for writ of quo warranto ousting appointee + declaring office vacant",
+    "Verification + Affidavit in support",
+    "Disclaimer: Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting a Writ of Quo Warranto under Article 226/32. Quo warranto lies only when: (1) the office is a substantive public office of constitutional or statutory character (NOT private employment, NOT contractual posts, NOT mere honorary positions), (2) the office is held by a person who lacks the prescribed qualification or suffers a prescribed disqualification or whose appointment is in breach of statute, (3) the office is permanent in nature. Cite University of Mysore v. C.D. Govinda Rao AIR 1965 SC 491 (test for public office), Rajesh Awasthi v. Nand Lal Jaiswal (2013) 1 SCC 501, Hari Bansh Lal v. Sahodar Prasad Mahto (2010) 9 SCC 655. Locus is liberal — even a stranger may approach for quo warranto in public interest. The court inquires into the legal authority of the holder, not the merits of the appointment decision.",
+    "tone": "formal, constitutional, focused on statutory authority",
+    "style_notes": [
+      "Use 'Hon'ble Court' throughout",
+      "Quote the statute/rule creating the office and prescribing qualifications verbatim",
+      "Annex copy of impugned appointment order/gazette notification (Annexure P-1)",
+      "Plead that office is 'public' and 'substantive' explicitly",
+      "Frame prayer as 'issue a writ of quo warranto or any other appropriate writ, order or direction calling upon respondent no. ___ to show by what authority he/she holds the office of ___ and on failure thereof to oust him/her from the said office'",
+      "Address why locus exists even if petitioner is a stranger"
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Constitution of India",
+      "provisions": ["Article 226", "Article 32"],
+      "notes": "Quo warranto under Art. 32 difficult unless fundamental right link"
+    },
+    {
+      "act": "Statute creating the public office",
+      "provisions": ["As applicable"],
+      "notes": "Mandatory to plead and quote"
+    },
+    {
+      "act": "Rules of recruitment / Service Rules",
+      "provisions": ["As applicable"],
+      "notes": "Where eligibility/disqualification is prescribed by rules"
+    }
+  ],
+  "key_precedents": [
+    {
+      "case": "University of Mysore v. C.D. Govinda Rao",
+      "citation": "AIR 1965 SC 491",
+      "principle": "Test for 'public office' — substantive office created by statute or under constitutional authority"
+    },
+    {
+      "case": "Rajesh Awasthi v. Nand Lal Jaiswal",
+      "citation": "(2013) 1 SCC 501",
+      "principle": "Quo warranto conditions — public office, statutory eligibility, breach"
+    },
+    {
+      "case": "Hari Bansh Lal v. Sahodar Prasad Mahto",
+      "citation": "(2010) 9 SCC 655",
+      "principle": "Stranger locus permissible; court examines lawful authority"
+    },
+    {
+      "case": "B.R. Kapur v. State of Tamil Nadu",
+      "citation": "(2001) 7 SCC 231",
+      "principle": "Quo warranto against Chief Minister — public office of constitutional character"
+    },
+    {
+      "case": "Centre for PIL v. Union of India (CVC case)",
+      "citation": "(2011) 4 SCC 1",
+      "principle": "Quo warranto against Central Vigilance Commissioner for lack of impeccable integrity"
+    }
+  ],
+  "filing_checklist": [
+    "Memo of writ petition with index, synopsis, list of dates",
+    "Affidavit in support sworn before Oath Commissioner",
+    "Annexure: copy of appointment order / gazette notification — mandatory",
+    "Annexure: copy of statute creating office + qualification rules",
+    "Annexure: documents showing appointee lacks qualification or suffers disqualification",
+    "Court fee per HC/SC rules",
+    "Vakalatnama",
+    "Service copies — to appointee, appointing authority, State/UoI as proforma",
+    "If SC: AOR certificate",
+    "Public interest litigation compliance if filed as PIL (HC Rules)"
+  ],
+  "validation_rules": [
+    {
+      "rule": "public_office_title must be substantive statutory/constitutional office — flag if contractual/private",
+      "severity": "blocker"
+    },
+    { "rule": "statute_creating_office must reference section + Act", "severity": "blocker" },
+    { "rule": "qualifying_provision must be specified", "severity": "blocker" },
+    { "rule": "appointment_notification must be specified", "severity": "blocker" },
+    {
+      "rule": "If court=Supreme Court and article=32, fundamental right linkage must be pleaded",
+      "severity": "warning"
+    },
+    {
+      "rule": "Impugned appointee must be made respondent in personal capacity, not just office",
+      "severity": "blocker"
+    }
+  ],
+  "state_variations": {
+    "Bihar": {
+      "court": "Patna High Court",
+      "rules": "Patna HC Rules, 1916 — Chapter on Writs; Patna HC PIL Rules"
+    },
+    "Jharkhand": {
+      "court": "Jharkhand High Court at Ranchi",
+      "rules": "Jharkhand HC Rules, 2001; Jharkhand HC PIL Rules"
+    },
+    "Uttar Pradesh": {
+      "court": "Allahabad HC / Lucknow Bench",
+      "rules": "Allahabad HC Rules, 1952 — Chapter XXII"
+    },
+    "Delhi": { "court": "Delhi High Court", "rules": "Delhi HC Rules; Delhi HC PIL Rules 2010" }
+  },
+  "advocate_disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy, jurisdictional verification, filing, and all professional conduct under the Advocates Act, 1961 and BCI Rules."
+}

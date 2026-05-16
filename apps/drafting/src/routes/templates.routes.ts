@@ -10,6 +10,10 @@ const router = Router();
  * Returns all active templates accessible to the caller's plan.
  * Free users: planAccess='free' templates only.
  * Pro users: all templates.
+ *
+ * Reads from the Template collection — populated by syncTemplateRegistry()
+ * at boot from the SCRUM-78 doc-rules registry. The in-memory registry is
+ * the source of truth; this collection is a queryable view of it.
  */
 router.get('/', authenticate, async (req: Request, res: Response): Promise<void> => {
   const plan = req.jwtPayload!.plan;
@@ -20,8 +24,10 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
   }
 
   const templates = await Template.find(filter)
-    .select('name slug category docType courtType description planAccess usageCount')
-    .sort({ category: 1, name: 1 })
+    .select(
+      'templateId slug displayName category courtLevels description planAccess creditsCost icon supportedLanguages',
+    )
+    .sort({ category: 1, displayName: 1 })
     .lean();
 
   res.json({ templates, plan });
@@ -30,6 +36,7 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
 /**
  * GET /templates/:slug
  * Returns a single template if accessible to the caller's plan.
+ * Slug is the doc-rule template_id (also the JSON filename without .json).
  */
 router.get('/:slug', authenticate, async (req: Request, res: Response): Promise<void> => {
   const plan = req.jwtPayload!.plan;

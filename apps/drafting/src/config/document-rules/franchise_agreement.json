@@ -1,0 +1,264 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_status": "Approved",
+    "legal_basis": "Indian Contract Act 1872 + Trade Marks Act 1999 + Copyright Act 1957 + Competition Act 2002",
+    "notes": "Franchise Agreement combines TM/copyright license + operational system + ongoing support + royalty. India has no specific franchise statute (unlike US FTC Franchise Rule). Governed by Contract Act + IP statutes. CCI considerations on territorial exclusivity. Royalty subject to TDS u/s 194J and GST. Cross-border royalty needs FEMA compliance."
+  },
+  "template_id": "franchise_agreement",
+  "title": "Franchise Agreement",
+  "category": "corporate",
+  "creditsCost": 2,
+  "court_levels": [],
+  "form_schema": {
+    "type": "object",
+    "required": ["franchisor_name", "franchisee_name", "brand", "territory", "term_years"],
+    "properties": {
+      "franchisor_name": { "type": "string" },
+      "franchisor_address": { "type": "string" },
+      "franchisor_gstin": { "type": "string" },
+      "franchisee_name": { "type": "string" },
+      "franchisee_address": { "type": "string" },
+      "franchisee_gstin": { "type": "string" },
+      "effective_date": { "type": "string", "format": "date" },
+      "brand": { "type": "string", "title": "Brand / System name" },
+      "registered_trademarks": { "type": "array", "items": { "type": "string" } },
+      "territory": { "type": "string" },
+      "exclusivity": {
+        "type": "string",
+        "enum": ["Exclusive territory", "Non-exclusive", "Limited exclusivity"]
+      },
+      "term_years": { "type": "number", "default": 5 },
+      "renewal_terms": { "type": "string" },
+      "initial_franchise_fee": { "type": "number" },
+      "royalty_percent": { "type": "number", "title": "Royalty as % of gross revenue" },
+      "marketing_fund_contribution_percent": { "type": "number" },
+      "training_obligations": { "type": "string" },
+      "operations_manual_provided": { "type": "boolean", "default": true },
+      "minimum_performance_standards": { "type": "string" },
+      "site_approval_required": { "type": "boolean", "default": true },
+      "supply_chain_control": { "type": "string" },
+      "post_term_non_compete_years": { "type": "number", "default": 2 },
+      "governing_law_state": { "type": "string" },
+      "arbitration_seat": { "type": "string" }
+    }
+  },
+  "mandatory_clauses": [
+    { "clause_id": "parties", "title": "Parties", "must_appear": true },
+    {
+      "clause_id": "recitals",
+      "title": "Recitals - Franchisor's business and brand",
+      "must_appear": true
+    },
+    {
+      "clause_id": "grant_of_franchise",
+      "title": "Grant of Franchise",
+      "must_appear": true,
+      "content": "Franchisor grants to Franchisee a {{exclusivity}} right and license to operate a {{brand}} franchise outlet within the Territory using the Franchisor's System, Trademarks, and Know-How, subject to the terms of this Agreement."
+    },
+    {
+      "clause_id": "territory_exclusivity",
+      "title": "Territory and Exclusivity",
+      "must_appear": true,
+      "note": "Competition Act considerations - avoid AAEC"
+    },
+    {
+      "clause_id": "trademark_license",
+      "title": "Trademark and IP License",
+      "must_appear": true,
+      "subclauses": [
+        "Scope of license",
+        "Quality control standards",
+        "Goodwill accrues to Franchisor",
+        "Use of TM strictly per brand guidelines",
+        "Permitted user registration under S.49 TM Act"
+      ]
+    },
+    {
+      "clause_id": "operations_manual",
+      "title": "Operations Manual and System Adherence",
+      "must_appear": true
+    },
+    { "clause_id": "site_approval", "title": "Site Selection and Approval", "must_appear": true },
+    {
+      "clause_id": "build_out_design",
+      "title": "Build-out, Design, and Equipment Specifications",
+      "must_appear": true
+    },
+    { "clause_id": "training", "title": "Training (Initial and Ongoing)", "must_appear": true },
+    {
+      "clause_id": "initial_fee",
+      "title": "Initial Franchise Fee",
+      "must_appear": true,
+      "content": "Franchisee shall pay an initial franchise fee of INR {{initial_franchise_fee}} on execution, non-refundable, plus applicable GST."
+    },
+    {
+      "clause_id": "royalty",
+      "title": "Royalty Fee",
+      "must_appear": true,
+      "content": "Franchisee shall pay an ongoing royalty of {{royalty_percent}}% of Gross Revenue, payable monthly within 7 days of month-end, plus applicable GST. TDS u/s 194J shall be deducted by Franchisee."
+    },
+    {
+      "clause_id": "marketing_fund",
+      "title": "Marketing / Advertising Fund Contribution",
+      "must_appear": true
+    },
+    {
+      "clause_id": "supply_chain",
+      "title": "Approved Suppliers / Supply Chain",
+      "must_appear": true,
+      "note": "Tying arrangements need Competition Act sensitivity - justify on quality/system grounds"
+    },
+    {
+      "clause_id": "operations_standards",
+      "title": "Operating Standards and Quality Control",
+      "must_appear": true
+    },
+    {
+      "clause_id": "performance_standards",
+      "title": "Minimum Performance Standards",
+      "must_appear": true
+    },
+    {
+      "clause_id": "books_records_audit",
+      "title": "Books, Records, and Audit",
+      "must_appear": true
+    },
+    {
+      "clause_id": "marketing_advertising",
+      "title": "Marketing and Advertising",
+      "must_appear": true
+    },
+    { "clause_id": "insurance", "title": "Insurance", "must_appear": true },
+    {
+      "clause_id": "confidentiality",
+      "title": "Confidentiality and Trade Secrets",
+      "must_appear": true
+    },
+    {
+      "clause_id": "non_compete",
+      "title": "Non-Compete - In-term and Post-term",
+      "must_appear": true,
+      "note": "In-term: enforceable. Post-term: typically 1-2 years within reasonable area - test against S.27 Contract Act and reasonableness."
+    },
+    { "clause_id": "non_solicit", "title": "Non-Solicitation", "must_appear": true },
+    {
+      "clause_id": "transfer_restrictions",
+      "title": "Transfer and Assignment Restrictions",
+      "must_appear": true
+    },
+    { "clause_id": "indemnification", "title": "Indemnification (mutual)", "must_appear": true },
+    {
+      "clause_id": "limitation_of_liability",
+      "title": "Limitation of Liability",
+      "must_appear": true
+    },
+    { "clause_id": "term", "title": "Term and Renewal", "must_appear": true },
+    {
+      "clause_id": "termination",
+      "title": "Termination",
+      "must_appear": true,
+      "subclauses": [
+        "For cause - material breach with cure period",
+        "For abandonment",
+        "For insolvency",
+        "For repeated breaches",
+        "For criminal conduct/reputational harm"
+      ]
+    },
+    {
+      "clause_id": "consequences_termination",
+      "title": "Consequences of Termination",
+      "must_appear": true,
+      "subclauses": [
+        "Cessation of TM use",
+        "Return of manuals and confidential information",
+        "De-identification of premises",
+        "Sell-off of permitted inventory",
+        "Settlement of dues",
+        "Post-term covenants"
+      ]
+    },
+    { "clause_id": "force_majeure", "title": "Force Majeure", "must_appear": true },
+    {
+      "clause_id": "dispute_resolution",
+      "title": "Dispute Resolution - Mediation then Arbitration",
+      "must_appear": true
+    },
+    {
+      "clause_id": "governing_law",
+      "title": "Governing Law and Jurisdiction",
+      "must_appear": true
+    },
+    {
+      "clause_id": "fema_cross_border",
+      "title": "FEMA / Cross-border Royalty Compliance",
+      "must_appear": false,
+      "applies_when": "Cross-border"
+    },
+    { "clause_id": "general", "title": "General Provisions", "must_appear": true },
+    { "clause_id": "execution", "title": "Execution", "must_appear": true },
+    {
+      "clause_id": "schedules",
+      "title": "Schedules - Territory, Trademarks, Fee Schedule, Performance Standards",
+      "must_appear": true
+    }
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting a Franchise Agreement under Indian law. Combine TM license, operating system, training, royalty. Watch Competition Act 2002 for territorial restrictions/tying. India has no franchise-specific statute.",
+    "drafting_rules": [
+      "Franchise = TM license + system + training + ongoing royalty + quality control.",
+      "Register the trademark and consider registered user under S.49 TM Act.",
+      "Royalty subject to GST (18% on intellectual property licensing). TDS u/s 194J at 10%.",
+      "Cross-border franchise: royalty repatriation requires AD Bank reporting per FEMA Current Account Transactions Rules; FDI policy permits royalty up to liberalised limits via automatic route.",
+      "Operations Manual is confidential - protect under confidentiality clause.",
+      "Quality control is essential for TM license enforceability.",
+      "Tying of suppliers - justify on system uniformity/quality, not pure economic exclusion.",
+      "Post-term non-compete: limit to 1-2 years and reasonable geographic radius (cite Niranjan Shankar Golikari for reasonableness test).",
+      "Termination must include cure period for curable breaches.",
+      "De-identification post-termination is critical - prevent passing off.",
+      "Stamp duty per state, sometimes ad valorem on franchise fee.",
+      "Disclosure: India has no mandatory franchise disclosure document, but good practice to provide FDD-style info."
+    ],
+    "tone": "Formal commercial-legal, franchisor-protective but balanced."
+  },
+  "relevantActs": [
+    { "act": "Indian Contract Act 1872", "sections": ["S.27"] },
+    { "act": "Trade Marks Act 1999", "sections": ["S.48 (assignment)", "S.49 (registered user)"] },
+    { "act": "Copyright Act 1957" },
+    { "act": "Designs Act 2000" },
+    { "act": "Competition Act 2002" },
+    { "act": "Consumer Protection Act 2019" },
+    { "act": "CGST Act 2017" },
+    { "act": "Income Tax Act 1961", "sections": ["S.194J"] },
+    {
+      "act": "FEMA 1999 + FEMA (Current Account Transactions) Rules 2000",
+      "applies_when": "Cross-border"
+    },
+    { "act": "Food Safety and Standards Act 2006", "applies_when": "Food/F&B franchise" },
+    { "act": "Indian Stamp Act 1899" }
+  ],
+  "filing_checklist": [
+    "Execute on stamp paper per state (ad valorem in some states on initial fee).",
+    "Register the TM license / record permitted user under S.49 TM Act with Registrar.",
+    "Cross-border: AD Bank reporting; obtain LRS / RBI approvals if required.",
+    "Apply for trade licenses, FSSAI (if food), Shops & Establishments registration for franchise outlet.",
+    "Maintain Operations Manual as confidential document.",
+    "Quarterly TDS return filing on royalty deductions."
+  ],
+  "validation_rules": [
+    { "rule": "TM license clause", "check": "TM scope, quality control, goodwill clauses present" },
+    { "rule": "Royalty mechanism clear", "check": "Royalty base + percentage + payment terms" },
+    { "rule": "Quality control terms", "check": "Franchisor's quality oversight rights" },
+    { "rule": "Termination + de-identification", "check": "Cessation of TM use post-termination" },
+    {
+      "rule": "Reasonable non-compete",
+      "check": "Post-term restraint geographically and temporally limited"
+    },
+    {
+      "rule": "FEMA compliance for cross-border",
+      "check": "If cross-border, FEMA reporting referenced"
+    }
+  ]
+}

@@ -15,7 +15,8 @@
     "seed:courts": "ts-node --transpile-only src/scripts/seed-courts.ts",
     "seed:sections": "ts-node --transpile-only src/scripts/seed-sections.ts",
     "seed:templates": "ts-node --transpile-only src/scripts/seed-templates.ts",
-    "seed:all": "yarn seed:courts && yarn seed:sections && yarn seed:templates"
+    "seed:all": "yarn seed:courts && yarn seed:sections && yarn seed:templates",
+    "diff:templates": "ts-node --transpile-only src/scripts/template-diff.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.0",

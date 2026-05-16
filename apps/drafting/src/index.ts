@@ -14,10 +14,19 @@ import { connectDatabase } from './config/database';
 import { env } from './config/env';
 import logger from './config/logger';
 import { disconnectRedis } from './config/redis';
+import { getTemplateRegistry } from './services/template-promoter';
+import { runBootSync } from './services/template-seed.service';
 
 async function bootstrap() {
   try {
     await connectDatabase();
+    // SCRUM-78: build the doc-rules → TemplateConfig registry once at boot. Triggers
+    // the disk walk, fills the in-memory map, writes mismatch report if any gaps exist.
+    getTemplateRegistry();
+    // SCRUM-80: reconcile the Template Mongo collection with the registry. One-way
+    // sync, idempotent. Never blocks the listen call — errors fall back to the
+    // in-memory registry serving the catalog.
+    await runBootSync();
     app.listen(env.PORT, () => {
       logger.info(`📝 Drafting Service running on http://localhost:${env.PORT}`);
       logger.info(`   Environment: ${env.NODE_ENV}`);

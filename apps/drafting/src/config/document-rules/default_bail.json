@@ -1,0 +1,228 @@
+{
+  "_meta": {
+    "description": "Document-rules config for default_bail — BNSS 187(3) statutory bail when charge sheet not filed within stipulated period",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12. Time-limits hard-coded per BNSS 187(3).",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Validation rule on elapsed_days is load-bearing — DO NOT modify without legal review."
+  },
+  "template_id": "default_bail",
+  "docType": "default_bail",
+  "parentDocType": "bail_application",
+  "title": "Default Bail Application (BNSS 187(3))",
+  "displayName": "Default Bail Application under BNSS 187(3)",
+  "category": "criminal_bail",
+  "creditsCost": 2,
+  "court_levels": ["magistrate", "cjm", "sessions", "district"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} ... Respondent",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant/Accused" },
+      { "role": "respondent", "label": "Respondent (State)" }
+    ],
+    "caseNomenclature": "DEFAULT BAIL APPLICATION No. _____ of [YEAR]\n(Under Section 187(3) of BNSS, 2023)"
+  },
+  "form_schema": [
+    { "name": "applicant_name", "label": "Applicant Name", "type": "text", "required": true },
+    {
+      "name": "applicant_parentage",
+      "label": "Father's / Husband's Name",
+      "type": "text",
+      "required": true
+    },
+    { "name": "applicant_age", "label": "Applicant Age", "type": "number", "required": true },
+    {
+      "name": "applicant_address",
+      "label": "Applicant Address",
+      "type": "textarea",
+      "required": true
+    },
+    { "name": "court_designation", "label": "Court Designation", "type": "text", "required": true },
+    {
+      "name": "state",
+      "label": "State",
+      "type": "select",
+      "options": ["Bihar", "Jharkhand", "Uttar Pradesh", "Delhi"],
+      "required": true
+    },
+    { "name": "fir_number", "label": "FIR Number", "type": "text", "required": true },
+    { "name": "fir_date", "label": "FIR Date", "type": "date", "required": true },
+    { "name": "police_station", "label": "Police Station", "type": "text", "required": true },
+    {
+      "name": "offences_alleged",
+      "label": "Offences (BNS sections)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "offence_punishment_max_years",
+      "label": "Maximum Punishment (years) for Most Serious Offence",
+      "type": "number",
+      "required": true,
+      "help": "Used to determine 60-day vs 90-day window"
+    },
+    { "name": "arrest_date", "label": "Date of Arrest", "type": "date", "required": true },
+    {
+      "name": "remand_date",
+      "label": "Date of First Remand to Custody",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "elapsed_days",
+      "label": "Days Elapsed Since First Remand",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "charge_sheet_status",
+      "label": "Charge Sheet Status",
+      "type": "select",
+      "options": [
+        "Not filed",
+        "Filed but defective / incomplete",
+        "Filed after expiry of statutory period"
+      ],
+      "required": true
+    },
+    {
+      "name": "application_date",
+      "label": "Date of This Application",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "willingness_to_furnish_bond",
+      "label": "Willing to Furnish Bond (mandatory)",
+      "type": "select",
+      "options": ["Yes"],
+      "required": true
+    },
+    { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
+    {
+      "name": "advocate_enrolment",
+      "label": "Bar Council Enrolment No.",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "mandatory_clauses": [
+    "BNSS Section 187(3) statutory entitlement",
+    "computation of days from first remand",
+    "applicable statutory window (60 / 90 days)",
+    "fact that charge sheet not filed within statutory period",
+    "indefeasible right accrued on expiry",
+    "willingness and readiness to furnish bail bond",
+    "prayer for release on default bail",
+    "verification on oath"
+  ],
+  "mandatoryClauses": [
+    {
+      "id": "statutory_provision",
+      "name": "BNSS 187(3) Reference",
+      "required": true,
+      "description": "Express invocation of Section 187(3) BNSS, 2023 (corresponding to Section 167(2) of old CrPC)"
+    },
+    {
+      "id": "computation",
+      "name": "Day Computation",
+      "required": true,
+      "description": "Day-by-day tabulation from first remand showing expiry of statutory period"
+    },
+    {
+      "id": "applicable_window",
+      "name": "Applicable Window",
+      "required": true,
+      "description": "Statement of which window applies: 60 days (offences up to 10 yrs) or 90 days (above 10 yrs / life / death)"
+    },
+    {
+      "id": "non_filing",
+      "name": "Non-Filing of Charge Sheet",
+      "required": true,
+      "description": "Specific averment that police report (charge sheet) not filed before expiry of statutory period"
+    },
+    {
+      "id": "indefeasible_right",
+      "name": "Indefeasible Right",
+      "required": true,
+      "description": "Assertion of indefeasible right per Uday Mohanlal Acharya v. State of Maharashtra (2001) 5 SCC 453"
+    },
+    {
+      "id": "willingness",
+      "name": "Willingness to Furnish Bond",
+      "required": true,
+      "description": "Express willingness and readiness to furnish bail bond as may be directed"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer",
+      "required": true,
+      "description": "Prayer for release on default bail"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, and as the statutory period under Section 187(3) BNSS, 2023 has expired without the police report being filed, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Release the applicant {applicant} on default bail under Section 187(3) BNSS, 2023 in connection with FIR No. {fir_number} dated {fir_date} of Police Station {police_station};\nb) Direct release on such bond and sureties as this Hon'ble Court may deem fit;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, S/o {parentName}, aged about {age} years, currently in judicial custody at {jail}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "prompt_context": "Draft a Default Bail Application under Section 187(3) of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 — the successor to Section 167(2) CrPC. The statutory framework: an accused in custody acquires an indefeasible right to be released on default bail if the investigation is not completed and police report (charge sheet) not filed within: (a) 60 days from first remand for offences punishable with imprisonment up to 10 years; (b) 90 days from first remand for offences punishable with death, imprisonment for life, or imprisonment for a term not less than 10 years. The right is statutory and not discretionary. Key precedents: Uday Mohanlal Acharya v. State of Maharashtra (2001) 5 SCC 453; Sanjay Dutt v. State (1994) 5 SCC 410; Bikramjit Singh v. State of Punjab (2020) 10 SCC 616 (must apply before charge sheet is filed to enforce the right); Rakesh Kumar Paul v. State of Assam (2017) 15 SCC 67. The application must include precise day-count from date of first remand. Special statutes (UAPA, PMLA, NDPS) have different default-bail windows — flag this. Always cite BNS for substantive offences, BNSS 187(3) for the procedural right.",
+  "promptInstructions": [
+    "Draft a Default Bail Application strictly under Section 187(3) BNSS, 2023 (the successor to Section 167(2) CrPC).",
+    "Open with paragraph stating accused was arrested on {arrest_date}, first remanded to custody on {remand_date}, and continues to be in custody.",
+    "Tabulate the day-count showing 60 or 90 days have expired from first remand, with no police report filed.",
+    "Identify which statutory window applies based on offence_punishment_max_years: ≤10 yrs = 60 days; >10 yrs / life / death = 90 days.",
+    "Cite Uday Mohanlal Acharya v. State of Maharashtra (2001) 5 SCC 453 and Bikramjit Singh v. State of Punjab (2020) 10 SCC 616 on the indefeasible right.",
+    "Cite Rakesh Kumar Paul v. State of Assam (2017) 15 SCC 67 on right being available when charge sheet not filed.",
+    "Include express willingness to furnish bond.",
+    "Cite BNS section numbers for the underlying offences (never IPC).",
+    "Do NOT generate the verification clause or advocate signature block — those are added programmatically.",
+    "If offence is under UAPA / NDPS / PMLA, flag that special statute may extend the default-bail window."
+  ],
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        {
+          "number": "187(3)",
+          "description": "Default bail when charge sheet not filed within 60 / 90 days from first remand"
+        },
+        {
+          "number": "187",
+          "description": "Procedure when investigation cannot be completed in twenty-four hours"
+        },
+        { "number": "480", "description": "When bail may be taken in case of non-bailable offence" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + 2 copies)",
+    "Affidavit of applicant (or jail-authority attested)",
+    "Custody certificate from jail authorities",
+    "Copy of FIR",
+    "Copy of arrest memo",
+    "Copy of remand orders showing dates",
+    "Vakalatnama",
+    "Surety bond format ready"
+  ],
+  "filingChecklist": [
+    "Application (original + 2 copies)",
+    "Affidavit of applicant (or jail-authority attested)",
+    "Custody certificate from jail authorities",
+    "Copy of FIR",
+    "Copy of arrest memo",
+    "Copy of remand orders showing dates",
+    "Vakalatnama",
+    "Surety bond format ready"
+  ],
+  "validation_rules": [
+    "elapsed_days >= 60 || (elapsed_days >= 90 && offence_punishment_max_years >= 10)",
+    "charge_sheet_status must indicate non-filing or post-period filing",
+    "remand_date must be before application_date",
+    "if offence_punishment_max_years >= 10 (life/death equivalent) then elapsed_days must be >= 90",
+    "if offence_punishment_max_years < 10 then elapsed_days must be >= 60",
+    "willingness_to_furnish_bond must be Yes — without this the indefeasible right does not crystallise"
+  ]
+}

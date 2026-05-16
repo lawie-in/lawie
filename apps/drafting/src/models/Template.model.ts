@@ -1,111 +1,93 @@
-import { DocType, DOC_TYPES } from '@lawie/shared';
+/**
+ * Template — Mongo read-through cache for the in-memory TemplateConfig registry.
+ *
+ * Per ADR-018 (template wiring, 2026-05-12): the file system at
+ * `apps/drafting/src/config/document-rules/*.json` is the single source of truth.
+ * This collection mirrors what the SCRUM-78 promoter produces so that catalog
+ * listing, plan-gated access checks, and admin reporting have an indexed view
+ * without re-reading 92 JSONs on every request.
+ *
+ * Write-paths: ONLY `syncTemplateRegistry()` (template-seed.service.ts). The
+ * Express app must never write to this collection. usageCount lives in the
+ * separate TemplateUsage collection.
+ *
+ * Schema is intentionally loose — `category`, `court_levels`, and `plan_access`
+ * carry the values CLO actually authors (not the narrower SCRUM-40 enums) so
+ * future doc-types ship with zero schema migration.
+ */
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ITemplate extends Document {
-  name: string;
+  templateId: string;
+  displayName: string;
   slug: string;
-  category: 'criminal' | 'civil' | 'corporate' | 'family';
-  docType: DocType;
-  courtType?: string;
-
+  category: string;
   description: string;
-  formSchema?: Record<string, unknown>; // JSON schema for guided form
-  promptTemplate: string; // AI prompt with {{placeholders}}
-
+  icon: string;
   planAccess: 'free' | 'pro';
-
-  reviewedBy: string; // CLO agent/name
-  reviewedAt?: Date;
+  courtLevels: string[];
+  states: string[];
+  supportedLanguages: string[];
+  creditsCost: number;
+  formSchema: Record<string, unknown>;
+  documentStructure: Record<string, unknown>;
+  validationRules: Record<string, unknown>;
+  relatedActs: string[];
+  filingChecklist: string[];
+  metadata: Record<string, unknown>;
+  source: Record<string, unknown>;
+  sourceFile: string;
   isActive: boolean;
-
-  usageCount: number;
-
+  promotedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const TemplateSchema = new Schema<ITemplate>(
   {
-    name: {
+    templateId: {
       type: String,
-      required: [true, 'name is required'],
+      required: true,
+      unique: true,
       trim: true,
-      maxlength: [200, 'name too long'],
+      lowercase: true,
     },
+    // Kept as a duplicate of templateId for backwards-compat with the existing
+    // `/templates/:slug` route; sync service writes both to the same value.
     slug: {
       type: String,
-      required: [true, 'slug is required'],
+      required: true,
       unique: true,
       lowercase: true,
       trim: true,
     },
-    category: {
-      type: String,
-      enum: ['criminal', 'civil', 'corporate', 'family'],
-      required: [true, 'category is required'],
-    },
-    docType: {
-      type: String,
-      enum: Object.values(DOC_TYPES),
-      required: [true, 'docType is required'],
-    },
-    courtType: {
-      type: String,
-      enum: [
-        'district_court',
-        'high_court',
-        'supreme_court',
-        'tribunal',
-        'consumer_forum',
-        'family_court',
-      ],
-    },
-
-    description: {
-      type: String,
-      required: [true, 'description is required'],
-      maxlength: [500, 'description too long'],
-    },
-    formSchema: {
-      type: Schema.Types.Mixed,
-      default: null,
-    },
-    promptTemplate: {
-      type: String,
-      required: [true, 'promptTemplate is required'],
-    },
-
-    planAccess: {
-      type: String,
-      enum: ['free', 'pro'],
-      default: 'free',
-    },
-
-    reviewedBy: {
-      type: String,
-      required: [true, 'reviewedBy is required'],
-      trim: true,
-    },
-    reviewedAt: Date,
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-
-    usageCount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
+    displayName: { type: String, required: true, trim: true, maxlength: 200 },
+    category: { type: String, required: true, trim: true },
+    description: { type: String, default: '', maxlength: 2000 },
+    icon: { type: String, default: 'file-text' },
+    planAccess: { type: String, enum: ['free', 'pro'], default: 'free' },
+    courtLevels: { type: [String], default: [] },
+    states: { type: [String], default: ['all'] },
+    supportedLanguages: { type: [String], default: ['en'] },
+    creditsCost: { type: Number, default: 1, min: 0 },
+    formSchema: { type: Schema.Types.Mixed, default: () => ({ steps: [] }) },
+    documentStructure: { type: Schema.Types.Mixed, default: () => ({ sections: [] }) },
+    validationRules: { type: Schema.Types.Mixed, default: () => ({}) },
+    relatedActs: { type: [String], default: [] },
+    filingChecklist: { type: [String], default: [] },
+    metadata: { type: Schema.Types.Mixed, default: () => ({}) },
+    source: { type: Schema.Types.Mixed, default: () => ({}) },
+    sourceFile: { type: String, required: true, trim: true },
+    isActive: { type: Boolean, default: true },
+    promotedAt: { type: Date, default: () => new Date() },
   },
   { timestamps: true },
 );
 
-// -- Indexes per CTO schema design --
-// slug index created by `unique: true` on field definition
+// Indexes — catalog filters by plan + category, sort by display name.
 TemplateSchema.index({ category: 1 });
-TemplateSchema.index({ docType: 1 });
 TemplateSchema.index({ planAccess: 1 });
 TemplateSchema.index({ isActive: 1 });
+TemplateSchema.index({ courtLevels: 1 });
 
 export const Template = mongoose.model<ITemplate>('Template', TemplateSchema);

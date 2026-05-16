@@ -1,0 +1,417 @@
+{
+  "_meta": {
+    "description": "Document-rules config for plaint_partition — suit for partition of joint family / co-owned property",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 civil pleadings pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vineeta Sharma (2020) coparcenary equality and HSA 2005 framework are non-negotiable."
+  },
+  "template_id": "plaint_partition",
+  "docType": "plaint_partition",
+  "title": "Plaint — Suit for Partition of Joint Family / Co-owned Property",
+  "displayName": "Plaint for Partition (CPC + Hindu Succession Act)",
+  "category": "civil_pleading",
+  "creditsCost": 2,
+  "court_levels": ["civil_judge_senior_division", "district_judge", "high_court_original_side"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{plaintiff} ... Plaintiff\nVERSUS\n{defendants} ... Defendants",
+    "partyDesignations": [
+      { "role": "plaintiff", "label": "Plaintiff" },
+      { "role": "defendants", "label": "Defendants (all coparceners / co-sharers including women)" }
+    ],
+    "caseNomenclature": "Civil Suit No. _____ of [YEAR] (Partition)"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "plaintiff_name", "label": "Plaintiff full name", "type": "text", "required": true },
+      {
+        "id": "plaintiff_father_name",
+        "label": "Plaintiff father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "plaintiff_age", "label": "Plaintiff age", "type": "number", "required": true },
+      {
+        "id": "plaintiff_address",
+        "label": "Plaintiff address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "plaintiff_relationship_to_family",
+        "label": "Plaintiff's relationship to family (son / daughter / wife / grandchild / coparcener)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "defendants_details",
+        "label": "All defendants — names, ages, addresses, relationship (every coparcener/co-sharer must be impleaded)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "nature_of_property",
+        "label": "Nature of property",
+        "type": "select",
+        "required": true,
+        "options": [
+          "joint_hindu_family_mitakshara_coparcenary",
+          "joint_hindu_family_dayabhaga",
+          "ancestral_property",
+          "joint_family_self_acquired_thrown_into_common_hotchpot",
+          "co_owned_property_tenancy_in_common",
+          "co_owned_property_joint_tenancy"
+        ]
+      },
+      {
+        "id": "common_ancestor",
+        "label": "Common ancestor (full genealogy / family tree)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "property_schedule",
+        "label": "Schedule of properties to be partitioned (movable + immovable, with boundaries / shares)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "plaintiff_share_claimed",
+        "label": "Share claimed by plaintiff (fraction)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "share_calculation_basis",
+        "label": "Basis of share calculation — coparcenary rules / HSA S.6 (2005 amendment) / notional partition",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "women_coparceners",
+        "label": "Female coparceners — daughters with equal share post HSA 2005 amendment (Vineeta Sharma)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "earlier_partition",
+        "label": "Whether any earlier partition (oral / written / partial) — particulars",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "current_possession",
+        "label": "Current possession of each property (jointly / by specific defendants)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "income_from_property",
+        "label": "Income from joint property and accounting sought",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "demand_for_partition",
+        "label": "Demand for partition made — date, mode, defendant's response",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "denial_or_refusal",
+        "label": "Defendant's denial / refusal to partition",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "alienations_to_be_challenged",
+        "label": "Any alienations by other coparceners to be set aside / declared not binding on plaintiff's share",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "consequential_reliefs",
+        "label": "Consequential reliefs — accounts, mesne profits, injunction against alienation",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "cause_of_action_dates",
+        "label": "Cause of action — demand and refusal dates",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "limitation_basis",
+        "label": "Limitation — Art. 110 (12 years) for possession by tenant-in-common; right to partition not generally barred so long as jointness continues",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "territorial_jurisdiction",
+        "label": "Territorial jurisdiction (S.16-17 CPC where property situate; S.17 if multiple jurisdictions)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "court_fee_paid",
+        "label": "Court fee paid (Rs.)",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "court_fee_basis",
+        "label": "Court fee basis — fixed fee on possession-in-joint (S.7(vi) Court Fees Act in some states); state Schedule applies",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "valuation", "label": "Suit valuation", "type": "currency", "required": true },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties — All Coparceners/Co-sharers",
+      "required": true,
+      "description": "Every coparcener / co-sharer must be made party; non-joinder fatal"
+    },
+    {
+      "id": "genealogy_paragraph",
+      "name": "Genealogy and Common Ancestor",
+      "required": true,
+      "description": "Family tree showing relationship of all parties"
+    },
+    {
+      "id": "nature_of_property_paragraph",
+      "name": "Nature of Property — Joint / Coparcenary / Co-owned",
+      "required": true,
+      "description": "Whether HUF, Mitakshara coparcenary, Dayabhaga, tenancy-in-common etc."
+    },
+    {
+      "id": "property_schedule_paragraph",
+      "name": "Schedule of Properties",
+      "required": true,
+      "description": "Detailed schedule with boundaries and shares"
+    },
+    {
+      "id": "share_claimed_paragraph",
+      "name": "Share Claimed and Basis",
+      "required": true,
+      "description": "Fraction claimed with computation per HSA 2005 / customary rules"
+    },
+    {
+      "id": "vineeta_sharma_paragraph",
+      "name": "Daughters' Equal Coparcenary Rights — HSA S.6 (2005 amendment)",
+      "required": true,
+      "description": "Per Vineeta Sharma v. Rakesh Sharma (2020), daughter is coparcener by birth, irrespective of whether father alive on 09.09.2005"
+    },
+    {
+      "id": "demand_and_refusal_paragraph",
+      "name": "Demand for Partition and Refusal",
+      "required": true,
+      "description": "Specific demand made; severance of status occurs on unequivocal demand"
+    },
+    {
+      "id": "cause_of_action",
+      "name": "Cause of Action",
+      "required": true,
+      "description": "Order VII R.1(e)"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation",
+      "required": true,
+      "description": "Within limitation; partition right of joint property continues so long as jointness continues"
+    },
+    {
+      "id": "jurisdiction_paragraph",
+      "name": "Jurisdiction",
+      "required": true,
+      "description": "Territorial (S.16-17 CPC) and pecuniary"
+    },
+    {
+      "id": "valuation_paragraph",
+      "name": "Valuation and Court Fee",
+      "required": true,
+      "description": "Per state Court Fees Schedule — typically fixed where plaintiff in joint possession"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Partition by metes and bounds + separate possession + mesne profits + accounting"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Order VI R.15"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Order VI R.15(4)"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Plaintiff most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Pass a preliminary decree declaring the share of the Plaintiff as {plaintiff_share_claimed} in the joint family / coparcenary properties described in the Schedule, and that of each defendant as enumerated;\n\nb) Pass a final decree of partition by metes and bounds of the said properties through a Court Commissioner / Local Commission and allot separate possession of the Plaintiff's share;\n\nc) Direct an accounting of the income, profits, and rents derived from the joint family properties by the defendants and pay over the Plaintiff's share thereof along with mesne profits;\n\nd) Pass a permanent injunction restraining the Defendants from alienating, encumbering or otherwise dealing with the Plaintiff's share in the suit properties;\n\ne) Declare that any alienations made by any defendant during the pendency of this suit are subject to the result of this suit u/s 52 TPA;\n\nf) Award costs of the suit in favour of the Plaintiff;\n\ng) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Plaintiff shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {plaintiff_name}, son/daughter/wife of {plaintiff_father_name}, aged about {plaintiff_age} years, resident of {plaintiff_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above plaint are true and correct to my personal knowledge / family knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPlaintiff",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a plaint for partition of joint Hindu family / coparcenary / co-owned property under CPC read with Hindu Succession Act, 1956 (post-2005 amendment).",
+      "Identify the school applicable — Mitakshara (most of India) or Dayabhaga (West Bengal, Assam). Under Mitakshara, coparcener has share by birth; under Dayabhaga, only on father's death.",
+      "POST 2005 HSA AMENDMENT (Section 6 HSA): Daughters become coparceners BY BIRTH in same manner as sons, with same rights and liabilities. Survivorship under Mitakshara is ABOLISHED — devolution is now by intestate / testamentary succession, with notional partition on death.",
+      "Vineeta Sharma v. Rakesh Sharma (2020) 9 SCC 1 — landmark: daughter is coparcener by birth, irrespective of whether father was alive on 09.09.2005. Reverses Prakash v. Phulavati (2016) 2 SCC 36 on this point.",
+      "Para 1: Plaintiff description and relationship to joint family.",
+      "Para 2: Defendants — ALL coparceners and co-sharers must be impleaded. Non-joinder of necessary party is fatal (Order I R.9).",
+      "Para 3: Common ancestor and genealogy — provide family tree showing descent from common ancestor (typically 3-4 generations).",
+      "Para 4: Nature of property — joint Hindu family / Mitakshara coparcenary / Dayabhaga / ancestral / self-acquired property thrown into common hotchpot / co-owned.",
+      "Para 5: Schedule of properties — detailed list with boundaries (for land/buildings), denominations (for shares/securities), valuation each.",
+      "Para 6: Plaintiff's share computation — per HSA S.6 and notional partition principles. For daughter: equal share with sons. Wife: under notional partition, takes share equal to son in father's share.",
+      "Para 7: For pre-2005 demises or earlier partitions, plead carefully — pre-2005 daughters did not have coparcenary status, but Vineeta Sharma clarifies retrospective conferment.",
+      "Para 8: Current possession of each property and who is enjoying income.",
+      "Para 9: Demand for partition — under Mitakshara, severance of status occurs on unequivocal demand. Plead specific date and mode.",
+      "Para 10: Defendant's refusal / denial.",
+      "Para 11: Alienations by other coparceners — under Mitakshara a coparcener can alienate his share but not joint family property without consent (except karta for legal necessity / benefit of estate). Plead any alienations to be declared not binding on plaintiff's share.",
+      "Para 12: Cause of action — date of demand and refusal.",
+      "Para 13: Limitation — right to partition of joint property does NOT extinguish merely by lapse of time so long as jointness continues. Article 110 (12 years) applies for tenant-in-common's exclusion. State right is subsisting.",
+      "Para 14: Jurisdiction — S.16 CPC for immovable property; S.17 if properties in multiple jurisdictions (file in any court having jurisdiction over part).",
+      "Para 15: Court fee — state-specific. Generally where plaintiff is in joint constructive possession, fixed fee applies (e.g., Bihar Court Fees Act Sch. II Art. 17(vi); Maharashtra Court Fees Act Art. 4 Sch. II). Where plaintiff dispossessed, ad valorem on plaintiff's share. Refer state Schedule.",
+      "Para 16: Prayer for: (i) preliminary decree declaring share; (ii) final decree by metes and bounds via Commissioner; (iii) accounting and mesne profits; (iv) injunction against alienation; (v) lis pendens declaration under S.52 TPA.",
+      "Note: partition suit follows TWO stages — preliminary decree (declares shares) and final decree (effects physical partition usually through Court Commissioner).",
+      "Stamp duty payable on final partition decree (state-specific Schedule).",
+      "Verification and affidavit mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Hindu Succession Act, 1956 (as amended in 2005)",
+      "sections": [
+        {
+          "number": "S.6",
+          "description": "Devolution of interest in coparcenary property — post-2005, daughters are coparceners by birth; notional partition"
+        },
+        { "number": "S.8", "description": "General rules of succession in case of male Hindu" },
+        { "number": "S.10", "description": "Distribution of property among heirs in Class I" },
+        { "number": "S.15", "description": "General rules of succession in case of female Hindu" },
+        { "number": "S.30", "description": "Testamentary succession" }
+      ]
+    },
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "S.9", "description": "Jurisdiction" },
+        { "number": "S.16", "description": "Immovable property suits" },
+        {
+          "number": "S.17",
+          "description": "Suits for immovable property in jurisdiction of different courts"
+        },
+        { "number": "Order I R.9", "description": "Non-joinder and misjoinder" },
+        { "number": "Order VII R.1, 7", "description": "Plaint particulars" },
+        { "number": "Order XX R.18", "description": "Decree in suit for partition / accounts" },
+        {
+          "number": "Order XXVI R.13-14",
+          "description": "Commissions for partition of immovable property"
+        }
+      ]
+    },
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        { "number": "S.44", "description": "Transfer by one co-owner" },
+        { "number": "S.52", "description": "Lis pendens" }
+      ]
+    },
+    {
+      "act": "Partition Act, 1893",
+      "sections": [
+        { "number": "S.2", "description": "Sale instead of division" },
+        { "number": "S.3", "description": "Right of shareholders to purchase" },
+        {
+          "number": "S.4",
+          "description": "Partition suit by transferee of share in dwelling-house"
+        }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "Schedule Art. 110",
+          "description": "By a person excluded from joint family property to enforce a right to share — 12 years from when exclusion known"
+        },
+        { "number": "Schedule Art. 65", "description": "Possession based on title" }
+      ]
+    },
+    {
+      "act": "Court Fees Act, 1870 + state amendments (Bihar, UP, Maharashtra, Delhi)",
+      "sections": [
+        {
+          "number": "Schedule II Art. 17(vi)",
+          "description": "Partition — fixed fee where plaintiff in joint possession"
+        },
+        { "number": "S.7(vi)", "description": "Ad valorem where exclusion pleaded" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Plaint (original + copies for each defendant + court copy)",
+    "Vakalatnama",
+    "Memo of parties — every coparcener / co-sharer impleaded",
+    "Affidavit in support of plaint (Order VI R.15(4))",
+    "Court fee per state Schedule (fixed if joint possession; ad valorem if exclusion)",
+    "Family tree / genealogy chart",
+    "Title documents of common ancestor (parent deeds, inheritance records)",
+    "Mutation entries / khasra-khatauni for all properties (UP/Bihar/Jharkhand)",
+    "Records of right / revenue records / 7/12 extracts (Maharashtra) / RTC (Karnataka)",
+    "Death certificates of intermediate ancestors",
+    "Will (if any) of common ancestor and its probate status",
+    "Earlier partition deed / family arrangement (if any)",
+    "Property tax receipts and assessment lists",
+    "Income records — rents, agricultural produce",
+    "Application under Order 39 R.1-2 for injunction against alienation",
+    "Application under S.52 TPA for lis pendens notice",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "plaintiff_name must not be empty",
+    "defendants_details must not be empty — every coparcener/co-sharer impleaded",
+    "nature_of_property must be specified",
+    "common_ancestor must not be empty",
+    "property_schedule must not be empty",
+    "plaintiff_share_claimed must not be empty",
+    "share_calculation_basis must not be empty",
+    "current_possession must not be empty",
+    "demand_for_partition must not be empty",
+    "denial_or_refusal must not be empty",
+    "cause_of_action_dates must not be empty",
+    "limitation_basis must not be empty",
+    "court_fee_paid must be > 0",
+    "If female coparceners exist, women_coparceners must reflect Vineeta Sharma equal shares",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Vineeta Sharma v. Rakesh Sharma (2020) 9 SCC 1 — Daughters are coparceners by birth, regardless of whether father alive on 09.09.2005",
+    "Danamma @ Suman Surpur v. Amar (2018) 3 SCC 343 — Pre-Vineeta Sharma, partial recognition",
+    "Prakash v. Phulavati (2016) 2 SCC 36 — Overruled by Vineeta Sharma on retrospectivity",
+    "Commissioner of Wealth Tax v. Chander Sen (1986) 3 SCC 567 — Post-1956 self-acquired property of father devolves under S.8, not as coparcenary",
+    "Yudhishter v. Ashok Kumar (1987) 1 SCC 204 — Coparcenary in modern times",
+    "Uttam v. Saubhag Singh (2016) 4 SCC 68 — Notional partition under S.6 HSA",
+    "Arshnoor Singh v. Harpal Kaur (2020) 14 SCC 436 — Ancestral property continues as coparcenary among descendants"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

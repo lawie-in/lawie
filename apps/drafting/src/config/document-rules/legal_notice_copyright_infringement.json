@@ -1,0 +1,250 @@
+{
+  "_meta": {
+    "description": "Document-rules config for legal_notice_copyright_infringement — cease & desist under Copyright Act, 1957; includes DMCA-style takedown for digital infringement",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — drafted 2026-05-12 in Batch 2 templates",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Establish authorship, originality, and ownership chain before issuing notice."
+  },
+  "docType": "legal_notice_copyright_infringement",
+  "parentDocType": "legal_notice",
+  "displayName": "Legal Notice — Copyright Infringement (Cease & Desist + Takedown)",
+  "category": "notice",
+  "creditsCost": 1,
+  "court_levels": ["pre_litigation"],
+  "causeTitle": {
+    "format": "LEGAL NOTICE\n(Cease & Desist — Under the Copyright Act, 1957)\n\nTo,\n{respondent}\n{respondentAddress}\n\nFrom,\n{applicant}\nThrough: {advocateName}, Advocate\n{advocateAddress}",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Sender / Author / Owner of Copyright" },
+      { "role": "respondent", "label": "Noticee / Infringer / Intermediary" }
+    ],
+    "caseNomenclature": "N/A"
+  },
+  "form_schema": {
+    "sender": { "type": "object", "required": ["name", "address", "capacity"] },
+    "recipient": {
+      "type": "object",
+      "required": ["name", "address", "role"],
+      "note": "role: primary infringer / intermediary / platform / hosting provider"
+    },
+    "work": {
+      "type": "object",
+      "required": [
+        "title",
+        "category",
+        "year_of_creation",
+        "year_of_publication",
+        "author",
+        "owner",
+        "registration_number"
+      ],
+      "note": "category: literary / dramatic / musical / artistic / cinematograph film / sound recording / computer programme. Registration is not mandatory but evidentiary."
+    },
+    "ownership_chain": {
+      "type": "object",
+      "required": ["original_author", "assignment_or_license", "current_owner"],
+      "optional": true
+    },
+    "infringement_particulars": {
+      "type": "object",
+      "required": [
+        "infringing_work_description",
+        "url_or_location",
+        "date_of_detection",
+        "extent_of_copying",
+        "nature_of_use",
+        "evidence_preserved"
+      ]
+    },
+    "relief_demanded": {
+      "type": "object",
+      "required": [
+        "takedown",
+        "cease_and_desist",
+        "delivery_up_of_infringing_copies",
+        "damages_or_account",
+        "undertaking",
+        "response_deadline_days"
+      ]
+    }
+  },
+  "mandatoryClauses": [
+    {
+      "id": "ownership_of_copyright",
+      "name": "Ownership of Copyright",
+      "required": true,
+      "description": "Establish authorship and ownership chain — original creation, registration (if any), assignment/license trail"
+    },
+    {
+      "id": "originality",
+      "name": "Originality of Work",
+      "required": true,
+      "description": "Affirm that work is original and qualifies for protection under Section 13 of Copyright Act, 1957"
+    },
+    {
+      "id": "infringement_particulars",
+      "name": "Particulars of Infringement",
+      "required": true,
+      "description": "Identify infringing copy, location (URL/platform/physical), date of detection, extent and nature of copying"
+    },
+    {
+      "id": "statutory_basis",
+      "name": "Statutory Basis",
+      "required": true,
+      "description": "Sections 14 (rights), 51 (infringement), 55 (civil remedies), 62 (jurisdiction), 63 (criminal liability) of Copyright Act, 1957"
+    },
+    {
+      "id": "takedown_demand",
+      "name": "Takedown Demand (if digital)",
+      "required": false,
+      "description": "If infringement is online, specific takedown demand under IT Act S.79 / IT (Intermediary Guidelines) Rules 2021 Rule 3(2)(b)"
+    },
+    {
+      "id": "cease_and_desist",
+      "name": "Cease & Desist + Delivery Up",
+      "required": true,
+      "description": "Immediate cessation and delivery up / destruction of infringing copies"
+    },
+    {
+      "id": "damages_or_account",
+      "name": "Damages / Account of Profits",
+      "required": true,
+      "description": "Claim under Section 55 for damages or account of profits at owner's election"
+    },
+    {
+      "id": "criminal_warning",
+      "name": "Reservation of Criminal Remedy",
+      "required": true,
+      "description": "Reservation of right to lodge criminal complaint under Section 63 (imprisonment 6 months to 3 years + fine)"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and BCI enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "You are hereby called upon to, within {response_days} ({response_days_words}) days of receipt of this notice:\n(a) IMMEDIATELY CEASE AND DESIST from all acts of infringement, including reproduction, communication to the public, public performance, broadcasting, adaptation, translation, distribution, sale, offering for sale, importation, and any other exclusive act reserved to my client under Section 14 of the Copyright Act, 1957, in relation to the work titled '{work_title}';\n(b) TAKE DOWN and permanently remove the infringing material located at {urls_or_locations} and confirm removal in writing with screenshots;\n(c) DELIVER UP to my client all infringing copies, masters, plates, films, files and means of reproduction for destruction in terms of Section 58 of the Copyright Act, 1957;\n(d) Render a true and faithful account of all profits earned through the said infringement and pay such account, OR alternatively pay damages in the sum of Rs. {damages_amount}/- at my client's election;\n(e) Furnish a written UNDERTAKING, on affidavit, that you shall not, directly or indirectly, by yourself or through any agent or assign, infringe my client's copyright in the said work or any other work of my client in future;\n(f) Reimburse the cost of this notice and legal expenses.\n\nFailing the above, my client shall be constrained to file a suit for permanent injunction, delivery up, damages, and account of profits before the competent court of jurisdiction under Section 62 of the Copyright Act, 1957 — which permits the suit to be instituted at the place where my client resides or carries on business — and to seek interim and ad-interim injunctions including ex-parte and Anton Piller / John Doe orders, entirely at your risk, cost, and consequences.\n\nMy client further reserves the right to initiate criminal proceedings against you under Section 63 of the Copyright Act, 1957, which provides for imprisonment of a term not less than 6 (six) months but extending to 3 (three) years and fine, and Section 63B (computer programme infringement). My client also reserves the right to seek John Doe / Ashok Kumar orders against unknown infringers.",
+  "verificationTemplate": "",
+  "filingChecklist": [
+    "Notice sent by Registered Post AD / Speed Post AD",
+    "For online infringement, simultaneously serve by email AND lodge takedown notice with platform/intermediary as 'affected person' under IT (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, Rule 3(2)(b)",
+    "Postal receipts, AD card, email delivery proof preserved",
+    "Copyright Registration Certificate annexed (if registered); registration is not mandatory but is prima facie evidence",
+    "Originality evidence — drafts, dated working files, witnesses, timestamps preserved",
+    "Ownership chain documents — employment contract / assignment deed / license — annexed",
+    "Screenshots and notarised / archive.org-archived copies of infringing material preserved BEFORE issuing notice",
+    "Hash values / metadata of digital files preserved as forensic evidence",
+    "Limitation: Suit for infringement = 3 years from each act of infringement (Article 113 Limitation Act, continuing cause of action)",
+    "Suit can be filed where plaintiff resides/carries on business (Section 62 — favourable forum, do not confuse with Section 20 CPC)"
+  ],
+  "relevantActs": [
+    {
+      "act": "Copyright Act, 1957",
+      "sections": [
+        { "number": "13", "description": "Works in which copyright subsists" },
+        { "number": "14", "description": "Meaning of copyright — exclusive rights" },
+        { "number": "17", "description": "First owner of copyright" },
+        { "number": "18", "description": "Assignment of copyright" },
+        { "number": "30", "description": "Licences by owners of copyright" },
+        { "number": "51", "description": "When copyright infringed" },
+        {
+          "number": "52",
+          "description": "Acts not constituting infringement (fair dealing exceptions)"
+        },
+        {
+          "number": "55",
+          "description": "Civil remedies for infringement — injunction, damages, account of profits"
+        },
+        {
+          "number": "58",
+          "description": "Rights of owner against persons possessing or dealing with infringing copies"
+        },
+        {
+          "number": "62",
+          "description": "Jurisdiction — district court where plaintiff resides or carries on business"
+        },
+        {
+          "number": "63",
+          "description": "Offence of infringement — imprisonment 6 months to 3 years + fine of Rs. 50,000 to 2,00,000"
+        },
+        {
+          "number": "63B",
+          "description": "Knowing use of infringing copy of computer programme — imprisonment 7 days to 3 years + fine"
+        },
+        { "number": "65A", "description": "Protection of technological measures" },
+        { "number": "65B", "description": "Protection of Rights Management Information" }
+      ]
+    },
+    {
+      "act": "Information Technology Act, 2000",
+      "sections": [
+        {
+          "number": "79",
+          "description": "Intermediary liability and safe harbour — basis for takedown demand to platforms"
+        }
+      ]
+    },
+    {
+      "act": "IT (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021",
+      "sections": [
+        {
+          "number": "Rule 3(2)(b)",
+          "description": "Takedown of infringing content within 36 hours of complaint by affected person"
+        }
+      ]
+    },
+    {
+      "act": "Commercial Courts Act, 2015",
+      "sections": [
+        {
+          "number": "12A",
+          "description": "Pre-Institution Mediation — exempted where urgent interim relief is contemplated (IP suits routinely so)"
+        }
+      ]
+    }
+  ],
+  "validation_rules": [
+    {
+      "rule": "subsistence_of_copyright",
+      "description": "Work must fall within Section 13 categories — literary, dramatic, musical, artistic, cinematograph film, sound recording"
+    },
+    {
+      "rule": "originality_required",
+      "description": "Work must be original — minimum modicum of creativity / skill and judgment (Eastern Book Co. v. D.B. Modak standard)"
+    },
+    {
+      "rule": "ownership_chain",
+      "description": "Where author is not the sender, assignment/license/employment relationship must be established"
+    },
+    {
+      "rule": "no_fair_dealing_defence",
+      "description": "Address why infringer's use does not qualify for fair dealing under S.52"
+    },
+    {
+      "rule": "response_window_7_to_15_days",
+      "description": "Typically 7-15 days; for online infringement, parallel platform takedown is recommended"
+    },
+    {
+      "rule": "limitation_check",
+      "description": "3 years from each infringing act (Art. 113); continuing infringement gives fresh cause of action"
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Cease & Desist Legal Notice for Copyright Infringement under the Copyright Act, 1957.",
+    "Cite Sections 14 (exclusive rights), 51 (infringement), 55 (civil remedies — injunction, damages, account of profits), 58 (delivery up), 62 (jurisdiction — plaintiff's place), and 63/63B (criminal liability).",
+    "Identify the protected work — title, category (literary/dramatic/musical/artistic/cinematograph film/sound recording/computer programme), year of creation, year of publication, author, and current owner.",
+    "Annex copyright registration certificate if registered — but note that registration is not mandatory for protection or suit.",
+    "Establish ownership chain if owner is not the original author — assignment deed (S.18), licence (S.30), or employment relationship (S.17).",
+    "Aver originality — the modicum of creativity standard recognised in Eastern Book Co. v. D.B. Modak (2008).",
+    "Particularise the infringement — exact infringing copy, URL or physical location, extent of copying (substantial part test), nature of use (commercial / non-commercial), date of detection, evidence preserved.",
+    "Address any anticipated fair dealing defence under Section 52 (criticism/review, research, education, news reporting) and explain why it does not apply.",
+    "Demand: (a) immediate cease and desist, (b) takedown of online content with proof, (c) delivery up of infringing copies and means of reproduction, (d) account of profits OR damages at owner's election, (e) written undertaking on affidavit, (f) costs.",
+    "If infringement is online, include a parallel takedown demand citing IT (Intermediary Guidelines) Rules 2021 Rule 3(2)(b) — 36-hour takedown for IP infringement complaints.",
+    "Reserve criminal remedy under Section 63 (6 months to 3 years imprisonment + Rs. 50,000-2,00,000 fine) and Section 63B for computer programmes.",
+    "State the favourable forum under Section 62 — suit may be filed where plaintiff resides or carries on business; reserve right to seek John Doe / Ashok Kumar orders for unknown infringers.",
+    "Allow 7-15 days response window; no statutory cooling-off period.",
+    "Use firm and assertive legal language.",
+    "Do NOT generate the advocate signature block — it is added programmatically."
+  ]
+}

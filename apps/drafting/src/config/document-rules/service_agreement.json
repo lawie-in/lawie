@@ -1,0 +1,203 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_status": "Approved",
+    "legal_basis": "Indian Contract Act 1872",
+    "notes": "Service Agreement / Independent Contractor / Consulting Agreement. Distinguish from employment via control test (Dharangadhara Chemical Works v. Workmen AIR 1957 SC 264). No employer-employee relation. GST applies on service supply. TDS u/s 194J / 194C on payments."
+  },
+  "template_id": "service_agreement",
+  "title": "Service / Independent Contractor Agreement",
+  "category": "corporate",
+  "creditsCost": 1,
+  "court_levels": [],
+  "form_schema": {
+    "type": "object",
+    "required": ["client_name", "service_provider_name", "scope_of_services", "fee", "term_months"],
+    "properties": {
+      "client_name": { "type": "string" },
+      "client_address": { "type": "string" },
+      "client_gstin": { "type": "string" },
+      "service_provider_name": { "type": "string" },
+      "service_provider_address": { "type": "string" },
+      "service_provider_gstin": { "type": "string" },
+      "service_provider_pan": { "type": "string" },
+      "service_provider_type": {
+        "type": "string",
+        "enum": ["Individual", "Sole Proprietor", "Partnership", "LLP", "Company"]
+      },
+      "effective_date": { "type": "string", "format": "date" },
+      "term_months": { "type": "number", "default": 12 },
+      "scope_of_services": { "type": "string" },
+      "deliverables": { "type": "array", "items": { "type": "string" } },
+      "fee": { "type": "number" },
+      "fee_structure": {
+        "type": "string",
+        "enum": ["Fixed lump sum", "Monthly retainer", "Hourly", "Milestone-based"]
+      },
+      "payment_terms_days": { "type": "number", "default": 30 },
+      "gst_applicable": { "type": "boolean", "default": true },
+      "tds_section": {
+        "type": "string",
+        "enum": ["194J (Professional)", "194C (Contract)", "194H (Commission)"],
+        "default": "194J (Professional)"
+      },
+      "ip_ownership": {
+        "type": "string",
+        "enum": ["Vests in Client", "Vests in Service Provider with license to Client", "Joint"],
+        "default": "Vests in Client"
+      },
+      "termination_notice_days": { "type": "number", "default": 30 },
+      "governing_law_state": { "type": "string" },
+      "jurisdiction_city": { "type": "string" }
+    }
+  },
+  "mandatory_clauses": [
+    { "clause_id": "parties", "title": "Parties", "must_appear": true },
+    { "clause_id": "recitals", "title": "Recitals", "must_appear": true },
+    { "clause_id": "engagement", "title": "Engagement and Scope of Services", "must_appear": true },
+    {
+      "clause_id": "deliverables_timelines",
+      "title": "Deliverables and Timelines",
+      "must_appear": true
+    },
+    {
+      "clause_id": "fees_payment",
+      "title": "Fees, Payment Terms, GST, TDS",
+      "must_appear": true,
+      "content": "The Client shall pay the Service Provider {{fee_structure}} of INR {{fee}} within {{payment_terms_days}} days of receipt of valid invoice. GST shall be charged extra at applicable rates. TDS shall be deducted at source under Section {{tds_section}} of Income Tax Act 1961."
+    },
+    {
+      "clause_id": "independent_contractor",
+      "title": "Independent Contractor Relationship",
+      "must_appear": true,
+      "content": "The Service Provider is engaged as an independent contractor and not as an employee, agent, partner, or joint venturer of the Client. No employer-employee relationship is created. The Service Provider is responsible for own income tax, social security, and all statutory dues. Reference: Dharangadhara Chemical Works v. Workmen AIR 1957 SC 264 (control test)."
+    },
+    { "clause_id": "no_authority", "title": "No Authority to Bind", "must_appear": true },
+    {
+      "clause_id": "service_provider_obligations",
+      "title": "Obligations of Service Provider",
+      "must_appear": true
+    },
+    {
+      "clause_id": "client_obligations",
+      "title": "Obligations of Client (cooperation, access, information)",
+      "must_appear": true
+    },
+    {
+      "clause_id": "ip_ownership",
+      "title": "Intellectual Property",
+      "must_appear": true,
+      "content": "All IP created by the Service Provider in the course of performing the Services shall vest absolutely in the Client. The Service Provider hereby assigns all such IP including future IP to the Client and waives moral rights to the extent permitted by law. Pre-existing IP of the Service Provider remains with Service Provider, with a non-exclusive license to Client for use as embedded in the deliverables."
+    },
+    { "clause_id": "confidentiality", "title": "Confidentiality", "must_appear": true },
+    {
+      "clause_id": "data_protection",
+      "title": "Data Protection (DPDP Act compliance)",
+      "must_appear": true
+    },
+    {
+      "clause_id": "representations_warranties",
+      "title": "Representations and Warranties",
+      "must_appear": true,
+      "subclauses": [
+        "Authority to contract",
+        "Services performed with professional skill and care",
+        "No infringement of third-party IP",
+        "Compliance with laws"
+      ]
+    },
+    {
+      "clause_id": "indemnification",
+      "title": "Indemnification (mutual, with caps)",
+      "must_appear": true
+    },
+    {
+      "clause_id": "limitation_of_liability",
+      "title": "Limitation of Liability",
+      "must_appear": true,
+      "note": "Typically cap at fees paid in last 12 months; exclude indirect/consequential damages; carve-out for breach of confidentiality, IP, gross negligence"
+    },
+    { "clause_id": "insurance", "title": "Insurance", "must_appear": false },
+    {
+      "clause_id": "non_solicit",
+      "title": "Non-Solicitation (during and 12 months post)",
+      "must_appear": true
+    },
+    {
+      "clause_id": "term_termination",
+      "title": "Term and Termination",
+      "must_appear": true,
+      "subclauses": [
+        "Termination for convenience with notice",
+        "Termination for cause (material breach uncured)",
+        "Termination for insolvency"
+      ]
+    },
+    {
+      "clause_id": "consequences_termination",
+      "title": "Consequences of Termination",
+      "must_appear": true
+    },
+    { "clause_id": "force_majeure", "title": "Force Majeure", "must_appear": true },
+    {
+      "clause_id": "dispute_resolution",
+      "title": "Dispute Resolution (Arbitration)",
+      "must_appear": true
+    },
+    {
+      "clause_id": "governing_law",
+      "title": "Governing Law and Jurisdiction",
+      "must_appear": true
+    },
+    { "clause_id": "general", "title": "General Provisions", "must_appear": true },
+    { "clause_id": "execution", "title": "Execution", "must_appear": true },
+    {
+      "clause_id": "schedules",
+      "title": "Schedules - Scope of Work, Fee Schedule, SLAs",
+      "must_appear": true
+    }
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting an Indian service / independent contractor agreement. Critical: maintain independent contractor framing - no employer-employee features. Apply control test thinking from Dharangadhara Chemical Works.",
+    "drafting_rules": [
+      "Independent contractor clause MUST be prominent. Avoid features that suggest employment (no fixed hours, no leave, no PF/ESI, fees not 'salary').",
+      "IP vesting in Client is market standard for work-for-hire.",
+      "GST: Service Provider charges GST if registered (turnover > 20L; 10L special category states).",
+      "TDS: 194J at 10% for professional services; 194C at 1%/2% for contract work.",
+      "Payment terms 15-30 days net.",
+      "Liability cap typical: fees paid in trailing 12 months.",
+      "Carve-out from liability cap: confidentiality, IP infringement, indemnification, gross negligence, wilful misconduct.",
+      "Avoid 'employee benefits' language entirely.",
+      "Termination for convenience common with 15-30 day notice.",
+      "Reference Dharangadhara Chemical Works v. Workmen for control test if relationship is challenged."
+    ],
+    "tone": "Formal commercial-legal, clear delineation from employment."
+  },
+  "relevantActs": [
+    { "act": "Indian Contract Act 1872" },
+    { "act": "CGST Act 2017" },
+    { "act": "Income Tax Act 1961", "sections": ["S.194C", "S.194J", "S.194H"] },
+    { "act": "Copyright Act 1957" },
+    { "act": "Patents Act 1970" },
+    { "act": "Digital Personal Data Protection Act 2023" },
+    { "act": "Information Technology Act 2000" },
+    { "act": "Specific Relief Act 1963" },
+    { "act": "Arbitration and Conciliation Act 1996" }
+  ],
+  "filing_checklist": [
+    "Execute on stamp paper per state.",
+    "Verify Service Provider's GST registration and PAN.",
+    "Set up TDS deduction in client's accounts under correct section.",
+    "Retain executed copies and invoices.",
+    "Issue Form 16A quarterly for TDS deducted."
+  ],
+  "validation_rules": [
+    { "rule": "Independent contractor clause present", "check": "Express no employment language" },
+    { "rule": "GST and TDS mentioned", "check": "Payment clause covers GST and TDS" },
+    { "rule": "IP ownership clear", "check": "IP clause unambiguous" },
+    { "rule": "Liability cap with carve-outs", "check": "Cap + carve-outs" },
+    { "rule": "Termination terms", "check": "Both for-cause and for-convenience" },
+    { "rule": "No employment indicators", "check": "No salary/leave/PF language" }
+  ]
+}

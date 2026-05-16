@@ -1,0 +1,393 @@
+{
+  "_meta": {
+    "description": "Document-rules config for dv_act_complaint — application u/s 12 PWDV Act, 2005 with multi-relief prayers",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 3 family-law pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. PWDV definitions (aggrieved person, domestic relationship, shared household) are non-negotiable."
+  },
+  "template_id": "dv_act_complaint",
+  "docType": "dv_act_complaint",
+  "title": "Application under Protection of Women from Domestic Violence Act, 2005",
+  "displayName": "Domestic Violence Act Application (s.12 PWDV)",
+  "category": "family",
+  "creditsCost": 2,
+  "court_levels": ["magistrate_jmfc", "magistrate_cjm", "magistrate_metropolitan"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{aggrievedPerson} ... Applicant / Aggrieved Person\nVERSUS\n{respondent} ... Respondent",
+    "partyDesignations": [
+      { "role": "aggrievedPerson", "label": "Applicant / Aggrieved Person" },
+      { "role": "respondent", "label": "Respondent" }
+    ],
+    "caseNomenclature": "DV Application No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "aggrieved_name",
+        "label": "Aggrieved person full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "aggrieved_age",
+        "label": "Aggrieved person age",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "aggrieved_address",
+        "label": "Current residential address of aggrieved person",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "aggrieved_relationship",
+        "label": "Relationship to respondent (S.2(a) and S.2(f) PWDV)",
+        "type": "select",
+        "required": true,
+        "options": [
+          "wife",
+          "live_in_partner_relationship_in_nature_of_marriage",
+          "mother",
+          "sister",
+          "daughter",
+          "widowed_daughter_in_law",
+          "mother_in_law",
+          "other_female_in_family_relationship"
+        ]
+      },
+      {
+        "id": "respondent_name",
+        "label": "Respondent full name (S.2(q))",
+        "type": "text",
+        "required": true
+      },
+      { "id": "respondent_age", "label": "Respondent age", "type": "number", "required": true },
+      {
+        "id": "respondent_address",
+        "label": "Respondent address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "respondent_occupation",
+        "label": "Respondent occupation and income",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "additional_respondents",
+        "label": "Additional respondents (in-laws, family members — Hiral Harsora applies)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "domestic_relationship_basis",
+        "label": "Basis of domestic relationship (S.2(f) — lived or have at any point lived together in shared household, related by consanguinity, marriage, relationship in nature of marriage, adoption, or family members of joint family)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "shared_household_address",
+        "label": "Shared household address (S.2(s))",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "shared_household_ownership",
+        "label": "Ownership / tenancy of shared household",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "marriage_date",
+        "label": "Date of marriage (if applicable)",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "children_details",
+        "label": "Children (names, ages, current custody)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "incidents_of_violence",
+        "label": "Specific incidents — dates, nature, location, witnesses",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "types_of_violence",
+        "label": "Types of domestic violence pleaded (S.3 PWDV)",
+        "type": "multiselect",
+        "required": true,
+        "options": [
+          "physical_abuse_3_a",
+          "sexual_abuse_3_b",
+          "verbal_emotional_abuse_3_c",
+          "economic_abuse_3_d",
+          "harassment_dowry_3_explanation_i",
+          "harm_injury_3_explanation_ii"
+        ]
+      },
+      {
+        "id": "police_complaints_filed",
+        "label": "Police complaints / DIRs filed (if any)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "medical_records",
+        "label": "Medical records / injuries (dates, hospitals)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "reliefs_sought_protection_18",
+        "label": "Protection orders sought u/s 18 (prohibit further violence, communication, alienation of assets)",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "protection_order_specifics",
+        "label": "Specific protection orders sought",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "reliefs_sought_residence_19",
+        "label": "Residence orders sought u/s 19 (right to reside, non-dispossession, alternate accommodation)",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "residence_order_specifics",
+        "label": "Specific residence orders sought",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "reliefs_sought_monetary_20",
+        "label": "Monetary relief sought u/s 20 (maintenance, medical, loss of earnings, mortgage/rent)",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "monetary_relief_breakup",
+        "label": "Monetary relief break-up (amounts and heads)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "reliefs_sought_custody_21",
+        "label": "Custody order sought u/s 21",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "custody_details",
+        "label": "Custody / visitation arrangement sought",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "reliefs_sought_compensation_22",
+        "label": "Compensation sought u/s 22 (mental + physical distress and injuries)",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "compensation_amount",
+        "label": "Compensation amount claimed",
+        "type": "currency",
+        "required": false
+      },
+      {
+        "id": "ex_parte_interim_22A",
+        "label": "Ex-parte interim orders sought u/s 23(2)",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "jurisdiction_basis",
+        "label": "Basis for territorial jurisdiction (S.27 PWDV — where aggrieved resides / carries on business / where respondent resides / where cause of action arose)",
+        "type": "select",
+        "required": true,
+        "options": [
+          "where_aggrieved_resides",
+          "where_respondent_resides",
+          "where_cause_of_action_arose"
+        ]
+      },
+      {
+        "id": "service_provider_dir",
+        "label": "Service Provider / Protection Officer DIR filed (if any)",
+        "type": "textarea",
+        "required": false
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "aggrieved_person_status",
+      "name": "Aggrieved Person Status u/s 2(a)",
+      "required": true,
+      "description": "Pleading establishing applicant is aggrieved person — woman in domestic relationship with respondent who has been subjected to act of domestic violence"
+    },
+    {
+      "id": "domestic_relationship",
+      "name": "Domestic Relationship u/s 2(f)",
+      "required": true,
+      "description": "Two living or having at any point lived together in a shared household — related by consanguinity / marriage / nature of marriage / adoption / joint family"
+    },
+    {
+      "id": "shared_household",
+      "name": "Shared Household u/s 2(s)",
+      "required": true,
+      "description": "Place where aggrieved person lives or has lived in domestic relationship — Satish Chander Ahuja v. Sneha Ahuja applies"
+    },
+    {
+      "id": "respondent_definition",
+      "name": "Respondent u/s 2(q)",
+      "required": true,
+      "description": "Adult male / or per Hiral P. Harsora v. Kusum Narottamdas Harsora (2016) any relative including female relatives"
+    },
+    {
+      "id": "acts_of_violence",
+      "name": "Acts of Domestic Violence u/s 3",
+      "required": true,
+      "description": "Specific pleadings of physical / sexual / verbal / emotional / economic abuse with dates and particulars"
+    },
+    {
+      "id": "reliefs_sought",
+      "name": "Reliefs Sought",
+      "required": true,
+      "description": "Identification of reliefs under S.18 / S.19 / S.20 / S.21 / S.22 with specifics"
+    },
+    {
+      "id": "jurisdiction",
+      "name": "Jurisdiction u/s 27",
+      "required": true,
+      "description": "Court's territorial competence"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Clause",
+      "required": true,
+      "description": "Comprehensive prayer combining all reliefs sought"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant / Aggrieved Person most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Pass a PROTECTION ORDER under Section 18 of the PWDV Act, 2005 restraining the Respondent from committing any act of domestic violence, entering the place of employment of the Applicant, attempting to communicate with the Applicant, alienating any assets, or causing violence to her dependants;\n\nb) Pass a RESIDENCE ORDER under Section 19 (i) restraining the Respondent from dispossessing the Applicant from the shared household at {shared_household_address}, (ii) directing the Respondent to remove himself from the shared household, and/or (iii) directing the Respondent to secure same level of alternate accommodation;\n\nc) Pass a MONETARY RELIEF ORDER under Section 20 directing the Respondent to pay (i) maintenance of Rs. ____/- per month; (ii) medical expenses of Rs. ____; (iii) loss of earnings of Rs. ____; (iv) rent / mortgage of Rs. ____;\n\nd) Pass a CUSTODY ORDER under Section 21 granting temporary custody of the minor child(ren) to the Applicant;\n\ne) Pass a COMPENSATION ORDER under Section 22 directing the Respondent to pay Rs. {compensation_amount}/- as compensation for mental torture and emotional distress caused;\n\nf) Pass an ex-parte interim order under Section 23(2) pending final disposal;\n\ng) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {aggrieved_name}, aged about {aggrieved_age} years, resident of {aggrieved_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge derived from personal experience, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nApplicant / Aggrieved Person",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft an application under Section 12 of the Protection of Women from Domestic Violence Act, 2005.",
+      "Establish three statutory ingredients explicitly: (i) aggrieved person status u/s 2(a); (ii) domestic relationship u/s 2(f); (iii) shared household u/s 2(s).",
+      "Identify respondent(s) per S.2(q). Per Hiral P. Harsora v. Kusum Narottamdas Harsora (2016) 10 SCC 165, the word 'adult male' has been struck down — female relatives (mother-in-law, sister-in-law) may be respondents.",
+      "Plead specific incidents of violence with dates, places, witnesses, and nature (physical / sexual / verbal / emotional / economic abuse — S.3 and Explanations).",
+      "Cite Indra Sarma v. V.K.V. Sarma (2013) 15 SCC 755 for live-in relationship tests if applicable.",
+      "Shared household — refer to Satish Chander Ahuja v. Sneha Ahuja (2021) 1 SCC 414 (overruling S.R. Batra v. Taruna Batra on this point): right to reside is not limited to households owned/rented by husband.",
+      "Identify reliefs sought clearly and separately — S.18 protection, S.19 residence, S.20 monetary, S.21 custody, S.22 compensation. Multi-relief is the strength of PWDV.",
+      "Monetary relief under S.20 — adequate, fair, reasonable, consistent with standard of living to which aggrieved person is accustomed. Include heads: maintenance, medical, loss of earnings, mortgage/rent. Cross-reference Rajnesh v. Neha for affidavit of assets.",
+      "Plead jurisdiction under S.27 — court of JMFC / Metropolitan Magistrate where aggrieved person resides, or temporarily resides, or carries on business; or where respondent resides; or where cause of action arose.",
+      "Mention DIR (Domestic Incident Report) by Protection Officer if obtained.",
+      "Seek ex-parte interim orders under S.23(2) where prima facie violence shown.",
+      "Tone: factual, compassionate but professional. Documentary evidence is critical — medical, police, photographs, financial records.",
+      "Note: PWDV proceedings are quasi-civil though before Magistrate — procedure largely under CrPC/BNSS (S.28 PWDV).",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Protection of Women from Domestic Violence Act, 2005",
+      "sections": [
+        {
+          "number": "2(a)",
+          "description": "'Aggrieved person' — woman in domestic relationship with respondent who has been subjected to act of domestic violence"
+        },
+        {
+          "number": "2(f)",
+          "description": "'Domestic relationship' — relationship by consanguinity, marriage, relationship in nature of marriage, adoption, or family members of joint family"
+        },
+        {
+          "number": "2(q)",
+          "description": "'Respondent' — read down per Hiral Harsora; includes female relatives"
+        },
+        { "number": "2(s)", "description": "'Shared household'" },
+        {
+          "number": "3",
+          "description": "Definition of domestic violence — physical, sexual, verbal, emotional, economic abuse"
+        },
+        { "number": "12", "description": "Application to Magistrate for one or more reliefs" },
+        { "number": "18", "description": "Protection orders" },
+        { "number": "19", "description": "Residence orders" },
+        { "number": "20", "description": "Monetary reliefs" },
+        { "number": "21", "description": "Custody orders" },
+        { "number": "22", "description": "Compensation orders" },
+        { "number": "23", "description": "Power to grant interim and ex-parte orders" },
+        { "number": "27", "description": "Jurisdiction" },
+        { "number": "28", "description": "Procedure — generally per CrPC/BNSS" },
+        { "number": "31", "description": "Penalty for breach of protection order" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + 2 copies)",
+    "Vakalatnama",
+    "Identity proof of aggrieved person",
+    "Proof of domestic relationship (marriage certificate / cohabitation evidence / family relationship documents)",
+    "Proof of shared household (rent agreement / utility bills / ration card)",
+    "DIR from Protection Officer (if filed)",
+    "Medical records / discharge summaries / injury photographs",
+    "Police complaints / FIRs / NCRs",
+    "Financial records — bank statements, salary slips of respondent, applicant's lack of income",
+    "Affidavit of assets and liabilities (Rajnesh v. Neha proforma)",
+    "Children's birth certificates and school records",
+    "List of witnesses and witness affidavits",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "aggrieved_name and respondent_name must not be empty",
+    "aggrieved_relationship must be specified from S.2(a)/S.2(f) categories",
+    "domestic_relationship_basis must not be empty",
+    "shared_household_address must not be empty",
+    "incidents_of_violence must not be empty",
+    "types_of_violence must contain at least one S.3 category",
+    "At least ONE of reliefs_sought_protection_18 / reliefs_sought_residence_19 / reliefs_sought_monetary_20 / reliefs_sought_custody_21 / reliefs_sought_compensation_22 must be true",
+    "If reliefs_sought_compensation_22 is true, compensation_amount must be > 0",
+    "jurisdiction_basis must be specified",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Hiral P. Harsora v. Kusum Narottamdas Harsora (2016) 10 SCC 165 — 'adult male' in S.2(q) struck down; female relatives can be respondents",
+    "Indra Sarma v. V.K.V. Sarma (2013) 15 SCC 755 — tests for 'relationship in nature of marriage'",
+    "D. Velusamy v. D. Patchaiammal (2010) 10 SCC 469 — live-in relationship criteria",
+    "Satish Chander Ahuja v. Sneha Ahuja (2021) 1 SCC 414 — overrules S.R. Batra v. Taruna Batra; broader shared household concept",
+    "S.R. Batra v. Taruna Batra (2007) 3 SCC 169 — earlier narrow view (now diluted)",
+    "Rajnesh v. Neha (2020) SCC OnLine SC 903 — uniform maintenance framework applies to PWDV monetary reliefs",
+    "Kunapareddy v. Kunapareddy Swarna Kumari (2016) 11 SCC 774 — amendment of DV application permissible",
+    "Krishna Bhattacharjee v. Sarathi Choudhury (2016) 2 SCC 705 — continuing offence; limitation"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

@@ -2,107 +2,94 @@ import './setupDb';
 
 import { Template } from '../models/Template.model';
 
-describe('Template model', () => {
-  const validTemplate = {
-    name: 'Bail Application — Sessions Court',
-    slug: 'bail-application-sessions',
-    category: 'criminal' as const,
-    docType: 'bail_application',
-    courtType: 'district_court',
-    description: 'Standard bail application template for Sessions Court',
-    promptTemplate: 'Draft a bail application for {{courtName}}...',
-    planAccess: 'free' as const,
-    reviewedBy: 'Ajay — CLO',
-    reviewedAt: new Date(),
-    isActive: true,
+/**
+ * SCRUM-80 / ADR-018 — Template is now a read-through cache of the filesystem
+ * doc-rules registry. The schema is intentionally loose (no rigid category /
+ * docType / courtType enums) so future CLO doc types ship without migrations.
+ *
+ * These tests cover only what the model still validates strictly:
+ *   - templateId / slug / displayName / sourceFile required
+ *   - templateId + slug unique
+ *   - planAccess restricted to free|pro
+ *   - defaults applied for optional fields
+ */
+describe('Template model — loose schema (SCRUM-80)', () => {
+  const valid = {
+    templateId: 'bail_anticipatory',
+    slug: 'bail_anticipatory',
+    displayName: 'Anticipatory Bail Application',
+    category: 'criminal',
+    description: 'Anticipatory bail under BNSS 482',
+    sourceFile: 'bail_anticipatory.json',
   };
 
-  it('creates a template with all fields', async () => {
-    const tpl = await Template.create(validTemplate);
-    expect(tpl.name).toBe(validTemplate.name);
-    expect(tpl.slug).toBe('bail-application-sessions');
-    expect(tpl.category).toBe('criminal');
+  it('creates a template with minimal required fields and applies defaults', async () => {
+    const tpl = await Template.create(valid);
+    expect(tpl.templateId).toBe(valid.templateId);
+    expect(tpl.slug).toBe(valid.slug);
+    expect(tpl.displayName).toBe(valid.displayName);
     expect(tpl.planAccess).toBe('free');
+    expect(tpl.icon).toBe('file-text');
+    expect(tpl.creditsCost).toBe(1);
+    expect(tpl.states).toEqual(['all']);
+    expect(tpl.supportedLanguages).toEqual(['en']);
     expect(tpl.isActive).toBe(true);
-    expect(tpl.usageCount).toBe(0);
   });
 
-  it('rejects missing name', async () => {
-    await expect(
-      Template.create({ ...validTemplate, name: undefined, slug: 'missing-name' }),
-    ).rejects.toThrow(/name is required/);
+  it('accepts CLO-authored category strings outside the legacy enum', async () => {
+    const tpl = await Template.create({
+      ...valid,
+      category: 'non_court_legal_document',
+    });
+    expect(tpl.category).toBe('non_court_legal_document');
   });
 
-  it('rejects missing slug', async () => {
-    await expect(Template.create({ ...validTemplate, slug: undefined })).rejects.toThrow(
-      /slug is required/,
+  it('rejects missing templateId', async () => {
+    await expect(Template.create({ ...valid, templateId: undefined })).rejects.toThrow(
+      /templateId.*required/i,
     );
   });
 
-  it('enforces unique slug', async () => {
-    await Template.create(validTemplate);
-    await expect(Template.create({ ...validTemplate })).rejects.toThrow(/duplicate key/i);
+  it('rejects missing displayName', async () => {
+    await expect(
+      Template.create({ ...valid, templateId: 'x', slug: 'x', displayName: undefined }),
+    ).rejects.toThrow(/displayName.*required/i);
   });
 
-  it('rejects missing category', async () => {
+  it('rejects missing sourceFile', async () => {
     await expect(
-      Template.create({ ...validTemplate, slug: 'unique-1', category: undefined }),
-    ).rejects.toThrow(/category is required/);
+      Template.create({ ...valid, templateId: 'y', slug: 'y', sourceFile: undefined }),
+    ).rejects.toThrow(/sourceFile.*required/i);
   });
 
-  it('rejects invalid category', async () => {
+  it('enforces unique templateId', async () => {
+    await Template.syncIndexes();
+    await Template.create(valid);
+    await expect(Template.create({ ...valid, slug: 'different-slug' })).rejects.toThrow(
+      /duplicate key/i,
+    );
+  });
+
+  it('rejects an invalid planAccess value', async () => {
     await expect(
-      Template.create({ ...validTemplate, slug: 'unique-2', category: 'tax' }),
+      Template.create({ ...valid, templateId: 'z', slug: 'z', planAccess: 'enterprise' }),
     ).rejects.toThrow(/is not a valid enum/);
   });
 
-  it('rejects missing description', async () => {
-    await expect(
-      Template.create({ ...validTemplate, slug: 'unique-3', description: undefined }),
-    ).rejects.toThrow(/description is required/);
-  });
-
-  it('rejects missing promptTemplate', async () => {
-    await expect(
-      Template.create({ ...validTemplate, slug: 'unique-4', promptTemplate: undefined }),
-    ).rejects.toThrow(/promptTemplate is required/);
-  });
-
-  it('rejects missing reviewedBy', async () => {
-    await expect(
-      Template.create({ ...validTemplate, slug: 'unique-5', reviewedBy: undefined }),
-    ).rejects.toThrow(/reviewedBy is required/);
-  });
-
-  it('stores formSchema as flexible object', async () => {
+  it('stores formSchema / documentStructure / validationRules as flexible objects', async () => {
     const tpl = await Template.create({
-      ...validTemplate,
-      slug: 'form-schema-test',
-      formSchema: {
-        fields: [
-          { name: 'petitioner', type: 'text', required: true },
-          { name: 'courtName', type: 'text', required: true },
-        ],
-      },
+      ...valid,
+      templateId: 'q',
+      slug: 'q',
+      formSchema: { steps: [{ step: 1, title: 'one', fields: [{ field_id: 'a', label: 'A' }] }] },
+      documentStructure: { sections: [{ section_id: 'cause_title', type: 'template' }] },
+      validationRules: { auto_convert_old_to_new: true, mandatory_sections: ['cause_title'] },
     });
-    expect((tpl.formSchema as Record<string, unknown>).fields).toHaveLength(2);
-  });
-
-  it('increments usageCount', async () => {
-    const tpl = await Template.create({ ...validTemplate, slug: 'usage-count-test' });
-    expect(tpl.usageCount).toBe(0);
-
-    await Template.findByIdAndUpdate(tpl._id, { $inc: { usageCount: 1 } });
-    const updated = await Template.findById(tpl._id);
-    expect(updated!.usageCount).toBe(1);
-  });
-
-  it('defaults planAccess to free', async () => {
-    const tpl = await Template.create({
-      ...validTemplate,
-      slug: 'default-plan',
-      planAccess: undefined,
-    });
-    expect(tpl.planAccess).toBe('free');
+    const formSchema = tpl.formSchema as { steps: Array<{ fields: Array<{ field_id: string }> }> };
+    expect(formSchema.steps[0].fields[0].field_id).toBe('a');
+    const docStructure = tpl.documentStructure as {
+      sections: Array<{ section_id: string }>;
+    };
+    expect(docStructure.sections[0].section_id).toBe('cause_title');
   });
 });

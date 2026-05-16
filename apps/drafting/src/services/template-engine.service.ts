@@ -16,6 +16,8 @@ import { join } from 'path';
 import bnsBailability from '../config/bns-bailability.json';
 import bnsOffences from '../config/bns-offences.json';
 
+import { getTemplateRegistry } from './template-promoter';
+
 /** Sorted list of valid BNS section numbers for system-prompt injection (SCRUM-64). */
 const BNS_VALID_SECTIONS = Object.keys(bnsOffences.offences).sort(
   (a, b) => parseFloat(a) - parseFloat(b),
@@ -39,7 +41,9 @@ export interface FormField {
     | 'dropdown'
     | 'dropdown_search'
     | 'multi_select_search'
-    | 'checkbox_group';
+    | 'checkbox_group'
+    | 'file' /* SCRUM-79 — single or multi file upload */
+    | 'currency' /* SCRUM-79 — INR-formatted rupee input */;
   required: boolean;
   placeholder?: string;
   default?: string;
@@ -49,12 +53,18 @@ export interface FormField {
   filtered_by?: string[];
   cascades_to?: string[];
   show_if?: string;
+  depends_on?: string /* SCRUM-79 — synonym of show_if; supports quoted values + && chains */;
   inject_into?: string[];
   auto_convert_old?: boolean;
   links_to_formatting?: boolean;
   min_length?: number;
   max_length?: number;
   min_select?: number;
+  validation_pattern?: string /* SCRUM-79 — regex (string form) the value must match */;
+  validation_message?: string /* shown below the field when validation_pattern fails */;
+  multiple?: boolean /* SCRUM-79 — for type:'file', allow multi-select */;
+  accept?: string /* SCRUM-79 — `accept` attribute for type:'file' (e.g. '.pdf,image/*') */;
+  help?: string /* CLO writes contextual help strings; passed through verbatim */;
 }
 
 export interface FormStep {
@@ -141,48 +151,86 @@ const TEMPLATES_DIR = join(__dirname, '..', '..', '..', '..', 'docs', 'templates
 const configCache = new Map<string, TemplateConfig>();
 
 /**
- * Load a template config by ID. Reads from /docs/templates/{id}.json.
- * Caches in memory — configs don't change at runtime.
+ * Load a template config by ID. Override files at /docs/templates/{id}.json
+ * win when present (hand-tuned production templates). For everything else we
+ * fall back to the SCRUM-78 promoter registry built from
+ * apps/drafting/src/config/document-rules/*.json.
+ *
+ * template-promoter imports only TYPES from this module (`import type ...`)
+ * so the runtime cycle is broken — both files can sit at top-level.
  */
 export function loadTemplateConfig(templateId: string): TemplateConfig | null {
-  if (configCache.has(templateId)) return configCache.get(templateId)!;
+  const cached = configCache.get(templateId);
+  if (cached !== undefined) return cached;
 
+  // Try the override path first — hand-tuned configs trump anything synthesised.
   try {
     const raw = readFileSync(join(TEMPLATES_DIR, `${templateId}.json`), 'utf-8');
     const config: TemplateConfig = JSON.parse(raw);
     configCache.set(templateId, config);
     return config;
   } catch {
-    return null;
+    // No override on disk — fall through to the promoter registry.
   }
+
+  const fromRegistry = getTemplateRegistry().configs.get(templateId);
+  if (fromRegistry) {
+    configCache.set(templateId, fromRegistry);
+    return fromRegistry;
+  }
+  return null;
 }
 
 /**
  * List all available template configs (summary only — no full schema).
+ *
+ * Union of:
+ *   - every JSON in /docs/templates/ with metadata.status === 'active'
+ *   - every entry in the promoter registry (built from
+ *     apps/drafting/src/config/document-rules/) — minus anything already
+ *     present in the override list (template_id wins).
+ *
+ * This is what powers the dashboard's "New document" picker.
  */
 export function listTemplateConfigs(): TemplateSummary[] {
+  const byId = new Map<string, TemplateSummary>();
+
+  const toSummary = (config: TemplateConfig): TemplateSummary => ({
+    template_id: config.template_id,
+    display_name: config.display_name,
+    category: config.category,
+    description: config.description,
+    icon: config.icon,
+    plan_access: config.plan_access,
+    supported_languages: config.supported_languages,
+    metadata: config.metadata,
+  });
+
+  // 1. Overrides win.
   try {
     const files = readdirSync(TEMPLATES_DIR).filter((f) => f.endsWith('.json'));
-    return files
-      .map((f) => {
-        const id = f.replace('.json', '');
-        const config = loadTemplateConfig(id);
-        if (!config || config.metadata.status !== 'active') return null;
-        return {
-          template_id: config.template_id,
-          display_name: config.display_name,
-          category: config.category,
-          description: config.description,
-          icon: config.icon,
-          plan_access: config.plan_access,
-          supported_languages: config.supported_languages,
-          metadata: config.metadata,
-        };
-      })
-      .filter(Boolean) as TemplateSummary[];
+    for (const f of files) {
+      const id = f.replace('.json', '');
+      const config = loadTemplateConfig(id);
+      if (!config || config.metadata.status !== 'active') continue;
+      byId.set(config.template_id, toSummary(config));
+    }
   } catch {
-    return [];
+    // ignore — registry-only mode is fine
   }
+
+  // 2. Fill in everything else from the promoter registry.
+  try {
+    for (const config of getTemplateRegistry().configs.values()) {
+      if (byId.has(config.template_id)) continue;
+      if (config.metadata.status !== 'active') continue;
+      byId.set(config.template_id, toSummary(config));
+    }
+  } catch {
+    // registry not available at this code path — overrides-only result is fine
+  }
+
+  return Array.from(byId.values());
 }
 
 /** Clear the config cache (for testing / hot-reload). */

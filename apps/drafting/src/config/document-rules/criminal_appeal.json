@@ -1,0 +1,406 @@
+{
+  "_meta": {
+    "description": "Document-rules config for criminal_appeal — Criminal Appeal u/S.415-419 BNSS — against conviction, acquittal, sentence",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 5 criminal petitions pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Time-bar check is jurisdictional."
+  },
+  "template_id": "criminal_appeal",
+  "docType": "criminal_appeal",
+  "title": "Criminal Appeal under BNSS",
+  "displayName": "Criminal Appeal (S.415-419 BNSS)",
+  "category": "criminal_petition",
+  "creditsCost": 2,
+  "court_levels": ["high_court_criminal_side", "sessions_court"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n(CRIMINAL APPELLATE JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{appellant} ... Appellant\nVERSUS\n{respondent} ... Respondent",
+    "partyDesignations": [
+      { "role": "appellant", "label": "Appellant" },
+      { "role": "respondent", "label": "Respondent" }
+    ],
+    "caseNomenclature": "Criminal Appeal No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "appellate_forum",
+        "label": "Appellate forum",
+        "type": "select",
+        "required": true,
+        "options": [
+          "high_court_from_sessions_s415",
+          "high_court_from_sessions_acquittal_appeal",
+          "sessions_court_from_magistrate_s418",
+          "sessions_court_from_judicial_magistrate_s419"
+        ]
+      },
+      { "id": "appellant_name", "label": "Appellant full name", "type": "text", "required": true },
+      {
+        "id": "appellant_father_name",
+        "label": "Appellant father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "appellant_age", "label": "Appellant age", "type": "number", "required": true },
+      {
+        "id": "appellant_address",
+        "label": "Appellant address (or jail address if in custody)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "appellant_status",
+        "label": "Appellant status",
+        "type": "select",
+        "required": true,
+        "options": [
+          "convicted_accused",
+          "state_against_acquittal",
+          "complainant_against_acquittal_s419",
+          "victim_against_inadequate_sentence_or_acquittal"
+        ]
+      },
+      { "id": "respondent_name", "label": "Respondent name", "type": "text", "required": true },
+      { "id": "trial_court", "label": "Trial / lower court", "type": "text", "required": true },
+      {
+        "id": "trial_case_number",
+        "label": "Trial case number and year",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "judgment_date",
+        "label": "Date of impugned judgment",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "sentence_date",
+        "label": "Date of sentence (if different)",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "offences_convicted",
+        "label": "BNS / Special Act sections convicted under (or acquitted from)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "sentence_imposed",
+        "label": "Sentence imposed — imprisonment / fine / both / death",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "appeal_against",
+        "label": "Appeal against",
+        "type": "checkbox_multi",
+        "required": true,
+        "options": [
+          "conviction",
+          "sentence_only",
+          "acquittal",
+          "inadequate_sentence",
+          "conditions_of_release"
+        ]
+      },
+      {
+        "id": "grounds_of_appeal",
+        "label": "Grounds of appeal — itemised",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "errors_in_appreciation",
+        "label": "Errors in appreciation of evidence",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "legal_errors",
+        "label": "Errors of law — misapplication of BNS sections / BSA / procedure",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "benefit_of_doubt",
+        "label": "Benefit of doubt arguments (for accused appeals)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "suspension_of_sentence_sought",
+        "label": "Suspension of sentence pending appeal sought (S.430 BNSS)?",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "leave_required",
+        "label": "Leave to appeal required? (for acquittal appeals by complainant — S.419(4))",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "limitation_compliance",
+        "label": "Within limitation — confirm dates",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "documents_relied_on",
+        "label": "Trial court record references",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Appellant / Respondent / State"
+    },
+    {
+      "id": "impugned_judgment_paragraph",
+      "name": "Impugned Judgment Details",
+      "required": true,
+      "description": "Trial court, judgment date, sections, sentence"
+    },
+    {
+      "id": "prosecution_case_summary",
+      "name": "Prosecution Case Summary",
+      "required": true,
+      "description": "Brief case as alleged"
+    },
+    {
+      "id": "trial_proceedings_summary",
+      "name": "Trial Proceedings Summary",
+      "required": true,
+      "description": "Witnesses examined, defence taken"
+    },
+    {
+      "id": "appeal_jurisdictional_basis",
+      "name": "Appellate Jurisdiction Basis",
+      "required": true,
+      "description": "S.415-419 BNSS as applicable"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation",
+      "required": true,
+      "description": "Within prescribed period"
+    },
+    {
+      "id": "grounds_of_appeal_paragraph",
+      "name": "Grounds of Appeal",
+      "required": true,
+      "description": "Itemised grounds"
+    },
+    {
+      "id": "evidence_appreciation_errors",
+      "name": "Errors in Appreciation of Evidence",
+      "required": true,
+      "description": "Witness-by-witness / document-by-document analysis"
+    },
+    {
+      "id": "legal_errors_paragraph",
+      "name": "Errors of Law",
+      "required": true,
+      "description": "Misapplication of BNS / BSA / procedure"
+    },
+    {
+      "id": "benefit_of_doubt_paragraph",
+      "name": "Benefit of Doubt (accused appeals)",
+      "required": false,
+      "description": "Reasonable doubt principles"
+    },
+    {
+      "id": "leave_to_appeal_paragraph",
+      "name": "Leave to Appeal (S.419(4))",
+      "required": false,
+      "description": "Required for complainant appeals against acquittal in private complaints"
+    },
+    {
+      "id": "suspension_application_note",
+      "name": "Suspension of Sentence Application",
+      "required": false,
+      "description": "Separate application under S.430 BNSS"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Set aside conviction / acquittal / sentence"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Affidavit accompanying appeal"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts, circumstances, and grounds stated above, the Appellant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Admit this appeal under Section {applicable_section} of the Bharatiya Nagarik Suraksha Sanhita, 2023;\n\nb) Call for the records of the case from the trial Court at {trial_court};\n\nc) Set aside / modify the impugned judgment and order of conviction / acquittal / sentence dated {judgment_date} passed by the Court of {trial_court} in {trial_case_number};\n\nd) Acquit the Appellant of the charges under {offences_convicted} (where conviction is challenged);\n\ne) Or, in the alternative, reduce / modify the sentence imposed (where only sentence is challenged);\n\nf) Pending hearing and final disposal of this appeal, suspend the operation of the sentence under Section 430 BNSS and release the Appellant on bail on such terms as this Hon'ble Court may deem fit (separate application filed);\n\ng) Where leave is required under Section 419(4) BNSS, grant such leave to file this appeal;\n\nh) Award costs of this appeal;\n\ni) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Appellant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {appellant_name}, son/daughter/wife of {appellant_father_name}, aged about {appellant_age} years, the Appellant herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above appeal are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nAppellant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a Criminal Appeal under appropriate provision of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
+      "APPELLATE FRAMEWORK in BNSS: S.415 — appeal from Sessions / Additional Sessions sentence to HC (was S.374(2) CrPC); S.416 — appeal by State against acquittal (was S.378 CrPC); S.417 — appeals from convictions and sentences passed by Assistant Sessions Judge / Magistrate of First Class in certain cases (sentence > 7 years to HC); S.418 — appeals from Magistrate convictions / sentences (other than above) to Sessions; S.419 — appeals by complainant in case of acquittal (with leave); S.420 — no appeal in certain cases (very minor sentences); S.421 — no appeal in petty cases.",
+      "TIME LIMITS (Limitation Act Schedule + BNSS): Appeal against conviction by Sessions to HC — 60 days (Art. 115); Appeal to Sessions from Magistrate — 30 days; Appeal by State against acquittal to HC — 90 days; Leave to appeal against acquittal by complainant — within 60 days. Always cross-check current limitation, especially time from receipt of certified copy (S.12(2) Limitation Act allows exclusion of period for obtaining certified copy).",
+      "Para 1: Description of parties — appellant, respondent, State.",
+      "Para 2: Impugned judgment details — trial court, date of judgment, sections of conviction / acquittal, sentence.",
+      "Para 3: Brief prosecution case as alleged.",
+      "Para 4: Trial proceedings — number of PWs and DWs, documents marked, charges framed.",
+      "Para 5: Trial court's reasoning (in brief, fairly stated).",
+      "Para 6: Appellate jurisdictional basis — quote applicable BNSS section.",
+      "Para 7: Limitation — confirm date of certified copy, date of filing, that appeal is within limitation; otherwise file companion S.5 Limitation Act application.",
+      "Para 8: GROUNDS OF APPEAL — itemised (a, b, c, d…) — each ground a single contention.",
+      "Para 9: Errors in appreciation of evidence: (i) PW-1 testimony — contradictions, infirmities, motive to falsely implicate, prior inconsistent statements u/S.180 / S.181 BNSS; (ii) PW-2 etc.; (iii) Documentary evidence — admissibility, authenticity, contents; (iv) Material objects — chain of custody.",
+      "Para 10: Errors of law: (a) misapplication of BNS section — ingredients not satisfied; (b) misapplication of BSA provisions — presumptions wrongly drawn; (c) procedural illegalities — non-compliance with S.180 BNSS statements, non-furnishing of chargesheet documents, denial of fair trial.",
+      "Para 11: Witness reliability principles — for accused appeal: Cite K. Ponnuswamy v. State of Tamil Nadu (2001) 6 SCC 674 — proof beyond reasonable doubt mandatory; Cite Sharad Birdhichand Sarda v. State of Maharashtra (1984) 4 SCC 116 — circumstantial evidence — five golden principles.",
+      "Para 12: Burden and standard of proof — for accused: Cite Sujit Biswas v. State of Assam (2013) 12 SCC 406 — distinction between 'may be' and 'must be'.",
+      "Para 13: Benefit of doubt — Cite Hari Charan Kurmi v. State of Bihar AIR 1964 SC 1184 — confessions and benefit of doubt; Manoj v. State of MP (2023) — recent principles.",
+      "Para 14: For State / complainant appeal against acquittal — higher threshold: Cite Chandrappa v. State of Karnataka (2007) 4 SCC 415 — five principles for appellate interference with acquittal; presumption of innocence reinforced; only if view of trial court 'perverse' or 'impossible'. Cite Rajesh Singh v. State of UP (2011) 11 SCC 444. Cite Mallappa v. State of Karnataka (2024) — recent reiteration.",
+      "Para 15: For complainant appeal: S.419(4) BNSS requires leave to appeal — must specifically seek leave at admission.",
+      "Para 16: Sentence-only appeal — Cite Bachan Singh v. State of Punjab (1980) 2 SCC 684 (death sentence — rarest of rare); Machhi Singh v. State of Punjab (1983) 3 SCC 470; for non-capital — Soman v. State of Kerala (2013) 11 SCC 382 (proportionality principles); reformative approach for first offenders; mitigating circumstances.",
+      "Para 17: Death sentence reference — automatic confirmation by HC under S.407 BNSS (was S.366 CrPC); appellant typically files appeal separately.",
+      "Para 18: Suspension of sentence — file separate application under S.430 BNSS (was S.389 CrPC). Cite Bhagwan Rama Shinde Gosai v. State of Gujarat (1999) 4 SCC 421 — principles for suspension of sentence pending appeal.",
+      "Para 19: Bail pending appeal — relate to suspension application.",
+      "Documents to enclose: certified copy of judgment, certified copy of sentence order, full trial court record (or appellant's set), index of witnesses, list of exhibits.",
+      "Filing process: Where appellant in custody, appeal can be filed through Superintendent of Jail (S.428 BNSS — was S.383 CrPC).",
+      "For young / first-time advocates: keep grounds focused — pick 5-8 strongest grounds rather than 30 generic ones.",
+      "Affidavit in support is mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)",
+      "sections": [
+        {
+          "number": "S.415",
+          "description": "Appeal from sentences of Court of Session / ASJ to HC (replaces S.374(2) CrPC)"
+        },
+        {
+          "number": "S.416",
+          "description": "Appeal by State Government against acquittal / sentence (replaces S.378 CrPC)"
+        },
+        { "number": "S.417", "description": "Appeals to HC from certain Magistrate convictions" },
+        {
+          "number": "S.418",
+          "description": "Appeals from Magistrate convictions to Sessions Court (replaces S.374(3) CrPC)"
+        },
+        {
+          "number": "S.419",
+          "description": "Appeals by complainant against acquittal — leave required (replaces S.378(4) CrPC)"
+        },
+        { "number": "S.420", "description": "No appeal in certain cases — petty sentences" },
+        { "number": "S.421", "description": "Appeal in petty cases" },
+        { "number": "S.422", "description": "No appeal where accused pleads guilty" },
+        { "number": "S.426", "description": "Procedure for hearing appeals" },
+        {
+          "number": "S.428",
+          "description": "Petition of appeal by accused in jail (through Superintendent)"
+        },
+        {
+          "number": "S.430",
+          "description": "Suspension of sentence pending appeal; release on bail (replaces S.389 CrPC)"
+        },
+        { "number": "S.407", "description": "Confirmation of death sentence by HC" }
+      ]
+    },
+    {
+      "act": "Bharatiya Nyaya Sanhita, 2023 (BNS)",
+      "sections": [
+        {
+          "number": "Various",
+          "description": "Substantive offence sections — use BNS numbers (not IPC)"
+        }
+      ]
+    },
+    {
+      "act": "Bharatiya Sakshya Adhiniyam, 2023 (BSA)",
+      "sections": [
+        { "number": "Various", "description": "Evidence law — replaces Indian Evidence Act 1872" }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "Schedule Art. 114",
+          "description": "Appeal from order of acquittal — 60 / 90 days"
+        },
+        { "number": "Schedule Art. 115", "description": "Appeal from sentence to HC — 60 days" },
+        { "number": "S.12", "description": "Exclusion of time for certified copy" },
+        { "number": "S.5", "description": "Condonation of delay" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Appeal (original + copies as per court rules)",
+    "Affidavit in support",
+    "Vakalatnama",
+    "Memo of parties",
+    "Certified copy of impugned judgment",
+    "Certified copy of sentence order (if separate)",
+    "Certified copies of charge framed, depositions, exhibits",
+    "Trial court order sheet",
+    "Index, synopsis, list of dates",
+    "Suspension of sentence application (separate, under S.430 BNSS)",
+    "Leave to appeal application (if S.419(4) applies)",
+    "Condonation of delay application (if applicable)",
+    "Bail bond proposal",
+    "Court fee per state Schedule",
+    "If appellant in custody — through Jail Superintendent (S.428 BNSS)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "appellate_forum must match offence severity and forum hierarchy",
+    "judgment_date must be valid date in past",
+    "TIME-BAR CHECK: 30 days (Mag to Sessions); 60 days (Sessions to HC for conviction); 90 days (State against acquittal); 60 days (complainant against acquittal with leave). If exceeded, condonation needed.",
+    "offences_convicted must use BNS sections (warn if IPC sections detected)",
+    "grounds_of_appeal must not be empty",
+    "errors_in_appreciation must not be empty",
+    "legal_errors must not be empty",
+    "If appellant_status = complainant_against_acquittal_s419, leave_required must be true",
+    "If suspension_of_sentence_sought=true, flag separate S.430 application needed",
+    "limitation_compliance must not be empty",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Chandrappa v. State of Karnataka (2007) 4 SCC 415 — Five principles for appellate interference with acquittal",
+    "Rajesh Singh v. State of UP (2011) 11 SCC 444 — Acquittal appeal threshold",
+    "Sharad Birdhichand Sarda v. State of Maharashtra (1984) 4 SCC 116 — Circumstantial evidence five golden principles",
+    "Sujit Biswas v. State of Assam (2013) 12 SCC 406 — May be vs must be standard",
+    "Hari Charan Kurmi v. State of Bihar AIR 1964 SC 1184 — Benefit of doubt",
+    "K. Ponnuswamy v. State of TN (2001) 6 SCC 674 — Proof beyond reasonable doubt",
+    "Bachan Singh v. State of Punjab (1980) 2 SCC 684 — Rarest of rare for death sentence",
+    "Machhi Singh v. State of Punjab (1983) 3 SCC 470 — Death sentence framework",
+    "Soman v. State of Kerala (2013) 11 SCC 382 — Sentencing proportionality",
+    "Bhagwan Rama Shinde Gosai v. State of Gujarat (1999) 4 SCC 421 — Suspension of sentence principles",
+    "Mallappa v. State of Karnataka (2024) — Recent reiteration of acquittal appeal threshold"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

@@ -1,0 +1,329 @@
+{
+  "_meta": {
+    "description": "Document-rules config for written_statement — Defendant's written statement under Order VIII CPC with counter-claim and set-off provisions",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 civil pleadings pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Para-wise denial structure and 30/120-day limitation are non-negotiable."
+  },
+  "template_id": "written_statement",
+  "docType": "written_statement",
+  "title": "Written Statement (Order VIII CPC)",
+  "displayName": "Written Statement (Order VIII CPC)",
+  "category": "civil_pleading",
+  "creditsCost": 2,
+  "court_levels": [
+    "civil_judge_junior_division",
+    "civil_judge_senior_division",
+    "district_judge",
+    "high_court_original_side",
+    "commercial_court_district",
+    "commercial_division_high_court"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{plaintiff} ... Plaintiff\nVERSUS\n{defendant} ... Defendant",
+    "partyDesignations": [
+      { "role": "plaintiff", "label": "Plaintiff" },
+      { "role": "defendant", "label": "Defendant" }
+    ],
+    "caseNomenclature": "Civil Suit No. _____ of [YEAR] / Commercial Suit No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "suit_number", "label": "Suit number and year", "type": "text", "required": true },
+      { "id": "defendant_name", "label": "Defendant full name", "type": "text", "required": true },
+      {
+        "id": "defendant_father_name",
+        "label": "Defendant father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "defendant_age", "label": "Defendant age", "type": "number", "required": true },
+      {
+        "id": "defendant_address",
+        "label": "Defendant address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "summons_service_date",
+        "label": "Date of service of summons on defendant",
+        "type": "date",
+        "required": true
+      },
+      { "id": "ws_filing_date", "label": "Date of WS filing", "type": "date", "required": true },
+      {
+        "id": "days_from_service",
+        "label": "Days from service of summons (must be within 30; extendable to 120 in non-commercial, max 120 in commercial)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "delay_application",
+        "label": "If beyond 30 days, application for condonation with sufficient cause",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "preliminary_objections",
+        "label": "Preliminary objections (Order VIII R.2) — maintainability, limitation, jurisdiction, mis-joinder, non-joinder, cause of action absent",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "para_wise_denial",
+        "label": "Para-wise admit / deny structure — list each paragraph of plaint and response",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "specific_admissions",
+        "label": "Specific admissions (Order VIII R.5 — failure to deny = deemed admission)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "additional_pleas",
+        "label": "Additional pleas / facts not pleaded by plaintiff but defendant relies on (Order VIII R.2)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "set_off_claim",
+        "label": "Set-off claimed under Order VIII R.6 (ascertained money debt mutually due)",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "set_off_amount",
+        "label": "Set-off amount and basis",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "counter_claim",
+        "label": "Counter-claim under Order VIII R.6A-6G",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "counter_claim_details",
+        "label": "Counter-claim — cause of action, relief, valuation, court fee on counter-claim",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "counter_claim_amount",
+        "label": "Counter-claim valuation",
+        "type": "currency",
+        "required": false
+      },
+      {
+        "id": "counter_claim_court_fee",
+        "label": "Court fee paid on counter-claim",
+        "type": "currency",
+        "required": false
+      },
+      {
+        "id": "documents_relied_upon_defendant",
+        "label": "Documents relied upon by defendant (Order VIII R.1A)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "prayer_in_ws",
+        "label": "Prayer — dismissal + costs + counter-claim relief if any",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "cause_title",
+      "name": "Cause Title and Suit Reference",
+      "required": true,
+      "description": "Court, suit number, parties"
+    },
+    {
+      "id": "preliminary_objections",
+      "name": "Preliminary Objections — Order VIII R.2",
+      "required": false,
+      "description": "Maintainability / jurisdiction / limitation / cause of action / mis-joinder / non-joinder"
+    },
+    {
+      "id": "para_wise_response",
+      "name": "Para-wise Admission / Denial — Order VIII R.3-5",
+      "required": true,
+      "description": "Specific denial of each material allegation. Evasive denial is no denial (R.4). Failure to deny = deemed admission (R.5)."
+    },
+    {
+      "id": "additional_facts",
+      "name": "Additional Facts — Order VIII R.2",
+      "required": true,
+      "description": "Any matter showing suit not maintainable / illegality / fraud / Limitation Act bar / payment / release / discharge — must be specifically pleaded"
+    },
+    {
+      "id": "set_off",
+      "name": "Set-off — Order VIII R.6 (if claimed)",
+      "required": false,
+      "description": "Ascertained sum of money legally recoverable; both parties fill same character; suit valuation enough; court fee on set-off"
+    },
+    {
+      "id": "counter_claim",
+      "name": "Counter-claim — Order VIII R.6A-6G (if pleaded)",
+      "required": false,
+      "description": "Treated as cross-suit; cause of action must accrue before filing WS; court fee payable; valuation must be within court's pecuniary jurisdiction"
+    },
+    {
+      "id": "denial_documents",
+      "name": "Denial / Acknowledgement of Plaintiff's Documents",
+      "required": true,
+      "description": "Order VIII R.1A — defendant to disclose documents relied upon and respond to plaintiff's list"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer",
+      "required": true,
+      "description": "Dismissal of suit + costs + relief on counter-claim (if any)"
+    },
+    {
+      "id": "verification",
+      "name": "Verification — Order VI R.15",
+      "required": true,
+      "description": "Verified on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support — Order VI R.15(4)",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "statement_of_truth_commercial",
+      "name": "Statement of Truth — Order VI R.15A (Commercial Courts only)",
+      "required": false,
+      "description": "Mandatory in Commercial Courts"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Defendant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Dismiss the suit filed by the Plaintiff with exemplary costs;\n\nb) Grant the Defendant's counter-claim, if any, for {counter_claim_details};\n\nc) Allow the Defendant's set-off in the sum of Rs. {set_off_amount}/-, if pleaded;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Defendant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {defendant_name}, son/daughter/wife of {defendant_father_name}, aged about {defendant_age} years, resident of {defendant_address}, do hereby verify that the contents of paragraphs ___ to ___ of the above Written Statement are true to my personal knowledge, paragraphs ___ to ___ are based on records maintained by me, and paragraphs ___ to ___ are matters of legal submission believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nDefendant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a Written Statement strictly under Order VIII CPC.",
+      "TIME LIMIT: Order VIII R.1 — file WS within 30 days of service of summons. Court may extend to 120 days (in non-commercial suits) on recorded reasons for sufficient cause, with cost. In Commercial Courts, 120 days is the OUTER LIMIT and beyond it WS cannot be filed (SCG Contracts v. KS Chamankar 2019).",
+      "Cite: SCG Contracts (India) Pvt Ltd v. KS Chamankar Infrastructure Pvt Ltd (2019) 12 SCC 210 — 120-day limit in commercial suits is mandatory and inflexible.",
+      "PARA-WISE ADMISSION / DENIAL — the core structure of WS. Each material allegation in plaint must be: (a) specifically admitted; (b) specifically denied; or (c) denial of knowledge (only where defendant has no knowledge and cannot reasonably be expected to have).",
+      "Order VIII R.3 — Denial must be specific. General denial is no denial.",
+      "Order VIII R.4 — Evasive denial is no denial. If defendant disputes a fact, he must answer the substance.",
+      "Order VIII R.5 — Specific denial. Every allegation of fact in plaint, if not denied specifically or by necessary implication, shall be taken as admitted (DEEMED ADMISSION).",
+      "Para 1: Cause title with suit reference.",
+      "Para 2-onwards: PRELIMINARY OBJECTIONS first — maintainability, jurisdiction, limitation, mis-joinder/non-joinder, no cause of action, bar of res judicata, bar under any statute.",
+      "Then: PARA-WISE RESPONSE — 'In response to paragraph 1 of the plaint, the Defendant denies / admits / states...' for each paragraph.",
+      "After para-wise response: ADDITIONAL PLEAS (Order VIII R.2) — affirmative defences. Must specifically plead: limitation, payment, release, discharge, illegality, fraud, misrepresentation, want of consideration, lack of authority etc. (failure to specifically plead = waiver).",
+      "Cite: Badat & Co v. East India Trading Co AIR 1964 SC 538 — specific pleas mandatory.",
+      "SET-OFF (Order VIII R.6) — defendant may, where suit is for recovery of money, claim set-off against plaintiff's claim. Conditions: (i) suit for ascertained sum; (ii) set-off claim also for ascertained sum legally recoverable; (iii) within court's pecuniary jurisdiction; (iv) both parties fill same character. Court fee payable on set-off as if separate plaint.",
+      "EQUITABLE SET-OFF — judicial creation, allowed where claims arise out of same transaction (not just ascertained sums).",
+      "COUNTER-CLAIM (Order VIII R.6A-6G) — defendant may set up cross-claim. Conditions: (i) cause of action accrued before filing WS; (ii) within pecuniary jurisdiction of court; (iii) court fee payable. Counter-claim treated as cross-suit; plaintiff files written statement in reply to counter-claim. Final decree disposes both.",
+      "Cite: Ashok Kumar Kalra v. Wing Cdr Surendra Agnihotri (2020) — counter-claim must be filed before issues are framed; outer limit similar to WS time.",
+      "Order VIII R.1A — defendant to produce documents relied upon along with WS.",
+      "Order VIII R.9 — no pleading subsequent to WS other than by way of defence to set-off / counter-claim, except with leave of court.",
+      "PRAYER — dismissal of suit with costs + relief on counter-claim/set-off.",
+      "Verification — Order VI R.15 — categorise paragraphs by source (knowledge / records / legal advice).",
+      "Affidavit in support — Order VI R.15(4) — mandatory.",
+      "Statement of Truth — Order VI R.15A — mandatory in Commercial Courts (post 2018 amendments to CPC and CCA Schedule).",
+      "Tone: precise, point-by-point. Avoid argumentative language. Avoid evasive denials.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "Order VI R.1-18", "description": "Pleadings generally" },
+        { "number": "Order VI R.15", "description": "Verification" },
+        { "number": "Order VI R.15A", "description": "Statement of Truth (Commercial Courts)" },
+        {
+          "number": "Order VIII R.1",
+          "description": "Written statement — 30 days, extendable; 120 days outer limit in commercial"
+        },
+        { "number": "Order VIII R.1A", "description": "Duty of defendant to produce documents" },
+        { "number": "Order VIII R.2", "description": "New facts must be specially pleaded" },
+        { "number": "Order VIII R.3", "description": "Denial to be specific" },
+        { "number": "Order VIII R.4", "description": "Evasive denial" },
+        { "number": "Order VIII R.5", "description": "Specific denial — deemed admission rule" },
+        { "number": "Order VIII R.6", "description": "Set-off" },
+        { "number": "Order VIII R.6A-6G", "description": "Counter-claim" },
+        { "number": "Order VIII R.9", "description": "Subsequent pleadings only with leave" },
+        { "number": "Order VIII R.10", "description": "Procedure when party fails to present WS" }
+      ]
+    },
+    {
+      "act": "Commercial Courts Act, 2015",
+      "sections": [
+        {
+          "number": "Schedule (CPC amendments)",
+          "description": "Order VIII R.1 proviso — 120 days outer limit for WS in commercial suits"
+        },
+        { "number": "S.16", "description": "Amendments to CPC for commercial disputes" }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "S.3",
+          "description": "Bar of limitation — court must dismiss suit if barred even if no plea taken (but defendant must still plead)"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Written Statement (original + copies for plaintiff and court)",
+    "Vakalatnama",
+    "Affidavit in support of WS (Order VI R.15(4))",
+    "Statement of Truth (if Commercial Court — Order VI R.15A)",
+    "Court fee on counter-claim (if any) — ad valorem as separate plaint",
+    "Court fee on set-off (if any)",
+    "List of documents (Order VIII R.1A) with index",
+    "Original documents relied upon",
+    "Application for extension of time (if filed beyond 30 days) with reasons and cost offered",
+    "Application for leave to file counter-claim (post-Ashok Kumar Kalra timeline)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "suit_number must not be empty",
+    "defendant_name must not be empty",
+    "summons_service_date must not be empty",
+    "days_from_service must not exceed 30 unless delay_application provided",
+    "In commercial suits, days_from_service cannot exceed 120 (SCG Contracts)",
+    "para_wise_denial must not be empty — each material para of plaint addressed",
+    "additional_pleas must not be empty (limitation / payment / fraud etc. specifically pleaded if relied upon)",
+    "If counter_claim=true, counter_claim_court_fee must be > 0 and counter_claim_amount must be within court pecuniary jurisdiction",
+    "If set_off=true, set_off_amount must be ascertained and within court jurisdiction",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "SCG Contracts (India) Pvt Ltd v. KS Chamankar Infrastructure Pvt Ltd (2019) 12 SCC 210 — 120-day outer limit for WS in commercial suits is mandatory",
+    "Salem Advocate Bar Association (II) v. Union of India (2005) 6 SCC 344 — 90-day extension is procedural and not absolute bar in non-commercial",
+    "Kailash v. Nankhu (2005) 4 SCC 480 — Time for filing WS in non-commercial — directory not mandatory; sufficient cause needed beyond 90",
+    "Ashok Kumar Kalra v. Wing Cdr Surendra Agnihotri (2020) 2 SCC 394 — Counter-claim timing — outer limit before framing of issues",
+    "Badat & Co v. East India Trading Co AIR 1964 SC 538 — Specific pleadings; vague denials insufficient",
+    "Lohia Properties (P) Ltd v. Atmaram Kumar (1993) 4 SCC 6 — Order VIII R.5 deemed admission rule",
+    "Ramesh Chand Ardawatiya v. Anil Panjwani (2003) 7 SCC 350 — Counter-claim is independent cross-suit"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

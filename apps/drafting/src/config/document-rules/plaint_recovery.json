@@ -1,0 +1,451 @@
+{
+  "_meta": {
+    "description": "Document-rules config for plaint_recovery — suit for recovery of money under Order VII CPC",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 civil pleadings pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Cause of action, limitation, and court-fee valuation paragraphs are non-negotiable."
+  },
+  "template_id": "plaint_recovery",
+  "docType": "plaint_recovery",
+  "title": "Plaint — Suit for Recovery of Money",
+  "displayName": "Plaint for Recovery of Money (Order VII CPC)",
+  "category": "civil_pleading",
+  "creditsCost": 2,
+  "court_levels": [
+    "civil_judge_junior_division",
+    "civil_judge_senior_division",
+    "district_judge",
+    "high_court_original_side",
+    "commercial_court_district",
+    "commercial_division_high_court"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{plaintiff} ... Plaintiff\nVERSUS\n{defendant} ... Defendant",
+    "partyDesignations": [
+      { "role": "plaintiff", "label": "Plaintiff" },
+      { "role": "defendant", "label": "Defendant" }
+    ],
+    "caseNomenclature": "Civil Suit No. _____ of [YEAR] / Commercial Suit No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "plaintiff_name", "label": "Plaintiff full name", "type": "text", "required": true },
+      {
+        "id": "plaintiff_father_name",
+        "label": "Plaintiff father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "plaintiff_age", "label": "Plaintiff age", "type": "number", "required": true },
+      {
+        "id": "plaintiff_occupation",
+        "label": "Plaintiff occupation",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "plaintiff_address",
+        "label": "Plaintiff full address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "defendant_name", "label": "Defendant full name", "type": "text", "required": true },
+      {
+        "id": "defendant_father_name",
+        "label": "Defendant father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "defendant_address",
+        "label": "Defendant full address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "basis_of_claim",
+        "label": "Basis of recovery claim",
+        "type": "select",
+        "required": true,
+        "options": [
+          "loan_agreement",
+          "promissory_note",
+          "dishonoured_cheque",
+          "account_stated",
+          "goods_sold_and_delivered",
+          "services_rendered",
+          "money_had_and_received",
+          "breach_of_contract_damages"
+        ]
+      },
+      {
+        "id": "principal_amount",
+        "label": "Principal amount claimed (Rs.)",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "interest_amount",
+        "label": "Interest claimed (Rs.) with rate and period",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "total_suit_amount",
+        "label": "Total suit value (Rs.)",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "transaction_date",
+        "label": "Date of transaction giving rise to claim",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "transaction_details",
+        "label": "Transaction details — date, place, mode (cash/cheque/transfer), consideration",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "documentary_evidence",
+        "label": "Documents relied upon (loan agreement / PN / cheque / invoices / bank statements)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "demand_made_on",
+        "label": "Date of demand for repayment",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "legal_notice_date",
+        "label": "Date of legal notice (if issued)",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "defendant_response",
+        "label": "Defendant's response / refusal",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "cause_of_action_dates",
+        "label": "Cause of action — specific dates and events (Order VII R.1(e))",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "limitation_basis",
+        "label": "Limitation Act article relied upon and computation",
+        "type": "select",
+        "required": true,
+        "options": [
+          "art_19_money_payable_for_money_lent",
+          "art_22_account_stated",
+          "art_23_money_received",
+          "art_34_promissory_note",
+          "art_35_dishonoured_cheque",
+          "art_55_breach_of_contract_for_payment",
+          "art_113_residuary"
+        ]
+      },
+      {
+        "id": "limitation_start_date",
+        "label": "Date from which limitation runs",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "territorial_jurisdiction",
+        "label": "Basis of territorial jurisdiction (S.20 CPC — cause of action / defendant resides / defendant carries on business)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "pecuniary_jurisdiction",
+        "label": "Basis of pecuniary jurisdiction",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "court_fee_paid",
+        "label": "Court fee paid (Rs.)",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "court_fee_basis",
+        "label": "Court fee computation basis (state Schedule)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "valuation_for_jurisdiction",
+        "label": "Valuation for jurisdiction purposes",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "commercial_dispute",
+        "label": "Whether commercial dispute u/s 2(1)(c) Commercial Courts Act 2015",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "pre_institution_mediation",
+        "label": "Pre-institution mediation completed u/s 12A CCA (if commercial and no urgent interim relief) — Patil Automation v. Rakheja Engineers (2022)",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "interest_pendente_lite",
+        "label": "Interest pendente lite and future sought u/s 34 CPC",
+        "type": "boolean",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties — Order VII R.1(a)(b)",
+      "required": true,
+      "description": "Full name, father's name, age, occupation, address of each party"
+    },
+    {
+      "id": "basis_of_claim",
+      "name": "Basis of Claim",
+      "required": true,
+      "description": "Whether contract, PN, cheque, account stated etc. with particulars"
+    },
+    {
+      "id": "transaction_facts",
+      "name": "Facts of Transaction",
+      "required": true,
+      "description": "Date, place, consideration, mode of payment, documentary basis"
+    },
+    {
+      "id": "cause_of_action",
+      "name": "Cause of Action — Order VII R.1(e)",
+      "required": true,
+      "description": "Specific paragraph stating when and where cause of action accrued"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation — Order VII R.6",
+      "required": true,
+      "description": "Suit is within limitation per relevant article of Schedule to Limitation Act"
+    },
+    {
+      "id": "jurisdiction_paragraph",
+      "name": "Jurisdiction — Order VII R.1(f)",
+      "required": true,
+      "description": "Territorial (S.20 CPC) and pecuniary jurisdiction stated"
+    },
+    {
+      "id": "valuation_paragraph",
+      "name": "Valuation and Court Fee — Order VII R.1(i)(j)",
+      "required": true,
+      "description": "Suit valuation and court fee paid per Court Fees Act / state Schedule"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer — Order VII R.7",
+      "required": true,
+      "description": "Specific relief sought — principal, interest, pendente lite interest, costs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification — Order VI R.15",
+      "required": true,
+      "description": "Verification of plaint on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support — Order VI R.15(4)",
+      "required": true,
+      "description": "Affidavit verifying plaint mandatory post-2002 amendment"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Plaintiff most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree for the sum of Rs. {total_suit_amount}/- (Rupees ________ only) in favour of the Plaintiff and against the Defendant, comprising Rs. {principal_amount}/- as principal and Rs. {interest_amount}/- as interest accrued up to the date of suit;\n\nb) Grant pendente lite and future interest at the rate of 12% per annum (or such rate as this Hon'ble Court deems just) from the date of suit till realisation, under Section 34 CPC;\n\nc) Award costs of the suit in favour of the Plaintiff;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Plaintiff shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {plaintiff_name}, son/daughter/wife of {plaintiff_father_name}, aged about {plaintiff_age} years, resident of {plaintiff_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above plaint are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPlaintiff",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a plaint for recovery of money strictly in accordance with Order VII CPC (Rules 1 to 9) and Order VI (general pleading rules).",
+      "Para 1: Describe the Plaintiff with full particulars per Order VII R.1(a).",
+      "Para 2: Describe the Defendant per Order VII R.1(b).",
+      "Para 3 onwards: State the transaction giving rise to the claim — basis (loan / PN / cheque / account stated / goods sold / services rendered), date, place, consideration, mode.",
+      "Plead documentary basis with particulars — date of execution, parties, witnesses, where document is in possession of Plaintiff (Order VII R.14).",
+      "Where based on a promissory note, ensure it is duly stamped and recite stamping particulars; an unstamped PN is inadmissible (Indian Stamp Act).",
+      "Where based on a dishonoured cheque, plead the cheque particulars, dishonour memo, demand notice, and reservation of S.138 NI Act remedy (these are separate proceedings).",
+      "Plead defendant's failure to pay despite demand / legal notice.",
+      "Para on Cause of Action — Order VII R.1(e) requires specific statement of when and where cause of action accrued. State all relevant dates: date of advance, date of demand, date of refusal, date of legal notice.",
+      "Para on Limitation — Order VII R.6 requires specific pleading of grounds of exemption if suit is filed beyond ordinary limitation. Cite specific Article (e.g., Article 19 for money lent — 3 years from when loan made; Article 34 for PN payable on demand — 3 years from date of PN).",
+      "Para on Jurisdiction — Order VII R.1(f). Territorial jurisdiction under S.20 CPC (defendant resides / carries on business / cause of action wholly or in part arose). Pecuniary jurisdiction per state-specific notification.",
+      "If suit value exceeds Rs. 3 lakh and dispute is 'commercial' u/s 2(1)(c) Commercial Courts Act 2015, file before Commercial Court / Commercial Division. Pre-institution mediation u/s 12A CCA is mandatory unless urgent interim relief sought (Patil Automation v. Rakheja Engineers (2022) — mandatory).",
+      "Para on Valuation and Court Fee — Order VII R.1(i)(j). Valuation must equal the amount claimed. Court fee per state Schedule (e.g., Court Fees Act 1870 + state amendments).",
+      "Para on Relief — Order VII R.7. Specifically claim: (i) principal sum; (ii) interest up to date of suit (cite agreement/PN or S.80 NI Act for cheque); (iii) pendente lite and future interest u/s 34 CPC; (iv) costs.",
+      "Tone: precise, fact-based. Avoid argumentative tone — plead facts, not law.",
+      "Verification: Order VI R.15 — verify which paragraphs are on personal knowledge and which on information/legal advice.",
+      "Affidavit in support: Order VI R.15(4) post-2002 amendment — mandatory affidavit verifying plaint.",
+      "List of documents (Order VII R.14) and list of witnesses (Order XVI R.1) must accompany the plaint.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "S.9", "description": "Courts to try all civil suits unless barred" },
+        {
+          "number": "S.15",
+          "description": "Court in which suits to be instituted (lowest grade competent)"
+        },
+        {
+          "number": "S.20",
+          "description": "Other suits to be instituted where defendants reside or cause of action arises"
+        },
+        { "number": "S.26", "description": "Institution of suits" },
+        { "number": "S.34", "description": "Interest — pendente lite and future" },
+        { "number": "Order VI R.1-18", "description": "Pleadings generally" },
+        { "number": "Order VI R.15", "description": "Verification of pleadings" },
+        { "number": "Order VII R.1", "description": "Particulars to be contained in plaint" },
+        { "number": "Order VII R.6", "description": "Grounds of exemption from limitation" },
+        { "number": "Order VII R.7", "description": "Relief to be specifically stated" },
+        { "number": "Order VII R.11", "description": "Rejection of plaint (grounds)" },
+        {
+          "number": "Order VII R.14",
+          "description": "Production of documents on which plaintiff sues"
+        }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        { "number": "S.3", "description": "Bar of limitation" },
+        {
+          "number": "Schedule Art. 19",
+          "description": "Money payable for money lent — 3 years from when loan made"
+        },
+        {
+          "number": "Schedule Art. 22",
+          "description": "Money deposited under agreement that it shall be payable on demand — 3 years from demand"
+        },
+        {
+          "number": "Schedule Art. 23",
+          "description": "Money payable for money received for plaintiff's use — 3 years from when money received"
+        },
+        {
+          "number": "Schedule Art. 34",
+          "description": "Suit on promissory note payable on demand — 3 years from date of note"
+        },
+        {
+          "number": "Schedule Art. 35",
+          "description": "Suit on dishonoured bill / cheque — 3 years from refusal or default"
+        },
+        { "number": "Schedule Art. 55", "description": "Breach of contract — 3 years from breach" }
+      ]
+    },
+    {
+      "act": "Indian Contract Act, 1872",
+      "sections": [
+        { "number": "S.10", "description": "What agreements are contracts" },
+        { "number": "S.25", "description": "Agreement without consideration void; exceptions" },
+        { "number": "S.73", "description": "Compensation for breach of contract" }
+      ]
+    },
+    {
+      "act": "Negotiable Instruments Act, 1881",
+      "sections": [
+        { "number": "S.4", "description": "Promissory note" },
+        { "number": "S.6", "description": "Cheque" },
+        { "number": "S.80", "description": "Interest when no rate specified — 18% p.a." },
+        { "number": "S.138", "description": "Dishonour of cheque — separate criminal remedy" }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899",
+      "sections": [
+        { "number": "S.35", "description": "Instruments not duly stamped inadmissible in evidence" }
+      ]
+    },
+    {
+      "act": "Commercial Courts Act, 2015",
+      "sections": [
+        { "number": "S.2(1)(c)", "description": "Definition of commercial dispute" },
+        { "number": "S.6", "description": "Jurisdiction of Commercial Courts" },
+        { "number": "S.12", "description": "Specified value — Rs. 3 lakh and above" },
+        {
+          "number": "S.12A",
+          "description": "Pre-institution mediation — mandatory (Patil Automation)"
+        }
+      ]
+    },
+    {
+      "act": "Court Fees Act, 1870 (+ state amendments)",
+      "sections": [
+        {
+          "number": "S.7",
+          "description": "Computation of fees — Schedule I item 1 (money suits ad valorem)"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Plaint (original + copies as per court rules)",
+    "Vakalatnama duly stamped",
+    "Memo of parties",
+    "Affidavit in support of plaint (Order VI R.15(4))",
+    "Court fee — ad valorem on suit amount (state Schedule)",
+    "Statement of truth (in Commercial Courts — Order VI R.15A)",
+    "List of documents (Order VII R.14) with index",
+    "Original documents — loan agreement / promissory note (duly stamped) / cheque / dishonour memo",
+    "Bank statements / ledger / account confirmation",
+    "Copy of legal notice and postal receipts / track consignment",
+    "Pre-institution mediation non-starter certificate (if commercial, when applicable)",
+    "Process fee for summons",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "plaintiff_name and defendant_name must not be empty",
+    "principal_amount must be > 0",
+    "total_suit_amount must be >= principal_amount",
+    "basis_of_claim must be specified",
+    "transaction_details must not be empty",
+    "cause_of_action_dates must not be empty",
+    "limitation_basis must be specified",
+    "limitation_start_date must be within 3 years of filing for ordinary money claims",
+    "territorial_jurisdiction must not be empty",
+    "court_fee_paid must be > 0",
+    "If total_suit_amount >= 300000 and commercial_dispute=true, flag for Commercial Court track",
+    "If commercial_dispute=true and no urgent interim relief, pre_institution_mediation must be true (Patil Automation)",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Patil Automation Pvt Ltd v. Rakheja Engineers Pvt Ltd (2022) SCC OnLine SC 1028 — Pre-institution mediation u/s 12A CCA is mandatory",
+    "Dhulabhai v. State of M.P. (1968) 3 SCR 662 — Jurisdiction of civil courts",
+    "Liverpool & London S.P. & I Association v. M.V. Sea Success I (2004) 9 SCC 512 — Order VII R.11 rejection scope",
+    "Saleem Bhai v. State of Maharashtra (2003) 1 SCC 557 — Plaint must disclose cause of action",
+    "T. Arivandandam v. T.V. Satyapal (1977) 4 SCC 467 — Manifestly vexatious plaints may be rejected",
+    "Kandimalla Raghavaiah v. National Insurance Co (2009) 7 SCC 768 — Limitation cannot be extended by acknowledgement after period expires"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

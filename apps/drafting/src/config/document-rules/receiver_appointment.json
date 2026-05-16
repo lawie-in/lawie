@@ -1,0 +1,298 @@
+{
+  "_meta": {
+    "description": "Document-rules config for receiver_appointment — Application u/Order 40 R.1 CPC for appointment of receiver",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 5 civil interlocutory pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. 'Just and convenient' standard non-negotiable."
+  },
+  "template_id": "receiver_appointment",
+  "docType": "receiver_appointment",
+  "title": "Application for Appointment of Receiver (Order 40 R.1 CPC)",
+  "displayName": "Application for Receiver (Order 40 R.1 CPC)",
+  "category": "civil_interlocutory",
+  "creditsCost": 1,
+  "court_levels": [
+    "civil_judge_senior_division",
+    "district_judge",
+    "high_court_original_side",
+    "commercial_court",
+    "commercial_division_high_court"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant\nVERSUS\n{respondent} ... Non-Applicant",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant" },
+      { "role": "respondent", "label": "Non-Applicant" }
+    ],
+    "caseNomenclature": "I.A. No. _____ of [YEAR] in Civil Suit No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "suit_number",
+        "label": "Parent suit number / year",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "nature_of_suit",
+        "label": "Nature of suit",
+        "type": "select",
+        "required": true,
+        "options": [
+          "partition",
+          "partnership_dissolution",
+          "company_oppression_mismanagement",
+          "mortgage_foreclosure",
+          "specific_performance",
+          "execution_proceedings",
+          "trust_administration",
+          "other"
+        ]
+      },
+      { "id": "applicant_name", "label": "Applicant name", "type": "text", "required": true },
+      { "id": "respondent_name", "label": "Non-Applicant name", "type": "text", "required": true },
+      {
+        "id": "subject_property_description",
+        "label": "Property / business / assets to be placed under receiver",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "current_custody_status",
+        "label": "Current possession / custody of subject property",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "grounds_for_receiver",
+        "label": "Why appointment is just and convenient (waste / mismanagement / dissipation / deadlock)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "specific_apprehensions",
+        "label": "Specific apprehensions of loss / waste / fraud",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "proposed_receiver_name",
+        "label": "Proposed receiver name and qualifications (advocate / CA / retired officer)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "powers_sought",
+        "label": "Powers sought for receiver (collect rents / sell / manage / accounts)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "remuneration_proposal",
+        "label": "Proposed remuneration of receiver",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "security_proposal",
+        "label": "Security to be furnished by receiver (Order 40 R.3)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "applicant_undertaking",
+        "label": "Applicant undertaking to indemnify if appointment improper",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Applicant and non-applicant"
+    },
+    {
+      "id": "suit_reference",
+      "name": "Reference to Main Suit",
+      "required": true,
+      "description": "Suit number, nature, relief sought"
+    },
+    {
+      "id": "subject_property_paragraph",
+      "name": "Subject Property / Assets",
+      "required": true,
+      "description": "Detailed description of what is to be placed under receiver"
+    },
+    {
+      "id": "current_status_paragraph",
+      "name": "Current Custody Status",
+      "required": true,
+      "description": "Who is in current possession / management"
+    },
+    {
+      "id": "just_and_convenient_paragraph",
+      "name": "Just and Convenient — Grounds",
+      "required": true,
+      "description": "Specific grounds satisfying Order 40 R.1 standard"
+    },
+    {
+      "id": "apprehension_paragraph",
+      "name": "Apprehension of Waste / Loss",
+      "required": true,
+      "description": "Specific facts showing immediate or threatened injury"
+    },
+    {
+      "id": "powers_paragraph",
+      "name": "Powers to be Conferred",
+      "required": true,
+      "description": "Specific powers sought"
+    },
+    {
+      "id": "security_paragraph",
+      "name": "Security by Receiver",
+      "required": true,
+      "description": "Order 40 R.3 — receiver to furnish security"
+    },
+    {
+      "id": "undertaking_paragraph",
+      "name": "Applicant Undertaking",
+      "required": true,
+      "description": "Indemnity in case of wrongful appointment"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Specific receiver-related reliefs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Affidavit accompanying application"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Appoint a fit and proper person as Receiver under Order 40 Rule 1 read with Section 151 CPC over the property / business / assets described in paragraph __ above, with such powers as this Hon'ble Court may deem fit, including powers to manage, preserve, collect rents/profits, render accounts, and where appropriate, to sell;\n\nb) Direct that the said Receiver shall furnish security to the satisfaction of this Hon'ble Court under Order 40 Rule 3 CPC and shall act as an officer of the Court;\n\nc) Direct the Non-Applicant and all persons in possession to hand over peaceful possession of the said property / assets to the Receiver and to render true accounts thereof;\n\nd) Fix reasonable remuneration of the Receiver under Order 40 Rule 2 CPC;\n\ne) Award costs of this application;\n\nf) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant_name}, the Applicant herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to my personal knowledge. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nApplicant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft an application for appointment of receiver under Order 40 Rule 1 read with Section 151 CPC.",
+      "Standard: 'just and convenient' — court has wide discretion but exercises sparingly. Cite T. Krishnaswamy Chetty v. C. Thangavelu Chetty AIR 1955 Mad 430 — five principles for appointment of receiver: (i) just and convenient; (ii) plaintiff must show prima facie strong case; (iii) emergency / danger of waste; (iv) not interference unless necessary; (v) court must consider equity of conduct of applicant.",
+      "Most common in: partition suits, partnership dissolution, company oppression / mismanagement (Section 241 Companies Act), mortgage foreclosure, executions, trust administration.",
+      "Para 1: Reference to main suit, parties, relief sought.",
+      "Para 2: Description of subject property / business / undertaking (schedule, boundaries, account particulars).",
+      "Para 3: Current possession / management status.",
+      "Para 4: Specific acts / conduct of non-applicant showing waste, mismanagement, fraudulent dealing, dissipation, or deadlock.",
+      "Para 5: Why appointment is 'just and convenient' — emergency, irreparable risk, no alternative remedy adequate.",
+      "Para 6: Powers sought for receiver — manage, collect rents, maintain status quo, render accounts, sell with leave of court (sale always with leave).",
+      "Para 7: Proposed receiver (often a senior advocate, CA, or retired judicial officer) with consent letter; if not, leave it to court.",
+      "Para 8: Receiver's security under Order 40 R.3 — must give security as ordered.",
+      "Para 9: Remuneration under Order 40 R.2 — fixed by court (usually as % of receipts).",
+      "Para 10: Applicant's undertaking to indemnify in case appointment subsequently found improper.",
+      "Receiver is an officer of the court, not the party's agent. Acts of receiver bind the property, not the parties personally.",
+      "Receiver must render accounts at intervals fixed by court (Order 40 R.4).",
+      "Where partnership suit: receiver appointed at dissolution stage to wind up.",
+      "Where mortgage suit: receiver of mortgaged property pending sale.",
+      "Where matrimonial property / family business in dispute: receiver to preserve assets.",
+      "Caution: appointment of receiver dispossesses parties from their property — therefore extreme circumspection required. Cite Mannalal Khetan v. Kedar Nath Khetan (1977) 2 SCC 424.",
+      "Cite Maharwal Khewaji Trust v. Baldev Dass (2004) 8 SCC 488 — receiver should be appointed only as last resort.",
+      "Affidavit in support mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "S.94", "description": "Supplemental proceedings" },
+        { "number": "S.151", "description": "Inherent powers" },
+        {
+          "number": "Order 40 R.1",
+          "description": "Appointment of receivers — when just and convenient"
+        },
+        { "number": "Order 40 R.2", "description": "Remuneration of receiver" },
+        {
+          "number": "Order 40 R.3",
+          "description": "Duties of receiver — security, accounts, due diligence"
+        },
+        { "number": "Order 40 R.4", "description": "Enforcement of receiver's duties" },
+        { "number": "Order 40 R.5", "description": "When collector may be appointed receiver" }
+      ]
+    },
+    {
+      "act": "Indian Partnership Act, 1932",
+      "sections": [
+        { "number": "S.44", "description": "Dissolution by court — receiver during winding up" }
+      ]
+    },
+    {
+      "act": "Companies Act, 2013",
+      "sections": [
+        {
+          "number": "S.241",
+          "description": "Application to Tribunal for relief in cases of oppression / mismanagement — interim receiver"
+        }
+      ]
+    },
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [{ "number": "S.69A", "description": "Mortgagee's power to appoint receiver" }]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + copies)",
+    "Affidavit in support",
+    "Memo of parties",
+    "Consent letter of proposed receiver (if named)",
+    "Schedule of property / assets",
+    "Documents proving applicant's interest in property",
+    "Evidence of waste / mismanagement / dissipation (accounts, bank statements, photographs)",
+    "Court fee per state Schedule",
+    "Bond / security proposal of receiver",
+    "Copy of plaint",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "suit_number must be filled",
+    "nature_of_suit must be specified",
+    "subject_property_description must not be empty",
+    "grounds_for_receiver must not be empty",
+    "specific_apprehensions must not be empty",
+    "powers_sought must not be empty",
+    "security_proposal must not be empty",
+    "applicant_undertaking must not be empty",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "T. Krishnaswamy Chetty v. C. Thangavelu Chetty AIR 1955 Mad 430 — Five principles for receiver",
+    "Maharwal Khewaji Trust v. Baldev Dass (2004) 8 SCC 488 — Receiver as last resort",
+    "Mannalal Khetan v. Kedar Nath Khetan (1977) 2 SCC 424 — Receiver dispossesses, requires circumspection",
+    "Anthony C. Leo v. Nandlal Bal Krishnan (1996) 11 SCC 376 — Just and convenient standard",
+    "Hiralal Patni v. Loonkaran Sethiya AIR 1962 SC 21 — Receiver as officer of court"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}
