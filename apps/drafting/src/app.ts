@@ -13,6 +13,7 @@ import internalRoutes from './routes/internal.routes';
 import reviewRoutes from './routes/review.routes';
 import sectionsRoutes from './routes/sections.routes';
 import templatesRoutes from './routes/templates.routes';
+import usersRoutes from './routes/users.routes';
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.get('/health', (_req, res) => {
 app.use('/templates', templatesRoutes);
 app.use('/sections', sectionsRoutes);
 app.use('/courts', courtsRoutes);
+app.use('/users', usersRoutes);
 app.use('/', internalRoutes);
 app.use('/', appSettingsRoutes);
 app.use('/', creditsRoutes);

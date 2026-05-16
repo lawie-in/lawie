@@ -182,6 +182,36 @@ app.use(
   createAuthenticatedProxy(env.BILLING_SERVICE_URL),
 );
 
+// Per-user resources owned by drafting service (Section Finder bookmarks +
+// recent searches — SCRUM-83). pathRewrite prepends `/users/` so drafting's
+// `app.use('/users', usersRoutes)` mount matches — Express otherwise strips
+// the /api/users prefix and would send drafting `/me/bookmarks/sections`
+// which is not under /users.
+app.use(
+  '/api/users',
+  ...authChain,
+  planRateLimiter,
+  createProxyMiddleware({
+    target: env.DRAFTING_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/': '/users/' },
+    on: {
+      proxyReq: (proxyReq, req) => {
+        const expressReq = req as express.Request;
+        proxyReq.setHeader(INTERNAL_HEADERS.SECRET, env.INTERNAL_SECRET);
+        if (expressReq.jwtPayload) {
+          proxyReq.setHeader(INTERNAL_HEADERS.USER_ID, expressReq.jwtPayload.sub);
+          proxyReq.setHeader(INTERNAL_HEADERS.USER_EMAIL, expressReq.jwtPayload.email);
+          proxyReq.setHeader(INTERNAL_HEADERS.USER_ROLE, expressReq.jwtPayload.role);
+          proxyReq.setHeader(INTERNAL_HEADERS.USER_PLAN, expressReq.jwtPayload.plan);
+          proxyReq.setHeader(INTERNAL_HEADERS.USER_NAME, expressReq.jwtPayload.name);
+        }
+      },
+      error: onProxyError,
+    },
+  }),
+);
+
 // ── Sentry error handler ────────────────────────────────────────────────────
 Sentry.setupExpressErrorHandler(app);
 

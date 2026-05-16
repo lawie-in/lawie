@@ -2756,7 +2756,7 @@ Dependencies: Starts in parallel with SCRUM-81 batch shipping.
 ID: section-finder-side-panel
 Filed by: Priya · PM
 Filed on: 2026-05-12
-Status: To Do
+Status: Done (Vishal-Opus, 2026-05-16) — pending dev-server smoke
 Jira: SCRUM-83 (https://abhinava32.atlassian.net/browse/SCRUM-83)
 Figma: N/A — design delivered as print PDF by Rajesh
 Design PDF: /Users/abhinavanand/Files/Lawie/docs/designs/SectionLookup/Lawie — Section Finder · Print.pdf

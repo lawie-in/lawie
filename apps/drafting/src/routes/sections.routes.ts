@@ -9,6 +9,7 @@ import {
   getCodesMeta,
   convertOldReferencesInText,
   searchSections,
+  getSectionDetail,
 } from '../services/sections.service';
 import { calculateTimeline } from '../services/timeline.service';
 
@@ -67,6 +68,40 @@ router.get('/map', async (req: Request, res: Response): Promise<void> => {
       auto_detect: 'GET /sections/map?section=302&code=IPC',
     },
   });
+});
+
+/**
+ * GET /sections/details?section=103&code=BNS
+ *
+ * Rich result-card payload for the Section Finder (SCRUM-83) — mapping,
+ * statute, chapter, 4 metadata pills (bailable/cognizable/triable_by/
+ * compoundable), punishment, ingredients (when CLO authors them), related
+ * sections from the same chapter.
+ */
+router.get('/details', async (req: Request, res: Response): Promise<void> => {
+  const { section, code } = req.query;
+  if (typeof section !== 'string' || !section.trim()) {
+    res.status(400).json({
+      error: 'Missing "section" query parameter',
+      usage: 'GET /sections/details?section=103&code=BNS',
+    });
+    return;
+  }
+  if (typeof code !== 'string' || !code.trim()) {
+    res.status(400).json({
+      error: 'Missing "code" query parameter',
+      supported: ['BNS', 'BNSS', 'BSA', 'IPC', 'CrPC', 'IEA'],
+    });
+    return;
+  }
+  const detail = await getSectionDetail(section, code);
+  if (!detail) {
+    res
+      .status(400)
+      .json({ error: 'Unsupported code', supported: ['BNS', 'BNSS', 'BSA', 'IPC', 'CrPC', 'IEA'] });
+    return;
+  }
+  res.json(detail);
 });
 
 /**
