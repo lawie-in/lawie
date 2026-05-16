@@ -37,12 +37,13 @@ function CallbackHandler() {
 }
 
 export default function AuthCallbackPage() {
+  // Visually identical to DashboardLayout's loading-state spinner so the
+  // user sees one continuous loading screen during the OAuth → dashboard
+  // handoff. No "Signing you in…" label — the callback typically takes
+  // ~150ms and a transient label reads as a context switch.
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <div className="text-center">
-        <div className="border-lawie-600 inline-block h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
-        <p className="mt-4 text-sm text-slate-500">Signing you in…</p>
-      </div>
+    <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC]">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
       <Suspense>
         <CallbackHandler />
       </Suspense>
