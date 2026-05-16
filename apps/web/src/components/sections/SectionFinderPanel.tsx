@@ -43,6 +43,23 @@ const STORAGE_OPEN = 'lawie.sectionFinder.open';
 const STORAGE_BOOKMARKS = 'lawie.sectionFinder.bookmarks';
 const STORAGE_RECENT = 'lawie.sectionFinder.recent';
 const INSERT_CITATION_EVENT = 'lawie:insertCitation';
+const OPEN_PANEL_EVENT = 'lawie:openSectionFinder';
+
+/**
+ * Returns the platform-correct keyboard shortcut label.
+ * Mac → "⌘K", everything else → "Ctrl+K". SSR-safe — defaults to Ctrl+K on
+ * the server, replaced on the client after mount via useShortcutLabel().
+ */
+function detectMac(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /Mac|iPod|iPhone|iPad/.test(window.navigator.platform);
+}
+
+function useShortcutLabel(): string {
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => setIsMac(detectMac()), []);
+  return isMac ? '⌘K' : 'Ctrl+K';
+}
 
 // Common lookups (state 02 of design). Editable in Settings later.
 const COMMON_LOOKUPS: Array<{ section: string; code: string; label: string }> = [
@@ -152,6 +169,7 @@ function citationText(detail: { code: string; section: string }): string {
 export function SectionFinderPanel({ inline = false }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const shortcutLabel = useShortcutLabel();
 
   // Restore the lawyer's last open/closed state (inline mode skips this).
   useEffect(() => {
@@ -191,6 +209,17 @@ export function SectionFinderPanel({ inline = false }: Props) {
     return () => window.removeEventListener('keydown', handler);
   }, [open, toggle, inline]);
 
+  // Sidebar "Section finder" link (or any other surface) dispatches this
+  // event to pop the drawer open without routing.
+  useEffect(() => {
+    if (inline) return;
+    function openHandler() {
+      toggle(true);
+    }
+    window.addEventListener(OPEN_PANEL_EVENT, openHandler);
+    return () => window.removeEventListener(OPEN_PANEL_EVENT, openHandler);
+  }, [toggle, inline]);
+
   const insertEnabled = pathname?.startsWith('/dashboard/documents/') ?? false;
 
   if (inline) {
@@ -208,7 +237,7 @@ export function SectionFinderPanel({ inline = false }: Props) {
         <button
           type="button"
           onClick={() => toggle(true)}
-          aria-label="Open section finder (⌘K)"
+          aria-label={`Open section finder (${shortcutLabel})`}
           className="fixed right-0 top-1/2 z-30 flex -translate-y-1/2 flex-col items-center gap-3 rounded-l-xl border border-r-0 border-slate-200 bg-white px-2 py-5 shadow-sm hover:bg-amber-50"
         >
           <BookOpen size={16} className="text-amber-500" />
@@ -216,7 +245,7 @@ export function SectionFinderPanel({ inline = false }: Props) {
             className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600"
             style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
           >
-            Section finder · ⌘K
+            Section finder · {shortcutLabel}
           </span>
         </button>
       )}
@@ -506,6 +535,7 @@ function LookupTab({
   const [matches, setMatches] = useState<SearchMatch[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const shortcutLabel = useShortcutLabel();
 
   // Autofocus the search input when the lookup tab mounts.
   useEffect(() => {
@@ -588,7 +618,7 @@ function LookupTab({
             className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-12 text-sm text-slate-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
           />
           <kbd className="absolute right-2 top-1/2 -translate-y-1/2 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-            ⌘K
+            {shortcutLabel}
           </kbd>
         </div>
       </div>
@@ -699,7 +729,9 @@ function LookupTab({
             <p className="mt-1 text-xs text-slate-600">
               Auto-detects either direction. Type the old IPC and we&rsquo;ll show the BNS
               equivalent — or vice versa. Press{' '}
-              <kbd className="rounded border border-amber-300 bg-white px-1 text-[10px]">⌘K</kbd>{' '}
+              <kbd className="rounded border border-amber-300 bg-white px-1 text-[10px]">
+                {shortcutLabel}
+              </kbd>{' '}
               from any drafting screen.
             </p>
           </div>
@@ -1188,6 +1220,6 @@ function writeLocal(key: string, value: unknown): void {
   }
 }
 
-// Re-export the constants so the editor (stage 3) can subscribe to the
-// insert-citation event without duplicating the string.
+// Re-export the constants so other surfaces don't duplicate the string.
 export const SECTION_FINDER_INSERT_EVENT = INSERT_CITATION_EVENT;
+export const SECTION_FINDER_OPEN_EVENT = OPEN_PANEL_EVENT;
