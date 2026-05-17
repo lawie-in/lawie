@@ -17,6 +17,8 @@ import { User } from '../models/User.model';
 
 export const DAILY_LOGIN_BONUS = 2;
 export const REFERRAL_SIGNUP_BONUS = 25;
+// Free credits given to every new user on signup — change this to adjust the grant.
+export const SIGNUP_BONUS_CREDITS = 10;
 
 /**
  * Grant the daily login bonus if the user hasn't received it today.
@@ -31,7 +33,11 @@ export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
   const updated = await User.findOneAndUpdate(
     {
       _id: new mongoose.Types.ObjectId(userId),
-      $or: [{ lastLoginBonusAt: { $exists: false } }, { lastLoginBonusAt: null }, { lastLoginBonusAt: { $lt: startOfToday } }],
+      $or: [
+        { lastLoginBonusAt: { $exists: false } },
+        { lastLoginBonusAt: null },
+        { lastLoginBonusAt: { $lt: startOfToday } },
+      ],
     },
     {
       $inc: { earnedCredits: DAILY_LOGIN_BONUS },
@@ -58,7 +64,10 @@ export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
  * Grant the referral signup bonus to a freshly-created user.
  * Returns the amount granted (always REFERRAL_SIGNUP_BONUS or 0 on failure).
  */
-export async function grantReferralSignupBonus(userId: string, referralCode: string): Promise<number> {
+export async function grantReferralSignupBonus(
+  userId: string,
+  referralCode: string,
+): Promise<number> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
 
   const updated = await User.findByIdAndUpdate(
@@ -79,6 +88,47 @@ export async function grantReferralSignupBonus(userId: string, referralCode: str
   });
 
   return REFERRAL_SIGNUP_BONUS;
+}
+
+/**
+ * Grant SIGNUP_BONUS_CREDITS to a newly-registered user.
+ * Writes to User.earnedCredits (billing display) + signals drafting's
+ * BonusCredit collection so enforceFreeLimit can consume them.
+ * Non-fatal — never throws.
+ */
+export async function grantSignupBonus(userId: string): Promise<void> {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return;
+
+  const updated = await User.findByIdAndUpdate(
+    new mongoose.Types.ObjectId(userId),
+    { $inc: { earnedCredits: SIGNUP_BONUS_CREDITS } },
+    { new: true },
+  ).lean();
+  if (!updated) return;
+
+  await writeLedgerRow({
+    userId,
+    source: 'signup_bonus',
+    bucket: 'earnedCredits',
+    amount: SIGNUP_BONUS_CREDITS,
+    balanceAfter: updated.earnedCredits ?? SIGNUP_BONUS_CREDITS,
+    reference: `Signup bonus (${SIGNUP_BONUS_CREDITS} free drafts)`,
+  });
+
+  // Signal drafting service so enforceFreeLimit can consume these as bonus drafts.
+  const draftingUrl = process.env.DRAFTING_SERVICE_URL ?? 'http://localhost:4002';
+  try {
+    await fetch(`${draftingUrl}/internal/grant-bonus`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-secret': process.env.INTERNAL_SECRET ?? '',
+      },
+      body: JSON.stringify({ userId, bonus: SIGNUP_BONUS_CREDITS }),
+    });
+  } catch {
+    console.warn(`[auth] failed to signal drafting signup bonus for user ${userId}`);
+  }
 }
 
 // ── Internal — minimal ledger insert ────────────────────────────────────────

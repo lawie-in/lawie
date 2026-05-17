@@ -5,7 +5,7 @@ import { RegisterPayload, LoginPayload } from '@lawie/shared';
 import { AppError } from '../middleware/errorHandler';
 import { User, IUser } from '../models/User.model';
 
-import { tryGrantDailyLoginBonus } from './credit-bonus.service';
+import { tryGrantDailyLoginBonus, grantSignupBonus } from './credit-bonus.service';
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
 import { applyReferralCode } from './referral.service';
 import { createSession, deleteSession, hashToken, SessionMeta } from './session.service';
@@ -25,6 +25,9 @@ export async function registerUser(
     name: payload.name,
     role: payload.role ?? 'Client',
   });
+
+  // Signup bonus — non-blocking, never fails registration
+  void grantSignupBonus(user._id.toString());
 
   // Apply referral code non-blocking — never fails registration
   if (payload.referralCode) {
