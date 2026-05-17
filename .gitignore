@@ -57,6 +57,8 @@ package-lock.json
 docs/
 *.pdf
 followUp.md
+test-templates/
+node_modules/
 
 # -- claude -----------------------──────────────────────────────────────────────────────────────
 .claude/

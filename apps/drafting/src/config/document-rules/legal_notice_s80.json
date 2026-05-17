@@ -2,9 +2,115 @@
   "_meta": {
     "description": "Document-rules config for legal_notice_s80 — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",
-    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass",
-    "last_updated": "2026-05-10",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass + SCRUM-89 form_schema port from production override 2026-05-12",
+    "last_updated": "2026-05-12",
     "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Sender & Recipient",
+        "fields": [
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Sender / Client Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["header", "body", "closing"]
+          },
+          {
+            "field_id": "applicant_address",
+            "label": "Sender Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "respondent_name",
+            "label": "Noticee Name (Government body / Public Officer)",
+            "type": "text",
+            "required": true,
+            "inject_into": ["header", "body"]
+          },
+          {
+            "field_id": "respondent_address",
+            "label": "Noticee Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Advocate Details",
+        "fields": [
+          {
+            "field_id": "advocate_name",
+            "label": "Advocate Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["header", "closing"]
+          },
+          {
+            "field_id": "advocate_address",
+            "label": "Advocate Chamber Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "advocate_enrollment",
+            "label": "Bar Council Enrollment No.",
+            "type": "text",
+            "required": true,
+            "inject_into": ["closing"]
+          }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Facts & Demand",
+        "fields": [
+          {
+            "field_id": "facts_narrative",
+            "label": "Facts of the Case (detailed)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 100,
+            "max_length": 3000,
+            "placeholder": "Describe the cause of action, relevant dates, documents, and how the Government / officer has wronged your client...",
+            "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "demand",
+            "label": "What do you demand the noticee to do?",
+            "type": "textarea",
+            "required": true,
+            "min_length": 20,
+            "max_length": 1000,
+            "placeholder": "e.g., release outstanding payment of Rs. X with interest...",
+            "inject_into": ["ai_prompt", "closing"]
+          }
+        ]
+      }
+    ]
   },
   "docType": "legal_notice_s80",
   "parentDocType": "legal_notice",

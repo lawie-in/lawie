@@ -882,7 +882,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
       </td>
     </tr>
     <tr>
-      <td>Respondent</td>
+      <td>Defendant (civil) / Opposite Party (criminal)</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
         State of jharkhand, through the concerned authority
@@ -2570,7 +2570,7 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
       </td>
     </tr>
     <tr>
-      <td>Opposite Party</td>
+      <td>Defendant (civil) / Opposite Party (criminal)</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
         State of jharkhand, through the concerned authority
@@ -3551,8 +3551,8 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Respondent",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "In view of the facts and circumstances mentioned above, it is most respectfully prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}",
@@ -3560,7 +3560,7 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 
@@ -3584,8 +3584,8 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Respondent",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "In view of the facts and circumstances mentioned above, it is most respectfully prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}",
@@ -3593,7 +3593,7 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 
@@ -3617,8 +3617,8 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Respondent",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "In view of the facts and circumstances mentioned above, it is most respectfully prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}",
@@ -3626,7 +3626,7 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 
@@ -3650,8 +3650,8 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Respondent",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "In view of the facts and circumstances mentioned above, it is most respectfully prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}",
@@ -3659,7 +3659,7 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 
@@ -3683,8 +3683,8 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Respondent",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "In view of the facts and circumstances mentioned above, it is most respectfully prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}",
@@ -3692,7 +3692,7 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 
@@ -3716,8 +3716,8 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Respondent",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "In view of the facts and circumstances mentioned above, it is most respectfully prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}",
@@ -3725,7 +3725,7 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 
@@ -5135,8 +5135,8 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Opposite Party",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
@@ -5144,7 +5144,7 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 
@@ -5168,8 +5168,8 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Opposite Party",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
@@ -5177,7 +5177,7 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 
@@ -5201,8 +5201,8 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Opposite Party",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
@@ -5210,7 +5210,7 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 
@@ -5234,8 +5234,8 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Opposite Party",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
@@ -5243,7 +5243,7 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 
@@ -5267,8 +5267,8 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Opposite Party",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
@@ -5276,7 +5276,7 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 
@@ -5300,8 +5300,8 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Opposite Party",
+  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
+  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
@@ -5309,7 +5309,7 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
 Verified at Ranchi on this _____ day of _________, 2026.
 

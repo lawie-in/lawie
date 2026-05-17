@@ -2,9 +2,180 @@
   "_meta": {
     "description": "Document-rules config for consumer_complaint — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",
-    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass",
-    "last_updated": "2026-05-10",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass + SCRUM-89 form_schema port from production override 2026-05-12",
+    "last_updated": "2026-05-12",
     "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Court & Parties",
+        "fields": [
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true,
+            "cascades_to": ["court_type", "court_name"]
+          },
+          {
+            "field_id": "court_type",
+            "label": "Court Type",
+            "type": "dropdown",
+            "source": "courts_db.court_types",
+            "filtered_by": ["state"],
+            "required": true,
+            "cascades_to": ["court_name"]
+          },
+          {
+            "field_id": "court_name",
+            "label": "Forum Name",
+            "type": "dropdown_search",
+            "source": "courts_db.courts",
+            "filtered_by": ["state", "court_type"],
+            "required": true,
+            "links_to_formatting": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Complainant Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["cause_title", "body", "verification"]
+          },
+          {
+            "field_id": "father_name",
+            "label": "Father's / Husband's Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "applicant_age",
+            "label": "Age",
+            "type": "number",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "address",
+            "label": "Complainant Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "respondent_name",
+            "label": "Opposite Party (full name & address)",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["cause_title", "body"]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Transaction Details",
+        "fields": [
+          {
+            "field_id": "deficiency_details",
+            "label": "Deficiency in Service / Defect in Goods (detailed narrative)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 100,
+            "max_length": 3000,
+            "placeholder": "Describe what you purchased/availed, when, the defect/deficiency, attempts to resolve, dates of correspondence...",
+            "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "consideration_amount",
+            "label": "Amount Paid (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["body", "prayer"]
+          },
+          {
+            "field_id": "purchase_date",
+            "label": "Date of Purchase / Service",
+            "type": "date",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "invoice_number",
+            "label": "Invoice / Receipt Number",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "payment_mode",
+            "label": "Mode of Payment",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "compensation_claimed",
+            "label": "Compensation Claimed (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["prayer"]
+          },
+          {
+            "field_id": "litigation_cost",
+            "label": "Litigation Cost Claimed (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["prayer"]
+          }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Jurisdiction & Limitation",
+        "fields": [
+          {
+            "field_id": "territorial_basis",
+            "label": "Territorial Jurisdiction (why this forum?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 30,
+            "max_length": 500,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "pecuniary_basis",
+            "label": "Pecuniary Jurisdiction (total claim within limit?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 20,
+            "max_length": 500,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "limitation_basis",
+            "label": "Limitation (complaint within 2 years?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 20,
+            "max_length": 500,
+            "inject_into": ["body"]
+          }
+        ]
+      }
+    ]
   },
   "docType": "consumer_complaint",
   "parentDocType": "complaint",

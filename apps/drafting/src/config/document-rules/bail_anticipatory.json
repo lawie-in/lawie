@@ -2,9 +2,207 @@
   "_meta": {
     "description": "Document-rules config for bail_anticipatory — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",
-    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass",
-    "last_updated": "2026-05-10",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass + SCRUM-89 form_schema port from production override 2026-05-12",
+    "last_updated": "2026-05-12",
     "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Case Details",
+        "fields": [
+          {
+            "field_id": "fir_number",
+            "label": "FIR Number",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., 215/2026",
+            "inject_into": ["cause_title", "body_para_1", "prayer"]
+          },
+          {
+            "field_id": "fir_date",
+            "label": "FIR Date",
+            "type": "date",
+            "required": true,
+            "inject_into": ["body_para_1", "prayer"]
+          },
+          {
+            "field_id": "police_station",
+            "label": "Police Station",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body_para_1", "prayer"]
+          },
+          {
+            "field_id": "sections_charged",
+            "label": "Sections Charged in FIR",
+            "type": "multi_select_search",
+            "source": "bns_mapping",
+            "required": true,
+            "auto_convert_old": true,
+            "inject_into": ["body_para_1", "ai_prompt"]
+          },
+          {
+            "field_id": "currently_in_custody",
+            "label": "Is the applicant currently in custody?",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "no",
+                "label": "No — apprehends arrest"
+              }
+            ],
+            "required": true,
+            "default": "no",
+            "inject_into": ["ai_prompt"]
+          }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Court & Parties",
+        "fields": [
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true,
+            "cascades_to": ["court_type", "court_name"]
+          },
+          {
+            "field_id": "court_type",
+            "label": "Court Type",
+            "type": "dropdown",
+            "source": "courts_db.court_types",
+            "filtered_by": ["state"],
+            "required": true,
+            "cascades_to": ["court_name"]
+          },
+          {
+            "field_id": "court_name",
+            "label": "Court Name",
+            "type": "dropdown_search",
+            "source": "courts_db.courts",
+            "filtered_by": ["state", "court_type"],
+            "required": true,
+            "links_to_formatting": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Applicant Full Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["cause_title", "verification", "prayer"]
+          },
+          {
+            "field_id": "father_name",
+            "label": "Father's / Husband's Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "applicant_age",
+            "label": "Age",
+            "type": "number",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "address",
+            "label": "Residential Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Facts & Grounds",
+        "fields": [
+          {
+            "field_id": "facts_narrative",
+            "label": "Brief Facts — why do you apprehend arrest? (3-5 lines)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 50,
+            "max_length": 1500,
+            "placeholder": "Describe the circumstances — what is the dispute, why do you believe arrest is imminent...",
+            "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "grounds_for_bail",
+            "label": "Grounds for Anticipatory Bail (select all applicable)",
+            "type": "checkbox_group",
+            "required": true,
+            "min_select": 2,
+            "options": [
+              {
+                "id": "false_implication",
+                "label": "Falsely implicated due to enmity / business dispute"
+              },
+              {
+                "id": "business_dispute_civil_in_nature",
+                "label": "Dispute is essentially civil in nature"
+              },
+              {
+                "id": "no_criminal_antecedent",
+                "label": "No prior criminal record"
+              },
+              {
+                "id": "cooperation_with_investigation",
+                "label": "Will cooperate with investigation"
+              },
+              {
+                "id": "deep_roots_in_community",
+                "label": "Deep roots in community — not a flight risk"
+              },
+              {
+                "id": "no_evidence_tampering",
+                "label": "No possibility of tampering with evidence"
+              },
+              {
+                "id": "abuse_of_process",
+                "label": "Criminal process being abused for civil recovery"
+              },
+              {
+                "id": "complainant_motive",
+                "label": "Complainant has ulterior motive"
+              },
+              {
+                "id": "medical_grounds",
+                "label": "Medical / health grounds"
+              },
+              {
+                "id": "professional_reputation",
+                "label": "Arrest would ruin professional reputation irreparably"
+              }
+            ],
+            "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "additional_context",
+            "label": "Anything else the court should know? (optional)",
+            "type": "textarea",
+            "required": false,
+            "max_length": 800,
+            "inject_into": ["ai_prompt"]
+          }
+        ]
+      }
+    ]
   },
   "docType": "bail_anticipatory",
   "parentDocType": "bail_application",

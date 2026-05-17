@@ -9,14 +9,22 @@
  * Razorpay one-off orders and don't need a pre-created plan.
  *
  * Per founder approval 2026-05-12 (mocks: Pricing Design folder).
+ *
+ * ---------------------------------------------------------------------------
+ * CFO SIGN-OFF — 2026-05-12 — Vikram
+ * Verified all 7 SKUs (4 subscription + 3 top-up) against 2026-05-10
+ * founder-approved credit-system decisions. All prices and credit grants
+ * match. See ./BILLING_SIGNOFF.md for full audit table.
+ * Cleared for SCRUM-73 production rollout.
+ * ---------------------------------------------------------------------------
  */
 
 export interface SubscriptionPlanSku {
   id: 'practice_monthly' | 'practice_yearly' | 'firm_monthly' | 'firm_yearly';
   tier: 'practice' | 'firm';
   cycle: 'monthly' | 'yearly';
-  priceInr: number;          // total rupees charged per period
-  creditsPerCycle: number;   // grants this many subscriptionCredits per renewal
+  priceInr: number; // total rupees charged per period
+  creditsPerCycle: number; // grants this many subscriptionCredits per renewal
   /** Reads from env so the founder can swap Razorpay plans without redeploy. */
   razorpayPlanIdEnvKey:
     | 'RAZORPAY_PLAN_PRACTICE_MONTHLY'
