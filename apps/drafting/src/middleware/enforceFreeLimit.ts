@@ -18,8 +18,8 @@ export async function enforceFreeLimit(
     return;
   }
 
-  // Pro users have no limit
-  if (payload.plan === 'pro') {
+  // Pro and Admin users have no limit
+  if (payload.plan === 'pro' || payload.role === 'Admin') {
     next();
     return;
   }
