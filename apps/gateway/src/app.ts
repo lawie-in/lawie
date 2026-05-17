@@ -212,6 +212,32 @@ app.use(
   }),
 );
 
+// Credits — pathRewrite prepends `/credits/` so drafting's router.get('/credits/balance', …) matches.
+app.use(
+  '/api/credits',
+  ...authChain,
+  planRateLimiter,
+  createProxyMiddleware({
+    target: env.DRAFTING_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/': '/credits/' },
+    on: {
+      proxyReq: (proxyReq, req) => {
+        const expressReq = req as express.Request;
+        proxyReq.setHeader(INTERNAL_HEADERS.SECRET, env.INTERNAL_SECRET);
+        if (expressReq.jwtPayload) {
+          proxyReq.setHeader(INTERNAL_HEADERS.USER_ID, expressReq.jwtPayload.sub);
+          proxyReq.setHeader(INTERNAL_HEADERS.USER_EMAIL, expressReq.jwtPayload.email);
+          proxyReq.setHeader(INTERNAL_HEADERS.USER_ROLE, expressReq.jwtPayload.role);
+          proxyReq.setHeader(INTERNAL_HEADERS.USER_PLAN, expressReq.jwtPayload.plan);
+          proxyReq.setHeader(INTERNAL_HEADERS.USER_NAME, expressReq.jwtPayload.name);
+        }
+      },
+      error: onProxyError,
+    },
+  }),
+);
+
 // ── Sentry error handler ────────────────────────────────────────────────────
 Sentry.setupExpressErrorHandler(app);
 

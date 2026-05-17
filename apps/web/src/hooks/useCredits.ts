@@ -40,7 +40,7 @@ export function useCredits(): {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await apiFetch('/api/drafting/credits/balance');
+      const res = await apiFetch('/api/credits/balance');
       if (res.ok) {
         const data = (await res.json()) as CreditBalance;
         setBalance(data);
