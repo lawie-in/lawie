@@ -2,6 +2,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 import { User } from '../models/User.model';
+import { grantSignupBonus } from '../services/credit-bonus.service';
 
 import { env } from './env';
 import logger from './logger';
@@ -49,6 +50,10 @@ export function initPassport(): void {
                 docCount: 0,
               });
               logger.info({ userId: user.id, email }, 'New user created via Google OAuth');
+              // Signup bonus — non-blocking, never fails OAuth callback
+              // Mirrors auth.service.ts:30; only granted on truly new account,
+              // not when linking Google to an existing email-registered user.
+              void grantSignupBonus(user._id.toString());
             }
           }
 
