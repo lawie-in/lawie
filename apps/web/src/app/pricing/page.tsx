@@ -83,10 +83,12 @@ export default function PricingPage() {
   const practiceMonthly = subs.find((p) => p.tier === 'practice' && p.cycle === 'monthly');
   const firmMonthly = subs.find((p) => p.tier === 'firm' && p.cycle === 'monthly');
   const practiceYearlySavings = practiceMonthly
-    ? practiceMonthly.priceInr * 12 - (subs.find((p) => p.tier === 'practice' && p.cycle === 'yearly')?.priceInr ?? 0)
+    ? practiceMonthly.priceInr * 12 -
+      (subs.find((p) => p.tier === 'practice' && p.cycle === 'yearly')?.priceInr ?? 0)
     : 0;
   const firmYearlySavings = firmMonthly
-    ? firmMonthly.priceInr * 12 - (subs.find((p) => p.tier === 'firm' && p.cycle === 'yearly')?.priceInr ?? 0)
+    ? firmMonthly.priceInr * 12 -
+      (subs.find((p) => p.tier === 'firm' && p.cycle === 'yearly')?.priceInr ?? 0)
     : 0;
 
   const handleSubscribe = async (plan: SubscriptionPlan) => {
@@ -194,8 +196,8 @@ export default function PricingPage() {
             <span className="italic text-red-600">No subscriptions you can&apos;t use.</span>
           </h1>
           <p className="mt-5 text-sm text-slate-600">
-            Simple notices cost 1 credit. Bail and complaint drafts cost 2. Buy by the month, top up any
-            time, or earn credits by rating drafts — your earned credits never expire.
+            Simple notices cost 1 credit. Bail and complaint drafts cost 2. Buy by the month, top up
+            any time, or earn credits by rating drafts — your earned credits never expire.
           </p>
 
           {/* Cycle toggle */}
@@ -240,11 +242,11 @@ export default function PricingPage() {
               </p>
             </header>
             <div className="my-5 rounded-xl bg-amber-50 px-3 py-2 text-sm">
-              <p className="font-semibold text-amber-900">35–45 credits</p>
+              <p className="font-semibold text-amber-900">30–40 credits</p>
               <p className="text-[11px] text-amber-700">on signup + earned</p>
             </div>
             <ul className="flex-1 space-y-2.5 text-xs text-slate-600">
-              <FeatureCheck>Up to 45 credits via signup, daily login &amp; ratings</FeatureCheck>
+              <FeatureCheck>Up to 40 credits via signup, daily login &amp; ratings</FeatureCheck>
               <FeatureCheck>All 6 templates · all 13 courts</FeatureCheck>
               <FeatureCheck>Section finder · AI preflight</FeatureCheck>
               <FeatureCheck>Single advocate</FeatureCheck>
@@ -302,9 +304,7 @@ export default function PricingPage() {
               disabled={!practice || loadingPlan === practice?.id}
               className="mt-5 flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-amber-300 disabled:opacity-50"
             >
-              {loadingPlan === practice?.id && (
-                <Loader2 size={13} className="animate-spin" />
-              )}
+              {loadingPlan === practice?.id && <Loader2 size={13} className="animate-spin" />}
               Upgrade to Practice
             </button>
           </article>
@@ -338,7 +338,9 @@ export default function PricingPage() {
               </p>
             </div>
             <ul className="flex-1 space-y-2.5 text-xs text-slate-600">
-              <FeatureCheck>{firm?.creditsPerCycle ?? 200} credits every month · best value</FeatureCheck>
+              <FeatureCheck>
+                {firm?.creditsPerCycle ?? 200} credits every month · best value
+              </FeatureCheck>
               <FeatureCheck>₹7.50 per credit · best rate</FeatureCheck>
               <FeatureCheck>Up to 5 seats</FeatureCheck>
               <FeatureCheck>Shared template library</FeatureCheck>
@@ -363,12 +365,12 @@ export default function PricingPage() {
               <strong>How credits work</strong>
             </span>
             <span>
-              <span className="font-mono text-blue-600">1 credit</span> · legal notice (§80, §138), rent
-              agreement
+              <span className="font-mono text-blue-600">1 credit</span> · legal notice (§80, §138),
+              rent agreement
             </span>
             <span>
-              <span className="font-mono text-blue-600">2 credits</span> · bail (regular / anticipatory),
-              consumer complaint
+              <span className="font-mono text-blue-600">2 credits</span> · bail (regular /
+              anticipatory), consumer complaint
             </span>
           </div>
         </div>
@@ -413,10 +415,7 @@ export default function PricingPage() {
                     </span>
                   )}
                   <div className="flex items-center gap-3">
-                    <Coins
-                      size={18}
-                      className={isDark ? 'text-amber-300' : 'text-amber-500'}
-                    />
+                    <Coins size={18} className={isDark ? 'text-amber-300' : 'text-amber-500'} />
                     <div>
                       <p className={`text-base font-bold ${isDark ? '' : 'text-slate-900'}`}>
                         {sku.credits} credits
@@ -427,7 +426,9 @@ export default function PricingPage() {
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className={`font-mono text-2xl font-bold ${isDark ? '' : 'text-slate-900'}`}>
+                    <span
+                      className={`font-mono text-2xl font-bold ${isDark ? '' : 'text-slate-900'}`}
+                    >
                       ₹{sku.priceInr}
                     </span>
                     <button
@@ -439,9 +440,7 @@ export default function PricingPage() {
                           : 'bg-slate-900 text-white hover:bg-slate-700'
                       } disabled:opacity-50`}
                     >
-                      {loadingPlan === sku.id && (
-                        <Loader2 size={12} className="animate-spin" />
-                      )}
+                      {loadingPlan === sku.id && <Loader2 size={12} className="animate-spin" />}
                       Top up
                     </button>
                   </div>
