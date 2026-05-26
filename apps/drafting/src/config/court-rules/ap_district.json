@@ -46,14 +46,10 @@
   "prayer_language": {
     "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may be pleased to:",
     "closing": "And for this act of kindness, the petitioner shall, as in duty bound, ever pray.",
-    "tone": "respectful"
+    "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly affirm and declare that the contents of the above petition from paragraph ___ to paragraph ___ are true to my personal knowledge and the contents of paragraphs ___ to ___ are believed to be true on the basis of information received and legal advice tendered, which I believe to be true. Nothing material has been concealed therefrom.\n\nSolemnly affirmed at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": [
-    "en",
-    "te",
-    "hi"
-  ],
+  "supported_languages": ["en", "te", "hi"],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",

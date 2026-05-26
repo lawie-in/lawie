@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "description": "Court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 hardening 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "high_court",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "supreme_court",
+  "courtType": "high_court",
+  "designation": "IN THE SUPREME COURT OF INDIA",
+  "jurisdictionNote": "Supreme Court of India. Apex court with original, appellate and advisory jurisdiction under Articles 131-143 of the Constitution. Hears Special Leave Petitions under Article 136, bail in exceptional circumstances, and matters of national importance.",
+  "eFilingMandatory": true,
+  "cause_title_format": "{courtDesignation}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER(S)\n\nVERSUS\n\n{respondent} ... RESPONDENT(S)",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Applicant",
+    "opposite_party": "Opposite Party",
+    "appellant": "Appellant",
+    "state": "Union of India through the Attorney General of India"
+  },
+  "case_nomenclature": {
+    "anticipatory_bail": "SLP (Crl.) No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "special_leave_petition_civil": "SLP (C) No. _____ of {year}",
+    "special_leave_petition_criminal": "SLP (Crl.) No. _____ of {year}",
+    "writ_petition_civil": "Writ Petition (Civil) No. _____ of {year}",
+    "writ_petition_criminal": "Writ Petition (Criminal) No. _____ of {year}",
+    "transfer_petition": "Transfer Petition (Civil) No. _____ of {year}",
+    "criminal_appeal": "Criminal Appeal No. _____ of {year}",
+    "civil_appeal": "Civil Appeal No. _____ of {year}",
+    "review_petition": "Review Petition (Civil) No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most humbly prayed that this Hon'ble Court may graciously be pleased to:",
+    "closing": "And for this act of kindness, the petitioner(s) shall ever pray.",
+    "tone": "humble"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": ["en"],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "IN THE SUPREME COURT OF INDIA\n{benchDesignation}"
+  },
+  "localRules": [
+    "All petitions must be filed through an Advocate-on-Record (AOR) registered with the Supreme Court of India.",
+    "Supreme Court Rules, 2013 govern procedure and filings.",
+    "E-filing is mandatory through the Supreme Court E-Filing portal.",
+    "Certified copies of all impugned orders must be annexed.",
+    "Index of documents and list of dates are mandatory.",
+    "All copies to be legible and paginated."
+  ],
+  "e_filing_mandatory": true
+}
