@@ -269,6 +269,75 @@ describe('subscription.service', () => {
       expect(updatedSub!.status).toBe('active');
     });
 
+    it('grants topup credits on order.paid with valid SKU in notes', async () => {
+      const user = await User.create({ email: 'topup-wh@example.com', topupCredits: 0 });
+
+      await handleWebhookEvent('order.paid', {
+        order: {
+          entity: {
+            id: 'order_topup_test',
+            notes: { userId: user._id.toString(), skuId: 'topup_60' },
+          },
+        },
+        payment: { entity: { id: 'pay_topup_test' } },
+      });
+
+      const updated = await User.findById(user._id);
+      expect(updated!.topupCredits).toBe(60);
+    });
+
+    it('skips order.paid with unknown SKU', async () => {
+      await handleWebhookEvent('order.paid', {
+        order: {
+          entity: {
+            id: 'order_bad',
+            notes: { userId: userId.toString(), skuId: 'topup_unknown' },
+          },
+        },
+      });
+      // no crash, no credit change
+      const user = await User.findById(userId);
+      expect(user!.topupCredits).toBe(0);
+    });
+
+    it('grants subscription credits when planId is in notes', async () => {
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_with_notes',
+        status: 'created',
+      });
+
+      await handleWebhookEvent('subscription.charged', {
+        subscription: {
+          entity: {
+            id: 'sub_with_notes',
+            charge_at: Math.floor(Date.now() / 1000) + 30 * 86400,
+            notes: { planId: 'firm_monthly' },
+          },
+        },
+      });
+
+      const updated = await User.findById(userId);
+      expect(updated!.planTier).toBe('firm');
+      expect(updated!.subscriptionCredits).toBe(200);
+    });
+
+    it('handles unrecognized event type gracefully', async () => {
+      await Subscription.create({
+        userId,
+        razorpaySubscriptionId: 'sub_unknown_event',
+        status: 'active',
+      });
+
+      // Should not throw
+      await handleWebhookEvent('some.unknown.event', {
+        subscription: { entity: { id: 'sub_unknown_event' } },
+      });
+
+      const user = await User.findById(userId);
+      expect(user!.plan).toBe('free'); // unchanged
+    });
+
     it('returns early for unknown subscription ID', async () => {
       await handleWebhookEvent('subscription.activated', makePayload('sub_unknown'));
 

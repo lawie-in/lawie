@@ -51,6 +51,85 @@ describe('Billing Routes', () => {
     });
   });
 
+  // ─── GET /plans ──────────────────────────────────────────────────────
+
+  describe('GET /plans', () => {
+    it('returns subscription plans and topup SKUs', async () => {
+      const res = await request(app).get('/plans');
+      expect(res.status).toBe(200);
+      expect(res.body.subscriptions).toHaveLength(4);
+      expect(res.body.topups).toHaveLength(3);
+      expect(res.body.subscriptions[0]).toHaveProperty('id');
+      expect(res.body.subscriptions[0]).toHaveProperty('priceInr');
+      expect(res.body.topups[0]).toHaveProperty('credits');
+    });
+  });
+
+  // ─── GET /plan/:id ─────────────────────────────────────────────────
+
+  describe('GET /plan/:id', () => {
+    it('returns plan details for valid id', async () => {
+      const res = await request(app).get('/plan/practice_monthly');
+      expect(res.status).toBe(200);
+      expect(res.body.id).toBe('practice_monthly');
+      expect(res.body.tier).toBe('practice');
+      expect(res.body.priceInr).toBe(799);
+    });
+
+    it('returns 404 for unknown plan id', async () => {
+      const res = await request(app).get('/plan/nonexistent');
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('Plan not found');
+    });
+  });
+
+  // ─── POST /topup/order ─────────────────────────────────────────────
+
+  describe('POST /topup/order', () => {
+    it('returns 401 without auth', async () => {
+      const res = await request(app).post('/topup/order').send({ skuId: 'topup_20' });
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 400 for unknown SKU', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const headers = internalHeaders({ sub: userId, email: 'topup@test.com', name: 'Test' });
+      const res = await request(app).post('/topup/order').set(headers).send({ skuId: 'topup_999' });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Unknown top-up SKU');
+    });
+
+    it('creates a razorpay order for valid SKU', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const headers = internalHeaders({ sub: userId, email: 'topup@test.com', name: 'Test' });
+
+      // Mock razorpay.orders.create
+      (razorpay as any).orders = {
+        create: jest.fn().mockResolvedValue({ id: 'order_test123' }),
+      };
+
+      const res = await request(app).post('/topup/order').set(headers).send({ skuId: 'topup_60' });
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('success');
+      expect(res.body.data.orderId).toBe('order_test123');
+      expect(res.body.data.credits).toBe(60);
+      expect(res.body.data.amountInr).toBe(499);
+    });
+
+    it('returns 500 when razorpay order creation fails', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const headers = internalHeaders({ sub: userId, email: 'topup@test.com', name: 'Test' });
+
+      (razorpay as any).orders = {
+        create: jest.fn().mockRejectedValue(new Error('Razorpay down')),
+      };
+
+      const res = await request(app).post('/topup/order').set(headers).send({ skuId: 'topup_20' });
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('Failed to create top-up order');
+    });
+  });
+
   // ─── POST /subscribe ─────────────────────────────────────────────────
 
   describe('POST /subscribe', () => {
