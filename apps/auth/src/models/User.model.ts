@@ -26,18 +26,19 @@ export interface IUser extends Document {
   isActive: boolean;
   lastLoginAt?: Date;
 
-  referredVia?: Types.ObjectId;   // ReferralCode._id used at signup (SCRUM-71)
-  freeTierBonusGrant: number;     // bonus drafts granted via referral (default 0)
+  referredVia?: Types.ObjectId; // ReferralCode._id used at signup (SCRUM-71)
+  freeTierBonusGrant: number; // bonus drafts granted via referral (default 0)
 
   // ── SCRUM-73 / SCRUM-59 — credit system (founder-authorised 2026-05-12) ──
   // Three credit buckets, consumed in priority order: topup → earned → subscription.
-  subscriptionCredits: number;    // Granted on plan renewal. Lapses on monthly/yearly cycle.
-  earnedCredits: number;          // From daily login + rating bonuses. Permanent.
-  topupCredits: number;           // One-time top-up purchases. Permanent.
+  subscriptionCredits: number; // Granted on plan renewal. Lapses on monthly/yearly cycle.
+  earnedCredits: number; // From daily login + rating bonuses. Permanent.
+  topupCredits: number; // One-time top-up purchases. Permanent.
   planTier: 'free' | 'practice' | 'firm';
   billingCycle: 'none' | 'monthly' | 'yearly';
   planRenewsAt?: Date;
-  lastLoginBonusAt?: Date;        // Used by daily-login-bonus dedupe
+  lastLoginBonusAt?: Date; // Used by daily-login-bonus dedupe
+  signupBonusGrantedAt?: Date; // Idempotency guard for signup bonus (SCRUM-100)
 
   passwordResetToken?: string;
   passwordResetExpires?: Date;
@@ -160,6 +161,7 @@ const UserSchema = new Schema<IUser>(
     },
     planRenewsAt: { type: Date, default: null },
     lastLoginBonusAt: { type: Date, default: null },
+    signupBonusGrantedAt: { type: Date, default: null },
 
     passwordResetToken: {
       type: String,

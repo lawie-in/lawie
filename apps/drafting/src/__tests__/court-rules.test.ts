@@ -117,7 +117,7 @@ describe('Court Rules — Data Integrity (SCRUM-50 CLO review)', () => {
         readFileSync(join(COURT_RULES_DIR, filename), 'utf-8'),
       );
       // Civil-only courts don't need bail nomenclature
-      const civilOnlyTypes = ['district_court', 'consumer_commission'];
+      const civilOnlyTypes = ['district_court', 'consumer_commission', 'tribunal', 'family_court'];
       if (rule.courtId === 'district_court_generic') {
         expect(rule.case_nomenclature.civil_suit).toBeDefined();
       } else if (rule.courtType === 'consumer_commission') {
@@ -155,6 +155,12 @@ describe('Court Rules — Data Integrity (SCRUM-50 CLO review)', () => {
       city: 'Patna',
       complainant: 'Ravi Kumar',
       opposite_party: 'XYZ Pvt. Ltd.',
+      applicant: 'Ram Kumar',
+      defendant: 'State of Bihar',
+      appellant: 'Ram Kumar',
+      bench: 'BENCH A',
+      assessment_year: '2025-26',
+      company_name: 'XYZ Pvt. Ltd.',
     };
 
     it.each(ruleFiles)('%s cause_title_format merges without unfilled placeholders', (filename) => {

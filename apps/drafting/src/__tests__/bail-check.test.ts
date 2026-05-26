@@ -120,7 +120,7 @@ describe('Court jurisdiction', () => {
   });
 
   it('recommends Sessions Court for 3-7 year offences', async () => {
-    const result = await checkBailEligibility(['115(2)']);
+    const result = await checkBailEligibility(['74']);
     expect(result.summary.courtLevel).toContain('Sessions');
   });
 

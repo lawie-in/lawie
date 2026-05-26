@@ -35,7 +35,7 @@
   "prayer_language": {
     "opening": "It is most respectfully prayed that this Hon'ble Family Court may be pleased to",
     "closing": "And for this act of kindness, the petitioner shall ever pray.",
-    "tone": "gentle"
+    "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, the Petitioner herein above named, do hereby verify that the contents of paragraphs ____ to ____ of the above petition are true to my personal knowledge and the contents of paragraphs ____ to ____ are true to my information and belief, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nPETITIONER",
   "supported_languages": ["en", "hi"],

@@ -18,7 +18,9 @@ import { User } from '../models/User.model';
 export const DAILY_LOGIN_BONUS = 2;
 export const REFERRAL_SIGNUP_BONUS = 25;
 // Free credits given to every new user on signup — change this to adjust the grant.
-export const SIGNUP_BONUS_CREDITS = 10;
+// Flipped 10 → 5 per founder direction 2026-05-26 (SCRUM-100). Second 5 unlocks
+// after user submits a review (SCRUM-101).
+export const SIGNUP_BONUS_CREDITS = 5;
 
 /**
  * Grant the daily login bonus if the user hasn't received it today.
@@ -92,18 +94,26 @@ export async function grantReferralSignupBonus(
 
 /**
  * Grant SIGNUP_BONUS_CREDITS to a newly-registered user.
- * Writes to User.earnedCredits (billing display) + signals drafting's
- * BonusCredit collection so enforceFreeLimit can consume them.
+ * Idempotent — uses signupBonusGrantedAt as an atomic guard so retries,
+ * double-taps, or supervisor restarts never credit the user twice.
  * Non-fatal — never throws.
  */
 export async function grantSignupBonus(userId: string): Promise<void> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return;
 
-  const updated = await User.findByIdAndUpdate(
-    new mongoose.Types.ObjectId(userId),
-    { $inc: { earnedCredits: SIGNUP_BONUS_CREDITS } },
+  const updated = await User.findOneAndUpdate(
+    {
+      _id: new mongoose.Types.ObjectId(userId),
+      $or: [{ signupBonusGrantedAt: { $exists: false } }, { signupBonusGrantedAt: null }],
+    },
+    {
+      $inc: { earnedCredits: SIGNUP_BONUS_CREDITS },
+      $set: { signupBonusGrantedAt: new Date() },
+    },
     { new: true },
   ).lean();
+
+  // null → already granted (or user not found). Skip ledger + drafting signal.
   if (!updated) return;
 
   await writeLedgerRow({

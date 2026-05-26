@@ -14,10 +14,54 @@ env:
   NODE_VERSION: '20'
 
 jobs:
+  # ── Detect which services changed ─────────────────────────────────────────
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      gateway: ${{ steps.filter.outputs.gateway }}
+      auth: ${{ steps.filter.outputs.auth }}
+      drafting: ${{ steps.filter.outputs.drafting }}
+      billing: ${{ steps.filter.outputs.billing }}
+      web: ${{ steps.filter.outputs.web }}
+      shared: ${{ steps.filter.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            gateway:
+              - 'apps/gateway/**'
+            auth:
+              - 'apps/auth/**'
+            drafting:
+              - 'apps/drafting/**'
+            billing:
+              - 'apps/billing/**'
+            web:
+              - 'apps/web/**'
+            shared:
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'yarn.lock'
+              - 'tsconfig*.json'
+              - 'jest.config.base.js'
+              - '.github/workflows/ci.yml'
+
   # ── Lint ────────────────────────────────────────────────────────────────────
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    needs: changes
+    # Run if ANY service changed, or shared infra changed
+    if: >-
+      needs.changes.outputs.gateway == 'true' ||
+      needs.changes.outputs.auth == 'true' ||
+      needs.changes.outputs.drafting == 'true' ||
+      needs.changes.outputs.billing == 'true' ||
+      needs.changes.outputs.web == 'true' ||
+      needs.changes.outputs.shared == 'true'
     steps:
       - uses: actions/checkout@v4
 
@@ -34,25 +78,31 @@ jobs:
         run: yarn workspace @lawie/shared build
 
       - name: Lint Gateway
+        if: needs.changes.outputs.gateway == 'true' || needs.changes.outputs.shared == 'true'
         run: yarn workspace @lawie/gateway lint
 
       - name: Lint Auth
+        if: needs.changes.outputs.auth == 'true' || needs.changes.outputs.shared == 'true'
         run: yarn workspace @lawie/auth lint
 
       - name: Lint Drafting
+        if: needs.changes.outputs.drafting == 'true' || needs.changes.outputs.shared == 'true'
         run: yarn workspace @lawie/drafting lint
 
       - name: Lint Billing
+        if: needs.changes.outputs.billing == 'true' || needs.changes.outputs.shared == 'true'
         run: yarn workspace @lawie/billing lint
 
       - name: Lint Web
+        if: needs.changes.outputs.web == 'true' || needs.changes.outputs.shared == 'true'
         run: yarn workspace @lawie/web lint
 
   # ── Test Gateway ────────────────────────────────────────────────────────────
   test-gateway:
     name: Test — Gateway
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [changes, lint]
+    if: needs.changes.outputs.gateway == 'true' || needs.changes.outputs.shared == 'true'
 
     env:
       NODE_ENV: test
@@ -86,7 +136,8 @@ jobs:
   test-auth:
     name: Test — Auth
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [changes, lint]
+    if: needs.changes.outputs.auth == 'true' || needs.changes.outputs.shared == 'true'
 
     env:
       NODE_ENV: test
@@ -120,7 +171,8 @@ jobs:
   test-drafting:
     name: Test — Drafting
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [changes, lint]
+    if: needs.changes.outputs.drafting == 'true' || needs.changes.outputs.shared == 'true'
 
     env:
       NODE_ENV: test
@@ -154,7 +206,8 @@ jobs:
   test-billing:
     name: Test — Billing
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [changes, lint]
+    if: needs.changes.outputs.billing == 'true' || needs.changes.outputs.shared == 'true'
 
     env:
       NODE_ENV: test
@@ -188,8 +241,13 @@ jobs:
   build:
     name: Build Docker Images
     runs-on: ubuntu-latest
-    needs: [test-gateway, test-auth, test-drafting, test-billing]
-    if: github.event_name == 'push'
+    needs: [changes, test-gateway, test-auth, test-drafting, test-billing]
+    # Always run build on push, but only if at least one test job wasn't skipped
+    # Using always() so skipped test jobs don't block the build
+    if: >-
+      github.event_name == 'push' && always() &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
 
     steps:
       - uses: actions/checkout@v4
@@ -207,6 +265,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Build Gateway image
+        if: needs.changes.outputs.gateway == 'true' || needs.changes.outputs.shared == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -220,6 +279,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build Auth image
+        if: needs.changes.outputs.auth == 'true' || needs.changes.outputs.shared == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -233,6 +293,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build Drafting image
+        if: needs.changes.outputs.drafting == 'true' || needs.changes.outputs.shared == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -246,6 +307,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build Billing image
+        if: needs.changes.outputs.billing == 'true' || needs.changes.outputs.shared == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -259,6 +321,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build Web image
+        if: needs.changes.outputs.web == 'true' || needs.changes.outputs.shared == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
