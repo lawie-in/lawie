@@ -115,6 +115,67 @@ Blockers: [any dependency — or None]
 ### DIARY ENTRIES
 
 ---
+Date: 2026-05-26
+Session: Opus
+Task: SCRUM-100 — Signup-bonus idempotency guard + constant flip 10→5 + surface-copy audit
+Status: Done
+Code changed:
+  Cherry-picked:
+  - 744c0b8 (from claude/hungry-einstein-87d9a7) — grantSignupBonus added to Google OAuth
+    path (passport.ts). Was missing since c8347a5 only covered email/password signup.
+  Modified files:
+  - apps/auth/src/services/credit-bonus.service.ts — SIGNUP_BONUS_CREDITS flipped 10 → 5.
+    grantSignupBonus() now uses atomic findOneAndUpdate with signupBonusGrantedAt guard
+    ($or: [$exists: false, null]) so retries/double-taps never double-credit. Matches
+    daily-login-bonus idempotency pattern.
+  - apps/auth/src/models/User.model.ts — added signupBonusGrantedAt: Date (interface + schema,
+    default null).
+  - apps/web/src/app/pricing/page.tsx — Free tier card: "35–45 credits" → "30–40 credits",
+    "Up to 45 credits" → "Up to 40 credits" (math: 5 signup + 30 login + 5 rating = 40).
+  New files:
+  - apps/auth/src/__tests__/signup-bonus.test.ts — 5 tests: constant === 5, first call grants 5,
+    second call is no-op (earnedCredits still 5, exactly 1 ledger row), invalid userId, non-existent
+    userId.
+  Surface-copy audit (stakeholder flagged 3 surfaces):
+  - apps/email-worker/src/templates/auth/welcome.tsx — CLEAN (stub, no number mentioned)
+  - apps/web/src/app/pricing/page.tsx — FIXED (see above)
+  - apps/web/src/app/page.tsx + Hero.tsx — CLEAN (no credit/draft numbers in landing hero)
+Test results: auth 74/74 (7 suites), tsc clean (auth + web)
+Next step: SCRUM-99 (Gmail SMTP transport swap) — next in pickup queue. SCRUM-101
+  (review-gated second 5) is next-sprint, not today.
+Blockers: None
+---
+
+---
+Date: 2026-05-27
+Session: Opus
+Task: PR #6 test failures — drafting court-rule fixes + org migration notes
+Status: Done
+Code changed:
+  New files:
+  - apps/drafting/src/config/court-rules/high_court_generic.json — generic HC rules for ~20 HCs
+  - apps/drafting/src/config/court-rules/supreme_court.json — SC rules
+  - apps/drafting/src/config/court-rules/ncdrc.json — NCDRC rules
+  Modified files:
+  - 30 *_district.json + family_court.json — prayer_language.tone fixed:
+    "respectful"/"gentle" → "humble" (schema enum: humble|assertive|neutral)
+  - apps/drafting/src/__tests__/court-rules.test.ts — civilOnlyTypes expanded to
+    include 'tribunal' and 'family_court'; MOCK_DATA added applicant, defendant,
+    appellant, bench, assessment_year, company_name
+  - apps/drafting/src/__tests__/bail-check.test.ts — section '115(2)' → '74'
+    (BNS 74 has max_years=5 → Sessions Court jurisdiction)
+Notes:
+  - Org migration: remote updated from abhinava32/lawie to lawie-in/lawie
+  - Billing tests (32/32) were passing — failure was Codecov upload step needing
+    CODECOV_TOKEN in GitHub secrets after org migration (now configured)
+  - All 64 drafting test failures were pre-existing from Ajay's court-rule JSON
+    expansion, not related to SCRUM-100
+Next step: Push feature/scrum-100-signup-bonus-idempotency to lawie-in/lawie.
+  SCRUM-99 (Gmail SMTP transport swap) next in pickup queue.
+Blockers: None
+---
+
+---
 Date: 2026-05-10
 Session: Sonnet
 Task: SCRUM-69 — Pre-generation verification layer (POST /preflight, pure rules + Haiku LLM)
