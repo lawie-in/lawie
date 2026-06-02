@@ -1,0 +1,44 @@
+module.exports = {
+  apps: [
+    {
+      name: 'lawie-gateway',
+      script: 'dist/index.js',
+      cwd: '/home/ubuntu/lawie/apps/gateway',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+    },
+    {
+      name: 'lawie-auth',
+      script: 'dist/index.js',
+      cwd: '/home/ubuntu/lawie/apps/auth',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+    },
+    {
+      name: 'lawie-drafting',
+      script: 'dist/index.js',
+      cwd: '/home/ubuntu/lawie/apps/drafting',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+    },
+    {
+      name: 'lawie-billing',
+      script: 'dist/index.js',
+      cwd: '/home/ubuntu/lawie/apps/billing',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+    },
+    {
+      name: 'lawie-email-worker',
+      script: 'dist/index.js',
+      cwd: '/home/ubuntu/lawie/apps/email-worker',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+    },
+  ],
+};

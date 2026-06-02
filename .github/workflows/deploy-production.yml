@@ -1,153 +1,21 @@
+# Automated deployment is disabled.
+# Deployment is manual — see docs/DEPLOY.md for steps.
+#
+# To re-enable: restore the 'on: push: branches: [main]' trigger
+# and the build/push/deploy steps.
+
 name: Deploy — Production
 
 on:
-  push:
-    branches: [main]
-  # Manual trigger — use this to rotate secrets without a code push
   workflow_dispatch:
     inputs:
       reason:
-        description: 'Reason for manual deploy (e.g. secret rotation)'
+        description: 'Reason (this workflow is a placeholder — deploy manually)'
         required: false
-        default: 'Manual deploy'
 
 jobs:
-  deploy-production:
-    name: Build, push, deploy to EC2 (Production)
+  noop:
+    name: No-op (manual deploy only)
     runs-on: ubuntu-latest
-    environment: production # Requires manual approval in GitHub Environments settings
-
-    env:
-      NODE_ENV: production
-
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # ── Build & push all service images ────────────────────────────────────
-
-      - name: Build and push Gateway image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/gateway/Dockerfile
-          target: production
-          push: true
-          tags: |
-            ${{ secrets.ECR_REGISTRY }}/lawie-prod-gateway:${{ github.sha }}
-            ${{ secrets.ECR_REGISTRY }}/lawie-prod-gateway:stable
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Auth image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/auth/Dockerfile
-          target: production
-          push: true
-          tags: |
-            ${{ secrets.ECR_REGISTRY }}/lawie-prod-auth:${{ github.sha }}
-            ${{ secrets.ECR_REGISTRY }}/lawie-prod-auth:stable
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Drafting image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/drafting/Dockerfile
-          target: production
-          push: true
-          tags: |
-            ${{ secrets.ECR_REGISTRY }}/lawie-prod-drafting:${{ github.sha }}
-            ${{ secrets.ECR_REGISTRY }}/lawie-prod-drafting:stable
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Billing image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/billing/Dockerfile
-          target: production
-          push: true
-          tags: |
-            ${{ secrets.ECR_REGISTRY }}/lawie-prod-billing:${{ github.sha }}
-            ${{ secrets.ECR_REGISTRY }}/lawie-prod-billing:stable
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # ── Deploy to EC2 via SSH ───────────────────────────────────────────────
-      # Pulls secrets from AWS Secrets Manager on EC2, writes .env.production,
-      # deploys containers, then health-checks all 4 services.
-      # Secret rotation = update AWS Console → re-run this workflow. No SSH needed.
-
-      - name: Deploy to EC2
-        env:
-          EC2_HOST: ${{ secrets.EC2_PROD_HOST }}
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          echo "$EC2_SSH_KEY" > /tmp/ec2_key.pem
-          chmod 600 /tmp/ec2_key.pem
-          ssh -o StrictHostKeyChecking=no -i /tmp/ec2_key.pem ubuntu@$EC2_HOST \
-            "AWS_REGION=$AWS_REGION ECR_REGISTRY=$ECR_REGISTRY bash -s" << 'ENDSSH'
-            set -e
-            cd /home/ubuntu/lawie
-
-            # Pull secrets from AWS Secrets Manager (JSON) → write .env.production
-            aws secretsmanager get-secret-value \
-              --secret-id lawie/production \
-              --region "$AWS_REGION" \
-              --query SecretString \
-              --output text \
-              | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' > .env.production
-            chmod 600 .env.production
-
-            # Pull latest images and restart containers
-            aws ecr get-login-password --region "$AWS_REGION" \
-              | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
-            docker image prune -f
-          ENDSSH
-          rm /tmp/ec2_key.pem
-
-      # ── Health checks — all 4 services must respond or pipeline goes red ──
-
-      - name: Health check — all services
-        env:
-          EC2_HOST: ${{ secrets.EC2_PROD_HOST }}
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-        run: |
-          echo "$EC2_SSH_KEY" > /tmp/ec2_key.pem
-          chmod 600 /tmp/ec2_key.pem
-          sleep 15
-          ssh -o StrictHostKeyChecking=no -i /tmp/ec2_key.pem ubuntu@$EC2_HOST << 'ENDSSH'
-            set -e
-            echo "Checking Gateway  (3000)..." && curl -sf http://localhost:3000/health
-            echo "Checking Auth     (3001)..." && curl -sf http://localhost:3001/health
-            echo "Checking Drafting (3002)..." && curl -sf http://localhost:3002/health
-            echo "Checking Billing  (3003)..." && curl -sf http://localhost:3003/health
-            echo "All 4 services healthy ✓"
-          ENDSSH
-          rm /tmp/ec2_key.pem
-
-      - name: Notify on failure
-        if: failure()
-        run: echo "Production deployment FAILED — SHA ${{ github.sha }} — ${{ github.event.inputs.reason || 'push trigger' }}"
+      - run: echo "Automated deployment is disabled. Deploy manually."
