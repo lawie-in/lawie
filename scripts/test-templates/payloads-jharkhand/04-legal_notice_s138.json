@@ -1,0 +1,25 @@
+{
+  "template_id": "legal_notice_s138",
+  "form_data": {
+    "state": "jharkhand",
+    "applicant_name": "Mr. Sanjay Prasad",
+    "applicant_address": "45, Circular Road, Ranchi - 834001",
+    "respondent_name": "Mr. Dilip Kumar Singh",
+    "respondent_address": "House No. 102, Bariatu, Ranchi - 834009",
+    "respondent_type": "individual",
+    "language": "en",
+    "advocate_name": "Adv. Neelam Kumari",
+    "advocate_address": "Chamber 21, District Court Compound, Ranchi - 834001",
+    "advocate_enrollment": "JHC/1893/2019",
+    "cheque_number": "672145",
+    "cheque_date": "2026-04-10",
+    "cheque_amount": 225000,
+    "amount_in_words": "Two Lakh Twenty Five Thousand only",
+    "drawee_bank": "State Bank of India",
+    "drawee_branch": "Main Branch, Ranchi",
+    "presentation_date": "2026-04-15",
+    "dishonour_date": "2026-04-17",
+    "dishonour_reason": "Account Closed",
+    "underlying_liability": "Repayment of balance amount of Rs. 2,25,000/- towards sale consideration of a used Mahindra Thar vehicle (JH-01-AB-1234) sold by my client to the noticee on 01.02.2026, as per the sale agreement dated 01.02.2026"
+  }
+}

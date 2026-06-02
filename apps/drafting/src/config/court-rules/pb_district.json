@@ -1,0 +1,72 @@
+{
+  "_meta": {
+    "description": "Punjab district & sessions court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — National Batch 6a (PB+HR+HP) 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "applies_to_state": "Punjab",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "pb_district",
+  "courtType": "district_court",
+  "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
+  "jurisdictionNote": "District-level criminal and civil courts in Punjab, governed by the Punjab Courts Act, 1918 read with the Punjab and Haryana High Court Rules and Orders (Volumes I-VI). Sessions courts try offences punishable with imprisonment exceeding 7 years. Punjab presently comprises 23 revenue districts and the subordinate judiciary is supervised by the Punjab and Haryana High Court at Chandigarh, which is the common High Court for the States of Punjab and Haryana and the Union Territory of Chandigarh. Punjabi (Gurmukhi) is the official language of the State subordinate courts under the Punjab Official Language Act, 1967 read with the Punjab State Language Act, 2008.",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Applicant",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant",
+    "complainant": "Complainant",
+    "accused": "Accused",
+    "state": "State of Punjab through the Principal Secretary, Home Department, Government of Punjab, Chandigarh"
+  },
+  "case_nomenclature": {
+    "regular_bail": "Crl. Misc. (Bail) No. _____ of {year}",
+    "anticipatory_bail": "Crl. Misc. (A.B.) No. _____ of {year}",
+    "sessions_case": "Sessions Case No. _____ of {year}",
+    "calendar_case": "Criminal Case No. _____ of {year}",
+    "civil_suit": "Civil Suit No. _____ of {year}",
+    "execution": "Execution Petition No. _____ of {year}",
+    "misc_criminal": "Crl. Misc. No. _____ of {year}",
+    "misc_civil": "Civil Misc. Application No. _____ of {year}",
+    "special_case": "Spl. Sessions Case No. _____ of {year}",
+    "atrocity_case": "Spl. Sessions (Atrocities) Case No. _____ of {year}",
+    "ndps_case": "Spl. Sessions (NDPS) Case No. _____ of {year}",
+    "pocso_case": "Spl. Sessions (POCSO) Case No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may graciously be pleased to:",
+    "closing": "And for this act of kindness, the petitioner shall, as in duty bound, ever pray.",
+    "tone": "humble"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly verify and declare that the contents of paragraphs ___ to ___ of the above petition are true to my personal knowledge and the contents of paragraphs ___ to ___ are based on information received and legal advice tendered, which I believe to be true. Nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": ["en", "pa", "hi"],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "{courtDesignation}, {city}"
+  },
+  "localRules": [
+    "Punjabi (Gurmukhi script) is the official language of the Punjab subordinate courts under the Punjab Official Language Act, 1967 read with the Punjab State Language Act, 2008; pleadings before the Punjab and Haryana High Court are in English. District court pleadings may be filed in English with Punjabi translation where required.",
+    "Bail applications under S.483 BNSS (formerly S.439 CrPC) before the Sessions Court must disclose any prior rejection by a Magistrate or co-ordinate court.",
+    "Anticipatory bail applications (S.482 BNSS) must be accompanied by an affidavit, certified copy of the FIR and grounds of apprehension.",
+    "Vakalatnama in the form prescribed under the Punjab and Haryana High Court Rules and Orders, Volume V to be filed at the first instance with requisite court-fee stamp.",
+    "All civil pleadings to be paginated, indexed and accompanied by a list of documents under Order VII / Order VIII CPC.",
+    "Court-fee under the Court-Fees Act, 1870 as in force in Punjab with State amendments; ad valorem fee structure applies to civil suits.",
+    "Atrocities (SC/ST), POCSO and NDPS cases are tried by designated Special Courts notified by the State Government — typically the District & Sessions Judge at the district headquarters.",
+    "Designated Special Courts also exist for offences under the Punjab Excise Act, 1914 and the Punjab Travel Professionals Regulation Act, 2012.",
+    "Mohali (SAS Nagar) and Ludhiana host the largest district court establishments; Patiala and Amritsar hold heritage jurisdictional importance."
+  ],
+  "e_filing_mandatory": false,
+  "e_filing_note": "e-Filing is operational at Mohali, Ludhiana, Patiala and Amritsar via the eCourts portal; not yet mandatory state-wide."
+}

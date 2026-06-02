@@ -1,0 +1,208 @@
+{
+  "_meta": {
+    "description": "Document-rules config for legal_notice_defamation — pre-litigation notice for defamation (civil tort or criminal under BNS 356)",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — drafted 2026-05-12 in Batch 2 templates",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Defamation pleadings are high-risk — advocate must verify facts of publication, identification, and harm before issue."
+  },
+  "docType": "legal_notice_defamation",
+  "parentDocType": "legal_notice",
+  "displayName": "Legal Notice — Defamation (Civil / Criminal BNS 356)",
+  "category": "notice",
+  "creditsCost": 1,
+  "court_levels": ["pre_litigation"],
+  "causeTitle": {
+    "format": "LEGAL NOTICE\n(Defamation — {route} route under {primary_statute})\n\nTo,\n{respondent}\n{respondentAddress}\n\nFrom,\n{applicant}\nThrough: {advocateName}, Advocate\n{advocateAddress}",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Sender / Aggrieved Party" },
+      { "role": "respondent", "label": "Noticee / Maker / Publisher of Defamatory Imputation" }
+    ],
+    "caseNomenclature": "N/A"
+  },
+  "form_schema": {
+    "sender": {
+      "type": "object",
+      "required": ["name", "address", "occupation", "reputation_basis"]
+    },
+    "recipient": { "type": "object", "required": ["name", "address", "role"] },
+    "route": {
+      "type": "enum",
+      "values": ["civil", "criminal", "both"],
+      "required": true,
+      "note": "Civil = tortious defamation. Criminal = BNS Section 356."
+    },
+    "publication_facts": {
+      "type": "object",
+      "required": [
+        "date_of_publication",
+        "medium",
+        "exact_words_or_imputation",
+        "audience_or_reach",
+        "identification_of_aggrieved"
+      ]
+    },
+    "damage_particulars": {
+      "type": "object",
+      "required": ["nature_of_harm", "reputational_impact", "quantified_damages_claim"]
+    },
+    "relief_sought": {
+      "type": "object",
+      "required": [
+        "public_apology",
+        "retraction",
+        "removal_of_content",
+        "damages_amount",
+        "response_deadline_days"
+      ]
+    }
+  },
+  "mandatoryClauses": [
+    {
+      "id": "publication",
+      "name": "Publication to a Third Party",
+      "required": true,
+      "description": "Defamatory statement was made/published to at least one person other than the aggrieved (essential element)"
+    },
+    {
+      "id": "identification",
+      "name": "Identification of Aggrieved",
+      "required": true,
+      "description": "Aggrieved was identified or identifiable by reasonable readers/listeners"
+    },
+    {
+      "id": "defamatory_imputation",
+      "name": "Defamatory Imputation",
+      "required": true,
+      "description": "Reproduce the exact defamatory words or imputation verbatim; explain innuendo if not facially defamatory"
+    },
+    {
+      "id": "falsity",
+      "name": "Falsity / Lack of Justification",
+      "required": true,
+      "description": "Assert that imputation is false and not protected by truth, fair comment, or privilege"
+    },
+    {
+      "id": "harm",
+      "name": "Damage to Reputation",
+      "required": true,
+      "description": "State the nature of harm — reputational, social, business, mental anguish"
+    },
+    {
+      "id": "demand_for_apology_retraction",
+      "name": "Demand for Apology / Retraction / Takedown",
+      "required": true,
+      "description": "Specific demand for public apology, retraction, content removal, and damages"
+    },
+    {
+      "id": "response_window",
+      "name": "Response Window",
+      "required": true,
+      "description": "Reasonable response window — typically 15 days; reservation of right to sue thereafter"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and BCI enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "You are hereby called upon to, within 15 (fifteen) days of receipt of this notice:\n(a) Publish an unconditional written apology in the same medium and with the same prominence as the original publication;\n(b) Issue a public retraction of the defamatory imputations;\n(c) Permanently remove / take down the defamatory content;\n(d) Pay damages of Rs. {damages_amount}/- towards harm to my client's reputation, mental agony, and consequential losses; and\n(e) Undertake in writing not to repeat the same.\n\nFailing the above, my client shall be constrained to {route_consequence} — including filing of a civil suit for damages and permanent injunction before the competent court, and/or a criminal complaint under Section 356 of the Bharatiya Nyaya Sanhita, 2023 — entirely at your risk, cost, and consequences.",
+  "verificationTemplate": "",
+  "filingChecklist": [
+    "Notice sent by Registered Post AD / Speed Post AD to each addressee",
+    "Where publication was online, also serve by email with delivery + read receipts",
+    "Postal receipts and AD card preserved",
+    "Screenshots / archive (archive.org) of defamatory content preserved with timestamps before issuing notice",
+    "Witness affidavits of third-party readers/viewers preserved (proof of publication)",
+    "Copy of notice with proof of service to be enclosed if civil suit / criminal complaint is later filed",
+    "Limitation: Civil suit under Article 75 Limitation Act = 1 year from publication; do not delay"
+  ],
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nyaya Sanhita, 2023",
+      "sections": [
+        {
+          "number": "356",
+          "description": "Defamation — definition, exceptions, and punishment (replaces IPC Sections 499–500)"
+        }
+      ]
+    },
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita, 2023",
+      "sections": [
+        {
+          "number": "223",
+          "description": "Cognizance of offence — defamation triable on complaint of aggrieved"
+        }
+      ]
+    },
+    {
+      "act": "Law of Torts (Common Law)",
+      "sections": [
+        {
+          "number": "—",
+          "description": "Tortious defamation — libel (written) and slander (spoken); remedies = damages + injunction"
+        }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "Article 75",
+          "description": "Suit for compensation for libel — 1 year from publication"
+        },
+        {
+          "number": "Article 76",
+          "description": "Suit for compensation for slander — 1 year from words spoken"
+        }
+      ]
+    },
+    {
+      "act": "Information Technology Act, 2000",
+      "sections": [
+        {
+          "number": "79",
+          "description": "Intermediary liability — basis for takedown demand to platforms"
+        }
+      ]
+    }
+  ],
+  "validation_rules": [
+    {
+      "rule": "exact_words_required",
+      "description": "Defamatory words must be reproduced verbatim; paraphrase is insufficient"
+    },
+    {
+      "rule": "publication_to_third_party",
+      "description": "At least one third-party recipient must be identified"
+    },
+    {
+      "rule": "response_window_min_15_days",
+      "description": "Cooling-off window must be at least 15 days"
+    },
+    {
+      "rule": "no_statutory_cooling_off",
+      "description": "No statutory pre-suit notice period; but reasonable opportunity required for good faith"
+    },
+    {
+      "rule": "limitation_check",
+      "description": "Issue notice well within 1-year limitation under Article 75/76"
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Legal Notice for Defamation. Route may be civil (tort), criminal (BNS Section 356), or both — confirm from input.",
+    "If criminal route, cite BNS Section 356 (not IPC 499/500 — IPC stands repealed for offences committed after 1 July 2024).",
+    "If civil route, base on tort of defamation — establish publication, identification, defamatory imputation, falsity, and damage.",
+    "Reproduce the exact defamatory words or imputation verbatim. If innuendo, explain the secondary meaning understood by audience.",
+    "State the date, medium (newspaper/social media/email/oral statement), and audience reach of publication.",
+    "Establish identification — that the aggrieved was named or reasonably identifiable.",
+    "Assert falsity and absence of any defence (truth, fair comment, privilege, public interest).",
+    "Quantify harm — reputational, social, business loss, mental agony.",
+    "Demand: (a) public apology, (b) retraction, (c) content takedown, (d) damages, (e) undertaking not to repeat.",
+    "Give a 15-day response window. State that failure will lead to civil suit and/or criminal complaint under BNS 356.",
+    "Reserve all rights — injunction, damages, criminal prosecution.",
+    "Do NOT generate the advocate signature block — it is added programmatically."
+  ]
+}

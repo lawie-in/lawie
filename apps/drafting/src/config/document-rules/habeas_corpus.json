@@ -1,0 +1,359 @@
+{
+  "_meta": {
+    "description": "Document-rules config for habeas_corpus — Petition for writ of habeas corpus under Article 226 (HC) / Article 32 (SC). The great writ of liberty — challenges illegal/unlawful custody. Most urgent writ; relaxed locus; usually listed within 24-48 hours.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Sunil Batra, A.K. Roy, Rekha v. Tamil Nadu cites mandatory."
+  },
+  "template_id": "habeas_corpus",
+  "docType": "habeas_corpus",
+  "title": "Petition for Writ of Habeas Corpus under Article 226 / 32",
+  "displayName": "Habeas Corpus Petition",
+  "category": "writ",
+  "creditsCost": 2,
+  "court_levels": ["high_court_writ_jurisdiction", "supreme_court_india"],
+  "causeTitle": {
+    "format": "{courtHeader}\n(WRIT JURISDICTION — HABEAS CORPUS)\n\n{caseNomenclature}\n\nIN THE MATTER OF: Article 226 / Article 32 of the Constitution of India read with Article 21 and Article 22;\nAND IN THE MATTER OF: The great writ of habeas corpus — production of the detenu and quashing of unlawful custody;\nAND IN THE MATTER OF:\n\n{petitioner} (as next friend of the detenu {detenu_name}) ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner / Next Friend" },
+      { "role": "detenu", "label": "Detenu (corpus to be produced)" },
+      {
+        "role": "state",
+        "label": "State respondents (Union/State, Home Sec, DGP, Detaining Authority)"
+      }
+    ],
+    "caseNomenclature": "W.P. (Habeas Corpus) No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "petitioner_name",
+        "label": "Petitioner / Next Friend full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner_father_name",
+        "label": "Father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "petitioner_age", "label": "Petitioner age", "type": "number", "required": true },
+      {
+        "id": "petitioner_address",
+        "label": "Petitioner address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "petitioner_relation_to_detenu",
+        "label": "Relationship of petitioner to detenu (next of kin / friend / lawyer / NGO)",
+        "type": "text",
+        "required": true
+      },
+      { "id": "detenu_name", "label": "Detenu full name", "type": "text", "required": true },
+      {
+        "id": "detenu_father_name",
+        "label": "Detenu father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "detenu_age", "label": "Detenu age", "type": "number", "required": true },
+      {
+        "id": "detenu_address",
+        "label": "Detenu ordinary address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "place_of_detention_known",
+        "label": "Place of detention",
+        "type": "select",
+        "required": true,
+        "options": [
+          "known_state_custody",
+          "known_private_custody",
+          "unknown_likely_state",
+          "unknown_likely_private",
+          "unknown_completely"
+        ]
+      },
+      {
+        "id": "place_of_detention_address",
+        "label": "Place of detention (if known)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "type_of_detention",
+        "label": "Type of detention",
+        "type": "select",
+        "required": true,
+        "options": [
+          "police_custody_without_production_before_magistrate",
+          "police_custody_beyond_24_hours_without_remand",
+          "preventive_detention_under_special_law",
+          "illegal_private_confinement_minor",
+          "illegal_private_confinement_adult_woman",
+          "illegal_private_confinement_adult_male",
+          "custody_post_remand_but_remand_illegal",
+          "missing_person_state_action_suspected",
+          "child_custody_dispute_unlawful_retention"
+        ]
+      },
+      {
+        "id": "date_of_detention",
+        "label": "Date / approximate date of detention",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "duration_of_detention",
+        "label": "Duration of detention (estimated)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "detaining_authority",
+        "label": "Detaining authority / person (if known)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "preventive_detention_law",
+        "label": "If preventive detention — under which law (NSA / PASA / COFEPOSA / Bihar / Jharkhand / UP / Delhi-specific)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "detention_order_received",
+        "label": "Has detention order been served on detenu?",
+        "type": "select",
+        "required": false,
+        "options": ["yes_with_grounds", "yes_grounds_not_served", "no_order_served"]
+      },
+      {
+        "id": "factual_narrative",
+        "label": "Factual narrative — how detention came about, last contact, search efforts",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "representations_made",
+        "label": "Representations made (police complaint, Magistrate u/S.97 BNSS, Advisory Board, etc.)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "urgency_grounds",
+        "label": "Grounds of urgency (mental physical health risk, communication blackout)",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Petitioner as next friend + detenu + State respondents"
+    },
+    {
+      "id": "locus_paragraph",
+      "name": "Locus Standi of Petitioner",
+      "required": true,
+      "description": "Next friend doctrine — relaxed locus"
+    },
+    {
+      "id": "detenu_paragraph",
+      "name": "Description of Detenu",
+      "required": true,
+      "description": "Identity, ordinary address, relationship to petitioner"
+    },
+    {
+      "id": "factual_paragraph",
+      "name": "Factual Narrative of Detention",
+      "required": true,
+      "description": "Chronology of events leading to detention and search"
+    },
+    {
+      "id": "place_of_detention_paragraph",
+      "name": "Place of Detention (if known)",
+      "required": false,
+      "description": "Where known; where unknown — direction to State to disclose"
+    },
+    {
+      "id": "illegality_paragraph",
+      "name": "Illegality of Detention",
+      "required": true,
+      "description": "Specific legal infirmity"
+    },
+    {
+      "id": "representations_paragraph",
+      "name": "Representations Made",
+      "required": true,
+      "description": "Steps taken before approaching HC"
+    },
+    {
+      "id": "urgency_paragraph",
+      "name": "Urgency",
+      "required": true,
+      "description": "Why immediate listing required"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Production of detenu + setting at liberty + costs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, and in view of the urgency of the matter touching upon the personal liberty of the detenu, the Petitioner most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Issue a writ in the nature of HABEAS CORPUS directing the Respondents to produce the body of the detenu, Shri/Smt. {detenu_name}, before this Hon'ble Court forthwith and to show cause as to under what authority of law he/she is being detained;\n\nb) Upon production, declare the said detention to be illegal and unconstitutional and set the detenu at liberty forthwith;\n\nc) Direct the Respondents to furnish the grounds of detention and the order, if any, by which the detenu has been deprived of his/her liberty;\n\nd) Award appropriate compensation to the detenu for the violation of his/her fundamental rights under Articles 21 and 22 of the Constitution of India;\n\ne) Pending hearing and final disposal of this petition, direct the Respondents to disclose the present whereabouts of the detenu and to permit communication with the next of kin and counsel;\n\nf) Award costs of this petition;\n\ng) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, son/daughter/wife of {petitioner_father_name}, aged about {petitioner_age} years, resident of {petitioner_address}, the Petitioner herein (filing as next friend of the detenu Shri/Smt. {detenu_name}), do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to my personal knowledge save and except such facts as are gathered from sources stated, which I believe to be true. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner / Next Friend",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a petition for writ of HABEAS CORPUS — the great writ of liberty. Cite Sunil Batra v. Delhi Administration (1978) 4 SCC 494 — 'habeas corpus is the great writ of liberty.'",
+      "Cause-title MUST mention Article 226 (HC) and/or Article 32 (SC) read with Article 21 and Article 22.",
+      "URGENCY language must be drafted into the body — habeas listings are usually obtained within 24-48 hours.",
+      "Petitioner may be 'next friend' — relaxed locus. Cite Sheela Barse v. State of Maharashtra (1983) 2 SCC 96; any person genuinely interested can file.",
+      "Para 1: Description of parties — petitioner (next friend), detenu, State respondents. Where ordinary respondent the State, include Home Secretary, DGP, SHO of relevant PS, and if known, the detaining authority/jailer.",
+      "Para 2: Locus standi — relationship to detenu, bona fide. Petitioner not stranger; or even if stranger, public-spirited where detenu unable to approach court.",
+      "Para 3: Description of detenu — name, age, ordinary address, occupation.",
+      "Para 4-6: Factual narrative — date of last contact, circumstances of detention, search efforts, calls to PS, FIR registered or not, who confirmed detention.",
+      "Para 7: Place of detention — if known, state. If unknown, pray for direction to State to disclose. Production order can be made even without knowing exact location.",
+      "Para 8: Type of detention and illegality:",
+      "   (a) Police custody beyond 24 hours without production before Magistrate — Art. 22(2) violation; S.58 BNSS [S.57 CrPC] mandate.",
+      "   (b) Preventive detention — Cite Ranjit Kumar Chakraborty v. State of WB (1972) 1 SCC 1; A.K. Roy v. Union of India (1982) 1 SCC 271 (NSA constitutionality); Rekha v. State of Tamil Nadu (2011) 5 SCC 244 (preventive detention requires strict compliance). Grounds: (i) non-application of mind, (ii) delay in execution, (iii) non-communication of grounds, (iv) right to representation, (v) Advisory Board reference.",
+      "   (c) Illegal private confinement — habeas lies even against private persons. Cite Mohd Ikram Hussain v. State of UP AIR 1964 SC 1625; Gohar Begum v. Suggi AIR 1960 SC 93.",
+      "   (d) Illegal private confinement of adult woman — Cite Lata Singh v. State of UP (2006) 5 SCC 475 (adult woman right to choose).",
+      "   (e) Child custody — habeas where retention is so unlawful that legal remedy by guardianship would be illusory; otherwise Guardians and Wards Act may be appropriate. Cite Tejaswini Gaud v. Shekhar Jagdish Prasad Tewari (2019) 7 SCC 42.",
+      "   (f) Missing person with state action suspected — Cite Bhim Singh v. State of J&K (1985) 4 SCC 677 (compensation awarded for illegal detention of MLA).",
+      "Para 9: Representations made — to police (Diary No., dates), Magistrate u/S.97 BNSS [S.97 CrPC search warrant for unlawfully confined person], higher authorities. Show inadequacy / inaction.",
+      "Para 10: Article 21 (procedure not just/fair/reasonable) and Article 22 (procedural safeguards) violation.",
+      "Para 11: Urgency — every day's detention is irreparable injury to liberty. Health, communication blackout, risk to life.",
+      "Para 12: Where preventive detention — challenge specific grounds:",
+      "   - Subjective satisfaction not bona fide",
+      "   - Failure to communicate grounds in language detenu understands (Art. 22(5)) — Cite Hadibandhu Das v. District Magistrate (1969) 1 SCR 227.",
+      "   - Delay in disposal of representation — Cite Rekha v. State of TN (2011) 5 SCC 244.",
+      "   - Stale grounds / live link snapped — Cite Lakshman Khatik v. State of WB (1974) 4 SCC 1.",
+      "Prayer — production of body forthwith, declaration of illegality, liberation, compensation, disclosure.",
+      "Affidavit in support mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Constitution of India",
+      "sections": [
+        {
+          "number": "Article 21",
+          "description": "Life and personal liberty — substantive foundation"
+        },
+        {
+          "number": "Article 22",
+          "description": "Protection against arrest and detention — procedural safeguards; 22(4)-(7) preventive detention"
+        },
+        {
+          "number": "Article 32",
+          "description": "Supreme Court writ jurisdiction — fundamental right itself"
+        },
+        { "number": "Article 226", "description": "High Court writ jurisdiction" }
+      ]
+    },
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)",
+      "sections": [
+        {
+          "number": "S.58",
+          "description": "Person arrested not to be detained more than 24 hours (replaces S.57 CrPC)"
+        },
+        {
+          "number": "S.97",
+          "description": "Search warrant for person wrongfully confined (replaces S.97 CrPC)"
+        },
+        {
+          "number": "S.35",
+          "description": "Arrest by police — when permissible; S.35(7) Arnesh Kumar safeguard"
+        }
+      ]
+    },
+    {
+      "act": "National Security Act, 1980 (where preventive detention)",
+      "sections": [
+        { "number": "S.3", "description": "Power to make detention orders" },
+        {
+          "number": "S.8",
+          "description": "Grounds of order — to be communicated within 5 (extendable to 10) days; representation right"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Petition (original + copies per HC rules; SC: per Order XXXVIII SC Rules)",
+    "Affidavit in support (mandatory)",
+    "Vakalatnama / Memo of authorisation as next friend",
+    "Memo of parties",
+    "Index, synopsis, list of dates — short for urgent listing",
+    "Photograph and identity proof of detenu",
+    "Complaints / representations to police / Magistrate with despatch proof",
+    "Where preventive detention — detention order + grounds (if served)",
+    "Affidavits of relatives confirming last contact",
+    "Medical / health records if relevant",
+    "Mention slip for urgent listing — separately drafted",
+    "Court fee per applicable schedule (often nominal for habeas)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "petitioner_name and petitioner_relation_to_detenu must not be empty",
+    "detenu_name must not be empty",
+    "type_of_detention must be selected",
+    "factual_narrative must not be empty",
+    "urgency_grounds must not be empty",
+    "representations_made must not be empty",
+    "If type_of_detention = preventive_detention_under_special_law, preventive_detention_law must not be empty",
+    "If place_of_detention_known is 'known_*', place_of_detention_address must not be empty",
+    "advocate_enrollment must match Bar Council format",
+    "Court level limited to HC or SC"
+  ],
+  "key_citations": [
+    "Sunil Batra v. Delhi Administration (1978) 4 SCC 494 — Great writ of liberty",
+    "Sheela Barse v. State of Maharashtra (1983) 2 SCC 96 — Locus relaxed",
+    "A.K. Roy v. Union of India (1982) 1 SCC 271 — Preventive detention constitutionality",
+    "Rekha v. State of Tamil Nadu (2011) 5 SCC 244 — Strict compliance for preventive detention",
+    "Hadibandhu Das v. District Magistrate (1969) 1 SCR 227 — Grounds in language detenu understands",
+    "Lakshman Khatik v. State of WB (1974) 4 SCC 1 — Stale grounds / live link",
+    "Bhim Singh v. State of J&K (1985) 4 SCC 677 — Compensation for illegal detention",
+    "Mohd Ikram Hussain v. State of UP AIR 1964 SC 1625 — Habeas against private persons",
+    "Gohar Begum v. Suggi AIR 1960 SC 93 — Private custody",
+    "Lata Singh v. State of UP (2006) 5 SCC 475 — Adult woman right to choose",
+    "Tejaswini Gaud v. Shekhar (2019) 7 SCC 42 — Child custody via habeas",
+    "Joginder Kumar v. State of UP (1994) 4 SCC 260 — Arrest safeguards"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

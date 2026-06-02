@@ -1,0 +1,478 @@
+{
+  "_meta": {
+    "description": "Document-rules config for posh_complaint — Complaint under the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013 to Internal Complaints Committee (ICC) [≥10 employees] or Local Complaints Committee (LC) [unorganised / <10 employees].",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Confidentiality protection S.16 paramount. Vishaka heritage cite mandatory."
+  },
+  "template_id": "posh_complaint",
+  "docType": "posh_complaint",
+  "title": "Complaint under the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013",
+  "displayName": "POSH Complaint (SH Act 2013)",
+  "category": "tribunal",
+  "creditsCost": 2,
+  "court_levels": ["icc_workplace", "local_committee_district"],
+  "causeTitle": {
+    "format": "BEFORE THE {committeeType — INTERNAL COMPLAINTS COMMITTEE / LOCAL COMMITTEE}\nOF {workplaceName} / FOR DISTRICT {district}, STATE OF {state}\nCONSTITUTED UNDER THE SEXUAL HARASSMENT OF WOMEN AT WORKPLACE (PREVENTION, PROHIBITION AND REDRESSAL) ACT, 2013\n\n{caseNomenclature}\n\nIN THE MATTER OF: Sections 9, 10, 11 and 13 of the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013;\n\nIN THE MATTER OF:\n\n{aggrieved_woman} ... Complainant / Aggrieved Woman\nVERSUS\n{respondent_name} ... Respondent",
+    "partyDesignations": [
+      { "role": "complainant", "label": "Aggrieved Woman / Complainant" },
+      {
+        "role": "respondent",
+        "label": "Respondent — person alleged to have committed sexual harassment"
+      }
+    ],
+    "caseNomenclature": "SH Complaint No. _____ of [YEAR] [CONFIDENTIAL]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "committee_type",
+        "label": "Committee to receive complaint",
+        "type": "select",
+        "required": true,
+        "options": ["icc_workplace", "local_committee_district"]
+      },
+      {
+        "id": "workplace_name",
+        "label": "Workplace name (if ICC)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "workplace_address",
+        "label": "Workplace address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "district",
+        "label": "District (for LC jurisdiction)",
+        "type": "text",
+        "required": true
+      },
+      { "id": "state", "label": "State", "type": "text", "required": true },
+      {
+        "id": "complainant_name",
+        "label": "Aggrieved woman's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "complainant_age", "label": "Age", "type": "number", "required": true },
+      {
+        "id": "complainant_designation",
+        "label": "Designation / Capacity at workplace",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "complainant_employment_type",
+        "label": "Employment type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "regular_employee",
+          "temporary_employee",
+          "contract_worker",
+          "intern",
+          "apprentice",
+          "consultant",
+          "domestic_worker",
+          "visitor_or_client",
+          "other"
+        ]
+      },
+      {
+        "id": "complainant_address",
+        "label": "Complainant address (confidential)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "complainant_contact",
+        "label": "Confidential contact (phone / email)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "filed_by_self_or_authorised",
+        "label": "Filed by self or authorised person",
+        "type": "select",
+        "required": true,
+        "options": [
+          "self",
+          "by_legal_heir_if_deceased",
+          "by_relative_or_friend_if_unable",
+          "by_special_educator_if_disabled",
+          "by_co_worker_if_unable"
+        ]
+      },
+      {
+        "id": "authorised_filer_details",
+        "label": "If authorised — filer details and authorisation",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "respondent_name",
+        "label": "Respondent full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "respondent_designation",
+        "label": "Respondent designation / capacity",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "respondent_address",
+        "label": "Respondent address (workplace / known)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "respondent_relationship",
+        "label": "Respondent's professional relationship to complainant",
+        "type": "select",
+        "required": true,
+        "options": ["superior", "subordinate", "peer", "client", "vendor", "visitor", "other"]
+      },
+      {
+        "id": "incidents_dates",
+        "label": "Dates / time period of incidents",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "incidents_places",
+        "label": "Place(s) of incident (workplace / extended workplace)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "nature_of_harassment",
+        "label": "Nature of sexual harassment (S.2(n) categories)",
+        "type": "checkbox_multi",
+        "required": true,
+        "options": [
+          "physical_contact_or_advances",
+          "demand_or_request_for_sexual_favours",
+          "sexually_coloured_remarks",
+          "showing_pornography",
+          "other_unwelcome_physical_verbal_nonverbal_conduct_of_sexual_nature",
+          "implied_or_explicit_promise_of_preferential_treatment",
+          "implied_or_explicit_threat_of_detrimental_treatment",
+          "implied_or_explicit_threat_about_employment_status",
+          "interference_with_work_or_creating_intimidating_offensive_environment",
+          "humiliating_treatment_likely_to_affect_health_or_safety"
+        ]
+      },
+      {
+        "id": "detailed_account",
+        "label": "Detailed account of incidents (chronological)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witnesses_list",
+        "label": "Witnesses (if any) with contact and what they witnessed",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "evidence_list",
+        "label": "Documentary / electronic evidence (emails, WhatsApp, CCTV, recordings)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "limitation_position",
+        "label": "Complaint filed within 3 months of latest incident? If beyond, reasons for delay (Committee may extend up to 3 more months)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "interim_relief_sought",
+        "label": "Interim relief sought (S.12) — transfer / leave / restraining contact",
+        "type": "checkbox_multi",
+        "required": false,
+        "options": [
+          "transfer_of_aggrieved_woman_to_other_workplace",
+          "transfer_of_respondent_to_other_workplace",
+          "grant_of_leave_up_to_3_months",
+          "restraining_respondent_from_reporting_on_work_performance",
+          "restraining_respondent_from_supervising_academic_or_professional_work",
+          "any_other_relief"
+        ]
+      },
+      {
+        "id": "final_relief_sought",
+        "label": "Final relief sought (S.13)",
+        "type": "checkbox_multi",
+        "required": true,
+        "options": [
+          "action_against_respondent_per_service_rules",
+          "deduction_compensation_from_respondent_salary",
+          "compensation_payment_to_complainant",
+          "action_under_indian_penal_law_BNS",
+          "warning_or_written_apology",
+          "any_other_relief"
+        ]
+      },
+      {
+        "id": "confidentiality_invoked",
+        "label": "Confidentiality under S.16 invoked",
+        "type": "checkbox",
+        "required": true
+      },
+      {
+        "id": "advocate_or_supporter_name",
+        "label": "Advocate / Supporter name (optional — woman may file in person)",
+        "type": "text",
+        "required": false
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "confidentiality_caption",
+      "name": "Confidentiality Caption (S.16)",
+      "required": true,
+      "description": "CONFIDENTIAL on every page"
+    },
+    {
+      "id": "parties_paragraph",
+      "name": "Parties (Aggrieved Woman + Respondent)",
+      "required": true,
+      "description": "Identity of woman to be kept confidential per S.16"
+    },
+    {
+      "id": "committee_paragraph",
+      "name": "Committee Jurisdiction",
+      "required": true,
+      "description": "ICC (workplace ≥10 employees) or LC (unorganised / <10 / against employer)"
+    },
+    {
+      "id": "filed_by_paragraph",
+      "name": "Filed by Self / Authorised Person",
+      "required": true,
+      "description": "S.9 — woman herself, or per Rule 6 by specified persons"
+    },
+    {
+      "id": "workplace_paragraph",
+      "name": "Workplace Details",
+      "required": true,
+      "description": "Definition of 'workplace' is broad — includes extended workplace S.2(o)"
+    },
+    {
+      "id": "respondent_paragraph",
+      "name": "Respondent Details",
+      "required": true,
+      "description": "Identity and professional relationship"
+    },
+    {
+      "id": "incidents_paragraph",
+      "name": "Detailed Incidents (Chronological)",
+      "required": true,
+      "description": "Date, time, place, what happened, witnesses"
+    },
+    {
+      "id": "nature_paragraph",
+      "name": "Nature of Harassment per S.2(n)",
+      "required": true,
+      "description": "Tie facts to statutory definition"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation (S.9(1))",
+      "required": true,
+      "description": "3 months from incident; further 3 months if reasonable cause shown"
+    },
+    {
+      "id": "interim_relief_paragraph",
+      "name": "Interim Relief Sought (S.12)",
+      "required": false,
+      "description": "Transfer / leave / restraint"
+    },
+    {
+      "id": "final_relief_paragraph",
+      "name": "Final Relief Sought (S.13)",
+      "required": true,
+      "description": "Action / compensation / criminal action"
+    },
+    {
+      "id": "confidentiality_paragraph",
+      "name": "Confidentiality Invocation (S.16)",
+      "required": true,
+      "description": "Mandatory protection"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Committee inquiry + reliefs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "By complainant"
+    },
+    {
+      "id": "supporting_documents",
+      "name": "Supporting Documents",
+      "required": true,
+      "description": "Evidence list"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Aggrieved Woman / Complainant most respectfully prays that this Hon'ble Committee may graciously be pleased to:\n\na) Initiate an inquiry against the Respondent in accordance with Section 11 of the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013 and the Service Rules / POSH Rules 2013 applicable;\n\nb) Pending the inquiry, grant interim relief to the Complainant under Section 12 of the Act, including {specific_interim_relief};\n\nc) Upon conclusion of the inquiry and on finding the allegations established, recommend action against the Respondent under Section 13 of the Act, including {specific_final_relief};\n\nd) Direct payment of compensation to the Complainant under Section 13(3)(b) read with Section 15 of the Act;\n\ne) Ensure strict confidentiality under Section 16 of the Act throughout the proceedings;\n\nf) Pass any other order(s) as this Hon'ble Committee may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Aggrieved Woman / Complainant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {complainant_name}, the Aggrieved Woman / Complainant herein, do hereby verify under solemn affirmation that the contents of paragraphs 1 to {lastParagraph} of the above complaint are true and correct to my personal knowledge. No part is false and nothing material has been concealed. I invoke the confidentiality protections under Section 16 of the Act.\n\nVerified at {place} on this {date}.\n\nComplainant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a complaint under the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013 — 'POSH Act' / 'SH Act'. Legislation traces lineage to Vishaka v. State of Rajasthan (1997) 6 SCC 241.",
+      "MANDATORY: Caption 'CONFIDENTIAL' on every page. Section 16 of the Act mandates confidentiality of the woman's identity, contents of complaint, inquiry proceedings, recommendations. Disclosure can lead to penalty under S.17.",
+      "Forum: ICC (Internal Complaints Committee — workplace with ≥10 employees, mandatory under S.4) OR LC (Local Complaints Committee — district level for workplaces with <10 employees / unorganised sector / where complaint against employer himself, S.6-7).",
+      "Para 1: Parties — anonymise where appropriate; do NOT publish in any extra-committee forum.",
+      "Para 2: Filed by self (S.9(1)) OR by authorised person under Rule 6 of POSH Rules 2013:",
+      "   - Where woman is unable owing to physical incapacity — by relative or friend or co-worker or officer of NCW/SCW with written consent of woman;",
+      "   - Where woman is unable owing to mental incapacity — by special educator / qualified psychiatrist / guardian / authority where she is receiving treatment / co-worker, with consent of guardian;",
+      "   - Where woman has died — by legal heir.",
+      "Para 3: Workplace — definition S.2(o) is BROAD: includes private / public sector workplaces; departments under Government; hospitals / nursing homes; sports institutes; places visited by employee during course of employment ('extended workplace'); dwelling place for domestic workers; unorganised sector.",
+      "Para 4: Aggrieved woman — defined S.2(a): includes any woman, of any age, whether employed or not, who alleges sexual harassment by respondent.",
+      "Para 5: Respondent — defined S.2(m).",
+      "Para 6: Nature of sexual harassment — S.2(n) categories:",
+      "   (i) Physical contact and advances;",
+      "   (ii) Demand or request for sexual favours;",
+      "   (iii) Making sexually coloured remarks;",
+      "   (iv) Showing pornography;",
+      "   (v) Other unwelcome physical, verbal or non-verbal conduct of sexual nature.",
+      "   PLUS circumstances S.3(2):",
+      "   (a) Implied or explicit promise of preferential treatment;",
+      "   (b) Implied or explicit threat of detrimental treatment;",
+      "   (c) Implied or explicit threat about present or future employment;",
+      "   (d) Interference with her work or creating intimidating / offensive / hostile work environment;",
+      "   (e) Humiliating treatment likely to affect health or safety.",
+      "Para 7: Detailed chronology — date, time, place, exact words / acts. Avoid generalisations.",
+      "Para 8: Witnesses (if any) — name and what they witnessed.",
+      "Para 9: Documentary / electronic evidence — emails, WhatsApp screenshots, CCTV, recordings, prior complaints.",
+      "Para 10: Limitation — S.9(1) — 3 months from the date of incident; for series, 3 months from last incident. Committee may extend by further 3 months (proviso to S.9(1)) for reasons recorded in writing. Where extension sought, give reasons.",
+      "Para 11: Interim relief — S.12 read with Rule 8 POSH Rules: (a) transfer of aggrieved woman or respondent to another workplace; (b) grant of leave up to 3 months in addition to leave otherwise entitled; (c) restraining respondent from reporting on her work performance or supervising; (d) any other relief.",
+      "Para 12: Final relief — S.13 + Rule 9: (a) action per service rules / Standing Orders; (b) deduction of compensation from respondent's salary (S.13(3)(b)); (c) payment of compensation as per S.15 factors (mental trauma, loss of career, medical expenses, income & status of respondent, lump sum or instalments); (d) criminal action under BNS [where conduct also amounts to BNS S.74-79 (insult, voyeurism, stalking) or BNS S.63 (rape) etc.].",
+      "Para 13: Confidentiality — S.16 invoked. Penalty for breach S.17.",
+      "Para 14: Caution against malicious complaint — S.14: if Committee concludes complaint is malicious AFTER inquiry, action against complainant per service rules. NOTE: Inability to prove DIFFERS from malicious complaint; mere failure of evidence does NOT make complaint malicious.",
+      "Para 15: Right to appeal — S.18: appeal to court / tribunal per service rules within 90 days of recommendation.",
+      "Para 16: Inquiry timeline — S.11(4): completion within 90 days. Report to employer within 10 days of completion (S.13(1)).",
+      "Para 17: Where conduct also constitutes a crime under BNS — woman may simultaneously file FIR; POSH Committee does NOT bar criminal action.",
+      "Annexures: Identity proof; documentary evidence; witness list; medical / psychological reports if any.",
+      "Verification on solemn affirmation.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013",
+      "sections": [
+        { "number": "S.2(a)", "description": "Aggrieved woman — definition" },
+        { "number": "S.2(n)", "description": "Sexual harassment — definition" },
+        { "number": "S.2(o)", "description": "Workplace — broad definition" },
+        { "number": "S.3", "description": "Prevention; circumstances amounting to harassment" },
+        { "number": "S.4", "description": "Constitution of ICC (≥10 employees mandatory)" },
+        { "number": "S.6", "description": "Constitution of LC at district level" },
+        {
+          "number": "S.9",
+          "description": "Complaint of sexual harassment — substantive provision"
+        },
+        {
+          "number": "S.10",
+          "description": "Conciliation (at request of woman; not where settlement is monetary basis under threat)"
+        },
+        { "number": "S.11", "description": "Inquiry into complaint — 90 days" },
+        { "number": "S.12", "description": "Interim relief during pendency" },
+        { "number": "S.13", "description": "Inquiry report and action" },
+        {
+          "number": "S.14",
+          "description": "Malicious complaint — action against complainant only on inquiry finding"
+        },
+        { "number": "S.15", "description": "Factors for compensation" },
+        { "number": "S.16", "description": "CONFIDENTIALITY — mandatory" },
+        { "number": "S.17", "description": "Penalty for breach of confidentiality" },
+        { "number": "S.18", "description": "Appeal — 90 days" },
+        { "number": "S.19", "description": "Duties of employer" },
+        { "number": "S.21", "description": "Annual report by Committee" }
+      ]
+    },
+    {
+      "act": "Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Rules, 2013",
+      "sections": [
+        {
+          "number": "Rule 6",
+          "description": "Persons who may file complaint where woman is unable / deceased"
+        },
+        { "number": "Rule 7", "description": "Manner of inquiry" },
+        { "number": "Rule 8", "description": "Interim relief — categories" },
+        { "number": "Rule 9", "description": "Manner of action against respondent" }
+      ]
+    },
+    {
+      "act": "Bharatiya Nyaya Sanhita, 2023 (BNS) — where conduct also a crime",
+      "sections": [
+        {
+          "number": "S.74",
+          "description": "Assault or use of criminal force with intent to outrage modesty (was IPC 354)"
+        },
+        { "number": "S.75", "description": "Sexual harassment (was IPC 354A)" },
+        { "number": "S.76", "description": "Assault with intent to disrobe (was IPC 354B)" },
+        { "number": "S.77", "description": "Voyeurism (was IPC 354C)" },
+        { "number": "S.78", "description": "Stalking (was IPC 354D)" },
+        {
+          "number": "S.79",
+          "description": "Word, gesture or act intended to insult modesty (was IPC 509)"
+        },
+        { "number": "S.63", "description": "Rape (was IPC 375)" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Complaint marked 'CONFIDENTIAL' on every page",
+    "6 copies of complaint per Rule 6(2) (typically)",
+    "Identity proof of complainant",
+    "Date / chronology of incidents",
+    "Witness list with contact details",
+    "Documentary evidence (emails, messages, CCTV references)",
+    "Authorisation letter if filed by representative (Rule 6 categories)",
+    "Medical / psychological certificate (if applicable)",
+    "List of supporting documents",
+    "No court fee (POSH proceedings are not court proceedings)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "committee_type must be selected",
+    "complainant_name and complainant_age must not be empty",
+    "respondent_name must not be empty",
+    "filed_by_self_or_authorised must be selected (with authorised_filer_details if not self)",
+    "incidents_dates and incidents_places must not be empty",
+    "nature_of_harassment must have at least one selected",
+    "detailed_account must not be empty",
+    "limitation_position must not be empty — flag if > 3 months without reasons; flag if > 6 months as out of jurisdiction",
+    "final_relief_sought must have at least one option selected",
+    "confidentiality_invoked must be true",
+    "If committee_type = local_committee_district, workplace_name must not be required (LC for workplaces <10 emp / unorganised)",
+    "Court level limited to ICC or LC"
+  ],
+  "key_citations": [
+    "Vishaka v. State of Rajasthan (1997) 6 SCC 241 — Vishaka guidelines (precursor)",
+    "Apparel Export Promotion Council v. A.K. Chopra (1999) 1 SCC 759 — Sexual harassment doctrine",
+    "Medha Kotwal Lele v. Union of India (2013) 1 SCC 297 — Vishaka enforcement",
+    "Punjab and Sind Bank v. Durgesh Kuwar (2020) 18 SCC 644 — POSH Act application",
+    "Anita Suresh v. Union of India (2019) — Malicious complaint test",
+    "Initiating Department v. Anita Suresh — Service rules application after POSH inquiry"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing. This template is for POSH proceedings only and does not substitute legal representation for criminal proceedings under BNS."
+}

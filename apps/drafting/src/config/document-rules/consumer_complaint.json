@@ -1,0 +1,297 @@
+{
+  "_meta": {
+    "description": "Document-rules config for consumer_complaint — drives prompt, validation, mandatory clauses",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass + SCRUM-89 form_schema port from production override 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Court & Parties",
+        "fields": [
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true,
+            "cascades_to": ["court_type", "court_name"]
+          },
+          {
+            "field_id": "court_type",
+            "label": "Court Type",
+            "type": "dropdown",
+            "source": "courts_db.court_types",
+            "filtered_by": ["state"],
+            "required": true,
+            "cascades_to": ["court_name"]
+          },
+          {
+            "field_id": "court_name",
+            "label": "Forum Name",
+            "type": "dropdown_search",
+            "source": "courts_db.courts",
+            "filtered_by": ["state", "court_type"],
+            "required": true,
+            "links_to_formatting": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Complainant Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["cause_title", "body", "verification"]
+          },
+          {
+            "field_id": "father_name",
+            "label": "Father's / Husband's Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "applicant_age",
+            "label": "Age",
+            "type": "number",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "address",
+            "label": "Complainant Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "respondent_name",
+            "label": "Opposite Party (full name & address)",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["cause_title", "body"]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Transaction Details",
+        "fields": [
+          {
+            "field_id": "deficiency_details",
+            "label": "Deficiency in Service / Defect in Goods (detailed narrative)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 100,
+            "max_length": 3000,
+            "placeholder": "Describe what you purchased/availed, when, the defect/deficiency, attempts to resolve, dates of correspondence...",
+            "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "consideration_amount",
+            "label": "Amount Paid (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["body", "prayer"]
+          },
+          {
+            "field_id": "purchase_date",
+            "label": "Date of Purchase / Service",
+            "type": "date",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "invoice_number",
+            "label": "Invoice / Receipt Number",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "payment_mode",
+            "label": "Mode of Payment",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "compensation_claimed",
+            "label": "Compensation Claimed (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["prayer"]
+          },
+          {
+            "field_id": "litigation_cost",
+            "label": "Litigation Cost Claimed (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["prayer"]
+          }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Jurisdiction & Limitation",
+        "fields": [
+          {
+            "field_id": "territorial_basis",
+            "label": "Territorial Jurisdiction (why this forum?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 30,
+            "max_length": 500,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "pecuniary_basis",
+            "label": "Pecuniary Jurisdiction (total claim within limit?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 20,
+            "max_length": 500,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "limitation_basis",
+            "label": "Limitation (complaint within 2 years?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 20,
+            "max_length": 500,
+            "inject_into": ["body"]
+          }
+        ]
+      }
+    ]
+  },
+  "docType": "consumer_complaint",
+  "parentDocType": "complaint",
+  "displayName": "Consumer Complaint",
+  "category": "consumer",
+  "causeTitle": {
+    "format": "BEFORE THE {courtDesignation}\n\n{caseNomenclature}\n\n{applicant} ... Complainant\nVERSUS\n{respondent} ... Opposite Party",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Complainant" },
+      { "role": "respondent", "label": "Opposite Party" }
+    ],
+    "caseNomenclature": "CONSUMER COMPLAINT No. _____ of [YEAR]"
+  },
+  "mandatoryClauses": [
+    {
+      "id": "consumer_status",
+      "name": "Consumer Status",
+      "required": true,
+      "description": "Establish that complainant is a 'consumer' within meaning of S.2(7) Consumer Protection Act, 2019"
+    },
+    {
+      "id": "deficiency_details",
+      "name": "Deficiency in Service / Defect in Goods",
+      "required": true,
+      "description": "Specific details of deficiency in service or defect in goods"
+    },
+    {
+      "id": "consideration",
+      "name": "Consideration Paid",
+      "required": true,
+      "description": "Amount paid for goods/services, date, mode of payment, receipt/invoice details"
+    },
+    {
+      "id": "grievance_attempts",
+      "name": "Prior Grievance Attempts",
+      "required": false,
+      "description": "Prior attempts to resolve the grievance with the opposite party"
+    },
+    {
+      "id": "territorial_jurisdiction",
+      "name": "Territorial Jurisdiction",
+      "required": true,
+      "description": "Basis for filing before this particular forum"
+    },
+    {
+      "id": "pecuniary_jurisdiction",
+      "name": "Pecuniary Jurisdiction",
+      "required": true,
+      "description": "Total claim amount falls within the forum's pecuniary jurisdiction"
+    },
+    {
+      "id": "limitation",
+      "name": "Limitation",
+      "required": true,
+      "description": "Complaint filed within 2 years of cause of action (S.69 CPA 2019)"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Clause",
+      "required": true,
+      "description": "Specific reliefs sought — refund, replacement, compensation, costs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Commission/Forum may graciously be pleased to:\n\na) Direct the Opposite Party to refund the amount of Rs. {amount}/- paid by the Complainant;\nb) Direct the Opposite Party to pay compensation of Rs. {compensationAmount}/- for mental agony, harassment, and deficiency in service;\nc) Direct the Opposite Party to pay Rs. {litigationCost}/- as cost of litigation;\nd) Pass any other order(s) as this Hon'ble Commission/Forum may deem fit and proper in the interest of justice and equity.\n\nAnd for this act of kindness, the complainant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {relation} of {parentName}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above complaint are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "filingChecklist": [
+    "Complaint (original + copies for each opposite party + 1 for office)",
+    "Vakalatnama / Memo of Appearance",
+    "Affidavit in support of complaint",
+    "Copy of bill / invoice / receipt",
+    "Copy of product / service agreement",
+    "Correspondence with opposite party (complaints, emails, letters)",
+    "Photographs / videos of defective goods (if applicable)",
+    "Expert opinion / technical report (if applicable)",
+    "Proof of payment (bank statement, UPI screenshot)",
+    "Court fee as per state rules",
+    "Index of documents"
+  ],
+  "relevantActs": [
+    {
+      "act": "Consumer Protection Act, 2019",
+      "sections": [
+        { "number": "2(7)", "description": "Definition of Consumer" },
+        { "number": "2(11)", "description": "Definition of Defect" },
+        { "number": "2(12)", "description": "Definition of Deficiency" },
+        { "number": "34", "description": "Jurisdiction of District Commission" },
+        { "number": "35", "description": "Complaint to District Commission" },
+        { "number": "38", "description": "Procedure on receipt of complaint" },
+        { "number": "39", "description": "Findings of District Commission" },
+        { "number": "69", "description": "Limitation period" }
+      ]
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Consumer Complaint under the Consumer Protection Act, 2019.",
+    "Establish the complainant's status as a 'consumer' under Section 2(7) CPA 2019.",
+    "Describe the deficiency in service or defect in goods with specific dates, amounts, and particulars.",
+    "State the consideration paid — amount, date, mode of payment, invoice/receipt details.",
+    "Describe prior attempts to resolve the grievance with the opposite party.",
+    "Establish territorial jurisdiction — where the opposite party resides/carries on business OR where the cause of action arose.",
+    "Establish pecuniary jurisdiction per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021 (Notification dated 30 December 2021): District Commission (up to Rs. 50 lakh), State Commission (above Rs. 50 lakh up to Rs. 2 crore), National Commission (above Rs. 2 crore).",
+    "State that the complaint is within limitation (2 years from cause of action under S.69).",
+    "Reference unfair trade practice or restrictive trade practice if applicable.",
+    "Use numbered paragraphs throughout.",
+    "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
+  ]
+}

@@ -1,10 +1,10 @@
-name: CI — Lint, Test & Build
+name: CI — Test
 
 on:
   push:
-    branches: [main, develop]
+    branches: [develop]
   pull_request:
-    branches: [main, develop]
+    branches: [develop]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,143 +14,141 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # ── Lint ────────────────────────────────────────────────────────────────────
-  lint:
-    name: Lint
+  # ── Detect which services changed ───────────────────────────────────────
+  changes:
+    name: Detect changes
     runs-on: ubuntu-latest
+    outputs:
+      gateway: ${{ steps.filter.outputs.gateway }}
+      auth: ${{ steps.filter.outputs.auth }}
+      drafting: ${{ steps.filter.outputs.drafting }}
+      billing: ${{ steps.filter.outputs.billing }}
+      shared: ${{ steps.filter.outputs.shared }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
+          filters: |
+            gateway:
+              - 'apps/gateway/**'
+            auth:
+              - 'apps/auth/**'
+            drafting:
+              - 'apps/drafting/**'
+            billing:
+              - 'apps/billing/**'
+            shared:
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'yarn.lock'
+              - 'tsconfig*.json'
+              - 'jest.config.base.js'
+              - '.github/workflows/ci.yml'
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Lint API
-        run: yarn workspace @lawie/api lint
-
-      - name: Lint Web
-        run: yarn workspace @lawie/web lint
-
-  # ── Test API ─────────────────────────────────────────────────────────────────
-  test-api:
-    name: Test — API
+  # ── Test Gateway ─────────────────────────────────────────────────────────
+  test-gateway:
+    name: Test — Gateway
     runs-on: ubuntu-latest
-    needs: lint
-
+    needs: [changes]
+    if: needs.changes.outputs.gateway == 'true' || needs.changes.outputs.shared == 'true'
     services:
-      mongo:
-        image: mongo:7.0
-        ports: ['27017:27017']
-        options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
     env:
       NODE_ENV: test
-      MONGO_URI: mongodb://localhost:27017/lawie_test
-      JWT_SECRET: test-secret-key-ci
-      JWT_REFRESH_SECRET: test-refresh-secret-ci
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Run API tests
-        run: yarn workspace @lawie/api test
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/gateway test
+      - uses: codecov/codecov-action@v4
         if: always()
         with:
-          flags: api
+          flags: gateway
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  # ── Test Web ─────────────────────────────────────────────────────────────────
-  test-web:
-    name: Test — Web
+  # ── Test Auth ────────────────────────────────────────────────────────────
+  test-auth:
+    name: Test — Auth
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [changes]
+    if: needs.changes.outputs.auth == 'true' || needs.changes.outputs.shared == 'true'
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Run Web tests
-        run: yarn workspace @lawie/web test
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/auth test
+      - uses: codecov/codecov-action@v4
         if: always()
         with:
-          flags: web
+          flags: auth
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  # ── Build ────────────────────────────────────────────────────────────────────
-  build:
-    name: Build Docker Images
+  # ── Test Drafting ────────────────────────────────────────────────────────
+  test-drafting:
+    name: Test — Drafting
     runs-on: ubuntu-latest
-    needs: [test-api, test-web]
-    if: github.event_name == 'push'
-
+    needs: [changes]
+    if: needs.changes.outputs.drafting == 'true' || needs.changes.outputs.shared == 'true'
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to AWS ECR
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-        uses: aws-actions/amazon-ecr-login@v2
+      - uses: actions/setup-node@v4
         with:
-          aws-region: ${{ secrets.AWS_REGION }}
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      - name: Build API image
-        uses: docker/build-push-action@v5
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/drafting test
+      - uses: codecov/codecov-action@v4
+        if: always()
         with:
-          context: .
-          file: apps/api/Dockerfile
-          target: production
-          push: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
-          tags: |
-            ${{ secrets.ECR_REGISTRY }}/lawie-api:${{ github.sha }}
-            ${{ secrets.ECR_REGISTRY }}/lawie-api:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          flags: drafting
+          token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Build Web image
-        uses: docker/build-push-action@v5
+  # ── Test Billing ─────────────────────────────────────────────────────────
+  test-billing:
+    name: Test — Billing
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.billing == 'true' || needs.changes.outputs.shared == 'true'
+    env:
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          context: .
-          file: apps/web/Dockerfile
-          target: production
-          push: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
-          tags: |
-            ${{ secrets.ECR_REGISTRY }}/lawie-web:${{ github.sha }}
-            ${{ secrets.ECR_REGISTRY }}/lawie-web:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/billing test
+      - uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          flags: billing
+          token: ${{ secrets.CODECOV_TOKEN }}

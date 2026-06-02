@@ -1,0 +1,24 @@
+{
+  "template_id": "consumer_complaint",
+  "form_data": {
+    "state": "jharkhand",
+    "court_type": "consumer_commission",
+    "court_name": "ranchi_dccdrc",
+    "applicant_name": "Mr. Manoj Kumar Tirkey",
+    "father_name": "Shri Laxman Tirkey",
+    "applicant_age": 35,
+    "address": "Quarter No. B-12, HEC Township, Dhurwa, Ranchi - 834004",
+    "language": "en",
+    "respondent_name": "Reliance Digital Retail Ltd., Ground Floor, Nucleus Mall, East Jail Road, Ranchi - 834001",
+    "deficiency_details": "On 25.02.2026, the complainant purchased a Whirlpool 300L Double Door Refrigerator (Model IF INV CNV 355 COOL ILLUSIA) from the opposite party's store at Nucleus Mall, Ranchi for a consideration of Rs. 42,990/- vide Invoice No. RD-RAN-2026-008741. The refrigerator was delivered on 27.02.2026 and installed by the opposite party's technician. Within 15 days of installation, on 14.03.2026, the compressor started making loud rattling noises and the cooling capacity dropped significantly. The complainant immediately informed the service centre and raised ticket No. WP-RAN-22891 on 15.03.2026. Two technicians visited on 20.03.2026 and 10.04.2026 but could not resolve the issue. The opposite party has refused to replace the unit claiming 'normal operational sounds' despite the product clearly being defective. Emails dated 25.03.2026 and 20.04.2026 seeking replacement have been ignored.",
+    "consideration_amount": 42990,
+    "purchase_date": "2026-02-25",
+    "invoice_number": "RD-RAN-2026-008741",
+    "payment_mode": "Debit card transaction (SBI, ending 7890)",
+    "compensation_claimed": 30000,
+    "litigation_cost": 10000,
+    "territorial_basis": "Cause of action arose at Ranchi where the goods were purchased, delivered, and where the deficiency manifested. The opposite party's store and authorised service centre are also located at Ranchi.",
+    "pecuniary_basis": "Total claim (refund + compensation + cost) = Rs. 82,990/-. Falls within pecuniary jurisdiction of District Commission (up to Rs. 50 Lakh per CPA Jurisdiction Notification dated 21 December 2021).",
+    "limitation_basis": "Cause of action arose on 14.03.2026 (date of defect manifestation) and continues. Complaint filed well within 2-year limitation under S.69 CPA 2019."
+  }
+}

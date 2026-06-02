@@ -1,0 +1,93 @@
+data: {"text":"1. The Lessor hereby grants to the Lessee, and the Lessee hereby accepts from the Lessor, the tenancy of the residential"}
+
+data: {"text":" premises bearing Flat No. 502, 5th Floor, Oraon Heights, Lalpur, Ranchi - 834001, measuring approximately 950 sq. ft., being a semi"}
+
+data: {"text":"-furnished flat comprising two bedrooms, hall, kitchen, and one bathroom with attached balcony (hereinafter referred to as \"the demised premises\") for a"}
+
+data: {"text":" period of 11 (eleven) months commencing from 01.06.2026 to 30.04.2027, both dates inclusive."}
+
+data: {"text":"\n\n2. The monthly rent for the demised premises shall be Rs. 15,000/- (Rupees Fifteen Thousand only) per month, which"}
+
+data: {"text":" shall be payable by the Lessee to the Lessor on or before the 7th day of every English"}
+
+data: {"text":" calendar month without any demand or notice via UPI transfer to the Lessor's SBI bank account details as"}
+
+data: {"text":" provided separately.\n\n3. The Lessee has paid to the Lessor a sum of Rs. 45,000/- (Rup"}
+
+data: {"text":"ees Forty Five Thousand only) as security deposit, the receipt whereof is hereby acknowledged by the Lessor. The"}
+
+data: {"text":" said security deposit shall remain with the Lessor during the entire period of tenancy and shall be refunded to"}
+
+data: {"text":" the Lessee upon vacation of the demised premises after adjusting any dues,"}
+
+data: {"text":" damages, or liabilities, if any.\n\n4. The monthly rent shall be subject to an annual"}
+
+data: {"text":" escalation of 10% (ten percent) with effect from the commencement of each subsequent year of tenancy,"}
+
+data: {"text":" if this agreement is renewed or extended by mutual consent of both parties.\n\n5. The"}
+
+data: {"text":" Lessee shall be responsible for payment of electricity charges, water charges, and society maintenance charges pertaining to the demised premises during"}
+
+data: {"text":" the period of tenancy. The Lessor shall bear the cost of major structural repairs to the building and the"}
+
+data: {"text":" demised premises.\n\n6. The demised premises shall be used exclusively for residential purposes by the Lessee and his immediate family members only. The Lessee shall not use"}
+
+data: {"text":" the premises for any commercial, business, or other non-residential purposes whatsoever.\n\n7. The Lessee shall not sub-let, assign"}
+
+data: {"text":", transfer, or part with possession of the demised premises or any part thereof to any third party without the prior written consent of the Lessor, which consent may"}
+
+data: {"text":" be withheld at the sole discretion of the Lessor.\n\n8. The Lessee shall not make any structural alterations, additions, or modifications to the demised premises"}
+
+data: {"text":" without the prior written consent of the Lessor. Any alterations made with such consent shall become the property of the Lessor without"}
+
+data: {"text":" any compensation to the Lessee.\n\n9. Either party may terminate this tenancy agreement by giving 2 (two) months' prior written notice to the other party. Upon"}
+
+data: {"text":" expiry of the notice period, the Lessee shall peacefully hand over vacant possession of the demised premises to the Lessor.\n\n10. In"}
+
+data: {"text":" the event of default in payment of rent for a period exceeding 15 (fifteen) days from the due date, the Lessor shall"}
+
+data: {"text":" be entitled to terminate this agreement and recover possession of the demised premises, in addition to claiming"}
+
+data: {"text":" all outstanding dues and damages.\n\n11. If either party is prevented"}
+
+data: {"text":" from performing their obligations under this agreement due to circumstances beyond their reasonable control, including but not limited to acts of God, natural disasters, governmental actions, or pandemic restrictions"}
+
+data: {"text":", such non-performance shall be excused during the continuance of such circumstances.\n\n12. Any"}
+
+data: {"text":" dispute arising out of or in connection with this agreement shall be subject to the exclusive jurisdiction of the competent courts at Ranchi, Jharkhand, and"}
+
+data: {"text":" shall be governed by the laws of India.\n\n13. The Lessee acknowledges that he is a salaried IT professional employed with"}
+
+data: {"text":" Tata Consultancy Services (TCS) and has the financial capacity to pay the rent and comply with the"}
+
+data: {"text":" terms of this agreement.\n\n14. The Lessee shall maintain the demised premises in good and tenantable condition and shall be liable for any"}
+
+data: {"text":" damage caused due to negligence or misuse, the cost of rectification wher"}
+
+data: {"text":"eof may be adjusted from the security deposit.\n\n15. The Lessee shall allow the Lessor or his authorized representative to"}
+
+data: {"text":" inspect the demised premises at reasonable times after giving reasonable notice, provided such inspection does"}
+
+data: {"text":" not unreasonably interfere with the Lessee's peaceful enjoyment of the premises.\n\n16. Upon termination of this ten"}
+
+data: {"text":"ancy, the Lessee shall hand over the demised premises to the Lessor in the same condition as received, subject to normal wear and tear, failing"}
+
+data: {"text":" which the cost of restoration may be recovered from the security deposit.\n\n17. This agreement shall be executed in the presence of two witnesses who"}
+
+data: {"text":" shall sign as attesters to the execution hereof, and the same"}
+
+data: {"text":" shall be duly stamped and registered as per the provisions of the Indian Stamp Act, 1899 and"}
+
+data: {"text":" the Registration Act, 1908.\n\n18. This agreement contains the entire understanding between the parties and supersedes all prior negotiations, representations, or agreements relating"}
+
+data: {"text":" to the subject matter hereof, and may only be modified by a written instrument executed by both parties."}
+
+event: template_sections
+data: {"sections":[{"section_id":"header","type":"template","content":"RENT AGREEMENT\n\nThis Rent Agreement is executed at Ranchi on 06.05.2026\n\nBETWEEN\n\nMr. Binod Kumar Oraon\nR/o Bungalow No. 4, Morabadi, Ranchi - 834008\nPAN: LMNOP1234Q\n(Hereinafter referred to as the \"LANDLORD\" which expression shall include his/her heirs, executors, administrators, and assigns)\n\nAND\n\nMs. Priya Sinha\nR/o Permanent: Village Ormanjhi, District Ranchi - 835219; Currently of: TCS Ltd., IT Park, Namkum, Ranchi\nPAN: RSTUV5678W\n(Hereinafter referred to as the \"TENANT\" which expression shall include his/her heirs, executors, administrators, and assigns)","alignment":"center"},{"section_id":"recitals","type":"template","content":"WHEREAS the Landlord is the absolute owner of the property described herein and is desirous of letting out the same to the Tenant, and the Tenant has agreed to take the said property on rent on the terms and conditions set forth herein.\n\nNOW THIS AGREEMENT WITNESSETH AS FOLLOWS:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. The Lessor hereby grants to the Lessee, and the Lessee hereby accepts from the Lessor, the tenancy of the residential premises bearing Flat No. 502, 5th Floor, Oraon Heights, Lalpur, Ranchi - 834001, measuring approximately 950 sq. ft., being a semi-furnished flat comprising two bedrooms, hall, kitchen, and one bathroom with attached balcony (hereinafter referred to as \"the demised premises\") for a period of 11 (eleven) months commencing from 01.06.2026 to 30.04.2027, both dates inclusive.\n\n2. The monthly rent for the demised premises shall be Rs. 15,000/- (Rupees Fifteen Thousand only) per month, which shall be payable by the Lessee to the Lessor on or before the 7th day of every English calendar month without any demand or notice via UPI transfer to the Lessor's SBI bank account details as provided separately.\n\n3. The Lessee has paid to the Lessor a sum of Rs. 45,000/- (Rupees Forty Five Thousand only) as security deposit, the receipt whereof is hereby acknowledged by the Lessor. The said security deposit shall remain with the Lessor during the entire period of tenancy and shall be refunded to the Lessee upon vacation of the demised premises after adjusting any dues, damages, or liabilities, if any.\n\n4. The monthly rent shall be subject to an annual escalation of 10% (ten percent) with effect from the commencement of each subsequent year of tenancy, if this agreement is renewed or extended by mutual consent of both parties.\n\n5. The Lessee shall be responsible for payment of electricity charges, water charges, and society maintenance charges pertaining to the demised premises during the period of tenancy. The Lessor shall bear the cost of major structural repairs to the building and the demised premises.\n\n6. The demised premises shall be used exclusively for residential purposes by the Lessee and his immediate family members only. The Lessee shall not use the premises for any commercial, business, or other non-residential purposes whatsoever.\n\n7. The Lessee shall not sub-let, assign, transfer, or part with possession of the demised premises or any part thereof to any third party without the prior written consent of the Lessor, which consent may be withheld at the sole discretion of the Lessor.\n\n8. The Lessee shall not make any structural alterations, additions, or modifications to the demised premises without the prior written consent of the Lessor. Any alterations made with such consent shall become the property of the Lessor without any compensation to the Lessee.\n\n9. Either party may terminate this tenancy agreement by giving 2 (two) months' prior written notice to the other party. Upon expiry of the notice period, the Lessee shall peacefully hand over vacant possession of the demised premises to the Lessor.\n\n10. In the event of default in payment of rent for a period exceeding 15 (fifteen) days from the due date, the Lessor shall be entitled to terminate this agreement and recover possession of the demised premises, in addition to claiming all outstanding dues and damages.\n\n11. If either party is prevented from performing their obligations under this agreement due to circumstances beyond their reasonable control, including but not limited to acts of God, natural disasters, governmental actions, or pandemic restrictions, such non-performance shall be excused during the continuance of such circumstances.\n\n12. Any dispute arising out of or in connection with this agreement shall be subject to the exclusive jurisdiction of the competent courts at Ranchi, Jharkhand, and shall be governed by the laws of India.\n\n13. The Lessee acknowledges that he is a salaried IT professional employed with Tata Consultancy Services (TCS) and has the financial capacity to pay the rent and comply with the terms of this agreement.\n\n14. The Lessee shall maintain the demised premises in good and tenantable condition and shall be liable for any damage caused due to negligence or misuse, the cost of rectification whereof may be adjusted from the security deposit.\n\n15. The Lessee shall allow the Lessor or his authorized representative to inspect the demised premises at reasonable times after giving reasonable notice, provided such inspection does not unreasonably interfere with the Lessee's peaceful enjoyment of the premises.\n\n16. Upon termination of this tenancy, the Lessee shall hand over the demised premises to the Lessor in the same condition as received, subject to normal wear and tear, failing which the cost of restoration may be recovered from the security deposit.\n\n17. This agreement shall be executed in the presence of two witnesses who shall sign as attesters to the execution hereof, and the same shall be duly stamped and registered as per the provisions of the Indian Stamp Act, 1899 and the Registration Act, 1908.\n\n18. This agreement contains the entire understanding between the parties and supersedes all prior negotiations, representations, or agreements relating to the subject matter hereof, and may only be modified by a written instrument executed by both parties."},{"section_id":"closing","type":"template","content":"IN WITNESS WHEREOF, the parties hereto have set their hands on this Rent Agreement on the day and year first above written at Ranchi.\n\n\nLANDLORD:\n\n_________________________\nMr. Binod Kumar Oraon\n\n\nTENANT:\n\n_________________________\nMs. Priya Sinha\n\n\nWITNESSES:\n\n1. Name: _________________________\n   Address: _________________________\n   Signature: _________________________\n\n2. Name: _________________________\n   Address: _________________________\n   Signature: _________________________","alignment":"left"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Print on stamp paper of appropriate value (varies by state)","Both parties to sign on all pages","Two witnesses required with full name, address, and signature","Attach passport-size photographs of Landlord and Tenant","Attach photocopy of Landlord's property ownership proof","Attach ID proof of both parties (Aadhaar/PAN)","For tenure > 11 months: compulsory registration at Sub-Registrar","Retain one executed copy with each party","Tenant to obtain NOC from housing society (if applicable)"]}
+
+event: done
+data: {"complete":true,"docId":null,"sectionsCited":[],"mandatoryClausesComplete":true}
+

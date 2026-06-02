@@ -1,0 +1,308 @@
+{
+  "_meta": {
+    "description": "Document-rules config for temporary_injunction_o39 — Application u/Order 39 R.1-2 CPC for temporary injunction pending suit",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 5 civil interlocutory pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Tripod test (prima facie / balance of convenience / irreparable injury) is non-negotiable."
+  },
+  "template_id": "temporary_injunction_o39",
+  "docType": "temporary_injunction_o39",
+  "title": "Application for Temporary Injunction (Order 39 R.1-2 CPC)",
+  "displayName": "Temporary Injunction Application (Order 39 R.1-2 CPC)",
+  "category": "civil_interlocutory",
+  "creditsCost": 1,
+  "court_levels": [
+    "civil_judge_junior_division",
+    "civil_judge_senior_division",
+    "district_judge",
+    "high_court_original_side",
+    "commercial_court",
+    "commercial_division_high_court"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{plaintiff} ... Plaintiff/Applicant\nVERSUS\n{defendant} ... Defendant/Non-Applicant",
+    "partyDesignations": [
+      { "role": "plaintiff", "label": "Plaintiff/Applicant" },
+      { "role": "defendant", "label": "Defendant/Non-Applicant" }
+    ],
+    "caseNomenclature": "I.A. No. _____ of [YEAR] in Civil Suit No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "suit_number",
+        "label": "Parent suit number / year",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "plaintiff_name",
+        "label": "Plaintiff/Applicant name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "defendant_name",
+        "label": "Defendant/Non-Applicant name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "subject_matter",
+        "label": "Subject-matter of suit (property/right/obligation)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "type_of_injunction_sought",
+        "label": "Type of interim relief sought",
+        "type": "select",
+        "required": true,
+        "options": [
+          "prohibitory_injunction_o39_r1",
+          "mandatory_injunction_o39_r1",
+          "status_quo",
+          "ad_interim_ex_parte",
+          "restraint_on_alienation"
+        ]
+      },
+      {
+        "id": "prima_facie_case",
+        "label": "Prima facie case — serious question to be tried",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "balance_of_convenience",
+        "label": "Balance of convenience — comparative hardship",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "irreparable_injury",
+        "label": "Irreparable injury — why damages inadequate",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "acts_complained_of",
+        "label": "Specific acts of defendant sought to be restrained (with dates)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "ex_parte_sought",
+        "label": "Ex parte ad-interim order sought under O.39 R.3 proviso?",
+        "type": "boolean",
+        "required": true
+      },
+      {
+        "id": "urgency_grounds",
+        "label": "Grounds of urgency (if ex parte sought)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "undertaking_offered",
+        "label": "Plaintiff's undertaking re: damages if injunction wrongly obtained",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "supporting_documents",
+        "label": "Documents in support (title / possession / proof of threat)",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Plaintiff/applicant and defendant/non-applicant"
+    },
+    {
+      "id": "suit_reference",
+      "name": "Reference to Main Suit",
+      "required": true,
+      "description": "Cross-reference suit number, cause of action, relief sought in main suit"
+    },
+    {
+      "id": "prima_facie_paragraph",
+      "name": "Prima Facie Case",
+      "required": true,
+      "description": "Triable issue, serious question to be decided"
+    },
+    {
+      "id": "balance_of_convenience_paragraph",
+      "name": "Balance of Convenience",
+      "required": true,
+      "description": "Greater inconvenience if injunction refused"
+    },
+    {
+      "id": "irreparable_injury_paragraph",
+      "name": "Irreparable Injury",
+      "required": true,
+      "description": "Loss not adequately compensable in money"
+    },
+    {
+      "id": "acts_complained_paragraph",
+      "name": "Acts Sought to be Restrained",
+      "required": true,
+      "description": "Specific overt acts / threats with dates"
+    },
+    {
+      "id": "undertaking_paragraph",
+      "name": "Undertaking",
+      "required": true,
+      "description": "Plaintiff's undertaking re: damages"
+    },
+    {
+      "id": "ex_parte_grounds",
+      "name": "Ex Parte Grounds (if sought)",
+      "required": false,
+      "description": "O.39 R.3 proviso — reasons recorded for not giving notice"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Specific interim relief sought"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "O.39 R.3 — affidavit mandatory"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Grant a temporary injunction under Order 39 Rules 1 and 2 read with Section 151 CPC restraining the Defendant/Non-Applicant, his agents, servants, representatives, assigns, and all persons claiming through or under him, from {acts_complained_of} pending final disposal of the suit;\n\nb) In the alternative and pending notice to the Non-Applicant, grant an ad-interim ex parte order in terms of prayer (a) above for the reasons stated hereinabove, in exercise of powers under the proviso to Order 39 Rule 3 CPC;\n\nc) Award costs of this application;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {plaintiff_name}, the Applicant herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nApplicant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft an application for temporary injunction under Order 39 Rules 1 and 2 read with Section 151 CPC.",
+      "Order 39 R.1 — temporary injunction may be granted where: (a) property in dispute in danger of being wasted/damaged/alienated; (b) defendant threatens or intends to remove/dispose property to defraud creditors; (c) defendant threatens to dispossess or otherwise cause injury to plaintiff in relation to disputed property.",
+      "Order 39 R.2 — injunction to restrain breach of contract or other injury.",
+      "Triple test — MANDATORY and to be addressed in three separate paragraphs: (i) prima facie case / serious question to be tried, (ii) balance of convenience, (iii) irreparable injury — citing Dalpat Kumar v. Prahlad Singh (1992) 1 SCC 719 and M. Gurudas v. Rasaranjan (2006) 8 SCC 367.",
+      "Para 1: Reference to main suit number, parties, cause of action.",
+      "Para 2: Brief recap of plaintiff's case in main suit.",
+      "Para 3: Plaintiff's legal right / title / possession.",
+      "Para 4: Specific acts of defendant — overt threats or actual interference — with dates and particulars.",
+      "Para 5: Prima facie case paragraph — serious triable issue exists.",
+      "Para 6: Balance of convenience — greater hardship if relief refused.",
+      "Para 7: Irreparable injury — why damages inadequate (special character of property, continuing trespass, loss of goodwill, etc.).",
+      "Para 8: Plaintiff's undertaking to compensate defendant if injunction wrongly obtained (Order 25 R.1 or undertaking in lieu).",
+      "If ex parte sought: separate paragraph under O.39 R.3 proviso citing reasons — urgency, frustration of purpose if notice given, defendant likely to defeat object of injunction. Court must record reasons for not issuing notice.",
+      "Cite Morgan Stanley Mutual Fund v. Kartick Das (1994) 4 SCC 225 — ex parte injunction principles.",
+      "Cite Anand Prasad Agarwalla v. Tarkeshwar Prasad (2001) 5 SCC 568 — ex parte order should be exception not rule.",
+      "Affidavit in support is mandatory under O.39 R.3.",
+      "Where Commercial Courts Act applies (specified commercial disputes, value >= Rs.3 lakh): pre-institution mediation u/S.12A unless urgent interim relief sought — flag this.",
+      "Where suit relates to immovable property in UP/Bihar/Jharkhand: verify possession with khatauni / mutation extracts.",
+      "Do not pray for permanent injunction in this application — that is in the plaint prayer.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "S.94", "description": "Supplemental proceedings — interim orders" },
+        {
+          "number": "S.95",
+          "description": "Compensation for arrest, attachment or injunction on insufficient grounds"
+        },
+        { "number": "S.151", "description": "Inherent powers of court" },
+        {
+          "number": "Order 39 R.1",
+          "description": "Cases in which temporary injunction may be granted"
+        },
+        {
+          "number": "Order 39 R.2",
+          "description": "Injunction to restrain breach of contract or other injury"
+        },
+        {
+          "number": "Order 39 R.2A",
+          "description": "Consequences of disobedience or breach of injunction"
+        },
+        {
+          "number": "Order 39 R.3",
+          "description": "Notice before grant of injunction; ex parte conditions and reasons"
+        },
+        {
+          "number": "Order 39 R.3A",
+          "description": "Court to dispose ex parte injunction application within 30 days"
+        },
+        { "number": "Order 39 R.4", "description": "Order may be discharged, varied or set aside" }
+      ]
+    },
+    {
+      "act": "Specific Relief Act, 1963",
+      "sections": [
+        { "number": "S.37", "description": "Temporary and perpetual injunctions" },
+        { "number": "S.41", "description": "Bars on grant of injunction" }
+      ]
+    },
+    {
+      "act": "Commercial Courts Act, 2015",
+      "sections": [
+        {
+          "number": "S.12A",
+          "description": "Pre-institution mediation (exception: urgent interim relief)"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + copies)",
+    "Affidavit in support (mandatory O.39 R.3)",
+    "Memo of parties",
+    "Documents establishing plaintiff's right / title / possession",
+    "Evidence of threat or interference (photographs, notices, witness statements)",
+    "Undertaking re: damages if injunction wrongly obtained",
+    "Order 39 R.3 proviso compliance — reasons for ex parte order (if sought)",
+    "Court fee per state Schedule (usually fixed for IA)",
+    "Copy of plaint for reference",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "suit_number must be filled (parent suit reference mandatory)",
+    "prima_facie_case must not be empty",
+    "balance_of_convenience must not be empty",
+    "irreparable_injury must not be empty",
+    "acts_complained_of must not be empty",
+    "undertaking_offered must not be empty",
+    "If ex_parte_sought=true, urgency_grounds must not be empty",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Dalpat Kumar v. Prahlad Singh (1992) 1 SCC 719 — Triple test for temporary injunction",
+    "M. Gurudas v. Rasaranjan (2006) 8 SCC 367 — Reiteration of triple test",
+    "Morgan Stanley Mutual Fund v. Kartick Das (1994) 4 SCC 225 — Ex parte injunction principles",
+    "Anand Prasad Agarwalla v. Tarkeshwar Prasad (2001) 5 SCC 568 — Ex parte order should be exception",
+    "Wander Ltd. v. Antox India (P) Ltd. 1990 (Supp) SCC 727 — Appellate court interference with discretionary interim orders",
+    "Shiv Kumar Chadha v. Municipal Corporation of Delhi (1993) 3 SCC 161 — Recording of reasons for ex parte order"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

@@ -1,0 +1,474 @@
+{
+  "_meta": {
+    "description": "Document-rules config for mou — Memorandum of Understanding. Pre-contractual document recording mutual intent. Binding/non-binding character depends on LANGUAGE (Subject to contract / non-binding except for specified clauses). Term sheet vs MOU vs LOI distinction. Specific binding clauses (confidentiality, exclusivity, governing law, dispute resolution) typically carve-outs.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Binding vs non-binding language must be UNAMBIGUOUS. Specifically carve out which clauses bind (typically confidentiality, exclusivity, dispute resolution, governing law)."
+  },
+  "template_id": "mou",
+  "docType": "mou",
+  "title": "Memorandum of Understanding (MOU)",
+  "displayName": "Memorandum of Understanding",
+  "category": "transactional_deed",
+  "creditsCost": 1,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "MEMORANDUM OF UNDERSTANDING\n\nThis Memorandum of Understanding is recorded on this {date} at {place}.\n\nBETWEEN\n\n{party_1_name}, {party_1_description}, having address at {party_1_address}, (PAN/CIN: {party_1_id})\n(hereinafter referred to as \"PARTY A\" / \"{party_1_short_name}\")\n\nAND\n\n{party_2_name}, {party_2_description}, having address at {party_2_address}, (PAN/CIN: {party_2_id})\n(hereinafter referred to as \"PARTY B\" / \"{party_2_short_name}\")\n\n(Each a \"Party\" and together the \"Parties\")",
+    "partyDesignations": [
+      { "role": "party_a", "label": "Party A" },
+      { "role": "party_b", "label": "Party B" }
+    ],
+    "caseNomenclature": "N/A — Pre-contractual"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "party_1_name",
+        "label": "Party A full / entity name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "party_1_description",
+        "label": "Party A description (individual / company / partnership)",
+        "type": "text",
+        "required": true
+      },
+      { "id": "party_1_address", "label": "Party A address", "type": "textarea", "required": true },
+      {
+        "id": "party_1_id",
+        "label": "Party A PAN / CIN / passport",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "party_1_short_name",
+        "label": "Party A short name for use in document",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "party_2_name",
+        "label": "Party B full / entity name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "party_2_description",
+        "label": "Party B description",
+        "type": "text",
+        "required": true
+      },
+      { "id": "party_2_address", "label": "Party B address", "type": "textarea", "required": true },
+      {
+        "id": "party_2_id",
+        "label": "Party B PAN / CIN / passport",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "party_2_short_name",
+        "label": "Party B short name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "subject_matter",
+        "label": "Subject matter of MOU (transaction / collaboration being explored)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "mou_purpose",
+        "label": "Purpose of MOU",
+        "type": "select",
+        "required": true,
+        "options": [
+          "mou_for_business_collaboration_partnership_exploration",
+          "mou_for_distribution_or_agency_arrangement",
+          "mou_for_share_acquisition_or_investment",
+          "mou_for_joint_venture_company_formation",
+          "mou_for_sale_or_purchase_of_assets_or_business",
+          "mou_for_strategic_alliance_or_co_marketing",
+          "mou_for_supply_or_service_arrangement",
+          "mou_for_real_estate_or_property_transaction",
+          "mou_for_settlement_of_dispute_pre_compromise",
+          "mou_for_employment_consulting_engagement"
+        ]
+      },
+      {
+        "id": "binding_or_non_binding",
+        "label": "Overall binding character of MOU",
+        "type": "select",
+        "required": true,
+        "options": [
+          "non_binding_except_specified_clauses",
+          "binding_subject_to_definitive_agreement",
+          "fully_binding_pre_contract"
+        ]
+      },
+      {
+        "id": "binding_clauses_list",
+        "label": "Clauses that ARE binding even if MOU is non-binding (e.g., confidentiality, exclusivity, costs, governing law, dispute resolution)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "exclusivity_period",
+        "label": "Exclusivity / Standstill period (where applicable)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "definitive_agreement_deadline",
+        "label": "Deadline for definitive agreement",
+        "type": "date",
+        "required": false
+      },
+      {
+        "id": "confidentiality_period_years",
+        "label": "Confidentiality period (years from MOU termination)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "key_commercial_terms_summary",
+        "label": "Key commercial terms summary (price / shares / scope / consideration)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "conditions_precedent",
+        "label": "Conditions precedent to definitive agreement (due diligence, regulatory approvals, board approvals)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "due_diligence_period_days",
+        "label": "Due diligence period (days)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "cost_allocation",
+        "label": "Allocation of costs (own / shared / one-side)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "termination_grounds",
+        "label": "Termination grounds",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "dispute_resolution",
+        "label": "Dispute resolution (arbitration / court / jurisdiction)",
+        "type": "text",
+        "required": true
+      },
+      { "id": "governing_law", "label": "Governing law", "type": "text", "required": true },
+      {
+        "id": "stamp_duty_paid",
+        "label": "Stamp duty paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "state",
+        "label": "State of execution",
+        "type": "select",
+        "required": true,
+        "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi", "other"]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 name & address (optional but advised)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 name & address (optional but advised)",
+        "type": "textarea",
+        "required": false
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_recital",
+      "name": "Parties and Recitals",
+      "required": true,
+      "description": "Identification of parties and their respective businesses"
+    },
+    {
+      "id": "background_recital",
+      "name": "Background / Recitals (Whereas)",
+      "required": true,
+      "description": "Context of discussions; rationale for MOU"
+    },
+    {
+      "id": "subject_matter_clause",
+      "name": "Subject Matter of MOU",
+      "required": true,
+      "description": "What transaction / collaboration parties are exploring"
+    },
+    {
+      "id": "binding_character_clause",
+      "name": "Binding Character — Unambiguous Statement",
+      "required": true,
+      "description": "Explicit statement: MOU is non-binding subject to definitive agreement EXCEPT specified clauses; OR MOU is fully binding"
+    },
+    {
+      "id": "carve_out_binding_clauses",
+      "name": "Carve-out — Binding Clauses Even If Non-Binding",
+      "required": true,
+      "description": "Confidentiality, exclusivity, costs, governing law, dispute resolution, term — typically binding"
+    },
+    {
+      "id": "commercial_terms_summary",
+      "name": "Key Commercial Terms Summary",
+      "required": true,
+      "description": "Indicative price / valuation / scope / consideration / structure — non-binding indicators"
+    },
+    {
+      "id": "exclusivity_clause",
+      "name": "Exclusivity / Standstill (if applicable)",
+      "required": false,
+      "description": "Parties not to negotiate with third parties for specified period — BINDING carve-out"
+    },
+    {
+      "id": "confidentiality_clause",
+      "name": "Confidentiality",
+      "required": true,
+      "description": "Mutual confidentiality of MOU terms + shared information — BINDING; survives termination for specified period"
+    },
+    {
+      "id": "due_diligence_clause",
+      "name": "Due Diligence",
+      "required": true,
+      "description": "Right of parties to undertake DD; cooperation; access to information"
+    },
+    {
+      "id": "conditions_precedent_clause",
+      "name": "Conditions Precedent to Definitive Agreement",
+      "required": true,
+      "description": "What must be satisfied before binding contract — DD findings acceptable, regulatory approvals, board approvals, financing"
+    },
+    {
+      "id": "definitive_agreement_timeline",
+      "name": "Definitive Agreement Timeline",
+      "required": true,
+      "description": "Target date for binding agreement; consequences of missing deadline"
+    },
+    {
+      "id": "cost_allocation_clause",
+      "name": "Cost Allocation",
+      "required": true,
+      "description": "Each party bears own costs unless specified"
+    },
+    {
+      "id": "no_obligation_to_proceed",
+      "name": "No Obligation to Proceed (if non-binding)",
+      "required": false,
+      "description": "Either party may walk away without liability"
+    },
+    {
+      "id": "termination_clause",
+      "name": "Termination",
+      "required": true,
+      "description": "How MOU ends; surviving obligations"
+    },
+    {
+      "id": "governing_law_jurisdiction",
+      "name": "Governing Law and Jurisdiction",
+      "required": true,
+      "description": "BINDING — applicable law and dispute forum"
+    },
+    {
+      "id": "dispute_resolution_clause",
+      "name": "Dispute Resolution",
+      "required": true,
+      "description": "BINDING — arbitration / court"
+    },
+    {
+      "id": "no_partnership_clause",
+      "name": "No Partnership / Agency / Joint Venture",
+      "required": true,
+      "description": "MOU does not create partnership, agency, JV, or fiduciary relationship by itself"
+    },
+    {
+      "id": "no_publicity_clause",
+      "name": "No Publicity",
+      "required": true,
+      "description": "No public announcement without mutual consent"
+    },
+    {
+      "id": "amendments_clause",
+      "name": "Amendments — In Writing Only",
+      "required": true,
+      "description": "Only in writing signed by both parties"
+    },
+    {
+      "id": "execution_clause",
+      "name": "Execution",
+      "required": true,
+      "description": "Signed by both parties / authorised signatories"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a MEMORANDUM OF UNDERSTANDING (MOU). An MOU is a PRE-CONTRACTUAL document recording mutual intent and key commercial terms during early-stage negotiations.",
+      "TERMINOLOGY:\n   - MOU (Memorandum of Understanding): general pre-contractual; mostly non-binding except carve-outs.\n   - LOI (Letter of Intent): similar to MOU; often unilateral by acquirer / customer.\n   - Term Sheet: very brief; bullet-point commercial terms; almost always non-binding except confidentiality / exclusivity.\n   - Heads of Agreement / Heads of Terms: synonymous with term sheet.\n   - Memorandum of Agreement (MoA): tends to be more binding than MOU; closer to contract.",
+      "BINDING vs NON-BINDING — CRITICAL DRAFTING POINT:",
+      "(1) In Indian law (Indian Contract Act 1872, S.10), what constitutes a contract is offer + acceptance + consideration + free consent + capacity + lawful object. If MOU meets these, courts will hold it binding regardless of label. Cite Kollipara Sriramulu v. T. Aswatha Narayana AIR 1968 SC 1028; Trimex International FZE v. Vedanta Aluminium (2010) 3 SCC 1.",
+      "(2) Therefore, to keep MOU non-binding, language MUST be UNAMBIGUOUS:\n   - 'This MOU is non-binding and is subject to and conditional upon the parties entering into a definitive agreement on terms mutually acceptable to both parties.'\n   - 'No legally binding obligations shall arise from this MOU EXCEPT for the obligations expressly stated to be binding in [specified clauses].'\n   - 'Neither party shall have any liability to the other for failure to enter into a definitive agreement.'",
+      "(3) HOWEVER, courts have held MOUs binding where:\n   - Conduct of parties shows they treated it as binding (Suresh Kumar Wadhwa v. State of MP (2017) 16 SCC 757).\n   - Terms are sufficiently certain and no further substantive negotiation needed.\n   - Performance has commenced (e.g., transfer of money / assets).",
+      "(4) Common BINDING CARVE-OUTS in non-binding MOU:\n   (a) Confidentiality — protects information exchanged during negotiation.\n   (b) Exclusivity / Standstill — parties don't negotiate with others during MOU period.\n   (c) Costs — each party bears own costs.\n   (d) Governing law.\n   (e) Dispute resolution (relating to enforcement of binding clauses).\n   (f) Term of the MOU itself.\n   (g) Notices.",
+      "STRUCTURE:",
+      "Para 1: Title 'MEMORANDUM OF UNDERSTANDING'.",
+      "Para 2: Parties identification.",
+      "Para 3: BACKGROUND / WHEREAS clauses (recitals) — context, prior discussions, mutual interest. Each recital with WHEREAS.",
+      "Para 4: SUBJECT MATTER — clear statement of what transaction / collaboration is being explored. Examples:\n   (a) Business collaboration: 'Parties are exploring a collaboration whereby Party A shall provide [X services / technology] and Party B shall [provide market access / capital / distribution]...'\n   (b) Investment: 'Party A (Investor) is exploring an equity investment of up to Rs. [amount] in Party B (Investee) on terms set out below...'\n   (c) Acquisition: 'Party A is exploring acquisition of [shares / business / assets] of Party B...'\n   (d) JV: 'Parties are exploring formation of a joint venture company for [purpose]...'\n   (e) Pre-litigation settlement: 'Parties are recording their understanding for settlement of disputes pending in [case], subject to definitive settlement deed.'",
+      "Para 5: BINDING CHARACTER — UNAMBIGUOUS:\n   (a) Non-binding default: 'This MOU is non-binding and reflects only the present intentions of the Parties. No legally binding obligations shall arise from this MOU except for the obligations expressly identified as BINDING in Clause [X] (Confidentiality), Clause [Y] (Exclusivity), Clause [Z] (Costs, Governing Law, Dispute Resolution). The Parties expressly intend that no legal rights or obligations are created in respect of the proposed transaction itself unless and until the Parties execute a Definitive Agreement.'",
+      "Para 6: KEY COMMERCIAL TERMS — set out as INDICATIVE / NON-BINDING:\n   - Pricing / valuation methodology.\n   - Structure (asset sale / share sale / new co formation).\n   - Consideration mix (cash / stock / earnout).\n   - Closing conditions.\n   - Indemnity caps / baskets (indicative).\n   - Lock-in / non-compete (indicative).",
+      "Para 7: CONDITIONS PRECEDENT (for definitive agreement):\n   - Satisfactory due diligence (legal, financial, tax, commercial).\n   - Receipt of all regulatory approvals (CCI / RBI / FDI / sectoral).\n   - Internal approvals (board, shareholders).\n   - Financing arrangements.\n   - Receipt of consents and waivers from third parties (landlord, lender, key customer).\n   - No material adverse change.",
+      "Para 8: DUE DILIGENCE — Right of parties to conduct DD; cooperation; access to documents, premises, personnel; reasonable time.",
+      "Para 9: DEFINITIVE AGREEMENT TIMELINE — Target date (e.g., 60-90 days from MOU); reasonable extension if DD requires; consequences of missing deadline (MOU terminates with surviving obligations).",
+      "Para 10: EXCLUSIVITY / STANDSTILL (where applicable) — BINDING:\n   'During the Exclusivity Period of [X] days from execution of this MOU, neither Party shall:\n   (i) directly or indirectly solicit, initiate, encourage or accept any inquiries or proposals from any third party in respect of the Proposed Transaction or any substantially similar transaction;\n   (ii) engage in any negotiations or discussions with any third party regarding such transaction;\n   (iii) provide any non-public information to any third party for such purpose.'\n   Breach attracts liquidated damages / specific performance.",
+      "Para 11: CONFIDENTIALITY — BINDING:\n   - All information exchanged is confidential.\n   - Use only for evaluating the proposed transaction.\n   - Restricted disclosure to need-to-know personnel + advisors (bound by similar obligations).\n   - Return / destruction on termination.\n   - Exceptions: publicly available, independently developed, lawfully received from third party, required by law / regulator.\n   - Survives MOU termination for [X] years (typically 2-5).",
+      "Para 12: COSTS — Each party bears its own costs (advisors, legal, accounting, DD) unless specifically agreed.",
+      "Para 13: NO PUBLICITY — No public announcement / press release / regulatory disclosure of MOU or proposed transaction without prior mutual consent in writing (except statutorily required disclosures).",
+      "Para 14: NO PARTNERSHIP / NO AGENCY — MOU does NOT create partnership, agency, joint venture, fiduciary relationship, or employer-employee relationship.",
+      "Para 15: NO REPRESENTATIONS — Each party makes representations only in the definitive agreement; representations / warranties / commercial terms in MOU are indicative only.",
+      "Para 16: ANTI-ASSIGNMENT — MOU not assignable without other party's consent.",
+      "Para 17: TERMINATION GROUNDS:\n   (a) By mutual agreement.\n   (b) By either party on [X] days' notice (if non-binding MOU).\n   (c) Automatically on execution of definitive agreement.\n   (d) Automatically on expiry of MOU term.\n   (e) On material breach of binding clauses (e.g., confidentiality breach, exclusivity breach).",
+      "Para 18: SURVIVING OBLIGATIONS — confidentiality, governing law, dispute resolution, costs continue beyond termination.",
+      "Para 19: AMENDMENTS — Only in writing signed by both parties' authorised signatories.",
+      "Para 20: NOTICES — Manner of giving notices; addresses for service.",
+      "Para 21: GOVERNING LAW — BINDING: 'This MOU shall be governed by and construed in accordance with the laws of India.'",
+      "Para 22: DISPUTE RESOLUTION — BINDING:\n   - Negotiation between senior management first.\n   - If unresolved within 30 days, arbitration under Arbitration & Conciliation Act 1996 (sole / 3-member; institutional / ad-hoc; seat at [city]; English / Hindi language; rules of [institution]).\n   - OR exclusive court jurisdiction at specified place.",
+      "Para 23: ENTIRE UNDERSTANDING — MOU supersedes prior oral / written communications on subject matter but does not itself create binding rights except as specified.",
+      "Para 24: COUNTERPARTS — May be executed in counterparts.",
+      "Execution by both parties (authorised signatories with seal for entities).",
+      "STAMP DUTY — MOU stamp duty:\n   - Generally low (Rs.100 to Rs.500 fixed) treating as agreement under Article 5 of state stamp schedule.\n   - HOWEVER, if MOU has binding commercial terms equivalent to contract (e.g., binding sale of property, binding investment) — Stamp Authority may scrutinise and demand higher duty.\n   - Where MOU touches on transfer of immovable property and creates rights — may attract registration under S.17 Registration Act read with S.53A TPA (part performance).",
+      "Witnesses are OPTIONAL for MOU (no statutory requirement) but recommended for evidentiary value, especially where binding clauses important.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Indian Contract Act, 1872",
+      "sections": [
+        {
+          "number": "S.2",
+          "description": "Definitions — agreement, contract, proposal, acceptance, consideration"
+        },
+        {
+          "number": "S.10",
+          "description": "What agreements are contracts — free consent, lawful consideration, lawful object, parties competent"
+        },
+        { "number": "S.23", "description": "Lawful consideration and object" },
+        {
+          "number": "S.29",
+          "description": "Agreements void for uncertainty — guard against on commercial terms"
+        }
+      ]
+    },
+    {
+      "act": "Specific Relief Act, 1963",
+      "sections": [
+        {
+          "number": "S.10-12",
+          "description": "Specific performance — applicable where binding contract; not applicable to non-binding MOU per se"
+        }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899 + State Schedules",
+      "sections": [
+        {
+          "number": "Article 5",
+          "description": "Agreement / MOU stamp duty — typically Rs.100-500 in most states; verify state schedule"
+        }
+      ]
+    },
+    {
+      "act": "Arbitration and Conciliation Act, 1996",
+      "sections": [
+        {
+          "number": "S.7",
+          "description": "Arbitration agreement — included as binding clause in MOU"
+        },
+        {
+          "number": "S.8 / S.11",
+          "description": "Referring parties to arbitration; appointment of arbitrators"
+        }
+      ]
+    },
+    {
+      "act": "Information Technology Act, 2000",
+      "sections": [
+        { "number": "S.10A", "description": "E-contracts / e-signed MOU enforceability" }
+      ]
+    },
+    {
+      "act": "Competition Act, 2002",
+      "sections": [
+        {
+          "number": "S.3",
+          "description": "Anti-competitive agreements — flag if MOU contains exclusivity / market sharing among competitors"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Stamp paper per state Article 5 (typically Rs.100-500; verify)",
+    "Identification of parties — PAN + Aadhaar (individuals) / CIN + MOA (companies)",
+    "Authorised Signatory PoA / Board Resolution (for entities)",
+    "Two adult witnesses (OPTIONAL but recommended)",
+    "MOU not generally required to be registered under Registration Act (no transfer of immovable property interest)",
+    "BUT where MOU includes binding sale of immovable property OR pre-payment + part performance — flag potential registration and S.53A TPA implications",
+    "Where MOU contains anti-competitive elements between competitors — flag CCI implications",
+    "Where MOU involves foreign party — FEMA / FDI / RBI compliance considerations",
+    "Where MOU has equity / share aspects of listed company — SEBI / stock exchange disclosure considerations",
+    "Internal approvals: Board / Investment Committee for material MOU; document approval trail",
+    "Confidentiality undertakings from advisors before sharing MOU contents",
+    "Maintain executed counterparts safely",
+    "Lawie disclaimer included"
+  ],
+  "validation_rules": [
+    "subject_matter must not be empty",
+    "mou_purpose must be specified",
+    "binding_or_non_binding must be specified",
+    "binding_clauses_list must not be empty (at minimum: confidentiality, governing law, dispute resolution)",
+    "confidentiality_period_years >= 1",
+    "key_commercial_terms_summary must not be empty",
+    "conditions_precedent must not be empty (typically: DD, regulatory approvals, internal approvals)",
+    "if binding_or_non_binding == 'non_binding_except_specified_clauses' — explicit non-binding language required + identification of binding carve-outs",
+    "cost_allocation must be specified",
+    "termination_grounds must not be empty",
+    "dispute_resolution must be specified",
+    "governing_law must be specified",
+    "if exclusivity_period specified — exclusivity_period must include start date + duration + scope",
+    "stamp_duty_paid >= 100 (minimum agreement stamp duty)",
+    "advocate enrollment number required"
+  ]
+}

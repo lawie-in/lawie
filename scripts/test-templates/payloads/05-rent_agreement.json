@@ -1,0 +1,32 @@
+{
+  "template_id": "rent_agreement",
+  "form_data": {
+    "state": "bihar",
+    "execution_place": "Patna",
+    "execution_date": "2026-05-05",
+    "applicant_name": "Mrs. Sunita Devi",
+    "applicant_address": "House No. 9, Lane 3, Kankarbagh, Patna - 800020",
+    "applicant_pan": "ABCDE1234F",
+    "respondent_name": "Mr. Rahul Mishra",
+    "respondent_address": "Permanent: Village Bihta, District Patna - 801103; Currently of: HDFC Bank Ltd., Boring Road Branch, Patna",
+    "respondent_pan": "FGHIJ5678K",
+    "language": "en",
+    "property_address": "Flat No. 304, 3rd Floor, Sunshine Apartments, Boring Canal Road, Patna - 800001",
+    "property_area_sqft": 1100,
+    "property_type": "residential",
+    "rent_amount": 22000,
+    "rent_amount_words": "Twenty Two Thousand only",
+    "rent_due_date": "5th of every month",
+    "payment_mode": "Bank transfer to landlord's HDFC account",
+    "escalation_percent": 8,
+    "security_deposit": 66000,
+    "security_deposit_words": "Sixty Six Thousand only",
+    "tenure_months": 11,
+    "lease_start_date": "2026-05-15",
+    "lease_end_date": "2027-04-14",
+    "notice_period_months": 2,
+    "permitted_use": "Residential — for self and immediate family only",
+    "maintenance_responsibility": "Tenant to pay electricity, water, and society maintenance charges. Major structural repairs to be borne by Landlord.",
+    "facts_narrative": "Standard residential lease for 11 months in Patna. Furnished flat with two bedrooms, one hall, kitchen, two bathrooms, and one balcony. Tenant is a salaried employee of HDFC Bank. Two witnesses to be added at execution."
+  }
+}

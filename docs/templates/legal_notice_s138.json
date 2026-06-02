@@ -1,0 +1,334 @@
+{
+  "template_id": "legal_notice_s138",
+  "display_name": "Cheque Bounce Notice (Section 138 NI Act)",
+  "category": "criminal",
+  "description": "Statutory demand notice under Section 138 read with Section 142 of the Negotiable Instruments Act, 1881",
+  "icon": "file-warning",
+  "plan_access": "free",
+  "applicable_courts": {
+    "court_levels": [
+      "jmfc",
+      "cjm"
+    ],
+    "states": [
+      "all"
+    ]
+  },
+  "supported_languages": [
+    "en",
+    "hi",
+    "bilingual"
+  ],
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Parties",
+        "fields": [
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Payee / Notice Sender",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "header",
+              "body"
+            ]
+          },
+          {
+            "field_id": "applicant_address",
+            "label": "Payee Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "respondent_name",
+            "label": "Drawer / Noticee",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "header",
+              "body"
+            ]
+          },
+          {
+            "field_id": "respondent_address",
+            "label": "Drawer Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "respondent_type",
+            "label": "Drawer Type",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "individual",
+                "label": "Individual"
+              },
+              {
+                "id": "company",
+                "label": "Company / LLP"
+              },
+              {
+                "id": "partnership",
+                "label": "Partnership Firm"
+              },
+              {
+                "id": "huf",
+                "label": "HUF"
+              }
+            ],
+            "required": true,
+            "default": "individual",
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Advocate Details",
+        "fields": [
+          {
+            "field_id": "advocate_name",
+            "label": "Advocate Name",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "header",
+              "closing"
+            ]
+          },
+          {
+            "field_id": "advocate_address",
+            "label": "Advocate Chamber Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
+            "field_id": "advocate_enrollment",
+            "label": "Bar Council Enrollment No.",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "closing"
+            ]
+          }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Cheque Details",
+        "fields": [
+          {
+            "field_id": "cheque_number",
+            "label": "Cheque Number",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "cheque_date",
+            "label": "Cheque Date",
+            "type": "date",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "cheque_amount",
+            "label": "Cheque Amount (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": [
+              "body",
+              "demand"
+            ]
+          },
+          {
+            "field_id": "amount_in_words",
+            "label": "Amount in Words",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "drawee_bank",
+            "label": "Drawee Bank Name",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "drawee_branch",
+            "label": "Drawee Branch",
+            "type": "text",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "presentation_date",
+            "label": "Date of Presentation to Bank",
+            "type": "date",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "dishonour_date",
+            "label": "Date of Dishonour / Return Memo",
+            "type": "date",
+            "required": true,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "dishonour_reason",
+            "label": "Reason for Dishonour (as per memo)",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Funds Insufficient, Account Closed",
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "underlying_liability",
+            "label": "Underlying Liability (why was cheque issued?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 30,
+            "max_length": 1000,
+            "inject_into": [
+              "ai_prompt"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "computed_fields": {
+    "notice_date": {
+      "logic": "'current_date'"
+    },
+    "payment_deadline_days": {
+      "logic": "'15'"
+    },
+    "ni_act_sections_ref": {
+      "logic": "if respondent_type === 'individual' then '138 read with Section 142' else '138 read with Sections 141 and 142'"
+    }
+  },
+  "document_structure": {
+    "sections": [
+      {
+        "section_id": "header",
+        "type": "template",
+        "alignment": "left",
+        "template": "LEGAL NOTICE\n(Under Section {ni_act_sections_ref} of the Negotiable Instruments Act, 1881)\n\nDate: {current_date}\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\n{respondent_name}\n{respondent_address}\n\nFrom,\n{applicant_name}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
+      },
+      {
+        "section_id": "subject_line",
+        "type": "template",
+        "alignment": "left",
+        "template": "Subject: Statutory Demand Notice under Section 138 of the Negotiable Instruments Act, 1881 — Cheque No. {cheque_number} dated {cheque_date} for Rs. {cheque_amount}/- ({amount_in_words}) drawn on {drawee_bank}, {drawee_branch} — dishonoured on {dishonour_date}\n\nSir/Madam,\n\nUnder instructions from and on behalf of my client, {applicant_name}, I hereby serve upon you this statutory notice under Section 138 of the Negotiable Instruments Act, 1881, and call upon you to note as under:"
+      },
+      {
+        "section_id": "body",
+        "type": "ai_generated",
+        "prompt_context": "Generate 5-7 numbered paragraphs for a Section 138 NI Act cheque bounce notice. This is a STATUTORY DEMAND NOTICE — tone must be firm and legal. Structure:\nPara 1: State the underlying liability — {underlying_liability}.\nPara 2: State that towards discharge of said liability, the noticee ({respondent_name}) issued Cheque No. {cheque_number} dated {cheque_date} for Rs. {cheque_amount}/- ({amount_in_words}) drawn on {drawee_bank}, {drawee_branch}.\nPara 3: State that the cheque was presented to the payee's bank on {presentation_date} and was returned dishonoured vide bank's return memo dated {dishonour_date} with the endorsement '{dishonour_reason}'.\nPara 4: State that the dishonour constitutes a criminal offence under Section 138 NI Act punishable with imprisonment up to 2 years or fine up to twice the cheque amount or both.\nPara 5: State that as per proviso (b) to Section 138, the payee is required to make a demand within 30 days of receiving information of dishonour.\nDo NOT generate the demand clause or closing — those are template-handled.",
+        "numbering": "numeric",
+        "min_paragraphs": 5,
+        "max_paragraphs": 7
+      },
+      {
+        "section_id": "demand_clause",
+        "type": "template",
+        "alignment": "left",
+        "template": "DEMAND\n\nYou are hereby called upon to make payment of the said sum of Rs. {cheque_amount}/- ({amount_in_words}) to my client within a period of fifteen (15) days from the date of receipt of this notice, failing which my client shall be constrained to initiate criminal proceedings against you under Section 138 of the Negotiable Instruments Act, 1881, before the competent Magistrate having jurisdiction, at your risk, cost, and consequences.\n\nPlease note that under Section 138, if you fail to make payment within 15 days of receipt of this notice, my client shall file a criminal complaint within 30 days thereafter, and upon conviction you shall be liable to imprisonment for a term which may extend to two years, or with fine which may extend to twice the amount of the cheque, or with both."
+      },
+      {
+        "section_id": "closing",
+        "type": "template",
+        "alignment": "left",
+        "template": "A copy of this notice is retained in my office for record and further legal action.\n\nYours faithfully,\n\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {advocate_enrollment}\n{advocate_address}\n\n(Counsel for {applicant_name})"
+      }
+    ]
+  },
+  "related_acts": [
+    "Negotiable Instruments Act 1881 — Sections 138, 139, 141, 142",
+    "BNS"
+  ],
+  "special_prayer_additions": [],
+  "filing_checklist": [
+    "Send within 30 days of receiving dishonour information (bank memo date)",
+    "Send via Registered Post AD — retain postal receipt",
+    "Send additional copy via Speed Post / UPC for safety",
+    "Retain original dishonoured cheque safely (primary evidence)",
+    "Retain bank return memo / dishonour slip",
+    "Wait 15 days from date of receipt by noticee",
+    "If no payment within 15 days — file complaint within next 30 days (S.142(1)(b))",
+    "Keep AD card as proof of service",
+    "Verify noticee's correct residential / business address"
+  ],
+  "validation_rules": {
+    "section_codes_allowed": [
+      "NI Act",
+      "BNS",
+      "CPC"
+    ],
+    "reject_old_codes": [],
+    "auto_convert_old_to_new": false,
+    "mandatory_sections": [
+      "header",
+      "subject_line",
+      "body",
+      "demand_clause",
+      "closing"
+    ],
+    "fact_alteration_check": true,
+    "min_body_paragraphs": 5
+  },
+  "metadata": {
+    "version": "1.0",
+    "created_by": "Ajay · CLO",
+    "reviewed_at": "2026-05-04",
+    "status": "active"
+  }
+}

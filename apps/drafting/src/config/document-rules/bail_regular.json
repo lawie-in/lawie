@@ -1,0 +1,346 @@
+{
+  "_meta": {
+    "description": "Document-rules config for bail_regular — drives prompt, validation, mandatory clauses",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass + SCRUM-89 form_schema port from production override 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Case Details",
+        "fields": [
+          {
+            "field_id": "fir_number",
+            "label": "FIR Number",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., 124/2026",
+            "inject_into": ["cause_title", "body_para_1", "prayer"]
+          },
+          {
+            "field_id": "fir_date",
+            "label": "FIR Date",
+            "type": "date",
+            "required": true,
+            "inject_into": ["body_para_1", "prayer"]
+          },
+          {
+            "field_id": "police_station",
+            "label": "Police Station",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body_para_1", "prayer"]
+          },
+          {
+            "field_id": "sections_charged",
+            "label": "Sections Charged in FIR",
+            "type": "multi_select_search",
+            "source": "bns_mapping",
+            "required": true,
+            "auto_convert_old": true,
+            "inject_into": ["body_para_1", "ai_prompt"]
+          },
+          {
+            "field_id": "currently_in_custody",
+            "label": "Is the applicant currently in custody?",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes_judicial",
+                "label": "Yes — Judicial custody"
+              },
+              {
+                "id": "yes_police",
+                "label": "Yes — Police custody"
+              },
+              {
+                "id": "no",
+                "label": "No — anticipating arrest"
+              }
+            ],
+            "required": true,
+            "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "custody_since",
+            "label": "In custody since (date)",
+            "type": "date",
+            "required": false,
+            "show_if": "currently_in_custody !== no",
+            "inject_into": ["ai_prompt"]
+          }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Court & Parties",
+        "fields": [
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true,
+            "cascades_to": ["court_type", "court_name"]
+          },
+          {
+            "field_id": "court_type",
+            "label": "Court Type",
+            "type": "dropdown",
+            "source": "courts_db.court_types",
+            "filtered_by": ["state"],
+            "required": true,
+            "cascades_to": ["court_name"]
+          },
+          {
+            "field_id": "court_name",
+            "label": "Court Name",
+            "type": "dropdown_search",
+            "source": "courts_db.courts",
+            "filtered_by": ["state", "court_type"],
+            "required": true,
+            "links_to_formatting": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Applicant / Accused Full Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["cause_title", "verification", "prayer"]
+          },
+          {
+            "field_id": "father_name",
+            "label": "Father's / Husband's Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "applicant_age",
+            "label": "Age",
+            "type": "number",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "address",
+            "label": "Residential Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["cause_title"]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Facts & Grounds",
+        "fields": [
+          {
+            "field_id": "facts_narrative",
+            "label": "Brief Facts of the Case (3-5 lines)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 50,
+            "max_length": 1500,
+            "placeholder": "Describe what happened from the applicant's perspective...",
+            "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "grounds_for_bail",
+            "label": "Grounds for Bail (select all applicable)",
+            "type": "checkbox_group",
+            "required": true,
+            "min_select": 2,
+            "options": [
+              {
+                "id": "false_implication",
+                "label": "Falsely implicated due to enmity / mistaken identity"
+              },
+              {
+                "id": "no_flight_risk",
+                "label": "Not a flight risk — deep roots in society"
+              },
+              {
+                "id": "no_criminal_antecedent",
+                "label": "No prior criminal record / first-time offender"
+              },
+              {
+                "id": "cooperation",
+                "label": "Will cooperate with investigation and trial"
+              },
+              {
+                "id": "no_evidence_tampering",
+                "label": "No possibility of tampering with evidence"
+              },
+              {
+                "id": "prolonged_custody",
+                "label": "Already in prolonged custody"
+              },
+              {
+                "id": "investigation_complete",
+                "label": "Investigation is complete / chargesheet filed"
+              },
+              {
+                "id": "medical_grounds",
+                "label": "Medical / health grounds"
+              },
+              {
+                "id": "willing_mediation",
+                "label": "Willing to participate in mediation / counselling"
+              },
+              {
+                "id": "youth_first_time",
+                "label": "Young person, no prior offence"
+              }
+            ],
+            "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "additional_context",
+            "label": "Anything else the court should know? (optional)",
+            "type": "textarea",
+            "required": false,
+            "max_length": 800,
+            "inject_into": ["ai_prompt"]
+          }
+        ]
+      }
+    ]
+  },
+  "docType": "bail_regular",
+  "parentDocType": "bail_application",
+  "displayName": "Regular Bail Application",
+  "category": "criminal",
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\n{applicant} ... Applicant/Accused\nVERSUS\nState of {state} / {respondent} ... Respondent/Complainant",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant/Accused" },
+      { "role": "respondent", "label": "Respondent/Complainant" }
+    ],
+    "caseNomenclature": "BAIL APPLICATION No. _____ of [YEAR]"
+  },
+  "mandatoryClauses": [
+    {
+      "id": "grounds",
+      "name": "Grounds for Bail",
+      "required": true,
+      "description": "Specific grounds on which bail is sought"
+    },
+    {
+      "id": "fir_details",
+      "name": "FIR Details",
+      "required": true,
+      "description": "FIR number, police station, date of registration, and offences charged"
+    },
+    {
+      "id": "custody_status",
+      "name": "Custody Status",
+      "required": true,
+      "description": "Whether applicant is in judicial/police custody and since when"
+    },
+    {
+      "id": "no_flight_risk",
+      "name": "No Flight Risk",
+      "required": true,
+      "description": "Assertion that applicant will not abscond or tamper with evidence"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Clause",
+      "required": true,
+      "description": "Specific prayer for grant of bail"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant regular bail to the applicant {applicant} in connection with {firDetails} under Sections 480/481/482 of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023, on such terms and conditions as this Hon'ble Court may deem fit and proper;\nb) Direct the release of the applicant on furnishing personal bond with surety to the satisfaction of this Hon'ble Court;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "specialPrayerAdditions": {
+    "dv_dowry": "d) Direct the applicant to furnish an undertaking not to contact the complainant or her family members directly or indirectly;\ne) Direct the applicant to provide an undertaking regarding the return/safekeeping of stridhan and dowry articles as per the inventory;"
+  },
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {relation} of {parentName}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "filingChecklist": [
+    "Application (original + 2 copies)",
+    "Vakalatnama / Memo of Appearance",
+    "Copy of FIR",
+    "Certified copy of charge sheet (if filed)",
+    "Copy of remand order",
+    "Proof of custody period",
+    "Personal bond / surety details",
+    "Identity proof of applicant",
+    "Address proof of applicant"
+  ],
+  "relevantActs": [
+    {
+      "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
+      "sections": [
+        { "number": "480", "description": "Bail in bailable offences" },
+        { "number": "481", "description": "Bail in non-bailable offences" },
+        { "number": "482", "description": "Bail to person accused of non-bailable offence" },
+        {
+          "number": "483",
+          "description": "Special powers of High Court or Court of Session regarding bail"
+        },
+        { "number": "484", "description": "Bail when trial of offence is not concluded" }
+      ]
+    },
+    {
+      "act": "Bharatiya Nyaya Sanhita (BNS), 2023",
+      "sections": [
+        {
+          "number": "85",
+          "description": "Cruelty by husband or relatives of husband (replaces IPC 498A)"
+        },
+        { "number": "86", "description": "Dowry death (replaces IPC 304B)" },
+        { "number": "103", "description": "Murder (replaces IPC 302)" }
+      ]
+    }
+  ],
+  "relatedActs": [
+    {
+      "act": "Protection of Women from Domestic Violence Act (PWDVA), 2005",
+      "applicableWhen": "dv_dowry",
+      "sections": [
+        { "number": "12", "description": "Application to Magistrate" },
+        { "number": "18", "description": "Protection orders" },
+        { "number": "19", "description": "Residence orders" },
+        { "number": "20", "description": "Monetary reliefs" },
+        { "number": "22", "description": "Compensation orders" }
+      ],
+      "note": "When bail application involves BNS 85/86 (domestic violence/dowry), reference PWDVA provisions in the grounds."
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Regular Bail Application under Sections 480/481/482 BNSS, 2023.",
+    "Begin PARAGRAPH 1 with the exact FIR details provided — FIR number, date, police station, district, offences alleged. Use the values EXACTLY as given in the case details.",
+    "State the custody status clearly — date of arrest, whether judicial or police custody, total days in custody.",
+    "Set out specific grounds for bail: no prior criminal history, cooperation with investigation, roots in community, health conditions if any, investigation complete/charge sheet filed, parity with co-accused granted bail.",
+    "Reference Bharatiya Nyaya Sanhita (BNS) section numbers for the alleged offences — NEVER use old IPC section numbers. IPC 498A = BNS 85, IPC 304B = BNS 86.",
+    "If the case involves domestic violence (BNS 85/86), also reference the Protection of Women from Domestic Violence Act (PWDVA) 2005 where relevant, especially Sections 12, 18, 19, 20, 22.",
+    "Include standard undertakings: will not abscond, will not tamper with evidence, will appear on all dates, will not contact prosecution witnesses.",
+    "For DV/dowry cases, include specific undertakings: no contact with complainant, undertaking regarding stridhan/dowry articles.",
+    "Use formal, respectful legal language appropriate for Indian courts.",
+    "Do NOT generate the Prayer clause, Verification clause, or Advocate signature block — those are added programmatically by the system."
+  ]
+}

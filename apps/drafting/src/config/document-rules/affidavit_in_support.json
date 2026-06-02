@@ -1,0 +1,240 @@
+{
+  "_meta": {
+    "description": "Document-rules config for affidavit_in_support — standard sworn affidavit filed in support of petition / suit / interim application",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 1 templates pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "template_id": "affidavit_in_support",
+  "docType": "affidavit_in_support",
+  "parentDocType": "affidavit",
+  "title": "Affidavit in Support",
+  "displayName": "Affidavit in Support of Petition / Application",
+  "category": "procedural",
+  "creditsCost": 1,
+  "court_levels": ["magistrate", "cjm", "sessions", "district", "high_court", "supreme_court"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{petitioner} ... {petitionerRole}\nVERSUS\n{respondent} ... {respondentRole}",
+    "partyDesignations": [{ "role": "deponent", "label": "Deponent" }]
+  },
+  "form_schema": [
+    { "name": "deponent_name", "label": "Deponent Name", "type": "text", "required": true },
+    {
+      "name": "deponent_parentage",
+      "label": "Deponent Father's / Husband's Name",
+      "type": "text",
+      "required": true
+    },
+    { "name": "deponent_age", "label": "Deponent Age", "type": "number", "required": true },
+    {
+      "name": "deponent_occupation",
+      "label": "Deponent Occupation",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "deponent_address",
+      "label": "Deponent Full Address",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "deponent_relation_to_case",
+      "label": "Deponent's Relation to Case",
+      "type": "select",
+      "options": [
+        "Self",
+        "Authorised representative of party",
+        "Pairokar / Power-of-Attorney holder",
+        "Officer of the party (for companies/govt)"
+      ],
+      "required": true
+    },
+    { "name": "court_designation", "label": "Court Designation", "type": "text", "required": true },
+    { "name": "case_title", "label": "Case Title (X vs Y)", "type": "text", "required": true },
+    {
+      "name": "case_number",
+      "label": "Case / Application Number",
+      "type": "text",
+      "required": false
+    },
+    {
+      "name": "supporting_document_title",
+      "label": "Title of Document Being Supported (e.g. 'Bail Application')",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "affidavit_paragraphs",
+      "label": "Body Paragraphs (each fact as separate paragraph)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "name": "para_knowledge_basis",
+      "label": "Paragraphs True to Knowledge",
+      "type": "text",
+      "required": true,
+      "help": "e.g. '1 to 5'"
+    },
+    {
+      "name": "para_information_basis",
+      "label": "Paragraphs True to Information & Belief",
+      "type": "text",
+      "required": false,
+      "help": "e.g. '6 to 8' (these must be sourced)"
+    },
+    {
+      "name": "para_records_basis",
+      "label": "Paragraphs True from Records",
+      "type": "text",
+      "required": false,
+      "help": "e.g. '9'"
+    },
+    { "name": "execution_date", "label": "Date of Execution", "type": "date", "required": true },
+    { "name": "execution_place", "label": "Place of Execution", "type": "text", "required": true },
+    {
+      "name": "notarisation_required",
+      "label": "Notarisation Required",
+      "type": "select",
+      "options": [
+        "Yes — Notary Public",
+        "Yes — Oath Commissioner",
+        "Yes — Magistrate / Court attestation"
+      ],
+      "required": true
+    }
+  ],
+  "mandatory_clauses": [
+    "court / cause title heading",
+    "identification of deponent (name, parentage, age, occupation, address)",
+    "deponent's locus / relation to the case",
+    "solemn affirmation / oath opening",
+    "numbered paragraphs of fact",
+    "source-classification (knowledge / information & belief / records)",
+    "verification clause (specific paragraph numbers per source)",
+    "signature line for deponent",
+    "notary / oath commissioner attestation block"
+  ],
+  "mandatoryClauses": [
+    {
+      "id": "title",
+      "name": "Court / Cause Title",
+      "required": true,
+      "description": "Court name, case title and case number"
+    },
+    {
+      "id": "deponent_identification",
+      "name": "Deponent Identification",
+      "required": true,
+      "description": "Name, parentage, age, occupation, address, locus"
+    },
+    {
+      "id": "oath_opening",
+      "name": "Oath Opening",
+      "required": true,
+      "description": "'I, [name], do hereby state and affirm on oath / solemnly affirm as under:'"
+    },
+    {
+      "id": "numbered_paragraphs",
+      "name": "Numbered Paragraphs",
+      "required": true,
+      "description": "Body content broken into numbered paragraphs, one fact per paragraph"
+    },
+    {
+      "id": "source_classification",
+      "name": "Source Classification",
+      "required": true,
+      "description": "Each paragraph classified as 'true to knowledge', 'true to information & belief', or 'true from records'"
+    },
+    {
+      "id": "verification",
+      "name": "Verification Clause",
+      "required": true,
+      "description": "Verification specifying which paragraphs are on knowledge / information / records"
+    },
+    {
+      "id": "signature",
+      "name": "Deponent Signature",
+      "required": true,
+      "description": "Signature block with date and place"
+    },
+    {
+      "id": "attestation",
+      "name": "Notary / Oath Commissioner",
+      "required": true,
+      "description": "Attestation block with seal"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "VERIFICATION\n\nI, the deponent above-named, do hereby verify that the contents of paragraphs {para_knowledge_basis} of the above affidavit are true to my personal knowledge; the contents of paragraphs {para_information_basis} are true to my information and belief, the source whereof is stated therein; and the contents of paragraphs {para_records_basis} are true from records maintained in the ordinary course. No part of this affidavit is false and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "prompt_context": "Draft a standard Affidavit in Support of [supporting document]. An affidavit is a written statement of fact, sworn or affirmed by the deponent before a person authorised to administer oaths (Notary Public under the Notaries Act 1952, Oath Commissioner, or Magistrate). It must conform to Order XIX of the CPC for civil matters and analogous provisions in criminal practice. KEY STRUCTURE: (1) cause title (Court · Case · Parties); (2) heading 'AFFIDAVIT'; (3) deponent identification block ('I, [name], S/o [parent], aged [x], occupation [y], resident of [z], do hereby state and affirm on oath as under:'); (4) numbered paragraphs, one fact per paragraph; (5) each paragraph should disclose source — 'I am the petitioner herein and am acquainted with the facts of the case' for knowledge paragraphs; 'I have been informed by [source] and verily believe to be true' for information paragraphs; 'I have perused the records' for records paragraphs; (6) verification clause specifying which paragraphs are on knowledge vs information vs records; (7) deponent signature with date and place; (8) attestation block for Notary / Oath Commissioner / Magistrate. CRITICAL: do NOT mix sources — courts strike down affidavits that fail to identify source of belief (Padmabati Dasi v. Rasik Lal Dhar (1910) 37 Cal 259; A.K.K. Nambiar v. UoI (1969) 3 SCC 864).",
+  "promptInstructions": [
+    "Draft an Affidavit in Support of the document specified (e.g. bail application, interim application, writ petition).",
+    "Open with cause title — court, case title, case number.",
+    "Heading: 'AFFIDAVIT'.",
+    "Deponent identification: 'I, {deponent_name}, S/o {parentage}, aged about {age} years, by occupation {occupation}, resident of {address}, do hereby state and affirm on oath as under:'",
+    "Open paragraph (Para 1): establish deponent's locus — 'I am the petitioner / applicant / authorised representative of the petitioner herein and am acquainted with the facts of the case and competent to swear this affidavit.'",
+    "Convert each fact in {affidavit_paragraphs} into a separate numbered paragraph.",
+    "Each paragraph must clearly disclose the source basis (knowledge / information & belief / records).",
+    "Add verification clause specifying paragraph ranges per source — use the {para_knowledge_basis}, {para_information_basis}, {para_records_basis} fields.",
+    "Cite A.K.K. Nambiar v. UoI (1969) 3 SCC 864 standards — do NOT mix sources within a paragraph.",
+    "Include signature block: 'Deponent' with name, date, place.",
+    "Include notary / oath commissioner attestation block per {notarisation_required}.",
+    "Do NOT add a prayer clause — affidavits do not contain prayers (the supporting document carries the prayer)."
+  ],
+  "relevantActs": [
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "Order XIX", "description": "Affidavits" },
+        {
+          "number": "Order XIX Rule 3",
+          "description": "Affidavits to be confined to facts deponent can prove on personal knowledge"
+        }
+      ]
+    },
+    {
+      "act": "Notaries Act, 1952",
+      "sections": [
+        {
+          "number": "8",
+          "description": "Functions of notaries — administering oaths and affirmations"
+        }
+      ]
+    },
+    {
+      "act": "Bharatiya Sakshya Adhiniyam (BSA), 2023",
+      "sections": [
+        {
+          "number": "Schedule",
+          "description": "Oaths and affirmations replacing Indian Oaths Act framework where applicable"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Original affidavit on stamp paper / plain paper as per court rules",
+    "Notary stamp + seal + register entry number",
+    "Court fee as per court schedule",
+    "Photograph of deponent (where required — typically HC writs)",
+    "Identity proof of deponent at time of attestation",
+    "Sworn before authorised attestor (Notary / Oath Commissioner / Magistrate)"
+  ],
+  "filingChecklist": [
+    "Original affidavit on stamp paper / plain paper as per court rules",
+    "Notary stamp + seal + register entry number",
+    "Court fee as per court schedule",
+    "Photograph of deponent (where required — typically HC writs)",
+    "Identity proof of deponent at time of attestation",
+    "Sworn before authorised attestor (Notary / Oath Commissioner / Magistrate)"
+  ],
+  "validation_rules": [
+    "deponent_name, parentage, age, address all required",
+    "deponent_relation_to_case must be specified",
+    "para_knowledge_basis must be non-empty (every affidavit must have at least some knowledge-paragraphs)",
+    "if para_information_basis is specified, the affidavit body must disclose the source for each information-paragraph",
+    "notarisation_required must be specified"
+  ]
+}

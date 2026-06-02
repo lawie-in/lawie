@@ -1,0 +1,91 @@
+data: {"text":"1. The Applicant most respectfully submits that he apprehends arrest in connection with FIR No. 215/2026 dated 10.04.2026, registered at Police"}
+
+data: {"text":" Station Gandhi Maidan, Patna, under Sections 318(4) and 336(3) of the Bharatiya Nyaya Sanhita, 2023. The"}
+
+data: {"text":" Applicant has not been arrested yet but has reasonable apprehension of arrest based on the registration of the aforesaid FIR and"}
+
+data: {"text":" seeks protection of this Hon'ble Court under Section 482 of the Bharat"}
+
+data: {"text":"iya Nagarik Suraksha Sanhita, 2023.\n\n2. The Applicant submits that he apprehends arrest in connection with FIR No. 215/2026"}
+
+data: {"text":" dated 10.04.2026 lodged at Police Station Gandhi Maidan, Patna, under Sections 318(4) and 336(3) of the Bharatiya Nyaya Sanhita, 2023. The said"}
+
+data: {"text":" FIR has been registered pursuant to a complaint filed by the de-facto complainant who has made false and"}
+
+data: {"text":" frivolous allegations against the Applicant.\n\n3. The Applicant respectfully submits that the aforesaid FIR has been lodged on the basis of a false complaint by the"}
+
+data: {"text":" de-facto complainant arising out of a purely civil business dispute between the parties. The complainant, being"}
+
+data: {"text":" aggrieved by certain commercial transactions and monetary disputes, has resorted to criminal law"}
+
+data: {"text":" as a tool of harassment and vendetta against the Applicant.\n\n4. The Applicant further submits that he is a businessman of"}
+
+data: {"text":" standing in the community with deep roots in society and has no criminal antecedents whatsoever. The Applicant has always been a"}
+
+data: {"text":" law-abiding citizen and has never been involved in any criminal activity. He undertakes to cooperate fully with the investigation and not to leave the territorial jurisdiction of the State of Bihar without prior permission of this Hon'ble Court.\n\n5"}
+
+data: {"text":". The Applicant submits that he has been falsely implicated in the present case due to malicious intent on"}
+
+data: {"text":" the part of the complainant. The allegations made against the Applicant are completely baseless and have"}
+
+data: {"text":" been concocted to settle scores arising out of business disputes. The matter"}
+
+data: {"text":" is essentially civil in nature and does not warrant registration of criminal case.\n\n6. The Applicant respectfully submits that the"}
+
+data: {"text":" dispute between the parties is essentially of civil nature pertaining to business transactions and commercial dealings. The complain"}
+
+data: {"text":"ant, having failed to resolve the matter through civil remedies, has"}
+
+data: {"text":" misused the process of criminal law to coerce and harass the Applicant. The present case is a"}
+
+data: {"text":" classic example of abuse of criminal law machinery.\n\n7. The Applicant submits that he has no criminal antec"}
+
+data: {"text":"edent and has never been involved in any criminal activity throughout his life. He has always maintained cordial relations with all sections"}
+
+data: {"text":" of society and has never indulged in any activity which may bring disrepute to his name or"}
+
+data: {"text":" character. The present allegations are completely contrary to his nature and conduct"}
+
+data: {"text":".\n\n8. The Applicant undertakes to cooperate fully with the investigation and join the investigation as and when called upon by the investigating"}
+
+data: {"text":" agency. He further undertakes not to leave the territorial jurisdiction of the State of Bihar without prior permission of this Hon'ble Court and to appear before the investigating officer"}
+
+data: {"text":" whenever required.\n\n9. The Applicant has deep roots in the community and is well-established in his business activities"}
+
+data: {"text":" in Bihar. He owns immovable properties in the State and has been residing"}
+
+data: {"text":" in Bihar for decades. There is no apprehension of the Applicant absconding or fle"}
+
+data: {"text":"eing from justice, and he is ready to face trial if charges"}
+
+data: {"text":" are framed against him.\n\n10. The Applicant submits that his fundamental right to life and"}
+
+data: {"text":" liberty as guaranteed under Article 21 of the Constitution of India would be violated if he is arrested and detained in custody. The Hon'ble Supreme"}
+
+data: {"text":" Court in Sushila Aggarwal v. State (2020) 5 SCC 1 has laid down the conditions for granting anticipatory bail, and the present"}
+
+data: {"text":" case satisfies all such conditions for grant of pre-arrest bail.\n\n11. The Applicant respectfully submits that custodial interrogation is not necessary in"}
+
+data: {"text":" the present case as the Applicant is willing to join the investigation voluntarily and cooperate with the investigating agency. The allegations against"}
+
+data: {"text":" the Applicant do not involve any complex investigation requiring his custody, and the matter"}
+
+data: {"text":" can be investigated without arresting the Applicant.\n\n12. The Applicant submits that considering the facts"}
+
+data: {"text":" and circumstances of the case, the nature of allegations, the Applicant's antecedents, his will"}
+
+data: {"text":"ingness to cooperate with investigation, and his deep roots in society, this is a fit case for grant of anticipatory bail."}
+
+data: {"text":" The Applicant undertakes to abide by any conditions that this Hon'ble Court may deem fit to impose while"}
+
+data: {"text":" granting anticipatory bail."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"IN THE HIGH COURT OF JUDICATURE AT PATNA\n\nCr. Misc. No. _____ of 2026\n\nIN THE MATTER OF:\n\nSuresh Prasad Singh\nS/o Late Shri Ramesh Prasad Singh\nAge: 45 years\nR/o Flat 4B, Boring Road, Patna, Bihar - 800001\n                                              ... Petitioner\n\nVersus\n\nState of Bihar through the Principal Secretary, Home Department, Government of Bihar, Patna\n                                              ... Respondent","alignment":"center"},{"section_id":"application_heading","type":"template","content":"APPLICATION FOR ANTICIPATORY BAIL UNDER SECTION 482 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE HIGH COURT OF JUDICATURE AT PATNA,\nPatna\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. The Applicant most respectfully submits that he apprehends arrest in connection with FIR No. 215/2026 dated 10.04.2026, registered at Police Station Gandhi Maidan, Patna, under Sections 318(4) and 336(3) of the Bharatiya Nyaya Sanhita, 2023. The Applicant has not been arrested yet but has reasonable apprehension of arrest based on the registration of the aforesaid FIR and seeks protection of this Hon'ble Court under Section 482 of the Bharatiya Nagarik Suraksha Sanhita, 2023.\n\n2. The Applicant submits that he apprehends arrest in connection with FIR No. 215/2026 dated 10.04.2026 lodged at Police Station Gandhi Maidan, Patna, under Sections 318(4) and 336(3) of the Bharatiya Nyaya Sanhita, 2023. The said FIR has been registered pursuant to a complaint filed by the de-facto complainant who has made false and frivolous allegations against the Applicant.\n\n3. The Applicant respectfully submits that the aforesaid FIR has been lodged on the basis of a false complaint by the de-facto complainant arising out of a purely civil business dispute between the parties. The complainant, being aggrieved by certain commercial transactions and monetary disputes, has resorted to criminal law as a tool of harassment and vendetta against the Applicant.\n\n4. The Applicant further submits that he is a businessman of standing in the community with deep roots in society and has no criminal antecedents whatsoever. The Applicant has always been a law-abiding citizen and has never been involved in any criminal activity. He undertakes to cooperate fully with the investigation and not to leave the territorial jurisdiction of the State of Bihar without prior permission of this Hon'ble Court.\n\n5. The Applicant submits that he has been falsely implicated in the present case due to malicious intent on the part of the complainant. The allegations made against the Applicant are completely baseless and have been concocted to settle scores arising out of business disputes. The matter is essentially civil in nature and does not warrant registration of criminal case.\n\n6. The Applicant respectfully submits that the dispute between the parties is essentially of civil nature pertaining to business transactions and commercial dealings. The complainant, having failed to resolve the matter through civil remedies, has misused the process of criminal law to coerce and harass the Applicant. The present case is a classic example of abuse of criminal law machinery.\n\n7. The Applicant submits that he has no criminal antecedent and has never been involved in any criminal activity throughout his life. He has always maintained cordial relations with all sections of society and has never indulged in any activity which may bring disrepute to his name or character. The present allegations are completely contrary to his nature and conduct.\n\n8. The Applicant undertakes to cooperate fully with the investigation and join the investigation as and when called upon by the investigating agency. He further undertakes not to leave the territorial jurisdiction of the State of Bihar without prior permission of this Hon'ble Court and to appear before the investigating officer whenever required.\n\n9. The Applicant has deep roots in the community and is well-established in his business activities in Bihar. He owns immovable properties in the State and has been residing in Bihar for decades. There is no apprehension of the Applicant absconding or fleeing from justice, and he is ready to face trial if charges are framed against him.\n\n10. The Applicant submits that his fundamental right to life and liberty as guaranteed under Article 21 of the Constitution of India would be violated if he is arrested and detained in custody. The Hon'ble Supreme Court in Sushila Aggarwal v. State (2020) 5 SCC 1 has laid down the conditions for granting anticipatory bail, and the present case satisfies all such conditions for grant of pre-arrest bail.\n\n11. The Applicant respectfully submits that custodial interrogation is not necessary in the present case as the Applicant is willing to join the investigation voluntarily and cooperate with the investigating agency. The allegations against the Applicant do not involve any complex investigation requiring his custody, and the matter can be investigated without arresting the Applicant.\n\n12. The Applicant submits that considering the facts and circumstances of the case, the nature of allegations, the Applicant's antecedents, his willingness to cooperate with investigation, and his deep roots in society, this is a fit case for grant of anticipatory bail. The Applicant undertakes to abide by any conditions that this Hon'ble Court may deem fit to impose while granting anticipatory bail."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIt is, therefore, most humbly prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant Anticipatory Bail to the Petitioner, Suresh Prasad Singh, in the event of arrest in connection with FIR No. 215/2026 dated 10.04.2026, PS Gandhi Maidan, under Section 482 of BNSS, 2023, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Direct that in the event of arrest, the Petitioner shall be released on bail forthwith;\n\nc) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\nAnd for this act of kindness, the petitioner shall ever pray.","alignment":"left"},{"section_id":"verification","type":"template","content":"VERIFICATION\n\nI, Suresh Prasad Singh, the Petitioner herein above named, do hereby solemnly affirm and state that the contents of paragraphs 1 to 12 of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at Patna on this _____ day of _________, 2026.\n\nDEPONENT\n\n\n_________________________\nSuresh Prasad Singh\n(Petitioner)","alignment":"left"},{"section_id":"advocate_block","type":"template","content":"THROUGH:\n\n_________________________\nSmoke Test\nAdvocate\nEnrollment No. ____________________\n\nPlace: Patna\nDate: 06 May 2026","alignment":"right"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Certified copy of FIR No. 215/2026","Vakalatnama duly executed","Address proof of applicant (Aadhaar/Voter ID)","Affidavit disclosing all pending cases (if any)","Identity proof (PAN/Passport/Driving License)","Details of proposed surety","Verify all BNS/BNSS section numbers before filing","Court fee as per state schedule"]}
+
+event: done
+data: {"complete":true,"docId":"69faea3e55f2cd32ada9e994","sectionsCited":["BNSS 482"],"mandatoryClausesComplete":true}
+

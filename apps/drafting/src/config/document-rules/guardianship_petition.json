@@ -1,0 +1,390 @@
+{
+  "_meta": {
+    "description": "Document-rules config for guardianship_petition — petition under GWA 1890 / HMGA 1956 for custody and guardianship of minor",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 3 family-law pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Welfare-of-minor doctrine is paramount and non-negotiable in prompt instructions."
+  },
+  "template_id": "guardianship_petition",
+  "docType": "guardianship_petition",
+  "title": "Petition for Appointment as Guardian and Custody of Minor",
+  "displayName": "Guardianship Petition (GWA 1890 / HMGA 1956)",
+  "category": "family",
+  "creditsCost": 2,
+  "court_levels": ["family_court_principal", "family_court_additional", "district_court_civil"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\nIn the matter of: {minor_name}, a minor\nAnd\nIn the matter of an application under the Guardians and Wards Act, 1890 / Hindu Minority and Guardianship Act, 1956\n\n{petitioner} ... Petitioner\nVERSUS\n{respondent} ... Respondent",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner / Proposed Guardian" },
+      { "role": "respondent", "label": "Respondent" },
+      { "role": "minor", "label": "Minor (Ward)" }
+    ],
+    "caseNomenclature": "Guardianship Petition No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "governing_act",
+        "label": "Governing statute",
+        "type": "select",
+        "required": true,
+        "options": ["GWA_1890_secular", "HMGA_1956_hindu", "both_concurrent"]
+      },
+      {
+        "id": "petitioner_name",
+        "label": "Petitioner / proposed guardian full name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "petitioner_age", "label": "Petitioner age", "type": "number", "required": true },
+      {
+        "id": "petitioner_relation_to_minor",
+        "label": "Petitioner's relationship to minor",
+        "type": "select",
+        "required": true,
+        "options": [
+          "mother",
+          "father",
+          "grandparent_paternal",
+          "grandparent_maternal",
+          "uncle_aunt",
+          "sibling_major",
+          "step_parent",
+          "other_relative",
+          "non_relative_guardian"
+        ]
+      },
+      {
+        "id": "petitioner_occupation",
+        "label": "Petitioner occupation",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner_income_monthly",
+        "label": "Petitioner's monthly income",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "petitioner_address",
+        "label": "Petitioner address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "respondent_name",
+        "label": "Respondent full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "respondent_relation_to_minor",
+        "label": "Respondent's relationship to minor",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "respondent_address",
+        "label": "Respondent address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "minor_name", "label": "Minor's full name", "type": "text", "required": true },
+      { "id": "minor_dob", "label": "Minor's date of birth", "type": "date", "required": true },
+      {
+        "id": "minor_age_years",
+        "label": "Minor's current age (years)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "minor_gender",
+        "label": "Minor's gender",
+        "type": "select",
+        "required": true,
+        "options": ["male", "female", "other"]
+      },
+      { "id": "minor_religion", "label": "Minor's religion", "type": "text", "required": true },
+      {
+        "id": "minor_ordinarily_resides_at",
+        "label": "Where minor ordinarily resides (jurisdictional)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "minor_school",
+        "label": "Minor's school / current educational institution",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "natural_guardians_status",
+        "label": "Status of natural guardians (alive / deceased / unfit / unable)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "father_status",
+        "label": "Father — alive/deceased/unfit; particulars",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "mother_status",
+        "label": "Mother — alive/deceased/unfit; particulars",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "ground_for_petition",
+        "label": "Ground for petition",
+        "type": "select",
+        "required": true,
+        "options": [
+          "death_of_natural_guardian",
+          "incapacity_of_natural_guardian",
+          "unfitness_of_natural_guardian",
+          "custody_dispute_between_parents",
+          "absence_of_natural_guardian",
+          "welfare_requires_appointment"
+        ]
+      },
+      {
+        "id": "facts_justifying_appointment",
+        "label": "Facts justifying appointment / welfare basis",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "minor_property",
+        "label": "Minor's property details (if any) — for guardianship of property",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "petitioner_suitability",
+        "label": "Petitioner's suitability — capacity, character, means, kinship",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "minor_preference",
+        "label": "Minor's preference (if of sufficient age to form intelligent preference — S.17 GWA)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "type_of_guardianship",
+        "label": "Type of guardianship sought",
+        "type": "multiselect",
+        "required": true,
+        "options": ["guardian_of_person", "guardian_of_property", "both"]
+      },
+      {
+        "id": "interim_custody_sought",
+        "label": "Interim custody sought pending disposal",
+        "type": "boolean",
+        "required": false
+      },
+      {
+        "id": "jurisdiction_basis",
+        "label": "Basis for territorial jurisdiction (S.9 GWA — where minor ordinarily resides)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "previous_proceedings",
+        "label": "Prior custody / guardianship / divorce proceedings",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "court_fee_paid",
+        "label": "Court fee paid (state-specific)",
+        "type": "currency",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "minor_identification",
+      "name": "Minor Identification",
+      "required": true,
+      "description": "Name, date of birth, age, gender, religion, ordinary residence"
+    },
+    {
+      "id": "natural_guardian_status",
+      "name": "Status of Natural Guardians",
+      "required": true,
+      "description": "Details of father and mother — death/unfitness/incapacity/absence; for Hindu minors per S.6 HMGA father is natural guardian and after him mother, subject to S.4 and Gita Hariharan ruling"
+    },
+    {
+      "id": "ground_for_appointment",
+      "name": "Ground for Appointment",
+      "required": true,
+      "description": "Specific reason for petition: death / incapacity / unfitness / custody dispute / welfare"
+    },
+    {
+      "id": "petitioner_suitability",
+      "name": "Petitioner's Suitability",
+      "required": true,
+      "description": "Capacity, character, financial means, kinship, religious affinity — S.17 GWA factors"
+    },
+    {
+      "id": "welfare_of_minor",
+      "name": "Welfare of Minor",
+      "required": true,
+      "description": "Paramount consideration per S.17 GWA and S.13 HMGA; cite Gaurav Nagpal v. Sumedha Nagpal"
+    },
+    {
+      "id": "type_of_guardianship",
+      "name": "Guardian of Person / Property",
+      "required": true,
+      "description": "Clear identification of relief sought"
+    },
+    {
+      "id": "jurisdiction",
+      "name": "Jurisdiction u/s 9 GWA",
+      "required": true,
+      "description": "Application made to District Court / Family Court of place where minor ordinarily resides"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Clause",
+      "required": true,
+      "description": "Appointment as guardian + custody + property powers (as sought)"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, and the welfare of the minor {minor_name} being the paramount consideration, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Appoint the Petitioner as the guardian of the person {and/or property} of the minor {minor_name}, son/daughter of {parent_names}, born on {minor_dob}, under the Guardians and Wards Act, 1890 {and / or the Hindu Minority and Guardianship Act, 1956};\nb) Grant custody of the minor to the Petitioner;\nc) Grant interim custody to the Petitioner pending final disposal of this petition;\nd) Direct the Respondent to hand over the minor's documents, school records and personal effects to the Petitioner;\ne) Award costs of this petition;\nf) Pass any other order(s) as this Hon'ble Court may deem fit and proper having regard to the welfare of the minor.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, aged about {petitioner_age} years, resident of {petitioner_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to the best of my knowledge derived from personal experience and records. Matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a petition for appointment as guardian and grant of custody of minor under the Guardians and Wards Act, 1890 (and/or Hindu Minority and Guardianship Act, 1956 for Hindu minors).",
+      "PARAMOUNT PRINCIPLE: Welfare of the minor is the paramount consideration. Every section of the petition must orient toward welfare — physical, mental, moral, educational, emotional. Cite Gaurav Nagpal v. Sumedha Nagpal (2009) 1 SCC 42 and Nil Ratan Kundu v. Abhijit Kundu (2008) 9 SCC 413.",
+      "Identify the minor — name, date of birth, current age, gender, religion (relevant for HMGA), and place where minor ordinarily resides.",
+      "Status of natural guardians: For Hindu minor, S.6 HMGA — father is natural guardian and after him the mother. Per Githa Hariharan v. RBI (1999) 2 SCC 228, 'after' read as 'in absence of' — mother can act as natural guardian during father's lifetime in his absence or inability.",
+      "Plead the ground for petition: death of natural guardian / incapacity / unfitness / custody dispute / absence / welfare requirement.",
+      "Demonstrate petitioner's suitability per S.17 GWA factors: capacity to provide for minor, character, financial means, kinship to minor, religious affinity, age, sex (for protection), and any wishes of deceased parent.",
+      "If minor is of sufficient age (typically 9+ years) to form intelligent preference, mention minor's preference per S.17(3) GWA.",
+      "Identify whether guardianship of PERSON, PROPERTY, or both is sought. For property, give particulars of minor's property and proposed safeguards.",
+      "Jurisdiction under S.9 GWA — application must be made to District Court (or Family Court) of the place where minor ORDINARILY RESIDES. Not casual residence. Refer to Ruchi Majoo v. Sanjeev Majoo (2011) 6 SCC 479.",
+      "Disclose any prior proceedings — divorce, prior custody orders, foreign court orders.",
+      "If seeking interim custody, plead urgency and prima facie welfare basis.",
+      "Tone: child-centric. Avoid pejorative attacks on natural guardian unless legally necessary to plead unfitness — even then, factual and proportionate.",
+      "Note for advocate: Section 7 GWA — court can appoint guardian for welfare of minor. Section 19 GWA — court cannot appoint where father is living unless unfit.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Guardians and Wards Act, 1890",
+      "sections": [
+        { "number": "4", "description": "Definitions — 'minor', 'guardian', 'ward'" },
+        {
+          "number": "7",
+          "description": "Power of court to make order as to guardianship — welfare of minor"
+        },
+        { "number": "8", "description": "Persons entitled to apply for order" },
+        {
+          "number": "9",
+          "description": "Court having jurisdiction — where minor ordinarily resides"
+        },
+        { "number": "10", "description": "Form and contents of application" },
+        { "number": "11", "description": "Procedure on admission of application" },
+        {
+          "number": "17",
+          "description": "Matters to be considered by court in appointing guardian — welfare of minor; capacity, character, kinship, etc."
+        },
+        {
+          "number": "19",
+          "description": "Restriction — where father is living and not unfit, court shall not appoint another guardian of minor"
+        },
+        { "number": "25", "description": "Title of guardian to custody of ward" }
+      ]
+    },
+    {
+      "act": "Hindu Minority and Guardianship Act, 1956",
+      "sections": [
+        { "number": "4", "description": "Definitions — 'minor', 'guardian', 'natural guardian'" },
+        {
+          "number": "6",
+          "description": "Natural guardians of Hindu minor — father (and after him mother); for minor's exclusive property different rules apply for boy/unmarried girl vs married girl"
+        },
+        {
+          "number": "8",
+          "description": "Powers of natural guardian — alienation of property requires court permission"
+        },
+        {
+          "number": "13",
+          "description": "Welfare of minor to be paramount consideration in appointment of guardian"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Petition (original + 2 copies)",
+    "Vakalatnama",
+    "Birth certificate of minor",
+    "Death certificate(s) of deceased natural guardian(s) (if applicable)",
+    "Identity and address proofs of petitioner",
+    "Income proof of petitioner (salary slips, ITRs, bank statements)",
+    "School records of minor",
+    "Medical records (if minor or guardian's health is in issue)",
+    "Documents establishing kinship",
+    "Photographs of minor with petitioner (cohabitation / care evidence)",
+    "Property documents (if guardianship of property sought)",
+    "Affidavit of petitioner",
+    "Consent affidavit of minor (if minor is of age to give consent)",
+    "Newspaper notice as ordered (S.11 GWA procedure)",
+    "Court fee as per state schedule",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "minor_name and minor_dob must not be empty",
+    "minor_age_years must be < 18",
+    "minor_age_years must be consistent with minor_dob",
+    "petitioner_name must not be empty",
+    "petitioner_relation_to_minor must be specified",
+    "natural_guardians_status, father_status and mother_status must not be empty",
+    "ground_for_petition must be specified",
+    "facts_justifying_appointment must not be empty",
+    "petitioner_suitability must not be empty",
+    "type_of_guardianship must contain at least one option",
+    "minor_ordinarily_resides_at must not be empty (jurisdictional)",
+    "If governing_act is HMGA_1956_hindu, minor_religion should be Hindu (or Buddhist/Jain/Sikh per S.2 HMGA)",
+    "advocate_enrollment must match Bar Council format",
+    "court_fee_paid must be > 0"
+  ],
+  "key_citations": [
+    "Gaurav Nagpal v. Sumedha Nagpal (2009) 1 SCC 42 — welfare of child is paramount consideration; not parental rights",
+    "Nil Ratan Kundu v. Abhijit Kundu (2008) 9 SCC 413 — welfare doctrine; subjective satisfaction of court",
+    "Githa Hariharan v. RBI (1999) 2 SCC 228 — 'after' father in S.6 HMGA read as 'in absence of'; mother as natural guardian in father's lifetime",
+    "Ruchi Majoo v. Sanjeev Majoo (2011) 6 SCC 479 — 'ordinarily resides' interpretation; jurisdiction in inter-country custody",
+    "Roxann Sharma v. Arun Sharma (2015) 8 SCC 318 — custody of child below 5 ordinarily with mother (S.6(a) proviso HMGA)",
+    "Athar Hussain v. Syed Siraj Ahmed (2010) 2 SCC 654 — non-Hindu guardianship under GWA",
+    "Surinder Kaur Sandhu v. Harbax Singh Sandhu (1984) 3 SCC 698 — foreign court custody orders; welfare overrides"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

@@ -1,0 +1,91 @@
+data: {"text":"1. The Landlord, Mr. Binod Kumar Oraon, hereby grants to the Tenant, Ms. Priya Sinha, the right"}
+
+data: {"text":" to use and occupy the residential premises described as Flat No. 502, 5th Floor, Oraon"}
+
+data: {"text":" Heights, Lalpur, Ranchi - 834001, measuring approximately 950 sq. ft., being a semi-furnished flat comprising two bedrooms, hall, kitchen, and one bathroom with attached balcony"}
+
+data: {"text":", for a period of 11 months commencing from 01.06.2026 and terminating on 30.04.2027, strictly"}
+
+data: {"text":" for residential purposes only.\n\n2. The monthly rent for the said premises is fixed at Rs. 15,000/"}
+
+data: {"text":"- (Fifteen Thousand only) per calendar month, which shall be paid by the Tenant to the Landlord on or"}
+
+data: {"text":" before the 7th day of every month during the tenure of this agreement through UPI transfer to the Landlord's SBI account as"}
+
+data: {"text":" specified by the Landlord.\n\n3. The Tenant has paid to the Landlord a sum"}
+
+data: {"text":" of Rs. 45,000/- (Forty Five Thousand only) as security deposit, the receipt whereof is hereby acknowledged by the Landlord. The said"}
+
+data: {"text":" security deposit shall be refunded to the Tenant upon termination of this agreement and vacation of the premises, subject"}
+
+data: {"text":" to deduction of any dues, damages, or outstanding amounts payable by the Tenant."}
+
+data: {"text":"\n\n4. The monthly rent shall be subject to an annual escalation of 10% with effect from the commencement of"}
+
+data: {"text":" the second year of tenancy, if this agreement is renewed or extended beyond the initial tenure"}
+
+data: {"text":" of 11 months.\n\n5. The Tenant shall be responsible for payment of all electricity charges, water charges, and society maintenance charges pertaining to the dem"}
+
+data: {"text":"ised premises during the period of tenancy. All bills and receipts for such"}
+
+data: {"text":" payments shall be maintained by the Tenant and produced to the Landlord upon demand.\n\n6. Major structural repairs, if"}
+
+data: {"text":" any, to the building or the demised premises shall be borne by the Landlord, provided"}
+
+data: {"text":" that such repairs are not necessitated by the negligent or wrongful acts of the Tenant or persons"}
+
+data: {"text":" under the Tenant's control.\n\n7. The demised premises shall be used exclusively for residential purposes by the Tenant and the Tenant's immediate family members only."}
+
+data: {"text":" The Tenant, being a salaried IT professional at TCS, undertakes to maintain the premises in a clean and hab"}
+
+data: {"text":"itable condition.\n\n8. The Tenant shall not sub-let, assign, or part with possession of the whole or any part of the demised premises to any third party without the prior written consent"}
+
+data: {"text":" of the Landlord, which consent may be withheld at the sole discretion of the Landlord.\n\n9. The Tenant shall not carry"}
+
+data: {"text":" out any structural alterations, additions, or modifications to the demised premises without the prior written consent of the Landlord. Any alterations made"}
+
+data: {"text":" without such consent shall be restored to the original condition at the Tenant's cost"}
+
+data: {"text":" before vacation.\n\n10. Either party may terminate this agreement by giving 2 months' prior written notice to the other party. Upon"}
+
+data: {"text":" expiry of such notice period, the Tenant shall peacefully hand over vacant possession of the premises to the Landlord.\n\n11. In the event of default in"}
+
+data: {"text":" payment of rent by the Tenant for a period exceeding 15 days from the due date, the Landlord shall be"}
+
+data: {"text":" entitled to terminate this agreement forthwith and recover possession of the premises, in addition to claiming"}
+
+data: {"text":" all outstanding dues and damages.\n\n12. The Tenant shall not use the premises"}
+
+data: {"text":" for any illegal, immoral, or objectionable activities and shall not cause any nuisance or disturbance to the neighboring occup"}
+
+data: {"text":"ants or residents of the building.\n\n13. The Tenant shall allow the Landlord or the Landlord's authorized representative to inspect"}
+
+data: {"text":" the premises at reasonable hours upon giving reasonable prior notice, for the purpose of ensuring proper maintenance and compliance with the terms"}
+
+data: {"text":" of this agreement.\n\n14. Neither party shall be held liable for any failure to perform their obligations under this agreement if such failure is due to circumstances beyond their reasonable control,"}
+
+data: {"text":" including but not limited to acts of God, natural disasters, government regulations, or other force majeure events.\n\n15. All disputes arising out of or in connection with this agreement shall be subject"}
+
+data: {"text":" to the jurisdiction of the competent courts at Ranchi, Jharkhand, and shall be governed by the laws of India.\n\n16. This agreement is"}
+
+data: {"text":" executed for a period of 11 months only and does not create any tenancy rights"}
+
+data: {"text":" in favor of the Tenant beyond the stipulated period, in accordance with the provisions"}
+
+data: {"text":" of the Transfer of Property Act, 1882.\n\n17. The execution of this agreement shall be witnessed by two independent witnesses who shall af"}
+
+data: {"text":"fix their signatures at the time of execution of this document.\n\n18. This agreement contains the entire understanding between the parties and supersedes all prior negotiations, representations, or"}
+
+data: {"text":" agreements relating to the subject matter herein, and no modification shall"}
+
+data: {"text":" be valid unless reduced to writing and signed by both parties."}
+
+event: template_sections
+data: {"sections":[{"section_id":"header","type":"template","content":"RENT AGREEMENT\n\nThis Rent Agreement is executed at Ranchi on 06.05.2026\n\nBETWEEN\n\nMr. Binod Kumar Oraon\nR/o Bungalow No. 4, Morabadi, Ranchi - 834008\nPAN: LMNOP1234Q\n(Hereinafter referred to as the \"LANDLORD\" which expression shall include his/her heirs, executors, administrators, and assigns)\n\nAND\n\nMs. Priya Sinha\nR/o Permanent: Village Ormanjhi, District Ranchi - 835219; Currently of: TCS Ltd., IT Park, Namkum, Ranchi\nPAN: RSTUV5678W\n(Hereinafter referred to as the \"TENANT\" which expression shall include his/her heirs, executors, administrators, and assigns)","alignment":"center"},{"section_id":"recitals","type":"template","content":"WHEREAS the Landlord is the absolute owner of the property described herein and is desirous of letting out the same to the Tenant, and the Tenant has agreed to take the said property on rent on the terms and conditions set forth herein.\n\nNOW THIS AGREEMENT WITNESSETH AS FOLLOWS:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. The Landlord, Mr. Binod Kumar Oraon, hereby grants to the Tenant, Ms. Priya Sinha, the right to use and occupy the residential premises described as Flat No. 502, 5th Floor, Oraon Heights, Lalpur, Ranchi - 834001, measuring approximately 950 sq. ft., being a semi-furnished flat comprising two bedrooms, hall, kitchen, and one bathroom with attached balcony, for a period of 11 months commencing from 01.06.2026 and terminating on 30.04.2027, strictly for residential purposes only.\n\n2. The monthly rent for the said premises is fixed at Rs. 15,000/- (Fifteen Thousand only) per calendar month, which shall be paid by the Tenant to the Landlord on or before the 7th day of every month during the tenure of this agreement through UPI transfer to the Landlord's SBI account as specified by the Landlord.\n\n3. The Tenant has paid to the Landlord a sum of Rs. 45,000/- (Forty Five Thousand only) as security deposit, the receipt whereof is hereby acknowledged by the Landlord. The said security deposit shall be refunded to the Tenant upon termination of this agreement and vacation of the premises, subject to deduction of any dues, damages, or outstanding amounts payable by the Tenant.\n\n4. The monthly rent shall be subject to an annual escalation of 10% with effect from the commencement of the second year of tenancy, if this agreement is renewed or extended beyond the initial tenure of 11 months.\n\n5. The Tenant shall be responsible for payment of all electricity charges, water charges, and society maintenance charges pertaining to the demised premises during the period of tenancy. All bills and receipts for such payments shall be maintained by the Tenant and produced to the Landlord upon demand.\n\n6. Major structural repairs, if any, to the building or the demised premises shall be borne by the Landlord, provided that such repairs are not necessitated by the negligent or wrongful acts of the Tenant or persons under the Tenant's control.\n\n7. The demised premises shall be used exclusively for residential purposes by the Tenant and the Tenant's immediate family members only. The Tenant, being a salaried IT professional at TCS, undertakes to maintain the premises in a clean and habitable condition.\n\n8. The Tenant shall not sub-let, assign, or part with possession of the whole or any part of the demised premises to any third party without the prior written consent of the Landlord, which consent may be withheld at the sole discretion of the Landlord.\n\n9. The Tenant shall not carry out any structural alterations, additions, or modifications to the demised premises without the prior written consent of the Landlord. Any alterations made without such consent shall be restored to the original condition at the Tenant's cost before vacation.\n\n10. Either party may terminate this agreement by giving 2 months' prior written notice to the other party. Upon expiry of such notice period, the Tenant shall peacefully hand over vacant possession of the premises to the Landlord.\n\n11. In the event of default in payment of rent by the Tenant for a period exceeding 15 days from the due date, the Landlord shall be entitled to terminate this agreement forthwith and recover possession of the premises, in addition to claiming all outstanding dues and damages.\n\n12. The Tenant shall not use the premises for any illegal, immoral, or objectionable activities and shall not cause any nuisance or disturbance to the neighboring occupants or residents of the building.\n\n13. The Tenant shall allow the Landlord or the Landlord's authorized representative to inspect the premises at reasonable hours upon giving reasonable prior notice, for the purpose of ensuring proper maintenance and compliance with the terms of this agreement.\n\n14. Neither party shall be held liable for any failure to perform their obligations under this agreement if such failure is due to circumstances beyond their reasonable control, including but not limited to acts of God, natural disasters, government regulations, or other force majeure events.\n\n15. All disputes arising out of or in connection with this agreement shall be subject to the jurisdiction of the competent courts at Ranchi, Jharkhand, and shall be governed by the laws of India.\n\n16. This agreement is executed for a period of 11 months only and does not create any tenancy rights in favor of the Tenant beyond the stipulated period, in accordance with the provisions of the Transfer of Property Act, 1882.\n\n17. The execution of this agreement shall be witnessed by two independent witnesses who shall affix their signatures at the time of execution of this document.\n\n18. This agreement contains the entire understanding between the parties and supersedes all prior negotiations, representations, or agreements relating to the subject matter herein, and no modification shall be valid unless reduced to writing and signed by both parties."},{"section_id":"closing","type":"template","content":"IN WITNESS WHEREOF, the parties hereto have set their hands on this Rent Agreement on the day and year first above written at Ranchi.\n\n\nLANDLORD:\n\n_________________________\nMr. Binod Kumar Oraon\n\n\nTENANT:\n\n_________________________\nMs. Priya Sinha\n\n\nWITNESSES:\n\n1. Name: _________________________\n   Address: _________________________\n   Signature: _________________________\n\n2. Name: _________________________\n   Address: _________________________\n   Signature: _________________________","alignment":"left"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Print on stamp paper of appropriate value (varies by state)","Both parties to sign on all pages","Two witnesses required with full name, address, and signature","Attach passport-size photographs of Landlord and Tenant","Attach photocopy of Landlord's property ownership proof","Attach ID proof of both parties (Aadhaar/PAN)","For tenure > 11 months: compulsory registration at Sub-Registrar","Retain one executed copy with each party","Tenant to obtain NOC from housing society (if applicable)"]}
+
+event: done
+data: {"complete":true,"docId":"69faf6204096fa40592ee67e","sectionsCited":[],"mandatoryClausesComplete":true}
+

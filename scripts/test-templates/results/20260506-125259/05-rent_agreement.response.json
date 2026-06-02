@@ -1,0 +1,87 @@
+data: {"text":"1. The Landlord hereby grants to the Tenant the right to use and occupy the premises described as Flat No. 304, "}
+
+data: {"text":"3rd Floor, Sunshine Apartments, Boring Canal Road, Patna - 800001, measuring approximately 1100 sq. ft., being a"}
+
+data: {"text":" furnished residential accommodation comprising two bedrooms, one hall, kitchen, two bathrooms, and one balcony, for a"}
+
+data: {"text":" period of eleven (11) months commencing from 15.05.2026 and ending on 14.04.2027.\n\n2. The monthly rent for the said premises is fixed"}
+
+data: {"text":" at Rs. 22,000/- (Rupees Twenty Two Thousand only) per month, which shall be paid by the Tenant to the Landlord on or"}
+
+data: {"text":" before the 5th day of every calendar month during the tenure of this agreement via bank transfer to the Landlord's HDFC Bank"}
+
+data: {"text":" account details as provided separately.\n\n3. The Tenant has deposited a sum"}
+
+data: {"text":" of Rs. 66,000/- (Rupees Sixty Six Thousand only) as security deposit with the Landlord, which shall be refunded to the Tenant upon vacation"}
+
+data: {"text":" of the premises after deducting any amounts due towards rent, electricity charges, water charges, society"}
+
+data: {"text":" maintenance charges, or damages to the property, if any.\n\n4. The monthly rent shall be subject to an"}
+
+data: {"text":" annual escalation of eight percent (8%) effective from the commencement of each subsequent year during the tenure"}
+
+data: {"text":", and such escalated rent shall be payable from the respective anniversary date."}
+
+data: {"text":"\n\n5. The Tenant shall be responsible for payment of all electricity charges, water charges, and society maintenance charges pertaining to the dem"}
+
+data: {"text":"ised premises during the period of tenancy, and the Landlord shall be responsible for major structural repairs to the building"}
+
+data: {"text":" and common areas.\n\n6. The demised premises shall be used exclusively for residential purposes by the Tenant and his immediate family members only"}
+
+data: {"text":", and no commercial, business, or professional activities shall be carried out from the said"}
+
+data: {"text":" premises.\n\n7. The Tenant shall not sub-let, assign, or transfer the tenancy rights to any third party without the prior written consent of the Landlord, and any such unauthorized"}
+
+data: {"text":" sub-letting shall constitute a breach of this agreement.\n\n8. The Tenant shall not make any structural alterations, additions"}
+
+data: {"text":", or modifications to the premises without the prior written permission of the Landlord, and any alterations made with consent shall become"}
+
+data: {"text":" the property of the Landlord upon termination of tenancy.\n\n9. Either party may terminate this agreement by giving"}
+
+data: {"text":" two (2) months prior written notice to the other party, and upon such termination, the Tenant shall peacefully vacate and hand"}
+
+data: {"text":" over vacant possession of the premises to the Landlord.\n\n10. In case of default in payment of rent for a period exceeding fifteen (15) days from"}
+
+data: {"text":" the due date, the Landlord shall have the right to terminate this agreement and recover possession of the premises, in addition"}
+
+data: {"text":" to claiming all outstanding dues with interest.\n\n11. The Tenant acknowled"}
+
+data: {"text":"ges that he is a salaried employee of HDFC Bank and warrants his financial capability to honor the obligations"}
+
+data: {"text":" under this agreement throughout the tenure of tenancy.\n\n12. The Tenant shall maintain the premises in good"}
+
+data: {"text":" condition and shall be liable for any damages caused due to negligence or misuse, the cost"}
+
+data: {"text":" of which shall be deducted from the security deposit or recovered separately.\n\n13. Neither party shall be"}
+
+data: {"text":" liable for any failure or delay in performance of their obligations under this agreement if such failure or delay results from circumstances beyond their reasonable control, including but not limited to acts of God, natural disasters, government"}
+
+data: {"text":" actions, or pandemic situations.\n\n14. The Tenant shall allow the Landlord or his authorized representative to inspect the premises upon giving"}
+
+data: {"text":" reasonable notice of at least 24 hours, and shall cooperate in such inspections for maintenance"}
+
+data: {"text":" or verification purposes.\n\n15. Any disputes arising out of or in connection with this agreement shall be subject to the exclusive jurisdiction of the courts at"}
+
+data: {"text":" Patna, Bihar, and shall be governed by the laws of India.\n\n16. This agreement shall be executed in the"}
+
+data: {"text":" presence of two witnesses who shall attest to the signatures of both parties, and the Tenant acknowledges receipt of keys"}
+
+data: {"text":" and possession of the furnished premises in good condition.\n\n17. All communications and notices under this agreement shall be served"}
+
+data: {"text":" at the respective addresses mentioned herein or such other addresses as may be intimated in"}
+
+data: {"text":" writing by either party to the other.\n\n18. This agreement constitutes the entire understanding between the parties and supersedes all prior negotiations, representations, or"}
+
+data: {"text":" agreements relating to the subject matter hereof, and any modifications shall be valid"}
+
+data: {"text":" only if made in writing and signed by both parties."}
+
+event: template_sections
+data: {"sections":[{"section_id":"header","type":"template","content":"RENT AGREEMENT\n\nThis Rent Agreement is executed at Patna on 05.05.2026\n\nBETWEEN\n\nMrs. Sunita Devi\nR/o House No. 9, Lane 3, Kankarbagh, Patna - 800020\nPAN: ABCDE1234F\n(Hereinafter referred to as the \"LANDLORD\" which expression shall include his/her heirs, executors, administrators, and assigns)\n\nAND\n\nMr. Rahul Mishra\nR/o Permanent: Village Bihta, District Patna - 801103; Currently of: HDFC Bank Ltd., Boring Road Branch, Patna\nPAN: FGHIJ5678K\n(Hereinafter referred to as the \"TENANT\" which expression shall include his/her heirs, executors, administrators, and assigns)","alignment":"center"},{"section_id":"recitals","type":"template","content":"WHEREAS the Landlord is the absolute owner of the property described herein and is desirous of letting out the same to the Tenant, and the Tenant has agreed to take the said property on rent on the terms and conditions set forth herein.\n\nNOW THIS AGREEMENT WITNESSETH AS FOLLOWS:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. The Landlord hereby grants to the Tenant the right to use and occupy the premises described as Flat No. 304, 3rd Floor, Sunshine Apartments, Boring Canal Road, Patna - 800001, measuring approximately 1100 sq. ft., being a furnished residential accommodation comprising two bedrooms, one hall, kitchen, two bathrooms, and one balcony, for a period of eleven (11) months commencing from 15.05.2026 and ending on 14.04.2027.\n\n2. The monthly rent for the said premises is fixed at Rs. 22,000/- (Rupees Twenty Two Thousand only) per month, which shall be paid by the Tenant to the Landlord on or before the 5th day of every calendar month during the tenure of this agreement via bank transfer to the Landlord's HDFC Bank account details as provided separately.\n\n3. The Tenant has deposited a sum of Rs. 66,000/- (Rupees Sixty Six Thousand only) as security deposit with the Landlord, which shall be refunded to the Tenant upon vacation of the premises after deducting any amounts due towards rent, electricity charges, water charges, society maintenance charges, or damages to the property, if any.\n\n4. The monthly rent shall be subject to an annual escalation of eight percent (8%) effective from the commencement of each subsequent year during the tenure, and such escalated rent shall be payable from the respective anniversary date.\n\n5. The Tenant shall be responsible for payment of all electricity charges, water charges, and society maintenance charges pertaining to the demised premises during the period of tenancy, and the Landlord shall be responsible for major structural repairs to the building and common areas.\n\n6. The demised premises shall be used exclusively for residential purposes by the Tenant and his immediate family members only, and no commercial, business, or professional activities shall be carried out from the said premises.\n\n7. The Tenant shall not sub-let, assign, or transfer the tenancy rights to any third party without the prior written consent of the Landlord, and any such unauthorized sub-letting shall constitute a breach of this agreement.\n\n8. The Tenant shall not make any structural alterations, additions, or modifications to the premises without the prior written permission of the Landlord, and any alterations made with consent shall become the property of the Landlord upon termination of tenancy.\n\n9. Either party may terminate this agreement by giving two (2) months prior written notice to the other party, and upon such termination, the Tenant shall peacefully vacate and hand over vacant possession of the premises to the Landlord.\n\n10. In case of default in payment of rent for a period exceeding fifteen (15) days from the due date, the Landlord shall have the right to terminate this agreement and recover possession of the premises, in addition to claiming all outstanding dues with interest.\n\n11. The Tenant acknowledges that he is a salaried employee of HDFC Bank and warrants his financial capability to honor the obligations under this agreement throughout the tenure of tenancy.\n\n12. The Tenant shall maintain the premises in good condition and shall be liable for any damages caused due to negligence or misuse, the cost of which shall be deducted from the security deposit or recovered separately.\n\n13. Neither party shall be liable for any failure or delay in performance of their obligations under this agreement if such failure or delay results from circumstances beyond their reasonable control, including but not limited to acts of God, natural disasters, government actions, or pandemic situations.\n\n14. The Tenant shall allow the Landlord or his authorized representative to inspect the premises upon giving reasonable notice of at least 24 hours, and shall cooperate in such inspections for maintenance or verification purposes.\n\n15. Any disputes arising out of or in connection with this agreement shall be subject to the exclusive jurisdiction of the courts at Patna, Bihar, and shall be governed by the laws of India.\n\n16. This agreement shall be executed in the presence of two witnesses who shall attest to the signatures of both parties, and the Tenant acknowledges receipt of keys and possession of the furnished premises in good condition.\n\n17. All communications and notices under this agreement shall be served at the respective addresses mentioned herein or such other addresses as may be intimated in writing by either party to the other.\n\n18. This agreement constitutes the entire understanding between the parties and supersedes all prior negotiations, representations, or agreements relating to the subject matter hereof, and any modifications shall be valid only if made in writing and signed by both parties."},{"section_id":"closing","type":"template","content":"IN WITNESS WHEREOF, the parties hereto have set their hands on this Rent Agreement on the day and year first above written at Patna.\n\n\nLANDLORD:\n\n_________________________\nMrs. Sunita Devi\n\n\nTENANT:\n\n_________________________\nMr. Rahul Mishra\n\n\nWITNESSES:\n\n1. Name: _________________________\n   Address: _________________________\n   Signature: _________________________\n\n2. Name: _________________________\n   Address: _________________________\n   Signature: _________________________","alignment":"left"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Print on stamp paper of appropriate value (varies by state)","Both parties to sign on all pages","Two witnesses required with full name, address, and signature","Attach passport-size photographs of Landlord and Tenant","Attach photocopy of Landlord's property ownership proof","Attach ID proof of both parties (Aadhaar/PAN)","For tenure > 11 months: compulsory registration at Sub-Registrar","Retain one executed copy with each party","Tenant to obtain NOC from housing society (if applicable)"]}
+
+event: done
+data: {"complete":true,"docId":null,"sectionsCited":[],"mandatoryClausesComplete":true}
+

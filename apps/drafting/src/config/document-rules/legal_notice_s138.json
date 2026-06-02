@@ -1,0 +1,281 @@
+{
+  "_meta": {
+    "description": "Document-rules config for legal_notice_s138 — drives prompt, validation, mandatory clauses",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass + SCRUM-89 form_schema port from production override 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Parties",
+        "fields": [
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Payee / Notice Sender",
+            "type": "text",
+            "required": true,
+            "inject_into": ["header", "body"]
+          },
+          {
+            "field_id": "applicant_address",
+            "label": "Payee Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "respondent_name",
+            "label": "Drawer / Noticee",
+            "type": "text",
+            "required": true,
+            "inject_into": ["header", "body"]
+          },
+          {
+            "field_id": "respondent_address",
+            "label": "Drawer Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "respondent_type",
+            "label": "Drawer Type",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "individual",
+                "label": "Individual"
+              },
+              {
+                "id": "company",
+                "label": "Company / LLP"
+              },
+              {
+                "id": "partnership",
+                "label": "Partnership Firm"
+              },
+              {
+                "id": "huf",
+                "label": "HUF"
+              }
+            ],
+            "required": true,
+            "default": "individual",
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Advocate Details",
+        "fields": [
+          {
+            "field_id": "advocate_name",
+            "label": "Advocate Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["header", "closing"]
+          },
+          {
+            "field_id": "advocate_address",
+            "label": "Advocate Chamber Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "advocate_enrollment",
+            "label": "Bar Council Enrollment No.",
+            "type": "text",
+            "required": true,
+            "inject_into": ["closing"]
+          }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Cheque Details",
+        "fields": [
+          {
+            "field_id": "cheque_number",
+            "label": "Cheque Number",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "cheque_date",
+            "label": "Cheque Date",
+            "type": "date",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "cheque_amount",
+            "label": "Cheque Amount (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["body", "demand"]
+          },
+          {
+            "field_id": "amount_in_words",
+            "label": "Amount in Words",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "drawee_bank",
+            "label": "Drawee Bank Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "drawee_branch",
+            "label": "Drawee Branch",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "presentation_date",
+            "label": "Date of Presentation to Bank",
+            "type": "date",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "dishonour_date",
+            "label": "Date of Dishonour / Return Memo",
+            "type": "date",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "dishonour_reason",
+            "label": "Reason for Dishonour (as per memo)",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Funds Insufficient, Account Closed",
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "underlying_liability",
+            "label": "Underlying Liability (why was cheque issued?)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 30,
+            "max_length": 1000,
+            "inject_into": ["ai_prompt"]
+          }
+        ]
+      }
+    ]
+  },
+  "docType": "legal_notice_s138",
+  "parentDocType": "legal_notice",
+  "displayName": "Legal Notice under Section 138 NI Act (Cheque Bounce)",
+  "category": "criminal",
+  "causeTitle": {
+    "format": "LEGAL NOTICE\n(Under Section 138 read with Section 142 of the Negotiable Instruments Act, 1881)\n\nTo,\n{respondent}\n{respondentAddress}\n\nFrom,\n{applicant}\nThrough: {advocateName}, Advocate\n{advocateAddress}",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Sender / Complainant" },
+      { "role": "respondent", "label": "Noticee / Drawer of Cheque" }
+    ],
+    "caseNomenclature": "N/A"
+  },
+  "mandatoryClauses": [
+    {
+      "id": "cheque_details",
+      "name": "Cheque Details",
+      "required": true,
+      "description": "Cheque number, date, amount, bank name, branch"
+    },
+    {
+      "id": "dishonour_details",
+      "name": "Dishonour Details",
+      "required": true,
+      "description": "Date of dishonour, reason for dishonour (e.g., insufficient funds), bank memo reference"
+    },
+    {
+      "id": "underlying_liability",
+      "name": "Underlying Liability",
+      "required": true,
+      "description": "Nature of the legally enforceable debt or liability for which cheque was issued"
+    },
+    {
+      "id": "demand_15_days",
+      "name": "15-Day Demand",
+      "required": true,
+      "description": "Demand to pay the cheque amount within 15 days of receipt of notice"
+    },
+    {
+      "id": "consequence_warning",
+      "name": "Criminal Prosecution Warning",
+      "required": true,
+      "description": "Warning that failure to pay within 15 days will result in criminal complaint under S.138 NI Act"
+    },
+    {
+      "id": "advocate_details",
+      "name": "Advocate Details",
+      "required": true,
+      "description": "Name and enrollment number of advocate"
+    }
+  ],
+  "prayerTemplate": "You are hereby called upon and demanded to make the payment of Rs. {amount}/- ({amountInWords}) within 15 (fifteen) days from the date of receipt of this notice.\n\nPlease note that in the event of your failure to make the said payment within the stipulated period of 15 days, my client shall be constrained to file a Criminal Complaint against you under Section 138 of the Negotiable Instruments Act, 1881 before the competent court, at your risk, cost, and consequences.\n\nThis notice is without prejudice to the rights of my client to initiate civil proceedings for recovery of the said amount along with interest, damages, and cost of litigation.",
+  "verificationTemplate": "",
+  "filingChecklist": [
+    "Notice sent within 30 days of receiving information of dishonour",
+    "Notice sent by Registered Post AD / Speed Post AD",
+    "Copy of notice retained",
+    "Postal receipt preserved",
+    "Copy of dishonoured cheque",
+    "Copy of bank memo / return memo",
+    "Wait 15 days from receipt of notice before filing complaint",
+    "File complaint within 30 days after expiry of 15-day notice period"
+  ],
+  "relevantActs": [
+    {
+      "act": "Negotiable Instruments Act, 1881",
+      "sections": [
+        { "number": "138", "description": "Dishonour of cheque for insufficiency of funds" },
+        { "number": "141", "description": "Offences by companies" },
+        { "number": "142", "description": "Cognizance of offences" },
+        { "number": "143", "description": "Power of court to try cases summarily" },
+        { "number": "144", "description": "Mode of service of summons" }
+      ]
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Legal Notice under Section 138 of the Negotiable Instruments Act, 1881.",
+    "This is a mandatory demand notice before filing a criminal complaint for cheque bounce.",
+    "Clearly state ALL cheque details: cheque number, date, amount (in figures and words), drawn on which bank and branch.",
+    "State the underlying legally enforceable debt/liability for which the cheque was issued.",
+    "Mention the date the cheque was presented for encashment and the date it was dishonoured.",
+    "State the reason for dishonour as mentioned in the bank's return memo (e.g., 'insufficient funds', 'account closed').",
+    "Include a clear demand for payment of the full cheque amount within 15 days of receipt of notice.",
+    "Warn that failure to pay within 15 days will result in criminal prosecution under Section 138 NI Act.",
+    "Reference the statutory timeline: notice within 30 days of dishonour knowledge, 15-day notice period, complaint within 30 days after notice period.",
+    "Use firm but professional legal language.",
+    "Do NOT generate the advocate signature block — it is added programmatically."
+  ]
+}

@@ -1,0 +1,641 @@
+{
+  "_meta": {
+    "description": "Document-rules config for joint_development_agreement (JDA) — Landowner contributes land; Developer contributes construction expertise + capital; mutually agreed split of constructed units OR revenue. Hybrid character per Sushila Devi v. Mohan Lal. RERA registration mandatory for projects > 500 sqm OR 8 units. Stamp duty varies by state — some treat as conveyance, others as agreement.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. RERA compliance is non-negotiable for qualifying projects. GST on JDA per CBIC Notification 04/2018-CT(R) and 06/2019-CT(R) — flag for landowner."
+  },
+  "template_id": "joint_development_agreement",
+  "docType": "joint_development_agreement",
+  "title": "Joint Development Agreement (JDA) — Landowner & Developer",
+  "displayName": "Joint Development Agreement (JDA)",
+  "category": "transactional_deed",
+  "creditsCost": 2,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "JOINT DEVELOPMENT AGREEMENT\n\nThis Joint Development Agreement is executed on this {date} at {place}.\n\nBETWEEN\n\n{landowner_name}, son/daughter/wife of {landowner_father_name}, aged about {landowner_age} years, resident of {landowner_address}, (PAN: {landowner_pan})\n(hereinafter referred to as the \"LANDOWNER\")\n\nAND\n\n{developer_name}, a {developer_entity_type} registered under [Companies Act / LLP Act / Partnership Act], having its registered office at {developer_address}, (CIN/LLPIN: {developer_id}, PAN: {developer_pan}), represented by its Authorised Signatory {developer_signatory}\n(hereinafter referred to as the \"DEVELOPER\")",
+    "partyDesignations": [
+      { "role": "landowner", "label": "Landowner" },
+      { "role": "developer", "label": "Developer / Builder" }
+    ],
+    "caseNomenclature": "N/A — Transactional"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "landowner_name",
+        "label": "Landowner full name (or list of names if multiple co-owners)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "landowner_father_name",
+        "label": "Landowner father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "landowner_age", "label": "Landowner age", "type": "number", "required": true },
+      {
+        "id": "landowner_address",
+        "label": "Landowner address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "landowner_pan", "label": "Landowner PAN", "type": "text", "required": true },
+      {
+        "id": "multiple_landowners",
+        "label": "Multiple landowners / co-owners?",
+        "type": "select",
+        "required": true,
+        "options": ["single_landowner", "multiple_co_owners_all_parties"]
+      },
+      {
+        "id": "co_owners_details",
+        "label": "If multiple — details of all co-owners",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "developer_name",
+        "label": "Developer entity name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "developer_entity_type",
+        "label": "Developer entity type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "proprietorship",
+          "partnership",
+          "llp",
+          "private_limited_company",
+          "public_limited_company"
+        ]
+      },
+      {
+        "id": "developer_id",
+        "label": "Developer CIN / LLPIN / Registration No.",
+        "type": "text",
+        "required": true
+      },
+      { "id": "developer_pan", "label": "Developer PAN", "type": "text", "required": true },
+      {
+        "id": "developer_address",
+        "label": "Developer registered office",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "developer_signatory",
+        "label": "Authorised signatory of developer",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "developer_rera_no",
+        "label": "Developer's RERA agent registration (if applicable)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "property_address",
+        "label": "Land full address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "property_extent",
+        "label": "Land extent (sq ft / sq m / acres)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "property_boundaries",
+        "label": "Boundaries (N/S/E/W)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "khasra_or_survey_no",
+        "label": "Khasra / Survey / Plot No.",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "land_title_chain",
+        "label": "Landowner's title chain",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "land_use_zoning",
+        "label": "Land use zoning (residential / commercial / mixed)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "project_type",
+        "label": "Project type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "residential_apartment_complex",
+          "commercial_office_complex",
+          "mixed_use_residential_commercial",
+          "individual_villa_or_row_house_layout",
+          "retail_shopping_complex"
+        ]
+      },
+      {
+        "id": "estimated_built_up_area",
+        "label": "Estimated built-up area (sq ft)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "estimated_number_of_units",
+        "label": "Estimated number of units",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "consideration_model",
+        "label": "Consideration / sharing model",
+        "type": "select",
+        "required": true,
+        "options": [
+          "area_sharing_landowner_gets_specified_units",
+          "revenue_sharing_percent_of_sale_proceeds",
+          "fixed_upfront_cash_plus_units",
+          "hybrid_area_plus_cash"
+        ]
+      },
+      {
+        "id": "landowner_share_units",
+        "label": "Landowner's share — number of units / specific units / floor / saleable area",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "developer_share_units",
+        "label": "Developer's share",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "refundable_advance",
+        "label": "Refundable security / advance to landowner (Rupees)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "completion_timeline_months",
+        "label": "Project completion timeline (months from approvals)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "approvals_timeline_months",
+        "label": "Approvals timeline (months to obtain sanctions)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "rera_required",
+        "label": "RERA registration required (project > 500 sqm OR > 8 units)?",
+        "type": "select",
+        "required": true,
+        "options": ["yes_rera_registration_mandatory", "no_below_rera_threshold"]
+      },
+      {
+        "id": "rera_authority",
+        "label": "Applicable RERA authority",
+        "type": "select",
+        "required": true,
+        "options": [
+          "bihar_RERA",
+          "jharkhand_RERA",
+          "uttar_pradesh_RERA_UPRERA",
+          "delhi_RERA_or_NCT_authority",
+          "not_applicable"
+        ]
+      },
+      {
+        "id": "developer_obligations_summary",
+        "label": "Developer obligations (approvals, construction, capital, marketing, completion)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "landowner_obligations_summary",
+        "label": "Landowner obligations (title clearance, GPA/SPA for sales, vacant possession)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "gpa_to_developer",
+        "label": "Is Landowner granting GPA to Developer for sales of Developer's share?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "yes_limited_gpa_for_developer_share_sales",
+          "yes_general_gpa_with_suraj_lamp_flag",
+          "no_separate_sale_deeds_for_each_unit"
+        ]
+      },
+      {
+        "id": "termination_grounds",
+        "label": "Termination grounds & consequences",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "stamp_duty_paid",
+        "label": "Stamp duty paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "state",
+        "label": "State of execution",
+        "type": "select",
+        "required": true,
+        "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_recital",
+      "name": "Parties and Recitals",
+      "required": true,
+      "description": "Landowner + Developer + identification"
+    },
+    {
+      "id": "land_title_recital",
+      "name": "Landowner's Title",
+      "required": true,
+      "description": "Chain of title; absolute marketable title declaration"
+    },
+    {
+      "id": "land_description_schedule",
+      "name": "Schedule of Land",
+      "required": true,
+      "description": "Full description with boundaries, extent, survey/khasra"
+    },
+    {
+      "id": "project_recital",
+      "name": "Project Recital",
+      "required": true,
+      "description": "Nature of development, scale, zoning"
+    },
+    {
+      "id": "appointment_of_developer",
+      "name": "Appointment of Developer",
+      "required": true,
+      "description": "Landowner appoints Developer to undertake construction + sale"
+    },
+    {
+      "id": "consideration_structure",
+      "name": "Consideration Structure",
+      "required": true,
+      "description": "Area-sharing / revenue-sharing / hybrid — clearly set out"
+    },
+    {
+      "id": "landowner_share_clause",
+      "name": "Landowner's Share — Specific Allocation",
+      "required": true,
+      "description": "Identified units / floor / saleable area in landowner's name"
+    },
+    {
+      "id": "developer_share_clause",
+      "name": "Developer's Share — Specific Allocation",
+      "required": true,
+      "description": "Identified units / saleable area for developer's sale to third parties"
+    },
+    {
+      "id": "refundable_advance_clause",
+      "name": "Refundable Advance / Security to Landowner",
+      "required": false,
+      "description": "Where applicable"
+    },
+    {
+      "id": "approvals_responsibility",
+      "name": "Approvals — Developer's Responsibility",
+      "required": true,
+      "description": "Sanctioned plan, NOCs, environmental clearance, RERA, occupancy certificate"
+    },
+    {
+      "id": "construction_specifications",
+      "name": "Construction Specifications",
+      "required": true,
+      "description": "Quality, materials, structural design — schedule annexed"
+    },
+    {
+      "id": "timeline_clause",
+      "name": "Timeline — Approvals + Construction + Completion",
+      "required": true,
+      "description": "Specific deadlines with extensions for force majeure"
+    },
+    {
+      "id": "rera_compliance_clause",
+      "name": "RERA Compliance",
+      "required": true,
+      "description": "Developer to register project under RERA where applicable; comply with all RERA obligations"
+    },
+    {
+      "id": "gpa_to_developer_clause",
+      "name": "Power of Attorney for Developer's Sales",
+      "required": true,
+      "description": "Limited PoA to Developer for sale of developer's share to end-buyers"
+    },
+    {
+      "id": "landowner_consent_for_sales",
+      "name": "Landowner Consent / No Objection for Buyer Sale Deeds",
+      "required": true,
+      "description": "Landowner shall execute sale deeds with end-buyers for developer's share (against developer's request)"
+    },
+    {
+      "id": "title_marketable_warranty",
+      "name": "Title Marketability Warranty by Landowner",
+      "required": true,
+      "description": "Vacant possession; no encumbrances; cooperation in title clearance"
+    },
+    {
+      "id": "developer_warranties",
+      "name": "Developer Warranties — Capacity, Capital, Experience",
+      "required": true,
+      "description": "Developer warrants capability to complete"
+    },
+    {
+      "id": "default_termination_clause",
+      "name": "Default & Termination",
+      "required": true,
+      "description": "Events of default; consequences; restoration of land to landowner on developer's default"
+    },
+    {
+      "id": "indemnity_clause",
+      "name": "Indemnity",
+      "required": true,
+      "description": "Cross-indemnities"
+    },
+    {
+      "id": "dispute_resolution_clause",
+      "name": "Dispute Resolution — Arbitration",
+      "required": true,
+      "description": "Arbitration clause under Arbitration Act 1996"
+    },
+    {
+      "id": "force_majeure_clause",
+      "name": "Force Majeure",
+      "required": true,
+      "description": "Definition + suspension + termination thresholds"
+    },
+    {
+      "id": "tax_indemnities_clause",
+      "name": "Tax Indemnities — GST, Income Tax, Stamp Duty",
+      "required": true,
+      "description": "Allocation of tax liabilities including GST on landowner under JDA"
+    },
+    {
+      "id": "exit_provisions",
+      "name": "Exit Provisions",
+      "required": true,
+      "description": "Post-completion handover; OC; common areas; maintenance society formation"
+    },
+    {
+      "id": "schedule_land",
+      "name": "SCHEDULE A — Land",
+      "required": true,
+      "description": "Detailed land description"
+    },
+    {
+      "id": "schedule_landowner_share",
+      "name": "SCHEDULE B — Landowner's Share (Specific Allocation)",
+      "required": true,
+      "description": "Specific units / floor allocation"
+    },
+    {
+      "id": "schedule_developer_share",
+      "name": "SCHEDULE C — Developer's Share",
+      "required": true,
+      "description": "Specific units allocation"
+    },
+    {
+      "id": "schedule_specifications",
+      "name": "SCHEDULE D — Construction Specifications",
+      "required": true,
+      "description": "Materials, quality, finishes"
+    },
+    {
+      "id": "witness_clause",
+      "name": "Two Witnesses",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a JOINT DEVELOPMENT AGREEMENT (JDA) between Landowner and Developer.",
+      "NATURE OF JDA: A hybrid commercial arrangement where Landowner contributes LAND and Developer contributes CONSTRUCTION (capital, expertise, marketing, approvals). The constructed property is shared in agreed proportion. Courts have characterised JDAs in various ways depending on structure — Sushila Devi v. Mohan Lal AIR 1955 SC 481 (joint venture nature); Faqir Chand Gulati v. Uppal Agencies Pvt Ltd (2008) 10 SCC 345 (landowner is consumer if developer fails to deliver agreed share).",
+      "REGULATORY FRAMEWORK:",
+      "(1) RERA, 2016 — Section 3 mandates registration of real estate projects where (a) area of land proposed to be developed > 500 sqm, OR (b) number of apartments proposed > 8 (inclusive of all phases). Developer is the 'promoter' for RERA purposes (S.2(zk) includes a person who, in case of land developed under JDA, builds and sells apartments). Mandatory disclosures, escrow account (70% of buyer payments), timely delivery — all apply.",
+      "(2) GST on JDA: per CBIC Notification 04/2018-CT(R) dated 25.01.2018 and Notification 06/2019-CT(R) dated 29.03.2019:\n   - GST liability on landowner for transfer of development rights to developer arises at the time of issuance of completion certificate / first occupation (whichever earlier).\n   - GST is on the construction services / share received by landowner.\n   - Reverse charge mechanism applies (developer pays GST on landowner's share at completion).\n   - 1% (affordable housing) / 5% (other residential) for new schemes without ITC; 12% with ITC for under-construction commercial.\n   - FLAG landowner that GST on his/her constructed share is payable.",
+      "(3) Income Tax on JDA — S.45(5A) ITA (introduced by Finance Act 2017): For individual / HUF landowner under JDA: capital gains arises in the year in which COMPLETION CERTIFICATE is issued (not on signing JDA). Stamp duty value of share received + monetary consideration on date of CC = full value of consideration for capital gains.",
+      "(4) Stamp Duty — varies by state. Some states (Maharashtra Article 5(g-a)) treat JDA on par with conveyance; others treat as agreement. Bihar/Jharkhand/UP/Delhi — typically agreement rate (Rs.500 to Rs.5000) plus additional stamp on sale deeds to end-buyers (full conveyance rate by Landowner+Developer to buyer).",
+      "STRUCTURE OF JDA:",
+      "Para 1: Parties — Landowner + Developer + Authorised Signatories.",
+      "Para 2: RECITALS:\n   (A) Landowner is absolute owner of land described in Schedule A; chain of title.\n   (B) Land is zoned for [residential / commercial / mixed] use; floor area ratio (FAR) / floor space index (FSI) available.\n   (C) Developer is engaged in real estate development; has experience and capacity.\n   (D) Landowner desires to develop land but lacks construction expertise / capital; Developer desires to develop and has agreed to invest expertise + capital in consideration of share in constructed area / proceeds.\n   (E) Parties have reached commercial understanding as recorded herein.",
+      "Para 3: APPOINTMENT — 'Landowner doth hereby appoint Developer as the EXCLUSIVE developer of the said land for the project described herein, on the terms and conditions set forth.'",
+      "Para 4: PROJECT DESCRIPTION — type of development, scale, intended unit configuration, approximate built-up area, common amenities.",
+      "Para 5: CONSIDERATION STRUCTURE — set out clearly. Examples:\n   (a) Area sharing: 'Landowner's share = 35% of total constructed saleable area, comprising specific units identified in Schedule B. Developer's share = 65% comprising units in Schedule C.'\n   (b) Revenue sharing: 'Net sale proceeds (after costs, taxes, brokerage) shared 30% Landowner : 70% Developer.'\n   (c) Hybrid: 'Refundable upfront of Rs.[X] crore + Landowner's share of [Y]% area.'",
+      "Para 6: REFUNDABLE ADVANCE (if applicable) — interest-free; refunded against landowner's share OR cash-adjusted at end.",
+      "Para 7: APPROVALS — Developer's responsibility:\n   - Plan sanction from Town Planning Authority / Development Authority.\n   - Environmental clearance (where applicable, MoEF / SEAC).\n   - Fire NOC.\n   - Airport Authority NOC (if near airport).\n   - Heritage Committee NOC (if applicable).\n   - Pollution Control Board consent.\n   - RERA registration.\n   - Society / Apartment Owners' Association formation post completion.\n   - Occupancy Certificate (OC) on completion.",
+      "Para 8: CONSTRUCTION SPECIFICATIONS — Schedule D with materials, structural design, brand specifications for fixtures, common-area amenities, parking, etc.",
+      "Para 9: TIMELINE:\n   - Approvals: within [X] months of execution.\n   - Construction start: within [Y] months of receipt of approvals.\n   - Construction completion: within [Z] months of construction start.\n   - Grace period: 6 months for force majeure / unforeseen delays.\n   - Outer limit per RERA registration declaration.",
+      "Para 10: DEVELOPER'S OBLIGATIONS:\n   - Bear all costs of approvals, construction, marketing, brokerage.\n   - Construct as per sanctioned plan + RERA disclosures.\n   - Maintain quality (specifications in Schedule D).\n   - Comply with labour laws (CLRA / BOCW / EPF / ESI / minimum wages).\n   - Maintain insurance — construction all risk + workmen compensation + public liability.\n   - Provide handover of Landowner's share with OC.",
+      "Para 11: LANDOWNER'S OBLIGATIONS:\n   - Provide vacant possession on signing / within agreed time.\n   - Clear all encumbrances + provide marketable title.\n   - Pay land revenue and taxes up to date.\n   - Cooperate in approvals (appear before authorities; execute documents as required).\n   - Execute Sale Deeds with end-buyers for Developer's share (against payment of consideration directly to Developer).\n   - Not alienate / encumber land during currency of JDA.",
+      "Para 12: POWER OF ATTORNEY — Landowner shall execute a LIMITED PoA in Developer's favour for:\n   (a) Obtaining approvals.\n   (b) Representing before authorities.\n   (c) Selling Developer's share of units to end-buyers (signing sale deeds, receiving consideration, mutation, etc.).\n   CRITICAL — must include Suraj Lamp disclaimer in PoA; sale to end-buyers must be by REGISTERED SALE DEED, and Landowner is the conveyor of title to end-buyers (PoA-holder Developer presents and registers).",
+      "Para 13: RERA COMPLIANCE:\n   - Developer to register project with state RERA authority BEFORE marketing / accepting bookings.\n   - Maintain separate RERA escrow account for 70% of buyer payments.\n   - Disclose this JDA on RERA portal.\n   - Comply with RERA timelines, refunds, penalties.\n   - Issue allotment letters and agreements for sale per RERA-prescribed format.",
+      "Para 14: DEFAULT & TERMINATION:\n   - Developer's default — failure to obtain approvals within timeline / failure to complete construction / quality breach / insolvency. Consequence: termination + restoration of land to landowner + liquidated damages.\n   - Landowner's default — title defect / refusal to cooperate / alienation in breach. Consequence: developer's right to specific performance + damages.\n   - Cure period: 90 days for material defaults.",
+      "Para 15: FORCE MAJEURE — natural calamities, war, regulatory ban, pandemic; suspends obligations; if continuing > 12 months, either party may terminate.",
+      "Para 16: INDEMNITIES:\n   - Developer indemnifies Landowner against construction-related liabilities, third-party claims, labour/employment claims, tax claims attributable to construction.\n   - Landowner indemnifies Developer against title claims, prior encumbrances, claims by erstwhile owners.",
+      "Para 17: TAX ALLOCATIONS:\n   - GST on construction services to Landowner: Developer is liable on reverse charge basis on Landowner's share at completion (CBIC Notif 04/2018-CT(R) and 06/2019-CT(R)).\n   - Income tax on Landowner: capital gains on JDA share crystallises on issue of OC under S.45(5A) ITA.\n   - Stamp duty on JDA: borne typically by Developer; on subsequent sale deeds to buyers — paid by respective buyers.\n   - RERA fees: borne by Developer.",
+      "Para 18: BUYER SALE DEEDS — for each unit sold to end-buyer in Developer's share: tri-partite sale deed (Landowner conveys title; Developer is confirming party; Buyer takes title); or Landowner-Buyer sale deed with Developer as confirming party receiving consideration.",
+      "Para 19: HANDOVER — Developer hands over Landowner's share on OC; common areas to RWA / society to be formed.",
+      "Para 20: DISPUTE RESOLUTION — Arbitration under Arbitration and Conciliation Act 1996; sole / 3-member tribunal; seat at [city]; rules of [institution / ad-hoc].",
+      "Para 21: GOVERNING LAW — Indian law.",
+      "Schedules A (Land), B (Landowner's share), C (Developer's share), D (Specifications), E (Approvals checklist).",
+      "Two witnesses' attestation.",
+      "Append Lawie disclaimer.",
+      "Cite Faqir Chand Gulati v. Uppal Agencies (2008) 10 SCC 345 — landowner under JDA is a CONSUMER and developer is service provider; landowner can approach consumer fora for developer's deficiency in handover.",
+      "Cite Sushila Devi v. Mohan Lal AIR 1955 SC 481 — characterisation of JDA.",
+      "Where multiple co-owner landowners — all must sign; clearly demarcate inter se sharing among landowners in landowner's overall share.",
+      "Where land is HUF — Karta + adult coparceners; court permission for minor coparceners.",
+      "Where land is agricultural — conversion to non-agricultural use before development; flag state-specific conversion process."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Real Estate (Regulation and Development) Act, 2016 (RERA)",
+      "sections": [
+        { "number": "S.2(zk)", "description": "Promoter — includes developer under JDA" },
+        {
+          "number": "S.3",
+          "description": "Mandatory registration of projects > 500 sqm or > 8 units"
+        },
+        { "number": "S.4", "description": "Application for registration — disclosures" },
+        { "number": "S.13", "description": "Agreement for sale — RERA-prescribed format" },
+        { "number": "S.14", "description": "Adherence to sanctioned plans" },
+        { "number": "S.18", "description": "Refund on failure to handover by promised date" }
+      ]
+    },
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        {
+          "number": "S.53A",
+          "description": "Doctrine of part-performance — developer's possession on faith of JDA protected even where deed unregistered (limited application)"
+        }
+      ]
+    },
+    {
+      "act": "Income Tax Act, 1961",
+      "sections": [
+        {
+          "number": "S.45(5A)",
+          "description": "Capital gains crystallisation for individual / HUF landowner — on OC issue"
+        },
+        { "number": "S.50C / 56(2)(x)", "description": "Stamp duty value implications" },
+        {
+          "number": "S.194-IC",
+          "description": "TDS @ 10% on monetary consideration paid by developer to landowner under JDA"
+        }
+      ]
+    },
+    {
+      "act": "Central Goods and Services Tax Act, 2017",
+      "sections": [
+        {
+          "number": "Notification 04/2018-CT(R)",
+          "description": "GST on construction services to landowner — time of supply"
+        },
+        {
+          "number": "Notification 06/2019-CT(R)",
+          "description": "Revised GST rates 1% / 5% for residential without ITC"
+        },
+        {
+          "number": "S.9(3)",
+          "description": "Reverse charge mechanism — developer pays GST on transfer of development rights"
+        }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        {
+          "number": "S.17",
+          "description": "Registration of JDA — varies by state; many states treat as agreement (optional) but registration recommended for evidentiary protection"
+        }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899 + State Schedules",
+      "sections": [
+        {
+          "number": "Article 5 / 23-A / state JDA article",
+          "description": "Stamp duty on JDA — agreement rate; subsequent sale deeds bear full conveyance"
+        }
+      ]
+    },
+    {
+      "act": "Consumer Protection Act, 2019",
+      "sections": [
+        {
+          "number": "S.2(7)",
+          "description": "Consumer — includes landowner under JDA per Faqir Chand Gulati"
+        }
+      ]
+    },
+    {
+      "act": "Arbitration and Conciliation Act, 1996",
+      "sections": [{ "number": "S.7", "description": "Arbitration agreement" }]
+    }
+  ],
+  "filing_checklist": [
+    "Stamp paper per state Article (typically agreement rate; verify if state has JDA-specific article)",
+    "Landowner's title documents (entire chain) — for due diligence by developer",
+    "Encumbrance Certificate (EC) — past 30 years (developer typically demands)",
+    "Mutation / Jamabandi / Khatian / Khatauni — current",
+    "Property tax receipts up to date",
+    "Land conversion certificate (if agricultural to non-agricultural)",
+    "Survey settlement records / Tehsildar's certificate of holdings",
+    "PAN of all landowners + developer",
+    "Aadhaar of individual landowners",
+    "Developer's Certificate of Incorporation / LLP Agreement / Partnership Deed",
+    "Developer's Board Resolution authorising JDA",
+    "Developer's RERA agent registration (if RERA agent role)",
+    "Authorised signatory's specimen signature + PoA",
+    "Sanctioned development plan (preliminary or proposed)",
+    "Title search report from independent title professional",
+    "Two adult witnesses with ID proofs",
+    "Both parties (or authorised signatories) physically present for SR registration",
+    "RERA registration of project BEFORE marketing / accepting bookings (where threshold met)",
+    "Limited PoA from Landowner to Developer (separately executed) for sales",
+    "Insurance policies — construction all-risk, workmen compensation, public liability",
+    "Post-execution: noting in revenue records of JDA (where state permits)",
+    "Periodic disclosure to RERA portal",
+    "Compliance with GST on JDA at completion certificate stage",
+    "Income tax — Form 26QC for TDS u/s 194-IC by developer on monetary consideration",
+    "Lawie disclaimer included"
+  ],
+  "validation_rules": [
+    "landowner_age >= 18",
+    "developer_entity_type must be specified",
+    "developer_id (CIN / LLPIN) must be specified",
+    "land_title_chain must not be empty",
+    "consideration_model must be specified",
+    "landowner_share_units must not be empty",
+    "developer_share_units must not be empty",
+    "completion_timeline_months > 0",
+    "approvals_timeline_months > 0",
+    "if (estimated_built_up_area > 500 OR estimated_number_of_units > 8) — rera_required must be 'yes_rera_registration_mandatory'",
+    "if rera_required == 'yes_rera_registration_mandatory' — rera_authority must be specified (not 'not_applicable')",
+    "gpa_to_developer must be specified; if 'yes_general_gpa_with_suraj_lamp_flag' — Suraj Lamp disclaimer required",
+    "termination_grounds must not be empty",
+    "property_boundaries must mention N/S/E/W",
+    "stamp_duty_paid > 0",
+    "witness_1 and witness_2 mandatory",
+    "advocate enrollment number required"
+  ]
+}

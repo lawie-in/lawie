@@ -1,0 +1,207 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_status": "Approved",
+    "legal_basis": "Indian Contract Act 1872 + Companies Act 2013 + Copyright Act 1957 + Patents Act 1970",
+    "notes": "Founders Agreement governs co-founder relationship pre/post incorporation. Often executed before incorporation and superseded/supplemented by SHA at fundraise. Vesting, IP assignment, equity split, exit are core. S.27 Contract Act limits post-exit non-compete; valid as shareholder restriction."
+  },
+  "template_id": "founders_agreement",
+  "title": "Co-Founders Agreement",
+  "category": "corporate",
+  "creditsCost": 2,
+  "court_levels": [],
+  "form_schema": {
+    "type": "object",
+    "required": ["company_name_proposed", "founders", "effective_date", "equity_split"],
+    "properties": {
+      "company_name_proposed": { "type": "string" },
+      "company_status": { "type": "string", "enum": ["Incorporated", "Pre-incorporation"] },
+      "company_cin": { "type": "string" },
+      "effective_date": { "type": "string", "format": "date" },
+      "founders": {
+        "type": "array",
+        "minItems": 2,
+        "items": {
+          "type": "object",
+          "required": ["name", "address", "role", "equity_percent"],
+          "properties": {
+            "name": { "type": "string" },
+            "father_name": { "type": "string" },
+            "address": { "type": "string" },
+            "pan": { "type": "string" },
+            "role_title": { "type": "string", "title": "e.g., CEO, CTO, COO" },
+            "equity_percent": { "type": "number" },
+            "capital_contribution": { "type": "number" },
+            "time_commitment": { "type": "string", "default": "Full-time" },
+            "salary_monthly": { "type": "number" }
+          }
+        }
+      },
+      "business_description": { "type": "string" },
+      "equity_split": { "type": "string", "title": "Summary of equity allocation" },
+      "vesting_schedule": {
+        "type": "object",
+        "properties": {
+          "total_period_months": { "type": "number", "default": 48 },
+          "cliff_months": { "type": "number", "default": 12 },
+          "vesting_frequency": { "type": "string", "default": "Monthly post-cliff" }
+        }
+      },
+      "ip_assignment_scope": {
+        "type": "string",
+        "default": "All pre-incorporation and during-tenure IP related to the business assigned to the Company"
+      },
+      "non_compete_term_years": { "type": "number", "default": 2 },
+      "non_solicit_term_years": { "type": "number", "default": 2 },
+      "good_leaver_bad_leaver": { "type": "boolean", "default": true },
+      "decision_making": { "type": "string" },
+      "deadlock_mechanism": {
+        "type": "string",
+        "enum": [
+          "Mediation",
+          "Buy-Sell (Russian Roulette)",
+          "Texas Shootout",
+          "Chairman casting vote",
+          "Third party expert"
+        ]
+      },
+      "governing_law_state": { "type": "string" },
+      "arbitration_seat": { "type": "string" }
+    }
+  },
+  "mandatory_clauses": [
+    { "clause_id": "preamble", "title": "Preamble and Background", "must_appear": true },
+    { "clause_id": "purpose", "title": "Purpose and Business Description", "must_appear": true },
+    {
+      "clause_id": "incorporation",
+      "title": "Incorporation of Company and Roles",
+      "must_appear": true
+    },
+    {
+      "clause_id": "equity_split",
+      "title": "Equity Split and Capital Contribution",
+      "must_appear": true
+    },
+    {
+      "clause_id": "vesting",
+      "title": "Founder Vesting / Reverse Vesting",
+      "must_appear": true,
+      "content": "Each Founder's equity shall vest over {{vesting_schedule.total_period_months}} months with a cliff of {{vesting_schedule.cliff_months}} months. Unvested shares are subject to repurchase by the Company at par value upon cessation of Founder's full-time engagement."
+    },
+    {
+      "clause_id": "roles_responsibilities",
+      "title": "Roles, Responsibilities, and Time Commitment",
+      "must_appear": true
+    },
+    {
+      "clause_id": "compensation",
+      "title": "Compensation and Reimbursements",
+      "must_appear": true
+    },
+    {
+      "clause_id": "ip_assignment",
+      "title": "Intellectual Property Assignment",
+      "must_appear": true,
+      "content": "Each Founder hereby assigns to the Company all right, title, and interest in any IP (including code, designs, trademarks, copyrights, patents, know-how) created or conceived by the Founder relating to the business of the Company, whether before or during engagement."
+    },
+    { "clause_id": "confidentiality", "title": "Confidentiality", "must_appear": true },
+    {
+      "clause_id": "non_compete",
+      "title": "Non-Compete (during tenure and as shareholder)",
+      "must_appear": true,
+      "note": "Post-exit non-compete on Founder qua employee void under S.27 Contract Act. Non-compete qua shareholder (during shareholding) is enforceable."
+    },
+    {
+      "clause_id": "non_solicit",
+      "title": "Non-Solicitation of Employees and Customers",
+      "must_appear": true
+    },
+    {
+      "clause_id": "decision_making",
+      "title": "Decision Making and Governance",
+      "must_appear": true
+    },
+    { "clause_id": "deadlock", "title": "Deadlock Resolution", "must_appear": true },
+    {
+      "clause_id": "transfer_restrictions",
+      "title": "Restrictions on Transfer of Founder Shares",
+      "must_appear": true
+    },
+    {
+      "clause_id": "good_bad_leaver",
+      "title": "Good Leaver / Bad Leaver Provisions",
+      "must_appear": true,
+      "content": "Bad Leaver (resignation without cause within first 4 years, or termination for cause) forfeits unvested shares and vested shares may be repurchased at par. Good Leaver (death, disability, mutual separation) retains vested shares; unvested forfeited."
+    },
+    { "clause_id": "exit", "title": "Exit and Departure of a Founder", "must_appear": true },
+    {
+      "clause_id": "dispute_resolution",
+      "title": "Dispute Resolution and Arbitration",
+      "must_appear": true
+    },
+    {
+      "clause_id": "governing_law",
+      "title": "Governing Law and Jurisdiction",
+      "must_appear": true
+    },
+    { "clause_id": "term_termination", "title": "Term and Termination", "must_appear": true },
+    {
+      "clause_id": "miscellaneous",
+      "title": "Miscellaneous (Notices, Severability, Amendment, Entire Agreement)",
+      "must_appear": true
+    },
+    { "clause_id": "execution", "title": "Execution by All Founders", "must_appear": true }
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting a Co-Founders Agreement for Indian founders. Cover equity, vesting, IP assignment, roles, exit, and non-compete with awareness of S.27 Contract Act.",
+    "drafting_rules": [
+      "Market standard vesting: 4 years total with 1-year cliff, monthly vesting thereafter.",
+      "IP assignment must be express and broad - cover pre-incorporation IP too.",
+      "Bad Leaver definition: voluntary resignation without cause, termination for cause (fraud, gross misconduct, breach).",
+      "Good Leaver: death, permanent disability, mutual agreement.",
+      "Non-compete during tenure - valid. Post-tenure non-compete on Founder as employee void under S.27. Mention shareholder-level non-compete instead.",
+      "Equity split should reflect capital + time + IP contributions clearly.",
+      "Deadlock: prefer mediation first; buy-sell mechanisms for hard deadlocks.",
+      "Pre-incorporation founders agreement should provide for novation/assignment to Company upon incorporation.",
+      "Stamp duty per state (INR 100-500 typical).",
+      "Reference Niranjan Shankar Golikari v. Century Spinning [1967] for permitted in-term restraints."
+    ],
+    "tone": "Formal, founder-friendly, balanced between founders."
+  },
+  "relevantActs": [
+    { "act": "Indian Contract Act 1872", "sections": ["S.10, S.23, S.27"] },
+    { "act": "Companies Act 2013" },
+    {
+      "act": "Copyright Act 1957",
+      "sections": ["S.17 (works in course of employment), S.18-19 (assignment)"]
+    },
+    { "act": "Patents Act 1970", "sections": ["S.6 (employer's claim)"] },
+    { "act": "Specific Relief Act 1963" },
+    { "act": "Arbitration and Conciliation Act 1996" },
+    { "act": "Indian Stamp Act 1899" }
+  ],
+  "filing_checklist": [
+    "Execute on stamp paper of value per state Stamp Act.",
+    "Mirror key terms (vesting, transfer restriction) in AOA / SHA upon incorporation/fundraise.",
+    "If founder IP assigned: record in Company books; record TM/patent assignments with respective registries.",
+    "Issue share certificates with restrictive endorsements per vesting.",
+    "Retain executed originals with Company secretary."
+  ],
+  "validation_rules": [
+    {
+      "rule": "Equity sums to 100",
+      "check": "Sum of founder equity_percent equals 100 (or 100 - ESOP pool)"
+    },
+    { "rule": "Vesting present", "check": "Vesting clause present with cliff" },
+    { "rule": "IP assignment express", "check": "IP clause covers all founder IP" },
+    {
+      "rule": "S.27 compliance",
+      "check": "Post-tenure non-compete framed as shareholder restriction, not employee restraint"
+    },
+    {
+      "rule": "Dispute resolution mechanism",
+      "check": "Arbitration or court jurisdiction specified"
+    }
+  ]
+}

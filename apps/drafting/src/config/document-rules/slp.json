@@ -1,0 +1,342 @@
+{
+  "_meta": {
+    "description": "Document-rules config for slp — Special Leave Petition under Article 136 of the Constitution before the Supreme Court of India. Extraordinary discretionary jurisdiction; not a matter of right.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Pritam Singh, Kunhayammed, Mathai cites mandatory. Format STRICTLY per Supreme Court Rules 2013."
+  },
+  "template_id": "slp",
+  "docType": "slp",
+  "title": "Special Leave Petition under Article 136 of the Constitution of India",
+  "displayName": "Special Leave Petition (SLP)",
+  "category": "writ",
+  "creditsCost": 2,
+  "court_levels": ["supreme_court_india"],
+  "causeTitle": {
+    "format": "IN THE SUPREME COURT OF INDIA\n(CIVIL / CRIMINAL APPELLATE JURISDICTION)\n\n{caseNomenclature}\n\n(ARISING OUT OF THE FINAL JUDGMENT AND ORDER DATED {impugned_order_date} PASSED BY THE HON'BLE HIGH COURT OF {hc_name} IN {hc_case_no})\n\n{petitioner} ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner (party aggrieved by HC order)" },
+      {
+        "role": "respondents",
+        "label": "Respondents (party in whose favour HC order operates + State if criminal)"
+      }
+    ],
+    "caseNomenclature": "SPECIAL LEAVE PETITION (CIVIL / CRIMINAL) No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "petitioner_name",
+        "label": "Petitioner full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner_address",
+        "label": "Petitioner address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "respondents_list",
+        "label": "Respondents with addresses (include State as proforma respondent in criminal SLP)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "slp_type",
+        "label": "SLP type",
+        "type": "select",
+        "required": true,
+        "options": ["slp_civil", "slp_criminal"]
+      },
+      {
+        "id": "impugned_order_court",
+        "label": "High Court name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "impugned_order_case_no",
+        "label": "HC case number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "impugned_order_date",
+        "label": "Impugned order date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "impugned_order_type",
+        "label": "Type of impugned order",
+        "type": "select",
+        "required": true,
+        "options": ["final_judgment", "interlocutory_order", "interim_order", "review_dismissal"]
+      },
+      {
+        "id": "limitation_calculation",
+        "label": "Limitation calculation — date of impugned order, date of certified copy, days elapsed",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "delay_in_filing",
+        "label": "Delay in filing (if any) — days + reasons",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "questions_of_law",
+        "label": "Substantial questions of law of general importance",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "factual_matrix",
+        "label": "Brief factual matrix (1-2 pages)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "court_history",
+        "label": "History of proceedings — Trial Court > First Appeal > HC (with dates and outcomes)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "grounds",
+        "label": "Grounds for interference (perverse finding / substantial question of law / grave miscarriage of justice)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "interim_relief_sought",
+        "label": "Interim relief sought",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "interim_protection_pending_hc",
+        "label": "Did HC grant interim protection? Has it expired?",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "review_petition_status",
+        "label": "Was a review petition filed in HC? Status?",
+        "type": "select",
+        "required": false,
+        "options": ["not_filed", "filed_pending", "filed_dismissed", "not_applicable"]
+      },
+      {
+        "id": "court_fee_paid",
+        "label": "Court fee per SC Rules",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "advocate_on_record",
+        "label": "Advocate-on-Record name (AOR mandatory)",
+        "type": "text",
+        "required": true
+      },
+      { "id": "aor_code", "label": "AOR registration number", "type": "text", "required": true },
+      {
+        "id": "arguing_counsel",
+        "label": "Arguing counsel (if different)",
+        "type": "text",
+        "required": false
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Petitioner + Respondents (State as proforma in criminal SLP)"
+    },
+    {
+      "id": "questions_of_law_paragraph",
+      "name": "Questions of Law",
+      "required": true,
+      "description": "Numbered substantial questions of law of general importance"
+    },
+    {
+      "id": "declaration_paragraph",
+      "name": "Declaration",
+      "required": true,
+      "description": "No other SLP filed; limitation; no review etc."
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation",
+      "required": true,
+      "description": "90 days from impugned order or 60 days from review dismissal (Art. 133 LIMITATION ACT 1963)"
+    },
+    {
+      "id": "facts_paragraph",
+      "name": "Statement of Facts",
+      "required": true,
+      "description": "Brief and material"
+    },
+    {
+      "id": "court_history_paragraph",
+      "name": "History of Proceedings",
+      "required": true,
+      "description": "Trial > First Appeal > HC"
+    },
+    {
+      "id": "grounds_paragraph",
+      "name": "Grounds (A), (B), (C)...",
+      "required": true,
+      "description": "Specific grounds for interference"
+    },
+    {
+      "id": "interim_relief_paragraph",
+      "name": "Interim Relief",
+      "required": false,
+      "description": "Stay of impugned order"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Grant special leave + ancillary reliefs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "By petitioner"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Mandatory per SC Rules 2013"
+    },
+    {
+      "id": "aor_certificate",
+      "name": "AOR Certificate",
+      "required": true,
+      "description": "Filed only through AOR — Order XX SC Rules"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Petitioner most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Grant special leave to appeal under Article 136 of the Constitution of India against the impugned final judgment and order dated {impugned_order_date} passed by the Hon'ble High Court of {hc_name} in {hc_case_no};\n\nb) Pending hearing and final disposal of the present petition, stay the operation, execution and effect of the said impugned final judgment and order dated {impugned_order_date};\n\nc) Pending hearing and final disposal of the present petition, grant such interim protection as this Hon'ble Court may deem fit;\n\nd) Award costs of the present petition; and\n\ne) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, the Petitioner herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. I further verify that no other Special Leave Petition has been filed against the impugned judgment / order. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a Special Leave Petition under Article 136. Article 136 is an extraordinary discretionary jurisdiction of the Supreme Court — 'In its discretion, grant special leave to appeal from any judgment, decree, determination, sentence or order in any cause or matter passed or made by any court or tribunal in the territory of India.'",
+      "FORMAT STRICTLY per Supreme Court Rules 2013 Order XXII (civil SLP) / Order XXI (criminal SLP). Filing only through Advocate-on-Record (Order IV).",
+      "Cause-title: 'IN THE SUPREME COURT OF INDIA' + jurisdiction line + 'Arising out of the final judgment and order dated ... passed by HC ...'.",
+      "Limitation: 90 days from the date of impugned judgment of HC (Article 133 Limitation Act 1963). If review filed in HC, 60 days from review dismissal. Section 5 Limitation Act 1963 for condonation of delay.",
+      "Para A: Questions of Law — numbered substantial questions of law of GENERAL public importance. Cite Pritam Singh v. State AIR 1950 SC 169 — Art. 136 'a very wide and discretionary' power exercised sparingly only on exceptional and special circumstances + grave injustice.",
+      "Cite N. Suriyakala v. A. Mohan Doss (2007) 9 SCC 196 — discretion of SC; Mathai @ Joby v. George (2016) 7 SCC 700 — Article 136 not regular appeal; Kunhayammed v. State of Kerala (2000) 6 SCC 359 (merger doctrine — once SC dismisses by speaking order, the HC order merges).",
+      "Cite Sir Chunilal V. Mehta v. Century Spinning AIR 1962 SC 1314 — substantial question of law definition.",
+      "Para B: Declaration — (i) no similar SLP filed; (ii) limitation complied or delay condonation sought; (iii) no review pending in HC (or if filed/dismissed, give details); (iv) all material facts disclosed.",
+      "Para C: Limitation — calculate carefully; period excluded for obtaining certified copy.",
+      "Para D-F: Statement of facts — brief, material only.",
+      "Para G: History of proceedings — Trial Court (judgment + outcome), First Appeal / Revision (judgment + outcome), HC (judgment + outcome). Append all judgments as annexures.",
+      "Para H: Grounds — typical grounds:",
+      "   - HC failed to appreciate substantial question of law of general importance",
+      "   - HC perversely reversed concurrent findings without justification",
+      "   - HC failed to consider material evidence",
+      "   - HC misapplied / misread precedent",
+      "   - Grave miscarriage of justice — shocks conscience of court",
+      "   - In criminal SLP: HC failed to consider Section 313 statement; appreciation of evidence perverse; sentence shockingly disproportionate.",
+      "Cite criminal SLP grounds — Hari Singh v. Sukhbir Singh (1988) 4 SCC 551; Smt. Dalbir Kaur v. State of Punjab (1976) 4 SCC 158; Arunachalam v. PSR Sadhanantham (1979) 2 SCC 297.",
+      "Para I: Interim relief — stay of impugned order; status quo pending hearing.",
+      "Para J: Where review petition dismissed by HC, attach review judgment + impugned judgment.",
+      "Order of papers per SC Rules Order XXII Rule 2 — cover page; list of dates; questions of law; declarations; SLP body; annexures (HC judgment first); affidavit; AOR vakalatnama.",
+      "AOR alone files. AOR certificate signed.",
+      "Court fee — Schedule II SC Rules; civil SLP higher than criminal.",
+      "Caveat: Where impugned order is interlocutory, very rare leave. Where review by SC against own order, separate procedure (curative).",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Constitution of India",
+      "sections": [
+        {
+          "number": "Article 136",
+          "description": "Special leave to appeal — discretionary jurisdiction of SC"
+        },
+        { "number": "Article 137", "description": "Review by SC (separate procedure)" },
+        {
+          "number": "Article 142",
+          "description": "Power to do complete justice — ancillary to SLP"
+        }
+      ]
+    },
+    {
+      "act": "Supreme Court Rules, 2013",
+      "sections": [
+        { "number": "Order IV", "description": "Advocate-on-Record system" },
+        { "number": "Order XXI", "description": "Criminal SLP procedure" },
+        { "number": "Order XXII", "description": "Civil SLP procedure" }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        { "number": "Article 133 Schedule", "description": "90 days for SLP from HC judgment" },
+        { "number": "Section 5", "description": "Condonation of delay" },
+        { "number": "Section 12(2)", "description": "Exclusion of period for certified copy" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "SLP paperbook per SC Rules 2013 Order XXII — original + 5 copies (typed/printed)",
+    "Cover page in prescribed format",
+    "List of dates",
+    "Statement of jurisdiction",
+    "Questions of law",
+    "Declarations per Order XXII Rule 2(2)",
+    "Annexures — impugned HC order (P-1), trial court judgment, lower appellate judgment, pleadings",
+    "Affidavit in support of SLP",
+    "Application for condonation of delay (if applicable) with separate affidavit",
+    "Application for interim relief / stay",
+    "Vakalatnama signed by petitioner + AOR",
+    "AOR appearance slip and synopsis",
+    "Court fee per Schedule II SC Rules",
+    "Index, synopsis, list of dates",
+    "Certified copy of impugned HC order",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "petitioner_name must not be empty",
+    "respondents_list must not be empty (include State in criminal SLP)",
+    "slp_type must be selected",
+    "impugned_order_court must include 'High Court'",
+    "impugned_order_date must not be in future",
+    "limitation_calculation must not be empty — flag if days elapsed > 90 (or > 60 from review dismissal)",
+    "If delay > 0, delay_in_filing must include reasons",
+    "questions_of_law must not be empty",
+    "grounds must not be empty",
+    "advocate_on_record must not be empty (AOR mandatory)",
+    "aor_code must not be empty",
+    "Court level restricted to Supreme Court only"
+  ],
+  "key_citations": [
+    "Pritam Singh v. State AIR 1950 SC 169 — Art. 136 sparing exercise",
+    "Sir Chunilal V. Mehta v. Century Spinning AIR 1962 SC 1314 — Substantial question of law",
+    "Kunhayammed v. State of Kerala (2000) 6 SCC 359 — Merger doctrine",
+    "N. Suriyakala v. A. Mohan Doss (2007) 9 SCC 196 — Discretion of SC",
+    "Mathai @ Joby v. George (2016) 7 SCC 700 — Art. 136 not regular appeal",
+    "Hari Singh v. Sukhbir Singh (1988) 4 SCC 551 — Criminal SLP grounds",
+    "Dalbir Kaur v. State of Punjab (1976) 4 SCC 158 — Criminal interference scope",
+    "Arunachalam v. PSR Sadhanantham (1979) 2 SCC 297 — Acquittal interference"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

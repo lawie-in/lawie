@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "description": "Sikkim district & sessions court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — National Batch 7 (WB+SK) 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "district",
+    "applies_to_state": "Sikkim",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "sk_district",
+  "courtType": "district_court",
+  "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
+  "jurisdictionNote": "District-level criminal and civil courts in Sikkim, governed by the Sikkim Civil Courts Act, 1978 and the Civil Procedure Code as extended, read with the High Court of Sikkim Rules. Sessions courts try offences punishable with imprisonment exceeding 7 years. Following the 2021 reorganisation, Sikkim comprises six revenue districts: Gangtok (East), Gyalshing (West), Mangan (North), Namchi (South), Pakyong and Soreng. The subordinate judiciary is supervised by the High Court of Sikkim at Gangtok. English is the language of the State subordinate courts; Article 371F preserves Sikkim's pre-merger laws.",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Applicant",
+    "plaintiff": "Plaintiff",
+    "defendant": "Defendant",
+    "complainant": "Complainant",
+    "accused": "Accused",
+    "state": "State of Sikkim through the Principal Secretary, Home Department, Government of Sikkim, Gangtok"
+  },
+  "case_nomenclature": {
+    "regular_bail": "Crl. Misc. (Bail) No. _____ of {year}",
+    "anticipatory_bail": "Crl. Misc. (A.B.) No. _____ of {year}",
+    "sessions_case": "Sessions Trial No. _____ of {year}",
+    "calendar_case": "Criminal Case No. _____ of {year}",
+    "civil_suit": "Title Suit No. _____ of {year}",
+    "execution": "Execution Petition No. _____ of {year}",
+    "misc_criminal": "Crl. Misc. No. _____ of {year}",
+    "misc_civil": "Misc. Case No. _____ of {year}",
+    "special_case": "Spl. Sessions Trial No. _____ of {year}",
+    "atrocity_case": "Spl. Sessions (Atrocities) Trial No. _____ of {year}",
+    "ndps_case": "Spl. Sessions (NDPS) Trial No. _____ of {year}",
+    "pocso_case": "Spl. Sessions (POCSO) Trial No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may graciously be pleased to:",
+    "closing": "And for this act of kindness, the petitioner shall, as in duty bound, ever pray.",
+    "tone": "humble"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly verify and declare that the contents of paragraphs ___ to ___ of the above petition are true to my personal knowledge and the contents of paragraphs ___ to ___ are based on information received and legal advice tendered, which I believe to be true. Nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": ["en", "ne"],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "{courtDesignation}, {city}"
+  },
+  "localRules": [
+    "English is the working language of the Sikkim subordinate courts and the High Court of Sikkim. Nepali, Bhutia and Lepcha pleadings are accepted with English translation under the Sikkim Official Languages Act, 1977.",
+    "Article 371F of the Constitution preserves pre-merger Sikkim laws — the Sikkim Subjects Regulation, 1961, the Registration of Companies Act (Sikkim), 1961, and revenue laws remain in force; pleadings touching land or subject-status must reference these.",
+    "Bail applications under S.483 BNSS (formerly S.439 CrPC) before the Sessions Court must disclose any prior rejection by a Magistrate or co-ordinate court.",
+    "Anticipatory bail applications (S.482 BNSS) must be accompanied by an affidavit, certified copy of the FIR and grounds of apprehension. The High Court of Sikkim is a single-bench court at Gangtok and is the preferred forum for AB in serious offences.",
+    "Vakalatnama in the form prescribed under the High Court of Sikkim Rules to be filed at the first instance with requisite court-fee stamp.",
+    "All civil pleadings to be paginated, indexed and accompanied by a list of documents under Order VII / Order VIII CPC.",
+    "Court-fee under the Court-Fees Act, 1870 as extended to Sikkim with State adaptations; ad valorem fee structure applies to civil suits.",
+    "Atrocities (SC/ST), POCSO and NDPS cases are tried by designated Special Courts notified by the State Government — typically the District & Sessions Judge at the district headquarters; Sikkim has limited Special Court infrastructure outside Gangtok and Namchi.",
+    "Land disputes involving Sikkim Subjects, Bhutia-Lepcha or Old Settlers' status invoke the protective regime under Article 371F; revenue forums under the Sikkim Land Revenue Order, 1917 interface with civil jurisdiction.",
+    "The six-district reorganisation of 2021 created Pakyong (carved from East) and Soreng (carved from West) — sessions/district court establishments at Pakyong and Soreng are nascent; many matters from these areas continue to be filed at Gangtok and Gyalshing respectively pending full notification."
+  ],
+  "e_filing_mandatory": false,
+  "e_filing_note": "e-Filing at the High Court of Sikkim and District Court Gangtok is operational via the eCourts portal; remote districts (Mangan, Soreng, Pakyong) rely on physical filing."
+}

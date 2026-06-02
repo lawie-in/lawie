@@ -1,98 +1,134 @@
 version: '3.9'
 
-services:
-  # ── MongoDB ────────────────────────────────────────────────────────────────
-  mongo:
-    image: mongo:7.0
-    container_name: lawie_mongo
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS:-changeme}
-      MONGO_INITDB_DATABASE: lawie
-    ports:
-      - '27017:27017'
-    volumes:
-      - mongo_data:/data/db
-      - ./docker/mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
-    networks:
-      - lawie_net
-    healthcheck:
-      test: ['CMD', 'mongosh', '--eval', 'db.adminCommand("ping")']
-      interval: 10s
-      timeout: 5s
-      retries: 5
+# Uses MongoDB Atlas + Redis Cloud from .env.development.
+# No local Mongo or Redis containers — connect to cloud directly.
 
-  # ── API (Express.js) ────────────────────────────────────────────────────────
-  api:
+services:
+  # ── Gateway ────────────────────────────────────────────────────────────────
+  gateway:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
-      target: builder          # Use builder stage for dev hot-reload
-    container_name: lawie_api
+      dockerfile: apps/gateway/Dockerfile
+      target: production
+    container_name: lawie_gateway
     restart: unless-stopped
-    env_file: .env
+    env_file: .env.development
     environment:
       NODE_ENV: development
-      PORT: 5000
-      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/lawie?authSource=admin
+      PORT: 4000
+      AUTH_SERVICE_URL: http://auth:4001
+      DRAFTING_SERVICE_URL: http://drafting:4002
+      BILLING_SERVICE_URL: http://billing:4003
+      REDIS_URL: redis://host.docker.internal:6379
     ports:
-      - '5000:5000'
-    volumes:
-      - ./apps/api/src:/app/apps/api/src    # Hot reload
-      - ./packages/shared/src:/app/packages/shared/src
+      - '4000:4000'
     depends_on:
-      mongo:
-        condition: service_healthy
+      - auth
+      - drafting
+      - billing
     networks:
       - lawie_net
-    command: yarn workspace @lawie/api dev
 
-  # ── Web (Next.js) ───────────────────────────────────────────────────────────
+  # ── Auth ───────────────────────────────────────────────────────────────────
+  auth:
+    build:
+      context: .
+      dockerfile: apps/auth/Dockerfile
+      target: production
+    container_name: lawie_auth
+    restart: unless-stopped
+    env_file: .env.development
+    environment:
+      NODE_ENV: development
+      PORT: 4001
+      MONGO_URI: mongodb://host.docker.internal:27017/lawie
+      REDIS_URL: redis://host.docker.internal:6379
+    ports:
+      - '4001:4001'
+    networks:
+      - lawie_net
+
+  # ── Drafting ───────────────────────────────────────────────────────────────
+  drafting:
+    build:
+      context: .
+      dockerfile: apps/drafting/Dockerfile
+      target: production
+    container_name: lawie_drafting
+    restart: unless-stopped
+    env_file: .env.development
+    environment:
+      NODE_ENV: development
+      PORT: 4002
+      MONGO_URI: mongodb://host.docker.internal:27017/lawie
+      REDIS_URL: redis://host.docker.internal:6379
+    ports:
+      - '4002:4002'
+    networks:
+      - lawie_net
+
+  # ── Billing ────────────────────────────────────────────────────────────────
+  billing:
+    build:
+      context: .
+      dockerfile: apps/billing/Dockerfile
+      target: production
+    container_name: lawie_billing
+    restart: unless-stopped
+    env_file: .env.development
+    environment:
+      NODE_ENV: development
+      PORT: 4003
+      MONGO_URI: mongodb://host.docker.internal:27017/lawie
+      REDIS_URL: redis://host.docker.internal:6379
+    ports:
+      - '4003:4003'
+    networks:
+      - lawie_net
+
+  # ── Email Worker (SCRUM-77) — headless BullMQ consumer ─────────────────────
+  email-worker:
+    build:
+      context: .
+      dockerfile: apps/email-worker/Dockerfile
+      target: production
+    container_name: lawie_email_worker
+    restart: unless-stopped
+    env_file: .env.development
+    environment:
+      NODE_ENV: development
+      PORT: 9100
+      REDIS_URL: redis://host.docker.internal:6379
+      # Stage A defaults to dry-run — no real SES needed until Stage C wires
+      # AWS_SES_ACCESS_KEY_ID / AWS_SES_SECRET_ACCESS_KEY into Secrets Manager
+      # and the DNS pre-flights pass.
+      EMAIL_PROVIDER: dry-run
+      EMAIL_DRY_RUN: 'true'
+    ports:
+      - '9100:9100'
+    networks:
+      - lawie_net
+
+  # ── Web (Next.js) ──────────────────────────────────────────────────────────
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-      target: deps
+      target: production
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
     container_name: lawie_web
     restart: unless-stopped
-    env_file: .env
+    env_file: .env.development
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_URL: http://localhost:5000
+      PORT: 3000
     ports:
       - '3000:3000'
-    volumes:
-      - ./apps/web/src:/app/apps/web/src    # Hot reload
-      - ./packages/shared/src:/app/packages/shared/src
     depends_on:
-      - api
+      - gateway
     networks:
       - lawie_net
-    command: yarn workspace @lawie/web dev
-
-  # ── Mongo Express (Dev DB UI) ───────────────────────────────────────────────
-  mongo-express:
-    image: mongo-express:1.0.2
-    container_name: lawie_mongo_ui
-    restart: unless-stopped
-    ports:
-      - '8081:8081'
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USER:-admin}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASS:-changeme}
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongo:27017/
-      ME_CONFIG_BASICAUTH: 'false'
-    depends_on:
-      mongo:
-        condition: service_healthy
-    networks:
-      - lawie_net
-    profiles:
-      - dev-tools
-
-volumes:
-  mongo_data:
 
 networks:
   lawie_net:

@@ -1,0 +1,244 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_status": "Approved",
+    "legal_basis": "Companies Act 2013 Section 5 read with Table F of Schedule I",
+    "notes": "AOA contains the regulations for management of the company. Table F applies to companies limited by shares unless excluded/modified. AOA must not conflict with MOA or Act. AOA prevails over SHA on conflict per V.B. Rangaraj v. V.B. Gopalakrishnan (1992) 1 SCC 160."
+  },
+  "template_id": "aoa",
+  "title": "Articles of Association",
+  "category": "corporate",
+  "creditsCost": 2,
+  "court_levels": [],
+  "form_schema": {
+    "type": "object",
+    "required": ["company_name", "company_type", "share_capital_structure", "adopt_table_f"],
+    "properties": {
+      "company_name": { "type": "string" },
+      "company_type": {
+        "type": "string",
+        "enum": ["Private Limited", "Public Limited", "OPC", "Section 8"]
+      },
+      "adopt_table_f": {
+        "type": "boolean",
+        "title": "Adopt Table F regulations (subject to modifications below)",
+        "default": true
+      },
+      "share_capital_structure": {
+        "type": "object",
+        "properties": {
+          "authorized_capital": { "type": "number" },
+          "equity_shares": { "type": "number" },
+          "preference_shares": { "type": "number" },
+          "face_value": { "type": "number", "default": 10 }
+        }
+      },
+      "share_transfer_restrictions": {
+        "type": "string",
+        "title": "ROFR / Lock-in / Transfer restrictions"
+      },
+      "board_composition": {
+        "type": "object",
+        "properties": {
+          "min_directors": { "type": "number" },
+          "max_directors": { "type": "number" },
+          "first_directors": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "quorum_board": {
+        "type": "string",
+        "default": "1/3rd of total strength or 2 directors, whichever is higher"
+      },
+      "quorum_general_meeting": { "type": "string" },
+      "reserved_matters": {
+        "type": "array",
+        "items": { "type": "string" },
+        "title": "Reserved matters requiring special consent"
+      },
+      "borrowing_powers": { "type": "string" },
+      "dividend_policy": { "type": "string" },
+      "winding_up_provisions": { "type": "string" },
+      "indemnification_clause": { "type": "boolean", "default": true },
+      "subscribers": { "type": "array", "items": { "type": "object" } }
+    }
+  },
+  "mandatory_clauses": [
+    {
+      "clause_id": "interpretation",
+      "title": "I. Interpretation Clause",
+      "content": "In these Articles, words shall have the meanings assigned to them by the Companies Act 2013 unless context otherwise requires. 'The Act' means the Companies Act 2013.",
+      "must_appear": true
+    },
+    {
+      "clause_id": "table_f_adoption",
+      "title": "II. Adoption of Table F",
+      "content": "The Regulations contained in Table 'F' in Schedule I to the Companies Act 2013 shall apply to the Company save in so far as they are excluded or modified by these Articles.",
+      "must_appear": true,
+      "applies_when": "Company limited by shares"
+    },
+    {
+      "clause_id": "share_capital",
+      "title": "III. Share Capital and Variation of Rights",
+      "subclauses": [
+        "Authorized capital",
+        "Classes of shares",
+        "Variation of rights",
+        "Calls on shares",
+        "Forfeiture",
+        "Lien"
+      ],
+      "must_appear": true
+    },
+    {
+      "clause_id": "transfer_transmission",
+      "title": "IV. Transfer and Transmission of Shares",
+      "must_appear": true,
+      "note": "For Private Companies: include restriction on right to transfer shares per S.2(68)(i)."
+    },
+    {
+      "clause_id": "general_meetings",
+      "title": "V. General Meetings",
+      "subclauses": [
+        "AGM under S.96",
+        "EGM under S.100",
+        "Notice",
+        "Quorum (S.103)",
+        "Voting",
+        "Proxy"
+      ],
+      "must_appear": true
+    },
+    {
+      "clause_id": "directors",
+      "title": "VI. Directors",
+      "subclauses": [
+        "Number (S.149)",
+        "Appointment",
+        "Qualification",
+        "Disqualification (S.164)",
+        "Remuneration",
+        "Vacation of office",
+        "Rotation"
+      ],
+      "must_appear": true
+    },
+    {
+      "clause_id": "board_meetings",
+      "title": "VII. Proceedings of Board",
+      "subclauses": [
+        "Frequency (S.173)",
+        "Notice (S.173)",
+        "Quorum (S.174)",
+        "Chairman",
+        "Resolutions by circulation (S.175)"
+      ],
+      "must_appear": true
+    },
+    {
+      "clause_id": "managing_director",
+      "title": "VIII. Managing Director / Whole-time Director",
+      "must_appear": true
+    },
+    {
+      "clause_id": "dividends_reserves",
+      "title": "IX. Dividends and Reserves",
+      "must_appear": true,
+      "statutory_basis": "S.123-127 Cos Act 2013"
+    },
+    {
+      "clause_id": "accounts_audit",
+      "title": "X. Accounts and Audit",
+      "must_appear": true,
+      "statutory_basis": "S.128-138 Cos Act 2013"
+    },
+    {
+      "clause_id": "borrowing_powers",
+      "title": "XI. Borrowing Powers",
+      "must_appear": true,
+      "statutory_basis": "S.179 read with S.180 Cos Act 2013"
+    },
+    {
+      "clause_id": "winding_up",
+      "title": "XII. Winding Up",
+      "must_appear": true
+    },
+    {
+      "clause_id": "indemnity",
+      "title": "XIII. Indemnity",
+      "content": "Every officer of the Company shall be indemnified out of the assets of the Company against any liability incurred by him in defending any proceedings in which judgment is given in his favour or in which he is acquitted, or in connection with any application under S.463 of the Act.",
+      "must_appear": true
+    },
+    {
+      "clause_id": "private_co_restrictions",
+      "title": "XIV. Restrictions Applicable to Private Company",
+      "applies_when": "company_type == 'Private Limited'",
+      "content": "The Company is a private company under S.2(68) and accordingly: (a) restricts right to transfer shares; (b) limits members to 200 (excluding employees); (c) prohibits invitation to public to subscribe to securities.",
+      "must_appear": true
+    },
+    {
+      "clause_id": "subscribers",
+      "title": "Subscribers Table and Witness",
+      "must_appear": true
+    }
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting Articles of Association under Companies Act 2013 Section 5. Use Table F as default for company limited by shares. AOA cannot override MOA or the Act. Private company AOA must contain three statutory restrictions per S.2(68).",
+    "drafting_rules": [
+      "Adopt Table F of Schedule I except where modified.",
+      "Private company: include restrictions on share transfer, 200-member cap, no public invitation.",
+      "Reserved matters / affirmative vote provisions are enforceable only if also reflected in AOA (V.B. Rangaraj doctrine).",
+      "Quorum for board: minimum per S.174 (1/3rd or 2, whichever higher).",
+      "Quorum for general meetings: per S.103 (5 for Public if <1000 members; 2 for Private).",
+      "Borrowing powers above paid-up capital + free reserves require S.180 special resolution.",
+      "Directors min/max per S.149: Pvt 2-15, Public 3-15, OPC 1-15 (exceed 15 needs SR).",
+      "Reference statutory sections in clauses for clarity."
+    ],
+    "tone": "Formal corporate-legal, Table F style."
+  },
+  "relevantActs": [
+    {
+      "act": "Companies Act 2013",
+      "sections": [
+        "S.5",
+        "S.6",
+        "S.10",
+        "S.14",
+        "S.96-103",
+        "S.149-172",
+        "S.173-180",
+        "S.123-127",
+        "Schedule I Table F"
+      ]
+    },
+    { "act": "Companies (Management and Administration) Rules 2014" },
+    { "act": "Companies (Meetings of Board and its Powers) Rules 2014" },
+    { "act": "Indian Stamp Act 1899" }
+  ],
+  "filing_checklist": [
+    "File with SPICe+ (INC-32) along with MOA at incorporation.",
+    "Stamp duty paid per state Stamp Act (varies by state and capital).",
+    "Subscriber signatures on every page with witness attestation.",
+    "Any subsequent alteration requires Special Resolution under S.14 + filing of MGT-14 within 30 days.",
+    "Entrenchment provisions (if any) require unanimous consent for private co or SR for public per S.5(3)."
+  ],
+  "validation_rules": [
+    {
+      "rule": "Three private company restrictions",
+      "check": "If Pvt, all three S.2(68) restrictions present"
+    },
+    {
+      "rule": "Board composition within statutory limits",
+      "check": "min_directors and max_directors within S.149"
+    },
+    { "rule": "No conflict with MOA", "check": "AOA does not exceed objects/powers in MOA" },
+    {
+      "rule": "No conflict with Act",
+      "check": "No clause contrary to mandatory provisions of Cos Act 2013"
+    },
+    {
+      "rule": "Indemnity not against own wrongdoing",
+      "check": "S.197(13) - indemnity only for acquitted proceedings"
+    }
+  ]
+}

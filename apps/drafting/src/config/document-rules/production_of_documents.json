@@ -1,0 +1,310 @@
+{
+  "_meta": {
+    "description": "Document-rules config for production_of_documents — Application u/Order 11 R.12 / R.14 / R.18 CPC for discovery, inspection and production of documents",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 5 civil interlocutory pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Adverse inference under O.11 R.21 must be flagged."
+  },
+  "template_id": "production_of_documents",
+  "docType": "production_of_documents",
+  "title": "Application for Production and Inspection of Documents (Order 11 R.12 / R.14 CPC)",
+  "displayName": "Production of Documents Application (Order 11 CPC)",
+  "category": "civil_interlocutory",
+  "creditsCost": 1,
+  "court_levels": [
+    "civil_judge_junior_division",
+    "civil_judge_senior_division",
+    "district_judge",
+    "high_court_original_side",
+    "commercial_court",
+    "commercial_division_high_court"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\nIN THE MATTER OF:\n{applicant} ... Applicant\nVERSUS\n{respondent} ... Non-Applicant",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Applicant" },
+      { "role": "respondent", "label": "Non-Applicant" }
+    ],
+    "caseNomenclature": "I.A. No. _____ of [YEAR] in Civil Suit No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "suit_number",
+        "label": "Parent suit number / year",
+        "type": "text",
+        "required": true
+      },
+      { "id": "applicant_name", "label": "Applicant name", "type": "text", "required": true },
+      {
+        "id": "applicant_role_in_suit",
+        "label": "Applicant role in suit",
+        "type": "select",
+        "required": true,
+        "options": ["plaintiff", "defendant"]
+      },
+      { "id": "respondent_name", "label": "Non-Applicant name", "type": "text", "required": true },
+      {
+        "id": "relief_type",
+        "label": "Type of relief sought",
+        "type": "select",
+        "required": true,
+        "options": [
+          "discovery_o11_r12",
+          "production_o11_r14",
+          "inspection_o11_r15",
+          "interrogatories_o11_r1",
+          "all_three"
+        ]
+      },
+      {
+        "id": "documents_sought",
+        "label": "Specific documents sought — itemised list",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "relevance_to_issues",
+        "label": "Relevance of documents to the issues / matters in controversy",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "documents_in_possession",
+        "label": "Statement that documents are in possession / power of non-applicant",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "applicant_not_in_possession",
+        "label": "Statement that applicant has no possession / access",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "no_privilege_or_immunity",
+        "label": "Statement that documents not protected by privilege / immunity",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "purpose_of_production",
+        "label": "Purpose — to support own case / impeach opponent / disclose admissions",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "interrogatories_text",
+        "label": "Text of interrogatories (if Order 11 R.1 invoked)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "previous_demands",
+        "label": "Previous demands for production (notices / letters) and responses",
+        "type": "textarea",
+        "required": false
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Applicant and non-applicant"
+    },
+    {
+      "id": "suit_reference",
+      "name": "Reference to Main Suit",
+      "required": true,
+      "description": "Suit number, stage, issues framed"
+    },
+    {
+      "id": "issues_in_suit_paragraph",
+      "name": "Issues / Matters in Controversy",
+      "required": true,
+      "description": "Brief statement of issues to which documents relate"
+    },
+    {
+      "id": "documents_list_paragraph",
+      "name": "Itemised List of Documents",
+      "required": true,
+      "description": "Specific identification of each document with date, parties, subject"
+    },
+    {
+      "id": "relevance_paragraph",
+      "name": "Relevance and Materiality",
+      "required": true,
+      "description": "How each document is relevant to issue"
+    },
+    {
+      "id": "possession_paragraph",
+      "name": "Possession / Power of Non-Applicant",
+      "required": true,
+      "description": "Documents are in non-applicant's possession"
+    },
+    {
+      "id": "no_privilege_paragraph",
+      "name": "No Privilege / Statutory Bar",
+      "required": true,
+      "description": "Documents not protected by privilege under BSA / IT Act / banking secrecy"
+    },
+    {
+      "id": "previous_demand_paragraph",
+      "name": "Previous Demand (if any)",
+      "required": false,
+      "description": "Pre-application demands and responses"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Direction to produce / permit inspection / answer interrogatories"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Affidavit accompanying application"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Applicant most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Direct the Non-Applicant under Order 11 Rules 12 and 14 read with Section 30 and Section 151 CPC to disclose by affidavit and produce before this Hon'ble Court the documents specified in paragraph __ above, within such time as this Hon'ble Court may fix;\n\nb) Permit the Applicant to inspect and take copies of the said documents under Order 11 Rule 15 CPC;\n\nc) Direct the Non-Applicant to answer on affidavit the interrogatories annexed hereto under Order 11 Rule 1 CPC (if applicable);\n\nd) Record that in the event of refusal / failure to produce, this Hon'ble Court may draw an adverse inference under Order 11 Rule 21 CPC;\n\ne) Award costs of this application;\n\nf) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Applicant shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant_name}, the Applicant herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to my personal knowledge. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nApplicant",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft an application under Order 11 R.12 / R.14 / R.15 / R.18 read with Section 30 and Section 151 CPC for discovery, production and inspection of documents.",
+      "Order 11 R.1 — interrogatories — written questions to be answered on affidavit. Leave of court required (R.2).",
+      "Order 11 R.12 — discovery of documents — application to court for direction to opposite party to disclose on affidavit all documents in his possession / power relating to matters in question.",
+      "Order 11 R.14 — production — court may order production of documents and inspection at any stage.",
+      "Order 11 R.15-19 — inspection of documents referred to in pleadings, affidavits, notices, etc.",
+      "Order 11 R.21 — consequences of non-compliance: court may strike out defence / dismiss suit; adverse inference is well-recognised.",
+      "Cite M.L. Sethi v. R.P. Kapur (1972) 2 SCC 427 — discovery is to enable parties to know what case other party will set up; not a fishing expedition.",
+      "Cite Krishna Lal v. State of Haryana (1980) 3 SCC 159 — relevance and necessity tests for production.",
+      "Cite Mathew George v. Cherian Punnan AIR 1990 Ker 67 — specific identification of documents necessary.",
+      "Para 1: Reference to main suit, parties, stage.",
+      "Para 2: Issues / matters in controversy to which documents relate.",
+      "Para 3: Itemised list of documents — each described with: nature, date, parties, subject, approximate description. Avoid vague descriptions like 'all documents relating to'.",
+      "Para 4: Relevance and materiality — for each document or category, state how it relates to specific issue and why it is necessary for fair adjudication.",
+      "Para 5: Documents are in non-applicant's possession, custody, or power — including documents held by non-applicant's agents, banks, accountants.",
+      "Para 6: Applicant does not have copies and cannot reasonably obtain them.",
+      "Para 7: Documents not protected by legal privilege under Bharatiya Sakshya Adhiniyam, 2023 — note BSA replaces Indian Evidence Act 1872. Relevant privileges: S.132 BSA (privileged communication between spouses), S.134 (state communications), S.136 (no person to be compelled to produce title-deeds), S.139 (professional communications with legal advisers — replaces S.126 IEA).",
+      "Para 8: Banking secrecy — bank documents may require notice / S.4 Bankers' Books Evidence Act for certified entries.",
+      "Para 9: Documents not protected by RTI exemptions, official secrets, or other statutory immunity.",
+      "Para 10: Previous demand — if applicant served notice on opposite party requesting voluntary production, note demand and any refusal.",
+      "Para 11: Adverse inference under O.11 R.21 — refusal or failure to produce relevant documents in own custody invites adverse presumption.",
+      "Where Commercial Courts Act applies (commercial dispute >= Rs.3 lakh): Schedule of CCA replaces Order 11 with detailed mandatory disclosure regime (Order XI of CCA Schedule) — mandatory affidavit of disclosure within 30 days of WS; further discovery on application; non-compliance carries serious consequences.",
+      "For document held by third party (not opposite party): use Order 16 R.6 (subpoena duces tecum) and S.30(c) CPC — different application.",
+      "Where document held by government / public office: S.137-138 BSA (formerly S.123-124 IEA) — state privilege; production by way of certified copy if not privileged.",
+      "Inspection facility — usually at advocate's office under supervision; copies on payment of cost.",
+      "Interrogatories must be specific, relate to matters in question, not be in nature of cross-examination, not be oppressive.",
+      "Affidavit in support is mandatory.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "S.30", "description": "Power to order discovery and the like" },
+        { "number": "S.151", "description": "Inherent powers" },
+        { "number": "Order 11 R.1-2", "description": "Interrogatories — leave to deliver" },
+        { "number": "Order 11 R.12", "description": "Application for discovery of documents" },
+        { "number": "Order 11 R.14", "description": "Production of documents" },
+        { "number": "Order 11 R.15-19", "description": "Inspection of documents" },
+        { "number": "Order 11 R.18", "description": "Order for inspection" },
+        {
+          "number": "Order 11 R.21",
+          "description": "Non-compliance — adverse inference, dismissal, striking out"
+        },
+        { "number": "Order 16 R.6", "description": "Subpoena duces tecum — to third parties" }
+      ]
+    },
+    {
+      "act": "Bharatiya Sakshya Adhiniyam, 2023 (replaces Indian Evidence Act, 1872)",
+      "sections": [
+        { "number": "S.132", "description": "Communications during marriage — privilege" },
+        { "number": "S.134", "description": "Affairs of state — privilege" },
+        {
+          "number": "S.136",
+          "description": "Production of title-deeds — witness not bound to produce"
+        },
+        { "number": "S.137", "description": "Production of documents — official records" },
+        {
+          "number": "S.139",
+          "description": "Professional communications — legal adviser (replaces S.126 IEA)"
+        }
+      ]
+    },
+    {
+      "act": "Commercial Courts Act, 2015",
+      "sections": [
+        {
+          "number": "Schedule Order XI",
+          "description": "Disclosure, discovery and inspection of documents — commercial suits"
+        }
+      ]
+    },
+    {
+      "act": "Bankers' Books Evidence Act, 1891",
+      "sections": [
+        {
+          "number": "S.4",
+          "description": "Mode of proof of entries in bankers' books — certified copies"
+        },
+        { "number": "S.6", "description": "Inspection of book by order of court" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Application (original + copies)",
+    "Affidavit in support",
+    "Memo of parties",
+    "Itemised list of documents sought (Annexure-A)",
+    "Interrogatories (if any) as Annexure-B",
+    "Copies of prior demand letters and responses",
+    "Court fee per state Schedule (usually fixed for IA)",
+    "Pleadings reference highlighting issues",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "suit_number must be filled",
+    "relief_type must be specified",
+    "documents_sought must not be empty",
+    "relevance_to_issues must not be empty",
+    "documents_in_possession must not be empty",
+    "applicant_not_in_possession must not be empty",
+    "no_privilege_or_immunity must not be empty",
+    "If relief_type=interrogatories_o11_r1 or all_three, interrogatories_text must not be empty",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "M.L. Sethi v. R.P. Kapur (1972) 2 SCC 427 — Discovery purpose; not fishing expedition",
+    "Krishna Lal v. State of Haryana (1980) 3 SCC 159 — Relevance and necessity tests",
+    "Mathew George v. Cherian Punnan AIR 1990 Ker 67 — Specific identification of documents required",
+    "S.C. Cement Industries Ltd v. UoI AIR 1990 Del 198 — Inspection of documents — principles",
+    "Iridium India Telecom Ltd v. Motorola Inc (2005) 2 SCC 145 — Adverse inference principles under O.11 R.21",
+    "S.D. Khan v. State of Maharashtra (1997) 6 SCC 705 — Privilege under S.123 IEA (now S.134 BSA)"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

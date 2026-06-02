@@ -1,0 +1,375 @@
+{
+  "_meta": {
+    "description": "Document-rules config for release_deed — Release / Relinquishment deed where a co-sharer or co-owner gives up rights in favour of another. Common in family settlements (especially among heirs releasing share to one sibling). NOTE — Release WITHOUT consideration to non-co-sharer is essentially a GIFT (different stamp duty); release WITH consideration to co-sharer is treated like sale / partition. Registration mandatory if value > Rs.100 (Registration Act S.17).",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Distinguish release vs gift vs sale vs partition — substance determines stamp duty + tax. Concessional rates for release to family co-sharer in many states."
+  },
+  "template_id": "release_deed",
+  "docType": "release_deed",
+  "title": "Release / Relinquishment Deed",
+  "displayName": "Release Deed (Relinquishment)",
+  "category": "transactional_deed",
+  "creditsCost": 2,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "RELEASE / RELINQUISHMENT DEED\n\nThis Deed of Release is executed on this {date} at {place}.\n\nBETWEEN\n\n{releasor_name}, son/daughter/wife of {releasor_father_name}, aged about {releasor_age} years, resident of {releasor_address}, (PAN: {releasor_pan})\n(hereinafter referred to as the \"RELEASOR\")\n\nAND\n\n{releasee_name}, son/daughter/wife of {releasee_father_name}, aged about {releasee_age} years, resident of {releasee_address}, (PAN: {releasee_pan})\n(hereinafter referred to as the \"RELEASEE\"; Relationship: {relationship})",
+    "partyDesignations": [
+      { "role": "releasor", "label": "Releasor / Relinquisher" },
+      { "role": "releasee", "label": "Releasee / Beneficiary" }
+    ],
+    "caseNomenclature": "N/A — Transactional"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "releasor_name", "label": "Releasor full name", "type": "text", "required": true },
+      {
+        "id": "releasor_father_name",
+        "label": "Releasor father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "releasor_age", "label": "Releasor age", "type": "number", "required": true },
+      {
+        "id": "releasor_address",
+        "label": "Releasor address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "releasor_pan", "label": "Releasor PAN", "type": "text", "required": true },
+      { "id": "releasee_name", "label": "Releasee full name", "type": "text", "required": true },
+      {
+        "id": "releasee_father_name",
+        "label": "Releasee father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "releasee_age", "label": "Releasee age", "type": "number", "required": true },
+      {
+        "id": "releasee_address",
+        "label": "Releasee address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "releasee_pan", "label": "Releasee PAN", "type": "text", "required": true },
+      {
+        "id": "relationship",
+        "label": "Relationship of Releasor to Releasee (governs whether co-sharer release / gift / sale)",
+        "type": "select",
+        "required": true,
+        "options": [
+          "co_sharer_or_co_heir_in_inherited_property",
+          "co_owner_purchased_jointly",
+          "co_partner_in_business_asset",
+          "spouse",
+          "parent_child",
+          "sibling",
+          "unrelated_co_owner"
+        ]
+      },
+      {
+        "id": "source_of_rights",
+        "label": "Source of Releasor's rights in the property (inheritance / joint purchase / contribution / Hindu coparcenary)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "property_address",
+        "label": "Property full address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "property_extent",
+        "label": "Property extent (area)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "property_boundaries",
+        "label": "Boundaries (N/S/E/W)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "khasra_or_survey_no",
+        "label": "Khasra / Survey / Plot No.",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "share_being_released",
+        "label": "Share / Portion being released (fraction or percentage)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "consideration_present",
+        "label": "Is release WITH consideration?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "yes_with_monetary_consideration",
+          "yes_with_non_monetary_consideration_natural_love",
+          "no_pure_relinquishment_treated_as_gift_if_to_non_co_sharer"
+        ]
+      },
+      {
+        "id": "consideration_amount",
+        "label": "Consideration amount (if monetary)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "consideration_details",
+        "label": "Mode and timing of consideration payment",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "release_in_favour_of_co_sharer",
+        "label": "Is releasee an existing co-sharer / co-owner?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "yes_releasee_is_co_sharer_concessional_stamp",
+          "no_releasee_acquires_anew_treat_as_gift_or_sale"
+        ]
+      },
+      {
+        "id": "stamp_duty_paid",
+        "label": "Stamp duty paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "state",
+        "label": "State of execution",
+        "type": "select",
+        "required": true,
+        "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_recital",
+      "name": "Parties and Recitals",
+      "required": true,
+      "description": "Identification of releasor and releasee + relationship"
+    },
+    {
+      "id": "recital_of_co_ownership",
+      "name": "Recital of Co-Ownership / Source of Rights",
+      "required": true,
+      "description": "How parties came to be co-sharers (inheritance / partition / joint purchase / Hindu joint family)"
+    },
+    {
+      "id": "share_description",
+      "name": "Description of Share Being Released",
+      "required": true,
+      "description": "Fractional or percentage share, with reference to total property"
+    },
+    {
+      "id": "recital_of_motive",
+      "name": "Recital of Motive / Family Settlement",
+      "required": true,
+      "description": "Why releasor is relinquishing share — family arrangement, natural love and affection, consideration paid, mutual settlement"
+    },
+    {
+      "id": "operative_release_clause",
+      "name": "Operative Release Clause",
+      "required": true,
+      "description": "Releasor doth hereby release, relinquish, give up, and quitclaim all rights, title and interest in the share described, in favour of Releasee, absolutely and forever"
+    },
+    {
+      "id": "consideration_clause_if_any",
+      "name": "Consideration Clause (if applicable)",
+      "required": false,
+      "description": "Amount + receipt + mode"
+    },
+    {
+      "id": "no_further_claim_clause",
+      "name": "No Further Claim Clause",
+      "required": true,
+      "description": "Releasor covenants not to claim any right / interest in the released share hereafter"
+    },
+    {
+      "id": "warranty_of_title",
+      "name": "Warranty of Title of Released Share",
+      "required": true,
+      "description": "Releasor warrants share is free from encumbrances / further claims by him"
+    },
+    {
+      "id": "mutation_clause",
+      "name": "Mutation Authorisation",
+      "required": true,
+      "description": "Releasor authorises mutation of released share in releasee's name"
+    },
+    {
+      "id": "indemnity_clause",
+      "name": "Indemnity by Releasor",
+      "required": true,
+      "description": "Releasor indemnifies releasee for any defect in released share"
+    },
+    {
+      "id": "schedule_a_property",
+      "name": "SCHEDULE A — Property and Share",
+      "required": true,
+      "description": "Detailed schedule"
+    },
+    {
+      "id": "witness_clause",
+      "name": "Two Witnesses",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a RELEASE / RELINQUISHMENT DEED. A release deed is an instrument by which a person (the releasor) gives up his/her right, title or interest in property in favour of another person (the releasee), who is typically an existing co-sharer / co-owner.",
+      "SUBSTANCE OVER FORM — courts and revenue authorities look at SUBSTANCE:\n   (a) If releasee is a CO-SHARER / CO-OWNER and release is WITHOUT consideration — treated as RELEASE (lower stamp duty) — share simply enlarges the co-sharer's existing right.\n   (b) If releasee is a CO-SHARER and release is WITH CONSIDERATION — may be treated as partial PARTITION or SALE; higher stamp duty.\n   (c) If releasee is NOT a co-sharer (i.e., acquires fresh title via this deed) — treated as GIFT (if no consideration) or SALE (if consideration) — full stamp duty applies.\n   (d) If RELEASE OF MORTGAGE by mortgagee to mortgagor — treated as RECONVEYANCE; separate stamp article.",
+      "STATE-WISE CONCESSIONS for release among family co-sharers (verify current rates):\n   - Bihar: Article 55 — Rs.100 for release among co-sharers in family; otherwise sale rate.\n   - Jharkhand: similar.\n   - UP: Rs.5000 for release among family co-sharers (per state circular); otherwise full conveyance rate.\n   - Delhi: 2% on value of released share for family co-sharer; up to 6% for non-family.\n   DO NOT hardcode — flag advocate to verify.",
+      "STRUCTURE:",
+      "Para 1: Parties identification — Releasor + Releasee + Relationship.",
+      "Para 2: Recital of co-ownership — describe how releasor came to be co-owner. Examples:\n   (a) Inheritance: 'The Releasor and Releasee are both Class I legal heirs of late [name], who died intestate on [date] leaving behind the immovable property described in Schedule A. The Releasor and Releasee, along with [other heirs if any], became co-owners of the said property by intestate succession under the Hindu Succession Act, 1956.'\n   (b) Partition: 'Pursuant to the Partition Deed dated [date] registered as [details], the Releasor and Releasee were allotted joint share in the property described in Schedule A.'\n   (c) Joint purchase: 'By Sale Deed dated [date] registered as [details], the Releasor and Releasee jointly purchased the property described in Schedule A in equal/specified shares.'\n   (d) Hindu Joint Family: 'The Releasor and Releasee are coparceners in the joint family property described in Schedule A.'",
+      "Para 3: Description of Share — '...the Releasor has a [fractional / percentage] share, namely [share], in the property described in Schedule A.'",
+      "Para 4: Motive / Recital of Family Settlement — 'Out of natural love and affection for the Releasee [who is the brother/sister/spouse/child] of the Releasor, AND/OR in furtherance of a family settlement / family arrangement, AND/OR for consideration of Rs. [amount] paid by the Releasee, the Releasor is desirous of relinquishing his/her share in favour of the Releasee.'",
+      "Para 5: OPERATIVE RELEASE CLAUSE — 'NOW THIS DEED WITNESSES that the Releasor doth hereby RELEASE, RELINQUISH, QUIT-CLAIM and ABANDON all his/her rights, title, interest, claim and demand whatsoever in respect of the [share] in the property described in Schedule A, in favour of the Releasee absolutely and forever; AND the Releasor doth hereby covenant that he/she shall have no manner of right, title or interest whatsoever in the said share hereafter.'",
+      "Para 6: Consideration clause (if applicable) — 'In consideration of the sum of Rs. [amount] paid by the Releasee to the Releasor (the receipt whereof Releasor hereby acknowledges)...'.",
+      "Para 7: NO FURTHER CLAIM — 'The Releasor covenants for himself, his heirs, executors, administrators and assigns, that he and they shall not, at any time hereafter, claim any right, title or interest in the released share, and that the Releasee shall hold, enjoy and dispose of the said share absolutely.'",
+      "Para 8: Warranty of title in released share — 'The Releasor warrants that he has good and marketable title in the released share, that the share is free from any encumbrance, mortgage, attachment or court order, and that no other person has any claim through the Releasor.'",
+      "Para 9: MUTATION AUTHORISATION — Releasor authorises Releasee to seek mutation in revenue / municipal records.",
+      "Para 10: INDEMNITY — Releasor indemnifies Releasee against any disturbance of title through Releasor or his heirs.",
+      "Para 11: Stamp duty + registration — borne by [specified party, usually Releasee].",
+      "Para 12: Schedule A — property description + share description.",
+      "Para 13: Witnesses (2 adults).",
+      "Append Lawie disclaimer.",
+      "Cite Kuppuswami Chettiar v. ASPA Arumugam Chettiar (1967) 1 SCR 275 — release operates by way of enlargement of existing co-sharer's right, not as fresh transfer.",
+      "Cite Kale v. Deputy Director of Consolidation (1976) 3 SCC 119 — family settlements (which often include releases) are indulgently treated by courts; bona fide settlements upheld even if technically defective.",
+      "Income tax: where release is treated as gift between relatives (S.56(2)(x) ITA definition of relative) — no tax in releasee's hands; if among non-relatives and value > Rs.50,000, taxable. Where release is treated as sale — capital gains for releasor.",
+      "Where releasor is a minor or under guardianship — additional flags; court permission for transfer of minor's interest required.",
+      "Note: For RELEASE OF MORTGAGE specifically (mortgagee releasing security to mortgagor on full payment) — different template — typically called RECONVEYANCE DEED or NO DUE / RELEASE OF MORTGAGE. Flag if user data shows mortgagee as releasor."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        {
+          "number": "S.5",
+          "description": "Transfer of property defined — includes release where it operates as transfer"
+        },
+        {
+          "number": "S.44",
+          "description": "Transfer by one co-owner — extent of co-owner's interest"
+        }
+      ]
+    },
+    {
+      "act": "Hindu Succession Act, 1956",
+      "sections": [
+        {
+          "number": "S.6",
+          "description": "Coparcenary; daughters' rights (release of share by co-heir)"
+        },
+        { "number": "S.8 / S.15", "description": "Devolution rules for males / females" }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        {
+          "number": "S.17(1)(b)",
+          "description": "Mandatory registration of release deed for immovable property value > Rs.100"
+        }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899 + State Schedules",
+      "sections": [
+        {
+          "number": "Article 55",
+          "description": "Release / Relinquishment Deed — state-specific concession for family co-sharer release; otherwise conveyance / gift rate"
+        }
+      ]
+    },
+    {
+      "act": "Income Tax Act, 1961",
+      "sections": [
+        {
+          "number": "S.56(2)(x)",
+          "description": "Gifts from relatives exempt; non-relative > Rs.50,000 taxable"
+        },
+        { "number": "S.45-50", "description": "Capital gains where release treated as sale" }
+      ]
+    },
+    {
+      "act": "Hindu Minority and Guardianship Act, 1956",
+      "sections": [
+        { "number": "S.8", "description": "Court permission for transfer of minor's interest" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Stamp paper per state Article 55 — concessional for family co-sharer release; full rate for non-co-sharer release",
+    "Original title documents demonstrating joint co-ownership / inheritance (succession certificate / family register)",
+    "Death certificate (where succession is basis)",
+    "Pedigree certificate / family tree from Tehsildar (for inheritance-based co-ownership)",
+    "Encumbrance Certificate (EC) — past 13 years",
+    "Mutation / Jamabandi / Khatian / Khatauni — current",
+    "Property tax receipts",
+    "PAN + Aadhaar of releasor and releasee",
+    "Two passport-size photographs of each",
+    "Relationship proof (where claiming family concession) — birth certificate / school records",
+    "Two adult witnesses with ID proofs",
+    "Both parties physically present at Sub-Registrar",
+    "Where releasor is minor — natural guardian's ID + court order under HMG Act",
+    "Where releasee is unrelated — flag higher stamp duty + gift tax / capital gains implications",
+    "Where release of mortgage — appropriate reconveyance template",
+    "Registration within 4 months of execution (S.23 Registration Act)",
+    "Post-registration: mutation in releasee's name only (releasor's name removed)",
+    "Lawie disclaimer included"
+  ],
+  "validation_rules": [
+    "releasor_age >= 18 (otherwise flag minor + need court permission)",
+    "relationship must be specified",
+    "source_of_rights must not be empty",
+    "share_being_released must not be empty",
+    "consideration_present must be specified",
+    "if consideration_present == 'yes_with_monetary_consideration' — consideration_amount > 0",
+    "if release_in_favour_of_co_sharer == 'no_releasee_acquires_anew_treat_as_gift_or_sale' — flag higher stamp duty (gift / conveyance rate)",
+    "property_boundaries must mention N/S/E/W",
+    "stamp_duty_paid > 0",
+    "witness_1 and witness_2 mandatory",
+    "advocate enrollment number required"
+  ]
+}

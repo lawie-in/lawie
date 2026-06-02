@@ -1,46 +1,18 @@
+# Automated staging deployment is disabled.
+# Deploy manually using deploy.sh.
+
 name: Deploy — Staging
 
 on:
-  push:
-    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason (this workflow is a placeholder — deploy manually)'
+        required: false
 
 jobs:
-  deploy-staging:
-    name: Deploy to AWS ECS (Staging)
+  noop:
+    name: No-op (manual deploy only)
     runs-on: ubuntu-latest
-    environment: staging
-
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Update ECS service — API
-        run: |
-          aws ecs update-service \
-            --cluster lawie-staging \
-            --service lawie-api \
-            --force-new-deployment \
-            --region ${{ secrets.AWS_REGION }}
-
-      - name: Update ECS service — Web
-        run: |
-          aws ecs update-service \
-            --cluster lawie-staging \
-            --service lawie-web \
-            --force-new-deployment \
-            --region ${{ secrets.AWS_REGION }}
-
-      - name: Notify on success
-        if: success()
-        run: |
-          echo "✅ Staging deployment complete: ${{ github.sha }}"
+      - run: echo "Automated deployment is disabled. Deploy manually."

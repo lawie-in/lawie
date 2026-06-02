@@ -1,0 +1,21 @@
+# Automated deployment is disabled.
+# Deployment is manual — see docs/DEPLOY.md for steps.
+#
+# To re-enable: restore the 'on: push: branches: [main]' trigger
+# and the build/push/deploy steps.
+
+name: Deploy — Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason (this workflow is a placeholder — deploy manually)'
+        required: false
+
+jobs:
+  noop:
+    name: No-op (manual deploy only)
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Automated deployment is disabled. Deploy manually."

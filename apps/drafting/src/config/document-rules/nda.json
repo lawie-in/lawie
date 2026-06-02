@@ -1,0 +1,202 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_status": "Approved",
+    "legal_basis": "Indian Contract Act 1872 + Information Technology Act 2000 + common law of confidence",
+    "notes": "NDA / Confidentiality Agreement is enforceable under Indian Contract Act if consideration + lawful object. Remedies: injunction (Specific Relief Act S.36-42) + damages. Confidentiality survives termination - not hit by S.27. Niranjan Shankar Golikari recognised trade secret protection."
+  },
+  "template_id": "nda",
+  "title": "Non-Disclosure Agreement (NDA)",
+  "category": "corporate",
+  "creditsCost": 1,
+  "court_levels": [],
+  "form_schema": {
+    "type": "object",
+    "required": ["disclosing_party", "receiving_party", "purpose", "effective_date", "term_years"],
+    "properties": {
+      "nda_type": {
+        "type": "string",
+        "enum": ["One-way (Unilateral)", "Mutual (Bilateral)"],
+        "default": "Mutual (Bilateral)"
+      },
+      "disclosing_party": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["Individual", "Company", "LLP", "Partnership"] },
+          "address": { "type": "string" },
+          "represented_by": { "type": "string" }
+        }
+      },
+      "receiving_party": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "address": { "type": "string" },
+          "represented_by": { "type": "string" }
+        }
+      },
+      "effective_date": { "type": "string", "format": "date" },
+      "purpose": {
+        "type": "string",
+        "title": "Purpose of disclosure (e.g., evaluation of business opportunity)"
+      },
+      "definition_of_ci": { "type": "string" },
+      "term_years": {
+        "type": "number",
+        "default": 3,
+        "title": "Term of confidentiality obligation"
+      },
+      "permitted_disclosees": {
+        "type": "array",
+        "items": { "type": "string" },
+        "default": ["Employees on need-to-know", "Professional advisors under similar obligations"]
+      },
+      "return_or_destroy_period_days": { "type": "number", "default": 30 },
+      "governing_law_state": { "type": "string" },
+      "jurisdiction_city": { "type": "string" },
+      "dispute_resolution": {
+        "type": "string",
+        "enum": ["Courts only", "Arbitration", "Mediation then arbitration"]
+      }
+    }
+  },
+  "mandatory_clauses": [
+    { "clause_id": "parties", "title": "Parties", "must_appear": true },
+    {
+      "clause_id": "recitals",
+      "title": "Recitals / Background",
+      "must_appear": true,
+      "content": "WHEREAS the parties wish to explore {{purpose}} (the 'Purpose'); AND WHEREAS in connection with the Purpose, each party may disclose to the other certain Confidential Information; NOW THIS AGREEMENT WITNESSETH:"
+    },
+    {
+      "clause_id": "definition_ci",
+      "title": "Definition of Confidential Information",
+      "must_appear": true,
+      "content": "'Confidential Information' means any information disclosed by the Disclosing Party to the Receiving Party, whether orally, in writing, electronically, or otherwise, that is marked as confidential or would reasonably be understood to be confidential given its nature and the circumstances of disclosure, including but not limited to: technical data, trade secrets, know-how, source code, business plans, financial information, customer lists, supplier information, designs, drawings, formulas, processes, and any derivatives."
+    },
+    {
+      "clause_id": "exclusions",
+      "title": "Exclusions from Confidential Information",
+      "must_appear": true,
+      "content": "Confidential Information shall not include information that: (a) is or becomes publicly known through no breach of this Agreement; (b) was already known to the Receiving Party at the time of disclosure as evidenced by written records; (c) is rightfully received from a third party without obligation of confidentiality; (d) is independently developed by the Receiving Party without use of the Confidential Information; (e) is required to be disclosed by law or court order, provided Receiving Party gives prompt notice to enable Disclosing Party to seek protective order."
+    },
+    {
+      "clause_id": "obligations",
+      "title": "Obligations of Receiving Party",
+      "must_appear": true,
+      "subclauses": [
+        "Maintain in strict confidence",
+        "Use only for the Purpose",
+        "Apply same degree of care as for own confidential information (and no less than reasonable care)",
+        "Restrict access to permitted disclosees",
+        "Not reverse engineer, decompile, or disassemble",
+        "Not commercially exploit"
+      ]
+    },
+    {
+      "clause_id": "permitted_disclosure",
+      "title": "Permitted Disclosures",
+      "must_appear": true,
+      "content": "Receiving Party may disclose Confidential Information only to its directors, employees, and professional advisors who: (i) have a need to know for the Purpose, and (ii) are bound by written obligations of confidentiality no less stringent than this Agreement."
+    },
+    {
+      "clause_id": "no_license",
+      "title": "No License or Transfer of Rights",
+      "must_appear": true,
+      "content": "Nothing in this Agreement shall be construed as granting any license, transfer, or assignment of any IP rights. All IP remains with the Disclosing Party."
+    },
+    {
+      "clause_id": "term",
+      "title": "Term and Survival",
+      "must_appear": true,
+      "content": "This Agreement is effective from {{effective_date}} and remains in force for {{term_years}} years. Obligations relating to trade secrets survive indefinitely."
+    },
+    {
+      "clause_id": "return_destroy",
+      "title": "Return or Destruction of Confidential Information",
+      "must_appear": true,
+      "content": "Upon termination or written request, Receiving Party shall within {{return_or_destroy_period_days}} days return or destroy (and certify destruction of) all Confidential Information in any form."
+    },
+    {
+      "clause_id": "remedies",
+      "title": "Remedies for Breach",
+      "must_appear": true,
+      "content": "The parties acknowledge that breach may cause irreparable harm for which monetary damages are inadequate. Disclosing Party is entitled to seek injunctive relief under S.36-42 Specific Relief Act 1963 in addition to damages, indemnity, and any other legal remedies."
+    },
+    { "clause_id": "no_publicity", "title": "No Publicity", "must_appear": true },
+    {
+      "clause_id": "no_warranty",
+      "title": "No Representation or Warranty",
+      "must_appear": true,
+      "content": "Confidential Information is provided 'AS IS'. No representation as to accuracy or completeness."
+    },
+    {
+      "clause_id": "data_protection",
+      "title": "Data Protection (DPDP Act)",
+      "must_appear": true,
+      "applies_when": "Personal data is part of disclosed information"
+    },
+    {
+      "clause_id": "governing_law",
+      "title": "Governing Law and Jurisdiction",
+      "must_appear": true,
+      "content": "This Agreement shall be governed by the laws of India. Courts at {{jurisdiction_city}} shall have exclusive jurisdiction."
+    },
+    { "clause_id": "dispute_resolution", "title": "Dispute Resolution", "must_appear": true },
+    {
+      "clause_id": "general",
+      "title": "General Provisions",
+      "subclauses": [
+        "Notices",
+        "Severability",
+        "Entire agreement",
+        "Amendment in writing",
+        "No assignment without consent"
+      ],
+      "must_appear": true
+    },
+    { "clause_id": "execution", "title": "Execution", "must_appear": true }
+  ],
+  "prompt_context": {
+    "system_role": "You are drafting a Non-Disclosure Agreement under Indian law. Ensure clear definition of CI, standard exclusions, permitted disclosures, return/destroy, and remedies including injunctive relief.",
+    "drafting_rules": [
+      "Define CI broadly but specifically tied to context.",
+      "Standard exclusions: public domain, prior knowledge, third party, independent development, legal requirement.",
+      "Permitted disclosees: need-to-know basis with back-to-back obligations.",
+      "Term typically 2-5 years; trade secrets survive indefinitely.",
+      "Express remedies clause - injunction + damages. Reference S.36-42 Specific Relief Act.",
+      "If personal data flows: include DPDP Act compliance.",
+      "Cross-border NDAs: address governing law clearly.",
+      "Stamp duty: low (INR 100-500 typical) - state-specific.",
+      "For employee/contractor NDAs - integrate with employment/service agreement instead.",
+      "Survival clause for confidentiality."
+    ],
+    "tone": "Formal, succinct, commercial-legal."
+  },
+  "relevantActs": [
+    { "act": "Indian Contract Act 1872" },
+    { "act": "Specific Relief Act 1963", "sections": ["S.36-42 (injunctions)"] },
+    { "act": "Information Technology Act 2000", "sections": ["S.43A, S.72A"] },
+    { "act": "Digital Personal Data Protection Act 2023" },
+    { "act": "Copyright Act 1957" },
+    { "act": "Designs Act 2000" },
+    { "act": "Indian Stamp Act 1899" }
+  ],
+  "filing_checklist": [
+    "Execute in duplicate on stamp paper.",
+    "Each party retains one signed original.",
+    "Maintain log of CI disclosed (especially if marked confidential).",
+    "Track return/destruction at end of engagement."
+  ],
+  "validation_rules": [
+    { "rule": "CI defined", "check": "Definition clause present and specific" },
+    { "rule": "Standard exclusions", "check": "All five exclusions present" },
+    { "rule": "Term specified", "check": "Term in years explicit" },
+    { "rule": "Remedies clause", "check": "Injunctive relief expressly mentioned" },
+    { "rule": "Return/destroy", "check": "Procedure and timeline" },
+    { "rule": "Governing law India", "check": "Indian law and Indian courts/seat" }
+  ]
+}

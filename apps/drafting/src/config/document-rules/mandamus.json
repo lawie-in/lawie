@@ -1,0 +1,131 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "batch": "8b",
+    "legal_status": "approved",
+    "review_notes": "Writ of mandamus under Art 226 (HC) / Art 32 (SC). Strict pre-conditions: existence of public statutory duty, clear legal right in petitioner, demand and refusal, no equally efficacious alternative remedy (subject to exceptions). Mansukhlal Vithaldas Chauhan v. State of Gujarat (1997) 7 SCC 622 is leading authority. Will not issue against private parties, discretionary functions, or to direct legislation."
+  },
+  "template_id": "mandamus",
+  "title": "Writ Petition for Mandamus (Art. 226/32)",
+  "category": "writ",
+  "creditsCost": 2,
+  "court_levels": ["HIGH_COURT", "SUPREME_COURT"],
+  "form_schema": {
+    "court": {
+      "type": "select",
+      "label": "Court",
+      "options": [
+        "HIGH_COURT_OF_DELHI",
+        "HIGH_COURT_OF_PATNA",
+        "HIGH_COURT_OF_JHARKHAND",
+        "HIGH_COURT_OF_ALLAHABAD",
+        "SUPREME_COURT"
+      ],
+      "required": true
+    },
+    "petitioner_name": { "type": "string", "label": "Petitioner Name", "required": true },
+    "petitioner_address": { "type": "string", "label": "Petitioner Address", "required": true },
+    "respondent_authority": {
+      "type": "string",
+      "label": "Respondent Public Authority/Officer",
+      "required": true,
+      "help": "Designation, e.g., Secretary, Department of X, Govt. of Y"
+    },
+    "statutory_duty": {
+      "type": "textarea",
+      "label": "Statutory Duty Sought to be Enforced",
+      "required": true,
+      "help": "Cite exact provision of statute imposing the duty"
+    },
+    "legal_right": {
+      "type": "textarea",
+      "label": "Petitioner's Clear Legal Right",
+      "required": true
+    },
+    "demand_made_date": {
+      "type": "date",
+      "label": "Date Demand/Representation Made",
+      "required": true
+    },
+    "refusal_or_inaction": {
+      "type": "textarea",
+      "label": "Refusal or Continued Inaction by Authority",
+      "required": true
+    },
+    "alternative_remedy_addressed": {
+      "type": "textarea",
+      "label": "Why No Efficacious Alternative Remedy",
+      "required": true
+    },
+    "reliefs": {
+      "type": "textarea",
+      "label": "Reliefs (mandamus directions sought)",
+      "required": true
+    }
+  },
+  "mandatory_clauses": [
+    "Cause title with Article 226 / 32 invocation",
+    "Locus standi of petitioner",
+    "Identification of public authority and statutory duty",
+    "Particulars of demand and refusal/inaction",
+    "Addressal of alternative remedy bar",
+    "Grounds invoking mandamus jurisdiction",
+    "Prayer for issuance of writ of mandamus",
+    "Verification and supporting affidavit",
+    "Annexures including representation, refusal communication (if any)"
+  ],
+  "prompt_context": {
+    "tone": "Constitutional writ — formal, precise on statutory duty, demand-and-refusal narrative.",
+    "must_cite": [
+      "Article 226 (HC) or Article 32 (SC) of the Constitution of India",
+      "Specific section of statute imposing public duty on respondent",
+      "Mansukhlal Vithaldas Chauhan v. State of Gujarat (1997) 7 SCC 622 — conditions for mandamus"
+    ],
+    "must_avoid": [
+      "Seeking mandamus against private body without public function element",
+      "Seeking to control discretionary power (only legal discretion is reviewable)",
+      "Failing to plead demand and refusal",
+      "Ignoring alternative remedy without explanation"
+    ],
+    "structure": [
+      "1. Cause title",
+      "2. Parties",
+      "3. Synopsis",
+      "4. Statutory duty — provision verbatim",
+      "5. Legal right of petitioner",
+      "6. Demand and refusal/inaction",
+      "7. Alternative remedy — why unavailable/inadequate",
+      "8. Grounds",
+      "9. Prayer",
+      "10. Verification + affidavit + annexures"
+    ]
+  },
+  "relevantActs": [
+    { "name": "Constitution of India", "articles": ["32", "226"] },
+    { "name": "Specific Relief Act, 1963", "sections": ["38", "39"] }
+  ],
+  "filing_checklist": [
+    "Court fee as per HC/SC rules",
+    "Vakalatnama",
+    "Supporting affidavit notarised",
+    "Memo of parties with full addresses of public authority",
+    "Synopsis + list of dates",
+    "Annexure: representation/demand letter",
+    "Annexure: refusal or proof of inaction",
+    "Statutory provision extract",
+    "Index + paging as per court rules"
+  ],
+  "validation_rules": [
+    { "rule": "MUST cite Article 226 or 32", "severity": "blocker" },
+    { "rule": "MUST identify specific statutory provision imposing duty", "severity": "blocker" },
+    { "rule": "MUST plead demand and refusal/inaction", "severity": "blocker" },
+    { "rule": "MUST address alternative remedy", "severity": "high" },
+    { "rule": "MUST cite Mansukhlal Vithaldas Chauhan or equivalent", "severity": "medium" },
+    { "rule": "Respondent MUST be public authority/officer", "severity": "blocker" },
+    {
+      "rule": "Disclaimer: Lawie is a drafting assistant; advocate is responsible for legal accuracy and filing.",
+      "severity": "blocker"
+    }
+  ]
+}

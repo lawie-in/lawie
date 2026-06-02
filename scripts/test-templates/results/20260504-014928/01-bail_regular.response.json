@@ -1,0 +1,70 @@
+data: {"text":"1. That the applicant has been falsely implicated in FIR No. 124/2026 dated 15.03.2026, registered at PS Kotwali, under Sections 303 and 351 of the"}
+
+data: {"text":" Bharatiya Nyaya Sanhita, 2023, wherein the State of Bihar is the respondent.\n\n2. That the present"}
+
+data: {"text":" case arises out of a land dispute between the applicant and the complainant, which has been ongoing"}
+
+data: {"text":" for several years. The complainant, with malafide intentions and to gain un"}
+
+data: {"text":"due advantage in the civil dispute, has falsely implicated the applicant in the present criminal case by"}
+
+data: {"text":" filing a false and fabricated complaint against him.\n\n3. That the applicant categorically denies all the allegations lev"}
+
+data: {"text":"elled against him and submits that he was not present at the place of the alleged incident at the time when"}
+
+data: {"text":" the same is alleged to have occurred. The applicant has credible witnesses who can establish his alibi and prove that he was elsewhere"}
+
+data: {"text":" at the relevant time, thereby completely exonerating him from the alleged offences.\n\n4. That the applicant"}
+
+data: {"text":" was arrested on 16.03.2026 and has been languishing in judicial custody since then. The applicant has been cooperating with the investigating agency throughout"}
+
+data: {"text":" and has appeared before the police as and when called upon to do so, demonst"}
+
+data: {"text":"rating his bonafide intention to face the trial.\n\n5. That the applicant is a resp"}
+
+data: {"text":"ectable member of society with deep roots in the community and has no previous criminal antecedents. He"}
+
+data: {"text":" has never been involved in any criminal activity in the past and maintains an unblemished record, which"}
+
+data: {"text":" speaks volumes about his character and integrity.\n\n6. That the applicant poses no flight risk whatsoever and has no intention of absconding or ev"}
+
+data: {"text":"ading the legal process. He is ready and willing to abide by all conditions"}
+
+data: {"text":" that this Hon'ble Court may deem fit to impose while granting bail and shall"}
+
+data: {"text":" make himself available for trial as and when required.\n\n7. That the continued detention of the applicant in custody"}
+
+data: {"text":" would serve no useful purpose as the investigation is pending and his"}
+
+data: {"text":" custodial interrogation is not required at this stage. The applicant's liberty cannot be curt"}
+
+data: {"text":"ailed indefinitely without just cause, especially when he has been fals"}
+
+data: {"text":"ely implicated in the present case.\n\n8. That the fundamental right to personal liberty guaranteed under Article 21 of the Constitution of India is a cherished right which cannot"}
+
+data: {"text":" be taken away except in accordance with the procedure established by law. The continued incarceration of the applicant without sufficient grounds"}
+
+data: {"text":" would amount to violation of his constitutional rights.\n\n9. That while Section 303 of BNS,"}
+
+data: {"text":" 2023 is classified as non-bailable and Section 351 of BNS, 2023 is classified as bailable, the applicant submits that bail is a"}
+
+data: {"text":" rule and jail is an exception. The courts have consistently held that bail should not"}
+
+data: {"text":" be withheld as a punishment and the primary considerations should be whether"}
+
+data: {"text":" the accused will abscond or tamper with evidence.\n\n10. That the applicant undertakes to cooperate fully"}
+
+data: {"text":" with the investigation and trial proceedings, and shall not misuse"}
+
+data: {"text":" the liberty if granted. He further undertakes not to directly or indirectly make any indu"}
+
+data: {"text":"cement, threat or promise to any person acquainted with the facts of the case so as to dissuade them from disc"}
+
+data: {"text":"losing such facts to the court or to the police officer."}
+
+event: template_sections
+data: {"sections":[{"section_id":"cause_title","type":"template","content":"IN THE COURT OF Court of Sessions Judge, Patna\nAT Patna\n\nCriminal Miscellaneous Case No. _____ of 2026\n\nIN THE MATTER OF:\n\nRajan Kumar\nS/o Shri Mohan Kumar\nAge: 32 years\nR/o Village Danapur, District Patna, Bihar\n                                              ... Petitioner / Accused\n\nVersus\n\nState of Bihar\nThrough Public Prosecutor\n                                              ... Respondent / State","alignment":"center"},{"section_id":"application_heading","type":"template","content":"APPLICATION FOR Regular Bail UNDER SECTION 480 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023","alignment":"center"},{"section_id":"addressing_clause","type":"template","content":"TO,\nTHE HONOURABLE Court of Sessions Judge, Patna,\nPatna\n\nMOST RESPECTFULLY SHOWETH:","alignment":"left"},{"section_id":"body","type":"ai_generated","content":"1. That the applicant has been falsely implicated in FIR No. 124/2026 dated 15.03.2026, registered at PS Kotwali, under Sections 303 and 351 of the Bharatiya Nyaya Sanhita, 2023, wherein the State of Bihar is the respondent.\n\n2. That the present case arises out of a land dispute between the applicant and the complainant, which has been ongoing for several years. The complainant, with malafide intentions and to gain undue advantage in the civil dispute, has falsely implicated the applicant in the present criminal case by filing a false and fabricated complaint against him.\n\n3. That the applicant categorically denies all the allegations levelled against him and submits that he was not present at the place of the alleged incident at the time when the same is alleged to have occurred. The applicant has credible witnesses who can establish his alibi and prove that he was elsewhere at the relevant time, thereby completely exonerating him from the alleged offences.\n\n4. That the applicant was arrested on 16.03.2026 and has been languishing in judicial custody since then. The applicant has been cooperating with the investigating agency throughout and has appeared before the police as and when called upon to do so, demonstrating his bonafide intention to face the trial.\n\n5. That the applicant is a respectable member of society with deep roots in the community and has no previous criminal antecedents. He has never been involved in any criminal activity in the past and maintains an unblemished record, which speaks volumes about his character and integrity.\n\n6. That the applicant poses no flight risk whatsoever and has no intention of absconding or evading the legal process. He is ready and willing to abide by all conditions that this Hon'ble Court may deem fit to impose while granting bail and shall make himself available for trial as and when required.\n\n7. That the continued detention of the applicant in custody would serve no useful purpose as the investigation is pending and his custodial interrogation is not required at this stage. The applicant's liberty cannot be curtailed indefinitely without just cause, especially when he has been falsely implicated in the present case.\n\n8. That the fundamental right to personal liberty guaranteed under Article 21 of the Constitution of India is a cherished right which cannot be taken away except in accordance with the procedure established by law. The continued incarceration of the applicant without sufficient grounds would amount to violation of his constitutional rights.\n\n9. That while Section 303 of BNS, 2023 is classified as non-bailable and Section 351 of BNS, 2023 is classified as bailable, the applicant submits that bail is a rule and jail is an exception. The courts have consistently held that bail should not be withheld as a punishment and the primary considerations should be whether the accused will abscond or tamper with evidence.\n\n10. That the applicant undertakes to cooperate fully with the investigation and trial proceedings, and shall not misuse the liberty if granted. He further undertakes not to directly or indirectly make any inducement, threat or promise to any person acquainted with the facts of the case so as to dissuade them from disclosing such facts to the court or to the police officer."},{"section_id":"prayer","type":"template","content":"PRAYER\n\nIn view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Court may be pleased to:\n\na) Grant Regular Bail to the Petitioner, Rajan Kumar, in connection with FIR No. 124/2026 dated 15.03.2026, PS Kotwali, under Section 480 of BNSS, 2023, on such terms and conditions as this Honourable Court may deem fit;\n\nb) Pass such other orders as this Honourable Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.","alignment":"left"},{"section_id":"verification","type":"template","content":"VERIFICATION\n\nI, Rajan Kumar, the Petitioner herein above named, do hereby verify that the contents of paragraphs 1 to 10 of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at Patna on this _____ day of _________, 2026.\n\n\n_________________________\nRajan Kumar\n(Petitioner)","alignment":"left"},{"section_id":"advocate_block","type":"template","content":"THROUGH:\n\n_________________________\nSmoke Test\nAdvocate\nEnrollment No. ____________________\n\nPlace: Patna\nDate: 04 May 2026","alignment":"right"},{"section_id":"disclaimer","type":"template","content":"AI-assisted draft — verify with applicable law before filing. Lawie does not provide legal advice.","alignment":"center","style":"footer_small_gray"}]}
+
+event: checklist
+data: {"items":["Certified copy of FIR No. 124/2026","Vakalatnama duly executed","Surety Bond with ID proof of surety (Aadhaar/PAN)","Address proof of applicant (Aadhaar/Voter ID)","Affidavit of applicant (if required by court)","Verify all BNS/BNSS section numbers before filing","Court fee as per state schedule"]}
+

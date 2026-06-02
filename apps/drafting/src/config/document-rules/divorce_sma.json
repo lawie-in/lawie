@@ -1,0 +1,296 @@
+{
+  "_meta": {
+    "description": "Document-rules config for divorce_sma — contested divorce under Special Marriage Act, 1954",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 3 family-law pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off."
+  },
+  "template_id": "divorce_sma",
+  "docType": "divorce_sma",
+  "title": "Petition for Divorce under Special Marriage Act, 1954",
+  "displayName": "Divorce Petition (SMA, contested)",
+  "category": "family",
+  "creditsCost": 2,
+  "court_levels": ["family_court_principal", "family_court_additional", "district_court_civil"],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{petitioner} ... Petitioner\nVERSUS\n{respondent} ... Respondent",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner" },
+      { "role": "respondent", "label": "Respondent" }
+    ],
+    "caseNomenclature": "SMA Petition (Divorce) No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "petitioner_name",
+        "label": "Petitioner full name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "petitioner_age", "label": "Petitioner age", "type": "number", "required": true },
+      {
+        "id": "petitioner_religion",
+        "label": "Petitioner religion (for record only — SMA is religion-neutral)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "petitioner_address",
+        "label": "Petitioner residential address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "respondent_name",
+        "label": "Respondent full name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "respondent_age", "label": "Respondent age", "type": "number", "required": true },
+      {
+        "id": "respondent_address",
+        "label": "Respondent residential address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "marriage_date",
+        "label": "Date of marriage (civil registration)",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "marriage_place",
+        "label": "Place of marriage / SMA registration office",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "smr_certificate_no",
+        "label": "SMA Marriage Certificate number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "smr_certificate_date",
+        "label": "SMA Marriage Certificate date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "matrimonial_home",
+        "label": "Last matrimonial home",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "children_details",
+        "label": "Children of marriage",
+        "type": "textarea",
+        "required": false
+      },
+      { "id": "separation_date", "label": "Date of separation", "type": "date", "required": false },
+      {
+        "id": "grounds_selected",
+        "label": "Grounds for divorce u/s 27 SMA",
+        "type": "multiselect",
+        "required": true,
+        "options": [
+          "adultery_27_1_a",
+          "desertion_27_1_b",
+          "imprisonment_7yrs_27_1_c",
+          "cruelty_27_1_d",
+          "mental_disorder_27_1_e",
+          "communicable_venereal_disease_27_1_f",
+          "presumption_of_death_27_1_h",
+          "wife_rape_sodomy_27_1A_i",
+          "wife_decree_maintenance_27_1A_ii"
+        ]
+      },
+      {
+        "id": "facts_narrative",
+        "label": "Narrative of facts grounding the petition",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "ground_particulars",
+        "label": "Particulars supporting selected ground(s)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "jurisdiction_basis",
+        "label": "Basis for territorial jurisdiction (S.31 SMA)",
+        "type": "select",
+        "required": true,
+        "options": [
+          "where_marriage_solemnised",
+          "where_respondent_resides",
+          "where_parties_last_resided_together",
+          "where_petitioner_resides_three_years"
+        ]
+      },
+      {
+        "id": "three_year_residence_proof",
+        "label": "Proof of 3-year residence (if basis = petitioner residence)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "collusion_denial",
+        "name": "Express denial of collusion / connivance (S.34 SMA)",
+        "type": "boolean",
+        "required": true
+      },
+      { "id": "court_fee_paid", "label": "Court fee paid", "type": "currency", "required": true },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "smr_marriage",
+      "name": "SMA Marriage Solemnisation",
+      "required": true,
+      "description": "Pleading that marriage was solemnised / registered under Special Marriage Act, 1954 with certificate particulars"
+    },
+    {
+      "id": "cohabitation",
+      "name": "Cohabitation History",
+      "required": true,
+      "description": "Where parties resided together"
+    },
+    {
+      "id": "grounds_pleaded",
+      "name": "Statutory Grounds u/s 27 SMA",
+      "required": true,
+      "description": "Specific grounds with particulars"
+    },
+    {
+      "id": "no_collusion",
+      "name": "No Collusion or Connivance",
+      "required": true,
+      "description": "S.34(1)(a) SMA averment"
+    },
+    {
+      "id": "no_condonation",
+      "name": "No Condonation",
+      "required": true,
+      "description": "S.34(1)(b) SMA averment"
+    },
+    {
+      "id": "no_delay",
+      "name": "No Improper or Unnecessary Delay",
+      "required": true,
+      "description": "S.34(1)(d) SMA"
+    },
+    {
+      "id": "jurisdiction",
+      "name": "Jurisdiction u/s 31 SMA",
+      "required": true,
+      "description": "Note: three-year residence rule where petitioner relies on own residence"
+    },
+    {
+      "id": "prayer",
+      "name": "Prayer Clause",
+      "required": true,
+      "description": "Decree dissolving SMA marriage"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Pass a decree of divorce dissolving the marriage between the Petitioner and the Respondent solemnised/registered on {marriage_date} at {marriage_place} under the Special Marriage Act, 1954 (Certificate No. {smr_certificate_no} dated {smr_certificate_date});\nb) Award costs of this petition;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, aged about {petitioner_age} years, resident of {petitioner_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to the best of my knowledge derived from records and personal experience. Paragraphs containing legal submissions are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a contested divorce petition under Section 27 of the Special Marriage Act, 1954.",
+      "Open with averments of valid SMA marriage — date, place, certificate number/date, Registrar of Marriages.",
+      "SMA is a secular statute; do NOT invoke Hindu/Muslim/Christian personal law. Useful for inter-faith marriages and civil registrations.",
+      "Plead specific S.27 ground(s) with cogent particulars (adultery / desertion 2 years / imprisonment 7+ years / cruelty / mental disorder / communicable venereal disease / presumption of death).",
+      "S.27(1A) — additional grounds for wife: rape/sodomy/bestiality post-marriage; decree for maintenance under S.125 CrPC / S.144 BNSS / S.18 Hindu Adoption & Maintenance Act subsisting and parties not living together for one year+.",
+      "Include S.34(1) mandatory averments: no collusion / connivance, no condonation, no improper delay.",
+      "Establish jurisdiction under S.31 SMA. Note: if relying on petitioner's residence and respondent resides outside territory, petitioner must have resided there for THREE years immediately preceding petition.",
+      "Use formal, respectful language. SMA marriages are religion-neutral; do not assume Hindu identity.",
+      "Do NOT generate verification or signature blocks — added programmatically.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Special Marriage Act, 1954",
+      "sections": [
+        { "number": "27(1)", "description": "Grounds for divorce available to either spouse" },
+        { "number": "27(1)(a)", "description": "Adultery" },
+        {
+          "number": "27(1)(b)",
+          "description": "Desertion for continuous period of not less than two years"
+        },
+        {
+          "number": "27(1)(c)",
+          "description": "Imprisonment for 7+ years for offence under IPC/BNS"
+        },
+        { "number": "27(1)(d)", "description": "Cruelty since solemnisation" },
+        {
+          "number": "27(1)(e)",
+          "description": "Incurable unsoundness of mind / continuous or intermittent mental disorder"
+        },
+        { "number": "27(1)(f)", "description": "Venereal disease in communicable form" },
+        { "number": "27(1)(h)", "description": "Presumption of death — not heard of for 7 years" },
+        { "number": "27(1A)", "description": "Additional grounds available to wife" },
+        {
+          "number": "31",
+          "description": "Jurisdiction — three-year residence rule where petitioner relies on own residence"
+        },
+        {
+          "number": "34",
+          "description": "Duty of court — collusion, condonation, delay, taking advantage of own wrong"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Petition (original + 2 copies)",
+    "Vakalatnama",
+    "Certified copy of SMA marriage certificate",
+    "Address proofs",
+    "Documents evidencing grounds (medical / police / witness affidavits)",
+    "Proof of 3-year residence if jurisdiction relies on petitioner residence",
+    "List of dates and events",
+    "Court fee",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "petitioner_name and respondent_name must not be empty",
+    "smr_certificate_no must not be empty",
+    "marriage_date must precede filing_date by at least 1 year (S.29 SMA bar against divorce within 1 year)",
+    "grounds_selected must contain at least one ground",
+    "If jurisdiction_basis = 'where_petitioner_resides_three_years', three_year_residence_proof must not be empty",
+    "collusion_denial must be true",
+    "advocate_enrollment must match Bar Council format",
+    "court_fee_paid must be > 0"
+  ],
+  "key_citations": [
+    "Lily Thomas v. Union of India (2000) 6 SCC 224 — significance of SMA for inter-faith marriages",
+    "Samar Ghosh v. Jaya Ghosh (2007) 4 SCC 511 — cruelty principles equally applied under SMA",
+    "Sarla Mudgal v. Union of India (1995) 3 SCC 635 — conversion and SMA"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

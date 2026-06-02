@@ -1,0 +1,324 @@
+{
+  "_meta": {
+    "description": "Document-rules config for pil — Public Interest Litigation under Article 226 (HC) / Article 32 (SC). For matters affecting public interest by a representative petitioner. Locus standi liberalised per S.P. Gupta and Hussainara Khatoon.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. S.P. Gupta, Hussainara Khatoon, BALCO frivolous-PIL cost cites mandatory."
+  },
+  "template_id": "pil",
+  "docType": "pil",
+  "title": "Public Interest Litigation under Article 226 / 32",
+  "displayName": "Public Interest Litigation (PIL)",
+  "category": "writ",
+  "creditsCost": 2,
+  "court_levels": ["high_court_writ_jurisdiction", "supreme_court_india"],
+  "causeTitle": {
+    "format": "{courtHeader}\n(PUBLIC INTEREST LITIGATION JURISDICTION)\n\n{caseNomenclature}\n\nIN THE MATTER OF: Article 226 / Article 32 of the Constitution of India;\nAND IN THE MATTER OF: {public_interest_subject};\nAND IN THE MATTER OF:\n\n{petitioner} (Petitioner-in-person / representative public-spirited petitioner) ... Petitioner\nVERSUS\n{respondents_list} ... Respondents",
+    "partyDesignations": [
+      { "role": "petitioner", "label": "Petitioner — public-spirited person / organisation" },
+      { "role": "state_respondents", "label": "Union / State / Authority respondents" },
+      { "role": "private_respondents", "label": "Private respondents (where applicable)" }
+    ],
+    "caseNomenclature": "PIL No. _____ of [YEAR] / W.P. (PIL) No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "petitioner_name",
+        "label": "Petitioner name (individual / organisation)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "petitioner_type",
+        "label": "Petitioner type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "individual_public_spirited",
+          "registered_society",
+          "registered_trust",
+          "section_8_company",
+          "registered_ngo"
+        ]
+      },
+      {
+        "id": "petitioner_credentials",
+        "label": "Petitioner credentials / track record in public interest work",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "petitioner_address",
+        "label": "Petitioner address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "petitioner_means",
+        "label": "Source of funding / personal means",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "petitioner_no_personal_interest_declaration",
+        "label": "Declaration: no personal interest in subject matter",
+        "type": "checkbox",
+        "required": true
+      },
+      {
+        "id": "public_interest_subject",
+        "label": "Public interest subject (e.g., environmental degradation, prison reform, education, public health)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "affected_section_of_public",
+        "label": "Section of public affected (disadvantaged / general public / specific community)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "factual_basis",
+        "label": "Factual basis — research, surveys, news reports, RTI, expert opinion",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "sources_cited",
+        "label": "Sources and documents relied on (URLs / reports / RTI / news clippings)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "constitutional_rights_at_stake",
+        "label": "Fundamental / constitutional rights at stake",
+        "type": "checkbox_multi",
+        "required": true,
+        "options": [
+          "article_14",
+          "article_19",
+          "article_21_life_dignity",
+          "article_21_environment",
+          "article_21_health",
+          "article_21_education",
+          "article_38_directive",
+          "article_47_directive",
+          "article_48a_environment"
+        ]
+      },
+      {
+        "id": "alternative_remedy_position",
+        "label": "Alternative remedy position — none / inadequate / failed; statutory authority approached and failed",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "reliefs_sought",
+        "label": "Specific reliefs sought (must be precise, not vague)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "expert_committee_relief",
+        "label": "Direction for expert committee / amicus curiae / continuing mandamus sought?",
+        "type": "select",
+        "required": false,
+        "options": ["yes_expert_committee", "yes_amicus", "yes_continuing_mandamus", "none"]
+      },
+      {
+        "id": "frivolous_pil_safeguard_declaration",
+        "label": "Declaration: not frivolous / not for publicity / not for private vendetta",
+        "type": "checkbox",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties",
+      "required": true,
+      "description": "Petitioner + respondents (State + private if any)"
+    },
+    {
+      "id": "petitioner_credentials_paragraph",
+      "name": "Petitioner Credentials",
+      "required": true,
+      "description": "Public-spirited bona fides + track record"
+    },
+    {
+      "id": "no_personal_interest_paragraph",
+      "name": "No Personal Interest Declaration",
+      "required": true,
+      "description": "Per Balwant Singh Chaufal guidelines"
+    },
+    {
+      "id": "source_of_funds_paragraph",
+      "name": "Source of Funds",
+      "required": true,
+      "description": "Disclosure mandatory per HC PIL Rules"
+    },
+    {
+      "id": "public_interest_paragraph",
+      "name": "Public Interest Element",
+      "required": true,
+      "description": "Section of public affected; why this is not private grievance"
+    },
+    {
+      "id": "factual_basis_paragraph",
+      "name": "Factual Basis — Research and Evidence",
+      "required": true,
+      "description": "Documented research; not vague allegations"
+    },
+    {
+      "id": "constitutional_rights_paragraph",
+      "name": "Constitutional Rights at Stake",
+      "required": true,
+      "description": "Specific FR / DPSP"
+    },
+    {
+      "id": "alternative_remedy_paragraph",
+      "name": "Alternative Remedy Position",
+      "required": true,
+      "description": "Why writ jurisdiction appropriate"
+    },
+    {
+      "id": "reliefs_paragraph",
+      "name": "Reliefs Sought — Precise",
+      "required": true,
+      "description": "No vague prayers"
+    },
+    {
+      "id": "no_frivolity_declaration",
+      "name": "Non-Frivolity Declaration",
+      "required": true,
+      "description": "Cost-deterrent acknowledgment"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer",
+      "required": true,
+      "description": "Specific reliefs + cost / direction / committee"
+    },
+    {
+      "id": "verification",
+      "name": "Verification",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above and in the larger public interest, the Petitioner most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Issue an appropriate writ, order or direction, more particularly a writ in the nature of mandamus, directing the Respondents to {primary_relief};\n\nb) Direct constitution of an expert committee / appoint an amicus curiae to assist this Hon'ble Court and to oversee implementation of any directions issued;\n\nc) Direct the Respondents to file affidavit(s) disclosing the steps taken in relation to {subject_matter} and to file periodic compliance reports;\n\nd) Issue continuing mandamus to ensure compliance with the constitutional / statutory mandate;\n\ne) Pending hearing and final disposal of the present petition, grant such interim direction as this Hon'ble Court may deem fit;\n\nf) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the larger public interest and in the interest of justice.\n\nAnd for this act of kindness, the Petitioner shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {petitioner_name}, the Petitioner herein, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above petition are true and correct to my personal knowledge save and except such facts as are gathered from documents, research, reports and sources stated, which I believe to be true and accurate. I further verify that I have no personal interest in the subject matter of this petition and the present petition is being filed bona fide in the larger public interest. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPetitioner",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a Public Interest Litigation petition. PIL is a procedural innovation, not a substantive right — locus standi liberalised but discipline strict.",
+      "Cause-title MUST include 'In the matter of' format identifying the public interest subject.",
+      "Para 1: Description of parties.",
+      "Para 2: Petitioner credentials — public-spirited person; track record; not a busybody. Cite S.P. Gupta v. Union of India 1981 Supp SCC 87 (locus liberalised); People's Union for Democratic Rights v. Union of India (1982) 3 SCC 235; Bandhua Mukti Morcha v. Union of India (1984) 3 SCC 161.",
+      "Para 3: No personal interest declaration — per State of Uttaranchal v. Balwant Singh Chaufal (2010) 3 SCC 402, mandatory disclosure: (i) petitioner's credentials, (ii) source of information, (iii) personal interest if any, (iv) source of funding, (v) why locus.",
+      "Para 4: Source of funding — disclose. PILs by anonymous funders viewed with suspicion.",
+      "Para 5: Public interest element — section of public affected (disadvantaged, poor, marginalised, public at large). Show it is not private grievance dressed as PIL.",
+      "Para 6-8: Factual basis — research, RTI replies, news reports, expert literature, surveys, photographs. PIL must be backed by serious data, not bare allegations. Cite Indian Council for Enviro-Legal Action v. Union of India (1996) 3 SCC 212; M.C. Mehta line of cases.",
+      "Para 9: Constitutional rights at stake — Articles 14, 19, 21 (expanded — Right to clean environment Subhash Kumar v. State of Bihar (1991) 1 SCC 598; Right to health Paschim Banga Khet Mazdoor Samity v. State of WB (1996) 4 SCC 37; Right to education Mohini Jain v. State of Karnataka (1992) 3 SCC 666). DPSP: Articles 38, 47, 48A.",
+      "Para 10: Alternative remedy position — statutory authority approached and failed; OR none adequate.",
+      "Para 11: Reliefs sought — specific, precise. Vague PILs dismissed.",
+      "Para 12: Frivolity safeguard:",
+      "   - Cite State of Uttaranchal v. Balwant Singh Chaufal (2010) 3 SCC 402 — HC must lay down rules (most HCs have done so);",
+      "   - Cite BALCO Employees' Union v. Union of India (2002) 2 SCC 333 — costs for frivolous PIL (₹1 lakh+);",
+      "   - Cite Holicow Pictures Pvt Ltd v. Prem Chandra Mishra (2007) 14 SCC 281 — publicity-interest litigation discouraged;",
+      "   - Cite Ashok Kumar Pandey v. State of WB (2004) 3 SCC 349 — PILs cannot be allowed to be misused.",
+      "Para 13: For environmental PIL — precautionary principle, polluter pays — Cite Vellore Citizens' Welfare Forum v. Union of India (1996) 5 SCC 647; M.C. Mehta v. Kamal Nath (1997) 1 SCC 388 (public trust doctrine).",
+      "Para 14: For prison / criminal justice PIL — Cite Hussainara Khatoon v. State of Bihar (1980) 1 SCC 81 (right to speedy trial / undertrials); Sunil Batra; Khatri v. State of Bihar (1981) 1 SCC 627.",
+      "Para 15: Where continuing mandamus / expert committee sought — Cite Vineet Narain v. Union of India (1998) 1 SCC 226 (continuing mandamus); MC Mehta line (Bhure Lal Committee for vehicular pollution).",
+      "Prayer — precise reliefs; direction for committee where complex factual investigation needed.",
+      "Affidavit by petitioner-in-person or authorised office bearer (with board resolution annexed).",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Constitution of India",
+      "sections": [
+        { "number": "Article 14", "description": "Equality" },
+        { "number": "Article 19", "description": "Fundamental freedoms" },
+        {
+          "number": "Article 21",
+          "description": "Life, dignity, environment, health, education — expanded reading"
+        },
+        { "number": "Article 32", "description": "SC writ jurisdiction" },
+        { "number": "Article 38", "description": "DPSP — promote social order securing welfare" },
+        {
+          "number": "Article 47",
+          "description": "DPSP — duty to raise standard of nutrition and health"
+        },
+        { "number": "Article 48A", "description": "DPSP — protection of environment" },
+        { "number": "Article 51A(g)", "description": "Fundamental duty — protect environment" },
+        { "number": "Article 226", "description": "HC writ jurisdiction" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Petition (original + copies per HC PIL Rules; SC: per applicable order)",
+    "Affidavit in support (mandatory) — disclosing Balwant Singh Chaufal mandates",
+    "Vakalatnama (if represented; in-person allowed with permission)",
+    "Memo of parties",
+    "Index, synopsis, list of dates",
+    "Petitioner credentials documents (registration certificate / bye-laws / track record)",
+    "Source-of-funds declaration",
+    "Research documents, RTI replies, expert reports, news clippings",
+    "Photographs, surveys, scientific reports (for environmental / health PIL)",
+    "Documents of representation to authorities and their replies",
+    "Court fee per HC schedule (some HCs grant fee waiver for bona fide PIL)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "petitioner_name and petitioner_type must not be empty",
+    "petitioner_credentials must not be empty",
+    "petitioner_no_personal_interest_declaration must be true",
+    "frivolous_pil_safeguard_declaration must be true",
+    "petitioner_means must not be empty",
+    "public_interest_subject must not be empty",
+    "factual_basis must not be empty",
+    "sources_cited must not be empty",
+    "constitutional_rights_at_stake must have at least one selected",
+    "reliefs_sought must not be empty and must be specific",
+    "advocate_enrollment must match Bar Council format",
+    "Court level limited to HC or SC"
+  ],
+  "key_citations": [
+    "S.P. Gupta v. Union of India 1981 Supp SCC 87 — Locus liberalised",
+    "Hussainara Khatoon v. State of Bihar (1980) 1 SCC 81 — Right to speedy trial",
+    "People's Union for Democratic Rights v. Union of India (1982) 3 SCC 235 — Workers' PIL",
+    "Bandhua Mukti Morcha v. Union of India (1984) 3 SCC 161 — Bonded labour PIL",
+    "State of Uttaranchal v. Balwant Singh Chaufal (2010) 3 SCC 402 — Mandatory disclosures",
+    "BALCO Employees Union v. Union of India (2002) 2 SCC 333 — Costs for frivolous PIL",
+    "Holicow Pictures v. Prem Chandra Mishra (2007) 14 SCC 281 — Publicity-interest discouraged",
+    "Ashok Kumar Pandey v. State of WB (2004) 3 SCC 349 — Misuse of PIL",
+    "Vellore Citizens v. Union of India (1996) 5 SCC 647 — Precautionary / polluter pays",
+    "M.C. Mehta v. Kamal Nath (1997) 1 SCC 388 — Public trust doctrine",
+    "Subhash Kumar v. State of Bihar (1991) 1 SCC 598 — Right to environment under Art. 21",
+    "Vineet Narain v. Union of India (1998) 1 SCC 226 — Continuing mandamus"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

@@ -1,0 +1,133 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_cycle_days": 180,
+    "legal_status": "approved",
+    "notes": "HC / SC practice — chronological table of dates + events filed with petition. Two-column format."
+  },
+  "template_id": "list_of_dates",
+  "title": "List of Dates (Chronological Events Table)",
+  "category": "procedural",
+  "creditsCost": 1,
+  "court_levels": ["high_court", "supreme_court"],
+  "description": "A chronological table of dates and events filed alongside the petition/appeal in High Court and Supreme Court, highlighting the cause of action sequence. Two-column format (Date | Event). Cross-references petition paragraph numbers. Mandatory under SC Rules 2013 and major HC Rules.",
+  "form_schema": {
+    "case_details": {
+      "case_type": {
+        "type": "string",
+        "required": true,
+        "label": "Case Type (WP / SLP / Civil Appeal etc.)"
+      },
+      "diary_number": { "type": "string", "required": false, "label": "Diary No. (if filing)" },
+      "case_number": { "type": "string", "required": false, "label": "Case No. (if registered)" },
+      "year": { "type": "string", "required": true, "label": "Year" },
+      "court_name": { "type": "string", "required": true, "label": "Court Name" }
+    },
+    "parties": {
+      "petitioner_name": { "type": "string", "required": true, "label": "Petitioner Name" },
+      "respondent_name": { "type": "string", "required": true, "label": "Respondent Name" }
+    },
+    "dates_content": {
+      "events_table": {
+        "type": "textarea",
+        "required": true,
+        "label": "Events Table (Date | Event with petition para reference)"
+      },
+      "cause_of_action_date": {
+        "type": "date",
+        "required": true,
+        "label": "Date of Cause of Action (to be highlighted)"
+      },
+      "limitation_period_start": {
+        "type": "date",
+        "required": false,
+        "label": "Limitation Period Start"
+      },
+      "filing_date": {
+        "type": "date",
+        "required": true,
+        "label": "Date of Filing of Present Petition"
+      }
+    }
+  },
+  "mandatory_clauses": [
+    {
+      "clause_id": "header",
+      "title": "Header",
+      "required": true,
+      "content_guidance": "Top of page: court name, case type, case/diary number, year, parties. Title centred: 'LIST OF DATES AND EVENTS'."
+    },
+    {
+      "clause_id": "table_structure",
+      "title": "Two-Column Table",
+      "required": true,
+      "content_guidance": "Two columns: 'DATE' (left) | 'EVENT' (right). Each row = one date/event. Earliest date at top, latest (filing date) at bottom. Strictly chronological."
+    },
+    {
+      "clause_id": "event_description",
+      "title": "Event Description Format",
+      "required": true,
+      "content_guidance": "Each event: concise one-line description. Examples: '12.03.2023 — FIR No. 45/2023 registered at PS [name] u/s [BNS sections].' '15.04.2023 — Charge-sheet filed before [court].' '22.06.2023 — Cognizance taken / charges framed.' Add petition paragraph cross-reference at end of event: '(Refer Para 7 of the Petition)'."
+    },
+    {
+      "clause_id": "cause_of_action_marking",
+      "title": "Cause of Action Highlighting",
+      "required": true,
+      "content_guidance": "The row containing the cause of action event should be in bold or marked with asterisk * or noted as 'CAUSE OF ACTION ARISES'. Critical for limitation analysis."
+    },
+    {
+      "clause_id": "filing_date_row",
+      "title": "Filing Date as Final Row",
+      "required": true,
+      "content_guidance": "Last row of the table: '[Date] — The present [petition / appeal / SLP] filed before this Hon'ble Court.'"
+    },
+    {
+      "clause_id": "advocate_signature",
+      "title": "Advocate Signature",
+      "required": true,
+      "content_guidance": "Bottom of page: place, date, advocate name, enrolment number, contact."
+    }
+  ],
+  "prompt_context": {
+    "system_prompt_addendum": "You are drafting a LIST OF DATES for HC / SC filing. CRITICAL CONSTRAINTS: (1) STRICTLY chronological — earliest date first, filing date last. (2) Two-column table: Date | Event. (3) Each event one line, concise (max 1-2 sentences). (4) Cross-reference petition paragraph numbers: '(Refer Para X of the Petition)'. (5) Include all material dates: FIR registration, charge-sheet, cognizance, framing of charges, impugned order date, application for certified copy, copy obtained date, filing date. (6) Highlight cause of action row (bold / asterisk). (7) For criminal matters use BNS/BNSS section citations (post 2024) — IPC/CrPC only if event predates 1 July 2024. (8) For appeals/SLPs: include impugned order date AND certified copy receipt date (limitation calculation). (9) Format dates as DD.MM.YYYY. (10) Mandatory under SC Rules 2013 Order XV, Delhi HC Rules, Bombay HC OS Rules.",
+    "tone": "Strictly factual, chronological, no argumentation.",
+    "key_phrases": [
+      "FIR registered",
+      "charge-sheet filed",
+      "cognizance taken",
+      "impugned order",
+      "certified copy received",
+      "present petition filed"
+    ]
+  },
+  "relevantActs": [
+    "Supreme Court Rules 2013 Order XV",
+    "Bombay High Court (Original Side) Rules",
+    "Delhi High Court Rules",
+    "Allahabad High Court Rules 1952",
+    "Patna High Court Rules",
+    "Limitation Act 1963 (for cause of action / limitation analysis)"
+  ],
+  "filing_checklist": [
+    "List of Dates filed with synopsis at front of paper-book",
+    "Two-column table format (Date | Event)",
+    "Strictly chronological — no out-of-order entries",
+    "Cause of action date highlighted/bolded",
+    "All petition paragraph cross-references verified",
+    "Impugned order date included (for appeals/SLPs)",
+    "Certified copy receipt date included (limitation calculation)",
+    "Filing date as final row",
+    "Dates formatted DD.MM.YYYY consistently",
+    "BNS/BNSS/BSA citations used for events post 1 July 2024",
+    "Advocate signature with enrolment number"
+  ],
+  "validation_rules": {
+    "chronological_order": "ERROR if events_table dates are not in ascending chronological order.",
+    "cause_of_action_present": "WARN if cause_of_action_date does not appear in events_table.",
+    "filing_date_last": "WARN if filing_date is not the last entry in the events table.",
+    "limitation_analysis": "INFO — for appeals/SLPs, ensure both impugned order date AND certified copy receipt date are present (s.12 Limitation Act exclusion).",
+    "sanhita_citations": "INFO — events post 01.07.2024 should cite BNS/BNSS/BSA, not IPC/CrPC/IEA.",
+    "date_format": "WARN if dates not in DD.MM.YYYY format."
+  }
+}

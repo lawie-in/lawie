@@ -1,0 +1,340 @@
+{
+  "_meta": {
+    "description": "Document-rules config for rent_agreement — drives prompt, validation, mandatory clauses",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass + SCRUM-89 form_schema port from production override 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
+  },
+  "form_schema": {
+    "steps": [
+      {
+        "step": 1,
+        "title": "Parties",
+        "fields": [
+          {
+            "field_id": "state",
+            "label": "State",
+            "type": "dropdown_search",
+            "source": "courts_db.states",
+            "required": true
+          },
+          {
+            "field_id": "execution_place",
+            "label": "Place of Execution",
+            "type": "text",
+            "required": true,
+            "inject_into": ["header", "closing"]
+          },
+          {
+            "field_id": "execution_date",
+            "label": "Date of Execution",
+            "type": "date",
+            "required": true,
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "applicant_name",
+            "label": "Landlord Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["header", "body", "closing"]
+          },
+          {
+            "field_id": "applicant_address",
+            "label": "Landlord Permanent Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "applicant_pan",
+            "label": "Landlord PAN",
+            "type": "text",
+            "required": true,
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "respondent_name",
+            "label": "Tenant Name",
+            "type": "text",
+            "required": true,
+            "inject_into": ["header", "body", "closing"]
+          },
+          {
+            "field_id": "respondent_address",
+            "label": "Tenant Permanent Address",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "respondent_pan",
+            "label": "Tenant PAN",
+            "type": "text",
+            "required": true,
+            "inject_into": ["header"]
+          },
+          {
+            "field_id": "language",
+            "label": "Document Language",
+            "type": "dropdown",
+            "options_from": "supported_languages",
+            "default": "en",
+            "required": true
+          }
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Property & Rent",
+        "fields": [
+          {
+            "field_id": "property_address",
+            "label": "Property Address (full)",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "property_area_sqft",
+            "label": "Area (sq. ft.)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "property_type",
+            "label": "Property Type",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "residential",
+                "label": "Residential"
+              },
+              {
+                "id": "commercial",
+                "label": "Commercial"
+              }
+            ],
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "rent_amount",
+            "label": "Monthly Rent (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "rent_amount_words",
+            "label": "Rent in Words",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "rent_due_date",
+            "label": "Rent Due Date",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., 5th of every month",
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "payment_mode",
+            "label": "Payment Mode",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Bank transfer / Cheque",
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "escalation_percent",
+            "label": "Annual Escalation (%)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "security_deposit",
+            "label": "Security Deposit (Rs.)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "security_deposit_words",
+            "label": "Security Deposit in Words",
+            "type": "text",
+            "required": true,
+            "inject_into": ["body"]
+          }
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Tenure & Terms",
+        "fields": [
+          {
+            "field_id": "tenure_months",
+            "label": "Lease Duration (months)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "lease_start_date",
+            "label": "Lease Start Date",
+            "type": "date",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "lease_end_date",
+            "label": "Lease End Date",
+            "type": "date",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "notice_period_months",
+            "label": "Notice Period for Termination (months)",
+            "type": "number",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "permitted_use",
+            "label": "Permitted Use",
+            "type": "text",
+            "required": true,
+            "placeholder": "e.g., Residential — for self and family only",
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "maintenance_responsibility",
+            "label": "Maintenance Responsibility",
+            "type": "textarea",
+            "required": true,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "facts_narrative",
+            "label": "Additional Terms / Special Conditions (optional)",
+            "type": "textarea",
+            "required": false,
+            "max_length": 800,
+            "inject_into": ["ai_prompt"]
+          }
+        ]
+      }
+    ]
+  },
+  "docType": "rent_agreement",
+  "parentDocType": null,
+  "displayName": "Rent Agreement / Lease Deed",
+  "category": "civil",
+  "causeTitle": {
+    "format": "RENT AGREEMENT / LEASE DEED\n\nThis Rent Agreement is executed on this {date} at {place}.\n\nBETWEEN\n\n{applicant}, {applicantAddress}\n(hereinafter referred to as the \"LANDLORD\" / \"LESSOR\")\n\nAND\n\n{respondent}, {respondentAddress}\n(hereinafter referred to as the \"TENANT\" / \"LESSEE\")",
+    "partyDesignations": [
+      { "role": "applicant", "label": "Landlord / Lessor" },
+      { "role": "respondent", "label": "Tenant / Lessee" }
+    ],
+    "caseNomenclature": "N/A"
+  },
+  "mandatoryClauses": [
+    {
+      "id": "property_description",
+      "name": "Property Description",
+      "required": true,
+      "description": "Complete description of the rented property including address, area, floor"
+    },
+    {
+      "id": "rent_amount",
+      "name": "Rent Amount and Payment",
+      "required": true,
+      "description": "Monthly rent, due date, mode of payment, escalation clause"
+    },
+    {
+      "id": "security_deposit",
+      "name": "Security Deposit",
+      "required": true,
+      "description": "Security deposit amount, conditions for refund"
+    },
+    {
+      "id": "tenure",
+      "name": "Tenure / Duration",
+      "required": true,
+      "description": "Lease period (start date, end date), renewal terms"
+    },
+    {
+      "id": "maintenance",
+      "name": "Maintenance Responsibilities",
+      "required": true,
+      "description": "Who bears maintenance costs — landlord vs tenant"
+    },
+    {
+      "id": "termination",
+      "name": "Termination Clause",
+      "required": true,
+      "description": "Notice period and conditions for early termination by either party"
+    },
+    {
+      "id": "witness",
+      "name": "Witnesses",
+      "required": true,
+      "description": "Signature of two witnesses"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "filingChecklist": [
+    "Agreement printed on stamp paper of appropriate value (state-specific)",
+    "Signed by both Landlord and Tenant",
+    "Signed by two witnesses with full details",
+    "Registered at Sub-Registrar office (mandatory if term > 11 months)",
+    "Aadhaar / ID proof of both parties",
+    "Address proof of property",
+    "Photographs of both parties (for registration)",
+    "Two passport-size photos each",
+    "Property tax receipt / ownership proof"
+  ],
+  "relevantActs": [
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        { "number": "105", "description": "Lease defined" },
+        {
+          "number": "106",
+          "description": "Duration of certain leases in absence of written contract"
+        },
+        { "number": "107", "description": "Leases how made" },
+        { "number": "108", "description": "Rights and liabilities of lessor and lessee" }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        { "number": "17", "description": "Documents of which registration is compulsory" }
+      ]
+    }
+  ],
+  "promptInstructions": [
+    "Draft a Rent Agreement / Lease Deed under the Transfer of Property Act, 1882.",
+    "Include a detailed property description clause with full address, floor, area (sq ft), and built-up/carpet area if provided.",
+    "State monthly rent amount in figures and words, due date (e.g., 1st of every month), and mode of payment.",
+    "Include rent escalation clause (typically 5-10% annual increase).",
+    "State security deposit amount, conditions for deduction, and refund timeline (typically within 30 days of vacating).",
+    "Specify lease tenure with exact start and end dates, and renewal terms.",
+    "Include maintenance and utility clauses — who pays electricity, water, society maintenance.",
+    "Include termination clause with notice period (typically 1-2 months) for both parties.",
+    "Include restrictions: no subletting, no structural changes without consent, permitted use (residential/commercial).",
+    "Include dispute resolution clause (mediation/arbitration before litigation).",
+    "If tenure exceeds 11 months, note that registration is mandatory under S.17 Registration Act.",
+    "Include witness signature blocks at the end.",
+    "Use clear, plain legal language. Avoid overly archaic terms.",
+    "Do NOT generate signature blocks — they are added programmatically."
+  ]
+}

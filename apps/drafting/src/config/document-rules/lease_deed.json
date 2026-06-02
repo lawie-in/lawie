@@ -1,0 +1,602 @@
+{
+  "_meta": {
+    "description": "Document-rules config for lease_deed — LONG-TERM lease (> 11 months OR with renewal extending beyond 11 months) under Transfer of Property Act 1882 S.105-117. Distinct from rent_agreement.json (which targets <= 11 months unregistered short-term). Mandatory registration per Registration Act S.17(d). Cites Anthony v. K.C. Ittoop & Sons (2000) 6 SCC 394.",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. If user data shows tenure <= 11 months without renewal — auto-route to rent_agreement template."
+  },
+  "template_id": "lease_deed",
+  "docType": "lease_deed",
+  "title": "Lease Deed (Long-term — Transfer of Property Act, 1882, S.105-117)",
+  "displayName": "Lease Deed (Registered)",
+  "category": "transactional_deed",
+  "creditsCost": 2,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "LEASE DEED\n\nThis Deed of Lease is executed on this {date} at {place}.\n\nBETWEEN\n\n{lessor_name}, son/daughter/wife of {lessor_father_name}, aged about {lessor_age} years, resident of {lessor_address}, (PAN: {lessor_pan})\n(hereinafter referred to as the \"LESSOR\")\n\nAND\n\n{lessee_name}, son/daughter/wife of {lessee_father_name}, aged about {lessee_age} years, resident of {lessee_address}, (PAN: {lessee_pan})\n(hereinafter referred to as the \"LESSEE\")",
+    "partyDesignations": [
+      { "role": "lessor", "label": "Lessor" },
+      { "role": "lessee", "label": "Lessee" }
+    ],
+    "caseNomenclature": "N/A — Transactional"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "lessor_name", "label": "Lessor full name", "type": "text", "required": true },
+      {
+        "id": "lessor_father_name",
+        "label": "Lessor father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "lessor_age", "label": "Lessor age", "type": "number", "required": true },
+      { "id": "lessor_address", "label": "Lessor address", "type": "textarea", "required": true },
+      { "id": "lessor_pan", "label": "Lessor PAN", "type": "text", "required": true },
+      {
+        "id": "lessor_is_entity",
+        "label": "Is Lessor an individual / entity?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "individual",
+          "huf_through_karta",
+          "partnership",
+          "company_pvt_ltd_or_ltd",
+          "trust",
+          "society"
+        ]
+      },
+      {
+        "id": "lessee_name",
+        "label": "Lessee full name / Entity name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "lessee_father_name",
+        "label": "Lessee father's / husband's name OR Authorised Signatory",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "lessee_age",
+        "label": "Lessee age (if individual)",
+        "type": "number",
+        "required": false
+      },
+      { "id": "lessee_address", "label": "Lessee address", "type": "textarea", "required": true },
+      { "id": "lessee_pan", "label": "Lessee PAN", "type": "text", "required": true },
+      {
+        "id": "lessee_is_entity",
+        "label": "Is Lessee an individual / entity?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "individual",
+          "huf_through_karta",
+          "partnership",
+          "company_pvt_ltd_or_ltd",
+          "trust",
+          "society",
+          "llp"
+        ]
+      },
+      {
+        "id": "property_type",
+        "label": "Property type",
+        "type": "select",
+        "required": true,
+        "options": [
+          "residential_house",
+          "apartment_flat",
+          "commercial_shop",
+          "commercial_office",
+          "commercial_warehouse",
+          "industrial_factory_shed",
+          "agricultural_land",
+          "open_plot"
+        ]
+      },
+      { "id": "permitted_use", "label": "Permitted use", "type": "text", "required": true },
+      {
+        "id": "property_address",
+        "label": "Property full address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "property_extent",
+        "label": "Property extent (area)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "property_boundaries",
+        "label": "Boundaries (N/S/E/W)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "lessor_title_chain",
+        "label": "Lessor's title to demise property",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "lease_start_date",
+        "label": "Lease commencement date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "id": "lease_term_years",
+        "label": "Lease term in years",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "lease_term_months",
+        "label": "Additional months (e.g., 3 years 6 months)",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "renewal_option",
+        "label": "Renewal option present?",
+        "type": "select",
+        "required": true,
+        "options": ["yes_at_lessee_option", "yes_by_mutual_consent", "no_renewal"]
+      },
+      {
+        "id": "renewal_terms",
+        "label": "Renewal terms (period + rent escalation on renewal)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "monthly_rent_initial",
+        "label": "Initial monthly rent (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "rent_due_date",
+        "label": "Rent due date of each month",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "rent_escalation_percent",
+        "label": "Annual rent escalation %",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "rent_escalation_frequency",
+        "label": "Escalation frequency",
+        "type": "select",
+        "required": true,
+        "options": [
+          "annual_on_anniversary",
+          "biennial_every_2_years",
+          "triennial_every_3_years",
+          "lock_in_no_escalation"
+        ]
+      },
+      {
+        "id": "security_deposit",
+        "label": "Security deposit (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "security_deposit_refund_terms",
+        "label": "Refund terms (typically interest-free, refundable on vacating)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "lock_in_period_months",
+        "label": "Lock-in period in months",
+        "type": "number",
+        "required": false
+      },
+      {
+        "id": "notice_period_termination_months",
+        "label": "Notice period for termination (months)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "maintenance_responsibility",
+        "label": "Maintenance — major/structural",
+        "type": "select",
+        "required": true,
+        "options": [
+          "lessor_major_lessee_minor",
+          "lessee_all",
+          "lessor_all",
+          "shared_specified_split"
+        ]
+      },
+      {
+        "id": "utilities_responsibility",
+        "label": "Utilities — electricity, water, gas",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "subletting_permitted",
+        "label": "Subletting permitted?",
+        "type": "select",
+        "required": true,
+        "options": ["yes_with_lessor_consent", "no_strict_bar", "yes_to_associate_companies_only"]
+      },
+      {
+        "id": "alterations_permitted",
+        "label": "Structural alterations / fit-outs permitted?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "yes_with_consent_restoration_on_exit",
+          "no_strict_bar",
+          "yes_no_restoration_required"
+        ]
+      },
+      {
+        "id": "tds_applicable",
+        "label": "TDS applicable (rent > Rs.50K/month for individuals u/s 194-IB OR > Rs.2.4L/year u/s 194-I)?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "yes_194_I_company_paying",
+          "yes_194_IB_individual_paying",
+          "no_below_threshold"
+        ]
+      },
+      {
+        "id": "stamp_duty_paid",
+        "label": "Stamp duty paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "state",
+        "label": "State of execution",
+        "type": "select",
+        "required": true,
+        "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_and_recitals",
+      "name": "Parties and Recitals",
+      "required": true,
+      "description": "Including lessor's title to demise"
+    },
+    {
+      "id": "demise_clause",
+      "name": "Demise Clause — Operative Grant of Lease",
+      "required": true,
+      "description": "Lessor doth hereby demise and lease unto lessee"
+    },
+    {
+      "id": "property_description_schedule",
+      "name": "Schedule A — Property Description",
+      "required": true,
+      "description": "Full description with boundaries"
+    },
+    {
+      "id": "term_clause",
+      "name": "Term of Lease",
+      "required": true,
+      "description": "Start date + end date + duration + renewal option"
+    },
+    {
+      "id": "rent_clause",
+      "name": "Rent — Amount, Due Date, Mode",
+      "required": true,
+      "description": "Monthly rent, payment date, escalation schedule, mode of payment, TDS"
+    },
+    {
+      "id": "security_deposit_clause",
+      "name": "Security Deposit",
+      "required": true,
+      "description": "Amount, interest-free or interest-bearing, refund terms, deductions permitted"
+    },
+    {
+      "id": "permitted_use_clause",
+      "name": "Permitted Use",
+      "required": true,
+      "description": "Residential / commercial / specific use; lessee shall not use for any other purpose"
+    },
+    {
+      "id": "maintenance_clause",
+      "name": "Maintenance & Repairs",
+      "required": true,
+      "description": "Major/structural vs minor; lessor's vs lessee's responsibility"
+    },
+    {
+      "id": "utilities_clause",
+      "name": "Utilities",
+      "required": true,
+      "description": "Electricity, water, gas, society charges, property tax — who pays"
+    },
+    {
+      "id": "subletting_clause",
+      "name": "Subletting / Assignment",
+      "required": true,
+      "description": "Bar or conditional permission"
+    },
+    {
+      "id": "alterations_clause",
+      "name": "Alterations / Fit-out",
+      "required": true,
+      "description": "Conditions and restoration on exit"
+    },
+    {
+      "id": "lessor_covenants",
+      "name": "Lessor's Covenants",
+      "required": true,
+      "description": "Quiet enjoyment, repairs of major/structural, indemnity for title defects"
+    },
+    {
+      "id": "lessee_covenants",
+      "name": "Lessee's Covenants",
+      "required": true,
+      "description": "Pay rent, pay deposit, use as permitted, maintain, vacate on termination"
+    },
+    {
+      "id": "termination_clause",
+      "name": "Termination — Notice / Default / Force Majeure",
+      "required": true,
+      "description": "Notice period, default events, cure period, force majeure"
+    },
+    {
+      "id": "lock_in_clause",
+      "name": "Lock-in Period",
+      "required": false,
+      "description": "If applicable — penalty for early termination"
+    },
+    {
+      "id": "indemnity_clause",
+      "name": "Indemnity",
+      "required": true,
+      "description": "Mutual indemnities"
+    },
+    {
+      "id": "dispute_resolution_clause",
+      "name": "Dispute Resolution",
+      "required": true,
+      "description": "Arbitration under Arbitration & Conciliation Act 1996 / specified court jurisdiction"
+    },
+    {
+      "id": "governing_law_jurisdiction",
+      "name": "Governing Law & Jurisdiction",
+      "required": true,
+      "description": "Applicable law and exclusive jurisdiction of courts"
+    },
+    {
+      "id": "registration_clause",
+      "name": "Registration Acknowledgment",
+      "required": true,
+      "description": "Parties acknowledge lease registered under Registration Act S.17(d); duty borne by [specified party]"
+    },
+    {
+      "id": "schedule_a_property",
+      "name": "SCHEDULE A — Property",
+      "required": true,
+      "description": "Detailed description"
+    },
+    {
+      "id": "witness_clause",
+      "name": "Witnesses",
+      "required": true,
+      "description": "Two adult witnesses (mandatory for registration)"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a LEASE DEED for LONG-TERM lease (term > 11 months) under Transfer of Property Act, 1882, Sections 105 to 117.",
+      "S.105 TPA — Definition: A lease of immovable property is a transfer of a right to enjoy such property, made for a certain time, express or implied, or in perpetuity, in consideration of a price paid or promised, or of money, a share of crops, service or any other thing of value, to be rendered periodically or on specified occasions to the transferor by the transferee, who accepts the transfer on such terms.",
+      "S.107 TPA — Mode: A lease of immovable property from year to year, or for any term exceeding ONE YEAR, or reserving a yearly rent, can be made ONLY by a REGISTERED INSTRUMENT. All other leases may be made either by a registered instrument or by oral agreement accompanied by delivery of possession.",
+      "S.17(1)(d) REGISTRATION ACT — Leases of immovable property from year to year, or for any term exceeding ONE YEAR, or reserving a yearly rent, MUST be registered.",
+      "STAMP DUTY: state-specific schedules — depends on annual rent + security deposit + lease tenure. Rough indicators (verify current rates):\n   - Bihar: 1% of average annual rent + premium for terms up to 10 years; higher for longer; + 2% registration.\n   - Jharkhand: similar — % of total rent payable over term.\n   - UP: 4% of average annual rent for term up to 10 years; sliding scale for longer; + 1% registration.\n   - Delhi: 2% of average annual rent + advance + premium for terms up to 5 years; 3% for 5-10 years; 5% for > 10 years.\n   DO NOT hardcode — flag advocate to verify.",
+      "Cite Anthony v. K.C. Ittoop & Sons (2000) 6 SCC 394 — even where a deed of lease for a term exceeding one year is unregistered, possession and rent receipts may create a year-to-year tenancy under S.107 second paragraph; however, the registered deed's specific terms (renewal, options) cannot be enforced from an unregistered deed.",
+      "Cite Anthony Lawrence v. Pridhi (1985) 1 SCC 469 (where applicable) — for principles of forfeiture and re-entry.",
+      "STRUCTURE OF DEED:",
+      "Para 1: Parties — full identification including PAN, Aadhaar (last 4), business identity for entities (CIN for company, GSTIN, registered office).",
+      "Para 2: Recital — Lessor is absolute owner of demise; chain of title.",
+      "Para 3: Demise / Habendum — 'Lessor doth hereby demise and lease unto Lessee ALL THAT property more fully described in Schedule A...TO HOLD the same unto the Lessee for the term of {X} years commencing from {start_date} and ending on {end_date}'.",
+      "Para 4: Reddendum — 'YIELDING AND PAYING therefor monthly rent of Rs. {monthly_rent} payable in advance on or before the {N}th day of each English calendar month...'.",
+      "Para 5: Rent escalation — 'The said monthly rent shall be enhanced by {X}% on each anniversary of the commencement date, the enhanced rent being calculated on the immediately preceding rent.'",
+      "Para 6: Security deposit — interest-free / interest-bearing, refundable on vacation subject to deductions for arrears, damages, dues.",
+      "Para 7: Lock-in period — if applicable, lessee cannot terminate before lock-in; lessor's right to forfeit deposit / claim balance lock-in rent specified.",
+      "Para 8: Permitted use — narrow definition; no other use without consent.",
+      "Para 9: LESSOR'S COVENANTS (per S.108(A) TPA):\n   (a) Quiet enjoyment so long as lessee pays rent and performs covenants;\n   (b) Disclosure of material defects;\n   (c) Put lessee in possession on commencement;\n   (d) Repair major / structural defects;\n   (e) Pay property tax / land revenue;\n   (f) Title warranty.",
+      "Para 10: LESSEE'S COVENANTS (per S.108(B) TPA):\n   (a) Pay rent timely;\n   (b) Disclose facts increasing rent value (if any);\n   (c) Use property only for permitted purpose;\n   (d) Not commit waste;\n   (e) Permit lessor to inspect;\n   (f) Repair ordinary wear and tear / minor damages;\n   (g) Not erect permanent structure without consent;\n   (h) Vacate and deliver possession at end of term;\n   (i) Pay utilities, society charges, GST on rent (if applicable).",
+      "Para 11: Maintenance allocation — major/structural to lessor, day-to-day to lessee unless varied.",
+      "Para 12: Subletting / Assignment — usually barred / conditional. Where commercial — permitted to affiliates only.",
+      "Para 13: Alterations / Fit-out — with prior written consent; lessee to restore on exit (cost from deposit) unless waived.",
+      "Para 14: Termination — (a) Notice — typically 3-6 months for commercial; (b) Default — non-payment cure period; (c) Forfeiture per S.111 TPA grounds; (d) Force majeure clause.",
+      "Para 15: S.111 TPA — Determination of lease: by efflux of time, by happening of specified event, on termination of lessor's interest, merger, express surrender, implied surrender, forfeiture, notice to quit.",
+      "Para 16: Holdover — if lessee continues after term expiry, holdover rent (typically 1.5x or 2x) applies; tenancy at sufferance.",
+      "Para 17: Dispute resolution — arbitration clause (institutional or ad-hoc) under Arbitration & Conciliation Act 1996; seat / venue specified.",
+      "Para 18: Governing law and jurisdiction.",
+      "Para 19: TDS clause — Lessee shall deduct TDS u/s 194-I (corporate lessee, rent > Rs.2.4L/year) or 194-IB (individual lessee, rent > Rs.50K/month) and remit; issue Form 16A.",
+      "Para 20: GST clause — if commercial lease and lessor's turnover > GST threshold OR reverse charge applies; lessee to pay GST in addition to rent.",
+      "Para 21: Registration — parties acknowledge mandatory registration; stamp duty + registration fee borne by [specified party].",
+      "Schedule A — property description.",
+      "Two witnesses' attestation.",
+      "Append Lawie disclaimer.",
+      "Where commercial lease — additional clauses for fit-out period (rent-free period during fit-out), rent commencement date distinct from possession date, hand-over conditions, anti-corruption / anti-bribery, confidentiality, indemnity caps.",
+      "Where lessor is HUF — Karta executes with consent of adult coparceners.",
+      "Where lessor is a company — board resolution required and annexed."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Transfer of Property Act, 1882",
+      "sections": [
+        { "number": "S.105", "description": "Lease defined" },
+        {
+          "number": "S.106",
+          "description": "Duration of leases in absence of written contract — month-to-month for residential, year-to-year for manufacturing/agricultural"
+        },
+        { "number": "S.107", "description": "Mode — lease > 1 year by registered instrument" },
+        { "number": "S.108", "description": "Rights and liabilities of lessor and lessee" },
+        { "number": "S.109", "description": "Rights of lessor's transferee" },
+        { "number": "S.111", "description": "Determination of lease (8 grounds)" },
+        { "number": "S.112", "description": "Waiver of forfeiture" },
+        { "number": "S.113", "description": "Waiver of notice to quit" },
+        { "number": "S.114", "description": "Relief against forfeiture for non-payment of rent" },
+        { "number": "S.116", "description": "Holding over — tenant at sufferance" },
+        {
+          "number": "S.117",
+          "description": "Exemption of agricultural leases (subject to state rent law)"
+        }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        {
+          "number": "S.17(1)(d)",
+          "description": "Mandatory registration of lease > 1 year or reserving yearly rent"
+        },
+        {
+          "number": "S.49",
+          "description": "Effect of non-registration — lease not received as evidence of any transaction affecting property"
+        }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899 + State Schedules",
+      "sections": [
+        {
+          "number": "Article 35 / equivalent",
+          "description": "Lease stamp duty — sliding scale by tenure + advance + average rent"
+        }
+      ]
+    },
+    {
+      "act": "Income Tax Act, 1961",
+      "sections": [
+        {
+          "number": "S.194-I",
+          "description": "TDS @ 10% on rent paid by businesses where rent > Rs.2.4 lakh/year (land/building)"
+        },
+        {
+          "number": "S.194-IB",
+          "description": "TDS @ 5% by individuals/HUFs where monthly rent > Rs.50,000"
+        },
+        { "number": "S.22-27", "description": "Income from house property" }
+      ]
+    },
+    {
+      "act": "State Rent Control Acts",
+      "sections": [
+        {
+          "number": "Bihar Buildings (Lease, Rent and Eviction) Control Act, 1982",
+          "description": "Applies to certain residential / commercial premises in Bihar"
+        },
+        {
+          "number": "Jharkhand Building (Lease, Rent and Eviction) Control Act, 2011",
+          "description": "Jharkhand rent control"
+        },
+        {
+          "number": "UP Regulation of Urban Premises Tenancy Act, 2021",
+          "description": "UP — recent regime"
+        },
+        {
+          "number": "Delhi Rent Control Act, 1958",
+          "description": "Delhi — applicable to premises within statutory rent ceiling"
+        }
+      ]
+    },
+    {
+      "act": "Model Tenancy Act, 2021 (where adopted by State)",
+      "sections": [
+        { "number": "S.4", "description": "Mandatory written tenancy agreement" },
+        { "number": "S.5", "description": "Mandatory intimation to Rent Authority" },
+        {
+          "number": "S.11",
+          "description": "Security deposit cap — 2 months residential / 6 months commercial"
+        }
+      ]
+    },
+    {
+      "act": "Arbitration and Conciliation Act, 1996",
+      "sections": [
+        { "number": "S.7", "description": "Arbitration agreement" },
+        { "number": "S.11", "description": "Appointment of arbitrators" }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Stamp paper of correct denomination (state schedule based on average annual rent + advance + tenure)",
+    "Lessor's title documents for SR inspection",
+    "Encumbrance Certificate (EC) — past 13 years",
+    "Approved plan / Occupancy Certificate (for built-up structures)",
+    "Property tax receipts up to date",
+    "Society / RWA NOC if applicable",
+    "Where Lessor is HUF — Karta + adult coparceners' consent",
+    "Where Lessor is company — Board Resolution + MOA + Authorised Signatory PoA",
+    "Where Lessee is company — Board Resolution + Authorised Signatory PoA",
+    "PAN of both parties",
+    "Aadhaar of both parties (individuals)",
+    "GST registration certificate (where commercial lease)",
+    "Two adult witnesses with own ID proofs",
+    "Both parties physically present at Sub-Registrar for registration",
+    "2 passport-size photographs each",
+    "Registration within 4 months of execution (S.23 Registration Act)",
+    "Post-registration: TDS compliance by Lessee (Form 26QC for 194-IB / Form 26Q for 194-I)",
+    "Where rent control state — verify whether premises within Rent Control Act ambit; if yes, special procedure",
+    "Where commercial lease > Rs.18,000/month — GST registration of Lessor (if applicable) and proper invoicing",
+    "Lawie disclaimer included"
+  ],
+  "validation_rules": [
+    "lease_term_years + lease_term_months/12 must be > 11 months — otherwise route to rent_agreement template",
+    "if lease_term_years > 1 OR rent is yearly — registration mandatory under S.17(1)(d) Registration Act; flag",
+    "monthly_rent_initial > 0",
+    "security_deposit > 0 and typically <= 6 months' rent (Model Tenancy Act benchmark)",
+    "if monthly_rent_initial > 50000 and lessee_is_entity == 'individual' — flag TDS u/s 194-IB",
+    "if lessee_is_entity in ['company_pvt_ltd_or_ltd', 'partnership', 'llp'] and (monthly_rent_initial * 12) > 240000 — flag TDS u/s 194-I",
+    "rent_escalation_percent must be specified (can be 0)",
+    "notice_period_termination_months >= 1",
+    "lessor_title_chain must not be empty",
+    "property_boundaries must mention N/S/E/W",
+    "stamp_duty_paid > 0",
+    "advocate enrollment number required"
+  ]
+}

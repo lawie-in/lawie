@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+**/node_modules
+**/.yarn/cache
+**/.yarn/install-state.gz
+
+# Build outputs
+**/dist
+**/.next
+**/.turbo
+
+# Dev / test artifacts
+**/__tests__
+**/*.test.ts
+**/*.spec.ts
+**/coverage
+**/.nyc_output
+
+# Logs
+**/*.log
+**/logs
+
+# OS
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# IDE
+.idea
+.vscode
+**/.vscode
+
+# Docs / scripts (not needed in image)
+docs/
+!docs/templates
+scripts/
+team-warroom/
+
+# Local env files (secrets must come from runtime env, not baked in)
+.env
+.env.*
+!.env.example

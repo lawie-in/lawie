@@ -1,0 +1,180 @@
+{
+  "_meta": {
+    "owner": "Ajay (CLO)",
+    "last_reviewed": "2026-05-12",
+    "review_cycle_days": 180,
+    "legal_status": "approved",
+    "notes": "Counter-affidavit / reply affidavit by respondent. Para-wise admit/deny + new pleadings. Verification + affirmation mandatory."
+  },
+  "template_id": "counter_affidavit",
+  "title": "Counter-Affidavit / Reply Affidavit (Respondent)",
+  "category": "procedural",
+  "creditsCost": 1,
+  "court_levels": ["district_court", "high_court", "supreme_court", "tribunal"],
+  "description": "Respondent's reply to a writ petition / OA / suit / interlocutory application. Para-wise admission/denial of pleadings + additional pleadings of fact and law. Sworn before oath commissioner / notary.",
+  "form_schema": {
+    "case_details": {
+      "case_type": {
+        "type": "string",
+        "required": true,
+        "label": "Case Type (WP / OA / Suit No.)"
+      },
+      "case_number": { "type": "string", "required": true, "label": "Case Number" },
+      "year": { "type": "string", "required": true, "label": "Year" },
+      "court_name": { "type": "string", "required": true, "label": "Court / Tribunal Name" }
+    },
+    "parties": {
+      "petitioner_name": {
+        "type": "string",
+        "required": true,
+        "label": "Petitioner / Plaintiff Name"
+      },
+      "respondent_name": {
+        "type": "string",
+        "required": true,
+        "label": "Respondent / Defendant Name (Deponent)"
+      },
+      "deponent_designation": {
+        "type": "string",
+        "required": true,
+        "label": "Deponent Designation / Capacity"
+      },
+      "deponent_age": { "type": "string", "required": true, "label": "Deponent Age" },
+      "deponent_address": { "type": "string", "required": true, "label": "Deponent Address" }
+    },
+    "reply_content": {
+      "preliminary_objections": {
+        "type": "textarea",
+        "required": false,
+        "label": "Preliminary Objections (maintainability, jurisdiction, limitation, suppression)"
+      },
+      "para_wise_reply": {
+        "type": "textarea",
+        "required": true,
+        "label": "Para-wise Reply (ad para 1, ad para 2 etc.)"
+      },
+      "additional_pleadings": {
+        "type": "textarea",
+        "required": false,
+        "label": "Additional Facts / Reply on Merits"
+      },
+      "documents_relied": {
+        "type": "textarea",
+        "required": false,
+        "label": "Documents Annexed (R-1, R-2 etc.)"
+      }
+    },
+    "verification": {
+      "place_of_verification": {
+        "type": "string",
+        "required": true,
+        "label": "Place of Verification"
+      },
+      "date_of_verification": { "type": "date", "required": true, "label": "Date of Verification" },
+      "paras_true_to_knowledge": {
+        "type": "string",
+        "required": true,
+        "label": "Paras True to Personal Knowledge (e.g., 1-5)"
+      },
+      "paras_true_to_records": {
+        "type": "string",
+        "required": false,
+        "label": "Paras True from Records / Information"
+      }
+    }
+  },
+  "mandatory_clauses": [
+    {
+      "clause_id": "cause_title",
+      "title": "Cause Title",
+      "required": true,
+      "content_guidance": "Full cause title mirroring the petition: court name, case number, parties (petitioner vs respondent). Title: 'COUNTER-AFFIDAVIT ON BEHALF OF RESPONDENT NO. __'."
+    },
+    {
+      "clause_id": "deponent_intro",
+      "title": "Deponent Introduction",
+      "required": true,
+      "content_guidance": "'I, [name], aged about [X] years, S/o [father], R/o [address], do hereby solemnly affirm and state on oath as follows:'."
+    },
+    {
+      "clause_id": "authority_to_swear",
+      "title": "Authority to Depose",
+      "required": true,
+      "content_guidance": "Para 1: deponent's capacity and authority to swear (officer of company / responsible person / party in person). Knowledge of facts asserted."
+    },
+    {
+      "clause_id": "preliminary_objections",
+      "title": "Preliminary Objections",
+      "required": false,
+      "content_guidance": "Para 2 onwards: maintainability, jurisdiction, limitation, non-joinder/mis-joinder, suppression of material facts, alternative remedy bar. Each as separate numbered para."
+    },
+    {
+      "clause_id": "para_wise_reply",
+      "title": "Para-wise Reply",
+      "required": true,
+      "content_guidance": "After preliminaries: 'Ad para [X] of the petition: the contents of para [X] of the petition are denied / admitted / not admitted and the petitioner is put to strict proof thereof.' Required for EVERY para of petition."
+    },
+    {
+      "clause_id": "additional_pleadings",
+      "title": "Additional Pleadings on Merits",
+      "required": false,
+      "content_guidance": "After para-wise reply: 'Without prejudice to the above, the respondent submits the following additional facts:' Numbered paras with positive case of respondent."
+    },
+    {
+      "clause_id": "prayer",
+      "title": "Prayer",
+      "required": true,
+      "content_guidance": "'In view of the above, the respondent prays that the petition / suit may be dismissed with costs.'"
+    },
+    {
+      "clause_id": "verification",
+      "title": "Verification Clause",
+      "required": true,
+      "content_guidance": "'Verified at [place] on [date] that the contents of paras [X to Y] of this counter-affidavit are true to my personal knowledge and the contents of paras [P to Q] are true based on records / information believed to be true and nothing material has been concealed. Signed: Deponent.'"
+    },
+    {
+      "clause_id": "attestation",
+      "title": "Attestation by Oath Commissioner / Notary",
+      "required": true,
+      "content_guidance": "'Solemnly affirmed and signed before me on [date] at [place]. Identified by [advocate name]. Signature & Seal: Oath Commissioner / Notary Public.'"
+    }
+  ],
+  "prompt_context": {
+    "system_prompt_addendum": "You are drafting a counter-affidavit / reply affidavit. CRITICAL: (1) Para-wise reply is MANDATORY — each para of the petition must be addressed (admit / deny / not admit / put to strict proof). (2) Standard formula: 'Ad para X: the contents of para X are denied. The petitioner is put to strict proof thereof.' or 'Ad para X: the contents are matters of record and require no reply.' (3) Preliminary objections (jurisdiction, limitation, maintainability, suppression) come BEFORE para-wise reply. (4) Additional pleadings on merits come AFTER para-wise reply. (5) Verification clause splits paras into 'true to personal knowledge' vs 'true on information and records'. (6) Deponent must be authorised to swear (officer of company / party / GPA holder). (7) Cite Order XIX CPC (affidavits) and applicable High Court Rules / SC Rules Order III for affidavit form.",
+    "tone": "Defensive, denial-driven, factually anchored. Strict legal formality.",
+    "key_phrases": [
+      "Ad para __",
+      "denied",
+      "not admitted and the petitioner is put to strict proof",
+      "without prejudice",
+      "submitted with respect"
+    ]
+  },
+  "relevantActs": [
+    "Order XIX CPC (Affidavits)",
+    "Order VI Rule 15 CPC (Verification of Pleadings)",
+    "Supreme Court Rules 2013 Order III (Affidavits)",
+    "Notaries Act 1952 (attestation)",
+    "Oaths Act 1969",
+    "Code of Civil Procedure 1908"
+  ],
+  "filing_checklist": [
+    "Counter-affidavit on stamp paper / proper paper as per HC Rules (some courts require Rs. 10 stamp)",
+    "Verified before oath commissioner / notary public",
+    "Para-wise reply to EVERY para of petition (no para skipped)",
+    "Preliminary objections raised at outset",
+    "Documents annexed and marked as R-1, R-2, R-3 etc.",
+    "Vakalatnama filed (if not already on record)",
+    "Copy served on petitioner's counsel in advance",
+    "Affidavit of service of advance copy",
+    "Filed within time granted by court (extension application if delayed)",
+    "Index and synopsis (if HC Original Side / SC)"
+  ],
+  "validation_rules": {
+    "para_wise_reply_mandatory": "WARN if para_wise_reply field does not contain at least one 'ad para' reference.",
+    "verification_clause_check": "WARN if verification does not specify which paras are personal knowledge vs records.",
+    "deponent_authority": "WARN if deponent_designation is generic ('officer') without specific authority basis for company / institutional respondent.",
+    "preliminary_before_merits": "INFO — preliminary objections must appear before para-wise reply in final draft.",
+    "balanced_denial": "INFO — avoid bare denial of every para; courts disfavour evasive denials (Order VIII Rule 5 CPC analogy)."
+  }
+}

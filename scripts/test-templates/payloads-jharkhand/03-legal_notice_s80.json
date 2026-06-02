@@ -1,0 +1,16 @@
+{
+  "template_id": "legal_notice_s80",
+  "form_data": {
+    "state": "jharkhand",
+    "applicant_name": "M/s Chotanagpur Construction Co.",
+    "applicant_address": "Office No. 8, Kanke Road, Ranchi - 834008",
+    "respondent_name": "The Executive Engineer, Road Construction Department, Government of Jharkhand",
+    "respondent_address": "Project Bhawan, Doranda, Ranchi - 834002",
+    "language": "en",
+    "advocate_name": "Adv. Pradeep Topno",
+    "advocate_address": "Chamber No. 18, Jharkhand High Court Bar Association, Ranchi - 834001",
+    "advocate_enrollment": "JHC/2845/2017",
+    "facts_narrative": "My client M/s Chotanagpur Construction Co. was awarded the contract for road widening and resurfacing of Ranchi-Khunti Road (SH-4) vide Work Order No. JRCD/RAN/2025/042 dated 20.08.2025 for a contract value of Rs. 1,85,00,000/-. My client completed all contracted work by 15.01.2026 and submitted final running bills along with measurement books duly verified by the site engineer. Despite repeated representations dated 10.02.2026, 15.03.2026, and 25.04.2026, the Executive Engineer has failed to release the final payment of Rs. 62,30,000/- which is outstanding since 15.01.2026. The wrongful withholding has caused severe financial hardship to my client who has outstanding vendor liabilities.",
+    "demand": "release the outstanding payment of Rs. 62,30,000/- along with interest at the rate of 12% per annum from 15.01.2026 till actual payment, and pay damages of Rs. 3,00,000/- for the wrongful withholding"
+  }
+}

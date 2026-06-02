@@ -1,0 +1,472 @@
+{
+  "_meta": {
+    "description": "Document-rules config for will — Last Will and Testament under Indian Succession Act 1925 (Hindus, Christians, Parsis) and personal laws (Muslim wills per Mohammedan law). Two-witness attestation under S.63 ISA mandatory. Cites H. Venkatachala Iyengar v. B.N. Thimmajamma AIR 1959 SC 443 (testator's capacity standard).",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Two witnesses are non-negotiable. For Muslim wills, MUST flag 1/3 rule and need for heir consent for excess. Probate requirement varies by jurisdiction."
+  },
+  "template_id": "will",
+  "docType": "will",
+  "title": "Last Will and Testament (Indian Succession Act, 1925, S.59-63)",
+  "displayName": "Last Will and Testament",
+  "category": "transactional_deed",
+  "creditsCost": 1,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "LAST WILL AND TESTAMENT\n\nI, {testator_name}, son/daughter/wife of {testator_father_name}, aged about {testator_age} years, by religion {testator_religion}, by occupation {testator_occupation}, resident of {testator_address}, being of sound mind, memory and understanding, and not under any coercion, undue influence, fraud or misrepresentation from any person whatsoever, do hereby declare this to be my LAST WILL AND TESTAMENT, executed at {place} on this {date}, and do hereby revoke all my earlier wills, codicils and testamentary dispositions, if any, made by me.",
+    "partyDesignations": [
+      { "role": "testator", "label": "Testator" },
+      { "role": "executor", "label": "Executor" }
+    ],
+    "caseNomenclature": "N/A — Testamentary instrument"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "testator_name", "label": "Testator full name", "type": "text", "required": true },
+      {
+        "id": "testator_father_name",
+        "label": "Testator father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "testator_age",
+        "label": "Testator age (must be 18+)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "testator_address",
+        "label": "Testator address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "testator_pan", "label": "Testator PAN", "type": "text", "required": false },
+      {
+        "id": "testator_religion",
+        "label": "Testator religion (governs applicable succession law)",
+        "type": "select",
+        "required": true,
+        "options": [
+          "hindu_buddhist_sikh_jain",
+          "muslim_sunni",
+          "muslim_shia",
+          "christian",
+          "parsi",
+          "jewish",
+          "other"
+        ]
+      },
+      {
+        "id": "testator_occupation",
+        "label": "Testator occupation",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "marital_status",
+        "label": "Marital status",
+        "type": "select",
+        "required": true,
+        "options": ["married", "widowed", "divorced", "unmarried"]
+      },
+      {
+        "id": "spouse_name",
+        "label": "Spouse name (if applicable)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "children",
+        "label": "Children — names, ages, relationship (sons/daughters)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "other_heirs",
+        "label": "Other legal heirs (parents, siblings, dependent relatives)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "assets_immovable",
+        "label": "Immovable properties — full description of each (address, extent, title proof)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "assets_movable",
+        "label": "Movable assets — bank accounts, FDs, demat / shares / MFs, jewellery, vehicles",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "liabilities",
+        "label": "Outstanding liabilities (loans, mortgages, etc.)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "beneficiaries",
+        "label": "Beneficiaries — name, relationship, share / specific bequest",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "executor_name", "label": "Executor name", "type": "text", "required": true },
+      {
+        "id": "executor_address",
+        "label": "Executor address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "executor_relationship",
+        "label": "Executor's relationship to testator",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "alternate_executor",
+        "label": "Alternate executor (in case primary executor predeceases or refuses)",
+        "type": "text",
+        "required": false
+      },
+      {
+        "id": "specific_bequests",
+        "label": "Specific bequests (e.g., 'jewellery to daughter A', 'car to son B')",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "residuary_clause_beneficiary",
+        "label": "Residuary legatee (gets everything not specifically bequeathed)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "minor_beneficiary_guardian",
+        "label": "If any beneficiary is minor — Guardian + Trustee appointed",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "funeral_wishes",
+        "label": "Funeral / disposition of remains wishes (optional)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "charitable_bequests",
+        "label": "Charitable bequests (NGO / trust name, amount)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "is_muslim_will_within_1_third",
+        "label": "If Muslim — is total bequest within 1/3 of estate? (S.117 Mohammedan law)",
+        "type": "select",
+        "required": false,
+        "options": ["yes_within_1_third", "no_exceeds_requires_heir_consent", "not_applicable"]
+      },
+      {
+        "id": "probate_jurisdiction",
+        "label": "Probate jurisdiction applicable?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "yes_property_in_bombay_calcutta_madras_HC_ordinary_original_civil_jurisdiction",
+          "yes_christian_parsi_will",
+          "no_hindu_will_outside_metros"
+        ]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 full name & address (must NOT be a beneficiary)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 full name & address (must NOT be a beneficiary)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "medical_certificate_of_capacity",
+        "label": "Medical certificate of sound mind attached?",
+        "type": "select",
+        "required": false,
+        "options": ["yes_attached_for_aged_or_ill_testator", "not_attached"]
+      },
+      {
+        "id": "video_recording_of_execution",
+        "label": "Video recording of execution made?",
+        "type": "select",
+        "required": false,
+        "options": ["yes_for_evidentiary_value", "no"]
+      },
+      {
+        "id": "registration_intended",
+        "label": "Will to be registered?",
+        "type": "select",
+        "required": true,
+        "options": ["yes_registered_voluntary", "no_unregistered"]
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "preamble_identification",
+      "name": "Preamble — Testator Identification",
+      "required": true,
+      "description": "Full name, parentage, age, religion, residence"
+    },
+    {
+      "id": "capacity_declaration",
+      "name": "Declaration of Capacity",
+      "required": true,
+      "description": "Sound mind, memory, understanding; no coercion / undue influence"
+    },
+    {
+      "id": "revocation_of_prior_wills",
+      "name": "Revocation of Prior Wills",
+      "required": true,
+      "description": "Revoke all prior wills and codicils"
+    },
+    {
+      "id": "family_recital",
+      "name": "Recital of Family",
+      "required": true,
+      "description": "Spouse, children, dependents — establish heirs at law"
+    },
+    {
+      "id": "schedule_of_assets",
+      "name": "Schedule of Assets",
+      "required": true,
+      "description": "Immovable + movable + financial — Schedule A and B"
+    },
+    {
+      "id": "specific_bequests_clause",
+      "name": "Specific Bequests",
+      "required": false,
+      "description": "Item-wise bequests"
+    },
+    {
+      "id": "residuary_clause",
+      "name": "Residuary Clause",
+      "required": true,
+      "description": "Whole residue to specified beneficiary — prevents partial intestacy"
+    },
+    {
+      "id": "executor_appointment",
+      "name": "Executor Appointment",
+      "required": true,
+      "description": "Primary executor + alternate"
+    },
+    {
+      "id": "guardian_for_minor",
+      "name": "Guardian for Minor Beneficiaries",
+      "required": false,
+      "description": "Where minor beneficiary — guardian / trustee appointed"
+    },
+    {
+      "id": "muslim_one_third_clause",
+      "name": "Muslim 1/3 Rule Clause (if Muslim testator)",
+      "required": false,
+      "description": "Bequest within 1/3 or heir consent recital"
+    },
+    {
+      "id": "no_contest_clause",
+      "name": "No-Contest / In Terrorem Clause",
+      "required": false,
+      "description": "Beneficiary contesting forfeits — limited enforceability in India"
+    },
+    {
+      "id": "funeral_wishes_clause",
+      "name": "Funeral Wishes",
+      "required": false,
+      "description": "Cremation / burial / specific instructions"
+    },
+    {
+      "id": "attestation_clause",
+      "name": "Attestation Clause",
+      "required": true,
+      "description": "Mandatory under S.63 ISA — signed by testator in presence of two witnesses who each sign in presence of testator"
+    },
+    {
+      "id": "schedule_a_immovable",
+      "name": "SCHEDULE A — Immovable Assets",
+      "required": true,
+      "description": "Detailed schedule"
+    },
+    {
+      "id": "schedule_b_movable",
+      "name": "SCHEDULE B — Movable Assets",
+      "required": true,
+      "description": "Bank accounts, FDs, demat, jewellery, vehicles"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a LAST WILL AND TESTAMENT under the Indian Succession Act, 1925.",
+      "S.59 ISA — Persons capable of making wills: Every person of SOUND MIND, NOT being a MINOR (i.e., 18+ or 21+ if under guardian), may dispose of his property by will. Explanations cover: married women / deaf-dumb-blind persons (if able to understand) / lucid intervals of unsound mind / state of intoxication.",
+      "S.61 ISA — A will obtained by FRAUD, COERCION or IMPORTUNITY taking away free agency is VOID.",
+      "S.62 ISA — A will is liable to be revoked or altered by the maker at any time when he is competent to dispose of his property by will. CODICIL is an instrument made in relation to a will, explaining, altering or adding to its dispositions, and is part of the will.",
+      "S.63 ISA — EXECUTION OF UNPRIVILEGED WILLS (mandatory for non-soldiers/non-airmen-on-actual-service):\n   (a) The testator shall SIGN or affix his MARK to the will, or it shall be signed by some other person in his presence and by his direction.\n   (b) The signature or mark shall be so placed that it shall appear that it was intended to give effect to the writing as a will.\n   (c) The will shall be ATTESTED BY TWO OR MORE WITNESSES, each of whom has seen the testator sign or affix his mark, OR has received from the testator a personal acknowledgment of his signature; and each of the witnesses shall sign the will in the presence of the testator. It is NOT necessary that more than one witness be present at the same time.",
+      "CRITICAL — Section 67 ISA: Where a will gives benefit to a person who attests it, OR to the spouse of an attesting witness, that bequest is VOID (the will itself remains valid). THEREFORE — WITNESSES MUST NOT BE BENEFICIARIES OR SPOUSES OF BENEFICIARIES.",
+      "CRITICAL CASE — H. Venkatachala Iyengar v. B.N. Thimmajamma AIR 1959 SC 443: Standard for proving a will. Apart from due execution, propounder must dispel suspicious circumstances. Suspicious circumstances include: shaky signature, unnatural disposition (disinheriting natural heirs), active role of beneficiary in execution, unsound mind, undue influence. Recently restated in Mahesh Kumar v. Bhagwan Devi (2014) 2 SCC 25, Murthy v. C. Saradambal (2022).",
+      "REGISTRATION OF WILL — OPTIONAL under S.18(e) Registration Act 1908. Recommended for evidentiary safety. Registration is NOT proof of execution; only proves date and that document was presented. Even registered will may be challenged.",
+      "PROBATE — S.213 ISA: No right as executor or legatee can be established in any Court of Justice unless probate has been granted (or letters of administration with will annexed). PROBATE IS MANDATORY FOR:\n   (a) Christian / Parsi wills (S.213(1)).\n   (b) Hindu / Buddhist / Sikh / Jain wills made in Bengal, or within local limits of ordinary original civil jurisdiction of HCs of Bombay, Madras, AND wills relating to immovable property situate within those local limits (S.213(2)).\n   Hindu wills made OUTSIDE those metros and relating to property OUTSIDE those metros do NOT require probate.",
+      "MUSLIM WILLS — Mohammedan Personal Law governs (NOT ISA — see S.58 ISA exceptions). Key rules:\n   (a) A Muslim can bequeath ONLY UP TO 1/3 of his net estate (after debts and funeral expenses) to non-heirs.\n   (b) Bequest exceeding 1/3 is invalid to the extent of excess unless heirs consent AFTER testator's death.\n   (c) Bequest to an HEIR is invalid (under Sunni law) without consent of co-heirs after death (Shia law permits bequest to heir within 1/3).\n   (d) Witnesses not strictly required; oral will valid; but written + 2 witnesses strongly advised for evidence.\n   (e) Cite Abdul Hafiz Beg v. Sahebbi (1975) 1 SCC 470.",
+      "STRUCTURE OF WILL:",
+      "Para 1: Preamble — full identification + capacity declaration.",
+      "Para 2: Revocation of prior wills and codicils.",
+      "Para 3: Recital of family — spouse, children (with names and ages), parents if alive, dependants. Establishes who heirs at law would be if intestate.",
+      "Para 4: Schedule of assets — Schedule A (immovable) and Schedule B (movable). Be specific — sale deed reference for property; bank account numbers for accounts; demat IDs; FD numbers.",
+      "Para 5: Recital of liabilities and direction for payment from estate prior to distribution.",
+      "Para 6: Specific bequests — e.g., 'I bequeath my property at [address] absolutely to my son [name]'. 'I bequeath all my jewellery to my daughter [name]'. 'I bequeath Rs. 5 lakh to charitable trust [name + registration].'",
+      "Para 7: Distribution shares — if not specific bequests, percentage shares.",
+      "Para 8: RESIDUARY CLAUSE (mandatory) — 'All the rest, residue and remainder of my estate, both movable and immovable, of whatsoever kind and wheresoever situate, I give, devise and bequeath unto [residuary legatee] absolutely.'",
+      "Para 9: Executor appointment — 'I hereby appoint [name + address] as the Executor of this my will. In the event of [primary executor] predeceasing me or being unable or unwilling to act, I appoint [alternate executor] as Executor.'",
+      "Para 10: Guardian for minor beneficiaries — appoint guardian for person and property (court appointment ultimately required per Guardians and Wards Act 1890, but testator's nomination given weight).",
+      "Para 11: Trustee / Trust for minor's share — where bequest to minor, direct executor to hold in trust until majority.",
+      "Para 12: Where Muslim testator with bequests > 1/3 — recital that heirs have been consulted AND will sign acknowledgment after testator's death; ALTERNATIVELY confirm bequest is within 1/3.",
+      "Para 13: Funeral wishes (optional).",
+      "Para 14: Charitable bequests (with NGO / trust name, registration number, exact amount).",
+      "Para 15: No-contest clause (limited utility in India but psychologically deterrent).",
+      "Para 16: Attestation clause:\n   'IN WITNESS WHEREOF, I, [Testator], have hereunto set my hand at [place] this [date], in the joint presence of the witnesses named below, who have, at my request and in my presence and in the presence of each other, attested this will by signing their names hereunder.'\n   Signature of Testator.\n   ATTESTATION BY WITNESSES:\n   'Signed by the abovenamed Testator as and for his Last Will and Testament in our joint presence, and we have signed in his presence as witnesses.'\n   Witness 1: Name, S/o, Address, Signature, Date.\n   Witness 2: Name, S/o, Address, Signature, Date.\n   IMPORTANT — Witnesses must NOT be beneficiaries or spouses thereof (S.67 ISA).",
+      "Schedule A — immovable assets.",
+      "Schedule B — movable assets.",
+      "ADVISORY notes to include in cover instructions to the advocate:\n   (a) Where testator is aged (>70) or has any illness — obtain a Medical Certificate of Sound Mind dated close to execution date.\n   (b) Video record the execution (testator reading out salient clauses + witnesses signing) — strong evidence to dispel suspicion in case of challenge.\n   (c) Store original safely; advise registration with Sub-Registrar (optional but useful).\n   (d) Tell testator: this will revokes ALL earlier wills — confirm intent.\n   (e) Advise periodic review (life events: marriage, birth, death, divorce, large transactions).",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Indian Succession Act, 1925",
+      "sections": [
+        { "number": "S.2(h)", "description": "Definition of 'will'" },
+        { "number": "S.57", "description": "Application of Part VI to Hindu wills" },
+        { "number": "S.58", "description": "General application — exceptions for Muslims" },
+        { "number": "S.59", "description": "Persons capable of making wills" },
+        { "number": "S.61", "description": "Will obtained by fraud / coercion is void" },
+        { "number": "S.62", "description": "Will may be revoked or altered" },
+        {
+          "number": "S.63",
+          "description": "Execution of unprivileged wills — TWO WITNESSES MANDATORY"
+        },
+        {
+          "number": "S.67",
+          "description": "Bequest to attesting witness (or spouse) is void; will remains valid"
+        },
+        {
+          "number": "S.68",
+          "description": "Witness not disqualified by incompetency or interest after attestation"
+        },
+        {
+          "number": "S.70",
+          "description": "Revocation by subsequent will or codicil or written declaration"
+        },
+        {
+          "number": "S.74",
+          "description": "Wording of will — must show clear testamentary intention"
+        },
+        {
+          "number": "S.213",
+          "description": "Probate requirement — Christians, Parsis, and Hindus in Bombay/Madras/Bengal HC original side jurisdictions"
+        },
+        {
+          "number": "S.222 onwards",
+          "description": "Grant of probate and letters of administration"
+        }
+      ]
+    },
+    {
+      "act": "Hindu Succession Act, 1956",
+      "sections": [
+        {
+          "number": "S.30",
+          "description": "Testamentary succession — Hindu may dispose of property by will subject to ISA"
+        }
+      ]
+    },
+    {
+      "act": "Mohammedan Personal Law (Shariat) Application Act, 1937",
+      "sections": [
+        { "number": "S.2", "description": "Application of Shariat to Muslim testamentary matters" }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        { "number": "S.18(e)", "description": "Registration of wills — optional" },
+        {
+          "number": "S.40-41",
+          "description": "Will may be deposited with Registrar in sealed cover"
+        }
+      ]
+    },
+    {
+      "act": "Guardians and Wards Act, 1890",
+      "sections": [
+        { "number": "S.7", "description": "Court appointment of guardian for minor beneficiary" }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899",
+      "sections": [
+        {
+          "number": "Article 49",
+          "description": "Will exempt from stamp duty under most state schedules"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Stamp duty — typically EXEMPT for wills under State Schedule (verify); registration fee nominal where registered",
+    "Two ADULT WITNESSES — NOT beneficiaries and NOT spouses of beneficiaries (S.67 ISA)",
+    "Testator's PAN / Aadhaar / Passport for identification",
+    "Property documents referenced in Schedule A (sale deeds, mutation entries) — copies for record",
+    "Bank account / FD / demat statements supporting Schedule B description",
+    "Where testator is aged or ill — Medical Certificate of Sound Mind dated close to execution",
+    "Video recording of execution (RECOMMENDED for evidentiary strength) — testator reading will + witnesses signing",
+    "Original will to be safely stored — bank locker / advocate's safe / family safe; copies to executor",
+    "REGISTRATION at Sub-Registrar — OPTIONAL but advised; testator presents personally; nominal fee",
+    "Will can be DEPOSITED in sealed cover with District Registrar under S.40-41 Registration Act for maximum confidentiality",
+    "Where Christian / Parsi testator — beneficiaries must be advised that PROBATE is mandatory before bequest can be enforced (S.213 ISA)",
+    "Where Hindu testator with property in Bombay/Madras/Bengal HC original jurisdiction — PROBATE mandatory",
+    "Where Muslim testator with bequests > 1/3 — flag need for heir consent post-death; recital in will",
+    "Where minor beneficiary — note that court-appointed guardian under Guardians and Wards Act 1890 takes precedence over testator's nominee for legal validity",
+    "Periodic review on life events (marriage, birth, death, divorce, large property transactions, change in tax law)",
+    "Lawie disclaimer included"
+  ],
+  "validation_rules": [
+    "testator_age >= 18",
+    "witness_1_name_address and witness_2_name_address must be specified",
+    "Validation: witness names must NOT appear in beneficiaries field (S.67 ISA — bequest to witness is void)",
+    "residuary_clause_beneficiary must be specified (prevents partial intestacy)",
+    "executor_name must be specified",
+    "if testator_religion in ['muslim_sunni', 'muslim_shia'] — is_muslim_will_within_1_third must be specified",
+    "if testator_religion == 'christian' or testator_religion == 'parsi' — flag mandatory probate per S.213 ISA",
+    "if testator_age >= 70 — recommend medical_certificate_of_capacity",
+    "assets_immovable + assets_movable must not both be empty",
+    "if children mentioned and any minor — minor_beneficiary_guardian should be specified",
+    "advocate enrollment number required"
+  ]
+}

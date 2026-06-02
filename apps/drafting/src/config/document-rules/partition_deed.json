@@ -1,0 +1,424 @@
+{
+  "_meta": {
+    "description": "Document-rules config for partition_deed — Partition deed of Hindu Joint Family / Mitakshara coparcenary. Post-HSA 2005 amendment, daughters are coparceners by birth. Cites Vineeta Sharma v. Rakesh Sharma (2020) 9 SCC 1 — daughters get coparcenary rights even if father died before 2005 amendment. Registration mandatory if value > Rs.100 (Registration Act S.17).",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Vineeta Sharma is non-negotiable — daughters' coparcenary rights post-2005 must be reflected. Stamp duty often higher than sale deed where shares reduced."
+  },
+  "template_id": "partition_deed",
+  "docType": "partition_deed",
+  "title": "Partition Deed (Hindu Joint Family — Mitakshara Coparcenary)",
+  "displayName": "Partition Deed",
+  "category": "transactional_deed",
+  "creditsCost": 2,
+  "court_levels": ["transactional"],
+  "causeTitle": {
+    "format": "DEED OF PARTITION\n\nThis Deed of Partition is executed on this {date} at {place}.\n\nBETWEEN the parties listed in the Schedule of Parties below, being all the coparceners / members of the Hindu Joint Family of late {common_ancestor}, with members styling themselves jointly as parties of all parts.",
+    "partyDesignations": [{ "role": "coparcener", "label": "Coparcener / Sharer" }],
+    "caseNomenclature": "N/A — Transactional"
+  },
+  "form_schema": {
+    "fields": [
+      {
+        "id": "common_ancestor",
+        "label": "Common ancestor / Karta name (origin of joint property)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "joint_family_status_recital",
+        "label": "Status — Mitakshara coparcenary / Dayabhaga / mixed",
+        "type": "select",
+        "required": true,
+        "options": ["mitakshara_coparcenary", "dayabhaga", "mixed_school"]
+      },
+      {
+        "id": "parties_list",
+        "label": "All coparceners and members — name, parentage, age, address, relationship to common ancestor",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "daughters_included",
+        "label": "All living daughters / sons of daughters of coparceners included as coparceners (post-2005 HSA amendment)?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "yes_all_included",
+          "no_being_excluded_for_specific_reason_flag",
+          "not_applicable_only_widows_or_no_daughters"
+        ]
+      },
+      {
+        "id": "minor_coparceners",
+        "label": "Any minor coparceners? If yes — name + natural guardian",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "court_permission_for_minor",
+        "label": "Court permission obtained for minor's interest?",
+        "type": "select",
+        "required": false,
+        "options": [
+          "yes_court_order_no_and_date",
+          "not_required_no_minor",
+          "applied_for_pending",
+          "not_obtained_flag_risk"
+        ]
+      },
+      {
+        "id": "joint_property_immovable",
+        "label": "Schedule of Joint Family Immovable Property (each property with address, extent, boundaries, title source)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "joint_property_movable",
+        "label": "Schedule of Joint Family Movable Property — bank accounts, jewellery, shares, business interests, vehicles, FDs",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "joint_business",
+        "label": "Joint family business / partnership interests",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "joint_liabilities",
+        "label": "Joint liabilities — loans, mortgages, dues",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "method_of_partition",
+        "label": "Method of partition",
+        "type": "select",
+        "required": true,
+        "options": [
+          "partition_by_metes_and_bounds_specific_property_to_each",
+          "partition_into_specified_shares_then_property_allotted",
+          "partition_with_owelty_money_balancing_payment"
+        ]
+      },
+      {
+        "id": "allotment_details",
+        "label": "Allotment — which property/share goes to whom (Schedules A, B, C... one per sharer)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "owelty_payment",
+        "label": "Owelty / cash equalisation payment details (if applicable)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "release_clauses",
+        "label": "Mutual releases — each sharer releases claims against others",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "stamp_duty_paid",
+        "label": "Stamp duty paid (Rupees)",
+        "type": "number",
+        "required": true
+      },
+      {
+        "id": "state",
+        "label": "State of execution",
+        "type": "select",
+        "required": true,
+        "options": ["bihar", "jharkhand", "uttar_pradesh", "delhi"]
+      },
+      {
+        "id": "registration_intended",
+        "label": "Will partition deed be registered?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "yes_registered_mandatory_for_immovable",
+          "no_oral_partition_followed_by_memorandum"
+        ]
+      },
+      {
+        "id": "witness_1_name_address",
+        "label": "Witness 1 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "witness_2_name_address",
+        "label": "Witness 2 name & address",
+        "type": "textarea",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "recital_of_joint_family",
+      "name": "Recital of Joint Family Status",
+      "required": true,
+      "description": "Genealogy from common ancestor; Mitakshara / Dayabhaga school"
+    },
+    {
+      "id": "schedule_of_parties",
+      "name": "Schedule of Parties",
+      "required": true,
+      "description": "All coparceners + adult members — full identification + relationship"
+    },
+    {
+      "id": "daughters_coparcenary_recital",
+      "name": "Daughters as Coparceners Recital (HSA S.6 post-2005)",
+      "required": true,
+      "description": "Affirm daughters' coparcenary rights per HSA 2005 amendment and Vineeta Sharma (2020)"
+    },
+    {
+      "id": "joint_property_schedule",
+      "name": "Schedule of Joint Property",
+      "required": true,
+      "description": "Immovable + movable + business interests"
+    },
+    {
+      "id": "joint_liabilities_clause",
+      "name": "Joint Liabilities — Allocation",
+      "required": true,
+      "description": "How outstanding debts apportioned"
+    },
+    {
+      "id": "method_of_partition_clause",
+      "name": "Method of Partition",
+      "required": true,
+      "description": "By metes and bounds; or notional shares; or with owelty"
+    },
+    {
+      "id": "allotment_schedules",
+      "name": "Allotment Schedules — One Per Sharer",
+      "required": true,
+      "description": "Schedule A to Sharer 1; Schedule B to Sharer 2; etc."
+    },
+    {
+      "id": "owelty_clause",
+      "name": "Owelty / Cash Equalisation (if needed)",
+      "required": false,
+      "description": "Where unequal allotment, balancing cash payment"
+    },
+    {
+      "id": "mutual_release_clause",
+      "name": "Mutual Release",
+      "required": true,
+      "description": "Each sharer releases all claims in property allotted to others"
+    },
+    {
+      "id": "minor_court_permission_recital",
+      "name": "Recital of Court Permission for Minor (if applicable)",
+      "required": false,
+      "description": "Where minor coparcener — court permission order cited"
+    },
+    {
+      "id": "covenant_for_quiet_enjoyment",
+      "name": "Covenant for Quiet Enjoyment",
+      "required": true,
+      "description": "Each sharer to peacefully enjoy allotted share"
+    },
+    {
+      "id": "mutation_clause",
+      "name": "Mutation in Revenue Records",
+      "required": true,
+      "description": "All sharers authorise mutation in respective names"
+    },
+    {
+      "id": "stamp_duty_registration_clause",
+      "name": "Stamp Duty & Registration",
+      "required": true,
+      "description": "Borne by sharers in proportion"
+    },
+    {
+      "id": "indemnity_clause",
+      "name": "Mutual Indemnity",
+      "required": true,
+      "description": "Mutual indemnity for any disturbance of allotment"
+    },
+    {
+      "id": "execution_clause",
+      "name": "Execution — All Sharers Sign",
+      "required": true,
+      "description": "All adult sharers must sign; minor through guardian"
+    },
+    {
+      "id": "schedule_allotments_appended",
+      "name": "Schedules of Allotment Appended",
+      "required": true,
+      "description": "Detailed schedules at end"
+    },
+    {
+      "id": "witness_clause",
+      "name": "Two Witnesses",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "lawie_disclaimer",
+      "name": "Lawie Drafting Assistant Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "",
+  "verificationTemplate": "",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a PARTITION DEED of Hindu Joint Family / Mitakshara coparcenary property.",
+      "BACKGROUND — Hindu joint family is governed by Mitakshara (most of India incl. Bihar, Jharkhand, UP, Delhi) OR Dayabhaga (West Bengal, Assam). In Mitakshara: coparcenary is a body of male and female members who acquire interest in joint family property by birth. Coparcenary extends to 4 degrees from a common ancestor.",
+      "CRITICAL — Hindu Succession (Amendment) Act, 2005, w.e.f. 9 September 2005, amended S.6 of HSA 1956 to provide that DAUGHTERS OF A COPARCENER SHALL BY BIRTH BECOME COPARCENERS in their own right in the same manner as sons. Daughters have same rights and liabilities as sons.",
+      "CRITICAL CASE — Vineeta Sharma v. Rakesh Sharma (2020) 9 SCC 1, three-judge bench, OVERRULED Prakash v. Phulavati (2016) 2 SCC 36 to the extent inconsistent: Daughters' coparcenary rights are RETROSPECTIVE — daughters get coparcenary rights from BIRTH, regardless of whether father was alive on 9 September 2005. Earlier decisions requiring father to be alive on 2005 commencement date are OVERRULED.",
+      "S.6 HSA (amended): Notional partition concept — for purposes of devolution under proviso, a deemed partition is presumed to have taken place immediately before death of coparcener; coparcener's share devolves by intestate / testate succession under HSA.",
+      "Cite supporting cases: \n   - Vineeta Sharma v. Rakesh Sharma (2020) 9 SCC 1 — daughters' retrospective coparcenary rights.\n   - Danamma @ Suman Surpur v. Amar (2018) 3 SCC 343.\n   - Arunachala Gounder v. Ponnusamy (2022) — clarified self-acquired property devolution for sole daughter Hindu females.",
+      "MUST IDENTIFY: who are the coparceners? Apply the test:\n   - All living male and female lineal descendants of common ancestor within 4 degrees.\n   - Post 2005 — daughters AND daughters' children (descendants of daughters who are coparceners) are coparceners by birth.\n   - Widows of pre-deceased coparceners — get share by notional partition (Class I heir for husband's notional share).\n   - Adopted children — same rights as natural-born after valid Hindu adoption.",
+      "EXCLUDE FROM COPARCENARY: married daughters' husbands (not coparceners); mothers (Class I heirs but not coparceners themselves); sister of common ancestor (collateral, not in line).",
+      "MINOR COPARCENER: Minor's share is interest in coparcenary. Partition affecting minor's interest requires court permission under Hindu Minority and Guardianship Act, 1956 OR Guardians and Wards Act, 1890. Without court order, partition is voidable at instance of minor on attaining majority. FLAG prominently.",
+      "STRUCTURE OF PARTITION DEED:",
+      "Para 1: Title 'DEED OF PARTITION'.",
+      "Para 2: Recital of joint family — genealogy from common ancestor; school of Hindu law (Mitakshara).",
+      "Para 3: Schedule of parties — all coparceners + adult members with full identification.",
+      "Para 4: Daughters' coparcenary recital — affirm that all daughters (and daughters of daughters, granddaughters in line) are coparceners by birth per HSA S.6 (as amended 2005) and Vineeta Sharma (2020).",
+      "Para 5: Recital of joint property — set out properties (immovable in Schedule I; movable in Schedule II; business in Schedule III; liabilities in Schedule IV); state how property was acquired (ancestral / blended / accretions).",
+      "Para 6: Recital that parties wish to effect partition because [reason — family settlement, separation of branches, professional separation, etc.]. State that all members consent freely without coercion.",
+      "Para 7: METHOD OF PARTITION:\n   (a) By metes and bounds — specific properties allotted to each sharer in lieu of share.\n   (b) By specified shares — sharing percentage, then properties physically divided per share.\n   (c) With owelty — where physical division not equal, balancing cash payment to make shares equal.",
+      "Para 8: ALLOTMENT — separately set out: 'Schedule A — Allotment to [Sharer 1]'; 'Schedule B — Allotment to [Sharer 2]'; etc. Each schedule lists immovable + movable + cash allotted to that sharer.",
+      "Para 9: OWELTY clause (if applicable) — specify cash payments between sharers.",
+      "Para 10: MUTUAL RELEASE — 'Each of the sharers hereby releases, relinquishes and gives up all rights, title and interest in the properties allotted to the other sharers under the respective Schedules, and shall have no claim whatsoever against the others'.",
+      "Para 11: COVENANT FOR QUIET ENJOYMENT — 'Each sharer shall be entitled to peacefully and quietly hold, enjoy and dispose of the properties allotted under his/her Schedule absolutely as separate property'.",
+      "Para 12: APPORTIONMENT OF LIABILITIES — joint debts apportioned (typically equally OR pro rata to share value).",
+      "Para 13: MUTATION CLAUSE — each sharer authorised to apply for mutation in revenue and municipal records.",
+      "Para 14: STAMP DUTY — partition deed stamp duty varies state-to-state. Often:\n   - Bihar: ~3% of value of separated share + 2% registration.\n   - Jharkhand: similar — % of value of separated share.\n   - UP: 2% on partition deed value + 1% registration.\n   - Delhi: 2% on value of separated share + 1% registration.\n   IMPORTANT — where partition reduces one sharer's share below his/her actual coparcenary entitlement, the difference may be treated as GIFT or SALE — higher stamp duty + capital gains implications. FLAG.",
+      "Para 15: COURT PERMISSION FOR MINOR — recite that natural guardian executes for minor, AND that court order under HMG Act / GWA has been obtained (cite order number, date, court). If not obtained — flag risk that minor may avoid partition on majority.",
+      "Para 16: INDEMNITY — mutual indemnity for breach.",
+      "Para 17: GOVERNING LAW — Hindu Succession Act, 1956 as amended.",
+      "Schedules I-IV (property) + Schedules A, B, C... (allotments) appended.",
+      "Two witnesses' attestation.",
+      "Append Lawie disclaimer.",
+      "Note on FAMILY ARRANGEMENT vs PARTITION DEED: A FAMILY ARRANGEMENT is a wider concept including settlement of disputes; courts treat genuine family arrangements indulgently per Kale v. Deputy Director of Consolidation (1976) 3 SCC 119. Where dispute being settled in addition to partition — consider family settlement deed (may have lower stamp duty in some states).",
+      "Note on ORAL PARTITION + MEMORANDUM: Oral partition followed by a memorandum of partition (recording what already happened) may avoid registration / lower stamp duty — but courts scrutinise such memoranda; risk of being held a partition deed in substance. Cite Roshan Singh v. Zile Singh (1988) Supp SCC 718.",
+      "Note on INCOME TAX — partition of HUF: complete partition extinguishes HUF (or partial — partial recognised pre-1980, post-1980 partial partitions of registered HUF not recognised by IT Dept under S.171 ITA). Where HUF is taxable entity — Form for recording partition with Income Tax Officer mandatory."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Hindu Succession Act, 1956 (as amended 2005)",
+      "sections": [
+        {
+          "number": "S.6",
+          "description": "Coparcenary; daughters' rights (post 2005 amendment); notional partition"
+        },
+        { "number": "S.8", "description": "General rules of succession in case of males" },
+        { "number": "S.15", "description": "General rules of succession in case of Hindu females" },
+        {
+          "number": "S.23 (omitted 2005)",
+          "description": "Earlier disability of females in dwelling house — repealed"
+        }
+      ]
+    },
+    {
+      "act": "Hindu Minority and Guardianship Act, 1956",
+      "sections": [
+        { "number": "S.6", "description": "Natural guardians of Hindu minor" },
+        {
+          "number": "S.8",
+          "description": "Power of natural guardian — court permission for alienation / partition involving minor"
+        }
+      ]
+    },
+    {
+      "act": "Guardians and Wards Act, 1890",
+      "sections": [
+        { "number": "S.7", "description": "Court appointment of guardian" },
+        { "number": "S.29", "description": "Court permission for transfer of minor's property" }
+      ]
+    },
+    {
+      "act": "Registration Act, 1908",
+      "sections": [
+        {
+          "number": "S.17(1)(b)",
+          "description": "Compulsory registration of partition deed where immovable property value > Rs.100"
+        },
+        { "number": "S.23", "description": "Time for presentation" }
+      ]
+    },
+    {
+      "act": "Indian Stamp Act, 1899 + State Schedules",
+      "sections": [
+        {
+          "number": "Article 45",
+          "description": "Partition stamp duty — state-specific; based on value of separated share"
+        }
+      ]
+    },
+    {
+      "act": "Income Tax Act, 1961",
+      "sections": [
+        {
+          "number": "S.171",
+          "description": "Recording of partition of HUF — only complete partitions recognised post-1980"
+        }
+      ]
+    },
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        {
+          "number": "Order 20 Rule 18",
+          "description": "Decree in partition suits — preliminary + final"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Stamp paper of correct denomination per state Article 45 — based on value of separated share",
+    "Joint family genealogical tree / pedigree certificate",
+    "Original title documents of all joint property",
+    "Encumbrance Certificate (EC) — past 13 years for each property",
+    "Mutation entries / Jamabandi / Khatauni / Khatian extracts — current for each property",
+    "Property tax receipts up to date",
+    "All adult coparceners' ID — PAN + Aadhaar",
+    "Where minor coparcener — natural guardian's ID + COURT ORDER permitting partition under HMG Act / GWA",
+    "Birth certificates of all coparceners (to establish relationship and capacity)",
+    "Where widow's share included — death certificate of pre-deceased coparcener",
+    "Marriage certificate(s) of daughters (where included as coparceners — to establish identity post-marriage)",
+    "All adult coparceners (and natural guardians of minors) physically present at Sub-Registrar",
+    "Photographs of all parties (2 each)",
+    "Two adult witnesses with own ID proofs",
+    "Where HUF income tax assessment exists — Form under S.171 ITA to be filed with Assessing Officer recording complete partition; AO order under S.171 needed for IT Dept to discontinue HUF status",
+    "Registration at Sub-Registrar within 4 months of execution (S.23 Registration Act)",
+    "Post-registration: mutation applications in each sharer's name in revenue / municipal records",
+    "Update bank accounts / FDs / demat / shares as per allotment",
+    "Where partition under-allots a coparcener — flag potential gift tax / capital gains consequence",
+    "Lawie disclaimer included"
+  ],
+  "validation_rules": [
+    "common_ancestor must be specified",
+    "parties_list must include at least 2 coparceners",
+    "daughters_included must be specified — if 'no_being_excluded_for_specific_reason_flag', insert prominent disclaimer about Vineeta Sharma compliance risk",
+    "joint_property_immovable must not be empty",
+    "allotment_details must not be empty",
+    "if minor_coparceners present — court_permission_for_minor must be 'yes_court_order_no_and_date' or flag warning",
+    "method_of_partition must be specified",
+    "release_clauses must mention 'mutual' and 'release'",
+    "stamp_duty_paid > 0",
+    "if joint_property_immovable mentioned — registration_intended should be 'yes_registered_mandatory_for_immovable'",
+    "witness_1_name_address and witness_2_name_address mandatory",
+    "advocate enrollment number required"
+  ]
+}

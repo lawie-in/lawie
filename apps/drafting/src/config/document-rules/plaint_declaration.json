@@ -1,0 +1,384 @@
+{
+  "_meta": {
+    "description": "Document-rules config for plaint_declaration — suit for declaratory relief under S.34 Specific Relief Act, 1963",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 civil pleadings pass 2026-05-12",
+    "last_updated": "2026-05-12",
+    "change_protocol": "All edits require CLO sign-off. Consequential relief paragraph is non-negotiable per Anathula Sudhakar."
+  },
+  "template_id": "plaint_declaration",
+  "docType": "plaint_declaration",
+  "title": "Plaint — Suit for Declaration u/s 34 Specific Relief Act",
+  "displayName": "Plaint for Declaration (S.34 SRA)",
+  "category": "civil_pleading",
+  "creditsCost": 2,
+  "court_levels": [
+    "civil_judge_junior_division",
+    "civil_judge_senior_division",
+    "district_judge",
+    "high_court_original_side"
+  ],
+  "causeTitle": {
+    "format": "IN THE COURT OF {courtDesignation}\nAT {courtPlace}\n\n{caseNomenclature}\n\n{plaintiff} ... Plaintiff\nVERSUS\n{defendant} ... Defendant",
+    "partyDesignations": [
+      { "role": "plaintiff", "label": "Plaintiff" },
+      { "role": "defendant", "label": "Defendant" }
+    ],
+    "caseNomenclature": "Civil Suit No. _____ of [YEAR]"
+  },
+  "form_schema": {
+    "fields": [
+      { "id": "plaintiff_name", "label": "Plaintiff full name", "type": "text", "required": true },
+      {
+        "id": "plaintiff_father_name",
+        "label": "Plaintiff father's / husband's name",
+        "type": "text",
+        "required": true
+      },
+      { "id": "plaintiff_age", "label": "Plaintiff age", "type": "number", "required": true },
+      {
+        "id": "plaintiff_address",
+        "label": "Plaintiff full address",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "defendant_name",
+        "label": "Defendant full name (or names if multiple)",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "defendant_address",
+        "label": "Defendant address(es)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "declaration_sought",
+        "label": "Nature of declaration sought",
+        "type": "select",
+        "required": true,
+        "options": [
+          "declaration_of_title_to_property",
+          "declaration_of_status_legitimacy",
+          "declaration_of_status_marriage_validity",
+          "declaration_of_legal_character",
+          "declaration_that_document_void_or_voidable",
+          "declaration_of_right_to_office",
+          "declaration_that_adoption_invalid",
+          "declaration_of_co_ownership"
+        ]
+      },
+      {
+        "id": "legal_character_or_right",
+        "label": "Specific legal character or right claimed (S.34 SRA)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "defendant_denial_or_interest",
+        "label": "How defendant denies / is interested to deny plaintiff's title or character",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "subject_matter_property",
+        "label": "Subject-matter property — description, schedule, boundaries (if property-related)",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "source_of_title",
+        "label": "Source of plaintiff's title / character — document / inheritance / adverse possession / declaration in earlier proceeding",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "documents_relied_upon",
+        "label": "Documents relied upon (sale deeds / wills / mutation / records of right)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "consequential_relief",
+        "label": "Consequential relief sought (mandatory unless plaintiff in possession; per Anathula Sudhakar)",
+        "type": "select",
+        "required": true,
+        "options": [
+          "possession_of_property",
+          "injunction_against_interference",
+          "cancellation_of_document",
+          "recovery_of_office",
+          "no_consequential_relief_plaintiff_in_possession_or_special_circumstances"
+        ]
+      },
+      {
+        "id": "consequential_relief_details",
+        "label": "Details of consequential relief",
+        "type": "textarea",
+        "required": false
+      },
+      {
+        "id": "possession_status",
+        "label": "Plaintiff's current possession status (relevant for consequential relief)",
+        "type": "select",
+        "required": true,
+        "options": [
+          "in_possession",
+          "out_of_possession",
+          "joint_possession",
+          "constructive_possession"
+        ]
+      },
+      {
+        "id": "cause_of_action_dates",
+        "label": "Cause of action — when defendant denied / threatened plaintiff's right",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "limitation_basis",
+        "label": "Limitation Act article and computation (Art. 58 — 3 years from denial; or specific article)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "territorial_jurisdiction",
+        "label": "Basis of territorial jurisdiction (S.16-20 CPC)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "pecuniary_jurisdiction",
+        "label": "Basis of pecuniary jurisdiction and valuation method (Suits Valuation Act + state rules)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "court_fee_paid",
+        "label": "Court fee paid (Rs.)",
+        "type": "currency",
+        "required": true
+      },
+      {
+        "id": "court_fee_basis",
+        "label": "Court fee basis — declaratory suit ad valorem or fixed (state Schedule)",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "valuation_for_jurisdiction",
+        "label": "Valuation for jurisdiction",
+        "type": "currency",
+        "required": true
+      },
+      { "id": "advocate_name", "label": "Advocate name", "type": "text", "required": true },
+      {
+        "id": "advocate_enrollment",
+        "label": "Bar Council enrollment number",
+        "type": "text",
+        "required": true
+      }
+    ]
+  },
+  "mandatory_clauses": [
+    {
+      "id": "parties_paragraph",
+      "name": "Description of Parties — Order VII R.1(a)(b)",
+      "required": true,
+      "description": "Full description of plaintiff and defendant(s)"
+    },
+    {
+      "id": "legal_character_paragraph",
+      "name": "Legal Character / Right Claimed — S.34 SRA",
+      "required": true,
+      "description": "Specific statement of legal character / right to property in which plaintiff is interested"
+    },
+    {
+      "id": "denial_or_interest_paragraph",
+      "name": "Denial or Interest to Deny",
+      "required": true,
+      "description": "How defendant denies or is interested to deny plaintiff's character or right"
+    },
+    {
+      "id": "consequential_relief_paragraph",
+      "name": "Consequential Relief — Proviso to S.34 SRA",
+      "required": true,
+      "description": "Plaintiff must claim further relief or explain why none lies — bare declaration not maintainable (Anathula Sudhakar v. P. Buchi Reddy)"
+    },
+    {
+      "id": "cause_of_action",
+      "name": "Cause of Action — Order VII R.1(e)",
+      "required": true,
+      "description": "When right denied / threatened"
+    },
+    {
+      "id": "limitation_paragraph",
+      "name": "Limitation — Order VII R.6",
+      "required": true,
+      "description": "Article 58 Limitation Act (3 years from when right first denied) or relevant article"
+    },
+    {
+      "id": "jurisdiction_paragraph",
+      "name": "Jurisdiction",
+      "required": true,
+      "description": "Territorial and pecuniary"
+    },
+    {
+      "id": "valuation_paragraph",
+      "name": "Valuation and Court Fee",
+      "required": true,
+      "description": "Per Suits Valuation Act and state Court Fee Schedule"
+    },
+    {
+      "id": "prayer_clause",
+      "name": "Prayer — Order VII R.7",
+      "required": true,
+      "description": "Declaration + consequential relief + costs"
+    },
+    {
+      "id": "verification",
+      "name": "Verification — Order VI R.15",
+      "required": true,
+      "description": "Verification on oath"
+    },
+    {
+      "id": "affidavit_in_support",
+      "name": "Affidavit in support — Order VI R.15(4)",
+      "required": true,
+      "description": "Mandatory"
+    },
+    {
+      "id": "disclaimer",
+      "name": "Advocate Responsibility Disclaimer",
+      "required": true,
+      "description": "Standard Lawie disclaimer"
+    }
+  ],
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, the Plaintiff most respectfully prays that this Hon'ble Court may graciously be pleased to:\n\na) Declare that the Plaintiff is the lawful {legal_character_or_right} of/in the {subject_matter_property} and that the Defendant has no right, title or interest therein;\n\nb) Grant the consequential relief of {consequential_relief_details};\n\nc) Award costs of the suit in favour of the Plaintiff and against the Defendant;\n\nd) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the Plaintiff shall ever pray.",
+  "verificationTemplate": "VERIFICATION\n\nI, {plaintiff_name}, son/daughter/wife of {plaintiff_father_name}, aged about {plaintiff_age} years, resident of {plaintiff_address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above plaint are true and correct to my personal knowledge, and matters of legal submission are believed true on advice of counsel. No part is false and nothing material has been concealed.\n\nVerified at {place} on this {date}.\n\nPlaintiff",
+  "prompt_context": {
+    "promptInstructions": [
+      "Draft a plaint for declaratory relief strictly under Section 34 of the Specific Relief Act, 1963.",
+      "S.34 SRA: 'Any person entitled to any legal character, or to any right as to any property, may institute a suit against any person denying, or interested to deny, his title to such character or right, and the court may in its discretion make therein a declaration that he is so entitled, and the plaintiff need not in such suit ask for any further relief.'",
+      "CRITICAL — Proviso to S.34: 'No court shall make any such declaration where the plaintiff, being able to seek further relief than a mere declaration of title, omits to do so.'",
+      "Therefore, if plaintiff is out of possession of property to which declaration relates, he MUST seek consequential relief (possession). Bare declaration is NOT maintainable.",
+      "Cite Anathula Sudhakar v. P. Buchi Reddy (2008) 4 SCC 594: where plaintiff is not in possession and defendant is in possession, suit for bare declaration is not maintainable — possession must be claimed as consequential relief.",
+      "If plaintiff is in possession and defendant is making cloud on title, suit for declaration + permanent injunction is appropriate.",
+      "If plaintiff is dispossessed, suit must be for declaration + recovery of possession (and pay court fee on possession claim under state Court Fees Act).",
+      "Para 1: Plaintiff description (Order VII R.1(a)).",
+      "Para 2: Defendant description (Order VII R.1(b)).",
+      "Para 3 onwards: State plaintiff's legal character or right with full particulars — chain of title, source documents, mode of acquisition.",
+      "Plead how defendant denies the character / right or is interested to deny it (mere apprehension is not enough; denial must be actual or imminent).",
+      "Plead plaintiff's present possession status — this determines what consequential relief is needed.",
+      "Cause of Action — Order VII R.1(e): state when defendant first asserted adverse title / denied plaintiff's right.",
+      "Limitation — Article 58 of Limitation Act: 3 years from when right to sue first accrues, i.e., when right is first denied. Cite C. Mohammad Yunus v. Syed Unnissa (1961) 3 SCR 642 (continuing denial does not extend limitation).",
+      "Jurisdiction — territorial under S.16 CPC for property suits (where property situated), or S.20 for other declarations.",
+      "Valuation — Suits Valuation Act 1887 + state rules. Court fee on declaratory suits typically fixed (or ad valorem on consequential relief) — refer state Schedule. In Bihar/Jharkhand/UP follow Bihar Court Fees Act / UP Court Fees Act.",
+      "Prayer must include: (i) declaration in specific terms; (ii) consequential relief specifically pleaded; (iii) costs.",
+      "Verification: Order VI R.15 — verify each paragraph's source (knowledge/belief).",
+      "Affidavit in support: Order VI R.15(4).",
+      "Tone: precise legal pleading. Avoid argumentative tone.",
+      "Append Lawie disclaimer."
+    ]
+  },
+  "relevantActs": [
+    {
+      "act": "Specific Relief Act, 1963",
+      "sections": [
+        {
+          "number": "S.34",
+          "description": "Discretion of court as to declaration of status or right"
+        },
+        {
+          "number": "S.35",
+          "description": "Effect of declaration — binding only on parties and those claiming through them"
+        },
+        {
+          "number": "S.38",
+          "description": "Perpetual injunction when granted (often combined with declaration)"
+        }
+      ]
+    },
+    {
+      "act": "Code of Civil Procedure, 1908",
+      "sections": [
+        { "number": "S.9", "description": "Jurisdiction of civil courts" },
+        { "number": "S.16", "description": "Suits to be instituted where subject-matter situate" },
+        { "number": "S.20", "description": "Other suits" },
+        { "number": "Order VI R.1-15", "description": "Pleadings" },
+        { "number": "Order VII R.1", "description": "Particulars in plaint" },
+        { "number": "Order VII R.7", "description": "Relief to be specifically stated" },
+        { "number": "Order VII R.11", "description": "Rejection of plaint" }
+      ]
+    },
+    {
+      "act": "Limitation Act, 1963",
+      "sections": [
+        {
+          "number": "Schedule Art. 58",
+          "description": "Suit to obtain any other declaration — 3 years from when right to sue first accrues"
+        },
+        {
+          "number": "Schedule Art. 65",
+          "description": "Suit for possession based on title — 12 years from when possession of defendant becomes adverse"
+        }
+      ]
+    },
+    {
+      "act": "Court Fees Act, 1870 + state amendments",
+      "sections": [
+        {
+          "number": "S.7(iv)(c)",
+          "description": "Suit for declaration with consequential relief — ad valorem fee on value of consequential relief"
+        }
+      ]
+    },
+    {
+      "act": "Suits Valuation Act, 1887",
+      "sections": [
+        { "number": "S.3", "description": "Power of HC to make rules for valuation" },
+        {
+          "number": "S.8",
+          "description": "Court fee value and jurisdictional value to be same in certain suits"
+        }
+      ]
+    }
+  ],
+  "filing_checklist": [
+    "Plaint (original + copies)",
+    "Vakalatnama",
+    "Memo of parties",
+    "Affidavit in support of plaint (Order VI R.15(4))",
+    "Court fee per state Schedule (declaratory + consequential relief)",
+    "List of documents (Order VII R.14)",
+    "Title documents — sale deed / gift deed / will / inheritance certificate",
+    "Mutation entries / records of right / khasra-khatauni (in UP/Bihar/Jharkhand)",
+    "Possession evidence — tax receipts, electricity bills, utility bills",
+    "Site plan / boundary description if property-related",
+    "Encumbrance certificate (if applicable)",
+    "Disclaimer slip — Lawie drafting assistance acknowledged"
+  ],
+  "validation_rules": [
+    "plaintiff_name and defendant_name must not be empty",
+    "declaration_sought must be specified",
+    "legal_character_or_right must not be empty",
+    "defendant_denial_or_interest must not be empty",
+    "consequential_relief must be specified — if 'no_consequential_relief' is chosen, possession_status must be 'in_possession' or special circumstances must be flagged",
+    "If possession_status is 'out_of_possession', consequential_relief cannot be 'no_consequential_relief'",
+    "source_of_title must not be empty",
+    "cause_of_action_dates must not be empty",
+    "limitation_basis must not be empty",
+    "court_fee_paid must be > 0",
+    "advocate_enrollment must match Bar Council format"
+  ],
+  "key_citations": [
+    "Anathula Sudhakar v. P. Buchi Reddy (2008) 4 SCC 594 — Bare declaration without consequential relief impermissible where plaintiff out of possession",
+    "C. Mohammad Yunus v. Syed Unnissa (1961) 3 SCR 642 — Limitation under Art. 58 begins from first denial of right",
+    "Suhrid Singh v. Randhir Singh (2010) 12 SCC 112 — Declaration with prayer to cancel deed — court fee on consideration / market value",
+    "Vemareddy Kumaraswamy Reddy v. State of A.P. (2006) 2 SCC 670 — Declaratory decree binds only parties; rights of third parties not affected",
+    "Suraj Lamp & Industries (P) Ltd v. State of Haryana (2012) 1 SCC 656 — Title cannot be created through unregistered instruments / SA-GPA"
+  ],
+  "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+}

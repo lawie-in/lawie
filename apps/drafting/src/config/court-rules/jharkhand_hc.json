@@ -1,0 +1,76 @@
+{
+  "_meta": {
+    "description": "Court formatting rules — drives cause-title, party designations, prayer language, verification format",
+    "owner": "Ajay (CLO)",
+    "validated_by": "Ajay (CLO) — Batch 4 hardening 2026-05-10",
+    "last_updated": "2026-05-10",
+    "applies_to_court_type": "high_court",
+    "change_protocol": "CLO sign-off required for any change. Vishal raises Jira tickets to Ajay for additions; never edits unilaterally."
+  },
+  "courtId": "jharkhand_hc",
+  "courtType": "high_court",
+  "designation": "IN THE HIGH COURT OF JHARKHAND AT RANCHI",
+  "jurisdictionNote": "High Court for the State of Jharkhand, established in 2000 upon bifurcation from Bihar. Has original, appellate, and writ jurisdiction. Handles anticipatory bail under S.482 BNSS, criminal appeals, writ petitions, and mining/forest-related disputes.",
+  "eFilingMandatory": true,
+  "cause_title_format": "IN THE HIGH COURT OF JHARKHAND AT RANCHI\n{caseNomenclature}\n\n{petitioner} ... PETITIONER(S)\n\nVERSUS\n\n{respondent} ... RESPONDENT(S)",
+  "party_designation": {
+    "petitioner": "Petitioner",
+    "respondent": "Respondent",
+    "applicant": "Applicant",
+    "opposite_party": "Opposite Party",
+    "appellant": "Appellant",
+    "state": "State of Jharkhand through the Principal Secretary, Home Department, Government of Jharkhand, Ranchi"
+  },
+  "case_nomenclature": {
+    "anticipatory_bail": "Cr. Misc. No. _____ of {year}",
+    "regular_bail": "Cr. Misc. No. _____ of {year}",
+    "quashing": "Cr. Misc. No. _____ of {year}",
+    "criminal_appeal": "Cr. Appeal No. _____ of {year}",
+    "criminal_writ": "W.P.(Cr.) No. _____ of {year}",
+    "civil_writ": "W.P.(C) No. _____ of {year}",
+    "criminal_revision": "Cr. Revision No. _____ of {year}",
+    "civil_revision": "C.R. No. _____ of {year}",
+    "first_appeal": "F.A. No. _____ of {year}"
+  },
+  "para_numbering": {
+    "style": "numeric",
+    "startAt": 1,
+    "format": "1.",
+    "indentLevel": 0
+  },
+  "prayer_language": {
+    "opening": "It is, therefore, most humbly prayed that this Hon'ble Court may graciously be pleased to:",
+    "closing": "And for this act of kindness, the petitioner shall ever pray.",
+    "tone": "humble"
+  },
+  "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "supported_languages": [
+    "en",
+    "hi"
+  ],
+  "formattingPreferences": {
+    "numberingStyle": "numeric",
+    "paragraphStyle": "numbered",
+    "sectionHeadingStyle": "uppercase_centered",
+    "causeListFormat": "IN THE HIGH COURT OF JHARKHAND AT RANCHI\n{benchDesignation}"
+  },
+  "localRules": [
+    "All petitions must be filed through an advocate enrolled with the Bar Council of Jharkhand.",
+    "Anticipatory bail applications must be accompanied by a duly sworn affidavit.",
+    "Certified copy of FIR and remand order must be annexed.",
+    "Index of documents is mandatory with page numbering.",
+    "Vakalatnama to be filed at the first instance.",
+    "E-filing is mandatory since 2024."
+  ],
+  "e_filing_mandatory": true,
+  "e_filing_effective_from": "2024-01-01",
+  "state_capital_default_respondent": "State of Jharkhand through the Principal Secretary, Home Department, Government of Jharkhand, Ranchi",
+  "local_rules": [
+    "All petitions must be filed through an advocate enrolled with the Bar Council of Jharkhand.",
+    "Anticipatory bail applications must be accompanied by a duly sworn affidavit.",
+    "Certified copy of FIR and remand order must be annexed.",
+    "Index of documents is mandatory with page numbering.",
+    "Vakalatnama to be filed at the first instance.",
+    "E-filing is mandatory since 2024."
+  ]
+}
