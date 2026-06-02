@@ -18,8 +18,9 @@ ssh "$SERVER" bash -s << 'ENDSSH'
   echo "  installing dependencies..."
   yarn install --frozen-lockfile
 
-  echo "  building shared package..."
+  echo "  building packages..."
   yarn workspace @lawie/shared build
+  yarn workspace @lawie/email-client build
 
   echo "  building all services..."
   yarn workspaces run build
