@@ -31,10 +31,11 @@ interface EmailJobData {
   data: Record<string, unknown>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const connection = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
-});
+}) as any;
 
 const processor: Processor<EmailJobData> = async (job: Job<EmailJobData>) => {
   const { template, to, cc, bcc, replyTo, data } = job.data;
