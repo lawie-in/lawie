@@ -19,7 +19,7 @@ import Redis from 'ioredis';
 
 import { env } from './config/env';
 import { logger } from './config/logger';
-import { sendEmail } from './providers/ses';
+import { sendEmail } from './providers';
 import { renderTemplate } from './templates';
 
 interface EmailJobData {

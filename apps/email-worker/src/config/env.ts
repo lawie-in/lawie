@@ -24,6 +24,12 @@ const schema = z.object({
   AWS_SES_ACCESS_KEY_ID: z.string().optional(),
   AWS_SES_SECRET_ACCESS_KEY: z.string().optional(),
 
+  // SMTP (required when EMAIL_PROVIDER === 'smtp' AND EMAIL_DRY_RUN is false)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+
   // Sender identity — lawie.in domain is verified at the domain level in SES,
   // so any sub-address (noreply@, contact@, admin@, …) is auto-authorised.
   // Madhuri's brief specifies:
@@ -34,6 +40,9 @@ const schema = z.object({
   EMAIL_FROM_ADDRESS: z.string().email().default('noreply@lawie.in'),
   EMAIL_REPLY_TO: z.string().email().default('contact@lawie.in'),
   EMAIL_FOUNDER: z.string().email().default('founder@lawie.in'),
+
+  // Internal service trust
+  INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
 
   // BullMQ
   EMAIL_QUEUE_PREFIX: z.string().default('lawie'),

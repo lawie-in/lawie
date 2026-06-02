@@ -14,6 +14,8 @@ import { env } from './config/env';
 import { logger } from './config/logger';
 // eslint-disable-next-line import/order, import/first
 import { startWorkers, stopWorkers } from './worker';
+// eslint-disable-next-line import/order, import/first
+import { sendHandler } from './routes/send';
 
 if (env.SENTRY_DSN) {
   Sentry.init({
@@ -29,6 +31,8 @@ async function bootstrap() {
 
   // Minimal HTTP surface — /health for docker-compose + future liveness probes.
   const app = express();
+  app.use(express.json());
+
   app.get('/health', (_req, res) => {
     res.json({
       status: 'ok',
@@ -38,6 +42,8 @@ async function bootstrap() {
       timestamp: new Date().toISOString(),
     });
   });
+
+  app.post('/send', (req, res) => void sendHandler(req, res));
   app.listen(env.PORT, () => {
     logger.info(
       { port: env.PORT, provider: env.EMAIL_PROVIDER, dryRun: env.EMAIL_DRY_RUN },
