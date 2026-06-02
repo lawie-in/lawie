@@ -52,6 +52,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.gateway == 'true' || needs.changes.outputs.shared == 'true'
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
     env:
       NODE_ENV: test
     steps:
@@ -75,6 +80,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.auth == 'true' || needs.changes.outputs.shared == 'true'
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
     env:
       NODE_ENV: test
     steps:
@@ -98,6 +108,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.drafting == 'true' || needs.changes.outputs.shared == 'true'
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
     env:
       NODE_ENV: test
     steps:
