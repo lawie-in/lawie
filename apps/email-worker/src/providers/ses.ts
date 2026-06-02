@@ -18,6 +18,8 @@ export interface RenderedEmail {
   cc?: string[];
   bcc?: string[];
   replyTo?: string;
+  /** Override sender address; defaults to EMAIL_FROM_ADDRESS env var. */
+  from?: string;
   subject: string;
   html: string;
   text: string;
@@ -67,7 +69,7 @@ export async function sendEmail(rendered: RenderedEmail): Promise<{ messageId: s
   }
 
   const cmd = new SendEmailCommand({
-    FromEmailAddress: `${env.EMAIL_FROM_NAME} <${env.EMAIL_FROM_ADDRESS}>`,
+    FromEmailAddress: `${env.EMAIL_FROM_NAME} <${rendered.from ?? env.EMAIL_FROM_ADDRESS}>`,
     Destination: {
       ToAddresses: to,
       ...(cc && cc.length > 0 ? { CcAddresses: cc } : {}),

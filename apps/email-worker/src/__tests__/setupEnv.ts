@@ -8,3 +8,4 @@ process.env.EMAIL_FROM_ADDRESS = 'hello@lawie.in';
 process.env.EMAIL_REPLY_TO = 'hello@lawie.in';
 process.env.EMAIL_FOUNDER = 'founder@lawie.in';
 process.env.AWS_REGION = 'ap-south-1';
+process.env.INTERNAL_SECRET = 'test-internal-secret-at-least-16';
