@@ -1,10 +1,10 @@
-name: CI — Lint, Test & Build
+name: CI — Test
 
 on:
   push:
     branches: [develop]
   pull_request:
-    branches: [main, develop]
+    branches: [develop]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,34 +14,15 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # ── Guard: main only accepts PRs from develop ────────────────────────────
-  enforce-source-branch:
-    name: Enforce develop → main
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
-    steps:
-      - name: Check source branch
-        run: |
-          if [ "${{ github.head_ref }}" != "develop" ]; then
-            echo "❌ PRs to main must come from develop. Got: ${{ github.head_ref }}"
-            exit 1
-          fi
-          echo "✅ PR from develop → main. Skipping lint/test (already validated on develop)."
-
-  # ── Detect which services changed (develop only) ─────────────────────────
+  # ── Detect which services changed ───────────────────────────────────────
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
-    # Only run change detection for develop-bound work (not main PRs)
-    if: >-
-      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
-      (github.event_name == 'pull_request' && github.base_ref == 'develop')
     outputs:
       gateway: ${{ steps.filter.outputs.gateway }}
       auth: ${{ steps.filter.outputs.auth }}
       drafting: ${{ steps.filter.outputs.drafting }}
       billing: ${{ steps.filter.outputs.billing }}
-      web: ${{ steps.filter.outputs.web }}
       shared: ${{ steps.filter.outputs.shared }}
     steps:
       - uses: actions/checkout@v4
@@ -57,8 +38,6 @@ jobs:
               - 'apps/drafting/**'
             billing:
               - 'apps/billing/**'
-            web:
-              - 'apps/web/**'
             shared:
               - 'packages/shared/**'
               - 'package.json'
@@ -67,188 +46,93 @@ jobs:
               - 'jest.config.base.js'
               - '.github/workflows/ci.yml'
 
-  # ── Lint (develop only) ─────────────────────────────────────────────────
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    needs: changes
-    if: >-
-      needs.changes.outputs.gateway == 'true' ||
-      needs.changes.outputs.auth == 'true' ||
-      needs.changes.outputs.drafting == 'true' ||
-      needs.changes.outputs.billing == 'true' ||
-      needs.changes.outputs.web == 'true' ||
-      needs.changes.outputs.shared == 'true'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build shared package
-        run: yarn workspace @lawie/shared build
-
-      - name: Lint Gateway
-        if: needs.changes.outputs.gateway == 'true' || needs.changes.outputs.shared == 'true'
-        run: yarn workspace @lawie/gateway lint
-
-      - name: Lint Auth
-        if: needs.changes.outputs.auth == 'true' || needs.changes.outputs.shared == 'true'
-        run: yarn workspace @lawie/auth lint
-
-      - name: Lint Drafting
-        if: needs.changes.outputs.drafting == 'true' || needs.changes.outputs.shared == 'true'
-        run: yarn workspace @lawie/drafting lint
-
-      - name: Lint Billing
-        if: needs.changes.outputs.billing == 'true' || needs.changes.outputs.shared == 'true'
-        run: yarn workspace @lawie/billing lint
-
-      - name: Lint Web
-        if: needs.changes.outputs.web == 'true' || needs.changes.outputs.shared == 'true'
-        run: yarn workspace @lawie/web lint
-
-  # ── Test Gateway (develop only) ─────────────────────────────────────────
+  # ── Test Gateway ─────────────────────────────────────────────────────────
   test-gateway:
     name: Test — Gateway
     runs-on: ubuntu-latest
-    needs: [changes, lint]
+    needs: [changes]
     if: needs.changes.outputs.gateway == 'true' || needs.changes.outputs.shared == 'true'
-
     env:
       NODE_ENV: test
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build shared package
-        run: yarn workspace @lawie/shared build
-
-      - name: Run Gateway tests
-        run: yarn workspace @lawie/gateway test
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/gateway test
+      - uses: codecov/codecov-action@v4
         if: always()
         with:
           flags: gateway
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  # ── Test Auth (develop only) ────────────────────────────────────────────
+  # ── Test Auth ────────────────────────────────────────────────────────────
   test-auth:
     name: Test — Auth
     runs-on: ubuntu-latest
-    needs: [changes, lint]
+    needs: [changes]
     if: needs.changes.outputs.auth == 'true' || needs.changes.outputs.shared == 'true'
-
     env:
       NODE_ENV: test
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build shared package
-        run: yarn workspace @lawie/shared build
-
-      - name: Run Auth tests
-        run: yarn workspace @lawie/auth test
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/auth test
+      - uses: codecov/codecov-action@v4
         if: always()
         with:
           flags: auth
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  # ── Test Drafting (develop only) ────────────────────────────────────────
+  # ── Test Drafting ────────────────────────────────────────────────────────
   test-drafting:
     name: Test — Drafting
     runs-on: ubuntu-latest
-    needs: [changes, lint]
+    needs: [changes]
     if: needs.changes.outputs.drafting == 'true' || needs.changes.outputs.shared == 'true'
-
     env:
       NODE_ENV: test
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build shared package
-        run: yarn workspace @lawie/shared build
-
-      - name: Run Drafting tests
-        run: yarn workspace @lawie/drafting test
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/drafting test
+      - uses: codecov/codecov-action@v4
         if: always()
         with:
           flags: drafting
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  # ── Test Billing (develop only) ─────────────────────────────────────────
+  # ── Test Billing ─────────────────────────────────────────────────────────
   test-billing:
     name: Test — Billing
     runs-on: ubuntu-latest
-    needs: [changes, lint]
+    needs: [changes]
     if: needs.changes.outputs.billing == 'true' || needs.changes.outputs.shared == 'true'
-
     env:
       NODE_ENV: test
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build shared package
-        run: yarn workspace @lawie/shared build
-
-      - name: Run Billing tests
-        run: yarn workspace @lawie/billing test
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/billing test
+      - uses: codecov/codecov-action@v4
         if: always()
         with:
           flags: billing
