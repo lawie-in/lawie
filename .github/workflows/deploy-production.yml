@@ -105,21 +105,23 @@ jobs:
         run: |
           echo "$EC2_SSH_KEY" > /tmp/ec2_key.pem
           chmod 600 /tmp/ec2_key.pem
-          ssh -o StrictHostKeyChecking=no -i /tmp/ec2_key.pem ubuntu@$EC2_HOST << 'ENDSSH'
+          ssh -o StrictHostKeyChecking=no -i /tmp/ec2_key.pem ubuntu@$EC2_HOST \
+            "AWS_REGION=$AWS_REGION ECR_REGISTRY=$ECR_REGISTRY bash -s" << 'ENDSSH'
             set -e
             cd /home/ubuntu/lawie
 
-            # Pull secrets from AWS Secrets Manager → write .env.production
+            # Pull secrets from AWS Secrets Manager (JSON) → write .env.production
             aws secretsmanager get-secret-value \
-              --secret-id lawie/production/env \
-              --region $AWS_REGION \
+              --secret-id lawie/production \
+              --region "$AWS_REGION" \
               --query SecretString \
-              --output text > .env.production
+              --output text \
+              | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' > .env.production
             chmod 600 .env.production
 
             # Pull latest images and restart containers
-            aws ecr get-login-password --region $AWS_REGION \
-              | docker login --username AWS --password-stdin $ECR_REGISTRY
+            aws ecr get-login-password --region "$AWS_REGION" \
+              | docker login --username AWS --password-stdin "$ECR_REGISTRY"
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
