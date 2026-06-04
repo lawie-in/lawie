@@ -133,10 +133,11 @@ function getConnection(): Redis {
   if (!url) {
     throw new Error('REDIS_URL must be set before calling enqueueEmail()');
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sharedConnection = new Redis(url, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
-  });
+  }) as any;
   return sharedConnection;
 }
 
