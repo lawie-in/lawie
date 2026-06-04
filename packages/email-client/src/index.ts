@@ -124,20 +124,21 @@ export async function enqueueEmail(input: EnqueueEmailInput): Promise<EnqueueEma
 // Single connection shared across all queues in this process. ioredis is
 // safe to share; BullMQ wraps it. Keep `maxRetriesPerRequest: null` per
 // BullMQ's recommendation so blocking commands don't time out.
-let sharedConnection: Redis | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let sharedConnection: any = null;
 const queueCache = new Map<string, Queue>();
 
-function getConnection(): Redis {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getConnection(): any {
   if (sharedConnection) return sharedConnection;
   const url = process.env.REDIS_URL;
   if (!url) {
     throw new Error('REDIS_URL must be set before calling enqueueEmail()');
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sharedConnection = new Redis(url, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
-  }) as any;
+  });
   return sharedConnection;
 }
 
