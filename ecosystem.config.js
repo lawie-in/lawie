@@ -40,5 +40,14 @@ module.exports = {
       autorestart: true,
       watch: false,
     },
+    {
+      name: 'lawie-web',
+      script: 'node_modules/.bin/next',
+      args: 'start -p 3000',
+      cwd: '/home/ubuntu/lawie/apps/web',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+    },
   ],
 };
