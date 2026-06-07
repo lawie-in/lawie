@@ -21,6 +21,10 @@ export const metadata: Metadata = {
     'BNSS',
     'BSA',
   ],
+  icons: {
+    icon: '/app-icon.png',
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

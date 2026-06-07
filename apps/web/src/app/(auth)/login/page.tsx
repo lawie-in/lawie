@@ -1,10 +1,9 @@
 'use client';
 
 import { Eye, EyeOff, AlertTriangle, CheckCircle2, Tag } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-
-import LawieLogoMark from '@/components/LawieLogoMark';
 
 // Founder decision 2026-05-17: Google OAuth is the only sign-in for Phase 1.
 // Keep the email/password code path intact (handlers, state, JSX block below)
@@ -64,7 +63,14 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50 px-4 py-12">
       {/* Logo */}
       <Link href="/" className="mb-8">
-        <LawieLogoMark variant="dark" className="h-12 w-auto" />
+        <Image
+          src="/assets/lawie-lockup.png"
+          alt="Lawie"
+          width={210}
+          height={48}
+          className="h-12 w-auto"
+          priority
+        />
       </Link>
 
       {/* Card */}

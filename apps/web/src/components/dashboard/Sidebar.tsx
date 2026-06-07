@@ -1,6 +1,7 @@
 'use client';
 
 import { LayoutGrid, Plus, FileText, Layers, Search, Settings } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -41,15 +42,13 @@ export default function Sidebar() {
     <aside className="flex h-full w-[200px] flex-shrink-0 flex-col bg-[#0F172A]">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 py-5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-500">
-          {/* Equalizer / waveform icon */}
-          <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
-            <rect x="3" y="8" width="2.5" height="5" rx="1" fill="white" />
-            <rect x="7" y="5" width="2.5" height="11" rx="1" fill="white" />
-            <rect x="11" y="7" width="2.5" height="7" rx="1" fill="white" />
-            <rect x="15" y="10" width="2.5" height="4" rx="1" fill="white" />
-          </svg>
-        </div>
+        <Image
+          src="/app-icon.png"
+          alt="Lawie"
+          width={28}
+          height={28}
+          className="h-7 w-7 rounded-md"
+        />
         <span className="text-[15px] font-semibold text-white">Lawie</span>
       </div>
 

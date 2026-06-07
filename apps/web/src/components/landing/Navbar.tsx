@@ -1,6 +1,5 @@
+import Image from 'next/image';
 import Link from 'next/link';
-
-import LawieLogoMark from '@/components/LawieLogoMark';
 
 export default function Navbar() {
   return (
@@ -8,7 +7,14 @@ export default function Navbar() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         {/* Logo — no background, burns into the dark nav */}
         <Link href="/" className="flex items-center">
-          <LawieLogoMark variant="light" className="h-9 w-auto" />
+          <Image
+            src="/assets/lawie-lockup-on-dark.png"
+            alt="Lawie"
+            width={160}
+            height={36}
+            className="h-9 w-auto"
+            priority
+          />
         </Link>
 
         {/* Nav Links + CTA */}
