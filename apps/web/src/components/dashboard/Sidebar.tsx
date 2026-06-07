@@ -1,7 +1,6 @@
 'use client';
 
 import { LayoutGrid, Plus, FileText, Layers, Search, Settings } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -42,13 +41,7 @@ export default function Sidebar() {
     <aside className="flex h-full w-[200px] flex-shrink-0 flex-col bg-[#0F172A]">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 py-5">
-        <Image
-          src="/app-icon.png"
-          alt="Lawie"
-          width={28}
-          height={28}
-          className="h-7 w-7 rounded-md"
-        />
+        <img src="/app-icon.svg" alt="Lawie" className="h-7 w-7 rounded-md" />
         <span className="text-[15px] font-semibold text-white">Lawie</span>
       </div>
 

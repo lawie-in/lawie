@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     'BSA',
   ],
   icons: {
-    icon: '/app-icon.png',
+    icon: '/app-icon.svg',
     apple: '/apple-touch-icon.png',
   },
 };
