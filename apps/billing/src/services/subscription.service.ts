@@ -7,7 +7,7 @@ import { razorpay } from '../config/razorpay';
 import { Subscription } from '../models/Subscription.model';
 import { User } from '../models/User.model';
 
-import { grantSubscriptionCredits, grantTopupCredits } from './credit-grant.service';
+import { cancelSubscriptionInk, grantSubscriptionInk, grantTopupInk } from './ink-ledger.service';
 
 export async function createSubscription(
   userId: string,
@@ -18,16 +18,14 @@ export async function createSubscription(
   shortUrl: string;
   planId: string;
 }> {
-  // Resolve plan SKU → Razorpay plan id (from env per founder-controlled env keys).
-  // Falls back to the legacy single-plan env var when planId is omitted.
-  const resolvedPlanId = planId ?? 'practice_monthly';
+  const resolvedPlanId = planId ?? 'solo_monthly';
   const planSku = findSubscriptionPlan(resolvedPlanId);
   if (!planSku) {
     throw new Error(`Unknown plan id "${resolvedPlanId}"`);
   }
   const razorpayPlanId = process.env[planSku.razorpayPlanIdEnvKey] ?? env.RAZORPAY_PLAN_ID;
 
-  // Check for existing active subscription (regardless of plan — one active sub per user)
+  // Check for existing active subscription (one active sub per user)
   const existing = await Subscription.findOne({
     userId,
     status: { $in: ['created', 'authenticated', 'active'] },
@@ -45,7 +43,7 @@ export async function createSubscription(
   const sub = await (razorpay.subscriptions.create as any)({
     plan_id: razorpayPlanId,
     customer_notify: 1,
-    total_count: planSku.cycle === 'yearly' ? 10 : 120, // 10 years for yearly, 120 months for monthly
+    // No total_count — subscriptions auto-renew until cancelled (per SCRUM-102)
     callback_url: `${env.FRONTEND_URL}/dashboard/payment/success`,
     notes: { userId, email, planId: planSku.id, tier: planSku.tier, cycle: planSku.cycle },
   });
@@ -56,7 +54,10 @@ export async function createSubscription(
     status: 'created',
   });
 
-  logger.info({ userId, subscriptionId: sub.id, planId: planSku.id }, 'Razorpay subscription created');
+  logger.info(
+    { userId, subscriptionId: sub.id, planId: planSku.id },
+    'Razorpay subscription created',
+  );
 
   return {
     subscriptionId: sub.id,
@@ -95,7 +96,7 @@ export async function handleWebhookEvent(
   event: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  // ── order.paid — one-off top-up purchase ────────────────────────────────────
+  // ── order.paid / payment.captured — one-off top-up purchase ───────────────
   if (event === 'order.paid' || event === 'payment.captured') {
     const orderEntity = (payload.order as Record<string, unknown> | undefined)?.entity as
       | Record<string, unknown>
@@ -104,20 +105,21 @@ export async function handleWebhookEvent(
       | Record<string, unknown>
       | undefined;
 
-    // Both order.paid and payment.captured carry the notes; prefer order if present
+    // Both events carry the notes; prefer order notes when present
     const notes =
       (orderEntity?.notes as Record<string, string> | undefined) ??
       (paymentEntity?.notes as Record<string, string> | undefined);
 
-    if (notes?.userId && notes?.skuId) {
-      const sku = findTopupSku(notes.skuId);
+    // Notes format: { sku_id, user_id, ink }
+    if (notes?.user_id && notes?.sku_id) {
+      const sku = findTopupSku(notes.sku_id);
       if (!sku) {
-        logger.warn({ skuId: notes.skuId }, 'Webhook: unknown top-up SKU');
+        logger.warn({ skuId: notes.sku_id }, 'Webhook: unknown top-up SKU');
         return;
       }
-      await grantTopupCredits({
-        userId: notes.userId,
-        credits: sku.credits,
+      await grantTopupInk({
+        userId: notes.user_id,
+        inkUnits: sku.ink * 2, // 1 Ink = 2 ledger units
         amountInr: sku.priceInr,
         razorpayOrderId: (orderEntity?.id as string) ?? '',
         razorpayPaymentId: paymentEntity?.id as string | undefined,
@@ -150,24 +152,23 @@ export async function handleWebhookEvent(
       if (chargeAt) sub.currentPeriodEnd = new Date(chargeAt * 1000);
       await sub.save();
 
-      // Resolve which plan SKU this Razorpay plan id maps to → grant the
-      // matching subscriptionCredits + set planTier/billingCycle.
+      // Resolve plan SKU from Razorpay plan id → grant subscription ink
       const razorpayPlanId =
         (subPayload?.plan_id as string | undefined) ??
         ((subPayload?.notes as Record<string, string> | undefined)?.planId as string | undefined);
       const planSku = razorpayPlanId
-        ? findPlanByRazorpayId(razorpayPlanId) ??
+        ? (findPlanByRazorpayId(razorpayPlanId) ??
           findSubscriptionPlan(
             (subPayload?.notes as Record<string, string> | undefined)?.planId ?? '',
-          )
+          ))
         : findSubscriptionPlan(
             (subPayload?.notes as Record<string, string> | undefined)?.planId ?? '',
           );
 
       if (planSku) {
-        await grantSubscriptionCredits({
+        await grantSubscriptionInk({
           userId: sub.userId.toString(),
-          credits: planSku.creditsPerCycle,
+          inkUnits: planSku.inkPerCycle * 2, // 1 Ink = 2 ledger units
           planTier: planSku.tier,
           billingCycle: planSku.cycle,
           planRenewsAt: chargeAt ? new Date(chargeAt * 1000) : undefined,
@@ -175,11 +176,11 @@ export async function handleWebhookEvent(
           amountInr: planSku.priceInr,
         });
       } else {
-        // Legacy: no plan mapping found — fall back to setting plan='pro' only
+        // Legacy fallback: no plan mapping — set plan=pro without ink grant
         await User.findByIdAndUpdate(sub.userId, { plan: 'pro' });
         logger.warn(
           { userId: sub.userId, razorpayPlanId },
-          'subscription.charged with no matching SKU — granted plan=pro without credits',
+          'subscription.charged with no matching SKU — granted plan=pro without ink',
         );
       }
       break;
@@ -199,7 +200,12 @@ export async function handleWebhookEvent(
         await User.findByIdAndUpdate(sub.userId, {
           $set: { plan: 'free', planTier: 'free', billingCycle: 'none' },
         });
-        logger.info({ userId: sub.userId, event }, 'User downgraded to free');
+        // Zero inkSub + inkAnnualCarry; inkTopup survives cancellation
+        await cancelSubscriptionInk(sub.userId.toString());
+        logger.info(
+          { userId: sub.userId, event },
+          'User downgraded to free, subscription ink zeroed',
+        );
       }
       break;
     }

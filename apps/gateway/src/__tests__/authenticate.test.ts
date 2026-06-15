@@ -70,7 +70,7 @@ describe('Gateway — authenticate middleware', () => {
     // /api/auth/* routes should not require JWT — they are public.
     // The request will fail at proxy (no auth service running) but should NOT be 401.
     const res = await request(app)
-      .post('/api/auth/login')
+      .post('/api/login')
       .send({ email: 'a@b.com', password: '12345678' });
     // Should NOT be 401 — could be 502 (proxy error) since auth service isn't running
     expect(res.status).not.toBe(401);

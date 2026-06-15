@@ -1,15 +1,23 @@
 'use client';
 
-import { LayoutGrid, Plus, FileText, Layers, Search, Settings } from 'lucide-react';
+import {
+  LayoutGrid,
+  Plus,
+  FileText,
+  Layers,
+  Search,
+  Settings,
+  LogOut,
+  HelpCircle,
+  ChevronUp,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 
 import { SECTION_FINDER_OPEN_EVENT } from '@/components/sections/SectionFinderPanel';
 import { useAuth } from '@/context/AuthContext';
 
-// `action: 'open-section-finder'` items dispatch a window event instead of
-// routing. The Section Finder lives as a global slide-out panel (SCRUM-83) —
-// the sidebar entry just toggles it open.
 type NavItem =
   | { href: string; label: string; icon: typeof LayoutGrid; action?: undefined }
   | { action: 'open-section-finder'; label: string; icon: typeof LayoutGrid; href?: undefined };
@@ -34,16 +42,31 @@ function getInitials(name: string): string {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const isPro = user?.plan === 'pro';
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
 
   return (
     <aside className="flex h-full w-[200px] flex-shrink-0 flex-col bg-[#0F172A]">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 py-5">
+      <Link href="/dashboard" className="flex items-center gap-2.5 px-4 py-5">
         <img src="/app-icon.svg" alt="Lawie" className="h-7 w-7 rounded-md" />
         <span className="text-[15px] font-semibold text-white">Lawie</span>
-      </div>
+      </Link>
 
       {/* Nav items */}
       <nav className="flex-1 px-2">
@@ -83,8 +106,58 @@ export default function Sidebar() {
 
       {/* User section */}
       {user && (
-        <div className="border-t border-white/10 px-3 py-3">
-          <div className="flex items-center gap-2.5">
+        <div className="relative border-t border-white/10" ref={menuRef}>
+          {/* Profile menu popover */}
+          {menuOpen && (
+            <div className="absolute bottom-full left-2 right-2 mb-1 overflow-hidden rounded-xl border border-white/10 bg-[#1E293B] shadow-2xl">
+              {/* Account info */}
+              <div className="border-b border-white/10 px-4 py-3">
+                <p className="text-[11px] text-slate-400">{user.email}</p>
+              </div>
+
+              {/* Menu items */}
+              <div className="py-1">
+                <Link
+                  href="/dashboard/settings"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-[13px] text-slate-300 hover:bg-white/5 hover:text-white"
+                >
+                  <Settings size={14} className="text-slate-400" />
+                  Settings
+                </Link>
+                <a
+                  href="mailto:support@lawie.in"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-[13px] text-slate-300 hover:bg-white/5 hover:text-white"
+                >
+                  <HelpCircle size={14} className="text-slate-400" />
+                  Get help
+                </a>
+              </div>
+
+              {/* Divider + Logout */}
+              <div className="border-t border-white/10 py-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    logout();
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-[13px] text-slate-300 hover:bg-white/5 hover:text-red-400"
+                >
+                  <LogOut size={14} className="text-slate-400" />
+                  Log out
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Clickable user row */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex w-full items-center gap-2.5 px-3 py-3 text-left hover:bg-white/5"
+          >
             <div
               className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ring-2 ${
                 isPro ? 'bg-slate-600 ring-green-500' : 'bg-slate-600 ring-amber-500'
@@ -92,13 +165,17 @@ export default function Sidebar() {
             >
               {getInitials(user.name)}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-[12px] font-medium text-white">Adv. {user.name}</p>
               <p className={`text-[11px] ${isPro ? 'text-green-400' : 'text-slate-400'}`}>
                 {isPro ? 'Pro plan' : 'Free plan'}
               </p>
             </div>
-          </div>
+            <ChevronUp
+              size={14}
+              className={`shrink-0 text-slate-500 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
         </div>
       )}
     </aside>

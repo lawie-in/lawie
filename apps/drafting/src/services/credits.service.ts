@@ -37,35 +37,65 @@ export function costForTemplate(templateId: string): number {
 // ── Reads ────────────────────────────────────────────────────────────────────
 
 export interface CreditBalance {
+  // Legacy credit buckets (kept for backward compat — old enforcement still reads these)
   topupCredits: number;
   earnedCredits: number;
   subscriptionCredits: number;
   total: number;
-  planTier: 'free' | 'practice' | 'firm';
+  // Ink buckets (SCRUM-101) — human-readable Ink values (stored units ÷ 2)
+  inkSub: number;
+  inkAnnualCarry: number;
+  inkTopup: number;
+  totalInk: number;
+  inkSubMonthlyAllotment: number;
+  planTier: 'free' | 'solo' | 'pro';
   billingCycle: 'none' | 'monthly' | 'yearly';
 }
 
+function normalizePlanTier(raw: string | undefined): 'free' | 'solo' | 'pro' {
+  if (raw === 'practice' || raw === 'solo') return 'solo';
+  if (raw === 'firm' || raw === 'pro') return 'pro';
+  return 'free';
+}
+
 export async function getCreditBalance(userId: string): Promise<CreditBalance> {
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    return {
-      topupCredits: 0,
-      earnedCredits: 0,
-      subscriptionCredits: 0,
-      total: 0,
-      planTier: 'free',
-      billingCycle: 'none',
-    };
-  }
+  const empty: CreditBalance = {
+    topupCredits: 0,
+    earnedCredits: 0,
+    subscriptionCredits: 0,
+    total: 0,
+    inkSub: 0,
+    inkAnnualCarry: 0,
+    inkTopup: 0,
+    totalInk: 0,
+    inkSubMonthlyAllotment: 0,
+    planTier: 'free',
+    billingCycle: 'none',
+  };
+  if (!mongoose.Types.ObjectId.isValid(userId)) return empty;
+
   const u = await User.findById(userId).lean();
   const topup = u?.topupCredits ?? 0;
   const earned = u?.earnedCredits ?? 0;
   const sub = u?.subscriptionCredits ?? 0;
+
+  // Ink fields stored as ×2 units — divide by 2 for human-readable display
+  const inkSubUnits = u?.inkSub ?? 0;
+  const inkCarryUnits = u?.inkAnnualCarry ?? 0;
+  const inkTopupUnits = u?.inkTopup ?? 0;
+  const inkAllotUnits = u?.inkSubMonthlyAllotment ?? 0;
+
   return {
     topupCredits: topup,
     earnedCredits: earned,
     subscriptionCredits: sub,
     total: topup + earned + sub,
-    planTier: (u?.planTier as 'free' | 'practice' | 'firm') ?? 'free',
+    inkSub: Math.floor(inkSubUnits / 2),
+    inkAnnualCarry: Math.floor(inkCarryUnits / 2),
+    inkTopup: Math.floor(inkTopupUnits / 2),
+    totalInk: Math.floor((inkSubUnits + inkCarryUnits + inkTopupUnits) / 2),
+    inkSubMonthlyAllotment: Math.floor(inkAllotUnits / 2),
+    planTier: normalizePlanTier(u?.planTier),
     billingCycle: (u?.billingCycle as 'none' | 'monthly' | 'yearly') ?? 'none',
   };
 }

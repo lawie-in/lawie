@@ -10,6 +10,8 @@
  * — we do NOT register a Mongoose model for it (drafting will register the
  * canonical one). We just use `mongoose.connection.collection('creditledgers')`
  * directly.
+ *
+ * SCRUM-101: grantSignupBonus also seeds 5 Ink (10 units) into inkTopup.
  */
 import mongoose from 'mongoose';
 
@@ -124,6 +126,32 @@ export async function grantSignupBonus(userId: string): Promise<void> {
     balanceAfter: updated.earnedCredits ?? SIGNUP_BONUS_CREDITS,
     reference: `Signup bonus (${SIGNUP_BONUS_CREDITS} free drafts)`,
   });
+
+  // Seed 5 Ink (10 units) into inkTopup — one-time free tier (SCRUM-101)
+  const conn = mongoose.connection;
+  if (conn.db) {
+    try {
+      const inkSeeded = await conn.db.collection('users').findOneAndUpdate(
+        {
+          _id: new mongoose.Types.ObjectId(userId),
+          inkTopup: { $exists: false }, // only if not already set (idempotent)
+        },
+        { $set: { inkTopup: 10, inkSub: 0, inkAnnualCarry: 0, inkSubMonthlyAllotment: 0 } },
+      );
+      if (inkSeeded) {
+        await conn.db.collection('inkledger').insertOne({
+          userId: new mongoose.Types.ObjectId(userId),
+          delta: 10,
+          reason: 'free_seed',
+          sourceBucket: 'topup',
+          balanceAfter: 10,
+          createdAt: new Date(),
+        });
+      }
+    } catch (err) {
+      console.warn('[auth] ink seed failed:', err instanceof Error ? err.message : err);
+    }
+  }
 
   // Signal drafting service so enforceFreeLimit can consume these as bonus drafts.
   const draftingUrl = process.env.DRAFTING_SERVICE_URL ?? 'http://localhost:4002';

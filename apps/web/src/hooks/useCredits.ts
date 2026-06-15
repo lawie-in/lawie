@@ -13,11 +13,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/apiFetch';
 
 export interface CreditBalance {
+  // Legacy credit buckets
   topupCredits: number;
   earnedCredits: number;
   subscriptionCredits: number;
   total: number;
-  planTier: 'free' | 'practice' | 'firm';
+  // Ink system (SCRUM-101) — human-readable Ink values (backend divides stored units by 2)
+  inkSub: number;
+  inkAnnualCarry: number;
+  inkTopup: number;
+  totalInk: number;
+  inkSubMonthlyAllotment: number;
+  planTier: 'free' | 'solo' | 'pro';
   billingCycle: 'none' | 'monthly' | 'yearly';
 }
 
@@ -26,6 +33,11 @@ const EMPTY: CreditBalance = {
   earnedCredits: 0,
   subscriptionCredits: 0,
   total: 0,
+  inkSub: 0,
+  inkAnnualCarry: 0,
+  inkTopup: 0,
+  totalInk: 0,
+  inkSubMonthlyAllotment: 0,
   planTier: 'free',
   billingCycle: 'none',
 };
