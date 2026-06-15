@@ -12,9 +12,8 @@
  */
 
 import { AlertTriangle, CheckCircle2, FileText, Loader2, Send } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
-
-import LawieLogoMark from '@/components/LawieLogoMark';
 
 interface FormSchemaItem {
   id: string;
@@ -190,7 +189,13 @@ export default function ReviewPage({ params }: { params: Promise<{ token: string
       {/* Header */}
       <header className="border-b border-slate-200 bg-white px-6 py-4">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <LawieLogoMark variant="dark" className="h-8 w-auto" />
+          <Image
+            src="/assets/lawie-lockup.png"
+            alt="Lawie"
+            width={140}
+            height={32}
+            className="h-8 w-auto"
+          />
           <div className="text-right">
             <p className="text-xs text-slate-400">Reviewing as</p>
             <p className="text-sm font-semibold text-slate-800">{data.review.assignedTo}</p>
@@ -285,7 +290,9 @@ export default function ReviewPage({ params }: { params: Promise<{ token: string
                 maxLength={10_000}
                 className="mt-1 w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="mt-0.5 text-right text-[10px] text-slate-400">{comments.length} / 10000</p>
+              <p className="mt-0.5 text-right text-[10px] text-slate-400">
+                {comments.length} / 10000
+              </p>
             </div>
 
             {submitError && (
@@ -300,11 +307,7 @@ export default function ReviewPage({ params }: { params: Promise<{ token: string
               disabled={submitting}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
             >
-              {submitting ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Send size={14} />
-              )}
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               Submit feedback
             </button>
           </form>

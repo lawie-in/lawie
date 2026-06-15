@@ -11,11 +11,16 @@ export interface IUserDrafting extends Document {
   email?: string;
   name?: string;
   plan?: 'free' | 'pro';
-  planTier?: 'free' | 'practice' | 'firm';
+  planTier?: 'free' | 'practice' | 'firm' | 'solo' | 'pro';
   billingCycle?: 'none' | 'monthly' | 'yearly';
   subscriptionCredits?: number;
   earnedCredits?: number;
   topupCredits?: number;
+  // Ink ledger fields (SCRUM-101) — stored as ×2 integer units (1 Ink = 2 units)
+  inkSub?: number;
+  inkAnnualCarry?: number;
+  inkTopup?: number;
+  inkSubMonthlyAllotment?: number;
   /** ObjectId reference — typed permissively for cross-service shape */
   referredVia?: unknown;
   createdAt?: Date;

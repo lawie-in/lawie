@@ -53,7 +53,9 @@ router.post(
         createdAt: rc.createdAt,
       });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to generate code' });
+      res
+        .status(500)
+        .json({ error: err instanceof Error ? err.message : 'Failed to generate code' });
     }
   },
 );
@@ -99,7 +101,14 @@ router.patch(
 
 router.get(
   '/validate-code/:code',
+  (req: Request, _res: Response, next: () => void) => {
+    // Strip conditional request headers so Express never short-circuits to 304.
+    delete req.headers['if-none-match'];
+    delete req.headers['if-modified-since'];
+    next();
+  },
   async (req: Request, res: Response): Promise<void> => {
+    res.setHeader('Cache-Control', 'no-store');
     const rc = await validateReferralCode(req.params.code);
     if (!rc) {
       res.json({ valid: false });

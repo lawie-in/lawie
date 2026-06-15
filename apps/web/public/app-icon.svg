@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Lawie app icon">
+  <title>Lawie app icon</title>
+  <defs>
+    <clipPath id="ai-r"><rect x="0" y="0" width="1024" height="1024" rx="180" ry="180"></rect></clipPath>
+    <filter id="ai-s" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"></feGaussianBlur>
+      <feOffset dx="0.8" dy="3.5"></feOffset>
+      <feComponentTransfer><feFuncA type="linear" slope="0.55"></feFuncA></feComponentTransfer>
+    </filter>
+    <clipPath id="ai-c"><path d="M 30 20 L 170 20 L 240 95 L 240 280 L 300 280 L 300 320 L 30 320 Z"></path></clipPath>
+  </defs>
+  <g clip-path="url(#ai-r)">
+    <rect width="1024" height="1024" fill="#EFE9DF"></rect>
+    <svg x="227.55555555555554" y="192" width="568.8888888888889" height="640" viewBox="0 0 320 360">
+      <path d="M 30 20 L 170 20 L 240 95 L 240 280 L 300 280 L 300 320 L 30 320 Z" fill="#0D1F3C"></path>
+      <g clip-path="url(#ai-c)">
+        <path d="M 170 20 L 170 95 L 240 95 C 237 67.25, 193.1 22, 170 20 Z" fill="#000" filter="url(#ai-s)"></path>
+      </g>
+      <path d="M 170 20 L 170 95 L 240 95 C 237 67.25, 193.1 22, 170 20 Z" fill="#F2604A"></path>
+      <path d="M 173.033 26.5 L 173.033 91.75 L 233.933 91.75 C 231.323 67.608, 193.13 28.24, 173.033 26.5 Z" fill="#E63E2C"></path>
+      <path d="M 176.3 33.5 L 176.3 88.25 L 227.4 88.25 C 225.21 67.993, 193.163 34.96, 176.3 33.5 Z" fill="#C42B14"></path>
+      <path d="M 180.033 41.5 L 180.033 84.25 L 219.933 84.25 C 218.223 68.433, 193.2 42.64, 180.033 41.5 Z" fill="#9C1F08"></path>
+    </svg>
+  </g>
+</svg>

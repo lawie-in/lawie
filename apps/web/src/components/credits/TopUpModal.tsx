@@ -1,17 +1,6 @@
 'use client';
 
-/**
- * TopUpModal — purchase one-off credit packs.
- *
- * Design: docs/Pricing Design/3 SKUs _ _199 _ _499 _ _999.png
- *
- * Calls POST /api/billing/topup/order to create a Razorpay order, then opens
- * the Razorpay Checkout overlay. On payment.captured the billing webhook
- * grants topupCredits server-side; this modal triggers a refresh on close so
- * the new balance shows up.
- */
-
-import { Coins, Loader2, X } from 'lucide-react';
+import { Zap, Loader2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { notifyCreditsChanged } from '@/hooks/useCredits';
@@ -19,13 +8,12 @@ import { apiFetch } from '@/lib/apiFetch';
 
 interface TopupSku {
   id: string;
-  credits: number;
+  ink: number;
   priceInr: number;
   badge?: 'POPULAR' | 'BEST_VALUE';
-  pricePerCreditInr: number;
+  pricePerInkInr: number;
 }
 
-// Razorpay Checkout SDK loader
 declare global {
   interface Window {
     Razorpay?: new (opts: Record<string, unknown>) => { open: () => void };
@@ -46,7 +34,7 @@ function loadRazorpayScript(): Promise<boolean> {
 
 export function TopUpModal({ onClose }: { onClose: () => void }) {
   const [skus, setSkus] = useState<TopupSku[]>([]);
-  const [selectedId, setSelectedId] = useState<string>('topup_60');
+  const [selectedId, setSelectedId] = useState<string>('topup_mid');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -81,7 +69,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
       const order = (await orderRes.json()).data as {
         orderId: string;
         amountInr: number;
-        credits: number;
+        ink: number;
         razorpayKeyId: string;
       };
 
@@ -96,7 +84,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
         amount: order.amountInr * 100,
         currency: 'INR',
         name: 'Lawie',
-        description: `${order.credits} credits`,
+        description: `${order.ink} Ink top-up`,
         order_id: order.orderId,
         theme: { color: '#0f172a' },
         handler: () => {
@@ -112,6 +100,12 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const SKU_NAMES: Record<string, string> = {
+    topup_mini: 'Mini',
+    topup_mid: 'Mid',
+    topup_max: 'Max',
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4"
@@ -121,89 +115,93 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
         className="w-full max-w-lg rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-start justify-between border-b border-slate-100 px-6 py-4">
-          <div>
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
-              Top up credits
-            </span>
-            <h2 className="mt-2 text-xl font-bold text-slate-900">Buy credits for your bench</h2>
+        {/* Header band */}
+        <header className="relative overflow-hidden rounded-t-2xl bg-amber-50 px-6 py-5">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-white">
+                <Zap size={15} />
+              </span>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">
+                  Top up Ink
+                </p>
+                <h2 className="mt-0.5 text-lg font-bold text-slate-900">Buy Ink for your bench</h2>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full p-1 text-slate-400 hover:bg-white hover:text-slate-700"
+            >
+              <X size={16} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-          >
-            <X size={16} />
-          </button>
+          <p className="mt-2 text-xs text-slate-500">
+            Top-up Ink <strong>never expires</strong> and stacks with your subscription.
+          </p>
         </header>
 
-        <div className="px-6 py-5">
-          <p className="mb-4 text-xs text-slate-500">
-            Top-up credits <strong>never expire</strong> and stack with any subscription.
-          </p>
-
-          <div className="space-y-2">
-            {skus.length === 0 && (
-              <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-400">
-                <Loader2 size={14} className="animate-spin" />
-                Loading SKUs…
-              </div>
-            )}
-            {skus.map((sku) => (
-              <button
-                key={sku.id}
-                type="button"
-                onClick={() => setSelectedId(sku.id)}
-                className={`flex w-full items-center gap-4 rounded-xl border p-4 text-left transition ${
-                  selectedId === sku.id
-                    ? 'border-amber-500 bg-amber-50/40 ring-2 ring-amber-300/40'
-                    : 'border-slate-200 hover:bg-slate-50'
+        {/* SKU list */}
+        <div className="space-y-2 px-6 py-5">
+          {skus.length === 0 && (
+            <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-400">
+              <Loader2 size={14} className="animate-spin" />
+              Loading packs…
+            </div>
+          )}
+          {skus.map((sku) => (
+            <button
+              key={sku.id}
+              type="button"
+              onClick={() => setSelectedId(sku.id)}
+              className={`flex w-full items-center gap-4 rounded-xl border p-4 text-left transition ${
+                selectedId === sku.id
+                  ? 'border-amber-400 bg-amber-50/50 ring-2 ring-amber-300/40'
+                  : 'border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <input
+                type="radio"
+                readOnly
+                checked={selectedId === sku.id}
+                className="h-4 w-4 accent-amber-500"
+              />
+              <span
+                className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                  selectedId === sku.id ? 'bg-amber-200' : 'bg-slate-100'
                 }`}
               >
-                <input
-                  type="radio"
-                  checked={selectedId === sku.id}
-                  onChange={() => setSelectedId(sku.id)}
-                  className="h-4 w-4 accent-amber-500"
-                />
-                <span
-                  className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                    selectedId === sku.id ? 'bg-amber-200' : 'bg-slate-100'
-                  }`}
-                >
-                  <Coins size={16} className="text-amber-600" />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-900">
-                      {sku.credits} credits
+                <Zap size={16} className="text-amber-600" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-900">
+                    {SKU_NAMES[sku.id] ?? sku.id} — {sku.ink} Ink
+                  </span>
+                  {sku.badge && (
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                        sku.badge === 'POPULAR'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-amber-200 text-amber-900'
+                      }`}
+                    >
+                      {sku.badge === 'BEST_VALUE' ? 'Best value' : 'Popular'}
                     </span>
-                    {sku.badge && (
-                      <span
-                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
-                          sku.badge === 'POPULAR'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-amber-200 text-amber-900'
-                        }`}
-                      >
-                        {sku.badge === 'BEST_VALUE' ? 'Best value' : 'Popular'}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    ₹{sku.pricePerCreditInr.toFixed(2)} per credit · ≈{' '}
-                    {Math.floor(sku.credits / 2)} bail drafts
-                  </p>
+                  )}
                 </div>
-                <span className="font-mono text-lg font-bold text-slate-900">
-                  ₹{sku.priceInr}
-                </span>
-              </button>
-            ))}
-          </div>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  ₹{sku.pricePerInkInr.toFixed(2)} per Ink · never expires
+                </p>
+              </div>
+              <span className="font-mono text-lg font-bold text-slate-900">₹{sku.priceInr}</span>
+            </button>
+          ))}
         </div>
 
-        <footer className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-6 py-4 rounded-b-2xl">
+        {/* Footer: total + CTA */}
+        <footer className="flex items-center justify-between rounded-b-2xl border-t border-slate-100 bg-slate-50 px-6 py-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
               You&apos;ll pay
@@ -217,15 +215,13 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={handlePurchase}
             disabled={!selected || submitting}
-            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
             Pay with Razorpay
           </button>
         </footer>
-        {error && (
-          <p className="px-6 pb-4 text-xs text-red-600">{error}</p>
-        )}
+        {error && <p className="px-6 pb-4 text-xs text-red-600">{error}</p>}
       </div>
     </div>
   );

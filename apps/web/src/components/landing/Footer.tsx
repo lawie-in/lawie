@@ -1,6 +1,5 @@
+import Image from 'next/image';
 import Link from 'next/link';
-
-import LawieLogoMark from '@/components/LawieLogoMark';
 
 export default function Footer() {
   return (
@@ -9,7 +8,13 @@ export default function Footer() {
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
           {/* Brand */}
           <div className="flex items-center gap-2">
-            <LawieLogoMark variant="dark" className="h-8 w-auto" />
+            <Image
+              src="/assets/lawie-lockup.png"
+              alt="Lawie"
+              width={140}
+              height={32}
+              className="h-8 w-auto"
+            />
             <span className="text-sm text-slate-400">· AI Legal Drafting for Indian Advocates</span>
           </div>
 

@@ -1,85 +1,79 @@
 /**
- * Credit SKU catalog — pricing + Razorpay plan IDs.
+ * Credit SKU catalog — Ink pricing, Razorpay plan IDs.
  *
  * Source of truth for the public /pricing page, /billing/plans endpoint, and
- * credit allocation on webhook events. Prices are in INR (paise unit for
- * Razorpay).
+ * ink allocation on webhook events. Prices are in INR (paise for Razorpay).
  *
- * Razorpay plan IDs live in env (one per subscription SKU); top-up SKUs use
- * Razorpay one-off orders and don't need a pre-created plan.
+ * Subscription plan IDs live in env (one per SKU); top-up SKUs use one-off
+ * Razorpay Orders and don't need pre-created plans.
  *
- * Per founder approval 2026-05-12 (mocks: Pricing Design folder).
+ * Ink amounts are in display units (1 Ink = 2 integer units in the ledger).
+ * Callers multiply by 2 before passing to grantSubscriptionInk / grantTopupInk.
  *
- * ---------------------------------------------------------------------------
- * CFO SIGN-OFF — 2026-05-12 — Vikram
- * Verified all 7 SKUs (4 subscription + 3 top-up) against 2026-05-10
- * founder-approved credit-system decisions. All prices and credit grants
- * match. See ./BILLING_SIGNOFF.md for full audit table.
- * Cleared for SCRUM-73 production rollout.
- * ---------------------------------------------------------------------------
+ * Per SCRUM-102 — Ink pricing finalized 2026-06-10 (Pricing Model Finalized doc).
  */
 
 export interface SubscriptionPlanSku {
-  id: 'practice_monthly' | 'practice_yearly' | 'firm_monthly' | 'firm_yearly';
-  tier: 'practice' | 'firm';
+  id: 'solo_monthly' | 'solo_yearly' | 'pro_monthly' | 'pro_yearly';
+  tier: 'solo' | 'pro';
   cycle: 'monthly' | 'yearly';
-  priceInr: number; // total rupees charged per period
-  creditsPerCycle: number; // grants this many subscriptionCredits per renewal
+  priceInr: number;
+  inkPerCycle: number; // Ink display units per renewal (×2 to get ledger units)
   /** Reads from env so the founder can swap Razorpay plans without redeploy. */
   razorpayPlanIdEnvKey:
-    | 'RAZORPAY_PLAN_PRACTICE_MONTHLY'
-    | 'RAZORPAY_PLAN_PRACTICE_YEARLY'
-    | 'RAZORPAY_PLAN_FIRM_MONTHLY'
-    | 'RAZORPAY_PLAN_FIRM_YEARLY';
+    | 'RAZORPAY_PLAN_SOLO_MONTHLY'
+    | 'RAZORPAY_PLAN_SOLO_YEARLY'
+    | 'RAZORPAY_PLAN_PRO_MONTHLY'
+    | 'RAZORPAY_PLAN_PRO_YEARLY';
 }
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlanSku[] = [
   {
-    id: 'practice_monthly',
-    tier: 'practice',
+    id: 'solo_monthly',
+    tier: 'solo',
     cycle: 'monthly',
     priceInr: 799,
-    creditsPerCycle: 80,
-    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_PRACTICE_MONTHLY',
+    inkPerCycle: 50,
+    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_SOLO_MONTHLY',
   },
   {
-    id: 'practice_yearly',
-    tier: 'practice',
+    id: 'solo_yearly',
+    tier: 'solo',
     cycle: 'yearly',
     priceInr: 7990,
-    creditsPerCycle: 80, // monthly drip — same monthly grant
-    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_PRACTICE_YEARLY',
+    inkPerCycle: 50, // monthly drip — same monthly grant per renewal
+    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_SOLO_YEARLY',
   },
   {
-    id: 'firm_monthly',
-    tier: 'firm',
+    id: 'pro_monthly',
+    tier: 'pro',
     cycle: 'monthly',
-    priceInr: 1499,
-    creditsPerCycle: 200,
-    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_FIRM_MONTHLY',
+    priceInr: 1999,
+    inkPerCycle: 150,
+    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_PRO_MONTHLY',
   },
   {
-    id: 'firm_yearly',
-    tier: 'firm',
+    id: 'pro_yearly',
+    tier: 'pro',
     cycle: 'yearly',
-    priceInr: 14990,
-    creditsPerCycle: 200,
-    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_FIRM_YEARLY',
+    priceInr: 19990,
+    inkPerCycle: 150,
+    razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_PRO_YEARLY',
   },
 ];
 
 export interface TopupSku {
-  id: 'topup_20' | 'topup_60' | 'topup_150';
-  credits: number;
+  id: 'topup_mini' | 'topup_mid' | 'topup_max';
+  ink: number; // Ink display units (×2 to get ledger units)
   priceInr: number;
   badge?: 'POPULAR' | 'BEST_VALUE';
-  pricePerCreditInr: number;
+  pricePerInkInr: number;
 }
 
 export const TOPUP_SKUS: TopupSku[] = [
-  { id: 'topup_20', credits: 20, priceInr: 199, pricePerCreditInr: 9.95 },
-  { id: 'topup_60', credits: 60, priceInr: 499, badge: 'POPULAR', pricePerCreditInr: 8.32 },
-  { id: 'topup_150', credits: 150, priceInr: 999, badge: 'BEST_VALUE', pricePerCreditInr: 6.66 },
+  { id: 'topup_mini', ink: 3, priceInr: 65, pricePerInkInr: 21.7 },
+  { id: 'topup_mid', ink: 10, priceInr: 199, badge: 'POPULAR', pricePerInkInr: 19.9 },
+  { id: 'topup_max', ink: 28, priceInr: 499, badge: 'BEST_VALUE', pricePerInkInr: 17.8 },
 ];
 
 export function findSubscriptionPlan(id: string): SubscriptionPlanSku | undefined {
