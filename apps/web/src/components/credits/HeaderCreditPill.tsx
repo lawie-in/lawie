@@ -1,13 +1,6 @@
 'use client';
 
-/**
- * HeaderCreditPill — compact credit balance + tier + "Top up" button.
- *
- * Drops into the dashboard topbar. Design: docs/Pricing Design/Three variants
- * _ free_ practice_ header pill.png (bottom variant).
- */
-
-import { Coins, Plus } from 'lucide-react';
+import { Zap, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import { TopUpModal } from './TopUpModal';
@@ -18,23 +11,23 @@ export function HeaderCreditPill() {
   const { balance, loading } = useCredits();
   const [showTopUp, setShowTopUp] = useState(false);
 
-  if (loading && balance.total === 0) return null;
+  if (loading && balance.totalInk === 0) return null;
 
   const tierLabel =
-    balance.planTier === 'free' ? 'FREE' : balance.planTier === 'practice' ? 'PRACTICE' : 'FIRM';
+    balance.planTier === 'pro' ? 'PRO' : balance.planTier === 'solo' ? 'SOLO' : 'FREE';
   const tierPill =
     balance.planTier === 'free'
       ? 'bg-slate-100 text-slate-600'
-      : balance.planTier === 'practice'
+      : balance.planTier === 'solo'
         ? 'bg-amber-100 text-amber-700'
-        : 'bg-purple-100 text-purple-700';
+        : 'bg-blue-100 text-blue-700';
 
   return (
     <>
       <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white p-1 pl-3 shadow-sm">
-        <Coins size={13} className="text-amber-500" />
-        <span className="font-mono text-sm font-semibold text-slate-800">{balance.total}</span>
-        <span className="text-xs text-slate-500">credits</span>
+        <Zap size={13} className="text-amber-500" />
+        <span className="font-mono text-sm font-semibold text-slate-800">{balance.totalInk}</span>
+        <span className="text-xs text-slate-500">Ink</span>
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tierPill}`}>
           {tierLabel}
         </span>

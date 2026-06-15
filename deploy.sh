@@ -25,6 +25,10 @@ ssh "$SERVER" bash -s << 'ENDSSH'
   echo "  building all services..."
   yarn workspaces run build
 
+  echo "  copying web public assets to standalone..."
+  cp -r apps/web/public/. apps/web/.next/standalone/apps/web/public/
+  cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static 2>/dev/null || true
+
   echo "  reloading pm2..."
   set -a && source .env.production && set +a
   pm2 reload ecosystem.config.js --update-env

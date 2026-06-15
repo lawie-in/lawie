@@ -28,14 +28,14 @@ router.get('/plans', (_req: Request, res: Response) => {
       tier: p.tier,
       cycle: p.cycle,
       priceInr: p.priceInr,
-      creditsPerCycle: p.creditsPerCycle,
+      inkPerCycle: p.inkPerCycle,
     })),
     topups: TOPUP_SKUS.map((t) => ({
       id: t.id,
-      credits: t.credits,
+      ink: t.ink,
       priceInr: t.priceInr,
       badge: t.badge,
-      pricePerCreditInr: t.pricePerCreditInr,
+      pricePerInkInr: t.pricePerInkInr,
     })),
   });
 });
@@ -50,7 +50,10 @@ router.post('/subscribe', authenticate, async (req: Request, res: Response) => {
     const result = await createSubscription(userId, email, planId);
     res.json({ status: 'success', data: result });
   } catch (err) {
-    logger.error({ err: err instanceof Error ? err.message : err }, 'Failed to create subscription');
+    logger.error(
+      { err: err instanceof Error ? err.message : err },
+      'Failed to create subscription',
+    );
     res.status(500).json({
       error: err instanceof Error ? err.message : 'Failed to create subscription',
     });
@@ -59,11 +62,11 @@ router.post('/subscribe', authenticate, async (req: Request, res: Response) => {
 
 // ── POST /topup/order — create a one-off Razorpay order for a top-up SKU ─────
 //
-// Body: { skuId: 'topup_20' | 'topup_60' | 'topup_150' }
-// Response: { orderId, amountInr, credits, razorpayKeyId } so the frontend can
+// Body: { skuId: 'topup_mini' | 'topup_mid' | 'topup_max' }
+// Response: { orderId, amountInr, ink, razorpayKeyId } so the frontend can
 // hand the orderId to Razorpay Checkout SDK.
 router.post('/topup/order', authenticate, async (req: Request, res: Response) => {
-  const { sub: userId, email } = req.jwtPayload!;
+  const { sub: userId } = req.jwtPayload!;
   const { skuId } = req.body as { skuId?: string };
 
   const sku = findTopupSku(String(skuId ?? ''));
@@ -77,8 +80,8 @@ router.post('/topup/order', authenticate, async (req: Request, res: Response) =>
     const order = await (razorpay.orders.create as any)({
       amount: sku.priceInr * 100, // paise
       currency: 'INR',
-      receipt: `topup-${userId}-${Date.now()}`,
-      notes: { userId, email, skuId: sku.id, credits: sku.credits },
+      receipt: `topup_${sku.id}_${userId.slice(-8)}_${Date.now().toString().slice(-8)}`,
+      notes: { sku_id: sku.id, user_id: userId, ink: sku.ink },
     });
 
     res.json({
@@ -86,13 +89,16 @@ router.post('/topup/order', authenticate, async (req: Request, res: Response) =>
       data: {
         orderId: order.id,
         amountInr: sku.priceInr,
-        credits: sku.credits,
+        ink: sku.ink,
         skuId: sku.id,
         razorpayKeyId: process.env.RAZORPAY_KEY_ID,
       },
     });
   } catch (err) {
-    logger.error({ err: err instanceof Error ? err.message : err }, 'Failed to create top-up order');
+    logger.error(
+      { err: err instanceof Error ? err.message : err },
+      'Failed to create top-up order',
+    );
     res.status(500).json({ error: 'Failed to create top-up order' });
   }
 });
@@ -109,7 +115,7 @@ router.get('/plan/:id', (req: Request, res: Response) => {
     tier: plan.tier,
     cycle: plan.cycle,
     priceInr: plan.priceInr,
-    creditsPerCycle: plan.creditsPerCycle,
+    inkPerCycle: plan.inkPerCycle,
   });
 });
 
