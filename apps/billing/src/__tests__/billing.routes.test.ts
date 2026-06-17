@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 import { User } from '../models/User.model';
 import { Subscription } from '../models/Subscription.model';
+import * as subscriptionService from '../services/subscription.service';
 
 // Mock Razorpay SDK
 jest.mock('../config/razorpay', () => ({
@@ -61,7 +62,7 @@ describe('Billing Routes', () => {
       expect(res.body.topups).toHaveLength(3);
       expect(res.body.subscriptions[0]).toHaveProperty('id');
       expect(res.body.subscriptions[0]).toHaveProperty('priceInr');
-      expect(res.body.topups[0]).toHaveProperty('credits');
+      expect(res.body.topups[0]).toHaveProperty('ink');
     });
   });
 
@@ -69,10 +70,10 @@ describe('Billing Routes', () => {
 
   describe('GET /plan/:id', () => {
     it('returns plan details for valid id', async () => {
-      const res = await request(app).get('/plan/practice_monthly');
+      const res = await request(app).get('/plan/solo_monthly');
       expect(res.status).toBe(200);
-      expect(res.body.id).toBe('practice_monthly');
-      expect(res.body.tier).toBe('practice');
+      expect(res.body.id).toBe('solo_monthly');
+      expect(res.body.tier).toBe('solo');
       expect(res.body.priceInr).toBe(799);
     });
 
@@ -108,11 +109,11 @@ describe('Billing Routes', () => {
         create: jest.fn().mockResolvedValue({ id: 'order_test123' }),
       };
 
-      const res = await request(app).post('/topup/order').set(headers).send({ skuId: 'topup_60' });
+      const res = await request(app).post('/topup/order').set(headers).send({ skuId: 'topup_max' });
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('success');
       expect(res.body.data.orderId).toBe('order_test123');
-      expect(res.body.data.credits).toBe(60);
+      expect(res.body.data.ink).toBe(28);
       expect(res.body.data.amountInr).toBe(499);
     });
 
@@ -124,7 +125,10 @@ describe('Billing Routes', () => {
         create: jest.fn().mockRejectedValue(new Error('Razorpay down')),
       };
 
-      const res = await request(app).post('/topup/order').set(headers).send({ skuId: 'topup_20' });
+      const res = await request(app)
+        .post('/topup/order')
+        .set(headers)
+        .send({ skuId: 'topup_mini' });
       expect(res.status).toBe(500);
       expect(res.body.error).toBe('Failed to create top-up order');
     });
@@ -160,6 +164,24 @@ describe('Billing Routes', () => {
       expect(res.body.data.subscriptionId).toBe('sub_route_test');
       expect(res.body.data.shortUrl).toBe('https://rzp.io/route-test');
     });
+
+    it('returns 500 when subscription creation throws', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const headers = internalHeaders({ sub: userId, email: 'test@example.com', name: 'Test' });
+      (razorpay.subscriptions.create as jest.Mock).mockRejectedValueOnce(
+        new Error('Razorpay down'),
+      );
+      const res = await request(app).post('/subscribe').set(headers);
+      expect(res.status).toBe(500);
+    });
+
+    it('returns 401 when internal secret is present but x-user-id is missing', async () => {
+      const res = await request(app)
+        .post('/subscribe')
+        .set('x-internal-secret', process.env.INTERNAL_SECRET!);
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('Missing user context');
+    });
   });
 
   // ─── GET /status ──────────────────────────────────────────────────────
@@ -183,6 +205,17 @@ describe('Billing Routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.plan).toBe('free');
       expect(res.body.data.status).toBeNull();
+    });
+
+    it('returns 500 when status lookup throws', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      const headers = internalHeaders({ sub: userId, email: 'err@test.com', name: 'Err' });
+      jest
+        .spyOn(subscriptionService, 'getSubscriptionStatus')
+        .mockRejectedValueOnce(new Error('DB error'));
+      const res = await request(app).get('/status').set(headers);
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('Failed to get subscription status');
     });
   });
 
@@ -208,6 +241,26 @@ describe('Billing Routes', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('Invalid signature');
+    });
+
+    it('returns 200 even when async handler rejects', async () => {
+      jest
+        .spyOn(subscriptionService, 'handleWebhookEvent')
+        .mockRejectedValueOnce(new Error('handler boom'));
+
+      const body = JSON.stringify({ event: 'subscription.activated', payload: {} });
+      const signature = crypto.createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');
+
+      const res = await request(app)
+        .post('/webhook/razorpay')
+        .type('json')
+        .set('x-razorpay-signature', signature)
+        .send(body);
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('ok');
+      // give the async catch a tick to execute
+      await new Promise((r) => setTimeout(r, 20));
     });
 
     it('returns 200 and processes valid webhook event', async () => {

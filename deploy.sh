@@ -15,6 +15,9 @@ ssh "$SERVER" bash -s << 'ENDSSH'
   echo "  git pull..."
   git pull origin main
 
+  echo "  loading env..."
+  set -a && source .env.production && set +a
+
   echo "  installing dependencies..."
   yarn install --frozen-lockfile
 
@@ -30,7 +33,6 @@ ssh "$SERVER" bash -s << 'ENDSSH'
   cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static 2>/dev/null || true
 
   echo "  reloading pm2..."
-  set -a && source .env.production && set +a
   pm2 reload ecosystem.config.js --update-env
 
   echo "  done."
