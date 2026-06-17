@@ -1,6 +1,6 @@
 'use client';
 
-import { Zap, Loader2, X } from 'lucide-react';
+import { CheckCircle2, Loader2, Tag, Zap, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { notifyCreditsChanged } from '@/hooks/useCredits';
@@ -38,6 +38,16 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Coupon state
+  const [couponInput, setCouponInput] = useState('');
+  const [couponValidating, setCouponValidating] = useState(false);
+  const [coupon, setCoupon] = useState<{
+    code: string;
+    discountInr: number;
+    finalPriceInr: number;
+  } | null>(null);
+  const [couponError, setCouponError] = useState('');
+
   useEffect(() => {
     (async () => {
       const res = await apiFetch('/api/billing/plans');
@@ -50,6 +60,33 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
 
   const selected = skus.find((s) => s.id === selectedId);
 
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponValidating(true);
+    setCouponError('');
+    setCoupon(null);
+    try {
+      const code = couponInput.trim().toUpperCase();
+      const res = await apiFetch(`/api/billing/validate-coupon/${code}?skuId=${selectedId}`);
+      const body = await res.json();
+      if (!body.valid) {
+        setCouponError(body.reason ?? 'Invalid coupon.');
+      } else if (body.finalPriceInr === null || body.finalPriceInr === undefined) {
+        setCouponError('Coupon cannot be applied to this item.');
+      } else {
+        setCoupon({
+          code: body.code,
+          discountInr: body.discountInr ?? 0,
+          finalPriceInr: body.finalPriceInr,
+        });
+      }
+    } catch {
+      setCouponError('Could not validate coupon. Try again.');
+    } finally {
+      setCouponValidating(false);
+    }
+  };
+
   const handlePurchase = async () => {
     if (!selected) return;
     setSubmitting(true);
@@ -58,7 +95,10 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
       const orderRes = await apiFetch('/api/billing/topup/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ skuId: selected.id }),
+        body: JSON.stringify({
+          skuId: selected.id,
+          ...(coupon ? { couponCode: coupon.code } : {}),
+        }),
       });
       if (!orderRes.ok) {
         const body = await orderRes.json();
@@ -81,7 +121,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
       }
       const rzp = new window.Razorpay({
         key: order.razorpayKeyId,
-        amount: order.amountInr * 100,
+        amount: order.amountInr * 100, // server already applied discount
         currency: 'INR',
         name: 'Lawie',
         description: `${order.ink} Ink top-up`,
@@ -154,7 +194,11 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
             <button
               key={sku.id}
               type="button"
-              onClick={() => setSelectedId(sku.id)}
+              onClick={() => {
+                setSelectedId(sku.id);
+                setCoupon(null);
+                setCouponError('');
+              }}
               className={`flex w-full items-center gap-4 rounded-xl border p-4 text-left transition ${
                 selectedId === sku.id
                   ? 'border-amber-400 bg-amber-50/50 ring-2 ring-amber-300/40'
@@ -200,16 +244,83 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
+        {/* Coupon input */}
+        <div className="border-t border-slate-100 px-6 pb-4 pt-3">
+          {coupon ? (
+            <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+              <div className="flex items-center gap-2 text-sm text-green-800">
+                <CheckCircle2 size={14} className="text-green-500" />
+                <span className="font-semibold">{coupon.code}</span>
+                <span className="text-green-600">− ₹{coupon.discountInr}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCoupon(null);
+                  setCouponInput('');
+                }}
+                className="text-green-600 hover:text-green-800"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Tag
+                  size={12}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="text"
+                  value={couponInput}
+                  onChange={(e) => {
+                    setCouponInput(e.target.value.toUpperCase());
+                    setCouponError('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleApplyCoupon();
+                  }}
+                  placeholder="Coupon code (optional)"
+                  maxLength={20}
+                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleApplyCoupon()}
+                disabled={couponValidating || !couponInput.trim()}
+                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                {couponValidating ? <Loader2 size={12} className="animate-spin" /> : 'Apply'}
+              </button>
+            </div>
+          )}
+          {couponError && <p className="mt-1.5 text-xs text-red-600">{couponError}</p>}
+        </div>
+
         {/* Footer: total + CTA */}
         <footer className="flex items-center justify-between rounded-b-2xl border-t border-slate-100 bg-slate-50 px-6 py-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
               You&apos;ll pay
             </p>
-            <p className="font-mono text-2xl font-bold text-slate-900">
-              ₹{selected?.priceInr ?? 0}{' '}
-              <span className="text-xs font-normal text-slate-500">incl. GST</span>
-            </p>
+            {coupon && selected ? (
+              <div className="flex items-baseline gap-2">
+                <p className="font-mono text-2xl font-bold text-slate-900">
+                  ₹{coupon.finalPriceInr}{' '}
+                  <span className="text-xs font-normal text-slate-500">incl. GST</span>
+                </p>
+                <p className="font-mono text-sm text-slate-400 line-through">
+                  ₹{selected.priceInr}
+                </p>
+              </div>
+            ) : (
+              <p className="font-mono text-2xl font-bold text-slate-900">
+                ₹{selected?.priceInr ?? 0}{' '}
+                <span className="text-xs font-normal text-slate-500">incl. GST</span>
+              </p>
+            )}
           </div>
           <button
             type="button"

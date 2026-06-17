@@ -10,7 +10,7 @@
  * Design: docs/Admin Panel Design/Code generation _ ledger with usage bars.png
  */
 
-import { CheckCircle2, Copy, Loader2, PlusCircle, Search } from 'lucide-react';
+import { CheckCircle2, Copy, Loader2, Pencil, PlusCircle, Save, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -42,6 +42,13 @@ export default function ReferralCodesPage() {
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
+
+  // Inline edit state
+  const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState('');
+  const [editExpiresAt, setEditExpiresAt] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   // Filter + search
   const [tab, setTab] = useState<Tab>('all');
@@ -119,6 +126,48 @@ export default function ReferralCodesPage() {
     void navigator.clipboard.writeText(code);
     setCopied(code);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const startEdit = (rc: ReferralCodeRow) => {
+    setEditingCode(rc.code);
+    setEditLabel(rc.label ?? '');
+    setEditExpiresAt(rc.expiresAt ? rc.expiresAt.slice(0, 10) : '');
+    setEditError('');
+  };
+
+  const cancelEdit = () => {
+    setEditingCode(null);
+    setEditLabel('');
+    setEditExpiresAt('');
+    setEditError('');
+  };
+
+  const saveEdit = async (code: string) => {
+    setEditSaving(true);
+    setEditError('');
+    try {
+      const body: Record<string, unknown> = { label: editLabel.trim() || undefined };
+      if (editExpiresAt) body.expiresAt = new Date(editExpiresAt).toISOString();
+      else body.expiresAt = null;
+
+      const res = await apiFetch(`/api/auth/admin/referral-codes/${code}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setCodes((prev) => prev.map((c) => (c.code === code ? { ...c, ...updated } : c)));
+        cancelEdit();
+      } else {
+        const data = await res.json();
+        setEditError(data.error ?? 'Save failed.');
+      }
+    } catch {
+      setEditError('Network error.');
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   // ── Filter ──────────────────────────────────────────────────────────────
@@ -303,7 +352,20 @@ export default function ReferralCodesPage() {
                         </button>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{rc.label ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      {editingCode === rc.code ? (
+                        <input
+                          type="text"
+                          value={editLabel}
+                          onChange={(e) => setEditLabel(e.target.value)}
+                          maxLength={100}
+                          autoFocus
+                          className="w-full rounded border border-amber-300 px-2 py-1 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        />
+                      ) : (
+                        <span className="text-slate-600">{rc.label ?? '—'}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="h-1 w-20 overflow-hidden rounded-full bg-slate-100">
@@ -324,13 +386,22 @@ export default function ReferralCodesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center text-xs text-slate-400">
-                      {rc.expiresAt
-                        ? new Date(rc.expiresAt).toLocaleDateString('en-IN', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })
-                        : '—'}
+                      {editingCode === rc.code ? (
+                        <input
+                          type="date"
+                          value={editExpiresAt}
+                          onChange={(e) => setEditExpiresAt(e.target.value)}
+                          className="rounded border border-amber-300 px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        />
+                      ) : rc.expiresAt ? (
+                        new Date(rc.expiresAt).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      ) : (
+                        '—'
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {rc.isActive ? (
@@ -351,14 +422,54 @@ export default function ReferralCodesPage() {
                       })}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {rc.isActive && (
-                        <button
-                          type="button"
-                          onClick={() => handleDisable(rc.code)}
-                          className="text-xs font-medium text-red-500 hover:text-red-700"
-                        >
-                          Disable
-                        </button>
+                      {editingCode === rc.code ? (
+                        <div className="flex items-center justify-end gap-2">
+                          {editError && (
+                            <span className="text-[11px] text-red-500">{editError}</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => saveEdit(rc.code)}
+                            disabled={editSaving}
+                            className="flex items-center gap-1 rounded bg-slate-900 px-2 py-1 text-[11px] font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+                          >
+                            {editSaving ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : (
+                              <Save size={11} />
+                            )}
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            disabled={editSaving}
+                            className="flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                          >
+                            <X size={11} />
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(rc)}
+                            className="text-slate-400 hover:text-slate-700"
+                            title="Edit label or expiry"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          {rc.isActive && (
+                            <button
+                              type="button"
+                              onClick={() => handleDisable(rc.code)}
+                              className="text-xs font-medium text-red-500 hover:text-red-700"
+                            >
+                              Disable
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>

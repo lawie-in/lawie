@@ -4,7 +4,9 @@ import express from 'express';
 import helmet from 'helmet';
 
 import logger from './config/logger';
+import adminDocumentsRoutes from './routes/admin-documents.routes';
 import adminOverviewRoutes from './routes/admin-overview.routes';
+import adminUsersRoutes from './routes/admin-users.routes';
 import appSettingsRoutes from './routes/app-settings.routes';
 import courtsRoutes from './routes/courts.routes';
 import creditsRoutes from './routes/credits.routes';
@@ -33,6 +35,8 @@ app.use('/', internalRoutes);
 app.use('/', appSettingsRoutes);
 app.use('/', creditsRoutes);
 app.use('/', adminOverviewRoutes);
+app.use('/', adminUsersRoutes);
+app.use('/', adminDocumentsRoutes);
 app.use('/', reviewRoutes);
 app.use('/', documentsRoutes);
 

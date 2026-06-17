@@ -7,6 +7,8 @@ import passport from 'passport';
 import { env } from './config/env';
 import { initPassport } from './config/passport';
 import { errorHandler } from './middleware/errorHandler';
+import adminAuditRoutes from './routes/admin-audit.routes';
+import adminUsersRoutes from './routes/admin-users.routes';
 import authRoutes from './routes/auth.routes';
 import oauthRoutes from './routes/oauth.routes';
 import referralRoutes from './routes/referral.routes';
@@ -36,6 +38,8 @@ app.get('/health', (_req, res) => {
 app.use('/', authRoutes);
 app.use('/', oauthRoutes);
 app.use('/', referralRoutes);
+app.use('/', adminUsersRoutes);
+app.use('/', adminAuditRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found', service: 'auth' });

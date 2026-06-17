@@ -238,6 +238,20 @@ app.use(
   }),
 );
 
+// ── Admin + drafting service catch-all ─────────────────────────────────────
+// Covers /api/drafting/admin/* (overview KPIs, credits ledger, panel review,
+// app-settings, review-tokens) and any future drafting endpoints that don't
+// have a dedicated /api/<resource> entry above.
+// Express strips '/api/drafting' from req.url before handing to the proxy,
+// so '/api/drafting/admin/overview/kpis' reaches drafting as '/admin/overview/kpis' —
+// which matches the app.use('/', adminOverviewRoutes) mount in drafting/app.ts.
+app.use(
+  '/api/drafting',
+  ...authChain,
+  planRateLimiter,
+  createAuthenticatedProxy(env.DRAFTING_SERVICE_URL),
+);
+
 // ── Sentry error handler ────────────────────────────────────────────────────
 Sentry.setupExpressErrorHandler(app);
 

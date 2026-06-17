@@ -16,7 +16,20 @@
  * caller isn't an admin so the contained page never has to repeat the gate.
  */
 
-import { AlertTriangle, Coins, Home, Loader2, Settings2, ShieldCheck, Tag } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpen,
+  Coins,
+  FileText,
+  Home,
+  Loader2,
+  Settings2,
+  ShieldCheck,
+  Tag,
+  Ticket,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -25,16 +38,25 @@ import { useAuth } from '@/context/AuthContext';
 interface NavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  group: 'workspace' | 'founder';
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
+  group: 'workspace' | 'monetisation' | 'tools';
 }
 
 const NAV: NavItem[] = [
+  // WORKSPACE
   { href: '/admin', label: 'Overview', icon: Home, group: 'workspace' },
-  { href: '/admin/referral-codes', label: 'Referral codes', icon: Tag, group: 'founder' },
-  { href: '/admin/panel-review', label: 'Panel review', icon: ShieldCheck, group: 'founder' },
-  { href: '/admin/ai-config', label: 'AI configuration', icon: Settings2, group: 'founder' },
-  { href: '/admin/credit-ledger', label: 'Credit ledger', icon: Coins, group: 'founder' },
+  { href: '/admin/users', label: 'Users', icon: Users, group: 'workspace' },
+  { href: '/admin/documents', label: 'Documents', icon: FileText, group: 'workspace' },
+  // MONETISATION
+  { href: '/admin/referral-codes', label: 'Referral codes', icon: Tag, group: 'monetisation' },
+  { href: '/admin/coupons', label: 'Coupon codes', icon: Ticket, group: 'monetisation' },
+  { href: '/admin/subscriptions', label: 'Subscriptions', icon: BookOpen, group: 'monetisation' },
+  { href: '/admin/revenue', label: 'Revenue', icon: TrendingUp, group: 'monetisation' },
+  // TOOLS
+  { href: '/admin/credit-ledger', label: 'Ink ledger', icon: Coins, group: 'tools' },
+  { href: '/admin/panel-review', label: 'Panel review', icon: ShieldCheck, group: 'tools' },
+  { href: '/admin/ai-config', label: 'AI configuration', icon: Settings2, group: 'tools' },
+  { href: '/admin/audit-log', label: 'Audit log', icon: ShieldCheck, group: 'tools' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -79,7 +101,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const workspaceItems = NAV.filter((n) => n.group === 'workspace');
-  const founderItems = NAV.filter((n) => n.group === 'founder');
+  const monetisationItems = NAV.filter((n) => n.group === 'monetisation');
+  const toolItems = NAV.filter((n) => n.group === 'tools');
 
   const isActive = (href: string) =>
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
@@ -102,9 +125,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </span>
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-semibold">Lawie</span>
-            <span className="text-[10px] font-medium tracking-[0.18em] text-amber-300">
-              ADMIN
-            </span>
+            <span className="text-[10px] font-medium tracking-[0.18em] text-amber-300">ADMIN</span>
           </div>
         </div>
 
@@ -114,8 +135,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <SidebarLink key={it.href} item={it} active={isActive(it.href)} />
             ))}
           </SidebarGroup>
-          <SidebarGroup title="FOUNDER TOOLS">
-            {founderItems.map((it) => (
+          <SidebarGroup title="MONETISATION">
+            {monetisationItems.map((it) => (
+              <SidebarLink key={it.href} item={it} active={isActive(it.href)} />
+            ))}
+          </SidebarGroup>
+          <SidebarGroup title="TOOLS">
+            {toolItems.map((it) => (
               <SidebarLink key={it.href} item={it} active={isActive(it.href)} />
             ))}
           </SidebarGroup>
@@ -135,20 +161,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* ── Main pane ──────────────────────────────────────────────────── */}
-      <main className="flex-1 min-w-0">
+      <main className="min-w-0 flex-1">
         <div className="mx-auto max-w-6xl px-8 py-8">{children}</div>
       </main>
     </div>
   );
 }
 
-function SidebarGroup({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function SidebarGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-4">
       <div className="px-3 pb-1 pt-2 text-[10px] font-medium tracking-[0.15em] text-slate-500">

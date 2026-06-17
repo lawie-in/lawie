@@ -4,7 +4,9 @@ import express from 'express';
 import helmet from 'helmet';
 
 import logger from './config/logger';
+import adminBillingRoutes from './routes/admin-billing.routes';
 import billingRoutes from './routes/billing.routes';
+import couponRoutes from './routes/coupon.routes';
 
 const app = express();
 
@@ -23,6 +25,8 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/', billingRoutes);
+app.use('/', adminBillingRoutes);
+app.use('/', couponRoutes);
 
 Sentry.setupExpressErrorHandler(app);
 

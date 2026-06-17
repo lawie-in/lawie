@@ -97,7 +97,7 @@ export async function grantReferralInk(
         delta: inkUnits,
         reason: 'referral_bonus',
         sourceBucket: 'topup',
-        balanceAfter: updated.inkTopup ?? inkUnits,
+        balanceAfter: (updated as Record<string, unknown>)['inkTopup'] ?? inkUnits,
         reference: referralCode,
         metadata: { referralCode, bonusInk },
         createdAt: new Date(),
