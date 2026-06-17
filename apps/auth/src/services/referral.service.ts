@@ -2,13 +2,8 @@
  * Referral service — SCRUM-71
  *
  * Generates and manages founder-issued referral codes.
- * A valid code at signup: increments code.uses + sets user.freeTierBonusGrant = 25.
- *
- * Code format: 8-char uppercase alphanumeric (e.g. "LWPATNA1").
- * maxUses: default null (unlimited). Founder can cap per-code.
- *
- * Bonus grants are propagated to the drafting service via an internal HTTP call
- * (POST /internal/grant-bonus) so the drafting tier-check can deduct bonus first.
+ * Each code carries its own bonusInk offer and optional expiresAt window.
+ * On signup: increments code.uses, grants bonusInk Ink into user.inkTopup.
  */
 import crypto from 'crypto';
 
@@ -17,9 +12,7 @@ import mongoose from 'mongoose';
 import { IReferralCode, ReferralCode } from '../models/ReferralCode.model';
 import { User } from '../models/User.model';
 
-import { grantReferralSignupBonus } from './credit-bonus.service';
-
-export const REFERRAL_BONUS_DRAFTS = 25;
+import { grantReferralInk } from './credit-bonus.service';
 
 // ── Code generation ───────────────────────────────────────────────────────────
 
@@ -34,7 +27,12 @@ function randomCode(): string {
 
 export async function generateReferralCode(
   founderId: string,
-  options: { label?: string; maxUses?: number | null } = {},
+  options: {
+    label?: string;
+    maxUses?: number | null;
+    bonusInk?: number;
+    expiresAt?: Date | null;
+  } = {},
 ): Promise<IReferralCode> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = randomCode();
@@ -44,6 +42,8 @@ export async function generateReferralCode(
         label: options.label,
         createdBy: new mongoose.Types.ObjectId(founderId),
         maxUses: options.maxUses ?? null,
+        bonusInk: options.bonusInk ?? 5,
+        expiresAt: options.expiresAt ?? null,
       });
       return created;
     } catch (err: unknown) {
@@ -58,12 +58,13 @@ export async function generateReferralCode(
 // ── Lookup ────────────────────────────────────────────────────────────────────
 
 /**
- * Validate a code: returns the ReferralCode if active + not exhausted, else null.
+ * Validate a code: returns the ReferralCode if active, not exhausted, and not expired, else null.
  */
 export async function validateReferralCode(code: string): Promise<IReferralCode | null> {
   const rc = await ReferralCode.findOne({ code: code.toUpperCase(), isActive: true }).lean();
   if (!rc) return null;
   if (rc.maxUses !== null && rc.uses >= rc.maxUses) return null;
+  if (rc.expiresAt && rc.expiresAt < new Date()) return null;
   return rc as unknown as IReferralCode;
 }
 
@@ -85,38 +86,28 @@ export async function disableReferralCode(code: string): Promise<IReferralCode |
 
 /**
  * Apply a referral code to a newly created user.
- * - Increments code.uses atomically
- * - Sets user.referredVia + user.freeTierBonusGrant = REFERRAL_BONUS_DRAFTS
- * - Calls drafting service internal endpoint to pre-load bonus grants there
+ * - Atomically increments code.uses
+ * - Links user.referredVia to the code
+ * - Grants rc.bonusInk Ink into user.inkTopup + writes inkledger row
+ * - Signals drafting service for legacy enforceFreeLimit compat
  *
  * Non-blocking — caller should not await if they don't want to delay the response.
  */
 export async function applyReferralCode(userId: string, code: string): Promise<void> {
   const rc = await validateReferralCode(code);
-  if (!rc) return; // code invalid/exhausted — silently ignore
+  if (!rc) return; // code invalid/exhausted/expired — silently ignore
 
-  // Atomically increment uses (idempotent: won't double-apply)
-  await ReferralCode.findOneAndUpdate(
-    { _id: rc._id, isActive: true },
-    { $inc: { uses: 1 } },
-  );
+  // Atomically increment uses
+  await ReferralCode.findOneAndUpdate({ _id: rc._id, isActive: true }, { $inc: { uses: 1 } });
 
-  // Update user record — link referral + keep legacy field for back-compat
-  await User.findByIdAndUpdate(userId, {
-    $set: {
-      referredVia: rc._id,
-      freeTierBonusGrant: REFERRAL_BONUS_DRAFTS,
-    },
-  });
+  // Link referral on user record
+  await User.findByIdAndUpdate(userId, { $set: { referredVia: rc._id } });
 
-  // SCRUM-73 — also grant credits into the new earnedCredits bucket + write a
-  // ledger row, so the founder credit dashboard counts referral signups.
-  await grantReferralSignupBonus(userId, rc.code);
+  // Grant Ink into inkTopup + set freeTierBonusGrant for legacy middleware
+  await grantReferralInk(userId, rc.bonusInk ?? 5, rc.code);
 
-  // Signal drafting service to pre-load BonusCredit grants (legacy path used
-  // by enforceFreeLimit before SCRUM-73 — kept until the legacy middleware is
-  // removed).
-  void signalDraftingBonus(userId, REFERRAL_BONUS_DRAFTS);
+  // Signal drafting service to pre-load BonusCredit grants (legacy enforceFreeLimit path)
+  void signalDraftingBonus(userId, (rc.bonusInk ?? 5) * 5);
 }
 
 async function signalDraftingBonus(userId: string, bonus: number): Promise<void> {

@@ -39,17 +39,29 @@ router.post(
   authenticate,
   requireAdmin,
   async (req: Request, res: Response): Promise<void> => {
-    const { label, maxUses } = req.body as { label?: string; maxUses?: number | null };
+    const { label, maxUses, bonusInk, expiresAt } = req.body as {
+      label?: string;
+      maxUses?: number | null;
+      bonusInk?: number;
+      expiresAt?: string | null;
+    };
     const founderId = req.jwtPayload!.sub;
 
     try {
-      const rc = await generateReferralCode(founderId, { label, maxUses });
+      const rc = await generateReferralCode(founderId, {
+        label,
+        maxUses,
+        bonusInk,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      });
       res.status(201).json({
         code: rc.code,
         label: rc.label,
         isActive: rc.isActive,
         maxUses: rc.maxUses,
         uses: rc.uses,
+        bonusInk: rc.bonusInk,
+        expiresAt: rc.expiresAt ?? null,
         createdAt: rc.createdAt,
       });
     } catch (err) {
@@ -75,6 +87,8 @@ router.get(
         isActive: rc.isActive,
         maxUses: rc.maxUses,
         uses: rc.uses,
+        bonusInk: rc.bonusInk ?? 5,
+        expiresAt: rc.expiresAt ?? null,
         createdAt: rc.createdAt,
       })),
     });
@@ -117,7 +131,7 @@ router.get(
     res.json({
       valid: true,
       label: rc.label,
-      bonusDrafts: 25,
+      bonusInk: rc.bonusInk ?? 5,
     });
   },
 );

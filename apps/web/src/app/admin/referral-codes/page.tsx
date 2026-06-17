@@ -22,6 +22,8 @@ interface ReferralCodeRow {
   isActive: boolean;
   maxUses: number | null;
   uses: number;
+  bonusInk: number;
+  expiresAt: string | null;
   createdAt: string;
 }
 
@@ -35,6 +37,8 @@ export default function ReferralCodesPage() {
   // Generate
   const [label, setLabel] = useState('');
   const [maxUses, setMaxUses] = useState('');
+  const [bonusInk, setBonusInk] = useState('5');
+  const [expiresAt, setExpiresAt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
@@ -72,6 +76,8 @@ export default function ReferralCodesPage() {
       const body: Record<string, unknown> = {};
       if (label.trim()) body.label = label.trim();
       if (maxUses.trim()) body.maxUses = parseInt(maxUses, 10);
+      body.bonusInk = bonusInk.trim() ? parseInt(bonusInk, 10) : 5;
+      if (expiresAt.trim()) body.expiresAt = new Date(expiresAt).toISOString();
 
       const res = await apiFetch('/api/auth/admin/referral-codes', {
         method: 'POST',
@@ -83,6 +89,8 @@ export default function ReferralCodesPage() {
         setCodes((prev) => [newCode, ...prev]);
         setLabel('');
         setMaxUses('');
+        setBonusInk('5');
+        setExpiresAt('');
       } else {
         const data = await res.json();
         setGenError(data.error ?? 'Failed to generate code');
@@ -135,7 +143,7 @@ export default function ReferralCodesPage() {
     <div>
       <AdminPageHeader
         title="Referral codes"
-        eyebrow="Each redeemed code grants 25 bonus drafts"
+        eyebrow="Each code carries a configurable Ink bonus granted on signup"
       >
         <button
           type="button"
@@ -163,7 +171,7 @@ export default function ReferralCodesPage() {
             8-char uppercase
           </span>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_220px_120px]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_140px_100px_160px_120px]">
           <input
             id="referral-gen-label"
             type="text"
@@ -175,10 +183,25 @@ export default function ReferralCodesPage() {
           />
           <input
             type="number"
-            placeholder="Max uses (blank = ∞)"
+            placeholder="Bonus Ink (default 5)"
+            value={bonusInk}
+            onChange={(e) => setBonusInk(e.target.value)}
+            min={1}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+          />
+          <input
+            type="number"
+            placeholder="Max uses (∞)"
             value={maxUses}
             onChange={(e) => setMaxUses(e.target.value)}
             min={1}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+          />
+          <input
+            type="date"
+            placeholder="Expires (optional)"
+            value={expiresAt}
+            onChange={(e) => setExpiresAt(e.target.value)}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
           />
           <button
@@ -201,9 +224,7 @@ export default function ReferralCodesPage() {
               key={t}
               onClick={() => setTab(t)}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                tab === t
-                  ? 'bg-slate-900 text-white'
-                  : 'text-slate-600 hover:bg-slate-200'
+                tab === t ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-200'
               }`}
             >
               {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -250,6 +271,8 @@ export default function ReferralCodesPage() {
                 <th className="px-4 py-3">Label</th>
                 <th className="px-4 py-3">Signups</th>
                 <th className="px-4 py-3 text-center">Cap</th>
+                <th className="px-4 py-3 text-center">Bonus</th>
+                <th className="px-4 py-3 text-center">Expires</th>
                 <th className="px-4 py-3 text-center">Status</th>
                 <th className="px-4 py-3">Created</th>
                 <th className="px-4 py-3" />
@@ -294,8 +317,20 @@ export default function ReferralCodesPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center text-slate-500">
-                      {rc.maxUses ?? '∞'}
+                    <td className="px-4 py-3 text-center text-slate-500">{rc.maxUses ?? '∞'}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                        {rc.bonusInk ?? 5} Ink
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs text-slate-400">
+                      {rc.expiresAt
+                        ? new Date(rc.expiresAt).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : '—'}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {rc.isActive ? (

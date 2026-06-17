@@ -18,7 +18,6 @@ import mongoose from 'mongoose';
 import { User } from '../models/User.model';
 
 export const DAILY_LOGIN_BONUS = 2;
-export const REFERRAL_SIGNUP_BONUS = 25;
 // Free credits given to every new user on signup — change this to adjust the grant.
 // Flipped 10 → 5 per founder direction 2026-05-26 (SCRUM-100). Second 5 unlocks
 // after user submits a review (SCRUM-101).
@@ -65,33 +64,53 @@ export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
 }
 
 /**
- * Grant the referral signup bonus to a freshly-created user.
- * Returns the amount granted (always REFERRAL_SIGNUP_BONUS or 0 on failure).
+ * Grant referral Ink to a newly-signed-up user.
+ * Grants bonusInk × 2 ledger units into inkTopup (non-expiring).
+ * Also sets freeTierBonusGrant = bonusInk × 5 for legacy enforceFreeLimit compat.
+ * Returns ink units granted (0 on failure).
  */
-export async function grantReferralSignupBonus(
+export async function grantReferralInk(
   userId: string,
+  bonusInk: number,
   referralCode: string,
 ): Promise<number> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
 
+  const inkUnits = bonusInk * 2;
+  const freeTierBonus = bonusInk * 5;
+
   const updated = await User.findByIdAndUpdate(
     new mongoose.Types.ObjectId(userId),
-    { $inc: { earnedCredits: REFERRAL_SIGNUP_BONUS } },
+    {
+      $inc: { inkTopup: inkUnits },
+      $set: { freeTierBonusGrant: freeTierBonus },
+    },
     { new: true },
   ).lean();
   if (!updated) return 0;
 
-  await writeLedgerRow({
-    userId,
-    source: 'signup_bonus',
-    bucket: 'earnedCredits',
-    amount: REFERRAL_SIGNUP_BONUS,
-    balanceAfter: updated.earnedCredits ?? REFERRAL_SIGNUP_BONUS,
-    reference: `Referral signup (${referralCode})`,
-    metadata: { referralCode },
-  });
+  const conn = mongoose.connection;
+  if (conn.db) {
+    try {
+      await conn.db.collection('inkledger').insertOne({
+        userId: new mongoose.Types.ObjectId(userId),
+        delta: inkUnits,
+        reason: 'referral_bonus',
+        sourceBucket: 'topup',
+        balanceAfter: updated.inkTopup ?? inkUnits,
+        reference: referralCode,
+        metadata: { referralCode, bonusInk },
+        createdAt: new Date(),
+      });
+    } catch (err) {
+      console.warn(
+        '[auth] referral ink ledger insert failed:',
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
 
-  return REFERRAL_SIGNUP_BONUS;
+  return inkUnits;
 }
 
 /**

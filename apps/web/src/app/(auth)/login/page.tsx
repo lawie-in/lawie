@@ -14,13 +14,13 @@ const ENABLE_PASSWORD_LOGIN = false;
 function ReferralOfferModal({
   code,
   label,
-  bonusDrafts,
+  bonusInk,
   onAccept,
   onClose,
 }: {
   code: string;
   label: string;
-  bonusDrafts: number;
+  bonusInk: number;
   onAccept: () => void;
   onClose: () => void;
 }) {
@@ -77,7 +77,7 @@ function ReferralOfferModal({
             <li className="flex items-start gap-2.5 text-sm text-slate-700">
               <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-green-500" />
               <span>
-                <strong>{bonusDrafts} bonus drafts</strong> credited on first sign-in
+                <strong>{bonusInk} Ink credit</strong> added to your account on sign-in
               </span>
             </li>
             <li className="flex items-start gap-2.5 text-sm text-slate-700">
@@ -117,7 +117,7 @@ export default function LoginPage() {
   const [referralCode, setReferralCode] = useState('');
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
   const [referralLabel, setReferralLabel] = useState('');
-  const [referralBonusDrafts, setReferralBonusDrafts] = useState(0);
+  const [referralBonusInk, setReferralBonusInk] = useState(0);
   const [validating, setValidating] = useState(false);
   const [showOfferModal, setShowOfferModal] = useState(false);
 
@@ -135,7 +135,7 @@ export default function LoginPage() {
         const data = await res.json();
         setReferralValid(data.valid);
         setReferralLabel(data.label ?? '');
-        setReferralBonusDrafts(data.bonusDrafts ?? 0);
+        setReferralBonusInk(data.bonusInk ?? 0);
       }
     } catch {
       setReferralValid(null);
@@ -171,7 +171,7 @@ export default function LoginPage() {
         <ReferralOfferModal
           code={referralCode.trim().toUpperCase()}
           label={referralLabel}
-          bonusDrafts={referralBonusDrafts}
+          bonusInk={referralBonusInk}
           onAccept={() => {
             setShowOfferModal(false);
             handleGoogleLogin();
@@ -241,9 +241,9 @@ export default function LoginPage() {
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-green-700">
                   <CheckCircle2 size={12} />
                   Code accepted{referralLabel ? ` — ${referralLabel}` : ''}.{' '}
-                  {referralBonusDrafts > 0
-                    ? `${referralBonusDrafts} bonus drafts on signup.`
-                    : 'Bonus credited on signup.'}
+                  {referralBonusInk > 0
+                    ? `${referralBonusInk} Ink credited on signup.`
+                    : 'Ink bonus credited on signup.'}
                 </p>
               )}
               {referralValid === false && (
