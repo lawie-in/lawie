@@ -220,6 +220,130 @@ export async function spendCredits(input: {
   return { spent, totalSpent: amount };
 }
 
+// ── Ink spend (new ink system — SCRUM-101) ────────────────────────────────
+
+/**
+ * Atomically deduct ink from a user's ink buckets in priority order:
+ *   inkSub → inkAnnualCarry → inkTopup
+ *
+ * Uses a MongoDB aggregation-pipeline update so concurrent drafts can never
+ * drive any bucket below zero (no overselling). Writes one inkledger row per
+ * bucket touched.
+ *
+ * costCredits: the template credit cost (1 or 2). Converted to storage units
+ * internally (×2) — 1 displayed Ink = 2 storage units.
+ */
+export async function spendInk(input: {
+  userId: string;
+  costCredits: number;
+  reason: 'generate' | 'regenerate';
+  reference?: string;
+}): Promise<{ success: boolean; reason?: string }> {
+  const { userId, costCredits, reason, reference } = input;
+  if (!mongoose.Types.ObjectId.isValid(userId)) return { success: false, reason: 'user_not_found' };
+
+  const costUnits = costCredits * 2; // 1 Ink = 2 storage units
+  const oid = new mongoose.Types.ObjectId(userId);
+
+  // Atomic aggregation-pipeline update.
+  // $expr guard ensures total >= costUnits before touching anything.
+  // Temp fields (_ds, _r1, _dc, _r2, _dt) capture per-bucket deduction amounts.
+  const result = await User.collection.findOneAndUpdate(
+    {
+      _id: oid,
+      $expr: {
+        $gte: [{ $add: ['$inkSub', '$inkAnnualCarry', '$inkTopup'] }, costUnits],
+      },
+    },
+    [
+      { $set: { _ds: { $min: ['$inkSub', costUnits] } } },
+      { $set: { _r1: { $subtract: [costUnits, '$_ds'] } } },
+      { $set: { _dc: { $min: ['$inkAnnualCarry', '$_r1'] } } },
+      { $set: { _r2: { $subtract: ['$_r1', '$_dc'] } } },
+      { $set: { _dt: { $min: ['$inkTopup', '$_r2'] } } },
+      {
+        $set: {
+          inkSub: { $subtract: ['$inkSub', '$_ds'] },
+          inkAnnualCarry: { $subtract: ['$inkAnnualCarry', '$_dc'] },
+          inkTopup: { $subtract: ['$inkTopup', '$_dt'] },
+        },
+      },
+    ],
+    { returnDocument: 'after' },
+  );
+
+  if (!result) {
+    const exists = await User.exists({ _id: oid });
+    return { success: false, reason: exists ? 'insufficient_ink' : 'user_not_found' };
+  }
+
+  const doc = result as Record<string, number>;
+  const newSub = doc.inkSub ?? 0;
+  const newCarry = doc.inkAnnualCarry ?? 0;
+  const newTopup = doc.inkTopup ?? 0;
+  const totalAfter = newSub + newCarry + newTopup;
+
+  const ds = doc._ds ?? 0;
+  const dc = doc._dc ?? 0;
+  const dt = doc._dt ?? 0;
+
+  const conn = mongoose.connection;
+  if (conn.db) {
+    const rows = [];
+    if (ds > 0) {
+      rows.push({
+        userId: oid,
+        delta: -ds,
+        reason,
+        sourceBucket: 'sub',
+        balanceAfter: totalAfter + dc + dt,
+        reference,
+        createdAt: new Date(),
+      });
+    }
+    if (dc > 0) {
+      rows.push({
+        userId: oid,
+        delta: -dc,
+        reason,
+        sourceBucket: 'annual_carry',
+        balanceAfter: totalAfter + dt,
+        reference,
+        createdAt: new Date(),
+      });
+    }
+    if (dt > 0) {
+      rows.push({
+        userId: oid,
+        delta: -dt,
+        reason,
+        sourceBucket: 'topup',
+        balanceAfter: totalAfter,
+        reference,
+        createdAt: new Date(),
+      });
+    }
+    if (rows.length > 0) {
+      conn.db
+        .collection('inkledger')
+        .insertMany(rows)
+        .catch((err: unknown) => {
+          console.warn(
+            '[drafting] inkledger write failed:',
+            err instanceof Error ? err.message : err,
+          );
+        });
+    }
+  }
+
+  // Clean up temp fields (fire-and-forget)
+  User.collection
+    .updateOne({ _id: oid }, { $unset: { _ds: '', _r1: '', _dc: '', _r2: '', _dt: '' } })
+    .catch(() => {});
+
+  return { success: true };
+}
+
 // ── Daily login bonus + rating bonus helpers ───────────────────────────────
 
 export const DAILY_LOGIN_BONUS = 2;

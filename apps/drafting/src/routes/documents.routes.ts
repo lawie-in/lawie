@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 import { authenticate } from '../middleware/authenticate';
 import { enforceCredits } from '../middleware/enforceCredits';
-import { enforceFreeLimit, FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
+import { FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
 import { spendCapCheck } from '../middleware/spendCap';
 import { LawieDocument } from '../models/Document.model';
 import { Event } from '../models/Event.model';
@@ -16,7 +16,7 @@ import {
   streamGenerateFromTemplate,
 } from '../services/ai.service';
 import { buildAnnexuresPack, estimateBodyParaCount } from '../services/annexures.service';
-import { spendCredits } from '../services/credits.service';
+import { spendInk } from '../services/credits.service';
 import { contentToHtml, renderPdf } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
 import {
@@ -174,39 +174,35 @@ const templateGenerateSchema = z.object({
 // POST /documents/preflight — pre-generation verification layer (SCRUM-69)
 // Runs before /generate to catch input errors cheaply (~50ms rules + ~1.5s Haiku).
 // FAIL-OPEN: if the verifier itself fails, returns { verdict: "pass" } so drafting is never blocked.
-router.post(
-  '/preflight',
-  authenticate,
-  async (req: Request, res: Response): Promise<void> => {
-    const { template_id, form_data } = req.body as {
-      template_id?: string;
-      form_data?: Record<string, unknown>;
-    };
+router.post('/preflight', authenticate, async (req: Request, res: Response): Promise<void> => {
+  const { template_id, form_data } = req.body as {
+    template_id?: string;
+    form_data?: Record<string, unknown>;
+  };
 
-    if (!template_id || typeof template_id !== 'string') {
-      res.status(400).json({ error: 'template_id is required' });
-      return;
-    }
-    if (!form_data || typeof form_data !== 'object') {
-      res.status(400).json({ error: 'form_data is required' });
-      return;
-    }
+  if (!template_id || typeof template_id !== 'string') {
+    res.status(400).json({ error: 'template_id is required' });
+    return;
+  }
+  if (!form_data || typeof form_data !== 'object') {
+    res.status(400).json({ error: 'form_data is required' });
+    return;
+  }
 
-    try {
-      const userId = req.jwtPayload?.sub;
-      const result = await preflightCheck(template_id, form_data, userId);
+  try {
+    const userId = req.jwtPayload?.sub;
+    const result = await preflightCheck(template_id, form_data, userId);
 
-      // Strip internal meta before sending to client
-      const { _meta, ...clientResult } = result;
-      void _meta; // suppress unused var warning
+    // Strip internal meta before sending to client
+    const { _meta, ...clientResult } = result;
+    void _meta; // suppress unused var warning
 
-      res.json(clientResult);
-    } catch {
-      // FAIL-OPEN: verifier error never blocks generation
-      res.json({ verdict: 'pass', questions: [] });
-    }
-  },
-);
+    res.json(clientResult);
+  } catch {
+    // FAIL-OPEN: verifier error never blocks generation
+    res.json({ verdict: 'pass', questions: [] });
+  }
+});
 
 // POST /documents/generate-from-template — config-driven generation (SCRUM-43)
 router.post(
@@ -328,26 +324,19 @@ router.post(
       );
     }
 
-    // SCRUM-73 / SCRUM-59 — deduct credits AFTER successful generation. Failed
-    // streams don't take credits (the error event already fired earlier).
-    let creditsSpent: Array<{ bucket: string; amount: number }> = [];
-    try {
-      const cost = (req as Request & { creditCost?: number }).creditCost ?? 1;
-      const result = await spendCredits({
-        userId: payload.sub,
-        amount: cost,
-        templateId: template_id,
-        reference: docId ? `${templateConfig.display_name} (${docId})` : templateConfig.display_name,
-      });
-      creditsSpent = result.spent;
-    } catch (spendErr) {
-      // Should never happen — middleware pre-checked. Log and continue so the
-      // user gets their draft; we'll reconcile on the founder ledger.
-      console.error(
-        '[drafting] spendCredits failed AFTER successful generation:',
-        spendErr instanceof Error ? spendErr.message : spendErr,
-      );
+    // Deduct ink AFTER successful generation. Failed streams don't take ink
+    // (the SSE error event already fired before reaching this point).
+    const cost = (req as Request & { creditCost?: number }).creditCost ?? 1;
+    const inkResult = await spendInk({
+      userId: payload.sub,
+      costCredits: cost,
+      reason: 'generate',
+      reference: docId ? `${templateConfig.display_name} (${docId})` : templateConfig.display_name,
+    });
+    if (!inkResult.success) {
+      console.error('[drafting] spendInk failed after generation:', inkResult.reason);
     }
+    const creditsSpent: Array<{ bucket: string; amount: number }> = [];
 
     // Send done event — always fires, even if DB save failed
     res.write(
@@ -363,11 +352,11 @@ router.post(
   },
 );
 
-// POST /documents/generate — legacy generation (free-tier gated)
+// POST /documents/generate — legacy generation (ink-gated)
 router.post(
   '/generate',
   authenticate,
-  enforceFreeLimit,
+  enforceCredits,
   spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {
     const parsed = generateSchema.safeParse(req.body);
@@ -421,6 +410,18 @@ router.post(
         tokensUsed: 0,
       }),
     ]);
+
+    // Deduct ink after successful generation
+    const legacyCost = (req as Request & { creditCost?: number }).creditCost ?? 1;
+    const legacyInkResult = await spendInk({
+      userId: payload.sub,
+      costCredits: legacyCost,
+      reason: 'generate',
+      reference: String(doc._id),
+    });
+    if (!legacyInkResult.success) {
+      console.error('[drafting] spendInk failed after legacy generation:', legacyInkResult.reason);
+    }
 
     // Send done event with docId so frontend can redirect to editor
     res.write(
@@ -557,7 +558,10 @@ router.post(
     try {
       pdfBuffer = await renderPdf(html);
     } catch (pdfErr) {
-      console.error('[drafting] Puppeteer PDF render failed:', pdfErr instanceof Error ? pdfErr.message : pdfErr);
+      console.error(
+        '[drafting] Puppeteer PDF render failed:',
+        pdfErr instanceof Error ? pdfErr.message : pdfErr,
+      );
       res.status(500).json({ error: 'PDF rendering failed' });
       return;
     }
