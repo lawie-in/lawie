@@ -147,7 +147,10 @@ export function generateVerificationClause(
 
   const verification = docRule.verificationTemplate
     .replace(/{applicant}/g, deponentName)
-    .replace(/{relation}/g, partyDetails.relation || 'S/o / D/o / W/o')
+    .replace(
+      /{relation}/g,
+      partyDetails.relation_type ?? partyDetails.relation ?? 'S/o / D/o / W/o',
+    )
     .replace(/{parentName}/g, parentName)
     .replace(/{age}/g, partyDetails.age || '[AGE]')
     .replace(/{address}/g, partyDetails.address || '[ADDRESS]')

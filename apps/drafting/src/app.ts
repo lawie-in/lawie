@@ -13,6 +13,7 @@ import creditsRoutes from './routes/credits.routes';
 import documentsRoutes from './routes/documents.routes';
 import internalRoutes from './routes/internal.routes';
 import reviewRoutes from './routes/review.routes';
+import sampleAssetsRoutes from './routes/sample-assets.routes';
 import sectionsRoutes from './routes/sections.routes';
 import templatesRoutes from './routes/templates.routes';
 import usersRoutes from './routes/users.routes';
@@ -39,6 +40,7 @@ app.use('/', adminUsersRoutes);
 app.use('/', adminDocumentsRoutes);
 app.use('/', reviewRoutes);
 app.use('/', documentsRoutes);
+app.use('/sample-assets', sampleAssetsRoutes);
 
 Sentry.setupExpressErrorHandler(app);
 

@@ -12,6 +12,7 @@
     "test:watch": "jest --watch",
     "test:golden:update": "jest --testPathPattern=court-rules-golden --updateSnapshot --forceExit",
     "seed:setting": "ts-node --transpile-only scripts/seed-app-setting.ts",
+    "seed:sample-pdfs": "ts-node --transpile-only scripts/seed-sample-pdfs.ts",
     "seed:courts": "ts-node --transpile-only src/scripts/seed-courts.ts",
     "seed:sections": "ts-node --transpile-only src/scripts/seed-sections.ts",
     "seed:templates": "ts-node --transpile-only src/scripts/seed-templates.ts",

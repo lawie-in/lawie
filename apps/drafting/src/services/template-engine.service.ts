@@ -806,7 +806,10 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
   // Inject applicant identity guardrail — prevent AI from inventing party details
   if (ctx.applicant_name) {
     const identityParts = [`Name: ${ctx.applicant_name}`];
-    if (ctx.father_name) identityParts.push(`Father/Husband: ${ctx.father_name}`);
+    if (ctx.father_name) {
+      const rel = (ctx.relation_type as string | undefined) ?? 'S/o / D/o / W/o';
+      identityParts.push(`${rel}: ${ctx.father_name}`);
+    }
     if (ctx.applicant_age) identityParts.push(`Age: ${ctx.applicant_age} years`);
     if (ctx.address) identityParts.push(`Address: ${ctx.address}`);
     prompt += `\n\nIMMUTABLE APPLICANT IDENTITY (use EXACTLY as given — do NOT change name, parentage, age, or address):\n${identityParts.join('\n')}`;

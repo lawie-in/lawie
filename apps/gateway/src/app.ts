@@ -131,6 +131,18 @@ app.use(
   }),
 );
 
+// ── PUBLIC sample PDFs — landing page download buttons, no JWT required ──────
+app.use(
+  '/api/samples',
+  publicRateLimiter,
+  createProxyMiddleware({
+    target: env.DRAFTING_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/api/samples': '/sample-assets' },
+    on: { error: onProxyError },
+  }),
+);
+
 // ── Dev bypass middleware (development only) ────────────────────────────────
 // Postman: set header X-Dev-Bypass: true to skip JWT + session check.
 // Optionally set X-Dev-User-Plan: pro|free, X-Dev-User-Email, X-Dev-User-Name.
