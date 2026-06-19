@@ -138,7 +138,7 @@ app.use(
   createProxyMiddleware({
     target: env.DRAFTING_SERVICE_URL,
     changeOrigin: true,
-    pathRewrite: { '^': '/sample-assets' },
+    pathRewrite: { '^/': '/sample-assets/' },
     on: { error: onProxyError },
   }),
 );
