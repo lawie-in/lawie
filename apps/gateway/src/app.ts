@@ -19,6 +19,9 @@ const planRateLimiter = createPlanRateLimiter();
 
 const app = express();
 
+// Trust nginx reverse proxy — required for express-rate-limit to read X-Forwarded-For correctly
+app.set('trust proxy', 1);
+
 // ── Security & performance ───────────────────────────────────────────────────
 app.use(helmet());
 app.use(
