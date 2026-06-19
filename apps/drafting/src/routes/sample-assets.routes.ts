@@ -13,11 +13,15 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  // .lean() returns a BSON Binary for Buffer fields — convert to Node.js Buffer
+  const buf = Buffer.isBuffer(asset.data)
+    ? asset.data
+    : Buffer.from(asset.data as unknown as Uint8Array);
+
   res.setHeader('Content-Type', asset.contentType);
   res.setHeader('Content-Disposition', `attachment; filename="${asset.filename}"`);
-  res.setHeader('Content-Length', asset.data.length);
   res.setHeader('Cache-Control', 'public, max-age=86400'); // cache 24h — static asset
-  res.send(asset.data);
+  res.send(buf);
 });
 
 export default router;
