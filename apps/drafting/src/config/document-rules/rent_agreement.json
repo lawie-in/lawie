@@ -335,6 +335,8 @@
     "If tenure exceeds 11 months, note that registration is mandatory under S.17 Registration Act.",
     "Include witness signature blocks at the end.",
     "Use clear, plain legal language. Avoid overly archaic terms.",
-    "Do NOT generate signature blocks — they are added programmatically."
+    "Do NOT generate signature blocks — they are added programmatically.",
+    "CRITICAL — PARTY ROLES: The applicant ({applicant}) is the LANDLORD / LESSOR (Party of the First Part). The respondent ({respondent}) is the TENANT / LESSEE (Party of the Second Part). Never swap these roles at any point in the document.",
+    "CRITICAL — NO DUPLICATE PREAMBLE: Do NOT write a document title, heading (e.g. 'RESIDENTIAL RENT AGREEMENT'), preamble, or party-identification section. The preamble is generated separately and will be prepended. Start the AI-generated content DIRECTLY with 'CLAUSE 1' and continue sequentially through all clauses."
   ]
 }
