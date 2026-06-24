@@ -39,17 +39,29 @@ router.post(
   authenticate,
   requireAdmin,
   async (req: Request, res: Response): Promise<void> => {
-    const { label, maxUses } = req.body as { label?: string; maxUses?: number | null };
+    const { label, maxUses, bonusInk, expiresAt } = req.body as {
+      label?: string;
+      maxUses?: number | null;
+      bonusInk?: number;
+      expiresAt?: string | null;
+    };
     const founderId = req.jwtPayload!.sub;
 
     try {
-      const rc = await generateReferralCode(founderId, { label, maxUses });
+      const rc = await generateReferralCode(founderId, {
+        label,
+        maxUses,
+        bonusInk,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      });
       res.status(201).json({
         code: rc.code,
         label: rc.label,
         isActive: rc.isActive,
         maxUses: rc.maxUses,
         uses: rc.uses,
+        bonusInk: rc.bonusInk,
+        expiresAt: rc.expiresAt ?? null,
         createdAt: rc.createdAt,
       });
     } catch (err) {
@@ -75,6 +87,8 @@ router.get(
         isActive: rc.isActive,
         maxUses: rc.maxUses,
         uses: rc.uses,
+        bonusInk: rc.bonusInk ?? 5,
+        expiresAt: rc.expiresAt ?? null,
         createdAt: rc.createdAt,
       })),
     });
@@ -94,6 +108,48 @@ router.patch(
       return;
     }
     res.json({ code: rc.code, isActive: rc.isActive });
+  },
+);
+
+// ── PATCH /admin/referral-codes/:code — edit label + expiresAt ────────────────
+// bonusInk is intentionally immutable after creation (grants may already have fired).
+
+router.patch(
+  '/admin/referral-codes/:code',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    const { label, expiresAt } = req.body as {
+      label?: string | null;
+      expiresAt?: string | null;
+    };
+
+    const update: Record<string, unknown> = {};
+    if (label !== undefined) update['label'] = label ?? null;
+    if (expiresAt !== undefined) update['expiresAt'] = expiresAt ? new Date(expiresAt) : null;
+
+    if (Object.keys(update).length === 0) {
+      res.status(400).json({ error: 'No editable fields provided (label, expiresAt)' });
+      return;
+    }
+
+    const { ReferralCode } = await import('../models/ReferralCode.model');
+    const rc = await ReferralCode.findOneAndUpdate(
+      { code: req.params.code.toUpperCase() },
+      { $set: update },
+      { new: true },
+    ).lean();
+
+    if (!rc) {
+      res.status(404).json({ error: 'Referral code not found' });
+      return;
+    }
+
+    res.json({
+      code: rc.code,
+      label: rc.label ?? null,
+      expiresAt: rc.expiresAt ?? null,
+    });
   },
 );
 
@@ -117,7 +173,7 @@ router.get(
     res.json({
       valid: true,
       label: rc.label,
-      bonusDrafts: 25,
+      bonusInk: rc.bonusInk ?? 5,
     });
   },
 );

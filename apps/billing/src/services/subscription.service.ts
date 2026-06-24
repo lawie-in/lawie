@@ -4,6 +4,8 @@ import { findPlanByRazorpayId, findSubscriptionPlan, findTopupSku } from '../con
 import { env } from '../config/env';
 import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
+import { CouponCode } from '../models/CouponCode.model';
+import { CouponUsage } from '../models/CouponUsage.model';
 import { Subscription } from '../models/Subscription.model';
 import { User } from '../models/User.model';
 
@@ -117,14 +119,38 @@ export async function handleWebhookEvent(
         logger.warn({ skuId: notes.sku_id }, 'Webhook: unknown top-up SKU');
         return;
       }
+      const razorpayOrderId = (orderEntity?.id as string) ?? '';
       await grantTopupInk({
         userId: notes.user_id,
         inkUnits: sku.ink * 2, // 1 Ink = 2 ledger units
         amountInr: sku.priceInr,
-        razorpayOrderId: (orderEntity?.id as string) ?? '',
+        razorpayOrderId,
         razorpayPaymentId: paymentEntity?.id as string | undefined,
         topupSkuId: sku.id,
       });
+
+      // Track coupon usage if one was applied to this order
+      if (notes.coupon_code) {
+        try {
+          const coupon = await CouponCode.findOneAndUpdate(
+            { code: notes.coupon_code },
+            { $inc: { uses: 1 } },
+            { new: true },
+          );
+          if (coupon) {
+            await CouponUsage.create({
+              couponId: coupon._id,
+              userId: notes.user_id,
+              orderId: razorpayOrderId,
+            });
+          }
+        } catch (couponErr) {
+          logger.error(
+            { couponErr, couponCode: notes.coupon_code },
+            'Failed to record coupon usage',
+          );
+        }
+      }
     }
     return;
   }

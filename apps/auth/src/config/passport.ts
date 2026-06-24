@@ -3,6 +3,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 import { User } from '../models/User.model';
 import { grantSignupBonus } from '../services/credit-bonus.service';
+import { applyReferralCode } from '../services/referral.service';
 
 import { env } from './env';
 import logger from './logger';
@@ -20,9 +21,16 @@ export function initPassport(): void {
         clientSecret: env.GOOGLE_CLIENT_SECRET,
         callbackURL: env.GOOGLE_CALLBACK_URL,
         scope: ['email', 'profile'],
+        passReqToCallback: true,
       },
-      async (_accessToken, _refreshToken, profile, done) => {
+      async (req, _accessToken, _refreshToken, profile, done) => {
         try {
+          // Referral code is encoded into the OAuth state by /google route.
+          // Google echoes state back unchanged to the callback URL.
+          const stateVal = (req as { query?: Record<string, unknown> }).query?.['state'];
+          const referralCode =
+            typeof stateVal === 'string' && stateVal ? stateVal.trim().toUpperCase() : undefined;
+
           const email = profile.emails?.[0]?.value;
           if (!email) {
             return done(new Error('Google account has no email address'), false);
@@ -30,6 +38,7 @@ export function initPassport(): void {
 
           // 1. Find by google_id (returning user)
           let user = await User.findOne({ googleId: profile.id });
+          let isNewUser = false;
 
           if (!user) {
             // 2. Email already registered via password — link the Google account
@@ -40,7 +49,6 @@ export function initPassport(): void {
               await user.save();
             } else {
               // 3. Brand-new user — create account
-              // Lawie targets advocates — default role is Lawyer
               user = await User.create({
                 email,
                 name: profile.displayName ?? email,
@@ -50,11 +58,15 @@ export function initPassport(): void {
                 docCount: 0,
               });
               logger.info({ userId: user.id, email }, 'New user created via Google OAuth');
+              isNewUser = true;
               // Signup bonus — non-blocking, never fails OAuth callback
-              // Mirrors auth.service.ts:30; only granted on truly new account,
-              // not when linking Google to an existing email-registered user.
               void grantSignupBonus(user._id.toString());
             }
+          }
+
+          // Apply referral code only for brand-new accounts
+          if (isNewUser && referralCode) {
+            void applyReferralCode(user._id.toString(), referralCode);
           }
 
           // Pass Mongoose document — Passport serialises it for the request lifecycle.

@@ -14,11 +14,13 @@ const ENABLE_PASSWORD_LOGIN = false;
 function ReferralOfferModal({
   code,
   label,
+  bonusInk,
   onAccept,
   onClose,
 }: {
   code: string;
   label: string;
+  bonusInk: number;
   onAccept: () => void;
   onClose: () => void;
 }) {
@@ -75,7 +77,7 @@ function ReferralOfferModal({
             <li className="flex items-start gap-2.5 text-sm text-slate-700">
               <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-green-500" />
               <span>
-                <strong>25 bonus drafts</strong> credited on first sign-in
+                <strong>{bonusInk} Ink credit</strong> added to your account on sign-in
               </span>
             </li>
             <li className="flex items-start gap-2.5 text-sm text-slate-700">
@@ -115,6 +117,7 @@ export default function LoginPage() {
   const [referralCode, setReferralCode] = useState('');
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
   const [referralLabel, setReferralLabel] = useState('');
+  const [referralBonusInk, setReferralBonusInk] = useState(0);
   const [validating, setValidating] = useState(false);
   const [showOfferModal, setShowOfferModal] = useState(false);
 
@@ -132,6 +135,7 @@ export default function LoginPage() {
         const data = await res.json();
         setReferralValid(data.valid);
         setReferralLabel(data.label ?? '');
+        setReferralBonusInk(data.bonusInk ?? 0);
       }
     } catch {
       setReferralValid(null);
@@ -167,6 +171,7 @@ export default function LoginPage() {
         <ReferralOfferModal
           code={referralCode.trim().toUpperCase()}
           label={referralLabel}
+          bonusInk={referralBonusInk}
           onAccept={() => {
             setShowOfferModal(false);
             handleGoogleLogin();
@@ -207,9 +212,6 @@ export default function LoginPage() {
               <div className="mb-3 flex items-center gap-2">
                 <Gift size={14} className="text-amber-500" />
                 <span className="text-sm font-semibold text-slate-800">Have a referral code?</span>
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                  +25 drafts
-                </span>
               </div>
               <div className="flex gap-2">
                 <input
@@ -238,8 +240,10 @@ export default function LoginPage() {
               {referralValid === true && (
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-green-700">
                   <CheckCircle2 size={12} />
-                  Code accepted{referralLabel ? ` — ${referralLabel}` : ''}. 25 bonus drafts on
-                  signup.
+                  Code accepted{referralLabel ? ` — ${referralLabel}` : ''}.{' '}
+                  {referralBonusInk > 0
+                    ? `${referralBonusInk} Ink credited on signup.`
+                    : 'Ink bonus credited on signup.'}
                 </p>
               )}
               {referralValid === false && (

@@ -12,6 +12,8 @@ const router = Router();
 const oauthEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
 // GET /google — redirect to Google consent screen
+// Accepts an optional ?referralCode= query param; encodes it into the OAuth
+// state so it survives the Google round-trip and reaches the callback.
 router.get(
   '/google',
   (req: Request, res: Response, next) => {
@@ -22,7 +24,17 @@ router.get(
     }
     return next();
   },
-  passport.authenticate('google', { scope: ['email', 'profile'], session: false }),
+  (req: Request, res: Response, next) => {
+    const referralCode =
+      typeof req.query['referralCode'] === 'string' && req.query['referralCode']
+        ? (req.query['referralCode'] as string).trim().toUpperCase()
+        : undefined;
+    return passport.authenticate('google', {
+      scope: ['email', 'profile'],
+      session: false,
+      ...(referralCode ? { state: referralCode } : {}),
+    })(req, res, next);
+  },
 );
 
 // GET /google/callback — Google redirects here after user consent

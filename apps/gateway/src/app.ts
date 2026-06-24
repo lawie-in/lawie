@@ -19,6 +19,9 @@ const planRateLimiter = createPlanRateLimiter();
 
 const app = express();
 
+// Trust nginx reverse proxy — required for express-rate-limit to read X-Forwarded-For correctly
+app.set('trust proxy', 1);
+
 // ── Security & performance ───────────────────────────────────────────────────
 app.use(helmet());
 app.use(
@@ -131,6 +134,18 @@ app.use(
   }),
 );
 
+// ── PUBLIC sample PDFs — landing page download buttons, no JWT required ──────
+app.use(
+  '/api/samples',
+  publicRateLimiter,
+  createProxyMiddleware({
+    target: env.DRAFTING_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/': '/sample-assets/' },
+    on: { error: onProxyError },
+  }),
+);
+
 // ── Dev bypass middleware (development only) ────────────────────────────────
 // Postman: set header X-Dev-Bypass: true to skip JWT + session check.
 // Optionally set X-Dev-User-Plan: pro|free, X-Dev-User-Email, X-Dev-User-Name.
@@ -236,6 +251,20 @@ app.use(
       error: onProxyError,
     },
   }),
+);
+
+// ── Admin + drafting service catch-all ─────────────────────────────────────
+// Covers /api/drafting/admin/* (overview KPIs, credits ledger, panel review,
+// app-settings, review-tokens) and any future drafting endpoints that don't
+// have a dedicated /api/<resource> entry above.
+// Express strips '/api/drafting' from req.url before handing to the proxy,
+// so '/api/drafting/admin/overview/kpis' reaches drafting as '/admin/overview/kpis' —
+// which matches the app.use('/', adminOverviewRoutes) mount in drafting/app.ts.
+app.use(
+  '/api/drafting',
+  ...authChain,
+  planRateLimiter,
+  createAuthenticatedProxy(env.DRAFTING_SERVICE_URL),
 );
 
 // ── Sentry error handler ────────────────────────────────────────────────────

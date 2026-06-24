@@ -45,18 +45,16 @@ describe('subscription.service', () => {
 
       expect(result.subscriptionId).toBe('sub_test123');
       expect(result.shortUrl).toBe('https://rzp.io/test');
-      // SCRUM-73 — createSubscription now defaults to 'practice_monthly' and
-      // resolves the Razorpay plan id via env (or falls back to the legacy
-      // RAZORPAY_PLAN_ID when the per-tier env var isn't set). Notes carry the
-      // plan metadata.
+      // createSubscription defaults to 'solo_monthly' and resolves the Razorpay
+      // plan id via env (falls back to legacy RAZORPAY_PLAN_ID when unset).
       expect(mockedRazorpay.subscriptions.create).toHaveBeenCalledWith(
         expect.objectContaining({
           customer_notify: 1,
           notes: expect.objectContaining({
             userId,
             email,
-            planId: 'practice_monthly',
-            tier: 'practice',
+            planId: 'solo_monthly',
+            tier: 'solo',
             cycle: 'monthly',
           }),
         }),
@@ -67,6 +65,13 @@ describe('subscription.service', () => {
       expect(savedSub).not.toBeNull();
       expect(savedSub!.razorpaySubscriptionId).toBe('sub_test123');
       expect(savedSub!.status).toBe('created');
+    });
+
+    it('throws for an unrecognised plan id', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      await expect(createSubscription(userId, 'test@example.com', 'invalid_plan')).rejects.toThrow(
+        'Unknown plan id "invalid_plan"',
+      );
     });
 
     it('returns existing subscription if user already has an active one', async () => {
@@ -276,14 +281,15 @@ describe('subscription.service', () => {
         order: {
           entity: {
             id: 'order_topup_test',
-            notes: { userId: user._id.toString(), skuId: 'topup_60' },
+            notes: { user_id: user._id.toString(), sku_id: 'topup_max' },
           },
         },
         payment: { entity: { id: 'pay_topup_test' } },
       });
 
       const updated = await User.findById(user._id);
-      expect(updated!.topupCredits).toBe(60);
+      // topup_max = 28 Ink; stored as 28 × 2 = 56 ledger units in inkTopup
+      expect(updated!.inkTopup).toBe(56);
     });
 
     it('skips order.paid with unknown SKU', async () => {
@@ -291,13 +297,14 @@ describe('subscription.service', () => {
         order: {
           entity: {
             id: 'order_bad',
-            notes: { userId: userId.toString(), skuId: 'topup_unknown' },
+            // snake_case so the lookup runs and hits the unknown-SKU branch
+            notes: { user_id: userId.toString(), sku_id: 'topup_unknown' },
           },
         },
       });
       // no crash, no credit change
       const user = await User.findById(userId);
-      expect(user!.topupCredits).toBe(0);
+      expect(user!.inkTopup ?? 0).toBe(0);
     });
 
     it('grants subscription credits when planId is in notes', async () => {
@@ -312,14 +319,15 @@ describe('subscription.service', () => {
           entity: {
             id: 'sub_with_notes',
             charge_at: Math.floor(Date.now() / 1000) + 30 * 86400,
-            notes: { planId: 'firm_monthly' },
+            notes: { planId: 'pro_monthly' },
           },
         },
       });
 
       const updated = await User.findById(userId);
-      expect(updated!.planTier).toBe('firm');
-      expect(updated!.subscriptionCredits).toBe(200);
+      // pro_monthly = 150 Ink; stored as 150 × 2 = 300 ledger units in inkSub
+      expect(updated!.planTier).toBe('pro');
+      expect(updated!.inkSub).toBe(300);
     });
 
     it('handles unrecognized event type gracefully', async () => {

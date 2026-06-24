@@ -48,19 +48,19 @@ export async function enforceCredits(
 
   const balance = await getCreditBalance(payload.sub);
 
-  if (balance.total >= cost) {
-    // Stash the cost so the route handler can pass it to spendCredits without
+  if (balance.totalInk >= cost) {
+    // Stash the cost so the route handler can pass it to spendInk without
     // recomputing — and so the SSE done event can echo it.
     (req as Request & { creditCost?: number }).creditCost = cost;
     next();
     return;
   }
 
-  // Out of credits. Tell the frontend whether to suggest top-up or upgrade.
+  // Out of Ink. Tell the frontend whether to suggest top-up or upgrade.
   const upgradeUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/pricing`;
   res.status(402).json({
-    error: 'Insufficient credits',
-    message: `This draft costs ${cost} credit${cost > 1 ? 's' : ''} — you have ${balance.total}.`,
+    error: 'Insufficient Ink',
+    message: `This draft costs ${cost} Ink — you have ${balance.totalInk}.`,
     cost,
     balance,
     needsTopUp: true,

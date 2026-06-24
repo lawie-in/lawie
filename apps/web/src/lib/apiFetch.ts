@@ -69,12 +69,15 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   const newToken = await refreshing;
 
   if (!newToken) {
-    // Refresh failed — clear session and redirect to login
+    // Refresh failed — clear session and redirect to login.
+    // Return a promise that never resolves so no caller .then()/.catch() fires
+    // while the browser navigates away — prevents stale error banners.
     clearTokens();
     if (typeof window !== 'undefined') {
       window.location.replace('/login');
+      return new Promise<Response>(() => {});
     }
-    return res; // caller won't use this — page is navigating away
+    return res;
   }
 
   // Retry with fresh token

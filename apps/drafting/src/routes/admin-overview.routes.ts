@@ -9,6 +9,7 @@
  * collections — no new persistence needed.
  */
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 
 import { authenticate } from '../middleware/authenticate';
 import { CreditLedger } from '../models/CreditLedger.model';
@@ -57,6 +58,7 @@ router.get(
       monthlyRevenueAgg,
       newAdvocatesThisMonth,
       churnedThisMonth,
+      inkCirculationAgg,
     ] = await Promise.all([
       User.countDocuments({}),
       User.countDocuments({ createdAt: { $gte: startOfThisWeek } }),
@@ -75,10 +77,10 @@ router.get(
         isActive: true,
         expiresAt: { $lt: new Date(Date.now() - 72 * 3600 * 1000) },
       }),
-      User.countDocuments({ planTier: { $in: ['practice', 'firm'] } }),
+      User.countDocuments({ planTier: { $in: ['practice', 'firm', 'solo', 'pro'] } }),
       User.countDocuments({}),
       User.countDocuments({
-        planTier: { $in: ['practice', 'firm'] },
+        planTier: { $in: ['practice', 'firm', 'solo', 'pro'] },
         updatedAt: { $gte: startOfThisMonth },
       }),
       // Sum of plan_renewal + topup_purchase amountInr from ledger this month
@@ -93,8 +95,29 @@ router.get(
       ]),
       User.countDocuments({ createdAt: { $gte: startOfThisMonth } }),
       // Approximation — users whose planTier dropped back to 'free' this month
-      // (we don't yet log explicit churn events; use 0 for now).
       Promise.resolve(0),
+      // Total ink units in circulation across all buckets (ledger units, not display units)
+      mongoose.connection.db
+        ? mongoose.connection.db
+            .collection('users')
+            .aggregate([
+              {
+                $group: {
+                  _id: null,
+                  total: {
+                    $sum: {
+                      $add: [
+                        { $ifNull: ['$inkSub', 0] },
+                        { $ifNull: ['$inkAnnualCarry', 0] },
+                        { $ifNull: ['$inkTopup', 0] },
+                      ],
+                    },
+                  },
+                },
+              },
+            ])
+            .toArray()
+        : Promise.resolve([]),
     ]);
 
     const conversionPct =
@@ -126,6 +149,7 @@ router.get(
         newPaid: newAdvocatesThisMonth,
         churn: churnedThisMonth,
       },
+      inkCirculation: (inkCirculationAgg as Array<{ total?: number }>)[0]?.total ?? 0,
     });
   },
 );
@@ -203,7 +227,8 @@ router.get(
       });
     }
     for (const d of recentDrafts) {
-      const owner = (userMap.get(String(d.userId)) as { name?: string } | undefined)?.name ?? '(advocate)';
+      const owner =
+        (userMap.get(String(d.userId)) as { name?: string } | undefined)?.name ?? '(advocate)';
       items.push({
         type: 'draft',
         label: `${owner} generated ${d.docType.replace(/_/g, ' ')}`,
@@ -221,7 +246,8 @@ router.get(
     }
     for (const r of recentRedemptions) {
       if (r.source !== 'signup_bonus') continue;
-      const owner = (userMap.get(String(r.userId)) as { name?: string } | undefined)?.name ?? '(advocate)';
+      const owner =
+        (userMap.get(String(r.userId)) as { name?: string } | undefined)?.name ?? '(advocate)';
       items.push({
         type: 'redemption',
         label: `${owner} redeemed referral`,
@@ -230,7 +256,8 @@ router.get(
       });
     }
     for (const t of recentTopups) {
-      const owner = (userMap.get(String(t.userId)) as { name?: string } | undefined)?.name ?? '(advocate)';
+      const owner =
+        (userMap.get(String(t.userId)) as { name?: string } | undefined)?.name ?? '(advocate)';
       const amount = (t.metadata as Record<string, unknown> | undefined)?.amountInr ?? 0;
       items.push({
         type: 'topup',
@@ -241,8 +268,28 @@ router.get(
     }
 
     items.sort((a, b) => b.at.getTime() - a.at.getTime());
+    const topItems = items.slice(0, 30);
 
-    res.json({ items: items.slice(0, 30) });
+    if (_req.query['format'] === 'csv') {
+      const rows = [
+        ['type', 'label', 'detail', 'at'],
+        ...topItems.map((it) => [
+          it.type,
+          `"${it.label.replace(/"/g, '""')}"`,
+          `"${it.detail.replace(/"/g, '""')}"`,
+          it.at.toISOString(),
+        ]),
+      ];
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="lawie-activity-${new Date().toISOString().slice(0, 10)}.csv"`,
+      );
+      res.send(rows.map((r) => r.join(',')).join('\n'));
+      return;
+    }
+
+    res.json({ items: topItems });
   },
 );
 

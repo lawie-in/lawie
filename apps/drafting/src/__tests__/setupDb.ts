@@ -7,6 +7,9 @@ beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
+  // Ensure all model indexes are created before tests run so unique
+  // constraints are enforced on the in-memory server.
+  await mongoose.connection.syncIndexes();
 }, 60_000);
 
 afterEach(async () => {

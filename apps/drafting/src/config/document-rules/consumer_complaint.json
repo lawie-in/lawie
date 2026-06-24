@@ -54,6 +54,18 @@
             "inject_into": ["cause_title"]
           },
           {
+            "field_id": "relation_type",
+            "label": "Relation",
+            "type": "dropdown",
+            "options": [
+              { "value": "S/o", "label": "S/o (Son of)" },
+              { "value": "D/o", "label": "D/o (Daughter of)" },
+              { "value": "W/o", "label": "W/o (Wife of)" }
+            ],
+            "required": true,
+            "inject_into": ["cause_title", "body", "verification"]
+          },
+          {
             "field_id": "applicant_age",
             "label": "Age",
             "type": "number",

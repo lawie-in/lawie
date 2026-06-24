@@ -2,19 +2,19 @@
  * ReferralCode model — SCRUM-71
  *
  * Founder-issued codes shared with advocates during panel distribution.
- * A valid code at signup grants the referee 25 bonus drafts (freeTierBonusGrant on User).
- *
- * Reviewer: Priya (UX), Vikram (cap math).
+ * Each code carries its own bonusInk offer (Ink granted into inkTopup on signup).
  */
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IReferralCode extends Document {
-  code: string;               // 8-char uppercase alphanumeric, e.g. "LWPATNA1"
-  label?: string;             // human-readable label, e.g. "Patna bar review"
-  createdBy: Types.ObjectId;  // founder's userId
+  code: string; // 4–16 char uppercase alphanumeric, e.g. "LWPATNA1"
+  label?: string; // human-readable label, e.g. "Patna bar review"
+  createdBy: Types.ObjectId; // founder's userId
   isActive: boolean;
-  maxUses: number | null;     // null = unlimited
-  uses: number;               // incremented on each successful referral signup
+  maxUses: number | null; // null = unlimited
+  uses: number; // incremented on each successful referral signup
+  bonusInk: number; // Ink to grant into inkTopup on signup (display units, ×2 for ledger)
+  expiresAt?: Date; // optional — code rejects after this date
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +52,15 @@ const ReferralCodeSchema = new Schema<IReferralCode>(
       type: Number,
       default: 0,
       min: 0,
+    },
+    bonusInk: {
+      type: Number,
+      default: 5,
+      min: [1, 'bonusInk must be at least 1'],
+    },
+    expiresAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true },

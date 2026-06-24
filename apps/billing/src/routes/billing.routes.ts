@@ -9,6 +9,7 @@ import {
 import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
 import { authenticate } from '../middleware/authenticate';
+import { CouponCode } from '../models/CouponCode.model';
 import {
   createSubscription,
   getSubscriptionStatus,
@@ -67,7 +68,7 @@ router.post('/subscribe', authenticate, async (req: Request, res: Response) => {
 // hand the orderId to Razorpay Checkout SDK.
 router.post('/topup/order', authenticate, async (req: Request, res: Response) => {
   const { sub: userId } = req.jwtPayload!;
-  const { skuId } = req.body as { skuId?: string };
+  const { skuId, couponCode } = req.body as { skuId?: string; couponCode?: string };
 
   const sku = findTopupSku(String(skuId ?? ''));
   if (!sku) {
@@ -75,22 +76,49 @@ router.post('/topup/order', authenticate, async (req: Request, res: Response) =>
     return;
   }
 
+  let finalPriceInr = sku.priceInr;
+  let appliedCouponCode: string | null = null;
+
+  if (couponCode) {
+    const code = couponCode.trim().toUpperCase();
+    const coupon = await CouponCode.findOne({ code, isActive: true }).lean();
+    if (coupon && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
+      if (coupon.maxUses === null || coupon.maxUses === undefined || coupon.uses < coupon.maxUses) {
+        const discountInr =
+          coupon.discountType === 'percent'
+            ? Math.round((sku.priceInr * coupon.discountValue) / 100)
+            : Math.min(coupon.discountValue, sku.priceInr);
+        finalPriceInr = Math.max(1, sku.priceInr - discountInr);
+        appliedCouponCode = code;
+      }
+    }
+  }
+
   try {
+    const notes: Record<string, string | number> = {
+      sku_id: sku.id,
+      user_id: userId,
+      ink: sku.ink,
+    };
+    if (appliedCouponCode) notes['coupon_code'] = appliedCouponCode;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const order = await (razorpay.orders.create as any)({
-      amount: sku.priceInr * 100, // paise
+      amount: finalPriceInr * 100, // paise
       currency: 'INR',
       receipt: `topup_${sku.id}_${userId.slice(-8)}_${Date.now().toString().slice(-8)}`,
-      notes: { sku_id: sku.id, user_id: userId, ink: sku.ink },
+      notes,
     });
 
     res.json({
       status: 'success',
       data: {
         orderId: order.id,
-        amountInr: sku.priceInr,
+        amountInr: finalPriceInr,
+        originalAmountInr: sku.priceInr,
         ink: sku.ink,
         skuId: sku.id,
+        couponApplied: appliedCouponCode,
         razorpayKeyId: process.env.RAZORPAY_KEY_ID,
       },
     });

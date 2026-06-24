@@ -17,6 +17,7 @@ import {
   Receipt,
   Plus,
   Download,
+  ShoppingBag,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -419,7 +420,7 @@ export default function HomePage() {
             <h2 className="mt-16">What Lawie generates.</h2>
             <p className="sub">Real document structure, fictional case details.</p>
           </div>
-          <div className="cols-3 mt-48 grid gap-24">
+          <div className="cols-2 mt-48 grid gap-24">
             <article className="card sample">
               <div className="sample-icon">
                 <Scale strokeWidth={1.5} />
@@ -429,9 +430,13 @@ export default function HomePage() {
                 Bail application under S.480 BNSS for a case under S.115(2) BNS before the Chief
                 Judicial Magistrate, Patna.
               </p>
-              <Link className="btn btn-ghost-gold btn-sm" href="/login">
+              <a
+                className="btn btn-ghost-gold btn-sm"
+                href="/api/samples/bail-application"
+                download="Bail Application Sample.pdf"
+              >
                 <Download strokeWidth={1.5} /> Download PDF
-              </Link>
+              </a>
               <span className="cap">Sample — fictional case, demo only</span>
             </article>
             <article className="card sample">
@@ -443,9 +448,13 @@ export default function HomePage() {
                 Statutory notice for dishonour of cheque — cause title, return details, 15-day
                 demand, and advocate block.
               </p>
-              <Link className="btn btn-ghost-gold btn-sm" href="/login">
+              <a
+                className="btn btn-ghost-gold btn-sm"
+                href="/api/samples/legal-notice-s138"
+                download="Legal Notice S138 Sample.pdf"
+              >
                 <Download strokeWidth={1.5} /> Download PDF
-              </Link>
+              </a>
               <span className="cap">Sample — fictional case, demo only</span>
             </article>
             <article className="card sample">
@@ -457,9 +466,31 @@ export default function HomePage() {
                 Eleven-month tenancy for a residential flat in Ranchi, with security deposit and
                 maintenance clauses.
               </p>
-              <Link className="btn btn-ghost-gold btn-sm" href="/login">
+              <a
+                className="btn btn-ghost-gold btn-sm"
+                href="/api/samples/rent-agreement"
+                download="Rent Agreement Sample.pdf"
+              >
                 <Download strokeWidth={1.5} /> Download PDF
-              </Link>
+              </a>
+              <span className="cap">Sample — fictional case, demo only</span>
+            </article>
+            <article className="card sample">
+              <div className="sample-icon">
+                <ShoppingBag strokeWidth={1.5} />
+              </div>
+              <h4>Consumer Complaint</h4>
+              <p>
+                Complaint before the District Consumer Disputes Redressal Commission, Patna —
+                deficient service, relief prayer, and supporting annexures.
+              </p>
+              <a
+                className="btn btn-ghost-gold btn-sm"
+                href="/api/samples/consumer-complaint"
+                download="Consumer Complaint Sample.pdf"
+              >
+                <Download strokeWidth={1.5} /> Download PDF
+              </a>
               <span className="cap">Sample — fictional case, demo only</span>
             </article>
           </div>
