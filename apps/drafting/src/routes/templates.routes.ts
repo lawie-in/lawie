@@ -5,6 +5,22 @@ import { Template } from '../models/Template.model';
 
 const router = Router();
 
+// 72 of 92 document-rules JSON files store description as
+// "Document-rules config for <template id> — <actual description>".
+// That's config-authoring metadata, not user-facing copy, and the JSON
+// files are legal content (need Ajay's sign-off to edit), so it's
+// stripped here instead. Descriptions without the prefix pass through.
+const DESCRIPTION_CONFIG_PREFIX = /^Document-rules config for \S+ — (.*)$/;
+
+function presentDescription(description: string): string {
+  const match = description.match(DESCRIPTION_CONFIG_PREFIX);
+  if (!match) {
+    return description;
+  }
+  const rest = match[1];
+  return rest.charAt(0).toUpperCase() + rest.slice(1);
+}
+
 /**
  * GET /templates
  * Returns all active templates accessible to the caller's plan.
@@ -30,7 +46,13 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
     .sort({ category: 1, displayName: 1 })
     .lean();
 
-  res.json({ templates, plan });
+  res.json({
+    templates: templates.map((template) => ({
+      ...template,
+      description: presentDescription(template.description),
+    })),
+    plan,
+  });
 });
 
 /**
@@ -57,7 +79,7 @@ router.get('/:slug', authenticate, async (req: Request, res: Response): Promise<
     return;
   }
 
-  res.json({ template });
+  res.json({ template: { ...template, description: presentDescription(template.description) } });
 });
 
 export default router;
