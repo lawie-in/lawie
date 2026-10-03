@@ -293,6 +293,12 @@ Why these: D1 keeps the admin screens and the spend cap working with no new quer
 4. Readers: admin screens, the two count filters, the spend-cap id fix. The web retry sends `run_id`.
 5. Seed the rate rows in dev, generate one real draft, and check the row by hand.
 
+   **Result (3 Oct 2026, Vishal):** Done. Seeded `ai.rates.claude-haiku-4-5-20251001` (`{"input_usd_per_mtok":1,"output_usd_per_mtok":5}`, marked PLACEHOLDER pending Vikram) and `finance.usd_inr` (`87`, same caveat). Ran one real `affidavit_identity` generation through the live dev stack (real Helicone call, real tokens). Resulting `Generation` row by hand:
+   - `inputTokens: 1599, outputTokens: 907, costUsd: 0.006134` — matches `(1599/1e6)×1 + (907/1e6)×5` exactly.
+   - `status: completed, aiModel: claude-haiku-4-5-20251001, transport: helicone, usageSource: provider, costStatus: priced, llmCalls: 1`, one `calls` entry for section `body`, `paragraphCount: 10`, `durationMs: 11593`.
+   - `runId`/`runSequence: 1` matched across the `Generation` row, the `Document` row, and the `inkledger` spend row — the full cross-system trace the design asks for, confirmed with a real draft, not a mock.
+   - Placeholder rate values need Vikram's real numbers before this is production-ready; nothing else about the mechanism is in question.
+
 Two pull requests: steps 1 to 3 (capture and store), then step 4 (readers). Step 5 follows the first.
 
 Tests that must exist:
