@@ -25,6 +25,7 @@ import {
   validateFormData,
 } from '../services/template-engine.service';
 import { decrypt, encrypt } from '../utils/encryption';
+import { presentDescription } from '../utils/presentDescription';
 
 /**
  * Map template_id → valid DOC_TYPE for DB persistence.
@@ -137,7 +138,12 @@ router.get(
   authenticate,
   async (_req: Request, res: Response): Promise<void> => {
     const configs = listTemplateConfigs();
-    res.json({ templates: configs });
+    res.json({
+      templates: configs.map((config) => ({
+        ...config,
+        description: presentDescription(config.description),
+      })),
+    });
   },
 );
 
@@ -161,7 +167,7 @@ router.get(
       return;
     }
 
-    res.json({ config });
+    res.json({ config: { ...config, description: presentDescription(config.description) } });
   },
 );
 

@@ -2,24 +2,9 @@ import { Router, Request, Response } from 'express';
 
 import { authenticate } from '../middleware/authenticate';
 import { Template } from '../models/Template.model';
+import { presentDescription } from '../utils/presentDescription';
 
 const router = Router();
-
-// 72 of 92 document-rules JSON files store description as
-// "Document-rules config for <template id> — <actual description>".
-// That's config-authoring metadata, not user-facing copy, and the JSON
-// files are legal content (need Ajay's sign-off to edit), so it's
-// stripped here instead. Descriptions without the prefix pass through.
-const DESCRIPTION_CONFIG_PREFIX = /^Document-rules config for \S+ — (.*)$/;
-
-function presentDescription(description: string): string {
-  const match = description.match(DESCRIPTION_CONFIG_PREFIX);
-  if (!match) {
-    return description;
-  }
-  const rest = match[1];
-  return rest.charAt(0).toUpperCase() + rest.slice(1);
-}
 
 /**
  * GET /templates
