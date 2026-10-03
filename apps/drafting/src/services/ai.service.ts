@@ -448,7 +448,9 @@ export async function streamGenerateDocument(
         runId: input.runId,
       })}\n\n`,
     );
-    res.end();
+    // Not res.end() here — the route ends the response only after the
+    // failed Generation row is persisted, so a fast retry's resolveRun
+    // query is guaranteed to find this attempt rather than racing it.
     throw new GenerationFailedError(
       classified.userMessage,
       classified.code,
@@ -697,7 +699,9 @@ export async function streamGenerateFromTemplate(
             runId: input.runId,
           })}\n\n`,
         );
-        res.end();
+        // Not res.end() here — the route ends the response only after the
+        // failed Generation row is persisted, so a fast retry's resolveRun
+        // query is guaranteed to find this attempt rather than racing it.
         throw new GenerationFailedError(
           classified.userMessage,
           classified.code,

@@ -36,53 +36,61 @@ router.get(
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const [totalDocs, totalDocsThisMonth, finalisedDocs, docTypeAgg, templateAgg, aiCostAgg] =
-      await Promise.all([
-        LawieDocument.countDocuments({ isDeleted: { $ne: true } }),
-        LawieDocument.countDocuments({
-          createdAt: { $gte: startOfMonth },
-          isDeleted: { $ne: true },
-        }),
-        LawieDocument.countDocuments({
-          status: { $in: ['finalised', 'exported'] },
-          isDeleted: { $ne: true },
-        }),
-        // DocType breakdown
-        LawieDocument.aggregate([
-          { $match: { isDeleted: { $ne: true } } },
-          { $group: { _id: '$docType', count: { $sum: 1 } } },
-          { $sort: { count: -1 } },
-          { $limit: 10 },
-        ]),
-        // Template usage — group by templateId
-        LawieDocument.aggregate([
-          { $match: { isDeleted: { $ne: true }, templateId: { $ne: null } } },
-          {
-            $group: {
-              _id: '$templateId',
-              count: { $sum: 1 },
-              finalised: {
-                $sum: { $cond: [{ $in: ['$status', ['finalised', 'exported']] }, 1, 0] },
-              },
+    const [
+      totalDocs,
+      totalDocsThisMonth,
+      finalisedDocs,
+      docTypeAgg,
+      templateAgg,
+      aiCostAgg,
+      usdInrRate,
+    ] = await Promise.all([
+      LawieDocument.countDocuments({ isDeleted: { $ne: true } }),
+      LawieDocument.countDocuments({
+        createdAt: { $gte: startOfMonth },
+        isDeleted: { $ne: true },
+      }),
+      LawieDocument.countDocuments({
+        status: { $in: ['finalised', 'exported'] },
+        isDeleted: { $ne: true },
+      }),
+      // DocType breakdown
+      LawieDocument.aggregate([
+        { $match: { isDeleted: { $ne: true } } },
+        { $group: { _id: '$docType', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+      ]),
+      // Template usage — group by templateId
+      LawieDocument.aggregate([
+        { $match: { isDeleted: { $ne: true }, templateId: { $ne: null } } },
+        {
+          $group: {
+            _id: '$templateId',
+            count: { $sum: 1 },
+            finalised: {
+              $sum: { $cond: [{ $in: ['$status', ['finalised', 'exported']] }, 1, 0] },
             },
           },
-          { $sort: { count: -1 } },
-          { $limit: 20 },
-        ]),
-        // AI cost this month — cost sum includes failed rows (we paid for
-        // them); the generation count excludes them (T-003 §3.7).
-        Generation.aggregate([
-          { $match: { createdAt: { $gte: startOfMonth } } },
-          {
-            $group: {
-              _id: null,
-              totalTokens: { $sum: '$tokensUsed' },
-              totalCostUsd: { $sum: '$costUsd' },
-              count: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 0, 1] } },
-            },
+        },
+        { $sort: { count: -1 } },
+        { $limit: 20 },
+      ]),
+      // AI cost this month — cost sum includes failed rows (we paid for
+      // them); the generation count excludes them (T-003 §3.7).
+      Generation.aggregate([
+        { $match: { createdAt: { $gte: startOfMonth } } },
+        {
+          $group: {
+            _id: null,
+            totalTokens: { $sum: '$tokensUsed' },
+            totalCostUsd: { $sum: '$costUsd' },
+            count: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 0, 1] } },
           },
-        ]),
-      ]);
+        },
+      ]),
+      getUsdInrRate(),
+    ]);
 
     // Fetch template metadata for the top templates
     const templateIds = templateAgg.map((t: { _id: string }) => t._id).filter(Boolean);
@@ -95,7 +103,7 @@ router.get(
       aiCostAgg as Array<{ totalTokens?: number; totalCostUsd?: number; count?: number }>
     )[0];
     const costUsd = aiCost?.totalCostUsd ?? 0;
-    const costInr = Math.round(costUsd * (await getUsdInrRate()));
+    const costInr = Math.round(costUsd * usdInrRate);
     const genCount = aiCost?.count ?? 0;
 
     // Top 6 docTypes for the bar chart
@@ -194,21 +202,24 @@ router.get(
       end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
     }
 
-    const agg = await Generation.aggregate([
-      { $match: { createdAt: { $gte: start, $lt: end } } },
-      {
-        $group: {
-          _id: null,
-          totalTokens: { $sum: '$tokensUsed' },
-          totalCostUsd: { $sum: '$costUsd' },
-          count: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 0, 1] } },
+    const [agg, usdInrRate] = await Promise.all([
+      Generation.aggregate([
+        { $match: { createdAt: { $gte: start, $lt: end } } },
+        {
+          $group: {
+            _id: null,
+            totalTokens: { $sum: '$tokensUsed' },
+            totalCostUsd: { $sum: '$costUsd' },
+            count: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 0, 1] } },
+          },
         },
-      },
+      ]),
+      getUsdInrRate(),
     ]);
 
     const row = (agg as Array<{ totalTokens?: number; totalCostUsd?: number; count?: number }>)[0];
     const costUsd = row?.totalCostUsd ?? 0;
-    const costInr = Math.round(costUsd * (await getUsdInrRate()));
+    const costInr = Math.round(costUsd * usdInrRate);
     const count = row?.count ?? 0;
 
     res.json({
