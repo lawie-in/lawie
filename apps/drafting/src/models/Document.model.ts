@@ -25,6 +25,10 @@ export interface IDocument extends Document {
   version: number;
   isDeleted: boolean; // soft delete — never hard delete
 
+  /** T-003 §3.8 — the run that produced this document, and which attempt within it. */
+  runId?: string;
+  runSequence?: number;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -110,6 +114,9 @@ const DocumentSchema = new Schema<IDocument>(
       type: Boolean,
       default: false,
     },
+
+    runId: { type: String, default: undefined },
+    runSequence: { type: Number, default: undefined },
   },
   { timestamps: true },
 );

@@ -13,7 +13,7 @@ import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
 import { Template } from '../models/Template.model';
 import { User } from '../models/User.model';
-import { getUsdToInrRate } from '../services/app-settings.service';
+import { getUsdInrRate } from '../services/llm-usage';
 
 const router = Router();
 
@@ -23,23 +23,6 @@ function requireAdmin(req: Request, res: Response, next: () => void): void {
     return;
   }
   next();
-}
-
-/**
- * USD→INR rate from AppSetting (T-003) — was a hardcoded 85. Falls back to
- * 85 if the setting isn't configured yet, so admin screens stay readable
- * during rollout rather than showing a broken page.
- */
-async function safeUsdToInrRate(): Promise<number> {
-  try {
-    return await getUsdToInrRate();
-  } catch (err) {
-    console.error(
-      '[drafting] Could not read billing.usd_to_inr_rate, falling back to 85:',
-      err instanceof Error ? err.message : err,
-    );
-    return 85;
-  }
 }
 
 // ── GET /admin/documents/analytics ────────────────────────────────────────
@@ -86,7 +69,8 @@ router.get(
           { $sort: { count: -1 } },
           { $limit: 20 },
         ]),
-        // AI cost this month
+        // AI cost this month — cost sum includes failed rows (we paid for
+        // them); the generation count excludes them (T-003 §3.7).
         Generation.aggregate([
           { $match: { createdAt: { $gte: startOfMonth } } },
           {
@@ -94,7 +78,7 @@ router.get(
               _id: null,
               totalTokens: { $sum: '$tokensUsed' },
               totalCostUsd: { $sum: '$costUsd' },
-              count: { $sum: 1 },
+              count: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 0, 1] } },
             },
           },
         ]),
@@ -111,7 +95,7 @@ router.get(
       aiCostAgg as Array<{ totalTokens?: number; totalCostUsd?: number; count?: number }>
     )[0];
     const costUsd = aiCost?.totalCostUsd ?? 0;
-    const costInr = Math.round(costUsd * (await safeUsdToInrRate()));
+    const costInr = Math.round(costUsd * (await getUsdInrRate()));
     const genCount = aiCost?.count ?? 0;
 
     // Top 6 docTypes for the bar chart
@@ -217,14 +201,14 @@ router.get(
           _id: null,
           totalTokens: { $sum: '$tokensUsed' },
           totalCostUsd: { $sum: '$costUsd' },
-          count: { $sum: 1 },
+          count: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 0, 1] } },
         },
       },
     ]);
 
     const row = (agg as Array<{ totalTokens?: number; totalCostUsd?: number; count?: number }>)[0];
     const costUsd = row?.totalCostUsd ?? 0;
-    const costInr = Math.round(costUsd * (await safeUsdToInrRate()));
+    const costInr = Math.round(costUsd * (await getUsdInrRate()));
     const count = row?.count ?? 0;
 
     res.json({

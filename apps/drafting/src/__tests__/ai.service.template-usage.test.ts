@@ -1,13 +1,11 @@
 /**
- * T-003 — streamGenerateFromTemplate usage/llmCalls accumulation across a
+ * T-003 — streamGenerateFromTemplate usage accumulation across a
  * multi-section document, and GenerationFailedError carrying partial usage
- * when one of several LLM calls fails mid-stream.
+ * (as UsageTotals) when one of several LLM calls fails mid-stream.
  *
- * Uses the real bail_regular template config as a base (loadTemplateConfig),
- * cloned with a second synthetic ai_generated section so there are two LLM
- * calls to sum across — no real template ships with more than one today.
- * auto_convert_old_to_new is forced off to skip the DB-backed old-law
- * conversion loop, which is irrelevant to usage accounting.
+ * Uses the real bail_regular template config as a base, cloned with a second
+ * synthetic ai_generated section so there are two LLM calls to sum across —
+ * no real template ships with more than one today.
  */
 import './setupEnv';
 import './setupDb';
@@ -54,11 +52,8 @@ function sseResponse(lines: string[]) {
     ok: true,
     body: new ReadableStream({
       pull(controller) {
-        if (i < lines.length) {
-          controller.enqueue(encoder.encode(lines[i++] + '\n'));
-        } else {
-          controller.close();
-        }
+        if (i < lines.length) controller.enqueue(encoder.encode(lines[i++] + '\n'));
+        else controller.close();
       },
     }),
   };
@@ -72,9 +67,11 @@ function usageChunk(text: string, promptTokens: number, completionTokens: number
   ];
 }
 
+const BASE_INPUT = { formData: {}, userId: 'user-1', runId: 'test-run-id', runSequence: 1 };
+
 beforeEach(async () => {
   _clearAppSettingsCache();
-  await AppSetting.create({ key: 'ai.drafting_model', value: 'claude-sonnet-4-20250514' });
+  await AppSetting.create({ key: 'ai.drafting_model', value: 'claude-sonnet-4-5-20250929' });
   env.HELICONE_API_KEY = 'test-helicone-key';
 });
 
@@ -91,19 +88,39 @@ describe('streamGenerateFromTemplate — multi-section usage accumulation', () =
       .mockResolvedValueOnce(sseResponse(usageChunk('second section text', 50, 10)));
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    const input: TemplateGenerateInput = {
-      templateConfig: twoSectionConfig(),
-      formData: {},
-      userId: 'user-1',
-    };
-
+    const input: TemplateGenerateInput = { ...BASE_INPUT, templateConfig: twoSectionConfig() };
     const result = await streamGenerateFromTemplate(input, fakeRes());
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(result.llmCalls).toBe(2);
+    expect(result.usage.llmCalls).toBe(2);
     expect(result.usage.inputTokens).toBe(150); // 100 + 50
     expect(result.usage.outputTokens).toBe(30); // 20 + 10
+    expect(result.usage.usageSource).toBe('provider');
+    expect(result.usage.calls).toHaveLength(2);
+    expect(result.aiModel).toBe('claude-sonnet-4-5-20250929');
+    expect(result.transport).toBe('helicone');
     expect(result.bodyParaCount).toBeGreaterThanOrEqual(0);
+  });
+
+  it('marks a call "estimated" when the provider reports no usage at all', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce(
+        sseResponse([
+          `data: ${JSON.stringify({ choices: [{ delta: { content: 'no usage here' } }] })}`,
+          'data: [DONE]',
+        ]),
+      )
+      .mockResolvedValueOnce(sseResponse(usageChunk('second section text', 50, 10)));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const input: TemplateGenerateInput = { ...BASE_INPUT, templateConfig: twoSectionConfig() };
+    const result = await streamGenerateFromTemplate(input, fakeRes());
+
+    expect(result.usage.usageSource).toBe('mixed');
+    const estimatedCall = result.usage.calls.find((c) => c.usageSource === 'estimated')!;
+    expect(estimatedCall.inputTokens).toBe(0);
+    expect(estimatedCall.outputTokens).toBeGreaterThan(0); // estimateOutputTokens('no usage here')
   });
 
   it("a failure on the second call still reports the first call's usage via GenerationFailedError", async () => {
@@ -113,12 +130,7 @@ describe('streamGenerateFromTemplate — multi-section usage accumulation', () =
       .mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'gateway down' });
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    const input: TemplateGenerateInput = {
-      templateConfig: twoSectionConfig(),
-      formData: {},
-      userId: 'user-1',
-    };
-
+    const input: TemplateGenerateInput = { ...BASE_INPUT, templateConfig: twoSectionConfig() };
     const res = fakeRes();
     let caught: unknown;
     try {
@@ -129,11 +141,14 @@ describe('streamGenerateFromTemplate — multi-section usage accumulation', () =
 
     expect(caught).toBeInstanceOf(GenerationFailedError);
     const failErr = caught as GenerationFailedError;
-    // First call succeeded (100/20) + second call attempted but failed before
-    // any usage chunk arrived (0/0) — nothing is lost, nothing is fabricated.
-    expect(failErr.llmCalls).toBe(2);
+    // First call succeeded (100/20); second call attempted but failed before
+    // any usage chunk arrived, so it's recorded as a 0-input estimated call —
+    // nothing is lost, nothing is fabricated for the half that never ran.
+    expect(failErr.usage.llmCalls).toBe(2);
     expect(failErr.usage.inputTokens).toBe(100);
-    expect(failErr.usage.outputTokens).toBe(20);
+    expect(failErr.usage.outputTokens).toBeGreaterThanOrEqual(20);
+    expect(failErr.aiModel).toBe('claude-sonnet-4-5-20250929');
+    expect(failErr.transport).toBe('helicone');
     expect(res.end).toHaveBeenCalled();
   });
 });

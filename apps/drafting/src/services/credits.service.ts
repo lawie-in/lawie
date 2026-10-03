@@ -238,8 +238,11 @@ export async function spendInk(input: {
   costCredits: number;
   reason: 'generate' | 'regenerate';
   reference?: string;
+  /** T-003 §3.8 — which draft/attempt this spend paid for. Optional, no effect on amount or bucket order. */
+  runId?: string;
+  runSequence?: number;
 }): Promise<{ success: boolean; reason?: string }> {
-  const { userId, costCredits, reason, reference } = input;
+  const { userId, costCredits, reason, reference, runId, runSequence } = input;
   if (!mongoose.Types.ObjectId.isValid(userId)) return { success: false, reason: 'user_not_found' };
 
   const costUnits = costCredits * 2; // 1 Ink = 2 storage units
@@ -298,6 +301,8 @@ export async function spendInk(input: {
         sourceBucket: 'sub',
         balanceAfter: totalAfter + dc + dt,
         reference,
+        runId,
+        runSequence,
         createdAt: new Date(),
       });
     }
@@ -309,6 +314,8 @@ export async function spendInk(input: {
         sourceBucket: 'annual_carry',
         balanceAfter: totalAfter + dt,
         reference,
+        runId,
+        runSequence,
         createdAt: new Date(),
       });
     }
@@ -320,6 +327,8 @@ export async function spendInk(input: {
         sourceBucket: 'topup',
         balanceAfter: totalAfter,
         reference,
+        runId,
+        runSequence,
         createdAt: new Date(),
       });
     }
