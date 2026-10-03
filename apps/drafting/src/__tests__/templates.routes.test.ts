@@ -40,6 +40,17 @@ async function seedTemplates() {
       isActive: true,
     },
     {
+      templateId: 'affidavit_identity',
+      slug: 'affidavit-identity',
+      displayName: 'Affidavit of Identity',
+      category: 'civil',
+      description:
+        'Document-rules config for affidavit_identity — standalone affidavit of identity for KYC, bank, property, government use',
+      planAccess: 'free',
+      sourceFile: 'affidavit-identity.json',
+      isActive: true,
+    },
+    {
       templateId: 'inactive-template',
       slug: 'inactive-template',
       displayName: 'Inactive Template',
@@ -66,15 +77,16 @@ describe('Templates Routes', () => {
     it('free user only sees free templates', async () => {
       const res = await request(app).get('/templates').set(internalHeaders('free'));
       expect(res.status).toBe(200);
-      expect(res.body.templates).toHaveLength(1);
-      expect(res.body.templates[0].slug).toBe('bail-application');
+      expect(res.body.templates).toHaveLength(2);
+      const slugs = res.body.templates.map((t: { slug: string }) => t.slug);
+      expect(slugs).toEqual(expect.arrayContaining(['bail-application', 'affidavit-identity']));
       expect(res.body.plan).toBe('free');
     });
 
     it('pro user sees all templates', async () => {
       const res = await request(app).get('/templates').set(internalHeaders('pro'));
       expect(res.status).toBe(200);
-      expect(res.body.templates).toHaveLength(2); // bail-application + writ-petition (inactive excluded)
+      expect(res.body.templates).toHaveLength(3); // bail-application + writ-petition + affidavit-identity (inactive excluded)
       expect(res.body.plan).toBe('pro');
     });
 
@@ -82,6 +94,24 @@ describe('Templates Routes', () => {
       const res = await request(app).get('/templates').set(internalHeaders('pro'));
       const slugs = res.body.templates.map((t: { slug: string }) => t.slug);
       expect(slugs).not.toContain('inactive-template');
+    });
+
+    it('strips the document-rules config prefix from a description', async () => {
+      const res = await request(app).get('/templates').set(internalHeaders('free'));
+      const template = res.body.templates.find(
+        (t: { slug: string }) => t.slug === 'affidavit-identity',
+      );
+      expect(template.description).toBe(
+        'Standalone affidavit of identity for KYC, bank, property, government use',
+      );
+    });
+
+    it('leaves a description with no config prefix unchanged', async () => {
+      const res = await request(app).get('/templates').set(internalHeaders('free'));
+      const template = res.body.templates.find(
+        (t: { slug: string }) => t.slug === 'bail-application',
+      );
+      expect(template.description).toBe('Standard bail application');
     });
   });
 
