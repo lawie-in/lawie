@@ -1,0 +1,14 @@
+# What counts as "legal content"
+
+A ticket touching any of the following requires Ajay's sign-off reference in the handoff packet (see the lead's entry gate in `.claude/agents/vishal.md`), and the `reviewer` should give it extra scrutiny regardless:
+
+- `apps/drafting/src/config/document-rules/`
+- `apps/drafting/src/config/court-rules/`
+- `apps/drafting/src/config/courts/`
+- `apps/drafting/src/config/sections/`
+- `docs/templates/*.json`
+- The template seed scripts
+- `apps/drafting/src/services/ai.service.ts`
+- `apps/drafting/src/services/preflight.service.ts`
+
+See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths above are covered by golden snapshot tests that the `tester` must never auto-update.
