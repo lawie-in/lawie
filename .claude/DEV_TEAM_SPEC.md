@@ -243,17 +243,19 @@ exit 2
 
 **Gates.** Each step refuses if its input is missing.
 
-| Step                      | Refuses without                                            |
-| ------------------------- | ---------------------------------------------------------- |
-| lead                      | A `SCRUM-n` key with acceptance criteria from Priya        |
-| lead, UI ticket           | Rajesh's Figma link and handoff spec                       |
-| lead, architecture change | Arjun's ADR reference                                      |
-| lead, legal content       | Ajay's sign-off reference                                  |
-| developer                 | Handoff packet with acceptance criteria and branch         |
-| tester                    | Developer report with `STATUS: done` and the changed files |
-| reviewer                  | Tester report with `STATUS: green`                         |
-| doc-writer                | Reviewer `VERDICT: pass`                                   |
-| PR                        | All four reports                                           |
+| Step                      | Refuses without                                                                                                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| lead                      | Either a `SCRUM-n` key with acceptance criteria from Priya, or a `T-nnn` file in `handoff/tickets/` with acceptance criteria (local tickets, used while Jira and Notion are paused pre-v1 — see T-001) |
+| lead, UI ticket           | Rajesh's Figma link and handoff spec                                                                                                                                                                   |
+| lead, architecture change | Arjun's ADR reference                                                                                                                                                                                  |
+| lead, legal content       | Ajay's sign-off reference                                                                                                                                                                              |
+| developer                 | Handoff packet with acceptance criteria and branch                                                                                                                                                     |
+| tester                    | Developer report with `STATUS: done` and the changed files                                                                                                                                             |
+| reviewer                  | Tester report with `STATUS: green`                                                                                                                                                                     |
+| doc-writer                | Reviewer `VERDICT: pass`                                                                                                                                                                               |
+| PR                        | All four reports                                                                                                                                                                                       |
+
+**Local ticket status.** A `T-nnn` ticket's Status line lives in its own file under `handoff/tickets/` and is the founder's to move — the lead has `Edit`/`Write` disallowed and none of the four crew agents touch that folder. The lead tells the founder what the Status line should become; the founder writes it.
 
 **Legal content** means anything under `apps/drafting/src/config/` (`document-rules`, `court-rules`, `courts`, `sections`), `docs/templates/*.json`, the template seed scripts, and the prompts in `apps/drafting/src/services/ai.service.ts` and `preflight.service.ts`.
 
@@ -364,7 +366,7 @@ From the Claude Code docs, read on 3 Oct. Run `claude --version` first: several 
 - [ ] Each hook is proven by a failing case: tester tries to edit source, developer tries to edit a test, reviewer tries to write a file, doc-writer tries to edit a `.ts` file. All four are blocked.
 - [ ] `yarn workspace @lawie/drafting test` runs on this machine. The August setup note said yarn, Mongo and Redis were missing locally, so check this before relying on the tester.
 - [ ] One small fix and one feature ticket have gone through their chains end to end, with the four reports in the PR.
-- [ ] A ticket with no `SCRUM` key is refused by the lead.
+- [ ] A ticket with no `SCRUM-n` key and no matching `T-nnn` file in `handoff/tickets/` is refused by the lead.
 - [ ] Arjun has reviewed the agent files. Rita has added the crew to the roster as a second tier.
 
 ---

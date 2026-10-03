@@ -21,7 +21,7 @@ Express 4 + Mongoose 8 services. Next.js 16 + React 19 + Tailwind 3 web. Redis v
 
 ## Branches
 
-`feature/scrum-<n>-<slug>` or `fix/<slug>`, cut from `develop`. PR to `develop`. `main` is production. Jira project key: `SCRUM`. Remote: `github.com/lawie-in/lawie`.
+`feature/scrum-<n>-<slug>` or `fix/<slug>` for a `SCRUM-n` ticket; `feature/t-<nnn>-<slug>` or `fix/t-<nnn>-<slug>` for a local `T-nnn` ticket (`handoff/tickets/`, used while Jira and Notion are paused pre-v1). Cut from `develop`, PR to `develop`. `main` is production. Jira project key: `SCRUM`. Remote: `github.com/lawie-in/lawie`.
 
 ## Commits
 
