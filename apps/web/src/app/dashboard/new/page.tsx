@@ -142,6 +142,11 @@ function NewDocumentContent() {
 
   // Saved form data so the advocate can proceed after soft-warn
   const pendingFormData = useRef<Record<string, unknown> | null>(null);
+  // T-003 §3.8 — the run id for the in-progress/last-failed attempt. Kept
+  // across a retry (same run, next sequence); dropped on a fresh submit
+  // (edited form = a new run). The server works out the sequence; we never
+  // send one.
+  const lastRunId = useRef<string | undefined>(undefined);
 
   // ── Search + filter pipeline ──────────────────────────────────────────────
   // Categories with counts, derived from the live template list (so any
@@ -229,8 +234,15 @@ function NewDocumentContent() {
           body: JSON.stringify({
             template_id: selectedConfig.template_id,
             form_data: formData,
+            ...(lastRunId.current ? { run_id: lastRunId.current } : {}),
           }),
         });
+
+        // The server always resolves a run (new or continued) before it
+        // starts streaming, so the header is there whether this attempt
+        // succeeds or fails — the authoritative source, read before the body.
+        const runIdHeader = res.headers.get('X-Run-Id');
+        if (runIdHeader) lastRunId.current = runIdHeader;
 
         if (!res.ok) {
           let reason = 'Generation could not start.';
@@ -346,6 +358,10 @@ function NewDocumentContent() {
         setParagraphCount(paraCount > 0 ? paraCount : undefined);
         setWarningCount(warnCount > 0 ? warnCount : undefined);
         setPipelineState('ready');
+        // A run ends at its first completed attempt — generating again is a
+        // new run. The server would start one anyway (a completed run never
+        // gets reused), but clearing here keeps the client's picture honest.
+        lastRunId.current = undefined;
       } catch (err) {
         // Network drop or unexpected client-side error during the SSE read.
         // Surface in the generation_failed card with a retry button.
@@ -371,6 +387,10 @@ function NewDocumentContent() {
     async (formData: Record<string, unknown>) => {
       if (!user || !selectedConfig) return;
 
+      // A fresh submit (not the retry button) means the form changed —
+      // T-003 §3.8 has the web page drop the stored run id so this starts a
+      // new run instead of continuing a failed one.
+      lastRunId.current = undefined;
       pendingFormData.current = formData;
       setPhase('generating');
       setPipelineState('verifying');

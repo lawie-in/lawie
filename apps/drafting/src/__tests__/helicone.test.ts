@@ -87,6 +87,29 @@ describe('spendCapCheck middleware', () => {
     warnSpy.mockRestore();
   });
 
+  it('matches a text user id against the ObjectId field (T-003 §3.7 fix)', async () => {
+    // A real JWT's `sub` is always a string — unlike the ObjectId instance
+    // the other tests in this file pass, which happened to match by
+    // accident and masked the bug this test pins down.
+    await Generation.create([
+      { userId: USER_ID, docType: 'bail_application', tokensUsed: 5000, costUsd: 7.0 },
+    ]);
+
+    const mockReq = {
+      jwtPayload: { sub: USER_ID.toString(), plan: 'free' },
+    } as any;
+    const mockRes = {} as any;
+    const mockNext = jest.fn();
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await spendCapCheck(mockReq, mockRes, mockNext);
+
+    expect(mockNext).toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[spend-cap] User'));
+
+    warnSpy.mockRestore();
+  });
+
   it('calls next() even without jwtPayload', async () => {
     const mockReq = {} as any;
     const mockRes = {} as any;

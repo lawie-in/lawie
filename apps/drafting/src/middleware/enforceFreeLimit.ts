@@ -44,9 +44,12 @@ export async function enforceFreeLimit(
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // A failed generation shouldn't use up a free user's monthly allowance
+  // (T-003 §3.7) — they didn't get a draft out of it.
   const count = await Generation.countDocuments({
     userId: payload.sub,
     createdAt: { $gte: startOfMonth },
+    status: { $ne: 'failed' },
   });
 
   if (count >= FREE_TIER_MONTHLY_LIMIT) {

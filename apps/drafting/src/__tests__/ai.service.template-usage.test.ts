@@ -149,6 +149,11 @@ describe('streamGenerateFromTemplate — multi-section usage accumulation', () =
     expect(failErr.usage.outputTokens).toBeGreaterThanOrEqual(20);
     expect(failErr.aiModel).toBe('claude-sonnet-4-5-20250929');
     expect(failErr.transport).toBe('helicone');
-    expect(res.end).toHaveBeenCalled();
+    // The pipeline writes the SSE error event but does NOT end the response —
+    // the route ends it only after the failed Generation row is persisted,
+    // so a fast retry can never race that write (found via a live browser
+    // check during T-003).
+    expect(res.write).toHaveBeenCalledWith(expect.stringContaining('event: error'));
+    expect(res.end).not.toHaveBeenCalled();
   });
 });

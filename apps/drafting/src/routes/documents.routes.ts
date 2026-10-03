@@ -152,9 +152,11 @@ router.get('/usage', authenticate, async (req: Request, res: Response): Promise<
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // A failed generation shouldn't count against the caller's usage (T-003 §3.7).
   const used = await Generation.countDocuments({
     userId: payload.sub,
     createdAt: { $gte: startOfMonth },
+    status: { $ne: 'failed' },
   });
 
   if (payload.plan === 'pro') {
@@ -362,6 +364,9 @@ router.post(
             dbErr instanceof Error ? dbErr.message : dbErr,
           );
         });
+        // Ended only now — after the row exists — so a fast retry's
+        // resolveRun query can never race the write that makes it findable.
+        res.end();
         return;
       }
 
@@ -564,6 +569,9 @@ router.post(
             dbErr instanceof Error ? dbErr.message : dbErr,
           );
         });
+        // Ended only now — after the row exists — so a fast retry's
+        // resolveRun query can never race the write that makes it findable.
+        res.end();
         return;
       }
 

@@ -28,6 +28,11 @@ app.use(
   cors({
     origin: env.ALLOWED_ORIGINS.split(','),
     credentials: true,
+    // Without this, the browser's fetch Response.headers silently drops any
+    // non-CORS-safelisted header — the web app's run-id retry logic (T-003
+    // §3.8) was reading X-Run-Id/X-Run-Sequence as null despite both being
+    // on the wire, found via a live browser check, not a type error.
+    exposedHeaders: ['X-Run-Id', 'X-Run-Sequence'],
   }),
 );
 // @types/compression doesn't perfectly align with @types/express overloads
