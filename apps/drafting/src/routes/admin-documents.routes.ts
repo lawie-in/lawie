@@ -13,6 +13,7 @@ import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
 import { Template } from '../models/Template.model';
 import { User } from '../models/User.model';
+import { getUsdToInrRate } from '../services/app-settings.service';
 
 const router = Router();
 
@@ -22,6 +23,23 @@ function requireAdmin(req: Request, res: Response, next: () => void): void {
     return;
   }
   next();
+}
+
+/**
+ * USD→INR rate from AppSetting (T-003) — was a hardcoded 85. Falls back to
+ * 85 if the setting isn't configured yet, so admin screens stay readable
+ * during rollout rather than showing a broken page.
+ */
+async function safeUsdToInrRate(): Promise<number> {
+  try {
+    return await getUsdToInrRate();
+  } catch (err) {
+    console.error(
+      '[drafting] Could not read billing.usd_to_inr_rate, falling back to 85:',
+      err instanceof Error ? err.message : err,
+    );
+    return 85;
+  }
 }
 
 // ── GET /admin/documents/analytics ────────────────────────────────────────
@@ -93,8 +111,7 @@ router.get(
       aiCostAgg as Array<{ totalTokens?: number; totalCostUsd?: number; count?: number }>
     )[0];
     const costUsd = aiCost?.totalCostUsd ?? 0;
-    // Approximate INR at 85 per USD (adjust via AppSetting in the future)
-    const costInr = Math.round(costUsd * 85);
+    const costInr = Math.round(costUsd * (await safeUsdToInrRate()));
     const genCount = aiCost?.count ?? 0;
 
     // Top 6 docTypes for the bar chart
@@ -207,7 +224,7 @@ router.get(
 
     const row = (agg as Array<{ totalTokens?: number; totalCostUsd?: number; count?: number }>)[0];
     const costUsd = row?.totalCostUsd ?? 0;
-    const costInr = Math.round(costUsd * 85);
+    const costInr = Math.round(costUsd * (await safeUsdToInrRate()));
     const count = row?.count ?? 0;
 
     res.json({

@@ -116,4 +116,77 @@ export function _clearAppSettingsCache(): void {
 export const APP_SETTING_KEYS = {
   DRAFTING_MODEL: 'ai.drafting_model',
   PREFLIGHT_MODEL: 'ai.preflight_model',
+  /** JSON map of model id -> { inputPerMTok, outputPerMTok } USD rates (T-003) */
+  MODEL_RATES_USD: 'ai.model_rates_usd',
+  /** Single numeric string — USD to INR conversion rate (T-003) */
+  USD_TO_INR_RATE: 'billing.usd_to_inr_rate',
 } as const;
+
+// ── Model USD rates + USD→INR conversion (T-003) ─────────────────────────────
+//
+// Real generation cost (costUsd on a Generation row) is computed from these,
+// not hardcoded — so the founder can update pricing without a deploy. Both
+// are plain AppSetting values (JSON / numeric strings), read through the same
+// cached getAppSetting path as the model-id settings above.
+
+export interface ModelRateUsd {
+  inputPerMTok: number;
+  outputPerMTok: number;
+}
+
+export class ModelRateMissingError extends Error {
+  readonly model: string;
+  constructor(model: string) {
+    super(
+      `No USD rate configured for model "${model}" in app setting "${APP_SETTING_KEYS.MODEL_RATES_USD}". Add it via /admin/ai-config.`,
+    );
+    this.name = 'ModelRateMissingError';
+    this.model = model;
+  }
+}
+
+/**
+ * Look up the USD per-million-token rate for a model from the
+ * ai.model_rates_usd JSON map. Throws AppSettingMissingError if the setting
+ * isn't configured at all, or ModelRateMissingError if it's configured but
+ * has no entry for this specific model.
+ */
+export async function getModelRateUsd(model: string): Promise<ModelRateUsd> {
+  const raw = await getAppSetting(APP_SETTING_KEYS.MODEL_RATES_USD);
+  let rates: Record<string, ModelRateUsd>;
+  try {
+    rates = JSON.parse(raw);
+  } catch {
+    throw new Error(
+      `App setting "${APP_SETTING_KEYS.MODEL_RATES_USD}" is not valid JSON. Fix it in /admin/ai-config.`,
+    );
+  }
+  const rate = rates[model];
+  if (!rate || typeof rate.inputPerMTok !== 'number' || typeof rate.outputPerMTok !== 'number') {
+    throw new ModelRateMissingError(model);
+  }
+  return rate;
+}
+
+/** Read the USD→INR conversion rate from AppSetting. Throws AppSettingMissingError if unset. */
+export async function getUsdToInrRate(): Promise<number> {
+  const raw = await getAppSetting(APP_SETTING_KEYS.USD_TO_INR_RATE);
+  const rate = Number(raw);
+  if (!Number.isFinite(rate) || rate <= 0) {
+    throw new Error(
+      `App setting "${APP_SETTING_KEYS.USD_TO_INR_RATE}" is not a valid positive number ("${raw}"). Fix it in /admin/ai-config.`,
+    );
+  }
+  return rate;
+}
+
+/** costUsd = (inputTokens / 1e6) * inputPerMTok + (outputTokens / 1e6) * outputPerMTok */
+export function computeCostUsd(
+  usage: { inputTokens: number; outputTokens: number },
+  rate: ModelRateUsd,
+): number {
+  return (
+    (usage.inputTokens / 1_000_000) * rate.inputPerMTok +
+    (usage.outputTokens / 1_000_000) * rate.outputPerMTok
+  );
+}

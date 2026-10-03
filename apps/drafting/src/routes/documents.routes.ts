@@ -16,6 +16,12 @@ import {
   streamGenerateFromTemplate,
 } from '../services/ai.service';
 import { buildAnnexuresPack, estimateBodyParaCount } from '../services/annexures.service';
+import {
+  APP_SETTING_KEYS,
+  computeCostUsd,
+  getAppSetting,
+  getModelRateUsd,
+} from '../services/app-settings.service';
 import { spendInk } from '../services/credits.service';
 import { contentToHtml, renderPdf } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
@@ -53,6 +59,29 @@ function validateObjectId(req: Request, _res: Response, next: NextFunction): voi
 }
 
 const router = Router();
+
+/**
+ * Compute real USD cost for a generation from the model rates in AppSetting.
+ * Never throws — pricing config gaps must not break the user-facing flow
+ * (the draft and the Ink deduction have already succeeded by the time this
+ * runs). Falls back to 0, same as before this field was tracked at all.
+ */
+async function safeComputeCostUsd(usage: {
+  inputTokens: number;
+  outputTokens: number;
+}): Promise<number> {
+  try {
+    const model = await getAppSetting(APP_SETTING_KEYS.DRAFTING_MODEL);
+    const rate = await getModelRateUsd(model);
+    return computeCostUsd(usage, rate);
+  } catch (err) {
+    console.error(
+      '[drafting] Could not compute costUsd for generation:',
+      err instanceof Error ? err.message : err,
+    );
+    return 0;
+  }
+}
 
 const generateSchema = z.object({
   docType: z.enum([
@@ -264,8 +293,27 @@ router.post(
       );
     } catch (genErr) {
       // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
-      // already emitted and the response is closed — nothing else to do.
-      if (genErr instanceof GenerationFailedError) return;
+      // already emitted and the response is closed. Still record what the
+      // attempt actually used (T-003) — a failed generation isn't free.
+      if (genErr instanceof GenerationFailedError) {
+        const costUsd = await safeComputeCostUsd(genErr.usage);
+        await Generation.create({
+          userId: payload.sub,
+          docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
+          tokensUsed: genErr.usage.inputTokens + genErr.usage.outputTokens,
+          inputTokens: genErr.usage.inputTokens,
+          outputTokens: genErr.usage.outputTokens,
+          llmCalls: genErr.llmCalls,
+          paragraphCount: 0,
+          costUsd,
+        }).catch((dbErr) => {
+          console.error(
+            '[drafting] Failed to record Generation for a failed template generation:',
+            dbErr instanceof Error ? dbErr.message : dbErr,
+          );
+        });
+        return;
+      }
 
       // Anything else (template-config bug, prompt build error, etc.) — emit
       // a structured error before headers go stale, then close.
@@ -296,6 +344,7 @@ router.post(
           0,
           300,
         );
+      const costUsd = await safeComputeCostUsd(result.usage);
       const [doc] = await Promise.all([
         LawieDocument.create({
           userId: payload.sub,
@@ -313,7 +362,12 @@ router.post(
         Generation.create({
           userId: payload.sub,
           docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
-          tokensUsed: 0,
+          tokensUsed: result.usage.inputTokens + result.usage.outputTokens,
+          inputTokens: result.usage.inputTokens,
+          outputTokens: result.usage.outputTokens,
+          llmCalls: result.llmCalls,
+          paragraphCount: result.bodyParaCount,
+          costUsd,
         }),
       ]);
       docId = String(doc._id);
@@ -391,11 +445,56 @@ router.post(
     }
 
     // Stream the AI response via three-layer pipeline
-    const result = await streamGenerateDocument({ ...input, userId: payload.sub }, res);
+    let result;
+    try {
+      result = await streamGenerateDocument({ ...input, userId: payload.sub }, res);
+    } catch (genErr) {
+      // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
+      // already emitted and the response is closed. Still record what the
+      // attempt actually used (T-003) — a failed generation isn't free.
+      if (genErr instanceof GenerationFailedError) {
+        const costUsd = await safeComputeCostUsd(genErr.usage);
+        await Generation.create({
+          userId: payload.sub,
+          docType: input.docType,
+          tokensUsed: genErr.usage.inputTokens + genErr.usage.outputTokens,
+          inputTokens: genErr.usage.inputTokens,
+          outputTokens: genErr.usage.outputTokens,
+          llmCalls: genErr.llmCalls,
+          paragraphCount: 0,
+          costUsd,
+        }).catch((dbErr) => {
+          console.error(
+            '[drafting] Failed to record Generation for a failed legacy generation:',
+            dbErr instanceof Error ? dbErr.message : dbErr,
+          );
+        });
+        return;
+      }
+
+      const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
+      console.error(`[drafting] legacy generate threw:`, msg);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Generation failed', message: msg });
+      } else {
+        res.write(
+          `event: error\ndata: ${JSON.stringify({
+            reason:
+              'The drafting service hit an unexpected error. Please try again — your inputs are saved.',
+            retryable: true,
+            code: 'unknown',
+          })}\n\n`,
+        );
+        res.end();
+      }
+      return;
+    }
 
     // Save to DB — must happen before done event so we can include docId
     const encryptedContent = encrypt(result.fullText);
     const title = `${input.docType.replace(/_/g, ' ')} — ${input.courtName}`.slice(0, 300);
+    const paragraphCount = estimateBodyParaCount(result.fullText);
+    const costUsd = await safeComputeCostUsd(result.usage);
     const [doc] = await Promise.all([
       LawieDocument.create({
         userId: payload.sub,
@@ -413,7 +512,12 @@ router.post(
       Generation.create({
         userId: payload.sub,
         docType: input.docType,
-        tokensUsed: 0,
+        tokensUsed: result.usage.inputTokens + result.usage.outputTokens,
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        llmCalls: result.llmCalls,
+        paragraphCount,
+        costUsd,
       }),
     ]);
 

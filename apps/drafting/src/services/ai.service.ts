@@ -53,19 +53,33 @@ import {
 const directClient = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
 /**
+ * Token usage for one streamLLM call. Passed in by the caller and mutated in
+ * place as usage data arrives, so a mid-stream throw still leaves whatever was
+ * captured up to that point on the object the caller holds a reference to —
+ * this is how "tokens used so far" survives a failed generation (T-003).
+ */
+export interface LlmUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+/**
  * Stream text tokens from the LLM.
  *
  * - When HELICONE_API_KEY is set: calls Helicone AI Gateway (OpenAI-compat endpoint)
  *   using native fetch — this is the same endpoint verified working in Postman.
  * - When not set: falls back to Anthropic SDK directly.
  *
- * Yields raw text chunks as they arrive.
+ * Yields raw text chunks as they arrive. If `usage` is passed, it's updated
+ * in place as token counts become available (never with prompt/document text —
+ * only the numeric counts the provider reports).
  */
-async function* streamLLM(
+export async function* streamLLM(
   systemPrompt: string,
   userPrompt: string,
   maxTokens: number,
   trackingHeaders: Record<string, string> = {},
+  usage?: LlmUsage,
 ): AsyncGenerator<string> {
   // Model lives in the AppSetting Mongo collection — NOT in env or in the
   // codebase (per founder instruction 2026-05-11). If unset, getAppSetting
@@ -75,7 +89,10 @@ async function* streamLLM(
   const model = await getAppSetting(APP_SETTING_KEYS.DRAFTING_MODEL);
 
   if (env.HELICONE_API_KEY) {
-    // Helicone AI Gateway — OpenAI-compatible, supports Claude model aliases
+    // Helicone AI Gateway — OpenAI-compatible, supports Claude model aliases.
+    // stream_options.include_usage asks for a final chunk carrying token
+    // counts (OpenAI streaming convention) — without it the gateway never
+    // reports usage on a streamed response.
     const resp = await fetch(env.HELICONE_GATEWAY_URL, {
       method: 'POST',
       headers: {
@@ -87,6 +104,7 @@ async function* streamLLM(
         model,
         max_tokens: maxTokens,
         stream: true,
+        stream_options: { include_usage: true },
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -116,26 +134,47 @@ async function* streamLLM(
           const data = JSON.parse(line.slice(6));
           const text = data.choices?.[0]?.delta?.content;
           if (text) yield text;
+          // Final chunk (include_usage): choices is empty/absent, usage is set.
+          if (usage && data.usage) {
+            usage.inputTokens = data.usage.prompt_tokens ?? usage.inputTokens;
+            usage.outputTokens = data.usage.completion_tokens ?? usage.outputTokens;
+          }
         } catch {
           // malformed SSE line — skip
         }
       }
     }
   } else {
-    // Direct Anthropic SDK — no proxy
+    // Direct Anthropic SDK — no proxy. Usage arrives incrementally on
+    // message_start (initial input_tokens) and message_delta (cumulative
+    // output_tokens near the end) — reading it off these events rather than
+    // only from stream.finalMessage() means a mid-stream throw still leaves
+    // the last-seen counts on `usage`.
     const stream = await directClient.messages.stream({
       model,
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     });
-    for await (const chunk of stream) {
-      if (
-        chunk.type === 'content_block_delta' &&
-        chunk.delta.type === 'text_delta' &&
-        chunk.delta.text
+    for await (const event of stream) {
+      if (event.type === 'message_start') {
+        if (usage) {
+          usage.inputTokens = event.message.usage.input_tokens;
+          usage.outputTokens = event.message.usage.output_tokens;
+        }
+      } else if (
+        event.type === 'content_block_delta' &&
+        event.delta.type === 'text_delta' &&
+        event.delta.text
       ) {
-        yield chunk.delta.text;
+        yield event.delta.text;
+      } else if (event.type === 'message_delta') {
+        if (usage) {
+          usage.outputTokens = event.usage.output_tokens;
+          if (event.usage.input_tokens !== null && event.usage.input_tokens !== undefined) {
+            usage.inputTokens = event.usage.input_tokens;
+          }
+        }
       }
     }
   }
@@ -151,7 +190,13 @@ async function* streamLLM(
 
 interface ClassifiedLlmError {
   /** Stable code for telemetry / future translation */
-  code: 'rate_limited' | 'provider_unavailable' | 'auth' | 'invalid_request' | 'network' | 'unknown';
+  code:
+    | 'rate_limited'
+    | 'provider_unavailable'
+    | 'auth'
+    | 'invalid_request'
+    | 'network'
+    | 'unknown';
   /** One-line copy shown directly to the advocate */
   userMessage: string;
   /** Whether re-clicking "Try again" is likely to succeed */
@@ -214,8 +259,7 @@ function classifyLlmError(err: unknown): ClassifiedLlmError {
   ) {
     return {
       code: 'network',
-      userMessage:
-        'Network error reaching the AI service. Check your connection and try again.',
+      userMessage: 'Network error reaching the AI service. Check your connection and try again.',
       retryable: true,
     };
   }
@@ -228,13 +272,24 @@ function classifyLlmError(err: unknown): ClassifiedLlmError {
 }
 
 /** Sentinel thrown after a mid-stream LLM failure so the route handler knows
- *  the SSE has already been ended and not to re-emit `done`. */
+ *  the SSE has already been ended and not to re-emit `done`. Carries whatever
+ *  usage was captured before the failure (T-003) so the route can still
+ *  record a Generation row for the attempt instead of losing it. */
 export class GenerationFailedError extends Error {
   readonly code: ClassifiedLlmError['code'];
-  constructor(message: string, code: ClassifiedLlmError['code']) {
+  readonly usage: LlmUsage;
+  readonly llmCalls: number;
+  constructor(
+    message: string,
+    code: ClassifiedLlmError['code'],
+    usage: LlmUsage,
+    llmCalls: number,
+  ) {
     super(message);
     this.name = 'GenerationFailedError';
     this.code = code;
+    this.usage = usage;
+    this.llmCalls = llmCalls;
   }
 }
 
@@ -267,6 +322,10 @@ export interface GenerateDocumentResult {
   mandatoryClausesComplete: boolean;
   /** Validation warnings (old-law refs, unknown sections, missing clauses) */
   warnings: ValidationWarning[];
+  /** Real token usage for this generation (T-003) */
+  usage: LlmUsage;
+  /** Number of LLM calls made (always 1 — legacy pipeline is single-call) */
+  llmCalls: number;
 }
 
 /**
@@ -316,15 +375,40 @@ export async function streamGenerateDocument(
 
   // ── Stream AI Response ──────────────────────────────────────────────────────
   let rawText = '';
+  const usage: LlmUsage = { inputTokens: 0, outputTokens: 0 };
 
-  for await (const text of streamLLM(
-    systemPrompt,
-    userPrompt,
-    4096,
-    heliconeHeaders(input.userId, input.docType),
-  )) {
-    rawText += text;
-    res.write(`data: ${JSON.stringify({ text })}\n\n`);
+  try {
+    for await (const text of streamLLM(
+      systemPrompt,
+      userPrompt,
+      4096,
+      heliconeHeaders(input.userId, input.docType),
+      usage,
+    )) {
+      rawText += text;
+      res.write(`data: ${JSON.stringify({ text })}\n\n`);
+    }
+  } catch (llmErr) {
+    // Mirrors the config-driven pipeline's per-section handling below — SSE
+    // headers are already on the wire so a 5xx status isn't possible; emit a
+    // structured `event: error` instead. `usage` carries whatever was
+    // captured before the failure so the route can still record it.
+    const classified = classifyLlmError(llmErr);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(
+        `[drafting] LLM stream failed (legacy generate):`,
+        llmErr instanceof Error ? llmErr.message : llmErr,
+      );
+    }
+    res.write(
+      `event: error\ndata: ${JSON.stringify({
+        reason: classified.userMessage,
+        retryable: classified.retryable,
+        code: classified.code,
+      })}\n\n`,
+    );
+    res.end();
+    throw new GenerationFailedError(classified.userMessage, classified.code, usage, 1);
   }
 
   // ── Layer 2: Post-Processing ────────────────────────────────────────────────
@@ -380,6 +464,8 @@ export async function streamGenerateDocument(
     sectionsCited: validationResult.sectionsCited,
     mandatoryClausesComplete: validationResult.mandatoryClausesComplete,
     warnings: validationResult.warnings,
+    usage,
+    llmCalls: 1,
   };
 }
 
@@ -404,6 +490,12 @@ export interface TemplateGenerateResult {
   sectionsCited: string[];
   mandatoryClausesComplete: boolean;
   warnings: ValidationWarning[];
+  /** Real token usage summed across every ai_generated section's LLM call (T-003) */
+  usage: LlmUsage;
+  /** Number of LLM calls made — one per ai_generated section */
+  llmCalls: number;
+  /** Paragraph count of the final draft, from assembleDocument */
+  bodyParaCount: number;
 }
 
 /**
@@ -486,6 +578,8 @@ export async function streamGenerateFromTemplate(
 
   // ── Render all sections ────────────────────────────────────────────────────
   const renderedSections: RenderedSection[] = [];
+  const usage: LlmUsage = { inputTokens: 0, outputTokens: 0 };
+  let llmCalls = 0;
 
   for (const section of templateConfig.document_structure.sections) {
     if (section.type === 'template') {
@@ -498,6 +592,7 @@ export async function streamGenerateFromTemplate(
       const userPrompt = buildAIUserPrompt(section, ctx);
 
       let aiText = '';
+      const callUsage: LlmUsage = { inputTokens: 0, outputTokens: 0 };
 
       try {
         for await (const text of streamLLM(
@@ -505,15 +600,24 @@ export async function streamGenerateFromTemplate(
           userPrompt,
           8192,
           heliconeHeaders(input.userId, templateConfig.template_id),
+          callUsage,
         )) {
           aiText += text;
           res.write(`data: ${JSON.stringify({ text })}\n\n`);
         }
+        llmCalls += 1;
+        usage.inputTokens += callUsage.inputTokens;
+        usage.outputTokens += callUsage.outputTokens;
       } catch (llmErr) {
         // AI provider / Helicone / network failure mid-stream. SSE headers are
         // already on the wire so we CAN'T set a 5xx status — emit a structured
         // `event: error` instead. The frontend renders this in the
         // generation_failed pipeline state with the reason + a retry button.
+        // Count this attempt and fold in whatever tokens it captured before
+        // throwing, so the caller can still record a Generation row for it.
+        llmCalls += 1;
+        usage.inputTokens += callUsage.inputTokens;
+        usage.outputTokens += callUsage.outputTokens;
         const classified = classifyLlmError(llmErr);
         if (process.env.NODE_ENV !== 'test') {
           console.error(
@@ -530,7 +634,7 @@ export async function streamGenerateFromTemplate(
           })}\n\n`,
         );
         res.end();
-        throw new GenerationFailedError(classified.userMessage, classified.code);
+        throw new GenerationFailedError(classified.userMessage, classified.code, usage, llmCalls);
       }
 
       // SCRUM-62: strip duplicate cause-title (A7) and disclaimer (A6) injected by AI
@@ -717,6 +821,9 @@ export async function streamGenerateFromTemplate(
     sectionsCited,
     mandatoryClausesComplete,
     warnings: allWarnings,
+    usage,
+    llmCalls,
+    bodyParaCount,
   };
 }
 

@@ -6,6 +6,14 @@ export interface IGeneration extends Document {
   docType: DocType;
   tokensUsed: number;
   costUsd: number;
+  /** Real input tokens used (T-003). 0 on generations predating this field. */
+  inputTokens: number;
+  /** Real output tokens used (T-003). 0 on generations predating this field. */
+  outputTokens: number;
+  /** Number of LLM calls this generation made (legacy pipeline: always 1; config-driven: one per ai_generated section) */
+  llmCalls: number;
+  /** Paragraph count of the final draft. 0 for a generation that failed before producing one. */
+  paragraphCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,6 +36,26 @@ const GenerationSchema = new Schema<IGeneration>(
       min: 0,
     },
     costUsd: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    inputTokens: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    outputTokens: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    llmCalls: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    paragraphCount: {
       type: Number,
       default: 0,
       min: 0,
