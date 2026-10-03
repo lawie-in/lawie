@@ -61,5 +61,13 @@ test-templates/
 node_modules/
 
 # -- claude -----------------------──────────────────────────────────────────────────────────────
-.claude/
+.claude/*
+!.claude/agents/
+!.claude/skills/
+!.claude/hooks/
+!.claude/docs/
+!.claude/settings.json
+!.claude/README.md
+!.claude/DEV_TEAM_SPEC.md
+.claude/worktrees/
 docs/CLAUDE.md
