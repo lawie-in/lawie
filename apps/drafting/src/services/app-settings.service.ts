@@ -117,3 +117,7 @@ export const APP_SETTING_KEYS = {
   DRAFTING_MODEL: 'ai.drafting_model',
   PREFLIGHT_MODEL: 'ai.preflight_model',
 } as const;
+
+// Per-model USD rates (`ai.rates.<model-slug>`) and the USD→INR conversion
+// (`finance.usd_inr`) live in llm-usage.ts (getModelRates / getUsdInrRate /
+// priceUsage) — T-003, see handoff/design/T-003-token-usage-design.md §3.5.

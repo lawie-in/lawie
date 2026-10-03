@@ -20,6 +20,13 @@ import { env } from '../config/env';
 import { Court } from '../models/Court.model';
 
 import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-settings.service';
+import {
+  estimateOutputTokens,
+  parseAnthropicStreamEvent,
+  parseOpenAIStreamLine,
+  UsageMeter,
+  UsageTotals,
+} from './llm-usage';
 import { postProcess } from './post-processor';
 import { assemblePrompt, PromptInput } from './prompt-assembler';
 import { convertOldReferencesInText } from './sections.service';
@@ -53,19 +60,41 @@ import {
 const directClient = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
 /**
+ * Draft usage for one streamLLM call. Passed in by the caller and mutated in
+ * place as usage data arrives, so a mid-stream throw still leaves whatever was
+ * captured up to that point on the object the caller holds a reference to —
+ * this is how "tokens used so far" survives a failed generation (T-003).
+ * `usageSource` stays 'none' until the provider actually reports a number;
+ * the caller (the pipeline, via UsageMeter) falls back to estimating output
+ * tokens from the accumulated text when it's still 'none' after the call.
+ */
+export interface CallUsageDraft {
+  inputTokens: number;
+  outputTokens: number;
+  usageSource: 'provider' | 'none';
+  /** Resolved model id and transport for this call — same for every call in one request. */
+  model?: string;
+  transport?: 'direct' | 'helicone';
+}
+
+/**
  * Stream text tokens from the LLM.
  *
  * - When HELICONE_API_KEY is set: calls Helicone AI Gateway (OpenAI-compat endpoint)
  *   using native fetch — this is the same endpoint verified working in Postman.
  * - When not set: falls back to Anthropic SDK directly.
  *
- * Yields raw text chunks as they arrive.
+ * Yields raw text chunks as they arrive. If `usage` is passed, it's updated
+ * in place as token counts become available (never with prompt/document text —
+ * only the numeric counts the provider reports). Parsing itself lives in
+ * llm-usage.ts as pure functions so it's tested without a network.
  */
-async function* streamLLM(
+export async function* streamLLM(
   systemPrompt: string,
   userPrompt: string,
   maxTokens: number,
   trackingHeaders: Record<string, string> = {},
+  usage?: CallUsageDraft,
 ): AsyncGenerator<string> {
   // Model lives in the AppSetting Mongo collection — NOT in env or in the
   // codebase (per founder instruction 2026-05-11). If unset, getAppSetting
@@ -73,9 +102,19 @@ async function* streamLLM(
   // SSE `event: error` so the advocate sees a clear "configure ai.drafting_model
   // in /admin/ai-config" message.
   const model = await getAppSetting(APP_SETTING_KEYS.DRAFTING_MODEL);
+  const transport: CallUsageDraft['transport'] = env.HELICONE_API_KEY ? 'helicone' : 'direct';
+  if (usage) {
+    usage.model = model;
+    usage.transport = transport;
+  }
 
   if (env.HELICONE_API_KEY) {
-    // Helicone AI Gateway — OpenAI-compatible, supports Claude model aliases
+    // Helicone AI Gateway — OpenAI-compatible, supports Claude model aliases.
+    // stream_options.include_usage asks for a final chunk carrying token
+    // counts (OpenAI streaming convention) — without it the gateway never
+    // reports usage on a streamed response. Confirmed live against the real
+    // gateway (T-003 spike, 3 Oct 2026): works when `model` is a full dated
+    // model id — a bare alias can make the gateway switch providers, or 500.
     const resp = await fetch(env.HELICONE_GATEWAY_URL, {
       method: 'POST',
       headers: {
@@ -87,6 +126,7 @@ async function* streamLLM(
         model,
         max_tokens: maxTokens,
         stream: true,
+        stream_options: { include_usage: true },
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -113,29 +153,40 @@ async function* streamLLM(
       for (const line of lines) {
         if (!line.startsWith('data: ') || line.trim() === 'data: [DONE]') continue;
         try {
-          const data = JSON.parse(line.slice(6));
-          const text = data.choices?.[0]?.delta?.content;
-          if (text) yield text;
+          const fragment = parseOpenAIStreamLine(JSON.parse(line.slice(6)));
+          if (fragment.text) yield fragment.text;
+          if (
+            usage &&
+            (fragment.inputTokens !== undefined || fragment.outputTokens !== undefined)
+          ) {
+            if (fragment.inputTokens !== undefined) usage.inputTokens = fragment.inputTokens;
+            if (fragment.outputTokens !== undefined) usage.outputTokens = fragment.outputTokens;
+            usage.usageSource = 'provider';
+          }
         } catch {
           // malformed SSE line — skip
         }
       }
     }
   } else {
-    // Direct Anthropic SDK — no proxy
+    // Direct Anthropic SDK — no proxy. Usage arrives incrementally on
+    // message_start (initial input_tokens) and message_delta (cumulative
+    // output_tokens near the end) — reading it off these events rather than
+    // only from stream.finalMessage() means a mid-stream throw still leaves
+    // the last-seen counts on `usage`. Confirmed live (T-003 spike).
     const stream = await directClient.messages.stream({
       model,
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     });
-    for await (const chunk of stream) {
-      if (
-        chunk.type === 'content_block_delta' &&
-        chunk.delta.type === 'text_delta' &&
-        chunk.delta.text
-      ) {
-        yield chunk.delta.text;
+    for await (const event of stream) {
+      const fragment = parseAnthropicStreamEvent(event);
+      if (fragment.text) yield fragment.text;
+      if (usage && (fragment.inputTokens !== undefined || fragment.outputTokens !== undefined)) {
+        if (fragment.inputTokens !== undefined) usage.inputTokens = fragment.inputTokens;
+        if (fragment.outputTokens !== undefined) usage.outputTokens = fragment.outputTokens;
+        usage.usageSource = 'provider';
       }
     }
   }
@@ -151,7 +202,13 @@ async function* streamLLM(
 
 interface ClassifiedLlmError {
   /** Stable code for telemetry / future translation */
-  code: 'rate_limited' | 'provider_unavailable' | 'auth' | 'invalid_request' | 'network' | 'unknown';
+  code:
+    | 'rate_limited'
+    | 'provider_unavailable'
+    | 'auth'
+    | 'invalid_request'
+    | 'network'
+    | 'unknown';
   /** One-line copy shown directly to the advocate */
   userMessage: string;
   /** Whether re-clicking "Try again" is likely to succeed */
@@ -214,8 +271,7 @@ function classifyLlmError(err: unknown): ClassifiedLlmError {
   ) {
     return {
       code: 'network',
-      userMessage:
-        'Network error reaching the AI service. Check your connection and try again.',
+      userMessage: 'Network error reaching the AI service. Check your connection and try again.',
       retryable: true,
     };
   }
@@ -228,25 +284,47 @@ function classifyLlmError(err: unknown): ClassifiedLlmError {
 }
 
 /** Sentinel thrown after a mid-stream LLM failure so the route handler knows
- *  the SSE has already been ended and not to re-emit `done`. */
+ *  the SSE has already been ended and not to re-emit `done`. Carries whatever
+ *  usage was captured before the failure (T-003) so the route can still
+ *  record a Generation row for the attempt instead of losing it. */
 export class GenerationFailedError extends Error {
   readonly code: ClassifiedLlmError['code'];
-  constructor(message: string, code: ClassifiedLlmError['code']) {
+  readonly usage: UsageTotals;
+  readonly aiModel?: string;
+  readonly transport?: 'direct' | 'helicone';
+  constructor(
+    message: string,
+    code: ClassifiedLlmError['code'],
+    usage: UsageTotals,
+    aiModel?: string,
+    transport?: 'direct' | 'helicone',
+  ) {
     super(message);
     this.name = 'GenerationFailedError';
     this.code = code;
+    this.usage = usage;
+    this.aiModel = aiModel;
+    this.transport = transport;
   }
 }
 
 /**
- * Build per-request Helicone tracking headers for the AI Gateway.
- * Returns empty object when Helicone is not configured.
+ * Build per-request Helicone tracking headers for the AI Gateway — including
+ * the run id/sequence (T-003 §3.8) so our rows can be cross-checked against
+ * Helicone's own records.
  */
-function heliconeHeaders(userId?: string, templateId?: string): Record<string, string> {
+function heliconeHeaders(
+  userId?: string,
+  templateId?: string,
+  runId?: string,
+  runSequence?: number,
+): Record<string, string> {
   if (!env.HELICONE_API_KEY) return {};
   const headers: Record<string, string> = {};
   if (userId) headers['Helicone-User-Id'] = userId;
   if (templateId) headers['Helicone-Property-Template'] = templateId;
+  if (runId) headers['Helicone-Property-Run-Id'] = runId;
+  if (runSequence !== undefined) headers['Helicone-Property-Run-Sequence'] = String(runSequence);
   return headers;
 }
 
@@ -254,6 +332,8 @@ export type DocTypeKey = keyof typeof bnsMapping;
 
 export interface GenerateDocumentInput extends PromptInput {
   userId?: string;
+  runId: string;
+  runSequence: number;
 }
 
 export interface GenerateDocumentResult {
@@ -267,6 +347,10 @@ export interface GenerateDocumentResult {
   mandatoryClausesComplete: boolean;
   /** Validation warnings (old-law refs, unknown sections, missing clauses) */
   warnings: ValidationWarning[];
+  /** Real token usage for this generation (T-003) */
+  usage: UsageTotals;
+  aiModel?: string;
+  transport?: 'direct' | 'helicone';
 }
 
 /**
@@ -316,15 +400,62 @@ export async function streamGenerateDocument(
 
   // ── Stream AI Response ──────────────────────────────────────────────────────
   let rawText = '';
+  const meter = new UsageMeter();
+  const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
 
-  for await (const text of streamLLM(
-    systemPrompt,
-    userPrompt,
-    4096,
-    heliconeHeaders(input.userId, input.docType),
-  )) {
-    rawText += text;
-    res.write(`data: ${JSON.stringify({ text })}\n\n`);
+  try {
+    for await (const text of streamLLM(
+      systemPrompt,
+      userPrompt,
+      4096,
+      heliconeHeaders(input.userId, input.docType, input.runId, input.runSequence),
+      draft,
+    )) {
+      rawText += text;
+      res.write(`data: ${JSON.stringify({ text })}\n\n`);
+    }
+    meter.record({
+      sectionId: 'legacy',
+      inputTokens: draft.inputTokens,
+      outputTokens:
+        draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(rawText),
+      usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
+    });
+  } catch (llmErr) {
+    // Mirrors the config-driven pipeline's per-section handling below — SSE
+    // headers are already on the wire so a 5xx status isn't possible; emit a
+    // structured `event: error` instead. `draft` carries whatever was
+    // captured before the failure so the route can still record it.
+    meter.record({
+      sectionId: 'legacy',
+      inputTokens: draft.inputTokens,
+      outputTokens:
+        draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(rawText),
+      usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
+    });
+    const classified = classifyLlmError(llmErr);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(
+        `[drafting] LLM stream failed (legacy generate, runId=${input.runId}, runSequence=${input.runSequence}):`,
+        llmErr instanceof Error ? llmErr.message : llmErr,
+      );
+    }
+    res.write(
+      `event: error\ndata: ${JSON.stringify({
+        reason: classified.userMessage,
+        retryable: classified.retryable,
+        code: classified.code,
+        runId: input.runId,
+      })}\n\n`,
+    );
+    res.end();
+    throw new GenerationFailedError(
+      classified.userMessage,
+      classified.code,
+      meter.totals(),
+      draft.model,
+      draft.transport,
+    );
   }
 
   // ── Layer 2: Post-Processing ────────────────────────────────────────────────
@@ -380,6 +511,9 @@ export async function streamGenerateDocument(
     sectionsCited: validationResult.sectionsCited,
     mandatoryClausesComplete: validationResult.mandatoryClausesComplete,
     warnings: validationResult.warnings,
+    usage: meter.totals(),
+    aiModel: draft.model,
+    transport: draft.transport,
   };
 }
 
@@ -395,6 +529,8 @@ export interface TemplateGenerateInput {
   advocateName?: string;
   enrollmentNumber?: string;
   userId?: string;
+  runId: string;
+  runSequence: number;
 }
 
 export interface TemplateGenerateResult {
@@ -404,6 +540,12 @@ export interface TemplateGenerateResult {
   sectionsCited: string[];
   mandatoryClausesComplete: boolean;
   warnings: ValidationWarning[];
+  /** Real token usage summed across every ai_generated section's LLM call (T-003) */
+  usage: UsageTotals;
+  aiModel?: string;
+  transport?: 'direct' | 'helicone';
+  /** Paragraph count of the final draft, from assembleDocument */
+  bodyParaCount: number;
 }
 
 /**
@@ -486,6 +628,9 @@ export async function streamGenerateFromTemplate(
 
   // ── Render all sections ────────────────────────────────────────────────────
   const renderedSections: RenderedSection[] = [];
+  const meter = new UsageMeter();
+  let aiModel: string | undefined;
+  let transport: 'direct' | 'helicone' | undefined;
 
   for (const section of templateConfig.document_structure.sections) {
     if (section.type === 'template') {
@@ -498,26 +643,48 @@ export async function streamGenerateFromTemplate(
       const userPrompt = buildAIUserPrompt(section, ctx);
 
       let aiText = '';
+      const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
 
       try {
         for await (const text of streamLLM(
           systemPrompt,
           userPrompt,
           8192,
-          heliconeHeaders(input.userId, templateConfig.template_id),
+          heliconeHeaders(input.userId, templateConfig.template_id, input.runId, input.runSequence),
+          draft,
         )) {
           aiText += text;
           res.write(`data: ${JSON.stringify({ text })}\n\n`);
         }
+        aiModel = draft.model;
+        transport = draft.transport;
+        meter.record({
+          sectionId: section.section_id,
+          inputTokens: draft.inputTokens,
+          outputTokens:
+            draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(aiText),
+          usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
+        });
       } catch (llmErr) {
         // AI provider / Helicone / network failure mid-stream. SSE headers are
         // already on the wire so we CAN'T set a 5xx status — emit a structured
         // `event: error` instead. The frontend renders this in the
         // generation_failed pipeline state with the reason + a retry button.
+        // Count this attempt and fold in whatever tokens it captured before
+        // throwing, so the caller can still record a Generation row for it.
+        aiModel = draft.model;
+        transport = draft.transport;
+        meter.record({
+          sectionId: section.section_id,
+          inputTokens: draft.inputTokens,
+          outputTokens:
+            draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(aiText),
+          usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
+        });
         const classified = classifyLlmError(llmErr);
         if (process.env.NODE_ENV !== 'test') {
           console.error(
-            `[drafting] LLM stream failed (section ${section.section_id}):`,
+            `[drafting] LLM stream failed (section ${section.section_id}, runId=${input.runId}, runSequence=${input.runSequence}):`,
             llmErr instanceof Error ? llmErr.message : llmErr,
           );
         }
@@ -527,10 +694,17 @@ export async function streamGenerateFromTemplate(
             reason: classified.userMessage,
             retryable: classified.retryable,
             code: classified.code,
+            runId: input.runId,
           })}\n\n`,
         );
         res.end();
-        throw new GenerationFailedError(classified.userMessage, classified.code);
+        throw new GenerationFailedError(
+          classified.userMessage,
+          classified.code,
+          meter.totals(),
+          aiModel,
+          transport,
+        );
       }
 
       // SCRUM-62: strip duplicate cause-title (A7) and disclaimer (A6) injected by AI
@@ -717,6 +891,10 @@ export async function streamGenerateFromTemplate(
     sectionsCited,
     mandatoryClausesComplete,
     warnings: allWarnings,
+    usage: meter.totals(),
+    aiModel,
+    transport,
+    bodyParaCount,
   };
 }
 

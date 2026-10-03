@@ -13,6 +13,7 @@ import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
 import { Template } from '../models/Template.model';
 import { User } from '../models/User.model';
+import { getUsdInrRate } from '../services/llm-usage';
 
 const router = Router();
 
@@ -68,7 +69,8 @@ router.get(
           { $sort: { count: -1 } },
           { $limit: 20 },
         ]),
-        // AI cost this month
+        // AI cost this month — cost sum includes failed rows (we paid for
+        // them); the generation count excludes them (T-003 §3.7).
         Generation.aggregate([
           { $match: { createdAt: { $gte: startOfMonth } } },
           {
@@ -76,7 +78,7 @@ router.get(
               _id: null,
               totalTokens: { $sum: '$tokensUsed' },
               totalCostUsd: { $sum: '$costUsd' },
-              count: { $sum: 1 },
+              count: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 0, 1] } },
             },
           },
         ]),
@@ -93,8 +95,7 @@ router.get(
       aiCostAgg as Array<{ totalTokens?: number; totalCostUsd?: number; count?: number }>
     )[0];
     const costUsd = aiCost?.totalCostUsd ?? 0;
-    // Approximate INR at 85 per USD (adjust via AppSetting in the future)
-    const costInr = Math.round(costUsd * 85);
+    const costInr = Math.round(costUsd * (await getUsdInrRate()));
     const genCount = aiCost?.count ?? 0;
 
     // Top 6 docTypes for the bar chart
@@ -200,14 +201,14 @@ router.get(
           _id: null,
           totalTokens: { $sum: '$tokensUsed' },
           totalCostUsd: { $sum: '$costUsd' },
-          count: { $sum: 1 },
+          count: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 0, 1] } },
         },
       },
     ]);
 
     const row = (agg as Array<{ totalTokens?: number; totalCostUsd?: number; count?: number }>)[0];
     const costUsd = row?.totalCostUsd ?? 0;
-    const costInr = Math.round(costUsd * 85);
+    const costInr = Math.round(costUsd * (await getUsdInrRate()));
     const count = row?.count ?? 0;
 
     res.json({

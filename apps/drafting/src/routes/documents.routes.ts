@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 import { DOC_TYPES, DocType } from '@lawie/shared';
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
@@ -17,6 +19,7 @@ import {
 } from '../services/ai.service';
 import { buildAnnexuresPack, estimateBodyParaCount } from '../services/annexures.service';
 import { spendInk } from '../services/credits.service';
+import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
 import { contentToHtml, renderPdf } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
 import {
@@ -53,6 +56,51 @@ function validateObjectId(req: Request, _res: Response, next: NextFunction): voi
 }
 
 const router = Router();
+
+/**
+ * Price a generation's usage. getModelRates never throws — a missing/
+ * malformed rate just means costStatus: 'rate_missing', costUsd: 0. Tokens
+ * are still real either way (T-003 §3.6).
+ */
+async function priceGeneration(
+  usage: { inputTokens: number; outputTokens: number },
+  aiModel: string | undefined,
+): Promise<{ costUsd: number; rate: RateLookup }> {
+  if (!aiModel) return { costUsd: 0, rate: { costStatus: 'rate_missing', rate: null } };
+  const rate = await getModelRates(aiModel);
+  const costUsd = rate.costStatus === 'priced' ? priceUsage(usage, rate.rate) : 0;
+  return { costUsd, rate };
+}
+
+/**
+ * Resolve the runId/runSequence for this attempt (T-003 §3.8).
+ * - No run_id in the request → new run, sequence 1.
+ * - A run_id that doesn't belong to this user+template, doesn't exist, or
+ *   already has a completed attempt → quietly starts a new run at 1. Never
+ *   errors on a bad run_id — the browser's retry must never be the thing
+ *   that fails.
+ * - A valid run_id → same runId, sequence = highest attempt so far + 1.
+ */
+async function resolveRun(
+  userId: string,
+  match: { templateId: string } | { docType: string },
+  providedRunId: string | undefined,
+): Promise<{ runId: string; runSequence: number }> {
+  if (!providedRunId) {
+    return { runId: crypto.randomUUID(), runSequence: 1 };
+  }
+
+  const attempts = await Generation.find({ runId: providedRunId, userId, ...match })
+    .select('runSequence status')
+    .lean();
+
+  if (attempts.length === 0 || attempts.some((a) => a.status === 'completed')) {
+    return { runId: crypto.randomUUID(), runSequence: 1 };
+  }
+
+  const maxSequence = Math.max(...attempts.map((a) => a.runSequence ?? 1));
+  return { runId: providedRunId, runSequence: maxSequence + 1 };
+}
 
 const generateSchema = z.object({
   docType: z.enum([
@@ -94,6 +142,8 @@ const generateSchema = z.object({
   fatherName: z.string().optional(),
   // CLO fix #9 — mediation willingness
   mediationWilling: z.boolean().optional(),
+  // T-003 §3.8 — a retry resends this to keep the same run
+  run_id: z.string().uuid().optional(),
 });
 
 // GET /documents/usage — return this month's generation count + limit for the caller
@@ -175,6 +225,8 @@ const templateGenerateSchema = z.object({
   template_id: z.string().min(1).max(100),
   form_data: z.record(z.unknown()),
   language: z.enum(['en', 'hi', 'bilingual']).default('en'),
+  // T-003 §3.8 — a retry resends this to keep the same run
+  run_id: z.string().uuid().optional(),
 });
 
 // POST /documents/preflight — pre-generation verification layer (SCRUM-69)
@@ -227,7 +279,7 @@ router.post(
     }
 
     const payload = req.jwtPayload!;
-    const { template_id, form_data } = parsed.data;
+    const { template_id, form_data, run_id } = parsed.data;
 
     // Load template config
     const templateConfig = loadTemplateConfig(template_id);
@@ -249,6 +301,17 @@ router.post(
       return;
     }
 
+    // T-003 §3.8 — resolve before streaming starts so X-Run-Id/X-Run-Sequence
+    // can go out as response headers no matter how this attempt ends.
+    const { runId, runSequence } = await resolveRun(
+      payload.sub,
+      { templateId: template_id },
+      run_id,
+    );
+    res.setHeader('X-Run-Id', runId);
+    res.setHeader('X-Run-Sequence', String(runSequence));
+    const startedAt = Date.now();
+
     // Stream the AI response via config-driven pipeline
     let result;
     try {
@@ -259,18 +322,53 @@ router.post(
           advocateName: payload.name || undefined,
           enrollmentNumber: undefined,
           userId: payload.sub,
+          runId,
+          runSequence,
         },
         res,
       );
     } catch (genErr) {
       // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
-      // already emitted and the response is closed — nothing else to do.
-      if (genErr instanceof GenerationFailedError) return;
+      // already emitted and the response is closed. Still record what the
+      // attempt actually used (T-003) — a failed generation isn't free. No
+      // Ink is spent on a failed attempt.
+      if (genErr instanceof GenerationFailedError) {
+        const { costUsd, rate } = await priceGeneration(genErr.usage, genErr.aiModel);
+        await Generation.create({
+          userId: payload.sub,
+          docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
+          status: 'failed',
+          templateId: template_id,
+          aiModel: genErr.aiModel,
+          transport: genErr.transport,
+          tokensUsed: genErr.usage.inputTokens + genErr.usage.outputTokens,
+          inputTokens: genErr.usage.inputTokens,
+          outputTokens: genErr.usage.outputTokens,
+          llmCalls: genErr.usage.llmCalls,
+          usageSource: genErr.usage.usageSource,
+          calls: genErr.usage.calls,
+          paragraphCount: 0,
+          durationMs: Date.now() - startedAt,
+          runId,
+          runSequence,
+          costUsd,
+          costStatus: rate.costStatus,
+          rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
+          rateOutputUsdPerMTok:
+            rate.costStatus === 'priced' ? rate.rate.outputUsdPerMTok : undefined,
+        }).catch((dbErr) => {
+          console.error(
+            `[drafting] Failed to record Generation for a failed template generation (runId=${runId}, runSequence=${runSequence}):`,
+            dbErr instanceof Error ? dbErr.message : dbErr,
+          );
+        });
+        return;
+      }
 
       // Anything else (template-config bug, prompt build error, etc.) — emit
       // a structured error before headers go stale, then close.
       const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
-      console.error(`[drafting] generate-from-template threw:`, msg);
+      console.error(`[drafting] generate-from-template threw (runId=${runId}):`, msg);
       if (!res.headersSent) {
         res.status(500).json({ error: 'Generation failed', message: msg });
       } else {
@@ -280,6 +378,7 @@ router.post(
               'The drafting service hit an unexpected error. Please try again — your inputs are saved.',
             retryable: true,
             code: 'unknown',
+            runId,
           })}\n\n`,
         );
         res.end();
@@ -296,36 +395,57 @@ router.post(
           0,
           300,
         );
-      const [doc] = await Promise.all([
-        LawieDocument.create({
-          userId: payload.sub,
-          title,
-          docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
-          courtType: String(form_data.court_type || '') || undefined,
-          courtName: String(form_data.court_name || ''),
-          formInputs: { template_id, ...form_data },
-          generatedContent: encryptedContent,
-          sectionsCited: result.sectionsCited,
-          filingChecklist: result.filingChecklist,
-          checklistState: result.filingChecklist.map(() => false),
-          status: 'draft',
-        }),
-        Generation.create({
-          userId: payload.sub,
-          docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
-          tokensUsed: 0,
-        }),
-      ]);
+      // Sequential, not Promise.all — Generation.documentId needs the Document's _id.
+      const doc = await LawieDocument.create({
+        userId: payload.sub,
+        title,
+        docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
+        courtType: String(form_data.court_type || '') || undefined,
+        courtName: String(form_data.court_name || ''),
+        formInputs: { template_id, ...form_data },
+        generatedContent: encryptedContent,
+        sectionsCited: result.sectionsCited,
+        filingChecklist: result.filingChecklist,
+        checklistState: result.filingChecklist.map(() => false),
+        status: 'draft',
+        runId,
+        runSequence,
+      });
       docId = String(doc._id);
+
+      const { costUsd, rate } = await priceGeneration(result.usage, result.aiModel);
+      await Generation.create({
+        userId: payload.sub,
+        docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
+        status: 'completed',
+        templateId: template_id,
+        documentId: doc._id,
+        aiModel: result.aiModel,
+        transport: result.transport,
+        tokensUsed: result.usage.inputTokens + result.usage.outputTokens,
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        llmCalls: result.usage.llmCalls,
+        usageSource: result.usage.usageSource,
+        calls: result.usage.calls,
+        paragraphCount: result.bodyParaCount,
+        durationMs: Date.now() - startedAt,
+        runId,
+        runSequence,
+        costUsd,
+        costStatus: rate.costStatus,
+        rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
+        rateOutputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.outputUsdPerMTok : undefined,
+      });
 
       if (process.env.NODE_ENV !== 'test') {
         console.info(
-          `[drafting] Generated template doc ${docId} for user ${payload.sub} (${template_id})`,
+          `[drafting] Generated template doc ${docId} for user ${payload.sub} (${template_id}, runId=${runId}, runSequence=${runSequence})`,
         );
       }
     } catch (dbErr) {
       console.error(
-        `[drafting] DB save failed for template ${template_id}:`,
+        `[drafting] DB save failed for template ${template_id} (runId=${runId}):`,
         dbErr instanceof Error ? dbErr.message : dbErr,
       );
     }
@@ -338,6 +458,8 @@ router.post(
       costCredits: cost,
       reason: 'generate',
       reference: docId ? `${templateConfig.display_name} (${docId})` : templateConfig.display_name,
+      runId,
+      runSequence,
     });
     if (!inkResult.success) {
       console.error('[drafting] spendInk failed after generation:', inkResult.reason);
@@ -349,6 +471,7 @@ router.post(
       `event: done\ndata: ${JSON.stringify({
         complete: true,
         docId,
+        runId,
         sectionsCited: result.sectionsCited,
         mandatoryClausesComplete: result.mandatoryClausesComplete,
         creditsSpent,
@@ -390,32 +513,123 @@ router.post(
       input.partyDetails.firNumber = input.firNumber;
     }
 
+    // T-003 §3.8 — legacy pipeline has no template_id, so docType is the
+    // equivalent "same kind of request" match key for a retry.
+    const { runId, runSequence } = await resolveRun(
+      payload.sub,
+      { docType: input.docType },
+      input.run_id,
+    );
+    res.setHeader('X-Run-Id', runId);
+    res.setHeader('X-Run-Sequence', String(runSequence));
+    const startedAt = Date.now();
+
     // Stream the AI response via three-layer pipeline
-    const result = await streamGenerateDocument({ ...input, userId: payload.sub }, res);
+    let result;
+    try {
+      result = await streamGenerateDocument(
+        { ...input, userId: payload.sub, runId, runSequence },
+        res,
+      );
+    } catch (genErr) {
+      // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
+      // already emitted and the response is closed. Still record what the
+      // attempt actually used (T-003) — a failed generation isn't free.
+      if (genErr instanceof GenerationFailedError) {
+        const { costUsd, rate } = await priceGeneration(genErr.usage, genErr.aiModel);
+        await Generation.create({
+          userId: payload.sub,
+          docType: input.docType,
+          status: 'failed',
+          aiModel: genErr.aiModel,
+          transport: genErr.transport,
+          tokensUsed: genErr.usage.inputTokens + genErr.usage.outputTokens,
+          inputTokens: genErr.usage.inputTokens,
+          outputTokens: genErr.usage.outputTokens,
+          llmCalls: genErr.usage.llmCalls,
+          usageSource: genErr.usage.usageSource,
+          calls: genErr.usage.calls,
+          paragraphCount: 0,
+          durationMs: Date.now() - startedAt,
+          runId,
+          runSequence,
+          costUsd,
+          costStatus: rate.costStatus,
+          rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
+          rateOutputUsdPerMTok:
+            rate.costStatus === 'priced' ? rate.rate.outputUsdPerMTok : undefined,
+        }).catch((dbErr) => {
+          console.error(
+            `[drafting] Failed to record Generation for a failed legacy generation (runId=${runId}, runSequence=${runSequence}):`,
+            dbErr instanceof Error ? dbErr.message : dbErr,
+          );
+        });
+        return;
+      }
+
+      const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
+      console.error(`[drafting] legacy generate threw (runId=${runId}):`, msg);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Generation failed', message: msg });
+      } else {
+        res.write(
+          `event: error\ndata: ${JSON.stringify({
+            reason:
+              'The drafting service hit an unexpected error. Please try again — your inputs are saved.',
+            retryable: true,
+            code: 'unknown',
+            runId,
+          })}\n\n`,
+        );
+        res.end();
+      }
+      return;
+    }
 
     // Save to DB — must happen before done event so we can include docId
     const encryptedContent = encrypt(result.fullText);
     const title = `${input.docType.replace(/_/g, ' ')} — ${input.courtName}`.slice(0, 300);
-    const [doc] = await Promise.all([
-      LawieDocument.create({
-        userId: payload.sub,
-        title,
-        docType: input.docType,
-        courtType: input.courtType,
-        courtName: input.courtName,
-        formInputs: input,
-        generatedContent: encryptedContent,
-        sectionsCited: result.sectionsCited,
-        filingChecklist: result.filingChecklist,
-        checklistState: result.filingChecklist.map(() => false),
-        status: 'draft',
-      }),
-      Generation.create({
-        userId: payload.sub,
-        docType: input.docType,
-        tokensUsed: 0,
-      }),
-    ]);
+    const paragraphCount = estimateBodyParaCount(result.fullText);
+    // Sequential, not Promise.all — Generation.documentId needs the Document's _id.
+    const doc = await LawieDocument.create({
+      userId: payload.sub,
+      title,
+      docType: input.docType,
+      courtType: input.courtType,
+      courtName: input.courtName,
+      formInputs: input,
+      generatedContent: encryptedContent,
+      sectionsCited: result.sectionsCited,
+      filingChecklist: result.filingChecklist,
+      checklistState: result.filingChecklist.map(() => false),
+      status: 'draft',
+      runId,
+      runSequence,
+    });
+
+    const { costUsd, rate } = await priceGeneration(result.usage, result.aiModel);
+    await Generation.create({
+      userId: payload.sub,
+      docType: input.docType,
+      status: 'completed',
+      documentId: doc._id,
+      aiModel: result.aiModel,
+      transport: result.transport,
+      tokensUsed: result.usage.inputTokens + result.usage.outputTokens,
+      inputTokens: result.usage.inputTokens,
+      outputTokens: result.usage.outputTokens,
+      llmCalls: result.usage.llmCalls,
+      usageSource: result.usage.usageSource,
+      calls: result.usage.calls,
+      paragraphCount,
+      durationMs: Date.now() - startedAt,
+      runId,
+      runSequence,
+      costUsd,
+      costStatus: rate.costStatus,
+      rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
+      rateOutputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.outputUsdPerMTok : undefined,
+    });
 
     // Deduct ink after successful generation
     const legacyCost = (req as Request & { creditCost?: number }).creditCost ?? 1;
@@ -424,6 +638,8 @@ router.post(
       costCredits: legacyCost,
       reason: 'generate',
       reference: String(doc._id),
+      runId,
+      runSequence,
     });
     if (!legacyInkResult.success) {
       console.error('[drafting] spendInk failed after legacy generation:', legacyInkResult.reason);
@@ -434,6 +650,7 @@ router.post(
       `event: done\ndata: ${JSON.stringify({
         complete: true,
         docId: doc._id,
+        runId,
         sectionsCited: result.sectionsCited,
         mandatoryClausesComplete: result.mandatoryClausesComplete,
       })}\n\n`,
@@ -441,7 +658,9 @@ router.post(
     res.end();
 
     if (process.env.NODE_ENV !== 'test') {
-      console.info(`[drafting] Generated doc ${doc._id} for user ${payload.sub}`);
+      console.info(
+        `[drafting] Generated doc ${doc._id} for user ${payload.sub} (runId=${runId}, runSequence=${runSequence})`,
+      );
     }
   },
 );
