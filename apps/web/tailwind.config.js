@@ -34,8 +34,23 @@ module.exports = {
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
         },
+        // T-005 brand tokens (Meera approved). Gold is never small text; teal only for focus and success fills.
+        brand: {
+          navy: '#0D1F3C',
+          gold: '#C8850E',
+          teal: '#0D9488',
+          'teal-dark': '#0A6F66',
+          'gold-dark': '#7A4E00',
+          'gold-light': '#FBF1DC',
+          'teal-light': '#DDF3F0',
+          error: '#B3261E',
+          'error-light': '#FCE9E7',
+          page: '#FAF8F3',
+          line: '#DCD6C8',
+          muted: '#566580',
+        },
         lawie: {
-          50:  '#eff6ff',
+          50: '#eff6ff',
           100: '#dbeafe',
           500: '#3b82f6',
           600: '#2563eb',
@@ -45,6 +60,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-lora)', 'Georgia', 'serif'],
       },
     },
   },

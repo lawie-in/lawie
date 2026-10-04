@@ -12,17 +12,25 @@
  *
  * Zero hardcoded fields — adding a new template = new JSON config only.
  */
-import { ChevronLeft, ChevronRight, IndianRupee, Paperclip, Search, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  IndianRupee,
+  Paperclip,
+  Search,
+  X,
+} from 'lucide-react';
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // ── Types (mirrored from backend template-engine types) ─────────────────────
 
-interface FieldOption {
+export interface FieldOption {
   id: string;
   label: string;
 }
 
-interface FormField {
+export interface FormField {
   field_id: string;
   label: string;
   type:
@@ -71,7 +79,7 @@ interface FormStep {
   fields: FormField[];
 }
 
-interface TemplateConfig {
+export interface TemplateConfig {
   template_id: string;
   display_name: string;
   supported_languages: string[];
@@ -87,6 +95,69 @@ interface DynamicFormRendererProps {
   onSubmit: (formData: Record<string, unknown>) => void;
   onCancel: () => void;
   submitting?: boolean;
+  /** T-103/T-104 — values already known (from describe-first intake), laid over the schema defaults. */
+  initialData?: Record<string, unknown>;
+  /**
+   * T-104 — 'review' shows every group on one page with gaps highlighted, a
+   * summary bar, Next gap / Show only gaps, and Generate gated on gaps.
+   * 'steps' (default) is the long form exactly as before.
+   */
+  mode?: 'steps' | 'review';
+  /** T-104/T-301 — fields read from an image: the user must confirm each one. */
+  imageFields?: string[];
+  /** T-104 — rendered under the title in review mode (the "Not this document?" link). */
+  titleExtra?: ReactNode;
+  /** T-104 — reports every change, so details typed here survive a change of document. */
+  onValuesChange?: (formData: Record<string, unknown>) => void;
+}
+
+// ── T-104 review helpers ────────────────────────────────────────────────────
+
+/** Why a visible field still blocks Generate, or null when it is fine. */
+export function fieldGap(field: FormField, value: unknown): 'missing' | 'invalid' | null {
+  const empty =
+    value === undefined ||
+    value === null ||
+    value === '' ||
+    (Array.isArray(value) && value.length === 0);
+  if (empty) return field.required ? 'missing' : null;
+  if (validatePattern(field, value)) return 'invalid';
+  if (
+    field.type === 'checkbox_group' &&
+    field.min_select &&
+    Array.isArray(value) &&
+    value.length < field.min_select
+  ) {
+    return 'invalid';
+  }
+  if (
+    (field.type === 'textarea' || field.type === 'text') &&
+    field.min_length &&
+    String(value).length < field.min_length
+  ) {
+    return 'invalid';
+  }
+  if (
+    (field.type === 'textarea' || field.type === 'text') &&
+    field.max_length &&
+    String(value).length > field.max_length
+  ) {
+    return 'invalid';
+  }
+  return null;
+}
+
+function gapHint(field: FormField, gap: 'missing' | 'invalid', value: unknown): string {
+  if (gap === 'missing') return 'This is needed for the draft.';
+  const pattern = validatePattern(field, value);
+  if (pattern) return pattern;
+  if (field.type === 'checkbox_group' && field.min_select)
+    return `Select at least ${field.min_select}.`;
+  if (field.min_length && String(value ?? '').length < field.min_length) {
+    return `At least ${field.min_length} characters.`;
+  }
+  if (field.max_length) return `At most ${field.max_length} characters.`;
+  return 'Please check this value.';
 }
 
 // ── Helper: evaluate show_if / depends_on expressions ──────────────────────
@@ -707,7 +778,7 @@ function StepIndicator({ steps, currentStep }: { steps: FormStep[]; currentStep:
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-function useCourtsData(formData: Record<string, unknown>) {
+export function useCourtsData(formData: Record<string, unknown>) {
   const [states, setStates] = useState<FieldOption[]>([]);
   const [courtTypes, setCourtTypes] = useState<FieldOption[]>([]);
   const [courts, setCourts] = useState<FieldOption[]>([]);
@@ -777,7 +848,7 @@ function useCourtsData(formData: Record<string, unknown>) {
   return { states, courtTypes, courts };
 }
 
-function resolveOptions(
+export function resolveOptions(
   field: FormField,
   formData: Record<string, unknown>,
   templateConfig: TemplateConfig,
@@ -810,7 +881,7 @@ function resolveOptions(
 // SCRUM-85 — typeahead handler for in-form section pickers (bail templates etc).
 // Fetches /api/sections/search and shapes results into FieldOption[] with the
 // new section number as the chosen value and a "<section> · <title>" label.
-async function fetchBnsMappingResults(query: string): Promise<FieldOption[]> {
+export async function fetchBnsMappingResults(query: string): Promise<FieldOption[]> {
   try {
     const res = await fetch(
       `${API_URL}/api/sections/search?q=${encodeURIComponent(query)}&code=BNS&limit=10`,
@@ -828,6 +899,81 @@ async function fetchBnsMappingResults(query: string): Promise<FieldOption[]> {
   }
 }
 
+// ── One field's input, by type (shared with the describe-first follow-up, T-103) ──
+
+export function FieldInput({
+  field,
+  value,
+  options,
+  onChange,
+}: {
+  field: FormField;
+  value: unknown;
+  options: FieldOption[];
+  onChange: (v: unknown) => void;
+}) {
+  return (
+    <>
+      {(field.type === 'text' || field.type === 'date' || field.type === 'number') && (
+        <TextField field={field} value={String(value ?? '')} onChange={(v) => onChange(v)} />
+      )}
+
+      {field.type === 'textarea' && (
+        <TextareaField field={field} value={String(value ?? '')} onChange={(v) => onChange(v)} />
+      )}
+
+      {field.type === 'dropdown' && (
+        <DropdownField
+          field={field}
+          value={String(value ?? '')}
+          onChange={(v) => onChange(v)}
+          options={options}
+        />
+      )}
+
+      {field.type === 'dropdown_search' && (
+        <DropdownSearchField
+          field={field}
+          value={String(value ?? '')}
+          onChange={(v) => onChange(v)}
+          options={options}
+        />
+      )}
+
+      {field.type === 'multi_select_search' && (
+        <MultiSelectSearchField
+          field={field}
+          value={Array.isArray(value) ? (value as string[]) : []}
+          onChange={(v) => onChange(v)}
+          options={options}
+          allowFreeText={field.source === 'bns_mapping'}
+          searchHandler={field.source === 'bns_mapping' ? fetchBnsMappingResults : undefined}
+        />
+      )}
+
+      {field.type === 'checkbox_group' && (
+        <CheckboxGroupField
+          field={field}
+          value={Array.isArray(value) ? (value as string[]) : []}
+          onChange={(v) => onChange(v)}
+        />
+      )}
+
+      {field.type === 'currency' && (
+        <CurrencyField field={field} value={String(value ?? '')} onChange={(v) => onChange(v)} />
+      )}
+
+      {field.type === 'file' && (
+        <FileField
+          field={field}
+          value={Array.isArray(value) ? (value as UploadedFile[]) : []}
+          onChange={(v) => onChange(v)}
+        />
+      )}
+    </>
+  );
+}
+
 // ── Main Component ──────────────────────────────────────────────────────────
 
 export default function DynamicFormRenderer({
@@ -835,6 +981,11 @@ export default function DynamicFormRenderer({
   onSubmit,
   onCancel,
   submitting = false,
+  initialData,
+  mode = 'steps',
+  imageFields,
+  titleExtra,
+  onValuesChange,
 }: DynamicFormRendererProps) {
   const steps = config.form_schema.steps;
   const [step, setStep] = useState(0);
@@ -857,11 +1008,21 @@ export default function DynamicFormRenderer({
         }
       }
     }
+    // Known values win over defaults; empty ones do not wipe a default.
+    for (const [k, v] of Object.entries(initialData ?? {})) {
+      if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0))
+        continue;
+      initial[k] = v;
+    }
     return initial;
   });
 
   // Courts data from API — cascading dropdowns (SCRUM-50)
   const courtsData = useCourtsData(formData);
+
+  useEffect(() => {
+    onValuesChange?.(formData);
+  }, [formData, onValuesChange]);
 
   // Build a map of field_id → cascades_to for cascade resets
   const cascadeMap = useMemo(() => {
@@ -938,6 +1099,22 @@ export default function DynamicFormRenderer({
 
   const isLastStep = step === steps.length - 1;
 
+  if (mode === 'review') {
+    return (
+      <ReviewLayout
+        config={config}
+        formData={formData}
+        setField={setField}
+        courtsData={courtsData}
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+        submitting={submitting}
+        imageFields={imageFields ?? []}
+        titleExtra={titleExtra}
+      />
+    );
+  }
+
   function handleNext() {
     if (isLastStep) {
       onSubmit(formData);
@@ -972,76 +1149,12 @@ export default function DynamicFormRenderer({
 
             return (
               <div key={field.field_id} className={isFullWidth ? 'col-span-full' : ''}>
-                {(field.type === 'text' || field.type === 'date' || field.type === 'number') && (
-                  <TextField
-                    field={field}
-                    value={String(value ?? '')}
-                    onChange={(v) => setField(field.field_id, v)}
-                  />
-                )}
-
-                {field.type === 'textarea' && (
-                  <TextareaField
-                    field={field}
-                    value={String(value ?? '')}
-                    onChange={(v) => setField(field.field_id, v)}
-                  />
-                )}
-
-                {field.type === 'dropdown' && (
-                  <DropdownField
-                    field={field}
-                    value={String(value ?? '')}
-                    onChange={(v) => setField(field.field_id, v)}
-                    options={options}
-                  />
-                )}
-
-                {field.type === 'dropdown_search' && (
-                  <DropdownSearchField
-                    field={field}
-                    value={String(value ?? '')}
-                    onChange={(v) => setField(field.field_id, v)}
-                    options={options}
-                  />
-                )}
-
-                {field.type === 'multi_select_search' && (
-                  <MultiSelectSearchField
-                    field={field}
-                    value={Array.isArray(value) ? (value as string[]) : []}
-                    onChange={(v) => setField(field.field_id, v)}
-                    options={options}
-                    allowFreeText={field.source === 'bns_mapping'}
-                    searchHandler={
-                      field.source === 'bns_mapping' ? fetchBnsMappingResults : undefined
-                    }
-                  />
-                )}
-
-                {field.type === 'checkbox_group' && (
-                  <CheckboxGroupField
-                    field={field}
-                    value={Array.isArray(value) ? (value as string[]) : []}
-                    onChange={(v) => setField(field.field_id, v)}
-                  />
-                )}
-
-                {field.type === 'currency' && (
-                  <CurrencyField
-                    field={field}
-                    value={String(value ?? '')}
-                    onChange={(v) => setField(field.field_id, v)}
-                  />
-                )}
-
-                {field.type === 'file' && (
-                  <FileField
-                    field={field}
-                    value={Array.isArray(value) ? (value as UploadedFile[]) : []}
-                    onChange={(v) => setField(field.field_id, v)}
-                  />
-                )}
+                <FieldInput
+                  field={field}
+                  value={value}
+                  options={options}
+                  onChange={(v) => setField(field.field_id, v)}
+                />
 
                 <FieldFooter field={field} errorMessage={fieldErrors[field.field_id]} />
               </div>
@@ -1080,6 +1193,322 @@ export default function DynamicFormRenderer({
             </>
           )}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ── T-104 Review details (design T-005 screen 03, T-109 03a) ────────────────
+// The same form state, widgets and validation as the long form; only the
+// layout differs. No second form implementation.
+
+function ReviewLayout({
+  config,
+  formData,
+  setField,
+  courtsData,
+  onSubmit,
+  onCancel,
+  submitting,
+  imageFields,
+  titleExtra,
+}: {
+  config: TemplateConfig;
+  formData: Record<string, unknown>;
+  setField: (fieldId: string, value: unknown) => void;
+  courtsData: { states: FieldOption[]; courtTypes: FieldOption[]; courts: FieldOption[] };
+  onSubmit: (formData: Record<string, unknown>) => void;
+  onCancel: () => void;
+  submitting: boolean;
+  imageFields: string[];
+  titleExtra?: ReactNode;
+}) {
+  const steps = config.form_schema.steps;
+  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  const [onlyGaps, setOnlyGaps] = useState(false);
+  // Fields that were gaps when "Show only gaps" was switched on. They stay visible
+  // while being filled in; otherwise a field would vanish on its first keystroke.
+  const [gapSnapshot, setGapSnapshot] = useState<Set<string>>(new Set());
+  const imageSet = useMemo(() => new Set(imageFields), [imageFields]);
+
+  type FieldState = 'missing' | 'invalid' | 'to_confirm' | 'confirmed' | 'ready' | 'optional_empty';
+  const groups = useMemo(
+    () =>
+      steps.map((st) => {
+        const fields = st.fields
+          .filter((f) => evaluateConditional(f.show_if ?? f.depends_on, formData))
+          .filter((f) => f.type !== 'file') // attachments are T-301, not part of review
+          .map((f) => {
+            const value = formData[f.field_id];
+            const gap = fieldGap(f, value);
+            let state: FieldState;
+            if (gap) state = gap;
+            else if (imageSet.has(f.field_id) && !confirmed.has(f.field_id)) state = 'to_confirm';
+            else if (imageSet.has(f.field_id)) state = 'confirmed';
+            else if (
+              value === undefined ||
+              value === '' ||
+              (Array.isArray(value) && value.length === 0)
+            )
+              state = 'optional_empty';
+            else state = 'ready';
+            return { field: f, value, state };
+          });
+        const gaps = fields.filter(
+          (x) => x.state === 'missing' || x.state === 'invalid' || x.state === 'to_confirm',
+        );
+        return { step: st, fields, gaps: gaps.length };
+      }),
+    [steps, formData, imageSet, confirmed],
+  );
+
+  const all = groups.flatMap((g) => g.fields);
+  const needsInput = all.filter((x) => x.state === 'missing' || x.state === 'invalid').length;
+  const toConfirm = all.filter((x) => x.state === 'to_confirm').length;
+  const ready = all.filter((x) => x.state === 'ready' || x.state === 'confirmed').length;
+  const counted = needsInput + toConfirm + ready;
+  const canGenerate = needsInput === 0 && toConfirm === 0 && !submitting;
+
+  // Groups with gaps start open; a ready group folds to one row. The user can open any.
+  const [open, setOpen] = useState<Set<number>>(
+    () => new Set(groups.map((g, i) => (g.gaps > 0 ? i : -1)).filter((i) => i >= 0)),
+  );
+  const toggle = (i: number) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+
+  const editField = (fieldId: string, value: unknown) => {
+    setField(fieldId, value);
+    // Editing a read-from-image value counts as confirming it (T-005 §5 "03").
+    if (imageSet.has(fieldId)) setConfirmed((prev) => new Set(prev).add(fieldId));
+  };
+
+  const nextGap = () => {
+    for (let gi = 0; gi < groups.length; gi++) {
+      const hit = groups[gi].fields.find(
+        (x) => x.state === 'missing' || x.state === 'invalid' || x.state === 'to_confirm',
+      );
+      if (!hit) continue;
+      setOpen((prev) => new Set(prev).add(gi));
+      // Move focus to the field, not just the scroll position (T-005 §7).
+      requestAnimationFrame(() => {
+        const box = document.getElementById(`review-field-${hit.field.field_id}`);
+        const target = box?.querySelector<HTMLElement>('input, select, textarea, button');
+        box?.scrollIntoView({ block: 'center' });
+        target?.focus();
+      });
+      return;
+    }
+  };
+
+  const reason =
+    needsInput > 0
+      ? `${needsInput} ${needsInput === 1 ? 'detail needs' : 'details need'} your input`
+      : toConfirm > 0
+        ? `${toConfirm} ${toConfirm === 1 ? 'value' : 'values'} read from an image to confirm`
+        : '';
+
+  return (
+    <div className="mx-auto w-full max-w-[720px]">
+      <p className="text-brand-muted text-sm font-medium">Review details</p>
+      <h1 className="font-heading text-brand-navy mt-1 text-[26px] font-semibold leading-8 sm:text-[34px] sm:leading-[42px]">
+        {config.display_name}
+      </h1>
+      {titleExtra && <div className="mt-1">{titleExtra}</div>}
+
+      {/* Summary bar — sticky while scrolling. The negative top cancels the dashboard main padding (p-6 / md:p-8) so it sits flush. */}
+      <div className="border-brand-line sticky -top-6 z-10 mt-4 rounded-xl border bg-white/95 p-3 backdrop-blur sm:p-4 md:-top-8">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm" aria-live="polite">
+          <span className="text-brand-error font-medium">{needsInput} needs input</span>
+          <span className="text-brand-gold-dark font-medium">{toConfirm} to confirm</span>
+          <span className="text-brand-teal-dark font-medium">{ready} ready</span>
+        </div>
+        <div
+          className="bg-brand-line/60 mt-2 h-2 w-full overflow-hidden rounded-full"
+          role="progressbar"
+          aria-label="Details ready"
+          aria-valuemin={0}
+          aria-valuemax={counted || 1}
+          aria-valuenow={ready}
+        >
+          <div
+            className="bg-brand-teal h-full"
+            style={{ width: `${counted ? (ready / counted) * 100 : 100}%` }}
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={nextGap}
+            disabled={needsInput + toConfirm === 0}
+            className="bg-brand-navy focus-visible:ring-brand-teal inline-flex min-h-[44px] items-center rounded-lg px-4 text-sm font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-40"
+          >
+            Next gap
+          </button>
+          <button
+            type="button"
+            aria-pressed={onlyGaps}
+            onClick={() => {
+              if (!onlyGaps) {
+                setGapSnapshot(
+                  new Set(
+                    all
+                      .filter(
+                        (x) =>
+                          x.state === 'missing' ||
+                          x.state === 'invalid' ||
+                          x.state === 'to_confirm',
+                      )
+                      .map((x) => x.field.field_id),
+                  ),
+                );
+              }
+              setOnlyGaps((v) => !v);
+            }}
+            className="border-brand-line text-brand-teal-dark focus-visible:ring-brand-teal inline-flex min-h-[44px] items-center rounded-lg border bg-white px-4 text-sm font-medium focus:outline-none focus-visible:ring-2"
+          >
+            {onlyGaps ? 'Show all details' : 'Show only gaps'}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {groups.map((g, gi) => {
+          const isGapNow = (x: (typeof g.fields)[number]) =>
+            x.state === 'missing' || x.state === 'invalid' || x.state === 'to_confirm';
+          const shown = onlyGaps
+            ? g.fields.filter((x) => isGapNow(x) || gapSnapshot.has(x.field.field_id))
+            : g.fields;
+          if (onlyGaps && shown.length === 0) return null;
+          const isOpen = open.has(gi) || (onlyGaps && shown.length > 0);
+          return (
+            <section key={g.step.step} className="border-brand-line rounded-xl border bg-white">
+              <h2>
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  onClick={() => toggle(gi)}
+                  className="focus-visible:ring-brand-teal flex min-h-[56px] w-full items-center justify-between gap-3 px-4 text-left focus:outline-none focus-visible:ring-2"
+                >
+                  <span className="text-brand-navy text-base font-medium">{g.step.title}</span>
+                  <span className="flex items-center gap-2">
+                    {g.gaps === 0 ? (
+                      <span className="bg-brand-teal-light text-brand-teal-dark rounded-full px-2 py-0.5 text-xs font-medium">
+                        All {g.fields.length} ready
+                      </span>
+                    ) : (
+                      <span className="bg-brand-error-light text-brand-error rounded-full px-2 py-0.5 text-xs font-medium">
+                        {g.gaps} to do
+                      </span>
+                    )}
+                    <ChevronDown
+                      size={16}
+                      aria-hidden="true"
+                      className={`text-brand-muted transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    />
+                  </span>
+                </button>
+              </h2>
+              {isOpen && (
+                <div className="border-brand-line grid grid-cols-1 gap-4 border-t p-4 sm:grid-cols-2">
+                  {shown.map(({ field, value, state }) => {
+                    const wide =
+                      field.type === 'textarea' ||
+                      field.type === 'checkbox_group' ||
+                      field.type === 'multi_select_search';
+                    const gap = state === 'missing' || state === 'invalid';
+                    return (
+                      <div
+                        key={field.field_id}
+                        id={`review-field-${field.field_id}`}
+                        className={`${wide ? 'col-span-full' : ''} rounded-lg ${
+                          gap
+                            ? 'border-brand-error border-2 p-2'
+                            : state === 'to_confirm'
+                              ? 'border-brand-gold bg-brand-gold-light border p-2'
+                              : ''
+                        }`}
+                      >
+                        <FieldInput
+                          field={field}
+                          value={value}
+                          options={resolveOptions(field, formData, config, courtsData)}
+                          onChange={(v) => editField(field.field_id, v)}
+                        />
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                          {gap && (
+                            <>
+                              <span className="bg-brand-error-light text-brand-error rounded-full px-2 py-0.5 font-medium">
+                                Needs your input
+                              </span>
+                              <span className="text-brand-error">
+                                {gapHint(field, state, value)}
+                              </span>
+                            </>
+                          )}
+                          {state === 'to_confirm' && (
+                            <>
+                              <span className="text-brand-gold-dark rounded-full bg-white px-2 py-0.5 font-medium">
+                                Read from image
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setConfirmed((prev) => new Set(prev).add(field.field_id))
+                                }
+                                className="border-brand-gold text-brand-gold-dark focus-visible:ring-brand-teal inline-flex min-h-[44px] items-center rounded-lg border bg-white px-3 font-medium focus:outline-none focus-visible:ring-2"
+                              >
+                                Confirm this value
+                              </button>
+                            </>
+                          )}
+                          {state === 'confirmed' && (
+                            <span className="bg-brand-teal-light text-brand-teal-dark rounded-full px-2 py-0.5 font-medium">
+                              Confirmed
+                            </span>
+                          )}
+                          {!gap && field.help && state !== 'to_confirm' && (
+                            <span className="text-brand-muted">{field.help}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+
+      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="border-brand-line text-brand-navy focus-visible:ring-brand-teal inline-flex min-h-[48px] items-center justify-center rounded-lg border bg-white px-6 text-base font-medium focus:outline-none focus-visible:ring-2"
+        >
+          Cancel
+        </button>
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+          {reason && (
+            <span id="review-generate-reason" className="text-brand-error text-sm">
+              {reason}
+            </span>
+          )}
+          <button
+            type="button"
+            disabled={!canGenerate}
+            aria-describedby={reason ? 'review-generate-reason' : undefined}
+            onClick={() => onSubmit(formData)}
+            className="bg-brand-navy focus-visible:ring-brand-teal inline-flex min-h-[48px] items-center justify-center rounded-lg px-6 text-base font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {submitting ? 'Generating…' : 'Generate document'}
+          </button>
+        </div>
       </div>
     </div>
   );
