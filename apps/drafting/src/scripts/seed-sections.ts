@@ -92,7 +92,8 @@ async function seed() {
         newSection: mapping.new,
         oldTitle: mapping.old_title,
         newTitle: mapping.new_title,
-        mappingType: mapping.type,
+        // The section files say "repealed_no_equivalent" (IEA 100); the model calls it "repealed".
+        mappingType: mapping.type === 'repealed_no_equivalent' ? 'repealed' : mapping.type,
         notes: mapping.notes ?? '',
         effectiveDate: new Date(meta.effective_date),
         validatedBy: meta.validated_by,
