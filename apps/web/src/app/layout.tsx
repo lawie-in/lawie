@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Lora } from 'next/font/google';
 import Script from 'next/script';
 
 import { AuthProvider } from '@/context/AuthContext';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
+// T-005 brand headings (describe-first screens). Exposed as a CSS variable, used via `font-heading`.
+const lora = Lora({ subsets: ['latin'], weight: ['600'], variable: '--font-lora' });
 
 export const metadata: Metadata = {
   title: 'Lawie — AI Legal Drafting for Indian Advocates',
@@ -45,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           `}
         </Script>
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} ${lora.variable}`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
