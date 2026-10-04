@@ -8,6 +8,18 @@ export interface IGenerationCall {
   usageSource: 'provider' | 'estimated';
 }
 
+/** T-110 — what kind of attempt a row is. Revisions arrive with T-205. */
+export const RUN_TYPES = ['initial', 'revision'] as const;
+export type RunType = (typeof RUN_TYPES)[number];
+
+/**
+ * Rows written before T-110 have no runType. Every reader goes through this
+ * so they count as 'initial' — never read `runType` off a row directly.
+ */
+export function effectiveRunType(row: { runType?: RunType | null }): RunType {
+  return row.runType ?? 'initial';
+}
+
 export interface IGeneration extends Document {
   userId: Types.ObjectId;
   docType: DocType;
@@ -38,6 +50,10 @@ export interface IGeneration extends Document {
   /** §3.8 — identifies one draft across retries; pair unique with runSequence. */
   runId?: string;
   runSequence?: number;
+  /** T-110 — missing on pre-T-110 rows; read it through effectiveRunType(). */
+  runType?: RunType;
+  /** ADR-019 §3.7 — the intake that led to this draft, when there was one. */
+  intakeId?: string;
   /** Per-section breakdown — how much of the cost is the repeated system prompt (feeds T-004). */
   calls?: IGenerationCall[];
 
@@ -121,6 +137,8 @@ const GenerationSchema = new Schema<IGeneration>(
     durationMs: { type: Number, default: undefined, min: 0 },
     runId: { type: String, default: undefined },
     runSequence: { type: Number, default: undefined, min: 1 },
+    runType: { type: String, enum: RUN_TYPES, default: undefined },
+    intakeId: { type: String, default: undefined },
     calls: { type: [GenerationCallSchema], default: undefined },
   },
   { timestamps: true },
@@ -135,5 +153,7 @@ GenerationSchema.index({ userId: 1, createdAt: -1 });
 GenerationSchema.index({ runId: 1, runSequence: 1 }, { unique: true, sparse: true });
 // Retry validation: "does this runId belong to this user, for this template, with no completed attempt?"
 GenerationSchema.index({ runId: 1, userId: 1, templateId: 1 });
+// Full cost of a draft = Generation rows by runId + LlmAuxCall rows by intakeId.
+GenerationSchema.index({ intakeId: 1 }, { sparse: true });
 
 export const Generation = mongoose.model<IGeneration>('Generation', GenerationSchema);

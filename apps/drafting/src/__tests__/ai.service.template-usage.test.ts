@@ -67,7 +67,13 @@ function usageChunk(text: string, promptTokens: number, completionTokens: number
   ];
 }
 
-const BASE_INPUT = { formData: {}, userId: 'user-1', runId: 'test-run-id', runSequence: 1 };
+const BASE_INPUT = {
+  formData: {},
+  userId: 'user-1',
+  runId: 'test-run-id',
+  runSequence: 1,
+  runType: 'initial' as const,
+};
 
 beforeEach(async () => {
   _clearAppSettingsCache();

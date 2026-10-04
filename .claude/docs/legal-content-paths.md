@@ -10,5 +10,6 @@ A ticket touching any of the following requires Ajay's sign-off reference in the
 - The template seed scripts
 - `apps/drafting/src/services/ai.service.ts`
 - `apps/drafting/src/services/preflight.service.ts`
+- `apps/drafting/src/services/intake.prompts.ts` (ADR-019 §3.12, added by T-101)
 
 See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths above are covered by golden snapshot tests that the `tester` must never auto-update.

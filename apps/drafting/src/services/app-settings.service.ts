@@ -116,6 +116,8 @@ export function _clearAppSettingsCache(): void {
 export const APP_SETTING_KEYS = {
   DRAFTING_MODEL: 'ai.drafting_model',
   PREFLIGHT_MODEL: 'ai.preflight_model',
+  /** ADR-019 §3.8 — Haiku, as a full dated model id. No default in code. */
+  INTAKE_MODEL: 'ai.intake_model',
 } as const;
 
 // Per-model USD rates (`ai.rates.<model-slug>`) and the USD→INR conversion

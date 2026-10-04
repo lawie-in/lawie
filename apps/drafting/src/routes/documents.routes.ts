@@ -11,7 +11,7 @@ import { FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
 import { spendCapCheck } from '../middleware/spendCap';
 import { LawieDocument } from '../models/Document.model';
 import { Event } from '../models/Event.model';
-import { Generation } from '../models/Generation.model';
+import { effectiveRunType, Generation, RunType } from '../models/Generation.model';
 import {
   GenerationFailedError,
   streamGenerateDocument,
@@ -91,6 +91,10 @@ export interface RecordGenerationInput {
   durationMs: number;
   runId: string;
   runSequence: number;
+  /** T-110 */
+  runType: RunType;
+  /** ADR-019 §3.7 */
+  intakeId?: string;
 }
 
 /**
@@ -126,6 +130,8 @@ export async function recordGeneration(
       durationMs: input.durationMs,
       runId: input.runId,
       runSequence: input.runSequence,
+      runType: input.runType,
+      intakeId: input.intakeId,
       costUsd,
       costStatus: rate.costStatus,
       rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
@@ -140,11 +146,11 @@ export async function recordGeneration(
       (dbErr as { code?: number }).code === 11000;
     if (isDuplicate) {
       console.warn(
-        `[drafting] Duplicate Generation for runId=${input.runId} runSequence=${input.runSequence} — a concurrent request already recorded this attempt.`,
+        `[drafting] Duplicate Generation for runId=${input.runId} runSequence=${input.runSequence} runType=${input.runType} — a concurrent request already recorded this attempt.`,
       );
     } else {
       console.error(
-        `[drafting] Failed to record Generation (runId=${input.runId}, runSequence=${input.runSequence}):`,
+        `[drafting] Failed to record Generation (runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
         dbErr instanceof Error ? dbErr.message : dbErr,
       );
     }
@@ -160,26 +166,34 @@ export async function recordGeneration(
  *   errors on a bad run_id — the browser's retry must never be the thing
  *   that fails.
  * - A valid run_id → same runId, sequence = highest attempt so far + 1.
+ *
+ * T-110 — runType: a new run is 'initial'. A retry keeps the runType of the
+ * attempt it retries (the latest one); pre-T-110 rows read as 'initial'.
+ * Revisions (T-205) will add a revision request path here.
  */
 export async function resolveRun(
   userId: string,
   match: { templateId: string } | { docType: string },
   providedRunId: string | undefined,
-): Promise<{ runId: string; runSequence: number }> {
+): Promise<{ runId: string; runSequence: number; runType: RunType }> {
   if (!providedRunId) {
-    return { runId: crypto.randomUUID(), runSequence: 1 };
+    return { runId: crypto.randomUUID(), runSequence: 1, runType: 'initial' };
   }
 
   const attempts = await Generation.find({ runId: providedRunId, userId, ...match })
-    .select('runSequence status')
+    .select('runSequence status runType')
     .lean();
 
   if (attempts.length === 0 || attempts.some((a) => a.status === 'completed')) {
-    return { runId: crypto.randomUUID(), runSequence: 1 };
+    return { runId: crypto.randomUUID(), runSequence: 1, runType: 'initial' };
   }
 
-  const maxSequence = Math.max(...attempts.map((a) => a.runSequence ?? 1));
-  return { runId: providedRunId, runSequence: maxSequence + 1 };
+  const latest = attempts.reduce((a, b) => ((b.runSequence ?? 1) > (a.runSequence ?? 1) ? b : a));
+  return {
+    runId: providedRunId,
+    runSequence: (latest.runSequence ?? 1) + 1,
+    runType: effectiveRunType(latest),
+  };
 }
 
 const generateSchema = z.object({
@@ -309,6 +323,8 @@ const templateGenerateSchema = z.object({
   language: z.enum(['en', 'hi', 'bilingual']).default('en'),
   // T-003 §3.8 — a retry resends this to keep the same run
   run_id: z.string().uuid().optional(),
+  // ADR-019 §3.7 — the intake that led here, stored on the Generation row
+  intake_id: z.string().uuid().optional(),
 });
 
 // POST /documents/preflight — pre-generation verification layer (SCRUM-69)
@@ -361,7 +377,7 @@ router.post(
     }
 
     const payload = req.jwtPayload!;
-    const { template_id, form_data, run_id } = parsed.data;
+    const { template_id, form_data, run_id, intake_id } = parsed.data;
 
     // Load template config
     const templateConfig = loadTemplateConfig(template_id);
@@ -385,7 +401,7 @@ router.post(
 
     // T-003 §3.8 — resolve before streaming starts so X-Run-Id/X-Run-Sequence
     // can go out as response headers no matter how this attempt ends.
-    const { runId, runSequence } = await resolveRun(
+    const { runId, runSequence, runType } = await resolveRun(
       payload.sub,
       { templateId: template_id },
       run_id,
@@ -406,6 +422,7 @@ router.post(
           userId: payload.sub,
           runId,
           runSequence,
+          runType,
         },
         res,
       );
@@ -420,6 +437,7 @@ router.post(
           docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
           status: 'failed',
           templateId: template_id,
+          intakeId: intake_id,
           aiModel: genErr.aiModel,
           transport: genErr.transport,
           usage: genErr.usage,
@@ -427,6 +445,7 @@ router.post(
           durationMs: Date.now() - startedAt,
           runId,
           runSequence,
+          runType,
         });
         // Ended only now — after the row exists — so a fast retry's
         // resolveRun query can never race the write that makes it findable.
@@ -440,17 +459,22 @@ router.post(
       // gets a failed row (T-003 §3.8: "every way the request can fail
       // returns it and saves a failed row").
       const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
-      console.error(`[drafting] generate-from-template threw (runId=${runId}):`, msg);
+      console.error(
+        `[drafting] generate-from-template threw (runId=${runId}, runType=${runType}):`,
+        msg,
+      );
       await recordGeneration({
         userId: payload.sub,
         docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
         status: 'failed',
         templateId: template_id,
+        intakeId: intake_id,
         usage: { inputTokens: 0, outputTokens: 0, llmCalls: 0, usageSource: 'provider' },
         paragraphCount: 0,
         durationMs: Date.now() - startedAt,
         runId,
         runSequence,
+        runType,
       });
       if (!res.headersSent) {
         res.status(500).json({ error: 'Generation failed', message: msg });
@@ -502,6 +526,7 @@ router.post(
         docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
         status: 'completed',
         templateId: template_id,
+        intakeId: intake_id,
         documentId: doc._id,
         aiModel: result.aiModel,
         transport: result.transport,
@@ -510,17 +535,18 @@ router.post(
         durationMs: Date.now() - startedAt,
         runId,
         runSequence,
+        runType,
       });
       duplicateAttempt = duplicate;
 
       if (process.env.NODE_ENV !== 'test') {
         console.info(
-          `[drafting] Generated template doc ${docId} for user ${payload.sub} (${template_id}, runId=${runId}, runSequence=${runSequence})`,
+          `[drafting] Generated template doc ${docId} for user ${payload.sub} (${template_id}, runId=${runId}, runSequence=${runSequence}, runType=${runType})`,
         );
       }
     } catch (dbErr) {
       console.error(
-        `[drafting] DB save failed for template ${template_id} (runId=${runId}):`,
+        `[drafting] DB save failed for template ${template_id} (runId=${runId}, runType=${runType}):`,
         dbErr instanceof Error ? dbErr.message : dbErr,
       );
     }
@@ -597,7 +623,7 @@ router.post(
 
     // T-003 §3.8 — legacy pipeline has no template_id, so docType is the
     // equivalent "same kind of request" match key for a retry.
-    const { runId, runSequence } = await resolveRun(
+    const { runId, runSequence, runType } = await resolveRun(
       payload.sub,
       { docType: input.docType },
       input.run_id,
@@ -610,7 +636,7 @@ router.post(
     let result;
     try {
       result = await streamGenerateDocument(
-        { ...input, userId: payload.sub, runId, runSequence },
+        { ...input, userId: payload.sub, runId, runSequence, runType },
         res,
       );
     } catch (genErr) {
@@ -629,6 +655,7 @@ router.post(
           durationMs: Date.now() - startedAt,
           runId,
           runSequence,
+          runType,
         });
         // Ended only now — after the row exists — so a fast retry's
         // resolveRun query can never race the write that makes it findable.
@@ -640,7 +667,7 @@ router.post(
       // runId already exists and was already handed to the client, so it
       // still gets a failed row (T-003 §3.8).
       const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
-      console.error(`[drafting] legacy generate threw (runId=${runId}):`, msg);
+      console.error(`[drafting] legacy generate threw (runId=${runId}, runType=${runType}):`, msg);
       await recordGeneration({
         userId: payload.sub,
         docType: input.docType,
@@ -650,6 +677,7 @@ router.post(
         durationMs: Date.now() - startedAt,
         runId,
         runSequence,
+        runType,
       });
       if (!res.headersSent) {
         res.status(500).json({ error: 'Generation failed', message: msg });
@@ -706,17 +734,18 @@ router.post(
         durationMs: Date.now() - startedAt,
         runId,
         runSequence,
+        runType,
       });
       duplicateAttempt = duplicate;
 
       if (process.env.NODE_ENV !== 'test') {
         console.info(
-          `[drafting] Generated doc ${docId} for user ${payload.sub} (runId=${runId}, runSequence=${runSequence})`,
+          `[drafting] Generated doc ${docId} for user ${payload.sub} (runId=${runId}, runSequence=${runSequence}, runType=${runType})`,
         );
       }
     } catch (dbErr) {
       console.error(
-        `[drafting] DB save failed for legacy generate (runId=${runId}):`,
+        `[drafting] DB save failed for legacy generate (runId=${runId}, runType=${runType}):`,
         dbErr instanceof Error ? dbErr.message : dbErr,
       );
     }

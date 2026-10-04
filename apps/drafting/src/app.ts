@@ -11,6 +11,7 @@ import appSettingsRoutes from './routes/app-settings.routes';
 import courtsRoutes from './routes/courts.routes';
 import creditsRoutes from './routes/credits.routes';
 import documentsRoutes from './routes/documents.routes';
+import intakeRoutes from './routes/intake.routes';
 import internalRoutes from './routes/internal.routes';
 import reviewRoutes from './routes/review.routes';
 import sampleAssetsRoutes from './routes/sample-assets.routes';
@@ -39,6 +40,7 @@ app.use('/', adminOverviewRoutes);
 app.use('/', adminUsersRoutes);
 app.use('/', adminDocumentsRoutes);
 app.use('/', reviewRoutes);
+app.use('/', intakeRoutes); // ADR-019 — /documents/intake through the gateway
 app.use('/', documentsRoutes);
 app.use('/sample-assets', sampleAssetsRoutes);
 
