@@ -18,6 +18,7 @@ import { Response } from 'express';
 import bnsMapping from '../config/bns-mapping.json';
 import { env } from '../config/env';
 import { Court } from '../models/Court.model';
+import type { RunType } from '../models/Generation.model';
 
 import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-settings.service';
 import {
@@ -318,6 +319,7 @@ function heliconeHeaders(
   templateId?: string,
   runId?: string,
   runSequence?: number,
+  runType?: RunType,
 ): Record<string, string> {
   if (!env.HELICONE_API_KEY) return {};
   const headers: Record<string, string> = {};
@@ -325,6 +327,7 @@ function heliconeHeaders(
   if (templateId) headers['Helicone-Property-Template'] = templateId;
   if (runId) headers['Helicone-Property-Run-Id'] = runId;
   if (runSequence !== undefined) headers['Helicone-Property-Run-Sequence'] = String(runSequence);
+  if (runType) headers['Helicone-Property-Run-Type'] = runType; // T-110
   return headers;
 }
 
@@ -334,6 +337,8 @@ export interface GenerateDocumentInput extends PromptInput {
   userId?: string;
   runId: string;
   runSequence: number;
+  /** T-110 */
+  runType: RunType;
 }
 
 export interface GenerateDocumentResult {
@@ -408,7 +413,7 @@ export async function streamGenerateDocument(
       systemPrompt,
       userPrompt,
       4096,
-      heliconeHeaders(input.userId, input.docType, input.runId, input.runSequence),
+      heliconeHeaders(input.userId, input.docType, input.runId, input.runSequence, input.runType),
       draft,
     )) {
       rawText += text;
@@ -436,7 +441,7 @@ export async function streamGenerateDocument(
     const classified = classifyLlmError(llmErr);
     if (process.env.NODE_ENV !== 'test') {
       console.error(
-        `[drafting] LLM stream failed (legacy generate, runId=${input.runId}, runSequence=${input.runSequence}):`,
+        `[drafting] LLM stream failed (legacy generate, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
         llmErr instanceof Error ? llmErr.message : llmErr,
       );
     }
@@ -533,6 +538,8 @@ export interface TemplateGenerateInput {
   userId?: string;
   runId: string;
   runSequence: number;
+  /** T-110 */
+  runType: RunType;
 }
 
 export interface TemplateGenerateResult {
@@ -652,7 +659,13 @@ export async function streamGenerateFromTemplate(
           systemPrompt,
           userPrompt,
           8192,
-          heliconeHeaders(input.userId, templateConfig.template_id, input.runId, input.runSequence),
+          heliconeHeaders(
+            input.userId,
+            templateConfig.template_id,
+            input.runId,
+            input.runSequence,
+            input.runType,
+          ),
           draft,
         )) {
           aiText += text;
@@ -686,7 +699,7 @@ export async function streamGenerateFromTemplate(
         const classified = classifyLlmError(llmErr);
         if (process.env.NODE_ENV !== 'test') {
           console.error(
-            `[drafting] LLM stream failed (section ${section.section_id}, runId=${input.runId}, runSequence=${input.runSequence}):`,
+            `[drafting] LLM stream failed (section ${section.section_id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
             llmErr instanceof Error ? llmErr.message : llmErr,
           );
         }

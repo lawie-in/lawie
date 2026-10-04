@@ -58,6 +58,7 @@ describe('recordGeneration — duplicate (runId, runSequence)', () => {
       tokensUsed: 10,
       runId: 'race-run-id',
       runSequence: 1,
+      runType: 'initial',
     });
 
     const result = await recordGeneration({
@@ -69,6 +70,7 @@ describe('recordGeneration — duplicate (runId, runSequence)', () => {
       durationMs: 100,
       runId: 'race-run-id',
       runSequence: 1, // same pair as the row above — real unique-index collision
+      runType: 'initial',
     });
 
     expect(result).toEqual({ duplicate: true });
@@ -87,6 +89,7 @@ describe('recordGeneration — duplicate (runId, runSequence)', () => {
       durationMs: 100,
       runId: 'fresh-run-id',
       runSequence: 1,
+      runType: 'initial',
     });
     expect(result).toEqual({ duplicate: false });
   });
