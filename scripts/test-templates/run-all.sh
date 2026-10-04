@@ -21,6 +21,11 @@ TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 RESULTS_DIR="${SCRIPT_DIR}/results/${TIMESTAMP}"
 SUMMARY_FILE="${RESULTS_DIR}/SUMMARY.md"
 
+if [[ -z "${INTERNAL_SECRET:-}" ]]; then
+  echo "INTERNAL_SECRET is not set. Export it from your .env before running (see README.md)." >&2
+  exit 1
+fi
+
 mkdir -p "${RESULTS_DIR}"
 
 # --- Colors -----------------------------------------------------
@@ -79,7 +84,6 @@ for PAYLOAD in "${PAYLOAD_DIR}"/*.json; do
   START_MS=$(python3 -c 'import time; print(int(time.time()*1000))')
 
   # Support both gateway (X-Dev-Bypass) and direct drafting service (internal secret)
-  INTERNAL_SECRET="${INTERNAL_SECRET:-0b15312a51c251bb45489a85eb7b0f02660dacee2d3ab36feaecd785a1249643}"
   HTTP_CODE=$(curl -s \
     -o "${RESPONSE_FILE}" \
     -D "${HEADERS_FILE}" \

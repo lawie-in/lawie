@@ -17,6 +17,18 @@ description = "MongoDB connection string containing a password"
 regex = '''mongodb(?:\+srv)?:\/\/[^:]+:[^@]{6,}@'''
 tags = ["secret", "database"]
 
+[[rules]]
+id = "lawie-secret-shell-default"
+description = "Real secret used as a shell default, e.g. ${INTERNAL_SECRET:-<value>} (T-117)"
+regex = '''\$\{[A-Z0-9_]*(?:SECRET|TOKEN|KEY|PASSWORD)[A-Z0-9_]*:-[A-Za-z0-9+/=_-]{16,}\}'''
+tags = ["secret", "lawie"]
+
+[[rules]]
+id = "lawie-internal-secret"
+description = "INTERNAL_SECRET with a real value"
+regex = '''(?i)internal_secret\s*[=:]\s*['"]?[A-Za-z0-9+/=_-]{32,}['"]?'''
+tags = ["secret", "lawie"]
+
 # ── Allowlist (things that look like secrets but aren't) ──────────────────────
 [allowlist]
 description = "Known-safe files and placeholders"
