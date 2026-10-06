@@ -1,0 +1,180 @@
+[
+  {
+    "id": "bail-r-01",
+    "description": "My brother was arrested by Sadar Thana Police on 25th August 2026 from lajpat market. This is a false accusation on him and I want to write bail application for him",
+    "expected": "bail_regular",
+    "also_ok": ["bail_before_magistrate"],
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-r-02",
+    "description": "My client Ram Kumar, aged 32, was arrested on 15/03/2026 in FIR No. 124/2026 under section 103 BNS and is in judicial custody. We need to apply for regular bail before the sessions court.",
+    "expected": "bail_regular",
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-r-03",
+    "description": "Client is in judicial custody since 3 March 2026 in a cheating case registered at Kotwali police station. Chargesheet is not yet filed. Please draft a bail application for the Sessions Court.",
+    "expected": "bail_regular",
+    "also_ok": ["default_bail"],
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-r-04",
+    "description": "The accused has been lodged in Beur Jail for the last two months in an Excise Act case. His first bail application was rejected by the Magistrate. Draft a bail application before the Sessions Judge.",
+    "expected": "bail_regular",
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-r-05",
+    "description": "Police picked up my client from his shop last night and he was sent to jail today by the CJM in a theft case. I need a bail application.",
+    "expected": "bail_regular",
+    "also_ok": ["bail_before_magistrate"],
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-r-06",
+    "description": "My client, a 58 year old woman, has been remanded to judicial custody in an FIR under sections 316 and 318 BNS. She is a heart patient. Need bail application on medical and merits grounds.",
+    "expected": "bail_regular",
+    "also_ok": ["interim_bail", "bail_before_magistrate"],
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-r-07",
+    "description": "मेरे भाई को पुलिस ने 10/09/2026 को गिरफ्तार कर लिया है और वह जेल में है। मामला झूठा है। उसकी जमानत की अर्जी बनानी है।",
+    "expected": "bail_regular",
+    "also_ok": ["bail_before_magistrate"],
+    "court": true,
+    "language": "hi"
+  },
+  {
+    "id": "bail-r-08",
+    "description": "मेरा मुवक्किल पिछले तीन महीने से न्यायिक हिरासत में है। थाना कोतवाली में मारपीट का मुकदमा दर्ज हुआ था। सत्र न्यायालय के लिए जमानत आवेदन तैयार करें।",
+    "expected": "bail_regular",
+    "court": true,
+    "language": "hi"
+  },
+  {
+    "id": "bail-r-09",
+    "description": "Mere bhai ko police ne kal raat pakad liya aur ab woh jail mein hai. Jhootha case hai marpeet ka. Uski zamanat ki application banani hai.",
+    "expected": "bail_regular",
+    "also_ok": ["bail_before_magistrate"],
+    "court": true,
+    "language": "mixed"
+  },
+  {
+    "id": "bail-r-10",
+    "description": "Client ko 2 October ko arrest kar liya gaya dowry case mein, abhi judicial custody mein hai. Sessions court ke liye regular bail application chahiye.",
+    "expected": "bail_regular",
+    "court": true,
+    "language": "mixed"
+  },
+  {
+    "id": "bail-r-11",
+    "description": "Husband giraftar ho gaya hai 498A wale case mein, teen din se hirasat mein hai. Bail ke liye application draft karni hai.",
+    "expected": "bail_regular",
+    "also_ok": ["bail_before_magistrate"],
+    "court": true,
+    "language": "mixed"
+  },
+
+  {
+    "id": "bail-a-01",
+    "description": "An FIR has been registered against my client at Kankarbagh police station for cheating. He has not been arrested yet but the police came to his house twice. I need an anticipatory bail application for the Sessions Court.",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-a-02",
+    "description": "My client apprehends arrest in a false dowry case lodged by his wife at Mahila Thana. Please draft a pre-arrest bail application under section 482 BNSS.",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-a-03",
+    "description": "A complaint case has been filed against my client, a government teacher, and he fears arrest. He has clean antecedents. We want to move the High Court for protection from arrest.",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-a-04",
+    "description": "The co-accused was arrested yesterday and my client apprehends arrest in the same FIR. He was not present at the place of occurrence. Draft a bail application so that he is released on bail in the event of arrest.",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-a-05",
+    "description": "Police is threatening to arrest my client in a land dispute matter in which an FIR was lodged last week. He is likely to be arrested any day. Need bail before he is arrested.",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-a-06",
+    "description": "My client received a notice under section 35 BNSS to appear before the investigating officer. He is afraid of being arrested when he goes. Please draft an anticipatory bail application.",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-a-07",
+    "description": "मेरे मुवक्किल के खिलाफ थाना सदर में धोखाधड़ी की प्राथमिकी दर्ज हुई है। उन्हें गिरफ्तारी की आशंका है, अभी तक गिरफ्तार नहीं किया गया है। अग्रिम जमानत की अर्जी तैयार करें।",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "hi"
+  },
+  {
+    "id": "bail-a-08",
+    "description": "पुलिस मेरे भाई को झूठे मुकदमे में गिरफ्तार कर सकती है। गिरफ्तारी से पहले जमानत चाहिए। सत्र न्यायालय के लिए आवेदन बनाना है।",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "hi"
+  },
+  {
+    "id": "bail-a-09",
+    "description": "Mere client ke khilaf FIR ho gayi hai marpeet ki, police giraftar kar sakti hai. Abhi arrest nahi hua hai. Agrim zamanat ki application chahiye.",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "mixed"
+  },
+  {
+    "id": "bail-a-10",
+    "description": "Sasural walon ne jhootha dahej ka case kar diya hai, mere bhai ko giraftari ka dar hai. High Court mein anticipatory bail lagani hai.",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "mixed"
+  },
+  {
+    "id": "bail-a-11",
+    "description": "Client ka naam FIR mein hai, police arrest kar sakti hai kabhi bhi. Woh abhi tak giraftar nahi hua. Bail application bana do arrest hone se pehle.",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "mixed"
+  },
+
+  {
+    "id": "bail-x-01",
+    "description": "Need a bail application for my client in a case under section 85 BNS registered at Mahila Thana, Ranchi.",
+    "expected": "bail_regular",
+    "also_ok": ["bail_anticipatory", "bail_before_magistrate"],
+    "court": true,
+    "language": "en"
+  },
+  {
+    "id": "bail-x-02",
+    "description": "My client was arrested in 2019 in another matter and was acquitted. Now a fresh FIR names him and he fears arrest. Draft an anticipatory bail application.",
+    "expected": "bail_anticipatory",
+    "court": true,
+    "language": "en"
+  }
+]

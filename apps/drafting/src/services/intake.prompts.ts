@@ -2,9 +2,9 @@
  * Intake prompts — ADR-019 §3.4, §3.5, §4.1, §4.2.
  *
  * LEGAL CONTENT. Listed in .claude/docs/legal-content-paths.md.
- * Status: DRAFT written by Vishal on 4 Oct 2026 for T-101. Ajay must read
- * this file before the T-101 merge (ticket, References). Any later change
- * needs his sign-off.
+ * Status: written by Vishal on 4 Oct 2026 for T-101 and approved by Ajay the
+ * same day. The bail line in MATCH_SYSTEM_PROMPT is Ajay's text from T-127,
+ * section 5.2 (6 Oct 2026, T-122). Any later change needs his sign-off.
  *
  * The prompts never decide what reaches the user on their own. The server
  * enforces every rule again: unknown ids become no match, values without a
@@ -28,6 +28,7 @@ Rules:
 - confidence "high": exactly one template clearly fits.
 - confidence "medium": two or three templates could fit and the description does not settle which. List them in alternatives, best first.
 - confidence "low": no template in the catalogue fits the document they need, but it is a legal drafting request. Set template_id to null.
+- Bail: a person who has already been arrested or is in custody needs regular bail. A person who has not been arrested and expects to be arrested needs anticipatory bail. Never choose an anticipatory bail template when the description says the person has been arrested or is in custody. Never choose a regular bail template when the description says the person has not been arrested. If the description does not say which, use confidence "medium" and list both.
 - is_legal_drafting false: the request is not for a legal document at all (for example general questions, chat, or unrelated tasks). Set template_id to null.
 - is_court_document true when the document would be filed in or addressed to a court or tribunal, or the description mentions a court, an FIR, a case number, bail, a petition, an appeal, a suit or a writ.
 - label: a short generic name for the document requested, at most 8 words. Do not include any person's name, any number, any date, any place or any organisation name.
