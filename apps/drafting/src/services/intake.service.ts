@@ -1349,7 +1349,13 @@ export interface BriefUpdateRequest {
  */
 export function updateBrief(req: BriefUpdateRequest): Brief | null {
   if (req.kind === 'none') {
-    const courtDocument = req.courtDocument === true;
+    // T-107, section 2: a court signal in the user's own words makes it a court
+    // document, whatever the browser sent. Either one saying "court" is enough.
+    const said = [
+      cleanLabel(req.kindName),
+      ...req.values.flatMap((v) => (Array.isArray(v.value) ? v.value : [v.value])),
+    ].join('\n');
+    const courtDocument = req.courtDocument === true || hasCourtSignal(said);
     const dateItems: ChecklistItem[] = [];
     for (const v of req.values) {
       if (!v.key.startsWith('date.')) continue;

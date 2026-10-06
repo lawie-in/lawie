@@ -774,6 +774,36 @@ describe('POST /intake/brief/update — no model call', () => {
     expect(itemOf(res.body.brief, 'date.arrest')).toMatchObject({ value: '2026-03-15' });
   });
 
+  it('no rule pack: a court signal in the user’s words makes it a court document, whatever was sent', async () => {
+    const res = await update({
+      kind: 'none',
+      kind_name: 'letter to the landlord',
+      court_document: false,
+      values: [
+        { key: 'fixed.first_party', value: 'Ram Kumar' },
+        { key: 'fixed.facts', value: 'The suit for eviction is pending.' },
+      ],
+    });
+    expect(res.body.brief).toMatchObject({
+      can_confirm: false,
+      kind: { id: null, court_document: true },
+    });
+
+    const plain = await update({
+      kind: 'none',
+      kind_name: 'letter to the landlord',
+      court_document: false,
+      values: [
+        { key: 'fixed.first_party', value: 'Ram Kumar' },
+        { key: 'fixed.facts', value: 'The rent was paid late in March.' },
+      ],
+    });
+    expect(plain.body.brief).toMatchObject({
+      can_confirm: true,
+      kind: { id: null, court_document: false },
+    });
+  });
+
   it('lists the dates in the description that are still not placed, when it is sent', async () => {
     const res = await update({
       kind: 'bail_regular',

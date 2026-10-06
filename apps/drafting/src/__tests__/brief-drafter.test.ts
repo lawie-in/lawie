@@ -9,6 +9,7 @@
 import {
   actLines,
   buildDrafterUserPrompt,
+  buildGuidedDrafterUserPrompt,
   buildRepairUserPrompt,
   checkAgainstBrief,
   clampTarget,
@@ -18,20 +19,31 @@ import {
   drafterBrief,
   findMissingClauses,
   formDataFromBrief,
+  guidedDrafterBrief,
   hasFixedWording,
   keepsEveryParagraph,
   labelReason,
   needsStartingDraftLabel,
   paragraphNumbers,
+  sectionsGiven,
   splitDrafterOutput,
   systemParts,
   TrailerFilter,
+  withoutDisclaimers,
 } from '../services/brief-drafter';
 import {
+  DRAFTER_GUIDED_SYSTEM_PROMPT,
   DRAFTER_PACK_SYSTEM_PROMPT,
   DRAFTER_REPAIR_SYSTEM_PROMPT,
 } from '../services/drafter.prompts';
-import { buildBrief, buildChecklist, GivenValue } from '../services/intake-brief';
+import {
+  buildBrief,
+  buildChecklist,
+  fixedChecklist,
+  FIXED_KEYS,
+  GivenValue,
+  guidedDateItem,
+} from '../services/intake-brief';
 import { contentToHtml } from '../services/pdf-export.service';
 import { loadRulePack, RulePack, RulePackClause } from '../services/rule-pack.service';
 import { loadTemplateConfig, TemplateConfig } from '../services/template-engine.service';
@@ -509,5 +521,176 @@ describe('the PDF of a starting draft', () => {
     for (const html of [contentToHtml('x', false, true), contentToHtml('x', false)]) {
       expect(html).toContain('Lawie does not provide legal advice');
     }
+  });
+});
+
+// ── A request with no rule pack (T-106 part 2; T-107, sections 4 and 6) ──────
+
+function guidedBrief(values: GivenValue[], courtDocument = false, dates: string[] = []) {
+  return buildBrief({
+    kind: { id: null, name: 'consent letter for use of premises', court_document: courtDocument },
+    checklist: [...fixedChecklist(courtDocument), ...dates.map((d) => guidedDateItem(d))],
+    values,
+    court: courtDocument ? court : undefined,
+  });
+}
+
+const LETTER: GivenValue[] = [
+  { key: FIXED_KEYS.firstParty, value: 'Sunita Devi', source: 'user' },
+  { key: FIXED_KEYS.otherParty, value: 'Patna Municipal Corporation', source: 'user' },
+  {
+    key: FIXED_KEYS.facts,
+    value:
+      'She owns shop no. 12 at Boring Road. She let it to Anil Kumar on 01/04/2026. The notice was under Section 138 of the Negotiable Instruments Act, 1881.',
+    source: 'description',
+  },
+  { key: FIXED_KEYS.relief, value: 'Consent to use the shop as a clinic.', source: 'user' },
+];
+
+describe('no rule pack: the Drafter prompt is Ajay’s text (T-107, section 6)', () => {
+  it('is the signed prompt, with the rules that matter', () => {
+    expect(DRAFTER_GUIDED_SYSTEM_PROMPT.startsWith('You are a senior Indian advocate')).toBe(true);
+    expect(DRAFTER_GUIDED_SYSTEM_PROMPT).toContain('- MODE: "light" or "strict".');
+    expect(DRAFTER_GUIDED_SYSTEM_PROMPT).toContain(
+      'Cite a section number only if it is in "sections_given", and exactly as given.',
+    );
+    expect(DRAFTER_GUIDED_SYSTEM_PROMPT).toContain('[To be confirmed: what is missing]');
+    expect(DRAFTER_GUIDED_SYSTEM_PROMPT).toContain('[Section — verify before filing]');
+    expect(DRAFTER_GUIDED_SYSTEM_PROMPT).toContain('[Authority — add if relied upon]');
+    expect(
+      DRAFTER_GUIDED_SYSTEM_PROMPT.endsWith('The label and footer are added by the system.'),
+    ).toBe(true);
+    // It is not the prompt for a rule pack: it asks for no clause report.
+    expect(DRAFTER_GUIDED_SYSTEM_PROMPT).not.toContain(CLAUSES_MARKER);
+  });
+});
+
+describe('no rule pack: the sections the advocate wrote', () => {
+  it.each([
+    [
+      'under Section 138 of the Negotiable Instruments Act, 1881 a notice',
+      ['Section 138 of the Negotiable Instruments Act, 1881'],
+    ],
+    ['FIR u/s 420 IPC was lodged', ['u/s 420 IPC']],
+    ['offence under sections 318 and 336 of BNS', ['sections 318 and 336 of BNS']],
+    ['bail under Section 483 BNSS and Sec. 35(3) BNSS', ['Section 483 BNSS', 'Sec. 35(3) BNSS']],
+    [
+      'Section 13(1)(ia) of the Hindu Marriage Act 1955.',
+      ['Section 13(1)(ia) of the Hindu Marriage Act 1955'],
+    ],
+    ['धारा 302 के तहत मामला', ['धारा 302']],
+    ['read Section 5 Ram Kumar said so', ['Section 5']],
+    ['Section 9. Then he left', ['Section 9']],
+    ['He lives in sector 12 and paid 138 rupees', []],
+  ])('%s', (text, expected) => {
+    expect(sectionsGiven([text])).toEqual(expected);
+  });
+
+  it('lists each one once, across every text of the brief', () => {
+    expect(sectionsGiven(['u/s 420 IPC', 'again u/s 420 IPC and Section 34 IPC'])).toEqual([
+      'u/s 420 IPC',
+      'Section 34 IPC',
+    ]);
+  });
+});
+
+describe('no rule pack: what the Drafter is given', () => {
+  const brief = guidedBrief(LETTER);
+
+  it('gives the brief with the sections the advocate wrote, and nothing from a rule pack', () => {
+    const given = guidedDrafterBrief(brief, null);
+    expect(given.document).toBe('consent letter for use of premises');
+    expect(given.court).toBeNull();
+    expect(given.sections_given).toEqual(['Section 138 of the Negotiable Instruments Act, 1881']);
+    expect(given.parties.map((p) => p.value)).toEqual([
+      'Sunita Devi',
+      'Patna Municipal Corporation',
+    ]);
+    expect(given.asked_for[0].value).toBe('Consent to use the shop as a clinic.');
+  });
+
+  it('the mode is always strict, with the target and the language', () => {
+    const prompt = buildGuidedDrafterUserPrompt({
+      brief: guidedDrafterBrief(brief, null),
+      target: 8,
+      language: 'en',
+    });
+    expect(prompt.startsWith('MODE: strict\n\nTARGET: 8\n\nLANGUAGE: en\n\nBRIEF:\n{')).toBe(true);
+    expect(prompt).toContain('"sections_given": [');
+    expect(prompt).not.toContain('CLAUSES');
+    expect(prompt).not.toContain('SYSTEM PARTS');
+  });
+
+  it('a court document names the court from the courts data, or a blank', () => {
+    const courtBrief = guidedBrief(LETTER, true);
+    expect(guidedDrafterBrief(courtBrief, 'DISTRICT & SESSIONS JUDGE, PATNA').court).toBe(
+      'DISTRICT & SESSIONS JUDGE, PATNA',
+    );
+    expect(guidedDrafterBrief(courtBrief, null).court).toBe('[To be confirmed: court]');
+  });
+
+  it('an unknown is given as a blank, and a date with what it is the date of', () => {
+    const b = guidedBrief(
+      [
+        { key: FIXED_KEYS.firstParty, value: 'Sunita Devi', source: 'user' },
+        { key: 'date.arrest', value: '2026-03-15', source: 'user' },
+      ],
+      false,
+      ['arrest'],
+    );
+    const given = guidedDrafterBrief(b, null);
+    expect(given.dates).toEqual([
+      { key: 'date.arrest', date_of: 'Date of arrest', date: '15.03.2026' },
+    ]);
+    expect(given.unknown.map((u) => u.blank)).toContain(
+      '[To be confirmed: what happened, in order]',
+    );
+    expect(given.sections_given).toEqual([]);
+  });
+});
+
+describe('no rule pack: nothing in the draft that the brief does not give', () => {
+  const brief = guidedBrief(LETTER);
+
+  it('passes a draft that uses only the brief’s date and section', () => {
+    const text =
+      '1. That she let the shop on 01.04.2026.\n\n2. That a notice under Section 138 of the Negotiable Instruments Act was sent.';
+    expect(checkAgainstBrief(text, brief, null)).toEqual([]);
+  });
+
+  it('flags a section and a date the brief does not give, in words that name no rule pack', () => {
+    const w = checkAgainstBrief(
+      '1. That the lease ended on 30.06.2026.\n\n2. That Section 106 of the Transfer of Property Act applies.',
+      brief,
+      null,
+    );
+    expect(w.map((x) => x.type)).toEqual(['fact_alteration', 'invalid_section']);
+    expect(w[1].message).toContain('is in the draft but not in your brief. Verify before filing.');
+    expect(w[1].message).not.toContain('rules for this document');
+  });
+});
+
+describe('no rule pack: a disclaimer the Drafter was told not to write', () => {
+  it('is taken out, and the court’s name and the parties are left alone', () => {
+    const text = [
+      'IN THE COURT OF THE DISTRICT & SESSIONS JUDGE, PATNA',
+      'Sunita Devi ... Applicant',
+      '1. That the applicant owns the shop.',
+      'Disclaimer: this is an AI-assisted draft.',
+      'Note: please verify all facts.',
+      'Lawie does not provide legal advice.',
+    ].join('\n\n');
+    expect(withoutDisclaimers(text)).toBe(
+      [
+        'IN THE COURT OF THE DISTRICT & SESSIONS JUDGE, PATNA',
+        'Sunita Devi ... Applicant',
+        '1. That the applicant owns the shop.',
+      ].join('\n\n'),
+    );
+  });
+
+  it('leaves a clean document as it is', () => {
+    const text = 'To,\nThe Commissioner\n\n1. That consent is given.';
+    expect(withoutDisclaimers(`\n${text}\n`)).toBe(text);
   });
 });

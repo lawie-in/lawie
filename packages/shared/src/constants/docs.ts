@@ -17,6 +17,8 @@ export const DOC_TYPES = {
   REPLY: 'reply',
   COMPLAINT: 'complaint',
   RENT_AGREEMENT: 'rent_agreement',
+  /** A draft written with no rule pack, from the confirmed brief alone (ADR-021, section 3.9). */
+  GUIDED: 'guided',
 } as const;
 
 export type DocType = (typeof DOC_TYPES)[keyof typeof DOC_TYPES];
