@@ -36,12 +36,17 @@ Every dev-crew subagent (`developer`, `tester`, `reviewer`, `doc-writer`) follow
 - End with your role's report format and nothing after it.
 - Say what you ran and what you did not run.
 
+## Quality gate
+
+No pull request into `develop` or `main` is merged without Anushka's verdict on it (founder's rule, 6 Oct 2026). She is the CQO: a lawyer who tests the running app in a browser and has no code access. The lead opens the pull request with `Quality: waiting for Anushka` in the body and stops; nobody in the dev crew plays her or writes her verdict. Full rule: `.claude/docs/quality-gate.md`.
+
 ## Deeper reference (read on demand)
 
 - `.claude/docs/coverage.md` — per-service coverage thresholds and what a green run does and doesn't prove.
 - `.claude/docs/test-gaps.md` — which services have no tests and which have no CI job.
 - `.claude/docs/golden-snapshots.md` — court-rules snapshot mechanics; read this before touching anything under `apps/drafting/src/__tests__/court-rules*`.
 - `.claude/docs/legal-content-paths.md` — the exact paths that count as "legal content" and require Ajay's sign-off.
+- `.claude/docs/quality-gate.md` — the quality gate: what Anushka is sent, what counts as a pass, and what happens when she cannot reach the app.
 
 ## Stale, do not trust
 
