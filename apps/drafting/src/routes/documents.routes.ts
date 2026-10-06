@@ -21,7 +21,12 @@ import {
   streamGenerateFromTemplate,
 } from '../services/ai.service';
 import { buildAnnexuresPack, estimateBodyParaCount } from '../services/annexures.service';
-import { briefText, clampTarget, STARTING_DRAFT_LABEL } from '../services/brief-drafter';
+import {
+  briefText,
+  clampTarget,
+  STARTING_DRAFT_FOOTER,
+  STARTING_DRAFT_LABEL,
+} from '../services/brief-drafter';
 import { spendInk } from '../services/credits.service';
 import { namesSupremeCourt } from '../services/intake-brief';
 import { isDescribeFirstEnabled, updateBrief } from '../services/intake.service';
@@ -1205,6 +1210,8 @@ router.get(
       rulePackId: doc.rulePackId ?? null,
       startingDraft: doc.startingDraft === true,
       startingDraftLabel: doc.startingDraft === true ? STARTING_DRAFT_LABEL : null,
+      // The DOCX is made in the browser, so the footer text is sent with the document (T-125).
+      startingDraftFooter: doc.startingDraft === true ? STARTING_DRAFT_FOOTER : null,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });

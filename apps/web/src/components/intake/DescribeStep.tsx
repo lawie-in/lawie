@@ -4,6 +4,9 @@
  * 01 Describe — T-103, design T-005 §5 "01 Describe".
  * One text box. Continue is disabled until there is enough text.
  * Image attach is T-301 and not here.
+ *
+ * T-125: when the advocate came from "Browse document types", the document is
+ * already set and its name is the heading (T-126, G1).
  */
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { useId } from 'react';
@@ -18,6 +21,7 @@ export default function DescribeStep({
   onBrowse,
   submitting,
   message,
+  documentName,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -26,6 +30,8 @@ export default function DescribeStep({
   submitting: boolean;
   /** A problem to show above the actions (unavailable, limit reached, bad input). */
   message?: { text: string; retry?: boolean } | null;
+  /** Set when the document was picked from "Browse document types". */
+  documentName?: string | null;
 }) {
   const id = useId();
   const length = value.trim().length;
@@ -35,11 +41,12 @@ export default function DescribeStep({
   return (
     <div className="mx-auto w-full max-w-[720px]">
       <h1 className="font-heading text-brand-navy text-[26px] font-semibold leading-8 sm:text-[34px] sm:leading-[42px]">
-        What do you need to draft?
+        {documentName ?? 'What do you need to draft?'}
       </h1>
       <p className="text-brand-muted mt-2 text-base">
-        Describe the matter in your own words. We will pick the right document and ask only for what
-        is missing.
+        {documentName
+          ? 'Describe the matter in your own words. We ask only for what is missing.'
+          : 'Describe the matter in your own words. We will pick the right document and ask only for what is missing.'}
       </p>
 
       <form
@@ -108,13 +115,13 @@ export default function DescribeStep({
       </form>
 
       <p className="text-brand-muted mt-4 text-center text-sm">
-        Know the document you need?{' '}
+        {documentName ? 'Not this document?' : 'Know the document you need?'}{' '}
         <button
           type="button"
           onClick={onBrowse}
           className="text-brand-teal-dark focus-visible:ring-brand-teal min-h-[44px] underline underline-offset-2 focus:outline-none focus-visible:ring-2"
         >
-          Browse templates
+          Browse document types
         </button>
       </p>
     </div>

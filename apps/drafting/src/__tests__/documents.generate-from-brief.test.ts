@@ -23,7 +23,11 @@ import { Event } from '../models/Event.model';
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
-import { CLAUSES_MARKER, STARTING_DRAFT_LABEL } from '../services/brief-drafter';
+import {
+  CLAUSES_MARKER,
+  STARTING_DRAFT_FOOTER,
+  STARTING_DRAFT_LABEL,
+} from '../services/brief-drafter';
 import {
   DRAFTER_GUIDED_SYSTEM_PROMPT,
   DRAFTER_PACK_SYSTEM_PROMPT,
@@ -286,6 +290,7 @@ describe('POST /generate-from-brief — a draft that passes', () => {
       rulePackId: 'bail_regular',
       startingDraft: false,
       startingDraftLabel: null,
+      startingDraftFooter: null,
     });
   });
 
@@ -713,6 +718,7 @@ describe('POST /generate-from-brief — no rule pack', () => {
       rulePackId: null,
       startingDraft: true,
       startingDraftLabel: STARTING_DRAFT_LABEL,
+      startingDraftFooter: STARTING_DRAFT_FOOTER,
     });
   });
 

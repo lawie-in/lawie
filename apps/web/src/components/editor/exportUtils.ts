@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { AlignmentType, Document, Footer, HeadingLevel, Packer, Paragraph, TextRun } from 'docx';
 import { saveAs } from 'file-saver';
 
 /**
@@ -15,7 +15,20 @@ import { saveAs } from 'file-saver';
  * on the wrapper element, because TipTap's inner HTML carries its own
  * inherited styling that would otherwise override a wrapper-level fontFamily.
  */
-export async function exportPdf(html: string, title: string, _isFree: boolean): Promise<void> {
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * `startingDraftFooter` is the footer of a starting draft (T-107, section 4),
+ * as the service sent it with the document. The user cannot remove it.
+ */
+export async function exportPdf(
+  html: string,
+  title: string,
+  _isFree: boolean,
+  startingDraftFooter?: string | null,
+): Promise<void> {
   // Dynamic import — html2pdf.js is a large bundle, only load when needed
   const html2pdf = (await import('html2pdf.js')).default;
 
@@ -67,6 +80,7 @@ export async function exportPdf(html: string, title: string, _isFree: boolean): 
     </style>
     <div class="lawie-pdf-root">
       ${html}
+      ${startingDraftFooter ? `<div class="disclaimer">${escapeHtml(startingDraftFooter)}</div>` : ''}
       <div class="disclaimer">AI-assisted draft &mdash; verify with applicable law before filing. Lawie does not provide legal advice.</div>
     </div>
   `;
@@ -177,8 +191,16 @@ function htmlToDocxParagraphs(html: string, _isFree: boolean): Paragraph[] {
 /**
  * Export the editor HTML content as a DOCX file.
  * Uses the `docx` package (client-side generation).
+ *
+ * A starting draft carries its footer on every page (T-107, section 4). The
+ * text comes from the service with the document.
  */
-export async function exportDocx(html: string, title: string, isFree: boolean): Promise<void> {
+export async function exportDocx(
+  html: string,
+  title: string,
+  isFree: boolean,
+  startingDraftFooter?: string | null,
+): Promise<void> {
   const paragraphs = htmlToDocxParagraphs(html, isFree);
 
   const doc = new Document({
@@ -189,6 +211,22 @@ export async function exportDocx(html: string, title: string, isFree: boolean): 
             margin: { top: 1440, bottom: 1440, left: 2160, right: 1440 }, // 1.5" left (court standard)
           },
         },
+        ...(startingDraftFooter
+          ? {
+              footers: {
+                default: new Footer({
+                  children: [
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      children: [
+                        new TextRun({ text: startingDraftFooter, size: 16, color: '666666' }),
+                      ],
+                    }),
+                  ],
+                }),
+              },
+            }
+          : {}),
         children: paragraphs,
       },
     ],

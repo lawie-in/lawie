@@ -14,11 +14,13 @@
  * 5. POST /documents/generate-from-template (SSE stream) → drafting → ready
  * 6. On done → redirect to /dashboard/documents/:id (editor)
  *
- * Describe-first (T-103, ADR-019), when `feature.describe_first` is on for
- * this user: the page opens on one text box → POST /documents/intake →
- * "which document?" (needs_choice) or follow-up questions (T-102) → the
- * form above, prefilled, as the review step (T-104) → the same preflight and
- * generation as before, carrying intake_id. The gallery stays one click away.
+ * The one drafting flow (T-125, ADR-021), when `feature.describe_first` is on
+ * for this user: the page hands over to `OneFlow` — describe, a few
+ * questions, a brief the advocate confirms, the draft. No form.
+ *
+ * While the switch is off the page still shows the list and the long form
+ * above, so that a user without the switch can make a document. The review
+ * screen (T-104) and the questions built from form fields (T-102) are gone.
  */
 import {
   Scale,
@@ -39,11 +41,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { PaywallModal } from '@/components/credits/PaywallModal';
 import PipelineStatus, { PipelineState } from '@/components/draft/PipelineStatus';
 import DynamicFormRenderer from '@/components/form/DynamicFormRenderer';
-import DescribeStep from '@/components/intake/DescribeStep';
-import DocumentChoiceStep, { NONE_OF_THESE } from '@/components/intake/DocumentChoiceStep';
-import FollowUpStep from '@/components/intake/FollowUpStep';
-import NoMatchStep from '@/components/intake/NoMatchStep';
-import type { AnswersResponse, IntakeResponse, IntakeState } from '@/components/intake/types';
+import OneFlow from '@/components/intake/OneFlow';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/apiFetch';
 
@@ -121,51 +119,10 @@ function NewDocumentContent() {
   const router = useRouter();
   const { user } = useAuth();
 
-  // Phase: [describe → choice/followup/no_match →] select → form → generating
-  const [phase, setPhase] = useState<
-    'loading' | 'describe' | 'choice' | 'followup' | 'no_match' | 'select' | 'form' | 'generating'
-  >('loading');
-
-  // ── Describe-first (T-103) ──────────────────────────────────────────────────
-  const [describeFirst, setDescribeFirst] = useState(false);
-  const [description, setDescription] = useState('');
-  const [intakeBusy, setIntakeBusy] = useState(false);
-  const [intakeMessage, setIntakeMessage] = useState<{ text: string; retry?: boolean } | null>(
-    null,
+  // Phase: the one flow when the switch is on; otherwise select → form → generating
+  const [phase, setPhase] = useState<'loading' | 'one_flow' | 'select' | 'form' | 'generating'>(
+    'loading',
   );
-  const [intake, setIntake] = useState<IntakeState | null>(null);
-  const [choices, setChoices] = useState<
-    Array<{ template_id: string; display_name: string; description?: string }>
-  >([]);
-  const [answerInvalid, setAnswerInvalid] = useState<Array<{ field_id: string; reason: string }>>(
-    [],
-  );
-  // Values known before the form opens (review step). Null when the gallery path is used.
-  const [prefill, setPrefill] = useState<Record<string, unknown> | null>(null);
-  // ADR-019 §3.7 — sent with the generate request so the draft links to its intake.
-  const intakeIdRef = useRef<string | undefined>(undefined);
-  // T-104 — latest values on the review screen, kept across "Not this document?".
-  const reviewValuesRef = useRef<Record<string, unknown>>({});
-  const carryOverRef = useRef<Record<string, unknown> | null>(null);
-
-  /** Details the user already entered that also exist in `config` (T-109 03a: they are kept). */
-  const carriedInto = useCallback((config: TemplateConfig): Record<string, unknown> => {
-    const carry = carryOverRef.current;
-    if (!carry) return {};
-    const ids = new Set<string>(
-      (config.form_schema?.steps ?? []).flatMap((st: { fields: Array<{ field_id: string }> }) =>
-        st.fields.map((f) => f.field_id),
-      ),
-    );
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(carry)) {
-      if (!ids.has(k)) continue;
-      if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0))
-        continue;
-      out[k] = v;
-    }
-    return out;
-  }, []);
 
   // Template list + selected config
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
@@ -252,38 +209,26 @@ function NewDocumentContent() {
   }, []);
 
   // ── Select a template → fetch full config ─────────────────────────────────
-  const handleSelectTemplate = useCallback(
-    async (templateId: string) => {
-      // A plain gallery pick is not an intake: nothing to link, nothing to prefill.
-      // After "Not this document?" the details already entered come along (T-109 03a).
-      const fromReview = carryOverRef.current !== null;
-      if (!fromReview) intakeIdRef.current = undefined;
-      setPrefill(null);
-      setLoadingConfig(true);
-      try {
-        const res = await apiFetch(`/api/documents/template-configs/${templateId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSelectedConfig(data.config);
-          if (fromReview) {
-            setPrefill(carriedInto(data.config));
-            carryOverRef.current = null;
-          }
-          setPhase('form');
-        } else {
-          const data = await res.json();
-          setError(data.error ?? 'Failed to load template');
-        }
-      } catch {
-        setError('Network error loading template');
-      } finally {
-        setLoadingConfig(false);
+  const handleSelectTemplate = useCallback(async (templateId: string) => {
+    setLoadingConfig(true);
+    try {
+      const res = await apiFetch(`/api/documents/template-configs/${templateId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedConfig(data.config);
+        setPhase('form');
+      } else {
+        const data = await res.json();
+        setError(data.error ?? 'Failed to load template');
       }
-    },
-    [carriedInto],
-  );
+    } catch {
+      setError('Network error loading template');
+    } finally {
+      setLoadingConfig(false);
+    }
+  }, []);
 
-  // ── Describe-first: is it switched on for this user? (ADR-019 §3.11) ──────
+  // ── Is the one flow switched on for this user? (ADR-021 §3.11) ────────────
   useEffect(() => {
     let cancelled = false;
     apiFetch('/api/documents/intake/enabled')
@@ -291,222 +236,11 @@ function NewDocumentContent() {
       .catch(() => ({ enabled: false }))
       .then((d: { enabled?: boolean }) => {
         if (cancelled) return;
-        setDescribeFirst(d.enabled === true);
-        setPhase((p) => (p === 'loading' ? (d.enabled === true ? 'describe' : 'select') : p));
+        setPhase((p) => (p === 'loading' ? (d.enabled === true ? 'one_flow' : 'select') : p));
       });
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  /** Loads a template's full config. Returns null and shows why when it cannot be used. */
-  const loadConfigForIntake = useCallback(async (templateId: string) => {
-    try {
-      const res = await apiFetch(`/api/documents/template-configs/${templateId}`);
-      if (res.ok) return (await res.json()).config as TemplateConfig;
-      if (res.status === 403) {
-        setIntakeMessage({
-          text: 'This document needs the Pro plan. You can upgrade from Settings, then try again.',
-        });
-        return null;
-      }
-    } catch {
-      /* fall through */
-    }
-    setIntakeMessage({ text: 'We could not open that document just now.', retry: true });
-    return null;
-  }, []);
-
-  const goToReview = useCallback((state: IntakeState, extra: Record<string, unknown> = {}) => {
-    setPrefill({ ...state.formData, ...extra });
-    setPhase('form');
-  }, []);
-
-  const handleIntakeResponse = useCallback(
-    async (data: IntakeResponse) => {
-      intakeIdRef.current = data.intake_id;
-      switch (data.outcome) {
-        case 'matched': {
-          const templateId = data.template_id ?? '';
-          const config = await loadConfigForIntake(templateId);
-          if (!config) {
-            setPhase('describe');
-            return;
-          }
-          setSelectedConfig(config);
-          const state: IntakeState = {
-            intakeId: data.intake_id,
-            templateId,
-            displayName: data.display_name ?? config.display_name,
-            fields: data.fields ?? {},
-            formData: data.form_data ?? {},
-            missing: data.missing ?? [],
-            questions: data.questions ?? [],
-            round: 1,
-          };
-          setIntake(state);
-          setAnswerInvalid([]);
-          const carried = carriedInto(config);
-          carryOverRef.current = null;
-          if (Object.keys(carried).length > 0) {
-            // Coming from "Not this document?": what the user typed wins, straight to review.
-            goToReview(state, carried);
-            return;
-          }
-          if (state.questions.length > 0) setPhase('followup');
-          else goToReview(state);
-          return;
-        }
-        case 'needs_choice': {
-          const byId = new Map(templates.map((t) => [t.template_id, t.description]));
-          setChoices(
-            (data.choices ?? []).map((c) => ({ ...c, description: byId.get(c.template_id) })),
-          );
-          setPhase('choice');
-          return;
-        }
-        case 'guided': // Reception is T-105; until then this is the no-match screen.
-        case 'no_match':
-          setPhase('no_match');
-          return;
-        default:
-          setIntakeMessage({
-            text: 'We could not read that just now. Try again, or browse templates.',
-            retry: true,
-          });
-          setPhase('describe');
-      }
-    },
-    [loadConfigForIntake, goToReview, templates, carriedInto],
-  );
-
-  const postIntake = useCallback(
-    async (body: Record<string, unknown>) => {
-      setIntakeBusy(true);
-      setIntakeMessage(null);
-      try {
-        const res = await apiFetch('/api/documents/intake', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        if (res.status === 429) {
-          const data = await res.json().catch(() => ({}));
-          setIntakeMessage({
-            text:
-              data.message ??
-              "You have used today's quota for describing. Browse templates still works.",
-          });
-          setPhase('describe');
-          return;
-        }
-        if (res.status === 400) {
-          setIntakeMessage({ text: 'Please describe the matter in a little more detail.' });
-          setPhase('describe');
-          return;
-        }
-        if (!res.ok) throw new Error('intake failed');
-        await handleIntakeResponse((await res.json()) as IntakeResponse);
-      } catch {
-        setIntakeMessage({
-          text: 'We could not read that just now. Try again, or browse templates.',
-          retry: true,
-        });
-        setPhase('describe');
-      } finally {
-        setIntakeBusy(false);
-      }
-    },
-    [handleIntakeResponse],
-  );
-
-  const handleDescribe = useCallback(() => {
-    intakeIdRef.current = undefined;
-    setIntake(null);
-    void postIntake({ description: description.trim() });
-  }, [description, postIntake]);
-
-  const handleChoose = useCallback(
-    (templateId: string) => {
-      if (templateId === NONE_OF_THESE) {
-        setPhase('no_match'); // Reception questions arrive with T-105.
-        return;
-      }
-      void postIntake({
-        description: description.trim(),
-        template_id: templateId,
-        ...(intakeIdRef.current ? { intake_id: intakeIdRef.current } : {}),
-      });
-    },
-    [description, postIntake],
-  );
-
-  const sendAnswers = useCallback(
-    async (answers: Record<string, unknown>, fillMyself: boolean) => {
-      if (!intake) return;
-      setIntakeBusy(true);
-      try {
-        const res = await apiFetch('/api/documents/intake/answers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            intake_id: intake.intakeId,
-            template_id: intake.templateId,
-            fields: intake.fields,
-            answers,
-            round: intake.round,
-          }),
-        });
-        if (!res.ok) throw new Error('answers failed');
-        const data = (await res.json()) as AnswersResponse;
-        const next: IntakeState = {
-          ...intake,
-          fields: data.fields,
-          formData: data.form_data,
-          missing: data.missing,
-          questions: data.questions,
-          round: intake.round + 1,
-        };
-        setIntake(next);
-        setAnswerInvalid(data.invalid);
-        if (fillMyself || data.review || data.questions.length === 0) goToReview(next);
-      } catch {
-        // The answers are still on screen; going to the form keeps nothing from being lost.
-        goToReview(intake, answers);
-      } finally {
-        setIntakeBusy(false);
-      }
-    },
-    [intake, goToReview],
-  );
-
-  const backToDescribe = useCallback(() => {
-    setIntakeMessage(null);
-    setPhase('describe');
-  }, []);
-
-  const openGallery = useCallback(() => {
-    intakeIdRef.current = undefined;
-    carryOverRef.current = null;
-    setPrefill(null);
-    setSelectedConfig(null);
-    setPhase('select');
-  }, []);
-
-  // T-104 "Not this document?" — back to the choices when there were some, else the gallery.
-  const notThisDocument = useCallback(() => {
-    carryOverRef.current = { ...reviewValuesRef.current };
-    setPrefill(null);
-    if (choices.length > 0) {
-      setPhase('choice');
-      return;
-    }
-    setSelectedConfig(null);
-    setPhase('select');
-  }, [choices.length]);
-
-  const onReviewValues = useCallback((v: Record<string, unknown>) => {
-    reviewValuesRef.current = v;
   }, []);
 
   // ── SSE generation stream ─────────────────────────────────────────────────
@@ -527,7 +261,6 @@ function NewDocumentContent() {
             template_id: selectedConfig.template_id,
             form_data: formData,
             ...(lastRunId.current ? { run_id: lastRunId.current } : {}),
-            ...(intakeIdRef.current ? { intake_id: intakeIdRef.current } : {}),
           }),
         });
 
@@ -767,7 +500,7 @@ function NewDocumentContent() {
     }
   }, [pipelineState, docId, error, router]);
 
-  // ── Render: describe-first phases (T-103) ─────────────────────────────────
+  // ── Render: loading, then the one flow when it is switched on ─────────────
   if (phase === 'loading') {
     return (
       <div className="flex items-center gap-2 py-12 text-slate-400">
@@ -776,54 +509,8 @@ function NewDocumentContent() {
       </div>
     );
   }
-  if (phase === 'describe') {
-    return (
-      <DescribeStep
-        value={description}
-        onChange={setDescription}
-        onSubmit={handleDescribe}
-        onBrowse={openGallery}
-        submitting={intakeBusy}
-        message={intakeMessage}
-      />
-    );
-  }
-  if (phase === 'choice') {
-    return (
-      <DocumentChoiceStep
-        choices={choices}
-        onChoose={handleChoose}
-        onEditDescription={backToDescribe}
-        submitting={intakeBusy}
-      />
-    );
-  }
-  if (phase === 'no_match') {
-    return (
-      <NoMatchStep
-        description={description}
-        onEditDescription={backToDescribe}
-        onBrowse={openGallery}
-      />
-    );
-  }
-  if (phase === 'followup' && intake && selectedConfig) {
-    return (
-      <FollowUpStep
-        key={`round-${intake.round}`}
-        config={selectedConfig}
-        questions={intake.questions}
-        knownValues={intake.formData}
-        round={intake.round}
-        totalRounds={2}
-        description={description}
-        invalid={answerInvalid}
-        submitting={intakeBusy}
-        onSubmit={(answers) => void sendAnswers(answers, false)}
-        onFillMyself={(answers) => void sendAnswers(answers, true)}
-        onEditDescription={backToDescribe}
-      />
-    );
+  if (phase === 'one_flow') {
+    return <OneFlow kinds={templates} loadingKinds={loadingTemplates} />;
   }
 
   // ── Render: Generation phase ──────────────────────────────────────────────
@@ -862,38 +549,17 @@ function NewDocumentContent() {
         <button
           type="button"
           onClick={() => {
-            if (prefill) {
-              backToDescribe();
-              return;
-            }
             setPhase('select');
             setSelectedConfig(null);
           }}
           className="mb-4 flex min-h-[44px] items-center gap-1 text-xs text-slate-500 hover:text-slate-700"
         >
           <ArrowLeft size={12} />
-          {prefill ? 'Edit my description' : 'Choose a different template'}
+          Choose a different template
         </button>
         <DynamicFormRenderer
-          key={`${selectedConfig.template_id}-${prefill ? 'intake' : 'blank'}`}
+          key={selectedConfig.template_id}
           config={selectedConfig}
-          initialData={prefill ?? undefined}
-          mode={prefill ? 'review' : 'steps'}
-          imageFields={Object.entries(intake?.fields ?? {})
-            .filter(([, v]) => v.source === 'image')
-            .map(([k]) => k)}
-          onValuesChange={onReviewValues}
-          titleExtra={
-            prefill ? (
-              <button
-                type="button"
-                onClick={notThisDocument}
-                className="text-brand-teal-dark focus-visible:ring-brand-teal min-h-[44px] text-sm underline underline-offset-2 focus:outline-none focus-visible:ring-2"
-              >
-                Not this document?
-              </button>
-            ) : undefined
-          }
           onSubmit={handleSubmit}
           onCancel={() => router.push('/dashboard')}
         />
@@ -915,15 +581,6 @@ function NewDocumentContent() {
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-900">New document</h1>
         <p className="mt-1 text-sm text-slate-500">Choose a document template to get started.</p>
-        {describeFirst && (
-          <button
-            type="button"
-            onClick={backToDescribe}
-            className="text-brand-teal-dark mt-2 min-h-[44px] text-sm underline underline-offset-2"
-          >
-            Describe your matter instead
-          </button>
-        )}
       </div>
 
       {loadingTemplates && (
