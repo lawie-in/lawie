@@ -18,7 +18,8 @@
     "seed:templates": "ts-node --transpile-only src/scripts/seed-templates.ts",
     "seed:all": "yarn seed:courts && yarn seed:sections && yarn seed:templates",
     "diff:templates": "ts-node --transpile-only src/scripts/template-diff.ts",
-    "gate:intake": "ts-node --transpile-only scripts/intake-gate.ts"
+    "gate:intake": "ts-node --transpile-only scripts/intake-gate.ts",
+    "report:rule-packs": "ts-node --transpile-only scripts/rule-pack-report.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.0",
