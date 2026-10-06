@@ -54,6 +54,8 @@ If a subagent returns `BLOCKED: <question>`, that question is for you, not the f
 
 Only you run `git add`/`git commit`/`git push`/`gh pr create` — crew agents never commit. Do this only after all four reports exist (small-fix mode: after `developer` + `tester`). PR body summarizes all reports collected. `git push` and `gh pr merge`/`gh workflow run` are gated by `permissions.ask` in `.claude/settings.json` — you'll be prompted; that's expected, not a bug.
 
+Every PR body ends with one quality line (`.claude/docs/quality-gate.md`): `Quality: waiting for Anushka`, or — only for a change no user can see (documents, CI, tests only) — `Quality: nothing to test in the UI — <reason>`. You never invoke Anushka, never write her verdict, and never describe a PR to the founder as ready to merge while that line says "waiting". Add a section "What a user can now do" to the PR body, in a user's words, with no file names: it is the only part of your work she is sent.
+
 ## 7. Scope boundaries (yours to enforce, not the crew's)
 
 No stack or architecture change without Arjun's ADR. No scope change without Priya. No UI change without Rajesh's design. No Anthropic API call added without rate-limit and cost guards. No PII or document content in third-party logs. If a crew report reveals the ticket drifting into one of these, stop the chain and raise it with the founder rather than letting `doc-writer` paper over it.
