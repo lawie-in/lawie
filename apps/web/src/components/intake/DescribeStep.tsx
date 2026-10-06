@@ -8,7 +8,7 @@
  * T-125: when the advocate came from "Browse document types", the document is
  * already set and its name is the heading (T-126, G1).
  */
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useId } from 'react';
 
 export const DESCRIPTION_MIN = 20;
@@ -64,7 +64,7 @@ export default function DescribeStep({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           maxLength={DESCRIPTION_MAX}
-          placeholder="For example: My client was arrested on 15 March in FIR 124/2026 at Kotwali police station, Patna, under section 103 BNS, and we need to apply for regular bail."
+          placeholder="For example: My client was arrested on 15 March in FIR 124/2026 under section 103 BNS and is in judicial custody. We need to apply for regular bail."
           aria-describedby={`${id}-hint`}
           className="border-brand-line text-brand-navy placeholder:text-brand-muted/70 focus:border-brand-teal focus:ring-brand-teal mt-2 block min-h-[150px] w-full resize-y rounded-lg border bg-white p-3 text-base leading-6 outline-none focus:ring-2 sm:min-h-[190px]"
         />
@@ -75,23 +75,12 @@ export default function DescribeStep({
           <span>
             {tooShort && length > 0
               ? `A little more, please: at least ${DESCRIPTION_MIN} characters.`
-              : 'Names, dates, FIR number and court help. You can add anything later.'}
+              : 'Names, dates, amounts and the court, if there is one, all help. You can add anything later.'}
           </span>
           <span aria-live="polite">
             {length} / {DESCRIPTION_MAX}
           </span>
         </div>
-
-        <a
-          href="https://scrb.bihar.gov.in/FIRiew.aspx"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-brand-teal-dark focus-visible:ring-brand-teal mt-3 inline-flex min-h-[44px] items-center gap-1 text-sm underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2"
-        >
-          Find your FIR on the Bihar police portal
-          <ExternalLink size={14} aria-hidden="true" />
-          <span className="sr-only">(opens in a new tab)</span>
-        </a>
 
         {message && (
           <div

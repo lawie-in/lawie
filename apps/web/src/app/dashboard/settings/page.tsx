@@ -76,7 +76,7 @@ export default function SettingsPage() {
             <label className="block text-xs font-medium text-slate-500">Bar Council</label>
             <input
               type="text"
-              placeholder="e.g. Bar Council of Delhi"
+              placeholder="Your State Bar Council"
               className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
             />
           </div>
