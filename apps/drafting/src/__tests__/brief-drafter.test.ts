@@ -12,9 +12,12 @@ import {
   buildGuidedDrafterUserPrompt,
   buildRepairUserPrompt,
   checkAgainstBrief,
+  checkCourtProvisions,
+  citedSectionNumbers,
   clampTarget,
   clauseLines,
   CLAUSES_MARKER,
+  courtProvisions,
   coveredBySystemPart,
   drafterBrief,
   findMissingClauses,
@@ -25,6 +28,7 @@ import {
   labelReason,
   needsStartingDraftLabel,
   paragraphNumbers,
+  SECTION_BLANK,
   sectionsGiven,
   splitDrafterOutput,
   systemParts,
@@ -46,7 +50,11 @@ import {
 } from '../services/intake-brief';
 import { contentToHtml } from '../services/pdf-export.service';
 import { loadRulePack, RulePack, RulePackClause } from '../services/rule-pack.service';
-import { loadTemplateConfig, TemplateConfig } from '../services/template-engine.service';
+import {
+  loadTemplateConfig,
+  resolveComputedFields,
+  TemplateConfig,
+} from '../services/template-engine.service';
 
 function pack(id: string): RulePack {
   const p = loadRulePack(id);
@@ -212,7 +220,7 @@ describe('what the Drafter is given', () => {
     expect(lines).toHaveLength(BAIL.mandatoryClauses.filter((c) => c.required).length);
     for (const line of lines) expect(line.split(' | ')).toHaveLength(4);
     expect(lines.every((l) => !l.includes('\n'))).toBe(true);
-    expect(actLines(BAIL)[0]).toMatch(/^Bharatiya Nagarik Suraksha Sanhita \(BNSS\), 2023: 480 \(/);
+    expect(actLines(BAIL)[0]).toMatch(/^Bharatiya Nagarik Suraksha Sanhita \(BNSS\), 2023: 478 \(/);
   });
 
   it('builds the two user prompts with every block the system prompt names', () => {
@@ -487,6 +495,115 @@ describe('nothing in the body that the brief and the pack do not give', () => {
 
   it('does not flag a sub-section of a section the pack gives', () => {
     expect(checkAgainstBrief('1. Under Section 483(3) of BNSS.', brief, BAIL)).toEqual([]);
+  });
+});
+
+describe('the provision follows the court (T-135, Ajay 6 Oct 2026)', () => {
+  const forCourt = (courtType: string) =>
+    courtProvisions(BAIL_CONFIG, resolveComputedFields(BAIL_CONFIG, { court_type: courtType }));
+
+  it('a Court of Session is Section 483, and the Drafter is told so in Ajay’s words', () => {
+    expect(forCourt('sessions')).toEqual([
+      {
+        field: 'bail_section',
+        value: '483',
+        others: ['480'],
+        instruction:
+          'This application is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482.',
+      },
+    ]);
+  });
+
+  it('a Magistrate is Section 480', () => {
+    expect(forCourt('cjm')[0]).toMatchObject({ value: '480', others: ['483'] });
+    expect(forCourt('jmfc')[0].instruction).toContain('under Section 480 of the Bharatiya');
+  });
+
+  it('a court that cannot hear it has no provision and no instruction', () => {
+    const [p] = forCourt('tribunal');
+    expect(p).toMatchObject({ value: null, others: ['480', '483'], instruction: null });
+    expect(resolveComputedFields(BAIL_CONFIG, { court_type: 'tribunal' }).bail_section).toBe(
+      SECTION_BLANK,
+    );
+  });
+
+  it('a document whose provision does not follow the court has none', () => {
+    expect(courtProvisions(config('legal_notice_s138'), {})).toEqual([]);
+  });
+
+  it('the stated instruction comes first in what the Drafter is given', () => {
+    const prompt = buildDrafterUserPrompt({
+      pack: BAIL,
+      brief: drafterBrief(briefWith(VALUES), 'SESSIONS JUDGE, PATNA'),
+      statedInstructions: [forCourt('sessions')[0].instruction as string],
+      systemParts: PARTS,
+      courtRules: [],
+      target: 12,
+      language: 'en',
+    });
+    const instructions = prompt.slice(prompt.indexOf('INSTRUCTIONS:'), prompt.indexOf('ACTS:'));
+    expect(instructions.split('\n')[1]).toBe(
+      '- This application is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482.',
+    );
+    expect(prompt).not.toContain('480/481/482');
+  });
+
+  it('the pack no longer offers 481 or 482 to a regular bail draft', () => {
+    const acts = actLines(BAIL).join('\n');
+    expect(acts).toContain('480 (When bail may be taken in case of non-bailable offence)');
+    expect(acts).toContain('483 (Special powers of High Court or Court of Session regarding bail)');
+    expect(acts).not.toMatch(/\b481\b|\b482\b/);
+    expect(acts).toContain('80 (Dowry death (replaces IPC 304B))');
+  });
+
+  it('reads every number of a list of sections', () => {
+    expect([...citedSectionNumbers('filed under Sections 481 and 482 of the BNSS')]).toEqual([
+      '481',
+      '482',
+    ]);
+    expect([...citedSectionNumbers('u/s 480/481/482 BNSS, and Section 483(3)')]).toEqual([
+      '480',
+      '481',
+      '482',
+      '483',
+    ]);
+  });
+
+  it('flags the provision of another kind of court in the body', () => {
+    const w = checkCourtProvisions(
+      '1. That this application is filed under Section 480 of the BNSS.',
+      forCourt('sessions'),
+    );
+    expect(w).toEqual([
+      {
+        type: 'invalid_section',
+        message:
+          'The draft cites Section 480. Before the court you chose, this application is made under Section 483. Check it before filing.',
+        details: { section: '480', field: 'bail_section', expected: '483' },
+      },
+    ]);
+  });
+
+  it('passes a body that cites the provision of the court chosen', () => {
+    expect(
+      checkCourtProvisions(
+        '1. That this application is under Section 483 of BNSS.',
+        forCourt('sessions'),
+      ),
+    ).toEqual([]);
+  });
+
+  it('what the tester saw is now caught: 481 and 482 in a Sessions bail application', () => {
+    const body = '1. This application is filed under Sections 481 and 482 of the BNSS, 2023.';
+    // Neither is in the pack or the brief any more, so the brief check reports them.
+    const w = checkAgainstBrief(body, briefWith(VALUES), BAIL);
+    expect(w.map((x) => x.details?.section)).toEqual(['481', '482']);
+  });
+
+  it('says so when the court chosen has no provision', () => {
+    const w = checkCourtProvisions('1. That the applicant seeks bail.', forCourt('district_court'));
+    expect(w).toHaveLength(1);
+    expect(w[0].message).toContain('We could not state the provision for this kind of court');
   });
 });
 

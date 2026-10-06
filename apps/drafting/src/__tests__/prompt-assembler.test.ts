@@ -146,7 +146,11 @@ describe('Layer 1 — Prompt Assembler', () => {
       const context = _testing.buildStatutoryContext(rule);
       expect(context).toContain('BNSS');
       expect(context).toContain('Section 480');
-      expect(context).toContain('Section 481');
+      expect(context).toContain('Section 483');
+      // T-135: 481 (bond for the appellate court) and 482 (anticipatory bail)
+      // have no place in a regular bail application.
+      expect(context).not.toContain('Section 481');
+      expect(context).not.toContain('Section 482');
     });
 
     it('lists NI Act sections for legal_notice_s138', () => {

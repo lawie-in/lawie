@@ -753,6 +753,7 @@ router.post(
         city: found.city,
         caseNomenclature: found.caseNomenclature,
         formattingRulesRef: found.formattingRulesRef,
+        courtType: found.courtType,
         courtRule: loadCourtRule(found.formattingRulesRef) ?? undefined,
       };
     }

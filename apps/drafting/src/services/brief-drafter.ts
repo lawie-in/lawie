@@ -201,6 +201,12 @@ export function actLines(pack: RulePack): string[] {
 export interface DrafterPromptInput {
   pack: RulePack;
   brief: DrafterBrief;
+  /**
+   * Instructions the system states for this draft, such as the provision the
+   * application is made under before the court chosen (T-135). They come
+   * first, ahead of the pack's own.
+   */
+  statedInstructions?: string[];
   systemParts: SystemPart[];
   /** The court's own rules, one per line, when the court is known. */
   courtRules: string[];
@@ -222,7 +228,9 @@ function commonBlocks(input: DrafterPromptInput): string[] {
     ),
     block(
       'INSTRUCTIONS',
-      input.pack.draftingInstructions.map((i) => `- ${i}`),
+      [...(input.statedInstructions ?? []), ...input.pack.draftingInstructions].map(
+        (i) => `- ${i}`,
+      ),
     ),
     block(
       'ACTS',
@@ -523,6 +531,106 @@ export function checkAgainstBrief(
         : `Section ${ref.section}${ref.code ? ` ${ref.code}` : ''} is in the draft but not in your brief. Verify before filing.`,
       details: { section: ref.section, code: ref.code || undefined },
     });
+  }
+  // The second and later numbers of a list: "Sections 481 and 482" (T-135).
+  for (const base of citedSectionNumbers(body)) {
+    if (knownSections.has(base) || flagged.has(base)) continue;
+    flagged.add(base);
+    warnings.push({
+      type: 'invalid_section',
+      message: pack
+        ? `Section ${base} is in the draft but not in your brief or in the rules for this document. Verify before filing.`
+        : `Section ${base} is in the draft but not in your brief. Verify before filing.`,
+      details: { section: base },
+    });
+  }
+  return warnings;
+}
+
+// ── The provision that depends on the court (T-135) ─────────────────────────
+
+/** The blank a system part shows where no provision can be stated. */
+export const SECTION_BLANK = '[Section — verify before filing]';
+
+export interface CourtProvision {
+  /** The computed field that holds it, e.g. "bail_section". */
+  field: string;
+  /** The provision for the court chosen, or null when this kind of court has none. */
+  value: string | null;
+  /** The provisions the same field gives for other kinds of court. */
+  others: string[];
+  /** The instruction for the Drafter, filled in. Null when there is no value. */
+  instruction: string | null;
+}
+
+/**
+ * Every provision of this document that follows the court. A template says so
+ * by giving a computed field a value for each kind of court (`value_map`).
+ * `resolved` holds the computed fields as worked out for the court chosen.
+ * The provisions and the instruction wording are Ajay's (T-135, signed
+ * 6 Oct 2026); none of it is decided here.
+ */
+export function courtProvisions(
+  config: TemplateConfig,
+  resolved: Record<string, string | undefined>,
+): CourtProvision[] {
+  const out: CourtProvision[] = [];
+  for (const [field, def] of Object.entries(config.computed_fields)) {
+    if (!def.value_map) continue;
+    const all = [...new Set(Object.values(def.value_map))];
+    const current = resolved[field];
+    const value = current !== undefined && all.includes(current) ? current : null;
+    out.push({
+      field,
+      value,
+      others: all.filter((v) => v !== value),
+      instruction:
+        value !== null && def.instruction ? def.instruction.replace(/\{value\}/g, value) : null,
+    });
+  }
+  return out;
+}
+
+/** Every section number in a text, lists included: "Sections 481 and 482" gives both. */
+export function citedSectionNumbers(text: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of text.matchAll(SECTION_OPENING)) {
+    // A sub-section in brackets, "483(3)", is not a section of its own.
+    const numbers = m[0].replace(/\([a-z0-9]+\)/g, '');
+    for (const n of numbers.match(/\d+[A-Za-z]{0,2}/g) ?? []) out.add(n.toUpperCase());
+  }
+  return out;
+}
+
+/**
+ * Findings on the provision that follows the court: the court chosen has
+ * none, or the body cites the provision that belongs to another kind of
+ * court. For the advocate to check; nothing is removed from the draft.
+ */
+export function checkCourtProvisions(
+  body: string,
+  provisions: CourtProvision[],
+): ValidationWarning[] {
+  const warnings: ValidationWarning[] = [];
+  const cited = citedSectionNumbers(body);
+  for (const p of provisions) {
+    if (p.value === null) {
+      warnings.push({
+        type: 'invalid_section',
+        message:
+          'We could not state the provision for this kind of court. Check that the court can hear this application, and add the provision before filing.',
+        details: { field: p.field },
+      });
+      continue;
+    }
+    for (const other of p.others) {
+      if (!cited.has(other.toUpperCase())) continue;
+      warnings.push({
+        type: 'invalid_section',
+        message: `The draft cites Section ${other}. Before the court you chose, this application is made under Section ${p.value}. Check it before filing.`,
+        details: { section: other, field: p.field, expected: p.value },
+      });
+    }
   }
   return warnings;
 }

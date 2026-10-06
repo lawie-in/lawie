@@ -24,6 +24,8 @@ import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-s
 import {
   briefText,
   buildDrafterUserPrompt,
+  checkCourtProvisions,
+  courtProvisions,
   buildGuidedDrafterUserPrompt,
   buildRepairUserPrompt,
   checkAgainstBrief,
@@ -635,6 +637,7 @@ export async function streamGenerateFromTemplate(
           city: court.city,
           caseNomenclature: court.caseNomenclature,
           formattingRulesRef: court.formattingRulesRef,
+          courtType: court.courtType,
           courtRule: courtRule ?? undefined,
         };
       }
@@ -1018,9 +1021,12 @@ export async function streamGenerateFromBrief(
   // ── What the Drafter is given ─────────────────────────────────────────────
   const parts = systemParts(templateConfig);
   const courtRule = courtData?.courtRule;
+  // The provision that follows the court chosen (T-135).
+  const provisions = courtProvisions(templateConfig, ctx);
   const promptInput: DrafterPromptInput = {
     pack,
     brief: drafterBrief(brief, ctx.court_designation || courtData?.designation || null, converted),
+    statedInstructions: provisions.map((p) => p.instruction).filter((i): i is string => i !== null),
     systemParts: parts,
     courtRules: [
       ...(courtRule?.localRules ?? []),
@@ -1269,6 +1275,9 @@ export async function streamGenerateFromBrief(
 
   // Nothing in the body that the brief and the pack do not give (ADR-021, rule 2).
   allWarnings.push(...checkAgainstBrief(body, brief, pack));
+
+  // The provision the application is made under follows the court (T-135).
+  allWarnings.push(...checkCourtProvisions(body, provisions));
 
   // Every mandatory clause of the pack (ADR-021, rule 1).
   for (const clause of missing) {
