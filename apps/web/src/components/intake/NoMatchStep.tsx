@@ -3,7 +3,8 @@
 /**
  * 08 No template match — T-103, design T-005 §5 "08".
  * Friendly, no error colour, no blame. The user's text is echoed and kept.
- * Until T-105 ships, `outcome: guided` also lands here.
+ * T-125: reached when the request is not one we draft (not a legal document,
+ * refused, or for the Supreme Court with no rule pack).
  */
 export default function NoMatchStep({
   description,
@@ -37,7 +38,7 @@ export default function NoMatchStep({
           onClick={onBrowse}
           className="border-brand-line text-brand-teal-dark focus-visible:ring-brand-teal inline-flex min-h-[48px] items-center justify-center rounded-lg border bg-white px-6 text-base font-medium focus:outline-none focus-visible:ring-2"
         >
-          Browse templates
+          Browse document types
         </button>
         <button
           type="button"

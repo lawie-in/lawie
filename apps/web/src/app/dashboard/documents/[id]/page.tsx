@@ -34,6 +34,10 @@ interface DocumentData {
   version: number;
   createdAt: string;
   updatedAt: string;
+  /** T-106 — a starting draft keeps its label and footer for good. Both texts come from the service. */
+  startingDraft?: boolean;
+  startingDraftLabel?: string | null;
+  startingDraftFooter?: string | null;
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -174,7 +178,12 @@ export default function DocumentEditorPage() {
         });
       } catch (networkErr) {
         console.warn('[export-pdf] server route unreachable; using client fallback:', networkErr);
-        await exportPdf(latestHtmlRef.current, doc.title, isFree);
+        await exportPdf(
+          latestHtmlRef.current,
+          doc.title,
+          isFree,
+          doc.startingDraft ? doc.startingDraftFooter : null,
+        );
         return;
       }
 
@@ -187,7 +196,12 @@ export default function DocumentEditorPage() {
           `[export-pdf] server render failed (HTTP ${response.status}); using client fallback. ` +
             `Response: ${body.slice(0, 300)}`,
         );
-        await exportPdf(latestHtmlRef.current, doc.title, isFree);
+        await exportPdf(
+          latestHtmlRef.current,
+          doc.title,
+          isFree,
+          doc.startingDraft ? doc.startingDraftFooter : null,
+        );
         return;
       }
 
@@ -208,7 +222,12 @@ export default function DocumentEditorPage() {
     if (!doc) return;
     setExporting(true);
     try {
-      await exportDocx(latestHtmlRef.current, doc.title, isFree);
+      await exportDocx(
+        latestHtmlRef.current,
+        doc.title,
+        isFree,
+        doc.startingDraft ? doc.startingDraftFooter : null,
+      );
 
       // Track DOCX export on server for activation telemetry
       const token = getAccessToken();
@@ -289,7 +308,8 @@ export default function DocumentEditorPage() {
             </button>
             <div>
               <h1 className="text-base font-bold capitalize text-slate-900">
-                {doc.docType.replace(/_/g, ' ')}
+                {/* A document with no rule pack has no type of its own: its name is its title. */}
+                {doc.docType === 'guided' ? doc.title : doc.docType.replace(/_/g, ' ')}
               </h1>
               <p className="text-xs text-slate-400">{doc.courtName}</p>
             </div>
@@ -349,6 +369,16 @@ export default function DocumentEditorPage() {
             </button>
           </div>
         </div>
+
+        {/* T-106/T-125 — the starting-draft label. It is the service's text and cannot be dismissed. */}
+        {doc.startingDraft && doc.startingDraftLabel && (
+          <p
+            role="note"
+            className="border-brand-gold bg-brand-gold-light text-brand-gold-dark rounded-lg border px-3 py-2 text-sm font-semibold"
+          >
+            {doc.startingDraftLabel}
+          </p>
+        )}
 
         {/* Watermark notice for free tier */}
         {isFree && (
