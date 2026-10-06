@@ -27,10 +27,18 @@ function requireAdmin(req: Request, res: Response, next: () => void): void {
   next();
 }
 
+/**
+ * The plan we sell that has this Razorpay plan id. A subscription with no plan
+ * id matches nothing: without the first check it would match any plan whose
+ * env var is not set, because both sides would be undefined.
+ */
+function planFor(razorpayPlanId: string | undefined) {
+  if (!razorpayPlanId) return undefined;
+  return SUBSCRIPTION_PLANS.find((p) => process.env[p.razorpayPlanIdEnvKey] === razorpayPlanId);
+}
+
 function normalizePlan(razorpayPlanId: string | undefined): string {
-  const plan = SUBSCRIPTION_PLANS.find(
-    (p) => process.env[p.razorpayPlanIdEnvKey] === razorpayPlanId,
-  );
+  const plan = planFor(razorpayPlanId);
   return plan ? `${plan.tier} / ${plan.cycle}` : (razorpayPlanId ?? 'unknown');
 }
 
@@ -215,9 +223,7 @@ router.get(
     let mrrPaise = 0;
     const planMixMap: Record<string, number> = {};
     for (const s of activeSubs) {
-      const plan = SUBSCRIPTION_PLANS.find(
-        (p) => process.env[p.razorpayPlanIdEnvKey] === s.razorpayPlanId,
-      );
+      const plan = planFor(s.razorpayPlanId);
       const label = plan ? `${plan.tier}_${plan.cycle}` : 'unknown';
       planMixMap[label] = (planMixMap[label] ?? 0) + 1;
       if (s.planType === 'monthly') {

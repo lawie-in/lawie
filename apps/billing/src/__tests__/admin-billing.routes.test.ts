@@ -355,6 +355,8 @@ describe('GET /admin/billing/revenue', () => {
       planType: 'annual',
       amount: 699900,
     });
+    // Active, with no plan id at all. It must not be counted under a plan we sell.
+    await sub({ userId: ravi, razorpaySubscriptionId: 'sub_noplan', amount: 0 });
     // Cancelled: not counted.
     await sub({
       userId: ravi,
@@ -377,10 +379,10 @@ describe('GET /admin/billing/revenue', () => {
     expect(res.body).toMatchObject({
       mrr: 1382,
       arr: 16584,
-      activeCount: 2,
+      activeCount: 3,
       topupRevenueThisMonth: 264,
       arpu: 691,
-      planMix: { solo_monthly: 1, unknown: 1 },
+      planMix: { solo_monthly: 1, unknown: 2 },
     });
     expect(res.body.trend).toHaveLength(6);
     expect(res.body.trend[5]).toMatchObject({ subInr: 799, topupInr: 264 });

@@ -95,15 +95,7 @@ jobs:
           cache: 'yarn'
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
-      # TEMPORARY (T-130 diagnosis, this branch only): copy the end of the test
-      # output into a note on the pull request. Not for merge.
-      - run: |
-          yarn workspace @lawie/auth test 2>&1 | tee /tmp/test.log
-          exit ${PIPESTATUS[0]}
-      - if: failure()
-        run: |
-          MSG=$( (grep -nE 'failed to run|error TS|Cannot find module|threshold|FAIL|Tests:|Test Suites:' /tmp/test.log | head -40; echo '--- last lines ---'; tail -n 48 /tmp/test.log) | sed 's/\x1b\[[0-9;]*m//g; s/%/%25/g' | awk '{printf "%s%%0A", $0}')
-          echo "::error title=Auth test output::$MSG"
+      - run: yarn workspace @lawie/auth test
       - uses: codecov/codecov-action@v4
         if: always()
         with:
@@ -154,15 +146,7 @@ jobs:
           cache: 'yarn'
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
-      # TEMPORARY (T-130 diagnosis, this branch only): copy the end of the test
-      # output into a note on the pull request. Not for merge.
-      - run: |
-          yarn workspace @lawie/billing test 2>&1 | tee /tmp/test.log
-          exit ${PIPESTATUS[0]}
-      - if: failure()
-        run: |
-          MSG=$( (grep -nE 'failed to run|error TS|Cannot find module|threshold|FAIL|Tests:|Test Suites:' /tmp/test.log | head -40; echo '--- last lines ---'; tail -n 48 /tmp/test.log) | sed 's/\x1b\[[0-9;]*m//g; s/%/%25/g' | awk '{printf "%s%%0A", $0}')
-          echo "::error title=Billing test output::$MSG"
+      - run: yarn workspace @lawie/billing test
       - uses: codecov/codecov-action@v4
         if: always()
         with:
