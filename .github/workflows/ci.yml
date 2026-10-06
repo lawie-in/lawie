@@ -102,7 +102,7 @@ jobs:
           exit ${PIPESTATUS[0]}
       - if: failure()
         run: |
-          MSG=$( (grep -nE 'failed to run|error TS|Cannot find module|threshold|FAIL|Tests:|Test Suites:' /tmp/test.log | head -40; echo '--- last lines ---'; tail -n 25 /tmp/test.log) | sed 's/\x1b\[[0-9;]*m//g; s/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          MSG=$( (grep -nE 'failed to run|error TS|Cannot find module|threshold|FAIL|Tests:|Test Suites:' /tmp/test.log | head -40; echo '--- last lines ---'; tail -n 48 /tmp/test.log) | sed 's/\x1b\[[0-9;]*m//g; s/%/%25/g' | awk '{printf "%s%%0A", $0}')
           echo "::error title=Auth test output::$MSG"
       - uses: codecov/codecov-action@v4
         if: always()
@@ -161,7 +161,7 @@ jobs:
           exit ${PIPESTATUS[0]}
       - if: failure()
         run: |
-          MSG=$( (grep -nE 'failed to run|error TS|Cannot find module|threshold|FAIL|Tests:|Test Suites:' /tmp/test.log | head -40; echo '--- last lines ---'; tail -n 25 /tmp/test.log) | sed 's/\x1b\[[0-9;]*m//g; s/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          MSG=$( (grep -nE 'failed to run|error TS|Cannot find module|threshold|FAIL|Tests:|Test Suites:' /tmp/test.log | head -40; echo '--- last lines ---'; tail -n 48 /tmp/test.log) | sed 's/\x1b\[[0-9;]*m//g; s/%/%25/g' | awk '{printf "%s%%0A", $0}')
           echo "::error title=Billing test output::$MSG"
       - uses: codecov/codecov-action@v4
         if: always()
