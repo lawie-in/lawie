@@ -11,6 +11,9 @@ interface SiteNavProps {
   activePage?: ActivePage;
 }
 
+// Class names here are written as whole strings on purpose. The Tailwind Prettier plugin trims
+// spaces inside a template literal in className, which once turned "nav-drawer is-open" into
+// "nav-draweris-open" and broke the menu.
 export default function SiteNav({ activePage }: SiteNavProps) {
   const [open, setOpen] = useState(false);
 
@@ -22,19 +25,25 @@ export default function SiteNav({ activePage }: SiteNavProps) {
             <Image src="/lockup-on-dark.png" alt="Lawie" width={160} height={35} priority />
           </Link>
           <div className="nav-center">
-            <Link className={`nav-link${activePage === 'tools' ? 'is-active' : ''}`} href="/tools">
+            <Link
+              className={activePage === 'tools' ? 'nav-link is-active' : 'nav-link'}
+              href="/tools"
+            >
               Free Tools
             </Link>
             <Link
-              className={`nav-link${activePage === 'pricing' ? 'is-active' : ''}`}
+              className={activePage === 'pricing' ? 'nav-link is-active' : 'nav-link'}
               href="/pricing"
             >
               Pricing
             </Link>
-            <Link className={`nav-link${activePage === 'about' ? 'is-active' : ''}`} href="/about">
+            <Link
+              className={activePage === 'about' ? 'nav-link is-active' : 'nav-link'}
+              href="/about"
+            >
               About
             </Link>
-            <Link className={`nav-link${activePage === 'faq' ? 'is-active' : ''}`} href="/faq">
+            <Link className={activePage === 'faq' ? 'nav-link is-active' : 'nav-link'} href="/faq">
               FAQ
             </Link>
           </div>
@@ -57,13 +66,9 @@ export default function SiteNav({ activePage }: SiteNavProps) {
         </div>
       </nav>
 
-      <div
-        className="nav-scrim"
-        onClick={() => setOpen(false)}
-        style={{ display: open ? undefined : 'none' }}
-      />
+      <div className={open ? 'nav-scrim is-open' : 'nav-scrim'} onClick={() => setOpen(false)} />
       <aside
-        className={`nav-drawer${open ? 'is-open' : ''}`}
+        className={open ? 'nav-drawer is-open' : 'nav-drawer'}
         aria-hidden={!open}
         aria-label="Mobile menu"
       >

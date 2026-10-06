@@ -170,9 +170,9 @@ img, svg { display: block; max-width: 100%; }
 }
 .btn:active { transform: scale(0.98); }
 .btn svg { width: 18px; height: 18px; }
-.btn--lg { --btn-py: 16px; --btn-px: 30px; --btn-fs: 16px; }
-.btn--sm { --btn-py: 10px; --btn-px: 16px; --btn-fs: 14px; }
-.btn--block { width: 100%; }
+.btn--lg, .btn-lg { --btn-py: 16px; --btn-px: 30px; --btn-fs: 16px; }
+.btn--sm, .btn-sm { --btn-py: 10px; --btn-px: 16px; --btn-fs: 14px; }
+.btn--block, .btn-block { width: 100%; }
 
 .btn-primary { background: var(--gold); color: var(--navy); box-shadow: var(--sh-gold); }
 .btn-primary:hover { background: var(--gold-light); }
@@ -316,6 +316,10 @@ img, svg { display: block; max-width: 100%; }
 .float-cta:hover { background: var(--gold-light); }
 .float-cta svg { width: 18px; height: 18px; }
 .float-cta.is-visible { opacity: 1; visibility: visible; transform: translateY(0); }
+/* Above 900px the sticky nav already carries the same button. */
+@media (min-width: 901px) {
+  .float-cta { display: none; }
+}
 
 @media (max-width: 640px) {
   .float-cta {

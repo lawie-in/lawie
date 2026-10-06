@@ -33,7 +33,7 @@ export default function FloatCta() {
 
   return (
     <Link
-      className={`float-cta${visible ? 'is-visible' : ''}`}
+      className={visible ? 'float-cta is-visible' : 'float-cta'}
       href="/login"
       aria-label="Try Lawie free"
     >

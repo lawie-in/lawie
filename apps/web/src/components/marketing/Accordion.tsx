@@ -27,17 +27,11 @@ function AccItem({
   const panelRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className={`acc-item${isOpen ? 'is-open' : ''}`}>
-      <button className="acc-trigger" type="button" onClick={onToggle}>
+    <div className={isOpen ? 'acc-item is-open' : 'acc-item'}>
+      <button className="acc-trigger" type="button" onClick={onToggle} aria-expanded={isOpen}>
         {question}{' '}
         <span className="acc-icon">
-          <Plus
-            strokeWidth={1.5}
-            style={{
-              transform: isOpen ? 'rotate(45deg)' : undefined,
-              transition: 'transform 0.2s',
-            }}
-          />
+          <Plus strokeWidth={1.5} />
         </span>
       </button>
       <div
