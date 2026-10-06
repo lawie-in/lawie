@@ -28,7 +28,6 @@ import {
   validateReferralCode,
   disableReferralCode,
   listReferralCodes,
-  REFERRAL_BONUS_DRAFTS,
 } from '../services/referral.service';
 
 // ── Auth helper — real JWT signed with test secret ─────────────────────────────
@@ -214,10 +213,7 @@ describe('POST /admin/referral-codes', () => {
   });
 
   it('403 for Client role', async () => {
-    const res = await supertest(app)
-      .post('/admin/referral-codes')
-      .set(clientHeaders())
-      .send({});
+    const res = await supertest(app).post('/admin/referral-codes').set(clientHeaders()).send({});
     expect(res.status).toBe(403);
   });
 
@@ -284,7 +280,8 @@ describe('GET /validate-code/:code', () => {
     const res = await supertest(app).get('/validate-code/PUBTEST1');
     expect(res.status).toBe(200);
     expect(res.body.valid).toBe(true);
-    expect(res.body.bonusDrafts).toBe(REFERRAL_BONUS_DRAFTS);
+    // Each code carries its own Ink bonus now. 5 is the default (33eaa5d).
+    expect(res.body.bonusInk).toBe(5);
     expect(res.body.label).toBe('Test batch');
   });
 
