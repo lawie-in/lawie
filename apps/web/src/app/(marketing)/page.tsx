@@ -137,7 +137,7 @@ export default function HomePage() {
       <style>{`
         .hero{position:relative;overflow:hidden;background:linear-gradient(150deg,#0D1F3C 0%,#051226 55%,#0D1F3C 100%);color:var(--on-dark)}
         .hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse 90% 80% at 70% 20%,#000 30%,transparent 80%)}
-        .hero-inner{position:relative;display:grid;grid-template-columns:1.32fr 1fr;gap:56px;align-items:center;padding:88px 0 96px}
+        .hero-inner{position:relative;display:grid;grid-template-columns:1.32fr 1fr;gap:56px;align-items:center;padding-top:88px;padding-bottom:96px}
         .hero h1{color:#fff;margin:22px 0 20px}
         .hero h1 .accent{color:var(--gold-light)}
         .hero-sub{font-size:20px;line-height:1.55;color:var(--on-dark-2);max-width:540px}
@@ -179,7 +179,7 @@ export default function HomePage() {
         .final-cta h2{margin-bottom:14px}
         .final-cta p{font-size:19px;color:var(--text-2);margin-bottom:30px}
         @media(max-width:900px){
-          .hero-inner{grid-template-columns:1fr;padding:64px 0 72px}
+          .hero-inner{grid-template-columns:1fr;padding-top:64px;padding-bottom:72px}
           .hero-visual{display:none}
           .plan-grid,.draft-grid{grid-template-columns:1fr}
         }
