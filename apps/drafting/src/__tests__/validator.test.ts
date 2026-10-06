@@ -140,8 +140,8 @@ describe('Layer 3 — Validator', () => {
 
     it('does not warn about known sections', () => {
       const docRule = resolveDocRule('bail_regular');
-      // 480 and 481 ARE in bail_regular's known sections
-      const text = 'under Section 480 BNSS and Section 481 BNSS';
+      // 480 and 483 ARE in bail_regular's known sections
+      const text = 'under Section 480 BNSS and Section 483 BNSS';
       const warnings = validateSectionReferences(text, docRule);
       expect(warnings.length).toBe(0);
     });

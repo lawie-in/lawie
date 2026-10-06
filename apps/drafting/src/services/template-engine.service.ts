@@ -76,6 +76,13 @@ export interface FormStep {
 export interface ComputedField {
   logic: string;
   label_map?: Record<string, string>;
+  /** For "value_map[field] || 'default'": the value for each value of the field. */
+  value_map?: Record<string, string>;
+  /**
+   * A drafting instruction that states this value to the Drafter, with {value}
+   * where the value goes (T-135). Legal content: the wording is Ajay's.
+   */
+  instruction?: string;
 }
 
 export interface DocumentSection {
@@ -263,6 +270,8 @@ export interface CourtLookupData {
   city: string;
   caseNomenclature: string;
   formattingRulesRef: string;
+  /** The court's type in the courts list (jmfc, cjm, sessions, high_court ...). */
+  courtType?: string;
   courtRule?: CourtRuleData;
 }
 
@@ -291,7 +300,9 @@ export function loadCourtRule(ruleRef: string): CourtRuleData | null {
  *
  * Supports:
  * - "if {field} === 'value' then 'a' else 'b'"
+ * - "'text'" — a fixed value
  * - "label_map[{field_ref}]"
+ * - "value_map[{field_ref}] || 'default'" — the value this field's value_map gives
  * - "courts_db.lookup({field}).property" — uses pre-fetched courtData
  * - "{field_ref}" — direct reference to another computed field
  */
@@ -314,6 +325,22 @@ export function resolveComputedFields(
       const [, field, compareVal, thenVal, elseVal] = ifMatch;
       const actual = String(formData[field] ?? computed[field] ?? '');
       computed[fieldId] = actual === compareVal ? thenVal : elseVal;
+      continue;
+    }
+
+    // Pattern: 'text'
+    const literalMatch = logic.match(/^'([^']*)'$/);
+    if (literalMatch) {
+      computed[fieldId] = literalMatch[1];
+      continue;
+    }
+
+    // Pattern: value_map[{field_ref}] || 'default'
+    const valueMapMatch = logic.match(/^value_map\[(\w+)\]\s*\|\|\s*'([^']*)'$/);
+    if (valueMapMatch) {
+      const [, refField, defaultVal] = valueMapMatch;
+      const refValue = String(formData[refField] ?? computed[refField] ?? '');
+      computed[fieldId] = def.value_map?.[refValue] ?? defaultVal;
       continue;
     }
 
@@ -367,6 +394,7 @@ export function resolveComputedFields(
           header,
           city: courtData.city,
           case_nomenclature: courtData.caseNomenclature,
+          court_type: courtData.courtType ?? String(formData.court_type ?? ''),
         };
         computed[fieldId] = propMap[prop] ?? '';
       } else {
@@ -380,6 +408,8 @@ export function resolveComputedFields(
             : "IN THE COURT OF THE HON'BLE COURT";
         } else if (prop === 'city') {
           computed[fieldId] = extractCityFromCourtName(courtName);
+        } else if (prop === 'court_type') {
+          computed[fieldId] = String(formData.court_type ?? '');
         } else {
           computed[fieldId] = '';
         }

@@ -121,30 +121,68 @@ describe('Computed Fields Resolution', () => {
     config = loadTemplateConfig('bail_regular')!;
   });
 
-  test('resolves bail_section based on custody status (in custody)', () => {
+  // T-135: the provision for regular bail follows the court, never the custody answer.
+  // Ajay, 6 Oct 2026: a Magistrate is Section 480; a Court of Session or a High Court is Section 483.
+  test.each([
+    ['jmfc', '480'],
+    ['cjm', '480'],
+    ['sessions', '483'],
+    ['high_court', '483'],
+    ['high_court_bench', '483'],
+  ])('bail_section for a %s court is %s', (courtType, section) => {
     const computed = resolveComputedFields(config, {
+      court_type: courtType,
       currently_in_custody: 'yes_judicial',
     });
-    expect(computed.bail_section).toBe('480');
+    expect(computed.bail_section).toBe(section);
   });
 
-  test('resolves bail_section based on custody status (not in custody)', () => {
-    const computed = resolveComputedFields(config, {
+  test('bail_section takes the court type from the courts list when the court is known', () => {
+    const computed = resolveComputedFields(
+      config,
+      { court_type: 'cjm', currently_in_custody: 'yes_judicial' },
+      {
+        designation: 'DISTRICT & SESSIONS JUDGE',
+        city: 'Dhanbad',
+        caseNomenclature: 'Bail Petition',
+        formattingRulesRef: 'none',
+        courtType: 'sessions',
+      },
+    );
+    expect(computed.bail_section).toBe('483');
+  });
+
+  test('bail_section does not change with the custody answer', () => {
+    const inCustody = resolveComputedFields(config, {
+      court_type: 'sessions',
+      currently_in_custody: 'yes_judicial',
+    });
+    const notInCustody = resolveComputedFields(config, {
+      court_type: 'sessions',
       currently_in_custody: 'no',
     });
+    expect(inCustody.bail_section).toBe('483');
+    expect(notInCustody.bail_section).toBe('483');
+    expect(notInCustody.bail_type_label).toBe('Regular Bail');
+  });
+
+  test.each([
+    'district_court',
+    'civil_court',
+    'consumer_commission',
+    'tribunal',
+    'supreme_court',
+    '',
+  ])('bail_section is a visible blank for a court that cannot hear it (%s)', (courtType) => {
+    const computed = resolveComputedFields(config, { court_type: courtType });
+    expect(computed.bail_section).toBe('[Section — verify before filing]');
+  });
+
+  test('a fixed value in quotes is taken as written', () => {
+    const anticipatory = loadTemplateConfig('bail_anticipatory')!;
+    const computed = resolveComputedFields(anticipatory, {});
     expect(computed.bail_section).toBe('482');
-  });
-
-  test('resolves bail_type_label from label_map', () => {
-    const computed = resolveComputedFields(config, {
-      currently_in_custody: 'yes_judicial',
-    });
-    expect(computed.bail_type_label).toBe('Regular Bail');
-
-    const computed2 = resolveComputedFields(config, {
-      currently_in_custody: 'no',
-    });
-    expect(computed2.bail_type_label).toBe('Anticipatory Bail');
+    expect(computed.bail_type_label).toBe('Anticipatory Bail');
   });
 
   test('resolves court_designation from courts_db stub', () => {
@@ -244,6 +282,7 @@ describe('buildPlaceholderContext', () => {
     const ctx = buildPlaceholderContext(
       config,
       {
+        court_type: 'cjm',
         currently_in_custody: 'yes_judicial',
       },
       {},
@@ -290,6 +329,7 @@ describe('renderTemplateSection', () => {
     const ctx = buildPlaceholderContext(
       config,
       {
+        court_type: 'sessions',
         currently_in_custody: 'yes_judicial',
         applicant_name: 'Ram Kumar',
         fir_number: '124/2026',
@@ -301,7 +341,8 @@ describe('renderTemplateSection', () => {
 
     const rendered = renderTemplateSection(section, ctx);
     expect(rendered.content).toContain('Regular Bail');
-    expect(rendered.content).toContain('480');
+    expect(rendered.content).toContain('under Section 483 of BNSS, 2023');
+    expect(rendered.content).not.toContain('480');
     expect(rendered.content).toContain('Ram Kumar');
     expect(rendered.content).toContain('124/2026');
   });
@@ -414,8 +455,18 @@ describe('assembleDocument', () => {
 
   test('per-section alignment is carried through to the <p> style', () => {
     const sections: RenderedSection[] = [
-      { section_id: 'cause_title', type: 'template', alignment: 'center', content: 'In the Court of …\n\nState of Jharkhand' },
-      { section_id: 'advocate_block', type: 'template', alignment: 'right', content: 'Advocate signature line' },
+      {
+        section_id: 'cause_title',
+        type: 'template',
+        alignment: 'center',
+        content: 'In the Court of …\n\nState of Jharkhand',
+      },
+      {
+        section_id: 'advocate_block',
+        type: 'template',
+        alignment: 'right',
+        content: 'Advocate signature line',
+      },
     ];
     const { fullText } = assembleDocument(sections);
     // "In the Court of …" matches the heading-line regex, so it's bolded +

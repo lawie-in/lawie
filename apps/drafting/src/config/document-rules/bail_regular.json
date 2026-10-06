@@ -2,8 +2,8 @@
   "_meta": {
     "description": "Document-rules config for bail_regular — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",
-    "validated_by": "Ajay (CLO) — audited 2026-05-10 in Batch 3 config completion pass + SCRUM-89 form_schema port from production override 2026-05-12",
-    "last_updated": "2026-05-12",
+    "validated_by": "Ajay (CLO) — section numbers checked against the BNSS and BNS on 2026-10-06 (T-135). His validation note of May 2026 is withdrawn. A practising advocate is still to compare the quoted provisions before release.",
+    "last_updated": "2026-10-06",
     "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
   },
   "form_schema": {
@@ -275,7 +275,7 @@
       "description": "Name and enrollment number of advocate"
     }
   ],
-  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant regular bail to the applicant {applicant} in connection with {firDetails} under Sections 480/481/482 of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023, on such terms and conditions as this Hon'ble Court may deem fit and proper;\nb) Direct the release of the applicant on furnishing personal bond with surety to the satisfaction of this Hon'ble Court;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
+  "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant regular bail to the applicant {applicant} in connection with {firDetails} under Section 480 (before a Magistrate) or Section 483 (before a Court of Session or a High Court) of the Bharatiya Nagarik Suraksha Sanhita, 2023, on such terms and conditions as this Hon'ble Court may deem fit and proper;\nb) Direct the release of the applicant on furnishing personal bond with surety to the satisfaction of this Hon'ble Court;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
   "specialPrayerAdditions": {
     "dv_dowry": "d) Direct the applicant to furnish an undertaking not to contact the complainant or her family members directly or indirectly;\ne) Direct the applicant to provide an undertaking regarding the return/safekeeping of stridhan and dowry articles as per the inventory;"
   },
@@ -295,14 +295,16 @@
     {
       "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
       "sections": [
-        { "number": "480", "description": "Bail in bailable offences" },
-        { "number": "481", "description": "Bail in non-bailable offences" },
-        { "number": "482", "description": "Bail to person accused of non-bailable offence" },
+        { "number": "478", "description": "In what cases bail to be taken (bailable offences)" },
+        {
+          "number": "480",
+          "description": "When bail may be taken in case of non-bailable offence"
+        },
         {
           "number": "483",
           "description": "Special powers of High Court or Court of Session regarding bail"
         },
-        { "number": "484", "description": "Bail when trial of offence is not concluded" }
+        { "number": "484", "description": "Amount of bond and reduction thereof" }
       ]
     },
     {
@@ -312,7 +314,7 @@
           "number": "85",
           "description": "Cruelty by husband or relatives of husband (replaces IPC 498A)"
         },
-        { "number": "86", "description": "Dowry death (replaces IPC 304B)" },
+        { "number": "80", "description": "Dowry death (replaces IPC 304B)" },
         { "number": "103", "description": "Murder (replaces IPC 302)" }
       ]
     }
@@ -328,16 +330,16 @@
         { "number": "20", "description": "Monetary reliefs" },
         { "number": "22", "description": "Compensation orders" }
       ],
-      "note": "When bail application involves BNS 85/86 (domestic violence/dowry), reference PWDVA provisions in the grounds."
+      "note": "When bail application involves BNS 85/80 (domestic violence/dowry), reference PWDVA provisions in the grounds."
     }
   ],
   "promptInstructions": [
-    "Draft a Regular Bail Application under Sections 480/481/482 BNSS, 2023.",
+    "Draft a Regular Bail Application. Before a Magistrate it is made under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023; before a Court of Session or a High Court, under Section 483. Cite only that one provision as the provision under which bail is sought, in the heading, the opening paragraph and the prayer. Do not cite Section 481 or Section 482.",
     "Begin PARAGRAPH 1 with the exact FIR details provided — FIR number, date, police station, district, offences alleged. Use the values EXACTLY as given in the case details.",
     "State the custody status clearly — date of arrest, whether judicial or police custody, total days in custody.",
     "Set out specific grounds for bail: no prior criminal history, cooperation with investigation, roots in community, health conditions if any, investigation complete/charge sheet filed, parity with co-accused granted bail.",
-    "Reference Bharatiya Nyaya Sanhita (BNS) section numbers for the alleged offences — NEVER use old IPC section numbers. IPC 498A = BNS 85, IPC 304B = BNS 86.",
-    "If the case involves domestic violence (BNS 85/86), also reference the Protection of Women from Domestic Violence Act (PWDVA) 2005 where relevant, especially Sections 12, 18, 19, 20, 22.",
+    "Reference Bharatiya Nyaya Sanhita (BNS) section numbers for the alleged offences — NEVER use old IPC section numbers. IPC 498A = BNS 85, IPC 304B = BNS 80.",
+    "If the case involves domestic violence (BNS 85/80), also reference the Protection of Women from Domestic Violence Act (PWDVA) 2005 where relevant, especially Sections 12, 18, 19, 20, 22.",
     "Include standard undertakings: will not abscond, will not tamper with evidence, will appear on all dates, will not contact prosecution witnesses.",
     "For DV/dowry cases, include specific undertakings: no contact with complainant, undertaking regarding stridhan/dowry articles.",
     "Use formal, respectful legal language appropriate for Indian courts.",

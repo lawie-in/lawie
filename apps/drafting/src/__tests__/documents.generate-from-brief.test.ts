@@ -244,6 +244,90 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     expect(sent[1].content).toContain('"court": "DISTRICT & SESSIONS JUDGE, PATNA"');
   });
 
+  // T-135. Ajay, 6 Oct 2026: before a Court of Session regular bail is Section 483.
+  it('before a Court of Session the heading, the prayer and the Drafter all get Section 483', async () => {
+    const fetchMock = mockModel(drafterAnswer());
+    const res = await post({ kind: 'bail_regular', values: VALUES, court, paragraphs: 12 });
+
+    expect(res.status).toBe(200);
+    const sections = (
+      event(res.text, 'template_sections')!.sections as Array<{
+        section_id: string;
+        content: string;
+      }>
+    ).reduce<Record<string, string>>((all, s) => ({ ...all, [s.section_id]: s.content }), {});
+    expect(sections.application_heading).toBe(
+      'APPLICATION FOR REGULAR BAIL UNDER SECTION 483 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023',
+    );
+    expect(sections.prayer).toContain('under Section 483 of BNSS, 2023');
+    expect(sections.prayer).not.toContain('480');
+
+    const told = bodyOf(fetchMock, 0).messages[1].content;
+    expect(told).toContain(
+      'INSTRUCTIONS:\n- This application is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482.',
+    );
+    expect(told).not.toContain('480/481/482');
+    expect(told).not.toMatch(/\b481 \(|\b482 \(/);
+  });
+
+  it('before a Magistrate it is Section 480', async () => {
+    await Court.create({
+      courtId: 'cjm_patna',
+      name: 'CJM Court, Patna',
+      designation: 'CHIEF JUDICIAL MAGISTRATE, PATNA',
+      courtType: 'cjm',
+      state: 'Bihar',
+      stateId: 'bihar',
+      city: 'Patna',
+      formattingRulesRef: 'bihar_district',
+    });
+    const fetchMock = mockModel(drafterAnswer());
+    const res = await post({
+      kind: 'bail_regular',
+      values: VALUES,
+      court: { state: 'bihar', court_type: 'cjm', court: 'cjm_patna' },
+      paragraphs: 12,
+    });
+
+    expect(res.status).toBe(200);
+    const sections = (
+      event(res.text, 'template_sections')!.sections as Array<{
+        section_id: string;
+        content: string;
+      }>
+    ).reduce<Record<string, string>>((all, s) => ({ ...all, [s.section_id]: s.content }), {});
+    expect(sections.application_heading).toContain('UNDER SECTION 480 OF THE');
+    expect(sections.prayer).toContain('under Section 480 of BNSS, 2023');
+    expect(bodyOf(fetchMock, 0).messages[1].content).toContain(
+      'This application is made under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023.',
+    );
+  });
+
+  it('a body that cites 480, 481 and 482 before a Court of Session is a finding, and carries the label', async () => {
+    const wrong = [
+      '1. That this application is filed under Sections 481 and 482 of the BNSS, 2023.',
+      ...BODY.split('\n\n').slice(1),
+      '5. That bail may be granted under Section 480 of BNSS.',
+    ].join('\n\n');
+    mockModel(drafterAnswer(wrong));
+    const res = await post({ kind: 'bail_regular', values: VALUES, court, paragraphs: 12 });
+
+    expect(res.status).toBe(200);
+    const warnings = event(res.text, 'warning')!.warnings as Array<{
+      type: string;
+      message: string;
+      details?: { section?: string };
+    }>;
+    const flagged = warnings
+      .filter((w) => w.type === 'invalid_section')
+      .map((w) => w.details?.section);
+    expect(flagged).toEqual(expect.arrayContaining(['480', '481', '482']));
+    expect(warnings.map((w) => w.message)).toContain(
+      'The draft cites Section 480. Before the court you chose, this application is made under Section 483. Check it before filing.',
+    );
+    expect(event(res.text, 'done')).toMatchObject({ startingDraft: true });
+  });
+
   it('saves the document, the encrypted brief, one usage row, and charges once', async () => {
     mockModel(drafterAnswer());
     const intakeId = '55555555-5555-4555-8555-555555555555';
