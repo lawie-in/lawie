@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { DOC_TYPES, DocType } from '@lawie/shared';
+import { COURT_TYPES, DOC_TYPES, DocType } from '@lawie/shared';
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
@@ -9,20 +9,27 @@ import { authenticate } from '../middleware/authenticate';
 import { enforceCredits } from '../middleware/enforceCredits';
 import { FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
 import { spendCapCheck } from '../middleware/spendCap';
+import { Court } from '../models/Court.model';
 import { LawieDocument } from '../models/Document.model';
 import { Event } from '../models/Event.model';
 import { effectiveRunType, Generation, RunType } from '../models/Generation.model';
 import {
   GenerationFailedError,
   streamGenerateDocument,
+  streamGenerateFromBrief,
   streamGenerateFromTemplate,
 } from '../services/ai.service';
 import { buildAnnexuresPack, estimateBodyParaCount } from '../services/annexures.service';
+import { clampTarget, STARTING_DRAFT_LABEL } from '../services/brief-drafter';
 import { spendInk } from '../services/credits.service';
+import { isDescribeFirstEnabled, updateBrief } from '../services/intake.service';
 import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
 import { contentToHtml, renderPdf } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
+import { loadRulePack } from '../services/rule-pack.service';
 import {
+  CourtLookupData,
+  loadCourtRule,
   loadTemplateConfig,
   listTemplateConfigs,
   validateFormData,
@@ -589,6 +596,301 @@ router.post(
   },
 );
 
+// ── POST /documents/generate-from-brief (T-106, ADR-021 sections 3.5, 3.6) ──
+//
+// A confirmed brief becomes a draft written under the document's rule pack.
+// Closed unless `feature.describe_first` is on for the user. The charge, the
+// run and the usage record follow the same rules as generate-from-template.
+
+const briefGenerateSchema = z.object({
+  /** A rule-pack id. A document with no rule pack is not drafted here yet. */
+  kind: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9_]+$/, 'must be a document kind'),
+  values: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(200),
+        value: z.union([z.string().max(6000), z.array(z.string().max(500)).max(30)]),
+        source: z.enum(['description', 'user']).default('user'),
+        quote: z.string().max(1000).optional(),
+        label: z.string().max(200).optional(),
+      }),
+    )
+    .max(200)
+    .default([]),
+  court: z
+    .object({
+      state: z.string().max(200).nullish(),
+      court_type: z.string().max(200).nullish(),
+      court: z.string().max(200).nullish(),
+    })
+    .optional(),
+  language: z.enum(['en', 'hi', 'bilingual']).default('en'),
+  /** The number of numbered paragraphs wanted in the body. */
+  paragraphs: z.number().int().min(1).max(100).optional(),
+  run_id: z.string().uuid().optional(),
+  intake_id: z.string().uuid().optional(),
+});
+
+/** The credit gate reads `template_id`. For a brief the rule pack is the template. */
+function kindAsTemplateId(req: Request, _res: Response, next: NextFunction): void {
+  const body = req.body as { kind?: unknown; template_id?: unknown } | undefined;
+  if (body && typeof body.kind === 'string') body.template_id = body.kind;
+  next();
+}
+
+async function describeFirstOnly(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (!(await isDescribeFirstEnabled(req.jwtPayload!.sub))) {
+    res.status(404).json({ error: 'not_enabled' });
+    return;
+  }
+  next();
+}
+
+router.post(
+  '/generate-from-brief',
+  authenticate,
+  describeFirstOnly,
+  kindAsTemplateId,
+  enforceCredits,
+  spendCapCheck,
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = briefGenerateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      // Messages come from the schema only, never from the submitted text.
+      res.status(400).json({
+        error: 'Invalid request',
+        issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+      });
+      return;
+    }
+    const payload = req.jwtPayload!;
+    const { kind, values, court, language, run_id, intake_id } = parsed.data;
+
+    const pack = loadRulePack(kind);
+    const templateConfig = pack ? loadTemplateConfig(kind) : null;
+    if (!pack || !templateConfig) {
+      res.status(404).json({ error: 'Document kind not found' });
+      return;
+    }
+    if (templateConfig.plan_access === 'pro' && payload.plan !== 'pro') {
+      res.status(403).json({ error: 'This document requires a Pro plan' });
+      return;
+    }
+
+    // The brief is worked out again here. What the browser says about it is not trusted.
+    const brief = updateBrief({ kind, values, court: court ?? undefined });
+    if (!brief) {
+      res.status(404).json({ error: 'Document kind not found' });
+      return;
+    }
+    // ADR-021 decision D2: a court document is not drafted without the court and the parties.
+    if (!brief.can_confirm) {
+      res.status(400).json({
+        error: 'brief_not_confirmed',
+        message: brief.confirm_message,
+        blockers: brief.confirm_blockers,
+      });
+      return;
+    }
+
+    // ADR-021 rule 3: the court comes from the courts list only.
+    let courtData: CourtLookupData | undefined;
+    if (brief.kind.court_document) {
+      const found = await Court.findOne({ courtId: brief.court.court, isActive: true })
+        .maxTimeMS(5000)
+        .lean();
+      if (!found) {
+        res.status(400).json({
+          error: 'court_not_found',
+          message: 'Choose the court from the list to continue.',
+        });
+        return;
+      }
+      courtData = {
+        designation: found.designation,
+        city: found.city,
+        caseNomenclature: found.caseNomenclature,
+        formattingRulesRef: found.formattingRulesRef,
+        courtRule: loadCourtRule(found.formattingRulesRef) ?? undefined,
+      };
+    }
+
+    const docType = TEMPLATE_TO_DOC_TYPE[kind] || DOC_TYPES.PETITION;
+    const { runId, runSequence, runType } = await resolveRun(
+      payload.sub,
+      { templateId: kind },
+      run_id,
+    );
+    res.setHeader('X-Run-Id', runId);
+    res.setHeader('X-Run-Sequence', String(runSequence));
+    const startedAt = Date.now();
+
+    let result;
+    try {
+      result = await streamGenerateFromBrief(
+        {
+          pack,
+          templateConfig,
+          brief,
+          language,
+          targetParagraphs: clampTarget(parsed.data.paragraphs),
+          courtData,
+          advocateName: payload.name || undefined,
+          enrollmentNumber: undefined,
+          userId: payload.sub,
+          runId,
+          runSequence,
+          runType,
+        },
+        res,
+      );
+    } catch (genErr) {
+      // A failed run is recorded with what it used and charges nothing (T-003).
+      const failed = genErr instanceof GenerationFailedError ? genErr : null;
+      if (!failed) {
+        console.error(
+          `[drafting] generate-from-brief threw (runId=${runId}, runType=${runType}):`,
+          genErr instanceof Error ? genErr.name : 'unknown',
+        );
+      }
+      await recordGeneration({
+        userId: payload.sub,
+        docType,
+        status: 'failed',
+        templateId: kind,
+        intakeId: intake_id,
+        aiModel: failed?.aiModel,
+        transport: failed?.transport,
+        usage: failed?.usage ?? {
+          inputTokens: 0,
+          outputTokens: 0,
+          llmCalls: 0,
+          usageSource: 'provider',
+        },
+        paragraphCount: 0,
+        durationMs: Date.now() - startedAt,
+        runId,
+        runSequence,
+        runType,
+      });
+      if (failed) {
+        // The error event was already sent. End only now, after the row exists.
+        res.end();
+      } else if (!res.headersSent) {
+        res.status(500).json({ error: 'Generation failed' });
+      } else {
+        res.write(
+          `event: error\ndata: ${JSON.stringify({
+            reason:
+              'The drafting service hit an unexpected error. Please try again — your brief is kept.',
+            retryable: true,
+            code: 'unknown',
+            runId,
+          })}\n\n`,
+        );
+        res.end();
+      }
+      return;
+    }
+
+    // Save. A database failure must not stop the done event.
+    let docId: string | null = null;
+    let duplicateAttempt = false;
+    try {
+      const courtType = brief.court.court_type ?? '';
+      const doc = await LawieDocument.create({
+        userId: payload.sub,
+        title: `${pack.name} — ${courtData?.designation ?? ''}`.replace(/ — $/, '').slice(0, 300),
+        docType,
+        courtType: (Object.values(COURT_TYPES) as string[]).includes(courtType)
+          ? courtType
+          : undefined,
+        courtName: brief.court.court ?? '',
+        // No case details here: this field is not encrypted. The brief is, below.
+        formInputs: { template_id: kind, source: 'brief' },
+        generatedContent: encrypt(result.fullText),
+        sectionsCited: result.sectionsCited,
+        filingChecklist: result.filingChecklist,
+        checklistState: result.filingChecklist.map(() => false),
+        status: 'draft',
+        runId,
+        runSequence,
+        rulePackId: pack.id,
+        startingDraft: result.startingDraft,
+        brief: encrypt(JSON.stringify({ kind, language, court: brief.court, values })),
+      });
+      docId = String(doc._id);
+
+      const { duplicate } = await recordGeneration({
+        userId: payload.sub,
+        docType,
+        status: 'completed',
+        templateId: kind,
+        intakeId: intake_id,
+        documentId: doc._id,
+        aiModel: result.aiModel,
+        transport: result.transport,
+        usage: result.usage,
+        paragraphCount: result.bodyParaCount,
+        durationMs: Date.now() - startedAt,
+        runId,
+        runSequence,
+        runType,
+      });
+      duplicateAttempt = duplicate;
+
+      if (process.env.NODE_ENV !== 'test') {
+        console.info(
+          `[drafting] Drafted from a brief: doc ${docId} for user ${payload.sub} (${kind}, runId=${runId}, runSequence=${runSequence}, repaired=${result.repaired}, missingClauses=${result.missingClauses.length}, findings=${result.warnings.length}, startingDraft=${result.startingDraft})`,
+        );
+      }
+    } catch (dbErr) {
+      console.error(
+        `[drafting] DB save failed for a draft from a brief (${kind}, runId=${runId}):`,
+        dbErr instanceof Error ? dbErr.name : 'unknown',
+      );
+    }
+
+    // Charged once, after a successful draft. The repair pass is not charged:
+    // the charge is the document's fixed cost, whatever the run used.
+    const cost = (req as Request & { creditCost?: number }).creditCost ?? 1;
+    if (!duplicateAttempt) {
+      const inkResult = await spendInk({
+        userId: payload.sub,
+        costCredits: cost,
+        reason: 'generate',
+        reference: docId ? `${pack.name} (${docId})` : pack.name,
+        runId,
+        runSequence,
+      });
+      if (!inkResult.success) {
+        console.error('[drafting] spendInk failed after generation:', inkResult.reason);
+      }
+    }
+
+    res.write(
+      `event: done\ndata: ${JSON.stringify({
+        complete: true,
+        docId,
+        runId,
+        sectionsCited: result.sectionsCited,
+        mandatoryClausesComplete: result.mandatoryClausesComplete,
+        missingClauses: result.missingClauses.map((m) => ({ id: m.id, title: m.title })),
+        repaired: result.repaired,
+        startingDraft: result.startingDraft,
+        startingDraftLabel: result.startingDraft ? STARTING_DRAFT_LABEL : null,
+        labelReason: result.labelReason,
+        creditsSpent: [],
+      })}\n\n`,
+    );
+    res.end();
+  },
+);
+
 // POST /documents/generate — legacy generation (ink-gated)
 router.post(
   '/generate',
@@ -823,6 +1125,10 @@ router.get(
       checklistState: doc.checklistState ?? [],
       exportedAs: doc.exportedAs,
       version: doc.version,
+      // T-106 — the label is the server's. The editor shows it and cannot remove it.
+      rulePackId: doc.rulePackId ?? null,
+      startingDraft: doc.startingDraft === true,
+      startingDraftLabel: doc.startingDraft === true ? STARTING_DRAFT_LABEL : null,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });
@@ -897,7 +1203,7 @@ router.post(
     const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
     const isFree = payload.plan !== 'pro';
 
-    const html = contentToHtml(content, isFree);
+    const html = contentToHtml(content, isFree, doc.startingDraft === true);
     let pdfBuffer: Buffer;
     try {
       pdfBuffer = await renderPdf(html);

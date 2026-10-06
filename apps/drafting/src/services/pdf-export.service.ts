@@ -6,6 +6,8 @@
  */
 import puppeteer from 'puppeteer';
 
+import { STARTING_DRAFT_FOOTER } from './brief-drafter';
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -27,7 +29,7 @@ function markdownBoldItalic(text: string): string {
  *  - TipTap HTML (saved after user edits): embedded directly, no escaping
  *  - Plain text / markdown (original AI output): converted to paragraphs
  */
-export function contentToHtml(content: string, _isFree: boolean): string {
+export function contentToHtml(content: string, _isFree: boolean, startingDraft = false): string {
   let body = '';
 
   if (content.trimStart().startsWith('<')) {
@@ -60,6 +62,11 @@ export function contentToHtml(content: string, _isFree: boolean): string {
         body += `<p>${lineHtml}</p>\n`;
       }
     }
+  }
+
+  // T-106, ADR-021 rule 6 — a starting draft says so in its footer (T-107, section 4).
+  if (startingDraft) {
+    body += `<div class="disclaimer">${STARTING_DRAFT_FOOTER}</div>`;
   }
 
   // AI disclaimer footer
