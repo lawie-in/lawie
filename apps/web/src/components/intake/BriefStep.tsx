@@ -364,7 +364,11 @@ export default function BriefStep({
                     </p>
                   </div>
                   {hasField && (
-                    <button type="button" onClick={() => focusField(u.key)} className={linkButton}>
+                    <button
+                      type="button"
+                      onClick={() => focusField(u.key)}
+                      className={`${linkButton} flex-none whitespace-nowrap`}
+                    >
                       Add it
                     </button>
                   )}
