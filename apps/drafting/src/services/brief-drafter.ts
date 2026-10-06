@@ -14,9 +14,9 @@
  * 6). Do not change them without his sign-off.
  */
 import type { Brief, BriefItem } from './intake-brief';
-import { datesInText, normalise } from './intake-text';
+import { datesAsWritten, datesInText, normalise } from './intake-text';
 import type { RulePack, RulePackClause } from './rule-pack.service';
-import type { TemplateConfig } from './template-engine.service';
+import type { RenderedSection, TemplateConfig } from './template-engine.service';
 import { extractSectionReferences, ValidationWarning } from './validator';
 
 /** The line the Drafter writes between the document and its clause report. */
@@ -126,6 +126,12 @@ export interface DrafterBrief {
   asked_for: Array<{ key: string; what: string; value: string | string[] }>;
   other: Array<{ what: string; value: string | string[] }>;
   unknown: Array<{ what: string; blank: string }>;
+  /**
+   * The matter as the advocate first described it, word for word (T-136).
+   * Only what the advocate typed: nothing a model wrote and nothing read from
+   * a file. Null when the request did not carry it.
+   */
+  described: string | null;
 }
 
 /**
@@ -138,6 +144,7 @@ export function drafterBrief(
   brief: Brief,
   courtLine: string | null,
   converted?: Record<string, unknown>,
+  described?: string | null,
 ): DrafterBrief {
   const out: DrafterBrief = {
     document: brief.kind.name,
@@ -149,6 +156,7 @@ export function drafterBrief(
     asked_for: [],
     other: brief.unplaced.map((u) => ({ what: u.label, value: u.value })),
     unknown: brief.still_unknown.map((u) => ({ what: u.label, blank: u.placeholder })),
+    described: typeof described === 'string' && described.trim() !== '' ? described.trim() : null,
   };
   for (const item of brief.items) {
     if (isEmpty(item.value)) continue;
@@ -208,6 +216,8 @@ export interface DrafterPromptInput {
    */
   statedInstructions?: string[];
   systemParts: SystemPart[];
+  /** The text of those parts as it stands on the page, around the Drafter's text (T-136). */
+  systemText?: SystemText;
   /** The court's own rules, one per line, when the court is known. */
   courtRules: string[];
   target: number;
@@ -244,6 +254,8 @@ function commonBlocks(input: DrafterPromptInput): string[] {
       'SYSTEM PARTS',
       input.systemParts.map((p) => `- ${p.label}`),
     ),
+    `BEFORE YOUR TEXT:\n${input.systemText?.before || 'none'}`,
+    `AFTER YOUR TEXT:\n${input.systemText?.after || 'none'}`,
   ];
 }
 
@@ -545,6 +557,367 @@ export function checkAgainstBrief(
     });
   }
   return warnings;
+}
+
+// ── What the system has already written (T-136) ─────────────────────────────
+
+export interface SystemText {
+  /** The parts that stand above the Drafter's text, as they will print. */
+  before: string;
+  /** The parts that follow it. */
+  after: string;
+  /** The first line of each part, for telling a repeated heading. */
+  headings: string[];
+}
+
+/**
+ * The text of the parts the system adds, split around the place of the
+ * Drafter's text. The Drafter is shown both so that it writes neither again.
+ * The number of the last paragraph is not known yet, so its place is marked.
+ */
+export function systemTextAround(
+  sections: Array<Pick<RenderedSection, 'type' | 'content'>>,
+): SystemText {
+  const before: string[] = [];
+  const after: string[] = [];
+  const headings: string[] = [];
+  let bodySeen = false;
+  for (const section of sections) {
+    if (section.type !== 'template') {
+      bodySeen = true;
+      continue;
+    }
+    const text = section.content.replace(/\{body_para_count\}/g, '[last paragraph]').trim();
+    if (text === '') continue;
+    (bodySeen ? after : before).push(text);
+    const first = text.split('\n').find((l) => l.trim() !== '');
+    if (first) headings.push(first.trim());
+  }
+  return { before: before.join('\n\n'), after: after.join('\n\n'), headings };
+}
+
+/** A numbered paragraph of the body: "1. ..." or "1) ...". */
+const PARAGRAPH_START = /^\s*\d+[.)]\s/;
+/** A sub-point of one: "(a) ...", "(ii) ...". */
+const SUB_POINT = /^\s*\((?:[a-z]{1,2}|[ivxlc]+|\d{1,2})\)\s/i;
+/** A word the Drafter was told to keep for its clause report, in square brackets. */
+const SYSTEM_WORD = /\[[^[\]\n]*\bSYSTEM\b[^[\]\n]*\]/g;
+
+/** The words of three letters or more and every number in a text, for comparing two texts. */
+function factTokens(text: string): string[] {
+  const flat = normalise(text).replace(/(\d),(?=\d)/g, '$1');
+  return (flat.match(/[\p{L}\p{M}]{3,}|\d+/gu) ?? []).map((t) => t.toLowerCase());
+}
+
+/** True when a block says nothing the system's own text does not say: no new word, no new number. */
+function saysNothingNew(blockText: string, systemTokens: Set<string>): boolean {
+  return factTokens(blockText).every((t) => systemTokens.has(t));
+}
+
+/**
+ * Takes out of the Drafter's text what the system has already put on the
+ * page: a second cause title, addressee, heading, closing or signature line,
+ * and the word SYSTEM in brackets, which belongs to the clause report.
+ *
+ * Ajay's condition (T-136, condition 4): a repeat is removed only where it
+ * carries no word and no number that the system's own part does not carry.
+ * Anything else stays and is reported by `checkOneDocument`. A numbered
+ * paragraph is never removed.
+ */
+export function removeRepeatedParts(
+  body: string,
+  system: SystemText,
+): { body: string; removed: string[] } {
+  const removed: string[] = [];
+  const cleaned = body
+    .replace(SYSTEM_WORD, (m) => {
+      removed.push(m);
+      return '';
+    })
+    .replace(/[ \t]+\n/g, '\n');
+
+  // A paragraph number always opens a block of its own, so a title written
+  // straight above "1." is seen as the separate thing it is.
+  const blocks = cleaned
+    .replace(/\n(?=\s*\d+[.)]\s)/g, '\n\n')
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter((b) => b !== '');
+  const first = blocks.findIndex((b) => PARAGRAPH_START.test(b));
+  if (first === -1) {
+    return { body: removed.length > 0 ? blocks.join('\n\n') : body, removed };
+  }
+  let last = blocks.length - 1;
+  while (last > first && !PARAGRAPH_START.test(blocks[last]) && !SUB_POINT.test(blocks[last])) {
+    last -= 1;
+  }
+
+  const beforeTokens = new Set(factTokens(system.before));
+  const afterTokens = new Set(factTokens(system.after));
+  const kept: string[] = [];
+  blocks.forEach((b, i) => {
+    const leading = i < first && system.before !== '';
+    const trailing = i > last && system.after !== '';
+    if (
+      (leading && saysNothingNew(b, beforeTokens)) ||
+      (trailing && saysNothingNew(b, afterTokens))
+    ) {
+      removed.push(b);
+      return;
+    }
+    kept.push(b);
+  });
+  if (removed.length === 0) return { body, removed };
+  return { body: kept.join('\n\n'), removed };
+}
+
+/** A line that opens or closes a document of its own, whatever kind of document it is. */
+const DOCUMENT_EDGE = [
+  /^to,?$/i,
+  /^from,?$/i,
+  /^to\s+whom(?:soever)?\s+it\s+may\s+concern\b/i,
+  /^yours\s+(?:faithfully|sincerely|truly)\b/i,
+  /^deponent\.?$/i,
+  /^(?:place|date|dated)\s*:/i,
+];
+/** The opening line of a separate document (rule 9 of the Drafter's prompt). */
+const SEPARATE_DOCUMENT = /^(AFFIDAVIT|VAKALATNAMA|INDEX|COVERING LETTER|MEMO OF APPEARANCE)\b/;
+
+function comparable(line: string): string {
+  return normalise(line.replace(/[*_#:.,]/g, ' '));
+}
+
+/**
+ * Finding C4 (Ajay, T-136): a part in the Drafter's text that the system did
+ * not add and that reads like a second document. Looked for only where the
+ * system has put parts around the text; where the Drafter writes the whole
+ * document, its headings are its own.
+ */
+export function checkOneDocument(
+  body: string,
+  system: SystemText,
+  documentName: string,
+): ValidationWarning[] {
+  if (system.before === '' && system.after === '') return [];
+  const headings = new Set(system.headings.map(comparable).filter((h) => h.length > 0));
+  const name = documentName.toUpperCase();
+  const warnings: ValidationWarning[] = [];
+  const seen = new Set<string>();
+  const blocks = body.replace(/\n(?=\s*\d+[.)]\s)/g, '\n\n').split(/\n\s*\n/);
+  for (const block of blocks) {
+    if (PARAGRAPH_START.test(block) || SUB_POINT.test(block)) continue;
+    for (const raw of block.split('\n')) {
+      const line = raw.replace(/^[\s*_#]+|[\s*_#]+$/g, '').trim();
+      if (line === '') continue;
+      const separate = SEPARATE_DOCUMENT.exec(line);
+      const odd =
+        headings.has(comparable(line)) ||
+        DOCUMENT_EDGE.some((re) => re.test(line)) ||
+        (separate !== null && !name.includes(separate[1]));
+      if (!odd || seen.has(comparable(line))) continue;
+      seen.add(comparable(line));
+      const shown = line.length > 80 ? `${line.slice(0, 79)}…` : line;
+      warnings.push({
+        type: 'fact_alteration',
+        message: `The draft has a part that may not belong: "${shown}". Check that the draft is one document.`,
+        details: { field: 'part', expected: shown },
+      });
+    }
+  }
+  return warnings;
+}
+
+// ── Everything in the brief is in the draft (T-136) ─────────────────────────
+
+/** A date as a user reads it in a finding about the brief: 12.09.2026. */
+function shownDate(isoDate: string): string {
+  return filingDate(isoDate);
+}
+
+function numbersIn(text: string): Set<string> {
+  return new Set(normalise(text).replace(/(\d),(?=\d)/g, '$1').match(/\d+/g) ?? []);
+}
+
+/**
+ * True when a short fact of the brief is in the document: every number of
+ * it, and most of its words. Word order and small words are not compared, so
+ * "Saraidhela PS" is found in "P.S. Saraidhela".
+ */
+function factIsIn(value: string, documentWords: Set<string>, documentNumbers: Set<string>): boolean {
+  const tokens = factTokens(value);
+  if (tokens.length === 0) return true;
+  const numbers = tokens.filter((t) => /^\d+$/.test(t));
+  const words = tokens.filter((t) => !/^\d+$/.test(t));
+  if (numbers.some((n) => !documentNumbers.has(n))) return false;
+  if (words.length === 0) return true;
+  const present = words.filter((w) => documentWords.has(w)).length;
+  return present / words.length >= 0.6;
+}
+
+/**
+ * Findings C1, C2 and the one for a date of the description (Ajay, T-136):
+ * a date, a name, a number or a fact placed under "other" that the brief
+ * holds and the document does not. `documentText` is the whole document: the
+ * parts the system adds and the Drafter's text. Nothing is put into the draft
+ * here; the advocate is told.
+ *
+ * Compared: every date; the parties' names; the numbers; the facts under
+ * "other". A choice is not, because the draft does not print its label. A
+ * long account is compared by its dates only.
+ */
+export function checkBriefIsUsed(
+  documentText: string,
+  brief: Brief,
+  described?: string | null,
+): ValidationWarning[] {
+  const warnings: ValidationWarning[] = [];
+  const documentDates = new Set(datesInText(documentText));
+  const documentWords = new Set(factTokens(documentText).filter((t) => !/^\d+$/.test(t)));
+  const documentNumbers = numbersIn(documentText);
+  const told = new Set<string>();
+
+  // C1: a date of the brief.
+  const briefDates = new Map<string, string>();
+  for (const item of brief.items) {
+    if (isEmpty(item.value)) continue;
+    const values = Array.isArray(item.value) ? item.value : [item.value as string];
+    const what = item.kind === 'date' ? (item.meaning ?? item.label) : item.label;
+    for (const v of values) {
+      const dates = /^\d{4}-\d{2}-\d{2}$/.test(v) ? [v] : datesInText(v);
+      for (const d of dates) if (!briefDates.has(d)) briefDates.set(d, what);
+    }
+  }
+  for (const u of brief.unplaced) {
+    for (const v of Array.isArray(u.value) ? u.value : [u.value]) {
+      for (const d of datesInText(v)) if (!briefDates.has(d)) briefDates.set(d, u.label);
+    }
+  }
+  for (const [date, what] of briefDates) {
+    if (documentDates.has(date)) continue;
+    told.add(date);
+    warnings.push({
+      type: 'fact_alteration',
+      message: `Your brief has a date the draft does not use: ${shownDate(date)} (${what}). Add it or check the draft.`,
+      details: { field: 'date', expected: shownDate(date) },
+    });
+  }
+
+  // A date only the description gives, shown as the advocate wrote it.
+  for (const d of datesAsWritten(described ?? '')) {
+    if (documentDates.has(d.value) || briefDates.has(d.value) || told.has(d.value)) continue;
+    told.add(d.value);
+    warnings.push({
+      type: 'fact_alteration',
+      message: `Your description has a date the draft does not use: ${d.words}. If you changed this date on the brief, ignore this. Otherwise add it or check the draft.`,
+      details: { field: 'date', expected: d.words },
+    });
+  }
+
+  // C2: a name, a number, or a fact under "other".
+  const missing = (label: string, value: string): void => {
+    const shown = value.length > 120 ? `${value.slice(0, 119)}…` : value;
+    warnings.push({
+      type: 'fact_alteration',
+      message: `We could not find this from your brief in the draft: ${label}: ${shown}. Add it or check the draft.`,
+      details: { field: label, expected: shown },
+    });
+  };
+  for (const item of brief.items) {
+    if (isEmpty(item.value)) continue;
+    if (item.kind === 'date' || item.kind === 'choice' || item.kind === 'choices') continue;
+    if (item.kind === 'narrative') continue;
+    if (item.part !== 'parties' && item.part !== 'numbers') continue;
+    const values = Array.isArray(item.value) ? item.value : [item.value as string];
+    const lost = values.filter((v) => !factIsIn(v, documentWords, documentNumbers));
+    if (lost.length > 0) missing(item.label, lost.join(', '));
+  }
+  for (const u of brief.unplaced) {
+    const values = Array.isArray(u.value) ? u.value : [u.value];
+    const lost = values.filter(
+      (v) => v.length <= 300 && !factIsIn(v, documentWords, documentNumbers),
+    );
+    if (lost.length > 0) missing(u.label, lost.join(', '));
+  }
+  return warnings;
+}
+
+// ── No period the brief does not state (T-136) ──────────────────────────────
+
+const NUMBER_WORDS: Record<string, string> = {
+  one: '1',
+  two: '2',
+  three: '3',
+  four: '4',
+  five: '5',
+  six: '6',
+  seven: '7',
+  eight: '8',
+  nine: '9',
+  ten: '10',
+  eleven: '11',
+  twelve: '12',
+  fifteen: '15',
+  twenty: '20',
+  thirty: '30',
+  forty: '40',
+  fifty: '50',
+  sixty: '60',
+  ninety: '90',
+};
+const PERIOD = new RegExp(
+  `\\b(\\d+|${Object.keys(NUMBER_WORDS).join('|')}|several|few|many)(?:\\s*\\(\\d+\\))?\\s+(day|week|month|year)s?\\b`,
+  'gi',
+);
+
+/** Each period a text states, as "3 day": the count as a number, and the unit. */
+function periodsIn(text: string): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const m of text.matchAll(PERIOD)) {
+    const count = NUMBER_WORDS[m[1].toLowerCase()] ?? m[1].toLowerCase();
+    const key = `${count} ${m[2].toLowerCase()}`;
+    if (!out.has(key)) out.set(key, m[0].replace(/\s+/g, ' '));
+  }
+  return out;
+}
+
+/**
+ * Finding C3 (Ajay, T-136): a length of time in the Drafter's text that
+ * nothing it was given states. `known` is every text the Drafter was given:
+ * the brief, the description, the rule pack and the system's parts. A period
+ * the pack gives, such as the fifteen days of a statutory notice, is the
+ * law's period and is never reported (his condition 3). A count that is a
+ * number of the brief (an age, a term in months) is the brief's own.
+ */
+export function checkPeriods(body: string, known: string[], brief: Brief): ValidationWarning[] {
+  const stated = new Set<string>();
+  for (const text of known) for (const key of periodsIn(text).keys()) stated.add(key);
+  const numbers = new Set<string>();
+  for (const item of brief.items) {
+    if (typeof item.value === 'string' && /^\d+$/.test(item.value.trim())) {
+      numbers.add(item.value.trim());
+    }
+  }
+  const warnings: ValidationWarning[] = [];
+  for (const [key, words] of periodsIn(body)) {
+    if (stated.has(key) || numbers.has(key.split(' ')[0])) continue;
+    warnings.push({
+      type: 'fact_alteration',
+      message: `The draft states a period that is not in your brief: ${words}. Check it before use.`,
+      details: { field: 'period', expected: words },
+    });
+  }
+  return warnings;
+}
+
+/** Every text of a rule pack that the Drafter is given, for telling the law's own periods. */
+export function packTexts(pack: RulePack): string[] {
+  return [
+    ...pack.draftingInstructions,
+    ...pack.mandatoryClauses.flatMap((c) => [c.title, c.detail ?? '', c.fixedText ?? '', ...c.parts]),
+    ...pack.relevantActs.flatMap((a) => a.sections.map((x) => x.description ?? '')),
+    pack.prayerTemplate ?? '',
+    pack.verificationTemplate ?? '',
+  ];
 }
 
 // ── The provision that depends on the court (T-135) ─────────────────────────
