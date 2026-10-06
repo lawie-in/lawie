@@ -216,7 +216,7 @@ export default function LoginPage() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. LWPATNA1"
+                  placeholder="e.g. LAWIE2026"
                   value={referralCode}
                   onChange={(e) => {
                     setReferralCode(e.target.value.toUpperCase());

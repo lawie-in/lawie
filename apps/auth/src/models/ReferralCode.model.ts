@@ -7,7 +7,7 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IReferralCode extends Document {
-  code: string; // 4–16 char uppercase alphanumeric, e.g. "LWPATNA1"
+  code: string; // 4–16 char uppercase alphanumeric, e.g. "LAWIE2026"
   label?: string; // human-readable label, e.g. "Patna bar review"
   createdBy: Types.ObjectId; // founder's userId
   isActive: boolean;

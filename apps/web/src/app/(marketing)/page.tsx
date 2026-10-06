@@ -219,7 +219,7 @@ export default function HomePage() {
               <div className="paper front">
                 <div className="doc-court">
                   IN THE COURT OF THE CHIEF JUDICIAL MAGISTRATE
-                  <small>District &amp; Sessions Court, Patna</small>
+                  <small>Your district, your court</small>
                 </div>
                 <div className="doc-rule" />
                 <span className="doc-chip">Bail Application · S.480 BNSS</span>
