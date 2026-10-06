@@ -29,6 +29,16 @@ export interface IDocument extends Document {
   runId?: string;
   runSequence?: number;
 
+  /** T-106 — the rule pack the draft was written under. Unset for a draft from a form. */
+  rulePackId?: string;
+  /**
+   * T-106, ADR-021 rule 6 — true when the draft carries "Starting draft — review
+   * before use · not court-verified". Set by the server. The user cannot clear it.
+   */
+  startingDraft?: boolean;
+  /** T-106 — the confirmed brief the draft was written from (encrypted). A revision needs it. */
+  brief?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -117,6 +127,10 @@ const DocumentSchema = new Schema<IDocument>(
 
     runId: { type: String, default: undefined },
     runSequence: { type: Number, default: undefined },
+
+    rulePackId: { type: String, default: undefined, maxlength: 100 },
+    startingDraft: { type: Boolean, default: undefined },
+    brief: { type: String, default: undefined },
   },
   { timestamps: true },
 );

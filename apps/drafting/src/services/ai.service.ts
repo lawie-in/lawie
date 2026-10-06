@@ -22,6 +22,24 @@ import type { RunType } from '../models/Generation.model';
 
 import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-settings.service';
 import {
+  buildDrafterUserPrompt,
+  buildRepairUserPrompt,
+  checkAgainstBrief,
+  DrafterPromptInput,
+  drafterBrief,
+  findMissingClauses,
+  formDataFromBrief,
+  keepsEveryParagraph,
+  labelReason,
+  MissingClause,
+  needsStartingDraftLabel,
+  splitDrafterOutput,
+  systemParts,
+  TrailerFilter,
+} from './brief-drafter';
+import { DRAFTER_PACK_SYSTEM_PROMPT, DRAFTER_REPAIR_SYSTEM_PROMPT } from './drafter.prompts';
+import type { Brief } from './intake-brief';
+import {
   estimateOutputTokens,
   parseAnthropicStreamEvent,
   parseOpenAIStreamLine,
@@ -30,6 +48,7 @@ import {
 } from './llm-usage';
 import { postProcess } from './post-processor';
 import { assemblePrompt, PromptInput } from './prompt-assembler';
+import type { RulePack } from './rule-pack.service';
 import { convertOldReferencesInText } from './sections.service';
 import {
   TemplateConfig,
@@ -912,6 +931,364 @@ export async function streamGenerateFromTemplate(
     aiModel,
     transport,
     bodyParaCount,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BRIEF PIPELINE (T-106, ADR-021 sections 3.5 and 3.6)
+// A confirmed brief and a rule pack go in. The Drafter writes the body in one
+// call. Code adds the cause title, the prayer, the verification and the other
+// fixed parts from the brief, as the template pipeline does. Then every
+// mandatory clause is checked, one repair pass runs if one is missing, and the
+// rule checks run. The template pipeline above is not changed by any of this.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface BriefGenerateInput {
+  pack: RulePack;
+  templateConfig: TemplateConfig;
+  /** The brief as the server worked it out again from what the user confirmed. */
+  brief: Brief;
+  language: 'en' | 'hi' | 'bilingual';
+  /** The number of numbered paragraphs wanted in the body. */
+  targetParagraphs: number;
+  /** The court the user chose, from the courts data. Absent on a document that has no court. */
+  courtData?: CourtLookupData;
+  advocateName?: string;
+  enrollmentNumber?: string;
+  userId?: string;
+  runId: string;
+  runSequence: number;
+  runType: RunType;
+}
+
+export interface BriefGenerateResult extends TemplateGenerateResult {
+  /** Mandatory clauses still not covered after the repair pass. */
+  missingClauses: MissingClause[];
+  /** True when the repair pass ran and its result was kept. */
+  repaired: boolean;
+  /** ADR-021 rule 6: true unless every mandatory clause is present and every check passed. */
+  startingDraft: boolean;
+  /** The line shown with a labelled draft (T-127, section 7.3). */
+  labelReason: string | null;
+}
+
+export async function streamGenerateFromBrief(
+  input: BriefGenerateInput,
+  res: Response,
+): Promise<BriefGenerateResult> {
+  const { pack, templateConfig, brief, courtData } = input;
+
+  // ── The brief as form values, for the parts the system adds ───────────────
+  const formData = formDataFromBrief(brief, templateConfig, input.language);
+  const converted: Record<string, unknown> = {};
+  if (templateConfig.validation_rules.auto_convert_old_to_new) {
+    for (const step of templateConfig.form_schema.steps) {
+      for (const field of step.fields) {
+        const value = formData[field.field_id];
+        if (field.auto_convert_old && typeof value === 'string' && value.length > 0) {
+          const result = await convertOldReferencesInText(value);
+          formData[field.field_id] = result.converted;
+          converted[field.field_id] = result.converted;
+        }
+      }
+    }
+  }
+
+  const ctx = buildPlaceholderContext(
+    templateConfig,
+    formData,
+    { advocateName: input.advocateName, enrollmentNumber: input.enrollmentNumber },
+    courtData,
+  );
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  // ── What the Drafter is given ─────────────────────────────────────────────
+  const parts = systemParts(templateConfig);
+  const courtRule = courtData?.courtRule;
+  const promptInput: DrafterPromptInput = {
+    pack,
+    brief: drafterBrief(brief, ctx.court_designation || courtData?.designation || null, converted),
+    systemParts: parts,
+    courtRules: [
+      ...(courtRule?.localRules ?? []),
+      ...Object.entries(courtRule?.party_designation ?? {}).map(
+        ([role, label]) => `Party designation, ${role}: "${label}"`,
+      ),
+    ],
+    target: input.targetParagraphs,
+    language: input.language,
+  };
+  const tracking = heliconeHeaders(
+    input.userId,
+    pack.id,
+    input.runId,
+    input.runSequence,
+    input.runType,
+  );
+
+  const meter = new UsageMeter();
+  let aiModel: string | undefined;
+  let transport: 'direct' | 'helicone' | undefined;
+
+  // ── The body: one Drafter call (decision D6) ──────────────────────────────
+  let raw = '';
+  const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+  const filter = new TrailerFilter();
+  const recordCall = (sectionId: string, d: CallUsageDraft, text: string): void => {
+    aiModel = d.model ?? aiModel;
+    transport = d.transport ?? transport;
+    meter.record({
+      sectionId,
+      inputTokens: d.inputTokens,
+      outputTokens: d.usageSource === 'provider' ? d.outputTokens : estimateOutputTokens(text),
+      usageSource: d.usageSource === 'provider' ? 'provider' : 'estimated',
+    });
+  };
+  try {
+    for await (const text of streamLLM(
+      DRAFTER_PACK_SYSTEM_PROMPT,
+      buildDrafterUserPrompt(promptInput),
+      8192,
+      tracking,
+      draft,
+    )) {
+      raw += text;
+      // The clause report after the document is for the server, never for the user.
+      const visible = filter.push(text);
+      if (visible) res.write(`data: ${JSON.stringify({ text: visible })}\n\n`);
+    }
+    const tail = filter.end();
+    if (tail) res.write(`data: ${JSON.stringify({ text: tail })}\n\n`);
+    recordCall('body', draft, raw);
+  } catch (llmErr) {
+    recordCall('body', draft, raw);
+    const classified = classifyLlmError(llmErr);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(
+        `[drafting] Drafter stream failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+        llmErr instanceof Error ? llmErr.name : 'unknown',
+      );
+    }
+    res.write(
+      `event: error\ndata: ${JSON.stringify({
+        section: 'body',
+        reason: classified.userMessage,
+        retryable: classified.retryable,
+        code: classified.code,
+        runId: input.runId,
+      })}\n\n`,
+    );
+    // The route ends the response after the failed Generation row is saved.
+    throw new GenerationFailedError(
+      classified.userMessage,
+      classified.code,
+      meter.totals(),
+      aiModel,
+      transport,
+    );
+  }
+
+  let output = splitDrafterOutput(raw);
+  output = { ...output, body: sanitiseAIBody(output.body) };
+  let missing = findMissingClauses(pack, output, parts);
+  let repaired = false;
+
+  // ── One repair pass, at our cost (decision D3) ────────────────────────────
+  if (missing.length > 0 && output.body.length > 0) {
+    res.write(`event: repair\ndata: ${JSON.stringify({ missing: missing.length })}\n\n`);
+    let repairRaw = '';
+    const repairDraft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+    try {
+      for await (const text of streamLLM(
+        DRAFTER_REPAIR_SYSTEM_PROMPT,
+        buildRepairUserPrompt(
+          promptInput,
+          output.body,
+          missing.map((m) => m.id),
+        ),
+        8192,
+        tracking,
+        repairDraft,
+      )) {
+        repairRaw += text;
+      }
+      recordCall('repair', repairDraft, repairRaw);
+      const second = splitDrafterOutput(repairRaw);
+      const secondBody = sanitiseAIBody(second.body);
+      // The repair may add clauses and nothing else. If it dropped or rewrote
+      // a paragraph, the first draft is kept and the clauses stay missing.
+      if (secondBody.length > 0 && keepsEveryParagraph(output.body, secondBody)) {
+        const candidate = { body: secondBody, report: second.report };
+        const stillMissing = findMissingClauses(pack, candidate, parts);
+        if (stillMissing.length < missing.length) {
+          output = candidate;
+          missing = stillMissing;
+          repaired = true;
+        }
+      }
+    } catch (repairErr) {
+      // A failed repair never fails the draft. Its tokens are still counted.
+      recordCall('repair', repairDraft, repairRaw);
+      if (process.env.NODE_ENV !== 'test') {
+        console.error(
+          `[drafting] Repair pass failed (kind=${pack.id}, runId=${input.runId}):`,
+          repairErr instanceof Error ? repairErr.name : 'unknown',
+        );
+      }
+    }
+  }
+
+  // ── The parts the system adds, in the template's order ────────────────────
+  const renderedSections: RenderedSection[] = [];
+  let bodyPlaced = false;
+  for (const section of templateConfig.document_structure.sections) {
+    if (section.type === 'template') {
+      renderedSections.push(renderTemplateSection(section, ctx));
+    } else if (!bodyPlaced) {
+      // One body, where the template's first AI section sits. Any further AI
+      // section of the old form pipeline has no place here.
+      bodyPlaced = true;
+      renderedSections.push({
+        section_id: 'body',
+        type: 'ai_generated',
+        content: output.body,
+        alignment: section.alignment,
+      });
+    }
+  }
+  if (!bodyPlaced) {
+    renderedSections.push({ section_id: 'body', type: 'ai_generated', content: output.body });
+  }
+
+  const { fullText, bodyParaCount } = assembleDocument(renderedSections);
+  ctx.body_para_count = String(bodyParaCount);
+
+  res.write(
+    `event: template_sections\ndata: ${JSON.stringify({
+      sections: renderedSections.map((s) => ({
+        section_id: s.section_id,
+        type: s.type,
+        content:
+          s.type === 'template' && s.content.includes('{body_para_count}')
+            ? s.content.replace(/\{body_para_count\}/g, String(bodyParaCount))
+            : s.content,
+        alignment: s.alignment,
+        style: s.style,
+      })),
+    })}\n\n`,
+  );
+
+  const checklistSource =
+    templateConfig.filing_checklist.length > 0
+      ? templateConfig.filing_checklist
+      : pack.filingChecklist;
+  const filingChecklist = checklistSource.map((item) =>
+    item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
+  );
+  if (filingChecklist.length > 0) {
+    res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
+  }
+
+  // ── Checks: the ones the template pipeline runs, then the brief's own ─────
+  const allWarnings: ValidationWarning[] = [];
+  const body = output.body;
+  const given = new Map<string, string>();
+  for (const item of brief.items) {
+    if (typeof item.value === 'string' && item.value.length > 0) given.set(item.key, item.value);
+  }
+
+  for (const section of templateConfig.document_structure.sections) {
+    if (section.type === 'template' && section.template) {
+      for (const key of detectLeakedPlaceholders(section.template, ctx)) {
+        allWarnings.push({
+          type: 'missing_clause',
+          message: `Unfilled placeholder "{${key}}" in section "${section.section_id}". Please provide this field or it will appear as a blank in the document.`,
+          details: { clauseId: key },
+        });
+      }
+    }
+  }
+
+  allWarnings.push(...(await detectOldLawReferences(body)));
+
+  const bnsCited = extractBNSSectionNumbers(body);
+  allWarnings.push(...validateBNSWhitelist(bnsCited));
+
+  const facts =
+    given.get('facts_narrative') ?? given.get('facts') ?? given.get('fixed.facts') ?? '';
+  if (templateConfig.category === 'criminal' && facts) {
+    allWarnings.push(...checkFactSectionSanity(facts, bnsCited));
+  }
+
+  const grounds = formData.grounds_for_bail ?? formData.grounds_for_quashing ?? formData.grounds;
+  const groundsGiven = brief.items.some(
+    (i) =>
+      ['grounds_for_bail', 'grounds_for_quashing', 'grounds'].includes(i.key) && i.value !== null,
+  );
+  if (groundsGiven && grounds && facts) {
+    for (const m of detectCoherenceMismatches(grounds as string | string[], facts)) {
+      allWarnings.push({
+        type: 'coherence_mismatch',
+        message: m.warning_message,
+        details: { rule: m.rule_id, ground: m.ground_label },
+      });
+    }
+  }
+
+  if (templateConfig.validation_rules.fact_alteration_check && facts) {
+    const altered = checkFactAlteration(facts, body);
+    if (altered) allWarnings.push(altered);
+  }
+
+  for (const [key, what] of [
+    ['applicant_name', 'applicant name'],
+    ['father_name', 'father name'],
+  ]) {
+    const value = given.get(key);
+    if (value && body.length > 0 && !body.includes(value)) {
+      allWarnings.push({
+        type: 'fact_alteration',
+        message: `The body does not contain the ${what} "${value}" as given in the brief. Check that the party is named correctly.`,
+        details: { field: key, expected: value },
+      });
+    }
+  }
+
+  // Nothing in the body that the brief and the pack do not give (ADR-021, rule 2).
+  allWarnings.push(...checkAgainstBrief(body, brief, pack));
+
+  // Every mandatory clause of the pack (ADR-021, rule 1).
+  for (const clause of missing) {
+    allWarnings.push({
+      type: 'missing_clause',
+      message: `This draft does not cover "${clause.title}". Add it before use.`,
+      details: { clauseId: clause.id },
+    });
+  }
+
+  if (allWarnings.length > 0) {
+    res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
+  }
+
+  return {
+    fullText,
+    sections: renderedSections,
+    filingChecklist,
+    sectionsCited: buildSectionsCited(fullText),
+    mandatoryClausesComplete: missing.length === 0,
+    warnings: allWarnings,
+    usage: meter.totals(),
+    aiModel,
+    transport,
+    bodyParaCount,
+    missingClauses: missing,
+    repaired,
+    startingDraft: needsStartingDraftLabel(missing, allWarnings),
+    labelReason: labelReason(missing, allWarnings),
   };
 }
 
