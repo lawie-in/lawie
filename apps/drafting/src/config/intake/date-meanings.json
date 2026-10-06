@@ -1,0 +1,577 @@
+{
+  "_meta": {
+    "description": "What a date is the date of. A date read from the description is placed under a fact only when its quote carries a cue for the kind of that fact (T-105).",
+    "owner": "Ajay (CLO)",
+    "signed": "T-127, 6 Oct 2026, section 6",
+    "last_updated": "2026-10-06",
+    "change_protocol": "Legal content. All edits require CLO sign-off."
+  },
+  "hindi_months": {
+    "जनवरी": 1,
+    "फरवरी": 2,
+    "फ़रवरी": 2,
+    "मार्च": 3,
+    "अप्रैल": 4,
+    "मई": 5,
+    "जून": 6,
+    "जुलाई": 7,
+    "अगस्त": 8,
+    "सितंबर": 9,
+    "सितम्बर": 9,
+    "अक्टूबर": 10,
+    "अक्तूबर": 10,
+    "नवंबर": 11,
+    "नवम्बर": 11,
+    "दिसंबर": 12,
+    "दिसम्बर": 12
+  },
+  "kinds": [
+    {
+      "id": "fir",
+      "label": "Date of FIR",
+      "subject": [
+        "fir",
+        "f.i.r",
+        "f.i.r.",
+        "first information report",
+        "प्राथमिकी",
+        "एफआईआर",
+        "एफ.आई.आर"
+      ],
+      "tie": [
+        "dated",
+        "date",
+        "registered",
+        "lodged",
+        "recorded",
+        "filed",
+        "दिनांक",
+        "तारीख",
+        "दर्ज",
+        "dinank",
+        "tarikh",
+        "darj"
+      ],
+      "facts": ["fir_date"]
+    },
+    {
+      "id": "arrest",
+      "label": "Date of arrest",
+      "subject": [
+        "arrested",
+        "arrest",
+        "apprehended",
+        "picked up",
+        "गिरफ्तार",
+        "गिरफ़्तार",
+        "गिरफ्तारी",
+        "गिरफ़्तारी",
+        "पकड़ा",
+        "पकड़ लिया",
+        "giraftar",
+        "giraftaar",
+        "girftar",
+        "giraftari",
+        "pakda",
+        "pakad liya"
+      ],
+      "facts": ["arrest_date"]
+    },
+    {
+      "id": "custody",
+      "label": "In custody since",
+      "subject": [
+        "custody",
+        "in jail",
+        "in prison",
+        "lodged in",
+        "हिरासत",
+        "अभिरक्षा",
+        "जेल",
+        "कारागार",
+        "hirasat",
+        "jail"
+      ],
+      "facts": ["custody_since"]
+    },
+    {
+      "id": "remand",
+      "label": "Date of first remand",
+      "subject": ["remand", "remanded", "रिमांड", "rimand"],
+      "facts": ["remand_date"]
+    },
+    {
+      "id": "detention",
+      "label": "Date of detention",
+      "subject": [
+        "detained",
+        "detention",
+        "detenu",
+        "निरुद्ध",
+        "नज़रबंद",
+        "नजरबंद",
+        "बंदी",
+        "nazarband",
+        "nazarbandi"
+      ],
+      "facts": ["date_of_detention"]
+    },
+    {
+      "id": "chargesheet",
+      "label": "Date of the chargesheet",
+      "subject": [
+        "chargesheet",
+        "charge sheet",
+        "charge-sheet",
+        "final report",
+        "आरोप पत्र",
+        "आरोप-पत्र",
+        "चार्जशीट",
+        "aarop patra",
+        "arop patra"
+      ],
+      "facts": ["chargesheet_date"]
+    },
+    {
+      "id": "order",
+      "label": "Date of the order or judgment",
+      "subject": [
+        "order",
+        "judgment",
+        "judgement",
+        "decree",
+        "convicted",
+        "conviction",
+        "sentenced",
+        "sentence",
+        "dismissed",
+        "dismissal",
+        "rejected",
+        "आदेश",
+        "निर्णय",
+        "फैसला",
+        "फ़ैसला",
+        "डिक्री",
+        "दोषसिद्धि",
+        "सजा",
+        "सज़ा",
+        "खारिज",
+        "aadesh",
+        "adesh",
+        "faisla",
+        "nirnay",
+        "saza",
+        "kharij"
+      ],
+      "facts": [
+        "impugned_order_date",
+        "bail_order_date",
+        "original_order_date",
+        "date_of_dismissal",
+        "review_dismissal_date",
+        "judgment_date",
+        "original_judgment_date",
+        "sentence_date"
+      ]
+    },
+    {
+      "id": "filing",
+      "label": "Date of filing",
+      "subject": ["filed", "filing", "instituted", "दायर", "दाखिल", "dayar", "dakhil"],
+      "facts": [
+        "filing_date",
+        "actual_filing_date",
+        "appeal_filing_date",
+        "ws_filing_date",
+        "review_petition_date_filed"
+      ]
+    },
+    {
+      "id": "notice",
+      "label": "Date of the notice",
+      "subject": ["notice", "नोटिस", "notis"],
+      "facts": ["legal_notice_date", "s8_demand_notice_date"]
+    },
+    {
+      "id": "demand",
+      "label": "Date of the demand",
+      "subject": [
+        "demand",
+        "demanded",
+        "representation",
+        "मांग",
+        "माँग",
+        "अभ्यावेदन",
+        "maang",
+        "mang",
+        "abhyavedan"
+      ],
+      "facts": ["demand_made_date", "demand_made_on"]
+    },
+    {
+      "id": "agreement",
+      "label": "Date of the agreement",
+      "subject": [
+        "agreement",
+        "contract",
+        "deed",
+        "executed",
+        "signed",
+        "entered into",
+        "mou",
+        "अनुबंध",
+        "करार",
+        "इकरारनामा",
+        "समझौता",
+        "निष्पादित",
+        "anubandh",
+        "karar",
+        "ikrarnama",
+        "samjhauta"
+      ],
+      "facts": ["effective_date", "date_of_execution", "contract_date", "agreement_for_sale_date"]
+    },
+    {
+      "id": "start",
+      "label": "Start date",
+      "subject": [
+        "commenced",
+        "commencement",
+        "commencing",
+        "started",
+        "starts",
+        "start date",
+        "began",
+        "joined",
+        "joining",
+        "with effect from",
+        "w.e.f",
+        "w.e.f.",
+        "शुरू",
+        "प्रारंभ",
+        "आरंभ",
+        "shuru",
+        "chalu"
+      ],
+      "facts": ["lease_start_date", "license_start_date", "tenancy_start_date", "joining_date"]
+    },
+    {
+      "id": "end",
+      "label": "End date",
+      "subject": [
+        "ends",
+        "ended",
+        "end date",
+        "expires",
+        "expired",
+        "expiry",
+        "terminated",
+        "termination",
+        "valid up to",
+        "valid till",
+        "until",
+        "till",
+        "समाप्त",
+        "खत्म",
+        "ख़त्म",
+        "तक",
+        "samapt",
+        "khatam"
+      ],
+      "facts": [
+        "lease_end_date",
+        "end_date",
+        "end_date_if_fixed",
+        "notice_expiry_date",
+        "expiry_date"
+      ]
+    },
+    {
+      "id": "marriage",
+      "label": "Date of marriage",
+      "subject": [
+        "married",
+        "marriage",
+        "solemnised",
+        "solemnized",
+        "wedding",
+        "विवाह",
+        "शादी",
+        "vivah",
+        "shaadi",
+        "shadi"
+      ],
+      "facts": ["marriage_date"]
+    },
+    {
+      "id": "separation",
+      "label": "Date of separation",
+      "subject": [
+        "separated",
+        "separation",
+        "living separately",
+        "living apart",
+        "left the matrimonial home",
+        "withdrew",
+        "deserted",
+        "desertion",
+        "अलग रह",
+        "छोड़ कर",
+        "छोड़कर",
+        "परित्याग",
+        "alag reh",
+        "alag rah",
+        "chhod kar",
+        "chhodkar"
+      ],
+      "facts": ["separation_date", "date_of_withdrawal"]
+    },
+    {
+      "id": "incident",
+      "label": "Date of the incident",
+      "subject": [
+        "incident",
+        "occurrence",
+        "occurred",
+        "happened",
+        "took place",
+        "accident",
+        "assaulted",
+        "cause of action",
+        "घटना",
+        "दुर्घटना",
+        "वारदात",
+        "हादसा",
+        "ghatna",
+        "durghatna",
+        "vardat",
+        "hadsa"
+      ],
+      "facts": ["incident_date", "accident_date", "cause_of_action_date"]
+    },
+    {
+      "id": "breach",
+      "label": "Date of the breach or default",
+      "subject": [
+        "breach",
+        "breached",
+        "default",
+        "defaulted",
+        "failed to pay",
+        "उल्लंघन",
+        "चूक",
+        "ullanghan",
+        "chook"
+      ],
+      "facts": ["date_of_breach", "default_date"]
+    },
+    {
+      "id": "transaction",
+      "label": "Date of the purchase or payment",
+      "subject": [
+        "purchased",
+        "purchase",
+        "bought",
+        "paid",
+        "payment",
+        "transaction",
+        "lent",
+        "advanced",
+        "booked",
+        "availed",
+        "खरीदा",
+        "ख़रीदा",
+        "खरीदी",
+        "भुगतान",
+        "उधार",
+        "kharida",
+        "kharidi",
+        "bhugtan",
+        "udhar",
+        "udhaar"
+      ],
+      "facts": ["transaction_date", "purchase_date", "date_of_purchase_or_service"]
+    },
+    {
+      "id": "cheque",
+      "label": "Date of the cheque",
+      "subject": ["cheque", "चेक", "chek"],
+      "tie": ["dated", "date", "दिनांक", "तारीख", "dinank", "tarikh"],
+      "facts": ["cheque_date"]
+    },
+    {
+      "id": "cheque_presented",
+      "label": "Date the cheque was presented",
+      "subject": ["presented", "presentation", "deposited", "प्रस्तुत", "जमा", "jama"],
+      "facts": ["presentation_date"]
+    },
+    {
+      "id": "dishonour",
+      "label": "Date of dishonour",
+      "subject": [
+        "dishonoured",
+        "dishonored",
+        "dishonour",
+        "dishonor",
+        "bounced",
+        "returned unpaid",
+        "return memo",
+        "अनादरित",
+        "अनादरण",
+        "बाउंस",
+        "anadrit",
+        "bounce"
+      ],
+      "facts": ["dishonour_date"]
+    },
+    {
+      "id": "hearing",
+      "label": "Date of hearing",
+      "subject": [
+        "next date",
+        "hearing",
+        "listed",
+        "fixed for",
+        "सुनवाई",
+        "अगली तारीख",
+        "पेशी",
+        "sunwai",
+        "sunvai",
+        "agli tarikh",
+        "peshi"
+      ],
+      "facts": ["next_hearing_date", "next_date_missed"]
+    },
+    {
+      "id": "served",
+      "label": "Date of service or receipt",
+      "subject": [
+        "served",
+        "service",
+        "received",
+        "receipt",
+        "तामील",
+        "प्राप्त",
+        "tameel",
+        "tamil",
+        "prapt"
+      ],
+      "facts": ["service_of_order_date", "summons_service_date", "certified_copy_received_date"]
+    },
+    {
+      "id": "known",
+      "label": "Date it first came to notice",
+      "subject": [
+        "came to know",
+        "came to notice",
+        "learnt",
+        "learned",
+        "noticed",
+        "detected",
+        "discovered",
+        "knowledge",
+        "पता चला",
+        "जानकारी",
+        "pata chala",
+        "jankari"
+      ],
+      "facts": ["knowledge_of_dismissal_date", "date_first_noticed", "date_of_detection"]
+    },
+    {
+      "id": "possession",
+      "label": "Date of possession",
+      "subject": [
+        "possession",
+        "handed over",
+        "handover",
+        "hand over",
+        "कब्जा",
+        "कब्ज़ा",
+        "क़ब्ज़ा",
+        "kabza",
+        "kabja"
+      ],
+      "facts": ["promised_possession_date", "actual_possession_date", "possession_date"]
+    },
+    {
+      "id": "birth",
+      "label": "Date of birth",
+      "subject": ["born", "date of birth", "dob", "d.o.b", "d.o.b.", "जन्म", "janm", "janam"],
+      "facts": ["minor_dob"]
+    },
+    {
+      "id": "publication",
+      "label": "Date of publication",
+      "subject": [
+        "published",
+        "publication",
+        "posted",
+        "broadcast",
+        "aired",
+        "telecast",
+        "प्रकाशित",
+        "छपा",
+        "prakashit",
+        "chhapa"
+      ],
+      "facts": ["date_of_publication"]
+    },
+    {
+      "id": "registration",
+      "label": "Date of registration",
+      "subject": ["registered", "registration", "पंजीकृत", "पंजीकरण", "panjikrit", "panjikaran"],
+      "facts": ["date_of_registration"]
+    },
+    {
+      "id": "first_use",
+      "label": "Date of first use",
+      "subject": [
+        "first used",
+        "first use",
+        "used since",
+        "in use since",
+        "user since",
+        "using since"
+      ],
+      "facts": ["date_of_user", "date_of_first_use"]
+    },
+    {
+      "id": "appointment",
+      "label": "Date of appointment",
+      "subject": ["appointed", "appointment", "नियुक्त", "नियुक्ति", "niyukt", "niyukti"],
+      "facts": ["appointment_date"]
+    },
+    {
+      "id": "leave",
+      "label": "Date leave was granted",
+      "subject": [
+        "leave granted",
+        "leave of court",
+        "leave of the court",
+        "permission granted",
+        "अनुमति",
+        "anumati",
+        "ijazat"
+      ],
+      "facts": ["leave_granted_date", "leave_application_date"]
+    }
+  ],
+  "always_asked": {
+    "why": "These are the date of the document itself, a legal conclusion, or a date the description cannot reliably tie to one fact. They are never read from the description. The user enters them.",
+    "facts": [
+      "execution_date",
+      "date_of_verification",
+      "application_date",
+      "due_date_of_filing",
+      "certified_copy_applied_date",
+      "limitation_period_start",
+      "limitation_start_date",
+      "smr_certificate_date",
+      "definitive_agreement_deadline"
+    ]
+  },
+  "not_a_date": {
+    "why": "Named like a date in a pack but holds something else, such as a day of the month or a period.",
+    "facts": ["rent_due_date", "license_fee_payable_on", "period_elapsed_since_breach"]
+  }
+}
