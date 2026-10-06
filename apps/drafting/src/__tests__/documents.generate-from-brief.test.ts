@@ -48,6 +48,7 @@ function headers(userId = USER_ID) {
 
 const PACK = loadRulePack('bail_regular')!;
 const CLAUSE_IDS = PACK.mandatoryClauses.map((c) => c.id);
+// The first ground of the pack is "False implication". Two tests below lean on that.
 const FIRST_GROUND = buildChecklist(PACK).find((i) => i.key === 'grounds_for_bail')!.options[0];
 
 const court = { state: 'bihar', court_type: 'sessions', court: COURT_ID };
@@ -70,7 +71,9 @@ const VALUES = [
   { key: 'currently_in_custody', value: 'Yes — Judicial custody' },
   {
     key: 'facts_narrative',
-    value: 'The applicant was falsely implicated due to a family land dispute.',
+    // "wrongly named" is what makes the facts support the ground chosen below.
+    value:
+      'The applicant was wrongly named in the FIR and falsely implicated due to a family land dispute.',
   },
   { key: 'grounds_for_bail', value: [FIRST_GROUND] },
 ];
@@ -78,7 +81,7 @@ const VALUES = [
 const BODY = [
   '1. That the applicant Ram Kumar, son of Shri Hari Kumar, is a law-abiding citizen.',
   '2. That FIR No. 124/2026 dated 10.03.2026 was registered at PS Kotwali under Section 318 of BNS.',
-  '3. That the applicant is in judicial custody and was falsely implicated due to a family land dispute.',
+  '3. That the applicant is in judicial custody. He was wrongly named in the FIR and falsely implicated due to a family land dispute.',
   '4. That the applicant has deep roots in society and will not flee from justice.',
 ].join('\n\n');
 
@@ -440,6 +443,23 @@ describe('POST /generate-from-brief — nothing the brief does not give', () => 
     const sent = bodyOf(fetchMock, 0).messages[1].content;
     expect(sent).toContain('"blank": "[To be confirmed: date of FIR]"');
     expect(sent).not.toContain('124/2026');
+  });
+
+  it('facts that do not support the ground chosen are a finding, and the draft carries the label', async () => {
+    mockModel(drafterAnswer());
+    const values = VALUES.map((v) =>
+      v.key === 'facts_narrative'
+        ? { ...v, value: 'The applicant was arrested after a family land dispute.' }
+        : v,
+    );
+    const res = await post({ kind: 'bail_regular', values, court });
+    const warnings = event(res.text, 'warning')!.warnings as Array<{ type: string }>;
+    expect(warnings.map((w) => w.type)).toEqual(['coherence_mismatch']);
+    expect(event(res.text, 'done')).toMatchObject({
+      startingDraft: true,
+      startingDraftLabel: STARTING_DRAFT_LABEL,
+      missingClauses: [],
+    });
   });
 
   it('a date or a section in the body that is not in the brief is a finding, and the draft carries the label', async () => {
