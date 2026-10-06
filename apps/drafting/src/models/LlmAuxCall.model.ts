@@ -6,7 +6,7 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
  *
  * Never holds description text, image data or field values: numbers and ids only.
  */
-export const LLM_AUX_PURPOSES = ['intake_match', 'intake_fill'] as const;
+export const LLM_AUX_PURPOSES = ['intake_match', 'intake_fill', 'intake_reception'] as const;
 export type LlmAuxPurpose = (typeof LLM_AUX_PURPOSES)[number];
 
 export interface ILlmAuxCall extends Document {

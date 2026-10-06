@@ -17,13 +17,43 @@ import { AppSettingMissingError, APP_SETTING_KEYS, getAppSetting } from './app-s
 import { AuxCallError, AuxCallUsage, callAuxModel } from './aux-llm';
 import { applyBailGuard } from './bail-guard';
 import {
+  Brief,
+  BriefCourt,
+  BriefQuestion,
+  buildBrief,
+  buildChecklist,
+  buildQuestions as buildBriefQuestions,
+  checklistLines,
+  checkRead,
+  ChecklistItem,
+  datesReadByCode,
+  fixedChecklist,
+  GivenValue,
+  guidedDateItem,
+  hasCourtSignal,
+  isCourtDocument,
+  namesSupremeCourt,
+  QUESTION_LIMITS as BRIEF_QUESTION_LIMITS,
+  readGuidedBrief,
+  statedDates,
+  wordedQuestions,
+} from './intake-brief';
+import { readIntakeCache, writeIntakeCache } from './intake-cache';
+import { datesInText, digitsOnly, iso, isOwnWords, normalise, parseModelJson } from './intake-text';
+import {
   buildFillUserPrompt,
   buildMatchUserPrompt,
+  buildReceptionGuidedUserPrompt,
+  buildReceptionPackUserPrompt,
   CatalogueEntry,
   FILL_SYSTEM_PROMPT,
   MATCH_SYSTEM_PROMPT,
+  RECEPTION_GUIDED_SYSTEM_PROMPT,
+  RECEPTION_PACK_SYSTEM_PROMPT,
+  ReceptionAnswer,
 } from './intake.prompts';
 import { getModelRates, priceUsage } from './llm-usage';
+import { loadRulePack, RulePack } from './rule-pack.service';
 import {
   evaluateShowIf,
   FormField,
@@ -31,6 +61,9 @@ import {
   loadTemplateConfig,
   TemplateConfig,
 } from './template-engine.service';
+
+// The text helpers live in intake-text.ts. They are re-exported here so existing imports keep working.
+export { datesInText, normalise, parseModelJson } from './intake-text';
 
 // ── Switch (ADR-019 §3.11) ──────────────────────────────────────────────────
 
@@ -64,6 +97,11 @@ export const INTAKE_LIMITS = {
   dailyPaid: 150,
   matchMaxTokens: 300,
   fillMaxTokens: 1500,
+  /** T-105: Reception reads up to 40 checklist lines and words up to 10 questions. */
+  receptionMaxTokens: 3000,
+  /** T-105: model-calling requests allowed for one intake after its first (rounds and changes of kind). */
+  followUpsPerIntake: 6,
+  answerMax: 2000,
   descriptionMin: 20,
   descriptionMax: 4000,
 } as const;
@@ -157,122 +195,6 @@ export function isModelFillable(field: FormField): boolean {
 
 export function allFields(config: TemplateConfig): FormField[] {
   return config.form_schema.steps.flatMap((s) => s.fields);
-}
-
-// ── Text matching helpers ───────────────────────────────────────────────────
-
-export function normalise(s: string): string {
-  return s
-    .normalize('NFKC')
-    .replace(/[‘’‛′]/g, "'")
-    .replace(/[“”″]/g, '"')
-    .replace(/[‐-―]/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
-}
-
-function digitsOnly(s: string): string {
-  return s.replace(/[^0-9.]/g, '');
-}
-
-const MONTHS: Record<string, number> = {
-  jan: 1,
-  january: 1,
-  feb: 2,
-  february: 2,
-  mar: 3,
-  march: 3,
-  apr: 4,
-  april: 4,
-  may: 5,
-  jun: 6,
-  june: 6,
-  jul: 7,
-  july: 7,
-  aug: 8,
-  august: 8,
-  sep: 9,
-  sept: 9,
-  september: 9,
-  oct: 10,
-  october: 10,
-  nov: 11,
-  november: 11,
-  dec: 12,
-  december: 12,
-};
-
-function iso(y: number, m: number, d: number): string | null {
-  if (y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  if (dt.getUTCMonth() !== m - 1) return null;
-  return dt.toISOString().slice(0, 10);
-}
-
-/**
- * Dates a piece of text states, read by code (not by the model), in the
- * formats Indian users write: 15/03/2026, 15-03-2026, 15.03.2026 (day first),
- * 2026-03-15, 15 March 2026, 15th March, 2026, March 15, 2026.
- */
-export function datesInText(text: string): string[] {
-  const out = new Set<string>();
-  const t = text.toLowerCase();
-  for (const m of t.matchAll(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/g)) {
-    const v = iso(+m[1], +m[2], +m[3]);
-    if (v) out.add(v);
-  }
-  for (const m of t.matchAll(/\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})\b/g)) {
-    const v = iso(+m[3], +m[2], +m[1]);
-    if (v) out.add(v);
-  }
-  for (const m of t.matchAll(
-    /\b(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([a-z]{3,9})[,]?\s+(\d{4})\b/g,
-  )) {
-    const mon = MONTHS[m[2]];
-    if (mon) {
-      const v = iso(+m[3], mon, +m[1]);
-      if (v) out.add(v);
-    }
-  }
-  for (const m of t.matchAll(/\b([a-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th)?[,]?\s+(\d{4})\b/g)) {
-    const mon = MONTHS[m[1]];
-    if (mon) {
-      const v = iso(+m[3], mon, +m[2]);
-      if (v) out.add(v);
-    }
-  }
-  return [...out];
-}
-
-/** True when `value` (allowing "…" / "..." cuts) is the user's own words, in order. */
-function isOwnWords(value: string, normDescription: string): boolean {
-  const parts = normalise(value)
-    .split(/\s*(?:…|\.\.\.)\s*/)
-    .filter((p) => p.length > 0);
-  if (parts.length === 0) return false;
-  let from = 0;
-  for (const p of parts) {
-    const at = normDescription.indexOf(p, from);
-    if (at < 0) return false;
-    from = at + p.length;
-  }
-  return true;
-}
-
-// ── JSON from the model ─────────────────────────────────────────────────────
-
-export function parseModelJson(text: string): Record<string, unknown> | null {
-  const stripped = text.replace(/```(?:json)?/gi, '');
-  const start = stripped.indexOf('{');
-  const end = stripped.lastIndexOf('}');
-  if (start < 0 || end <= start) return null;
-  try {
-    const v = JSON.parse(stripped.slice(start, end + 1));
-    return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
-  } catch {
-    return null;
-  }
 }
 
 // ── Match result ────────────────────────────────────────────────────────────
@@ -1042,4 +964,420 @@ export async function runIntake(req: IntakeRequest): Promise<IntakeResponse> {
       }
       return { intake_id: intakeId, outcome: 'no_match' };
   }
+}
+
+// ── The brief (T-105, ADR-021 sections 3.2 to 3.4) ──────────────────────────
+//
+// One path for every document: pick the rule pack, read the description
+// against the pack's checklist, and return a brief with questions for what is
+// missing. Nothing is drafted here and nothing the user wrote is stored or
+// logged. The rules and both Reception prompts are Ajay's (T-127 and T-107).
+
+export interface BriefIntakeRequest {
+  userId: string;
+  plan: string;
+  description: string;
+  language?: string;
+  /**
+   * Set when the user picked a kind, or changed it: a rule-pack id, or `none`
+   * for a document with no rule pack. Skips the match call.
+   */
+  kind?: string;
+  intakeId?: string;
+  /** What the user typed so far. It is kept across a change of kind and wins over what is read. */
+  keep?: GivenValue[];
+  court?: Partial<BriefCourt>;
+  /** No rule pack only: 2 or 3, sent with the answers so far. */
+  round?: number;
+  answers?: ReceptionAnswer[];
+}
+
+export interface BriefIntakeResponse {
+  intake_id: string;
+  outcome: 'brief' | 'questions' | 'needs_choice' | 'no_match' | 'unavailable';
+  brief?: Brief;
+  questions?: BriefQuestion[];
+  /** With `questions` for a document with no rule pack: the round to send back with the answers. */
+  next_round?: number;
+  choices?: Array<{ kind: string; name: string }>;
+  needs_upgrade?: boolean;
+}
+
+interface BriefContext {
+  userId: string;
+  intakeId: string;
+  model: string;
+  /** Counts the request against the limits, once, just before its first real model call. */
+  spend: () => Promise<void>;
+}
+
+/**
+ * A model call that is answered from the cache when this exact request was
+ * made in the last 30 minutes. A cached answer costs nothing, so it is not
+ * counted against the limits and no usage row is written for it.
+ */
+async function cachedModelCall(
+  ctx: BriefContext,
+  purpose: LlmAuxPurpose,
+  system: string,
+  user: string,
+  maxTokens: number,
+): Promise<string | null> {
+  const cacheParts = [ctx.userId, purpose, ctx.model, system, user];
+  const cached = await readIntakeCache(cacheParts);
+  if (cached !== null) return cached;
+  await ctx.spend();
+  const text = await modelCall(ctx, purpose, system, user, maxTokens);
+  if (text !== null) await writeIntakeCache(cacheParts, text);
+  return text;
+}
+
+/** After the first request of an intake, later ones are capped per intake, not per user. */
+async function consumeFollowUp(intakeId: string): Promise<void> {
+  const key = `intake:followups:${intakeId}`;
+  const n = await redis.incr(key);
+  if (n === 1) await redis.expire(key, 2 * 3600);
+  if (n > INTAKE_LIMITS.followUpsPerIntake) {
+    const ttl = await redis.ttl(key);
+    throw new IntakeLimitError('burst', ttl > 0 ? ttl : INTAKE_LIMITS.burstWindowSeconds);
+  }
+}
+
+function userValues(keep: GivenValue[] | undefined): GivenValue[] {
+  return (keep ?? []).map((k) => ({
+    ...k,
+    source: k.source === 'description' ? 'description' : 'user',
+  }));
+}
+
+async function briefWithPack(
+  ctx: BriefContext,
+  pack: RulePack,
+  req: BriefIntakeRequest,
+): Promise<BriefIntakeResponse> {
+  const checklist = buildChecklist(pack);
+  const text = await cachedModelCall(
+    ctx,
+    'intake_reception',
+    RECEPTION_PACK_SYSTEM_PROMPT,
+    buildReceptionPackUserPrompt(pack.name, checklistLines(checklist), req.description),
+    INTAKE_LIMITS.receptionMaxTokens,
+  );
+  if (text === null) return { intake_id: ctx.intakeId, outcome: 'unavailable' };
+
+  // A malformed answer reads as "nothing read". The brief is still returned,
+  // with the dates the code can read and questions written from the labels.
+  const parsed = parseModelJson(text);
+  if (parsed?.outcome === 'not_legal' || parsed?.outcome === 'refused') {
+    console.info(
+      `[intake] reception declined (intakeId=${ctx.intakeId}, outcome=${parsed.outcome})`,
+    );
+    return { intake_id: ctx.intakeId, outcome: 'no_match' };
+  }
+
+  const read = checkRead(checklist, req.description, parsed);
+  const byCode = datesReadByCode(checklist, req.description, read.values);
+  const values: GivenValue[] = [
+    ...[...read.values, ...byCode].map(([key, v]) => ({
+      key,
+      value: v.value,
+      quote: v.quote,
+      source: 'description' as const,
+    })),
+    // What the user typed comes last, so it wins over what was read.
+    ...userValues(req.keep),
+  ];
+  const brief = buildBrief({
+    kind: { id: pack.id, name: pack.name, court_document: isCourtDocument(pack.id) },
+    checklist,
+    values,
+    court: req.court,
+    description: req.description,
+  });
+  console.info(
+    `[intake] brief built (intakeId=${ctx.intakeId}, kind=${pack.id}, read=${read.values.size}, byCode=${byCode.size}, dropped=${read.dropped.length}, unknown=${brief.still_unknown.length})`,
+  );
+  const config = loadTemplateConfig(pack.id);
+  return {
+    intake_id: ctx.intakeId,
+    outcome: 'brief',
+    brief,
+    questions: buildBriefQuestions(brief, wordedQuestions(parsed)),
+    ...(config?.plan_access === 'pro' && req.plan !== 'pro' ? { needs_upgrade: true } : {}),
+  };
+}
+
+function answersText(answers: ReceptionAnswer[]): string {
+  return answers.map((a) => a.answer).join('\n');
+}
+
+async function briefWithNoPack(
+  ctx: BriefContext,
+  req: BriefIntakeRequest,
+  modelSaysCourt: boolean,
+): Promise<BriefIntakeResponse> {
+  // T-107, section 3: nothing for the Supreme Court is drafted without a rule pack.
+  if (namesSupremeCourt(req.description)) {
+    console.info(`[intake] never-draft list (intakeId=${ctx.intakeId}, reason=supreme_court)`);
+    return { intake_id: ctx.intakeId, outcome: 'no_match' };
+  }
+  const round = req.round === 2 || req.round === 3 ? req.round : 1;
+  const answers = round === 1 ? [] : (req.answers ?? []);
+  // Light mode is not used yet (T-127, section 3.1). Strict is always the safe mode.
+  const text = await cachedModelCall(
+    ctx,
+    'intake_reception',
+    RECEPTION_GUIDED_SYSTEM_PROMPT,
+    buildReceptionGuidedUserPrompt(req.description, answers, 'strict', round),
+    INTAKE_LIMITS.receptionMaxTokens,
+  );
+  if (text === null) return { intake_id: ctx.intakeId, outcome: 'unavailable' };
+  const parsed = parseModelJson(text);
+  if (!parsed) return { intake_id: ctx.intakeId, outcome: 'unavailable' };
+
+  if (parsed.outcome === 'not_legal' || parsed.outcome === 'refused') {
+    console.info(
+      `[intake] reception declined (intakeId=${ctx.intakeId}, outcome=${parsed.outcome})`,
+    );
+    return { intake_id: ctx.intakeId, outcome: 'no_match' };
+  }
+
+  if (parsed.outcome === 'questions') {
+    // Two rounds and no more. In round 3 the model is told not to ask; if it still does, we stop.
+    if (round >= 3) {
+      console.error(`[intake] reception asked in round 3 (intakeId=${ctx.intakeId})`);
+      return { intake_id: ctx.intakeId, outcome: 'unavailable' };
+    }
+    const raw = Array.isArray(parsed.questions) ? parsed.questions : [];
+    const questions: BriefQuestion[] = [];
+    for (const q of raw) {
+      const e = (q ?? {}) as { id?: unknown; question?: unknown; about?: unknown };
+      if (typeof e.question !== 'string' || e.question.trim().length < 5) continue;
+      questions.push({
+        key: typeof e.id === 'string' && e.id.length <= 20 ? e.id : `q${questions.length + 1}`,
+        question: e.question.replace(/\s+/g, ' ').trim().slice(0, 240),
+        round: round === 1 ? 1 : 2,
+        label: typeof e.about === 'string' ? e.about.slice(0, 20) : 'fact',
+        kind: 'narrative',
+        options: [],
+      });
+      if (questions.length === BRIEF_QUESTION_LIMITS.perRound) break;
+    }
+    if (questions.length === 0) return { intake_id: ctx.intakeId, outcome: 'unavailable' };
+    return { intake_id: ctx.intakeId, outcome: 'questions', questions, next_round: round + 1 };
+  }
+
+  if (parsed.outcome !== 'brief') return { intake_id: ctx.intakeId, outcome: 'unavailable' };
+
+  // Either the code or the model saying "court" is enough (T-107, section 2).
+  const courtDocument =
+    modelSaysCourt || parsed.court_document === true || hasCourtSignal(req.description);
+  const allText = [req.description, answersText(answers)].filter((t) => t.length > 0).join('\n');
+  const reading = readGuidedBrief(parsed.brief, allText, courtDocument);
+
+  // Dates are read by code, each with the meaning the user's own words give it.
+  const dated = statedDates(allText).filter((d) => d.kind !== null);
+  const seenKinds = new Set<string>();
+  const dateItems: ChecklistItem[] = [];
+  const dateValues: GivenValue[] = [];
+  for (const d of dated) {
+    const kind = d.kind as string;
+    if (seenKinds.has(kind)) continue;
+    seenKinds.add(kind);
+    const item = guidedDateItem(kind);
+    dateItems.push(item);
+    dateValues.push({ key: item.key, value: d.value, quote: d.words, source: 'description' });
+  }
+
+  const brief = buildBrief({
+    kind: {
+      id: null,
+      name: cleanLabel(parsed.document_kind) || 'Document',
+      court_document: courtDocument,
+    },
+    checklist: [...fixedChecklist(courtDocument), ...dateItems],
+    values: [...reading.values, ...dateValues, ...userValues(req.keep)],
+    court: req.court,
+    description: allText,
+    extraUnknowns: reading.unknowns,
+  });
+  console.info(
+    `[intake] brief built (intakeId=${ctx.intakeId}, kind=none, round=${round}, read=${reading.values.length}, dropped=${reading.dropped}, unknown=${brief.still_unknown.length})`,
+  );
+  return { intake_id: ctx.intakeId, outcome: 'brief', brief, questions: [] };
+}
+
+/**
+ * Describe, and get a brief back. Throws IntakeLimitError for a 429. Every
+ * other failure is `outcome: unavailable`.
+ */
+export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefIntakeResponse> {
+  const intakeId = req.intakeId ?? crypto.randomUUID();
+
+  let model: string;
+  try {
+    model = await getAppSetting(APP_SETTING_KEYS.INTAKE_MODEL);
+  } catch (err) {
+    if (err instanceof AppSettingMissingError) {
+      console.error(`[intake] ${APP_SETTING_KEYS.INTAKE_MODEL} is not set (intakeId=${intakeId})`);
+    }
+    return { intake_id: intakeId, outcome: 'unavailable' };
+  }
+  if (!DATED_MODEL_ID.test(model)) {
+    console.error(
+      `[intake] ${APP_SETTING_KEYS.INTAKE_MODEL} must be a full dated model id (intakeId=${intakeId})`,
+    );
+    return { intake_id: intakeId, outcome: 'unavailable' };
+  }
+
+  // A first request counts against the user's limits. A later one for the same
+  // intake (a round of answers, a change of kind) counts against that intake,
+  // but only when this user did start it: an id nobody started is a first request.
+  const ownerKey = `intake:owner:${intakeId}`;
+  const claimsFollowUp =
+    req.intakeId !== undefined && (req.kind !== undefined || (req.round ?? 1) > 1);
+  let spent = false;
+  const ctx: BriefContext = {
+    userId: req.userId,
+    intakeId,
+    model,
+    spend: async () => {
+      if (spent) return;
+      spent = true;
+      if (claimsFollowUp && (await redis.get(ownerKey)) === req.userId) {
+        await consumeFollowUp(intakeId);
+        return;
+      }
+      await consumeIntakeQuota(req.userId, req.plan);
+      await redis.set(ownerKey, req.userId, 'EX', 2 * 3600);
+    },
+  };
+
+  try {
+    const catalogue = getCatalogue();
+    const allowed = new Set(catalogue.map((c) => c.template_id));
+
+    // The user picked the kind, or changed it.
+    if (req.kind !== undefined) {
+      if (req.kind === 'none') return await briefWithNoPack(ctx, req, false);
+      const pack = allowed.has(req.kind) ? loadRulePack(req.kind) : null;
+      if (!pack) return { intake_id: intakeId, outcome: 'no_match' };
+      return await briefWithPack(ctx, pack, req);
+    }
+
+    const text = await cachedModelCall(
+      ctx,
+      'intake_match',
+      MATCH_SYSTEM_PROMPT,
+      buildMatchUserPrompt(req.description, catalogue),
+      INTAKE_LIMITS.matchMaxTokens,
+    );
+    if (text === null) return { intake_id: intakeId, outcome: 'unavailable' };
+
+    const matched = decideMatch(parseModelJson(text), allowed);
+    const guard = applyBailGuard(matched, req.description, allowed);
+    const decision: MatchDecision = guard.changed
+      ? { ...matched, kind: 'needs_choice', templateId: undefined, choices: guard.choices }
+      : matched;
+    if (guard.changed) {
+      console.info(
+        `[intake] bail guard changed the match (intakeId=${intakeId}, from=${matched.kind}, cue=${guard.cue})`,
+      );
+    }
+    console.info(`[intake] match decided (intakeId=${intakeId}, outcome=${decision.kind})`);
+
+    switch (decision.kind) {
+      case 'matched': {
+        const pack = loadRulePack(decision.templateId ?? '');
+        if (!pack) return await briefWithNoPack(ctx, req, decision.isCourtDocument);
+        return await briefWithPack(ctx, pack, req);
+      }
+      case 'needs_choice': {
+        const byId = new Map(catalogue.map((c) => [c.template_id, c.display_name]));
+        return {
+          intake_id: intakeId,
+          outcome: 'needs_choice',
+          choices: (decision.choices ?? []).map((id) => ({ kind: id, name: byId.get(id) ?? id })),
+        };
+      }
+      case 'guided': {
+        // A demand signal for every request no rule pack fits (ADR-019 §3.10).
+        const result = await briefWithNoPack(ctx, req, decision.isCourtDocument);
+        if (result.outcome !== 'unavailable' && (req.round ?? 1) === 1) {
+          await recordDemand(req.userId, intakeId, 'demand.no_template', decision);
+        }
+        return result;
+      }
+      case 'no_match':
+      default:
+        if (decision.noMatchReason !== 'not_legal_drafting') {
+          await recordDemand(
+            req.userId,
+            intakeId,
+            'demand.no_match',
+            decision,
+            decision.noMatchReason,
+          );
+        }
+        return { intake_id: intakeId, outcome: 'no_match' };
+    }
+  } catch (err) {
+    if (err instanceof IntakeLimitError) throw err;
+    console.error(
+      `[intake] brief failed, no further model call made (intakeId=${intakeId}):`,
+      err instanceof Error ? err.name : 'unknown',
+    );
+    return { intake_id: intakeId, outcome: 'unavailable' };
+  }
+}
+
+export interface BriefUpdateRequest {
+  /** A rule-pack id, or `none`. */
+  kind: string;
+  /** For `none`: the name shown for the document, and whether it is a court document. */
+  kindName?: string;
+  courtDocument?: boolean;
+  values: GivenValue[];
+  court?: Partial<BriefCourt>;
+  /** When sent, the dates in it that are not placed are listed again. It is not stored. */
+  description?: string;
+}
+
+/**
+ * Work the brief out again after the user typed, chose the court or changed
+ * the kind. No model call, no limits, no cost. Returns null for an unknown kind.
+ */
+export function updateBrief(req: BriefUpdateRequest): Brief | null {
+  if (req.kind === 'none') {
+    const courtDocument = req.courtDocument === true;
+    const dateItems: ChecklistItem[] = [];
+    for (const v of req.values) {
+      if (!v.key.startsWith('date.')) continue;
+      const item = guidedDateItem(v.key.slice('date.'.length));
+      if (item.label !== item.dateKind && !dateItems.some((d) => d.key === item.key)) {
+        dateItems.push(item);
+      }
+    }
+    return buildBrief({
+      kind: {
+        id: null,
+        name: cleanLabel(req.kindName) || 'Document',
+        court_document: courtDocument,
+      },
+      checklist: [...fixedChecklist(courtDocument), ...dateItems],
+      values: req.values,
+      court: req.court,
+      description: req.description,
+    });
+  }
+  const allowed = new Set(getCatalogue().map((c) => c.template_id));
+  const pack = allowed.has(req.kind) ? loadRulePack(req.kind) : null;
+  if (!pack) return null;
+  return buildBrief({
+    kind: { id: pack.id, name: pack.name, court_document: isCourtDocument(pack.id) },
+    checklist: buildChecklist(pack),
+    values: req.values,
+    court: req.court,
+    description: req.description,
+  });
 }
