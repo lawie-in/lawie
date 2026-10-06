@@ -8,8 +8,10 @@
  * no date or section the brief and the rule pack do not give.
  *
  * LEGAL CONTENT: the rules are Ajay's, signed in T-127
- * (`handoff/design/T-127-one-flow-rules-and-prompts.md`, sections 4 and 7.3)
- * and in ADR-021, section 5. Do not change them without his sign-off.
+ * (`handoff/design/T-127-one-flow-rules-and-prompts.md`, sections 4 and 7.3),
+ * in ADR-021, section 5, and for a request with no rule pack in T-107
+ * (`handoff/design/T-107-guided-draft-rules-and-prompts.md`, sections 4 and
+ * 6). Do not change them without his sign-off.
  */
 import type { Brief, BriefItem } from './intake-brief';
 import { datesInText, normalise } from './intake-text';
@@ -482,7 +484,11 @@ function sectionNumbers(text: string): string[] {
  * brief nor the rule pack (ADR-021, rule 2). These are for the advocate to
  * check: the code does not remove anything from the draft.
  */
-export function checkAgainstBrief(body: string, brief: Brief, pack: RulePack): ValidationWarning[] {
+export function checkAgainstBrief(
+  body: string,
+  brief: Brief,
+  pack: RulePack | null,
+): ValidationWarning[] {
   const warnings: ValidationWarning[] = [];
   const given = textValues(brief);
 
@@ -501,7 +507,7 @@ export function checkAgainstBrief(body: string, brief: Brief, pack: RulePack): V
   }
 
   const knownSections = new Set<string>();
-  for (const act of pack.relevantActs) {
+  for (const act of pack?.relevantActs ?? []) {
     for (const s of act.sections) for (const n of sectionNumbers(s.number)) knownSections.add(n);
   }
   for (const v of given) for (const n of sectionNumbers(v)) knownSections.add(n);
@@ -512,11 +518,99 @@ export function checkAgainstBrief(body: string, brief: Brief, pack: RulePack): V
     flagged.add(base);
     warnings.push({
       type: 'invalid_section',
-      message: `Section ${ref.section}${ref.code ? ` ${ref.code}` : ''} is in the draft but not in your brief or in the rules for this document. Verify before filing.`,
+      message: pack
+        ? `Section ${ref.section}${ref.code ? ` ${ref.code}` : ''} is in the draft but not in your brief or in the rules for this document. Verify before filing.`
+        : `Section ${ref.section}${ref.code ? ` ${ref.code}` : ''} is in the draft but not in your brief. Verify before filing.`,
       details: { section: ref.section, code: ref.code || undefined },
     });
   }
   return warnings;
+}
+
+// ── A request with no rule pack (T-107, section 6) ──────────────────────────
+
+/** The words that open a section reference, in the user's own text. */
+const SECTION_OPENING =
+  /(?:\b(?:[Ss]ections?|[Ss]ec\.?|[Uu]\/[Ss])|धारा)\s*\d+[A-Za-z]{0,2}(?:\s*\([a-z0-9]+\))*(?:\s*(?:,|\/|&|and|read\s+with|r\/w)\s*\d+[A-Za-z]{0,2}(?:\s*\([a-z0-9]+\))*)*/g;
+
+/**
+ * The name of the law, when it follows the numbers at once: "of the
+ * Negotiable Instruments Act, 1881", or a short name in capitals such as
+ * "BNS" or "CrPC". Anything else after the numbers is not taken.
+ */
+const LAW_NAME =
+  /^\s+(?:of\s+)?(?:the\s+)?(?:(?:[A-Z][A-Za-z.&]*\s+){0,7}(?:Act|Code|Sanhita|Adhiniyam|Rules|Constitution)(?:,?\s*\d{4})?|[A-Z][A-Za-z.]{0,7}[A-Z][A-Za-z.]{0,4}(?![A-Za-z]))/;
+
+/**
+ * The section references the advocate wrote, each exactly as written. The
+ * Drafter may cite these and no others (T-107, section 6, rule 3). Code reads
+ * them from the confirmed brief: nothing here comes from a model.
+ */
+export function sectionsGiven(texts: string[]): string[] {
+  const out: string[] = [];
+  for (const text of texts) {
+    for (const m of text.matchAll(SECTION_OPENING)) {
+      const rest = text.slice((m.index ?? 0) + m[0].length);
+      const law = LAW_NAME.exec(rest);
+      const ref = `${m[0]}${law ? law[0] : ''}`.replace(/\s+/g, ' ').trim();
+      if (!out.includes(ref)) out.push(ref);
+      if (out.length === 40) return out;
+    }
+  }
+  return out;
+}
+
+export interface GuidedDrafterBrief extends DrafterBrief {
+  /** Rule 3 of the prompt names this key. */
+  sections_given: string[];
+}
+
+/** The confirmed brief as the Drafter reads it when there is no rule pack. */
+export function guidedDrafterBrief(brief: Brief, courtLine: string | null): GuidedDrafterBrief {
+  return { ...drafterBrief(brief, courtLine), sections_given: sectionsGiven(textValues(brief)) };
+}
+
+/**
+ * What the Drafter is given when there is no rule pack. Light mode is not
+ * used yet (T-127, section 3.1), so the mode is always strict.
+ */
+export function buildGuidedDrafterUserPrompt(input: {
+  brief: GuidedDrafterBrief;
+  target: number;
+  language: string;
+}): string {
+  return [
+    'MODE: strict',
+    `TARGET: ${input.target}`,
+    `LANGUAGE: ${input.language}`,
+    `BRIEF:\n${JSON.stringify(input.brief, null, 1)}`,
+  ].join('\n\n');
+}
+
+/**
+ * The Drafter is told to write no disclaimer (rule 9): the system adds the
+ * label and the footer. A paragraph that is only a disclaimer or a note to the
+ * reader is taken out. Nothing else is touched: with no rule pack the court's
+ * name and the parties are part of what the Drafter writes.
+ */
+export function withoutDisclaimers(text: string): string {
+  return text
+    .split(/\n\s*\n+/)
+    .filter((para) => {
+      const t = para.trim();
+      if (!t) return false;
+      if (/^(?:DISCLAIMER|NOTE)\s*:/i.test(t)) return false;
+      if (/AI[\s-]assisted draft/i.test(t)) return false;
+      if (/Lawie does not provide legal advice/i.test(t)) return false;
+      return true;
+    })
+    .join('\n\n')
+    .trim();
+}
+
+/** Every text the user gave in the brief, for the checks that read it. */
+export function briefText(brief: Brief): string {
+  return textValues(brief).join('\n');
 }
 
 // ── The label (ADR-021, rule 6) ─────────────────────────────────────────────

@@ -22,23 +22,32 @@ import type { RunType } from '../models/Generation.model';
 
 import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-settings.service';
 import {
+  briefText,
   buildDrafterUserPrompt,
+  buildGuidedDrafterUserPrompt,
   buildRepairUserPrompt,
   checkAgainstBrief,
   DrafterPromptInput,
   drafterBrief,
   findMissingClauses,
   formDataFromBrief,
+  guidedDrafterBrief,
   keepsEveryParagraph,
   labelReason,
   MissingClause,
   needsStartingDraftLabel,
+  paragraphNumbers,
   splitDrafterOutput,
   systemParts,
   TrailerFilter,
+  withoutDisclaimers,
 } from './brief-drafter';
-import { DRAFTER_PACK_SYSTEM_PROMPT, DRAFTER_REPAIR_SYSTEM_PROMPT } from './drafter.prompts';
-import type { Brief } from './intake-brief';
+import {
+  DRAFTER_GUIDED_SYSTEM_PROMPT,
+  DRAFTER_PACK_SYSTEM_PROMPT,
+  DRAFTER_REPAIR_SYSTEM_PROMPT,
+} from './drafter.prompts';
+import { Brief, FIXED_KEYS } from './intake-brief';
 import {
   estimateOutputTokens,
   parseAnthropicStreamEvent,
@@ -1292,6 +1301,179 @@ export async function streamGenerateFromBrief(
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// BRIEF PIPELINE, NO RULE PACK (T-106 part 2, ADR-021 section 3.6)
+// There is no rule pack, so there are no fixed parts to add and no mandatory
+// clauses to check. The Drafter writes the whole document from the confirmed
+// brief under Ajay's rules (T-107, section 6). The free checks run, and the
+// draft always carries the starting-draft label.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface GuidedGenerateInput {
+  /** The brief as the server worked it out again from what the user confirmed. Its kind has no id. */
+  brief: Brief;
+  language: 'en' | 'hi' | 'bilingual';
+  targetParagraphs: number;
+  /** The court the user chose, from the courts data. Absent when the document is not for a court. */
+  courtData?: CourtLookupData;
+  userId?: string;
+  runId: string;
+  runSequence: number;
+  runType: RunType;
+}
+
+/** A party value this short is a name, and a name must be in the draft as written. */
+const NAME_WORDS_MAX = 6;
+
+export async function streamGenerateGuided(
+  input: GuidedGenerateInput,
+  res: Response,
+): Promise<BriefGenerateResult> {
+  const { brief, courtData } = input;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  const userPrompt = buildGuidedDrafterUserPrompt({
+    brief: guidedDrafterBrief(brief, courtData?.designation ?? null),
+    target: input.targetParagraphs,
+    language: input.language,
+  });
+  const tracking = heliconeHeaders(
+    input.userId,
+    'guided',
+    input.runId,
+    input.runSequence,
+    input.runType,
+  );
+
+  const meter = new UsageMeter();
+  let aiModel: string | undefined;
+  let transport: 'direct' | 'helicone' | undefined;
+  let raw = '';
+  const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+  const recordCall = (): void => {
+    aiModel = draft.model ?? aiModel;
+    transport = draft.transport ?? transport;
+    meter.record({
+      sectionId: 'body',
+      inputTokens: draft.inputTokens,
+      outputTokens:
+        draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(raw),
+      usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
+    });
+  };
+  try {
+    for await (const text of streamLLM(
+      DRAFTER_GUIDED_SYSTEM_PROMPT,
+      userPrompt,
+      8192,
+      tracking,
+      draft,
+    )) {
+      raw += text;
+      res.write(`data: ${JSON.stringify({ text })}\n\n`);
+    }
+    recordCall();
+  } catch (llmErr) {
+    recordCall();
+    const classified = classifyLlmError(llmErr);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(
+        `[drafting] Drafter stream failed (kind=none, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+        llmErr instanceof Error ? llmErr.name : 'unknown',
+      );
+    }
+    res.write(
+      `event: error\ndata: ${JSON.stringify({
+        section: 'body',
+        reason: classified.userMessage,
+        retryable: classified.retryable,
+        code: classified.code,
+        runId: input.runId,
+      })}\n\n`,
+    );
+    // The route ends the response after the failed Generation row is saved.
+    throw new GenerationFailedError(
+      classified.userMessage,
+      classified.code,
+      meter.totals(),
+      aiModel,
+      transport,
+    );
+  }
+
+  // The whole document is the Drafter's. Only a disclaimer it was told not to write is taken out.
+  const fullText = withoutDisclaimers(raw);
+  const renderedSections: RenderedSection[] = [
+    { section_id: 'body', type: 'ai_generated', content: fullText },
+  ];
+  res.write(
+    `event: template_sections\ndata: ${JSON.stringify({
+      sections: renderedSections.map((s) => ({
+        section_id: s.section_id,
+        type: s.type,
+        content: s.content,
+      })),
+    })}\n\n`,
+  );
+
+  // ── The free checks (T-107, section 9, condition 3): always run, always shown ──
+  const allWarnings: ValidationWarning[] = [];
+  allWarnings.push(...(await detectOldLawReferences(fullText)));
+  allWarnings.push(...validateBNSWhitelist(extractBNSSectionNumbers(fullText)));
+
+  const given = briefText(brief);
+  if (given) {
+    const altered = checkFactAlteration(given, fullText);
+    if (altered) allWarnings.push(altered);
+  }
+
+  for (const [key, what] of [
+    [FIXED_KEYS.firstParty, 'person the document is for'],
+    [FIXED_KEYS.otherParty, 'person or authority it is addressed to'],
+  ]) {
+    const value = brief.items.find((i) => i.key === key)?.value;
+    if (typeof value !== 'string' || value.length === 0 || fullText.length === 0) continue;
+    if (value.trim().split(/\s+/).length > NAME_WORDS_MAX) continue;
+    if (!fullText.includes(value)) {
+      allWarnings.push({
+        type: 'fact_alteration',
+        message: `The draft does not contain the ${what} as given in the brief: "${value}". Check that the name is written correctly.`,
+        details: { field: key, expected: value },
+      });
+    }
+  }
+
+  // Nothing in the draft that the brief does not give (T-107, section 6, rules 1 and 3).
+  allWarnings.push(...checkAgainstBrief(fullText, brief, null));
+
+  if (allWarnings.length > 0) {
+    res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
+  }
+
+  return {
+    fullText,
+    sections: renderedSections,
+    filingChecklist: [],
+    sectionsCited: buildSectionsCited(fullText),
+    // There is no rule pack, so there are no mandatory clauses to be complete or missing.
+    mandatoryClausesComplete: false,
+    warnings: allWarnings,
+    usage: meter.totals(),
+    aiModel,
+    transport,
+    bodyParaCount: paragraphNumbers(fullText).size,
+    missingClauses: [],
+    repaired: false,
+    // T-127, section 7.3: with no rule pack the label is always on, with no line under it.
+    startingDraft: true,
+    labelReason: null,
+  };
+}
+
 /**
  * Basic fact-alteration check: extract key entities (numbers, dates, names in caps)
  * from user facts and verify they appear in AI output.
@@ -1301,7 +1483,8 @@ export async function streamGenerateFromBrief(
  */
 function checkFactAlteration(userFacts: string, aiOutput: string): ValidationWarning | null {
   // Extract FIR numbers, dates, and proper nouns from user input
-  const firPattern = /\b\d+\/\d{4}\b/g;
+  // "124/2026" is an FIR or case number. The "04/2026" inside the date "01/04/2026" is not.
+  const firPattern = /(?<!\d[/.-])\b\d+\/\d{4}\b/g;
   const datePattern = /\b\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}\b/g;
 
   const firNumbers = userFacts.match(firPattern) ?? [];

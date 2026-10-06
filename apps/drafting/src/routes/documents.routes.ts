@@ -17,11 +17,13 @@ import {
   GenerationFailedError,
   streamGenerateDocument,
   streamGenerateFromBrief,
+  streamGenerateGuided,
   streamGenerateFromTemplate,
 } from '../services/ai.service';
 import { buildAnnexuresPack, estimateBodyParaCount } from '../services/annexures.service';
-import { clampTarget, STARTING_DRAFT_LABEL } from '../services/brief-drafter';
+import { briefText, clampTarget, STARTING_DRAFT_LABEL } from '../services/brief-drafter';
 import { spendInk } from '../services/credits.service';
+import { namesSupremeCourt } from '../services/intake-brief';
 import { isDescribeFirstEnabled, updateBrief } from '../services/intake.service';
 import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
 import { contentToHtml, renderPdf } from '../services/pdf-export.service';
@@ -598,17 +600,25 @@ router.post(
 
 // ── POST /documents/generate-from-brief (T-106, ADR-021 sections 3.5, 3.6) ──
 //
-// A confirmed brief becomes a draft written under the document's rule pack.
+// A confirmed brief becomes a draft. With a rule pack it is written under the
+// pack's rules. With none (`kind: none`) the Drafter writes the whole document
+// from the brief alone and the draft always carries the starting-draft label.
 // Closed unless `feature.describe_first` is on for the user. The charge, the
 // run and the usage record follow the same rules as generate-from-template.
 
+/** What a draft with no rule pack is recorded under: the credit cost, the run and the usage row. */
+const GUIDED_ID = 'guided';
+
 const briefGenerateSchema = z.object({
-  /** A rule-pack id. A document with no rule pack is not drafted here yet. */
+  /** A rule-pack id, or `none` for a document with no rule pack. */
   kind: z
     .string()
     .min(1)
     .max(100)
     .regex(/^[a-z0-9_]+$/, 'must be a document kind'),
+  /** For `none`: the name shown for the document, and whether it is for a court. */
+  kind_name: z.string().max(120).optional(),
+  court_document: z.boolean().optional(),
   values: z
     .array(
       z.object({
@@ -638,7 +648,9 @@ const briefGenerateSchema = z.object({
 /** The credit gate reads `template_id`. For a brief the rule pack is the template. */
 function kindAsTemplateId(req: Request, _res: Response, next: NextFunction): void {
   const body = req.body as { kind?: unknown; template_id?: unknown } | undefined;
-  if (body && typeof body.kind === 'string') body.template_id = body.kind;
+  if (body && typeof body.kind === 'string') {
+    body.template_id = body.kind === 'none' ? GUIDED_ID : body.kind;
+  }
   next();
 }
 
@@ -669,20 +681,41 @@ router.post(
     }
     const payload = req.jwtPayload!;
     const { kind, values, court, language, run_id, intake_id } = parsed.data;
+    const guided = kind === 'none';
+    /** What the run, the charge and the usage row are recorded under. */
+    const recordId = guided ? GUIDED_ID : kind;
 
-    const pack = loadRulePack(kind);
+    const pack = guided ? null : loadRulePack(kind);
     const templateConfig = pack ? loadTemplateConfig(kind) : null;
-    if (!pack || !templateConfig) {
+    if (!guided && (!pack || !templateConfig)) {
       res.status(404).json({ error: 'Document kind not found' });
       return;
     }
-    if (templateConfig.plan_access === 'pro' && payload.plan !== 'pro') {
+    if (templateConfig?.plan_access === 'pro' && payload.plan !== 'pro') {
       res.status(403).json({ error: 'This document requires a Pro plan' });
       return;
     }
 
-    // The brief is worked out again here. What the browser says about it is not trusted.
-    const brief = updateBrief({ kind, values, court: court ?? undefined });
+    // The brief is worked out again here. What the browser says about it is not
+    // trusted: for a document with no rule pack, a court signal in the user's
+    // words makes it a court document whatever was sent (T-107, section 2).
+    const brief = updateBrief({
+      kind,
+      kindName: parsed.data.kind_name,
+      courtDocument: parsed.data.court_document,
+      values,
+      court: court ?? undefined,
+    });
+    // T-107, section 3: nothing for the Supreme Court is drafted without a rule pack.
+    if (
+      guided &&
+      brief &&
+      (namesSupremeCourt(`${brief.kind.name}\n${briefText(brief)}`) ||
+        brief.court.court_type === COURT_TYPES.SUPREME_COURT)
+    ) {
+      res.status(400).json({ error: 'no_match' });
+      return;
+    }
     if (!brief) {
       res.status(404).json({ error: 'Document kind not found' });
       return;
@@ -719,10 +752,10 @@ router.post(
       };
     }
 
-    const docType = TEMPLATE_TO_DOC_TYPE[kind] || DOC_TYPES.PETITION;
+    const docType = guided ? DOC_TYPES.GUIDED : TEMPLATE_TO_DOC_TYPE[kind] || DOC_TYPES.PETITION;
     const { runId, runSequence, runType } = await resolveRun(
       payload.sub,
-      { templateId: kind },
+      { templateId: recordId },
       run_id,
     );
     res.setHeader('X-Run-Id', runId);
@@ -731,23 +764,29 @@ router.post(
 
     let result;
     try {
-      result = await streamGenerateFromBrief(
-        {
-          pack,
-          templateConfig,
-          brief,
-          language,
-          targetParagraphs: clampTarget(parsed.data.paragraphs),
-          courtData,
-          advocateName: payload.name || undefined,
-          enrollmentNumber: undefined,
-          userId: payload.sub,
-          runId,
-          runSequence,
-          runType,
-        },
-        res,
-      );
+      const common = {
+        brief,
+        language,
+        targetParagraphs: clampTarget(parsed.data.paragraphs),
+        courtData,
+        userId: payload.sub,
+        runId,
+        runSequence,
+        runType,
+      };
+      result =
+        pack && templateConfig
+          ? await streamGenerateFromBrief(
+              {
+                ...common,
+                pack,
+                templateConfig,
+                advocateName: payload.name || undefined,
+                enrollmentNumber: undefined,
+              },
+              res,
+            )
+          : await streamGenerateGuided(common, res);
     } catch (genErr) {
       // A failed run is recorded with what it used and charges nothing (T-003).
       const failed = genErr instanceof GenerationFailedError ? genErr : null;
@@ -761,7 +800,7 @@ router.post(
         userId: payload.sub,
         docType,
         status: 'failed',
-        templateId: kind,
+        templateId: recordId,
         intakeId: intake_id,
         aiModel: failed?.aiModel,
         transport: failed?.transport,
@@ -804,14 +843,16 @@ router.post(
       const courtType = brief.court.court_type ?? '';
       const doc = await LawieDocument.create({
         userId: payload.sub,
-        title: `${pack.name} — ${courtData?.designation ?? ''}`.replace(/ — $/, '').slice(0, 300),
+        title: `${brief.kind.name} — ${courtData?.designation ?? ''}`
+          .replace(/ — $/, '')
+          .slice(0, 300),
         docType,
         courtType: (Object.values(COURT_TYPES) as string[]).includes(courtType)
           ? courtType
           : undefined,
         courtName: brief.court.court ?? '',
         // No case details here: this field is not encrypted. The brief is, below.
-        formInputs: { template_id: kind, source: 'brief' },
+        formInputs: { template_id: recordId, source: 'brief' },
         generatedContent: encrypt(result.fullText),
         sectionsCited: result.sectionsCited,
         filingChecklist: result.filingChecklist,
@@ -819,9 +860,19 @@ router.post(
         status: 'draft',
         runId,
         runSequence,
-        rulePackId: pack.id,
+        rulePackId: pack?.id,
         startingDraft: result.startingDraft,
-        brief: encrypt(JSON.stringify({ kind, language, court: brief.court, values })),
+        brief: encrypt(
+          JSON.stringify({
+            kind,
+            ...(guided
+              ? { kind_name: brief.kind.name, court_document: brief.kind.court_document }
+              : {}),
+            language,
+            court: brief.court,
+            values,
+          }),
+        ),
       });
       docId = String(doc._id);
 
@@ -829,7 +880,7 @@ router.post(
         userId: payload.sub,
         docType,
         status: 'completed',
-        templateId: kind,
+        templateId: recordId,
         intakeId: intake_id,
         documentId: doc._id,
         aiModel: result.aiModel,
@@ -855,6 +906,28 @@ router.post(
       );
     }
 
+    // A demand signal for every draft with no rule pack: which documents to
+    // write rules for next. It carries no user text, not even the name.
+    if (guided && !duplicateAttempt) {
+      try {
+        await Event.create({
+          userId: payload.sub,
+          type: 'demand.guided_draft',
+          ...(docId ? { docId } : {}),
+          metadata: {
+            intakeId: intake_id ?? null,
+            runId,
+            isCourtDocument: brief.kind.court_document,
+          },
+        });
+      } catch (eventErr) {
+        console.error(
+          `[drafting] failed to record demand.guided_draft (runId=${runId}):`,
+          eventErr instanceof Error ? eventErr.name : 'unknown',
+        );
+      }
+    }
+
     // Charged once, after a successful draft. The repair pass is not charged:
     // the charge is the document's fixed cost, whatever the run used.
     const cost = (req as Request & { creditCost?: number }).creditCost ?? 1;
@@ -863,7 +936,8 @@ router.post(
         userId: payload.sub,
         costCredits: cost,
         reason: 'generate',
-        reference: docId ? `${pack.name} (${docId})` : pack.name,
+        // No user text in the ledger: a draft with no rule pack has a name the user may have typed.
+        reference: `${pack ? pack.name : 'Starting draft'}${docId ? ` (${docId})` : ''}`,
         runId,
         runSequence,
       });
@@ -878,7 +952,9 @@ router.post(
         docId,
         runId,
         sectionsCited: result.sectionsCited,
-        mandatoryClausesComplete: result.mandatoryClausesComplete,
+        /** False when the document has no rule pack: the label is always on and no clause was checked. */
+        rulePack: !guided,
+        mandatoryClausesComplete: guided ? null : result.mandatoryClausesComplete,
         missingClauses: result.missingClauses.map((m) => ({ id: m.id, title: m.title })),
         repaired: result.repaired,
         startingDraft: result.startingDraft,

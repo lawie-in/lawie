@@ -2,10 +2,11 @@
  * T-106 — POST /generate-from-brief (ADR-021 sections 3.5, 3.6 and 5; prompts
  * and rules signed by Ajay in T-127).
  *
- * Covers: a draft with a rule pack that passes, one with a clause missing
+ * Covers, for a document with a rule pack: a draft that passes, one with a clause missing
  * before and after the repair pass, a blank for an unknown, a failed run, the
  * label, the records, the charge, and the things that stop a draft before any
- * model call.
+ * model call. For a document with no rule pack (`kind: none`): the same route,
+ * the whole document from the Drafter, the label always on, and the records.
  *
  * Every model answer here is a fixture. The helpers are tested without a
  * database in brief-drafter.test.ts.
@@ -18,11 +19,13 @@ import { env } from '../config/env';
 import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
 import { LawieDocument } from '../models/Document.model';
+import { Event } from '../models/Event.model';
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { CLAUSES_MARKER, STARTING_DRAFT_LABEL } from '../services/brief-drafter';
 import {
+  DRAFTER_GUIDED_SYSTEM_PROMPT,
   DRAFTER_PACK_SYSTEM_PROMPT,
   DRAFTER_REPAIR_SYSTEM_PROMPT,
 } from '../services/drafter.prompts';
@@ -585,6 +588,269 @@ describe('POST /generate-from-brief — a failed run', () => {
     expect(retry.headers['x-run-sequence']).toBe('2');
     expect(event(retry.text, 'done')).toMatchObject({ complete: true, startingDraft: false });
     expect(await Generation.countDocuments({ runId })).toBe(2);
+    expect(await LawieDocument.countDocuments({})).toBe(1);
+  });
+});
+
+// ── A document with no rule pack (T-106 part 2; T-107, sections 3, 4 and 6) ──
+
+const LETTER_NAME = 'consent letter for use of premises';
+
+const LETTER_VALUES = [
+  { key: 'fixed.first_party', value: 'Sunita Devi', source: 'description', quote: 'Sunita Devi' },
+  { key: 'fixed.other_party', value: 'Patna Municipal Corporation' },
+  {
+    key: 'fixed.facts',
+    value: 'She owns shop no. 12 at Boring Road and wants to let it be used as a clinic.',
+  },
+  { key: 'fixed.relief', value: 'Consent to use the shop as a clinic.' },
+];
+
+const LETTER = [
+  'Date: [To be confirmed: date]',
+  'From:\nSunita Devi',
+  'To:\nPatna Municipal Corporation',
+  'Subject: Consent for use of premises',
+  '1. That I, Sunita Devi, own shop no. 12 at Boring Road.',
+  '2. That I consent to the shop being used as a clinic.',
+  'Yours faithfully,\nSunita Devi',
+].join('\n\n');
+
+function letter(over: Record<string, unknown> = {}) {
+  return { kind: 'none', kind_name: LETTER_NAME, values: LETTER_VALUES, ...over };
+}
+
+describe('POST /generate-from-brief — no rule pack', () => {
+  it('the Drafter writes the whole document from the brief, and the draft always carries the label', async () => {
+    const fetchMock = mockModel(LETTER);
+    const res = await post(letter());
+
+    expect(res.status).toBe(200);
+    expect(event(res.text, 'done')).toMatchObject({
+      complete: true,
+      rulePack: false,
+      mandatoryClausesComplete: null,
+      missingClauses: [],
+      repaired: false,
+      startingDraft: true,
+      startingDraftLabel: STARTING_DRAFT_LABEL,
+      // T-127, section 7.3: with no rule pack there is no line under the label.
+      labelReason: null,
+    });
+    expect(event(res.text, 'warning')).toBeNull();
+    expect(event(res.text, 'repair')).toBeNull();
+
+    // One section, all of it the Drafter's. The system adds no part.
+    expect(event(res.text, 'template_sections')!.sections).toEqual([
+      { section_id: 'body', type: 'ai_generated', content: LETTER },
+    ]);
+
+    // One Drafter call: Ajay's prompt for a request with no rule pack, in strict mode.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const sent = bodyOf(fetchMock, 0).messages;
+    expect(sent[0].content).toBe(DRAFTER_GUIDED_SYSTEM_PROMPT);
+    expect(sent[1].content.startsWith('MODE: strict\n\nTARGET: 15\n\nLANGUAGE: en\n\nBRIEF:')).toBe(
+      true,
+    );
+    expect(sent[1].content).toContain(`"document": "${LETTER_NAME}"`);
+    expect(sent[1].content).toContain('"court": null');
+    expect(sent[1].content).toContain('"sections_given": []');
+    expect(sent[1].content).toContain('Patna Municipal Corporation');
+    expect(sent[1].content).not.toContain('CLAUSES');
+  });
+
+  it('saves a guided document with its encrypted brief, one usage row, one charge and a demand signal', async () => {
+    mockModel(LETTER);
+    const intakeId = '66666666-6666-4666-8666-666666666666';
+    const res = await post(letter({ intake_id: intakeId }));
+    const done = event(res.text, 'done')!;
+
+    const doc = await LawieDocument.findById(done.docId as string).lean();
+    expect(doc).toMatchObject({
+      docType: 'guided',
+      title: LETTER_NAME,
+      startingDraft: true,
+      courtName: '',
+      runSequence: 1,
+    });
+    expect(doc!.rulePackId).toBeUndefined();
+    expect(doc!.formInputs).toEqual({ template_id: 'guided', source: 'brief' });
+    expect(doc!.brief).not.toContain('Sunita');
+    expect(JSON.parse(decrypt(doc!.brief!))).toMatchObject({
+      kind: 'none',
+      kind_name: LETTER_NAME,
+      court_document: false,
+    });
+    expect(decrypt(doc!.generatedContent)).toBe(LETTER);
+
+    expect(await Generation.findOne({ userId: USER_ID }).lean()).toMatchObject({
+      status: 'completed',
+      docType: 'guided',
+      templateId: 'guided',
+      runType: 'initial',
+      intakeId,
+      llmCalls: 1,
+      paragraphCount: 2,
+    });
+    // One Ink, which is two units in the store.
+    expect((await User.findById(USER_ID).lean())!.inkTopup).toBe(1998);
+
+    // The demand signal says a draft with no rule pack was made. It holds none of the user's words.
+    const signals = await Event.find({ type: 'demand.guided_draft' }).lean();
+    expect(signals).toHaveLength(1);
+    expect(String(signals[0].docId)).toBe(String(doc!._id));
+    expect(signals[0].metadata).toEqual({
+      intakeId,
+      runId: res.headers['x-run-id'],
+      isCourtDocument: false,
+    });
+
+    // The editor and the PDF get the label from the server.
+    const fetched = await request(app)
+      .get(`/${String(doc!._id)}`)
+      .set(headers());
+    expect(fetched.body).toMatchObject({
+      rulePackId: null,
+      startingDraft: true,
+      startingDraftLabel: STARTING_DRAFT_LABEL,
+    });
+  });
+
+  it('gives the Drafter only the sections the advocate wrote, and flags any other', async () => {
+    const values = LETTER_VALUES.map((v) =>
+      v.key === 'fixed.facts'
+        ? { ...v, value: `${v.value} A notice u/s 138 NI Act was sent on 01/04/2026.` }
+        : v,
+    );
+    const fetchMock = mockModel(
+      `${LETTER}\n\n3. That the notice dated 01.04.2026 under Section 138 of the NI Act stands, and Section 106 of the Transfer of Property Act applies from 30.06.2026.`,
+    );
+    const res = await post(letter({ values }));
+
+    expect(bodyOf(fetchMock, 0).messages[1].content).toContain('"u/s 138 NI Act"');
+    const warnings = event(res.text, 'warning')!.warnings as Array<{
+      type: string;
+      message: string;
+    }>;
+    // The date the advocate wrote with slashes is in the draft with dots. That is not a finding.
+    expect(warnings.map((w) => w.type).sort()).toEqual(['fact_alteration', 'invalid_section']);
+    expect(warnings.map((w) => w.message).join(' | ')).toContain('30.06.2026');
+    expect(warnings.map((w) => w.message).join(' | ')).toContain('Section 106');
+    // The findings are shown. The line under the label stays empty, as for every draft with no rule pack.
+    expect(event(res.text, 'done')).toMatchObject({ startingDraft: true, labelReason: null });
+  });
+
+  it('a name that is not in the draft as the advocate wrote it is a finding', async () => {
+    mockModel(LETTER.replace(/Sunita Devi/g, 'Smt. Sunita'));
+    const res = await post(letter());
+    const warnings = event(res.text, 'warning')!.warnings as Array<{
+      details?: { field?: string };
+    }>;
+    expect(warnings.map((w) => w.details?.field)).toEqual(['fixed.first_party']);
+  });
+
+  it('a disclaimer written by the Drafter is taken out', async () => {
+    mockModel(`${LETTER}\n\nDisclaimer: this is an AI-assisted draft.`);
+    const res = await post(letter());
+    const doc = await LawieDocument.findById(event(res.text, 'done')!.docId as string).lean();
+    expect(decrypt(doc!.generatedContent)).toBe(LETTER);
+  });
+
+  it('a court signal in the advocate’s words makes it a court document, whatever the browser sent', async () => {
+    const fetchMock = mockModel(LETTER);
+    const values = LETTER_VALUES.map((v) =>
+      v.key === 'fixed.facts' ? { ...v, value: 'He was arrested and is in custody.' } : v,
+    );
+    const res = await post(letter({ values, court_document: false }));
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({
+      error: 'brief_not_confirmed',
+      message: 'Choose the court to continue.',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect((await User.findById(USER_ID).lean())!.inkTopup).toBe(2000);
+  });
+
+  it('a court document with no rule pack is drafted with the court from the courts data', async () => {
+    const fetchMock = mockModel(
+      `IN THE COURT OF THE DISTRICT & SESSIONS JUDGE, PATNA\n\nSunita Devi ... Applicant\n\nVersus\n\nPatna Municipal Corporation ... Opposite Party\n\n1. That the applicant owns shop no. 12 at Boring Road.`,
+    );
+    const res = await post(letter({ court_document: true, court }));
+    expect(res.status).toBe(200);
+    expect(bodyOf(fetchMock, 0).messages[1].content).toContain(
+      '"court": "DISTRICT & SESSIONS JUDGE, PATNA"',
+    );
+    const done = event(res.text, 'done')!;
+    const doc = await LawieDocument.findById(done.docId as string).lean();
+    expect(doc).toMatchObject({ docType: 'guided', courtName: COURT_ID, courtType: 'sessions' });
+    // The court's name is the Drafter's to write here. It is not stripped.
+    expect(decrypt(doc!.generatedContent)).toContain('IN THE COURT OF');
+    expect((await Event.findOne({ type: 'demand.guided_draft' }).lean())!.metadata).toMatchObject({
+      isCourtDocument: true,
+    });
+  });
+
+  it('a court document with no rule pack and a court that is not in the courts data: 400', async () => {
+    const fetchMock = mockModel(LETTER);
+    const res = await post(
+      letter({ court_document: true, court: { ...court, court: 'a_court_we_made_up' } }),
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('court_not_found');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'the facts name it',
+      {
+        values: [
+          ...LETTER_VALUES.slice(0, 3),
+          { key: 'fixed.relief', value: 'Leave to appeal to the Supreme Court.' },
+        ],
+      },
+    ],
+    ['the name of the document names it', { kind_name: 'special leave petition supreme court' }],
+    [
+      'the court chosen is the Supreme Court',
+      {
+        court_document: true,
+        court: { state: 'delhi', court_type: 'supreme_court', court: 'supreme_court_of_india' },
+      },
+    ],
+  ])('nothing for the Supreme Court is drafted without a rule pack: %s', async (_name, over) => {
+    const fetchMock = mockModel(LETTER);
+    const res = await post(letter(over));
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'no_match' });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await Event.countDocuments({})).toBe(0);
+  });
+
+  it('a failed run is recorded as failed, saves nothing, charges nothing, and a retry keeps the run', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      text: async () => 'down',
+    }) as unknown as typeof fetch;
+    const first = await post(letter());
+    expect(first.text).toContain('event: error');
+    expect(first.text).not.toContain('event: done');
+    const runId = first.headers['x-run-id'];
+    expect(await LawieDocument.countDocuments({})).toBe(0);
+    expect(await Event.countDocuments({ type: 'demand.guided_draft' })).toBe(0);
+    expect(await Generation.findOne({ runId }).lean()).toMatchObject({
+      status: 'failed',
+      docType: 'guided',
+      templateId: 'guided',
+    });
+    expect((await User.findById(USER_ID).lean())!.inkTopup).toBe(2000);
+
+    mockModel(LETTER);
+    const retry = await post(letter({ run_id: runId }));
+    expect(retry.headers['x-run-id']).toBe(runId);
+    expect(retry.headers['x-run-sequence']).toBe('2');
+    expect(event(retry.text, 'done')).toMatchObject({ complete: true, startingDraft: true });
     expect(await LawieDocument.countDocuments({})).toBe(1);
   });
 });
