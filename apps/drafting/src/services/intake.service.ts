@@ -15,6 +15,7 @@ import { presentDescription } from '../utils/presentDescription';
 
 import { AppSettingMissingError, APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import { AuxCallError, AuxCallUsage, callAuxModel } from './aux-llm';
+import { applyBailGuard } from './bail-guard';
 import {
   buildFillUserPrompt,
   buildMatchUserPrompt,
@@ -996,7 +997,18 @@ export async function runIntake(req: IntakeRequest): Promise<IntakeResponse> {
   );
   if (text === null) return { intake_id: intakeId, outcome: 'unavailable' };
 
-  const decision = decideMatch(parseModelJson(text), allowed);
+  const matched = decideMatch(parseModelJson(text), allowed);
+  // T-122: the bail guard. It can turn a single match into a choice, or reorder
+  // a choice. It never picks a document. The log line carries no description text.
+  const guard = applyBailGuard(matched, req.description, allowed);
+  const decision: MatchDecision = guard.changed
+    ? { ...matched, kind: 'needs_choice', templateId: undefined, choices: guard.choices }
+    : matched;
+  if (guard.changed) {
+    console.info(
+      `[intake] bail guard changed the match (intakeId=${intakeId}, from=${matched.kind}, cue=${guard.cue})`,
+    );
+  }
   console.info(`[intake] match decided (intakeId=${intakeId}, outcome=${decision.kind})`);
 
   switch (decision.kind) {

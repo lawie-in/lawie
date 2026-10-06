@@ -378,6 +378,56 @@ describe('POST /intake — other outcomes', () => {
     expect(res.body.fields).toBeUndefined();
   });
 
+  it('T-122: an arrested person is never taken to anticipatory bail as the single match', async () => {
+    const fetchMock = mockModel(
+      JSON.stringify({
+        template_id: 'bail_anticipatory',
+        confidence: 'high',
+        alternatives: [],
+        is_legal_drafting: true,
+        is_court_document: true,
+        label: 'anticipatory bail application',
+        category: 'criminal',
+      }),
+    );
+    const logs = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+    const res = await request(app)
+      .post('/intake')
+      .set(headers())
+      .send({ description: DESCRIPTION });
+    // The guard asks. It does not pick, and no fill call is made.
+    expect(res.body.outcome).toBe('needs_choice');
+    expect(res.body.choices.map((c: { template_id: string }) => c.template_id)).toEqual([
+      'bail_regular',
+      'bail_anticipatory',
+    ]);
+    expect(res.body.choices[0].display_name).toEqual(expect.any(String));
+    expect(res.body.template_id).toBeUndefined();
+    expect(res.body.fields).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    // The log line says the guard acted and carries no description text.
+    const lines = logs.mock.calls.map((c) => String(c[0]));
+    expect(lines.some((l) => l.includes('bail guard changed the match'))).toBe(true);
+    expect(lines.some((l) => l.includes('Ram Kumar') || l.includes('Kotwali'))).toBe(false);
+  });
+
+  it('T-122: a person who expects arrest is never taken to regular bail as the single match', async () => {
+    mockModel(MATCH_HIGH);
+    const res = await request(app)
+      .post('/intake')
+      .set(headers())
+      .send({
+        description:
+          'An FIR is registered against my client at Kotwali police station. He has not been arrested yet ' +
+          'and he apprehends arrest. Please draft a bail application for the Sessions Court.',
+      });
+    expect(res.body.outcome).toBe('needs_choice');
+    expect(res.body.choices.map((c: { template_id: string }) => c.template_id)).toEqual([
+      'bail_anticipatory',
+      'bail_regular',
+    ]);
+  });
+
   it('after needs_choice, sending the picked template_id runs only the fill call', async () => {
     const fetchMock = mockModel(GOOD_FILL);
     const intakeId = '33333333-3333-4333-8333-333333333333';
