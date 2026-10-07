@@ -620,6 +620,8 @@ export function systemTextAround(
 const PARAGRAPH_START = /^\s*\d+[.)]\s/;
 /** A sub-point of one: "(a) ...", "(ii) ...". */
 const SUB_POINT = /^\s*\((?:[a-z]{1,2}|[ivxlc]+|\d{1,2})\)\s/i;
+/** A paragraph number or the mark of a sub-point with nothing after it. */
+const ONLY_A_NUMBER = /^\s*(?:\d+[.)]|\((?:[a-z]{1,2}|[ivxlc]+|\d{1,2})\))\s*$/i;
 /**
  * The word SYSTEM belongs to the clause report. In the document it is a note
  * on a part the system adds: anything in square brackets that holds the word,
@@ -752,21 +754,41 @@ function repeatsWholeLines(block: string, system: SystemLines): boolean {
  * is whole lines of the system's text on that side and nothing else.
  *
  * A repeated part goes as a whole or not at all. It runs from a line that is
- * the heading of one of the system's parts to the next such line. If any
- * block of it differs, all of it stays, heading included, and
- * `checkOneDocument` reports it: a heading is never taken off text that the
- * advocate must still see. A numbered paragraph and a sub-point are never
- * removed, and nothing is removed on a side where the system wrote nothing.
+ * the heading of one of the system's parts to the next such line. Its blocks,
+ * read together, must be one unbroken run of whole lines of the system's
+ * text, in the system's order. Lines of the system's text put together in
+ * another order or with lines left out between them (a name under the wrong
+ * heading, the parties changed over) are not a repeat. Then all of it stays,
+ * heading included, and `checkOneDocument` reports it: a heading is never
+ * taken off text that the advocate must still see. A numbered paragraph and a
+ * sub-point are never removed, and nothing is removed on a side where the
+ * system wrote nothing.
+ *
+ * A numbered paragraph that held nothing but a SYSTEM note is left as a bare
+ * number. That line is taken out too, so that the paragraph is not counted as
+ * written and its clause is seen as not covered. The other paragraphs keep
+ * their numbers: the numbering then has a gap, and nothing is renumbered.
  */
 export function removeRepeatedParts(
   body: string,
   system: SystemText,
 ): { body: string; removed: string[] } {
   const removed: string[] = [];
-  const text = body.replace(SYSTEM_NOTE, (note) => {
-    removed.push(note.trim());
-    return '';
+  const source = body.split('\n');
+  const lines: string[] = [];
+  source.forEach((line, i) => {
+    const without = line.replace(SYSTEM_NOTE, (note) => {
+      removed.push(note.trim());
+      return '';
+    });
+    if (without !== line && ONLY_A_NUMBER.test(without)) {
+      // Nothing is left of the paragraph unless its text carries on below.
+      const next = (source[i + 1] ?? '').replace(SYSTEM_NOTE, '');
+      if (next.trim() === '' || PARAGRAPH_START.test(next) || SUB_POINT.test(next)) return;
+    }
+    lines.push(without);
   });
+  const text = lines.join('\n');
 
   const gone = new Set<number>();
   const blocks = blocksOf(text);
@@ -796,9 +818,11 @@ export function removeRepeatedParts(
       }
       for (const part of repeated) {
         const texts = part.map((b) => b.lines.join('\n'));
-        const same = part.every(
-          (b, k) => !b.paragraph && !b.subPoint && repeatsWholeLines(texts[k], side),
-        );
+        // The part is judged as one text: each block being a line of the
+        // system's is not enough, they must follow each other as its lines do.
+        const same =
+          part.every((b) => !b.paragraph && !b.subPoint) &&
+          repeatsWholeLines(texts.join('\n'), side);
         if (!same) continue;
         part.forEach((b, k) => {
           removed.push(texts[k].trim());
@@ -1598,25 +1622,38 @@ export function withoutDisclaimers(text: string): string {
     .trim();
 }
 
+/** A line that is the disclaimer the system adds itself (SCRUM-62). */
+function isDisclaimer(text: string): boolean {
+  return (
+    /AI[\s-]assisted draft/i.test(text) ||
+    /^DISCLAIMER\s*:/i.test(text) ||
+    /Lawie does not provide legal advice/i.test(text)
+  );
+}
+
 /**
  * For a draft with a rule pack: a paragraph that is only the disclaimer the
  * system adds itself is taken out, as the form pipeline does (SCRUM-62). A
- * court name in the body is left alone here: a repeated part is removed only
- * under Ajay's condition, by `removeRepeatedParts` (T-136).
+ * numbered paragraph or a sub-point is never taken out: where a disclaimer
+ * stands in the same block as one, only the disclaimer's own lines go, and a
+ * numbered line stays whatever it says. A court name in the body is left alone
+ * here: a repeated part is removed only under Ajay's condition, by
+ * `removeRepeatedParts` (T-136).
  */
 export function withoutDisclaimerText(text: string): string {
-  return text
-    .split(/\n\n+/)
-    .filter((para) => {
-      const t = para.trim();
-      if (!t) return false;
-      if (/AI[\s-]assisted draft/i.test(t)) return false;
-      if (/^DISCLAIMER\s*:/i.test(t)) return false;
-      if (/Lawie does not provide legal advice/i.test(t)) return false;
-      return true;
-    })
-    .join('\n\n')
-    .trim();
+  const kept: string[] = [];
+  for (const para of text.split(/\n\n+/)) {
+    if (!para.trim()) continue;
+    const lines = para.split('\n');
+    const numbered = (l: string): boolean => PARAGRAPH_START.test(l) || SUB_POINT.test(l);
+    if (!lines.some(numbered)) {
+      if (!isDisclaimer(para.trim())) kept.push(para);
+      continue;
+    }
+    const own = lines.filter((l) => numbered(l) || !isDisclaimer(l.trim()));
+    kept.push(own.join('\n'));
+  }
+  return kept.join('\n\n').trim();
 }
 
 /** Every text the user gave in the brief, for the checks that read it. */
