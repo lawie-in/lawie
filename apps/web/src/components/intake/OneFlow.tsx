@@ -450,6 +450,10 @@ export default function OneFlow({
       setBriefMessage(null);
       setPhase('generating');
       const kind = current.kind.id ?? NO_RULE_PACK;
+      // T-136: the description as the advocate typed it, the one this brief was
+      // read from. Never the answers to questions, and nothing a model wrote.
+      // Only a document with a rule pack is drafted from it.
+      const described = (lastRead.current?.text || description).trim();
 
       try {
         const res = await apiFetch('/api/documents/generate-from-brief', {
@@ -464,6 +468,7 @@ export default function OneFlow({
             language: 'en',
             ...(runId.current ? { run_id: runId.current } : {}),
             ...(intakeId.current ? { intake_id: intakeId.current } : {}),
+            ...(kind !== NO_RULE_PACK && described ? { described } : {}),
           }),
         });
         const header = res.headers.get('X-Run-Id');
@@ -597,7 +602,7 @@ export default function OneFlow({
         setGenError({ reason: 'Lost the connection to the drafting service.', retryable: true });
       }
     },
-    [reset, update],
+    [description, reset, update],
   );
 
   // ── Moving between the screens ────────────────────────────────────────────

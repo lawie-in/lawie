@@ -252,9 +252,15 @@
     },
     {
       "id": "no_flight_risk",
-      "name": "No Flight Risk",
+      "name": "Undertakings",
       "required": true,
-      "description": "Assertion that applicant will not abscond or tamper with evidence"
+      "description": "Undertakings by the applicant for the future, if released on bail: not to abscond, not to tamper with the evidence or influence witnesses, to appear on every date fixed, and to abide by the conditions imposed. Never a statement of fact."
+    },
+    {
+      "id": "earlier_applications",
+      "name": "Earlier Bail Applications",
+      "required": true,
+      "description": "Every earlier bail application in this matter, with the court, the date of the order and the result, or that it is pending; or the blank where the brief does not say."
     },
     {
       "id": "prayer",
@@ -336,11 +342,12 @@
   "promptInstructions": [
     "Draft a Regular Bail Application. Before a Magistrate it is made under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023; before a Court of Session or a High Court, under Section 483. Cite only that one provision as the provision under which bail is sought, in the heading, the opening paragraph and the prayer. Do not cite Section 481 or Section 482.",
     "Begin PARAGRAPH 1 with the exact FIR details provided — FIR number, date, police station, district, offences alleged. Use the values EXACTLY as given in the case details.",
-    "State the custody status clearly — date of arrest, whether judicial or police custody, total days in custody.",
-    "Set out specific grounds for bail: no prior criminal history, cooperation with investigation, roots in community, health conditions if any, investigation complete/charge sheet filed, parity with co-accused granted bail.",
+    "State the custody status as the BRIEF gives it: the date of arrest, the date from which the applicant has been in custody, and whether that custody is judicial or police. Where the BRIEF gives the date of arrest and the date custody began as two dates, keep them as two dates. Do not work out the number of days in custody.",
+    "Set out the grounds for bail that the BRIEF gives, and no others. Do not assert a ground (for example no criminal history, cooperation with the investigation, roots in the community, ill health, investigation complete, parity with a co-accused) unless the BRIEF states it. State each ground as the BRIEF puts it: do not add a reason or a detail to it.",
     "Reference Bharatiya Nyaya Sanhita (BNS) section numbers for the alleged offences — NEVER use old IPC section numbers. IPC 498A = BNS 85, IPC 304B = BNS 80.",
     "If the case involves domestic violence (BNS 85/80), also reference the Protection of Women from Domestic Violence Act (PWDVA) 2005 where relevant, especially Sections 12, 18, 19, 20, 22.",
-    "Include standard undertakings: will not abscond, will not tamper with evidence, will appear on all dates, will not contact prosecution witnesses.",
+    "Give the standard undertakings as undertakings by the applicant for the future, never as facts and never as undertakings by the advocate: the applicant undertakes that, if released on bail, the applicant will not abscond, will not tamper with the evidence, will not make any inducement, threat or promise to any witness or other person acquainted with the facts of the case, will appear on every date fixed, and will abide by every condition this Hon'ble Court imposes.",
+    "State every earlier bail application in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier bail application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result].",
     "For DV/dowry cases, include specific undertakings: no contact with complainant, undertaking regarding stridhan/dowry articles.",
     "Use formal, respectful legal language appropriate for Indian courts.",
     "Do NOT generate the Prayer clause, Verification clause, or Advocate signature block — those are added programmatically by the system."

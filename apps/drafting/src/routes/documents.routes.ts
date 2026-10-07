@@ -29,7 +29,7 @@ import {
 } from '../services/brief-drafter';
 import { spendInk } from '../services/credits.service';
 import { namesSupremeCourt } from '../services/intake-brief';
-import { isDescribeFirstEnabled, updateBrief } from '../services/intake.service';
+import { INTAKE_LIMITS, isDescribeFirstEnabled, updateBrief } from '../services/intake.service';
 import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
 import { contentToHtml, renderPdf } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
@@ -648,6 +648,12 @@ const briefGenerateSchema = z.object({
   paragraphs: z.number().int().min(1).max(100).optional(),
   run_id: z.string().uuid().optional(),
   intake_id: z.string().uuid().optional(),
+  /**
+   * T-136: the matter as the advocate typed it, word for word. It reaches the
+   * Drafter of a document with a rule pack under "described". It is kept only
+   * inside the encrypted brief of the document, and is never logged.
+   */
+  described: z.string().max(INTAKE_LIMITS.descriptionMax).optional(),
 });
 
 /** The credit gate reads `template_id`. For a brief the rule pack is the template. */
@@ -687,6 +693,9 @@ router.post(
     const payload = req.jwtPayload!;
     const { kind, values, court, language, run_id, intake_id } = parsed.data;
     const guided = kind === 'none';
+    // T-136: only a document with a rule pack is drafted from the description.
+    // For any other it is not used and not kept.
+    const described = guided ? '' : (parsed.data.described ?? '').trim();
     /** What the run, the charge and the usage row are recorded under. */
     const recordId = guided ? GUIDED_ID : kind;
 
@@ -787,6 +796,7 @@ router.post(
                 ...common,
                 pack,
                 templateConfig,
+                ...(described ? { described } : {}),
                 advocateName: payload.name || undefined,
                 enrollmentNumber: undefined,
               },
@@ -877,6 +887,9 @@ router.post(
             language,
             court: brief.court,
             values,
+            // T-136: the description is kept here and nowhere else: with the
+            // brief it belongs to, under the same encryption, for as long.
+            ...(described ? { described } : {}),
           }),
         ),
       });

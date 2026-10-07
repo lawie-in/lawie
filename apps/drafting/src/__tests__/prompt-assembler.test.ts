@@ -6,6 +6,7 @@ import {
   assemblePrompt,
   _testing,
 } from '../services/prompt-assembler';
+import { lastRow, part1, quoted } from './t136-signed';
 
 // Mock sections.service to avoid Redis/Mongo dependency
 jest.mock('../services/sections.service', () => ({
@@ -120,7 +121,9 @@ describe('Layer 1 — Prompt Assembler', () => {
       expect(section).toContain('Regular Bail Application');
       expect(section).toContain('FIR Details');
       expect(section).toContain('Custody Status');
-      expect(section).toContain('No Flight Risk');
+      // T-136, B5: Ajay renamed this clause; the name is read from the signed file.
+      expect(section).toContain(quoted(lastRow(part1(), 'B5'))[0]);
+      expect(section).not.toContain('No Flight Risk');
     });
 
     it('includes prompt instructions for legal_notice_s138', () => {
