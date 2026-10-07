@@ -308,7 +308,9 @@ export default function DocumentEditorPage() {
             >
               <ArrowLeft size={18} />
             </button>
-            <div>
+            {/* T-138: a guided document's title is typed by the advocate and can be one long
+                unbroken word. Below md it may shrink and break; from md it is as it was. */}
+            <div className="min-w-0 break-words md:min-w-[auto] md:break-normal">
               <h1 className="text-base font-bold capitalize text-slate-900">
                 {/* A document with no rule pack has no type of its own: its name is its title. */}
                 {doc.docType === 'guided' ? doc.title : doc.docType.replace(/_/g, ' ')}
