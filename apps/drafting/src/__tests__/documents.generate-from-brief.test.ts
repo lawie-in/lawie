@@ -944,3 +944,73 @@ describe('POST /generate-from-brief — no rule pack', () => {
     expect(await LawieDocument.countDocuments({})).toBe(1);
   });
 });
+
+// ── T-136: the advocate's own description ──
+
+describe('POST /generate-from-brief — T-136 — described', () => {
+  const MARKER = 'Purple heron over Tilaiya dam at dawn.';
+  const DESCRIBED = `My client Ram Kumar was arrested in Patna. ${MARKER} He is the only earning member of his family.`;
+
+  it('reaches the Drafter under "described" and is kept only in the encrypted brief', async () => {
+    const fetchMock = mockModel(drafterAnswer());
+    const res = await post({
+      kind: 'bail_regular',
+      values: VALUES,
+      court,
+      described: DESCRIBED,
+    });
+    expect(res.status).toBe(200);
+
+    // The Drafter is given it, word for word.
+    const sent = bodyOf(fetchMock, 0).messages[1].content;
+    expect(sent).toContain(`"described": ${JSON.stringify(DESCRIBED)}`);
+
+    // It is saved inside the encrypted brief, and nowhere else on the document.
+    const done = event(res.text, 'done')!;
+    const doc = await LawieDocument.findById(done.docId as string).lean();
+    expect(doc!.brief).not.toContain(MARKER);
+    const savedBrief = JSON.parse(decrypt(doc!.brief!)) as { described?: string };
+    expect(savedBrief.described).toBe(DESCRIBED);
+    expect(doc!.formInputs).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    expect(JSON.stringify({ ...doc, brief: undefined, generatedContent: undefined })).not.toContain(
+      MARKER,
+    );
+
+    // It is not echoed in any event, and it is not in the usage row.
+    expect(res.text).not.toContain(MARKER);
+    const gen = await Generation.findOne({ userId: USER_ID }).lean();
+    expect(JSON.stringify(gen)).not.toContain(MARKER);
+  });
+
+  it('with no description, "described" is null and the saved brief has none', async () => {
+    const fetchMock = mockModel(drafterAnswer());
+    const res = await post({ kind: 'bail_regular', values: VALUES, court });
+    expect(res.status).toBe(200);
+    expect(bodyOf(fetchMock, 0).messages[1].content).toContain('"described": null');
+    const doc = await LawieDocument.findById(event(res.text, 'done')!.docId as string).lean();
+    expect(JSON.parse(decrypt(doc!.brief!))).not.toHaveProperty('described');
+  });
+
+  it('a document with no rule pack does not send or keep it', async () => {
+    const fetchMock = mockModel(LETTER);
+    const res = await post(letter({ described: DESCRIBED }));
+    expect(res.status).toBe(200);
+    const sent = bodyOf(fetchMock, 0).messages[1].content;
+    expect(sent).not.toContain('"described"');
+    expect(sent).not.toContain(MARKER);
+    const doc = await LawieDocument.findById(event(res.text, 'done')!.docId as string).lean();
+    expect(JSON.parse(decrypt(doc!.brief!))).not.toHaveProperty('described');
+  });
+
+  it('longer than 4000 characters: 400, nothing is drafted, and the answer does not repeat it', async () => {
+    const fetchMock = mockModel();
+    const long = `${MARKER} ${'x'.repeat(4000)}`;
+    const res = await post({ kind: 'bail_regular', values: VALUES, court, described: long });
+    expect(res.status).toBe(400);
+    expect(JSON.stringify(res.body)).not.toContain(MARKER);
+    expect(JSON.stringify(res.body)).not.toContain('xxxxxxxx');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await Generation.countDocuments({})).toBe(0);
+    expect(await LawieDocument.countDocuments({})).toBe(0);
+  });
+});
