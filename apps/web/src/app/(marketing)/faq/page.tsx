@@ -17,12 +17,12 @@ const productFaq = [
   {
     question: 'What documents does Lawie generate today?',
     answer:
-      'Bail applications (regular and anticipatory), legal notices (S.80 CPC and S.138 NI Act), rent agreements, consumer complaints, vakalatnama, affidavits, maintenance petitions, and cheque bounce complaints. New templates are added regularly.',
+      'Bail applications (regular and anticipatory), legal notices (S.80 CPC and S.138 NI Act), rent agreements, consumer complaints, vakalatnama, affidavits, and maintenance petitions.',
   },
   {
     question: 'Are the BNS, BNSS, BSA mappings reliable?',
     answer:
-      'Section mappings are built from the official IPC→BNS, CrPC→BNSS, and IEA→BSA correspondence tables. Every section cited in a generated document is validated against these mappings before it appears in your draft. You should always review the final document before filing.',
+      'Section mappings are built from the official IPC→BNS, CrPC→BNSS, and IEA→BSA correspondence tables. Check every section in your draft before you file. You should always review the final document before filing.',
   },
   {
     question: 'Can I edit the document after Lawie generates it?',
@@ -32,7 +32,7 @@ const productFaq = [
   {
     question: 'Which courts does Lawie format for?',
     answer:
-      'District and High Courts across Bihar, Jharkhand, UP, and Delhi, with more states added regularly. You select your state, court type, and court name, and the cause title and formatting adjust accordingly.',
+      "Only the courts in Lawie's court list. The list does not yet cover every District and High Court in Bihar, Jharkhand, UP, and Delhi. Check that your court is listed before you draft.",
   },
   {
     question: 'Does Lawie handle Hindi documents?',
@@ -88,7 +88,7 @@ const legalFaq = [
   {
     question: 'Who reviews the templates?',
     answer:
-      'Templates are designed against current Indian court formats and validated against the official section mappings. Lawie is an AI-assisted tool — the filing advocate is responsible for reviewing each generated draft before use.',
+      "Templates follow Lawie's court rules for the courts in its list. Lawie is an AI-assisted tool — the filing advocate is responsible for reviewing each generated draft before use.",
   },
 ];
 
@@ -98,14 +98,13 @@ const technicalFaq = [
     answer: 'No. Lawie runs entirely in your web browser. There is nothing to download or install.',
   },
   {
-    question: 'Does Lawie work on mobile?',
+    question: 'Can I use Lawie on my phone?',
     answer:
-      'Yes. The site and the drafting flow work on modern mobile browsers, though a larger screen is more comfortable for reviewing long documents.',
+      'We have not tested Lawie on phones yet. For now, please use a laptop or desktop browser.',
   },
   {
     question: 'How fast does document generation happen?',
-    answer:
-      'Most documents are generated in under five minutes from a completed form, depending on the length and complexity of the document.',
+    answer: 'It depends on the length and complexity of the document.',
   },
 ];
 

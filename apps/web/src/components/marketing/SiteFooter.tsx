@@ -10,7 +10,7 @@ export default function SiteFooter() {
             <Image src="/lockup-on-dark.png" alt="Lawie" width={150} height={35} />
           </Link>
           <p className="footer-tag">
-            Court-ready legal drafting for Indian advocates — built around BNS, BNSS, and BSA.
+            Legal drafting for Indian advocates — built around BNS, BNSS, and BSA.
           </p>
           <p className="footer-disclaimer">
             AI-assisted drafting tool — not a substitute for legal advice.

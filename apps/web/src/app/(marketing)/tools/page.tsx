@@ -139,7 +139,7 @@ export default function ToolsPage() {
           <div className="tools-cta">
             <div>
               <h3>Need more than tools? Try Lawie&apos;s full drafter.</h3>
-              <p>Generate complete, court-ready documents — not just section lookups.</p>
+              <p>Generate full drafts — not just section lookups.</p>
             </div>
             <Link className="btn btn-primary btn-lg" href="/pricing">
               See Pricing <ArrowRight strokeWidth={1.5} />
