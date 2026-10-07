@@ -1291,15 +1291,15 @@ const PERIOD_JOIN = '(?:[\\s_]+|\\s*[-\\u2010-\\u2015]\\s*|\\)\\s+)';
  * "30 clear days", "several months".
  */
 const PERIOD = new RegExp(
-  `(?<![\\p{L}\\p{N}./])(\\d+(?:\\.\\d+)?|${NUMBER_IN_WORDS}|several|few|many)\\+?` +
+  `(?<![\\p{L}\\p{N}.])(\\d+(?:\\.\\d+)?|${NUMBER_IN_WORDS}|several|few|many)\\+?` +
     `(?:\\s*\\(\\s*(\\d+|${NUMBER_IN_WORDS})\\s*\\))?` +
     `(?:\\s+(?:clear|calendar|working|business|consecutive|whole|full|more|further|additional))?` +
     `${PERIOD_JOIN}${PERIOD_UNIT}(?![\\p{L}\\p{N}])`,
   'giu',
 );
-/** "3-5 years", "7 to 10 days": the first count of a range. The second is read as any other. */
+/** "3-5 years", "7 to 10 days", "30/90 days": the first count of a range. The second is read as any other. */
 const PERIOD_RANGE = new RegExp(
-  `(?<![\\p{L}\\p{N}./])(\\d+)\\s*(?:[-\\u2010-\\u2015]|to)\\s*\\d+\\+?${PERIOD_JOIN}${PERIOD_UNIT}(?![\\p{L}\\p{N}])`,
+  `(?<![\\p{L}\\p{N}.])(\\d+)\\s*(?:[-\\u2010-\\u2015/]|to)\\s*\\d+\\+?${PERIOD_JOIN}${PERIOD_UNIT}(?![\\p{L}\\p{N}])`,
   'giu',
 );
 /** "over a month", "within a week": one of the unit, said with "a". */
