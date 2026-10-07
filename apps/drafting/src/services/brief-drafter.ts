@@ -628,7 +628,9 @@ const ONLY_A_NUMBER = /^\s*(?:\d+[.)]|\((?:[a-z]{1,2}|[ivxlc]+|\d{1,2})\))\s*$/i
  * and the word alone in round brackets, or after a dash or a colon in them.
  */
 const SYSTEM_NOTE =
-  /[ \t]?(?:\[[^[\]\n]*\bSYSTEM\b[^[\]\n]*\]|\(\s*(?:[^()\n]{0,60}?[—–:-]\s*)?SYSTEM\s*\))/g;
+  /[ \t]?(?:\*{1,3}|(?<!_)_{1,2}|`)?(?:\[[^[\]\n]*\bSYSTEM\b[^[\]\n]*\]|\(\s*(?:[^()\n]{0,60}?[—–:-]\s*)?SYSTEM\s*\))(?:\*{1,3}|_{1,2}(?!_)|`)?/g;
+/** Marks of emphasis and of a heading. A run of three underscores or more is a blank, not a mark. */
+const EMPHASIS_MARKS = /[*#`]+|(?<!_)_{1,2}(?!_)/g;
 
 /**
  * Every word, number and sign of a text, in order. Two texts with the same
@@ -766,8 +768,10 @@ function repeatsWholeLines(block: string, system: SystemLines): boolean {
  *
  * A numbered paragraph that held nothing but a SYSTEM note is left as a bare
  * number. That line is taken out too, so that the paragraph is not counted as
- * written and its clause is seen as not covered. The other paragraphs keep
- * their numbers: the numbering then has a gap, and nothing is renumbered.
+ * written and its clause is seen as not covered. The number stays where the
+ * paragraph carries on below it, in text or in sub-points. Emphasis written
+ * around a note goes with the note. The other paragraphs keep their numbers:
+ * the numbering then has a gap, and nothing is renumbered.
  */
 export function removeRepeatedParts(
   body: string,
@@ -777,14 +781,30 @@ export function removeRepeatedParts(
   const source = body.split('\n');
   const lines: string[] = [];
   source.forEach((line, i) => {
-    const without = line.replace(SYSTEM_NOTE, (note) => {
-      removed.push(note.trim());
+    let without = line.replace(SYSTEM_NOTE, (note) => {
+      removed.push(note.trim().replace(/^[*_`]+|[*_`]+$/g, ''));
       return '';
     });
-    if (without !== line && ONLY_A_NUMBER.test(without)) {
-      // Nothing is left of the paragraph unless its text carries on below.
-      const next = (source[i + 1] ?? '').replace(SYSTEM_NOTE, '');
-      if (next.trim() === '' || PARAGRAPH_START.test(next) || SUB_POINT.test(next)) return;
+    if (without !== line) {
+      // What the note leaves behind is read without the emphasis that stood around it.
+      const plain = without.replace(EMPHASIS_MARKS, '');
+      if (plain.trim() === '') {
+        without = '';
+      } else if (ONLY_A_NUMBER.test(plain)) {
+        const below = (k: number): string =>
+          (source[i + k] ?? '').replace(SYSTEM_NOTE, '').replace(EMPHASIS_MARKS, '');
+        const next = below(1);
+        // A paragraph carries on in text or sub-points right below it, or in
+        // sub-points after one blank line. A sub-point carries on only in text.
+        const carriesOn = /^\s*\d/.test(plain)
+          ? next.trim() === ''
+            ? SUB_POINT.test(below(2))
+            : !PARAGRAPH_START.test(next)
+          : next.trim() !== '' && !PARAGRAPH_START.test(next) && !SUB_POINT.test(next);
+        // Nothing is left of it: the bare number goes, so it is not counted as written.
+        if (!carriesOn) return;
+        without = plain.trimEnd();
+      }
     }
     lines.push(without);
   });
@@ -1632,13 +1652,14 @@ function isDisclaimer(text: string): boolean {
 }
 
 /**
- * For a draft with a rule pack: a paragraph that is only the disclaimer the
- * system adds itself is taken out, as the form pipeline does (SCRUM-62). A
- * numbered paragraph or a sub-point is never taken out: where a disclaimer
- * stands in the same block as one, only the disclaimer's own lines go, and a
- * numbered line stays whatever it says. A court name in the body is left alone
- * here: a repeated part is removed only under Ajay's condition, by
- * `removeRepeatedParts` (T-136).
+ * For a draft with a rule pack: the disclaimer the system adds itself is taken
+ * out of the Drafter's text (SCRUM-62). A block that opens with "DISCLAIMER:"
+ * and holds no numbered line goes whole, as in the form pipeline. In any other
+ * block only the disclaimer's own lines go: the lines beside them stay, so a
+ * line of place and date or a sentence of facts is not lost with it, and a
+ * numbered paragraph or a sub-point stays whatever it says. A court name in
+ * the body is left alone here: a repeated part is removed only under Ajay's
+ * condition, by `removeRepeatedParts` (T-136).
  */
 export function withoutDisclaimerText(text: string): string {
   const kept: string[] = [];
@@ -1646,12 +1667,9 @@ export function withoutDisclaimerText(text: string): string {
     if (!para.trim()) continue;
     const lines = para.split('\n');
     const numbered = (l: string): boolean => PARAGRAPH_START.test(l) || SUB_POINT.test(l);
-    if (!lines.some(numbered)) {
-      if (!isDisclaimer(para.trim())) kept.push(para);
-      continue;
-    }
+    if (!lines.some(numbered) && /^DISCLAIMER\s*:/i.test(para.trim())) continue;
     const own = lines.filter((l) => numbered(l) || !isDisclaimer(l.trim()));
-    kept.push(own.join('\n'));
+    if (own.some((l) => l.trim() !== '')) kept.push(own.join('\n'));
   }
   return kept.join('\n\n').trim();
 }
