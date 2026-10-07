@@ -73,6 +73,7 @@ import {
   RenderedSection,
   CourtLookupData,
   buildPlaceholderContext,
+  sectionContext,
   renderTemplateSection,
   buildAISystemPrompt,
   buildAIUserPrompt,
@@ -399,6 +400,44 @@ export interface GenerateDocumentResult {
  * Legacy validateBnsSections — kept for backwards compatibility.
  * The new validator.ts provides richer validation.
  */
+/**
+ * Placeholders a template section left unfilled.
+ *
+ * T-146: only a field the user is asked for (one in the form schema) becomes a
+ * check message. A system-owned placeholder (court, aliases, deferred counts)
+ * left unfilled is an engine fault: it is logged, never put to the user, and the
+ * placeholder-coverage test is what catches it.
+ */
+export function leakedPlaceholderWarnings(
+  templateConfig: TemplateConfig,
+  ctx: Record<string, string>,
+): ValidationWarning[] {
+  const userFields = new Set<string>();
+  for (const step of templateConfig.form_schema.steps) {
+    for (const field of step.fields) userFields.add(field.field_id);
+  }
+  const warnings: ValidationWarning[] = [];
+  for (const section of templateConfig.document_structure.sections) {
+    if (section.type !== 'template' || !section.template) continue;
+    for (const key of detectLeakedPlaceholders(section.template, sectionContext(section, ctx))) {
+      if (!userFields.has(key)) {
+        if (process.env.NODE_ENV !== 'test') {
+          console.error(
+            `[drafting] System placeholder "{${key}}" unfilled (template=${templateConfig.template_id}, section=${section.section_id})`,
+          );
+        }
+        continue;
+      }
+      warnings.push({
+        type: 'missing_clause',
+        message: `Unfilled placeholder "{${key}}" in section "${section.section_id}". Please provide this field or it will appear as a blank in the document.`,
+        details: { clauseId: key },
+      });
+    }
+  }
+  return warnings;
+}
+
 export function validateBnsSections(docType: string, generatedText: string): string[] {
   // bns-mapping.json now carries non-doctype keys (_meta, alias maps) that the
   // TS type widens into the union. Narrow with a structural guard so the legacy
@@ -821,18 +860,7 @@ export async function streamGenerateFromTemplate(
   const allWarnings: ValidationWarning[] = [];
 
   // SCRUM-54 B1: Detect placeholder leakage in template sections
-  for (const section of templateConfig.document_structure.sections) {
-    if (section.type === 'template' && section.template) {
-      const leaked = detectLeakedPlaceholders(section.template, ctx);
-      for (const key of leaked) {
-        allWarnings.push({
-          type: 'missing_clause',
-          message: `Unfilled placeholder "{${key}}" in section "${section.section_id}". Please provide this field or it will appear as a blank in the document.`,
-          details: { clauseId: key },
-        });
-      }
-    }
-  }
+  allWarnings.push(...leakedPlaceholderWarnings(templateConfig, ctx));
 
   // Check for old-law references in AI-generated text
   const aiSections = renderedSections.filter((s) => s.type === 'ai_generated');
@@ -1254,17 +1282,7 @@ export async function streamGenerateFromBrief(
     if (typeof item.value === 'string' && item.value.length > 0) given.set(item.key, item.value);
   }
 
-  for (const section of templateConfig.document_structure.sections) {
-    if (section.type === 'template' && section.template) {
-      for (const key of detectLeakedPlaceholders(section.template, ctx)) {
-        allWarnings.push({
-          type: 'missing_clause',
-          message: `Unfilled placeholder "{${key}}" in section "${section.section_id}". Please provide this field or it will appear as a blank in the document.`,
-          details: { clauseId: key },
-        });
-      }
-    }
-  }
+  allWarnings.push(...leakedPlaceholderWarnings(templateConfig, ctx));
 
   allWarnings.push(...(await detectOldLawReferences(body)));
 

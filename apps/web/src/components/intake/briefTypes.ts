@@ -206,9 +206,20 @@ export function dateInWords(iso: string): string {
 const BLANK =
   /\[To be confirmed: [^\]]*\]|\[Section — verify before filing\]|\[Authority — add if relied upon\]/g;
 
-/** How many visible blanks the draft carries (T-107, section 4). */
+/** A run of underscores left for the user, such as "Case No. _____". */
+const UNDERSCORE_BLANK = /_{3,}/g;
+
+/** A line of underscores only: the line a signature goes on, not a blank. */
+const SIGNATURE_LINE = /^[ \t]*_{3,}[ \t]*$/gm;
+
+/**
+ * How many visible blanks the draft carries (T-107, section 4). T-146: a run of
+ * three or more underscores inside a line (a case number, a date) is a blank too.
+ */
 export function countBlanks(text: string): number {
-  return (text.match(BLANK) ?? []).length;
+  const marked = (text.match(BLANK) ?? []).length;
+  const underscores = (text.replace(SIGNATURE_LINE, '').match(UNDERSCORE_BLANK) ?? []).length;
+  return marked + underscores;
 }
 
 /** The words after "[To be confirmed: " in a blank, for showing it. */
