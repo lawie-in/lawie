@@ -293,11 +293,13 @@ export default function DocumentEditorPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col gap-4 md:flex-row">
+    // T-138: below md the page is one column that scrolls as one page. The fixed height, the
+    // squeezing and the editor's own scroll start at md, where the layout is as it was.
+    <div className="flex flex-col gap-4 md:h-[calc(100vh-4rem)] md:flex-row">
       {/* Left: Editor */}
-      <div className="flex flex-1 flex-col gap-3 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-1 md:overflow-hidden">
+        {/* Header — the title, then the buttons under it below md */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push('/dashboard')}
@@ -306,7 +308,9 @@ export default function DocumentEditorPage() {
             >
               <ArrowLeft size={18} />
             </button>
-            <div>
+            {/* T-138: a guided document's title is typed by the advocate and can be one long
+                unbroken word. Below md it may shrink and break; from md it is as it was. */}
+            <div className="min-w-0 break-words md:min-w-[auto] md:break-normal">
               <h1 className="text-base font-bold capitalize text-slate-900">
                 {/* A document with no rule pack has no type of its own: its name is its title. */}
                 {doc.docType === 'guided' ? doc.title : doc.docType.replace(/_/g, ' ')}
@@ -315,7 +319,7 @@ export default function DocumentEditorPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2 md:mt-0 md:flex-nowrap">
             {/* Save status indicator */}
             <span className="flex items-center gap-1 text-xs text-slate-400">
               {saveStatus === 'saving' && (
@@ -398,7 +402,7 @@ export default function DocumentEditorPage() {
         )}
 
         {/* Editor */}
-        <div className="min-h-0 flex-1">
+        <div className="md:min-h-0 md:flex-1">
           <DocumentEditor initialContent={doc.content} onUpdate={handleEditorUpdate} />
         </div>
       </div>
