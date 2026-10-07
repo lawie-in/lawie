@@ -29,6 +29,9 @@ import {
   buildGuidedDrafterUserPrompt,
   buildRepairUserPrompt,
   checkAgainstBrief,
+  checkBriefIsUsed,
+  checkOneDocument,
+  checkPeriods,
   DrafterPromptInput,
   drafterBrief,
   findMissingClauses,
@@ -38,11 +41,15 @@ import {
   labelReason,
   MissingClause,
   needsStartingDraftLabel,
+  packTexts,
   paragraphNumbers,
+  removeRepeatedParts,
   splitDrafterOutput,
   systemParts,
+  systemTextAround,
   TrailerFilter,
   withoutDisclaimers,
+  withoutDisclaimerText,
 } from './brief-drafter';
 import {
   DRAFTER_GUIDED_SYSTEM_PROMPT,
@@ -960,6 +967,11 @@ export interface BriefGenerateInput {
   templateConfig: TemplateConfig;
   /** The brief as the server worked it out again from what the user confirmed. */
   brief: Brief;
+  /**
+   * The matter as the advocate typed it, word for word (T-136). It goes to the
+   * Drafter under "described" and is read by the checks. It is never logged.
+   */
+  described?: string | null;
   language: 'en' | 'hi' | 'bilingual';
   /** The number of numbered paragraphs wanted in the body. */
   targetParagraphs: number;
@@ -1018,6 +1030,33 @@ export async function streamGenerateFromBrief(
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
 
+  // ── The parts the system adds, in the template's order ────────────────────
+  // They are written first, so that the Drafter is shown what stands above its
+  // text and what follows it (T-136). The number of the last paragraph is
+  // filled in once the body is known.
+  const renderedSections: RenderedSection[] = [];
+  let bodyAt = -1;
+  for (const section of templateConfig.document_structure.sections) {
+    if (section.type === 'template') {
+      renderedSections.push(renderTemplateSection(section, ctx));
+    } else if (bodyAt < 0) {
+      // One body, where the template's first AI section sits. Any further AI
+      // section of the old form pipeline has no place here.
+      bodyAt = renderedSections.length;
+      renderedSections.push({
+        section_id: 'body',
+        type: 'ai_generated',
+        content: '',
+        alignment: section.alignment,
+      });
+    }
+  }
+  if (bodyAt < 0) {
+    bodyAt = renderedSections.length;
+    renderedSections.push({ section_id: 'body', type: 'ai_generated', content: '' });
+  }
+  const systemText = systemTextAround(renderedSections);
+
   // ── What the Drafter is given ─────────────────────────────────────────────
   const parts = systemParts(templateConfig);
   const courtRule = courtData?.courtRule;
@@ -1025,9 +1064,15 @@ export async function streamGenerateFromBrief(
   const provisions = courtProvisions(templateConfig, ctx);
   const promptInput: DrafterPromptInput = {
     pack,
-    brief: drafterBrief(brief, ctx.court_designation || courtData?.designation || null, converted),
+    brief: drafterBrief(
+      brief,
+      ctx.court_designation || courtData?.designation || null,
+      converted,
+      input.described,
+    ),
     statedInstructions: provisions.map((p) => p.instruction).filter((i): i is string => i !== null),
     systemParts: parts,
+    systemText,
     courtRules: [
       ...(courtRule?.localRules ?? []),
       ...Object.entries(courtRule?.party_designation ?? {}).map(
@@ -1037,13 +1082,22 @@ export async function streamGenerateFromBrief(
     target: input.targetParagraphs,
     language: input.language,
   };
-  const tracking = heliconeHeaders(
-    input.userId,
-    pack.id,
-    input.runId,
-    input.runSequence,
-    input.runType,
-  );
+  const tracking = {
+    ...heliconeHeaders(input.userId, pack.id, input.runId, input.runSequence, input.runType),
+    // The prompt holds the advocate's own description (T-136). As at intake
+    // (T-101), Helicone is asked not to keep the request or the answer. The
+    // token counts are still read from our own stream.
+    ...(env.HELICONE_API_KEY
+      ? { 'Helicone-Omit-Request': 'true', 'Helicone-Omit-Response': 'true' }
+      : {}),
+  };
+  /**
+   * The Drafter's text as it goes into the document: no disclaimer, no word
+   * SYSTEM in brackets, and no repeat of a part the system has written, where
+   * the repeat says nothing that part does not (Ajay's condition 4).
+   */
+  const cleaned = (text: string): string =>
+    removeRepeatedParts(withoutDisclaimerText(text), systemText).body;
 
   const meter = new UsageMeter();
   let aiModel: string | undefined;
@@ -1108,7 +1162,7 @@ export async function streamGenerateFromBrief(
   }
 
   let output = splitDrafterOutput(raw);
-  output = { ...output, body: sanitiseAIBody(output.body) };
+  output = { ...output, body: cleaned(output.body) };
   let missing = findMissingClauses(pack, output, parts);
   let repaired = false;
 
@@ -1133,7 +1187,7 @@ export async function streamGenerateFromBrief(
       }
       recordCall('repair', repairDraft, repairRaw);
       const second = splitDrafterOutput(repairRaw);
-      const secondBody = sanitiseAIBody(second.body);
+      const secondBody = cleaned(second.body);
       // The repair may add clauses and nothing else. If it dropped or rewrote
       // a paragraph, the first draft is kept and the clauses stay missing.
       if (secondBody.length > 0 && keepsEveryParagraph(output.body, secondBody)) {
@@ -1157,40 +1211,24 @@ export async function streamGenerateFromBrief(
     }
   }
 
-  // ── The parts the system adds, in the template's order ────────────────────
-  const renderedSections: RenderedSection[] = [];
-  let bodyPlaced = false;
-  for (const section of templateConfig.document_structure.sections) {
-    if (section.type === 'template') {
-      renderedSections.push(renderTemplateSection(section, ctx));
-    } else if (!bodyPlaced) {
-      // One body, where the template's first AI section sits. Any further AI
-      // section of the old form pipeline has no place here.
-      bodyPlaced = true;
-      renderedSections.push({
-        section_id: 'body',
-        type: 'ai_generated',
-        content: output.body,
-        alignment: section.alignment,
-      });
-    }
-  }
-  if (!bodyPlaced) {
-    renderedSections.push({ section_id: 'body', type: 'ai_generated', content: output.body });
-  }
+  // ── The body takes its place among the parts the system wrote ─────────────
+  renderedSections[bodyAt] = { ...renderedSections[bodyAt], content: output.body };
 
   const { fullText, bodyParaCount } = assembleDocument(renderedSections);
   ctx.body_para_count = String(bodyParaCount);
+  /** Each part as it prints: the number of the last paragraph filled in. */
+  const printed = renderedSections.map((s) =>
+    s.type === 'template' && s.content.includes('{body_para_count}')
+      ? s.content.replace(/\{body_para_count\}/g, String(bodyParaCount))
+      : s.content,
+  );
 
   res.write(
     `event: template_sections\ndata: ${JSON.stringify({
-      sections: renderedSections.map((s) => ({
+      sections: renderedSections.map((s, i) => ({
         section_id: s.section_id,
         type: s.type,
-        content:
-          s.type === 'template' && s.content.includes('{body_para_count}')
-            ? s.content.replace(/\{body_para_count\}/g, String(bodyParaCount))
-            : s.content,
+        content: printed[i],
         alignment: s.alignment,
         style: s.style,
       })),
@@ -1278,6 +1316,29 @@ export async function streamGenerateFromBrief(
 
   // The provision the application is made under follows the court (T-135).
   allWarnings.push(...checkCourtProvisions(body, provisions));
+
+  // One document, with what the advocate gave (T-136; the wording is Ajay's).
+  // A part that may not belong:
+  allWarnings.push(...checkOneDocument(body, systemText, pack.name));
+  // A date, a name, a number or a fact of the brief that the document does not
+  // hold, read against the whole document as it prints, not the body alone:
+  allWarnings.push(...checkBriefIsUsed(printed.join('\n\n'), brief, input.described));
+  // A length of time that nothing the Drafter was given states:
+  allWarnings.push(
+    ...checkPeriods(
+      body,
+      [
+        briefText(brief),
+        input.described ?? '',
+        ...packTexts(pack),
+        ...(promptInput.statedInstructions ?? []),
+        ...promptInput.courtRules,
+        systemText.before,
+        systemText.after,
+      ],
+      brief,
+    ),
+  );
 
   // Every mandatory clause of the pack (ADR-021, rule 1).
   for (const clause of missing) {

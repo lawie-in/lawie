@@ -11,8 +11,12 @@
  * (`handoff/design/T-127-one-flow-rules-and-prompts.md`, sections 4 and 7.3),
  * in ADR-021, section 5, and for a request with no rule pack in T-107
  * (`handoff/design/T-107-guided-draft-rules-and-prompts.md`, sections 4 and
- * 6). Do not change them without his sign-off.
+ * 6). The parts the Drafter is shown, the removal of a repeated part, and the
+ * findings on dates, facts, periods and parts are signed in T-136
+ * (`handoff/design/T-136-drafter-rules-signed.md`, 7 Oct 2026, two parts, with
+ * conditions). Do not change them without his sign-off.
  */
+import { dateKindLabel, statedDates } from './intake-brief';
 import type { Brief, BriefItem } from './intake-brief';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
 import type { RulePack, RulePackClause } from './rule-pack.service';
@@ -116,7 +120,8 @@ function shown(item: BriefItem, converted?: Record<string, unknown>): string | s
   return value;
 }
 
-export interface DrafterBrief {
+/** The parts of the confirmed brief, as every Drafter reads them. */
+interface BriefParts {
   document: string;
   court: string | null;
   parties: Array<{ key: string; what: string; value: string | string[] }>;
@@ -126,6 +131,9 @@ export interface DrafterBrief {
   asked_for: Array<{ key: string; what: string; value: string | string[] }>;
   other: Array<{ what: string; value: string | string[] }>;
   unknown: Array<{ what: string; blank: string }>;
+}
+
+export interface DrafterBrief extends BriefParts {
   /**
    * The matter as the advocate first described it, word for word (T-136).
    * Only what the advocate typed: nothing a model wrote and nothing read from
@@ -146,7 +154,18 @@ export function drafterBrief(
   converted?: Record<string, unknown>,
   described?: string | null,
 ): DrafterBrief {
-  const out: DrafterBrief = {
+  return {
+    ...briefParts(brief, courtLine, converted),
+    described: typeof described === 'string' && described.trim() !== '' ? described.trim() : null,
+  };
+}
+
+function briefParts(
+  brief: Brief,
+  courtLine: string | null,
+  converted?: Record<string, unknown>,
+): BriefParts {
+  const out: BriefParts = {
     document: brief.kind.name,
     court: brief.kind.court_document ? (courtLine ?? '[To be confirmed: court]') : null,
     parties: [],
@@ -156,7 +175,6 @@ export function drafterBrief(
     asked_for: [],
     other: brief.unplaced.map((u) => ({ what: u.label, value: u.value })),
     unknown: brief.still_unknown.map((u) => ({ what: u.label, blank: u.placeholder })),
-    described: typeof described === 'string' && described.trim() !== '' ? described.trim() : null,
   };
   for (const item of brief.items) {
     if (isEmpty(item.value)) continue;
@@ -385,6 +403,8 @@ const CLAUSE_TO_PART: Array<{ clause: RegExp; part: RegExp }> = [
   { clause: /heading|subject/i, part: /(_heading|^subject_line)$/ },
   { clause: /address/i, part: /^addressing_clause$/ },
   { clause: /recital/i, part: /^recitals$/ },
+  // T-136: the warning of prosecution stands in the demand the system adds.
+  { clause: /prosecution[\s_-]*warning/i, part: /^demand_clause$/ },
 ];
 
 /** True when the system did add the part this clause belongs to. */
@@ -600,98 +620,269 @@ export function systemTextAround(
 const PARAGRAPH_START = /^\s*\d+[.)]\s/;
 /** A sub-point of one: "(a) ...", "(ii) ...". */
 const SUB_POINT = /^\s*\((?:[a-z]{1,2}|[ivxlc]+|\d{1,2})\)\s/i;
-/** A word the Drafter was told to keep for its clause report, in square brackets. */
-const SYSTEM_WORD = /\[[^[\]\n]*\bSYSTEM\b[^[\]\n]*\]/g;
+/**
+ * The word SYSTEM belongs to the clause report. In the document it is a note
+ * on a part the system adds: anything in square brackets that holds the word,
+ * and the word alone in round brackets, or after a dash or a colon in them.
+ */
+const SYSTEM_NOTE =
+  /[ \t]?(?:\[[^[\]\n]*\bSYSTEM\b[^[\]\n]*\]|\(\s*(?:[^()\n]{0,60}?[—–:-]\s*)?SYSTEM\s*\))/g;
 
-/** The words of three letters or more and every number in a text, for comparing two texts. */
-function factTokens(text: string): string[] {
-  const flat = normalise(text).replace(/(\d),(?=\d)/g, '$1');
-  return (flat.match(/[\p{L}\p{M}]{3,}|\d+/gu) ?? []).map((t) => t.toLowerCase());
+/**
+ * Every word, number and sign of a text, in order. Two texts with the same
+ * tokens say the same thing: only case, spacing and punctuation can differ.
+ */
+function everyToken(text: string): string[] {
+  const flat = normalise(text).replace(/(\p{N}),(?=\p{N})/gu, '$1');
+  return flat.match(/[\p{L}\p{M}]+|\p{N}+|[\p{Sc}%&+=<>@§/]/gu) ?? [];
 }
 
-/** True when a block says nothing the system's own text does not say: no new word, no new number. */
-function saysNothingNew(blockText: string, systemTokens: Set<string>): boolean {
-  return factTokens(blockText).every((t) => systemTokens.has(t));
+interface TextBlock {
+  /** The lines of the text this block holds: from `from` up to, not including, `to`. */
+  from: number;
+  to: number;
+  lines: string[];
+  /** It opens with a paragraph number. */
+  paragraph: boolean;
+  /** It opens with the mark of a sub-point. */
+  subPoint: boolean;
+}
+
+/** A text cut into blocks. A blank line ends a block, and a paragraph number always opens one. */
+function blocksOf(text: string): TextBlock[] {
+  const lines = text.split('\n');
+  const blocks: TextBlock[] = [];
+  let from = -1;
+  const close = (to: number): void => {
+    if (from < 0) return;
+    const own = lines.slice(from, to);
+    blocks.push({
+      from,
+      to,
+      lines: own,
+      paragraph: PARAGRAPH_START.test(own[0]),
+      subPoint: SUB_POINT.test(own[0]),
+    });
+    from = -1;
+  };
+  lines.forEach((line, i) => {
+    if (line.trim() === '') {
+      close(i);
+      return;
+    }
+    if (from >= 0 && PARAGRAPH_START.test(line)) close(i);
+    if (from < 0) from = i;
+  });
+  close(lines.length);
+  return blocks;
+}
+
+interface SystemLines {
+  /** Every token of the text, in order. */
+  tokens: string[];
+  /** Where a line starts and where one ends, as places in `tokens`. */
+  starts: Set<number>;
+  ends: Set<number>;
+  /** Each line as its tokens, joined. */
+  whole: Set<string>;
+  /** Lines with no token, such as a rule to sign on, as written. */
+  bare: Set<string>;
+}
+
+function linesOfSystem(text: string): SystemLines {
+  const out: SystemLines = {
+    tokens: [],
+    starts: new Set(),
+    ends: new Set(),
+    whole: new Set(),
+    bare: new Set(),
+  };
+  for (const line of text.split('\n')) {
+    const tokens = everyToken(line);
+    if (tokens.length === 0) {
+      if (line.trim() !== '') out.bare.add(line.trim());
+      continue;
+    }
+    out.starts.add(out.tokens.length);
+    out.tokens.push(...tokens);
+    out.ends.add(out.tokens.length);
+    out.whole.add(tokens.join(' '));
+  }
+  return out;
+}
+
+function sameRun(all: string[], at: number, run: string[]): boolean {
+  if (at + run.length > all.length) return false;
+  for (let i = 0; i < run.length; i += 1) if (all[at + i] !== run[i]) return false;
+  return true;
+}
+
+/**
+ * True when a block is whole lines of the system's own text, in the system's
+ * order, and nothing else. Such a block carries no fact, name, date, amount,
+ * section or relief that the system's part does not carry: every word, number
+ * and sign of it is there already, as the same lines. One token more, one
+ * fewer or one different, and it is not a repeat.
+ */
+function repeatsWholeLines(block: string, system: SystemLines): boolean {
+  const tokens = everyToken(block);
+  if (tokens.length === 0) {
+    const lines = block
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l !== '');
+    return lines.length > 0 && lines.every((l) => system.bare.has(l));
+  }
+  for (const start of system.starts) {
+    if (system.ends.has(start + tokens.length) && sameRun(system.tokens, start, tokens)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
  * Takes out of the Drafter's text what the system has already put on the
- * page: a second cause title, addressee, heading, closing or signature line,
- * and the word SYSTEM in brackets, which belongs to the clause report.
+ * page, and the word SYSTEM in brackets, which belongs to the clause report.
  *
- * Ajay's condition (T-136, condition 4): a repeat is removed only where it
- * carries no word and no number that the system's own part does not carry.
- * Anything else stays and is reported by `checkOneDocument`. A numbered
- * paragraph is never removed.
+ * Ajay's condition (T-136, part 1, condition 4): a repeat is removed only
+ * where it carries no fact, name, date, amount, section or relief that the
+ * system's own part does not carry. Here that means: text with no paragraph
+ * number, standing above the first numbered paragraph or below the last, that
+ * is whole lines of the system's text on that side and nothing else.
+ *
+ * A repeated part goes as a whole or not at all. It runs from a line that is
+ * the heading of one of the system's parts to the next such line. If any
+ * block of it differs, all of it stays, heading included, and
+ * `checkOneDocument` reports it: a heading is never taken off text that the
+ * advocate must still see. A numbered paragraph and a sub-point are never
+ * removed, and nothing is removed on a side where the system wrote nothing.
  */
 export function removeRepeatedParts(
   body: string,
   system: SystemText,
 ): { body: string; removed: string[] } {
   const removed: string[] = [];
-  const cleaned = body
-    .replace(SYSTEM_WORD, (m) => {
-      removed.push(m);
-      return '';
-    })
-    .replace(/[ \t]+\n/g, '\n');
-
-  // A paragraph number always opens a block of its own, so a title written
-  // straight above "1." is seen as the separate thing it is.
-  const blocks = cleaned
-    .replace(/\n(?=\s*\d+[.)]\s)/g, '\n\n')
-    .split(/\n\s*\n/)
-    .map((b) => b.trim())
-    .filter((b) => b !== '');
-  const first = blocks.findIndex((b) => PARAGRAPH_START.test(b));
-  if (first === -1) {
-    return { body: removed.length > 0 ? blocks.join('\n\n') : body, removed };
-  }
-  let last = blocks.length - 1;
-  while (last > first && !PARAGRAPH_START.test(blocks[last]) && !SUB_POINT.test(blocks[last])) {
-    last -= 1;
-  }
-
-  const beforeTokens = new Set(factTokens(system.before));
-  const afterTokens = new Set(factTokens(system.after));
-  const kept: string[] = [];
-  blocks.forEach((b, i) => {
-    const leading = i < first && system.before !== '';
-    const trailing = i > last && system.after !== '';
-    if (
-      (leading && saysNothingNew(b, beforeTokens)) ||
-      (trailing && saysNothingNew(b, afterTokens))
-    ) {
-      removed.push(b);
-      return;
-    }
-    kept.push(b);
+  const text = body.replace(SYSTEM_NOTE, (note) => {
+    removed.push(note.trim());
+    return '';
   });
+
+  const gone = new Set<number>();
+  const blocks = blocksOf(text);
+  const first = blocks.findIndex((b) => b.paragraph);
+  if (first >= 0) {
+    let last = blocks.length - 1;
+    while (last > first && !blocks[last].paragraph && !blocks[last].subPoint) last -= 1;
+    const headings = new Set(system.headings.map((h) => everyToken(h).join(' ')));
+    const opensPart = (block: TextBlock): boolean =>
+      headings.has(everyToken(block.lines[0]).join(' '));
+    const zones: Array<{ blocks: TextBlock[]; side: SystemLines | null }> = [
+      {
+        blocks: blocks.slice(0, first),
+        side: system.before === '' ? null : linesOfSystem(system.before),
+      },
+      {
+        blocks: blocks.slice(last + 1),
+        side: system.after === '' ? null : linesOfSystem(system.after),
+      },
+    ];
+    for (const { blocks: zone, side } of zones) {
+      if (side === null) continue;
+      const repeated: TextBlock[][] = [];
+      for (const block of zone) {
+        if (repeated.length === 0 || opensPart(block)) repeated.push([]);
+        repeated[repeated.length - 1].push(block);
+      }
+      for (const part of repeated) {
+        const texts = part.map((b) => b.lines.join('\n'));
+        const same = part.every(
+          (b, k) => !b.paragraph && !b.subPoint && repeatsWholeLines(texts[k], side),
+        );
+        if (!same) continue;
+        part.forEach((b, k) => {
+          removed.push(texts[k].trim());
+          for (let n = b.from; n < b.to; n += 1) gone.add(n);
+        });
+      }
+    }
+  }
+
   if (removed.length === 0) return { body, removed };
-  return { body: kept.join('\n\n'), removed };
-}
-
-/** A line that opens or closes a document of its own, whatever kind of document it is. */
-const DOCUMENT_EDGE = [
-  /^to,?$/i,
-  /^from,?$/i,
-  /^to\s+whom(?:soever)?\s+it\s+may\s+concern\b/i,
-  /^yours\s+(?:faithfully|sincerely|truly)\b/i,
-  /^deponent\.?$/i,
-  /^(?:place|date|dated)\s*:/i,
-];
-/** The opening line of a separate document (rule 9 of the Drafter's prompt). */
-const SEPARATE_DOCUMENT = /^(AFFIDAVIT|VAKALATNAMA|INDEX|COVERING LETTER|MEMO OF APPEARANCE)\b/;
-
-function comparable(line: string): string {
-  return normalise(line.replace(/[*_#:.,]/g, ' '));
+  const kept = text
+    .split('\n')
+    .filter((_line, n) => !gone.has(n))
+    .join('\n');
+  return {
+    body: kept
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim(),
+    removed,
+  };
 }
 
 /**
- * Finding C4 (Ajay, T-136): a part in the Drafter's text that the system did
- * not add and that reads like a second document. Looked for only where the
- * system has put parts around the text; where the Drafter writes the whole
- * document, its headings are its own.
+ * Lines that a document has once: the addressee, the closing, the salutation,
+ * the subject line, the line between the parties, a party's line in the cause
+ * title, and the name of the court. One in the Drafter's text is a second one
+ * only where the system's parts already show one of the same kind.
+ */
+const PART_LINES: RegExp[] = [
+  /^(?:to|from)\s*,?$/i,
+  /^yours\s+(?:faithfully|sincerely|truly|respectfully|obediently)\b/i,
+  /^(?:(?:dear|respected)\s+)?(?:sir|madam|sirs)(?:\s*\/\s*(?:sir|madam))?\s*[,:]?$/i,
+  /^(?:subject|sub|ref|reference|re)\s*[:.-]/i,
+  /^(?:versus|vs\.?|v\/s\.?)$/i,
+  /\.{2,}\s*(?:applicant|petitioner|respondent|accused|complainant|appellant|plaintiff|defendant|opposite\s+party)/i,
+];
+/** The name of a court, as the heading of a document. */
+const COURT_LINE = /^(?:before|in)\s+the\s+(?:hon'?ble\s+)?(?:[a-z&.,' ]{0,40}\s)?court\b/i;
+/** The addressee: the first of the lines above. */
+const ADDRESSEE = PART_LINES[0];
+/** The line giving the place or the date of the document. */
+const PLACE_OR_DATE = /^(?:place|date|dated)\s*[:-]/i;
+/** The words of a prayer and of a verification, for one written again without its heading. */
+const PRAYER_WORDS = /\bprayed\s+that\b|\bprayer\b/i;
+const VERIFICATION_WORDS = /\bdo\s+hereby\s+verify\b|\bverified\s+at\b/i;
+const TO_WHOM = /^to\s+whom(?:soever)?\s+it\s+may\s+concern\b/i;
+const DEPONENT = /^deponent\.?$/i;
+/** The opening line of a separate document (rule 9 of the Drafter's prompt). */
+const SEPARATE_DOCUMENT =
+  /^(affidavit|vakalatnama|index|covering\s+letter|memo\s+of\s+appearance)\b/i;
+/** A whole line in square brackets that is not one of the blanks the Drafter is told to write. */
+const NOTE_LINE = /^\[[^\]]*\]$/;
+const BLANK_LINE = /^\[(?:To be confirmed:|Section — verify before filing\]|Authority — add if)/;
+
+/** A line as it reads with the marks of emphasis around it taken off. */
+function bareLine(line: string): string {
+  return line.replace(/^[\s*#`>]+|[\s*#`]+$/g, '');
+}
+
+/** A heading or a title, not a sentence of the body. */
+function readsLikeHeading(line: string): boolean {
+  if (line.length > 120) return false;
+  return !/[.;]$/.test(line) || line === line.toUpperCase();
+}
+
+function startsWith(all: string[], opening: string[]): boolean {
+  return opening.length <= all.length && sameRun(all, 0, opening);
+}
+
+/**
+ * Finding C4 (Ajay, T-136): a part in the Drafter's text that reads like a
+ * second part or a second document. Looked for only where the system has put
+ * parts around the text; where the Drafter writes the whole document, its
+ * headings are its own. One finding for a block, with the line as written.
+ *
+ * What counts: a line that is a line of the system's parts, or opens like one
+ * of their headings; a second addressee, salutation, subject line, closing,
+ * court name, party line, or line of place and date; "To whom it may concern";
+ * the opening of a separate document; a note in brackets where a part would
+ * stand; a prayer or a verification written again outside the numbered
+ * paragraphs; and the word SYSTEM. The first line of a numbered paragraph is
+ * body text and is read only for the word SYSTEM: a part written again inside
+ * a numbered paragraph is not seen here.
  */
 export function checkOneDocument(
   body: string,
@@ -699,71 +890,256 @@ export function checkOneDocument(
   documentName: string,
 ): ValidationWarning[] {
   if (system.before === '' && system.after === '') return [];
-  const headings = new Set(system.headings.map(comparable).filter((h) => h.length > 0));
-  const name = documentName.toUpperCase();
+  const systemText = `${system.before}\n${system.after}`;
+  const lines = linesOfSystem(systemText);
+  const shown = systemText
+    .split('\n')
+    .map(bareLine)
+    .filter((l) => l !== '');
+  const headings = system.headings.map((h) => everyToken(h)).filter((h) => h.length > 0);
+  const headingLines = new Set(headings.map((h) => h.join(' ')));
+  const kindShown = PART_LINES.map((kind) => shown.some((l) => kind.test(l)));
+  const courtShown = shown.some((l) => COURT_LINE.test(l));
+  const placeShown = shown.some((l) => PLACE_OR_DATE.test(l));
+  const addresseeShown = shown.some((l) => ADDRESSEE.test(l));
+  const verificationShown = shown.some((l) => /^verification\b/i.test(l) || DEPONENT.test(l));
+  const prayerShown = shown.some((l) => /^prayer\b/i.test(l));
+  const name = documentName.toLowerCase();
+
+  const blocks = blocksOf(body);
+  const first = blocks.findIndex((b) => b.paragraph);
+  let last = blocks.length - 1;
+  while (last > first && !blocks[last].paragraph && !blocks[last].subPoint) last -= 1;
+
+  const isOdd = (line: string, opensParagraph: boolean, inside: boolean, outer: boolean) => {
+    if (/\bSYSTEM\b/.test(line)) return true;
+    if (opensParagraph) return false;
+    const tokens = everyToken(line);
+    const joined = tokens.join(' ');
+    const heading = readsLikeHeading(line);
+    // A line of the system's parts, written again.
+    if (tokens.length > 0 && (inside ? headingLines : lines.whole).has(joined)) return true;
+    if (heading) {
+      // A title that opens like one of theirs, or one of theirs cut short or carried on.
+      for (const h of headings) {
+        if (h.length >= 2 && tokens.length >= 2 && (startsWith(tokens, h) || startsWith(h, tokens)))
+          return true;
+        // "PRAYER CLAUSE", "DEMAND NOTICE": a heading of theirs with a word or two added.
+        if (
+          !inside &&
+          h.length === 1 &&
+          h[0].length >= 5 &&
+          tokens.length <= 3 &&
+          tokens[0] === h[0]
+        )
+          return true;
+      }
+      if (courtShown && COURT_LINE.test(line)) return true;
+      const separate = SEPARATE_DOCUMENT.exec(line);
+      if (separate !== null && !name.includes(separate[1].toLowerCase().replace(/\s+/g, ' ')))
+        return true;
+    }
+    if (PART_LINES.some((kind, k) => kindShown[k] && kind.test(line))) return true;
+    if (addresseeShown && TO_WHOM.test(line)) return true;
+    if (verificationShown && DEPONENT.test(line)) return true;
+    if (placeShown && !inside && PLACE_OR_DATE.test(line)) return true;
+    if (NOTE_LINE.test(line) && !BLANK_LINE.test(line)) return true;
+    // Above the first paragraph and below the last: a prayer or a verification
+    // written again, and a stretch of the system's own words.
+    if (outer && prayerShown && PRAYER_WORDS.test(line)) return true;
+    if (outer && verificationShown && VERIFICATION_WORDS.test(line)) return true;
+    if (outer && tokens.length >= 4) {
+      for (let at = 0; at + tokens.length <= lines.tokens.length; at += 1) {
+        if (sameRun(lines.tokens, at, tokens)) return true;
+      }
+    }
+    return false;
+  };
+
   const warnings: ValidationWarning[] = [];
   const seen = new Set<string>();
-  const blocks = body.replace(/\n(?=\s*\d+[.)]\s)/g, '\n\n').split(/\n\s*\n/);
-  for (const block of blocks) {
-    if (PARAGRAPH_START.test(block) || SUB_POINT.test(block)) continue;
-    for (const raw of block.split('\n')) {
-      const line = raw.replace(/^[\s*_#]+|[\s*_#]+$/g, '').trim();
+  blocks.forEach((block, i) => {
+    const numbered = block.paragraph || block.subPoint;
+    const outer = !numbered && (first === -1 || i < first || i > last);
+    for (let n = 0; n < block.lines.length; n += 1) {
+      const line = bareLine(block.lines[n]);
       if (line === '') continue;
-      const separate = SEPARATE_DOCUMENT.exec(line);
-      const odd =
-        headings.has(comparable(line)) ||
-        DOCUMENT_EDGE.some((re) => re.test(line)) ||
-        (separate !== null && !name.includes(separate[1]));
-      if (!odd || seen.has(comparable(line))) continue;
-      seen.add(comparable(line));
-      const shown = line.length > 80 ? `${line.slice(0, 79)}…` : line;
+      // A line under a numbered paragraph is part of the body, unless it is the last paragraph.
+      const inside = numbered && n > 0 && i !== last;
+      if (!isOdd(line, numbered && n === 0, inside, outer)) continue;
+      const key = everyToken(line).join(' ') || line;
+      if (seen.has(key)) break;
+      seen.add(key);
+      const written = block.lines[n].trim();
+      const quoted = written.length > 120 ? `${written.slice(0, 119)}…` : written;
       warnings.push({
         type: 'fact_alteration',
-        message: `The draft has a part that may not belong: "${shown}". Check that the draft is one document.`,
-        details: { field: 'part', expected: shown },
+        message: `The draft has a part that may not belong: "${quoted}". Check that the draft is one document.`,
+        details: { field: 'part', expected: quoted },
       });
+      break;
     }
-  }
+  });
   return warnings;
 }
 
 // ── Everything in the brief is in the draft (T-136) ─────────────────────────
 
-/** A date as a user reads it in a finding about the brief: 12.09.2026. */
-function shownDate(isoDate: string): string {
-  return filingDate(isoDate);
+/** Words that carry no fact of their own. They are not compared. */
+const SMALL_WORDS = new Set(
+  (
+    'the and for that this these those with from into onto upon has had have having was were are ' +
+    'been being his her him she they them their its our your you who whom whose which what when ' +
+    'where why how but also will would shall should may might can could did does doing done there ' +
+    'here then than such said same any all some each every both per via vide etc about above after ' +
+    'before between during since until till through under over against while because however ' +
+    'therefore thus hence namely very just too now yet own'
+  ).split(' '),
+);
+/** How a party is called. A draft says "the applicant" where the advocate wrote "my client". */
+const ROLE_WORDS = new Set(
+  (
+    'client applicant applicants accused petitioner petitioners respondent respondents complainant ' +
+    'informant plaintiff defendant appellant noticee sender drawer payee deponent undersigned ' +
+    'advocate counsel shri smt sri kumari mrs learned'
+  ).split(' '),
+);
+
+/** The words of three letters or more in a text, small words left out. */
+function factWords(text: string): string[] {
+  return (normalise(text).match(/[\p{L}\p{M}]{3,}/gu) ?? []).filter((w) => !SMALL_WORDS.has(w));
 }
 
-function numbersIn(text: string): Set<string> {
-  return new Set(normalise(text).replace(/(\d),(?=\d)/g, '$1').match(/\d+/g) ?? []);
+/** Every number in a text, with the commas of Indian and Western grouping taken out. */
+function factNumbers(text: string): string[] {
+  return (
+    normalise(text)
+      .replace(/(\d),(?=\d)/g, '$1')
+      .match(/\d+/g) ?? []
+  );
+}
+
+/** "rejected" and "rejection" are one word here: a word is told by its first five letters. */
+function stem(word: string): string {
+  return word.length > 5 ? word.slice(0, 5) : word;
+}
+
+function withoutDates(text: string): string {
+  let out = text;
+  for (const d of datesAsWritten(text)) out = out.split(d.words).join(' ');
+  return out;
+}
+
+/** One paragraph of the document, or two that follow each other, as the words and numbers in it. */
+interface Stretch {
+  words: Set<string>;
+  stems: Set<string>;
+  numbers: Set<string>;
+}
+
+function stretchesOf(documentText: string): Stretch[] {
+  const one = blocksOf(documentText).map((b) => {
+    const text = b.lines.join(' ');
+    const words: string[] = normalise(text).match(/[\p{L}\p{M}]{3,}/gu) ?? [];
+    return {
+      words: new Set(words),
+      stems: new Set(words.map(stem)),
+      numbers: new Set(factNumbers(text)),
+    };
+  });
+  const out: Stretch[] = [...one];
+  for (let i = 0; i + 1 < one.length; i += 1) {
+    out.push({
+      words: new Set([...one[i].words, ...one[i + 1].words]),
+      stems: new Set([...one[i].stems, ...one[i + 1].stems]),
+      numbers: new Set([...one[i].numbers, ...one[i + 1].numbers]),
+    });
+  }
+  return out;
 }
 
 /**
- * True when a short fact of the brief is in the document: every number of
- * it, and most of its words. Word order and small words are not compared, so
- * "Saraidhela PS" is found in "P.S. Saraidhela".
+ * A name or a number of the brief: every word and every number of it must
+ * stand together, in one paragraph of the document or in two that follow each
+ * other. The order does not matter, so "Saraidhela PS" is found in
+ * "P.S. Saraidhela".
  */
-function factIsIn(value: string, documentWords: Set<string>, documentNumbers: Set<string>): boolean {
-  const tokens = factTokens(value);
-  if (tokens.length === 0) return true;
-  const numbers = tokens.filter((t) => /^\d+$/.test(t));
-  const words = tokens.filter((t) => !/^\d+$/.test(t));
-  if (numbers.some((n) => !documentNumbers.has(n))) return false;
-  if (words.length === 0) return true;
-  const present = words.filter((w) => documentWords.has(w)).length;
-  return present / words.length >= 0.6;
+function nameIsIn(value: string, stretches: Stretch[]): boolean {
+  const words = factWords(value);
+  const numbers = factNumbers(value);
+  if (words.length === 0 && numbers.length === 0) return true;
+  return stretches.some(
+    (s) => words.every((w) => s.words.has(w)) && numbers.every((n) => s.numbers.has(n)),
+  );
+}
+
+/** The share of a sentence's words that must stand together for it to count as there. */
+const SENTENCE_SHARE = 0.7;
+
+/**
+ * A sentence of the brief: every number of it, and seven in ten of its words,
+ * must stand together in one paragraph of the document or in two that follow
+ * each other. The order does not matter. Small words, the words for a party
+ * and the parties' own names are not counted, and a date is left to the
+ * finding on dates. A sentence with nothing left to count is not compared.
+ */
+function sentenceIsIn(sentence: string, stretches: Stretch[], names: Set<string>): boolean {
+  const text = withoutDates(sentence);
+  const words = [
+    ...new Set(
+      factWords(text)
+        .filter((w) => !ROLE_WORDS.has(w) && !names.has(w))
+        .map(stem),
+    ),
+  ];
+  const numbers = factNumbers(text);
+  if (words.length === 0 && numbers.length === 0) return true;
+  const needed = Math.ceil(words.length * SENTENCE_SHARE);
+  return stretches.some(
+    (s) =>
+      numbers.every((n) => s.numbers.has(n)) &&
+      words.filter((w) => s.stems.has(w)).length >= needed,
+  );
+}
+
+/** A full stop after one of these does not end a sentence: "FIR No. 124", "P.S. Saraidhela". */
+const NOT_AN_END =
+  /(?:^|[\s(])(?:\p{Lu}|no|nos|rs|dr|mr|mrs|ms|smt|sh|shri|st|vs|ps|adv|hon|ld|sec|ss|cr|crl|misc|u\/s|s\/o|d\/o|w\/o|r\/o|p\.s|i\.e|e\.g|w\.e\.f)\.$/iu;
+
+/** A long text cut into its sentences. */
+function sentencesOf(text: string): string[] {
+  const pieces = text
+    .split(/(?:\n|;|।)+|(?<=[.?!])\s+(?=[\p{Lu}\p{Lo}\p{N}"'([])/u)
+    .map((p) => p.trim())
+    .filter((p) => p !== '');
+  const out: string[] = [];
+  let held = '';
+  for (const piece of pieces) {
+    held = held === '' ? piece : `${held} ${piece}`;
+    if (NOT_AN_END.test(held)) continue;
+    out.push(held);
+    held = '';
+  }
+  if (held !== '') out.push(held);
+  return out;
 }
 
 /**
- * Findings C1, C2 and the one for a date of the description (Ajay, T-136):
- * a date, a name, a number or a fact placed under "other" that the brief
- * holds and the document does not. `documentText` is the whole document: the
- * parts the system adds and the Drafter's text. Nothing is put into the draft
- * here; the advocate is told.
+ * Findings C1, C2 and D2 (Ajay, T-136): a date, a name, a number or a fact
+ * that the brief holds and the document does not, and a date that only the
+ * advocate's description gives. `documentText` is the whole document as it
+ * will print: the parts the system adds and the Drafter's text. Nothing is put
+ * into the draft here; the advocate is told.
  *
- * Compared: every date; the parties' names; the numbers; the facts under
- * "other". A choice is not, because the draft does not print its label. A
- * long account is compared by its dates only.
+ * Compared: every date; the parties and the numbers, each as a name; every
+ * long account of the brief and everything under "other", sentence by
+ * sentence. A choice is not compared, because the draft does not print its
+ * label. Nor is the description, beyond its dates: there is no signed finding
+ * for it.
+ *
+ * What this cannot see: a date written without a year; a date that is in the
+ * document but against another event; a fact put in other words; a word of
+ * two letters, such as "no".
  */
 export function checkBriefIsUsed(
   documentText: string,
@@ -772,40 +1148,53 @@ export function checkBriefIsUsed(
 ): ValidationWarning[] {
   const warnings: ValidationWarning[] = [];
   const documentDates = new Set(datesInText(documentText));
-  const documentWords = new Set(factTokens(documentText).filter((t) => !/^\d+$/.test(t)));
-  const documentNumbers = numbersIn(documentText);
-  const told = new Set<string>();
+  const stretches = stretchesOf(documentText);
 
-  // C1: a date of the brief.
-  const briefDates = new Map<string, string>();
+  // C1: a date of the brief. A date with a place of its own says what it is the date of.
+  const briefDates = new Map<string, { shown: string; what: string }>();
   for (const item of brief.items) {
-    if (isEmpty(item.value)) continue;
-    const values = Array.isArray(item.value) ? item.value : [item.value as string];
-    const what = item.kind === 'date' ? (item.meaning ?? item.label) : item.label;
-    for (const v of values) {
-      const dates = /^\d{4}-\d{2}-\d{2}$/.test(v) ? [v] : datesInText(v);
-      for (const d of dates) if (!briefDates.has(d)) briefDates.set(d, what);
+    if (item.kind !== 'date' || typeof item.value !== 'string') continue;
+    for (const date of /^\d{4}-\d{2}-\d{2}$/.test(item.value)
+      ? [item.value]
+      : datesInText(item.value)) {
+      if (!briefDates.has(date)) {
+        briefDates.set(date, { shown: filingDate(date), what: item.meaning ?? item.label });
+      }
+    }
+  }
+  // A date inside a text of the brief: shown as written, with what its own words say it is.
+  const fromText = (text: string, label: string): void => {
+    const stated = new Map(statedDates(text).map((d) => [d.value, d.kind]));
+    for (const d of datesAsWritten(text)) {
+      if (briefDates.has(d.value)) continue;
+      const kind = stated.get(d.value) ?? null;
+      briefDates.set(d.value, {
+        shown: d.words,
+        what: (kind ? dateKindLabel(kind) : null) ?? label,
+      });
+    }
+  };
+  for (const item of brief.items) {
+    if (item.kind === 'date' || isEmpty(item.value)) continue;
+    for (const v of Array.isArray(item.value) ? item.value : [item.value as string]) {
+      fromText(v, item.label);
     }
   }
   for (const u of brief.unplaced) {
-    for (const v of Array.isArray(u.value) ? u.value : [u.value]) {
-      for (const d of datesInText(v)) if (!briefDates.has(d)) briefDates.set(d, u.label);
-    }
+    for (const v of Array.isArray(u.value) ? u.value : [u.value]) fromText(v, u.label);
   }
-  for (const [date, what] of briefDates) {
+  for (const [date, { shown, what }] of briefDates) {
     if (documentDates.has(date)) continue;
-    told.add(date);
     warnings.push({
       type: 'fact_alteration',
-      message: `Your brief has a date the draft does not use: ${shownDate(date)} (${what}). Add it or check the draft.`,
-      details: { field: 'date', expected: shownDate(date) },
+      message: `Your brief has a date the draft does not use: ${shown} (${what}). Add it or check the draft.`,
+      details: { field: 'date', expected: shown },
     });
   }
 
-  // A date only the description gives, shown as the advocate wrote it.
+  // D2: a date only the description gives, shown exactly as the advocate wrote it.
   for (const d of datesAsWritten(described ?? '')) {
-    if (documentDates.has(d.value) || briefDates.has(d.value) || told.has(d.value)) continue;
-    told.add(d.value);
+    if (documentDates.has(d.value) || briefDates.has(d.value)) continue;
     warnings.push({
       type: 'fact_alteration',
       message: `Your description has a date the draft does not use: ${d.words}. If you changed this date on the brief, ignore this. Otherwise add it or check the draft.`,
@@ -813,93 +1202,194 @@ export function checkBriefIsUsed(
     });
   }
 
-  // C2: a name, a number, or a fact under "other".
+  // C2: a name, a number, or a fact.
+  const told = new Set<string>();
   const missing = (label: string, value: string): void => {
-    const shown = value.length > 120 ? `${value.slice(0, 119)}…` : value;
+    // The finding's own full stop follows the value, so the value's is left off.
+    const flat = value
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/[.\u0964]+$/, '');
+    const shown = flat.length > 120 ? `${flat.slice(0, 119)}…` : flat;
+    if (told.has(`${label}\n${shown}`)) return;
+    told.add(`${label}\n${shown}`);
     warnings.push({
       type: 'fact_alteration',
       message: `We could not find this from your brief in the draft: ${label}: ${shown}. Add it or check the draft.`,
       details: { field: label, expected: shown },
     });
   };
+  const names = new Set<string>();
+  for (const item of brief.items) {
+    if (!item.party_name || typeof item.value !== 'string') continue;
+    for (const w of factWords(item.value)) names.add(w);
+  }
+  const bySentence = (label: string, value: string): void => {
+    for (const sentence of sentencesOf(value)) {
+      if (!sentenceIsIn(sentence, stretches, names)) missing(label, sentence);
+    }
+  };
   for (const item of brief.items) {
     if (isEmpty(item.value)) continue;
-    if (item.kind === 'date' || item.kind === 'choice' || item.kind === 'choices') continue;
-    if (item.kind === 'narrative') continue;
-    if (item.part !== 'parties' && item.part !== 'numbers') continue;
     const values = Array.isArray(item.value) ? item.value : [item.value as string];
-    const lost = values.filter((v) => !factIsIn(v, documentWords, documentNumbers));
+    if (item.kind === 'narrative') {
+      for (const v of values) bySentence(item.label, v);
+      continue;
+    }
+    if (item.kind === 'date' || item.kind === 'choice' || item.kind === 'choices') continue;
+    if (item.part !== 'parties' && item.part !== 'numbers') continue;
+    const lost = values.filter((v) => !nameIsIn(v, stretches));
     if (lost.length > 0) missing(item.label, lost.join(', '));
   }
   for (const u of brief.unplaced) {
-    const values = Array.isArray(u.value) ? u.value : [u.value];
-    const lost = values.filter(
-      (v) => v.length <= 300 && !factIsIn(v, documentWords, documentNumbers),
-    );
-    if (lost.length > 0) missing(u.label, lost.join(', '));
+    for (const v of Array.isArray(u.value) ? u.value : [u.value]) bySentence(u.label, v);
   }
   return warnings;
 }
 
 // ── No period the brief does not state (T-136) ──────────────────────────────
 
-const NUMBER_WORDS: Record<string, string> = {
-  one: '1',
-  two: '2',
-  three: '3',
-  four: '4',
-  five: '5',
-  six: '6',
-  seven: '7',
-  eight: '8',
-  nine: '9',
-  ten: '10',
-  eleven: '11',
-  twelve: '12',
-  fifteen: '15',
-  twenty: '20',
-  thirty: '30',
-  forty: '40',
-  fifty: '50',
-  sixty: '60',
-  ninety: '90',
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  sixty: 60,
+  seventy: 70,
+  eighty: 80,
+  ninety: 90,
+  hundred: 100,
 };
+const NUMBER_WORD = `(?:${Object.keys(NUMBER_WORDS).join('|')})`;
+/** "three", "twenty-one", "one hundred and eighty". */
+const NUMBER_IN_WORDS = `${NUMBER_WORD}(?:[\\s-]+(?:and[\\s-]+)?${NUMBER_WORD})*`;
+const PERIOD_UNIT = '(day|week|fortnight|month|year|hour)s?';
+/** Between a count and its unit: a space, a hyphen, an underscore (a clause id), or a closing bracket. */
+const PERIOD_JOIN = '(?:[\\s_]+|\\s*[-\\u2010-\\u2015]\\s*|\\)\\s+)';
+/**
+ * A length of time, in every form the packs and a draft write one: "15 days",
+ * "fifteen days", "fifteen (15) days", "15 (fifteen) days", "15-day", "7+ years",
+ * "30 clear days", "several months".
+ */
 const PERIOD = new RegExp(
-  `\\b(\\d+|${Object.keys(NUMBER_WORDS).join('|')}|several|few|many)(?:\\s*\\(\\d+\\))?\\s+(day|week|month|year)s?\\b`,
-  'gi',
+  `(?<![\\p{L}\\p{N}./])(\\d+(?:\\.\\d+)?|${NUMBER_IN_WORDS}|several|few|many)\\+?` +
+    `(?:\\s*\\(\\s*(\\d+|${NUMBER_IN_WORDS})\\s*\\))?` +
+    `(?:\\s+(?:clear|calendar|working|business|consecutive|whole|full|more|further|additional))?` +
+    `${PERIOD_JOIN}${PERIOD_UNIT}(?![\\p{L}\\p{N}])`,
+  'giu',
+);
+/** "3-5 years", "7 to 10 days": the first count of a range. The second is read as any other. */
+const PERIOD_RANGE = new RegExp(
+  `(?<![\\p{L}\\p{N}./])(\\d+)\\s*(?:[-\\u2010-\\u2015]|to)\\s*\\d+\\+?${PERIOD_JOIN}${PERIOD_UNIT}(?![\\p{L}\\p{N}])`,
+  'giu',
+);
+/** "over a month", "within a week": one of the unit, said with "a". */
+const PERIOD_OF_ONE = new RegExp(
+  `(?<![\\p{L}\\p{N}])(?:for|over|about|approximately|around|nearly|almost|than|past|last|within|after)` +
+    `\\s+an?\\s+${PERIOD_UNIT}(?![\\p{L}\\p{N}])`,
+  'giu',
+);
+/** "a week", with nothing before it. Read only in what the Drafter was given, never in its text. */
+const ONE_OF_A_UNIT = new RegExp(
+  `(?<![\\p{L}\\p{N}])an?\\s+${PERIOD_UNIT}(?![\\p{L}\\p{N}])`,
+  'giu',
 );
 
-/** Each period a text states, as "3 day": the count as a number, and the unit. */
-function periodsIn(text: string): Map<string, string> {
-  const out = new Map<string, string>();
-  for (const m of text.matchAll(PERIOD)) {
-    const count = NUMBER_WORDS[m[1].toLowerCase()] ?? m[1].toLowerCase();
-    const key = `${count} ${m[2].toLowerCase()}`;
-    if (!out.has(key)) out.set(key, m[0].replace(/\s+/g, ' '));
+/** "fifteen" -> "15", "twenty-one" -> "21", "one hundred and eighty" -> "180", "15" -> "15". */
+function countOf(written: string): string {
+  const flat = written.toLowerCase();
+  if (/^\d/.test(flat)) return String(Number(flat));
+  let total = 0;
+  let seen = false;
+  for (const word of flat.split(/[\s-]+/)) {
+    if (word === 'hundred') {
+      total = (total === 0 ? 1 : total) * 100;
+      seen = true;
+    } else if (word in NUMBER_WORDS) {
+      total += NUMBER_WORDS[word];
+      seen = true;
+    }
   }
-  return out;
+  return seen ? String(total) : flat;
+}
+
+interface StatedPeriod {
+  /** "3 day": the count as a number, and the unit. */
+  key: string;
+  /** The words as written. */
+  words: string;
+  /** Where the words stand in the text, with its white space made single spaces. */
+  at: number;
+}
+
+/**
+ * Each period a text states. `given` is for a text the Drafter was given: there
+ * "a week" counts as one week even with no word before it, so that a period
+ * the pack gives loosely is still known.
+ */
+function periodsIn(text: string, given = false): StatedPeriod[] {
+  const out: StatedPeriod[] = [];
+  const flat = text.replace(/\s+/g, ' ');
+  for (const m of flat.matchAll(PERIOD)) {
+    // "15 (fifteen)" and "fifteen (15)" are both 15: the figure is taken where there is one.
+    const figure = [m[1], m[2]].find((c) => c !== undefined && /^\d/.test(c));
+    out.push({
+      key: `${countOf(figure ?? m[1])} ${m[3].toLowerCase()}`,
+      words: m[0],
+      at: m.index ?? 0,
+    });
+  }
+  for (const m of flat.matchAll(PERIOD_RANGE)) {
+    out.push({ key: `${countOf(m[1])} ${m[2].toLowerCase()}`, words: m[0], at: m.index ?? 0 });
+  }
+  for (const m of flat.matchAll(given ? ONE_OF_A_UNIT : PERIOD_OF_ONE)) {
+    out.push({ key: `1 ${m[1].toLowerCase()}`, words: m[0], at: m.index ?? 0 });
+  }
+  return out.sort((x, y) => x.at - y.at);
 }
 
 /**
  * Finding C3 (Ajay, T-136): a length of time in the Drafter's text that
  * nothing it was given states. `known` is every text the Drafter was given:
- * the brief, the description, the rule pack and the system's parts. A period
- * the pack gives, such as the fifteen days of a statutory notice, is the
- * law's period and is never reported (his condition 3). A count that is a
- * number of the brief (an age, a term in months) is the brief's own.
+ * the brief, the description, the rule pack, the court's rules and the
+ * system's parts. A period any of them gives, such as the fifteen days of a
+ * statutory notice, is never reported (his condition 3): both sides are read
+ * by the same reader, so the form it is written in does not matter. A count
+ * that is a number of the brief (an age, a term in months) is the brief's own.
  */
 export function checkPeriods(body: string, known: string[], brief: Brief): ValidationWarning[] {
   const stated = new Set<string>();
-  for (const text of known) for (const key of periodsIn(text).keys()) stated.add(key);
+  for (const text of known) for (const p of periodsIn(text, true)) stated.add(p.key);
   const numbers = new Set<string>();
   for (const item of brief.items) {
     if (typeof item.value === 'string' && /^\d+$/.test(item.value.trim())) {
-      numbers.add(item.value.trim());
+      numbers.add(String(Number(item.value.trim())));
     }
   }
   const warnings: ValidationWarning[] = [];
-  for (const [key, words] of periodsIn(body)) {
-    if (stated.has(key) || numbers.has(key.split(' ')[0])) continue;
+  const told = new Set<string>();
+  for (const { key, words } of periodsIn(body)) {
+    if (stated.has(key) || numbers.has(key.split(' ')[0]) || told.has(key)) continue;
+    told.add(key);
     warnings.push({
       type: 'fact_alteration',
       message: `The draft states a period that is not in your brief: ${words}. Check it before use.`,
@@ -909,15 +1399,31 @@ export function checkPeriods(body: string, known: string[], brief: Brief): Valid
   return warnings;
 }
 
-/** Every text of a rule pack that the Drafter is given, for telling the law's own periods. */
+/**
+ * Every text of a rule pack that the Drafter is given, and the prayer and the
+ * verification it supplies, for telling the law's own periods.
+ */
 export function packTexts(pack: RulePack): string[] {
   return [
+    pack.name,
     ...pack.draftingInstructions,
-    ...pack.mandatoryClauses.flatMap((c) => [c.title, c.detail ?? '', c.fixedText ?? '', ...c.parts]),
-    ...pack.relevantActs.flatMap((a) => a.sections.map((x) => x.description ?? '')),
+    ...clauseLines(pack),
+    ...pack.mandatoryClauses.flatMap((c) => [
+      c.title,
+      c.detail ?? '',
+      c.fixedText ?? '',
+      c.appliesWhen ?? '',
+      ...c.parts,
+    ]),
+    ...actLines(pack),
+    ...pack.relevantActs.flatMap((a) => [
+      a.act,
+      a.appliesWhen ?? '',
+      ...a.sections.flatMap((s) => [s.number, s.description ?? '']),
+    ]),
     pack.prayerTemplate ?? '',
     pack.verificationTemplate ?? '',
-  ];
+  ].filter((t) => t !== '');
 }
 
 // ── The provision that depends on the court (T-135) ─────────────────────────
@@ -1041,14 +1547,17 @@ export function sectionsGiven(texts: string[]): string[] {
   return out;
 }
 
-export interface GuidedDrafterBrief extends DrafterBrief {
+export interface GuidedDrafterBrief extends BriefParts {
   /** Rule 3 of the prompt names this key. */
   sections_given: string[];
 }
 
-/** The confirmed brief as the Drafter reads it when there is no rule pack. */
+/**
+ * The confirmed brief as the Drafter reads it when there is no rule pack. It
+ * has no "described": the prompt for these documents does not name it (T-145).
+ */
 export function guidedDrafterBrief(brief: Brief, courtLine: string | null): GuidedDrafterBrief {
-  return { ...drafterBrief(brief, courtLine), sections_given: sectionsGiven(textValues(brief)) };
+  return { ...briefParts(brief, courtLine), sections_given: sectionsGiven(textValues(brief)) };
 }
 
 /**
@@ -1082,6 +1591,27 @@ export function withoutDisclaimers(text: string): string {
       if (!t) return false;
       if (/^(?:DISCLAIMER|NOTE)\s*:/i.test(t)) return false;
       if (/AI[\s-]assisted draft/i.test(t)) return false;
+      if (/Lawie does not provide legal advice/i.test(t)) return false;
+      return true;
+    })
+    .join('\n\n')
+    .trim();
+}
+
+/**
+ * For a draft with a rule pack: a paragraph that is only the disclaimer the
+ * system adds itself is taken out, as the form pipeline does (SCRUM-62). A
+ * court name in the body is left alone here: a repeated part is removed only
+ * under Ajay's condition, by `removeRepeatedParts` (T-136).
+ */
+export function withoutDisclaimerText(text: string): string {
+  return text
+    .split(/\n\n+/)
+    .filter((para) => {
+      const t = para.trim();
+      if (!t) return false;
+      if (/AI[\s-]assisted draft/i.test(t)) return false;
+      if (/^DISCLAIMER\s*:/i.test(t)) return false;
       if (/Lawie does not provide legal advice/i.test(t)) return false;
       return true;
     })

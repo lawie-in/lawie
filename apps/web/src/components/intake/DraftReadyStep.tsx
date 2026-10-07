@@ -10,6 +10,13 @@ import { Check } from 'lucide-react';
 import type { DraftResult } from './briefTypes';
 import { card, linkButton, primaryButton, tagTeal } from './ui';
 
+/**
+ * T-136. Ajay's text (CLO, 7 Oct 2026, part 1, C5), word for word, in place of
+ * "No problems found.". Do not reword.
+ */
+const NO_MISMATCH_FOUND =
+  'These checks found no mismatch between the draft and your brief (dates, names, numbers, sections and parts). They can miss things, and they do not check the law. Read every line before use.';
+
 export default function DraftReadyStep({
   result,
   onOpenEditor,
@@ -57,11 +64,11 @@ export default function DraftReadyStep({
           <span className={tagTeal}>No charge</span>
         </div>
         {nothingFound ? (
-          <p className="text-brand-navy mt-3 flex items-center gap-2.5 text-sm">
+          <p className="text-brand-navy mt-3 flex items-start gap-2.5 text-sm">
             <span className="bg-brand-teal flex h-6 w-6 flex-none items-center justify-center rounded-full text-white">
               <Check size={14} aria-hidden="true" />
             </span>
-            No problems found.
+            <span>{NO_MISMATCH_FOUND}</span>
           </p>
         ) : (
           <ul className="mt-3 space-y-2.5">

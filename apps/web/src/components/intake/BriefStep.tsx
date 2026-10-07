@@ -39,6 +39,14 @@ import {
 } from './ui';
 import ValueInput from './ValueInput';
 
+/**
+ * T-136. Ajay's line (CLO, 7 Oct 2026, part 2, condition 2), word for word. The
+ * description goes to the Drafter of a document with a rule pack, so the
+ * advocate is told before generating and can still change it. Do not reword.
+ */
+const DESCRIPTION_IS_USED =
+  'Your description is used in full, together with this brief. If anything in it is wrong, or should not be in the draft, change the description before you generate.';
+
 /** Long text and rows of choices take the full width of the card. */
 const WIDE = new Set(['narrative', 'list', 'choice', 'choices']);
 
@@ -394,6 +402,15 @@ export default function BriefStep({
           className="bg-brand-error-light text-brand-error mt-4 rounded-lg p-3 text-sm"
         >
           {message}
+        </p>
+      )}
+
+      {!noRules && (
+        <p
+          role="note"
+          className="bg-brand-gold-light text-brand-gold-dark mt-4 rounded-lg p-3 text-sm"
+        >
+          {DESCRIPTION_IS_USED}
         </p>
       )}
 

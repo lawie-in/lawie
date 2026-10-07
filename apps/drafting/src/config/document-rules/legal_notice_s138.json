@@ -272,9 +272,9 @@
     "State the underlying legally enforceable debt/liability for which the cheque was issued.",
     "Mention the date the cheque was presented for encashment and the date it was dishonoured.",
     "State the reason for dishonour as mentioned in the bank's return memo (e.g., 'insufficient funds', 'account closed').",
-    "Include a clear demand for payment of the full cheque amount within 15 days of receipt of notice.",
-    "Warn that failure to pay within 15 days will result in criminal prosecution under Section 138 NI Act.",
-    "Reference the statutory timeline: notice within 30 days of dishonour knowledge, 15-day notice period, complaint within 30 days after notice period.",
+    "The demand for payment and the time allowed for it are added by the system. Do not write a demand in the body.",
+    "The warning of prosecution is added by the system. Do not write it in the body.",
+    "Give each date the BRIEF gives: the date of the cheque, of its presentation, of its dishonour, and the date the client received the bank's return memo. Do not say that the notice is within time and do not work out any period.",
     "Use firm but professional legal language.",
     "Do NOT generate the advocate signature block — it is added programmatically."
   ]
