@@ -21,8 +21,10 @@ import {
   formDataFromBrief,
   guidedDrafterBrief,
   packTexts,
+  paragraphNumbers,
   removeRepeatedParts,
   splitDrafterOutput,
+  withoutDisclaimerText,
   systemParts,
   systemTextAround,
 } from '../services/brief-drafter';
@@ -990,5 +992,179 @@ describe('which clauses count as missing', () => {
       expect(clause).toBeDefined();
       expect(coveredBySystemPart(clause as RulePackClause, parts)).toBe(false);
     });
+  });
+});
+
+// ── Review round 1: lines of the system's part put together in another order ──
+
+describe('review round 1 — a part is judged as one text', () => {
+  const NOTICE_PARAS = STITCHED_NOTICE.split('\n\n').filter((p) => /^\d\. /.test(p));
+  const NOTICE_TEXT = NOTICE_PARAS.join('\n\n');
+
+  const sunitaToFrom = 'To,\n\nSunita Devi\n\nFrom,\n\nRajesh Kumar Singh';
+  const stateApplicant =
+    'State of Bihar through the District Magistrate / S.P., Patna\n\n... Applicant\n\nVersus\n\nRamesh Mahto\n\n... Opposite Party';
+  const toRamesh = 'TO,\n\nRamesh Mahto';
+
+  const cases: Array<[string, string, string, SystemText, string]> = [
+    [
+      '(1) the notice addressed to the sender',
+      sunitaToFrom,
+      NOTICE_TEXT,
+      NOTICE_SYSTEM,
+      NOTICE.name,
+    ],
+    ['(2) the State made the applicant', stateApplicant, PARA_TEXT, BAIL_SYSTEM, BAIL.name],
+    ['(3) "TO," over the applicant', toRamesh, PARA_TEXT, BAIL_SYSTEM, BAIL.name],
+  ];
+
+  it.each(cases)(
+    '%s: nothing is removed, C4 is raised for each block',
+    (_n, above, paras, sys, name) => {
+      // Each line is a real line of the system's text; only their pairing is new.
+      for (const line of above
+        .split('\n')
+        .filter((l) => l.trim() !== '' && l !== '... Applicant')) {
+        expect(`${sys.before}\n${sys.after}`).toContain(line);
+      }
+      const body = `${above}\n\n${paras}`;
+      const out = process(body, sys, name);
+      expect(out.removed).toEqual([]);
+      expect(out.kept).toBe(body);
+      for (const para of paras.split('\n\n')) expect(out.kept).toContain(para);
+      for (const block of above.split('\n\n')) expect(out.kept).toContain(block);
+      // Every line that was re-paired is named by a C4 finding, as written.
+      for (const line of above.split('\n').filter((l) => l.trim() !== '')) {
+        expect(out.findings).toContain(c4(line.trim()));
+      }
+    },
+  );
+
+  it('(1) raises C4, in the signed wording, for "To," and "From,"', () => {
+    const out = process(`${sunitaToFrom}\n\n${NOTICE_TEXT}`, NOTICE_SYSTEM, NOTICE.name);
+    expect(out.findings).toContain(c4('To,'));
+    expect(out.findings).toContain(c4('From,'));
+  });
+
+  it('(2) raises C4, in the signed wording, for the party lines', () => {
+    const out = process(`${stateApplicant}\n\n${PARA_TEXT}`, BAIL_SYSTEM, BAIL.name);
+    expect(out.findings).toContain(c4('Versus'));
+    expect(out.findings).toContain(c4('... Opposite Party'));
+  });
+
+  it('(3) raises C4, in the signed wording, for "TO,"', () => {
+    const out = process(`${toRamesh}\n\n${PARA_TEXT}`, BAIL_SYSTEM, BAIL.name);
+    expect(out.findings).toContain(c4('TO,'));
+  });
+
+  it.each(cases)(
+    '%s: without blank lines between the lines the outcome is the same',
+    (_n, above, paras, sys, name) => {
+      const tight = above.replace(/\n\n/g, '\n');
+      const body = `${tight}\n\n${paras}`;
+      const out = process(body, sys, name);
+      expect(out.removed).toEqual([]);
+      expect(out.kept).toBe(body);
+      expect(out.findings.length).toBeGreaterThan(0);
+    },
+  );
+
+  it('an exact repeat split across blank lines as the system prints it is removed and stands once', () => {
+    const addressee =
+      'TO,\nTHE HONOURABLE DISTRICT & SESSIONS JUDGE, PATNA,\nPatna\n\nMOST RESPECTFULLY SHOWETH:';
+    const out = process(`${addressee}\n\n${PARA_TEXT}\n\nPRAYER`, BAIL_SYSTEM, BAIL.name);
+    expect(out.kept).toBe(PARA_TEXT);
+    expect(out.findings).toEqual([]);
+    const assembled = `${BAIL_SYSTEM.before}\n\n${out.kept}\n\n${BAIL_SYSTEM.after}`;
+    expect(assembled.split('MOST RESPECTFULLY SHOWETH').length - 1).toBe(1);
+    expect(assembled.split('THE HONOURABLE DISTRICT & SESSIONS JUDGE, PATNA').length - 1).toBe(1);
+  });
+
+  it('an in-order repeat with a line left out stays and raises C4', () => {
+    const body = `TO,\n\nMOST RESPECTFULLY SHOWETH:\n\n${PARA_TEXT}`;
+    const out = process(body, BAIL_SYSTEM, BAIL.name);
+    expect(out.removed).toEqual([]);
+    expect(out.kept).toBe(body);
+    expect(out.findings).toContain(c4('TO,'));
+  });
+
+  it('current behaviour: a lone "Versus" above paragraph 1 is removed, it being one whole system line', () => {
+    const out = removeRepeatedParts(`Versus\n\n${PARA_TEXT}`, BAIL_SYSTEM);
+    expect(out.body).toBe(PARA_TEXT);
+    expect(out.removed).toEqual(['Versus']);
+  });
+
+  it("current behaviour: the applicant's name alone above paragraph 1 is removed", () => {
+    const out = removeRepeatedParts(`Ramesh Mahto\n\n${PARA_TEXT}`, BAIL_SYSTEM);
+    expect(out.body).toBe(PARA_TEXT);
+  });
+});
+
+describe('review round 1 — withoutDisclaimerText', () => {
+  const LAST = '3. That the applicant is the only earning member of his family.';
+
+  it('takes a disclaimer line directly under the last paragraph and leaves the paragraph word for word', () => {
+    const out = withoutDisclaimerText(
+      `${PARAS[0]}\n\n${PARAS[1]}\n\n${LAST}\nThis is an AI-assisted draft.`,
+    );
+    expect(out).toBe(`${PARAS[0]}\n\n${PARAS[1]}\n\n${LAST}`);
+  });
+
+  it('takes the other disclaimer patterns the function knows from under a paragraph', () => {
+    for (const line of ['DISCLAIMER: review before use.', 'Lawie does not provide legal advice.']) {
+      expect(withoutDisclaimerText(`${LAST}\n${line}`)).toBe(LAST);
+    }
+  });
+
+  it('takes a disclaimer block of its own', () => {
+    const out = withoutDisclaimerText(`${PARA_TEXT}\n\nDISCLAIMER: this is an AI-assisted draft.`);
+    expect(out).toBe(PARA_TEXT);
+  });
+
+  it('current behaviour: a numbered paragraph that is itself a disclaimer stays, with no finding', () => {
+    const body = `${PARA_TEXT}\n\n4. This is an AI-assisted draft.`;
+    expect(withoutDisclaimerText(body)).toBe(body);
+  });
+
+  it('leaves ordinary text untouched', () => {
+    expect(withoutDisclaimerText(PARA_TEXT)).toBe(PARA_TEXT);
+    expect(withoutDisclaimerText(`PRAYER\n\n${PARA_TEXT}`)).toBe(`PRAYER\n\n${PARA_TEXT}`);
+  });
+});
+
+describe('review round 1 — a SYSTEM note that was the whole paragraph', () => {
+  const NOTE = '[Earlier applications — SYSTEM]';
+  const body = (three: string): string =>
+    `${PARAS[0]}\n\n${PARAS[1]}\n\n${three}\n\n4. That the applicant undertakes to abide by every condition.`;
+
+  it('leaves no bare "3." and no paragraph 3 in the numbers', () => {
+    const out = removeRepeatedParts(body(`3. ${NOTE}`), BAIL_SYSTEM);
+    expect(out.body).not.toMatch(/SYSTEM/);
+    expect(out.body.split('\n').some((l) => /^\s*3[.)]\s*$/.test(l))).toBe(false);
+    const numbers = paragraphNumbers(out.body);
+    expect(numbers.has(3)).toBe(false);
+    for (const n of [1, 2, 4]) expect(numbers.has(n)).toBe(true);
+    expect(out.body).toContain(PARAS[0]);
+    expect(out.body).toContain(PARAS[1]);
+    expect(out.body).toContain('4. That the applicant undertakes to abide by every condition.');
+    expect(out.body).not.toContain('5.');
+  });
+
+  it('keeps the number and the text when real text follows the note', () => {
+    const out = removeRepeatedParts(
+      body(`3. ${NOTE} That the applicant has no earlier application.`),
+      BAIL_SYSTEM,
+    );
+    expect(out.body).toContain('3. That the applicant has no earlier application.');
+    expect(paragraphNumbers(out.body).has(3)).toBe(true);
+  });
+
+  it('keeps the number when the text carries on on the next line', () => {
+    const out = removeRepeatedParts(
+      body(`3. ${NOTE}\nThat the applicant has no earlier application.`),
+      BAIL_SYSTEM,
+    );
+    expect(out.body).toContain('That the applicant has no earlier application.');
+    expect(paragraphNumbers(out.body).has(3)).toBe(true);
   });
 });

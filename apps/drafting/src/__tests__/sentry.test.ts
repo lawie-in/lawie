@@ -54,3 +54,41 @@ describe('withoutRequestBody', () => {
     expect(withoutRequestBody(event)).toEqual({ request: { url: 'u', method: 'GET' } });
   });
 });
+
+describe('Sentry.init with a DSN set (T-136, part 2 condition 6)', () => {
+  const saved = process.env.SENTRY_DSN;
+  afterEach(() => {
+    if (saved === undefined) delete process.env.SENTRY_DSN;
+    else process.env.SENTRY_DSN = saved;
+    jest.dontMock('@sentry/node');
+    jest.resetModules();
+  });
+
+  it('starts Sentry with beforeSend and beforeSendTransaction that take request.data off', () => {
+    jest.resetModules();
+    const init = jest.fn();
+    jest.doMock('@sentry/node', () => ({ init }));
+    process.env.SENTRY_DSN = 'https://key@example.invalid/1';
+    jest.isolateModules(() => {
+      require('../config/sentry');
+    });
+
+    expect(init).toHaveBeenCalledTimes(1);
+    const options = init.mock.calls[0][0] as {
+      beforeSend: (e: unknown) => { request?: Record<string, unknown> };
+      beforeSendTransaction: (e: unknown) => { request?: Record<string, unknown> };
+    };
+    expect(typeof options.beforeSend).toBe('function');
+    expect(typeof options.beforeSendTransaction).toBe('function');
+
+    for (const hook of [options.beforeSend, options.beforeSendTransaction]) {
+      const out = hook({
+        message: 'boom',
+        request: { url: 'http://x/api', data: { described: 'My client Ramesh Mahto' } },
+      });
+      expect(out.request).not.toHaveProperty('data');
+      expect(JSON.stringify(out)).not.toContain('Ramesh');
+      expect(out.request?.url).toBe('http://x/api');
+    }
+  });
+});

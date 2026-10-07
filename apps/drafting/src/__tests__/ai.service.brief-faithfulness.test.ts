@@ -23,11 +23,13 @@ import {
 } from '../services/drafter.prompts';
 import { buildBrief, buildChecklist, GivenValue, isCourtDocument } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
+import { convertOldReferencesInText } from '../services/sections.service';
 import {
   CourtLookupData,
   loadCourtRule,
   loadTemplateConfig,
 } from '../services/template-engine.service';
+import { signedFinding } from './t136-signed';
 
 jest.mock('../services/app-settings.service', () => ({
   ...jest.requireActual('../services/app-settings.service'),
@@ -184,9 +186,14 @@ const bodyOf = (r: {
 /** The signed wording of the findings (part 1 C, part 2 D2). */
 const C1 = (date: string, what: string) =>
   `Your brief has a date the draft does not use: ${date} (${what}). Add it or check the draft.`;
-/** Where the value already ends in a full stop, the code does not print a second one. */
-const C2 = (label: string, value: string) =>
-  `We could not find this from your brief in the draft: ${label}: ${value}${value.endsWith('.') ? '' : '.'} Add it or check the draft.`;
+/**
+ * The signed template is "{label}: {value}. Add it or check the draft." The
+ * template supplies the full stop after the value, so a value that ends in a
+ * full stop is passed here without it: the finding prints one, not two. The
+ * wording comes from the signed file; no rule of the code is repeated here.
+ */
+const C2 = (label: string, valueWithoutFinalStop: string) =>
+  signedFinding('C2', { label, value: valueWithoutFinalStop });
 const C3 = (period: string) =>
   `The draft states a period that is not in your brief: ${period}. Check it before use.`;
 const C4 = (line: string) =>
@@ -425,11 +432,7 @@ describe('T-136 — regular bail, the stitched draft (criteria 7 and 9)', () => 
     const found = messages(r);
     for (const line of stitchedParts) {
       const inBody = bodyOf(r).includes(line);
-      if (inBody) {
-        expect(found).toContain(C4(line));
-      } else {
-        expect(inBody).toBe(false);
-      }
+      if (inBody) expect(found).toContain(C4(line));
     }
     // A court name that differs from the system's is a mismatch the advocate must see: it stays and C4 is raised.
     expect(bodyOf(r)).toContain('IN THE COURT OF THE SESSIONS JUDGE, DHANBAD');
@@ -503,7 +506,7 @@ describe('T-136 — regular bail, the facts as given (criteria 6 and 9)', () => 
     expect(messages(r)).toContain(
       C2(
         'Anything else the court should know? (optional)',
-        'His earlier bail application was rejected by the JMFC, Dhanbad on 22.09.2026.',
+        'His earlier bail application was rejected by the JMFC, Dhanbad on 22.09.2026',
       ),
     );
   });
@@ -517,8 +520,8 @@ describe('T-136 — regular bail, the facts as given (criteria 6 and 9)', () => 
     ].join('\n\n');
     const r = await bail({ answers: [answer(BAIL, body)] });
     const label = 'Brief Facts of the Case (3-5 lines)';
-    expect(messages(r)).toContain(C2(label, 'He is the only earning member of his family.'));
-    expect(messages(r)).toContain(C2(label, 'He is lodged in Dhanbad Divisional Jail.'));
+    expect(messages(r)).toContain(C2(label, 'He is the only earning member of his family'));
+    expect(messages(r)).toContain(C2(label, 'He is lodged in Dhanbad Divisional Jail'));
     expect(r.result.startingDraft).toBe(true);
   });
 
@@ -541,8 +544,8 @@ describe('T-136 — regular bail, the facts as given (criteria 6 and 9)', () => 
       expect.arrayContaining([
         C1('12.09.2026', 'Date of arrest'),
         D2('22nd Sept 2026'),
-        C2('Brief Facts of the Case (3-5 lines)', 'He is the only earning member of his family.'),
-        C2('Brief Facts of the Case (3-5 lines)', 'He is lodged in Dhanbad Divisional Jail.'),
+        C2('Brief Facts of the Case (3-5 lines)', 'He is the only earning member of his family'),
+        C2('Brief Facts of the Case (3-5 lines)', 'He is lodged in Dhanbad Divisional Jail'),
         C3('three days'),
       ]),
     );
@@ -898,5 +901,134 @@ describe("T-136 — the description is kept out of logs, events and the model ve
     expect(logged(spies)).not.toContain('earlier bail application was rejected');
     // With logging on, the failure is still logged, by ids and error name only.
     expect(logged(spies)).toContain('Drafter stream failed');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Review round 1
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('T-136 review round 1 — lines of the system re-paired are kept and raised (criterion 7)', () => {
+  it('the notice with "To, Sunita Devi, From, Rajesh Kumar Singh" above paragraph 1: kept, and C4 names the lines', async () => {
+    const above = 'To,\n\nSunita Devi\n\nFrom,\n\nRajesh Kumar Singh';
+    const r = await notice({
+      answers: [answer(NOTICE, `${above}\n\n${CLEAN_NOTICE}`, NOTICE_REPORT)],
+    });
+    expect(bodyOf(r)).toBe(`${above}\n\n${CLEAN_NOTICE}`);
+    for (const para of CLEAN_NOTICE.split('\n\n')) expect(bodyOf(r)).toContain(para);
+    for (const line of ['To,', 'Sunita Devi', 'From,', 'Rajesh Kumar Singh']) {
+      expect(messages(r)).toContain(C4(line));
+    }
+    expect(r.result.startingDraft).toBe(true);
+  });
+
+  it('the bail draft with the State made the applicant: kept, and C4 names the lines', async () => {
+    const above =
+      'State of Bihar through the District Magistrate / S.P., Patna\n\n... Applicant\n\nVersus\n\nRamesh Mahto\n\n... Opposite Party';
+    const r = await bail({ answers: [answer(BAIL, `${above}\n\n${CLEAN_BAIL}`)] });
+    expect(bodyOf(r)).toBe(`${above}\n\n${CLEAN_BAIL}`);
+    for (const line of [
+      'State of Bihar through the District Magistrate / S.P., Patna',
+      'Versus',
+      'Ramesh Mahto',
+      '... Opposite Party',
+    ]) {
+      expect(messages(r)).toContain(C4(line));
+    }
+    expect(r.result.startingDraft).toBe(true);
+  });
+
+  it('"TO," over the applicant: kept, and C4 names both lines', async () => {
+    const r = await bail({ answers: [answer(BAIL, `TO,\n\nRamesh Mahto\n\n${CLEAN_BAIL}`)] });
+    expect(bodyOf(r)).toBe(`TO,\n\nRamesh Mahto\n\n${CLEAN_BAIL}`);
+    expect(messages(r)).toContain(C4('TO,'));
+    expect(messages(r)).toContain(C4('Ramesh Mahto'));
+  });
+});
+
+describe('T-136 review round 1 — a paragraph that held only a SYSTEM note (criterion 7)', () => {
+  const withNote = [
+    PARA_1,
+    PARA_ARREST,
+    '3. [Earlier applications — SYSTEM]',
+    PARA_EARNER,
+    PARA_UNDERTAKING,
+  ].join('\n\n');
+
+  it('is not counted as the paragraph that covers the clause: the repair call runs and no bare "3." is saved', async () => {
+    const r = await bail({
+      answers: [
+        answer(BAIL, withNote, { earlier_applications: '3' }),
+        answer(BAIL, CLEAN_BAIL, { earlier_applications: '3' }),
+      ],
+    });
+    expect(r.fetchMock).toHaveBeenCalledTimes(2);
+    expect(r.result.repaired).toBe(true);
+    expect(r.result.fullText).not.toContain('SYSTEM');
+    // The text sent for repair has no bare number either.
+    const sent = r.calls[1].user;
+    expect(sent.split('\n').some((l) => /^\s*3[.)]\s*$/.test(l))).toBe(false);
+  });
+
+  it('with no repair kept the clause is raised as not covered and no bare "3." is saved', async () => {
+    const r = await bail({
+      answers: [
+        answer(BAIL, withNote, { earlier_applications: '3' }),
+        answer(BAIL, withNote, { earlier_applications: '3' }),
+      ],
+    });
+    expect(r.fetchMock).toHaveBeenCalledTimes(2);
+    expect(
+      bodyOf(r)
+        .split('\n')
+        .some((l) => /^\s*3[.)]\s*$/.test(l)),
+    ).toBe(false);
+    expect(bodyOf(r)).not.toContain('SYSTEM');
+    expect(r.result.missingClauses.map((m) => m.id)).toContain('earlier_applications');
+  });
+});
+
+describe('T-136 review round 1 — C2 with a value that ends in a full stop (criterion 5)', () => {
+  it('prints the value and one full stop, in the signed wording, literally', async () => {
+    const body = [PARA_1, PARA_ARREST, PARA_REJECTED, PARA_UNDERTAKING].join('\n\n');
+    const r = await bail({ answers: [answer(BAIL, body)] });
+    expect(messages(r)).toContain(
+      'We could not find this from your brief in the draft: Brief Facts of the Case (3-5 lines): He is the only earning member of his family. Add it or check the draft.',
+    );
+    expect(messages(r).some((m) => m.includes('family.. '))).toBe(false);
+  });
+});
+
+describe('T-136 review round 1 — old-law references in a regular bail brief (part 2, condition 4)', () => {
+  const OLD = [
+    ...BAIL_VALUES.filter((v) => v.key !== 'sections_charged'),
+    ...given([{ key: 'sections_charged', value: ['379 IPC'] }]),
+  ];
+
+  beforeEach(() => {
+    (convertOldReferencesInText as jest.Mock).mockClear();
+    (convertOldReferencesInText as jest.Mock).mockImplementation(async (text: string) => ({
+      converted: text.replace(/379 IPC/g, 'Section 303 BNS (converted)'),
+      conversions: [{ from: '379 IPC', to: '303 BNS' }],
+    }));
+  });
+  afterEach(() => {
+    (convertOldReferencesInText as jest.Mock).mockImplementation(async (text: string) => ({
+      converted: text,
+      conversions: [],
+    }));
+  });
+
+  it('what the code does today: the BRIEF block of the first call holds the reference as the advocate gave it', async () => {
+    const r = await bail({ values: OLD, answers: [answer(BAIL, CLEAN_BAIL)] });
+    const first = r.calls[0].user;
+    const brief: Record<string, unknown> = { ...briefIn(first), described: undefined };
+    const numbers = brief.numbers as Array<{ key: string; value: unknown }>;
+    expect(numbers.find((n) => n.key === 'sections_charged')?.value).toEqual(['379 IPC']);
+    // No converted number anywhere in the brief (the description is the advocate's own text and is left out).
+    expect(JSON.stringify(brief)).not.toContain('converted');
+    expect(JSON.stringify(brief)).not.toContain('303');
+    // Pinned as observed: a list value is not passed to the converter.
+    expect(convertOldReferencesInText).not.toHaveBeenCalledWith(expect.stringContaining('379'));
   });
 });
