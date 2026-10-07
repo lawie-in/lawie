@@ -1065,7 +1065,9 @@ describe('review round 1 — a part is judged as one text', () => {
       const out = process(body, sys, name);
       expect(out.removed).toEqual([]);
       expect(out.kept).toBe(body);
-      expect(out.findings.length).toBeGreaterThan(0);
+      // The code quotes only the first line of a block with no blank lines inside: one C4 for it.
+      const first = tight.split('\n').find((l) => l.trim() !== '') as string;
+      expect(out.findings).toEqual([c4(first.trim())]);
     },
   );
 
@@ -1166,5 +1168,120 @@ describe('review round 1 — a SYSTEM note that was the whole paragraph', () => 
     );
     expect(out.body).toContain('That the applicant has no earlier application.');
     expect(paragraphNumbers(out.body).has(3)).toBe(true);
+  });
+});
+
+describe('review round 2 — a bare number, a disclaimer block, emphasis around a note', () => {
+  const NOTE = '[Undertakings — SYSTEM]';
+  const FOUR = '4. That the applicant undertakes to abide by every condition.';
+  const SUBS =
+    '(a) The applicant will not abscond;\n(b) The applicant will appear on every date fixed.';
+  const lineOf = (text: string, re: RegExp): boolean => text.split('\n').some((l) => re.test(l));
+
+  describe('fix 1: the number stays where the paragraph carries on below it', () => {
+    it.each([
+      ['sub-points directly below', `3. ${NOTE}\n${SUBS}`],
+      ['sub-points after one blank line', `3. ${NOTE}\n\n${SUBS}`],
+    ])('%s: "3." stays, the sub-points follow, paragraphs 2 and 4 are untouched', (_n, three) => {
+      const body = `${PARAS[0]}\n\n${PARAS[1]}\n\n${three}\n\n${FOUR}`;
+      const out = removeRepeatedParts(body, BAIL_SYSTEM);
+      expect(out.body).not.toMatch(/SYSTEM/);
+      expect(lineOf(out.body, /^3\.\s*$/)).toBe(true);
+      expect(out.body).toContain(`3.\n${three.includes('\n\n') ? '\n' : ''}${SUBS}`);
+      expect(out.body).toContain(PARAS[0]);
+      expect(out.body).toContain(PARAS[1]);
+      expect(out.body).toContain(FOUR);
+      expect(paragraphNumbers(out.body).has(3)).toBe(true);
+    });
+
+    it('a note-only paragraph with nothing under it still leaves no bare number', () => {
+      const out = removeRepeatedParts(
+        `${PARAS[0]}\n\n${PARAS[1]}\n\n3. ${NOTE}\n\n${FOUR}`,
+        BAIL_SYSTEM,
+      );
+      expect(lineOf(out.body, /^\s*3[.)]\s*$/)).toBe(false);
+      expect(paragraphNumbers(out.body).has(3)).toBe(false);
+    });
+
+    it('a bare "(a)" left by a note, with "(b) real text" after it, is dropped and (b) stays', () => {
+      const body = `${PARAS[0]}\n\n${PARAS[1]}\n\n3. That the applicant offers these undertakings:\n(a) [Something — SYSTEM]\n(b) real text\n\n${FOUR}`;
+      const out = removeRepeatedParts(body, BAIL_SYSTEM);
+      expect(out.body).not.toMatch(/SYSTEM/);
+      expect(lineOf(out.body, /^\s*\(a\)\s*$/)).toBe(false);
+      expect(out.body).toContain('(b) real text');
+      expect(out.body).toContain('3. That the applicant offers these undertakings:');
+    });
+  });
+
+  describe("fix 2: withoutDisclaimerText takes a disclaimer's own lines", () => {
+    const LAST = PARAS[2];
+    const PLACE = 'Place: Ranchi\nDate: 01.10.2026';
+    const DISC = 'This is an AI-assisted draft.';
+
+    it('keeps Place and Date, drops the disclaimer line', () => {
+      const out = withoutDisclaimerText(`${PARA_TEXT}\n\n${PLACE}\n${DISC}`);
+      expect(out).toBe(`${PARA_TEXT}\n\n${PLACE}`);
+    });
+
+    it('then the kept place line is raised as C4 with the real bail system text (the code quotes the first line, then the date)', () => {
+      expect(BAIL_SYSTEM.before + BAIL_SYSTEM.after).not.toContain('Ranchi');
+      const cleaned = withoutDisclaimerText(`${PARA_TEXT}\n\n${PLACE}\n${DISC}`);
+      const out = process(cleaned, BAIL_SYSTEM, BAIL.name);
+      expect(out.kept).toBe(cleaned);
+      expect(out.kept).toContain(PLACE);
+      expect(out.kept).not.toMatch(/AI-assisted/);
+      expect(out.findings).toContain(c4('Place: Ranchi'));
+    });
+
+    it('a sentence of facts beside a disclaimer line is kept word for word', () => {
+      const facts = 'The applicant has been in custody for twenty days.';
+      const out = withoutDisclaimerText(`${LAST}\n\n${facts}\n${DISC}`);
+      expect(out).toBe(`${LAST}\n\n${facts}`);
+    });
+
+    it('a block that opens with "DISCLAIMER:" is dropped whole', () => {
+      const out = withoutDisclaimerText(`${LAST}\n\nDISCLAIMER: review before use.\nPlace: Ranchi`);
+      expect(out).toBe(LAST);
+    });
+
+    it('a block of nothing but disclaimer lines is dropped whole', () => {
+      const out = withoutDisclaimerText(`${LAST}\n\n${DISC}\nLawie does not provide legal advice.`);
+      expect(out).toBe(LAST);
+    });
+  });
+
+  describe('fix 3: emphasis around a note', () => {
+    it('"6. **[Prayer — SYSTEM]**" leaves no "6.", no "****", and 6 is not counted', () => {
+      const body = `${PARA_TEXT}\n\n6. **[Prayer — SYSTEM]**\n\n${FOUR}`;
+      const out = removeRepeatedParts(body, BAIL_SYSTEM);
+      expect(out.body).not.toMatch(/SYSTEM/);
+      expect(out.body).not.toContain('****');
+      expect(lineOf(out.body, /^\s*6[.)]/)).toBe(false);
+      expect(paragraphNumbers(out.body).has(6)).toBe(false);
+      expect(out.body).toContain(PARA_TEXT);
+    });
+
+    it('"## [Prayer — SYSTEM]" leaves no stray "##" line', () => {
+      const out = removeRepeatedParts(
+        `${PARA_TEXT}\n\n## [Prayer — SYSTEM]\n\n${FOUR}`,
+        BAIL_SYSTEM,
+      );
+      expect(out.body).not.toMatch(/SYSTEM/);
+      expect(out.body).not.toContain('#');
+      expect(out.body).toContain(FOUR);
+    });
+
+    it('a run of underscores is a blank and is never touched: "Name of surety: ____" beside a note keeps its blank', () => {
+      const line = 'Name of surety: ____ [to be added — SYSTEM]';
+      const out = removeRepeatedParts(`${PARA_TEXT}\n\n${line}\n\n${FOUR}`, BAIL_SYSTEM);
+      expect(out.body).not.toMatch(/SYSTEM/);
+      expect(out.body).toContain('Name of surety: ____');
+    });
+
+    it('emphasis inside ordinary text is untouched', () => {
+      const para = '4. That the matter is **urgent** and the applicant is in custody.';
+      const out = removeRepeatedParts(`${PARA_TEXT}\n\n${para}`, BAIL_SYSTEM);
+      expect(out.body).toBe(`${PARA_TEXT}\n\n${para}`);
+    });
   });
 });

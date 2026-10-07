@@ -1032,3 +1032,14 @@ describe('T-136 review round 1 — old-law references in a regular bail brief (p
     expect(convertOldReferencesInText).not.toHaveBeenCalledWith(expect.stringContaining('379'));
   });
 });
+
+describe('T-136 review round 2 — a place line beside the disclaimer (criterion 7)', () => {
+  it('keeps the Place and Date lines, drops the disclaimer line, and C4 names the kept place line', async () => {
+    const tail = 'Place: Ranchi\nDate: 01.10.2026\nThis is an AI-assisted draft.';
+    const r = await bail({ answers: [answer(BAIL, `${CLEAN_BAIL}\n\n${tail}`)] });
+    expect(bodyOf(r)).toContain('Place: Ranchi\nDate: 01.10.2026');
+    expect(bodyOf(r)).not.toMatch(/AI-assisted/);
+    expect(bodyOf(r)).toContain(CLEAN_BAIL);
+    expect(messages(r)).toContain(C4('Place: Ranchi'));
+  });
+});
