@@ -88,3 +88,53 @@ Take this ticket through the full chain and open the pull request to `develop`. 
 - Body: what changed; "What a user can now do" in a user's words; what was run and what was not; each of Ajay's conditions as met or not met.
 - Above the quality line: "Founder's decision, 7 Oct 2026: Anushka tests on develop before GTM; this pull request does not wait for a verdict of its own." Last line: `Quality: waiting for Anushka`.
 - CI green on the last push.
+
+## Vishal's report (7 Oct 2026, 16:55 IST)
+
+**Pull request:** #51, `fix(drafting): the draft is one document and keeps the facts (T-136)`, to `develop`. Not merged. Last line of its body: `Quality: waiting for Anushka`.
+
+**Status line:** not moved by me. It should become "Ready for PR review".
+
+**Done (all ten criteria have code and tests; the limits are listed below and in the pull request)**
+
+1. Both Drafter prompts are the signed part 2 text. Compared character for character by script, and now by a test that reads the signed file.
+2. The first call and the repair call are given the same SYSTEM PARTS, BEFORE YOUR TEXT and AFTER YOUR TEXT blocks. The repair call carries DOCUMENT and COURT RULE.
+3. The web sends the description the brief was read from as `described`; it reaches the Drafter word for word. Never the answers to questions, never model text.
+4. The brief screen shows the signed line above the buttons, next to "Edit my description". Shown for a document with a rule pack only: for any other the description is not used (T-145), so the line would be false.
+5. `bail_regular`: B1, B2, B3 replace the three old lines, B4 is added after B3, the clause `no_flight_risk` keeps its id with the signed name and description, `earlier_applications` is added after it. `legal_notice_s138`: instructions 7, 8, 9. Written by script from the signed file.
+6. C1, C2, C3 (the plain wording, not the alternative), C4 and D2 are raised with the signed wording. The C5 text replaces "No problems found."
+7. A repeat is removed only when it is one unbroken run of the system's own lines in the system's order. Anything else stays and C4 is raised. A numbered paragraph is never removed. A note in brackets holding the word SYSTEM is removed.
+8. `described` is kept only inside the encrypted brief of the document. It is in no log line, response, usage row or event. Request bodies are taken off Sentry events in drafting and gateway. The two model calls of this pipeline send the Helicone omit headers.
+9. Tests with a stubbed model cover her two matters (regular bail, section 138 notice).
+10. Each of Ajay's sixteen conditions is listed in the pull request as met, not met or not for code.
+
+**Not done, or done differently**
+
+- Part 2, condition 4 is not something this ticket can meet. The conversion switch is on in the `bail_regular` template. A test shows that no converted section reaches the Drafter for regular bail today, but only because the sections are a list and the code converts text only. One old line of the bail pack still tells the Drafter to turn IPC numbers into BNS numbers, against signed rule 6. Both are for Ajay (T-139).
+- Part 1, condition 6 is still owed: a practising advocate has not compared the quoted provisions.
+- The older finding "The draft has a date that is not in your brief" was left as it is, on purpose. It now also fires on a draft that rightly uses a date only the description gives, and that draft gets the starting-draft label. For a section 138 notice this is the date the memo was received, so it will be common. Priya and Ajay to decide.
+- C2 is a word-matching check. It fires on a faithful paraphrase. It does not compare a fact that only the description gives.
+- C1 and D2 read only dates written with a year.
+- A part repeated inside a numbered paragraph is neither removed nor reported. Her "demand three times" would not be caught if the extra demands sit in numbered paragraphs.
+- Four small cases in the clean-up of the Drafter's text are listed in the pull request, not fixed.
+- The repeat-removal rule, the pipeline and the route went through three review rounds: fail (one hole in the removal rule, fixed), pass, pass.
+- No Figma spec from Rajesh: the packet said to reuse the existing components, and the two texts sit in existing styles.
+- I opened the pull request as a draft before the review, only to get CI to run the database tests. They cannot run in the build session.
+
+**What I ran**
+
+- `yarn workspace @lawie/shared build`: passed.
+- `yarn workspace @lawie/drafting build`: passed.
+- `yarn workspace @lawie/drafting test` in the build session: 23 suites passed, 3159 tests passed, 91 snapshots passed, no snapshot changed. 29 suites could not run there: they need MongoDB, and the session may not download it. They are the same 29 as before my change.
+- `yarn workspace @lawie/gateway build` and `test`: passed, 5 suites, 18 tests.
+- `npx tsc --noEmit` on the web: passed.
+- Prettier check and ESLint (no fix) on every changed file: clean, no errors.
+- CI on pull request #51, commit `4d213b3`: "Test — Drafting" and "Test — Gateway" passed. This is where the 29 database suites and the four new route tests ran.
+
+**What I did not run**
+
+- No draft with the real model. Nothing here shows the faults of 6 October are fixed: the tests show what the code does with a stubbed answer.
+- No browser. The two new texts on screen were checked as text in the source, not by eye.
+- `next build`, the web tests (there are none), the lint scripts.
+- Sentry with a real DSN and Helicone with a real key.
+- Anushka's test. That is hers, on `develop`, before GTM.
