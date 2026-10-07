@@ -310,6 +310,10 @@ function isGenericDesignation(d: string): boolean {
 function courtHeading(courtData: CourtLookupData): { designation: string; header: string } {
   const ruleDesignation = courtData.courtRule?.designation;
   let rawDesignation: string;
+  // Only a designation taken from the court rule gets the court's city added.
+  // A designation from the courts list already names its place and prints as
+  // stored (AJ-2026-10-07-T146-golden-2, fix 3).
+  let fromRule: boolean;
   if (ruleDesignation && isGenericDesignation(ruleDesignation)) {
     // T-146 (AJ-2026-10-07-T146-golden, fix 3): a generic rule's designation
     // offers a choice ("SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE") or holds a
@@ -317,30 +321,42 @@ function courtHeading(courtData: CourtLookupData): { designation: string; header
     // chosen court's own designation is used instead, or a visible blank.
     const own = courtData.designation?.trim();
     if (!own || isGenericDesignation(own)) {
+      // The blank alone, with no "IN THE COURT OF" or "BEFORE THE": the form
+      // of the heading is not known either (AJ-2026-10-07-T146-golden-2, fix 5).
       const blank = '[To be confirmed: court designation]';
-      return { designation: blank, header: `IN THE COURT OF ${blank}` };
+      return { designation: blank, header: blank };
     }
     rawDesignation = own;
+    fromRule = false;
+  } else if (ruleDesignation) {
+    rawDesignation = ruleDesignation;
+    fromRule = true;
   } else {
-    rawDesignation = ruleDesignation ?? courtData.designation;
+    rawDesignation = courtData.designation;
+    fromRule = false;
   }
-  // If the designation has no city, append the court's city. Never for a High
-  // Court: its seat is already in its name (AJ-2026-10-07-T146-golden, fix 2).
+  // If the rule's designation has no city, append the court's city. Never for a
+  // High Court or the Supreme Court: the seat is already in the name
+  // (AJ-2026-10-07-T146-golden, fix 2; AJ-2026-10-07-T146-golden-2, fix 2).
   if (
+    fromRule &&
     courtData.city &&
-    !/HIGH COURT/i.test(rawDesignation) &&
+    !/HIGH COURT|SUPREME COURT/i.test(rawDesignation) &&
     !rawDesignation.toUpperCase().includes(courtData.city.toUpperCase())
   ) {
     rawDesignation = `${rawDesignation}, ${courtData.city.toUpperCase()}`;
-  }
-  if (/^IN THE HIGH COURT/i.test(rawDesignation)) {
-    return { designation: rawDesignation.replace(/^IN THE\s*/i, ''), header: rawDesignation };
   }
   if (/^IN THE COURT OF\s/i.test(rawDesignation)) {
     return {
       designation: rawDesignation.replace(/^IN THE COURT OF\s*/i, ''),
       header: rawDesignation,
     };
+  }
+  // A designation that already begins "IN THE " ("IN THE HIGH COURT OF ...",
+  // "IN THE SUPREME COURT OF INDIA", "IN THE FAMILY COURT, PATNA") is the
+  // header as written (AJ-2026-10-07-T146-golden-2, fix 1).
+  if (/^IN THE\s/i.test(rawDesignation)) {
+    return { designation: rawDesignation.replace(/^IN THE\s*/i, ''), header: rawDesignation };
   }
   // A commission or forum heading, e.g. "BEFORE THE DISTRICT CONSUMER DISPUTES
   // REDRESSAL COMMISSION, RANCHI", is the header as written (fix 1).
