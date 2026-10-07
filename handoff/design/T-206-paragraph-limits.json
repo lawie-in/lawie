@@ -1,0 +1,554 @@
+{
+  "affidavit_identity": {
+    "court_filed": false,
+    "default": 6,
+    "max": 10,
+    "min": 4
+  },
+  "affidavit_in_support": {
+    "court_filed": true,
+    "default": 6,
+    "max": 12,
+    "min": 4
+  },
+  "amendment_of_pleadings": {
+    "court_filed": true,
+    "default": 10,
+    "max": 18,
+    "min": 6
+  },
+  "aoa": {
+    "court_filed": false,
+    "default": 18,
+    "max": 35,
+    "min": 12
+  },
+  "bail_anticipatory": {
+    "court_filed": true,
+    "default": 10,
+    "max": 12,
+    "min": 8
+  },
+  "bail_before_magistrate": {
+    "court_filed": true,
+    "default": 12,
+    "max": 20,
+    "min": 8
+  },
+  "bail_cancellation": {
+    "court_filed": true,
+    "default": 12,
+    "max": 20,
+    "min": 8
+  },
+  "bail_regular": {
+    "court_filed": true,
+    "default": 10,
+    "max": 12,
+    "min": 7
+  },
+  "cat_oa": {
+    "court_filed": true,
+    "default": 14,
+    "max": 25,
+    "min": 8
+  },
+  "certiorari": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "condonation_of_delay": {
+    "court_filed": true,
+    "default": 10,
+    "max": 18,
+    "min": 6
+  },
+  "consumer_complaint": {
+    "court_filed": true,
+    "default": 10,
+    "max": 12,
+    "min": 8
+  },
+  "counter_affidavit": {
+    "court_filed": true,
+    "default": 6,
+    "max": 12,
+    "min": 4
+  },
+  "criminal_appeal": {
+    "court_filed": true,
+    "default": 14,
+    "max": 25,
+    "min": 8
+  },
+  "criminal_revision": {
+    "court_filed": true,
+    "default": 14,
+    "max": 25,
+    "min": 8
+  },
+  "curative_petition": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "default_bail": {
+    "court_filed": true,
+    "default": 12,
+    "max": 20,
+    "min": 8
+  },
+  "discharge_application": {
+    "court_filed": true,
+    "default": 14,
+    "max": 25,
+    "min": 8
+  },
+  "distribution_agreement": {
+    "court_filed": false,
+    "default": 18,
+    "max": 35,
+    "min": 12
+  },
+  "divorce_hma": {
+    "court_filed": true,
+    "default": 15,
+    "max": 25,
+    "min": 10
+  },
+  "divorce_mutual_consent": {
+    "court_filed": true,
+    "default": 15,
+    "max": 25,
+    "min": 10
+  },
+  "divorce_sma": {
+    "court_filed": true,
+    "default": 15,
+    "max": 25,
+    "min": 10
+  },
+  "dv_act_complaint": {
+    "court_filed": true,
+    "default": 15,
+    "max": 25,
+    "min": 10
+  },
+  "employment_agreement": {
+    "court_filed": false,
+    "default": 18,
+    "max": 35,
+    "min": 12
+  },
+  "fir_quashing": {
+    "court_filed": true,
+    "default": 14,
+    "max": 25,
+    "min": 8
+  },
+  "founders_agreement": {
+    "court_filed": false,
+    "default": 18,
+    "max": 35,
+    "min": 12
+  },
+  "franchise_agreement": {
+    "court_filed": false,
+    "default": 18,
+    "max": 35,
+    "min": 12
+  },
+  "gift_deed": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "gpa": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "guardianship_petition": {
+    "court_filed": true,
+    "default": 15,
+    "max": 25,
+    "min": 10
+  },
+  "habeas_corpus": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "ibc_application": {
+    "court_filed": true,
+    "default": 14,
+    "max": 25,
+    "min": 8
+  },
+  "interim_application": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "interim_bail": {
+    "court_filed": true,
+    "default": 12,
+    "max": 20,
+    "min": 8
+  },
+  "itat_appeal": {
+    "court_filed": true,
+    "default": 14,
+    "max": 25,
+    "min": 8
+  },
+  "joint_development_agreement": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "judicial_separation": {
+    "court_filed": true,
+    "default": 15,
+    "max": 25,
+    "min": 10
+  },
+  "lease_deed": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "legal_notice_breach_of_contract": {
+    "court_filed": false,
+    "default": 8,
+    "max": 14,
+    "min": 5
+  },
+  "legal_notice_consumer_deficiency": {
+    "court_filed": false,
+    "default": 8,
+    "max": 14,
+    "min": 5
+  },
+  "legal_notice_copyright_infringement": {
+    "court_filed": false,
+    "default": 8,
+    "max": 14,
+    "min": 5
+  },
+  "legal_notice_defamation": {
+    "court_filed": false,
+    "default": 8,
+    "max": 14,
+    "min": 5
+  },
+  "legal_notice_eviction": {
+    "court_filed": false,
+    "default": 8,
+    "max": 14,
+    "min": 5
+  },
+  "legal_notice_s138": {
+    "court_filed": false,
+    "default": 6,
+    "max": 7,
+    "min": 5
+  },
+  "legal_notice_s80": {
+    "court_filed": false,
+    "default": 6,
+    "max": 8,
+    "min": 5
+  },
+  "legal_notice_trademark_infringement": {
+    "court_filed": false,
+    "default": 8,
+    "max": 14,
+    "min": 5
+  },
+  "license_agreement": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "list_of_dates": {
+    "court_filed": true,
+    "default": 6,
+    "max": 12,
+    "min": 4
+  },
+  "loan_agreement": {
+    "court_filed": false,
+    "default": 18,
+    "max": 35,
+    "min": 12
+  },
+  "mact_claim": {
+    "court_filed": true,
+    "default": 14,
+    "max": 25,
+    "min": 8
+  },
+  "maintenance_bnss_144": {
+    "court_filed": true,
+    "default": 15,
+    "max": 25,
+    "min": 10
+  },
+  "mandamus": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "memo_of_parties": {
+    "court_filed": true,
+    "default": 6,
+    "max": 12,
+    "min": 4
+  },
+  "moa": {
+    "court_filed": false,
+    "default": 18,
+    "max": 35,
+    "min": 12
+  },
+  "mortgage_deed": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "mou": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "nda": {
+    "court_filed": false,
+    "default": 18,
+    "max": 35,
+    "min": 12
+  },
+  "partition_deed": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "pil": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "plaint_declaration": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "plaint_eviction": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "plaint_injunction": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "plaint_partition": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "plaint_recovery": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "plaint_specific_performance": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "posh_complaint": {
+    "court_filed": true,
+    "default": 14,
+    "max": 25,
+    "min": 8
+  },
+  "production_of_documents": {
+    "court_filed": true,
+    "default": 10,
+    "max": 18,
+    "min": 6
+  },
+  "quashing_528_bnss": {
+    "court_filed": true,
+    "default": 14,
+    "max": 25,
+    "min": 8
+  },
+  "quo_warranto": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "rcr_petition": {
+    "court_filed": true,
+    "default": 15,
+    "max": 25,
+    "min": 10
+  },
+  "receiver_appointment": {
+    "court_filed": true,
+    "default": 10,
+    "max": 18,
+    "min": 6
+  },
+  "rejoinder_affidavit": {
+    "court_filed": true,
+    "default": 6,
+    "max": 12,
+    "min": 4
+  },
+  "release_deed": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "rent_agreement": {
+    "court_filed": false,
+    "default": 15,
+    "max": 18,
+    "min": 12
+  },
+  "replication": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "rera_complaint": {
+    "court_filed": true,
+    "default": 14,
+    "max": 25,
+    "min": 8
+  },
+  "restoration_application": {
+    "court_filed": true,
+    "default": 6,
+    "max": 12,
+    "min": 4
+  },
+  "review_petition": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "sale_deed": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "service_agreement": {
+    "court_filed": false,
+    "default": 18,
+    "max": 35,
+    "min": 12
+  },
+  "shareholders_agreement": {
+    "court_filed": false,
+    "default": 18,
+    "max": 35,
+    "min": 12
+  },
+  "slp": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "spa": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "surrender_application": {
+    "court_filed": true,
+    "default": 10,
+    "max": 18,
+    "min": 6
+  },
+  "suspension_of_sentence": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "synopsis": {
+    "court_filed": true,
+    "default": 6,
+    "max": 12,
+    "min": 4
+  },
+  "temporary_injunction_o39": {
+    "court_filed": true,
+    "default": 10,
+    "max": 18,
+    "min": 6
+  },
+  "vakalatnama": {
+    "court_filed": true,
+    "default": 6,
+    "max": 12,
+    "min": 4
+  },
+  "will": {
+    "court_filed": false,
+    "default": 15,
+    "max": 30,
+    "min": 10
+  },
+  "writ_petition_civil": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "writ_petition_criminal": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  },
+  "written_statement": {
+    "court_filed": true,
+    "default": 16,
+    "max": 30,
+    "min": 10
+  }
+}
