@@ -51,6 +51,15 @@ function courtData(key: string): CourtLookupData {
   };
 }
 
+/**
+ * Keys the scenario may carry that are not form_schema fields: system keys only.
+ * Criterion 1's jail part is NOT MET: the Magistrate pack has no custody or jail
+ * field, so the CJM/JMFC scenario cannot give one (follow-up ticket). The scenario
+ * therefore carries no custody/jail key; custody cases below pass them explicitly.
+ */
+// court_name: the courts-list choice the intake makes (resolved to courtData); court_designation: the intake stub.
+const SYSTEM_KEYS = new Set(['court_name', 'court_designation']);
+
 function formData(key: string, extra: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     applicant_name: 'Ramesh Kumar',
@@ -61,7 +70,6 @@ function formData(key: string, extra: Record<string, unknown> = {}): Record<stri
     fir_number: '12/2026',
     fir_date: '2026-09-01',
     police_station: 'Kotwali',
-    currently_in_custody: 'Yes — Judicial custody',
     // what the stubbed intake leaves for the court field (a visible blank)
     court_designation: '[To be confirmed: court designation (magistrate / cjm)]',
     ...extra,
@@ -87,8 +95,7 @@ describe.each([
   ['cjm', 'CHIEF JUDICIAL MAGISTRATE, PATNA'],
   ['jmfc', 'JUDICIAL MAGISTRATE FIRST CLASS, PATNA'],
 ])('T-146 criteria 1-2: bail before Magistrate, %s Patna', (key, courtName) => {
-  const jail = 'Beur Central Jail, Patna';
-  const out = renderAll(key, { jail_name: jail });
+  const out = renderAll(key);
   const all = Object.values(out).join('\n');
 
   it('prints the court heading exactly once, never doubled', () => {
@@ -104,10 +111,17 @@ describe.each([
     expect(out.verification).toContain('I, Ramesh Kumar');
   });
 
-  it('puts the father, age and jail in the verification', () => {
+  it('puts the father and age in the verification, with no custody clause (jail part of criterion 1 not met: follow-up)', () => {
     expect(out.verification).toContain('S/o Suresh Kumar');
-    expect(out.verification).toContain('aged about 34 years');
-    expect(out.verification).toContain(`currently in judicial custody at ${jail}`);
+    expect(out.verification).toContain('aged about 34 years, do hereby verify');
+    expect(out.verification).not.toMatch(/custody/i);
+    expect(all).not.toContain('[To be confirmed: name of jail]');
+  });
+
+  it('fixture guard: every scenario key is a bail_before_magistrate form field or a system key', () => {
+    const fields = new Set(bail.form_schema.steps.flatMap((st) => st.fields.map((f) => f.field_id)));
+    const stray = Object.keys(formData(key)).filter((k) => !fields.has(k) && !SYSTEM_KEYS.has(k));
+    expect(stray).toEqual([]);
   });
 
   it('reads Place: Patna and addresses the right court', () => {
@@ -138,7 +152,7 @@ describe.each([
 
 describe('T-146 verification: jail, custody clause and date', () => {
   it('shows a visible blank for the jail when none is given', () => {
-    const out = renderAll('cjm');
+    const out = renderAll('cjm', { currently_in_custody: 'yes_judicial' });
     expect(out.verification).toContain(
       'currently in judicial custody at [To be confirmed: name of jail]',
     );
@@ -153,7 +167,6 @@ describe('T-146 verification: jail, custody clause and date', () => {
     ],
   ])('omits the custody clause when custody is %s', (_label, extra) => {
     const base = formData('cjm');
-    delete base.currently_in_custody;
     const ctx = buildPlaceholderContext(
       bail,
       { ...base, ...extra },
@@ -169,7 +182,7 @@ describe('T-146 verification: jail, custody clause and date', () => {
     expect(text).toContain('aged about 34 years, do hereby verify');
   });
 
-  it.each(['Yes', 'yes — in judicial custody', 'Judicial custody'])(
+  it.each(['yes_judicial', 'Yes — Judicial custody', 'yes — in judicial custody', 'Judicial custody'])(
     'adds the custody clause for %p',
     (v) => {
       const out = renderAll('cjm', { currently_in_custody: v, jail_name: 'Beur Jail' });
@@ -178,6 +191,19 @@ describe('T-146 verification: jail, custody clause and date', () => {
       );
     },
   );
+
+  it.each([
+    'Yes — Police custody',
+    'yes_police',
+    'Yes',
+    'No — anticipating arrest',
+    'not in judicial custody',
+  ])('adds no custody clause for %p', (v) => {
+    const out = renderAll('cjm', { currently_in_custody: v, jail_name: 'Beur Jail' });
+    expect(out.verification).not.toMatch(/custody/i);
+    expect(out.verification).not.toContain('Beur Jail');
+    expect(out.verification).toContain('aged about 34 years, do hereby verify');
+  });
 
   it('leaves the verification date blank unless the advocate gave one', () => {
     expect(renderAll('cjm').verification).toContain(
@@ -241,6 +267,59 @@ describe('T-146 criterion 3: system-owned placeholders are never a user message'
     expect(leakedPlaceholderWarnings(bail, ctx)).toEqual([]);
   });
 });
+
+describe('T-146 alias order: aliases read the final court-rule value', () => {
+  it.each(['cjm', 'jmfc'])('{caseNomenclature} equals {case_nomenclature} for %s', (key) => {
+    const data = { ...courtData(key), caseNomenclature: 'DB Nomenclature No. __ of {year}' };
+    const ctx = buildPlaceholderContext(bail, formData(key), { advocateName: 'A' }, data);
+    expect(ctx.case_nomenclature).toMatch(/^Criminal Case No\. _____ of \d{4}$/);
+    expect(ctx.caseNomenclature).toBe(ctx.case_nomenclature);
+    const s = { section_id: 'x', type: 'template', template: '{caseNomenclature}|{case_nomenclature}' };
+    const [a, b] = renderTemplateSection(s as never, ctx).content.split('|');
+    expect(a).toBe(b);
+    expect(a).not.toContain('DB Nomenclature');
+  });
+});
+
+describe('T-146 warnings for aliases', () => {
+  function withTemplate(text: string): TemplateConfig {
+    const tpl = JSON.parse(JSON.stringify(bail)) as TemplateConfig;
+    const sections = tpl.document_structure.sections.filter((s) => s.type === 'template' && s.template);
+    sections.forEach((s, i) => {
+      s.template = i === 0 ? text : 'plain';
+    });
+    return tpl;
+  }
+  const label = bail.form_schema.steps
+    .flatMap((st) => st.fields)
+    .find((f) => f.field_id === 'applicant_name')!.label as string;
+
+  it('an unfilled {applicant} warns once under applicant_name with the label', () => {
+    const w = leakedPlaceholderWarnings(withTemplate('I, {applicant}.'), {});
+    expect(w).toHaveLength(1);
+    expect((w[0].details as { clauseId: string }).clauseId).toBe('applicant_name');
+    expect(w[0].message).toContain(label);
+    expect(w[0].message).not.toContain('{applicant}');
+  });
+
+  it('{applicant} and {applicant_name} in one section give exactly one warning', () => {
+    const w = leakedPlaceholderWarnings(withTemplate('{applicant} / {applicant_name}'), {});
+    expect(w).toHaveLength(1);
+    expect((w[0].details as { clauseId: string }).clauseId).toBe('applicant_name');
+  });
+
+  it('{courtDesignation} is never named in a warning', () => {
+    // FINDING: court_designation IS a bail_before_magistrate form_schema field, so an
+    // unfilled {courtDesignation} warns once under court_designation (the alias rule),
+    // not "none" as the handoff expected. Asserted: the alias itself is never shown.
+    const w = leakedPlaceholderWarnings(withTemplate('{courtDesignation}'), {});
+    expect(w.map((x) => x.message).join('\n')).not.toContain('{courtDesignation}');
+    expect(w.map((x) => (x.details as { clauseId: string }).clauseId)).toEqual(['court_designation']);
+  });
+});
+
+// Criterion 4 (countBlanks counts the signing-date blank once) lives in apps/web,
+// which has no test runner and cannot be imported from drafting: not tested here.
 
 describe('T-146 criterion 5: placeholder coverage of every document rule', () => {
   const SECTIONS = ['cause_title', 'prayer', 'verification'];
