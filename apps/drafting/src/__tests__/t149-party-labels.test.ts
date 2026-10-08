@@ -28,6 +28,7 @@ import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 // eslint-disable-next-line import/order
+import { drafterPartyDesignationLines } from '../services/ai.service';
 import { buildAnnexuresPack } from '../services/annexures.service';
 import {
   CourtLookupData,
@@ -67,16 +68,7 @@ const NAMED_EXCEPTIONS_SIGNED_TYPES: readonly string[] = [
   // Not a choice: the fixed designation "Standing Counsel (Criminal)". Matches the
   // literal "(criminal)" rule; Ajay to confirm it is acceptable (reported, not changed).
   'delhi_hc.json|state',
-  'drt.json|applicant',
   'family_court.json|state',
-  'labour_court.json|applicant',
-  'labour_court.json|complainant',
-  'labour_court.json|counter_party',
-  'labour_court.json|petitioner',
-  'labour_court.json|respondent',
-  'nclt.json|petitioner',
-  'nclt.json|respondent',
-  'tribunal_generic.json|counter_party',
 ];
 
 /**
@@ -326,10 +318,7 @@ describe("T-149 criterion 5: Anushka's scenario 3, regular bail, Sessions Court 
   });
 
   it('the brief path is fed the same labels (helper that streamGenerateFromBrief uses)', () => {
-    // The wiring inside streamGenerateFromBrief itself is not exercised here.
-    const lines = Object.entries(
-      partyDesignationFor(courtDataFor('up_district').courtRule!, 'bail_regular')!,
-    ).map(([role, label]) => `Party designation, ${role}: "${label}"`);
+    const lines = drafterPartyDesignationLines(courtDataFor('up_district').courtRule, 'bail_regular');
     expect(lines).toContain('Party designation, petitioner: "Applicant"');
     expect(lines).toContain('Party designation, respondent: "Opposite Party"');
     expect(lines.join('\n')).not.toMatch(CHOICE);

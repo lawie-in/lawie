@@ -83,7 +83,9 @@ import {
   loadCourtRule,
   detectLeakedPlaceholders,
   sanitiseAIBody,
-  partyDesignationFor,
+  promptPartyDesignations,
+  TO_BE_CONFIRMED_DESIGNATION_RULE,
+  CourtRuleData,
   PLACEHOLDER_ALIASES,
 } from './template-engine.service';
 import {
@@ -1038,6 +1040,24 @@ export interface BriefGenerateResult extends TemplateGenerateResult {
   labelReason: string | null;
 }
 
+/**
+ * T-158: the Drafter's party-designation lines for its COURT RULE block, from
+ * the same helper as buildAISystemPrompt's PARTY DESIGNATIONS block. The
+ * Drafter prompt puts "- " before each line itself, so the C2 rule
+ * (AJ-2026-10-08-T158-diff) is pushed without its own leading "- " and prints
+ * exactly as signed.
+ */
+export function drafterPartyDesignationLines(
+  courtRule: CourtRuleData | undefined,
+  templateId: string,
+): string[] {
+  if (!courtRule) return [];
+  const { entries, needsToBeConfirmedRule } = promptPartyDesignations(courtRule, templateId);
+  const lines = entries.map(([role, label]) => `Party designation, ${role}: "${label}"`);
+  if (needsToBeConfirmedRule) lines.push(TO_BE_CONFIRMED_DESIGNATION_RULE.replace(/^- /, ''));
+  return lines;
+}
+
 export async function streamGenerateFromBrief(
   input: BriefGenerateInput,
   res: Response,
@@ -1117,10 +1137,10 @@ export async function streamGenerateFromBrief(
     systemText,
     courtRules: [
       ...(courtRule?.localRules ?? []),
-      // T-149: signed document types show the chosen labels; others as before.
-      ...Object.entries(
-        (courtRule && partyDesignationFor(courtRule, templateConfig.template_id)) ?? {},
-      ).map(([role, label]) => `Party designation, ${role}: "${label}"`),
+      // T-149 / T-158: the same labels as buildAISystemPrompt's PARTY
+      // DESIGNATIONS block: matter-type labels, no "not applicable" state,
+      // and the C2 rule when a label is a "[To be confirmed: ...]" blank.
+      ...drafterPartyDesignationLines(courtRule, templateConfig.template_id),
     ],
     target: input.targetParagraphs,
     language: input.language,

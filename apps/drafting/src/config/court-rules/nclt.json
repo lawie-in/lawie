@@ -11,10 +11,10 @@
   "courtType": "tribunal",
   "designation": "BEFORE THE NATIONAL COMPANY LAW TRIBUNAL",
   "jurisdictionNote": "National Company Law Tribunal constituted under Section 408 of the Companies Act, 2013. Adjudicating authority for corporate insolvency resolution and liquidation under the Insolvency and Bankruptcy Code, 2016. Appellate forum: NCLAT (uses the same rule file).",
-  "cause_title_format": "{courtDesignation}, {bench}\n{caseNomenclature}\n\nIn the matter of: {company_name}\n\n{applicant} ... PETITIONER / APPLICANT\n\nVERSUS\n\n{respondent} ... RESPONDENT / CORPORATE DEBTOR",
+  "cause_title_format": "{courtDesignation}, {bench}\n{caseNomenclature}\n\nIn the matter of: {company_name}\n\n{applicant} ... [To be confirmed: APPLICANT (IBC) or PETITIONER (Companies Act)]\n\nVERSUS\n\n{respondent} ... [To be confirmed: CORPORATE DEBTOR (IBC) or RESPONDENT (Companies Act)]",
   "party_designation": {
-    "petitioner": "Petitioner / Applicant",
-    "respondent": "Respondent / Corporate Debtor (in IBC matters)",
+    "petitioner": "[To be confirmed: Applicant (IBC) or Petitioner (Companies Act)]",
+    "respondent": "[To be confirmed: Corporate Debtor (IBC) or Respondent (Companies Act)]",
     "applicant": "Applicant",
     "complainant": "Petitioner",
     "counter_party": "Respondent",
@@ -36,7 +36,31 @@
     "closing": "And for this act of kindness, the applicant shall ever pray.",
     "tone": "neutral"
   },
-  "verification_format": "I, {deponent_name}, the Applicant / Petitioner herein above named, do hereby verify that the contents of the above petition / application are true and correct to the best of my knowledge derived from the records of the Corporate Debtor / Company, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nPETITIONER / APPLICANT",
+  "verification_format": "I, {deponent_name}, do hereby verify that the contents of paragraphs ___ to ___ above are true to my personal knowledge, and the contents of paragraphs ___ to ___ are based on records and information received, which I believe to be true, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
+  "matter_type_overrides": {
+    "insolvency_application": {
+      "cause_title_format": "{courtDesignation}, {bench}\n{caseNomenclature}\n\nIn the matter of: {company_name}\n\n{applicant} ... APPLICANT\n\nVERSUS\n\n{respondent} ... CORPORATE DEBTOR",
+      "party_designation": {
+        "petitioner": "Applicant",
+        "respondent": "Corporate Debtor",
+        "applicant": "Applicant",
+        "complainant": "Applicant",
+        "counter_party": "Corporate Debtor"
+      },
+      "verification_format": "I, {deponent_name}, the Applicant herein above named, do hereby verify that the contents of paragraphs ___ to ___ of the above application are true to my personal knowledge, and the contents of paragraphs ___ to ___ are based on records and information received, which I believe to be true, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nAPPLICANT"
+    },
+    "company_petition": {
+      "cause_title_format": "{courtDesignation}, {bench}\n{caseNomenclature}\n\nIn the matter of: {company_name}\n\n{applicant} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+      "party_designation": {
+        "petitioner": "Petitioner",
+        "respondent": "Respondent",
+        "applicant": "Petitioner",
+        "complainant": "Petitioner",
+        "counter_party": "Respondent"
+      },
+      "verification_format": "I, {deponent_name}, the Petitioner herein above named, do hereby verify that the contents of paragraphs ___ to ___ of the above petition are true to my personal knowledge, and the contents of paragraphs ___ to ___ are based on records and information received, which I believe to be true, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nPETITIONER"
+    }
+  },
   "supported_languages": ["en"],
   "formattingPreferences": {
     "numberingStyle": "numeric",

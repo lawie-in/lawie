@@ -263,6 +263,12 @@ export interface CourtRuleData {
     Record<DocumentSide, { petitioner: string; respondent: string }>
   >;
   case_nomenclature?: Record<string, string>;
+  /**
+   * T-158: wording that depends on the matter type, keyed by a
+   * `case_nomenclature` key (e.g. NCLT `insolvency_application` vs
+   * `company_petition`). See `ruleForMatter`.
+   */
+  matter_type_overrides?: Record<string, MatterTypeOverride>;
   para_numbering?: { style: string; startAt: number; format: string; indentLevel: number };
   prayer_language?: { opening: string; closing: string; tone: string };
   verification_format?: string;
@@ -339,6 +345,105 @@ export function partyDesignationFor(
   };
 }
 
+/** T-158: the court-rule fields a matter type may replace. */
+export interface MatterTypeOverride {
+  cause_title_format?: string;
+  party_designation?: Record<string, string>;
+  verification_format?: string;
+}
+
+/**
+ * T-158 (AJ-2026-10-08-T157-A2, AJ-2026-10-08-T158-A2): the matter type of a
+ * document type, as a `case_nomenclature` key. Only document types whose
+ * statute is fixed are listed. Anything else (an I.A., a counter or rejoinder
+ * affidavit, which arise under either statute) has no matter type, and the
+ * court rule's own neutral wording prints.
+ */
+const MATTER_TYPE_BY_TEMPLATE: ReadonlyMap<string, string> = new Map([
+  ['ibc_application', 'insolvency_application'],
+]);
+
+/** The matter type (`case_nomenclature` key) of a document type, or null. */
+export function matterTypeFor(templateId: string): string | null {
+  return MATTER_TYPE_BY_TEMPLATE.get(templateId) ?? null;
+}
+
+/**
+ * T-158: the court rule as it applies to one document type. When the rule has
+ * `matter_type_overrides` for the document's matter type, its cause title,
+ * party labels and verification replace the rule's own; any other key is kept.
+ * With no override (unknown matter type, or a rule without overrides) the rule
+ * is returned unchanged.
+ */
+export function ruleForMatter<
+  T extends {
+    cause_title_format?: string;
+    party_designation?: Record<string, string>;
+    verification_format?: string;
+    matter_type_overrides?: Record<string, MatterTypeOverride>;
+  },
+>(rule: T, templateId: string): T {
+  const key = matterTypeFor(templateId);
+  const override = key ? rule.matter_type_overrides?.[key] : undefined;
+  if (!override) return rule;
+  return {
+    ...rule,
+    ...(override.cause_title_format !== undefined && {
+      cause_title_format: override.cause_title_format,
+    }),
+    ...(override.party_designation && {
+      party_designation: { ...rule.party_designation, ...override.party_designation },
+    }),
+    ...(override.verification_format !== undefined && {
+      verification_format: override.verification_format,
+    }),
+  };
+}
+
+/**
+ * T-158 (AJ-2026-10-08-T158-diff, C2): appended to the AI prompt's party list
+ * when any designation is a visible blank, so the model does not silently pick
+ * one of its options.
+ */
+export const TO_BE_CONFIRMED_DESIGNATION_RULE =
+  '- If a designation above begins with "[To be confirmed:", reproduce it exactly as written wherever that party is named. Do not choose between the options.';
+
+/** The party designations an AI prompt is sent for one document. */
+export interface PromptPartyDesignations {
+  /** `[role, label]` pairs, in the court rule's order. */
+  entries: Array<[string, string]>;
+  /** True when any label is a visible "[To be confirmed: ...]" blank (C2). */
+  needsToBeConfirmedRule: boolean;
+}
+
+/**
+ * T-158: the party designations every AI prompt path is sent for one court
+ * rule and document type. The matter type's labels apply (`ruleForMatter`);
+ * a "not applicable" state is left out entirely (AJ-2026-10-08-T158-A1-ext),
+ * so the model is sent neither the note nor a blank; and the flag says when
+ * TO_BE_CONFIRMED_DESIGNATION_RULE must follow (AJ-2026-10-08-T158-diff, C2).
+ */
+export function promptPartyDesignations(
+  rule: CourtRuleData,
+  templateId: string,
+): PromptPartyDesignations {
+  const entries = Object.entries(
+    partyDesignationFor(ruleForMatter(rule, templateId), templateId) ?? {},
+  ).filter(([k, v]) => !(k === 'state' && isStateNotApplicable(v)));
+  return {
+    entries,
+    needsToBeConfirmedRule: entries.some(([, v]) => v.startsWith('[To be confirmed:')),
+  };
+}
+
+/** The AI prompt's PARTY DESIGNATIONS lines for one court rule and document type. */
+export function partyDesignationsPromptLines(rule: CourtRuleData, templateId: string): string {
+  const { entries, needsToBeConfirmedRule } = promptPartyDesignations(rule, templateId);
+  const lines = entries.map(([k, v]) => `- ${k}: "${v}"`);
+  if (needsToBeConfirmedRule) lines.push(TO_BE_CONFIRMED_DESIGNATION_RULE);
+  return lines.join('\n');
+}
+
 /** Pre-fetched court data to avoid async DB calls inside resolveComputedFields. */
 export interface CourtLookupData {
   designation: string;
@@ -391,6 +496,16 @@ const FALLBACK_DESIGNATION_RULES = new Set([
 
 /** Shown in place of "State of {state}" when the State is not known or is a UT. */
 const STATE_BLANK = '[To be confirmed: name of the State]';
+
+/**
+ * T-158 (AJ-2026-10-08-T158-A1-ext): a `party_designation.state` that says no
+ * State party applies (e.g. family_court's "Not applicable (...)") is an
+ * internal note, not a party. It is treated as not set: the engine prints
+ * STATE_BLANK for `{state_respondent}`, and the AI prompt is sent no `state`.
+ */
+export function isStateNotApplicable(state: string | undefined): boolean {
+  return (state ?? '').trim().toLowerCase().startsWith('not applicable');
+}
 
 /**
  * Union Territories (AJ-2026-10-08-T157, condition 1). A UT is not a "State",
@@ -810,7 +925,8 @@ export function buildPlaceholderContext(
 
   // ── SCRUM-50: Inject court-rule-driven placeholders ───────────────────────
   if (courtData?.courtRule) {
-    const rule = courtData.courtRule;
+    // T-158: labels and verification follow the document's matter type.
+    const rule = ruleForMatter(courtData.courtRule, config.template_id);
 
     // Party labels from court rule
     // T-149: labels follow the document's side where Ajay signed them.
@@ -821,7 +937,11 @@ export function buildPlaceholderContext(
       ctx.party_label_applicant = designation.applicant ?? 'Applicant';
       ctx.party_label_accused = designation.accused ?? 'Accused';
       // State respondent template
-      if (designation.state) {
+      // T-158 (AJ-2026-10-08-T158-A1-ext): no State party prints the visible
+      // blank, never the note and never the "Through Public Prosecutor" default.
+      if (isStateNotApplicable(designation.state)) {
+        ctx.state_respondent = STATE_BLANK;
+      } else if (designation.state) {
         ctx.state_respondent = stateLine(designation.state, courtData);
       }
     }
@@ -1219,11 +1339,10 @@ ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
 
 RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ? `\n\nCOURT-SPECIFIC RULES (MANDATORY — these override generic conventions):\n${courtRule.localRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}` : ''}${
     courtRule?.party_designation
-      ? `\n\nPARTY DESIGNATIONS FOR THIS COURT:\n${Object.entries(
-          partyDesignationFor(courtRule, config.template_id) ?? {},
-        )
-          .map(([k, v]) => `- ${k}: "${v}"`)
-          .join('\n')}`
+      ? `\n\nPARTY DESIGNATIONS FOR THIS COURT:\n${partyDesignationsPromptLines(
+          courtRule,
+          config.template_id,
+        )}`
       : ''
   }${
     config.category === 'criminal'

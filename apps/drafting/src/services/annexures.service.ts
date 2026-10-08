@@ -26,6 +26,8 @@ import {
   chosenCourtHeading,
   CourtLookupData,
   CourtRuleData,
+  MatterTypeOverride,
+  ruleForMatter,
   signedPartyLabels,
 } from './template-engine.service';
 
@@ -40,6 +42,7 @@ interface CourtRules {
   party_designation_by_side?: CourtRuleData['party_designation_by_side'];
   verification_format: string;
   case_nomenclature?: Record<string, string>;
+  matter_type_overrides?: Record<string, MatterTypeOverride>;
   prayer_language?: { opening: string; closing: string };
 }
 
@@ -555,7 +558,11 @@ export async function buildAnnexuresPack(input: AnnexuresInput): Promise<Buffer>
     ...(advocateName && !formData.advocate_name ? { advocate_name: advocateName } : {}),
   };
 
-  const resolved = resolveCourtRules(enrichedForm);
+  // T-158: labels and verification follow the document's matter type.
+  const resolved = ruleForMatter(
+    resolveCourtRules(enrichedForm),
+    String(enrichedForm.template_id ?? enrichedForm.doc_type ?? ''),
+  );
   // T-156: one court, one designation. With a court chosen, the heading is the
   // draft's `court_header` (computed once, in template-engine). Party labels,
   // verification wording and court-fee text still come from the court rule.
