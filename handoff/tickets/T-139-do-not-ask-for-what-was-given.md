@@ -1,35 +1,45 @@
 # T-139 — Do not ask again for what I already gave
 
-| Field      | Value                                                                                                         |
-| ---------- | ------------------------------------------------------------------------------------------------------------- |
-| Phase      | 1 — Describe and draft                                                                                        |
-| Owner      | Priya (scope), Ajay (the questions), Vishal (build), Anushka (verdict)                                        |
-| Mode       | Full chain, then the quality gate                                                                             |
-| Status     | Needs scoping. Not started. Cause not traced yet                                                              |
-| Depends on | None                                                                                                          |
-| Branch     | fix/t-139-do-not-ask-for-what-was-given                                                                       |
-| Created    | 2026-10-06                                                                                                    |
-| Source     | Anushka's run 1, 6 Oct 2026, verdict FAIL. Her words are in `handoff/quality/2026-10-06-baseline-run-FAIL.md` |
+| Field          | Value |
+| -------------- | ----- |
+| Phase          | 1 — Describe and draft. MUST FIX before go-live (Major, Anushka run 1) |
+| Owner          | Priya (scope), Ajay (the questions + sign-off), Vishal (build), Anushka (tests develop after the batch) |
+| Mode           | Fix, full chain. Trace the cause first and report it before changing prompts. Merge to develop per founder's 8 Oct rule (as relayed by Vishal) |
+| Status         | Ready for Vishal (scoped 8 Oct; supersedes "Needs scoping" in handoff/tickets/T-139) |
+| Size           | L (2–3 days) |
+| Depends on     | T-150 (merged) |
+| Branch         | fix/t-139-do-not-ask-for-what-was-given |
+| Legal sign-off | NEEDED. Touches `intake.prompts.ts` and/or `intake-brief.ts`. BLOCKED for Ajay until he signs the exact diff |
+| Created        | 2026-10-06, scoped 2026-10-08 |
+| Source         | `handoff/quality/2026-10-06-baseline-run-FAIL.md` |
 
 ## Goal
 
 The questions cover only what the description did not say.
 
-## What Anushka found
+## Acceptance criteria
 
-- **Major.** "Please give: Police Station." in all four criminal matters, though she wrote "Saraidhela PS", "PS Kaiserbagh", "Civil Lines thana Gaya", "Kankarbagh PS". The brief then showed the police station under "Still unknown" until she retyped it.
-- "Please give: Sections Charged in FIR." after "under sections 303(2) and 317(2) BNS". "Please give: Date of dishonour." after "came back unpaid on 15 September 2026". "Please give: Date of FIR." after "dated 30 Sept 2026".
-- "Please give: Amount in Words." for Rs 2,40,000, then left blank three times in the draft.
-- "379 IPC" on a 2026 FIR was carried with "Please check" and no note that the IPC cannot apply.
-- Minor: "Round 1 of 2" on both rounds; "Answer 9 more questions" after a round that said 5; "Required" on fields that can be left blank.
+1. Anushka's five run-1 descriptions (from the baseline file) re-run with a stubbed Reception that returns what the real one returned in run 1: none of these is asked — Police Station ("Saraidhela PS", "PS Kaiserbagh", "Civil Lines thana Gaya", "Kankarbagh PS"), Sections ("303(2) and 317(2) BNS"), Date of dishonour ("15 September 2026"), Date of FIR ("30 Sept 2026").
+2. A fact given in the description shows in the brief as known, never under "Still unknown".
+3. An amount given in figures (Rs 2,40,000) is never asked in words; the draft prints the words ("Rupees Two Lakh Forty Thousand only") computed by code, with no blank.
+4. An IPC section on a matter dated on or after 1 July 2024 gets a plain note in the brief ("IPC does not apply to an offence on or after 1 July 2024; BNS applies") — wording per Ajay.
+5. Round counter is right ("Round 1 of 2", then "Round 2 of 2"); the "Answer N more questions" count equals the questions shown; optional fields are not marked "Required".
+6. Regression: T-121 (answers kept on going back), T-150 (no contradicting answer kept), T-134 tests stay green.
+7. One real-model run of the five descriptions at the end if the session has a model key; report each question asked; otherwise say not run.
 
-## Acceptance criteria (draft, Priya to confirm)
+## Out of scope
 
-- Her five descriptions are run again and none of the facts she gave is asked for.
-- An amount in figures is never asked for again in words.
-- An old-code section on a matter dated after 1 July 2024 gets a plain note.
-- Anushka tests again from the start and her verdict is PASS.
+- New intake fields or new documents.
+- Custody/jail for Magistrate bail (T-153).
+- Image/PDF intake (T-301, T-304).
 
-## Notes
+## What Ajay must sign (exact)
 
-- Touches the Reception prompt and the brief rules (legal-content paths). Ajay's sign-off is needed.
+- Any change to the Reception/follow-up prompt text in `apps/drafting/src/services/intake.prompts.ts`.
+- Any change to brief rules in `apps/drafting/src/services/intake-brief.ts` (what counts as "given", the matching of police station / sections / dates).
+- The IPC-after-1-July-2024 note wording (criterion 4).
+- The amount-in-words format (criterion 3), if it prints in a legal-content template.
+
+## Files (expected)
+
+`services/intake.prompts.ts`, `services/intake-brief.ts`, possibly `services/intake.service.ts`, `services/intake-text.ts`, web round counter in `apps/web`. Owns `intake-brief.ts` and `intake.prompts.ts` this batch; T-153 must not touch them.

@@ -57,11 +57,14 @@ function fieldId(key: string): string {
 function Item({
   item,
   needed,
+  blocksConfirm,
   onCommit,
 }: {
   item: BriefItem;
   /** True when this is a party's name that Confirm is waiting for. */
   needed: boolean;
+  /** True when Confirm waits for this field while it is empty (T-139): a party's name on a court document. */
+  blocksConfirm: boolean;
   onCommit: (value: Value) => void;
 }) {
   const id = fieldId(item.key);
@@ -83,7 +86,7 @@ function Item({
         <label htmlFor={id} className={labelClass}>
           {heading}
         </label>
-        {item.required && <span className="text-brand-muted text-xs">Required</span>}
+        {blocksConfirm && <span className="text-brand-muted text-xs">Required</span>}
         {item.please_check && <span className={tagGold}>Please check</span>}
         {needed && <span className={tagError}>Needed to continue</span>}
       </div>
@@ -278,6 +281,7 @@ export default function BriefStep({
                     needed={
                       partiesNeeded && item.party_name && item.required && isEmptyValue(item.value)
                     }
+                    blocksConfirm={brief.kind.court_document && item.party_name && item.required}
                     onCommit={(v) => onValue(item, v)}
                   />
                 ))}
