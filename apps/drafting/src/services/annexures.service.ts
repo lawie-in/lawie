@@ -163,6 +163,20 @@ function safeEsc(v: unknown, fallback = '___________'): string {
   return esc(str(v, fallback));
 }
 
+/** First of `values` that is non-empty after trim (trimmed if a string), else undefined. */
+function firstNonBlank(...values: unknown[]): unknown {
+  for (const v of values) {
+    if (v === undefined || v === null) continue;
+    if (typeof v === 'string') {
+      const t = v.trim();
+      if (t !== '') return t;
+      continue;
+    }
+    if (String(v).trim() !== '') return v;
+  }
+  return undefined;
+}
+
 // ── Annexure A — Memo of Parties ──────────────────────────────────────────────
 
 function annexureMemoOfParties(
@@ -446,7 +460,8 @@ function annexureAffidavit(
     month: 'long',
     year: 'numeric',
   });
-  const place = safeEsc(formData.place ?? formData.city ?? formData.district ?? 'Ranchi');
+  const verifiedAt = firstNonBlank(formData.place, formData.city, formData.district);
+  const place = safeEsc(verifiedAt);
   const courtDesig = esc(rules.designation);
 
   // Build verification text from court_rules.verification_format — fill placeholders
@@ -455,7 +470,7 @@ function annexureAffidavit(
       .replace('{deponent_name}', str(formData.applicant_name ?? formData.petitioner_name ?? formData.party_name))
       .replace('{designation}', str(formData.deponent_designation ?? 'the above-named Applicant/Petitioner'))
       .replace('{body_para_count}', String(bodyParaCount))
-      .replace('{place}', str(formData.place ?? formData.city ?? formData.district ?? 'Ranchi'))
+      .replace('{place}', str(verifiedAt))
       .replace('{date}', today),
   );
 
