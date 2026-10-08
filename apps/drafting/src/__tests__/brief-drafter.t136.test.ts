@@ -160,8 +160,7 @@ State of Jharkhand ... Respondent
 AFFIDAVIT IN SUPPORT OF BAIL APPLICATION
 
 TO,
-THE HONOURABLE DISTRICT & SESSIONS JUDGE, PATNA,
-Patna
+THE HONOURABLE DISTRICT & SESSIONS JUDGE, PATNA
 
 MOST RESPECTFULLY SHOWETH:
 
@@ -238,7 +237,7 @@ describe('removeRepeatedParts (T-136, part 1 condition 4)', () => {
 
   it('removes an exact repeat of the addressee block above the first paragraph and keeps every numbered paragraph word for word', () => {
     const addressee =
-      'TO,\nTHE HONOURABLE DISTRICT & SESSIONS JUDGE, PATNA,\nPatna\n\nMOST RESPECTFULLY SHOWETH:';
+      'TO,\nTHE HONOURABLE DISTRICT & SESSIONS JUDGE, PATNA\n\nMOST RESPECTFULLY SHOWETH:';
     expect(BAIL_SYSTEM.before).toContain(addressee);
     const out = removeRepeatedParts(`${addressee}\n\n${PARA_TEXT}`, BAIL_SYSTEM);
     expect(out.body).toBe(PARA_TEXT);
@@ -1003,7 +1002,7 @@ describe('review round 1 — a part is judged as one text', () => {
 
   const sunitaToFrom = 'To,\n\nSunita Devi\n\nFrom,\n\nRajesh Kumar Singh';
   const stateApplicant =
-    'State of Bihar through the District Magistrate / S.P., Patna\n\n... Applicant\n\nVersus\n\nRamesh Mahto\n\n... Opposite Party';
+    'State of Bihar\n\n... Applicant\n\nVersus\n\nRamesh Mahto\n\n... Opposite Party';
   const toRamesh = 'TO,\n\nRamesh Mahto';
 
   const cases: Array<[string, string, string, SystemText, string]> = [
@@ -1073,7 +1072,7 @@ describe('review round 1 — a part is judged as one text', () => {
 
   it('an exact repeat split across blank lines as the system prints it is removed and stands once', () => {
     const addressee =
-      'TO,\nTHE HONOURABLE DISTRICT & SESSIONS JUDGE, PATNA,\nPatna\n\nMOST RESPECTFULLY SHOWETH:';
+      'TO,\nTHE HONOURABLE DISTRICT & SESSIONS JUDGE, PATNA\n\nMOST RESPECTFULLY SHOWETH:';
     const out = process(`${addressee}\n\n${PARA_TEXT}\n\nPRAYER`, BAIL_SYSTEM, BAIL.name);
     expect(out.kept).toBe(PARA_TEXT);
     expect(out.findings).toEqual([]);
