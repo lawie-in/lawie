@@ -22,6 +22,7 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import { renderPdf } from './pdf-export.service';
+import { CourtRuleData, signedPartyLabels } from './template-engine.service';
 
 // ── Court rules loader ────────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ interface CourtRules {
   designation: string;
   cause_title_format?: string;
   party_designation: Record<string, string>;
+  party_designation_by_side?: CourtRuleData['party_designation_by_side'];
   verification_format: string;
   case_nomenclature?: Record<string, string>;
   prayer_language?: { opening: string; closing: string };
@@ -179,8 +181,20 @@ function annexureMemoOfParties(
   const applicantFather = safeEsc(formData.father_name ?? formData.parent_name);
   const courtDesig = esc(rules.designation);
 
-  const applicantLabel = esc(rules.party_designation.applicant ?? rules.party_designation.petitioner ?? 'Applicant');
-  const respondentLabel = esc(rules.party_designation.respondent ?? rules.party_designation.opposite_party ?? 'Respondent');
+  // T-149: a signed document type uses the signed labels; others as before.
+  const signed = signedPartyLabels(rules, String(formData.template_id ?? formData.doc_type ?? ''));
+  const applicantLabel = esc(
+    signed?.petitioner ??
+      rules.party_designation.applicant ??
+      rules.party_designation.petitioner ??
+      'Applicant',
+  );
+  const respondentLabel = esc(
+    signed?.respondent ??
+      rules.party_designation.respondent ??
+      rules.party_designation.opposite_party ??
+      'Respondent',
+  );
 
   return `
 <div class="${pageBreak ? 'page-break' : ''}">

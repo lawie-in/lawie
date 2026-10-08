@@ -11,7 +11,7 @@
   "courtType": "district_court",
   "designation": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE",
   "jurisdictionNote": "District-level criminal courts in Delhi across six court complexes: Saket, Patiala House, Tis Hazari, Karkardooma, Rohini, and Dwarka. Sessions courts try offences punishable with imprisonment exceeding 7 years.",
-  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT\n\nVERSUS\n\n{respondent} ... RESPONDENT",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... {party_label_petitioner_upper}\n\nVERSUS\n\n{respondent} ... {party_label_respondent_upper}",
   "party_designation": {
     "petitioner": "Plaintiff (civil) / Applicant (criminal)",
     "respondent": "Defendant (civil) / Opposite Party (criminal)",
@@ -22,6 +22,16 @@
     "complainant": "Complainant",
     "accused": "Accused",
     "state": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}"
+  },
+  "party_designation_by_side": {
+    "criminal": {
+      "petitioner": "Applicant",
+      "respondent": "Respondent"
+    },
+    "civil": {
+      "petitioner": "Plaintiff",
+      "respondent": "Defendant"
+    }
   },
   "case_nomenclature": {
     "regular_bail": "Bail Application No. _____ of {year}",

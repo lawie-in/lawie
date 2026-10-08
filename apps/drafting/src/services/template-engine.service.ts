@@ -254,6 +254,14 @@ export interface CourtRuleData {
   designation: string;
   cause_title_format?: string;
   party_designation?: Record<string, string>;
+  /**
+   * T-149: the first- and second-party labels for each document side, as
+   * signed by Ajay (AJ-2026-10-07-T149). Used only for the document types in
+   * SIGNED_DOCUMENT_SIDES; every other document keeps `party_designation`.
+   */
+  party_designation_by_side?: Partial<
+    Record<DocumentSide, { petitioner: string; respondent: string }>
+  >;
   case_nomenclature?: Record<string, string>;
   para_numbering?: { style: string; startAt: number; format: string; indentLevel: number };
   prayer_language?: { opening: string; closing: string; tone: string };
@@ -262,6 +270,74 @@ export interface CourtRuleData {
   localRules?: string[];
   eFilingMandatory?: boolean;
   jurisdictionNote?: string;
+}
+
+export type DocumentSide = 'criminal' | 'civil';
+
+/**
+ * T-149: the document types Ajay's label table covers (AJ-2026-10-07-T149).
+ * Criminal: regular bail, anticipatory bail, criminal misc. application.
+ * Civil: suit, plaint, civil misc. application in a suit, including O.39.
+ * Anything not listed (revision, complaint, appeal, cancellation of bail, notices,
+ * agreements ...) is not signed and keeps the court rule's `party_designation`.
+ */
+const SIGNED_DOCUMENT_SIDES: ReadonlyMap<string, DocumentSide> = new Map<string, DocumentSide>([
+  ['bail_regular', 'criminal'],
+  ['bail_anticipatory', 'criminal'],
+  ['bail_before_magistrate', 'criminal'],
+  ['default_bail', 'criminal'],
+  ['interim_bail', 'criminal'],
+  ['plaint_declaration', 'civil'],
+  ['plaint_eviction', 'civil'],
+  ['plaint_injunction', 'civil'],
+  ['plaint_partition', 'civil'],
+  ['plaint_recovery', 'civil'],
+  ['plaint_specific_performance', 'civil'],
+  ['temporary_injunction_o39', 'civil'],
+  ['amendment_of_pleadings', 'civil'],
+  ['production_of_documents', 'civil'],
+  ['receiver_appointment', 'civil'],
+]);
+
+/** T-149: the document types whose party labels are signed, in table order. */
+export const SIGNED_DOCUMENT_TYPES: readonly string[] = Array.from(SIGNED_DOCUMENT_SIDES.keys());
+
+/** The signed side of a document type, or null when the table does not cover it. */
+export function documentSide(templateId: string): DocumentSide | null {
+  return SIGNED_DOCUMENT_SIDES.get(templateId) ?? null;
+}
+
+/**
+ * T-149: the signed first- and second-party labels for one document in one
+ * court, or null when the document type is not signed or the court rule gives
+ * no labels for its side (callers then keep their behaviour of today).
+ */
+export function signedPartyLabels(
+  rule: Pick<CourtRuleData, 'party_designation_by_side'>,
+  templateId: string,
+): { petitioner: string; respondent: string } | null {
+  const side = documentSide(templateId);
+  return (side && rule.party_designation_by_side?.[side]) || null;
+}
+
+/**
+ * T-149: the court rule's party designations for one document. For a signed
+ * document type in a court whose rule gives `party_designation_by_side`, the
+ * petitioner and respondent labels are the signed ones for that side; every
+ * other key, court and document is returned as the rule has it.
+ */
+export function partyDesignationFor(
+  rule: CourtRuleData,
+  templateId: string,
+): Record<string, string> | undefined {
+  if (!rule.party_designation) return undefined;
+  const signed = signedPartyLabels(rule, templateId);
+  if (!signed) return rule.party_designation;
+  return {
+    ...rule.party_designation,
+    petitioner: signed.petitioner,
+    respondent: signed.respondent,
+  };
 }
 
 /** Pre-fetched court data to avoid async DB calls inside resolveComputedFields. */
@@ -582,17 +658,16 @@ export function buildPlaceholderContext(
     const rule = courtData.courtRule;
 
     // Party labels from court rule
-    if (rule.party_designation) {
-      ctx.party_label_petitioner = rule.party_designation.petitioner ?? 'Petitioner';
-      ctx.party_label_respondent = rule.party_designation.respondent ?? 'Respondent';
-      ctx.party_label_applicant = rule.party_designation.applicant ?? 'Applicant';
-      ctx.party_label_accused = rule.party_designation.accused ?? 'Accused';
+    // T-149: labels follow the document's side where Ajay signed them.
+    const designation = partyDesignationFor(rule, config.template_id);
+    if (designation) {
+      ctx.party_label_petitioner = designation.petitioner ?? 'Petitioner';
+      ctx.party_label_respondent = designation.respondent ?? 'Respondent';
+      ctx.party_label_applicant = designation.applicant ?? 'Applicant';
+      ctx.party_label_accused = designation.accused ?? 'Accused';
       // State respondent template
-      if (rule.party_designation.state) {
-        ctx.state_respondent = rule.party_designation.state.replace(
-          /\{district\}/g,
-          courtData.city,
-        );
+      if (designation.state) {
+        ctx.state_respondent = designation.state.replace(/\{district\}/g, courtData.city);
       }
     }
 
@@ -641,6 +716,9 @@ export function buildPlaceholderContext(
   // Defaults when no court rule is available
   if (!ctx.party_label_petitioner) ctx.party_label_petitioner = 'Petitioner';
   if (!ctx.party_label_respondent) ctx.party_label_respondent = 'Respondent';
+  // T-149: the cause-title suffixes are the same labels, in upper case.
+  ctx.party_label_petitioner_upper = ctx.party_label_petitioner.toUpperCase();
+  ctx.party_label_respondent_upper = ctx.party_label_respondent.toUpperCase();
   if (!ctx.state_respondent)
     ctx.state_respondent = `State of ${ctx.state ?? '_____'}\nThrough Public Prosecutor`;
   if (!ctx.prayer_opening)
@@ -915,7 +993,9 @@ ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
 
 RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ? `\n\nCOURT-SPECIFIC RULES (MANDATORY — these override generic conventions):\n${courtRule.localRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}` : ''}${
     courtRule?.party_designation
-      ? `\n\nPARTY DESIGNATIONS FOR THIS COURT:\n${Object.entries(courtRule.party_designation)
+      ? `\n\nPARTY DESIGNATIONS FOR THIS COURT:\n${Object.entries(
+          partyDesignationFor(courtRule, config.template_id) ?? {},
+        )
           .map(([k, v]) => `- ${k}: "${v}"`)
           .join('\n')}`
       : ''
