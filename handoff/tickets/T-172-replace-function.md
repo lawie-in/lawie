@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Vishal (build), Anushka (tests develop after merge) |
 | Mode           | Fix, light chain (developer + tester + reviewer). Code only. Merge to develop per founder's 8 Oct rule |
-| Status         | Building |
+| Status         | Merged to develop (PR #69), 8 Oct. Anushka tests on develop. |
 | Size           | XS (2 hours) |
 | Depends on     | None. Cut from origin/develop (cb3bda5) |
 | Branch         | fix/t-172-replace-function |

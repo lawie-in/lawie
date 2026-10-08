@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Vishal (build), Ajay (signs strings and golden diff), Anushka (tests develop after merge) |
 | Mode           | Fix, full chain (developer + tester + reviewer + Ajay). Legal content. Merge to develop per founder's 8 Oct rule |
-| Status         | Building |
+| Status         | Merged to develop (PR #70), 8 Oct. Anushka tests on develop. |
 | Size           | M (1–2 days) |
 | Depends on     | None. Cut from origin/develop (cb3bda5) |
 | Branch         | fix/t-171-high-court-fallback |
