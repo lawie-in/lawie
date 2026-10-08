@@ -51,6 +51,7 @@ import {
   withoutDisclaimers,
   withoutDisclaimerText,
 } from './brief-drafter';
+import { citationWarnings, removeUngivenCitations } from './citation-check';
 import {
   DRAFTER_GUIDED_SYSTEM_PROMPT,
   DRAFTER_PACK_SYSTEM_PROMPT,
@@ -83,6 +84,7 @@ import {
   detectLeakedPlaceholders,
   sanitiseAIBody,
   partyDesignationFor,
+  PLACEHOLDER_ALIASES,
 } from './template-engine.service';
 import {
   validate,
@@ -405,23 +407,30 @@ export interface GenerateDocumentResult {
  * Placeholders a template section left unfilled.
  *
  * T-146: only a field the user is asked for (one in the form schema) becomes a
- * check message. A system-owned placeholder (court, aliases, deferred counts)
- * left unfilled is an engine fault: it is logged, never put to the user, and the
- * placeholder-coverage test is what catches it.
+ * check message. A camelCase alias (`{applicant}`) is reported under the form
+ * field it reads (`applicant_name`), by that field's id and label, never under
+ * the alias. A system-owned placeholder (court, aliases with no form source,
+ * deferred counts) left unfilled is an engine fault: it is logged, never put to
+ * the user, and the placeholder-coverage test is what catches it.
  */
 export function leakedPlaceholderWarnings(
   templateConfig: TemplateConfig,
   ctx: Record<string, string>,
 ): ValidationWarning[] {
-  const userFields = new Set<string>();
+  const userFields = new Map<string, string>();
   for (const step of templateConfig.form_schema.steps) {
-    for (const field of step.fields) userFields.add(field.field_id);
+    for (const field of step.fields) userFields.set(field.field_id, field.label ?? field.field_id);
   }
+  const aliasSources = new Map<string, readonly string[]>(PLACEHOLDER_ALIASES);
   const warnings: ValidationWarning[] = [];
   for (const section of templateConfig.document_structure.sections) {
     if (section.type !== 'template' || !section.template) continue;
+    const reported = new Set<string>();
     for (const key of detectLeakedPlaceholders(section.template, sectionContext(section, ctx))) {
-      if (!userFields.has(key)) {
+      const fieldId = userFields.has(key)
+        ? key
+        : aliasSources.get(key)?.find((s) => userFields.has(s));
+      if (!fieldId) {
         if (process.env.NODE_ENV !== 'test') {
           console.error(
             `[drafting] System placeholder "{${key}}" unfilled (template=${templateConfig.template_id}, section=${section.section_id})`,
@@ -429,10 +438,13 @@ export function leakedPlaceholderWarnings(
         }
         continue;
       }
+      if (reported.has(fieldId)) continue;
+      reported.add(fieldId);
+      const label = userFields.get(fieldId) ?? fieldId;
       warnings.push({
         type: 'missing_clause',
-        message: `Unfilled placeholder "{${key}}" in section "${section.section_id}". Please provide this field or it will appear as a blank in the document.`,
-        details: { clauseId: key },
+        message: `Unfilled field "${label}" ({${fieldId}}) in section "${section.section_id}". Please provide this field or it will appear as a blank in the document.`,
+        details: { clauseId: fieldId },
       });
     }
   }
@@ -1241,6 +1253,12 @@ export async function streamGenerateFromBrief(
     }
   }
 
+  // ── No case law on its own (T-148) ─────────────────────────────────────────
+  // A case citation the advocate did not give, in the brief or in their own
+  // words, is replaced by the blank. Rule-pack text is never a source.
+  const citations = removeUngivenCitations(output.body, [briefText(brief), input.described ?? '']);
+  output = { ...output, body: citations.text };
+
   // ── The body takes its place among the parts the system wrote ─────────────
   renderedSections[bodyAt] = { ...renderedSections[bodyAt], content: output.body };
 
@@ -1359,6 +1377,9 @@ export async function streamGenerateFromBrief(
       brief,
     ),
   );
+
+  // A case citation the advocate did not give was removed (T-148):
+  allWarnings.push(...citationWarnings(citations.removed));
 
   // Every mandatory clause of the pack (ADR-021, rule 1).
   for (const clause of missing) {
@@ -1495,8 +1516,10 @@ export async function streamGenerateGuided(
     );
   }
 
-  // The whole document is the Drafter's. Only a disclaimer it was told not to write is taken out.
-  const fullText = withoutDisclaimers(raw);
+  // The whole document is the Drafter's. Only a disclaimer it was told not to write is taken out,
+  // and a case citation the advocate did not give (T-148).
+  const citations = removeUngivenCitations(withoutDisclaimers(raw), [briefText(brief)]);
+  const fullText = citations.text;
   const renderedSections: RenderedSection[] = [
     { section_id: 'body', type: 'ai_generated', content: fullText },
   ];
@@ -1539,6 +1562,8 @@ export async function streamGenerateGuided(
 
   // Nothing in the draft that the brief does not give (T-107, section 6, rules 1 and 3).
   allWarnings.push(...checkAgainstBrief(fullText, brief, null));
+  // A case citation the advocate did not give was removed (T-148).
+  allWarnings.push(...citationWarnings(citations.removed));
 
   if (allWarnings.length > 0) {
     res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);

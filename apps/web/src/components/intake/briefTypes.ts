@@ -212,14 +212,21 @@ const UNDERSCORE_BLANK = /_{3,}/g;
 /** A line of underscores only: the line a signature goes on, not a blank. */
 const SIGNATURE_LINE = /^[ \t]*_{3,}[ \t]*$/gm;
 
+/** The verification's signing date, "___ day of __________, 20___": one blank. */
+const SIGNING_DATE_BLANK = /_{3,} day of _{3,}, 20_{3,}/g;
+
 /**
  * How many visible blanks the draft carries (T-107, section 4). T-146: a run of
  * three or more underscores inside a line (a case number, a date) is a blank too.
+ * The signing date's three underscore runs count as one blank.
  */
 export function countBlanks(text: string): number {
   const marked = (text.match(BLANK) ?? []).length;
-  const underscores = (text.replace(SIGNATURE_LINE, '').match(UNDERSCORE_BLANK) ?? []).length;
-  return marked + underscores;
+  const rest = text.replace(SIGNATURE_LINE, '');
+  const signingDates = (rest.match(SIGNING_DATE_BLANK) ?? []).length;
+  const underscores = (rest.replace(SIGNING_DATE_BLANK, ' ').match(UNDERSCORE_BLANK) ?? [])
+    .length;
+  return marked + signingDates + underscores;
 }
 
 /** The words after "[To be confirmed: " in a blank, for showing it. */

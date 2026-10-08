@@ -55,7 +55,7 @@ export default function BrowseTypesStep({
       <h1 className={h1}>Browse document types</h1>
       <p className={sub}>
         {kinds.length > 0 ? `${kinds.length} documents. ` : ''}Pick one and describe your matter. We
-        ask only for what is missing.
+        ask for the details it needs.
       </p>
 
       <div className="relative mt-6">
