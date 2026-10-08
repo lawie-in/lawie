@@ -9,7 +9,6 @@ import {
   ShieldAlert,
   Megaphone,
   Users,
-  Receipt,
   Download,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -22,9 +21,9 @@ import SiteFooter from '@/components/marketing/SiteFooter';
 import SiteNav from '@/components/marketing/SiteNav';
 
 export const metadata: Metadata = {
-  title: 'Lawie — Court-ready legal drafting for Indian advocates',
+  title: 'Lawie — Legal drafting for Indian advocates',
   description:
-    'Draft court-ready legal documents in under 5 minutes. Built around the current Indian criminal codes — BNS, BNSS, and BSA. Formatted for your specific court.',
+    'Legal drafting for Indian advocates, built around the current criminal codes — BNS, BNSS, and BSA.',
 };
 
 // The sample PDFs are served by the gateway, the same host the app calls for everything else.
@@ -37,7 +36,7 @@ const reasons = [
   },
   {
     title: 'The registry returned your application.',
-    body: 'Wrong cause title. Missing verification. Lawie sets the document out for your state and court.',
+    body: 'Wrong cause title. Missing verification. Lawie lays it out for each court in its list.',
   },
   {
     title: 'Half your evening goes to formatting.',
@@ -48,11 +47,11 @@ const reasons = [
 const steps = [
   {
     title: 'Say what you need',
-    body: 'Name the document and choose your state and court.',
+    body: 'Describe the matter in your own words.',
   },
   {
     title: 'Give the case details',
-    body: 'FIR number, sections, parties. Only what this document needs.',
+    body: 'FIR number, sections, parties.',
   },
   {
     title: 'Review and export',
@@ -99,7 +98,6 @@ const draftItems: DraftItem[] = [
   { icon: FileSignature, label: 'Vakalatnama' },
   { icon: FileText, label: 'Affidavits' },
   { icon: Users, label: 'Maintenance petitions' },
-  { icon: Receipt, label: 'Cheque bounce complaints' },
 ];
 
 const plans = [
@@ -112,7 +110,7 @@ const homeFaqItems = [
   {
     question: 'Are the BNS section mappings accurate?',
     answer:
-      "Lawie's section mappings are built directly from the official IPC→BNS, CrPC→BNSS, and IEA→BSA correspondence tables published alongside the new codes. Every section cited in a generated document is validated against these mappings before it appears in your draft. You should always review the final document before filing.",
+      "Lawie's section mappings are built directly from the official IPC→BNS, CrPC→BNSS, and IEA→BSA correspondence tables published alongside the new codes. Check every section in your draft before you file. You should always review the final document before filing.",
   },
   {
     question: 'Can I edit the generated document before downloading?',
@@ -122,7 +120,7 @@ const homeFaqItems = [
   {
     question: 'Does Lawie cover my specific court?',
     answer:
-      'Lawie currently formats documents for District and High Courts across Bihar, Jharkhand, UP, and Delhi, with more states added regularly. You select your state, court type, and court name, and the template adjusts the cause title and formatting accordingly.',
+      'Lawie formats documents only for the courts in its court list. The list does not yet cover every District and High Court in Bihar, Jharkhand, UP, and Delhi. Check that your court is listed before you draft.',
   },
   {
     question: 'Is my case data secure?',
@@ -195,12 +193,9 @@ export default function HomePage() {
               AI legal drafting · built for India
             </span>
             <h1>
-              Draft court-ready legal documents in <span className="accent">under 5 minutes.</span>
+              Start from a draft, <span className="accent">not a blank page.</span>
             </h1>
-            <p className="hero-sub">
-              Built around the current criminal codes — BNS, BNSS and BSA — and set out for your
-              court.
-            </p>
+            <p className="hero-sub">Built around the current criminal codes — BNS, BNSS and BSA.</p>
             <div className="hero-ctas">
               <Link className="btn btn-primary btn-lg" href="/login">
                 Start Drafting Free <ArrowRight strokeWidth={1.5} />

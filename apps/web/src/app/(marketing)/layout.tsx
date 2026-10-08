@@ -9,8 +9,7 @@ const lora = Lora({ subsets: ['latin'], weight: ['500', '600', '700'], variable:
 
 export const metadata: Metadata = {
   title: 'Lawie — AI Legal Drafting for Indian Advocates',
-  description:
-    'Draft court-ready legal documents in under 5 minutes. Built around BNS, BNSS, and BSA.',
+  description: 'Legal drafting for Indian advocates. Built around BNS, BNSS, and BSA.',
 };
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
