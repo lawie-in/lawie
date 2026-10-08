@@ -21,6 +21,11 @@
 import courtDocuments from '../config/intake/court-documents.json';
 import dateMeanings from '../config/intake/date-meanings.json';
 
+import {
+  isCustodyChoice,
+  needsNotInCustodyWarning,
+  REGULAR_BAIL_NOT_IN_CUSTODY_WARNING,
+} from './bail-guard';
 import { datesInText, iso, isOwnWords, normalise } from './intake-text';
 import type { RulePack, RulePackFact } from './rule-pack.service';
 
@@ -67,8 +72,20 @@ export interface BriefItem {
   source: ValueSource | null;
   /** The user's words a value was read from. Only for values read from the description. */
   quote?: string;
-  /** True for a value read from the description: the user is asked to check it. */
+  /**
+   * True for a value read from the description: the user is asked to check it.
+   * Also true on the custody field of a regular bail with the client not in
+   * custody (T-150, Rule B), with `note` saying why.
+   */
   please_check: boolean;
+  /** Ajay's line shown with the "Please check" mark, when there is one (T-150, Rule B). */
+  note?: string;
+  /**
+   * True for an empty fact whose earlier answer an edited description left
+   * unclear (T-150, Rule A, `cleared`). It is asked again and shows its blank,
+   * even when it is not required.
+   */
+  reask?: boolean;
   /** For a date: what it is the date of, as shown to the user. */
   meaning?: string;
   /** The blank the draft will show while this is not given. */
@@ -770,6 +787,13 @@ export interface GivenValue {
   quote?: string;
   /** Shown when the value cannot be placed after a change of kind. */
   label?: string;
+  /**
+   * A typed name the edited description gives differently. The value stays; it
+   * is marked "Please check" (T-150, AJ-2026-10-07-T150-diff). The web app sends
+   * it back on later updates so the mark is not lost; it is dropped once the
+   * advocate edits that field.
+   */
+  please_check?: boolean;
 }
 
 export interface BuildBriefInput {
@@ -782,6 +806,8 @@ export interface BuildBriefInput {
   description?: string;
   /** Extra "still unknown" lines, for a request with no pack (the model's own list). */
   extraUnknowns?: string[];
+  /** Keys an edited description left unclear (T-150): marked `reask` while empty. */
+  reask?: readonly string[];
 }
 
 function clean(s: unknown): string | null {
@@ -849,6 +875,11 @@ export function buildBrief(input: BuildBriefInput): Brief {
     const given = placed.get(item.key);
     const kindLabel = item.kind === 'date' && item.dateKind ? dateKindLabel(item.dateKind) : null;
     const meaning = item.kind === 'date' ? (kindLabel ?? item.label) : undefined;
+    // T-150, Rule B: a regular bail for a client not in custody. Warn, never block.
+    const custodyWarning =
+      item.kind === 'choice' &&
+      isCustodyChoice(item.options) &&
+      needsNotInCustodyWarning(input.kind.id, given ? given.value : null);
     return {
       key: item.key,
       part: item.part,
@@ -859,7 +890,9 @@ export function buildBrief(input: BuildBriefInput): Brief {
       value: given ? given.value : null,
       source: given ? given.source : null,
       ...(given && given.source === 'description' && given.quote ? { quote: given.quote } : {}),
-      please_check: given?.source === 'description',
+      please_check: given?.source === 'description' || given?.please_check === true || custodyWarning,
+      ...(custodyWarning ? { note: REGULAR_BAIL_NOT_IN_CUSTODY_WARNING } : {}),
+      ...(!given && input.reask?.includes(item.key) ? { reask: true } : {}),
       ...(meaning !== undefined ? { meaning } : {}),
       placeholder: placeholderFor(meaning ?? item.label),
       party_name: item.partyName,
@@ -928,6 +961,155 @@ export function buildBrief(input: BuildBriefInput): Brief {
   };
 }
 
+// ── An edited description (T-150, Rule A) ───────────────────────────────────
+//
+// LEGAL CONTENT: the rule is Ajay's, signed in AJ-2026-10-07-T150. Signed text:
+// "When the advocate edits the description, an earlier answer that the new
+// description clearly contradicts is replaced by the new description's reading
+// of that fact, exactly as the description gives it, and marked "Please check".
+// If the new description says nothing on that fact, the earlier answer stays
+// unchanged and is not marked. If the new description gives two values for that
+// fact, or is not clear on it, the existing conflict rule (ADR-019 4.1.5)
+// applies: nothing is guessed."
+
+/**
+ * The kinds of fact where a different value is a contradiction. A name, a
+ * list or a long text told again in other words is not, so those stay as the
+ * advocate typed them.
+ */
+const SINGLE_VALUE_KINDS = new Set<ValueKind>(['choice', 'date', 'number', 'amount']);
+
+/**
+ * A name: a party's name or any other `..._name` text fact. A typed name is
+ * never replaced, but when the edited description gives a different one it is
+ * marked "Please check" (AJ-2026-10-07-T150-diff). The code does not pick
+ * between two names.
+ */
+function isNameItem(item: ChecklistItem): boolean {
+  return item.kind === 'text' && (item.partyName || /(^|_)name$/.test(lastSegment(item.key)));
+}
+
+/**
+ * Why a reading was dropped that means the new description gives two values
+ * for the fact, or is not clear on it. The fact is then left empty and asked:
+ * neither the earlier answer nor a guess is kept (ADR-019 4.1.5).
+ */
+const UNCLEAR_READING = new Set([
+  'conflict',
+  'two_dates_in_quote',
+  'two_meanings_in_quote',
+  'date_used_twice',
+]);
+
+function sameValue(item: ChecklistItem, a: string | string[], b: string | string[]): boolean {
+  const flat = (v: string | string[]): string => {
+    const c = canonical(item, v);
+    const s = Array.isArray(c) ? c.join('\n') : c;
+    if (item.kind === 'number' || item.kind === 'amount') {
+      return s.replace(/[^0-9.]/g, '').replace(/\.0+$/, '');
+    }
+    return normalise(s);
+  };
+  return flat(a) === flat(b);
+}
+
+export interface EditedDescriptionResult {
+  /** The values for `buildBrief`: the new reading, then the earlier answers that still stand. */
+  values: GivenValue[];
+  /** Keys whose earlier answer the new description replaced. Ids only. */
+  replaced: string[];
+  /**
+   * Keys whose earlier answer was taken out because the new description is not
+   * clear on them. They are left empty, show their blank, and must be asked
+   * again: pass them to `buildQuestions` as `alsoAsk`.
+   */
+  cleared: string[];
+  /** Keys of typed names kept as typed but marked "Please check": the description gives another name. */
+  nameDiffers: string[];
+}
+
+/**
+ * Rule A. `read` is what the new description gives, already checked against
+ * the user's words (`checkRead` and `datesReadByCode`); `dropped` is why other
+ * readings were not kept. `earlier` is what the advocate typed before the edit.
+ *
+ * - The new description gives a different value: the reading replaces the
+ *   earlier answer. It is a description value, so it is marked "Please check".
+ * - It gives two values, or is not clear: the earlier answer is taken out and
+ *   nothing is put in its place.
+ * - It says nothing: the earlier answer stays, unmarked.
+ * - A name is never replaced. When the description gives a different name, the
+ *   typed name stays and is marked "Please check".
+ *
+ * Only an edited description comes here (`descriptionWasEdited`). A first
+ * description has no earlier answers, so it never does.
+ */
+export function valuesAfterEditedDescription(
+  checklist: ChecklistItem[],
+  read: Map<string, ReadValue>,
+  dropped: Array<{ key: string; reason: string }>,
+  earlier: GivenValue[],
+): EditedDescriptionResult {
+  const byKey = new Map(checklist.map((i) => [i.key, i]));
+  const byName = new Map<string, ChecklistItem[]>();
+  for (const item of checklist) {
+    const name = lastSegment(item.key);
+    byName.set(name, [...(byName.get(name) ?? []), item]);
+  }
+  const unclear = new Set(dropped.filter((d) => UNCLEAR_READING.has(d.reason)).map((d) => d.key));
+
+  const replaced: string[] = [];
+  const cleared: string[] = [];
+  const nameDiffers: string[] = [];
+  const kept: GivenValue[] = [];
+  for (const given of earlier) {
+    // The same lookup as `buildBrief`, so a value from another kind lands where it would.
+    let item = byKey.get(given.key);
+    if (!item && !given.key.startsWith('fixed.')) {
+      const sameName = byName.get(lastSegment(given.key)) ?? [];
+      if (sameName.length === 1) item = sameName[0];
+    }
+    if (item && isNameItem(item) && !isEmpty(given.value)) {
+      const now = read.get(item.key);
+      if (now && !isEmpty(now.value) && !sameValue(item, now.value, given.value)) {
+        // Keep the typed name; the advocate must look at it (AJ-2026-10-07-T150-diff).
+        kept.push({ ...given, please_check: true });
+        if (!nameDiffers.includes(item.key)) nameDiffers.push(item.key);
+      } else {
+        kept.push(given);
+      }
+      continue;
+    }
+    if (!item || !SINGLE_VALUE_KINDS.has(item.kind) || isEmpty(given.value)) {
+      kept.push(given);
+      continue;
+    }
+    const now = read.get(item.key);
+    if (now) {
+      if (sameValue(item, now.value, given.value)) kept.push(given);
+      else if (!replaced.includes(item.key)) replaced.push(item.key);
+      continue;
+    }
+    if (unclear.has(item.key)) {
+      if (!cleared.includes(item.key)) cleared.push(item.key);
+      continue;
+    }
+    kept.push(given);
+  }
+
+  const values: GivenValue[] = [
+    ...[...read].map(([key, v]) => ({
+      key,
+      value: v.value,
+      quote: v.quote,
+      source: 'description' as const,
+    })),
+    // An earlier answer that still stands comes last, so it wins over the reading.
+    ...kept,
+  ];
+  return { values, replaced, cleared, nameDiffers };
+}
+
 // ── Questions (T-127, section 2.5) ──────────────────────────────────────────
 
 /** Ajay's order. The names of the parties come first; a party's other details come last. */
@@ -959,13 +1141,22 @@ function fallbackQuestion(item: BriefItem): string {
  * question about a fact that is not missing, or not on the checklist, is
  * dropped, and a missing fact with no question gets one written from its label.
  */
-export function buildQuestions(brief: Brief, worded: Map<string, string>): BriefQuestion[] {
+export function buildQuestions(
+  brief: Brief,
+  worded: Map<string, string>,
+  /** Facts to ask even when not required: an answer an edited description left unclear (T-150). */
+  alsoAsk: ReadonlySet<string> = new Set(),
+): BriefQuestion[] {
   const missing = brief.items
     .map((item, index) => ({ item, index }))
-    .filter(({ item }) => item.required && isEmpty(item.value))
+    .filter(({ item }) => (item.required || alsoAsk.has(item.key)) && isEmpty(item.value))
     .sort((a, b) => {
-      const pa = a.item.party_name ? 0 : PART_ORDER[a.item.part];
-      const pb = b.item.party_name ? 0 : PART_ORDER[b.item.part];
+      // A fact an edited description left unclear comes straight after the
+      // party names, so the cap never leaves it unasked (T-150).
+      const rank = (item: BriefItem): number =>
+        item.party_name ? 0 : alsoAsk.has(item.key) ? 0.5 : PART_ORDER[item.part];
+      const pa = rank(a.item);
+      const pb = rank(b.item);
       return pa - pb || a.index - b.index;
     })
     .slice(0, QUESTION_LIMITS.perRound * QUESTION_LIMITS.rounds);

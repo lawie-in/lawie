@@ -67,12 +67,14 @@ function Item({
   const id = fieldId(item.key);
   const empty = isEmptyValue(item.value);
   const heading = item.kind === 'date' && item.meaning ? item.meaning : item.label;
+  // A required fact, or one an edited description left unclear (T-150), shows its blank.
+  const showBlank = empty && (item.required || item.reask === true);
   // These sit on top of the shared field look, so they are marked important.
   const look = needed
     ? '!border-brand-error !border-2'
     : item.please_check
       ? '!bg-brand-gold-light !border-brand-gold'
-      : empty && item.required
+      : showBlank
         ? '!border-dashed'
         : '';
   return (
@@ -93,12 +95,21 @@ function Item({
           value={item.value}
           onCommit={onCommit}
           className={look}
-          placeholder={empty && item.required ? 'Not given' : undefined}
-          describedBy={empty && item.required && !needed ? `${id}-blank` : undefined}
+          placeholder={showBlank ? 'Not given' : undefined}
+          describedBy={
+            [item.note ? `${id}-note` : '', showBlank && !needed ? `${id}-blank` : '']
+              .filter((d) => d !== '')
+              .join(' ') || undefined
+          }
           invalid={needed}
         />
       </div>
-      {empty && item.required && !needed && (
+      {item.note && (
+        <p id={`${id}-note`} className={`${small} mt-1`}>
+          {item.note}
+        </p>
+      )}
+      {showBlank && !needed && (
         <p id={`${id}-blank`} className={`${small} mt-1`}>
           The draft will show{' '}
           <span className="text-brand-gold-dark font-mono text-xs">{item.placeholder}</span>
