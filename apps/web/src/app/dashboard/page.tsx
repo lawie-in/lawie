@@ -210,12 +210,10 @@ export default function DashboardPage() {
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 ring-8 ring-amber-100">
             <Scale size={34} className="text-amber-500" />
           </div>
-          <h2 className="mt-6 text-xl font-bold text-slate-900">
-            Create your first court-ready document
-          </h2>
+          <h2 className="mt-6 text-xl font-bold text-slate-900">Create your first document</h2>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
-            Draft a bail application, legal notice, or rent agreement — formatted for your court,
-            with the right BNS sections, in under 5 minutes.
+            Draft a bail application, legal notice, or rent agreement, then review it before you
+            file.
           </p>
           <Link
             href="/dashboard/new"

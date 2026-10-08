@@ -45,8 +45,8 @@ export default function DescribeStep({
       </h1>
       <p className="text-brand-muted mt-2 text-base">
         {documentName
-          ? 'Describe the matter in your own words. We ask only for what is missing.'
-          : 'Describe the matter in your own words. We will pick the right document and ask only for what is missing.'}
+          ? 'Describe the matter in your own words. We then ask for the details this document needs.'
+          : 'Describe the matter in your own words. We will suggest a document and ask for the details it needs.'}
       </p>
 
       <form
