@@ -47,6 +47,9 @@ jest.mock('puppeteer', () => {
   };
 });
 
+import fs from 'fs';
+import path from 'path';
+
 import './setupEnv';
 
 // eslint-disable-next-line import/order
@@ -123,18 +126,52 @@ const FIXED_FORM_DATA: Record<string, unknown> = {
   tenant_name: 'GOLDEN_TENANT',
 };
 
-/** Build a CourtLookupData stub from a courtRule — deterministic per court. */
-function lookupFor(courtId: string): CourtLookupData | undefined {
-  const courtRule = loadCourtRule(courtId);
-  if (!courtRule) return undefined;
+/**
+ * T-146: each court rule is paired with a real, matching court from
+ * indian-courts.json (never a court of a different rule, e.g. high_court_generic must not
+ * use rajasthan_hc_jaipur_bench). Court id -> court-rule id is the court's own
+ * formattingRulesRef; the first listed court of each rule is used.
+ */
+interface CourtEntry {
+  courtId: string;
+  designation: string;
+  city: string;
+  formattingRulesRef: string;
+  courtType?: string;
+  caseNomenclature?: string;
+}
+const INDIAN_COURTS: CourtEntry[] = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../config/courts/indian-courts.json'), 'utf8'),
+).courts;
+
+/** Court-rule id -> the indian-courts.json court it is paired with in this suite. */
+export const GOLDEN_COURT_FOR_RULE: Record<string, string> = {
+  allahabad_hc: 'allahabad_hc',
+  bihar_district: 'bihar_sessions_patna',
+  cjm_generic: 'bihar_cjm_patna',
+  consumer_commission_generic: 'patna_dccdrc',
+  delhi_district: 'delhi_dwarka',
+  delhi_hc: 'delhi_hc',
+  district_court_generic: 'bihar_civil_patna',
+  jharkhand_district: 'jharkhand_sessions_ranchi',
+  jharkhand_hc: 'jharkhand_hc',
+  jmfc_generic: 'bihar_jmfc_patna',
+  patna_hc: 'patna_hc',
+  sessions_generic: 'mh_sessions_mumbai_city',
+  up_district: 'up_sessions_agra',
+};
+
+/** Build a CourtLookupData from the paired real court plus its rule. */
+function lookupFor(ruleId: string): CourtLookupData | undefined {
+  const courtRule = loadCourtRule(ruleId);
+  const court = INDIAN_COURTS.find((c) => c.courtId === GOLDEN_COURT_FOR_RULE[ruleId]);
+  if (!courtRule || !court) return undefined;
   return {
-    designation: courtRule.designation,
-    city: 'Ranchi',
-    caseNomenclature:
-      courtRule.case_nomenclature?.anticipatory_bail ??
-      courtRule.case_nomenclature?.regular_bail ??
-      '',
-    formattingRulesRef: courtId,
+    designation: court.designation,
+    city: court.city,
+    caseNomenclature: court.caseNomenclature ?? '',
+    courtType: court.courtType,
+    formattingRulesRef: ruleId,
     courtRule,
   };
 }
