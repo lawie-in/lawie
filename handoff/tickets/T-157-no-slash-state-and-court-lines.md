@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft. MUST FIX before go-live (Bihar, Jharkhand are core markets) |
 | Owner          | Vishal (build), Ajay (wording + sign-off), Anushka (tests develop after the batch) |
 | Mode           | Fix, full chain. Merge to develop per founder's 8 Oct rule (as relayed by Vishal) |
-| Status         | Ready for Vishal |
+| Status         | PR #64 open, CI green. Merge after #62, before #65. |
 | Size           | M (1–2 days incl. snapshot review) |
 | Depends on     | None |
 | Branch         | fix/t-157-no-slash-state-and-court-lines |
