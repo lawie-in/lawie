@@ -18,7 +18,7 @@
     "applicant": "Complainant",
     "opposite_party": "Opposite Party",
     "complainant": "Complainant",
-    "state": "State through the Collector / District Magistrate, {district}"
+    "state": "State of {state}"
   },
   "case_nomenclature": {
     "consumer_complaint": "Consumer Complaint No. _____ of {year}",

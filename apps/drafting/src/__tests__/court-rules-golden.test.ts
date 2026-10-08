@@ -139,6 +139,7 @@ interface CourtEntry {
   formattingRulesRef: string;
   courtType?: string;
   caseNomenclature?: string;
+  state?: string;
 }
 const INDIAN_COURTS: CourtEntry[] = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../config/courts/indian-courts.json'), 'utf8'),
@@ -170,6 +171,7 @@ function lookupFor(ruleId: string): CourtLookupData | undefined {
     designation: court.designation,
     city: court.city,
     caseNomenclature: court.caseNomenclature ?? '',
+    state: court.state,
     courtType: court.courtType,
     formattingRulesRef: ruleId,
     courtRule,

@@ -272,8 +272,8 @@ const FORUM_FACTS = new Set([
   'jurisdiction_court',
 ]);
 
-/** ADR-019 rule 4.1.2: court, district, police station and the like are never read by the model. */
-const COURT_LIKE = /(^|_)(court|courts|district|police_station|thana|bench|tribunal|forum)(_|$)/;
+/** ADR-019 rule 4.1.2 (as amended by AJ-2026-10-08-T139): court, district, bench, tribunal and forum are never read by the model. The police station is read like any text fact: the advocate's own words must stand in the quote. */
+const COURT_LIKE = /(^|_)(court|courts|district|bench|tribunal|forum)(_|$)/;
 
 const PARTY_ROLE =
   /(^|[._])(applicant|petitioner|respondent|plaintiff|defendant|complainant|accused|appellant|opposite_party|opp_party|non_applicant|sender|recipient|noticee|addressee|landlord|tenant|lessor|lessee|licensor|licensee|deponent|client|husband|wife|buyer|seller|vendor|purchaser|vendee|employer|employee|donor|donee|testator|executor|beneficiary|mortgagor|mortgagee|borrower|lender|principal|attorney|agent|franchisor|franchisee|disclosing_party|receiving_party|first_party|second_party|party|parties|claimant|deceased|minor|guardian|detenu|company|promoter|allottee|drawer|payee|creditor|debtor|founder|founders|shareholder|shareholders|subscriber|subscribers|owner|developer|distributor|supplier|service_provider|releasor|releasee|informant|victim|convict|appointee)\d*([._]|$)/;
@@ -542,6 +542,191 @@ function isNumber(v: string): boolean {
   return digits !== '' && Number.isFinite(Number(digits));
 }
 
+// ── Police station and sections (AJ-2026-10-08-T139, parts 1 and 2) ─────────
+
+function isPoliceStationItem(item: ChecklistItem): boolean {
+  return item.kind === 'text' && /(^|_)(police_station|ps_name|thana)(_|$)/.test(lastSegment(item.key));
+}
+
+const STATION_CUE = '(?:p\\.?\\s?s\\.?|thana|police station|थाना|पुलिस स्टेशन)';
+
+/**
+ * True when the value names a police station: the value holds a station word
+ * ("Saraidhela PS"), or one stands next to it in the quote ("PS Kaiserbagh").
+ * A district or a locality alone ("in Gaya") does not.
+ */
+function namesAStation(value: string, normQuote: string): boolean {
+  const nv = normalise(value);
+  const edge = (s: string): string => `(?<![a-z0-9])${s}(?![a-z0-9])`;
+  if (new RegExp(edge(STATION_CUE)).test(nv)) return true;
+  const v = escapeRegExp(nv);
+  return new RegExp(edge(`(?:${v}\\s+${STATION_CUE}|${STATION_CUE}\\s+${v})`)).test(normQuote);
+}
+
+/** A free list of section numbers, such as `sections_charged`. */
+function isSectionsItem(item: ChecklistItem): boolean {
+  return item.kind === 'list' && /^(sections?|offences?)(_|$)/.test(lastSegment(item.key));
+}
+
+// "भा.न्या.सं." is the Hindi short form of the BNS (AJ-2026-10-08-T139-A2), and
+// "भा.दं.सं." of the IPC (AJ-2026-10-08-T139-final).
+const ACT_WORD =
+  '(?:bnss|bns|bsa|ipc|crpc|cr\\.\\s?p\\.\\s?c\\.?|iea|भा\\.\\s?न्या\\.\\s?सं\\.?|भा\\.\\s?दं\\.\\s?सं\\.?)';
+const TRAILING_ACT = new RegExp(`(?:^|\\s+|(?<=[0-9)]))(${ACT_WORD})$`);
+const ACT_IN_TEXT = new RegExp(`(?<![a-z0-9.])${ACT_WORD}(?![a-z0-9])`, 'gi');
+/** A bare section number, with any sub-sections: "303", "317(2)", "498a". */
+const BARE_SECTION = /^\d+[a-z]?(\(\d+[a-z]?\))*$/;
+
+/** Act forms that name the same act under another id. */
+const ACT_ALIAS: Readonly<Record<string, string>> = { भान्यासं: 'bns', भादंसं: 'ipc' };
+
+function actId(word: string): string {
+  const id = word.toLowerCase().replace(/[\s.]/g, '');
+  return ACT_ALIAS[id] ?? id;
+}
+
+// ── Citation groups (AJ-2026-10-08-T139-A2) ─────────────────────────────────
+
+/** A section number standing whole in a normalised quote; not part of a date or a word. */
+const SECTION_IN_TEXT = /(?<![a-z0-9(])(?<!\d[.:-])\d+[a-z]?(?:\(\d+[a-z]?\))*(?![a-z0-9(])(?![.:-]\d)/g;
+/** What may join two numbers of one run, or two acts into an "IPC/BNS" doubt. */
+// "r/w", "read with", "सपठित" and the like: AJ-2026-10-08-T139-final-2, item 2.
+const JOINER =
+  /^(?:\s*(?:,|&|\/|and|or|व|एवं|और|तथा|r\/w\.?|r\.w\.|read\s+with|सपठित|पठित)\s*)+$/i;
+/** What may stand between an act and the run it qualifies, act first: "IPC की धारा 302", "BNS s. 103". */
+const ACT_BEFORE_GAP = /^\s*(?:(?:की|के)\s+)?(?:(?:s|ss|sec|secs|section|sections|u\/s|धारा)\.?)?\s*$/;
+/** What may stand between a run and its act, act last: "302, 307 IPC", "103 of BNS". */
+const ACT_AFTER_GAP = /^\s*(?:of(?:\s+the)?)?\s*$/;
+
+/**
+ * Each section number in the quote, with the act its citation group binds it
+ * to, or null where the binding is in doubt. A group is a run of numbers joined
+ * by JOINER, plus the one act next to the run, before or after it. A run with
+ * no act next to it, with a different act on each side, or whose act is joined
+ * to another act ("IPC/BNS") is in doubt.
+ */
+function sectionsByAct(normQuote: string): Array<{ section: string; act: string | null }> {
+  const acts = [...normQuote.matchAll(ACT_IN_TEXT)].map((m) => ({
+    id: actId(m[0]),
+    start: m.index,
+    end: m.index + m[0].length,
+  }));
+  const nums = [...normQuote.matchAll(SECTION_IN_TEXT)].map((m) => ({
+    section: m[0],
+    start: m.index,
+    end: m.index + m[0].length,
+  }));
+  const runs: Array<typeof nums> = [];
+  for (const n of nums) {
+    const run = runs[runs.length - 1];
+    const prev = run?.[run.length - 1];
+    if (prev && JOINER.test(normQuote.slice(prev.end, n.start))) run.push(n);
+    else runs.push([n]);
+  }
+  const joinedToAnother = (i: number): boolean =>
+    (i > 0 && JOINER.test(normQuote.slice(acts[i - 1].end, acts[i].start))) ||
+    (i < acts.length - 1 && JOINER.test(normQuote.slice(acts[i].end, acts[i + 1].start)));
+  const out: Array<{ section: string; act: string | null }> = [];
+  for (const run of runs) {
+    const start = run[0].start;
+    const end = run[run.length - 1].end;
+    let before = -1;
+    for (let i = 0; i < acts.length && acts[i].end <= start; i++) before = i;
+    const after = acts.findIndex((a) => a.start >= end);
+    const bound = new Set<number>();
+    if (before >= 0 && ACT_BEFORE_GAP.test(normQuote.slice(acts[before].end, start))) bound.add(before);
+    if (after >= 0 && ACT_AFTER_GAP.test(normQuote.slice(end, acts[after].start))) bound.add(after);
+    const ids = new Set([...bound].map((i) => acts[i].id));
+    const act =
+      ids.size === 1 && ![...bound].some(joinedToAnother) ? [...ids][0] : null;
+    for (const n of run) out.push({ section: n.section, act });
+  }
+  return out;
+}
+
+/** The act words a quote names, by id, each with the first form it is written in. */
+function actsInQuote(quote: string): Map<string, string> {
+  const acts = new Map<string, string>();
+  for (const m of quote.normalize('NFKC').matchAll(ACT_IN_TEXT)) {
+    const id = actId(m[0]);
+    if (!acts.has(id)) acts.set(id, m[0]);
+  }
+  return acts;
+}
+
+/** One section token, whole, with its sub-section: "303" does not match "303(2)". */
+function sectionIn(normQuote: string, token: string): boolean {
+  return new RegExp(`(?<![a-z0-9(])${escapeRegExp(token)}(?![a-z0-9(])`).test(normQuote);
+}
+
+/**
+ * A list of sections, as the model gives it: "303(2) and 317(2) BNS" or
+ * ["303(2) BNS", "317(2) BNS"]. Each value is split on " and ", "," and "&";
+ * an act word at the end of a token is set aside; each token must then stand
+ * whole in the quote. One token that fails fails the list. The act is kept as
+ * the quote writes it, and never assumed.
+ */
+function checkSections(strings: string[], quote: string, normQuote: string): Checked<string[]> {
+  const actsInValues = new Set<string>();
+  const cited: Array<{ section: string; act: string | null }> = [];
+  let tokens = 0;
+  let everyTokenHasAct = true;
+  let everyTokenBare = true;
+  for (const s of strings) {
+    for (const part of normalise(s).split(/\s+and\s+|\s*[,&]\s*/)) {
+      let token = part.trim();
+      const act = TRAILING_ACT.exec(token);
+      if (act) {
+        actsInValues.add(actId(act[1]));
+        token = token.slice(0, act.index).trim();
+      }
+      if (token === '') continue;
+      if (!sectionIn(normQuote, token)) return fail('not_in_quote');
+      if (!act) everyTokenHasAct = false;
+      if (!BARE_SECTION.test(token)) everyTokenBare = false;
+      cited.push({ section: token, act: act ? actId(act[1]) : null });
+      tokens += 1;
+    }
+  }
+  if (tokens === 0) return fail('type');
+  const quoteActs = actsInQuote(quote);
+  // An act the quote does not name is not kept.
+  for (const a of actsInValues) if (!quoteActs.has(a)) return fail('act_not_in_quote');
+  // With two acts in the quote, a token with no act of its own cannot be placed
+  // under either (AJ-2026-10-08-T139-diff, Blocker 3).
+  if (quoteActs.size > 1 && !everyTokenHasAct) return fail('two_acts_in_quote');
+  // Each number in each token must match, one for one, an occurrence of that
+  // number the quote binds to the token's act: its own act, or for a bare token
+  // the quote's one act. With two acts a doubt fails as act_mismatch (A2); with
+  // one act, as act_unclear, so "25" in "302 IPC and 25 Arms Act" never becomes
+  // "25 IPC" (AJ-2026-10-08-T139-final, C1).
+  if (quoteActs.size >= 1) {
+    const doubt = quoteActs.size > 1 ? 'act_mismatch' : 'act_unclear';
+    const onlyAct = quoteActs.size === 1 ? [...quoteActs.keys()][0] : null;
+    const unused = sectionsByAct(normQuote);
+    for (const c of cited) {
+      const act = c.act ?? onlyAct;
+      const numbers = [...c.section.matchAll(SECTION_IN_TEXT)].map((m) => m[0]);
+      if (act === null || numbers.length === 0) return fail(doubt);
+      for (const n of numbers) {
+        const i = unused.findIndex((u) => u.act === act && u.section === n);
+        if (i < 0) return fail(doubt);
+        unused.splice(i, 1);
+      }
+    }
+  }
+  const value = [...strings];
+  if (actsInValues.size === 0 && quoteActs.size > 0) {
+    // The model left the act out. With one act in the quote it is put back as
+    // written, but only when every token is a bare section number; a token such
+    // as "25 arms act" would otherwise get the wrong act (Blocker 2).
+    if (!everyTokenBare) return fail('act_unclear');
+    const [written] = [...quoteActs.values()];
+    value[value.length - 1] = `${value[value.length - 1]} ${written}`;
+  }
+  return { ok: true, value };
+}
+
 function checkPlain(
   item: ChecklistItem,
   raw: unknown,
@@ -563,7 +748,8 @@ function checkPlain(
       if (picked.some((p) => p === null)) return fail('option');
       return { ok: true, value: [...new Set(picked as string[])] };
     }
-    // A free list, such as section numbers: each value must stand in the quote as written.
+    if (isSectionsItem(item)) return checkSections(strings, quote, normQuote);
+    // A free list: each value must stand in the quote as written.
     if (!strings.every((v) => wholeIn(normQuote, v))) return fail('not_in_quote');
     return { ok: true, value: strings };
   }
@@ -593,6 +779,8 @@ function checkPlain(
       // The words must sit inside this fact's own quote, so that a name from
       // another sentence cannot land under the wrong fact (ADR-019 rule 4.1.3).
       if (!isOwnWords(v, normQuote)) return fail('not_in_quote');
+      // AJ-2026-10-08-T139 1(b): a district or a locality alone is not a police station.
+      if (isPoliceStationItem(item) && !namesAStation(v, normQuote)) return fail('not_a_station');
       return { ok: true, value: v };
     }
     default:
@@ -846,6 +1034,57 @@ function partyLabel(label: string): string {
   return stripped.length > 0 ? stripped : 'party';
 }
 
+// ── IPC on a matter dated on or after 1 July 2024 (AJ-2026-10-08-T139, part 5) ──
+
+/** Ajay's text, exact. Shown with "Please check" on the sections item. */
+export const IPC_AFTER_1_JULY_2024_NOTE =
+  'If the offence was committed on or after 1 July 2024, the Bharatiya Nyaya Sanhita, 2023 (BNS) applies, not the Indian Penal Code (IPC). Check the sections before you file.';
+
+const BNS_IN_FORCE = '2024-07-01';
+
+/** The facts that hold the sections or offences charged: a list or a text. */
+const SECTIONS_FACT = /^(sections?|offences?)(_|$)/;
+
+const IPC_WORD =
+  /(?<![a-z0-9])(ipc|i\.\s?p\.\s?c\.?|indian penal code|भा\.\s?दं\.\s?सं\.?|भारतीय दंड संहिता)(?![a-z0-9])/;
+
+/**
+ * The date of the offence or occurrence, else the date of the FIR, as the
+ * brief gives it. Null when neither is given.
+ */
+function offenceOrFirDate(
+  checklist: ChecklistItem[],
+  placed: Map<string, GivenValue>,
+): string | null {
+  const dateOf = (test: (i: ChecklistItem) => boolean): string | null => {
+    for (const item of checklist) {
+      if (item.kind !== 'date' || !test(item)) continue;
+      const v = placed.get(item.key)?.value;
+      if (typeof v === 'string' && isIsoDate(v)) return v;
+    }
+    return null;
+  };
+  const offence = dateOf(
+    (i) =>
+      i.dateKind === 'incident' ||
+      /(^|_)(offen[cs]e|occurrence|incident)(_|$)/.test(lastSegment(i.key)),
+  );
+  return offence ?? dateOf((i) => i.dateKind === 'fir' || lastSegment(i.key) === 'fir_date');
+}
+
+/** The sections item cites the IPC and the matter is dated on or after 1 July 2024. */
+function needsIpcNote(
+  item: ChecklistItem,
+  value: string | string[],
+  matterDate: string | null,
+): boolean {
+  if (matterDate === null || matterDate < BNS_IN_FORCE) return false;
+  if (!['list', 'text', 'narrative'].includes(item.kind)) return false;
+  if (!SECTIONS_FACT.test(lastSegment(item.key))) return false;
+  const text = normalise(Array.isArray(value) ? value.join(', ') : value);
+  return IPC_WORD.test(text);
+}
+
 /**
  * The checklist keys whose show_if is false for the values given (T-153).
  * A choice is compared by its option id, whether the value is the option's
@@ -913,6 +1152,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
 
   // T-153: a fact the form hides (show_if false) is not asked and shows no blank.
   const hidden = hiddenByShowIf(input.checklist, placed);
+  const matterDate = offenceOrFirDate(input.checklist, placed);
   const items: BriefItem[] = input.checklist
     .filter((item) => !(hidden.has(item.key) && !placed.has(item.key)))
     .map((item) => {
@@ -924,6 +1164,9 @@ export function buildBrief(input: BuildBriefInput): Brief {
         item.kind === 'choice' &&
         isCustodyChoice(item.options) &&
         needsNotInCustodyWarning(input.kind.id, given ? given.value : null);
+      // AJ-2026-10-08-T139 part 5: an IPC section on a matter dated on or after 1 July 2024. Warn only.
+      const ipcNote =
+        !custodyWarning && given !== undefined && needsIpcNote(item, given.value, matterDate);
       return {
         key: item.key,
         part: item.part,
@@ -935,8 +1178,12 @@ export function buildBrief(input: BuildBriefInput): Brief {
         source: given ? given.source : null,
         ...(given && given.source === 'description' && given.quote ? { quote: given.quote } : {}),
         please_check:
-          given?.source === 'description' || given?.please_check === true || custodyWarning,
+          given?.source === 'description' ||
+          given?.please_check === true ||
+          custodyWarning ||
+          ipcNote,
         ...(custodyWarning ? { note: REGULAR_BAIL_NOT_IN_CUSTODY_WARNING } : {}),
+        ...(ipcNote ? { note: IPC_AFTER_1_JULY_2024_NOTE } : {}),
         ...(!given && input.reask?.includes(item.key) ? { reask: true } : {}),
         ...(meaning !== undefined ? { meaning } : {}),
         placeholder: placeholderFor(meaning ?? item.label),

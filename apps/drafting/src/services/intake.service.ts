@@ -40,7 +40,15 @@ import {
   wordedQuestions,
 } from './intake-brief';
 import { readIntakeCache, writeIntakeCache } from './intake-cache';
-import { datesInText, digitsOnly, iso, isOwnWords, normalise, parseModelJson } from './intake-text';
+import {
+  datesInText,
+  digitsOnly,
+  iso,
+  isOwnWords,
+  normalise,
+  parseModelJson,
+  withAmountInWords,
+} from './intake-text';
 import {
   buildFillUserPrompt,
   buildMatchUserPrompt,
@@ -1089,6 +1097,13 @@ async function briefWithPack(
   const read = checkRead(checklist, req.description, parsed);
   const byCode = datesReadByCode(checklist, req.description, read.values);
   const readValues = new Map([...read.values, ...byCode]);
+  // AJ-2026-10-08-T139 part 4: the words of a checked amount are derived, not asked.
+  read.dropped.push(
+    ...withAmountInWords(
+      checklist.map((i) => i.key),
+      readValues,
+    ),
+  );
   let values: GivenValue[];
   let edit = '';
   let alsoAsk: ReadonlySet<string> = new Set();
