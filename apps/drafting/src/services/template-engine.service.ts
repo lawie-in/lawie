@@ -295,6 +295,77 @@ export function loadCourtRule(ruleRef: string): CourtRuleData | null {
   }
 }
 
+/** A designation that offers a choice ("A / B") or holds a placeholder. */
+function isGenericDesignation(d: string): boolean {
+  return d.includes(' / ') || /\{\w+\}/.test(d);
+}
+
+/**
+ * The court's name two ways, from the courts list and its court rule.
+ * SCRUM-54 B8: `designation` is the bare court/judge name for addressing
+ * (e.g. "SESSIONS JUDGE, PATNA" or "HIGH COURT OF JUDICATURE AT PATNA");
+ * `header` is the full heading line with its "IN THE COURT OF" /
+ * "IN THE HIGH COURT OF" prefix.
+ */
+function courtHeading(courtData: CourtLookupData): { designation: string; header: string } {
+  const ruleDesignation = courtData.courtRule?.designation;
+  let rawDesignation: string;
+  // Only a designation taken from the court rule gets the court's city added.
+  // A designation from the courts list already names its place and prints as
+  // stored (AJ-2026-10-07-T146-golden-2, fix 3).
+  let fromRule: boolean;
+  if (ruleDesignation && isGenericDesignation(ruleDesignation)) {
+    // T-146 (AJ-2026-10-07-T146-golden, fix 3): a generic rule's designation
+    // offers a choice ("SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE") or holds a
+    // placeholder ("IN THE HIGH COURT OF {courtDesignation}"). The
+    // chosen court's own designation is used instead, or a visible blank.
+    const own = courtData.designation?.trim();
+    if (!own || isGenericDesignation(own)) {
+      // The blank alone, with no "IN THE COURT OF" or "BEFORE THE": the form
+      // of the heading is not known either (AJ-2026-10-07-T146-golden-2, fix 5).
+      const blank = '[To be confirmed: court designation]';
+      return { designation: blank, header: blank };
+    }
+    rawDesignation = own;
+    fromRule = false;
+  } else if (ruleDesignation) {
+    rawDesignation = ruleDesignation;
+    fromRule = true;
+  } else {
+    rawDesignation = courtData.designation;
+    fromRule = false;
+  }
+  // If the rule's designation has no city, append the court's city. Never for a
+  // High Court or the Supreme Court: the seat is already in the name
+  // (AJ-2026-10-07-T146-golden, fix 2; AJ-2026-10-07-T146-golden-2, fix 2).
+  if (
+    fromRule &&
+    courtData.city &&
+    !/HIGH COURT|SUPREME COURT/i.test(rawDesignation) &&
+    !rawDesignation.toUpperCase().includes(courtData.city.toUpperCase())
+  ) {
+    rawDesignation = `${rawDesignation}, ${courtData.city.toUpperCase()}`;
+  }
+  if (/^IN THE COURT OF\s/i.test(rawDesignation)) {
+    return {
+      designation: rawDesignation.replace(/^IN THE COURT OF\s*/i, ''),
+      header: rawDesignation,
+    };
+  }
+  // A designation that already begins "IN THE " ("IN THE HIGH COURT OF ...",
+  // "IN THE SUPREME COURT OF INDIA", "IN THE FAMILY COURT, PATNA") is the
+  // header as written (AJ-2026-10-07-T146-golden-2, fix 1).
+  if (/^IN THE\s/i.test(rawDesignation)) {
+    return { designation: rawDesignation.replace(/^IN THE\s*/i, ''), header: rawDesignation };
+  }
+  // A commission or forum heading, e.g. "BEFORE THE DISTRICT CONSUMER DISPUTES
+  // REDRESSAL COMMISSION, RANCHI", is the header as written (fix 1).
+  if (/^BEFORE THE\s/i.test(rawDesignation)) {
+    return { designation: rawDesignation.replace(/^BEFORE THE\s*/i, ''), header: rawDesignation };
+  }
+  return { designation: rawDesignation, header: `IN THE COURT OF ${rawDesignation}` };
+}
+
 /**
  * Resolve computed fields from the template config using form data.
  *
@@ -360,35 +431,7 @@ export function resolveComputedFields(
     if (courtsMatch) {
       const [, , prop] = courtsMatch;
       if (courtData) {
-        const courtRule = courtData.courtRule;
-        let rawDesignation = courtRule?.designation ?? courtData.designation;
-        // If the court rule has a generic designation without the city, append city from DB
-        if (
-          courtData.city &&
-          !rawDesignation.toUpperCase().includes(courtData.city.toUpperCase())
-        ) {
-          rawDesignation = `${rawDesignation}, ${courtData.city.toUpperCase()}`;
-        }
-        // SCRUM-54 B8: court_designation = bare court/judge name for addressing
-        // (e.g., "SESSIONS JUDGE, PATNA" or "HIGH COURT OF JUDICATURE AT PATNA").
-        // court_header = full header line with "IN THE COURT OF" / "IN THE HIGH COURT OF" prefix.
-        let designation = rawDesignation;
-        let header = rawDesignation;
-
-        if (/^IN THE HIGH COURT/i.test(rawDesignation)) {
-          // HC: full designation is "IN THE HIGH COURT OF JUDICATURE AT PATNA"
-          // designation (bare) = strip prefix for addressing ("HIGH COURT OF JUDICATURE AT PATNA")
-          designation = rawDesignation.replace(/^IN THE\s*/i, '');
-          header = rawDesignation; // use as-is for header
-        } else if (/^IN THE COURT OF\s/i.test(rawDesignation)) {
-          // Sessions/District: "IN THE COURT OF SESSIONS JUDGE, PATNA"
-          designation = rawDesignation.replace(/^IN THE COURT OF\s*/i, '');
-          header = rawDesignation;
-        } else {
-          // Bare name (e.g., "SESSIONS JUDGE, PATNA")
-          designation = rawDesignation;
-          header = `IN THE COURT OF ${rawDesignation}`;
-        }
+        const { designation, header } = courtHeading(courtData);
         const propMap: Record<string, string> = {
           designation,
           header,
@@ -548,6 +591,8 @@ export function buildPlaceholderContext(
     }
   }
 
+  applyCourtAndAliases(ctx, computed, courtData);
+
   // ── SCRUM-50: Inject court-rule-driven placeholders ───────────────────────
   if (courtData?.courtRule) {
     const rule = courtData.courtRule;
@@ -623,6 +668,10 @@ export function buildPlaceholderContext(
     ctx.verification_text = `I, ${ctx.applicant_name ?? '_____'}, the ${ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${ctx.court_city ?? '_____'} on this _____ day of _________, ${ctx.current_year}.`;
   }
 
+  // T-146: aliases are set after the SCRUM-50 court-rule block, so an alias
+  // such as {caseNomenclature} reads the same value as {case_nomenclature}.
+  applyPlaceholderAliases(ctx);
+
   // Recursive placeholder pass — resolve {token} references that may exist inside
   // ctx values themselves (e.g. caseNomenclature from courts DB contains "{current_year}"
   // or "{year}" tokens that were not yet substituted during resolveComputedFields).
@@ -645,6 +694,126 @@ export function buildPlaceholderContext(
   }
 
   return ctx;
+}
+
+/**
+ * T-146: the camelCase tokens the document rules use, and the context key each
+ * one reads. An alias is set only when the rule's own key is not in the context,
+ * so a value the form gave under the camelCase name is kept.
+ */
+export const PLACEHOLDER_ALIASES: ReadonlyArray<readonly [alias: string, sources: readonly string[]]> = [
+  ['courtDesignation', ['court_designation']],
+  ['courtHeader', ['court_header']],
+  ['courtPlace', ['court_city']],
+  ['place', ['court_city']],
+  ['caseNomenclature', ['case_nomenclature']],
+  ['applicant', ['applicant_name']],
+  ['parentName', ['applicant_parentage', 'applicant_father_name']],
+  ['age', ['applicant_age']],
+  ['applicantAddress', ['applicant_address']],
+  ['respondentAddress', ['respondent_address']],
+  ['advocateName', ['advocate_name']],
+  ['advocateAddress', ['advocate_address']],
+];
+
+/** Fill each camelCase alias from the first of its sources that has a value. */
+function applyPlaceholderAliases(ctx: PlaceholderContext): void {
+  for (const [alias, sources] of PLACEHOLDER_ALIASES) {
+    if (ctx[alias] !== undefined && ctx[alias] !== '') continue;
+    const source = sources.find((s) => ctx[s] !== undefined && ctx[s] !== '');
+    if (source) ctx[alias] = ctx[source];
+  }
+}
+
+/** Keys a form or brief may carry the applicant's place of custody under. */
+const JAIL_SOURCES = ['jail', 'jail_name', 'place_of_custody', 'custody_place', 'custody_location'];
+
+const IS_BLANK = /^\[To be confirmed: [^\]]*\]$/;
+
+/**
+ * T-146: the court the user chose from the courts list, put into the context
+ * before the SCRUM-50 court-rule block. The camelCase aliases are set later, by
+ * `applyPlaceholderAliases`, after that block.
+ *
+ * - The court comes from the courts list (ADR-021 rule 3): `court_header` and
+ *   `court_designation` are taken from it (see `courtHeading`) over any form
+ *   value, unless the template's computed fields already set them.
+ * - `{lastParagraph}` is the deferred `{body_para_count}`.
+ * - `{jail}` has no intake field. A value given under a custody key is used;
+ *   otherwise it is a visible blank the user fills, never `_____`.
+ */
+function applyCourtAndAliases(
+  ctx: PlaceholderContext,
+  computed: Record<string, string>,
+  courtData?: CourtLookupData,
+): void {
+  if (courtData?.designation?.trim()) {
+    const { designation, header } = courtHeading(courtData);
+    if (!computed.court_header) ctx.court_header = header;
+    if (!computed.court_designation) ctx.court_designation = designation;
+  }
+  const city = courtData?.city?.trim();
+  if (city && (!ctx.court_city || IS_BLANK.test(ctx.court_city))) ctx.court_city = city;
+  if (courtData?.caseNomenclature && !ctx.case_nomenclature) {
+    ctx.case_nomenclature = courtData.caseNomenclature.replace(/\{year\}/g, ctx.current_year);
+  }
+
+
+  if (ctx.lastParagraph === undefined) ctx.lastParagraph = '{body_para_count}';
+
+  if (ctx.jail === undefined || ctx.jail === '') {
+    const source = JAIL_SOURCES.find((s) => ctx[s] !== undefined && ctx[s] !== '');
+    ctx.jail = source ? ctx[source] : '[To be confirmed: name of jail]';
+  }
+
+  // AJ-2026-10-07-T146: "currently in judicial custody at" prints only when the
+  // brief says the applicant is in custody. Nothing is inferred from other
+  // answers (an arrest date, days in custody).
+  if (ctx.custody_clause === undefined) {
+    ctx.custody_clause = custodyConfirmed(ctx)
+      ? `, currently in judicial custody at ${ctx.jail}`
+      : '';
+  }
+}
+
+/** Keys a brief may say the applicant is in custody under. */
+const CUSTODY_SOURCES = ['currently_in_custody', 'in_custody', 'custody_status'];
+
+/**
+ * True only when a custody answer names judicial custody: the option id
+ * `yes_judicial`, or a value such as "Yes — Judicial custody". Police custody,
+ * a bare "yes" and a negative answer ("not in judicial custody") print no clause.
+ */
+function custodyConfirmed(ctx: PlaceholderContext): boolean {
+  return CUSTODY_SOURCES.some((k) => {
+    const v = (ctx[k] ?? '').trim();
+    if (!v || IS_BLANK.test(v)) return false;
+    if (v.toLowerCase() === 'yes_judicial') return true;
+    if (/^(no|false)\b/i.test(v) || /\bnot\b/i.test(v)) return false;
+    return /judicial custody/i.test(v);
+  });
+}
+
+/**
+ * AJ-2026-10-07-T146 (developer finding 1): the verification date is the date
+ * the deponent signs. It is never pre-filled; a date the advocate gave as
+ * `verification_date` prints as given.
+ */
+const VERIFICATION_DATE_BLANK = '___ day of __________, 20___';
+
+/** Placeholders whose empty value is intended (a clause that does not apply). */
+const MAY_BE_EMPTY = new Set(['custody_clause']);
+
+/**
+ * The context a template section renders with. The verification's `{date}` is
+ * the signing date: the advocate's `verification_date`, else a blank.
+ */
+export function sectionContext(
+  section: Pick<DocumentSection, 'section_id'>,
+  ctx: PlaceholderContext,
+): PlaceholderContext {
+  if (section.section_id !== 'verification') return ctx;
+  return { ...ctx, date: ctx.verification_date || VERIFICATION_DATE_BLANK };
 }
 
 /** Placeholders that are resolved in a later pass (after AI generation) */
@@ -676,7 +845,7 @@ export function detectLeakedPlaceholders(template: string, ctx: PlaceholderConte
   while ((match = pattern.exec(template)) !== null) {
     const key = match[1];
     if (DEFERRED_PLACEHOLDERS.has(key)) continue;
-    if (ctx[key] === undefined || ctx[key] === '') {
+    if (ctx[key] === undefined || (ctx[key] === '' && !MAY_BE_EMPTY.has(key))) {
       leaked.push(key);
     }
   }
@@ -707,7 +876,7 @@ export function renderTemplateSection(
   return {
     section_id: section.section_id,
     type: 'template',
-    content: replacePlaceholders(section.template, ctx),
+    content: replacePlaceholders(section.template, sectionContext(section, ctx)),
     alignment: section.alignment,
     style: section.style,
   };
