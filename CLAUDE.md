@@ -38,7 +38,9 @@ Every dev-crew subagent (`developer`, `tester`, `reviewer`, `doc-writer`) follow
 
 ## Quality gate
 
-No pull request into `develop` or `main` is merged without Anushka's verdict on it (founder's rule, 6 Oct 2026). She is the CQO: a lawyer who tests the running app in a browser and has no code access. The lead opens the pull request with `Quality: waiting for Anushka` in the body and stops; nobody in the dev crew plays her or writes her verdict. Full rule: `.claude/docs/quality-gate.md`.
+Nothing goes to `main` or the prod env without Anushka's `PASS` (founder's rule, 8 Oct 2026; supersedes the 6 Oct develop gate). She is the CQO: a lawyer with no code access who tests the develop env end to end in a browser once a batch is done.
+PRs into `develop` merge without her verdict and end with `Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)`.
+PRs into `main` open with `Quality: waiting for Anushka` and the lead stops; nobody in the dev crew plays her or writes her verdict. Full rule: `.claude/docs/quality-gate.md`.
 
 ## Deeper reference (read on demand)
 
