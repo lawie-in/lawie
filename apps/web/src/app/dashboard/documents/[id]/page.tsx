@@ -295,12 +295,12 @@ export default function DocumentEditorPage() {
   return (
     // T-138: below md the page is one column that scrolls as one page. The fixed height, the
     // squeezing and the editor's own scroll start at md, where the layout is as it was.
-    <div className="flex flex-col gap-4 md:h-[calc(100vh-4rem)] md:flex-row">
+    <div className="flex flex-col gap-4 lg:h-[calc(100vh-4rem)] lg:flex-row">
       {/* Left: Editor */}
-      <div className="flex flex-col gap-3 md:flex-1 md:overflow-hidden">
+      <div className="flex flex-col gap-3 lg:flex-1 lg:overflow-hidden">
         {/* Header — the title, then the buttons under it below md */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between lg:gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={() => router.push('/dashboard')}
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -310,7 +310,7 @@ export default function DocumentEditorPage() {
             </button>
             {/* T-138: a guided document's title is typed by the advocate and can be one long
                 unbroken word. Below md it may shrink and break; from md it is as it was. */}
-            <div className="min-w-0 break-words md:min-w-[auto] md:break-normal">
+            <div className="min-w-0 break-words">
               <h1 className="text-base font-bold capitalize text-slate-900">
                 {/* A document with no rule pack has no type of its own: its name is its title. */}
                 {doc.docType === 'guided' ? doc.title : doc.docType.replace(/_/g, ' ')}
@@ -319,7 +319,7 @@ export default function DocumentEditorPage() {
             </div>
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-2 md:mt-0 md:flex-nowrap">
+          <div className="mt-2 flex flex-wrap items-center gap-2 lg:mt-0 lg:shrink-0 lg:flex-nowrap">
             {/* Save status indicator */}
             <span className="flex items-center gap-1 text-xs text-slate-400">
               {saveStatus === 'saving' && (
@@ -402,13 +402,13 @@ export default function DocumentEditorPage() {
         )}
 
         {/* Editor */}
-        <div className="md:min-h-0 md:flex-1">
+        <div className="lg:min-h-0 lg:flex-1">
           <DocumentEditor initialContent={doc.content} onUpdate={handleEditorUpdate} />
         </div>
       </div>
 
       {/* Right: Sidebar panel — filing checklist + sections cited */}
-      <div className="w-full shrink-0 space-y-4 overflow-y-auto md:w-72">
+      <div className="w-full shrink-0 space-y-4 overflow-y-auto lg:w-72">
         {/* Filing checklist */}
         {checklist.length > 0 && (
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

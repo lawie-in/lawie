@@ -60,7 +60,7 @@ export default function DocumentEditor({
       attributes: {
         // T-138: narrower paper margins below md, so the text column is wide enough to read.
         class:
-          'px-4 py-6 md:px-16 md:py-12 min-h-[842px] focus:outline-none text-sm leading-relaxed text-slate-800',
+          'px-4 py-6 lg:px-16 lg:py-12 min-h-[842px] focus:outline-none text-sm leading-relaxed text-slate-800',
       },
     },
     onUpdate: ({ editor: ed }) => {
@@ -156,7 +156,7 @@ export default function DocumentEditor({
       <Toolbar editor={editor} />
       {/* Paper canvas — A4-like proportions. From md it scrolls on its own; below md it is as
           tall as the draft and the page scrolls (T-138). */}
-      <div className="overflow-y-auto bg-slate-100 p-2 md:min-h-0 md:flex-1 md:p-6">
+      <div className="overflow-y-auto bg-slate-100 p-2 lg:min-h-0 lg:flex-1 lg:p-6">
         <div className="mx-auto max-w-[210mm] bg-white shadow-md">
           <EditorContent editor={editor} />
         </div>
