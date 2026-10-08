@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Vishal |
 | Mode           | Fix, full chain (developer + tester + reviewer + Ajay). Changes printed legal text. Merge to develop per founder's 8 Oct rule |
-| Status         | PR open to develop (PR #73), 8 Oct. Ajay approved with conditions (AJ-2026-10-08-T174). |
+| Status         | Merged to develop (PR #73), 8 Oct. Anushka tests on develop. |
 | Size           | S (half day) |
 | Depends on     | None. Cut from origin/develop (fce5cc5) |
 | Branch         | fix/t-174-family-court-routing |
