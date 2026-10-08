@@ -68,9 +68,11 @@ export default function DocumentEditor({
     },
   });
 
-  // Sync editable prop
+  // Sync editable prop. T-152: emitUpdate=false — TipTap's setEditable emits an "update" by
+  // default, which fired onUpdate (and so an autosave and a new version) every time a draft
+  // was opened.
   useEffect(() => {
-    if (editor) editor.setEditable(editable);
+    if (editor) editor.setEditable(editable, false);
   }, [editor, editable]);
 
   // SCRUM-83: listen for the Section Finder's "insert at cursor" event and
