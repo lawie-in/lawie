@@ -68,12 +68,14 @@ describe('T-174 family court routing', () => {
     const raw = (city: string) =>
       `IN THE COURT OF PRINCIPAL JUDGE, FAMILY COURT, ${city.toUpperCase()}\nM.J. No. _____ of 2026\n\nAsha Devi ... PETITIONER\n\nVERSUS\n\nRavi Kumar ... RESPONDENT\n\n1. The petitioner states.`;
 
+    // T-176 (FU-1): the heading now names the seat. Pins updated by the lead's waiver of
+    // the "unedited" rule (ticket AC 6).
     it.each([
-      ['Patna', 'Family Court, Patna'],
-      ['Lucknow', 'Principal Judge, Family Court, Lucknow'],
-      ['Ranchi', 'Family Court, Ranchi'],
-      ['Delhi', 'Family Court, Tis Hazari, Delhi'],
-    ])('%s: family heading, no civil-only or prosecutor text', async (city, name) => {
+      ['Patna', 'Family Court, Patna', 'IN THE FAMILY COURT AT PATNA'],
+      ['Lucknow', 'Principal Judge, Family Court, Lucknow', 'IN THE FAMILY COURT AT LUCKNOW'],
+      ['Ranchi', 'Family Court, Ranchi', 'IN THE FAMILY COURT AT RANCHI'],
+      ['Delhi', 'Family Court, Tis Hazari, Delhi', 'IN THE FAMILY COURT AT TIS HAZARI, DELHI'],
+    ])('%s: family heading, no civil-only or prosecutor text', async (city, name, heading) => {
       const ap = await assemblePrompt({
         docType: 'petition',
         courtType: 'family_court',
@@ -95,7 +97,7 @@ describe('T-174 family court routing', () => {
         courtName: name,
       }).formattedText;
       const lines = out.split('\n');
-      expect(lines[0]).toBe('IN THE FAMILY COURT');
+      expect(lines[0]).toBe(heading);
       // Pass-through check only: line 2 is the stand-in text, and this shows postProcess
       // leaves it unchanged. It is not proof that the case number is right.
       expect(lines[1]).toBe('M.J. No. _____ of 2026');
@@ -138,8 +140,8 @@ describe('T-174 family court routing', () => {
       expect(typedRule?.courtId).toBe(listRule?.courtId);
       expect(typedRule?.courtId).toBe('family_court');
       // Heading lines differ between the paths; reported, not reconciled (ticket AC 6).
-      // Pins the current list-path heading, which drops "AT TIS HAZARI" (FU-1 gap).
-      // Typed path gives "IN THE FAMILY COURT". Not reconciled here; FU-1 will update this pin.
+      // T-176 (FU-1): the list-path heading now prints the entry's own designation, and the
+      // typed name "Family Court, Tis Hazari, Delhi" gives the same line.
       const heading = chosenCourtHeading({
         designation: entry!.designation as string,
         city: entry!.city as string,
@@ -149,8 +151,8 @@ describe('T-174 family court routing', () => {
         state: entry!.state as string,
         courtRule: listRule ?? undefined,
       } as never);
-      expect(heading?.header).toBe('IN THE FAMILY COURT, DELHI');
-      expect(heading?.designation).toBe('FAMILY COURT, DELHI');
+      expect(heading?.header).toBe('IN THE FAMILY COURT AT TIS HAZARI, DELHI');
+      expect(heading?.designation).toBe('FAMILY COURT AT TIS HAZARI, DELHI');
     });
   });
 });

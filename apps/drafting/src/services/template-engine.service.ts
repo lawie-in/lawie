@@ -635,6 +635,17 @@ function courtHeading(courtData: CourtLookupData): { designation: string; header
     // a seat or bench. The cached rule is read, never changed.
     rawDesignation = own;
     fromRule = false;
+  } else if (
+    courtData.formattingRulesRef === 'family_court' &&
+    own &&
+    !isGenericDesignation(own)
+  ) {
+    // T-176 (AJ-2026-10-08-T174, FU-1): a family court names its seat. The
+    // courts-list entry's own designation ("IN THE FAMILY COURT AT TIS HAZARI,
+    // DELHI") prints as stored, over the rule's bare "IN THE FAMILY COURT"
+    // with the city appended. The cached rule is read, never changed.
+    rawDesignation = own;
+    fromRule = false;
   } else if (ruleDesignation) {
     rawDesignation = ruleDesignation;
     fromRule = true;
