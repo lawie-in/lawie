@@ -277,7 +277,9 @@ export type DocumentSide = 'criminal' | 'civil';
 /**
  * T-149: the document types Ajay's label table covers (AJ-2026-10-07-T149).
  * Criminal: regular bail, anticipatory bail, criminal misc. application.
- * Civil: suit, plaint, civil misc. application in a suit, including O.39.
+ * Civil: suit, plaint, O.39 temporary injunction. Applications either party can
+ * file (amendment of pleadings, production of documents, receiver) are removed
+ * (AJ-2026-10-07-T149-types) and keep today's labels.
  * Anything not listed (revision, complaint, appeal, cancellation of bail, notices,
  * agreements ...) is not signed and keeps the court rule's `party_designation`.
  */
@@ -294,9 +296,6 @@ const SIGNED_DOCUMENT_SIDES: ReadonlyMap<string, DocumentSide> = new Map<string,
   ['plaint_recovery', 'civil'],
   ['plaint_specific_performance', 'civil'],
   ['temporary_injunction_o39', 'civil'],
-  ['amendment_of_pleadings', 'civil'],
-  ['production_of_documents', 'civil'],
-  ['receiver_appointment', 'civil'],
 ]);
 
 /** T-149: the document types whose party labels are signed, in table order. */

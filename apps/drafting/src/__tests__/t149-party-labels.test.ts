@@ -113,7 +113,13 @@ const NAMED_EXCEPTIONS_UNSIGNED_TYPES: readonly string[] = [
   'service_agreement', 'shareholders_agreement', 'slp', 'spa', 'surrender_application',
   'suspension_of_sentence', 'synopsis', 'vakalatnama', 'will', 'writ_petition_civil',
   'writ_petition_criminal', 'written_statement',
+  // AJ-2026-10-07-T149-types: either party files these, so Ajay removed them from the
+  // signed list. They keep today's labels.
+  'amendment_of_pleadings', 'production_of_documents', 'receiver_appointment',
 ];
+
+/** AJ-2026-10-07-T149-types: removed from the signed list, keep today's labels. */
+const AJAY_REMOVED_TYPES = ['amendment_of_pleadings', 'production_of_documents', 'receiver_appointment'];
 
 const PLAINT_AND_O39 = SIGNED_DOCUMENT_TYPES.filter(
   (t) => t.startsWith('plaint_') || t === 'temporary_injunction_o39',
@@ -146,8 +152,8 @@ function ctxFor(ref: string, templateId: string, form: Record<string, unknown> =
 beforeEach(() => clearConfigCache());
 
 describe('T-149 criterion 3: no choice string in a printed label of a signed type', () => {
-  it('the signed list is the 15 types Ajay signed, each with a side and a template', () => {
-    expect(SIGNED_DOCUMENT_TYPES).toHaveLength(15);
+  it('the signed list is the 12 types Ajay signed, each with a side and a template', () => {
+    expect(SIGNED_DOCUMENT_TYPES).toHaveLength(12);
     const ids = listTemplateConfigs().map((t) => t.template_id);
     for (const t of SIGNED_DOCUMENT_TYPES) {
       expect(documentSide(t)).not.toBeNull();
@@ -199,6 +205,14 @@ describe('T-149 criterion 3: no choice string in a printed label of a signed typ
       .filter((id) => !SIGNED_DOCUMENT_TYPES.includes(id))
       .sort();
     expect(unsigned).toEqual([...NAMED_EXCEPTIONS_UNSIGNED_TYPES].sort());
+  });
+
+  it.each(AJAY_REMOVED_TYPES)('%s (AJ-2026-10-07-T149-types): not signed, keeps today UP and Delhi party_designation', (t) => {
+    expect(SIGNED_DOCUMENT_TYPES).not.toContain(t);
+    for (const ref of ['up_district', 'delhi_district']) {
+      const courtRule = loadCourtRule(ref)!;
+      expect(partyDesignationFor(courtRule, t)).toBe(courtRule.party_designation);
+    }
   });
 
   it('unsigned types in UP and Delhi keep the court rule labels as today (named exception)', () => {
