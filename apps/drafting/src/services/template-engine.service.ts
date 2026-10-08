@@ -683,16 +683,39 @@ function extractCityFromCourtName(courtName: string): string {
  * SCRUM-63: Strip a leading prefix (and optional trailing space/dot) from a field value.
  * @param value — raw form input (e.g. "PS Chanho" or "P.S. Chanho")
  * @param prefixes — array of regex fragments to try (e.g. ['Police Station', 'P\\.?S\\.?'])
- * @returns value with the leading prefix removed, or the original value if none matched
+ * @returns value with the first matching prefix removed (once only), or the original
+ *   value if none matched or if removing it would leave nothing (AJ-2026-10-08-T139-A1)
  */
 function stripLeadingPrefix(value: string, prefixes: string[]): string {
   for (const prefix of prefixes) {
     const re = new RegExp(`^${prefix}[\\s.]+`, 'i');
     if (re.test(value)) {
-      return value.replace(re, '').trim();
+      const stripped = value.replace(re, '').trim();
+      if (stripped === '') return value;
+      // AJ-2026-10-08-T139-final C2: a leading bare थाना may be part of the
+      // station's name ("थाना भवन"). It is kept when the rest is one word, or
+      // when a station word also ends the value.
+      if (prefix === 'थाना' && (!/\s/.test(stripped) || STATION_SUFFIX.test(value))) return value;
+      return stripped;
     }
   }
   return value;
+}
+
+/** A station word ending a value, with what separates it from the name before it. */
+const STATION_SUFFIX =
+  /[\s,]+(?:p\.?\s?s\.?|thana|police\s+station|पुलिस\s+थाना|थाना|पुलिस\s+स्टेशन)\s*$/i;
+
+/**
+ * AJ-2026-10-08-T139 1(c): every template writes its own "Police Station" or
+ * "P.S." before `{police_station}`, so a station read as the advocate wrote it
+ * ("Saraidhela PS") loses a trailing PS, P.S., thana, police station,
+ * पुलिस थाना, थाना or पुलिस स्टेशन here, at render only. The brief keeps the advocate's words. A
+ * value that is only the station word is left as it is.
+ */
+export function stripStationSuffix(value: string): string {
+  const stripped = value.replace(STATION_SUFFIX, '').trim();
+  return stripped === '' ? value : stripped;
 }
 
 // ── Placeholder Replacement ─────────────────────────────────────────────────
@@ -869,7 +892,15 @@ export function buildPlaceholderContext(
   // the output becomes "PS PS Chanho". Strip the leading prefix from the value so the
   // template-provided prefix is the canonical one.
   if (ctx.police_station) {
-    ctx.police_station = stripLeadingPrefix(ctx.police_station, ['Police Station', 'P\\.?S\\.?']);
+    ctx.police_station = stripStationSuffix(
+      stripLeadingPrefix(ctx.police_station, [
+        'Police Station',
+        'P\\.?S\\.?',
+        'पुलिस\\s+स्टेशन',
+        'पुलिस\\s+थाना',
+        'थाना',
+      ]),
+    );
   }
 
   return ctx;

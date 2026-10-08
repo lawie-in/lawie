@@ -98,9 +98,9 @@ describe('the checklist', () => {
     );
   });
 
-  it('never lets the model read a court, a district or a police station (ADR-019 rule 4.1.2)', () => {
-    expect(item(BAIL, 'police_station').modelReadable).toBe(false);
-    expect(checklistLines(BAIL).some((l) => l.startsWith('police_station |'))).toBe(false);
+  it('never lets the model read a court or a district; the police station is read like any text fact (ADR-019 rule 4.1.2 as amended by AJ-2026-10-08-T139)', () => {
+    expect(item(BAIL, 'police_station').modelReadable).toBe(true);
+    expect(checklistLines(BAIL).some((l) => l.startsWith('police_station |'))).toBe(true);
     const cancel = buildChecklist(pack('bail_cancellation'));
     expect(item(cancel, 'granting_court').modelReadable).toBe(false);
   });
@@ -211,7 +211,8 @@ describe('what the model read is checked against the user’s own words', () => 
       quote: 'My client Ram Kumar',
     });
     expect(r.values.get('applicant_age')?.value).toBe('32');
-    expect(r.values.get('sections_charged')?.value).toEqual(['103', '61']);
+    // The act the quote names is put back on the last section, as written (T-139).
+    expect(r.values.get('sections_charged')?.value).toEqual(['103', '61 BNS']);
   });
 
   it.each([
@@ -247,9 +248,9 @@ describe('what the model read is checked against the user’s own words', () => 
       'option',
     ],
     [
-      'a police station',
+      'a police station that is not in its own quote',
       { id: 'police_station', value: 'Kotwali', quote: 'My client Ram Kumar' },
-      'not_readable',
+      'not_own_words',
     ],
   ])('drops %s', (_name, entry, reason) => {
     const r = read(BAIL, TEXT, [entry]);

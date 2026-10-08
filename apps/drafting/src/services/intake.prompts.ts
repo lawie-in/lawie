@@ -112,6 +112,7 @@ Step 2. Read the DESCRIPTION against each line of the CHECKLIST.
 - For every fact, copy into "quote" the exact words it was read from, character for character. Keep the quote short: only the words that state this one fact.
 - Names, numbers, amounts, addresses and section numbers: copy them exactly as written. Do not convert old-law section numbers.
 - Kind "date": give the value as YYYY-MM-DD. Record a date only when the advocate's words say what it is the date of, and that is the meaning on the CHECKLIST line. The quote must hold that one date and the words that give it its meaning, and no other date.
+- The quote for a date must include the words that say what it is the date of, even when they come before the date. "FIR No. 211/2026 dated 30 Sept 2026" gives the date of the FIR: quote "FIR No. 211/2026 dated 30 Sept 2026", not "dated 30 Sept 2026".
 - A date written next to a number or an event of another kind is not the date of that number or event. "arrested on 15/03/2026 in FIR No. 124/2026" gives the date of arrest. It does not give the date of the FIR.
 - Never use one date for two lines, unless the advocate's words say so for both.
 - Kind "choice": the value must be one of the allowed values, copied exactly.

@@ -176,10 +176,14 @@ describe('POST /intake/brief — a request with a rule pack', () => {
     ]);
     // Words the user did not write are dropped.
     expect(itemOf(brief, 'father_name')?.value).toBeNull();
-    // The court and the police station never come from the model.
+    // The court never comes from the model. The police station does, when the advocate wrote it (T-139).
     expect(brief.court).toEqual({ state: null, court_type: null, court: null });
     expect(itemOf(brief, 'court')).toBeUndefined();
-    expect(itemOf(brief, 'police_station')?.value).toBeNull();
+    expect(itemOf(brief, 'police_station')).toMatchObject({
+      value: 'Kotwali',
+      source: 'description',
+      please_check: true,
+    });
     expect(JSON.stringify(brief)).not.toContain('Sessions Court');
 
     // A court document cannot be confirmed without the court.
@@ -189,7 +193,7 @@ describe('POST /intake/brief — a request with a rule pack', () => {
       confirm_message: 'Choose the court to continue.',
     });
     expect(brief.still_unknown.map((u: { key: string }) => u.key)).toEqual(
-      expect.arrayContaining(['fir_date', 'police_station', 'father_name']),
+      expect.arrayContaining(['fir_date', 'father_name']),
     );
 
     // At most 5 questions a round, 2 rounds, and only about the checklist.
@@ -201,6 +205,9 @@ describe('POST /intake/brief — a request with a rule pack', () => {
     expect(byKey.get('fir_date')).toBe('On what date was the FIR registered?');
     expect(byKey.has('court')).toBe(false);
     expect(byKey.has('applicant_name')).toBe(false);
+    // Given in the description, so neither asked nor "still unknown" (T-139).
+    expect(byKey.has('police_station')).toBe(false);
+    expect(brief.still_unknown.map((u: { key: string }) => u.key)).not.toContain('police_station');
 
     // Two model calls: the match, then Reception with the checklist and never the court.
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -208,7 +215,7 @@ describe('POST /intake/brief — a request with a rule pack', () => {
     const sent = JSON.stringify(reception.messages);
     expect(sent).toContain('fir_number | FIR Number | text | required');
     expect(sent).toContain('You never write any part of the document');
-    expect(sent).not.toContain('police_station |');
+    expect(sent).toContain('police_station |');
     expect(sent).not.toContain('court_type |');
   });
 

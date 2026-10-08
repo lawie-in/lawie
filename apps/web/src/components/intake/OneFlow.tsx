@@ -87,6 +87,8 @@ export default function OneFlow({
   const [brief, setBriefState] = useState<Brief | null>(null);
   const [questions, setQuestions] = useState<BriefQuestion[]>([]);
   const [questionRound, setQuestionRound] = useState<1 | 2>(1);
+  /** How many rounds of questions have been shown, so the counter never shows a round twice (T-139). */
+  const [roundsShown, setRoundsShown] = useState(0);
   const [reception, setReception] = useState<{
     questions: BriefQuestion[];
     nextRound: number;
@@ -210,6 +212,9 @@ export default function OneFlow({
               setBriefMessage('This document needs the Pro plan. You can upgrade from Settings.');
             }
             const first = openQuestions(asked, data.brief, 1);
+            // A new reading starts the count of rounds again: a new description
+            // (from 'describe'), or another document read from the brief (from 'brief').
+            setRoundsShown(from === 'describe' && first.length > 0 ? 1 : 0);
             if (from === 'describe' && first.length > 0) {
               setQuestionRound(1);
               setPhase('questions');
@@ -431,6 +436,7 @@ export default function OneFlow({
       setBusy(false);
       if (questionRound === 1 && openQuestions(questions, next ?? briefRef.current, 2).length > 0) {
         setQuestionRound(2);
+        setRoundsShown((n) => n + 1);
         return;
       }
       setPhase('brief');
@@ -727,7 +733,7 @@ export default function OneFlow({
           key={`questions-${questionRound}`}
           documentName={brief.kind.name}
           questions={roundQuestions}
-          round={questionRound}
+          round={Math.min(2, Math.max(1, roundsShown))}
           totalRounds={2}
           description={description}
           busy={busy}
@@ -737,7 +743,10 @@ export default function OneFlow({
         />
       );
     }
+    // "Answer N more questions" opens the next round only, so N counts that round.
     const left = openQuestions(questions, brief);
+    const nextRound: 1 | 2 = left.some((q) => q.round === 1) ? 1 : 2;
+    const nextQuestions = left.filter((q) => q.round === nextRound);
     return (
       <>
         <BriefStep
@@ -745,7 +754,7 @@ export default function OneFlow({
           busy={busy || updating}
           confirming={false}
           message={briefMessage}
-          questionsLeft={left.length}
+          questionsLeft={nextQuestions.length}
           onValue={handleValue}
           onCourt={handleCourt}
           onKindName={(name) => {
@@ -755,7 +764,8 @@ export default function OneFlow({
           onPlaceDate={handleValue}
           onChangeDocument={() => setChangeOpen(true)}
           onMoreQuestions={() => {
-            setQuestionRound(left.some((q) => q.round === 1) ? 1 : 2);
+            setQuestionRound(nextRound);
+            setRoundsShown((n) => n + 1);
             setPhase('questions');
           }}
           onEditDescription={editDescription}
