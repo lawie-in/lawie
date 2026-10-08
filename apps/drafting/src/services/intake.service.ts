@@ -36,6 +36,7 @@ import {
   QUESTION_LIMITS as BRIEF_QUESTION_LIMITS,
   readGuidedBrief,
   statedDates,
+  valuesAfterEditedDescription,
   wordedQuestions,
 } from './intake-brief';
 import { readIntakeCache, writeIntakeCache } from './intake-cache';
@@ -1043,6 +1044,16 @@ async function consumeFollowUp(intakeId: string): Promise<void> {
   }
 }
 
+/**
+ * True when this request reads an edited description against what the
+ * advocate had already typed. The web app starts a new intake for a new
+ * description (no `intake_id`) and sends what was typed as `keep`; a change of
+ * kind or a round of answers carries the intake's id.
+ */
+function descriptionWasEdited(req: BriefIntakeRequest): boolean {
+  return req.intakeId === undefined && (req.keep?.length ?? 0) > 0;
+}
+
 function userValues(keep: GivenValue[] | undefined): GivenValue[] {
   return (keep ?? []).map((k) => ({
     ...k,
@@ -1077,32 +1088,51 @@ async function briefWithPack(
 
   const read = checkRead(checklist, req.description, parsed);
   const byCode = datesReadByCode(checklist, req.description, read.values);
-  const values: GivenValue[] = [
-    ...[...read.values, ...byCode].map(([key, v]) => ({
-      key,
-      value: v.value,
-      quote: v.quote,
-      source: 'description' as const,
-    })),
-    // What the user typed comes last, so it wins over what was read.
-    ...userValues(req.keep),
-  ];
+  const readValues = new Map([...read.values, ...byCode]);
+  let values: GivenValue[];
+  let edit = '';
+  let alsoAsk: ReadonlySet<string> = new Set();
+  if (descriptionWasEdited(req)) {
+    // T-150, Rule A: an earlier answer the new description contradicts gives way to it.
+    const after = valuesAfterEditedDescription(
+      checklist,
+      readValues,
+      read.dropped,
+      userValues(req.keep),
+    );
+    values = after.values;
+    // A fact the new description is not clear on is asked again, never dropped.
+    alsoAsk = new Set(after.cleared);
+    edit = `, replaced=${after.replaced.length}, cleared=${after.cleared.length}, nameDiffers=${after.nameDiffers.length}`;
+  } else {
+    values = [
+      ...[...readValues].map(([key, v]) => ({
+        key,
+        value: v.value,
+        quote: v.quote,
+        source: 'description' as const,
+      })),
+      // What the user typed comes last, so it wins over what was read.
+      ...userValues(req.keep),
+    ];
+  }
   const brief = buildBrief({
     kind: { id: pack.id, name: pack.name, court_document: isCourtDocument(pack.id) },
     checklist,
     values,
     court: req.court,
     description: req.description,
+    reask: [...alsoAsk],
   });
   console.info(
-    `[intake] brief built (intakeId=${ctx.intakeId}, kind=${pack.id}, read=${read.values.size}, byCode=${byCode.size}, dropped=${read.dropped.length}, unknown=${brief.still_unknown.length})`,
+    `[intake] brief built (intakeId=${ctx.intakeId}, kind=${pack.id}, read=${read.values.size}, byCode=${byCode.size}, dropped=${read.dropped.length}, unknown=${brief.still_unknown.length}${edit})`,
   );
   const config = loadTemplateConfig(pack.id);
   return {
     intake_id: ctx.intakeId,
     outcome: 'brief',
     brief,
-    questions: buildBriefQuestions(brief, wordedQuestions(parsed)),
+    questions: buildBriefQuestions(brief, wordedQuestions(parsed), alsoAsk),
     ...(config?.plan_access === 'pro' && req.plan !== 'pro' ? { needs_upgrade: true } : {}),
   };
 }

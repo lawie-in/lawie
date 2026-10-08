@@ -31,8 +31,12 @@ export interface BriefItem {
   value: Value | null;
   source: 'description' | 'user' | null;
   quote?: string;
-  /** True for a value read from the description. */
+  /** True for a value read from the description, or with a `note` to read. */
   please_check: boolean;
+  /** The service's line shown with "Please check" (T-150). Shown as sent. */
+  note?: string;
+  /** An empty fact an edited description left unclear: asked again, shows its blank (T-150). */
+  reask?: boolean;
   /** For a date: what it is the date of. */
   meaning?: string;
   /** The blank the draft shows while this is not given. */
@@ -80,6 +84,8 @@ export interface GivenValue {
   source: 'description' | 'user';
   quote?: string;
   label?: string;
+  /** A typed name the edited description gives differently (T-150). Sent back so the mark stays. */
+  please_check?: boolean;
 }
 
 export interface BriefResponse {
@@ -158,6 +164,9 @@ export function valuesAfter(brief: Brief, previous: GivenValue[]): GivenValue[] 
       source: item.source ?? 'user',
       ...(item.quote ? { quote: item.quote } : {}),
       label: item.label,
+      // T-150: keep the mark on a typed name. A mark with a note (Rule B) is
+      // worked out again by the service, so it is not carried.
+      ...(item.source === 'user' && item.please_check && !item.note ? { please_check: true } : {}),
     });
   }
   const kept = previous.filter(
@@ -169,7 +178,7 @@ export function valuesAfter(brief: Brief, previous: GivenValue[]): GivenValue[] 
   return [...placed, ...kept];
 }
 
-/** Set, replace or clear one value the user typed. */
+/** Set, replace or clear one value the user typed. The new value carries no "Please check" mark. */
 export function withValue(
   values: GivenValue[],
   key: string,

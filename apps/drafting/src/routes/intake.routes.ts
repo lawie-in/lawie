@@ -137,6 +137,9 @@ const valueSchema = z.object({
   source: z.enum(['description', 'user']).default('user'),
   quote: z.string().max(1000).optional(),
   label: z.string().max(200).optional(),
+  // T-150: a typed name marked "Please check" keeps its mark across updates.
+  // A request can only add a mark, never a value.
+  please_check: z.boolean().optional(),
 });
 
 const courtSchema = z

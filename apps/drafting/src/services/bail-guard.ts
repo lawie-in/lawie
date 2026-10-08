@@ -133,6 +133,48 @@ function sameOrder(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((x, i) => x === b[i]);
 }
 
+// ── Regular bail for a client not in custody (T-150, Rule B) ────────────────
+//
+// LEGAL CONTENT: the trigger and the text are Ajay's, signed in
+// AJ-2026-10-07-T150. Do not reword or widen without his sign-off.
+
+/** The regular-bail documents the warning is shown on. Never anticipatory bail. */
+// bail_before_magistrate has no custody choice yet, so Rule B does not fire on it (follow-up ticket, AJ-2026-10-07-T150-diff).
+export const REGULAR_BAIL_KINDS: ReadonlySet<string> = new Set([
+  BAIL_REGULAR,
+  'bail_before_magistrate',
+]);
+
+/** The custody answer that says the client has not been arrested. */
+export const ANTICIPATING_ARREST = 'No — anticipating arrest';
+
+/** Ajay's text, word for word (AJ-2026-10-07-T150, Rule B). */
+export const REGULAR_BAIL_NOT_IN_CUSTODY_WARNING =
+  'A regular bail application is usually for a client who is in custody or who will surrender before the court. If your client has not been arrested and will not surrender, you may need anticipatory bail.';
+
+/** True for the custody field: the choice that offers "No — anticipating arrest". */
+export function isCustodyChoice(options: readonly string[]): boolean {
+  const want = normalise(ANTICIPATING_ARREST);
+  return options.some((o) => normalise(o) === want);
+}
+
+/**
+ * Rule B. True when the document is a regular bail and the custody answer is
+ * "No — anticipating arrest" or is not given. A missing custody date alone
+ * does not count: only the custody answer is looked at. The warning never
+ * blocks Confirm and never changes the document.
+ */
+export function needsNotInCustodyWarning(
+  kindId: string | null,
+  custodyAnswer: string | string[] | null,
+): boolean {
+  if (kindId === null || !REGULAR_BAIL_KINDS.has(kindId)) return false;
+  if (custodyAnswer === null) return true;
+  const answer = Array.isArray(custodyAnswer) ? custodyAnswer.join(' ') : custodyAnswer;
+  if (answer.trim() === '') return true;
+  return normalise(answer) === normalise(ANTICIPATING_ARREST);
+}
+
 /**
  * Apply the bail rule to the result of the match call.
  *
