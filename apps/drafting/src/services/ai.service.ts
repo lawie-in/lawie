@@ -51,6 +51,7 @@ import {
   withoutDisclaimers,
   withoutDisclaimerText,
 } from './brief-drafter';
+import { citationWarnings, removeUngivenCitations } from './citation-check';
 import {
   DRAFTER_GUIDED_SYSTEM_PROMPT,
   DRAFTER_PACK_SYSTEM_PROMPT,
@@ -1211,6 +1212,12 @@ export async function streamGenerateFromBrief(
     }
   }
 
+  // ── No case law on its own (T-148) ─────────────────────────────────────────
+  // A case citation the advocate did not give, in the brief or in their own
+  // words, is replaced by the blank. Rule-pack text is never a source.
+  const citations = removeUngivenCitations(output.body, [briefText(brief), input.described ?? '']);
+  output = { ...output, body: citations.text };
+
   // ── The body takes its place among the parts the system wrote ─────────────
   renderedSections[bodyAt] = { ...renderedSections[bodyAt], content: output.body };
 
@@ -1339,6 +1346,9 @@ export async function streamGenerateFromBrief(
       brief,
     ),
   );
+
+  // A case citation the advocate did not give was removed (T-148):
+  allWarnings.push(...citationWarnings(citations.removed));
 
   // Every mandatory clause of the pack (ADR-021, rule 1).
   for (const clause of missing) {
@@ -1475,8 +1485,10 @@ export async function streamGenerateGuided(
     );
   }
 
-  // The whole document is the Drafter's. Only a disclaimer it was told not to write is taken out.
-  const fullText = withoutDisclaimers(raw);
+  // The whole document is the Drafter's. Only a disclaimer it was told not to write is taken out,
+  // and a case citation the advocate did not give (T-148).
+  const citations = removeUngivenCitations(withoutDisclaimers(raw), [briefText(brief)]);
+  const fullText = citations.text;
   const renderedSections: RenderedSection[] = [
     { section_id: 'body', type: 'ai_generated', content: fullText },
   ];
@@ -1519,6 +1531,8 @@ export async function streamGenerateGuided(
 
   // Nothing in the draft that the brief does not give (T-107, section 6, rules 1 and 3).
   allWarnings.push(...checkAgainstBrief(fullText, brief, null));
+  // A case citation the advocate did not give was removed (T-148).
+  allWarnings.push(...citationWarnings(citations.removed));
 
   if (allWarnings.length > 0) {
     res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
