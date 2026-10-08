@@ -64,17 +64,11 @@ function printedLabels(file: string, templateId: string): Record<string, string>
  * Each entry is "<file>|<key>". Named here, never skipped.
  */
 const NAMED_EXCEPTIONS_SIGNED_TYPES: readonly string[] = [
-  'bihar_district.json|state',
-  'consumer_commission_generic.json|state',
   // Not a choice: the fixed designation "Standing Counsel (Criminal)". Matches the
   // literal "(criminal)" rule; Ajay to confirm it is acceptable (reported, not changed).
   'delhi_hc.json|state',
-  'district_court_generic.json|state',
   'drt.json|applicant',
   'family_court.json|state',
-  'itat.json|respondent',
-  'itat.json|state',
-  'jharkhand_district.json|state',
   'labour_court.json|applicant',
   'labour_court.json|complainant',
   'labour_court.json|counter_party',
@@ -82,8 +76,6 @@ const NAMED_EXCEPTIONS_SIGNED_TYPES: readonly string[] = [
   'labour_court.json|respondent',
   'nclt.json|petitioner',
   'nclt.json|respondent',
-  'sessions_generic.json|state',
-  'tn_district.json|state',
   'tribunal_generic.json|counter_party',
 ];
 

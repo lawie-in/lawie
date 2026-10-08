@@ -697,6 +697,7 @@ export async function streamGenerateFromTemplate(
           caseNomenclature: court.caseNomenclature,
           formattingRulesRef: court.formattingRulesRef,
           courtType: court.courtType,
+          state: court.state,
           courtRule: courtRule ?? undefined,
         };
       }

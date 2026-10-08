@@ -9,7 +9,7 @@
   },
   "courtId": "district_court_generic",
   "courtType": "district_court",
-  "designation": "IN THE COURT OF DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION)",
+  "designation": "IN THE COURT OF [To be confirmed: court designation]",
   "jurisdictionNote": "Civil court of original jurisdiction. Handles suits, consumer complaints (District Commission), rent disputes, and other civil matters within the district.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PLAINTIFF\n\nVERSUS\n\n{respondent} ... DEFENDANT",
   "party_designation": {
@@ -20,7 +20,7 @@
     "plaintiff": "Plaintiff",
     "defendant": "Defendant",
     "complainant": "Complainant",
-    "state": "State through the Collector / District Magistrate, {district}"
+    "state": "State of {state}"
   },
   "case_nomenclature": {
     "civil_suit": "Civil Suit No. _____ of {year}",
