@@ -12,14 +12,14 @@ const lora = Lora({ subsets: ['latin'], weight: ['600'], variable: '--font-lora'
 export const metadata: Metadata = {
   title: 'Lawie — AI Legal Drafting for Indian Advocates',
   description:
-    'Stop Googling legal formats. Lawie is an AI-powered drafting tool built for young Indian advocates. Generate bail applications, legal notices, and more — court-ready, in under 5 minutes.',
+    'Stop Googling legal formats. Lawie is an AI-assisted drafting tool built for young Indian advocates. Draft bail applications, legal notices, and more, then review before you file.',
   keywords: [
     'legal drafting',
     'AI legal tool',
     'Indian advocates',
     'bail application',
     'legal notice',
-    'court-ready documents',
+    'legal documents',
     'BNS',
     'BNSS',
     'BSA',

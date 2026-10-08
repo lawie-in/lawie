@@ -882,7 +882,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
       </td>
     </tr>
     <tr>
-      <td>Defendant (civil) / Opposite Party (criminal)</td>
+      <td>Respondent</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
         State of jharkhand, through the concerned authority
@@ -2570,7 +2570,7 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
       </td>
     </tr>
     <tr>
-      <td>Defendant (civil) / Opposite Party (criminal)</td>
+      <td>Opposite Party</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
         State of jharkhand, through the concerned authority
@@ -2747,9 +2747,9 @@ exports[`court-rules-golden — placeholder context per (court × template) alla
 {
   "case_nomenclature": "Criminal Misc. Bail Application No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": "Ranchi",
-  "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD, RANCHI",
-  "court_header": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD, RANCHI",
+  "court_city": "Prayagraj",
+  "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "paraNumbering": {
     "format": "1.",
@@ -2770,7 +2770,7 @@ exports[`court-rules-golden — placeholder context per (court × template) alla
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby solemnly affirm and declare that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to my knowledge and belief. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Prayagraj on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -2780,9 +2780,9 @@ exports[`court-rules-golden — placeholder context per (court × template) alla
 {
   "case_nomenclature": "Criminal Misc. Bail Application No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": "Ranchi",
-  "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD, RANCHI",
-  "court_header": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD, RANCHI",
+  "court_city": "Prayagraj",
+  "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "paraNumbering": {
     "format": "1.",
@@ -2803,7 +2803,7 @@ exports[`court-rules-golden — placeholder context per (court × template) alla
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby solemnly affirm and declare that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to my knowledge and belief. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Prayagraj on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -2811,11 +2811,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) allahabad_hc consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Misc. Bail Application No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": "Ranchi",
-  "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD, RANCHI",
-  "court_header": undefined,
+  "court_city": "Prayagraj",
+  "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "paraNumbering": {
     "format": "1.",
@@ -2836,7 +2836,7 @@ exports[`court-rules-golden — placeholder context per (court × template) alla
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby solemnly affirm and declare that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to my knowledge and belief. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Prayagraj on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -2844,11 +2844,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) allahabad_hc legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Misc. Bail Application No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Prayagraj",
+  "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "paraNumbering": {
     "format": "1.",
@@ -2869,7 +2869,7 @@ exports[`court-rules-golden — placeholder context per (court × template) alla
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby solemnly affirm and declare that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to my knowledge and belief. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Prayagraj on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -2877,11 +2877,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) allahabad_hc legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Misc. Bail Application No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Prayagraj",
+  "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "paraNumbering": {
     "format": "1.",
@@ -2902,7 +2902,7 @@ exports[`court-rules-golden — placeholder context per (court × template) alla
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby solemnly affirm and declare that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to my knowledge and belief. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Prayagraj on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -2910,11 +2910,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) allahabad_hc rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Misc. Bail Application No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Prayagraj",
+  "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "paraNumbering": {
     "format": "1.",
@@ -2935,7 +2935,7 @@ exports[`court-rules-golden — placeholder context per (court × template) alla
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby solemnly affirm and declare that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to my knowledge and belief. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Prayagraj on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -2945,9 +2945,9 @@ exports[`court-rules-golden — placeholder context per (court × template) biha
 {
   "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
-  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, RANCHI",
+  "court_city": "Patna",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, PATNA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -2961,14 +2961,14 @@ exports[`court-rules-golden — placeholder context per (court × template) biha
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of Bihar through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Bihar through the District Magistrate / S.P., Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -2978,9 +2978,9 @@ exports[`court-rules-golden — placeholder context per (court × template) biha
 {
   "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
-  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, RANCHI",
+  "court_city": "Patna",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, PATNA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -2994,14 +2994,14 @@ exports[`court-rules-golden — placeholder context per (court × template) biha
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of Bihar through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Bihar through the District Magistrate / S.P., Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3009,11 +3009,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) bihar_district consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, PATNA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3027,14 +3027,14 @@ exports[`court-rules-golden — placeholder context per (court × template) biha
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of Bihar through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Bihar through the District Magistrate / S.P., Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3042,11 +3042,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) bihar_district legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, PATNA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3060,14 +3060,14 @@ exports[`court-rules-golden — placeholder context per (court × template) biha
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of Bihar through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Bihar through the District Magistrate / S.P., Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3075,11 +3075,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) bihar_district legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, PATNA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3093,14 +3093,14 @@ exports[`court-rules-golden — placeholder context per (court × template) biha
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of Bihar through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Bihar through the District Magistrate / S.P., Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3108,11 +3108,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) bihar_district rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, PATNA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3126,14 +3126,14 @@ exports[`court-rules-golden — placeholder context per (court × template) biha
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of Bihar through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Bihar through the District Magistrate / S.P., Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3141,11 +3141,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) cjm_generic bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of {year}",
+  "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "cjm",
-  "court_city": "Ranchi",
-  "court_designation": "CHIEF JUDICIAL MAGISTRATE, RANCHI",
-  "court_header": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, RANCHI",
+  "court_city": "Patna",
+  "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
+  "court_header": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, PATNA",
   "designation": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE",
   "paraNumbering": {
     "format": "1.",
@@ -3166,7 +3166,7 @@ exports[`court-rules-golden — placeholder context per (court × template) cjm_
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3176,9 +3176,9 @@ exports[`court-rules-golden — placeholder context per (court × template) cjm_
 {
   "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "cjm",
-  "court_city": "Ranchi",
-  "court_designation": "CHIEF JUDICIAL MAGISTRATE, RANCHI",
-  "court_header": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, RANCHI",
+  "court_city": "Patna",
+  "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
+  "court_header": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, PATNA",
   "designation": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE",
   "paraNumbering": {
     "format": "1.",
@@ -3199,7 +3199,7 @@ exports[`court-rules-golden — placeholder context per (court × template) cjm_
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3207,11 +3207,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) cjm_generic consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "cjm",
-  "court_city": "Ranchi",
-  "court_designation": "CHIEF JUDICIAL MAGISTRATE, RANCHI",
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
+  "court_header": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, PATNA",
   "designation": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE",
   "paraNumbering": {
     "format": "1.",
@@ -3232,7 +3232,7 @@ exports[`court-rules-golden — placeholder context per (court × template) cjm_
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3240,11 +3240,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) cjm_generic legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "cjm",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
+  "court_header": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, PATNA",
   "designation": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE",
   "paraNumbering": {
     "format": "1.",
@@ -3265,7 +3265,7 @@ exports[`court-rules-golden — placeholder context per (court × template) cjm_
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3273,11 +3273,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) cjm_generic legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "cjm",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
+  "court_header": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, PATNA",
   "designation": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE",
   "paraNumbering": {
     "format": "1.",
@@ -3298,7 +3298,7 @@ exports[`court-rules-golden — placeholder context per (court × template) cjm_
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3306,11 +3306,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) cjm_generic rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "cjm",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
+  "court_header": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, PATNA",
   "designation": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE",
   "paraNumbering": {
     "format": "1.",
@@ -3331,7 +3331,7 @@ exports[`court-rules-golden — placeholder context per (court × template) cjm_
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3339,11 +3339,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) consumer_commission_generic bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Anticipatory Bail Application",
+  "case_nomenclature": "Consumer Complaint No. _____ of 2026",
   "courtType": "consumer_commission",
-  "court_city": "Ranchi",
-  "court_designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, RANCHI",
-  "court_header": "IN THE COURT OF BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, RANCHI",
+  "court_city": "Patna",
+  "court_designation": "DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
+  "court_header": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
   "designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION",
   "paraNumbering": {
     "format": "1.",
@@ -3357,14 +3357,14 @@ exports[`court-rules-golden — placeholder context per (court × template) cons
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
   "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 COMPLAINANT",
 }
@@ -3372,11 +3372,11 @@ COMPLAINANT",
 
 exports[`court-rules-golden — placeholder context per (court × template) consumer_commission_generic bail_regular resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case",
+  "case_nomenclature": "Consumer Complaint No. _____ of 2026",
   "courtType": "consumer_commission",
-  "court_city": "Ranchi",
-  "court_designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, RANCHI",
-  "court_header": "IN THE COURT OF BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, RANCHI",
+  "court_city": "Patna",
+  "court_designation": "DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
+  "court_header": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
   "designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION",
   "paraNumbering": {
     "format": "1.",
@@ -3390,14 +3390,14 @@ exports[`court-rules-golden — placeholder context per (court × template) cons
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
   "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 COMPLAINANT",
 }
@@ -3405,11 +3405,11 @@ COMPLAINANT",
 
 exports[`court-rules-golden — placeholder context per (court × template) consumer_commission_generic consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Consumer Complaint No. _____ of 2026",
   "courtType": "consumer_commission",
-  "court_city": "Ranchi",
-  "court_designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, RANCHI",
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
+  "court_header": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
   "designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION",
   "paraNumbering": {
     "format": "1.",
@@ -3423,14 +3423,14 @@ exports[`court-rules-golden — placeholder context per (court × template) cons
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
   "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 COMPLAINANT",
 }
@@ -3438,11 +3438,11 @@ COMPLAINANT",
 
 exports[`court-rules-golden — placeholder context per (court × template) consumer_commission_generic legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Consumer Complaint No. _____ of 2026",
   "courtType": "consumer_commission",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
+  "court_header": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
   "designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION",
   "paraNumbering": {
     "format": "1.",
@@ -3456,14 +3456,14 @@ exports[`court-rules-golden — placeholder context per (court × template) cons
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
   "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 COMPLAINANT",
 }
@@ -3471,11 +3471,11 @@ COMPLAINANT",
 
 exports[`court-rules-golden — placeholder context per (court × template) consumer_commission_generic legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Consumer Complaint No. _____ of 2026",
   "courtType": "consumer_commission",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
+  "court_header": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
   "designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION",
   "paraNumbering": {
     "format": "1.",
@@ -3489,14 +3489,14 @@ exports[`court-rules-golden — placeholder context per (court × template) cons
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
   "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 COMPLAINANT",
 }
@@ -3504,11 +3504,11 @@ COMPLAINANT",
 
 exports[`court-rules-golden — placeholder context per (court × template) consumer_commission_generic rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Consumer Complaint No. _____ of 2026",
   "courtType": "consumer_commission",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
+  "court_header": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
   "designation": "BEFORE THE DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION",
   "paraNumbering": {
     "format": "1.",
@@ -3522,14 +3522,14 @@ exports[`court-rules-golden — placeholder context per (court × template) cons
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
   "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 COMPLAINANT",
 }
@@ -3539,9 +3539,9 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
 {
   "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "ADDITIONAL SESSIONS JUDGE, RANCHI",
-  "court_header": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE, RANCHI",
+  "court_city": "New Delhi",
+  "court_designation": "ADDITIONAL SESSIONS JUDGE, NEW DELHI",
+  "court_header": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE, NEW DELHI",
   "designation": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3551,8 +3551,8 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
-  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
+  "party_label_petitioner": "Applicant",
+  "party_label_respondent": "Respondent",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "In view of the facts and circumstances mentioned above, it is most respectfully prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}",
@@ -3560,9 +3560,9 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at New Delhi on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3572,9 +3572,9 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
 {
   "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "ADDITIONAL SESSIONS JUDGE, RANCHI",
-  "court_header": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE, RANCHI",
+  "court_city": "New Delhi",
+  "court_designation": "ADDITIONAL SESSIONS JUDGE, NEW DELHI",
+  "court_header": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE, NEW DELHI",
   "designation": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3584,8 +3584,8 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
-  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
+  "party_label_petitioner": "Applicant",
+  "party_label_respondent": "Respondent",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "In view of the facts and circumstances mentioned above, it is most respectfully prayed that this Hon'ble Court may be pleased to:",
   "state_respondent": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}",
@@ -3593,9 +3593,9 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at New Delhi on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3603,11 +3603,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_district consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "ADDITIONAL SESSIONS JUDGE, RANCHI",
-  "court_header": undefined,
+  "court_city": "New Delhi",
+  "court_designation": "ADDITIONAL SESSIONS JUDGE, NEW DELHI",
+  "court_header": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE, NEW DELHI",
   "designation": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3628,7 +3628,7 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at New Delhi on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3636,11 +3636,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_district legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "New Delhi",
+  "court_designation": "ADDITIONAL SESSIONS JUDGE, NEW DELHI",
+  "court_header": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE, NEW DELHI",
   "designation": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3661,7 +3661,7 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at New Delhi on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3669,11 +3669,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_district legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "New Delhi",
+  "court_designation": "ADDITIONAL SESSIONS JUDGE, NEW DELHI",
+  "court_header": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE, NEW DELHI",
   "designation": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3694,7 +3694,7 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at New Delhi on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3702,11 +3702,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_district rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "New Delhi",
+  "court_designation": "ADDITIONAL SESSIONS JUDGE, NEW DELHI",
+  "court_header": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE, NEW DELHI",
   "designation": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3727,7 +3727,7 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at New Delhi on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3737,9 +3737,9 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
 {
   "case_nomenclature": "Bail Appln. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": "Ranchi",
-  "court_designation": "HIGH COURT OF DELHI AT NEW DELHI, RANCHI",
-  "court_header": "IN THE HIGH COURT OF DELHI AT NEW DELHI, RANCHI",
+  "court_city": "New Delhi",
+  "court_designation": "HIGH COURT OF DELHI AT NEW DELHI",
+  "court_header": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "designation": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "paraNumbering": {
     "format": "1.",
@@ -3770,9 +3770,9 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
 {
   "case_nomenclature": "Bail Appln. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": "Ranchi",
-  "court_designation": "HIGH COURT OF DELHI AT NEW DELHI, RANCHI",
-  "court_header": "IN THE HIGH COURT OF DELHI AT NEW DELHI, RANCHI",
+  "court_city": "New Delhi",
+  "court_designation": "HIGH COURT OF DELHI AT NEW DELHI",
+  "court_header": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "designation": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "paraNumbering": {
     "format": "1.",
@@ -3801,11 +3801,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_hc consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Appln. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": "Ranchi",
-  "court_designation": "HIGH COURT OF DELHI AT NEW DELHI, RANCHI",
-  "court_header": undefined,
+  "court_city": "New Delhi",
+  "court_designation": "HIGH COURT OF DELHI AT NEW DELHI",
+  "court_header": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "designation": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "paraNumbering": {
     "format": "1.",
@@ -3834,11 +3834,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_hc legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Appln. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "New Delhi",
+  "court_designation": "HIGH COURT OF DELHI AT NEW DELHI",
+  "court_header": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "designation": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "paraNumbering": {
     "format": "1.",
@@ -3867,11 +3867,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_hc legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Appln. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "New Delhi",
+  "court_designation": "HIGH COURT OF DELHI AT NEW DELHI",
+  "court_header": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "designation": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "paraNumbering": {
     "format": "1.",
@@ -3900,11 +3900,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_hc rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Appln. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "New Delhi",
+  "court_designation": "HIGH COURT OF DELHI AT NEW DELHI",
+  "court_header": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "designation": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "paraNumbering": {
     "format": "1.",
@@ -3933,11 +3933,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Anticipatory Bail Application",
+  "case_nomenclature": "Civil Suit No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION), RANCHI",
-  "court_header": "IN THE COURT OF DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION), RANCHI",
+  "court_city": "Patna",
+  "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
+  "court_header": "IN THE COURT OF CIVIL JUDGE (SENIOR DIVISION), PATNA",
   "designation": "IN THE COURT OF DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION)",
   "paraNumbering": {
     "format": "1.",
@@ -3951,14 +3951,14 @@ exports[`court-rules-golden — placeholder context per (court × template) dist
   "party_label_respondent": "Defendant",
   "prayer_closing": "And any other relief which this Hon'ble Court may deem fit and proper in the facts and circumstances of the case may also be granted in favour of the plaintiff.",
   "prayer_opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff herein above named, do hereby verify that the contents of the above plaint/application are true and correct to my knowledge. The documents annexed herewith are true copies of their respective originals.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3966,11 +3966,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic bail_regular resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case",
+  "case_nomenclature": "Civil Suit No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION), RANCHI",
-  "court_header": "IN THE COURT OF DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION), RANCHI",
+  "court_city": "Patna",
+  "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
+  "court_header": "IN THE COURT OF CIVIL JUDGE (SENIOR DIVISION), PATNA",
   "designation": "IN THE COURT OF DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION)",
   "paraNumbering": {
     "format": "1.",
@@ -3984,14 +3984,14 @@ exports[`court-rules-golden — placeholder context per (court × template) dist
   "party_label_respondent": "Defendant",
   "prayer_closing": "And any other relief which this Hon'ble Court may deem fit and proper in the facts and circumstances of the case may also be granted in favour of the plaintiff.",
   "prayer_opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff herein above named, do hereby verify that the contents of the above plaint/application are true and correct to my knowledge. The documents annexed herewith are true copies of their respective originals.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -3999,11 +3999,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Civil Suit No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION), RANCHI",
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
+  "court_header": "IN THE COURT OF CIVIL JUDGE (SENIOR DIVISION), PATNA",
   "designation": "IN THE COURT OF DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION)",
   "paraNumbering": {
     "format": "1.",
@@ -4017,14 +4017,14 @@ exports[`court-rules-golden — placeholder context per (court × template) dist
   "party_label_respondent": "Defendant",
   "prayer_closing": "And any other relief which this Hon'ble Court may deem fit and proper in the facts and circumstances of the case may also be granted in favour of the plaintiff.",
   "prayer_opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff herein above named, do hereby verify that the contents of the above plaint/application are true and correct to my knowledge. The documents annexed herewith are true copies of their respective originals.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4032,11 +4032,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Civil Suit No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
+  "court_header": "IN THE COURT OF CIVIL JUDGE (SENIOR DIVISION), PATNA",
   "designation": "IN THE COURT OF DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION)",
   "paraNumbering": {
     "format": "1.",
@@ -4050,14 +4050,14 @@ exports[`court-rules-golden — placeholder context per (court × template) dist
   "party_label_respondent": "Defendant",
   "prayer_closing": "And any other relief which this Hon'ble Court may deem fit and proper in the facts and circumstances of the case may also be granted in favour of the plaintiff.",
   "prayer_opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff herein above named, do hereby verify that the contents of the above plaint/application are true and correct to my knowledge. The documents annexed herewith are true copies of their respective originals.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4065,11 +4065,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Civil Suit No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
+  "court_header": "IN THE COURT OF CIVIL JUDGE (SENIOR DIVISION), PATNA",
   "designation": "IN THE COURT OF DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION)",
   "paraNumbering": {
     "format": "1.",
@@ -4083,14 +4083,14 @@ exports[`court-rules-golden — placeholder context per (court × template) dist
   "party_label_respondent": "Defendant",
   "prayer_closing": "And any other relief which this Hon'ble Court may deem fit and proper in the facts and circumstances of the case may also be granted in favour of the plaintiff.",
   "prayer_opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff herein above named, do hereby verify that the contents of the above plaint/application are true and correct to my knowledge. The documents annexed herewith are true copies of their respective originals.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4098,11 +4098,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Civil Suit No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
+  "court_header": "IN THE COURT OF CIVIL JUDGE (SENIOR DIVISION), PATNA",
   "designation": "IN THE COURT OF DISTRICT JUDGE / CIVIL JUDGE (SENIOR DIVISION)",
   "paraNumbering": {
     "format": "1.",
@@ -4116,14 +4116,14 @@ exports[`court-rules-golden — placeholder context per (court × template) dist
   "party_label_respondent": "Defendant",
   "prayer_closing": "And any other relief which this Hon'ble Court may deem fit and proper in the facts and circumstances of the case may also be granted in favour of the plaintiff.",
   "prayer_opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the Collector / District Magistrate, Ranchi",
+  "state_respondent": "State through the Collector / District Magistrate, Patna",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff herein above named, do hereby verify that the contents of the above plaint/application are true and correct to my knowledge. The documents annexed herewith are true copies of their respective originals.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4197,11 +4197,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_district consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
   "court_city": "Ranchi",
   "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
-  "court_header": undefined,
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, RANCHI",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -4230,11 +4230,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_district legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Ranchi",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, RANCHI",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -4263,11 +4263,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_district legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Ranchi",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, RANCHI",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -4296,11 +4296,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_district rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Ranchi",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, RANCHI",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -4395,11 +4395,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_hc consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
   "courtType": "high_court",
   "court_city": "Ranchi",
   "court_designation": "HIGH COURT OF JHARKHAND AT RANCHI",
-  "court_header": undefined,
+  "court_header": "IN THE HIGH COURT OF JHARKHAND AT RANCHI",
   "designation": "IN THE HIGH COURT OF JHARKHAND AT RANCHI",
   "paraNumbering": {
     "format": "1.",
@@ -4428,11 +4428,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_hc legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Ranchi",
+  "court_designation": "HIGH COURT OF JHARKHAND AT RANCHI",
+  "court_header": "IN THE HIGH COURT OF JHARKHAND AT RANCHI",
   "designation": "IN THE HIGH COURT OF JHARKHAND AT RANCHI",
   "paraNumbering": {
     "format": "1.",
@@ -4461,11 +4461,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_hc legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Ranchi",
+  "court_designation": "HIGH COURT OF JHARKHAND AT RANCHI",
+  "court_header": "IN THE HIGH COURT OF JHARKHAND AT RANCHI",
   "designation": "IN THE HIGH COURT OF JHARKHAND AT RANCHI",
   "paraNumbering": {
     "format": "1.",
@@ -4494,11 +4494,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_hc rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Ranchi",
+  "court_designation": "HIGH COURT OF JHARKHAND AT RANCHI",
+  "court_header": "IN THE HIGH COURT OF JHARKHAND AT RANCHI",
   "designation": "IN THE HIGH COURT OF JHARKHAND AT RANCHI",
   "paraNumbering": {
     "format": "1.",
@@ -4527,11 +4527,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jmfc_generic bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of {year}",
+  "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "jmfc",
-  "court_city": "Ranchi",
-  "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, RANCHI",
-  "court_header": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, RANCHI",
+  "court_city": "Patna",
+  "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
+  "court_header": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
   "designation": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS",
   "paraNumbering": {
     "format": "1.",
@@ -4552,7 +4552,7 @@ exports[`court-rules-golden — placeholder context per (court × template) jmfc
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4562,9 +4562,9 @@ exports[`court-rules-golden — placeholder context per (court × template) jmfc
 {
   "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "jmfc",
-  "court_city": "Ranchi",
-  "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, RANCHI",
-  "court_header": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, RANCHI",
+  "court_city": "Patna",
+  "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
+  "court_header": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
   "designation": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS",
   "paraNumbering": {
     "format": "1.",
@@ -4585,7 +4585,7 @@ exports[`court-rules-golden — placeholder context per (court × template) jmfc
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4593,11 +4593,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jmfc_generic consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "jmfc",
-  "court_city": "Ranchi",
-  "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, RANCHI",
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
+  "court_header": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
   "designation": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS",
   "paraNumbering": {
     "format": "1.",
@@ -4618,7 +4618,7 @@ exports[`court-rules-golden — placeholder context per (court × template) jmfc
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4626,11 +4626,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jmfc_generic legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "jmfc",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
+  "court_header": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
   "designation": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS",
   "paraNumbering": {
     "format": "1.",
@@ -4651,7 +4651,7 @@ exports[`court-rules-golden — placeholder context per (court × template) jmfc
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4659,11 +4659,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jmfc_generic legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "jmfc",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
+  "court_header": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
   "designation": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS",
   "paraNumbering": {
     "format": "1.",
@@ -4684,7 +4684,7 @@ exports[`court-rules-golden — placeholder context per (court × template) jmfc
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4692,11 +4692,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jmfc_generic rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Case No. _____ of 2026",
   "courtType": "jmfc",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
+  "court_header": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
   "designation": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS",
   "paraNumbering": {
     "format": "1.",
@@ -4717,7 +4717,7 @@ exports[`court-rules-golden — placeholder context per (court × template) jmfc
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4727,9 +4727,9 @@ exports[`court-rules-golden — placeholder context per (court × template) patn
 {
   "case_nomenclature": "Cr. Misc. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": "Ranchi",
-  "court_designation": "HIGH COURT OF JUDICATURE AT PATNA, RANCHI",
-  "court_header": "IN THE HIGH COURT OF JUDICATURE AT PATNA, RANCHI",
+  "court_city": "Patna",
+  "court_designation": "HIGH COURT OF JUDICATURE AT PATNA",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "paraNumbering": {
     "format": "1.",
@@ -4750,7 +4750,7 @@ exports[`court-rules-golden — placeholder context per (court × template) patn
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Petitioner herein above named, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4760,9 +4760,9 @@ exports[`court-rules-golden — placeholder context per (court × template) patn
 {
   "case_nomenclature": "Cr. Misc. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": "Ranchi",
-  "court_designation": "HIGH COURT OF JUDICATURE AT PATNA, RANCHI",
-  "court_header": "IN THE HIGH COURT OF JUDICATURE AT PATNA, RANCHI",
+  "court_city": "Patna",
+  "court_designation": "HIGH COURT OF JUDICATURE AT PATNA",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "paraNumbering": {
     "format": "1.",
@@ -4783,7 +4783,7 @@ exports[`court-rules-golden — placeholder context per (court × template) patn
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Petitioner herein above named, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4791,11 +4791,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) patna_hc consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": "Ranchi",
-  "court_designation": "HIGH COURT OF JUDICATURE AT PATNA, RANCHI",
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "HIGH COURT OF JUDICATURE AT PATNA",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "paraNumbering": {
     "format": "1.",
@@ -4816,7 +4816,7 @@ exports[`court-rules-golden — placeholder context per (court × template) patn
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Petitioner herein above named, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4824,11 +4824,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) patna_hc legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "HIGH COURT OF JUDICATURE AT PATNA",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "paraNumbering": {
     "format": "1.",
@@ -4849,7 +4849,7 @@ exports[`court-rules-golden — placeholder context per (court × template) patn
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Petitioner herein above named, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4857,11 +4857,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) patna_hc legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "HIGH COURT OF JUDICATURE AT PATNA",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "paraNumbering": {
     "format": "1.",
@@ -4882,7 +4882,7 @@ exports[`court-rules-golden — placeholder context per (court × template) patn
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Petitioner herein above named, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4890,11 +4890,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) patna_hc rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
   "courtType": "high_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Patna",
+  "court_designation": "HIGH COURT OF JUDICATURE AT PATNA",
+  "court_header": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "paraNumbering": {
     "format": "1.",
@@ -4915,7 +4915,7 @@ exports[`court-rules-golden — placeholder context per (court × template) patn
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Petitioner herein above named, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Patna on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4925,9 +4925,9 @@ exports[`court-rules-golden — placeholder context per (court × template) sess
 {
   "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "sessions",
-  "court_city": "Ranchi",
-  "court_designation": "SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE, RANCHI",
-  "court_header": "IN THE COURT OF SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE, RANCHI",
+  "court_city": "Mumbai",
+  "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
+  "court_header": "IN THE COURT OF SESSIONS FOR GREATER BOMBAY AT MUMBAI",
   "designation": "IN THE COURT OF SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -4941,14 +4941,14 @@ exports[`court-rules-golden — placeholder context per (court × template) sess
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State through the District Magistrate / S.P., Mumbai",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Mumbai on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4958,9 +4958,9 @@ exports[`court-rules-golden — placeholder context per (court × template) sess
 {
   "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "sessions",
-  "court_city": "Ranchi",
-  "court_designation": "SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE, RANCHI",
-  "court_header": "IN THE COURT OF SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE, RANCHI",
+  "court_city": "Mumbai",
+  "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
+  "court_header": "IN THE COURT OF SESSIONS FOR GREATER BOMBAY AT MUMBAI",
   "designation": "IN THE COURT OF SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -4974,14 +4974,14 @@ exports[`court-rules-golden — placeholder context per (court × template) sess
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State through the District Magistrate / S.P., Mumbai",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Mumbai on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -4989,11 +4989,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) sessions_generic consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "sessions",
-  "court_city": "Ranchi",
-  "court_designation": "SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE, RANCHI",
-  "court_header": undefined,
+  "court_city": "Mumbai",
+  "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
+  "court_header": "IN THE COURT OF SESSIONS FOR GREATER BOMBAY AT MUMBAI",
   "designation": "IN THE COURT OF SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5007,14 +5007,14 @@ exports[`court-rules-golden — placeholder context per (court × template) sess
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State through the District Magistrate / S.P., Mumbai",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Mumbai on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -5022,11 +5022,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) sessions_generic legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "sessions",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Mumbai",
+  "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
+  "court_header": "IN THE COURT OF SESSIONS FOR GREATER BOMBAY AT MUMBAI",
   "designation": "IN THE COURT OF SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5040,14 +5040,14 @@ exports[`court-rules-golden — placeholder context per (court × template) sess
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State through the District Magistrate / S.P., Mumbai",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Mumbai on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -5055,11 +5055,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) sessions_generic legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "sessions",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Mumbai",
+  "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
+  "court_header": "IN THE COURT OF SESSIONS FOR GREATER BOMBAY AT MUMBAI",
   "designation": "IN THE COURT OF SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5073,14 +5073,14 @@ exports[`court-rules-golden — placeholder context per (court × template) sess
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State through the District Magistrate / S.P., Mumbai",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Mumbai on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -5088,11 +5088,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) sessions_generic rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Bail Application No. _____ of 2026",
   "courtType": "sessions",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Mumbai",
+  "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
+  "court_header": "IN THE COURT OF SESSIONS FOR GREATER BOMBAY AT MUMBAI",
   "designation": "IN THE COURT OF SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5106,14 +5106,14 @@ exports[`court-rules-golden — placeholder context per (court × template) sess
   "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State through the District Magistrate / S.P., Mumbai",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Mumbai on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -5123,9 +5123,9 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
 {
   "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
-  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, RANCHI",
+  "court_city": "Agra",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, AGRA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5135,18 +5135,18 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
-  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
+  "party_label_petitioner": "Applicant",
+  "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Uttar Pradesh",
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Agra on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -5156,9 +5156,9 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
 {
   "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
-  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, RANCHI",
+  "court_city": "Agra",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, AGRA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5168,18 +5168,18 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   },
   "party_label_accused": "Accused",
   "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
-  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
+  "party_label_petitioner": "Applicant",
+  "party_label_respondent": "Opposite Party",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Uttar Pradesh",
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Agra on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -5187,11 +5187,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) up_district consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": "Ranchi",
-  "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
-  "court_header": undefined,
+  "court_city": "Agra",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, AGRA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5205,14 +5205,14 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Uttar Pradesh",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Agra on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -5220,11 +5220,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) up_district legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Agra",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, AGRA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5238,14 +5238,14 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Uttar Pradesh",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Agra on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -5253,11 +5253,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) up_district legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Agra",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, AGRA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5271,14 +5271,14 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Uttar Pradesh",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Agra on this _____ day of _________, 2026.
 
 DEPONENT",
 }
@@ -5286,11 +5286,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) up_district rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": undefined,
+  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
   "courtType": "district_court",
-  "court_city": undefined,
-  "court_designation": undefined,
-  "court_header": undefined,
+  "court_city": "Agra",
+  "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",
+  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, AGRA",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5304,14 +5304,14 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
   "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
   "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
   "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of U.P. through the District Magistrate / S.P., Ranchi",
+  "state_respondent": "State of Uttar Pradesh",
   "supportedLanguages": [
     "en",
     "hi",
   ],
   "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at Agra on this _____ day of _________, 2026.
 
 DEPONENT",
 }

@@ -11,7 +11,7 @@
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "jurisdictionNote": "District-level criminal and civil courts in Uttar Pradesh. Sessions courts try offences punishable with imprisonment exceeding 7 years.",
-  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT\n\nVERSUS\n\n{respondent} ... OPPOSITE PARTY",
+  "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... {party_label_petitioner_upper}\n\nVERSUS\n\n{respondent} ... {party_label_respondent_upper}",
   "party_designation": {
     "petitioner": "Plaintiff (civil) / Applicant (criminal)",
     "respondent": "Defendant (civil) / Opposite Party (criminal)",
@@ -21,7 +21,17 @@
     "defendant": "Defendant",
     "complainant": "Complainant",
     "accused": "Accused",
-    "state": "State of U.P. through the District Magistrate / S.P., {district}"
+    "state": "State of Uttar Pradesh"
+  },
+  "party_designation_by_side": {
+    "criminal": {
+      "petitioner": "Applicant",
+      "respondent": "Opposite Party"
+    },
+    "civil": {
+      "petitioner": "Plaintiff",
+      "respondent": "Defendant"
+    }
   },
   "case_nomenclature": {
     "regular_bail": "Criminal Miscellaneous Case No. _____ of {year}",

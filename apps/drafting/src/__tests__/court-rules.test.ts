@@ -161,6 +161,9 @@ describe('Court Rules — Data Integrity (SCRUM-50 CLO review)', () => {
       bench: 'BENCH A',
       assessment_year: '2025-26',
       company_name: 'XYZ Pvt. Ltd.',
+      // T-149: the cause-title suffixes come from the signed party labels
+      party_label_petitioner_upper: 'APPLICANT',
+      party_label_respondent_upper: 'OPPOSITE PARTY',
     };
 
     it.each(ruleFiles)('%s cause_title_format merges without unfilled placeholders', (filename) => {
