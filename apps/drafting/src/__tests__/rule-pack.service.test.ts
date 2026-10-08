@@ -189,6 +189,7 @@ describe('rule-pack loader', () => {
           type: 'dropdown',
           required: false,
           options: ['Yes', 'No'],
+          option_ids: ['yes', 'no'],
         },
       ]);
       expect(pack.groups.map((g) => [g.name, g.factCount, g.detail])).toEqual([
