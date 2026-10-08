@@ -472,11 +472,11 @@ function annexureAffidavit(
   // Build verification text from court_rules.verification_format — fill placeholders
   const verificationText = esc(
     rules.verification_format
-      .replace('{deponent_name}', str(formData.applicant_name ?? formData.petitioner_name ?? formData.party_name))
-      .replace('{designation}', str(formData.deponent_designation ?? 'the above-named Applicant/Petitioner'))
-      .replace('{body_para_count}', String(bodyParaCount))
-      .replace('{place}', str(verifiedAt))
-      .replace('{date}', today),
+      .replace('{deponent_name}', () => str(formData.applicant_name ?? formData.petitioner_name ?? formData.party_name))
+      .replace('{designation}', () => str(formData.deponent_designation ?? 'the above-named Applicant/Petitioner'))
+      .replace('{body_para_count}', () => String(bodyParaCount))
+      .replace('{place}', () => str(verifiedAt))
+      .replace('{date}', () => today),
   );
 
   return `
