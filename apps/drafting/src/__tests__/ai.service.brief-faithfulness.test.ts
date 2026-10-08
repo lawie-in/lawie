@@ -924,11 +924,11 @@ describe('T-136 review round 1 — lines of the system re-paired are kept and ra
 
   it('the bail draft with the State made the applicant: kept, and C4 names the lines', async () => {
     const above =
-      'State of Bihar through the District Magistrate / S.P., Patna\n\n... Applicant\n\nVersus\n\nRamesh Mahto\n\n... Opposite Party';
+      'State of Bihar\n\n... Applicant\n\nVersus\n\nRamesh Mahto\n\n... Opposite Party';
     const r = await bail({ answers: [answer(BAIL, `${above}\n\n${CLEAN_BAIL}`)] });
     expect(bodyOf(r)).toBe(`${above}\n\n${CLEAN_BAIL}`);
     for (const line of [
-      'State of Bihar through the District Magistrate / S.P., Patna',
+      'State of Bihar',
       'Versus',
       'Ramesh Mahto',
       '... Opposite Party',

@@ -1003,7 +1003,7 @@ describe('review round 1 — a part is judged as one text', () => {
 
   const sunitaToFrom = 'To,\n\nSunita Devi\n\nFrom,\n\nRajesh Kumar Singh';
   const stateApplicant =
-    'State of Bihar through the District Magistrate / S.P., Patna\n\n... Applicant\n\nVersus\n\nRamesh Mahto\n\n... Opposite Party';
+    'State of Bihar\n\n... Applicant\n\nVersus\n\nRamesh Mahto\n\n... Opposite Party';
   const toRamesh = 'TO,\n\nRamesh Mahto';
 
   const cases: Array<[string, string, string, SystemText, string]> = [

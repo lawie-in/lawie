@@ -9,7 +9,7 @@
   },
   "courtId": "sessions_generic",
   "courtType": "sessions",
-  "designation": "IN THE COURT OF SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE",
+  "designation": "IN THE COURT OF SESSIONS JUDGE",
   "jurisdictionNote": "Tries offences punishable with imprisonment exceeding 7 years, life imprisonment, or death. Hears bail applications under Section 483 BNSS for non-bailable offences triable by Sessions Court.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT\n\nVERSUS\n\n{respondent} ... OPPOSITE PARTY",
   "party_designation": {
@@ -19,7 +19,7 @@
     "opposite_party": "Opposite Party",
     "complainant": "Complainant",
     "accused": "Accused",
-    "state": "State through the District Magistrate / S.P., {district}"
+    "state": "State of {state}"
   },
   "case_nomenclature": {
     "regular_bail": "Criminal Miscellaneous Case No. _____ of {year}",

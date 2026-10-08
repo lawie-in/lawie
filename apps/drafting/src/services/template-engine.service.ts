@@ -347,6 +347,8 @@ export interface CourtLookupData {
   formattingRulesRef: string;
   /** The court's type in the courts list (jmfc, cjm, sessions, high_court ...). */
   courtType?: string;
+  /** The court's State or Union Territory as stored in the courts list. */
+  state?: string;
   courtRule?: CourtRuleData;
 }
 
@@ -376,6 +378,89 @@ function isGenericDesignation(d: string): boolean {
 }
 
 /**
+ * T-157 (AJ-2026-10-08-T157, condition 2): court rules whose designation is a
+ * fallback only. The chosen court's own designation from the courts list
+ * always wins; the rule's line prints only when the court has none. Before
+ * T-157 these designations held " / ", which is what made them yield.
+ */
+const FALLBACK_DESIGNATION_RULES = new Set([
+  'sessions_generic',
+  'district_court_generic',
+  'labour_court',
+]);
+
+/** Shown in place of "State of {state}" when the State is not known or is a UT. */
+const STATE_BLANK = '[To be confirmed: name of the State]';
+
+/**
+ * Union Territories (AJ-2026-10-08-T157, condition 1). A UT is not a "State",
+ * so "State of {state}" must not print for one. Names are compared after
+ * lower-casing and reading "&" as "and".
+ */
+const UNION_TERRITORIES = new Set([
+  'chandigarh',
+  'puducherry',
+  'ladakh',
+  'jammu and kashmir',
+  'lakshadweep',
+  'andaman and nicobar',
+  'andaman and nicobar islands',
+  'dadra and nagar haveli and daman and diu',
+]);
+
+/**
+ * Delhi's state line (AJ-2026-10-08-T157-golden). Delhi is the National
+ * Capital Territory, not a State, and the settled cause-title form is
+ * "State (NCT of Delhi)". Printed in place of "State of {state}".
+ */
+const DELHI_STATE_LINE = 'State (NCT of Delhi)';
+
+/** Courts-list state names that mean Delhi, compared lower-cased as whole strings. */
+const DELHI_NAMES = new Set([
+  'delhi',
+  'new delhi',
+  'nct of delhi',
+  'national capital territory of delhi',
+  // AJ-2026-10-08-T157-A1 (Art. 239AA(1)): the same entity under its older
+  // name. Exact full-string match only, never a substring match on "Delhi".
+  'union territory of delhi',
+]);
+
+/** True when the courts-list state names Delhi (case-insensitive). */
+function isDelhi(state: string): boolean {
+  return DELHI_NAMES.has(state.toLowerCase().replace(/\s+/g, ' ').trim());
+}
+
+/** True when the courts-list state names a Union Territory. */
+function isUnionTerritory(state: string): boolean {
+  const s = state.toLowerCase().replace(/&/g, 'and').replace(/\s+/g, ' ').trim();
+  if (/^union territory of\s/.test(s) || /\(ut\)$/.test(s)) return true;
+  return UNION_TERRITORIES.has(s);
+}
+
+/**
+ * The state line of a court rule with `{district}` and `{state}` filled in.
+ * T-157 (AJ-2026-10-08-T157, condition 1): `{state}` comes from the court's
+ * own state in the courts list. Where that is empty or a Union Territory,
+ * "State of {state}" prints as a visible blank; a literal `{state}` never
+ * prints. Delhi prints "State (NCT of Delhi)" (AJ-2026-10-08-T157-golden).
+ */
+function stateLine(template: string, courtData: CourtLookupData): string {
+  let line = template.replace(/\{district\}/g, courtData.city);
+  if (!/\{state\}/.test(line)) return line;
+  const state = courtData.state?.trim() ?? '';
+  if (state && isDelhi(state)) {
+    line = line.replace(/State of \{state\}/g, DELHI_STATE_LINE);
+    return line.replace(/\{state\}/g, state);
+  }
+  if (!state || isUnionTerritory(state)) {
+    line = line.replace(/State of \{state\}/g, STATE_BLANK);
+    return line.replace(/\{state\}/g, STATE_BLANK);
+  }
+  return line.replace(/\{state\}/g, state);
+}
+
+/**
  * The court's name two ways, from the courts list and its court rule.
  * SCRUM-54 B8: `designation` is the bare court/judge name for addressing
  * (e.g. "SESSIONS JUDGE, PATNA" or "HIGH COURT OF JUDICATURE AT PATNA");
@@ -389,12 +474,29 @@ function courtHeading(courtData: CourtLookupData): { designation: string; header
   // A designation from the courts list already names its place and prints as
   // stored (AJ-2026-10-07-T146-golden-2, fix 3).
   let fromRule: boolean;
-  if (ruleDesignation && isGenericDesignation(ruleDesignation)) {
+  const own = courtData.designation?.trim();
+  const ruleIsFallback = FALLBACK_DESIGNATION_RULES.has(courtData.formattingRulesRef);
+  if (ruleDesignation && ruleIsFallback && !isGenericDesignation(ruleDesignation)) {
+    // T-157 (AJ-2026-10-08-T157, condition 2): the chosen court's own
+    // designation wins over the rule's single-wording fallback. A courts-list
+    // designation with " / " still prints the blank (T-146-golden-2, fix 5).
+    if (own && isGenericDesignation(own)) {
+      const blank = '[To be confirmed: court designation]';
+      return { designation: blank, header: blank };
+    }
+    if (own) {
+      rawDesignation = own;
+      fromRule = false;
+    } else {
+      rawDesignation = ruleDesignation;
+      // A fallback that is itself a blank gets no city after it.
+      fromRule = !ruleDesignation.includes('[To be confirmed');
+    }
+  } else if (ruleDesignation && isGenericDesignation(ruleDesignation)) {
     // T-146 (AJ-2026-10-07-T146-golden, fix 3): a generic rule's designation
     // offers a choice ("SESSIONS JUDGE / ADDITIONAL SESSIONS JUDGE") or holds a
     // placeholder ("IN THE HIGH COURT OF {courtDesignation}"). The
     // chosen court's own designation is used instead, or a visible blank.
-    const own = courtData.designation?.trim();
     if (!own || isGenericDesignation(own)) {
       // The blank alone, with no "IN THE COURT OF" or "BEFORE THE": the form
       // of the heading is not known either (AJ-2026-10-07-T146-golden-2, fix 5).
@@ -682,7 +784,7 @@ export function buildPlaceholderContext(
       ctx.party_label_accused = designation.accused ?? 'Accused';
       // State respondent template
       if (designation.state) {
-        ctx.state_respondent = designation.state.replace(/\{district\}/g, courtData.city);
+        ctx.state_respondent = stateLine(designation.state, courtData);
       }
     }
 
