@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "description": "Document-rules config for joint_development_agreement (JDA) — Landowner contributes land; Developer contributes construction expertise + capital; mutually agreed split of constructed units OR revenue. Hybrid character per Sushila Devi v. Mohan Lal. RERA registration mandatory for projects > 500 sqm OR 8 units. Stamp duty varies by state — some treat as conveyance, others as agreement.",
+    "description": "Document-rules config for joint_development_agreement (JDA) — Landowner contributes land; Developer contributes construction expertise + capital; mutually agreed split of constructed units OR revenue. Hybrid character: one party contributes land, the other construction. RERA registration mandatory for projects > 500 sqm OR 8 units. Stamp duty varies by state — some treat as conveyance, others as agreement.",
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 6 transactional deeds pass 2026-05-12",
     "last_updated": "2026-05-12",
@@ -467,7 +467,7 @@
   "prompt_context": {
     "promptInstructions": [
       "Draft a JOINT DEVELOPMENT AGREEMENT (JDA) between Landowner and Developer.",
-      "NATURE OF JDA: A hybrid commercial arrangement where Landowner contributes LAND and Developer contributes CONSTRUCTION (capital, expertise, marketing, approvals). The constructed property is shared in agreed proportion. Courts have characterised JDAs in various ways depending on structure — Sushila Devi v. Mohan Lal AIR 1955 SC 481 (joint venture nature); Faqir Chand Gulati v. Uppal Agencies Pvt Ltd (2008) 10 SCC 345 (landowner is consumer if developer fails to deliver agreed share).",
+      "NATURE OF JDA: A hybrid commercial arrangement where Landowner contributes LAND and Developer contributes CONSTRUCTION (capital, expertise, marketing, approvals). The constructed property is shared in agreed proportion.",
       "REGULATORY FRAMEWORK:",
       "(1) RERA, 2016 — Section 3 mandates registration of real estate projects where (a) area of land proposed to be developed > 500 sqm, OR (b) number of apartments proposed > 8 (inclusive of all phases). Developer is the 'promoter' for RERA purposes (S.2(zk) includes a person who, in case of land developed under JDA, builds and sells apartments). Mandatory disclosures, escrow account (70% of buyer payments), timely delivery — all apply.",
       "(2) GST on JDA: per CBIC Notification 04/2018-CT(R) dated 25.01.2018 and Notification 06/2019-CT(R) dated 29.03.2019:\n   - GST liability on landowner for transfer of development rights to developer arises at the time of issuance of completion certificate / first occupation (whichever earlier).\n   - GST is on the construction services / share received by landowner.\n   - Reverse charge mechanism applies (developer pays GST on landowner's share at completion).\n   - 1% (affordable housing) / 5% (other residential) for new schemes without ITC; 12% with ITC for under-construction commercial.\n   - FLAG landowner that GST on his/her constructed share is payable.",
@@ -498,8 +498,6 @@
       "Schedules A (Land), B (Landowner's share), C (Developer's share), D (Specifications), E (Approvals checklist).",
       "Two witnesses' attestation.",
       "Append Lawie disclaimer.",
-      "Cite Faqir Chand Gulati v. Uppal Agencies (2008) 10 SCC 345 — landowner under JDA is a CONSUMER and developer is service provider; landowner can approach consumer fora for developer's deficiency in handover.",
-      "Cite Sushila Devi v. Mohan Lal AIR 1955 SC 481 — characterisation of JDA.",
       "Where multiple co-owner landowners — all must sign; clearly demarcate inter se sharing among landowners in landowner's overall share.",
       "Where land is HUF — Karta + adult coparceners; court permission for minor coparceners.",
       "Where land is agricultural — conversion to non-agricultural use before development; flag state-specific conversion process."
@@ -583,7 +581,7 @@
       "sections": [
         {
           "number": "S.2(7)",
-          "description": "Consumer — includes landowner under JDA per Faqir Chand Gulati"
+          "description": "Definition of \"consumer\""
         }
       ]
     },

@@ -20,7 +20,8 @@ export interface ValidationWarning {
     | 'old_law_reference'
     | 'missing_clause'
     | 'fact_alteration'
-    | 'coherence_mismatch';
+    | 'coherence_mismatch'
+    | 'case_citation';
   message: string;
   details?: {
     section?: string;

@@ -195,25 +195,25 @@ export default function DashboardPage() {
 
   // ── Empty state — free user, 0 documents ──────────────────────────────────
   if (!isPro && docCount === 0) {
+    const freeLimit = usage?.limit ?? 3;
     return (
       <div>
         <h1 className="text-2xl font-bold text-slate-900">
           Welcome to Lawie, <span className="text-amber-500">Advocate {lastName}</span>
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          You have {usage?.limit ?? 3} free documents this month. Let&apos;s draft your first one.
+          {/* T-152: one text node so the spaces around N can't be lost, and singular for N = 1. */}
+          {`You have ${freeLimit} free document${freeLimit === 1 ? '' : 's'} this month. Let's draft your first one.`}
         </p>
 
         <div className="mt-16 flex flex-col items-center text-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 ring-8 ring-amber-100">
             <Scale size={34} className="text-amber-500" />
           </div>
-          <h2 className="mt-6 text-xl font-bold text-slate-900">
-            Create your first court-ready document
-          </h2>
+          <h2 className="mt-6 text-xl font-bold text-slate-900">Create your first document</h2>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
-            Draft a bail application, legal notice, or rent agreement — formatted for your court,
-            with the right BNS sections, in under 5 minutes.
+            Draft a bail application, legal notice, or rent agreement, then review it before you
+            file.
           </p>
           <Link
             href="/dashboard/new"

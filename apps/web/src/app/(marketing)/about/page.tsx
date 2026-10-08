@@ -9,7 +9,7 @@ import SiteNav from '@/components/marketing/SiteNav';
 export const metadata: Metadata = {
   title: 'Lawie — About',
   description:
-    'Why we built Lawie: a court-ready drafting tool for young Indian advocates, built around the current BNS, BNSS, and BSA criminal codes.',
+    'Why we built Lawie: a drafting tool for young Indian advocates, built around the current BNS, BNSS, and BSA criminal codes.',
 };
 
 export default function AboutPage() {
@@ -96,16 +96,14 @@ export default function AboutPage() {
           <div className="about-block prose">
             <h2>Built on the current law</h2>
             <p>
-              Lawie&apos;s templates are designed against current Indian court formats. Every
-              section cited in a generated document is validated against the official IPC→BNS,
-              CrPC→BNSS, and IEA→BSA correspondence tables before it reaches your draft.
+              Section mappings are built from the published IPC→BNS, CrPC→BNSS, and IEA→BSA
+              section-wise comparison tables. Check every section before you file.
             </p>
             <p>
               The court-formatting rules — how a cause title reads for a District Court versus a
               High Court, which clauses are mandatory, where the verification sits — are encoded per
-              state and court level, and reviewed against published court requirements. It is
-              detailed, unglamorous work, and it is the part that makes a draft court-ready rather
-              than merely well-written.
+              state and court level. It is detailed, unglamorous work, and we are still adding it
+              court by court.
             </p>
           </div>
         </div>
@@ -118,8 +116,7 @@ export default function AboutPage() {
             <p>
               More states and court levels, more document types, and support for drafting in Hindi
               alongside English. The goal stays the same: get an advocate from a blank page to a
-              court-ready document in minutes, on the current law, for the specific court in front
-              of them.
+              first draft in minutes, on the current law, for the specific court in front of them.
             </p>
           </div>
         </div>

@@ -52,12 +52,27 @@ describe('the signed file can be read', () => {
 describe('criterion 1: the two Drafter prompts are part 2, A and A2, character for character', () => {
   const [signedA, signedA2] = codeBlocks(part2());
 
-  it('DRAFTER_PACK_SYSTEM_PROMPT is A of part 2', () => {
-    expect(DRAFTER_PACK_SYSTEM_PROMPT).toBe(signedA);
+  // T-148 (AJ-2026-10-07-T148, part b): Ajay replaced Drafter rule 7 and the last
+  // sentence of repair rule 5. Everything else stays the T-136 signed text.
+  const OLD_RULE_7 =
+    '7. AUTHORITIES. Cite a judgment only if INSTRUCTIONS names it, and copy its citation exactly as INSTRUCTIONS gives it. Where another authority would normally be cited, write [Authority — add if relied upon]. Never cite a judgment from your own knowledge.';
+  const NEW_RULE_7 =
+    '7. AUTHORITIES. Cite a judgment only if the advocate named it, in their own words under "described" or in another part of the BRIEF, and copy its name and citation exactly as given there. INSTRUCTIONS, CLAUSES, ACTS and COURT RULE are never a source of a judgment, even where they name one. Where an authority would normally be cited and the advocate gave none, write [Authority — add if relied upon]. Never cite a judgment from your own knowledge, and never add to, complete or correct a citation the advocate gave.';
+  const OLD_R5_LAST =
+    'Cite a judgment only if INSTRUCTIONS names it, with its citation exactly as INSTRUCTIONS gives it; otherwise write [Authority — add if relied upon].';
+  const NEW_R5_LAST =
+    'Cite a judgment only if the advocate named it, in their own words under "described" or in another part of the BRIEF, with its name and citation exactly as given there; INSTRUCTIONS, CLAUSES, ACTS and COURT RULE are never a source of a judgment. Otherwise write [Authority — add if relied upon].';
+  const replaceOnce = (text: string, from: string, to: string): string => {
+    expect(text.split(from)).toHaveLength(2); // present exactly once in the signed text
+    return text.replace(from, () => to);
+  };
+
+  it('DRAFTER_PACK_SYSTEM_PROMPT is A of part 2 with Ajay’s T-148 rule 7', () => {
+    expect(DRAFTER_PACK_SYSTEM_PROMPT).toBe(replaceOnce(signedA, OLD_RULE_7, NEW_RULE_7));
   });
 
-  it('DRAFTER_REPAIR_SYSTEM_PROMPT is A2 of part 2', () => {
-    expect(DRAFTER_REPAIR_SYSTEM_PROMPT).toBe(signedA2);
+  it('DRAFTER_REPAIR_SYSTEM_PROMPT is A2 of part 2 with Ajay’s T-148 repair rule 5', () => {
+    expect(DRAFTER_REPAIR_SYSTEM_PROMPT).toBe(replaceOnce(signedA2, OLD_R5_LAST, NEW_R5_LAST));
   });
 
   it('are not the prompts of part 1 (released together, the later text)', () => {
