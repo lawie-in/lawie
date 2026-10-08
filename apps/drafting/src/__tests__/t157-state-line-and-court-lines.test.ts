@@ -189,21 +189,8 @@ const RULES_DIR = join(__dirname, '../config/court-rules');
 const SLASH = / \/ /;
 
 const NAMED_EXCEPTIONS: Record<string, string> = {
-  // T-158, reported to Ajay: DRT applicant label and the cause title suffix.
-  'drt.json|cause_title_format':
-    '{courtDesignation}, {city}\n{caseNomenclature}\n\n{applicant} ... APPLICANT BANK / FINANCIAL INSTITUTION\n\nVERSUS\n\n{defendant} ... DEFENDANT BORROWER',
-  'drt.json|party_designation.applicant': 'Applicant Bank / Financial Institution',
-  // T-158: NCLT party labels and the cause title suffixes.
-  'nclt.json|cause_title_format':
-    '{courtDesignation}, {bench}\n{caseNomenclature}\n\nIn the matter of: {company_name}\n\n{applicant} ... PETITIONER / APPLICANT\n\nVERSUS\n\n{respondent} ... RESPONDENT / CORPORATE DEBTOR',
-  'nclt.json|party_designation.petitioner': 'Petitioner / Applicant',
-  'nclt.json|party_designation.respondent': 'Respondent / Corporate Debtor (in IBC matters)',
-  // AJ-2026-10-08-T157 condition 3, T-158: the 5 labour_court party labels.
-  'labour_court.json|party_designation.petitioner': 'Workman / Applicant',
-  'labour_court.json|party_designation.respondent': 'Employer / Management',
-  'labour_court.json|party_designation.applicant': 'Workman / Applicant',
-  'labour_court.json|party_designation.complainant': 'Workman / Applicant',
-  'labour_court.json|party_designation.counter_party': 'Employer / Management',
+  // T-158 (AJ-2026-10-08-T158-A1, -T157-A2): drt, nclt, labour_court and
+  // tribunal_generic are slash-free and no longer listed.
   // NOT in the handoff list; found by this scan. T-149 (AJ-2026-10-07-T149): the raw
   // civil/criminal label pair is resolved to one label per side via
   // party_designation_by_side at render (t149-party-labels.test.ts). Report to lead.
@@ -215,8 +202,6 @@ const NAMED_EXCEPTIONS: Record<string, string> = {
   // NOT in the handoff list; found by this scan. Not a party label: a note that no
   // State party applies. Not in Ajay's T-157 table; ask Ajay / T-158.
   'family_court.json|party_designation.state': 'Not applicable (civil / personal law proceedings)',
-  // NOT in the handoff list; found by this scan. tribunal_generic counter_party, T-158.
-  'tribunal_generic.json|party_designation.counter_party': 'Respondent / Counter-Party',
 };
 
 function printedFields(rule: Record<string, unknown>): Array<[string, unknown]> {
@@ -229,6 +214,23 @@ function printedFields(rule: Record<string, unknown>): Array<[string, unknown]> 
     if (obj && typeof obj === 'object') {
       for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
         out.push([`${group}.${k}`, v]);
+      }
+    }
+  }
+  // T-158 (AJ-2026-10-08-T158-A2): the verification text is printed too.
+  out.push(['verification_format', rule.verification_format]);
+  // T-158: a matter type (NCLT: IBC vs Companies Act) replaces the cause title,
+  // party labels and verification, so those are scanned as well.
+  const overrides = rule.matter_type_overrides;
+  if (overrides && typeof overrides === 'object') {
+    for (const [type, o] of Object.entries(overrides as Record<string, Record<string, unknown>>)) {
+      out.push([`matter_type_overrides.${type}.cause_title_format`, o.cause_title_format]);
+      out.push([`matter_type_overrides.${type}.verification_format`, o.verification_format]);
+      const pd = o.party_designation;
+      if (pd && typeof pd === 'object') {
+        for (const [k, v] of Object.entries(pd as Record<string, unknown>)) {
+          out.push([`matter_type_overrides.${type}.party_designation.${k}`, v]);
+        }
       }
     }
   }

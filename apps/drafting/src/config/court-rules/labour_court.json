@@ -13,11 +13,11 @@
   "jurisdictionNote": "Labour Courts constituted under Section 7 and Industrial Tribunals under Section 7A of the Industrial Disputes Act, 1947 (state and central). Jurisdiction over industrial disputes referred by the appropriate government, individual workman applications under Section 2A, and complaints under the Industrial Employment (Standing Orders) Act, 1946. Industrial Relations Code, 2020 (when fully notified) will subsume these provisions.",
   "cause_title_format": "{courtDesignation}\n{caseNomenclature}\n\n{applicant} ... APPLICANT\n\nVERSUS\n\n{respondent} ... OPPOSITE PARTY",
   "party_designation": {
-    "petitioner": "Workman / Applicant",
-    "respondent": "Employer / Management",
-    "applicant": "Workman / Applicant",
-    "complainant": "Workman / Applicant",
-    "counter_party": "Employer / Management",
+    "petitioner": "Applicant",
+    "respondent": "Opposite Party",
+    "applicant": "Applicant",
+    "complainant": "Complainant",
+    "counter_party": "Opposite Party",
     "state": "State through Labour Commissioner (as applicable)"
   },
   "case_nomenclature": {

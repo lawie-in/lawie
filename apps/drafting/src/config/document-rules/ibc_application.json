@@ -14,13 +14,13 @@
   "creditsCost": 2,
   "court_levels": ["nclt"],
   "causeTitle": {
-    "format": "BEFORE THE HON'BLE NATIONAL COMPANY LAW TRIBUNAL\nBENCH AT {nclt_bench}\n\n{caseNomenclature}\n\nIN THE MATTER OF: The Insolvency and Bankruptcy Code, 2016;\nAND IN THE MATTER OF: Section {section_invoked} of the Code;\nAND IN THE MATTER OF: Application for initiation of Corporate Insolvency Resolution Process against {corporate_debtor_name};\n\n{applicant} ... Applicant\nVERSUS\n{corporate_debtor_name} ... Corporate Debtor / Respondent",
+    "format": "BEFORE THE HON'BLE NATIONAL COMPANY LAW TRIBUNAL\nBENCH AT {nclt_bench}\n\n{caseNomenclature}\n\nIN THE MATTER OF: The Insolvency and Bankruptcy Code, 2016;\nAND IN THE MATTER OF: Section {section_invoked} of the Code;\nAND IN THE MATTER OF: Application for initiation of Corporate Insolvency Resolution Process against {corporate_debtor_name};\n\n{applicant} ... Applicant\nVERSUS\n{corporate_debtor_name} ... Corporate Debtor",
     "partyDesignations": [
       {
         "role": "applicant",
-        "label": "Applicant (Financial Creditor / Operational Creditor / Corporate Applicant)"
+        "label": "Applicant"
       },
-      { "role": "corporate_debtor", "label": "Corporate Debtor (Respondent)" }
+      { "role": "corporate_debtor", "label": "Corporate Debtor" }
     ],
     "caseNomenclature": "C.P. (IB) No. _____ of [YEAR]"
   },

@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Vishal (build), Ajay (heading lines), Anushka (tests develop after the batch) |
 | Mode           | Fix, light chain (developer + tester + reviewer). Merge to develop per founder's 8 Oct rule, after Ajay has seen the heading lines |
-| Status         | Building |
+| Status         | Merged to develop (PR #71), 8 Oct. Anushka tests on develop. |
 | Priority       | Blocker for UP launch |
 | Size           | S (half day) |
 | Depends on     | None. Cut from origin/develop. Pre-existing; not caused by T-171 |
