@@ -83,6 +83,7 @@ import {
   loadCourtRule,
   detectLeakedPlaceholders,
   sanitiseAIBody,
+  partyDesignationFor,
   PLACEHOLDER_ALIASES,
 } from './template-engine.service';
 import {
@@ -1115,9 +1116,10 @@ export async function streamGenerateFromBrief(
     systemText,
     courtRules: [
       ...(courtRule?.localRules ?? []),
-      ...Object.entries(courtRule?.party_designation ?? {}).map(
-        ([role, label]) => `Party designation, ${role}: "${label}"`,
-      ),
+      // T-149: signed document types show the chosen labels; others as before.
+      ...Object.entries(
+        (courtRule && partyDesignationFor(courtRule, templateConfig.template_id)) ?? {},
+      ).map(([role, label]) => `Party designation, ${role}: "${label}"`),
     ],
     target: input.targetParagraphs,
     language: input.language,
