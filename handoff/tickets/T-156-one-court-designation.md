@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft. MUST FIX before go-live |
 | Owner          | Vishal (build), Anushka (tests develop after the batch) |
 | Mode           | Fix, full chain. Merge to develop per founder's 8 Oct rule (as relayed by Vishal); Anushka tests the batch on develop |
-| Status         | Building |
+| Status         | PR #65 open, CI green. Stacked on #64. |
 | Size           | S–M (1 day) |
 | Depends on     | T-146 (merged: `court_header` / `court_designation` from the courts list) |
 | Branch         | fix/t-156-one-court-designation |
