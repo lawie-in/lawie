@@ -668,6 +668,10 @@ export function buildPlaceholderContext(
     ctx.verification_text = `I, ${ctx.applicant_name ?? '_____'}, the ${ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${ctx.court_city ?? '_____'} on this _____ day of _________, ${ctx.current_year}.`;
   }
 
+  // T-146: aliases are set after the SCRUM-50 court-rule block, so an alias
+  // such as {caseNomenclature} reads the same value as {case_nomenclature}.
+  applyPlaceholderAliases(ctx);
+
   // Recursive placeholder pass — resolve {token} references that may exist inside
   // ctx values themselves (e.g. caseNomenclature from courts DB contains "{current_year}"
   // or "{year}" tokens that were not yet substituted during resolveComputedFields).
@@ -697,7 +701,7 @@ export function buildPlaceholderContext(
  * one reads. An alias is set only when the rule's own key is not in the context,
  * so a value the form gave under the camelCase name is kept.
  */
-const PLACEHOLDER_ALIASES: ReadonlyArray<readonly [alias: string, sources: readonly string[]]> = [
+export const PLACEHOLDER_ALIASES: ReadonlyArray<readonly [alias: string, sources: readonly string[]]> = [
   ['courtDesignation', ['court_designation']],
   ['courtHeader', ['court_header']],
   ['courtPlace', ['court_city']],
@@ -712,14 +716,24 @@ const PLACEHOLDER_ALIASES: ReadonlyArray<readonly [alias: string, sources: reado
   ['advocateAddress', ['advocate_address']],
 ];
 
+/** Fill each camelCase alias from the first of its sources that has a value. */
+function applyPlaceholderAliases(ctx: PlaceholderContext): void {
+  for (const [alias, sources] of PLACEHOLDER_ALIASES) {
+    if (ctx[alias] !== undefined && ctx[alias] !== '') continue;
+    const source = sources.find((s) => ctx[s] !== undefined && ctx[s] !== '');
+    if (source) ctx[alias] = ctx[source];
+  }
+}
+
 /** Keys a form or brief may carry the applicant's place of custody under. */
 const JAIL_SOURCES = ['jail', 'jail_name', 'place_of_custody', 'custody_place', 'custody_location'];
 
 const IS_BLANK = /^\[To be confirmed: [^\]]*\]$/;
 
 /**
- * T-146: the court the user chose from the courts list, and the camelCase
- * aliases, put into the context before the recursive pass.
+ * T-146: the court the user chose from the courts list, put into the context
+ * before the SCRUM-50 court-rule block. The camelCase aliases are set later, by
+ * `applyPlaceholderAliases`, after that block.
  *
  * - The court comes from the courts list (ADR-021 rule 3): `court_header` and
  *   `court_designation` are taken from it (see `courtHeading`) over any form
@@ -744,11 +758,6 @@ function applyCourtAndAliases(
     ctx.case_nomenclature = courtData.caseNomenclature.replace(/\{year\}/g, ctx.current_year);
   }
 
-  for (const [alias, sources] of PLACEHOLDER_ALIASES) {
-    if (ctx[alias] !== undefined && ctx[alias] !== '') continue;
-    const source = sources.find((s) => ctx[s] !== undefined && ctx[s] !== '');
-    if (source) ctx[alias] = ctx[source];
-  }
 
   if (ctx.lastParagraph === undefined) ctx.lastParagraph = '{body_para_count}';
 
@@ -770,12 +779,18 @@ function applyCourtAndAliases(
 /** Keys a brief may say the applicant is in custody under. */
 const CUSTODY_SOURCES = ['currently_in_custody', 'in_custody', 'custody_status'];
 
-/** True only when a custody answer says "yes" or names judicial custody. */
+/**
+ * True only when a custody answer names judicial custody: the option id
+ * `yes_judicial`, or a value such as "Yes — Judicial custody". Police custody,
+ * a bare "yes" and a negative answer ("not in judicial custody") print no clause.
+ */
 function custodyConfirmed(ctx: PlaceholderContext): boolean {
   return CUSTODY_SOURCES.some((k) => {
-    const v = (ctx[k] ?? '').trim().toLowerCase();
-    if (!v || IS_BLANK.test(ctx[k] ?? '')) return false;
-    return /^(yes|true)\b/.test(v) || /^judicial custody\b/.test(v);
+    const v = (ctx[k] ?? '').trim();
+    if (!v || IS_BLANK.test(v)) return false;
+    if (v.toLowerCase() === 'yes_judicial') return true;
+    if (/^(no|false)\b/i.test(v) || /\bnot\b/i.test(v)) return false;
+    return /judicial custody/i.test(v);
   });
 }
 
