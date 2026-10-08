@@ -505,6 +505,21 @@ function courtHeading(courtData: CourtLookupData): { designation: string; header
     }
     rawDesignation = own;
     fromRule = false;
+  } else if (
+    ruleDesignation &&
+    own &&
+    own !== ruleDesignation.trim() &&
+    !isGenericDesignation(own) &&
+    /HIGH COURT/i.test(ruleDesignation) &&
+    /HIGH COURT/i.test(own)
+  ) {
+    // T-175 (AJ-2026-10-08-T171-A3, A2 final): a High Court with its own rule
+    // that the chosen court shares with a bench (e.g. allahabad_hc for the
+    // Lucknow Bench). The courts-list entry's designation names the bench and
+    // wins over the rule's, which names only the principal seat. Never guess
+    // a seat or bench. The cached rule is read, never changed.
+    rawDesignation = own;
+    fromRule = false;
   } else if (ruleDesignation) {
     rawDesignation = ruleDesignation;
     fromRule = true;
