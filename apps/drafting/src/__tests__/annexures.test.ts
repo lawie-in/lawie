@@ -38,6 +38,16 @@ import {
 } from '../services/annexures.service';
 // eslint-disable-next-line import/order
 import { encrypt } from '../utils/encryption';
+// eslint-disable-next-line import/order
+import { Court } from '../models/Court.model';
+// eslint-disable-next-line import/order
+import {
+  buildPlaceholderContext,
+  chosenCourtHeading,
+  CourtLookupData,
+  loadCourtRule,
+  loadTemplateConfig,
+} from '../services/template-engine.service';
 
 // ── Auth headers (same pattern as preflight tests) ────────────────────────────
 
@@ -258,6 +268,133 @@ describe('buildAnnexuresPack — fallback (no court_id)', () => {
   });
 });
 
+// ── T-156: one court, one designation ────────────────────────────────────────
+
+async function packHtml(
+  formData: Record<string, unknown>,
+  courtData?: CourtLookupData,
+): Promise<string> {
+  const puppeteer = jest.requireMock('puppeteer') as { launch: jest.Mock };
+  const page = (await (await puppeteer.launch()).newPage()) as { setContent: jest.Mock };
+  let html = '';
+  page.setContent.mockImplementation((h: string) => {
+    html = h;
+    return Promise.resolve(undefined);
+  });
+  await buildAnnexuresPack({ formData, bodyParaCount: 8, courtData });
+  return html;
+}
+
+function sessionsCourt(over: Partial<CourtLookupData>): CourtLookupData {
+  return {
+    designation: 'SESSIONS COURT, GAYA',
+    city: 'Gaya',
+    caseNomenclature: 'Bail Application No. ___ of {year}',
+    formattingRulesRef: 'sessions_generic',
+    courtType: 'sessions',
+    state: 'Bihar',
+    courtRule: loadCourtRule('sessions_generic') ?? undefined,
+    ...over,
+  };
+}
+
+const GAYA = sessionsCourt({});
+const MUMBAI = sessionsCourt({
+  designation: 'SESSIONS COURT, MUMBAI',
+  city: 'Mumbai',
+  state: 'Maharashtra',
+});
+const SESSIONS_FORM: Record<string, unknown> = {
+  template_id: 'bail_regular',
+  applicant_name: 'Ramesh Kumar',
+  respondent_name: 'State of Bihar',
+  advocate_name: 'Adv. Ravi Shankar',
+  court_id: 'sessions_generic',
+};
+
+/** Text of the HTML with tags dropped, for wording comparisons. */
+const textOf = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+describe('chosenCourtHeading (T-156)', () => {
+  it('is undefined with no court', () => {
+    expect(chosenCourtHeading(undefined)).toBeUndefined();
+  });
+
+  it('is undefined for a blank designation', () => {
+    expect(chosenCourtHeading(sessionsCourt({ designation: '   ' }))).toBeUndefined();
+    expect(chosenCourtHeading(sessionsCourt({ designation: '' }))).toBeUndefined();
+  });
+
+  it('returns a header and designation for a chosen court', () => {
+    const h = chosenCourtHeading(GAYA);
+    expect(h?.header).toBeTruthy();
+    expect(h?.header).toContain('GAYA');
+  });
+
+  it('equals the draft court_header', () => {
+    const cfg = loadTemplateConfig('bail_regular')!;
+    const ctx = buildPlaceholderContext(cfg, SESSIONS_FORM, undefined, GAYA);
+    expect(ctx.court_header).toBe(chosenCourtHeading(GAYA)!.header);
+    expect(ctx.court_designation).toBe(chosenCourtHeading(GAYA)!.designation);
+  });
+});
+
+describe('buildAnnexuresPack — chosen court (T-156)', () => {
+  const COURT_RULE_LINE = 'IN THE COURT OF SESSIONS JUDGE';
+
+  it.each([
+    ['Gaya', GAYA],
+    ['Mumbai', MUMBAI],
+  ])('%s: all headed annexures print the draft court_header', async (_n, court) => {
+    const cfg = loadTemplateConfig('bail_regular')!;
+    const draftHeader = buildPlaceholderContext(cfg, SESSIONS_FORM, undefined, court).court_header;
+    expect(draftHeader).toBe(chosenCourtHeading(court)!.header);
+
+    const html = await packHtml(SESSIONS_FORM, court);
+    // Memo, Synopsis ("Court:" line), Vakalatnama, Court Fee, Affidavit
+    const count = html.split(draftHeader).length - 1;
+    expect(count).toBeGreaterThanOrEqual(5);
+    expect(html).not.toContain(COURT_RULE_LINE);
+    // no choice-style "X / Y" designation (the pack has other " / " in unrelated text)
+    expect(html).not.toMatch(/JUDGE\s*\/\s*/);
+    expect(html).not.toContain('SESSIONS JUDGE /');
+    expect(html).not.toContain('DISTRICT JUDGE');
+  });
+
+  it('Synopsis court line carries the chosen header', async () => {
+    const html = await packHtml(SESSIONS_FORM, GAYA);
+    expect(textOf(html)).toContain(`Court: ${chosenCourtHeading(GAYA)!.header}`);
+  });
+
+  it('keeps party labels, verification and court-fee text from the court rule', async () => {
+    const withCourt = await packHtml(SESSIONS_FORM, GAYA);
+    const without = await packHtml(SESSIONS_FORM);
+    const h = chosenCourtHeading(GAYA)!.header;
+    const noCourtHeading = 'IN THE COURT OF SESSIONS JUDGE';
+    // Same document once each heading is normalised
+    expect(withCourt.split(h).join('@@')).toBe(without.split(noCourtHeading).join('@@'));
+  });
+});
+
+describe('buildAnnexuresPack — no court chosen (T-156)', () => {
+  it('prints the court-rule designation as today', async () => {
+    const html = await packHtml(SESSIONS_FORM);
+    expect(html).toContain('IN THE COURT OF SESSIONS JUDGE');
+  });
+
+  it('falls back to the district judge when no rule resolves', async () => {
+    const html = await packHtml({ applicant_name: 'John Doe', respondent_name: 'State' });
+    expect(html).toContain('IN THE COURT OF THE DISTRICT JUDGE');
+  });
+
+  it('a court with a blank designation behaves like no court', async () => {
+    const blank = sessionsCourt({ designation: '  ' });
+    expect(await packHtml(SESSIONS_FORM, blank)).toBe(await packHtml(SESSIONS_FORM));
+    const bare = { applicant_name: 'John Doe', respondent_name: 'State' };
+    expect(await packHtml(bare, blank)).toBe(await packHtml(bare));
+  });
+});
+
 // ── Route integration tests ───────────────────────────────────────────────────
 
 describe('POST /documents/:id/annexures-pack', () => {
@@ -331,5 +468,57 @@ describe('POST /documents/:id/annexures-pack', () => {
       .post(`/documents/${otherDoc._id}/annexures-pack`)
       .set(AUTH);
     expect(res.status).toBe(404);
+  });
+
+  it('T-156: brief-style doc with courtName set prints the chosen court header', async () => {
+    await Court.create({
+      courtId: 'sessions-gaya-t156',
+      name: 'Sessions Court, Gaya',
+      designation: GAYA.designation,
+      courtType: 'sessions',
+      state: 'Bihar',
+      stateId: 'BR',
+      city: 'Gaya',
+      formattingRulesRef: 'sessions_generic',
+      caseNomenclature: GAYA.caseNomenclature,
+      isActive: true,
+    });
+    const doc = await LawieDocument.create({
+      userId: AUTH['x-user-id'],
+      title: 'Brief bail',
+      docType: 'bail_application',
+      courtName: 'sessions-gaya-t156',
+      generatedContent: encrypt('Paragraph one.\n\nParagraph two.'),
+      formInputs: { template_id: 'bail_regular', source: 'brief' },
+      filingChecklist: [],
+      checklistState: [],
+    });
+    const puppeteer = jest.requireMock('puppeteer') as { launch: jest.Mock };
+    const page = (await (await puppeteer.launch()).newPage()) as { setContent: jest.Mock };
+    let html = '';
+    page.setContent.mockImplementation((h: string) => {
+      html = h;
+      return Promise.resolve(undefined);
+    });
+    const res = await supertest(app).post(`/${doc._id}/annexures-pack`).set(AUTH);
+    expect(res.status).toBe(200);
+    expect(html).toContain(chosenCourtHeading(GAYA)!.header);
+    expect(html).not.toContain('IN THE COURT OF THE DISTRICT JUDGE');
+
+    // Unknown courtName falls back to the court rule
+    const other = await LawieDocument.create({
+      userId: AUTH['x-user-id'],
+      title: 'Brief bail 2',
+      docType: 'bail_application',
+      courtName: 'no-such-court',
+      generatedContent: encrypt('Paragraph one.'),
+      formInputs: { template_id: 'bail_regular', source: 'brief' },
+      filingChecklist: [],
+      checklistState: [],
+    });
+    const res2 = await supertest(app).post(`/${other._id}/annexures-pack`).set(AUTH);
+    expect(res2.status).toBe(200);
+    expect(html).not.toContain('GAYA');
+    expect(html).toContain('IN THE COURT OF THE DISTRICT JUDGE');
   });
 });
