@@ -22,7 +22,12 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import { renderPdf } from './pdf-export.service';
-import { CourtRuleData, signedPartyLabels } from './template-engine.service';
+import {
+  chosenCourtHeading,
+  CourtLookupData,
+  CourtRuleData,
+  signedPartyLabels,
+} from './template-engine.service';
 
 // ── Court rules loader ────────────────────────────────────────────────────────
 
@@ -528,6 +533,12 @@ export interface AnnexuresInput {
   bodyParaCount?: number;
   /** Advocate name from JWT profile (fallback if not in formData) */
   advocateName?: string;
+  /**
+   * T-156: the chosen court from the courts list, looked up the same way the
+   * draft path does. When set, every annexure heading prints the draft's
+   * `court_header` for it instead of the court-rules designation line.
+   */
+  courtData?: CourtLookupData;
 }
 
 /**
@@ -536,7 +547,7 @@ export interface AnnexuresInput {
  * Court rules are resolved automatically from formData.court_id / court_type + state.
  */
 export async function buildAnnexuresPack(input: AnnexuresInput): Promise<Buffer> {
-  const { formData, bodyParaCount = 10, advocateName } = input;
+  const { formData, bodyParaCount = 10, advocateName, courtData } = input;
 
   // Inject advocate name from JWT if not in form
   const enrichedForm: Record<string, unknown> = {
@@ -544,7 +555,12 @@ export async function buildAnnexuresPack(input: AnnexuresInput): Promise<Buffer>
     ...(advocateName && !formData.advocate_name ? { advocate_name: advocateName } : {}),
   };
 
-  const rules = resolveCourtRules(enrichedForm);
+  const resolved = resolveCourtRules(enrichedForm);
+  // T-156: one court, one designation. With a court chosen, the heading is the
+  // draft's `court_header` (computed once, in template-engine). Party labels,
+  // verification wording and court-fee text still come from the court rule.
+  const chosen = chosenCourtHeading(courtData);
+  const rules: CourtRules = chosen ? { ...resolved, designation: chosen.header } : resolved;
 
   const parts: string[] = [
     annexureMemoOfParties(enrichedForm, rules, false), // A — first page, no break

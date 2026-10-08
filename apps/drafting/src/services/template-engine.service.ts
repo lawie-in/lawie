@@ -941,6 +941,19 @@ const JAIL_SOURCES = ['jail', 'jail_name', 'place_of_custody', 'custody_place', 
 const IS_BLANK = /^\[To be confirmed: [^\]]*\]$/;
 
 /**
+ * T-156: the chosen court's heading, as the draft prints it in `court_header`
+ * and `court_designation`. Undefined when no court was chosen (or the court
+ * has no designation), in which case callers keep their own fallback. The
+ * annexures pack uses this so every heading in a document names one court.
+ */
+export function chosenCourtHeading(
+  courtData?: CourtLookupData,
+): { designation: string; header: string } | undefined {
+  if (!courtData?.designation?.trim()) return undefined;
+  return courtHeading(courtData);
+}
+
+/**
  * T-146: the court the user chose from the courts list, put into the context
  * before the SCRUM-50 court-rule block. The camelCase aliases are set later, by
  * `applyPlaceholderAliases`, after that block.
@@ -957,8 +970,9 @@ function applyCourtAndAliases(
   computed: Record<string, string>,
   courtData?: CourtLookupData,
 ): void {
-  if (courtData?.designation?.trim()) {
-    const { designation, header } = courtHeading(courtData);
+  const chosen = chosenCourtHeading(courtData);
+  if (chosen) {
+    const { designation, header } = chosen;
     if (!computed.court_header) ctx.court_header = header;
     if (!computed.court_designation) ctx.court_designation = designation;
   }

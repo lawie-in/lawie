@@ -1455,12 +1455,41 @@ router.post(
     // form_data is stored as formInputs on the document
     const formData = (doc.formInputs ?? {}) as Record<string, unknown>;
 
+    // T-156: the chosen court, looked up the same way the draft paths do. The
+    // brief path saves its court id only in doc.courtName (formInputs holds no
+    // case details); the template path saves it in both. No court found means
+    // no courtData, and the pack keeps its court-rules designation.
+    let courtData: CourtLookupData | undefined;
+    const courtId = String(doc.courtName || formData.court_name || '').trim();
+    if (courtId) {
+      try {
+        const found = await Court.findOne({ courtId, isActive: true }).maxTimeMS(5000).lean();
+        if (found) {
+          courtData = {
+            designation: found.designation,
+            city: found.city,
+            caseNomenclature: found.caseNomenclature,
+            formattingRulesRef: found.formattingRulesRef,
+            courtType: found.courtType,
+            state: found.state,
+            courtRule: loadCourtRule(found.formattingRulesRef) ?? undefined,
+          };
+        }
+      } catch (dbErr) {
+        console.warn(
+          `[drafting] Annexures court lookup failed for "${courtId}", using court rules:`,
+          dbErr instanceof Error ? dbErr.message : dbErr,
+        );
+      }
+    }
+
     let pdfBuffer: Buffer;
     try {
       pdfBuffer = await buildAnnexuresPack({
         formData,
         bodyParaCount,
         advocateName: payload.name || undefined,
+        courtData,
       });
     } catch (err) {
       console.error(
