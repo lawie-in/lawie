@@ -28,6 +28,7 @@ import {
 } from './bail-guard';
 import { datesInText, iso, isOwnWords, normalise } from './intake-text';
 import type { RulePack, RulePackFact } from './rule-pack.service';
+import { evaluateShowIf } from './template-engine.service';
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,10 @@ export interface ChecklistItem {
   partyName: boolean;
   /** For a date: the kind of date it is (T-127, section 6.3), or null when it is always asked. */
   dateKind: string | null;
+  /** The pack's show_if condition (T-153). While it is false and the fact is empty, it is not on the brief. */
+  showIf?: string;
+  /** Option ids, in the same order as `options` (T-153), for `showIf`. */
+  optionIds?: string[];
 }
 
 export type ValueSource = 'description' | 'user';
@@ -436,6 +441,10 @@ export function buildChecklist(pack: RulePack): ChecklistItem[] {
       modelReadable,
       partyName: isPartyName(fact.name, kind, part),
       dateKind,
+      ...(fact.show_if ? { showIf: fact.show_if } : {}),
+      ...(fact.option_ids && fact.option_ids.length === options.length
+        ? { optionIds: fact.option_ids }
+        : {}),
     });
   }
 
@@ -838,6 +847,37 @@ function partyLabel(label: string): string {
 }
 
 /**
+ * The checklist keys whose show_if is false for the values given (T-153).
+ * A choice is compared by its option id, whether the value is the option's
+ * label or its id, as the form compares it.
+ *
+ * Values are keyed by `lastSegment(item.key)`, as show_if names a field
+ * without its group: two groups with a field of the same name would collide,
+ * and the later one wins.
+ */
+function hiddenByShowIf(checklist: ChecklistItem[], placed: Map<string, GivenValue>): Set<string> {
+  const hidden = new Set<string>();
+  if (!checklist.some((i) => i.showIf)) return hidden;
+  const values: Record<string, unknown> = {};
+  for (const item of checklist) {
+    const v = placed.get(item.key)?.value;
+    if (typeof v !== 'string') continue;
+    let value = v;
+    if (item.optionIds) {
+      const nv = normalise(v);
+      const at = item.options.findIndex((o) => normalise(o) === nv);
+      const byId = item.optionIds.find((id) => normalise(id) === nv);
+      value = at >= 0 ? item.optionIds[at] : (byId ?? v);
+    }
+    values[lastSegment(item.key)] = value;
+  }
+  for (const item of checklist) {
+    if (item.showIf && !evaluateShowIf(item.showIf, values)) hidden.add(item.key);
+  }
+  return hidden;
+}
+
+/**
  * Put the values on the checklist and work out what is still unknown and
  * whether the brief can be confirmed (ADR-021 decision D2).
  *
@@ -871,33 +911,38 @@ export function buildBrief(input: BuildBriefInput): Brief {
     placed.set(item.key, { ...given, key: item.key, value: canonical(item, given.value) });
   }
 
-  const items: BriefItem[] = input.checklist.map((item) => {
-    const given = placed.get(item.key);
-    const kindLabel = item.kind === 'date' && item.dateKind ? dateKindLabel(item.dateKind) : null;
-    const meaning = item.kind === 'date' ? (kindLabel ?? item.label) : undefined;
-    // T-150, Rule B: a regular bail for a client not in custody. Warn, never block.
-    const custodyWarning =
-      item.kind === 'choice' &&
-      isCustodyChoice(item.options) &&
-      needsNotInCustodyWarning(input.kind.id, given ? given.value : null);
-    return {
-      key: item.key,
-      part: item.part,
-      label: item.label,
-      kind: item.kind,
-      required: item.required,
-      options: item.options,
-      value: given ? given.value : null,
-      source: given ? given.source : null,
-      ...(given && given.source === 'description' && given.quote ? { quote: given.quote } : {}),
-      please_check: given?.source === 'description' || given?.please_check === true || custodyWarning,
-      ...(custodyWarning ? { note: REGULAR_BAIL_NOT_IN_CUSTODY_WARNING } : {}),
-      ...(!given && input.reask?.includes(item.key) ? { reask: true } : {}),
-      ...(meaning !== undefined ? { meaning } : {}),
-      placeholder: placeholderFor(meaning ?? item.label),
-      party_name: item.partyName,
-    };
-  });
+  // T-153: a fact the form hides (show_if false) is not asked and shows no blank.
+  const hidden = hiddenByShowIf(input.checklist, placed);
+  const items: BriefItem[] = input.checklist
+    .filter((item) => !(hidden.has(item.key) && !placed.has(item.key)))
+    .map((item) => {
+      const given = placed.get(item.key);
+      const kindLabel = item.kind === 'date' && item.dateKind ? dateKindLabel(item.dateKind) : null;
+      const meaning = item.kind === 'date' ? (kindLabel ?? item.label) : undefined;
+      // T-150, Rule B: a regular bail for a client not in custody. Warn, never block.
+      const custodyWarning =
+        item.kind === 'choice' &&
+        isCustodyChoice(item.options) &&
+        needsNotInCustodyWarning(input.kind.id, given ? given.value : null);
+      return {
+        key: item.key,
+        part: item.part,
+        label: item.label,
+        kind: item.kind,
+        required: item.required,
+        options: item.options,
+        value: given ? given.value : null,
+        source: given ? given.source : null,
+        ...(given && given.source === 'description' && given.quote ? { quote: given.quote } : {}),
+        please_check:
+          given?.source === 'description' || given?.please_check === true || custodyWarning,
+        ...(custodyWarning ? { note: REGULAR_BAIL_NOT_IN_CUSTODY_WARNING } : {}),
+        ...(!given && input.reask?.includes(item.key) ? { reask: true } : {}),
+        ...(meaning !== undefined ? { meaning } : {}),
+        placeholder: placeholderFor(meaning ?? item.label),
+        party_name: item.partyName,
+      };
+    });
 
   const court: BriefCourt = {
     state: clean(input.court?.state),

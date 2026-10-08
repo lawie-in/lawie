@@ -204,11 +204,11 @@ describe('Ajay call 3 and call 1 on the values (names, cleared facts, Magistrate
     expect(buildQuestions(b, new Map(), new Set(r.cleared)).some((q) => q.key === OPTIONAL.key)).toBe(true);
   });
 
-  it('Magistrate bail with custody "not given" shows no Rule B note (option (a))', () => {
+  it('Magistrate bail with custody "not given" shows the Rule B note, T-153 (option (a) is superseded)', () => {
     const b = brief('bail_before_magistrate', MAG);
-    expect(b.items.some((i) => i.note !== undefined)).toBe(false);
-    expect(JSON.stringify(b)).not.toContain('you may need anticipatory bail');
-    expect(needsNotInCustodyWarning('bail_before_magistrate', null)).toBe(true); // kept in the set for later
+    const c = b.items.find((i) => i.key === 'currently_in_custody')!;
+    expect(c).toMatchObject({ value: null, please_check: true, note: WARNING });
+    expect(needsNotInCustodyWarning('bail_before_magistrate', null)).toBe(true);
   });
 });
 
@@ -388,11 +388,11 @@ describe('POST /intake/brief with a stubbed model (criteria 1 to 5)', () => {
     expect(res.body.questions.map((q: { key: string }) => q.key)).toContain(OPTIONAL.key);
   });
 
-  it('Magistrate bail, custody not given: no warning anywhere in the brief', async () => {
+  it('Magistrate bail, custody not given: the Rule B warning is on the custody item, T-153', async () => {
     stub([{ id: 'applicant_name', value: 'Ram Kumar', quote: 'My client Ram Kumar' }]);
     const res = await post({ description: EDIT_NO_CUSTODY, kind: 'bail_before_magistrate', keep: [] });
     expect(res.body.outcome).toBe('brief');
-    expect(JSON.stringify(res.body.brief)).not.toContain('you may need anticipatory bail');
+    expect(find(res, 'currently_in_custody')).toMatchObject({ please_check: true, note: WARNING });
   });
 });
 
