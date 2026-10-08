@@ -1248,6 +1248,7 @@ router.patch(
     }
 
     const payload = req.jwtPayload!;
+    const ownDoc = { _id: req.params.id, userId: payload.sub, isDeleted: { $ne: true } };
     const setFields: Record<string, unknown> = {};
     if (parsed.data.finalContent) {
       setFields.finalContent = encrypt(parsed.data.finalContent);
@@ -1264,8 +1265,34 @@ router.patch(
       return;
     }
 
+    // T-152: saving the text the document already has is not an edit, so it makes no new
+    // version. Only the text is compared; a status or checklist change still saves as before.
+    if (setFields.finalContent !== undefined) {
+      const current = await LawieDocument.findOne(ownDoc)
+        .select('finalContent generatedContent version status updatedAt')
+        .lean();
+      if (!current) {
+        res.status(404).json({ error: 'Document not found' });
+        return;
+      }
+      const currentContent = current.finalContent
+        ? decrypt(current.finalContent)
+        : decrypt(current.generatedContent);
+      if (currentContent === parsed.data.finalContent) {
+        delete setFields.finalContent;
+        if (Object.keys(setFields).length === 0) {
+          res.json({
+            version: current.version,
+            status: current.status,
+            updatedAt: current.updatedAt,
+          });
+          return;
+        }
+      }
+    }
+
     const doc = await LawieDocument.findOneAndUpdate(
-      { _id: req.params.id, userId: payload.sub, isDeleted: { $ne: true } },
+      ownDoc,
       { $set: setFields, $inc: { version: 1 } },
       { new: true, select: 'version status updatedAt' },
     );

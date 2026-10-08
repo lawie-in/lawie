@@ -59,6 +59,8 @@ export default function DocumentEditorPage() {
 
   // Track the latest HTML for export and auto-save
   const latestHtmlRef = useRef('');
+  // T-152: the text the server last had, so an update that changes nothing schedules no save.
+  const savedHtmlRef = useRef('');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isFree = user?.plan !== 'pro';
@@ -78,6 +80,7 @@ export default function DocumentEditorPage() {
       .then((data: DocumentData) => {
         setDoc(data);
         latestHtmlRef.current = data.content;
+        savedHtmlRef.current = data.content;
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -101,6 +104,7 @@ export default function DocumentEditorPage() {
         });
 
         if (!res.ok) throw new Error('Save failed');
+        savedHtmlRef.current = html;
         const result = await res.json();
         setDoc((prev) =>
           prev ? { ...prev, version: result.version, updatedAt: result.updatedAt } : prev,
@@ -122,6 +126,9 @@ export default function DocumentEditorPage() {
 
       // Clear previous timer
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+
+      // Nothing changed since the last save (e.g. an edit undone): no save, no new version.
+      if (html === savedHtmlRef.current) return;
 
       // Debounce: save after 2 seconds of inactivity
       saveTimerRef.current = setTimeout(() => {

@@ -195,13 +195,15 @@ export default function DashboardPage() {
 
   // ── Empty state — free user, 0 documents ──────────────────────────────────
   if (!isPro && docCount === 0) {
+    const freeLimit = usage?.limit ?? 3;
     return (
       <div>
         <h1 className="text-2xl font-bold text-slate-900">
           Welcome to Lawie, <span className="text-amber-500">Advocate {lastName}</span>
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          You have {usage?.limit ?? 3} free documents this month. Let&apos;s draft your first one.
+          {/* T-152: one text node so the spaces around N can't be lost, and singular for N = 1. */}
+          {`You have ${freeLimit} free document${freeLimit === 1 ? '' : 's'} this month. Let's draft your first one.`}
         </p>
 
         <div className="mt-16 flex flex-col items-center text-center">
