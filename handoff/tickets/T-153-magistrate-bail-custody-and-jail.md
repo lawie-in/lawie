@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft. MUST FIX before go-live |
 | Owner          | Vishal (build), Ajay (sign-off), Anushka (tests develop after the batch) |
 | Mode           | Fix, full chain. Merge to develop per founder's 8 Oct rule (as relayed by Vishal); Anushka tests the batch on develop |
-| Status         | Ready for Vishal |
+| Status         | Merged to develop (PR #63), 8 Oct. Anushka tests on develop. |
 | Size           | M (1–2 days) |
 | Depends on     | T-146, T-150 (both merged) |
 | Branch         | fix/t-153-magistrate-bail-custody-and-jail |

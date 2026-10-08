@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Vishal (build), Anushka (tests develop after the batch) |
 | Mode           | Fix, light chain (developer + tester + reviewer). Merge to develop per founder's 8 Oct rule (as relayed by Vishal) |
-| Status         | Ready for Vishal |
+| Status         | Merged to develop (PR #62), 8 Oct. Anushka tests on develop. |
 | Size           | S (half day) |
 | Depends on     | None |
 | Branch         | fix/t-160-addressing-clause-names-city-once |

@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Vishal (build), Anushka (tests develop after the batch) |
 | Mode           | Fix, light chain (developer + tester + reviewer). Merge to develop per founder's 8 Oct rule |
-| Status         | Ready for Vishal |
+| Status         | Merged to develop (PR #67), 8 Oct. Anushka tests on develop. |
 | Size           | S (half day) |
 | Depends on     | None. Cut from origin/develop |
 | Branch         | fix/t-164-affidavit-place-not-ranchi |
