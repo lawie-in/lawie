@@ -338,6 +338,13 @@ export function resolveCourtRule(courtType: string, courtName: string): CourtRul
     return resolveHighCourtRule(courtName ?? '');
   }
 
+  // A Family Court always takes its own rule (T-174), the same one the courts
+  // list loads. Checked before the name matching below: "Sessions Division" in
+  // a family court's name never gives it a Sessions or JMFC rule.
+  if (courtType === 'family_court') {
+    return loadCourtRule('family_court');
+  }
+
   // Normalize court name for matching
   const normalized = courtName.toLowerCase();
 
@@ -353,7 +360,6 @@ export function resolveCourtRule(courtType: string, courtName: string): CourtRul
   const typeMapping: Record<string, string> = {
     district_court: 'district_court_generic',
     consumer_forum: 'district_court_generic',
-    family_court: 'district_court_generic',
   };
 
   const genericKey = typeMapping[courtType];
