@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Vishal (build), Ajay (signs any string not given below, and the golden diff), Anushka (tests develop after merge) |
 | Mode           | Fix, full chain (developer + tester + reviewer + Ajay). Legal content. Merge to develop per founder's 8 Oct rule |
-| Status         | Ready for PR review, 8 Oct. All checks passed; Ajay signed off; draft PR to develop. |
+| Status         | Merged to develop (PR #72), 8 Oct. Anushka tests on develop. |
 | Size           | M (1–2 days; NCLT matter-type switch is the bulk) |
 | Depends on     | T-157 (PR #64, merged). Cut from origin/develop (cb3bda5) |
 | Branch         | fix/t-158-slash-labels |
