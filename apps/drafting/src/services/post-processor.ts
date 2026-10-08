@@ -191,11 +191,12 @@ const FAMILY_HEADING_BEFORE_THE = /^BEFORE THE .+$/;
  * T-176 review r2: only a line that is just a seat is dropped ("AT PATNA",
  * "FAMILY COURT, PATNA", "FAMILY COURT AT PATNA"). A line with a digit or
  * blank ("____"), or one naming a case, petition, suit or "instance", is
- * real content and always stays.
+ * real content and always stays. So is "AT THE ...", "AT ... TIME",
+ * "AT THE REQUEST / BEHEST OF ..." (e.g. "AT THE TIME OF FILING").
  */
 const FAMILY_HEADING_CONTINUATION =
   /^(?:AT\s+[^\d_]+|FAMILY COURT(?:\s*,\s*[^\d_]+|\s+AT\s+[^\d_]+)?)$/;
-const NOT_A_CONTINUATION = /\b(?:NO|CASE|PETITION|SUIT|INSTANCE)\b/;
+const NOT_A_CONTINUATION = /\b(?:NO|CASE|PETITION|SUIT|INSTANCE|THE|TIME|REQUEST|BEHEST)\b/;
 
 /**
  * True when `line` has letters and none of them is lower case. A bracketed

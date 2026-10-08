@@ -343,5 +343,32 @@ describe('T-176 family court seat heading', () => {
       expect(lines).toContain('AT THE TIME OF FILING');
       expect(lines).toContain('M.J. No. _____ of 2026');
     });
+
+    it('a line right after the heading naming a case number is kept', () => {
+      const lines = run(
+        'Family Court, Ranchi',
+        `IN THE FAMILY COURT AT PATNA\nFAMILY COURT CASE NO. ____ OF 2026\n${BODY}`,
+      );
+      expect(lines[0]).toBe(RANCHI);
+      expect(lines).toContain('FAMILY COURT CASE NO. ____ OF 2026');
+    });
+
+    it('"AT THE INSTANCE OF X" after a blank line is kept', () => {
+      const lines = run(
+        'Family Court, Ranchi',
+        `IN THE FAMILY COURT AT PATNA\n\nAT THE INSTANCE OF X\n${BODY}`,
+      );
+      expect(lines[0]).toBe(RANCHI);
+      expect(lines).toContain('AT THE INSTANCE OF X');
+    });
+
+    it('"AT THE TIME OF FILING" right after the heading is kept', () => {
+      const lines = run(
+        'Family Court, Ranchi',
+        `IN THE FAMILY COURT AT PATNA\nAT THE TIME OF FILING\n${BODY}`,
+      );
+      expect(lines[0]).toBe(RANCHI);
+      expect(lines).toContain('AT THE TIME OF FILING');
+    });
   });
 });
