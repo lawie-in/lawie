@@ -232,13 +232,13 @@ describe('T-171 High Court routing (AJ-2026-10-08-T171-A1)', () => {
         'district_court_generic',
       );
     });
-    it('consumer and family still use district_court_generic', () => {
+    it('consumer still uses district_court_generic', () => {
       expect(resolveCourtRule('consumer_forum', 'District Forum')!.courtId).toBe(
         'district_court_generic',
       );
-      expect(resolveCourtRule('family_court', 'Family Court')!.courtId).toBe(
-        'district_court_generic',
-      );
+    });
+    it('family uses family_court (T-174)', () => {
+      expect(resolveCourtRule('family_court', 'Family Court')!.courtId).toBe('family_court');
     });
     it('supreme court is still null', () => {
       expect(resolveCourtRule('supreme_court', 'Supreme Court of India')).toBeNull();
