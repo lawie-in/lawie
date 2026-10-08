@@ -939,6 +939,39 @@ export interface RenderedSection {
   style?: string;
 }
 
+/** T-160: words of a court name or city, lower-case, punctuation dropped. */
+function placeWords(value: string | undefined): string {
+  return (value ?? '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/**
+ * T-160: true when the court designation already names the city, as whole
+ * words, ignoring case and punctuation ("CHIEF JUDICIAL MAGISTRATE, PATNA" and
+ * "Patna").
+ */
+export function designationNamesCity(designation?: string, city?: string): boolean {
+  const cityWords = placeWords(city);
+  if (!cityWords) return false;
+  return ` ${placeWords(designation)} `.includes(` ${cityWords} `);
+}
+
+/** T-160: a `{court_city}` line printed straight after `{court_designation},`. */
+const CITY_LINE_AFTER_DESIGNATION = /\{court_designation\},?[ \t]*\n[ \t]*\{court_city\}/g;
+
+/**
+ * T-160: the template a section renders. When the designation already names
+ * the city (designations from the courts list do), the city line that follows
+ * it is dropped, so the addressing clause names the city once. Other mentions
+ * of `{court_city}` ("Place:", "Verified at") are untouched.
+ */
+export function sectionTemplate(template: string, ctx: PlaceholderContext): string {
+  if (!designationNamesCity(ctx.court_designation, ctx.court_city)) return template;
+  return template.replace(CITY_LINE_AFTER_DESIGNATION, '{court_designation}');
+}
+
 /**
  * Render a template section by replacing placeholders.
  */
@@ -950,10 +983,11 @@ export function renderTemplateSection(
     throw new Error(`Section ${section.section_id} is not a template section`);
   }
 
+  const sectionCtx = sectionContext(section, ctx);
   return {
     section_id: section.section_id,
     type: 'template',
-    content: replacePlaceholders(section.template, sectionContext(section, ctx)),
+    content: replacePlaceholders(sectionTemplate(section.template, sectionCtx), sectionCtx),
     alignment: section.alignment,
     style: section.style,
   };
