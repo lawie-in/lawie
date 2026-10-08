@@ -7,6 +7,7 @@ Local ticket files, one per ticket. Founder decision on 3 Oct 2026: no Jira or N
 - A live board of every ticket is at https://claude.ai/artifact/REAV9qDo6bzJitD1TfxDXD (private to the founder). It shows the road to v1 by phase and what is waiting on what.
 - The founder changes a status or a note there, from the phone or the Mac. Priya reads the board at the start of a session and brings these files in line with it.
 - These files still hold the full detail of each ticket.
+- Founder rule, 8 Oct 2026: Priya owns the Status line in every `T-*.md`. Each time a ticket's state changes (building, PR open, merged, done), Priya updates that line, and only that line, in the branch the ticket lives on. The dev lead commits and pushes.
 
 ## How to use
 

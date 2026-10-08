@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft. MUST FIX before go-live (Major, Anushka run 1) |
 | Owner          | Priya (scope), Ajay (the questions + sign-off), Vishal (build), Anushka (tests develop after the batch) |
 | Mode           | Fix, full chain. Trace the cause first and report it before changing prompts. Merge to develop per founder's 8 Oct rule (as relayed by Vishal) |
-| Status         | PR #66 open, CI green. Ajay signed (AJ-2026-10-08-T139-signed). Merge after #65. |
+| Status         | Merged to develop (PR #66), 8 Oct. Anushka tests on develop. |
 | Size           | L (2–3 days) |
 | Depends on     | T-150 (merged) |
 | Branch         | fix/t-139-do-not-ask-for-what-was-given |
