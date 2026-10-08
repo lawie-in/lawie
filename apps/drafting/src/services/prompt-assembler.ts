@@ -133,12 +133,212 @@ export function resolveDocRule(docType: string): DocumentRuleConfig | null {
   return null;
 }
 
+// ── High Court routing (T-171, AJ-2026-10-08-T171-A1) ───────────────────────
+
+const COURTS_FILE = join(CONFIG_DIR, 'courts', 'indian-courts.json');
+
+/** The High Court rule used when no courts-list entry matches. Never `patna_hc`. */
+const HIGH_COURT_FALLBACK = 'high_court_generic';
+
+/** Heading printed when no High Court name was entered (AJ-2026-10-08-T171-A1, item 3). */
+export const HIGH_COURT_BLANK_HEADING = 'IN THE HIGH COURT OF __________';
+
+/** Placeholder in a generic High Court rule's designation. */
+const COURT_DESIGNATION_PLACEHOLDER = '{courtDesignation}';
+
+interface CourtEntry {
+  courtId: string;
+  name: string;
+  designation?: string;
+  courtType: string;
+  formattingRulesRef?: string;
+}
+
+/** Words that differ between ways of writing the same court's name. */
+const COURT_NAME_FILLER = new Set(['the', 'of', 'at', 'in', 'for', 'judicature']);
+
+/**
+ * A court name as a key: lower case, "&" as "and", punctuation dropped, filler
+ * words dropped, remaining words sorted and de-duplicated. So "Patna High
+ * Court" and "High Court of Judicature at Patna" give the same key, while
+ * "High Court of Judicature at Allahabad, Lucknow Bench" and "High Court of
+ * Judicature at Allahabad" do not.
+ */
+function courtNameKey(name: string): string {
+  const words = name
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/_/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w && !COURT_NAME_FILLER.has(w));
+  return [...new Set(words)].sort().join(' ');
+}
+
+/** The key of "High Court" alone: a seatless name that names no court. */
+const BARE_HIGH_COURT_KEY = courtNameKey('High Court');
+
+/**
+ * A court's name without its seat clause: the text after the last comma, or
+ * else after the last " at ", is dropped.
+ * "Jharkhand High Court, Ranchi" -> "Jharkhand High Court".
+ */
+function withoutSeat(name: string): string {
+  const comma = name.lastIndexOf(',');
+  if (comma > 0) return name.slice(0, comma);
+  const at = name.toLowerCase().lastIndexOf(' at ');
+  if (at > 0) return name.slice(0, at);
+  return name;
+}
+
+/** One courts-list High Court entry under one name key. */
+interface HighCourtIndexHit {
+  ref: string;
+  designation?: string;
+  /** True when the key is the entry's name with its seat clause removed. */
+  seatless: boolean;
+}
+
+let highCourtIndex: Map<string, HighCourtIndexHit[]> | null = null;
+
+function addHit(index: Map<string, HighCourtIndexHit[]>, key: string, hit: HighCourtIndexHit): void {
+  if (!index.has(key)) index.set(key, []);
+  index.get(key)!.push(hit);
+}
+
+/**
+ * Index of High Court entries in indian-courts.json: name key → every entry
+ * with that key. An entry is keyed by its courtId, its name and its
+ * designation, and (courtType `high_court` only) by its name without the seat.
+ */
+function loadHighCourtIndex(): Map<string, HighCourtIndexHit[]> {
+  if (highCourtIndex) return highCourtIndex;
+  const index = new Map<string, HighCourtIndexHit[]>();
+  try {
+    const data = JSON.parse(readFileSync(COURTS_FILE, 'utf-8')) as { courts?: CourtEntry[] };
+    for (const court of data.courts ?? []) {
+      if (court.courtType !== 'high_court' && court.courtType !== 'high_court_bench') continue;
+      if (!court.formattingRulesRef) continue;
+      const ref = court.formattingRulesRef;
+      const designation = court.designation;
+      for (const label of [court.courtId, court.name, court.designation]) {
+        if (!label) continue;
+        const key = courtNameKey(label);
+        if (key) addHit(index, key, { ref, designation, seatless: false });
+      }
+      // T-171 round 2: a High Court is also reached by its name without the seat
+      // ("Jharkhand High Court, Ranchi" -> "Jharkhand High Court").
+      if (court.courtType === 'high_court' && court.name) {
+        const key = courtNameKey(withoutSeat(court.name));
+        if (key && key !== BARE_HIGH_COURT_KEY) addHit(index, key, { ref, designation, seatless: true });
+      }
+    }
+  } catch {
+    // No courts list: every High Court uses the fallback rule.
+  }
+  highCourtIndex = index;
+  return index;
+}
+
+/** A matched High Court: the rule to use and, if one is certain, the entry's heading. */
+interface HighCourtMatch {
+  ref: string;
+  designation: string | null;
+}
+
+/** The one value in `values`, or null if there are none or they differ. */
+function onlyValue(values: (string | undefined)[]): string | null {
+  const set = new Set(values.filter((v): v is string => !!v));
+  return set.size === 1 ? [...set][0] : null;
+}
+
+/**
+ * The High Court entry the user's court name names, or null. The whole name
+ * must match an entry (see `courtNameKey`); a word inside the name is not
+ * enough. If the name matches entries with different rules, it is treated as
+ * no match.
+ *
+ * Heading: the designation of the entries matched by full name; if none match
+ * by full name, of the entries matched by seatless name. If those entries'
+ * designations differ, there is no certain heading (null).
+ */
+function matchHighCourt(courtName: string): HighCourtMatch | null {
+  const key = courtNameKey(courtName);
+  if (!key) return null;
+  const hits = loadHighCourtIndex().get(key);
+  if (!hits) return null;
+  const refs = new Set(hits.map((h) => h.ref));
+  if (refs.size !== 1) return null;
+  const exact = hits.filter((h) => !h.seatless);
+  const headingHits = exact.length > 0 ? exact : hits;
+  return { ref: [...refs][0], designation: onlyValue(headingHits.map((h) => h.designation)) };
+}
+
+/** The `formattingRulesRef` of the High Court entry the name names, or null. */
+function matchHighCourtRef(courtName: string): string | null {
+  return matchHighCourt(courtName)?.ref ?? null;
+}
+
+/**
+ * Priya's guard (T-171 open question, for Ajay to confirm or refuse in the PR):
+ * on the High Court path, a matched entry's rule is used only if it is a High
+ * Court rule. 17 High Court entries point at `district_court_generic` (T-155);
+ * those get the generic High Court rule instead. To drop the guard, return
+ * `loadCourtRule(ref)` here.
+ */
+function highCourtRuleOnly(ref: string): CourtRuleConfig | null {
+  const rule = loadCourtRule(ref);
+  return rule && rule.courtType === 'high_court' ? rule : null;
+}
+
+/**
+ * The heading for a High Court rule.
+ * - Generic rule (`{courtDesignation}` heading): the court name as the user
+ *   entered it; no name: `IN THE HIGH COURT OF __________`.
+ * - A court's own rule: the matched courts-list entry's designation
+ *   (AJ-2026-10-08-T171-A2: Lucknow Bench prints its own bench, not "AT
+ *   ALLAHABAD"). No certain designation: the rule's own heading.
+ * Always returns a copy when the heading changes; the cached rule is never mutated.
+ */
+function withCourtHeading(
+  rule: CourtRuleConfig,
+  courtName: string,
+  matchedDesignation: string | null,
+): CourtRuleConfig {
+  if (rule.designation.includes(COURT_DESIGNATION_PLACEHOLDER)) {
+    const entered = courtName.trim();
+    return { ...rule, designation: entered || HIGH_COURT_BLANK_HEADING };
+  }
+  if (matchedDesignation && matchedDesignation !== rule.designation) {
+    return { ...rule, designation: matchedDesignation };
+  }
+  return rule;
+}
+
+/**
+ * The rule for a High Court: the matched courts-list entry's rule, or
+ * `high_court_generic` when nothing matches. Never `patna_hc` by default.
+ */
+function resolveHighCourtRule(courtName: string): CourtRuleConfig | null {
+  const match = matchHighCourt(courtName);
+  const own = match ? highCourtRuleOnly(match.ref) : null;
+  const rule = own || loadCourtRule(HIGH_COURT_FALLBACK);
+  if (!rule) return null;
+  return withCourtHeading(rule, courtName, own ? match!.designation : null);
+}
+
 /**
  * Resolve a court type + court name to the best matching court-rule config.
  * Tries: specific court ID → generic court type → null.
  */
 export function resolveCourtRule(courtType: string, courtName: string): CourtRuleConfig | null {
-  // Normalize court name for matching (e.g., "Patna High Court" → "patna_hc")
+  // High Courts route by the courts list's formattingRulesRef (T-171). Checked
+  // first: a High Court never takes a JMFC or Sessions rule from a word in its name.
+  if (courtType === 'high_court') {
+    return resolveHighCourtRule(courtName ?? '');
+  }
+
+  // Normalize court name for matching
   const normalized = courtName.toLowerCase();
 
   // Check specific court-type names first (most specific wins)
@@ -149,16 +349,9 @@ export function resolveCourtRule(courtType: string, courtName: string): CourtRul
     return loadCourtRule('sessions_generic');
   }
 
-  // Check for city/court-specific matches
-  if (normalized.includes('patna') && courtType === 'high_court') {
-    const specific = loadCourtRule('patna_hc');
-    if (specific) return specific;
-  }
-
   // Map courtType to generic rule
   const typeMapping: Record<string, string> = {
     district_court: 'district_court_generic',
-    high_court: 'patna_hc', // default HC for now — expand as we add more
     consumer_forum: 'district_court_generic',
     family_court: 'district_court_generic',
   };
@@ -366,4 +559,8 @@ export const _testing = {
   buildUserFactsSection,
   loadDocRule,
   loadCourtRule,
+  courtNameKey,
+  matchHighCourtRef,
+  matchHighCourt,
+  highCourtRuleOnly,
 };

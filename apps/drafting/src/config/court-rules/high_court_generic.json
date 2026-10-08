@@ -11,7 +11,7 @@
   "courtType": "high_court",
   "designation": "IN THE HIGH COURT OF {courtDesignation}",
   "jurisdictionNote": "Generic High Court formatting rules. Has original, appellate, and writ jurisdiction. Hears anticipatory bail under S.482 BNSS, criminal appeals, writ petitions under Article 226/227, and civil appeals.",
-  "eFilingMandatory": true,
+  "eFilingMandatory": false,
   "cause_title_format": "{courtDesignation}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER(S)\n\nVERSUS\n\n{respondent} ... RESPONDENT(S)",
   "party_designation": {
     "petitioner": "Petitioner",
@@ -19,19 +19,19 @@
     "applicant": "Applicant",
     "opposite_party": "Opposite Party",
     "appellant": "Appellant",
-    "state": "State through the Advocate General"
+    "state": "State of __________"
   },
   "case_nomenclature": {
-    "anticipatory_bail": "Cr. Misc. No. _____ of {year}",
-    "regular_bail": "Cr. Misc. No. _____ of {year}",
-    "quashing": "Cr. Misc. No. _____ of {year}",
-    "criminal_appeal": "Criminal Appeal No. _____ of {year}",
-    "criminal_writ": "Criminal Writ Petition No. _____ of {year}",
-    "civil_writ": "Writ Petition (Civil) No. _____ of {year}",
-    "criminal_revision": "Criminal Revision No. _____ of {year}",
-    "civil_revision": "Civil Revision No. _____ of {year}",
-    "first_appeal": "First Appeal No. _____ of {year}",
-    "misc_appeal": "Misc. Appeal No. _____ of {year}"
+    "anticipatory_bail": "_____ No. _____ of {year}",
+    "regular_bail": "_____ No. _____ of {year}",
+    "quashing": "_____ No. _____ of {year}",
+    "criminal_appeal": "_____ No. _____ of {year}",
+    "criminal_writ": "_____ No. _____ of {year}",
+    "civil_writ": "_____ No. _____ of {year}",
+    "criminal_revision": "_____ No. _____ of {year}",
+    "civil_revision": "_____ No. _____ of {year}",
+    "first_appeal": "_____ No. _____ of {year}",
+    "misc_appeal": "_____ No. _____ of {year}"
   },
   "para_numbering": {
     "style": "numeric",
@@ -53,12 +53,12 @@
     "causeListFormat": "{courtDesignation}\n{benchDesignation}"
   },
   "localRules": [
-    "All petitions must be filed through an advocate enrolled with the respective State Bar Council or an AOR.",
+    "All petitions must be filed through an advocate enrolled with a State Bar Council, or by the party in person.",
     "Anticipatory bail applications must be accompanied by a duly sworn affidavit.",
     "Certified copy of the impugned order must be annexed.",
     "Index of documents is mandatory.",
     "All copies to be legible and paginated.",
-    "E-filing is mandatory."
+    "Follow the High Court's current e-filing directions."
   ],
-  "e_filing_mandatory": true
+  "e_filing_mandatory": false
 }
