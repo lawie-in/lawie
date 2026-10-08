@@ -75,6 +75,24 @@
     { "name": "arrest_date", "label": "Date of Arrest", "type": "date", "required": true },
     { "name": "days_in_custody", "label": "Days in Custody", "type": "number", "required": true },
     {
+      "name": "currently_in_custody",
+      "label": "Is the applicant currently in custody?",
+      "type": "select",
+      "options": [
+        { "id": "yes_judicial", "label": "Yes — Judicial custody" },
+        { "id": "yes_police", "label": "Yes — Police custody" },
+        { "id": "no", "label": "No — anticipating arrest" }
+      ],
+      "required": true
+    },
+    {
+      "name": "jail",
+      "label": "Name of jail where the applicant is lodged",
+      "type": "text",
+      "required": true,
+      "show_if": "currently_in_custody === yes_judicial"
+    },
+    {
       "name": "investigation_status",
       "label": "Investigation Status",
       "type": "select",

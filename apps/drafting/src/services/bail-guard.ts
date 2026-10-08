@@ -139,7 +139,6 @@ function sameOrder(a: string[], b: string[]): boolean {
 // AJ-2026-10-07-T150. Do not reword or widen without his sign-off.
 
 /** The regular-bail documents the warning is shown on. Never anticipatory bail. */
-// bail_before_magistrate has no custody choice yet, so Rule B does not fire on it (follow-up ticket, AJ-2026-10-07-T150-diff).
 export const REGULAR_BAIL_KINDS: ReadonlySet<string> = new Set([
   BAIL_REGULAR,
   'bail_before_magistrate',

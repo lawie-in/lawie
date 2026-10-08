@@ -18,6 +18,8 @@
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
+import { normaliseOption } from './template-promoter';
+
 // ── Output shape ────────────────────────────────────────────────────────────
 
 export type RulePackSchemaShape =
@@ -45,6 +47,10 @@ export interface RulePackFact {
   required: boolean;
   /** Allowed values, as labels. Empty when the pack lists none. */
   options: string[];
+  /** The option ids, in the same order as `options` (T-153). Only when the pack lists options. */
+  option_ids?: string[];
+  /** The pack's `show_if` (or `depends_on`) condition, as written (T-153). */
+  show_if?: string;
 }
 
 /**
@@ -216,7 +222,35 @@ function factFromDef(
     type: str(def.type),
     required,
     options: optionLabels(def.options ?? def.enum ?? def.values),
+    ...optionIdsAndCondition(def),
   };
+}
+
+/**
+ * The option ids and the show_if condition, so the brief can hide a fact the
+ * form hides (T-153). Ids come from `template-promoter`'s `normaliseOption`,
+ * so they cannot drift from the form's. One id per label `optionLabels` keeps,
+ * in the same order, so `option_ids[i]` is the id of `options[i]`.
+ */
+function optionIdsAndCondition(def: Obj): Pick<RulePackFact, 'option_ids' | 'show_if'> {
+  const out: Pick<RulePackFact, 'option_ids' | 'show_if'> = {};
+  const raw = def.options ?? def.enum ?? def.values;
+  if (Array.isArray(raw)) {
+    const ids: string[] = [];
+    raw.forEach((o, idx) => {
+      if (typeof o === 'string' || typeof o === 'number') {
+        ids.push(normaliseOption(o, idx)?.id ?? `opt_${idx}`);
+      } else if (isObj(o)) {
+        if (firstStr(o.label, o.name, o.value, o.id) !== null) {
+          ids.push(normaliseOption(o, idx)?.id ?? `opt_${idx}`);
+        }
+      }
+    });
+    if (ids.length > 0) out.option_ids = ids;
+  }
+  const cond = str(def.show_if) ?? str(def.depends_on);
+  if (cond !== null) out.show_if = cond;
+  return out;
 }
 
 /** A list of field definitions keyed by `field_id`, `id` or `name`. */

@@ -152,6 +152,28 @@ function slugifyOption(label: string): string {
     .slice(0, 60);
 }
 
+/**
+ * The option a raw form_schema option becomes: its id and label. Exported so
+ * `rule-pack.service` derives the same ids the form uses (T-153); `null` when
+ * the option has an unsupported shape (the form then uses `opt_${idx}`).
+ */
+export function normaliseOption(o: unknown, idx: number): FieldOption | null {
+  if (typeof o === 'string') {
+    return { id: slugifyOption(o) || `opt_${idx}`, label: o };
+  }
+  if (o && typeof o === 'object') {
+    const obj = o as Record<string, unknown>;
+    const label =
+      typeof obj.label === 'string' ? obj.label : String(obj.id ?? `Option ${idx + 1}`);
+    const id =
+      typeof obj.id === 'string' && obj.id.length > 0
+        ? obj.id
+        : slugifyOption(label) || `opt_${idx}`;
+    return { id, label };
+  }
+  return null;
+}
+
 function normaliseOptions(
   raw: unknown,
   mismatches: string[],
@@ -159,19 +181,8 @@ function normaliseOptions(
 ): FieldOption[] | undefined {
   if (!Array.isArray(raw)) return undefined;
   return raw.map((o, idx) => {
-    if (typeof o === 'string') {
-      return { id: slugifyOption(o) || `opt_${idx}`, label: o };
-    }
-    if (o && typeof o === 'object') {
-      const obj = o as Record<string, unknown>;
-      const label =
-        typeof obj.label === 'string' ? obj.label : String(obj.id ?? `Option ${idx + 1}`);
-      const id =
-        typeof obj.id === 'string' && obj.id.length > 0
-          ? obj.id
-          : slugifyOption(label) || `opt_${idx}`;
-      return { id, label };
-    }
+    const opt = normaliseOption(o, idx);
+    if (opt) return opt;
     mismatches.push(`${context}: option at index ${idx} has unsupported shape; coerced to string`);
     return { id: `opt_${idx}`, label: String(o) };
   });
