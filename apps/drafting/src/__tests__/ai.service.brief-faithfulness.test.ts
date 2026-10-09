@@ -7,14 +7,13 @@
  * fixture. The wording of the findings is Ajay's (handoff/design/
  * T-136-drafter-rules-signed.md, part 1 section C and part 2 D2).
  *
- * What is stubbed: the model id (no Mongo), the model transport (global.fetch,
- * an SSE stream), and the old-law lookup (no Redis, no Mongo).
+ * What is stubbed: the model id (no Mongo), the model transport (the Anthropic
+ * SDK's messages.stream), and the old-law lookup (no Redis, no Mongo).
  */
 import './setupEnv';
 
 import { Response } from 'express';
 
-import { env } from '../config/env';
 import { GenerationFailedError, streamGenerateFromBrief } from '../services/ai.service';
 import { CLAUSES_MARKER } from '../services/brief-drafter';
 import {
@@ -29,6 +28,7 @@ import {
   loadCourtRule,
   loadTemplateConfig,
 } from '../services/template-engine.service';
+import { SdkStreamParams, sdkStreamOf } from './sdkStream';
 import { signedFinding } from './t136-signed';
 
 jest.mock('../services/app-settings.service', () => ({
@@ -46,28 +46,17 @@ jest.mock('../services/sections.service', () => ({
 
 // ── The model, stubbed ──────────────────────────────────────────────────────
 
-function sse(content: string) {
-  const lines = [
-    `data: ${JSON.stringify({ choices: [{ delta: { content: content.slice(0, Math.max(0, content.length - 40)) } }] })}`,
-    `data: ${JSON.stringify({ choices: [{ delta: { content: content.slice(Math.max(0, content.length - 40)) } }] })}`,
-    `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 4000, completion_tokens: 800 } })}`,
-    'data: [DONE]',
-  ];
-  const encoder = new TextEncoder();
-  let i = 0;
-  return {
-    ok: true,
-    body: new ReadableStream({
-      pull(controller) {
-        if (i < lines.length) controller.enqueue(encoder.encode(lines[i++] + '\n'));
-        else controller.close();
-      },
-    }),
-  };
-}
+const mockMessagesStream = jest.fn();
+jest.mock('@anthropic-ai/sdk', () =>
+  require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
+);
+
+// Every test sets its own model answer; nothing carries over from the one before.
+beforeEach(() => {
+  mockMessagesStream.mockReset();
+});
 
 interface Call {
-  headers: Record<string, string>;
   system: string;
   user: string;
 }
@@ -75,21 +64,14 @@ interface Call {
 /** The first answer is the Drafter call, the second the repair call. */
 function mockModel(...contents: string[]): { calls: Call[]; fetchMock: jest.Mock } {
   const calls: Call[] = [];
-  const fetchMock = jest.fn(
-    async (_url: string, init: { headers: Record<string, string>; body: string }) => {
-      const body = JSON.parse(init.body) as { messages: Array<{ content: string }> };
-      calls.push({
-        headers: init.headers,
-        system: body.messages[0].content,
-        user: body.messages[1].content,
-      });
-      const content = contents[calls.length - 1];
-      if (content === undefined) throw new Error('no more model answers');
-      return sse(content);
-    },
-  );
-  global.fetch = fetchMock as unknown as typeof fetch;
-  return { calls, fetchMock };
+  mockMessagesStream.mockReset();
+  mockMessagesStream.mockImplementation(async (params: SdkStreamParams) => {
+    calls.push({ system: params.system, user: params.messages[0].content });
+    const content = contents[calls.length - 1];
+    if (content === undefined) throw new Error('no more model answers');
+    return sdkStreamOf(content);
+  });
+  return { calls, fetchMock: mockMessagesStream };
 }
 
 function fakeRes() {
@@ -397,12 +379,7 @@ Advocate`;
 
 // ── Set-up ──────────────────────────────────────────────────────────────────
 
-beforeEach(() => {
-  env.HELICONE_API_KEY = 'test-helicone-key';
-});
-
 afterEach(() => {
-  env.HELICONE_API_KEY = '';
   jest.restoreAllMocks();
 });
 
@@ -828,7 +805,7 @@ describe("T-136 — the description is kept out of logs, events and the model ve
       )
       .join('\n');
 
-  it('both model calls ask Helicone to keep neither the request nor the answer', async () => {
+  it('both model calls carry the description to the model', async () => {
     const r = await bail({
       described: MARKED,
       answers: [
@@ -840,8 +817,6 @@ describe("T-136 — the description is kept out of logs, events and the model ve
     });
     expect(r.calls).toHaveLength(2);
     for (const call of r.calls) {
-      expect(call.headers['Helicone-Omit-Request']).toBe('true');
-      expect(call.headers['Helicone-Omit-Response']).toBe('true');
       expect(call.user).toContain(MARKER);
     }
   });
@@ -864,10 +839,9 @@ describe("T-136 — the description is kept out of logs, events and the model ve
 
   it('a run where the model call fails writes no log line and no error event with the description', async () => {
     const spies = spyOnConsole();
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValue({ ok: false, status: 503, text: async () => 'down' });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockMessagesStream;
+    fetchMock.mockReset();
+    fetchMock.mockRejectedValue(new Error('503 service unavailable'));
     const previous = process.env.NODE_ENV;
     process.env.NODE_ENV = 'development';
     const out = fakeRes();

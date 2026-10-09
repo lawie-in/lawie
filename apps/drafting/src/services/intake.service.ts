@@ -771,24 +771,6 @@ export interface IntakeResponse {
   needs_upgrade?: boolean;
 }
 
-const DATED_MODEL_ID = /-\d{8}$/;
-
-function heliconeHeaders(
-  userId: string,
-  intakeId: string,
-  purpose: LlmAuxPurpose,
-): Record<string, string> {
-  return {
-    'Helicone-User-Id': userId,
-    'Helicone-Property-Intake-Id': intakeId,
-    'Helicone-Property-Purpose': purpose,
-    // T-101: no description text in third-party tools. Asks Helicone not to
-    // store request/response bodies (usage is still read from our stream).
-    'Helicone-Omit-Request': 'true',
-    'Helicone-Omit-Response': 'true',
-  };
-}
-
 async function modelCall(
   req: { userId: string; intakeId: string; model: string },
   purpose: LlmAuxPurpose,
@@ -803,7 +785,6 @@ async function modelCall(
       system,
       user,
       maxTokens,
-      heliconeHeaders: heliconeHeaders(req.userId, req.intakeId, purpose),
     });
     await recordAuxCall({
       ...req,
@@ -874,7 +855,7 @@ async function fillTemplate(
 
 /**
  * Runs one intake. Throws IntakeLimitError for a 429. Every other failure
- * (missing or undated model setting, Redis down, model error) is
+ * (missing model setting, Redis down, model error) is
  * `outcome: unavailable` — the gallery still works.
  */
 export async function runIntake(req: IntakeRequest): Promise<IntakeResponse> {
@@ -889,14 +870,6 @@ export async function runIntake(req: IntakeRequest): Promise<IntakeResponse> {
     }
     return { intake_id: intakeId, outcome: 'unavailable' };
   }
-  if (!DATED_MODEL_ID.test(model)) {
-    // T-003 spike: Helicone usage parsing breaks on bare aliases.
-    console.error(
-      `[intake] ${APP_SETTING_KEYS.INTAKE_MODEL} must be a full dated model id (intakeId=${intakeId})`,
-    );
-    return { intake_id: intakeId, outcome: 'unavailable' };
-  }
-
   try {
     await consumeIntakeQuota(req.userId, req.plan);
   } catch (err) {
@@ -1268,13 +1241,6 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
     }
     return { intake_id: intakeId, outcome: 'unavailable' };
   }
-  if (!DATED_MODEL_ID.test(model)) {
-    console.error(
-      `[intake] ${APP_SETTING_KEYS.INTAKE_MODEL} must be a full dated model id (intakeId=${intakeId})`,
-    );
-    return { intake_id: intakeId, outcome: 'unavailable' };
-  }
-
   // A first request counts against the user's limits. A later one for the same
   // intake (a round of answers, a change of kind) counts against that intake,
   // but only when this user did start it: an id nobody started is a first request.

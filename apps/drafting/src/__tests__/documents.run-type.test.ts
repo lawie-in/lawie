@@ -3,18 +3,28 @@
  *
  * Covers: a first draft, a failed draft, a retry (keeps the retried
  * attempt's runType), rows written before T-110 (read as 'initial'), the
- * Helicone-Property-Run-Type header, and the legacy /generate route.
+ * Generation row, and the legacy /generate route.
  */
 import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
-import { env } from '../config/env';
 import { AppSetting } from '../models/AppSetting.model';
 import { effectiveRunType, Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
 import { resolveRun } from '../routes/documents.routes';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
+import { SdkStreamParams, sdkAnswer } from './sdkStream';
+const mockMessagesStream = jest.fn();
+jest.mock('@anthropic-ai/sdk', () =>
+  require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
+);
+
+// Every test sets its own model answer; nothing carries over from the one before.
+beforeEach(() => {
+  mockMessagesStream.mockReset();
+});
+
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439081';
@@ -49,36 +59,8 @@ const VALID_BAIL_FORM_DATA = {
   grounds_for_bail: ['false_implication', 'no_flight_risk'],
 };
 
-function sseResponse(lines: string[]) {
-  const encoder = new TextEncoder();
-  let i = 0;
-  return {
-    ok: true,
-    body: new ReadableStream({
-      pull(controller) {
-        if (i < lines.length) controller.enqueue(encoder.encode(lines[i++] + '\n'));
-        else controller.close();
-      },
-    }),
-  };
-}
-
-function usageChunk(text: string, promptTokens: number, completionTokens: number): string[] {
-  return [
-    `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}`,
-    `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens } })}`,
-    'data: [DONE]',
-  ];
-}
-
-function headersOfCall(fetchMock: jest.Mock, n: number): Record<string, string> {
-  const init = fetchMock.mock.calls[n][1] as { headers?: Record<string, string> };
-  return init.headers ?? {};
-}
-
 beforeEach(async () => {
   _clearAppSettingsCache();
-  env.HELICONE_API_KEY = 'test-helicone-key';
   await AppSetting.create({ key: 'ai.drafting_model', value: 'claude-sonnet-4-5-20250929' });
   await AppSetting.create({
     key: 'ai.rates.claude-sonnet-4-5-20250929',
@@ -95,14 +77,12 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  env.HELICONE_API_KEY = '';
   jest.restoreAllMocks();
 });
 
 describe('T-110 — runType on /generate-from-template', () => {
-  it('a first draft writes runType initial and sends Helicone-Property-Run-Type', async () => {
-    const fetchMock = jest.fn().mockResolvedValue(sseResponse(usageChunk('1. Body.', 500, 100)));
-    global.fetch = fetchMock as unknown as typeof fetch;
+  it('a first draft writes runType initial on the Generation row', async () => {
+    const fetchMock = mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 500, 100));
 
     const res = await request(app)
       .post('/generate-from-template')
@@ -116,16 +96,11 @@ describe('T-110 — runType on /generate-from-template', () => {
     expect(gen!.runType).toBe('initial');
 
     expect(fetchMock).toHaveBeenCalled();
-    for (let i = 0; i < fetchMock.mock.calls.length; i++) {
-      expect(headersOfCall(fetchMock, i)['Helicone-Property-Run-Type']).toBe('initial');
-    }
   });
 
   it('a failed draft writes runType initial on the failed row', async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValue({ ok: false, status: 503, text: async () => 'down' });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockMessagesStream
+      .mockRejectedValue(new Error('503 service unavailable'));
 
     const res = await request(app)
       .post('/generate-from-template')
@@ -139,9 +114,8 @@ describe('T-110 — runType on /generate-from-template', () => {
   });
 
   it('a retry after a failure keeps runType and the run', async () => {
-    const fetchMock = jest.fn();
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'down' });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockMessagesStream.mockReset();
+    fetchMock.mockRejectedValueOnce(new Error('503 service unavailable'));
 
     const first = await request(app)
       .post('/generate-from-template')
@@ -149,7 +123,7 @@ describe('T-110 — runType on /generate-from-template', () => {
       .send({ template_id: 'bail_regular', form_data: VALID_BAIL_FORM_DATA });
     const runId = first.headers['x-run-id'];
 
-    fetchMock.mockResolvedValueOnce(sseResponse(usageChunk('1. Body.', 500, 100)));
+    fetchMock.mockResolvedValueOnce(sdkAnswer('1. Body.', 500, 100));
     const second = await request(app)
       .post('/generate-from-template')
       .set(internalHeaders())
@@ -161,16 +135,14 @@ describe('T-110 — runType on /generate-from-template', () => {
       [1, 'failed', 'initial'],
       [2, 'completed', 'initial'],
     ]);
-    expect(headersOfCall(fetchMock, 1)['Helicone-Property-Run-Type']).toBe('initial');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 
 describe('T-110 — runType on the legacy /generate route', () => {
   it('writes runType initial', async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValue(sseResponse(usageChunk('1. The petitioner submits.', 400, 80)));
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockMessagesStream
+      .mockResolvedValue(sdkAnswer('1. The petitioner submits.', 400, 80));
 
     const res = await request(app).post('/generate').set(internalHeaders()).send({
       docType: 'petition',
@@ -184,7 +156,7 @@ describe('T-110 — runType on the legacy /generate route', () => {
     const gen = await Generation.findOne({ userId: USER_ID }).lean();
     expect(gen).not.toBeNull();
     expect(gen!.runType).toBe('initial');
-    expect(headersOfCall(fetchMock, 0)['Helicone-Property-Run-Type']).toBe('initial');
+    expect(fetchMock).toHaveBeenCalled();
   });
 });
 

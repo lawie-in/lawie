@@ -12,7 +12,6 @@ import { join } from 'path';
 
 import { Response } from 'express';
 
-import { env } from '../config/env';
 import { streamGenerateFromBrief, streamGenerateGuided } from '../services/ai.service';
 import {
   AUTHORITY_BLANK,
@@ -24,6 +23,17 @@ import { CLAUSES_MARKER } from '../services/brief-drafter';
 import { buildBrief, buildChecklist, GivenValue, isCourtDocument } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 import { loadTemplateConfig } from '../services/template-engine.service';
+import { sdkAnswer } from './sdkStream';
+
+const mockMessagesStream = jest.fn();
+jest.mock('@anthropic-ai/sdk', () =>
+  require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
+);
+
+// Every test sets its own model answer; nothing carries over from the one before.
+beforeEach(() => {
+  mockMessagesStream.mockReset();
+});
 
 jest.mock('../services/app-settings.service', () => ({
   ...jest.requireActual('../services/app-settings.service'),
@@ -254,30 +264,8 @@ describe('removeUngivenCitations: openers, list markers and name edges (review r
 
 // ── Wiring, with a stubbed model ────────────────────────────────────────────
 
-beforeEach(() => {
-  env.HELICONE_API_KEY = 'test-helicone-key';
-});
-afterEach(() => {
-  env.HELICONE_API_KEY = '';
-});
-
 function sse(content: string) {
-  const lines = [
-    `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}`,
-    `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 4000, completion_tokens: 800 } })}`,
-    'data: [DONE]',
-  ];
-  const enc = new TextEncoder();
-  let i = 0;
-  return {
-    ok: true,
-    body: new ReadableStream({
-      pull(c) {
-        if (i < lines.length) c.enqueue(enc.encode(lines[i++] + '\n'));
-        else c.close();
-      },
-    }),
-  };
+  return sdkAnswer(content, 4000, 800);
 }
 
 async function draftWith(body: string, described: string | null, extra: GivenValue[] = []) {
@@ -307,7 +295,7 @@ async function draftWith(body: string, described: string | null, extra: GivenVal
   if (!brief.can_confirm) throw new Error('brief cannot be confirmed');
   const clauses = pack.mandatoryClauses.map((c) => `${c.id}: 1`).join('\n');
   const answer = `${body}\n\n${CLAUSES_MARKER}\n${clauses}`;
-  global.fetch = jest.fn(async () => sse(answer)) as unknown as typeof fetch;
+  mockMessagesStream.mockReset().mockImplementation(async () => sse(answer));
   const res = { setHeader: jest.fn(), write: jest.fn(), end: jest.fn(), headersSent: false };
   const result = await streamGenerateFromBrief(
     {
@@ -386,7 +374,7 @@ describe('wiring: streamGenerateGuided (no rule pack) with a stubbed model', () 
       court: { state: 'bihar', court_type: 'sessions', court: 'district_sessions_patna' },
     });
     brief.kind = { ...brief.kind, id: null };
-    global.fetch = jest.fn(async () => sse(body)) as unknown as typeof fetch;
+    mockMessagesStream.mockReset().mockImplementation(async () => sse(body));
     const res = { setHeader: jest.fn(), write: jest.fn(), end: jest.fn(), headersSent: false };
     const result = await streamGenerateGuided(
       { brief, language: 'en', targetParagraphs: 6, userId: 'u1', runId: 'r1', runSequence: 1, runType: 'initial' },

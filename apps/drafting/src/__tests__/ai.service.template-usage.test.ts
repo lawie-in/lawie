@@ -12,7 +12,6 @@ import './setupDb';
 
 import { Response } from 'express';
 
-import { env } from '../config/env';
 import { AppSetting } from '../models/AppSetting.model';
 import {
   GenerationFailedError,
@@ -21,6 +20,7 @@ import {
 } from '../services/ai.service';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { loadTemplateConfig, TemplateConfig } from '../services/template-engine.service';
+import { asyncIterable } from './sdkStream';
 
 function fakeRes(): Response {
   return {
@@ -45,26 +45,23 @@ function twoSectionConfig(): TemplateConfig {
   };
 }
 
-function sseResponse(lines: string[]) {
-  const encoder = new TextEncoder();
-  let i = 0;
-  return {
-    ok: true,
-    body: new ReadableStream({
-      pull(controller) {
-        if (i < lines.length) controller.enqueue(encoder.encode(lines[i++] + '\n'));
-        else controller.close();
-      },
-    }),
-  };
-}
+const mockMessagesStream = jest.fn();
+jest.mock('@anthropic-ai/sdk', () =>
+  require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
+);
 
-function usageChunk(text: string, promptTokens: number, completionTokens: number): string[] {
-  return [
-    `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}`,
-    `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens } })}`,
-    'data: [DONE]',
-  ];
+// Every test sets its own model answer; nothing carries over from the one before.
+beforeEach(() => {
+  mockMessagesStream.mockReset();
+});
+
+/** One SDK stream: text, then the provider's input and output token counts. */
+function sdkAnswer(text: string, input: number, output: number) {
+  return asyncIterable([
+    { type: 'message_start', message: { usage: { input_tokens: input, output_tokens: 0 } } },
+    { type: 'content_block_delta', delta: { type: 'text_delta', text } },
+    { type: 'message_delta', usage: { output_tokens: output } },
+  ]);
 }
 
 const BASE_INPUT = {
@@ -78,47 +75,41 @@ const BASE_INPUT = {
 beforeEach(async () => {
   _clearAppSettingsCache();
   await AppSetting.create({ key: 'ai.drafting_model', value: 'claude-sonnet-4-5-20250929' });
-  env.HELICONE_API_KEY = 'test-helicone-key';
+  mockMessagesStream.mockReset();
 });
 
 afterEach(() => {
-  env.HELICONE_API_KEY = '';
   jest.restoreAllMocks();
 });
 
 describe('streamGenerateFromTemplate — multi-section usage accumulation', () => {
   it('sums usage and llmCalls across both ai_generated sections', async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValueOnce(sseResponse(usageChunk('first section text', 100, 20)))
-      .mockResolvedValueOnce(sseResponse(usageChunk('second section text', 50, 10)));
-    global.fetch = fetchMock as unknown as typeof fetch;
+    mockMessagesStream
+      .mockResolvedValueOnce(sdkAnswer('first section text', 100, 20))
+      .mockResolvedValueOnce(sdkAnswer('second section text', 50, 10));
 
     const input: TemplateGenerateInput = { ...BASE_INPUT, templateConfig: twoSectionConfig() };
     const result = await streamGenerateFromTemplate(input, fakeRes());
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(mockMessagesStream).toHaveBeenCalledTimes(2);
     expect(result.usage.llmCalls).toBe(2);
     expect(result.usage.inputTokens).toBe(150); // 100 + 50
     expect(result.usage.outputTokens).toBe(30); // 20 + 10
     expect(result.usage.usageSource).toBe('provider');
     expect(result.usage.calls).toHaveLength(2);
     expect(result.aiModel).toBe('claude-sonnet-4-5-20250929');
-    expect(result.transport).toBe('helicone');
+    expect(result.transport).toBe('direct');
     expect(result.bodyParaCount).toBeGreaterThanOrEqual(0);
   });
 
   it('marks a call "estimated" when the provider reports no usage at all', async () => {
-    const fetchMock = jest
-      .fn()
+    mockMessagesStream
       .mockResolvedValueOnce(
-        sseResponse([
-          `data: ${JSON.stringify({ choices: [{ delta: { content: 'no usage here' } }] })}`,
-          'data: [DONE]',
+        asyncIterable([
+          { type: 'content_block_delta', delta: { type: 'text_delta', text: 'no usage here' } },
         ]),
       )
-      .mockResolvedValueOnce(sseResponse(usageChunk('second section text', 50, 10)));
-    global.fetch = fetchMock as unknown as typeof fetch;
+      .mockResolvedValueOnce(sdkAnswer('second section text', 50, 10));
 
     const input: TemplateGenerateInput = { ...BASE_INPUT, templateConfig: twoSectionConfig() };
     const result = await streamGenerateFromTemplate(input, fakeRes());
@@ -130,11 +121,9 @@ describe('streamGenerateFromTemplate — multi-section usage accumulation', () =
   });
 
   it("a failure on the second call still reports the first call's usage via GenerationFailedError", async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValueOnce(sseResponse(usageChunk('first section text', 100, 20)))
-      .mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'gateway down' });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    mockMessagesStream
+      .mockResolvedValueOnce(sdkAnswer('first section text', 100, 20))
+      .mockRejectedValueOnce(new Error('503 service unavailable'));
 
     const input: TemplateGenerateInput = { ...BASE_INPUT, templateConfig: twoSectionConfig() };
     const res = fakeRes();
@@ -154,7 +143,7 @@ describe('streamGenerateFromTemplate — multi-section usage accumulation', () =
     expect(failErr.usage.inputTokens).toBe(100);
     expect(failErr.usage.outputTokens).toBeGreaterThanOrEqual(20);
     expect(failErr.aiModel).toBe('claude-sonnet-4-5-20250929');
-    expect(failErr.transport).toBe('helicone');
+    expect(failErr.transport).toBe('direct');
     // The pipeline writes the SSE error event but does NOT end the response —
     // the route ends it only after the failed Generation row is persisted,
     // so a fast retry can never race that write (found via a live browser

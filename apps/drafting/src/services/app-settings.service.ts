@@ -116,7 +116,7 @@ export function _clearAppSettingsCache(): void {
 export const APP_SETTING_KEYS = {
   DRAFTING_MODEL: 'ai.drafting_model',
   PREFLIGHT_MODEL: 'ai.preflight_model',
-  /** ADR-019 §3.8 — Haiku, as a full dated model id. No default in code. */
+  /** ADR-019 §3.8 — a Haiku model id (a bare alias or a dated id). No default in code. */
   INTAKE_MODEL: 'ai.intake_model',
 } as const;
 

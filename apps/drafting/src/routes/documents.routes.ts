@@ -93,7 +93,7 @@ export interface RecordGenerationInput {
   templateId?: string;
   documentId?: mongoose.Types.ObjectId;
   aiModel?: string;
-  transport?: 'direct' | 'helicone';
+  transport?: 'direct';
   usage: {
     inputTokens: number;
     outputTokens: number;

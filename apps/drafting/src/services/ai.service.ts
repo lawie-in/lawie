@@ -61,7 +61,6 @@ import { Brief, FIXED_KEYS } from './intake-brief';
 import {
   estimateOutputTokens,
   parseAnthropicStreamEvent,
-  parseOpenAIStreamLine,
   UsageMeter,
   UsageTotals,
 } from './llm-usage';
@@ -99,7 +98,7 @@ import {
 } from './validator';
 
 /**
- * Anthropic SDK client — used only when HELICONE_API_KEY is NOT set (direct API calls).
+ * Anthropic SDK client — every model call goes straight to Anthropic (T-118).
  */
 const directClient = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
@@ -118,15 +117,11 @@ export interface CallUsageDraft {
   usageSource: 'provider' | 'none';
   /** Resolved model id and transport for this call — same for every call in one request. */
   model?: string;
-  transport?: 'direct' | 'helicone';
+  transport?: 'direct';
 }
 
 /**
- * Stream text tokens from the LLM.
- *
- * - When HELICONE_API_KEY is set: calls Helicone AI Gateway (OpenAI-compat endpoint)
- *   using native fetch — this is the same endpoint verified working in Postman.
- * - When not set: falls back to Anthropic SDK directly.
+ * Stream text tokens from the LLM, calling the Anthropic SDK directly (T-118).
  *
  * Yields raw text chunks as they arrive. If `usage` is passed, it's updated
  * in place as token counts become available (never with prompt/document text —
@@ -137,7 +132,6 @@ export async function* streamLLM(
   systemPrompt: string,
   userPrompt: string,
   maxTokens: number,
-  trackingHeaders: Record<string, string> = {},
   usage?: CallUsageDraft,
 ): AsyncGenerator<string> {
   // Model lives in the AppSetting Mongo collection — NOT in env or in the
@@ -146,92 +140,29 @@ export async function* streamLLM(
   // SSE `event: error` so the advocate sees a clear "configure ai.drafting_model
   // in /admin/ai-config" message.
   const model = await getAppSetting(APP_SETTING_KEYS.DRAFTING_MODEL);
-  const transport: CallUsageDraft['transport'] = env.HELICONE_API_KEY ? 'helicone' : 'direct';
   if (usage) {
     usage.model = model;
-    usage.transport = transport;
+    usage.transport = 'direct';
   }
 
-  if (env.HELICONE_API_KEY) {
-    // Helicone AI Gateway — OpenAI-compatible, supports Claude model aliases.
-    // stream_options.include_usage asks for a final chunk carrying token
-    // counts (OpenAI streaming convention) — without it the gateway never
-    // reports usage on a streamed response. Confirmed live against the real
-    // gateway (T-003 spike, 3 Oct 2026): works when `model` is a full dated
-    // model id — a bare alias can make the gateway switch providers, or 500.
-    const resp = await fetch(env.HELICONE_GATEWAY_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${env.HELICONE_API_KEY}`,
-        ...trackingHeaders,
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        stream: true,
-        stream_options: { include_usage: true },
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-      }),
-    });
-
-    if (!resp.ok) {
-      const err = await resp.text();
-      throw new Error(`Helicone AI Gateway ${resp.status}: ${err}`);
-    }
-
-    if (!resp.body) throw new Error('Helicone AI Gateway returned no response body');
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const lines = buf.split('\n');
-      buf = lines.pop() ?? '';
-      for (const line of lines) {
-        if (!line.startsWith('data: ') || line.trim() === 'data: [DONE]') continue;
-        try {
-          const fragment = parseOpenAIStreamLine(JSON.parse(line.slice(6)));
-          if (fragment.text) yield fragment.text;
-          if (
-            usage &&
-            (fragment.inputTokens !== undefined || fragment.outputTokens !== undefined)
-          ) {
-            if (fragment.inputTokens !== undefined) usage.inputTokens = fragment.inputTokens;
-            if (fragment.outputTokens !== undefined) usage.outputTokens = fragment.outputTokens;
-            usage.usageSource = 'provider';
-          }
-        } catch {
-          // malformed SSE line — skip
-        }
-      }
-    }
-  } else {
-    // Direct Anthropic SDK — no proxy. Usage arrives incrementally on
-    // message_start (initial input_tokens) and message_delta (cumulative
-    // output_tokens near the end) — reading it off these events rather than
-    // only from stream.finalMessage() means a mid-stream throw still leaves
-    // the last-seen counts on `usage`. Confirmed live (T-003 spike).
-    const stream = await directClient.messages.stream({
-      model,
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
-    for await (const event of stream) {
-      const fragment = parseAnthropicStreamEvent(event);
-      if (fragment.text) yield fragment.text;
-      if (usage && (fragment.inputTokens !== undefined || fragment.outputTokens !== undefined)) {
-        if (fragment.inputTokens !== undefined) usage.inputTokens = fragment.inputTokens;
-        if (fragment.outputTokens !== undefined) usage.outputTokens = fragment.outputTokens;
-        usage.usageSource = 'provider';
-      }
+  // Direct Anthropic SDK — no proxy. Usage arrives incrementally on
+  // message_start (initial input_tokens) and message_delta (cumulative
+  // output_tokens near the end) — reading it off these events rather than
+  // only from stream.finalMessage() means a mid-stream throw still leaves
+  // the last-seen counts on `usage`. Confirmed live (T-003 spike).
+  const stream = await directClient.messages.stream({
+    model,
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+  for await (const event of stream) {
+    const fragment = parseAnthropicStreamEvent(event);
+    if (fragment.text) yield fragment.text;
+    if (usage && (fragment.inputTokens !== undefined || fragment.outputTokens !== undefined)) {
+      if (fragment.inputTokens !== undefined) usage.inputTokens = fragment.inputTokens;
+      if (fragment.outputTokens !== undefined) usage.outputTokens = fragment.outputTokens;
+      usage.usageSource = 'provider';
     }
   }
 }
@@ -239,8 +170,9 @@ export async function* streamLLM(
 // ── AI error classification ────────────────────────────────────────────────
 //
 // Surfaces a user-readable reason + a retryable flag for every kind of failure
-// the LLM stream can produce (Helicone gateway non-2xx, Anthropic 429/5xx,
-// network/socket drop, missing response body, etc). The route handler emits
+// the LLM stream can produce (Anthropic 429/5xx, network/socket drop, etc).
+// Classification is by the SDK error's HTTP status, then by message text.
+// The route handler emits
 // this via `event: error` SSE; the frontend renders it in the
 // generation_failed pipeline state.
 
@@ -259,6 +191,28 @@ interface ClassifiedLlmError {
   retryable: boolean;
 }
 
+/**
+ * HTTP status of a failed Anthropic call, read from the SDK's own error
+ * (`Anthropic.APIError.status`). Undefined for anything else, including a
+ * connection error, which the SDK raises with no status. The typeof guard
+ * keeps this safe when the SDK module is replaced by a stub without APIError.
+ */
+function providerStatus(err: unknown): number | undefined {
+  const APIError = Anthropic.APIError;
+  if (typeof APIError !== 'function' || !(err instanceof APIError)) return undefined;
+  return typeof err.status === 'number' ? err.status : undefined;
+}
+
+/**
+ * True for the SDK's connection failures (`Anthropic.APIConnectionError` and
+ * its subclass `APIConnectionTimeoutError`), which carry no HTTP status.
+ * Guarded like providerStatus for a stubbed SDK module.
+ */
+function isProviderConnectionError(err: unknown): boolean {
+  const classes = [Anthropic.APIConnectionError, Anthropic.APIConnectionTimeoutError];
+  return classes.some((C) => typeof C === 'function' && err instanceof C);
+}
+
 function classifyLlmError(err: unknown): ClassifiedLlmError {
   // App-setting missing — model not configured in DB. Surface the exact key
   // so the founder knows what to set in /admin/ai-config.
@@ -270,61 +224,70 @@ function classifyLlmError(err: unknown): ClassifiedLlmError {
     };
   }
 
-  const msg = err instanceof Error ? err.message : String(err);
-
-  // Helicone gateway throws "Helicone AI Gateway <status>: <body>"
-  const heliconeStatus = msg.match(/Helicone AI Gateway (\d{3})/);
-  const status = heliconeStatus ? parseInt(heliconeStatus[1], 10) : undefined;
-
-  if (status === 429 || /rate.?limit|too many requests/i.test(msg)) {
-    return {
-      code: 'rate_limited',
-      userMessage:
-        'The AI service is currently rate-limited. Please wait a few seconds and try again.',
-      retryable: true,
-    };
-  }
-  if ((status && status >= 500) || /overload|unavailable|temporarily/i.test(msg)) {
-    return {
-      code: 'provider_unavailable',
-      userMessage:
-        'The AI service is temporarily unavailable. Please try again in a moment — your inputs are saved.',
-      retryable: true,
-    };
-  }
-  if (status === 401 || status === 403 || /unauthorized|forbidden|invalid.?api.?key/i.test(msg)) {
-    return {
-      code: 'auth',
-      userMessage:
-        'The drafting service could not authenticate with the AI provider. Please contact support — this is a server-side configuration issue.',
-      retryable: false,
-    };
-  }
-  if (status === 400 || /invalid.?request|bad.?request|context.?length|max.?tokens/i.test(msg)) {
-    return {
-      code: 'invalid_request',
-      userMessage:
-        'The AI rejected the prompt for this draft. Try shortening the facts narrative, then generate again.',
-      retryable: false,
-    };
-  }
-  if (
-    /ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|fetch failed|network|socket hang up|no response body/i.test(
-      msg,
-    )
-  ) {
-    return {
-      code: 'network',
-      userMessage: 'Network error reaching the AI service. Check your connection and try again.',
-      retryable: true,
-    };
-  }
-  return {
+  const RATE_LIMITED: ClassifiedLlmError = {
+    code: 'rate_limited',
+    userMessage:
+      'The AI service is currently rate-limited. Please wait a few seconds and try again.',
+    retryable: true,
+  };
+  const PROVIDER_UNAVAILABLE: ClassifiedLlmError = {
+    code: 'provider_unavailable',
+    userMessage:
+      'The AI service is temporarily unavailable. Please try again in a moment — your inputs are saved.',
+    retryable: true,
+  };
+  const AUTH: ClassifiedLlmError = {
+    code: 'auth',
+    userMessage:
+      'The drafting service could not authenticate with the AI provider. Please contact support — this is a server-side configuration issue.',
+    retryable: false,
+  };
+  const INVALID_REQUEST: ClassifiedLlmError = {
+    code: 'invalid_request',
+    userMessage:
+      'The AI rejected the prompt for this draft. Try shortening the facts narrative, then generate again.',
+    retryable: false,
+  };
+  const NETWORK: ClassifiedLlmError = {
+    code: 'network',
+    userMessage: 'Network error reaching the AI service. Check your connection and try again.',
+    retryable: true,
+  };
+  const UNKNOWN: ClassifiedLlmError = {
     code: 'unknown',
     userMessage:
       'The AI service returned an unexpected error. Please try again. If this keeps happening, contact support.',
     retryable: true,
   };
+
+  // An Anthropic SDK error with an HTTP status is classified by the status
+  // alone (T-118). The message text is never consulted for it.
+  const status = providerStatus(err);
+  if (status !== undefined) {
+    if (status === 429) return RATE_LIMITED;
+    if (status >= 500) return PROVIDER_UNAVAILABLE;
+    if (status === 401 || status === 403) return AUTH;
+    if (status >= 400) return INVALID_REQUEST;
+    return UNKNOWN;
+  }
+
+  // No status: connection errors and anything that is not an SDK API error.
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/rate.?limit|too many requests/i.test(msg)) return RATE_LIMITED;
+  if (/overload|unavailable|temporarily/i.test(msg)) return PROVIDER_UNAVAILABLE;
+  if (/unauthorized|forbidden|invalid.?api.?key/i.test(msg)) return AUTH;
+  if (/invalid.?request|bad.?request|context.?length|max.?tokens/i.test(msg)) {
+    return INVALID_REQUEST;
+  }
+  if (
+    isProviderConnectionError(err) ||
+    /ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|fetch failed|network|socket hang up|no response body|connection error/i.test(
+      msg,
+    )
+  ) {
+    return NETWORK;
+  }
+  return UNKNOWN;
 }
 
 /** Sentinel thrown after a mid-stream LLM failure so the route handler knows
@@ -335,13 +298,13 @@ export class GenerationFailedError extends Error {
   readonly code: ClassifiedLlmError['code'];
   readonly usage: UsageTotals;
   readonly aiModel?: string;
-  readonly transport?: 'direct' | 'helicone';
+  readonly transport?: 'direct';
   constructor(
     message: string,
     code: ClassifiedLlmError['code'],
     usage: UsageTotals,
     aiModel?: string,
-    transport?: 'direct' | 'helicone',
+    transport?: 'direct',
   ) {
     super(message);
     this.name = 'GenerationFailedError';
@@ -350,28 +313,6 @@ export class GenerationFailedError extends Error {
     this.aiModel = aiModel;
     this.transport = transport;
   }
-}
-
-/**
- * Build per-request Helicone tracking headers for the AI Gateway — including
- * the run id/sequence (T-003 §3.8) so our rows can be cross-checked against
- * Helicone's own records.
- */
-function heliconeHeaders(
-  userId?: string,
-  templateId?: string,
-  runId?: string,
-  runSequence?: number,
-  runType?: RunType,
-): Record<string, string> {
-  if (!env.HELICONE_API_KEY) return {};
-  const headers: Record<string, string> = {};
-  if (userId) headers['Helicone-User-Id'] = userId;
-  if (templateId) headers['Helicone-Property-Template'] = templateId;
-  if (runId) headers['Helicone-Property-Run-Id'] = runId;
-  if (runSequence !== undefined) headers['Helicone-Property-Run-Sequence'] = String(runSequence);
-  if (runType) headers['Helicone-Property-Run-Type'] = runType; // T-110
-  return headers;
 }
 
 export type DocTypeKey = keyof typeof bnsMapping;
@@ -398,7 +339,7 @@ export interface GenerateDocumentResult {
   /** Real token usage for this generation (T-003) */
   usage: UsageTotals;
   aiModel?: string;
-  transport?: 'direct' | 'helicone';
+  transport?: 'direct';
 }
 
 /**
@@ -504,7 +445,6 @@ export async function streamGenerateDocument(
       systemPrompt,
       userPrompt,
       4096,
-      heliconeHeaders(input.userId, input.docType, input.runId, input.runSequence, input.runType),
       draft,
     )) {
       rawText += text;
@@ -643,7 +583,7 @@ export interface TemplateGenerateResult {
   /** Real token usage summed across every ai_generated section's LLM call (T-003) */
   usage: UsageTotals;
   aiModel?: string;
-  transport?: 'direct' | 'helicone';
+  transport?: 'direct';
   /** Paragraph count of the final draft, from assembleDocument */
   bodyParaCount: number;
 }
@@ -732,7 +672,7 @@ export async function streamGenerateFromTemplate(
   const renderedSections: RenderedSection[] = [];
   const meter = new UsageMeter();
   let aiModel: string | undefined;
-  let transport: 'direct' | 'helicone' | undefined;
+  let transport: 'direct' | undefined;
 
   for (const section of templateConfig.document_structure.sections) {
     if (section.type === 'template') {
@@ -752,13 +692,6 @@ export async function streamGenerateFromTemplate(
           systemPrompt,
           userPrompt,
           8192,
-          heliconeHeaders(
-            input.userId,
-            templateConfig.template_id,
-            input.runId,
-            input.runSequence,
-            input.runType,
-          ),
           draft,
         )) {
           aiText += text;
@@ -774,7 +707,7 @@ export async function streamGenerateFromTemplate(
           usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
         });
       } catch (llmErr) {
-        // AI provider / Helicone / network failure mid-stream. SSE headers are
+        // AI provider / network failure mid-stream. SSE headers are
         // already on the wire so we CAN'T set a 5xx status — emit a structured
         // `event: error` instead. The frontend renders this in the
         // generation_failed pipeline state with the reason + a retry button.
@@ -1145,15 +1078,6 @@ export async function streamGenerateFromBrief(
     target: input.targetParagraphs,
     language: input.language,
   };
-  const tracking = {
-    ...heliconeHeaders(input.userId, pack.id, input.runId, input.runSequence, input.runType),
-    // The prompt holds the advocate's own description (T-136). As at intake
-    // (T-101), Helicone is asked not to keep the request or the answer. The
-    // token counts are still read from our own stream.
-    ...(env.HELICONE_API_KEY
-      ? { 'Helicone-Omit-Request': 'true', 'Helicone-Omit-Response': 'true' }
-      : {}),
-  };
   /**
    * The Drafter's text as it goes into the document: no disclaimer, no word
    * SYSTEM in brackets, and no repeat of a part the system has written, where
@@ -1164,7 +1088,7 @@ export async function streamGenerateFromBrief(
 
   const meter = new UsageMeter();
   let aiModel: string | undefined;
-  let transport: 'direct' | 'helicone' | undefined;
+  let transport: 'direct' | undefined;
 
   // ── The body: one Drafter call (decision D6) ──────────────────────────────
   let raw = '';
@@ -1185,7 +1109,6 @@ export async function streamGenerateFromBrief(
       DRAFTER_PACK_SYSTEM_PROMPT,
       buildDrafterUserPrompt(promptInput),
       8192,
-      tracking,
       draft,
     )) {
       raw += text;
@@ -1243,7 +1166,6 @@ export async function streamGenerateFromBrief(
           missing.map((m) => m.id),
         ),
         8192,
-        tracking,
         repairDraft,
       )) {
         repairRaw += text;
@@ -1473,17 +1395,10 @@ export async function streamGenerateGuided(
     target: input.targetParagraphs,
     language: input.language,
   });
-  const tracking = heliconeHeaders(
-    input.userId,
-    'guided',
-    input.runId,
-    input.runSequence,
-    input.runType,
-  );
 
   const meter = new UsageMeter();
   let aiModel: string | undefined;
-  let transport: 'direct' | 'helicone' | undefined;
+  let transport: 'direct' | undefined;
   let raw = '';
   const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
   const recordCall = (): void => {
@@ -1502,7 +1417,6 @@ export async function streamGenerateGuided(
       DRAFTER_GUIDED_SYSTEM_PROMPT,
       userPrompt,
       8192,
-      tracking,
       draft,
     )) {
       raw += text;
