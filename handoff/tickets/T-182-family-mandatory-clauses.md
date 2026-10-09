@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Vishal |
 | Mode           | Small fix. One service (`apps/drafting`), code only. No JSON or legal-content edits |
-| Status         | Building, 9 Oct. |
+| Status         | Merged to develop (PR #80), 9 Oct. Anushka tests on develop. |
 | Size           | XS (under half a day) |
 | Depends on     | Nothing. Cut from develop (5517aca) |
 | Branch         | fix/t-182-family-mandatory-clauses |
