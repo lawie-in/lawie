@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Vishal |
 | Mode           | Fix, full chain (developer + tester + reviewer + Ajay). Changes printed legal text. Must land before v1 GTM (AJ-2026-10-08-T174, item 1) |
-| Status         | Building, 8 Oct. |
+| Status         | Merged to develop (PR #76), 8 Oct. Anushka tests on develop. |
 | Size           | S (half day to one day) |
 | Depends on     | T-174 (merged, PR #73). Cut from origin/develop (ef1716f) |
 | Branch         | fix/t-176-family-court-seat-heading |
