@@ -11,12 +11,22 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
-import { env } from '../config/env';
 import { AppSetting } from '../models/AppSetting.model';
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
 import { recordGeneration } from '../routes/documents.routes';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
+import { sdkAnswer } from './sdkStream';
+
+const mockMessagesStream = jest.fn();
+jest.mock('@anthropic-ai/sdk', () =>
+  require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
+);
+
+// Every test sets its own model answer; nothing carries over from the one before.
+beforeEach(() => {
+  mockMessagesStream.mockReset();
+});
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439095';
@@ -45,7 +55,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  env.HELICONE_API_KEY = '';
+  mockMessagesStream.mockReset();
   jest.restoreAllMocks();
 });
 
@@ -97,30 +107,9 @@ describe('recordGeneration — duplicate (runId, runSequence)', () => {
 
 describe('POST /generate-from-template — duplicate attempt does not double-spend Ink', () => {
   it('skips spendInk when the Generation insert collides with a concurrent request', async () => {
-    env.HELICONE_API_KEY = 'test-helicone-key';
     await AppSetting.create({ key: 'ai.drafting_model', value: 'claude-sonnet-4-5-20250929' });
 
-    const encoder = new TextEncoder();
-    const fetchMock = jest.fn().mockResolvedValue({
-      ok: true,
-      body: new ReadableStream({
-        pull(controller) {
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ choices: [{ delta: { content: '1. Body.' } }] })}\n`,
-            ),
-          );
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 10, completion_tokens: 5 } })}\n`,
-            ),
-          );
-          controller.enqueue(encoder.encode('data: [DONE]\n'));
-          controller.close();
-        },
-      }),
-    });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 10, 5));
 
     // Simulate the race directly: make this request's own Generation.create
     // call fail exactly like a real unique-index collision would when a

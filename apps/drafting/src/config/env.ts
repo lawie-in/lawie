@@ -21,10 +21,6 @@ const envSchema = z.object({
   // can change them at runtime via /admin/ai-config without redeploy.
   ANTHROPIC_API_KEY: z.string().default(''),
 
-  // Helicone — LLM cost observability proxy (optional, disabled if empty)
-  HELICONE_API_KEY: z.string().default(''),
-  HELICONE_GATEWAY_URL: z.string().default('https://ai-gateway.helicone.ai/v1/chat/completions'),
-
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),
 });

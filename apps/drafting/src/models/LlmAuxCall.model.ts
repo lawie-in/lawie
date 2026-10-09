@@ -15,6 +15,7 @@ export interface ILlmAuxCall extends Document {
   purpose: LlmAuxPurpose;
   status: 'completed' | 'failed';
   aiModel?: string;
+  /** 'helicone' is kept so rows written before T-118 still load; new rows are always 'direct'. */
   transport?: 'helicone' | 'direct';
   inputTokens: number;
   outputTokens: number;

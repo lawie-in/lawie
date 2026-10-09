@@ -46,22 +46,6 @@ export function parseAnthropicStreamEvent(event: unknown): ParsedStreamFragment 
   return {};
 }
 
-/** One parsed `data: {...}` line from an OpenAI-compatible stream (Helicone gateway). */
-export function parseOpenAIStreamLine(data: unknown): ParsedStreamFragment {
-  const d = data as {
-    choices?: Array<{ delta?: { content?: string } }>;
-    usage?: { prompt_tokens?: number; completion_tokens?: number };
-  };
-  const out: ParsedStreamFragment = {};
-  const text = d.choices?.[0]?.delta?.content;
-  if (text) out.text = text;
-  if (d.usage) {
-    if (typeof d.usage.prompt_tokens === 'number') out.inputTokens = d.usage.prompt_tokens;
-    if (typeof d.usage.completion_tokens === 'number') out.outputTokens = d.usage.completion_tokens;
-  }
-  return out;
-}
-
 // ── Estimation fallback (D5) ─────────────────────────────────────────────────
 //
 // Used only when a provider reports no usage at all for a call. Rows priced
@@ -119,8 +103,8 @@ export class UsageMeter {
 
 /**
  * `<model-slug>` is the exact text of the configured model id, lower-cased,
- * with any character outside a-z 0-9 . _ - replaced by -. Helicone model
- * names can contain "/", which an AppSetting key cannot.
+ * with any character outside a-z 0-9 . _ - replaced by -. A model name can
+ * contain "/", which an AppSetting key cannot.
  */
 export function modelSlug(model: string): string {
   return model.toLowerCase().replace(/[^a-z0-9._-]/g, '-');

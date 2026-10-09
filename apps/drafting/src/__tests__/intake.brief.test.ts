@@ -14,13 +14,23 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
-import { env } from '../config/env';
 import redis from '../config/redis';
 import { AppSetting } from '../models/AppSetting.model';
 import { Event } from '../models/Event.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { INTAKE_LIMITS } from '../services/intake.service';
+import { SdkStreamParams, sdkAnswer } from './sdkStream';
+const mockMessagesStream = jest.fn();
+jest.mock('@anthropic-ai/sdk', () =>
+  require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
+);
+
+// Every test sets its own model answer; nothing carries over from the one before.
+beforeEach(() => {
+  mockMessagesStream.mockReset();
+});
+
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439081';
@@ -48,33 +58,18 @@ const CONSENT =
   'to use it as their registered office.';
 
 function sse(content: string, promptTokens = 900, completionTokens = 120) {
-  const lines = [
-    `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}`,
-    `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens } })}`,
-    'data: [DONE]',
-  ];
-  const encoder = new TextEncoder();
-  let i = 0;
-  return {
-    ok: true,
-    body: new ReadableStream({
-      pull(controller) {
-        if (i < lines.length) controller.enqueue(encoder.encode(lines[i++] + '\n'));
-        else controller.close();
-      },
-    }),
-  };
+  return sdkAnswer(content, promptTokens, completionTokens);
 }
 
 function mockModel(...contents: string[]) {
-  const fetchMock = jest.fn();
+  const fetchMock = mockMessagesStream.mockReset();
   for (const c of contents) fetchMock.mockResolvedValueOnce(sse(c));
-  global.fetch = fetchMock as unknown as typeof fetch;
   return fetchMock;
 }
 
 function bodyOf(fetchMock: jest.Mock, n: number) {
-  return JSON.parse((fetchMock.mock.calls[n][1] as { body: string }).body);
+  const p = fetchMock.mock.calls[n][0] as SdkStreamParams;
+  return { ...p, messages: [{ role: 'system', content: p.system }, ...p.messages] };
 }
 
 function match(templateId: string | null, confidence: 'high' | 'medium' | 'low', extra = {}) {
@@ -134,7 +129,6 @@ function post(body: Record<string, unknown>, plan = 'free') {
 beforeEach(async () => {
   _clearAppSettingsCache();
   await redis.flushall();
-  env.HELICONE_API_KEY = 'test-helicone-key';
   await AppSetting.create({ key: 'ai.intake_model', value: MODEL });
   await AppSetting.create({ key: 'feature.describe_first', value: 'on' });
   await AppSetting.create({
@@ -144,7 +138,6 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  env.HELICONE_API_KEY = '';
   jest.restoreAllMocks();
 });
 
@@ -567,11 +560,7 @@ describe('POST /intake/brief — not legal drafting, failures and the switch', (
   });
 
   it('a model failure is "unavailable", and a failed usage row is saved', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 503,
-      text: async () => 'down',
-    }) as unknown as typeof fetch;
+    mockMessagesStream.mockReset().mockRejectedValue(new Error('503 service unavailable'));
     const res = await post({ description: DESCRIPTION });
     expect(res.status).toBe(200);
     expect(res.body.outcome).toBe('unavailable');
@@ -580,9 +569,9 @@ describe('POST /intake/brief — not legal drafting, failures and the switch', (
   });
 
   it('a failure in Reception is "unavailable" too, and is not kept for the next try', async () => {
-    const failing = jest.fn();
+    const failing = mockMessagesStream.mockReset();
     failing.mockResolvedValueOnce(sse(MATCH_BAIL));
-    failing.mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'down' });
+    failing.mockRejectedValueOnce(new Error('503 service unavailable'));
     global.fetch = failing as unknown as typeof fetch;
     const first = await post({ description: DESCRIPTION, intake_id: INTAKE_ID });
     expect(first.body.outcome).toBe('unavailable');

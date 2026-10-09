@@ -12,7 +12,6 @@ import {
   getUsdInrRate,
   modelSlug,
   parseAnthropicStreamEvent,
-  parseOpenAIStreamLine,
   priceUsage,
   UsageMeter,
 } from '../services/llm-usage';
@@ -62,24 +61,6 @@ describe('parseAnthropicStreamEvent', () => {
   });
 });
 
-describe('parseOpenAIStreamLine', () => {
-  it('reads text from choices[0].delta.content', () => {
-    expect(parseOpenAIStreamLine({ choices: [{ delta: { content: 'hello' } }] })).toEqual({
-      text: 'hello',
-    });
-  });
-
-  it('reads usage from the final include_usage chunk', () => {
-    expect(
-      parseOpenAIStreamLine({ choices: [], usage: { prompt_tokens: 200, completion_tokens: 55 } }),
-    ).toEqual({ inputTokens: 200, outputTokens: 55 });
-  });
-
-  it('returns an empty fragment when neither is present', () => {
-    expect(parseOpenAIStreamLine({ choices: [{ delta: {} }] })).toEqual({});
-  });
-});
-
 describe('estimateOutputTokens', () => {
   it('estimates roughly 4 chars per token, minimum 1', () => {
     expect(estimateOutputTokens('')).toBe(1);
@@ -92,7 +73,7 @@ describe('modelSlug', () => {
     expect(modelSlug('Claude-Sonnet-4-5-20250929')).toBe('claude-sonnet-4-5-20250929');
   });
 
-  it('replaces a "/" in a Helicone-style model name', () => {
+  it('replaces a "/" in a provider-prefixed model name', () => {
     expect(modelSlug('claude-sonnet-4/anthropic')).toBe('claude-sonnet-4-anthropic');
   });
 });

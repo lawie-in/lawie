@@ -15,7 +15,6 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
-import { env } from '../config/env';
 import { AppSetting } from '../models/AppSetting.model';
 import { Court } from '../models/Court.model';
 import { LawieDocument } from '../models/Document.model';
@@ -36,6 +35,17 @@ import {
 import { buildChecklist } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 import { decrypt } from '../utils/encryption';
+import { SdkStreamParams, sdkAnswer } from './sdkStream';
+const mockMessagesStream = jest.fn();
+jest.mock('@anthropic-ai/sdk', () =>
+  require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
+);
+
+// Every test sets its own model answer; nothing carries over from the one before.
+beforeEach(() => {
+  mockMessagesStream.mockReset();
+});
+
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439091';
@@ -104,37 +114,18 @@ function drafterAnswer(body = BODY, overrides: Record<string, string> = {}): str
 }
 
 function sse(content: string, promptTokens = 4000, completionTokens = 800) {
-  const lines = [
-    // Two chunks, so the marker is not always whole in one.
-    `data: ${JSON.stringify({ choices: [{ delta: { content: content.slice(0, content.length - 40) } }] })}`,
-    `data: ${JSON.stringify({ choices: [{ delta: { content: content.slice(content.length - 40) } }] })}`,
-    `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens } })}`,
-    'data: [DONE]',
-  ];
-  const encoder = new TextEncoder();
-  let i = 0;
-  return {
-    ok: true,
-    body: new ReadableStream({
-      pull(controller) {
-        if (i < lines.length) controller.enqueue(encoder.encode(lines[i++] + '\n'));
-        else controller.close();
-      },
-    }),
-  };
+  return sdkAnswer(content, promptTokens, completionTokens);
 }
 
 function mockModel(...contents: string[]) {
-  const fetchMock = jest.fn();
+  const fetchMock = mockMessagesStream.mockReset();
   for (const c of contents) fetchMock.mockResolvedValueOnce(sse(c));
-  global.fetch = fetchMock as unknown as typeof fetch;
   return fetchMock;
 }
 
 function bodyOf(fetchMock: jest.Mock, n: number) {
-  return JSON.parse((fetchMock.mock.calls[n][1] as { body: string }).body) as {
-    messages: Array<{ role: string; content: string }>;
-  };
+  const p = fetchMock.mock.calls[n][0] as SdkStreamParams;
+  return { ...p, messages: [{ role: 'system', content: p.system }, ...p.messages] };
 }
 
 /** The last `event: name` payload in an SSE response body. */
@@ -161,7 +152,6 @@ async function seedUser(userId: string, inkTopup = 2000) {
 
 beforeEach(async () => {
   _clearAppSettingsCache();
-  env.HELICONE_API_KEY = 'test-helicone-key';
   await AppSetting.create({ key: 'ai.drafting_model', value: MODEL });
   await AppSetting.create({ key: 'feature.describe_first', value: 'on' });
   await AppSetting.create({
@@ -182,7 +172,6 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  env.HELICONE_API_KEY = '';
   jest.restoreAllMocks();
 });
 
@@ -493,10 +482,9 @@ describe('POST /generate-from-brief — a mandatory clause is missing', () => {
   });
 
   it('a repair call that fails does not fail the draft', async () => {
-    const fetchMock = jest.fn();
+    const fetchMock = mockMessagesStream.mockReset();
     fetchMock.mockResolvedValueOnce(sse(drafterAnswer(BODY, { no_flight_risk: 'MISSING' })));
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'down' });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    fetchMock.mockRejectedValueOnce(new Error('503 service unavailable'));
     const res = await post({ kind: 'bail_regular', values: VALUES, court });
     expect(event(res.text, 'done')).toMatchObject({
       complete: true,
@@ -653,9 +641,8 @@ describe('POST /generate-from-brief — what stops a draft before any model call
 
 describe('POST /generate-from-brief — a failed run', () => {
   it('is recorded as failed, saves no document, charges nothing, and a retry keeps the run', async () => {
-    const failing = jest
-      .fn()
-      .mockResolvedValue({ ok: false, status: 503, text: async () => 'down' });
+    const failing = mockMessagesStream
+      .mockRejectedValue(new Error('503 service unavailable'));
     global.fetch = failing as unknown as typeof fetch;
     const first = await post({ kind: 'bail_regular', values: VALUES, court });
     expect(first.status).toBe(200);
@@ -918,11 +905,7 @@ describe('POST /generate-from-brief — no rule pack', () => {
   });
 
   it('a failed run is recorded as failed, saves nothing, charges nothing, and a retry keeps the run', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 503,
-      text: async () => 'down',
-    }) as unknown as typeof fetch;
+    mockMessagesStream.mockReset().mockRejectedValue(new Error('503 service unavailable'));
     const first = await post(letter());
     expect(first.text).toContain('event: error');
     expect(first.text).not.toContain('event: done');

@@ -1,5 +1,5 @@
 /**
- * T-003 — streamLLM usage capture, both paths. Parsing itself is covered by
+ * T-003 / T-118 — streamLLM usage capture (direct Anthropic SDK). Parsing itself is covered by
  * llm-usage.test.ts (pure, no network); this file covers streamLLM's own
  * plumbing — draft.model/transport, usageSource flip to 'provider', and that
  * a mid-stream throw leaves whatever was captured.
@@ -15,7 +15,6 @@ jest.mock('@anthropic-ai/sdk', () => ({
   })),
 }));
 
-import { env } from '../config/env';
 import { AppSetting } from '../models/AppSetting.model';
 import { CallUsageDraft, streamLLM } from '../services/ai.service';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
@@ -48,7 +47,6 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  env.HELICONE_API_KEY = '';
   jest.restoreAllMocks();
 });
 
@@ -64,7 +62,7 @@ describe('streamLLM — direct Anthropic path', () => {
     );
 
     const usage: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
-    const text = await drain(streamLLM('system', 'user', 4096, {}, usage));
+    const text = await drain(streamLLM('system', 'user', 4096, usage));
 
     expect(text).toBe('Hello world');
     expect(usage).toEqual({
@@ -85,7 +83,7 @@ describe('streamLLM — direct Anthropic path', () => {
     );
 
     const usage: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
-    await expect(drain(streamLLM('system', 'user', 4096, {}, usage))).rejects.toThrow(
+    await expect(drain(streamLLM('system', 'user', 4096, usage))).rejects.toThrow(
       'socket hang up',
     );
     expect(usage.usageSource).toBe('none');
@@ -97,61 +95,5 @@ describe('streamLLM — direct Anthropic path', () => {
       asyncIterable([{ type: 'content_block_delta', delta: { type: 'text_delta', text: 'hi' } }]),
     );
     await expect(drain(streamLLM('system', 'user', 4096))).resolves.toBe('hi');
-  });
-});
-
-describe('streamLLM — Helicone path', () => {
-  beforeEach(() => {
-    env.HELICONE_API_KEY = 'test-helicone-key';
-  });
-
-  function sseResponse(lines: string[]) {
-    const encoder = new TextEncoder();
-    let i = 0;
-    return {
-      ok: true,
-      body: new ReadableStream({
-        pull(controller) {
-          if (i < lines.length) controller.enqueue(encoder.encode(lines[i++] + '\n'));
-          else controller.close();
-        },
-      }),
-    };
-  }
-
-  it('captures usage from the final include_usage chunk, requests it in the body', async () => {
-    const chunks = [
-      `data: ${JSON.stringify({ choices: [{ delta: { content: 'Hello ' } }] })}`,
-      `data: ${JSON.stringify({ choices: [{ delta: { content: 'world' } }] })}`,
-      `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 200, completion_tokens: 55 } })}`,
-      'data: [DONE]',
-    ];
-    const fetchMock = jest.fn().mockResolvedValue(sseResponse(chunks));
-    global.fetch = fetchMock as unknown as typeof fetch;
-
-    const usage: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
-    const text = await drain(streamLLM('system', 'user', 4096, {}, usage));
-
-    expect(text).toBe('Hello world');
-    expect(usage.inputTokens).toBe(200);
-    expect(usage.outputTokens).toBe(55);
-    expect(usage.usageSource).toBe('provider');
-    expect(usage.transport).toBe('helicone');
-
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.stream_options).toEqual({ include_usage: true });
-  });
-
-  it('leaves usageSource "none" when the stream fails before the final usage chunk arrives', async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValue({ ok: false, status: 503, text: async () => 'down' });
-    global.fetch = fetchMock as unknown as typeof fetch;
-
-    const usage: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
-    await expect(drain(streamLLM('system', 'user', 4096, {}, usage))).rejects.toThrow(
-      /Helicone AI Gateway 503/,
-    );
-    expect(usage.usageSource).toBe('none');
   });
 });

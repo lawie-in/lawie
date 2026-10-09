@@ -11,7 +11,6 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
-import { env } from '../config/env';
 import redis from '../config/redis';
 import { AppSetting } from '../models/AppSetting.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
@@ -28,6 +27,17 @@ import {
   valuesAfterEditedDescription,
 } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
+import { sdkAnswer } from './sdkStream';
+
+const mockMessagesStream = jest.fn();
+jest.mock('@anthropic-ai/sdk', () =>
+  require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
+);
+
+// Every test sets its own model answer; nothing carries over from the one before.
+beforeEach(() => {
+  mockMessagesStream.mockReset();
+});
 
 const WARNING =
   'A regular bail application is usually for a client who is in custody or who will surrender before the court. If your client has not been arrested and will not surrender, you may need anticipatory bail.';
@@ -225,24 +235,15 @@ describe('POST /intake/brief with a stubbed model (criteria 1 to 5)', () => {
   };
 
   function stub(read: unknown[]) {
-    const lines = [
-      `data: ${JSON.stringify({ choices: [{ delta: { content: JSON.stringify({ outcome: 'read', read, conflicts: [], questions: [] }) } }] })}`,
-      `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 900, completion_tokens: 120 } })}`,
-      'data: [DONE]',
-    ];
-    const enc = new TextEncoder();
-    let i = 0;
-    const fetchMock = jest.fn().mockResolvedValueOnce({
-      ok: true,
-      body: new ReadableStream({
-        pull(c) {
-          if (i < lines.length) c.enqueue(enc.encode(lines[i++] + '\n'));
-          else c.close();
-        },
-      }),
-    });
-    global.fetch = fetchMock as unknown as typeof fetch;
-    return fetchMock;
+    mockMessagesStream.mockReset();
+    mockMessagesStream.mockResolvedValueOnce(
+      sdkAnswer(
+        JSON.stringify({ outcome: 'read', read, conflicts: [], questions: [] }),
+        900,
+        120,
+      ),
+    );
+    return mockMessagesStream;
   }
 
   const post = (body: Record<string, unknown>) =>
@@ -254,7 +255,6 @@ describe('POST /intake/brief with a stubbed model (criteria 1 to 5)', () => {
   beforeEach(async () => {
     _clearAppSettingsCache();
     await redis.flushall();
-    env.HELICONE_API_KEY = 'test-helicone-key';
     await AppSetting.create({ key: 'ai.intake_model', value: MODEL });
     await AppSetting.create({ key: 'feature.describe_first', value: 'on' });
     await AppSetting.create({
@@ -264,7 +264,7 @@ describe('POST /intake/brief with a stubbed model (criteria 1 to 5)', () => {
   });
 
   afterEach(() => {
-    env.HELICONE_API_KEY = '';
+    mockMessagesStream.mockReset();
     jest.restoreAllMocks();
   });
 
@@ -364,21 +364,13 @@ describe('POST /intake/brief with a stubbed model (criteria 1 to 5)', () => {
   it('a cleared fact that is not required comes back empty and in the questions', async () => {
     const fetchMock = stub([]);
     fetchMock.mockReset();
-    const lines = [
-      `data: ${JSON.stringify({ choices: [{ delta: { content: JSON.stringify({ outcome: 'read', read: [], conflicts: [OPTIONAL.key], questions: [] }) } }] })}`,
-      'data: [DONE]',
-    ];
-    const enc = new TextEncoder();
-    let i = 0;
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      body: new ReadableStream({
-        pull(c) {
-          if (i < lines.length) c.enqueue(enc.encode(lines[i++] + '\n'));
-          else c.close();
-        },
-      }),
-    });
+    fetchMock.mockResolvedValueOnce(
+      sdkAnswer(
+        JSON.stringify({ outcome: 'read', read: [], conflicts: [OPTIONAL.key], questions: [] }),
+        0,
+        0,
+      ),
+    );
     const res = await post({
       description: EDIT_NO_CUSTODY,
       kind: 'bail_regular',
@@ -463,7 +455,7 @@ describe('Review round 1 fixes: the mark survives /intake/brief/update', () => {
     });
     expect(bad.status).toBe(400);
     // keep on /intake/brief: the schema must not reject it (status is not a validation error).
-    env.HELICONE_API_KEY = '';
+    mockMessagesStream.mockReset().mockRejectedValue(new Error('503 service unavailable'));
     const keep = await request(app)
       .post('/intake/brief')
       .set(headers)

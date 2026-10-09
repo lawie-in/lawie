@@ -10,12 +10,22 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 
 import app from '../app';
-import { env } from '../config/env';
 import { AppSetting } from '../models/AppSetting.model';
 import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
 import { User } from '../models/User.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
+import { sdkAnswer } from './sdkStream';
+const mockMessagesStream = jest.fn();
+jest.mock('@anthropic-ai/sdk', () =>
+  require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
+);
+
+// Every test sets its own model answer; nothing carries over from the one before.
+beforeEach(() => {
+  mockMessagesStream.mockReset();
+});
+
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439099';
@@ -51,28 +61,6 @@ const VALID_BAIL_FORM_DATA = {
   grounds_for_bail: ['false_implication', 'no_flight_risk'],
 };
 
-function sseResponse(lines: string[]) {
-  const encoder = new TextEncoder();
-  let i = 0;
-  return {
-    ok: true,
-    body: new ReadableStream({
-      pull(controller) {
-        if (i < lines.length) controller.enqueue(encoder.encode(lines[i++] + '\n'));
-        else controller.close();
-      },
-    }),
-  };
-}
-
-function usageChunk(text: string, promptTokens: number, completionTokens: number): string[] {
-  return [
-    `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}`,
-    `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens } })}`,
-    'data: [DONE]',
-  ];
-}
-
 async function seedUser(userId: string) {
   await User.create({
     _id: userId,
@@ -86,7 +74,6 @@ async function seedUser(userId: string) {
 
 beforeEach(async () => {
   _clearAppSettingsCache();
-  env.HELICONE_API_KEY = 'test-helicone-key';
   await AppSetting.create({ key: 'ai.drafting_model', value: 'claude-sonnet-4-5-20250929' });
   await AppSetting.create({
     key: 'ai.rates.claude-sonnet-4-5-20250929',
@@ -96,16 +83,14 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  env.HELICONE_API_KEY = '';
+  mockMessagesStream.mockReset();
   jest.restoreAllMocks();
 });
 
 describe('POST /generate-from-template — Generation row fields', () => {
   it('records real usage, status completed, aiModel/transport, and costUsd on success', async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValue(sseResponse(usageChunk('1. Applicant seeks bail.', 1000, 200)));
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockMessagesStream
+      .mockResolvedValue(sdkAnswer('1. Applicant seeks bail.', 1000, 200));
 
     const res = await request(app)
       .post('/generate-from-template')
@@ -124,7 +109,7 @@ describe('POST /generate-from-template — Generation row fields', () => {
     expect(gen!.status).toBe('completed');
     expect(gen!.templateId).toBe('bail_regular');
     expect(gen!.aiModel).toBe('claude-sonnet-4-5-20250929');
-    expect(gen!.transport).toBe('helicone');
+    expect(gen!.transport).toBe('direct');
     expect(gen!.inputTokens).toBe(1000);
     expect(gen!.outputTokens).toBe(200);
     expect(gen!.tokensUsed).toBe(1200);
@@ -152,10 +137,8 @@ describe('POST /generate-from-template — Generation row fields', () => {
     const freshUserId = '507f1f77bcf86cd799439090';
     await seedUser(freshUserId);
     await AppSetting.deleteOne({ key: 'ai.rates.claude-sonnet-4-5-20250929' });
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValue({ ok: false, status: 503, text: async () => 'gateway down' });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockMessagesStream
+      .mockRejectedValue(new Error('503 service unavailable'));
 
     const res = await request(app)
       .post('/generate-from-template')
@@ -184,10 +167,9 @@ describe('POST /generate-from-template — Generation row fields', () => {
 
 describe('POST /generate-from-template — run id / run sequence (T-003 §3.8)', () => {
   it("a retry with the failed attempt's run_id gets the same runId and sequence 2", async () => {
-    const fetchMock = jest.fn();
+    const fetchMock = mockMessagesStream;
     // Attempt 1: fails.
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'down' });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    fetchMock.mockRejectedValueOnce(new Error('503 service unavailable'));
 
     const first = await request(app)
       .post('/generate-from-template')
@@ -197,7 +179,7 @@ describe('POST /generate-from-template — run id / run sequence (T-003 §3.8)',
     expect(first.headers['x-run-sequence']).toBe('1');
 
     // Attempt 2: retry, sends run_id, succeeds.
-    fetchMock.mockResolvedValueOnce(sseResponse(usageChunk('1. Body.', 500, 100)));
+    fetchMock.mockResolvedValueOnce(sdkAnswer('1. Body.', 500, 100));
     const second = await request(app)
       .post('/generate-from-template')
       .set(internalHeaders())
@@ -213,8 +195,7 @@ describe('POST /generate-from-template — run id / run sequence (T-003 §3.8)',
   });
 
   it('a third attempt after a completed run starts a new run at sequence 1', async () => {
-    const fetchMock = jest.fn().mockResolvedValue(sseResponse(usageChunk('1. Body.', 500, 100)));
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 500, 100));
 
     const first = await request(app)
       .post('/generate-from-template')
@@ -237,8 +218,7 @@ describe('POST /generate-from-template — run id / run sequence (T-003 §3.8)',
   });
 
   it('an unknown run_id starts a new run at 1 without an error', async () => {
-    const fetchMock = jest.fn().mockResolvedValue(sseResponse(usageChunk('1. Body.', 500, 100)));
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 500, 100));
 
     const res = await request(app).post('/generate-from-template').set(internalHeaders()).send({
       template_id: 'bail_regular',
@@ -253,9 +233,8 @@ describe('POST /generate-from-template — run id / run sequence (T-003 §3.8)',
 
   it("another user's run_id is rejected — starts a new run, never reuses someone else's run", async () => {
     await seedUser(OTHER_USER_ID);
-    const fetchMock = jest.fn();
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'down' });
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockMessagesStream;
+    fetchMock.mockRejectedValueOnce(new Error('503 service unavailable'));
 
     const otherUsersFailedAttempt = await request(app)
       .post('/generate-from-template')
@@ -263,7 +242,7 @@ describe('POST /generate-from-template — run id / run sequence (T-003 §3.8)',
       .send({ template_id: 'bail_regular', form_data: VALID_BAIL_FORM_DATA });
     const otherUsersRunId = otherUsersFailedAttempt.headers['x-run-id'];
 
-    fetchMock.mockResolvedValueOnce(sseResponse(usageChunk('1. Body.', 500, 100)));
+    fetchMock.mockResolvedValueOnce(sdkAnswer('1. Body.', 500, 100));
     const res = await request(app)
       .post('/generate-from-template')
       .set(internalHeaders(USER_ID))
@@ -279,8 +258,7 @@ describe('POST /generate-from-template — run id / run sequence (T-003 §3.8)',
   });
 
   it('the browser cannot set the sequence — run_sequence in the body is ignored', async () => {
-    const fetchMock = jest.fn().mockResolvedValue(sseResponse(usageChunk('1. Body.', 500, 100)));
-    global.fetch = fetchMock as unknown as typeof fetch;
+    const fetchMock = mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 500, 100));
 
     const res = await request(app).post('/generate-from-template').set(internalHeaders()).send({
       template_id: 'bail_regular',

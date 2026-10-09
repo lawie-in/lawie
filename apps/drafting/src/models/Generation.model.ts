@@ -34,6 +34,7 @@ export interface IGeneration extends Document {
   documentId?: Types.ObjectId;
   /** Resolved model id for this generation (e.g. a full dated Anthropic model id). */
   aiModel?: string;
+  /** 'helicone' is kept so rows written before T-118 still load; new rows are always 'direct'. */
   transport?: 'direct' | 'helicone';
   /** One per ai_generated section (config-driven pipeline) or one entry for the legacy pipeline. */
   llmCalls: number;

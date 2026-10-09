@@ -12,7 +12,6 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
-import { env } from '../config/env';
 import redis from '../config/redis';
 import { AppSetting } from '../models/AppSetting.model';
 import { Event } from '../models/Event.model';
@@ -21,6 +20,17 @@ import { LlmAuxCall } from '../models/LlmAuxCall.model';
 import { User } from '../models/User.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { datesInText, decideMatch, INTAKE_LIMITS } from '../services/intake.service';
+import { SdkStreamParams, sdkAnswer } from './sdkStream';
+const mockMessagesStream = jest.fn();
+jest.mock('@anthropic-ai/sdk', () =>
+  require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
+);
+
+// Every test sets its own model answer; nothing carries over from the one before.
+beforeEach(() => {
+  mockMessagesStream.mockReset();
+});
+
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439071';
@@ -43,22 +53,7 @@ const DESCRIPTION =
   'He lives at 123 Main St, Patna. He was falsely implicated because of a family land dispute.';
 
 function sse(content: string, promptTokens = 900, completionTokens = 120) {
-  const lines = [
-    `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}`,
-    `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens } })}`,
-    'data: [DONE]',
-  ];
-  const encoder = new TextEncoder();
-  let i = 0;
-  return {
-    ok: true,
-    body: new ReadableStream({
-      pull(controller) {
-        if (i < lines.length) controller.enqueue(encoder.encode(lines[i++] + '\n'));
-        else controller.close();
-      },
-    }),
-  };
+  return sdkAnswer(content, promptTokens, completionTokens);
 }
 
 const MATCH_HIGH = JSON.stringify({
@@ -86,20 +81,19 @@ const GOOD_FILL = fillJson([
 ]);
 
 function mockModel(...contents: string[]) {
-  const fetchMock = jest.fn();
+  const fetchMock = mockMessagesStream.mockReset();
   for (const c of contents) fetchMock.mockResolvedValueOnce(sse(c));
-  global.fetch = fetchMock as unknown as typeof fetch;
   return fetchMock;
 }
 
 function bodyOf(fetchMock: jest.Mock, n: number) {
-  return JSON.parse((fetchMock.mock.calls[n][1] as { body: string }).body);
+  const p = fetchMock.mock.calls[n][0] as SdkStreamParams;
+  return { ...p, messages: [{ role: 'system', content: p.system }, ...p.messages] };
 }
 
 beforeEach(async () => {
   _clearAppSettingsCache();
   await redis.flushall();
-  env.HELICONE_API_KEY = 'test-helicone-key';
   await AppSetting.create({ key: 'ai.intake_model', value: MODEL });
   await AppSetting.create({
     key: `ai.rates.${MODEL}`,
@@ -108,7 +102,6 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  env.HELICONE_API_KEY = '';
   jest.restoreAllMocks();
 });
 
@@ -179,19 +172,15 @@ describe('POST /intake — match and fill', () => {
     }
   });
 
-  it('sends Helicone omit headers and no description text reaches the logs', async () => {
+  it('no description text reaches the logs', async () => {
     const logs: string[] = [];
     for (const m of ['log', 'info', 'warn', 'error'] as const) {
       jest
         .spyOn(console, m)
         .mockImplementation((...a: unknown[]) => void logs.push(a.map(String).join(' ')));
     }
-    const fetchMock = mockModel(MATCH_HIGH, GOOD_FILL);
+    mockModel(MATCH_HIGH, GOOD_FILL);
     await request(app).post('/intake').set(headers()).send({ description: DESCRIPTION });
-    const h = (fetchMock.mock.calls[0][1] as { headers: Record<string, string> }).headers;
-    expect(h['Helicone-Omit-Request']).toBe('true');
-    expect(h['Helicone-Omit-Response']).toBe('true');
-    expect(h['Helicone-Property-Purpose']).toBe('intake_match');
     expect(logs.join('\n')).not.toMatch(/Ram Kumar|Kotwali|124\/2026|Main St/);
   });
 
@@ -545,24 +534,21 @@ describe('POST /intake — unavailable and bad input', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('a bare model alias → unavailable (Helicone needs a dated id)', async () => {
+  it('a bare model alias is accepted: the model is called with that alias (T-118)', async () => {
     await AppSetting.updateOne({ key: 'ai.intake_model' }, { value: 'claude-haiku-4-5' });
     _clearAppSettingsCache();
-    const fetchMock = mockModel();
+    const fetchMock = mockModel(MATCH_HIGH, GOOD_FILL);
     const res = await request(app)
       .post('/intake')
       .set(headers())
       .send({ description: DESCRIPTION });
-    expect(res.body.outcome).toBe('unavailable');
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(res.body.outcome).not.toBe('unavailable');
+    expect(fetchMock).toHaveBeenCalled();
+    expect(bodyOf(fetchMock, 0)).toMatchObject({ model: 'claude-haiku-4-5' });
   });
 
-  it('a gateway failure → unavailable, and a failed usage row is still saved', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 503,
-      text: async () => 'down',
-    }) as unknown as typeof fetch;
+  it('a model failure → unavailable, and a failed usage row is still saved', async () => {
+    mockMessagesStream.mockReset().mockRejectedValue(new Error('503 service unavailable'));
     const res = await request(app)
       .post('/intake')
       .set(headers())
