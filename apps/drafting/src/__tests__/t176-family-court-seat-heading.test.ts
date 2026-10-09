@@ -109,7 +109,7 @@ describe('T-176 family court seat heading', () => {
       ['Family Court, Patna', 'IN THE FAMILY COURT AT PATNA'],
       ['Family Court, Lucknow', 'IN THE FAMILY COURT AT LUCKNOW'],
       ['Family Court, Ranchi', 'IN THE FAMILY COURT AT RANCHI'],
-      ['Family Court, Delhi', 'IN THE FAMILY COURT AT DELHI'],
+      ['Family Court, Delhi', 'IN THE FAMILY COURT AT [To be confirmed: district/complex], DELHI'],
     ])('%j -> %s', (name, expected) => {
       const lines = typed('family_court', name, 'IN THE FAMILY COURT');
       expect(lines[0]).toBe(expected);

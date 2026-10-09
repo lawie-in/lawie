@@ -131,11 +131,23 @@ function hasCourtNumberToken(part: string): boolean {
  *
  *   "Family Court, Patna"                           -> "PATNA"
  *   "Additional Principal Judge, Family Court, Patna" -> "PATNA"
- *   "Family Court, Tis Hazari, Delhi"               -> "TIS HAZARI, DELHI"
+ *   "Family Court, Civil Lines, Delhi"              -> "CIVIL LINES, DELHI"
  *   "Family Court at Ranchi"                        -> "RANCHI"
  *   "Family Court" / ""                             -> null
  */
 export function familyCourtSeat(courtName: string | undefined | null): string | null {
+  const parts = familyCourtSeatParts(courtName);
+  if (parts.length === 0) return null;
+  if (parts.some((p) => NOT_A_SEAT.test(p) || hasCourtNumberToken(p))) return null;
+  return parts.join(', ').toUpperCase();
+}
+
+/**
+ * T-176: the comma-separated pieces of a typed family court name left once
+ * "In the", "Court of", a judge title, "Family Court" and a leading "at"/"of"
+ * are stripped. Empty pieces are dropped.
+ */
+function familyCourtSeatParts(courtName: string | undefined | null): string[] {
   const parts: string[] = [];
   for (const segment of (courtName ?? '').split(',')) {
     let s = segment.trim();
@@ -150,9 +162,173 @@ export function familyCourtSeat(courtName: string | undefined | null): string | 
     s = s.replace(/^[\s.:;\-–]+|[\s.:;\-–]+$/g, '').trim();
     if (s) parts.push(s);
   }
+  return parts;
+}
+
+/**
+ * T-179 (AJ-2026-10-08-T179): Delhi family court complexes. Typed with or
+ * without "Court", "Courts" or "Courts Complex", in any case. Each prints
+ * Ajay's line verbatim; the city suffix comes from this table, not from what
+ * was typed. "Courts" is accepted only after one of these names.
+ *
+ * T-179-B item 2: `delhiOnly` complexes count on their own. Rohini, Saket and
+ * Dwarka count only when a Delhi name is also typed; otherwise the T-176
+ * typed-seat output stands ("IN THE FAMILY COURT AT DWARKA").
+ */
+const DELHI_FAMILY_COMPLEXES: ReadonlyArray<{ aliases: RegExp; heading: string; delhiOnly: boolean }> = [
+  { aliases: /^(?:tis|tees)\s+hazari$/i, heading: 'IN THE FAMILY COURT AT TIS HAZARI, DELHI', delhiOnly: true },
+  { aliases: /^(?:karkardooma|kadkadooma)$/i, heading: 'IN THE FAMILY COURT AT KARKARDOOMA, DELHI', delhiOnly: true },
+  { aliases: /^rohini$/i, heading: 'IN THE FAMILY COURT AT ROHINI, DELHI', delhiOnly: false },
+  { aliases: /^saket$/i, heading: 'IN THE FAMILY COURT AT SAKET, NEW DELHI', delhiOnly: false },
+  { aliases: /^dwarka$/i, heading: 'IN THE FAMILY COURT AT DWARKA, NEW DELHI', delhiOnly: false },
+  { aliases: /^patiala\s+house$/i, heading: 'IN THE FAMILY COURT AT PATIALA HOUSE, NEW DELHI', delhiOnly: true },
+  { aliases: /^rouse\s+avenue$/i, heading: 'IN THE FAMILY COURT AT ROUSE AVENUE, NEW DELHI', delhiOnly: true },
+];
+
+/**
+ * T-179: the 11 Delhi judicial districts, as printed. Typed as "<name>
+ * District" (hyphen or space between compass words, any case).
+ */
+const DELHI_DISTRICTS = [
+  'CENTRAL',
+  'WEST',
+  'NORTH',
+  'NORTH-WEST',
+  'NORTH-EAST',
+  'EAST',
+  'SHAHDARA',
+  'SOUTH',
+  'SOUTH-EAST',
+  'SOUTH-WEST',
+  'NEW DELHI',
+] as const;
+
+/**
+ * T-179: bare Delhi names. None of them names a seat on its own.
+ * T-179-A item 2 adds "National Capital Territory of Delhi", "Delhi NCT",
+ * "NCT Delhi" and "Delhi (NCT)".
+ */
+const DELHI_NAME_ALTERNATIVES = [
+  'national\\s+capital\\s+territory\\s+of\\s+delhi',
+  'nct\\s+of\\s+delhi',
+  'nct\\s+delhi',
+  'delhi\\s*\\(\\s*nct\\s*\\)',
+  'delhi\\s+nct',
+  'new\\s+delhi',
+  'delhi',
+].join('|');
+const DELHI_NAME = new RegExp(`^(?:${DELHI_NAME_ALTERNATIVES})$`, 'i');
+
+/** T-179 ruling item 1: printed when only Delhi is typed. */
+export const DELHI_FAMILY_COURT_BLANK_HEADING =
+  'IN THE FAMILY COURT AT [To be confirmed: district/complex], DELHI';
+
+/** T-179-A: a Delhi name at the end of a piece ("Saket New Delhi", "South Delhi"). */
+const DELHI_NAME_SUFFIX = new RegExp(`\\s+(?:${DELHI_NAME_ALTERNATIVES})$`, 'i');
+
+/** T-179-A: a compass word on its own (central, north, north-west, ...). */
+const COMPASS_WORD = /^(?:central|north|south|east|west|(?:north|south)[\s\-–]?(?:east|west))$/i;
+
+type DelhiPart =
+  | { kind: 'delhi' }
+  | { kind: 'compass' }
+  | { kind: 'complex'; heading: string; delhiOnly: boolean; withDelhi: boolean }
+  | { kind: 'district'; name: string; withDelhi: boolean };
+
+/** T-179: classify one seat part as a Delhi name, complex or district. */
+function classifyDelhiPart(part: string): DelhiPart | null {
+  // An optional trailing Delhi name in the same piece ("Saket New Delhi").
+  const p = part
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^the\s+/i, '');
+  if (DELHI_NAME.test(p)) return { kind: 'delhi' };
+  const core = p.replace(DELHI_NAME_SUFFIX, '');
+
+  // District first, so "New Delhi District" is never read as bare New Delhi.
+  // T-179-A 1b: only "District" or "Distt." makes a district.
+  const district = core.match(/^(.+?)\s+(?:district|distt\.?)(?:\s+courts?)?$/i);
+  if (district) {
+    const typed = district[1].replace(/[\s\-–]+/g, '-').toUpperCase();
+    const name = DELHI_DISTRICTS.find((d) => d.replace(/ /g, '-') === typed);
+    if (name) return { kind: 'district', name, withDelhi: core !== p };
+    return null;
+  }
+
+  // T-179-A 1a/1c/1d: a compass word ("South Delhi", "Central Delhi") is
+  // never mapped to a district. With "Delhi" in the same piece it is bare
+  // Delhi; alone ("South, Delhi") it counts only beside a Delhi piece.
+  if (COMPASS_WORD.test(core)) return core === p ? { kind: 'compass' } : { kind: 'delhi' };
+
+  const complexName = core.replace(/\s+(?:courts?(?:\s+complex)?)$/i, '');
+  const complex = DELHI_FAMILY_COMPLEXES.find((c) => c.aliases.test(complexName));
+  if (complex) {
+    return { kind: 'complex', heading: complex.heading, delhiOnly: complex.delhiOnly, withDelhi: core !== p };
+  }
+  return null;
+}
+
+/**
+ * T-179 (AJ-2026-10-08-T179): the full heading for a typed Delhi family court
+ * name, or null when the name is not a Delhi one (the T-176 path then runs).
+ *
+ *   "Family Court, Delhi" / "New Delhi" / "NCT of Delhi"
+ *       -> "IN THE FAMILY COURT AT [To be confirmed: district/complex], DELHI"
+ *   "Family Court, Saket Courts, New Delhi" -> "IN THE FAMILY COURT AT SAKET, NEW DELHI"
+ *   "Family Court, South District, Delhi"   -> "IN THE FAMILY COURT, SOUTH DISTRICT, DELHI"
+ *   "Family Court, South Delhi" / "South, Delhi" / "Delhi NCT" (T-179-A)
+ *       -> "IN THE FAMILY COURT AT [To be confirmed: district/complex], DELHI"
+ *
+ * Every part must be a Delhi name, a listed complex or a listed district;
+ * otherwise null. A complex wins over a district. A court number anywhere
+ * (T-176 C-1) gives null, so the T-176 placeholder prints.
+ *
+ * "Delhi typed" means a Delhi name ("Delhi", "New Delhi", an NCT form, or
+ * "South Delhi" etc.) appears as its own piece or at the end of a piece.
+ *
+ * T-179-B item 1: two different complexes, or two different districts with no
+ * complex, give the Delhi placeholder when Delhi is known (Delhi typed, or
+ * every complex is a `delhiOnly` one); otherwise the T-176 placeholder.
+ * T-179-B item 2: Rohini, Saket or Dwarka alone without Delhi typed gives null.
+ * T-179 review / T-179-B: a compass district ("East District") without Delhi
+ * typed gives null (Sikkim has East, West, North and South Districts).
+ * Shahdara and New Delhi Districts count alone.
+ */
+export function delhiFamilyCourtHeading(courtName: string | undefined | null): string | null {
+  const parts = familyCourtSeatParts(courtName);
   if (parts.length === 0) return null;
-  if (parts.some((p) => NOT_A_SEAT.test(p) || hasCourtNumberToken(p))) return null;
-  return parts.join(', ').toUpperCase();
+  if (parts.some((p) => hasCourtNumberToken(p))) return null;
+  const classified = parts.map(classifyDelhiPart);
+  if (classified.some((c) => c === null)) return null;
+  const known = classified as DelhiPart[];
+  // T-179-A 1c: a bare compass word counts only beside a Delhi piece.
+  if (known.some((c) => c.kind === 'compass') && !known.some((c) => c.kind === 'delhi')) {
+    return null;
+  }
+
+  const delhiTyped = known.some(
+    (c) => c.kind === 'delhi' || ((c.kind === 'district' || c.kind === 'complex') && c.withDelhi),
+  );
+  const complexParts = known.flatMap((c) => (c.kind === 'complex' ? [c] : []));
+  const complexes = new Set(complexParts.map((c) => c.heading));
+  const districts = new Set(known.flatMap((c) => (c.kind === 'district' ? [c.name] : [])));
+  const t176Blank = `IN THE FAMILY COURT AT ${FAMILY_COURT_SEAT_BLANK}`;
+
+  if (complexes.size > 1) {
+    const delhiKnown = delhiTyped || complexParts.every((c) => c.delhiOnly);
+    return delhiKnown ? DELHI_FAMILY_COURT_BLANK_HEADING : t176Blank;
+  }
+  if (complexes.size === 1) {
+    if (!complexParts[0].delhiOnly && !delhiTyped) return null;
+    return complexParts[0].heading;
+  }
+  if (districts.size > 1) return delhiTyped ? DELHI_FAMILY_COURT_BLANK_HEADING : t176Blank;
+  if (districts.size === 1) {
+    const name = [...districts][0];
+    if (COMPASS_WORD.test(name) && !delhiTyped) return null;
+    return `IN THE FAMILY COURT, ${name} DISTRICT, DELHI`;
+  }
+  return DELHI_FAMILY_COURT_BLANK_HEADING;
 }
 
 /**
@@ -164,6 +340,9 @@ export function familyCourtSeat(courtName: string | undefined | null): string | 
 export function familyCourtHeading(courtRule: CourtRuleConfig, courtName: string | undefined): string {
   const format = courtRule.formattingPreferences?.causeListFormat;
   if (!format || !format.includes('{place}')) return courtRule.designation;
+  // T-179: a Delhi name, complex or district prints Ajay's line verbatim.
+  const delhi = delhiFamilyCourtHeading(courtName);
+  if (delhi) return delhi;
   const seat = familyCourtSeat(courtName) ?? FAMILY_COURT_SEAT_BLANK;
   return format.replace(/\{place\}/g, () => seat);
 }
