@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Vishal (build) and Ajay (strings and complex list, AJ-2026-10-08-T179) |
 | Mode           | Fix, full chain (developer + tester + reviewer + Ajay). Changes printed legal text. Must land before Delhi go-live (AJ-2026-10-08-T176, item 3) |
-| Status         | Building, 8 Oct. |
+| Status         | Merged to develop (PR #78), 9 Oct. Anushka tests on develop. |
 | Size           | S (half day) |
 | Depends on     | T-176 (merged, PR #76). Cut from origin/develop (e8e3730) |
 | Branch         | fix/t-179-delhi-family-court-complex |
