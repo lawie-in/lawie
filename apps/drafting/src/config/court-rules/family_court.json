@@ -21,10 +21,56 @@
     "state": "Not applicable (civil / personal law proceedings)"
   },
   "case_nomenclature": {
-    "divorce": "M.J. No. _____ of {year}",
-    "guardianship": "G&WC No. _____ of {year}",
-    "maintenance": "M.C. No. _____ of {year}",
-    "restitution": "H.M.O.P. No. _____ of {year}"
+    "default": {
+      "default": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce_mutual_consent": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce_sma": "[To be confirmed: case type] No. _____ of {year}",
+      "judicial_separation": "[To be confirmed: case type] No. _____ of {year}",
+      "restitution": "[To be confirmed: case type] No. _____ of {year}",
+      "guardianship": "[To be confirmed: case type] No. _____ of {year}",
+      "maintenance": "[To be confirmed: case type] No. _____ of {year}"
+    },
+    "bihar": {
+      "default": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce_mutual_consent": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce_sma": "[To be confirmed: case type] No. _____ of {year}",
+      "judicial_separation": "[To be confirmed: case type] No. _____ of {year}",
+      "restitution": "[To be confirmed: case type] No. _____ of {year}",
+      "guardianship": "[To be confirmed: case type] No. _____ of {year}",
+      "maintenance": "[To be confirmed: case type] No. _____ of {year}"
+    },
+    "jharkhand": {
+      "default": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce_mutual_consent": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce_sma": "[To be confirmed: case type] No. _____ of {year}",
+      "judicial_separation": "[To be confirmed: case type] No. _____ of {year}",
+      "restitution": "[To be confirmed: case type] No. _____ of {year}",
+      "guardianship": "[To be confirmed: case type] No. _____ of {year}",
+      "maintenance": "[To be confirmed: case type] No. _____ of {year}"
+    },
+    "uttar_pradesh": {
+      "default": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce_mutual_consent": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce_sma": "[To be confirmed: case type] No. _____ of {year}",
+      "judicial_separation": "[To be confirmed: case type] No. _____ of {year}",
+      "restitution": "[To be confirmed: case type] No. _____ of {year}",
+      "guardianship": "[To be confirmed: case type] No. _____ of {year}",
+      "maintenance": "[To be confirmed: case type] No. _____ of {year}"
+    },
+    "delhi": {
+      "default": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce_mutual_consent": "[To be confirmed: case type] No. _____ of {year}",
+      "divorce_sma": "[To be confirmed: case type] No. _____ of {year}",
+      "judicial_separation": "[To be confirmed: case type] No. _____ of {year}",
+      "restitution": "[To be confirmed: case type] No. _____ of {year}",
+      "guardianship": "[To be confirmed: case type] No. _____ of {year}",
+      "maintenance": "[To be confirmed: case type] No. _____ of {year}"
+    }
   },
   "para_numbering": {
     "style": "numeric",

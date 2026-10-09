@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Vishal, after Ajay's wording (AJ-2026-10-08-T178) |
 | Mode           | Fix, full chain (developer + tester + reviewer + Ajay). Edits a legal-content path (`config/court-rules/`). Must land before v1 GTM (AJ-2026-10-08-T174, FU-3) |
-| Status         | Building, 8 Oct. |
+| Status         | Merged to develop (PR #77), 9 Oct. Anushka tests on develop. |
 | Size           | XS (under half a day, once Ajay's strings are in) |
 | Depends on     | T-176 (merged, PR #76). Cut from origin/develop (e8e3730) |
 | Branch         | fix/t-178-family-court-citation |

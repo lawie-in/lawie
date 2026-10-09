@@ -19,7 +19,7 @@
       { "role": "applicant", "label": "Applicant" },
       { "role": "respondent", "label": "Respondent" }
     ],
-    "caseNomenclature": "Maintenance Application u/s 144 BNSS No. _____ of [YEAR]"
+    "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}"
   },
   "form_schema": {
     "fields": [

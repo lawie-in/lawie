@@ -41,7 +41,7 @@ interface CourtRules {
   party_designation: Record<string, string>;
   party_designation_by_side?: CourtRuleData['party_designation_by_side'];
   verification_format: string;
-  case_nomenclature?: Record<string, string>;
+  case_nomenclature?: CourtRuleData['case_nomenclature'];
   matter_type_overrides?: Record<string, MatterTypeOverride>;
   prayer_language?: { opening: string; closing: string };
 }
