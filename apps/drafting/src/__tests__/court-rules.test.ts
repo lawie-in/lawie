@@ -133,12 +133,23 @@ describe('Court Rules — Data Integrity (SCRUM-50 CLO review)', () => {
         const rule: CourtRuleFile = JSON.parse(
           readFileSync(join(COURT_RULES_DIR, filename), 'utf-8'),
         );
+        // Leaves may be flat strings or nested (state -> matter) blocks.
+        const walk = (node: unknown, path: string): void => {
+          if (typeof node === 'string') {
+            expect(node).toContain('{year}');
+            // Should not be empty
+            expect(node.replace('{year}', '').trim().length).toBeGreaterThan(5);
+            // Prevent test from being useless
+            expect(path.length).toBeGreaterThan(0);
+          } else {
+            expect(node).toEqual(expect.any(Object));
+            for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+              walk(v, `${path}.${k}`);
+            }
+          }
+        };
         for (const [docType, format] of Object.entries(rule.case_nomenclature)) {
-          expect(format).toContain('{year}');
-          // Should not be empty
-          expect(format.replace('{year}', '').trim().length).toBeGreaterThan(5);
-          // Prevent test from being useless
-          expect(docType.length).toBeGreaterThan(0);
+          walk(format, docType);
         }
       }
     });

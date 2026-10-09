@@ -262,7 +262,11 @@ export interface CourtRuleData {
   party_designation_by_side?: Partial<
     Record<DocumentSide, { petitioner: string; respondent: string }>
   >;
-  case_nomenclature?: Record<string, string>;
+  /**
+   * Keyed by matter type. T-177: family_court.json is keyed by state, then by
+   * matter type, each with a `default` (see `familyCaseNomenclature`).
+   */
+  case_nomenclature?: Record<string, string | Record<string, string>>;
   /**
    * T-158: wording that depends on the matter type, keyed by a
    * `case_nomenclature` key (e.g. NCLT `insolvency_application` vs
@@ -366,6 +370,54 @@ const MATTER_TYPE_BY_TEMPLATE: ReadonlyMap<string, string> = new Map([
 /** The matter type (`case_nomenclature` key) of a document type, or null. */
 export function matterTypeFor(templateId: string): string | null {
   return MATTER_TYPE_BY_TEMPLATE.get(templateId) ?? null;
+}
+
+/** T-177: the family court rule's id (config/court-rules/family_court.json). */
+const FAMILY_COURT_RULE_ID = 'family_court';
+
+/**
+ * T-177 (AJ-2026-10-09-T177): the case-number line printed when the family
+ * court rule gives none. No family court case type is verified yet.
+ */
+export const FAMILY_CASE_NUMBER_PLACEHOLDER = '[To be confirmed: case type] No. _____ of {year}';
+
+/**
+ * T-177 (AJ-2026-10-09-T177): each family template's matter type, as a key of
+ * family_court.json `case_nomenclature`.
+ */
+const FAMILY_NOMENCLATURE_KEY: ReadonlyMap<string, string> = new Map([
+  ['divorce_hma', 'divorce'],
+  ['divorce_mutual_consent', 'divorce_mutual_consent'],
+  ['divorce_sma', 'divorce_sma'],
+  ['judicial_separation', 'judicial_separation'],
+  ['rcr_petition', 'restitution'],
+  ['guardianship_petition', 'guardianship'],
+  ['maintenance_bnss_144', 'maintenance'],
+]);
+
+/**
+ * T-177 (AJ-2026-10-09-T177): the family court case-number line for a
+ * template, with `{year}` not yet filled in. Null when the rule is not the
+ * family court rule or the template is not a family template.
+ *
+ * The rule file wins; FAMILY_CASE_NUMBER_PLACEHOLDER is the fallback. The
+ * state is never taken from the user's profile. Every cell is the
+ * placeholder for now, so the rule's `default` state block is read and no
+ * state lookup is done (the ruling defers it until a cell is verified).
+ */
+export function familyCaseNomenclature(
+  rule: { courtId?: string; case_nomenclature?: CourtRuleData['case_nomenclature'] },
+  templateId: string,
+): string | null {
+  if (rule.courtId !== FAMILY_COURT_RULE_ID) return null;
+  const matterKey = FAMILY_NOMENCLATURE_KEY.get(templateId);
+  if (!matterKey) return null;
+  const block = rule.case_nomenclature?.default;
+  if (block && typeof block === 'object') {
+    const value = block[matterKey] ?? block.default;
+    if (typeof value === 'string' && value.trim() !== '') return value;
+  }
+  return FAMILY_CASE_NUMBER_PLACEHOLDER;
 }
 
 /**
@@ -958,7 +1010,12 @@ export function buildPlaceholderContext(
     }
 
     // Case nomenclature — resolve by template type
-    if (rule.case_nomenclature) {
+    // T-177 (AJ-2026-10-09-T177): a family template in a family court takes
+    // the family court rule's line, or the placeholder; never the list entry's.
+    const familyLine = familyCaseNomenclature(rule, config.template_id);
+    if (familyLine !== null) {
+      ctx.case_nomenclature = familyLine.replace(/\{year\}/g, ctx.current_year);
+    } else if (rule.case_nomenclature) {
       const templateId = config.template_id;
       // Map template_id to case_nomenclature key
       const nomenKey = templateId.includes('anticipatory')
@@ -970,11 +1027,9 @@ export function buildPlaceholderContext(
             : templateId.includes('writ')
               ? 'civil_writ'
               : undefined;
-      if (nomenKey && rule.case_nomenclature[nomenKey]) {
-        ctx.case_nomenclature = rule.case_nomenclature[nomenKey].replace(
-          /\{year\}/g,
-          ctx.current_year,
-        );
+      const nomen = nomenKey ? rule.case_nomenclature[nomenKey] : undefined;
+      if (typeof nomen === 'string' && nomen) {
+        ctx.case_nomenclature = nomen.replace(/\{year\}/g, ctx.current_year);
       }
     }
 

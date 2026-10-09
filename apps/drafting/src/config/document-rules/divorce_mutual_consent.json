@@ -19,7 +19,7 @@
       { "role": "petitioner1", "label": "Petitioner No. 1" },
       { "role": "petitioner2", "label": "Petitioner No. 2" }
     ],
-    "caseNomenclature": "HMA/SMA Petition (Mutual Consent) No. _____ of [YEAR]"
+    "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}"
   },
   "form_schema": {
     "fields": [

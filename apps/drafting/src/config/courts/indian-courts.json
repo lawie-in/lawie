@@ -20588,7 +20588,7 @@
       "stateId": "delhi",
       "city": "Delhi",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en", "hi"]
     },
     {
@@ -20600,7 +20600,7 @@
       "stateId": "delhi",
       "city": "New Delhi",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en", "hi"]
     },
     {
@@ -20612,7 +20612,7 @@
       "stateId": "delhi",
       "city": "New Delhi",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en", "hi"]
     },
     {
@@ -20624,7 +20624,7 @@
       "stateId": "delhi",
       "city": "Delhi",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en", "hi"]
     },
     {
@@ -20636,7 +20636,7 @@
       "stateId": "maharashtra",
       "city": "Mumbai",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
     {
@@ -20648,7 +20648,7 @@
       "stateId": "maharashtra",
       "city": "Mumbai",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
     {
@@ -20660,7 +20660,7 @@
       "stateId": "karnataka",
       "city": "Bengaluru",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
     {
@@ -20672,7 +20672,7 @@
       "stateId": "tamil_nadu",
       "city": "Chennai",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "H.M.O.P. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
     {
@@ -20684,7 +20684,7 @@
       "stateId": "telangana",
       "city": "Hyderabad",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
     {
@@ -20696,7 +20696,7 @@
       "stateId": "maharashtra",
       "city": "Pune",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
     {
@@ -20708,7 +20708,7 @@
       "stateId": "west_bengal",
       "city": "Kolkata",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
     {
@@ -20720,7 +20720,7 @@
       "stateId": "gujarat",
       "city": "Ahmedabad",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
     {
@@ -20732,7 +20732,7 @@
       "stateId": "rajasthan",
       "city": "Jaipur",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en", "hi"]
     },
     {
@@ -20744,7 +20744,7 @@
       "stateId": "uttar_pradesh",
       "city": "Lucknow",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en", "hi"]
     },
     {
@@ -20756,7 +20756,7 @@
       "stateId": "bihar",
       "city": "Patna",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en", "hi"]
     },
     {
@@ -20768,7 +20768,7 @@
       "stateId": "jharkhand",
       "city": "Ranchi",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en", "hi"]
     },
     {
@@ -20780,7 +20780,7 @@
       "stateId": "madhya_pradesh",
       "city": "Bhopal",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en", "hi"]
     },
     {
@@ -20792,7 +20792,7 @@
       "stateId": "madhya_pradesh",
       "city": "Indore",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en", "hi"]
     },
     {
@@ -20804,7 +20804,7 @@
       "stateId": "chandigarh",
       "city": "Chandigarh",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
     {
@@ -20816,7 +20816,7 @@
       "stateId": "kerala",
       "city": "Kochi",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
     {
@@ -20828,7 +20828,7 @@
       "stateId": "assam",
       "city": "Guwahati",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
     {
@@ -20840,7 +20840,7 @@
       "stateId": "odisha",
       "city": "Bhubaneswar",
       "formattingRulesRef": "family_court",
-      "caseNomenclature": "M.J. No. _____ of {current_year}",
+      "caseNomenclature": "[To be confirmed: case type] No. _____ of {current_year}",
       "supportedLanguages": ["en"]
     },
 
