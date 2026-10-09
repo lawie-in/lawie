@@ -10,6 +10,7 @@
 import bnsOffences from '../config/bns-offences.json';
 
 import { DocumentRuleConfig } from './prompt-assembler';
+import { readActList, readMandatoryClauses } from './rule-pack.service';
 import { lookupOldToNew } from './sections.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -131,7 +132,8 @@ export function validateSectionReferences(
 
   // Build a set of known sections from the document rule config
   const knownSections = new Set<string>();
-  for (const act of docRule.relevantActs) {
+  // Rule-pack reader: snake_case rule files have string acts or no `sections` (T-182)
+  for (const act of readActList(docRule.relevantActs)) {
     for (const s of act.sections) {
       knownSections.add(s.number);
     }
@@ -262,7 +264,8 @@ export function checkMandatoryClauses(
     pwdva_reference: ['pwdva', 'domestic violence act', 'protection of women'],
   };
 
-  for (const clause of docRule.mandatoryClauses) {
+  // Rule-pack reader: accepts `mandatoryClauses` or `mandatory_clauses` (T-182)
+  for (const clause of readMandatoryClauses(docRule)) {
     // Skip verification and advocate_details — these are added programmatically
     if (clause.id === 'verification' || clause.id === 'advocate_details' || clause.id === 'witness')
       continue;
@@ -275,7 +278,7 @@ export function checkMandatoryClauses(
     if (!found) {
       missing.push({
         type: 'missing_clause',
-        message: `Mandatory clause "${clause.name}" may be missing from the draft. Please review.`,
+        message: `Mandatory clause "${clause.title}" may be missing from the draft. Please review.`,
         details: { clauseId: clause.id },
       });
     }

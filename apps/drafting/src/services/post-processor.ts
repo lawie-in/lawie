@@ -14,6 +14,7 @@
  * when both the template-config "disclaimer" section and contentToHtml ran.
  */
 import { DocumentRuleConfig, CourtRuleConfig } from './prompt-assembler';
+import { readFilingChecklist } from './rule-pack.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -568,8 +569,9 @@ export function generatePrayerClause(
  * Generate a filing checklist section from the document-rule config.
  */
 export function generateFilingChecklist(docRule: DocumentRuleConfig | null): string[] {
-  if (!docRule || docRule.filingChecklist.length === 0) return [];
-  return docRule.filingChecklist;
+  if (!docRule) return [];
+  // Rule-pack reader: `filingChecklist`, else `filing_checklist` (T-182)
+  return readFilingChecklist(docRule);
 }
 
 // ── Main Post-Processor ──────────────────────────────────────────────────────
