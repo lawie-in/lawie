@@ -542,6 +542,17 @@ function readClauses(pack: Obj, notes: string[]): RulePackClause[] {
   return out;
 }
 
+/**
+ * The mandatory clauses of a raw document-rule object, read the same way as
+ * `readRulePack` reads them: `mandatoryClauses` or `mandatory_clauses`, with
+ * `mandatoryClauses` used when both are present. Anything the reader could not
+ * use is described in `notes`. Pure: no disk access.
+ */
+export function readMandatoryClauses(source: unknown, notes: string[] = []): RulePackClause[] {
+  if (!isObj(source)) return [];
+  return readClauses(source, notes);
+}
+
 // ── Fixed parts ─────────────────────────────────────────────────────────────
 
 function readCauseTitle(raw: unknown): RulePackCauseTitle | null {
@@ -697,6 +708,39 @@ function readActs(raw: unknown, where: string, notes: string[]): RulePackAct[] {
   return out;
 }
 
+// ── Filing checklist ────────────────────────────────────────────────────────
+
+/** `filingChecklist`, or `filing_checklist` when the camelCase list is empty or absent. */
+function readChecklist(pack: Obj): string[] {
+  const checklist = strings(pack.filingChecklist);
+  return checklist.length > 0 ? checklist : strings(pack.filing_checklist);
+}
+
+// ── Readers shared with the legacy prompt/validate path (T-182) ─────────────
+// Pure: no disk access. Each reads one part of a raw document-rule object the
+// same way `readRulePack` does.
+
+/** The relevant acts in one raw list (for example a rule file's `relevantActs`). */
+export function readActList(
+  raw: unknown,
+  where = 'relevantActs',
+  notes: string[] = [],
+): RulePackAct[] {
+  return readActs(raw, where, notes);
+}
+
+/** Drafting instructions from `prompt_context` and `promptInstructions`. */
+export function readDraftingInstructionList(source: unknown): string[] {
+  if (!isObj(source)) return [];
+  return readDraftingInstructions(source);
+}
+
+/** The filing checklist, from `filingChecklist` or `filing_checklist`. */
+export function readFilingChecklist(source: unknown): string[] {
+  if (!isObj(source)) return [];
+  return readChecklist(source);
+}
+
 // ── The pack ────────────────────────────────────────────────────────────────
 
 const READ_KEYS = new Set([
@@ -744,8 +788,6 @@ export function readRulePack(id: string, source: unknown): RulePack {
     seen.add(fact.key);
   }
 
-  const checklist = strings(source.filingChecklist);
-
   return {
     id,
     name: firstStr(source.displayName, source.title) ?? humanise(id),
@@ -759,7 +801,7 @@ export function readRulePack(id: string, source: unknown): RulePack {
     verificationTemplate: str(source.verificationTemplate),
     draftingInstructions: readDraftingInstructions(source),
     validationRules: readValidationRules(source.validation_rules, notes),
-    filingChecklist: checklist.length > 0 ? checklist : strings(source.filing_checklist),
+    filingChecklist: readChecklist(source),
     relevantActs: [
       ...readActs(source.relevantActs, 'relevantActs', notes),
       ...readActs(source.relatedActs, 'relatedActs', notes),

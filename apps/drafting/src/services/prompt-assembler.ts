@@ -8,6 +8,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+import { readActList, readDraftingInstructionList, readMandatoryClauses } from './rule-pack.service';
 import { convertOldReferencesInText } from './sections.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -397,20 +398,28 @@ function buildDocTypeSection(config: DocumentRuleConfig): string {
     `Category: ${config.category}`,
   ];
 
-  // Mandatory clauses the AI should include
-  const requiredClauses = config.mandatoryClauses
+  // Mandatory clauses the AI should include. Many rule files spell the key
+  // `mandatory_clauses`; the rule-pack reader accepts both spellings, with
+  // `mandatoryClauses` used when both are present (T-182).
+  const requiredClauses = readMandatoryClauses(config)
     .filter((c) => c.required && c.id !== 'verification' && c.id !== 'advocate_details')
-    .map((c) => `  - ${c.name}: ${c.description}`);
+    .map((c) => (c.detail !== null ? `  - ${c.title}: ${c.detail}` : `  - ${c.title}`));
 
   if (requiredClauses.length > 0) {
     lines.push('\nMandatory sections to include in the draft:');
     lines.push(...requiredClauses);
   }
 
-  // Specific instructions from the config
-  if (config.promptInstructions.length > 0) {
+  // Specific instructions from the config. The snake_case rule files have no
+  // `promptInstructions`; theirs are in `prompt_context`, read by the rule-pack
+  // reader. Files that have `promptInstructions` keep using only that list, so
+  // their prompts are unchanged (some also carry a `prompt_context` string).
+  const instructions = Array.isArray(config.promptInstructions)
+    ? config.promptInstructions
+    : readDraftingInstructionList(config);
+  if (instructions.length > 0) {
     lines.push('\nSpecific instructions:');
-    config.promptInstructions.forEach((inst, i) => {
+    instructions.forEach((inst, i) => {
       lines.push(`${i + 1}. ${inst}`);
     });
   }
@@ -440,13 +449,24 @@ function buildCourtSection(config: CourtRuleConfig): string {
  * Build statutory context from the document-rule's relevant acts.
  */
 function buildStatutoryContext(config: DocumentRuleConfig): string {
-  if (config.relevantActs.length === 0) return '';
+  // Read with the rule-pack reader: acts may be plain strings or have no
+  // `sections` in the snake_case rule files (T-182).
+  const acts = readActList(config.relevantActs);
+  if (acts.length === 0) return '';
 
   const lines: string[] = ['\n--- RELEVANT STATUTORY PROVISIONS ---'];
-  for (const act of config.relevantActs) {
+  for (const act of acts) {
+    if (act.sections.length === 0) {
+      lines.push(`\n${act.act}`);
+      continue;
+    }
     lines.push(`\n${act.act}:`);
     act.sections.forEach((s) => {
-      lines.push(`  - Section ${s.number}: ${s.description}`);
+      lines.push(
+        s.description !== null
+          ? `  - Section ${s.number}: ${s.description}`
+          : `  - Section ${s.number}`,
+      );
     });
   }
 
@@ -461,7 +481,7 @@ function buildUserFactsSection(input: PromptInput, docConfig: DocumentRuleConfig
     .filter(([, v]) => v)
     .map(([role, name]) => {
       // Use the config's party designation labels if available
-      const designation = docConfig?.causeTitle.partyDesignations.find(
+      const designation = docConfig?.causeTitle?.partyDesignations?.find(
         (p) => p.role === role,
       )?.label;
       const label = designation || role.charAt(0).toUpperCase() + role.slice(1);
