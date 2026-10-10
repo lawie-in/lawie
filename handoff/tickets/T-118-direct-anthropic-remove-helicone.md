@@ -5,7 +5,7 @@
 | Phase      | 0 — Prep                                                                                                                |
 | Owner      | Vishal, Arjun reviews. One account step for the founder                                                                 |
 | Mode       | Full chain                                                                                                              |
-| Status     | Step 1 and Step 2 done (PR #82, 9 Oct; founder verified drafting without the Helicone key, 10 Oct). Open: Step 3 (founder), Records (Arjun). |
+| Status     | Step 1 and Step 2 done (PR #82, 9 Oct; founder verified drafting without the Helicone key, 10 Oct). Step 3 skipped (no email for the Helicone account, 10 Oct). Open: Records (Arjun). |
 | Depends on | T-117 for the order only. Step 2 waits for the backend pull request (T-110, T-101, T-102), which touches the same files |
 | Branch     | feature/t-118-direct-anthropic                                                                                          |
 | Created    | 2026-10-04                                                                                                              |
