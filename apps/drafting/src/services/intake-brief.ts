@@ -1438,20 +1438,47 @@ export function buildQuestions(
   worded: Map<string, string>,
   /** Facts to ask even when not required: an answer an edited description left unclear (T-150). */
   alsoAsk: ReadonlySet<string> = new Set(),
+  /**
+   * T-147b: facts to ask whether or not the brief has a value for them: what
+   * the fact ledger could not read. The brief's value is left as it is. They
+   * are kept within the cap before any other question.
+   */
+  alwaysAsk: ReadonlySet<string> = new Set(),
 ): BriefQuestion[] {
-  const missing = brief.items
+  const cap = QUESTION_LIMITS.perRound * QUESTION_LIMITS.rounds;
+  const sorted = brief.items
     .map((item, index) => ({ item, index }))
-    .filter(({ item }) => (item.required || alsoAsk.has(item.key)) && isEmpty(item.value))
+    .filter(
+      ({ item }) =>
+        alwaysAsk.has(item.key) ||
+        ((item.required || alsoAsk.has(item.key)) && isEmpty(item.value)),
+    )
     .sort((a, b) => {
       // A fact an edited description left unclear comes straight after the
       // party names, so the cap never leaves it unasked (T-150).
       const rank = (item: BriefItem): number =>
-        item.party_name ? 0 : alsoAsk.has(item.key) ? 0.5 : PART_ORDER[item.part];
+        item.party_name
+          ? 0
+          : alsoAsk.has(item.key) || alwaysAsk.has(item.key)
+            ? 0.5
+            : PART_ORDER[item.part];
       const pa = rank(a.item);
       const pb = rank(b.item);
       return pa - pb || a.index - b.index;
-    })
-    .slice(0, QUESTION_LIMITS.perRound * QUESTION_LIMITS.rounds);
+    });
+  // Ajay's order for the cap (T-147b): the party names keep their places first,
+  // then what the ledger could not read, then the rest. Party names rank first
+  // in `sorted`, so with no `alwaysAsk` this is the first `cap` of it, as before.
+  const parties = sorted.filter(({ item }) => item.party_name).slice(0, cap);
+  const always = sorted
+    .filter(({ item }) => !item.party_name && alwaysAsk.has(item.key))
+    .slice(0, cap - parties.length);
+  const room = cap - parties.length - always.length;
+  const others = sorted
+    .filter(({ item }) => !item.party_name && !alwaysAsk.has(item.key))
+    .slice(0, room);
+  const kept = new Set([...parties, ...always, ...others]);
+  const missing = sorted.filter((m) => kept.has(m));
 
   return missing.map(({ item }, i) => ({
     key: item.key,

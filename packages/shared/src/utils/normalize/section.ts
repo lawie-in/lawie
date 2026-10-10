@@ -21,13 +21,23 @@ interface ActEntry {
 const ACTS: readonly ActEntry[] = [
   { id: 'BNSS', year: 2023, keys: ['bnss', 'bharatiyanagariksurakshasanhita', 'बीएनएसएस', 'भारतीयनागरिकसुरक्षासंहिता'] },
   { id: 'BNS', year: 2023, keys: ['bns', 'bharatiyanyayasanhita', 'बीएनएस', 'भारतीयन्यायसंहिता'] },
-  { id: 'BSA', year: 2023, keys: ['bsa', 'bharatiyasakshyaadhiniyam', 'बीएसए', 'भारतीयसाक्ष्यअधिनियम'] },
+  // 'भारतीयसाक्ष्यअधिनियम' is the Hindi name of both the BSA and the IEA: see AMBIGUOUS_KEYS.
+  { id: 'BSA', year: 2023, keys: ['bsa', 'bharatiyasakshyaadhiniyam', 'बीएसए'] },
   { id: 'IPC', year: 1860, keys: ['ipc', 'indianpenalcode', 'आईपीसी', 'भारतीयदंडसंहिता', 'भारतीयदण्डसंहिता'] },
   { id: 'CrPC', year: 1973, keys: ['crpc', 'codeofcriminalprocedure', 'सीआरपीसी', 'दंडप्रक्रियासंहिता', 'दण्डप्रक्रियासंहिता'] },
   { id: 'IEA', year: 1872, keys: ['iea', 'indianevidenceact', 'evidenceact'] },
   { id: 'CPC', year: 1908, keys: ['cpc', 'codeofcivilprocedure'] },
   { id: 'NI Act', year: 1881, keys: ['niact', 'negotiableinstrumentsact'] },
 ];
+/**
+ * Names that are the official name of more than one act (Ajay, T-147b): only
+ * the year says which. `भारतीय साक्ष्य अधिनियम` is the Hindi name of both the
+ * Bharatiya Sakshya Adhiniyam, 2023 and the Indian Evidence Act, 1872.
+ */
+const AMBIGUOUS_KEYS = new Map<string, readonly string[]>([
+  ['भारतीयसाक्ष्यअधिनियम'.normalize('NFC'), ['BSA', 'IEA']],
+]);
+
 const ACT_BY_KEY = new Map<string, ActEntry>(
   ACTS.flatMap((a) => a.keys.map((k) => [k.normalize('NFC'), a] as [string, ActEntry])),
 );
@@ -60,10 +70,29 @@ function readAct(raw: string): Normalized<string> {
   if (/\d/.test(rest)) return unresolved('multiple_sections', 'The reference names more than one section.');
   const key = rest.normalize('NFC').toLowerCase().replace(/[^\p{L}\p{M}]+/gu, '');
   if (key === '') return unresolved('missing_act', 'The section has no act.');
+  const shared = AMBIGUOUS_KEYS.get(key);
+  if (shared) {
+    const candidates = ACTS.filter((a) => shared.includes(a.id));
+    // Ajay's wording (T-147b), for the one ambiguous name there is: BSA 2023 and IEA 1872.
+    if (year === undefined) {
+      return unresolved(
+        'ambiguous_act',
+        'This name is used for both the Bharatiya Sakshya Adhiniyam, 2023 and the Indian Evidence Act, 1872. Add the year to show which one you mean.',
+      );
+    }
+    const byYear = candidates.find((a) => a.year === year);
+    if (!byYear) {
+      return unresolved(
+        'act_year_mismatch',
+        `This name is used for both the Bharatiya Sakshya Adhiniyam, 2023 and the Indian Evidence Act, 1872. The year given, ${year}, matches neither. Use 2023 or 1872.`,
+      );
+    }
+    return { ok: true, value: byYear.id, display: byYear.id };
+  }
   const act = ACT_BY_KEY.get(key);
   if (!act) return unresolved('unknown_act', `"${rest.trim()}" is not an act we know.`);
   if (year !== undefined && year !== act.year) {
-    return unresolved('act_year_mismatch', `The ${act.id} is of ${act.year}, not ${year}.`);
+    return unresolved('act_year_mismatch', `The ${act.id} is the Act of ${act.year}, not ${year}.`);
   }
   return { ok: true, value: act.id, display: act.id };
 }
