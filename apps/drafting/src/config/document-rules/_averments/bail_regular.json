@@ -1,0 +1,1302 @@
+{
+  "_about": "T-147c averment allowlist and banned-assertion list. Schema and rules: README.md in this folder. PROPOSED by the developer; Ajay (CLO) reviews and signs.",
+  "pack": "bail_regular",
+  "inherits": null,
+  "key_map": {},
+  "_signed_by": "Ajay (CLO) writes his name and the date here when he signs this list. His signature is not release on its own: a practising advocate still checks the list before the pack goes live. Null means proposed, not signed.",
+  "signed_by": null,
+  "signed_on": null,
+  "banned": [
+    {
+      "id": "no_criminal_antecedents",
+      "kind": "averment",
+      "what": "The applicant has no criminal antecedents",
+      "phrases": [
+        "has no criminal antecedents",
+        "no criminal history",
+        "no previous criminal record",
+        "clean antecedents",
+        "has never been involved in any other case",
+        "first-time offender",
+        "not a habitual offender",
+        "no other FIR is registered against the applicant",
+        "koi criminal record nahi hai",
+        "pehle kabhi case nahi hua"
+      ],
+      "unlocked_by": {
+        "key": "antecedents",
+        "label": "Criminal antecedents",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "no criminal antecedents",
+          "no criminal record",
+          "no previous record",
+          "no prior record",
+          "no antecedents",
+          "first offender",
+          "clean record",
+          "koi record nahi",
+          "koi criminal record nahi"
+        ]
+      }
+    },
+    {
+      "id": "gainfully_employed",
+      "kind": "averment",
+      "what": "The applicant is employed or earns a living",
+      "phrases": [
+        "gainfully employed",
+        "is employed as",
+        "is working as",
+        "earns his livelihood",
+        "naukri karta hai",
+        "kaam karta hai"
+      ],
+      "unlocked_by": {
+        "key": "applicant_occupation",
+        "label": "Applicant occupation",
+        "not_in": [
+          "unemployed",
+          "not employed",
+          "none",
+          "nil",
+          "no",
+          "no job",
+          "jobless",
+          "no work",
+          "berozgar",
+          "berojgar",
+          "student",
+          "homemaker",
+          "housewife",
+          "retired"
+        ]
+      }
+    },
+    {
+      "id": "employment_particulars",
+      "kind": "averment",
+      "what": "Particulars of employment beyond the occupation given",
+      "phrases": [
+        "runs a business",
+        "is a government employee",
+        "has a permanent job",
+        "apna business hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "cooperated_with_investigation",
+      "kind": "averment",
+      "what": "The applicant has cooperated with the investigation (a past fact, not an undertaking)",
+      "phrases": [
+        "has cooperated with the investigation",
+        "has fully cooperated with the police",
+        "joined the investigation as and when called",
+        "appeared before the investigating officer whenever required",
+        "has never avoided the investigation",
+        "jaanch mein poora sahyog kiya",
+        "police ke bulane par hazir hua"
+      ],
+      "unlocked_by": {
+        "key": "cooperated_with_investigation",
+        "label": "Whether the applicant has cooperated with the investigation",
+        "equals": [
+          "yes",
+          "haan",
+          "ha",
+          "true",
+          "cooperated",
+          "has cooperated",
+          "joined the investigation"
+        ]
+      }
+    },
+    {
+      "id": "deep_roots_in_society",
+      "kind": "submission",
+      "what": "The applicant has deep roots in society",
+      "phrases": [
+        "has deep roots in society",
+        "roots in the community",
+        "permanent resident with family",
+        "strong family ties",
+        "has his family and property in the area",
+        "samaj mein gehri jaden"
+      ],
+      "unlocked_by": {
+        "all_of": [
+          {
+            "key": "address",
+            "label": "Residential Address",
+            "present": true
+          },
+          {
+            "key": "local_ties",
+            "label": "Family and local ties of the applicant",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "no_flight_risk",
+      "kind": "submission",
+      "what": "There is no risk that the applicant will flee (opinion, not an undertaking)",
+      "phrases": [
+        "there is no flight risk",
+        "is not a flight risk",
+        "there is no likelihood of the applicant fleeing from justice",
+        "will not run away from the trial",
+        "no possibility of fleeing",
+        "bhaagne ka koi khatra nahi"
+      ],
+      "unlocked_by": {
+        "all_of": [
+          {
+            "key": "address",
+            "label": "Residential Address",
+            "present": true
+          },
+          {
+            "key": "antecedents",
+            "label": "Criminal antecedents",
+            "equals": [
+              "none",
+              "nil",
+              "no",
+              "no criminal antecedents",
+              "no criminal record",
+              "no previous record",
+              "no prior record",
+              "no antecedents",
+              "first offender",
+              "clean record",
+              "koi record nahi",
+              "koi criminal record nahi"
+            ]
+          },
+          {
+            "key": "cooperated_with_investigation",
+            "label": "Whether the applicant has cooperated with the investigation",
+            "equals": [
+              "yes",
+              "haan",
+              "ha",
+              "true",
+              "cooperated",
+              "has cooperated",
+              "joined the investigation"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "no_likelihood_of_tampering",
+      "kind": "submission",
+      "what": "There is no likelihood of tampering with evidence (opinion, not an undertaking)",
+      "phrases": [
+        "there is no likelihood of tampering with the evidence",
+        "no possibility of tampering with evidence",
+        "cannot influence the witnesses",
+        "no apprehension of the applicant influencing witnesses",
+        "the evidence is documentary and already seized",
+        "sabooton se chhed-chhad ki koi sambhavna nahi",
+        "gawahon ko prabhavit nahi kar sakta"
+      ],
+      "unlocked_by": {
+        "all_of": [
+          {
+            "key": "address",
+            "label": "Residential Address",
+            "present": true
+          },
+          {
+            "key": "antecedents",
+            "label": "Criminal antecedents",
+            "equals": [
+              "none",
+              "nil",
+              "no",
+              "no criminal antecedents",
+              "no criminal record",
+              "no previous record",
+              "no prior record",
+              "no antecedents",
+              "first offender",
+              "clean record",
+              "koi record nahi",
+              "koi criminal record nahi"
+            ]
+          },
+          {
+            "key": "cooperated_with_investigation",
+            "label": "Whether the applicant has cooperated with the investigation",
+            "equals": [
+              "yes",
+              "haan",
+              "ha",
+              "true",
+              "cooperated",
+              "has cooperated",
+              "joined the investigation"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "no_likelihood_of_absconding",
+      "kind": "submission",
+      "what": "There is no likelihood of absconding (opinion, not an undertaking)",
+      "phrases": [
+        "there is no likelihood of the applicant absconding",
+        "no chance of absconding",
+        "has never absconded",
+        "will not abscond (stated as a present fact)",
+        "farar hone ki koi sambhavna nahi"
+      ],
+      "unlocked_by": {
+        "all_of": [
+          {
+            "key": "address",
+            "label": "Residential Address",
+            "present": true
+          },
+          {
+            "key": "antecedents",
+            "label": "Criminal antecedents",
+            "equals": [
+              "none",
+              "nil",
+              "no",
+              "no criminal antecedents",
+              "no criminal record",
+              "no previous record",
+              "no prior record",
+              "no antecedents",
+              "first offender",
+              "clean record",
+              "koi record nahi",
+              "koi criminal record nahi"
+            ]
+          },
+          {
+            "key": "cooperated_with_investigation",
+            "label": "Whether the applicant has cooperated with the investigation",
+            "equals": [
+              "yes",
+              "haan",
+              "ha",
+              "true",
+              "cooperated",
+              "has cooperated",
+              "joined the investigation"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sole_breadwinner",
+      "kind": "averment",
+      "what": "The applicant is the only earning member of the family",
+      "phrases": [
+        "sole breadwinner",
+        "only earning member of the family",
+        "the entire family depends on the applicant alone",
+        "family will starve if he remains in custody",
+        "ghar ka akela kamane wala",
+        "poora parivar usi par nirbhar hai"
+      ],
+      "unlocked_by": {
+        "key": "sole_earning_member",
+        "label": "Whether the applicant is the only earning member of the family",
+        "equals": [
+          "yes",
+          "haan",
+          "ha",
+          "true"
+        ]
+      }
+    },
+    {
+      "id": "family_dependent_on_applicant",
+      "kind": "averment",
+      "what": "Named persons depend on the applicant",
+      "phrases": [
+        "has aged parents to look after",
+        "has minor children dependent on him",
+        "wife and children are dependent on him",
+        "budhe maa-baap ki dekhbhaal karta hai"
+      ],
+      "unlocked_by": {
+        "key": "dependants",
+        "label": "Who depends on the applicant",
+        "present": true
+      }
+    },
+    {
+      "id": "first_bail_application",
+      "kind": "averment",
+      "what": "No other bail application was made, is pending or was rejected (suppression risk)",
+      "phrases": [
+        "this is the first bail application",
+        "no other bail application is pending",
+        "no bail application has been rejected",
+        "no similar application has been filed before any other court",
+        "the applicant has not moved any other court for bail",
+        "pehli zamanat arzi hai",
+        "koi aur zamanat arzi lambit nahi"
+      ],
+      "unlocked_by": {
+        "key": "earlier_bail_applications",
+        "label": "Earlier bail applications in this matter",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi",
+          "first application",
+          "no earlier application",
+          "no other application"
+        ]
+      }
+    },
+    {
+      "id": "parity_co_accused",
+      "kind": "averment",
+      "what": "A co-accused has been granted bail (parity)",
+      "phrases": [
+        "co-accused has been granted bail",
+        "co-accused has already been released on bail",
+        "on the ground of parity",
+        "saath ke aaropi ko zamanat mil chuki hai"
+      ],
+      "unlocked_by": {
+        "all_of": [
+          {
+            "key": "co_accused_bail_court",
+            "label": "Court that granted bail to the co-accused",
+            "present": true
+          },
+          {
+            "key": "co_accused_bail_date",
+            "label": "Date of the co-accused's bail order",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "parity_same_role",
+      "kind": "submission",
+      "what": "The applicant's role is the same as or less than that of the co-accused granted bail",
+      "phrases": [
+        "similarly placed co-accused enlarged on bail",
+        "the role of the applicant is identical",
+        "the applicant stands on the same footing",
+        "the applicant's role is lesser than that of the co-accused"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "in_custody_since",
+      "kind": "averment",
+      "what": "The applicant has been in custody since a date",
+      "phrases": [
+        "in custody since",
+        "in judicial custody since",
+        "behind bars since",
+        "tab se jail mein hai"
+      ],
+      "unlocked_by": {
+        "key": "custody_since",
+        "label": "In custody since (date)",
+        "present": true
+      }
+    },
+    {
+      "id": "arrested_on",
+      "kind": "averment",
+      "what": "The applicant was arrested on a date",
+      "phrases": [
+        "was arrested on",
+        "was taken into custody on",
+        "giraftar kiya gaya"
+      ],
+      "unlocked_by": {
+        "key": "arrest_date",
+        "label": "Date of arrest",
+        "present": true
+      }
+    },
+    {
+      "id": "days_in_custody",
+      "kind": "averment",
+      "what": "The applicant has been in custody for a length of time",
+      "phrases": [
+        "has been in custody for",
+        "days in custody",
+        "months in jail"
+      ],
+      "unlocked_by": {
+        "key": "days_in_custody",
+        "label": "Days in custody",
+        "not_in": [
+          0,
+          "0"
+        ]
+      }
+    },
+    {
+      "id": "prolonged_custody",
+      "kind": "submission",
+      "what": "The custody is prolonged or substantial (a characterisation)",
+      "phrases": [
+        "prolonged incarceration",
+        "already in prolonged custody",
+        "has undergone substantial custody",
+        "lambe samay se jail mein hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "chargesheet_filed",
+      "kind": "averment",
+      "what": "The charge sheet has been filed or the investigation is complete",
+      "phrases": [
+        "the charge sheet has been filed",
+        "challan pesh ho chuka hai"
+      ],
+      "unlocked_by": {
+        "key": "investigation_status",
+        "label": "Investigation status",
+        "equals": [
+          "charge sheet filed",
+          "chargesheet filed",
+          "cognizance taken"
+        ]
+      }
+    },
+    {
+      "id": "investigation_complete",
+      "kind": "averment",
+      "what": "The investigation is complete",
+      "phrases": [
+        "investigation is complete",
+        "investigation stands concluded",
+        "jaanch poori ho chuki hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "no_custodial_interrogation_needed",
+      "kind": "submission",
+      "what": "No further custodial interrogation is required",
+      "phrases": [
+        "no further custodial interrogation is required",
+        "custodial interrogation is not required"
+      ],
+      "unlocked_by": {
+        "key": "investigation_status",
+        "label": "Investigation status",
+        "equals": [
+          "charge sheet filed",
+          "chargesheet filed",
+          "cognizance taken"
+        ]
+      }
+    },
+    {
+      "id": "not_named_in_fir",
+      "kind": "averment",
+      "what": "The applicant is not named in the FIR",
+      "phrases": [
+        "not named in the FIR",
+        "FIR mein naam nahi hai"
+      ],
+      "unlocked_by": {
+        "key": "named_in_fir",
+        "label": "Whether the applicant is named in the FIR",
+        "equals": [
+          "no",
+          "not named",
+          "nahi"
+        ]
+      }
+    },
+    {
+      "id": "role_not_attributed",
+      "kind": "averment",
+      "what": "No specific role is attributed, or the name surfaced later",
+      "phrases": [
+        "no specific role is attributed in the FIR",
+        "name surfaced only later",
+        "named only in the disclosure statement of a co-accused"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "no_recovery",
+      "kind": "averment",
+      "what": "Nothing was recovered or seized from the applicant",
+      "phrases": [
+        "nothing has been recovered",
+        "no recovery has been effected",
+        "no incriminating material was seized",
+        "koi baramadgi nahi hui"
+      ],
+      "unlocked_by": {
+        "key": "recovery_status",
+        "label": "Recovery or seizure from the applicant",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi",
+          "no recovery",
+          "nothing recovered"
+        ]
+      }
+    },
+    {
+      "id": "recovery_planted",
+      "kind": "averment",
+      "what": "The recovery was planted or fabricated",
+      "phrases": [
+        "recovery is planted",
+        "planted recovery",
+        "the recovery is false and fabricated",
+        "baramadgi farzi hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "woman_proviso",
+      "kind": "averment",
+      "what": "The applicant is a woman (BNSS Section 480 proviso)",
+      "phrases": [
+        "the applicant is a woman",
+        "being a lady",
+        "a woman is entitled to special consideration",
+        "mahila hai"
+      ],
+      "unlocked_by": {
+        "key": "applicant_sex",
+        "label": "Sex of the applicant",
+        "equals": [
+          "female",
+          "woman",
+          "f",
+          "mahila"
+        ]
+      }
+    },
+    {
+      "id": "under_sixteen",
+      "kind": "averment",
+      "what": "The applicant is under sixteen years of age",
+      "phrases": [
+        "under sixteen years of age",
+        "a minor below 16",
+        "is a child",
+        "nabalig hai"
+      ],
+      "unlocked_by": {
+        "key": "applicant_age",
+        "label": "Age",
+        "equals": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15"
+        ]
+      }
+    },
+    {
+      "id": "sick_or_infirm",
+      "kind": "averment",
+      "what": "The applicant is sick or infirm",
+      "phrases": [
+        "sick or infirm",
+        "bimaar hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "medical_grounds",
+      "kind": "submission",
+      "what": "Bail is sought on medical grounds",
+      "phrases": [
+        "on medical grounds",
+        "ilaaj ki zaroorat hai"
+      ],
+      "unlocked_by": {
+        "key": "medical_condition",
+        "label": "Medical condition of the applicant",
+        "present": true
+      }
+    },
+    {
+      "id": "medical_condition",
+      "kind": "averment",
+      "what": "The applicant has a medical condition",
+      "phrases": [
+        "suffers from",
+        "is unwell"
+      ],
+      "unlocked_by": {
+        "key": "medical_condition",
+        "label": "Medical condition of the applicant",
+        "present": true
+      }
+    },
+    {
+      "id": "medical_particulars",
+      "kind": "averment",
+      "what": "Medical particulars beyond the condition the advocate gives",
+      "phrases": [
+        "old and infirm",
+        "bedridden",
+        "suffering from a serious ailment",
+        "requires urgent medical treatment",
+        "needs surgery",
+        "is hospitalised",
+        "proper treatment is not available in jail"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "false_implication_motive",
+      "kind": "averment",
+      "what": "A reason for false implication (a bare 'falsely implicated' is allowed)",
+      "phrases": [
+        "falsely implicated due to enmity",
+        "falsely implicated because of a land dispute",
+        "property dispute",
+        "political rivalry",
+        "previous enmity",
+        "to settle personal scores",
+        "ulterior motive of the complainant",
+        "personal vendetta",
+        "purani dushmani ki wajah se phansaya",
+        "zameen ke jhagde ki wajah se"
+      ],
+      "unlocked_by": {
+        "key": "false_implication_reason",
+        "label": "Reason the applicant gives for false implication",
+        "present": true
+      }
+    },
+    {
+      "id": "s35_notice_illegal_arrest",
+      "kind": "averment",
+      "what": "No notice under Section 35 BNSS was served, or the arrest was illegal",
+      "phrases": [
+        "no notice under Section 35 BNSS was served",
+        "arrest without notice under Section 35",
+        "the arrest is illegal",
+        "arrest in violation of the guidelines",
+        "notice under Section 41A CrPC not given",
+        "grounds of arrest were not supplied",
+        "bina notice ke giraftari"
+      ],
+      "unlocked_by": {
+        "key": "s35_notice_status",
+        "label": "Notice under Section 35 BNSS",
+        "equals": [
+          "not served",
+          "not issued",
+          "no notice",
+          "none"
+        ]
+      }
+    },
+    {
+      "id": "arnesh_kumar_type_citation",
+      "kind": "submission",
+      "what": "A judgment on arrest or bail that the advocate did not give",
+      "phrases": [
+        "Arnesh Kumar v. State of Bihar",
+        "Satender Kumar Antil v. CBI",
+        "Sanjay Chandra v. CBI",
+        "Gudikanti Narasimhulu",
+        "Dataram Singh v. State of U.P.",
+        "bail is the rule and jail is the exception",
+        "as held by the Hon'ble Supreme Court"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "permanent_resident",
+      "kind": "averment",
+      "what": "The applicant is a permanent resident of an address",
+      "phrases": [
+        "permanent resident of",
+        "has been residing at the address for many years",
+        "lives there since birth",
+        "pakka nivasi"
+      ],
+      "unlocked_by": null
+    }
+  ],
+  "allowed": [
+    {
+      "id": "no_criminal_antecedents",
+      "kind": "averment",
+      "averment": "the applicant has no criminal antecedents",
+      "requires": {
+        "key": "antecedents",
+        "label": "Criminal antecedents",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "no criminal antecedents",
+          "no criminal record",
+          "no previous record",
+          "no prior record",
+          "no antecedents",
+          "first offender",
+          "clean record",
+          "koi record nahi",
+          "koi criminal record nahi"
+        ]
+      }
+    },
+    {
+      "id": "gainfully_employed",
+      "kind": "averment",
+      "averment": "the applicant's occupation is {{applicant_occupation}}",
+      "requires": {
+        "key": "applicant_occupation",
+        "label": "Applicant occupation",
+        "not_in": [
+          "unemployed",
+          "not employed",
+          "none",
+          "nil",
+          "no",
+          "no job",
+          "jobless",
+          "no work",
+          "berozgar",
+          "berojgar",
+          "student",
+          "homemaker",
+          "housewife",
+          "retired"
+        ]
+      }
+    },
+    {
+      "id": "gainfully_employed_with_employer",
+      "kind": "averment",
+      "averment": "the applicant's occupation is {{applicant_occupation}}, at {{employer_name}}",
+      "requires": {
+        "all_of": [
+          {
+            "key": "applicant_occupation",
+            "label": "Applicant occupation",
+            "not_in": [
+              "unemployed",
+              "not employed",
+              "none",
+              "nil",
+              "no",
+              "no job",
+              "jobless",
+              "no work",
+              "berozgar",
+              "berojgar",
+              "student",
+              "homemaker",
+              "housewife",
+              "retired"
+            ]
+          },
+          {
+            "key": "employer_name",
+            "label": "Employer or place of work",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "cooperated_with_investigation",
+      "kind": "averment",
+      "averment": "the applicant has cooperated with the investigation",
+      "requires": {
+        "key": "cooperated_with_investigation",
+        "label": "Whether the applicant has cooperated with the investigation",
+        "equals": [
+          "yes",
+          "haan",
+          "ha",
+          "true",
+          "cooperated",
+          "has cooperated",
+          "joined the investigation"
+        ]
+      }
+    },
+    {
+      "id": "deep_roots_in_society",
+      "kind": "submission",
+      "averment": "it is submitted that the applicant, who resides at {{address}}, has roots in society: {{local_ties}}",
+      "requires": {
+        "all_of": [
+          {
+            "key": "address",
+            "label": "Residential Address",
+            "present": true
+          },
+          {
+            "key": "local_ties",
+            "label": "Family and local ties of the applicant",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "no_flight_risk",
+      "kind": "submission",
+      "averment": "it is submitted that there is no likelihood of the applicant fleeing from justice",
+      "requires": {
+        "all_of": [
+          {
+            "key": "address",
+            "label": "Residential Address",
+            "present": true
+          },
+          {
+            "key": "antecedents",
+            "label": "Criminal antecedents",
+            "equals": [
+              "none",
+              "nil",
+              "no",
+              "no criminal antecedents",
+              "no criminal record",
+              "no previous record",
+              "no prior record",
+              "no antecedents",
+              "first offender",
+              "clean record",
+              "koi record nahi",
+              "koi criminal record nahi"
+            ]
+          },
+          {
+            "key": "cooperated_with_investigation",
+            "label": "Whether the applicant has cooperated with the investigation",
+            "equals": [
+              "yes",
+              "haan",
+              "ha",
+              "true",
+              "cooperated",
+              "has cooperated",
+              "joined the investigation"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "no_likelihood_of_tampering",
+      "kind": "submission",
+      "averment": "it is submitted that there is no likelihood of the applicant tampering with the evidence",
+      "requires": {
+        "all_of": [
+          {
+            "key": "address",
+            "label": "Residential Address",
+            "present": true
+          },
+          {
+            "key": "antecedents",
+            "label": "Criminal antecedents",
+            "equals": [
+              "none",
+              "nil",
+              "no",
+              "no criminal antecedents",
+              "no criminal record",
+              "no previous record",
+              "no prior record",
+              "no antecedents",
+              "first offender",
+              "clean record",
+              "koi record nahi",
+              "koi criminal record nahi"
+            ]
+          },
+          {
+            "key": "cooperated_with_investigation",
+            "label": "Whether the applicant has cooperated with the investigation",
+            "equals": [
+              "yes",
+              "haan",
+              "ha",
+              "true",
+              "cooperated",
+              "has cooperated",
+              "joined the investigation"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "no_likelihood_of_absconding",
+      "kind": "submission",
+      "averment": "it is submitted that there is no likelihood of the applicant absconding",
+      "requires": {
+        "all_of": [
+          {
+            "key": "address",
+            "label": "Residential Address",
+            "present": true
+          },
+          {
+            "key": "antecedents",
+            "label": "Criminal antecedents",
+            "equals": [
+              "none",
+              "nil",
+              "no",
+              "no criminal antecedents",
+              "no criminal record",
+              "no previous record",
+              "no prior record",
+              "no antecedents",
+              "first offender",
+              "clean record",
+              "koi record nahi",
+              "koi criminal record nahi"
+            ]
+          },
+          {
+            "key": "cooperated_with_investigation",
+            "label": "Whether the applicant has cooperated with the investigation",
+            "equals": [
+              "yes",
+              "haan",
+              "ha",
+              "true",
+              "cooperated",
+              "has cooperated",
+              "joined the investigation"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sole_breadwinner",
+      "kind": "averment",
+      "averment": "the applicant is the only earning member of the family",
+      "requires": {
+        "key": "sole_earning_member",
+        "label": "Whether the applicant is the only earning member of the family",
+        "equals": [
+          "yes",
+          "haan",
+          "ha",
+          "true"
+        ]
+      }
+    },
+    {
+      "id": "family_dependent_on_applicant",
+      "kind": "averment",
+      "averment": "{{dependants}} depend on the applicant",
+      "requires": {
+        "key": "dependants",
+        "label": "Who depends on the applicant",
+        "present": true
+      }
+    },
+    {
+      "id": "first_bail_application",
+      "kind": "averment",
+      "averment": "no other bail application has been made by the applicant in this matter",
+      "requires": {
+        "key": "earlier_bail_applications",
+        "label": "Earlier bail applications in this matter",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi",
+          "first application",
+          "no earlier application",
+          "no other application"
+        ]
+      }
+    },
+    {
+      "id": "earlier_bail_applications",
+      "kind": "averment",
+      "averment": "the earlier bail applications in this matter are: {{earlier_bail_applications}}",
+      "requires": {
+        "key": "earlier_bail_applications",
+        "label": "Earlier bail applications in this matter",
+        "not_in": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi",
+          "first application",
+          "no earlier application",
+          "no other application"
+        ]
+      }
+    },
+    {
+      "id": "parity_co_accused",
+      "kind": "averment",
+      "averment": "a co-accused has been granted bail by {{co_accused_bail_court}} by order dated {{co_accused_bail_date}}",
+      "requires": {
+        "all_of": [
+          {
+            "key": "co_accused_bail_court",
+            "label": "Court that granted bail to the co-accused",
+            "present": true
+          },
+          {
+            "key": "co_accused_bail_date",
+            "label": "Date of the co-accused's bail order",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "in_custody_since",
+      "kind": "averment",
+      "averment": "the applicant has been in custody since {{custody_since}}",
+      "requires": {
+        "key": "custody_since",
+        "label": "In custody since (date)",
+        "present": true
+      }
+    },
+    {
+      "id": "arrested_on",
+      "kind": "averment",
+      "averment": "the applicant was arrested on {{arrest_date}}",
+      "requires": {
+        "key": "arrest_date",
+        "label": "Date of arrest",
+        "present": true
+      }
+    },
+    {
+      "id": "days_in_custody",
+      "kind": "averment",
+      "averment": "the applicant has been in custody for {{days_in_custody}} days",
+      "requires": {
+        "key": "days_in_custody",
+        "label": "Days in custody",
+        "not_in": [
+          0,
+          "0"
+        ]
+      }
+    },
+    {
+      "id": "chargesheet_filed",
+      "kind": "averment",
+      "averment": "the charge sheet has been filed",
+      "requires": {
+        "key": "investigation_status",
+        "label": "Investigation status",
+        "equals": [
+          "charge sheet filed",
+          "chargesheet filed",
+          "cognizance taken"
+        ]
+      }
+    },
+    {
+      "id": "no_custodial_interrogation_needed",
+      "kind": "submission",
+      "averment": "it is submitted that, the charge sheet having been filed, the custodial interrogation of the applicant is not required",
+      "requires": {
+        "key": "investigation_status",
+        "label": "Investigation status",
+        "equals": [
+          "charge sheet filed",
+          "chargesheet filed",
+          "cognizance taken"
+        ]
+      }
+    },
+    {
+      "id": "not_named_in_fir",
+      "kind": "averment",
+      "averment": "the applicant is not named in the FIR",
+      "requires": {
+        "key": "named_in_fir",
+        "label": "Whether the applicant is named in the FIR",
+        "equals": [
+          "no",
+          "not named",
+          "nahi"
+        ]
+      }
+    },
+    {
+      "id": "no_recovery",
+      "kind": "averment",
+      "averment": "nothing has been recovered from the applicant",
+      "requires": {
+        "key": "recovery_status",
+        "label": "Recovery or seizure from the applicant",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi",
+          "no recovery",
+          "nothing recovered"
+        ]
+      }
+    },
+    {
+      "id": "woman_proviso",
+      "kind": "averment",
+      "averment": "the applicant is a woman",
+      "requires": {
+        "key": "applicant_sex",
+        "label": "Sex of the applicant",
+        "equals": [
+          "female",
+          "woman",
+          "f",
+          "mahila"
+        ]
+      }
+    },
+    {
+      "id": "under_sixteen",
+      "kind": "averment",
+      "averment": "the applicant is aged {{applicant_age}} years, under sixteen years of age",
+      "requires": {
+        "key": "applicant_age",
+        "label": "Age",
+        "equals": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15"
+        ]
+      }
+    },
+    {
+      "id": "medical_condition",
+      "kind": "averment",
+      "averment": "the applicant suffers from {{medical_condition}}",
+      "requires": {
+        "key": "medical_condition",
+        "label": "Medical condition of the applicant",
+        "present": true
+      }
+    },
+    {
+      "id": "medical_grounds",
+      "kind": "submission",
+      "averment": "it is submitted that the applicant seeks bail on medical grounds, the applicant suffering from {{medical_condition}}",
+      "requires": {
+        "key": "medical_condition",
+        "label": "Medical condition of the applicant",
+        "present": true
+      }
+    },
+    {
+      "id": "false_implication_motive",
+      "kind": "averment",
+      "averment": "the applicant has been falsely implicated on account of {{false_implication_reason}}",
+      "requires": {
+        "key": "false_implication_reason",
+        "label": "Reason the applicant gives for false implication",
+        "present": true
+      }
+    },
+    {
+      "id": "s35_notice_illegal_arrest",
+      "kind": "averment",
+      "averment": "no notice under Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023 was served on the applicant before arrest",
+      "requires": {
+        "key": "s35_notice_status",
+        "label": "Notice under Section 35 BNSS",
+        "equals": [
+          "not served",
+          "not issued",
+          "no notice",
+          "none"
+        ]
+      }
+    },
+    {
+      "id": "authorities_relied_on",
+      "kind": "submission",
+      "averment": "reliance is placed on {{authorities_relied_on}}",
+      "requires": {
+        "key": "authorities_relied_on",
+        "label": "Authorities the advocate relies on (name and citation, as the advocate gives them)",
+        "present": true
+      }
+    },
+    {
+      "id": "resides_at",
+      "kind": "averment",
+      "averment": "the applicant resides at {{address}}",
+      "requires": {
+        "key": "address",
+        "label": "Residential Address",
+        "present": true
+      }
+    }
+  ]
+}

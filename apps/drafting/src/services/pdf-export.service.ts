@@ -6,6 +6,8 @@
  */
 import puppeteer from 'puppeteer';
 
+import { missingAsBlanks } from '../utils/missingAsBlanks';
+
 import { STARTING_DRAFT_FOOTER } from './brief-drafter';
 
 function escapeHtml(text: string): string {
@@ -23,13 +25,16 @@ function markdownBoldItalic(text: string): string {
   return html;
 }
 
+export { missingAsBlanks };
+
 /**
  * Convert document content to court-formatted HTML.
  * Handles two content formats:
  *  - TipTap HTML (saved after user edits): embedded directly, no escaping
  *  - Plain text / markdown (original AI output): converted to paragraphs
  */
-export function contentToHtml(content: string, _isFree: boolean, startingDraft = false): string {
+export function contentToHtml(rawContent: string, _isFree: boolean, startingDraft = false): string {
+  const content = missingAsBlanks(rawContent);
   let body = '';
 
   if (content.trimStart().startsWith('<')) {

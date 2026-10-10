@@ -1,0 +1,226 @@
+{
+  "_about": "T-147c averment allowlist and banned-assertion list. Schema and rules: README.md in this folder. PROPOSED by the developer; Ajay (CLO) reviews and signs.",
+  "pack": "_default",
+  "_signed_by": "Ajay (CLO) writes his name and the date here when he signs this list. His signature is not release on its own: a practising advocate still checks the list before the pack goes live. Null means proposed, not signed.",
+  "signed_by": null,
+  "signed_on": null,
+  "banned": [
+    {
+      "id": "no_other_proceedings",
+      "kind": "averment",
+      "what": "No other proceeding on the same matter was filed or is pending (suppression risk)",
+      "phrases": [
+        "no other suit, petition or complaint is pending",
+        "no similar proceedings have been filed",
+        "has not filed any other case on the same cause of action",
+        "this is the first application",
+        "no other application is pending before any court",
+        "pehle koi case nahi kiya"
+      ],
+      "unlocked_by": {
+        "key": "earlier_proceedings",
+        "label": "Earlier proceedings on the same matter",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi"
+        ]
+      }
+    },
+    {
+      "id": "within_limitation",
+      "kind": "submission",
+      "what": "The matter is within limitation",
+      "phrases": [
+        "is within limitation",
+        "filed within the period of limitation",
+        "there is no delay",
+        "the cause of action is continuing",
+        "miyaad ke andar hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "good_character",
+      "kind": "averment",
+      "what": "The person is of good character or standing",
+      "phrases": [
+        "a person of good character",
+        "law-abiding citizen",
+        "a respectable person",
+        "of unblemished character",
+        "a reputed member of society",
+        "sharif aadmi hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "no_criminal_antecedents",
+      "kind": "averment",
+      "what": "No criminal antecedents",
+      "phrases": [
+        "has no criminal antecedents",
+        "no criminal history",
+        "no previous criminal record",
+        "first-time offender",
+        "koi criminal record nahi hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "gainfully_employed",
+      "kind": "averment",
+      "what": "The person is employed or earns a living",
+      "phrases": [
+        "gainfully employed",
+        "is employed as",
+        "is working as",
+        "earns a livelihood",
+        "naukri karta hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "sole_breadwinner",
+      "kind": "averment",
+      "what": "The person is the only earning member of the family",
+      "phrases": [
+        "sole breadwinner",
+        "only earning member of the family",
+        "ghar ka akela kamane wala"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "notice_served",
+      "kind": "averment",
+      "what": "A notice was served, received or refused",
+      "phrases": [
+        "the notice was duly served",
+        "received the notice",
+        "refused to accept the notice",
+        "returned with the remark 'refused'",
+        "notice mil gaya tha"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "loss_and_damage",
+      "kind": "averment",
+      "what": "Loss, harassment or damage suffered",
+      "phrases": [
+        "suffered a loss of Rs.",
+        "mental agony and harassment",
+        "humiliation",
+        "damage to reputation",
+        "bahut nuksaan hua"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "possession_since",
+      "kind": "averment",
+      "what": "Possession since a date or for a length of time",
+      "phrases": [
+        "in peaceful possession since",
+        "in possession for many years",
+        "continuous and uninterrupted possession",
+        "kabza hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "false_implication_motive",
+      "kind": "averment",
+      "what": "A reason for false implication or a motive of the other side",
+      "phrases": [
+        "falsely implicated due to enmity",
+        "because of a land dispute",
+        "ulterior motive",
+        "personal vendetta",
+        "purani dushmani"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "medical_condition",
+      "kind": "averment",
+      "what": "A medical condition",
+      "phrases": [
+        "suffering from a serious ailment",
+        "requires urgent medical treatment",
+        "is hospitalised",
+        "bimaar hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "demands_made",
+      "kind": "averment",
+      "what": "Requests or demands made earlier",
+      "phrases": [
+        "despite repeated requests",
+        "several reminders",
+        "orally demanded",
+        "baar baar kehne par bhi"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "relationship",
+      "kind": "averment",
+      "what": "The relationship between the parties",
+      "phrases": [
+        "known to each other for years",
+        "friendly relations",
+        "family friend",
+        "purani jaan-pehchaan"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "authority_not_given",
+      "kind": "submission",
+      "what": "A judgment, citation or precedent the advocate did not give",
+      "phrases": [
+        "as held by the Hon'ble Supreme Court in",
+        "the settled law laid down in",
+        "reliance is placed on the judgment in",
+        "a citation such as (2014) 8 SCC 273 or AIR 1978 SC 597"
+      ],
+      "unlocked_by": null
+    }
+  ],
+  "allowed": [
+    {
+      "id": "no_other_proceedings",
+      "kind": "averment",
+      "averment": "no other proceeding on the same matter has been filed",
+      "requires": {
+        "key": "earlier_proceedings",
+        "label": "Earlier proceedings on the same matter",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi"
+        ]
+      }
+    },
+    {
+      "id": "authorities_relied_on",
+      "kind": "submission",
+      "averment": "reliance is placed on {{authorities_relied_on}}",
+      "requires": {
+        "key": "authorities_relied_on",
+        "label": "Authorities the advocate relies on",
+        "present": true
+      }
+    }
+  ]
+}

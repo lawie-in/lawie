@@ -16,8 +16,12 @@
  * (`handoff/design/T-136-drafter-rules-signed.md`, 7 Oct 2026, two parts, with
  * conditions). Do not change them without his sign-off.
  */
+import type { LedgerFact } from '@lawie/shared';
+
+import { factsByKey } from './averments';
+import type { ResolvedAverments } from './averments';
 import { dateKindLabel, statedDates } from './intake-brief';
-import type { Brief, BriefItem } from './intake-brief';
+import type { Brief, BriefItem, ChecklistItem } from './intake-brief';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
 import type { RulePack, RulePackClause } from './rule-pack.service';
 import type { RenderedSection, TemplateConfig } from './template-engine.service';
@@ -250,6 +254,13 @@ function commonBlocks(input: DrafterPromptInput): string[] {
   return [
     `DOCUMENT: ${oneLine(input.pack.name, 160)}`,
     `BRIEF:\n${JSON.stringify(input.brief, null, 1)}`,
+    ...skeletonBlocks(input),
+  ];
+}
+
+/** The rule pack's skeleton and the system's parts: everything but the facts. */
+function skeletonBlocks(input: Omit<DrafterPromptInput, 'brief'>): string[] {
+  return [
     block(
       'CLAUSES (id | title | what it must cover | fixed wording, if any)',
       clauseLines(input.pack),
@@ -294,6 +305,141 @@ export function buildRepairUserPrompt(
     `DOCUMENT TEXT:\n<document>\n${documentText}\n</document>`,
     `MISSING: ${missingIds.join(', ')}`,
   ].join('\n\n');
+}
+
+// ── What the Drafter is given when its input is the fact ledger (T-147c) ────
+
+/** The placeholder for a fact the ledger does not hold (ADR-022 section 2B). Exactly this form. */
+export function missingPlaceholder(label: string): string {
+  const flat = label
+    .replace(/[{}]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return `{{MISSING: ${flat || 'detail'}}}`;
+}
+
+export interface LedgerDrafterFacts {
+  /** The court from the courts data, for a court document. Null for any other. */
+  court: string | null;
+  /** The ledger's facts. Only what the draft may print: no comparison key, no span. */
+  facts: Array<{ key: string; label: string; type: string; display: string }>;
+  /** Each required fact the ledger does not hold, unresolved ones included, with its placeholder. */
+  missing: Array<{ key: string; label: string; write: string }>;
+}
+
+/**
+ * The Drafter's facts when its input is the ledger: the current version's
+ * facts and, for every required item of the pack's checklist that is not one
+ * of them, the `{{MISSING: label}}` placeholder. An unresolved item is not a
+ * fact. Nothing else: no description, no brief value, no span of the
+ * advocate's words.
+ */
+export function ledgerDrafterFacts(
+  facts: readonly LedgerFact[],
+  checklist: ReadonlyArray<Pick<ChecklistItem, 'key' | 'label' | 'required'>>,
+  courtLine: string | null,
+  courtDocument: boolean,
+): LedgerDrafterFacts {
+  const held = factsByKey(facts);
+  return {
+    court: courtDocument ? (courtLine ?? missingPlaceholder('court')) : null,
+    facts: [...held.values()].map((f) => ({
+      key: f.key,
+      label: f.label,
+      type: f.type,
+      display: f.display.trim(),
+    })),
+    missing: checklist
+      .filter((i) => i.required && !held.has(i.key))
+      .map((i) => ({ key: i.key, label: i.label, write: missingPlaceholder(i.label) })),
+  };
+}
+
+/**
+ * T-147c (Ajay's condition on the skeleton): on the ledger path the parts the
+ * system writes (cause title, prayer, verification, and the rest) are
+ * rendered by the same code from a brief whose every value is the ledger's
+ * `display` for that key. An item the ledger does not hold is empty, with
+ * `{{MISSING: label}}` as its blank, so a brief value the ledger does not
+ * hold never prints. The advocate's other notes ("other") are left out. The
+ * court stays as chosen from the courts list.
+ */
+export function ledgerSkeletonBrief(brief: Brief, facts: readonly LedgerFact[]): Brief {
+  const held = factsByKey(facts);
+  return {
+    ...brief,
+    items: brief.items.map((item) => {
+      const fact = held.get(item.key);
+      return fact
+        ? { ...item, value: fact.display.trim() }
+        : { ...item, value: null, placeholder: missingPlaceholder(item.label) };
+    }),
+    unplaced: [],
+    still_unknown: brief.still_unknown.map((u) => ({
+      ...u,
+      placeholder: missingPlaceholder(u.label),
+    })),
+  };
+}
+
+export interface LedgerDrafterPromptInput extends Omit<DrafterPromptInput, 'brief'> {
+  facts: LedgerDrafterFacts;
+  averments: ResolvedAverments;
+}
+
+function avermentBlocks(averments: ResolvedAverments): string[] {
+  return [
+    block(
+      'AVERMENTS ALLOWED (id | averment or submission | the words to use)',
+      averments.allowed.map((a) => `- ${a.id} | ${a.kind} | ${oneLine(a.text, 1500)}`),
+    ),
+    block(
+      'BANNED ASSERTIONS (id | averment or submission | ways it is commonly written)',
+      averments.banned.map(
+        (b) => `- ${b.id} | ${b.kind} | ${b.phrases.map((p) => oneLine(p, 200)).join(' ; ')}`,
+      ),
+    ),
+  ];
+}
+
+function ledgerBlocks(input: LedgerDrafterPromptInput): string[] {
+  return [
+    `DOCUMENT: ${oneLine(input.pack.name, 160)}`,
+    `FACTS:\n${JSON.stringify(input.facts, null, 1)}`,
+    ...skeletonBlocks(input),
+    ...avermentBlocks(input.averments),
+  ];
+}
+
+/** The user prompt for DRAFTER_LEDGER_SYSTEM_PROMPT. */
+export function buildLedgerDrafterUserPrompt(input: LedgerDrafterPromptInput): string {
+  return [...ledgerBlocks(input), `TARGET: ${input.target}`, `LANGUAGE: ${input.language}`].join(
+    '\n\n',
+  );
+}
+
+/** The user prompt for DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT. */
+export function buildLedgerRepairUserPrompt(
+  input: LedgerDrafterPromptInput,
+  documentText: string,
+  missingIds: string[],
+): string {
+  return [
+    ...ledgerBlocks(input),
+    `LANGUAGE: ${input.language}`,
+    `DOCUMENT TEXT:\n<document>\n${documentText}\n</document>`,
+    `MISSING: ${missingIds.join(', ')}`,
+  ].join('\n\n');
+}
+
+/** The texts a case citation in the draft may come from, when the input is the ledger (T-148). */
+export function ledgerCitationSources(facts: LedgerDrafterFacts): string[] {
+  return facts.facts.map((f) => f.display);
+}
+
+/** Every text the Drafter was given about the facts, for the checks that read it. */
+export function ledgerFactText(facts: LedgerDrafterFacts): string {
+  return facts.facts.map((f) => f.display).join('\n');
 }
 
 export function clampTarget(n: number | undefined): number {
