@@ -33,6 +33,7 @@ export default function ValueInput({
   placeholder,
   describedBy,
   invalid,
+  words = false,
 }: {
   id: string;
   kind: ValueKind;
@@ -44,6 +45,11 @@ export default function ValueInput({
   placeholder?: string;
   describedBy?: string;
   invalid?: boolean;
+  /**
+   * T-147b: a number that may be typed in words ("3 lakh"). Opens the plain
+   * keyboard. An amount always does, so no numeric keypad is offered for it.
+   */
+  words?: boolean;
 }) {
   const [text, setText] = useState(asText(value));
   // The service's answer replaces what is on screen (it may tidy a value).
@@ -144,7 +150,7 @@ export default function ValueInput({
     <input
       id={id}
       type="text"
-      inputMode={kind === 'number' || kind === 'amount' ? 'decimal' : undefined}
+      inputMode={kind === 'number' && !words ? 'decimal' : undefined}
       value={text}
       maxLength={TEXT_MAX}
       placeholder={placeholder}

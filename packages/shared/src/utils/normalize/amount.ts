@@ -138,7 +138,7 @@ export function normalizeAmount(input: unknown): Normalized<number> {
       // leaves ("2 lakh 50000"). "3 lakh 50" could be Rs 3,00,050 or
       // 3.5 lakh, so it is not guessed.
       if (lastExp !== Number.POSITIVE_INFINITY && num.int.length !== lastExp) {
-        return unresolved('unrecognised', 'The number after the unit does not fill its place; it could be read more than one way.');
+        return unresolved('unrecognised', 'The number after the unit could be read more than one way.');
       }
       const p = toPaise(num.int, num.frac, 0);
       if (p === null) return unresolved('fractional_paise', 'The amount has a fraction of a paisa.');

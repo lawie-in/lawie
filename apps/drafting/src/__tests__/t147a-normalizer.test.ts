@@ -30,7 +30,7 @@ describe('T-147a AC 1: ledger types', () => {
       label: 'Surety',
       display: 'Rs 3,00,000',
       raw_span: '3 lakh',
-      source: 'description' as const,
+      source: 'user' as const,
       confidence: 0.95,
       required_in_draft: true,
     };
@@ -318,6 +318,35 @@ describe('T-147a round 2: dates with a null reference', () => {
     expect(() => compareDates('12/3/26', '12/3/2026', null)).not.toThrow();
     expect(compareDates('12/3/2026', '12 March 2026', null)).toEqual({ ok: true, equal: true });
     expect(compareDates('12/3/26', '12/3/2026', null)).toMatchObject({ ok: false });
+  });
+});
+
+describe('T-147b: the Hindi Evidence Act name needs its year', () => {
+  const NAME = 'भारतीय साक्ष्य अधिनियम';
+
+  it('with 2023 it is the BSA', () => {
+    expect(normalizeSectionRef(`धारा 63 ${NAME} 2023`)).toMatchObject({
+      ok: true,
+      value: { act: 'BSA', section: '63' },
+    });
+  });
+
+  it('with 1872 it is the IEA', () => {
+    expect(normalizeSectionRef(`धारा 65 ${NAME} 1872`)).toMatchObject({
+      ok: true,
+      value: { act: 'IEA', section: '65' },
+    });
+  });
+
+  it('with no year it is ambiguous_act, never a guess', () => {
+    expect(normalizeSectionRef(`धारा 63 ${NAME}`)).toMatchObject({ ok: false, reason: 'ambiguous_act' });
+  });
+
+  it('with any other year it is act_year_mismatch', () => {
+    expect(normalizeSectionRef(`धारा 63 ${NAME} 2000`)).toMatchObject({
+      ok: false,
+      reason: 'act_year_mismatch',
+    });
   });
 });
 

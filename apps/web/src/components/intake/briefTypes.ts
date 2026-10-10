@@ -97,6 +97,129 @@ export interface BriefResponse {
   next_round?: number;
   choices?: Array<{ kind: string; name: string }>;
   needs_upgrade?: boolean;
+  /** T-147b: sent only while the fact ledger is on for the user. Without it the brief shows as before. */
+  ledger?: Ledger;
+}
+
+// ── The fact ledger (T-147b) ────────────────────────────────────────────────
+//
+// Shapes follow apps/drafting/src/services/fact-ledger.service.ts and
+// packages/shared/src/types/fact-ledger.ts. A fact links to its brief item by
+// `key`. The ledger is shown; it is not what the draft is written from (T-147c).
+
+export type FactType =
+  | 'amount'
+  | 'date'
+  | 'person_name'
+  | 'place_name'
+  | 'police_station'
+  | 'court'
+  | 'section_ref'
+  | 'case_number'
+  | 'text'
+  | 'enum'
+  | 'boolean';
+
+/** `user`: from the description. `asked`: typed in answer to a question or as an edit. */
+export type FactSource = 'user' | 'asked';
+
+export interface LedgerFact {
+  id: string;
+  key: string;
+  label: string;
+  type: FactType;
+  value: unknown;
+  /** What the screen and the draft print. */
+  display: string;
+  /** The advocate's own words, exactly as stored. */
+  raw_span: string;
+  source: FactSource;
+  confidence: number;
+  required_in_draft: boolean;
+  /** The display before the advocate's last edit of this fact, if any. */
+  previous_display?: string;
+}
+
+export interface LedgerUnresolved {
+  id: string;
+  key: string;
+  label: string;
+  type: FactType;
+  raw_span: string;
+  source: FactSource;
+  /** A code. Never shown. */
+  reason: string;
+  /** One plain sentence from the service. Shown as sent. */
+  detail: string;
+}
+
+export interface Ledger {
+  ledger_id: string;
+  version: number;
+  run_type: 'user' | 'fixture';
+  document_kind: string;
+  facts: LedgerFact[];
+  unresolved: LedgerUnresolved[];
+  /** The fact type of every brief item the ledger holds, by key. */
+  fields: Record<string, FactType>;
+}
+
+export type LedgerEditResult =
+  | { key: string; status: 'saved'; display: string | null }
+  | { key: string; status: 'unreadable'; reason: string; detail: string }
+  | { key: string; status: 'skipped' };
+
+/** What one edit on the brief came to, for the row's status line. */
+export type EditOutcome =
+  | { status: 'saved'; display: string | null }
+  | { status: 'unreadable'; detail: string }
+  | { status: 'failed' };
+
+/**
+ * The facts the screen renders, exactly the ledger's facts, each with what is
+ * shown for it. Rows render from this, so a test can compare it, and the
+ * screen, with the ledger payload.
+ */
+export function renderedLedgerFacts(
+  ledger: Ledger,
+): Array<{ key: string; display: string; raw_span: string; required: boolean }> {
+  return ledger.facts.map((f) => ({
+    key: f.key,
+    display: f.display,
+    raw_span: f.raw_span,
+    required: f.required_in_draft,
+  }));
+}
+
+/** What the field holds for a ledger fact: a date picker and chips need the value, the rest the display. */
+export function fieldValueOf(item: BriefItem, fact: LedgerFact): Value {
+  if ((item.kind === 'date' || item.kind === 'choice') && typeof fact.value === 'string') {
+    return fact.value;
+  }
+  return fact.display;
+}
+
+/** The reveal shows nothing new when the words are the display and there is no earlier value. */
+export function hasReveal(fact: LedgerFact): boolean {
+  return fact.raw_span.trim() !== fact.display.trim() || fact.previous_display !== undefined;
+}
+
+/** "You wrote" for the description and for an edit; "Your answer" for an answer to a question. */
+export function revealLabel(source: FactSource, edited: boolean): string {
+  return source === 'user' || edited ? 'You wrote' : 'Your answer';
+}
+
+/** The ledger entry of one brief item: its fact, or what could not be read. */
+export function ledgerEntryOf(
+  ledger: Ledger | null | undefined,
+  key: string,
+): { fact?: LedgerFact; unresolved?: LedgerUnresolved; type?: FactType } {
+  if (!ledger) return {};
+  return {
+    fact: ledger.facts.find((f) => f.key === key),
+    unresolved: ledger.unresolved.find((u) => u.key === key),
+    type: ledger.fields[key],
+  };
 }
 
 /** A row of the documents list (GET /api/documents/template-configs). */

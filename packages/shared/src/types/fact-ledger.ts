@@ -41,10 +41,12 @@ export const FACT_TYPES: readonly FactType[] = [
 export type FactLedgerRunType = 'user' | 'fixture';
 
 /**
- * Where a fact came from. First-pass set: the advocate's free description, an
- * answer to a Reception question, or a fixture file. T-147b may extend it.
+ * Where a fact came from (T-147b): `user` for a value taken from the
+ * advocate's free description, `asked` for a value the advocate typed in
+ * answer to a question or as an edit on the brief. Whether a ledger is real
+ * traffic or a fixture is `FactLedgerRunType`, on the ledger itself.
  */
-export type FactSource = 'description' | 'answer' | 'fixture';
+export type FactSource = 'user' | 'asked';
 
 /** A statute section, normalised: `S.483 BNSS` and `Section 483 of the BNSS, 2023` are both `{ act: 'BNSS', section: '483' }`. */
 export interface SectionRef {
@@ -165,7 +167,15 @@ export type UnresolvedReason =
   | 'missing_section'
   | 'unknown_act'
   | 'act_year_mismatch'
-  | 'multiple_sections';
+  | 'multiple_sections'
+  /** T-147b: a name that is the official name of more than one act, with no year to say which. */
+  | 'ambiguous_act'
+  /** T-147b: the extraction pass read it below the type's confidence floor. */
+  | 'low_confidence'
+  /** T-147b: the advocate's words give two different values for one fact. */
+  | 'conflicting_values'
+  /** T-147b: a choice that is not one of the allowed values. */
+  | 'not_an_option';
 
 /** A fact the advocate gave that Reception must ask about rather than guess. */
 export interface UnresolvedFact {
@@ -186,3 +196,15 @@ export interface FactLedger {
   facts: Fact[];
   unresolved: UnresolvedFact[];
 }
+
+/**
+ * A fact as Reception stores it (T-147b): linked to its brief item by `key`,
+ * the brief item key and `RulePackFact` key (`<group>.<name>` or `<name>`).
+ */
+export type LedgerFact = Fact & { key: string };
+
+/** An unresolved fact as Reception stores it, linked to its brief item by `key`. */
+export type LedgerUnresolvedFact = UnresolvedFact & { key: string };
+
+/** Why a ledger version was written (T-147b). */
+export type FactLedgerVersionReason = 'extract' | 'answer' | 'edit';
