@@ -2,6 +2,15 @@ import { AlignmentType, Document, Footer, HeadingLevel, Packer, Paragraph, TextR
 import { saveAs } from 'file-saver';
 
 /**
+ * T-147c: a draft written from the fact ledger marks a missing fact as
+ * `{{MISSING: label}}`. In an export it prints as today's blank,
+ * `[To be confirmed: label]`, as the server PDF does. Text substitution only.
+ */
+export function missingAsBlanks(text: string): string {
+  return text.replace(/\{\{\s*MISSING\s*:\s*([^}]*?)\s*\}\}/g, '[To be confirmed: $1]');
+}
+
+/**
  * Export the editor HTML content as a PDF file (CLIENT-SIDE FALLBACK).
  *
  * IMPORTANT: This is the fallback path used only when the server-side
@@ -24,11 +33,12 @@ function escapeHtml(text: string): string {
  * as the service sent it with the document. The user cannot remove it.
  */
 export async function exportPdf(
-  html: string,
+  rawHtml: string,
   title: string,
   _isFree: boolean,
   startingDraftFooter?: string | null,
 ): Promise<void> {
+  const html = missingAsBlanks(rawHtml);
   // Dynamic import — html2pdf.js is a large bundle, only load when needed
   const html2pdf = (await import('html2pdf.js')).default;
 
@@ -201,7 +211,7 @@ export async function exportDocx(
   isFree: boolean,
   startingDraftFooter?: string | null,
 ): Promise<void> {
-  const paragraphs = htmlToDocxParagraphs(html, isFree);
+  const paragraphs = htmlToDocxParagraphs(missingAsBlanks(html), isFree);
 
   const doc = new Document({
     sections: [

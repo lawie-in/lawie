@@ -1,0 +1,365 @@
+{
+  "_about": "T-147c averment allowlist and banned-assertion list. Schema and rules: README.md in this folder. PROPOSED by the developer; Ajay (CLO) reviews and signs.",
+  "pack": "legal_notice_s138",
+  "inherits": null,
+  "key_map": {},
+  "_signed_by": "Ajay (CLO) writes his name and the date here when he signs this list. His signature is not release on its own: a practising advocate still checks the list before the pack goes live. Null means proposed, not signed.",
+  "signed_by": null,
+  "signed_on": null,
+  "banned": [
+    {
+      "id": "legally_enforceable_debt",
+      "kind": "averment",
+      "what": "The cheque was for a legally enforceable debt or other liability",
+      "phrases": [
+        "legally enforceable debt or other liability",
+        "in discharge of a legally enforceable debt",
+        "towards discharge of your liability",
+        "udhaar chukane ke liye diya cheque"
+      ],
+      "unlocked_by": {
+        "key": "underlying_liability",
+        "label": "Underlying Liability (why was cheque issued?)",
+        "present": true
+      }
+    },
+    {
+      "id": "liability_particulars",
+      "kind": "averment",
+      "what": "A kind of liability other than the one given",
+      "phrases": [
+        "for repayment of a friendly loan",
+        "against goods supplied",
+        "towards the outstanding dues"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "return_memo_reason",
+      "kind": "averment",
+      "what": "The reason the bank gave for dishonour",
+      "phrases": [
+        "returned unpaid with the remark",
+        "cheque bounce ho gaya"
+      ],
+      "unlocked_by": {
+        "key": "dishonour_reason",
+        "label": "Reason for Dishonour (as per memo)",
+        "present": true
+      }
+    },
+    {
+      "id": "memo_remark_other_words",
+      "kind": "averment",
+      "what": "A dishonour remark other than the one on the memo",
+      "phrases": [
+        "'Funds Insufficient'",
+        "exceeds arrangement",
+        "account closed",
+        "payment stopped by drawer",
+        "signature differs",
+        "refer to drawer",
+        "insufficient funds",
+        "paise nahi the"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "return_memo_received_on",
+      "kind": "averment",
+      "what": "The date the payee received the return memo",
+      "phrases": [
+        "received the return memo on",
+        "intimation of dishonour was received on",
+        "the bank informed the payee on",
+        "memo mila"
+      ],
+      "unlocked_by": {
+        "key": "memo_received_date",
+        "label": "Date the return memo was received",
+        "present": true
+      }
+    },
+    {
+      "id": "notice_within_thirty_days",
+      "kind": "submission",
+      "what": "This notice is issued within thirty days of the information of dishonour (arithmetic on dates: never stated)",
+      "phrases": [
+        "within thirty days of receipt of information",
+        "within the statutory period of 30 days",
+        "this notice is within time",
+        "30 din ke andar notice"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "presented_within_validity",
+      "kind": "submission",
+      "what": "The cheque was presented within its validity (arithmetic on dates: never stated)",
+      "phrases": [
+        "presented within its validity",
+        "within three months of its date",
+        "within the period of validity",
+        "cheque valid tha"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "earlier_notice",
+      "kind": "averment",
+      "what": "An earlier notice, its date, or its service",
+      "phrases": [
+        "an earlier notice dated",
+        "notice was sent on",
+        "pehle bhi notice bheja"
+      ],
+      "unlocked_by": {
+        "key": "earlier_notice_date",
+        "label": "Date of any earlier notice",
+        "present": true
+      }
+    },
+    {
+      "id": "drawer_assurances",
+      "kind": "averment",
+      "what": "The drawer assured payment or asked for the cheque to be presented again",
+      "phrases": [
+        "assured payment",
+        "promised to honour the cheque",
+        "repeatedly assured",
+        "asked the payee to present the cheque again",
+        "dobara lagane ko kaha",
+        "paise dene ka vaada kiya"
+      ],
+      "unlocked_by": {
+        "key": "drawer_assurances",
+        "label": "What the drawer said about payment",
+        "present": true
+      }
+    },
+    {
+      "id": "demands_made",
+      "kind": "averment",
+      "what": "The payee made demands before this notice",
+      "phrases": [
+        "despite repeated requests and demands",
+        "orally demanded",
+        "several reminders",
+        "baar baar maangne par bhi"
+      ],
+      "unlocked_by": {
+        "key": "demands_made",
+        "label": "Demands made before this notice",
+        "present": true
+      }
+    },
+    {
+      "id": "account_holder",
+      "kind": "averment",
+      "what": "Whose account the cheque was drawn on",
+      "phrases": [
+        "drawn on an account maintained by you",
+        "from your account number",
+        "your savings account",
+        "aapke khaate se"
+      ],
+      "unlocked_by": {
+        "all_of": [
+          {
+            "key": "account_holder",
+            "label": "Whose account the cheque was drawn on",
+            "present": true
+          },
+          {
+            "key": "drawee_bank",
+            "label": "Drawee Bank Name",
+            "present": true
+          },
+          {
+            "key": "drawee_branch",
+            "label": "Drawee Branch",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "dishonest_intention",
+      "kind": "averment",
+      "what": "The drawer acted dishonestly or fraudulently",
+      "phrases": [
+        "dishonest intention",
+        "cheated the payee",
+        "fraudulently issued",
+        "knowing that there were insufficient funds",
+        "dhokha diya"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "interest_and_costs",
+      "kind": "averment",
+      "what": "Interest, notice charges or costs",
+      "phrases": [
+        "interest at the rate of",
+        "notice charges of Rs",
+        "legal costs",
+        "byaj samet"
+      ],
+      "unlocked_by": {
+        "key": "interest_and_costs",
+        "label": "Interest and costs claimed",
+        "present": true
+      }
+    },
+    {
+      "id": "cheque_delivery",
+      "kind": "averment",
+      "what": "When, where or how the cheque was handed over",
+      "phrases": [
+        "handed over the cheque on",
+        "delivered the cheque at",
+        "issued the cheque at the payee's office",
+        "haath mein cheque diya"
+      ],
+      "unlocked_by": {
+        "key": "cheque_delivery",
+        "label": "When and where the cheque was handed over",
+        "present": true
+      }
+    },
+    {
+      "id": "relationship",
+      "kind": "averment",
+      "what": "The relationship between the payee and the drawer",
+      "phrases": [
+        "known to each other for years",
+        "friendly relations",
+        "family friend",
+        "business associates",
+        "purani jaan-pehchaan"
+      ],
+      "unlocked_by": {
+        "key": "relationship_particulars",
+        "label": "Relationship between the parties",
+        "present": true
+      }
+    }
+  ],
+  "allowed": [
+    {
+      "id": "legally_enforceable_debt",
+      "kind": "averment",
+      "averment": "the cheque was issued in discharge of a legally enforceable debt or other liability, namely {{underlying_liability}}",
+      "requires": {
+        "key": "underlying_liability",
+        "label": "Underlying Liability (why was cheque issued?)",
+        "present": true
+      }
+    },
+    {
+      "id": "return_memo_reason",
+      "kind": "averment",
+      "averment": "the cheque was returned unpaid with the remark \"{{dishonour_reason}}\"",
+      "requires": {
+        "key": "dishonour_reason",
+        "label": "Reason for Dishonour (as per memo)",
+        "present": true
+      }
+    },
+    {
+      "id": "return_memo_received_on",
+      "kind": "averment",
+      "averment": "the payee received the return memo on {{memo_received_date}}",
+      "requires": {
+        "key": "memo_received_date",
+        "label": "Date the return memo was received",
+        "present": true
+      }
+    },
+    {
+      "id": "earlier_notice",
+      "kind": "averment",
+      "averment": "an earlier notice was sent on {{earlier_notice_date}}",
+      "requires": {
+        "key": "earlier_notice_date",
+        "label": "Date of any earlier notice",
+        "present": true
+      }
+    },
+    {
+      "id": "drawer_assurances",
+      "kind": "averment",
+      "averment": "{{drawer_assurances}}",
+      "requires": {
+        "key": "drawer_assurances",
+        "label": "What the drawer said about payment",
+        "present": true
+      }
+    },
+    {
+      "id": "demands_made",
+      "kind": "averment",
+      "averment": "{{demands_made}}",
+      "requires": {
+        "key": "demands_made",
+        "label": "Demands made before this notice",
+        "present": true
+      }
+    },
+    {
+      "id": "account_holder",
+      "kind": "averment",
+      "averment": "the cheque was drawn on the account of {{account_holder}} with {{drawee_bank}}, {{drawee_branch}}",
+      "requires": {
+        "all_of": [
+          {
+            "key": "account_holder",
+            "label": "Whose account the cheque was drawn on",
+            "present": true
+          },
+          {
+            "key": "drawee_bank",
+            "label": "Drawee Bank Name",
+            "present": true
+          },
+          {
+            "key": "drawee_branch",
+            "label": "Drawee Branch",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "interest_and_costs",
+      "kind": "averment",
+      "averment": "the payee also claims {{interest_and_costs}}",
+      "requires": {
+        "key": "interest_and_costs",
+        "label": "Interest and costs claimed",
+        "present": true
+      }
+    },
+    {
+      "id": "cheque_delivery",
+      "kind": "averment",
+      "averment": "{{cheque_delivery}}",
+      "requires": {
+        "key": "cheque_delivery",
+        "label": "When and where the cheque was handed over",
+        "present": true
+      }
+    },
+    {
+      "id": "relationship",
+      "kind": "averment",
+      "averment": "{{relationship_particulars}}",
+      "requires": {
+        "key": "relationship_particulars",
+        "label": "Relationship between the parties",
+        "present": true
+      }
+    }
+  ]
+}

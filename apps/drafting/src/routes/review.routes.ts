@@ -24,6 +24,7 @@ import { Event } from '../models/Event.model';
 import { ReviewFeedback, REVIEW_VERDICTS, ReviewVerdict } from '../models/ReviewFeedback.model';
 import { ReviewToken } from '../models/ReviewToken.model';
 import { decrypt } from '../utils/encryption';
+import { missingAsBlanks } from '../utils/missingAsBlanks';
 
 const router = Router();
 
@@ -267,7 +268,10 @@ router.get('/review/:token', async (req: Request, res: Response): Promise<void> 
     return;
   }
 
-  const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
+  // T-147c: a ledger draft's {{MISSING: label}} reaches the reviewer as today's blank.
+  const content = missingAsBlanks(
+    doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent),
+  );
 
   res.json({
     document: {

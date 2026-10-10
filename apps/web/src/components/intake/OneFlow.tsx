@@ -564,6 +564,10 @@ export default function OneFlow({
             ...(runId.current ? { run_id: runId.current } : {}),
             ...(intakeId.current ? { intake_id: intakeId.current } : {}),
             ...(kind !== NO_RULE_PACK && described ? { described } : {}),
+            // T-147c: with the ledger switch on, the Drafter drafts from this ledger only.
+            ...(kind !== NO_RULE_PACK && ledgerRef.current
+              ? { ledger_id: ledgerRef.current.ledger_id }
+              : {}),
           }),
         });
         const header = res.headers.get('X-Run-Id');

@@ -13,6 +13,7 @@
  * This file orchestrates both pipelines and handles streaming.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import type { LedgerFact } from '@lawie/shared';
 import { Response } from 'express';
 
 import bnsMapping from '../config/bns-mapping.json';
@@ -21,9 +22,17 @@ import { Court } from '../models/Court.model';
 import type { RunType } from '../models/Generation.model';
 
 import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-settings.service';
+import { AvermentLists, resolveAverments } from './averments';
 import {
   briefText,
   buildDrafterUserPrompt,
+  buildLedgerDrafterUserPrompt,
+  buildLedgerRepairUserPrompt,
+  ledgerCitationSources,
+  ledgerDrafterFacts,
+  LedgerDrafterPromptInput,
+  ledgerFactText,
+  ledgerSkeletonBrief,
   checkCourtProvisions,
   courtProvisions,
   buildGuidedDrafterUserPrompt,
@@ -54,10 +63,12 @@ import {
 import { citationWarnings, removeUngivenCitations } from './citation-check';
 import {
   DRAFTER_GUIDED_SYSTEM_PROMPT,
+  DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT,
+  DRAFTER_LEDGER_SYSTEM_PROMPT,
   DRAFTER_PACK_SYSTEM_PROMPT,
   DRAFTER_REPAIR_SYSTEM_PROMPT,
 } from './drafter.prompts';
-import { Brief, FIXED_KEYS } from './intake-brief';
+import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
   estimateOutputTokens,
   parseAnthropicStreamEvent,
@@ -949,6 +960,23 @@ export interface BriefGenerateInput {
    * Drafter under "described" and is read by the checks. It is never logged.
    */
   described?: string | null;
+  /**
+   * T-147c: present only when `feature.fact_ledger` is on and the request
+   * carried a ledger of this user's, for this document. The Drafter is then
+   * given the ledger's facts and the pack's skeleton, and nothing else: no
+   * brief value, no description. The parts the system adds (cause title,
+   * prayer, verification) are rendered by the unchanged template code
+   * (ADR-021) from `ledgerSkeletonBrief`: ledger displays for the items the
+   * ledger holds, `{{MISSING: label}}` for every item it does not, and the
+   * brief's other notes dropped. The checks read the same brief. Absent: the
+   * Drafter and the system parts work exactly as before T-147c.
+   */
+  ledger?: {
+    /** The current version's facts. */
+    facts: LedgerFact[];
+    /** The pack's averment lists (`loadAvermentLists`). */
+    lists: AvermentLists;
+  };
   language: 'en' | 'hi' | 'bilingual';
   /** The number of numbered paragraphs wanted in the body. */
   targetParagraphs: number;
@@ -995,7 +1023,10 @@ export async function streamGenerateFromBrief(
   input: BriefGenerateInput,
   res: Response,
 ): Promise<BriefGenerateResult> {
-  const { pack, templateConfig, brief, courtData } = input;
+  const { pack, templateConfig, courtData } = input;
+  // T-147c: with the ledger, everything the system writes and every check reads
+  // the ledger's displays; without it, the brief exactly as before.
+  const brief = input.ledger ? ledgerSkeletonBrief(input.brief, input.ledger.facts) : input.brief;
 
   // ── The brief as form values, for the parts the system adds ───────────────
   const formData = formDataFromBrief(brief, templateConfig, input.language);
@@ -1078,6 +1109,27 @@ export async function streamGenerateFromBrief(
     target: input.targetParagraphs,
     language: input.language,
   };
+  // T-147c: with the ledger, the Drafter's facts come from it alone. The
+  // description is not given to the Drafter and is not read by the checks.
+  const ledgerInput: LedgerDrafterPromptInput | null = input.ledger
+    ? {
+        pack: promptInput.pack,
+        statedInstructions: promptInput.statedInstructions,
+        systemParts: promptInput.systemParts,
+        systemText: promptInput.systemText,
+        courtRules: promptInput.courtRules,
+        target: promptInput.target,
+        language: promptInput.language,
+        facts: ledgerDrafterFacts(
+          input.ledger.facts,
+          buildChecklist(pack),
+          ctx.court_designation || courtData?.designation || null,
+          brief.kind.court_document,
+        ),
+        averments: resolveAverments(input.ledger.lists, input.ledger.facts),
+      }
+    : null;
+  const described = ledgerInput ? null : input.described;
   /**
    * The Drafter's text as it goes into the document: no disclaimer, no word
    * SYSTEM in brackets, and no repeat of a part the system has written, where
@@ -1106,8 +1158,8 @@ export async function streamGenerateFromBrief(
   };
   try {
     for await (const text of streamLLM(
-      DRAFTER_PACK_SYSTEM_PROMPT,
-      buildDrafterUserPrompt(promptInput),
+      ledgerInput ? DRAFTER_LEDGER_SYSTEM_PROMPT : DRAFTER_PACK_SYSTEM_PROMPT,
+      ledgerInput ? buildLedgerDrafterUserPrompt(ledgerInput) : buildDrafterUserPrompt(promptInput),
       8192,
       draft,
     )) {
@@ -1158,13 +1210,12 @@ export async function streamGenerateFromBrief(
     let repairRaw = '';
     const repairDraft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
     try {
+      const missingIds = missing.map((m) => m.id);
       for await (const text of streamLLM(
-        DRAFTER_REPAIR_SYSTEM_PROMPT,
-        buildRepairUserPrompt(
-          promptInput,
-          output.body,
-          missing.map((m) => m.id),
-        ),
+        ledgerInput ? DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT : DRAFTER_REPAIR_SYSTEM_PROMPT,
+        ledgerInput
+          ? buildLedgerRepairUserPrompt(ledgerInput, output.body, missingIds)
+          : buildRepairUserPrompt(promptInput, output.body, missingIds),
         8192,
         repairDraft,
       )) {
@@ -1199,7 +1250,13 @@ export async function streamGenerateFromBrief(
   // ── No case law on its own (T-148) ─────────────────────────────────────────
   // A case citation the advocate did not give, in the brief or in their own
   // words, is replaced by the blank. Rule-pack text is never a source.
-  const citations = removeUngivenCitations(output.body, [briefText(brief), input.described ?? '']);
+  // With the ledger (T-147c), only the ledger's facts are a source.
+  const citations = removeUngivenCitations(
+    output.body,
+    ledgerInput
+      ? ledgerCitationSources(ledgerInput.facts)
+      : [briefText(brief), input.described ?? ''],
+  );
   output = { ...output, body: citations.text };
 
   // ── The body takes its place among the parts the system wrote ─────────────
@@ -1303,14 +1360,15 @@ export async function streamGenerateFromBrief(
   allWarnings.push(...checkOneDocument(body, systemText, pack.name));
   // A date, a name, a number or a fact of the brief that the document does not
   // hold, read against the whole document as it prints, not the body alone:
-  allWarnings.push(...checkBriefIsUsed(printed.join('\n\n'), brief, input.described));
+  allWarnings.push(...checkBriefIsUsed(printed.join('\n\n'), brief, described));
   // A length of time that nothing the Drafter was given states:
   allWarnings.push(
     ...checkPeriods(
       body,
       [
         briefText(brief),
-        input.described ?? '',
+        described ?? '',
+        ...(ledgerInput ? [ledgerFactText(ledgerInput.facts)] : []),
         ...packTexts(pack),
         ...(promptInput.statedInstructions ?? []),
         ...promptInput.courtRules,

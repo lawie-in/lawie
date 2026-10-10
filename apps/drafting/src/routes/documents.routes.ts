@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 
 import { COURT_TYPES, DOC_TYPES, DocType } from '@lawie/shared';
+import type { LedgerFact } from '@lawie/shared';
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
@@ -29,7 +30,14 @@ import {
 } from '../services/brief-drafter';
 import { spendInk } from '../services/credits.service';
 import { namesSupremeCourt } from '../services/intake-brief';
-import { INTAKE_LIMITS, isDescribeFirstEnabled, updateBrief } from '../services/intake.service';
+import { AvermentLists, loadAvermentLists } from '../services/averments';
+import { currentState, loadOwnLedger } from '../services/fact-ledger.service';
+import {
+  INTAKE_LIMITS,
+  isDescribeFirstEnabled,
+  isFactLedgerEnabled,
+  updateBrief,
+} from '../services/intake.service';
 import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
 import { contentToHtml, renderPdf } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
@@ -654,6 +662,17 @@ const briefGenerateSchema = z.object({
    * inside the encrypted brief of the document, and is never logged.
    */
   described: z.string().max(INTAKE_LIMITS.descriptionMax).optional(),
+  /**
+   * T-147c: the advocate's fact ledger for this brief. Read only when
+   * `feature.fact_ledger` is on for the user and the document has a rule
+   * pack; then the Drafter is given the ledger's facts and the pack's
+   * skeleton only. A ledger that is not this user's, or not for this
+   * document, is a 404, as in T-147b.
+   */
+  ledger_id: z
+    .string()
+    .regex(/^[a-f0-9]{24}$/i, 'must be a ledger id')
+    .optional(),
 });
 
 /** The credit gate reads `template_id`. For a brief the rule pack is the template. */
@@ -708,6 +727,35 @@ router.post(
     if (templateConfig?.plan_access === 'pro' && payload.plan !== 'pro') {
       res.status(403).json({ error: 'This document requires a Pro plan' });
       return;
+    }
+
+    // T-147c: the ledger, when the switch is on. Without both, nothing below changes.
+    let ledger: { id: string; version: number; facts: LedgerFact[]; lists: AvermentLists } | null =
+      null;
+    if (!guided && parsed.data.ledger_id !== undefined && (await isFactLedgerEnabled(payload.sub))) {
+      const doc = await loadOwnLedger(parsed.data.ledger_id, payload.sub);
+      if (!doc || doc.documentKind !== kind) {
+        res.status(404).json({ error: 'Ledger not found' });
+        return;
+      }
+      let lists: AvermentLists;
+      try {
+        lists = loadAvermentLists(kind);
+      } catch (err) {
+        // Ids only: never a fact value.
+        console.error(
+          `[drafting] averment list unreadable (kind=${kind}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        res.status(503).json({ error: 'averments_unavailable' });
+        return;
+      }
+      ledger = {
+        id: String(doc.id),
+        version: doc.currentVersion,
+        facts: currentState(doc).facts,
+        lists,
+      };
     }
 
     // The brief is worked out again here. What the browser says about it is not
@@ -798,6 +846,7 @@ router.post(
                 pack,
                 templateConfig,
                 ...(described ? { described } : {}),
+                ...(ledger ? { ledger: { facts: ledger.facts, lists: ledger.lists } } : {}),
                 advocateName: payload.name || undefined,
                 enrollmentNumber: undefined,
               },
@@ -891,6 +940,8 @@ router.post(
             // T-136: the description is kept here and nowhere else: with the
             // brief it belongs to, under the same encryption, for as long.
             ...(described ? { described } : {}),
+            // T-147c: which ledger version the draft was written from. Ids only.
+            ...(ledger ? { ledger_id: ledger.id, ledger_version: ledger.version } : {}),
           }),
         ),
       });

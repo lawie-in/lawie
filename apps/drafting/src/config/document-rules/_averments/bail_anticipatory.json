@@ -1,0 +1,176 @@
+{
+  "_about": "T-147c averment allowlist and banned-assertion list. Schema and rules: README.md in this folder. PROPOSED by the developer; Ajay (CLO) reviews and signs.",
+  "pack": "bail_anticipatory",
+  "inherits": "bail_regular",
+  "key_map": {},
+  "_signed_by": "Ajay (CLO) writes his name and the date here when he signs this list. His signature is not release on its own: a practising advocate still checks the list before the pack goes live. Null means proposed, not signed.",
+  "signed_by": null,
+  "signed_on": null,
+  "banned": [
+    {
+      "id": "first_bail_application",
+      "kind": "averment",
+      "what": "No other anticipatory or regular bail application was made, is pending or was rejected (suppression risk)",
+      "phrases": [
+        "this is the first anticipatory bail application",
+        "no other anticipatory bail application is pending",
+        "no bail application has been rejected",
+        "the applicant has not approached any other court",
+        "pehli agrim zamanat arzi hai"
+      ],
+      "unlocked_by": {
+        "key": "earlier_bail_applications",
+        "label": "Earlier bail applications in this matter",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi",
+          "first application",
+          "no earlier application",
+          "no other application"
+        ]
+      }
+    },
+    {
+      "id": "apprehension_of_arrest",
+      "kind": "averment",
+      "what": "The applicant apprehends arrest",
+      "phrases": [
+        "apprehends arrest",
+        "reasonable apprehension of arrest",
+        "is likely to be arrested",
+        "fears arrest at any moment",
+        "giraftari ka dar hai"
+      ],
+      "unlocked_by": {
+        "key": "facts_narrative",
+        "label": "Brief Facts — why do you apprehend arrest? (3-5 lines)",
+        "present": true
+      }
+    },
+    {
+      "id": "police_action",
+      "kind": "averment",
+      "what": "Steps taken by the police (visits, raids, threats)",
+      "phrases": [
+        "police visited the applicant's house",
+        "police are conducting raids",
+        "threatened with arrest",
+        "police called the applicant to the station",
+        "police ne ghar par chhapa mara",
+        "thane bulaya"
+      ],
+      "unlocked_by": {
+        "key": "police_action",
+        "label": "What the police have done so far",
+        "present": true
+      }
+    },
+    {
+      "id": "civil_dispute",
+      "kind": "submission",
+      "what": "The dispute is civil in nature",
+      "phrases": [
+        "the dispute is purely civil in nature",
+        "a civil dispute has been given the colour of a criminal case",
+        "criminal process is being abused for recovery of money",
+        "the matter is a commercial dispute",
+        "yeh civil maamla hai"
+      ],
+      "unlocked_by": {
+        "key": "civil_dispute_particulars",
+        "label": "Why the dispute is a civil one",
+        "present": true
+      }
+    },
+    {
+      "id": "complainant_ulterior_motive",
+      "kind": "averment",
+      "what": "The complainant has an ulterior motive",
+      "phrases": [
+        "the complainant has an ulterior motive",
+        "the complaint is mala fide",
+        "filed to pressurise the applicant",
+        "to extract money",
+        "badla lene ke liye"
+      ],
+      "unlocked_by": {
+        "key": "complainant_motive",
+        "label": "The complainant's motive, as the advocate states it",
+        "present": true
+      }
+    },
+    {
+      "id": "reputation_harm",
+      "kind": "submission",
+      "what": "Arrest would harm the applicant's reputation",
+      "phrases": [
+        "arrest would ruin the applicant's reputation",
+        "irreparable loss to reputation",
+        "is a respectable person",
+        "is a reputed businessman",
+        "izzat mitti mein mil jayegi"
+      ],
+      "unlocked_by": {
+        "key": "standing_particulars",
+        "label": "The applicant's standing, as the advocate states it",
+        "present": true
+      }
+    }
+  ],
+  "allowed": [
+    {
+      "id": "apprehension_of_arrest",
+      "kind": "averment",
+      "averment": "the applicant apprehends arrest, for these reasons: {{facts_narrative}}",
+      "requires": {
+        "key": "facts_narrative",
+        "label": "Brief Facts — why do you apprehend arrest? (3-5 lines)",
+        "present": true
+      }
+    },
+    {
+      "id": "police_action",
+      "kind": "averment",
+      "averment": "{{police_action}}",
+      "requires": {
+        "key": "police_action",
+        "label": "What the police have done so far",
+        "present": true
+      }
+    },
+    {
+      "id": "civil_dispute",
+      "kind": "submission",
+      "averment": "it is submitted that the dispute is civil in nature, as {{civil_dispute_particulars}}",
+      "requires": {
+        "key": "civil_dispute_particulars",
+        "label": "Why the dispute is a civil one",
+        "present": true
+      }
+    },
+    {
+      "id": "complainant_ulterior_motive",
+      "kind": "averment",
+      "averment": "{{complainant_motive}}",
+      "requires": {
+        "key": "complainant_motive",
+        "label": "The complainant's motive, as the advocate states it",
+        "present": true
+      }
+    },
+    {
+      "id": "reputation_harm",
+      "kind": "submission",
+      "averment": "it is submitted that arrest would cause the applicant irreparable harm, the applicant being {{standing_particulars}}",
+      "requires": {
+        "key": "standing_particulars",
+        "label": "The applicant's standing, as the advocate states it",
+        "present": true
+      }
+    }
+  ]
+}

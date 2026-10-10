@@ -1,0 +1,76 @@
+{
+  "_about": "T-147c averment allowlist and banned-assertion list. Schema and rules: README.md in this folder. PROPOSED by the developer; Ajay (CLO) reviews and signs.",
+  "pack": "bail_before_magistrate",
+  "inherits": "bail_regular",
+  "key_map": {
+    "address": "applicant_address",
+    "father_name": "applicant_parentage"
+  },
+  "_signed_by": "Ajay (CLO) writes his name and the date here when he signs this list. His signature is not release on its own: a practising advocate still checks the list before the pack goes live. Null means proposed, not signed.",
+  "signed_by": null,
+  "signed_on": null,
+  "banned": [
+    {
+      "id": "bailable_offence",
+      "kind": "averment",
+      "what": "The offence is bailable",
+      "phrases": [
+        "the offence is bailable",
+        "all the offences are bailable",
+        "bailable in nature",
+        "zamanati apradh hai"
+      ],
+      "unlocked_by": {
+        "key": "offence_classification",
+        "label": "Offence Classification",
+        "equals": [
+          "Bailable"
+        ]
+      }
+    },
+    {
+      "id": "sureties_available",
+      "kind": "averment",
+      "what": "Sureties are available",
+      "phrases": [
+        "sureties are available",
+        "ready to furnish local sureties",
+        "has a solvent surety",
+        "zamanatdaar taiyaar hai"
+      ],
+      "unlocked_by": {
+        "key": "sureties_available",
+        "label": "Sureties Available",
+        "equals": [
+          "Yes"
+        ]
+      }
+    }
+  ],
+  "allowed": [
+    {
+      "id": "bailable_offence",
+      "kind": "averment",
+      "averment": "the offence alleged is bailable",
+      "requires": {
+        "key": "offence_classification",
+        "label": "Offence Classification",
+        "equals": [
+          "Bailable"
+        ]
+      }
+    },
+    {
+      "id": "sureties_available",
+      "kind": "averment",
+      "averment": "sureties are available",
+      "requires": {
+        "key": "sureties_available",
+        "label": "Sureties Available",
+        "equals": [
+          "Yes"
+        ]
+      }
+    }
+  ]
+}
