@@ -5,7 +5,7 @@
 | Phase      | 0 — Prep                                                                                                                |
 | Owner      | Vishal, Arjun reviews. One account step for the founder                                                                 |
 | Mode       | Full chain                                                                                                              |
-| Status     | Ready. Step 1 before the T-004 batch. Step 2 after the backend pull request lands                                       |
+| Status     | Step 1 and Step 2 done (PR #82, 9 Oct; founder verified drafting without the Helicone key, 10 Oct). Step 3 skipped (no email for the Helicone account, 10 Oct). Open: Records (Arjun). |
 | Depends on | T-117 for the order only. Step 2 waits for the backend pull request (T-110, T-101, T-102), which touches the same files |
 | Branch     | feature/t-118-direct-anthropic                                                                                          |
 | Created    | 2026-10-04                                                                                                              |
@@ -31,6 +31,7 @@ Every model call goes straight to Anthropic. No Helicone code, key or header is 
 
 - `HELICONE_API_KEY` is empty in the three env files, and production is redeployed.
 - One real draft in each of dev and production writes a `Generation` row with `transport: direct`, `usageSource: provider` and real token counts.
+- 10 Oct 2026: founder reported in chat that he ran drafting without the Helicone key and it works.
 
 **Step 2, remove the code**
 
@@ -47,6 +48,7 @@ Every model call goes straight to Anthropic. No Helicone code, key or header is 
 - Find the Helicone organisation that owns the key: the organisation switcher on helicone.ai, or another login.
 - Delete the stored requests there and revoke the key.
 - If it cannot be found, write that here. The key stops being used after step 1 either way.
+- 10 Oct 2026: skipped. The founder does not have the email for the account that owns the key, so it cannot be found. Our code no longer calls Helicone (PR #82), and the founder verified that drafting works without the key. The Anthropic API key is replaced at launch (T-403 checklist), which also makes anything Helicone logged under the old key harmless.
 
 **Records**
 

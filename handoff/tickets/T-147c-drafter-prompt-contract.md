@@ -56,3 +56,7 @@ Two gates, both before merge. First, the `drafter.prompts.ts` diff. Second, for 
 ## Files (expected)
 
 Touched: `apps/drafting/src/services/drafter.prompts.ts` (Ajay gate), `brief-drafter.ts`, `prompt-assembler.ts`, 5 files under `apps/drafting/src/config/document-rules/` (Ajay gate). New: `apps/drafting/src/config/document-rules/_averments/` (or a per-pack field — pick one and say which in the report), `apps/drafting/src/__tests__/t147c-drafter-contract.test.ts`. Read-only: ADR-022, T-148's citation rules in `citation-check.ts`.
+
+## Notes
+
+- 10 Oct 2026: in build (Vishal). Ajay is re-signing the prompt and `bail_regular`. Follow-ups logged as T-189 to T-195.
