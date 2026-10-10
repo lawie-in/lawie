@@ -5,7 +5,7 @@
 | Phase      | 0 — Prep                                                             |
 | Owner      | Vishal. The production step needs the founder's go-ahead at the time |
 | Mode       | Small change, plus one production step                               |
-| Status     | Ready. Vishal picks this first (founder, 4 Oct 2026)                 |
+| Status     | Closed 10 Oct 2026. Script fix merged (PR #37). Production rotation not done, by founder decision: replaced by the fresh production environment at launch (T-403) |
 | Depends on | None                                                                 |
 | Branch     | fix/t-117-internal-secret-default                                    |
 | Created    | 2026-10-04                                                           |
@@ -82,3 +82,10 @@ No other secret to rotate.
 2. Where production takes its env from: `docker-compose.prod.yml` line 5 says CI/CD writes `.env.production` from AWS Secrets Manager, and `deploy.sh` copies it from the laptop. Check whether Secrets Manager holds a copy, and update it too.
 3. Redeploy all five services together. Then run the health checks, send one draft through the gateway, and confirm the old value is refused.
 4. Pull request for the branch.
+
+## Founder decision, 10 Oct 2026
+
+- The production `INTERNAL_SECRET` was not rotated.
+- The founder says this does not matter: every environment today is a dev environment, and a fresh production environment is created at launch.
+- "Still to do" steps 1 to 3 above are not done. They are replaced by the T-403 checklist item: a fresh production environment with all-new secrets (`INTERNAL_SECRET`, JWT secrets, Anthropic API key, Razorpay, database credentials).
+- Until that launch, treat the current `INTERNAL_SECRET` as known (it is in git history). Nothing that holds real user data may run on it.

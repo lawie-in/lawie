@@ -67,3 +67,15 @@ Both of these are unanswered and still needed:
 
 1. Is the production "coming soon" change committed? It is not in `main` or `develop`.
 2. Was the production `INTERNAL_SECRET` rotated (`T-117`)? Yes or no. Do not print the value.
+
+---
+
+## Priya, 10 Oct 2026 — both open questions answered by the founder
+
+1. **Production "coming soon": answered. Not a gap.** It is deliberate and applies to production only. It is never committed anywhere. The founder switched the dashboard off on production so nobody uses it early. Do not commit it and do not open a pull request for it.
+2. **`INTERNAL_SECRET` (T-117): answered. Not rotated.** The founder says it does not matter: every environment today is a dev environment, and a fresh production environment is created at launch. T-117 is closed. The new-secrets step is now a T-403 checklist item (`INTERNAL_SECRET`, JWT secrets, Anthropic API key, Razorpay, database credentials).
+
+Also from today:
+
+- **T-118 Step 3 is skipped.** The founder does not have the email for the Helicone account. The code no longer calls Helicone (PR #82), and he verified drafting works without the key. The Records item (Arjun) stays open.
+- **New: T-187.** Ajay's DPDP condition: a retention and deletion rule for the Fact Ledger and the `intake_extract` rows before `feature.fact_ledger` goes on for real users. Arjun and Ajay write the rule first. Do not build it until they have.
