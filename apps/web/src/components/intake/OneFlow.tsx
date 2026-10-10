@@ -14,9 +14,9 @@
  * from the service and is printed as received.
  */
 import { useRouter } from 'next/navigation';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import BriefStep from './BriefStep';
+import BriefStep, { BriefLoadError, BriefLoading } from './BriefStep';
 import {
   Brief,
   BriefCourt,
@@ -25,10 +25,13 @@ import {
   BriefResponse,
   countBlanks,
   DraftResult,
+  EditOutcome,
   Finding,
   GivenValue,
   isEmptyValue,
   KindSummary,
+  Ledger,
+  LedgerEditResult,
   NO_RULE_PACK,
   Value,
   valuesAfter,
@@ -61,11 +64,34 @@ const EMPTY_COURT: BriefCourt = { state: null, court_type: null, court: null };
 const UNREADABLE = 'We could not read that just now. Try again, or browse document types.';
 const JSON_POST = { method: 'POST', headers: { 'Content-Type': 'application/json' } } as const;
 
-/** The questions of a round whose facts are still not given. */
-function openQuestions(questions: BriefQuestion[], brief: Brief | null, round?: 1 | 2) {
+/** T-147b: one answer or edit for the fact ledger, as the update route takes it. */
+interface LedgerEditBody {
+  key: string;
+  text: string;
+  from_question?: boolean;
+}
+
+/** T-147b: the keys the fact ledger could not read and has no fact for. They stay asked. */
+function outstandingKeys(ledger: Ledger | null | undefined): Set<string> {
+  if (!ledger) return new Set();
+  const facts = new Set(ledger.facts.map((f) => f.key));
+  return new Set(ledger.unresolved.filter((u) => !facts.has(u.key)).map((u) => u.key));
+}
+
+/**
+ * The questions of a round whose facts are still not given. With a ledger, a
+ * key it could not read stays open even when the brief holds a value for it.
+ */
+function openQuestions(
+  questions: BriefQuestion[],
+  brief: Brief | null,
+  ledger: Ledger | null | undefined,
+  round?: 1 | 2,
+) {
   if (!brief) return [];
-  const empty = new Set(brief.items.filter((i) => isEmptyValue(i.value)).map((i) => i.key));
-  return questions.filter((q) => empty.has(q.key) && (round === undefined || q.round === round));
+  const open = new Set(brief.items.filter((i) => isEmptyValue(i.value)).map((i) => i.key));
+  for (const key of outstandingKeys(ledger)) open.add(key);
+  return questions.filter((q) => open.has(q.key) && (round === undefined || q.round === round));
 }
 
 export default function OneFlow({
@@ -85,6 +111,9 @@ export default function OneFlow({
   const [choices, setChoices] = useState<Array<{ kind: string; name: string }>>([]);
 
   const [brief, setBriefState] = useState<Brief | null>(null);
+  /** T-147b: the fact ledger, only when the service sends one. */
+  const [ledger, setLedgerState] = useState<Ledger | null>(null);
+  const ledgerRef = useRef<Ledger | null>(null);
   const [questions, setQuestions] = useState<BriefQuestion[]>([]);
   const [questionRound, setQuestionRound] = useState<1 | 2>(1);
   /** How many rounds of questions have been shown, so the counter never shows a round twice (T-139). */
@@ -96,6 +125,12 @@ export default function OneFlow({
   const [changeOpen, setChangeOpen] = useState(false);
   const [briefMessage, setBriefMessage] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  /** T-147b, section 6: the first reading of a brief is on its way, or it failed. */
+  const [reading, setReading] = useState<'loading' | 'failed' | null>(null);
+  const lastReadBody = useRef<Record<string, unknown> | null>(null);
+  /** T-147b, section 9: the questions were opened from the outstanding block. */
+  const [focusOutstanding, setFocusOutstanding] = useState(false);
+  const fromOutstanding = useRef(false);
 
   const [repairing, setRepairing] = useState(false);
   const [genError, setGenError] = useState<{ reason: string; retryable: boolean } | null>(null);
@@ -120,6 +155,11 @@ export default function OneFlow({
     setBriefState(next);
   }, []);
 
+  const setLedger = useCallback((next: Ledger | null) => {
+    ledgerRef.current = next;
+    setLedgerState(next);
+  }, []);
+
   /** Take the service's brief as the truth, and keep what it could not place. */
   const adopt = useCallback(
     (next: Brief) => {
@@ -136,6 +176,7 @@ export default function OneFlow({
     setMessage(null);
     setChoices([]);
     setBrief(null);
+    setLedger(null);
     setQuestions([]);
     setReception(null);
     setBriefMessage(null);
@@ -148,7 +189,7 @@ export default function OneFlow({
     chosenKind.current = undefined;
     lastRead.current = null;
     runId.current = undefined;
-  }, [setBrief]);
+  }, [setBrief, setLedger]);
 
   /** The description and every answer, for the dates the service reads again. */
   const everythingSaid = useCallback(
@@ -168,9 +209,20 @@ export default function OneFlow({
       setBusy(true);
       setMessage(null);
       setBriefMessage(null);
+      if (from === 'describe') {
+        lastReadBody.current = body;
+        setReading('loading');
+      }
+      let failed = false;
       const fail = (text: string, retry?: boolean) => {
         if (from === 'brief') {
           setBriefMessage(text);
+          return;
+        }
+        // T-147b: a brief that could not be read is offered again. Limits and short
+        // descriptions still go back to the description, as before.
+        if (retry) {
+          failed = true;
           return;
         }
         setMessage({ text, retry });
@@ -201,6 +253,8 @@ export default function OneFlow({
           case 'brief': {
             if (!data.brief) throw new Error('no brief');
             adopt(data.brief);
+            // T-147b: no ledger in the answer means the brief shows as before.
+            setLedger(data.ledger ?? null);
             lastRead.current = {
               text: typeof body.description === 'string' ? body.description : '',
               kind: typeof body.kind === 'string' ? body.kind : null,
@@ -211,7 +265,7 @@ export default function OneFlow({
             if (data.needs_upgrade) {
               setBriefMessage('This document needs the Pro plan. You can upgrade from Settings.');
             }
-            const first = openQuestions(asked, data.brief, 1);
+            const first = openQuestions(asked, data.brief, data.ledger, 1);
             // A new reading starts the count of rounds again: a new description
             // (from 'describe'), or another document read from the brief (from 'brief').
             setRoundsShown(from === 'describe' && first.length > 0 ? 1 : 0);
@@ -241,9 +295,10 @@ export default function OneFlow({
         fail(UNREADABLE, true);
       } finally {
         setBusy(false);
+        if (from === 'describe') setReading(failed ? 'failed' : null);
       }
     },
-    [adopt],
+    [adopt, setLedger],
   );
 
   const courtIfAny = () => {
@@ -328,13 +383,17 @@ export default function OneFlow({
   // ── The brief: every change is worked out again by the service ────────────
 
   const update = useCallback(
-    async (kindName?: string): Promise<Brief | null> => {
+    async (
+      kindName?: string,
+      edits: LedgerEditBody[] = [],
+    ): Promise<{ brief: Brief; results: LedgerEditResult[] } | null> => {
       const current = briefRef.current;
       if (!current) return null;
       const seq = ++updateSeq.current;
       setUpdating(true);
       setBriefMessage(null);
       const kind = current.kind.id ?? NO_RULE_PACK;
+      const onLedger = ledgerRef.current;
       try {
         const res = await apiFetch('/api/documents/intake/brief/update', {
           ...JSON_POST,
@@ -349,14 +408,22 @@ export default function OneFlow({
             values: valuesRef.current,
             court: courtRef.current,
             description: everythingSaid(),
+            // T-147b: answers and edits go to the ledger too. The brief is worked out as before.
+            ...(onLedger ? { ledger_id: onLedger.ledger_id, ledger_edits: edits } : {}),
           }),
         });
         if (!res.ok) throw new Error('update failed');
-        const data = (await res.json()) as { brief: Brief };
-        // A newer change is already on its way. Its answer is the one to show.
-        if (seq !== updateSeq.current) return null;
+        const data = (await res.json()) as {
+          brief: Brief;
+          ledger?: Ledger;
+          ledger_results?: LedgerEditResult[];
+        };
+        // A newer change is already on its way. Its answer is the one to show,
+        // but this edit was saved, so its result still goes back to its row.
+        if (seq !== updateSeq.current) return { brief: data.brief, results: data.ledger_results ?? [] };
         adopt(data.brief);
-        return data.brief;
+        if (data.ledger) setLedger(data.ledger);
+        return { brief: data.brief, results: data.ledger_results ?? [] };
       } catch {
         if (seq === updateSeq.current) {
           setBriefMessage('We could not check that change just now. Change it again to retry.');
@@ -366,11 +433,18 @@ export default function OneFlow({
         if (seq === updateSeq.current) setUpdating(false);
       }
     },
-    [adopt, everythingSaid],
+    [adopt, everythingSaid, setLedger],
   );
 
+  /** T-147b: the ledger edit for a value, when the ledger holds this item. */
+  const ledgerEdit = (key: string, value: Value, fromQuestion: boolean): LedgerEditBody[] => {
+    const l = ledgerRef.current;
+    if (!l || l.fields[key] === undefined || Array.isArray(value)) return [];
+    return [{ key, text: value, ...(fromQuestion ? { from_question: true } : {}) }];
+  };
+
   const handleValue = useCallback(
-    (item: BriefItem, value: Value) => {
+    async (item: BriefItem, value: Value): Promise<EditOutcome | null> => {
       valuesRef.current = withValue(valuesRef.current, item.key, value, item.label);
       const current = briefRef.current;
       if (current) {
@@ -389,7 +463,14 @@ export default function OneFlow({
           ),
         });
       }
-      void update();
+      const edits = ledgerEdit(item.key, value, false);
+      const out = await update(undefined, edits);
+      if (edits.length === 0) return null;
+      if (!out) return { status: 'failed' };
+      const result = out.results.find((r) => r.key === item.key);
+      if (!result || result.status === 'skipped') return null;
+      if (result.status === 'unreadable') return { status: 'unreadable', detail: result.detail };
+      return { status: 'saved', display: result.display };
     },
     [setBrief, update],
   );
@@ -417,6 +498,8 @@ export default function OneFlow({
           description: description.trim(),
           kind: kindId,
           ...(intakeId.current ? { intake_id: intakeId.current } : {}),
+          // T-147b: the answers and edits on this ledger carry to the new document's ledger.
+          ...(ledgerRef.current ? { ledger_id: ledgerRef.current.ledger_id } : {}),
           ...(keep.length > 0 ? { keep } : {}),
           ...courtIfAny(),
         },
@@ -428,13 +511,19 @@ export default function OneFlow({
 
   const answerQuestions = useCallback(
     async (given: Array<{ question: BriefQuestion; value: Value }>) => {
+      const edits: LedgerEditBody[] = [];
       for (const g of given) {
         valuesRef.current = withValue(valuesRef.current, g.question.key, g.value, g.question.label);
+        edits.push(...ledgerEdit(g.question.key, g.value, true));
       }
       setBusy(true);
-      const next = given.length > 0 ? await update() : briefRef.current;
+      if (given.length > 0) await update(undefined, edits);
       setBusy(false);
-      if (questionRound === 1 && openQuestions(questions, next ?? briefRef.current, 2).length > 0) {
+      // The brief the service sent last (an update that was overtaken is not adopted).
+      if (
+        questionRound === 1 &&
+        openQuestions(questions, briefRef.current, ledgerRef.current, 2).length > 0
+      ) {
         setQuestionRound(2);
         setRoundsShown((n) => n + 1);
         return;
@@ -615,10 +704,12 @@ export default function OneFlow({
 
   const editDescription = useCallback(() => {
     setMessage(null);
+    setReading(null);
     setPhase('describe');
   }, []);
 
   const browse = useCallback(() => setPhase('browse'), []);
+  const clearFocusOutstanding = useCallback(() => setFocusOutstanding(false), []);
 
   const cancel = useCallback(() => {
     reset();
@@ -632,6 +723,31 @@ export default function OneFlow({
   }, [reset]);
 
   // ── Render ────────────────────────────────────────────────────────────────
+
+  // T-147b, section 9: back on the brief after questions opened from the
+  // outstanding block, focus returns to its heading. Done after the render.
+  const onBriefScreen =
+    reading === null &&
+    brief !== null &&
+    (phase === 'brief' ||
+      (phase === 'questions' && openQuestions(questions, brief, ledger, questionRound).length === 0));
+  useEffect(() => {
+    if (!onBriefScreen || !fromOutstanding.current) return;
+    fromOutstanding.current = false;
+    setFocusOutstanding(true);
+  }, [onBriefScreen]);
+
+  if (reading === 'loading') return <BriefLoading />;
+  if (reading === 'failed') {
+    return (
+      <BriefLoadError
+        onRetry={() => {
+          if (lastReadBody.current) void readBrief(lastReadBody.current, 'describe');
+        }}
+        onEditDescription={editDescription}
+      />
+    );
+  }
 
   if (phase === 'browse') {
     return (
@@ -726,7 +842,7 @@ export default function OneFlow({
 
   if ((phase === 'questions' || phase === 'brief') && brief) {
     const roundQuestions =
-      phase === 'questions' ? openQuestions(questions, brief, questionRound) : [];
+      phase === 'questions' ? openQuestions(questions, brief, ledger, questionRound) : [];
     if (roundQuestions.length > 0) {
       return (
         <QuestionsStep
@@ -744,17 +860,26 @@ export default function OneFlow({
       );
     }
     // "Answer N more questions" opens the next round only, so N counts that round.
-    const left = openQuestions(questions, brief);
+    const left = openQuestions(questions, brief, ledger);
     const nextRound: 1 | 2 = left.some((q) => q.round === 1) ? 1 : 2;
     const nextQuestions = left.filter((q) => q.round === nextRound);
+    // T-147b: "Answer N questions" in the outstanding block opens the round that
+    // holds the first of them, so the round always contains them.
+    const outstanding = outstandingKeys(ledger);
+    const outstandingOpen = left.filter((q) => outstanding.has(q.key));
+    const outstandingRound: 1 | 2 = outstandingOpen[0]?.round ?? nextRound;
     return (
       <>
         <BriefStep
           brief={brief}
+          ledger={ledger}
+          focusOutstanding={focusOutstanding}
+          onOutstandingFocused={clearFocusOutstanding}
           busy={busy || updating}
           confirming={false}
           message={briefMessage}
           questionsLeft={nextQuestions.length}
+          outstandingQuestions={outstandingOpen.length}
           onValue={handleValue}
           onCourt={handleCourt}
           onKindName={(name) => {
@@ -763,8 +888,9 @@ export default function OneFlow({
           }}
           onPlaceDate={handleValue}
           onChangeDocument={() => setChangeOpen(true)}
-          onMoreQuestions={() => {
-            setQuestionRound(nextRound);
+          onMoreQuestions={(from) => {
+            fromOutstanding.current = from === 'outstanding';
+            setQuestionRound(from === 'outstanding' ? outstandingRound : nextRound);
             setRoundsShown((n) => n + 1);
             setPhase('questions');
           }}

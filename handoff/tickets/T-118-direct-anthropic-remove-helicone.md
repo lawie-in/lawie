@@ -48,6 +48,7 @@ Every model call goes straight to Anthropic. No Helicone code, key or header is 
 - Find the Helicone organisation that owns the key: the organisation switcher on helicone.ai, or another login.
 - Delete the stored requests there and revoke the key.
 - If it cannot be found, write that here. The key stops being used after step 1 either way.
+- 10 Oct 2026: skipped. The founder does not have the email for the account that owns the key, so it cannot be found. Our code no longer calls Helicone (PR #82), and the founder verified that drafting works without the key. The Anthropic API key is replaced at launch (T-403 checklist), which also makes anything Helicone logged under the old key harmless.
 
 **Records**
 

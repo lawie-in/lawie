@@ -15,10 +15,14 @@ import {
   INTAKE_LIMITS,
   IntakeLimitError,
   isDescribeFirstEnabled,
+  isFactLedgerEnabled,
+  LedgerNotFoundError,
   runBriefIntake,
   runIntake,
   updateBrief,
+  updateLedger,
 } from '../services/intake.service';
+import { LedgerConflictError, LedgerFullError } from '../services/fact-ledger.service';
 
 const router = Router();
 
@@ -131,6 +135,9 @@ const KIND = z
   .max(100)
   .regex(/^[a-z0-9_]+$/, 'must be a document kind');
 
+/** T-147b: a fact-ledger id. Read only while `feature.fact_ledger` is on for the user. */
+const LEDGER_ID = z.string().regex(/^[a-f0-9]{24}$/i, 'must be a ledger id');
+
 const valueSchema = z.object({
   key: z.string().min(1).max(200),
   value: z.union([z.string().max(6000), z.array(z.string().max(500)).max(30)]),
@@ -170,6 +177,8 @@ const briefSchema = z
       )
       .max(10)
       .optional(),
+    /** T-147b, on a change of document: the ledger shown so far. */
+    ledger_id: LEDGER_ID.optional(),
   })
   .refine((b) => (b.round ?? 1) === 1 || b.intake_id !== undefined, {
     message: 'intake_id is required after round 1',
@@ -207,9 +216,14 @@ router.post('/intake/brief', authenticate, async (req: Request, res: Response): 
       court: parsed.data.court ?? undefined,
       round: parsed.data.round,
       answers: parsed.data.answers,
+      ledgerId: parsed.data.ledger_id,
     });
     res.json(result);
   } catch (err) {
+    if (err instanceof LedgerNotFoundError) {
+      res.status(404).json({ error: 'Ledger not found' });
+      return;
+    }
     if (err instanceof IntakeLimitError) {
       res.setHeader('Retry-After', String(err.retryAfterSeconds));
       res.status(429).json({
@@ -237,6 +251,19 @@ const briefUpdateSchema = z.object({
     .string()
     .max(INTAKE_LIMITS.descriptionMax + 10 * INTAKE_LIMITS.answerMax)
     .optional(),
+  /** T-147b: the ledger shown with the brief, and the answers and edits to write to it. */
+  ledger_id: LEDGER_ID.optional(),
+  ledger_edits: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(200),
+        text: z.string().max(6000),
+        /** True when the value was given on the questions step. */
+        from_question: z.boolean().optional(),
+      }),
+    )
+    .max(20)
+    .default([]),
 });
 
 router.post(
@@ -252,6 +279,41 @@ router.post(
       invalid(res, parsed.error);
       return;
     }
+    // T-147b: the ledger first, so a ledger that is not this user's changes nothing.
+    // The brief below is worked out exactly as before; the ledger is not its input.
+    let ledgerPart: Record<string, unknown> = {};
+    const userId = req.jwtPayload!.sub;
+    if (parsed.data.ledger_id !== undefined && (await isFactLedgerEnabled(userId))) {
+      try {
+        const out = await updateLedger({
+          userId,
+          ledgerId: parsed.data.ledger_id,
+          kind: parsed.data.kind,
+          edits: parsed.data.ledger_edits.map((e) => ({
+            key: e.key,
+            text: e.text,
+            fromQuestion: e.from_question,
+          })),
+        });
+        ledgerPart = { ledger: out.ledger, ledger_results: out.results };
+      } catch (err) {
+        if (err instanceof LedgerNotFoundError) {
+          res.status(404).json({ error: 'Ledger not found' });
+          return;
+        }
+        if (err instanceof LedgerConflictError) {
+          res.status(409).json({ error: 'ledger_conflict' });
+          return;
+        }
+        if (err instanceof LedgerFullError) {
+          res.status(422).json({ error: 'ledger_version_limit' });
+          return;
+        }
+        console.error('[intake] ledger update failed:', err instanceof Error ? err.name : 'unknown');
+        res.status(503).json({ error: 'ledger_unavailable' });
+        return;
+      }
+    }
     const brief = updateBrief({
       kind: parsed.data.kind,
       kindName: parsed.data.kind_name,
@@ -264,7 +326,7 @@ router.post(
       res.status(404).json({ error: 'Document kind not found' });
       return;
     }
-    res.json({ brief });
+    res.json({ brief, ...ledgerPart });
   },
 );
 

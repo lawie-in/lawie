@@ -10,6 +10,7 @@ import crypto from 'crypto';
 
 import redis from '../config/redis';
 import { Event } from '../models/Event.model';
+import type { IFactLedger } from '../models/FactLedger.model';
 import { LlmAuxCall, LlmAuxPurpose } from '../models/LlmAuxCall.model';
 import { presentDescription } from '../utils/presentDescription';
 
@@ -39,6 +40,21 @@ import {
   valuesAfterEditedDescription,
   wordedQuestions,
 } from './intake-brief';
+import {
+  applyEdits,
+  carryOver,
+  createLedger,
+  currentState,
+  extractLines,
+  FACT_LEDGER_SETTING,
+  LedgerEdit,
+  LedgerEditResult,
+  LedgerView,
+  ledgerView,
+  loadOwnLedger,
+  readExtraction,
+  referenceYear,
+} from './fact-ledger.service';
 import { readIntakeCache, writeIntakeCache } from './intake-cache';
 import {
   datesInText,
@@ -53,8 +69,10 @@ import {
   buildFillUserPrompt,
   buildMatchUserPrompt,
   buildReceptionGuidedUserPrompt,
+  buildExtractUserPrompt,
   buildReceptionPackUserPrompt,
   CatalogueEntry,
+  EXTRACT_SYSTEM_PROMPT,
   FILL_SYSTEM_PROMPT,
   MATCH_SYSTEM_PROMPT,
   RECEPTION_GUIDED_SYSTEM_PROMPT,
@@ -84,8 +102,21 @@ export const DESCRIBE_FIRST_SETTING = 'feature.describe_first';
  * Never throws: any problem reading it means off, so the gallery shows.
  */
 export async function isDescribeFirstEnabled(userId: string): Promise<boolean> {
+  return isSwitchOn(DESCRIBE_FIRST_SETTING, userId);
+}
+
+/**
+ * T-147b: `feature.fact_ledger`, read the same way as `feature.describe_first`.
+ * Off or unset: the brief works exactly as before, with no extraction call
+ * and no ledger. On: the extraction pass runs and the ledger is written.
+ */
+export async function isFactLedgerEnabled(userId: string): Promise<boolean> {
+  return isSwitchOn(FACT_LEDGER_SETTING, userId);
+}
+
+async function isSwitchOn(setting: string, userId: string): Promise<boolean> {
   try {
-    const raw = (await getAppSetting(DESCRIBE_FIRST_SETTING)).trim();
+    const raw = (await getAppSetting(setting)).trim();
     if (raw === 'on') return true;
     if (raw === 'off' || raw === '') return false;
     return raw
@@ -108,12 +139,27 @@ export const INTAKE_LIMITS = {
   fillMaxTokens: 1500,
   /** T-105: Reception reads up to 40 checklist lines and words up to 10 questions. */
   receptionMaxTokens: 3000,
+  /** T-147b: the extraction pass returns one short span per fact, for up to 40 facts. */
+  extractMaxTokens: 1500,
+  /** T-147b: versions one fact ledger may hold. One `/intake/brief/update` request writes at most one. */
+  maxLedgerVersions: 100,
   /** T-105: model-calling requests allowed for one intake after its first (rounds and changes of kind). */
   followUpsPerIntake: 6,
   answerMax: 2000,
   descriptionMin: 20,
   descriptionMax: 4000,
 } as const;
+
+/** T-147b: a ledger id that does not exist or is not this user's. Always a 404. */
+export class LedgerNotFoundError extends Error {
+  constructor() {
+    super('ledger not found');
+    this.name = 'LedgerNotFoundError';
+  }
+}
+
+/** T-147b: the most versions one fact ledger holds. */
+export const MAX_LEDGER_VERSIONS = INTAKE_LIMITS.maxLedgerVersions;
 
 export class IntakeLimitError extends Error {
   readonly retryAfterSeconds: number;
@@ -972,6 +1018,13 @@ export interface BriefIntakeRequest {
   /** No rule pack only: 2 or 3, sent with the answers so far. */
   round?: number;
   answers?: ReceptionAnswer[];
+  /**
+   * T-147b, on a change of document: the ledger shown so far. The facts the
+   * advocate answered or edited on it are carried to the new ledger.
+   */
+  ledgerId?: string;
+  /** For tests: the moment two-digit years are read against. */
+  now?: Date;
 }
 
 export interface BriefIntakeResponse {
@@ -983,6 +1036,8 @@ export interface BriefIntakeResponse {
   next_round?: number;
   choices?: Array<{ kind: string; name: string }>;
   needs_upgrade?: boolean;
+  /** T-147b, only while `feature.fact_ledger` is on for the user: the ledger written for this brief. */
+  ledger?: LedgerView;
 }
 
 interface BriefContext {
@@ -991,6 +1046,10 @@ interface BriefContext {
   model: string;
   /** Counts the request against the limits, once, just before its first real model call. */
   spend: () => Promise<void>;
+  /** True once this request has counted against the limits. */
+  hasSpent: () => boolean;
+  /** T-147b: whether to write a ledger, and the earlier ledger on a change of document. */
+  ledger: { enabled: boolean; earlier: IFactLedger | null };
 }
 
 /**
@@ -1012,6 +1071,72 @@ async function cachedModelCall(
   const text = await modelCall(ctx, purpose, system, user, maxTokens);
   if (text !== null) await writeIntakeCache(cacheParts, text);
   return text;
+}
+
+/**
+ * T-147b: the extraction pass. Its own call and its own prompt, cached like
+ * the others. It never counts against the limits on its own: one request is
+ * one unit, and the pass rides on the unit this request has already spent. A
+ * request answered wholly from the cache spent nothing, so it makes no new
+ * extraction call either (the ledger is then empty and the brief asks as before).
+ */
+async function extractCall(ctx: BriefContext, user: string): Promise<string | null> {
+  const cacheParts = [ctx.userId, 'intake_extract', ctx.model, EXTRACT_SYSTEM_PROMPT, user];
+  const cached = await readIntakeCache(cacheParts);
+  if (cached !== null) return cached;
+  if (!ctx.hasSpent()) return null;
+  const text = await modelCall(
+    ctx,
+    'intake_extract',
+    EXTRACT_SYSTEM_PROMPT,
+    user,
+    INTAKE_LIMITS.extractMaxTokens,
+  );
+  if (text !== null) await writeIntakeCache(cacheParts, text);
+  return text;
+}
+
+/**
+ * Run the extraction pass and write the ledger's first version. Any failure
+ * gives no ledger (a failed call gives an empty one); the brief is built as
+ * before either way. Logs ids and counts only.
+ */
+async function writeReceptionLedger(
+  ctx: BriefContext,
+  pack: RulePack,
+  checklist: ChecklistItem[],
+  req: BriefIntakeRequest,
+): Promise<LedgerView | undefined> {
+  try {
+    const lines = extractLines(checklist);
+    const text =
+      lines.length === 0 ? null : await extractCall(ctx, buildExtractUserPrompt(lines, req.description));
+    const read = readExtraction(
+      checklist,
+      req.description,
+      text === null ? null : parseModelJson(text),
+      referenceYear(req.now ?? new Date()),
+    );
+    const earlier = ctx.ledger.earlier ? currentState(ctx.ledger.earlier) : null;
+    const state = carryOver({ facts: read.facts, unresolved: read.unresolved }, earlier, checklist);
+    const doc = await createLedger({
+      userId: ctx.userId,
+      documentKind: pack.id,
+      intakeId: ctx.intakeId,
+      state,
+    });
+    const count = (r: string) => read.dropped.filter((d) => d.reason === r).length;
+    console.info(
+      `[intake] ledger written (intakeId=${ctx.intakeId}, ledgerId=${String(doc.id)}, kind=${pack.id}, called=${text !== null}, facts=${state.facts.length}, unresolved=${state.unresolved.length}, droppedNotOnList=${count('not_on_list')}, droppedNoSpan=${count('no_span')}, droppedSpanNotFound=${count('span_not_found')})`,
+    );
+    return ledgerView(doc, checklist);
+  } catch (err) {
+    console.error(
+      `[intake] ledger not written (intakeId=${ctx.intakeId}):`,
+      err instanceof Error ? err.name : 'unknown',
+    );
+    return undefined;
+  }
 }
 
 /** After the first request of an intake, later ones are capped per intake, not per user. */
@@ -1115,13 +1240,22 @@ async function briefWithPack(
   console.info(
     `[intake] brief built (intakeId=${ctx.intakeId}, kind=${pack.id}, read=${read.values.size}, byCode=${byCode.size}, dropped=${read.dropped.length}, unknown=${brief.still_unknown.length}${edit})`,
   );
+  // T-147b: what the normalizer could not read is always asked, through the same
+  // questions, even when the brief already holds a value for it. The value stays.
+  const ledger = ctx.ledger.enabled
+    ? await writeReceptionLedger(ctx, pack, checklist, req)
+    : undefined;
+  const always: ReadonlySet<string> = new Set(
+    ledger ? ledger.unresolved.filter((u) => !ledger.facts.some((f) => f.key === u.key)).map((u) => u.key) : [],
+  );
   const config = loadTemplateConfig(pack.id);
   return {
     intake_id: ctx.intakeId,
     outcome: 'brief',
     brief,
-    questions: buildBriefQuestions(brief, wordedQuestions(parsed), alsoAsk),
+    questions: buildBriefQuestions(brief, wordedQuestions(parsed), alsoAsk, always),
     ...(config?.plan_access === 'pro' && req.plan !== 'pro' ? { needs_upgrade: true } : {}),
+    ...(ledger ? { ledger } : {}),
   };
 }
 
@@ -1252,6 +1386,8 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
     userId: req.userId,
     intakeId,
     model,
+    hasSpent: () => spent,
+    ledger: { enabled: false, earlier: null },
     spend: async () => {
       if (spent) return;
       spent = true;
@@ -1265,6 +1401,15 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
   };
 
   try {
+    // T-147b: the ledger, only while the switch is on. An earlier ledger must be this user's.
+    if (await isFactLedgerEnabled(req.userId)) {
+      ctx.ledger.enabled = true;
+      if (req.ledgerId !== undefined) {
+        ctx.ledger.earlier = await loadOwnLedger(req.ledgerId, req.userId);
+        if (!ctx.ledger.earlier) throw new LedgerNotFoundError();
+      }
+    }
+
     const catalogue = getCatalogue();
     const allowed = new Set(catalogue.map((c) => c.template_id));
 
@@ -1333,7 +1478,7 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
         return { intake_id: intakeId, outcome: 'no_match' };
     }
   } catch (err) {
-    if (err instanceof IntakeLimitError) throw err;
+    if (err instanceof IntakeLimitError || err instanceof LedgerNotFoundError) throw err;
     console.error(
       `[intake] brief failed, no further model call made (intakeId=${intakeId}):`,
       err instanceof Error ? err.name : 'unknown',
@@ -1397,4 +1542,40 @@ export function updateBrief(req: BriefUpdateRequest): Brief | null {
     court: req.court,
     description: req.description,
   });
+}
+
+export interface LedgerUpdateRequest {
+  userId: string;
+  ledgerId: string;
+  /** The rule-pack id of the brief. The ledger must be for the same one. */
+  kind: string;
+  edits: LedgerEdit[];
+  now?: Date;
+}
+
+/**
+ * T-147b: answers and edits on the brief, written to the ledger as new
+ * versions. No model call. Throws LedgerNotFoundError for a ledger that is
+ * not this user's, or not for this document. Logs ids and counts only.
+ */
+export async function updateLedger(
+  req: LedgerUpdateRequest,
+): Promise<{ ledger: LedgerView; results: LedgerEditResult[] }> {
+  const doc = await loadOwnLedger(req.ledgerId, req.userId);
+  if (!doc || doc.documentKind !== req.kind) throw new LedgerNotFoundError();
+  const allowed = new Set(getCatalogue().map((c) => c.template_id));
+  const pack = allowed.has(req.kind) ? loadRulePack(req.kind) : null;
+  if (!pack) throw new LedgerNotFoundError();
+  const checklist = buildChecklist(pack);
+  const { doc: after, results } = await applyEdits(
+    doc,
+    checklist,
+    req.edits,
+    INTAKE_LIMITS.maxLedgerVersions,
+    req.now,
+  );
+  console.info(
+    `[intake] ledger updated (ledgerId=${req.ledgerId}, version=${after.currentVersion}, edits=${req.edits.length}, saved=${results.filter((r) => r.status === 'saved').length}, unreadable=${results.filter((r) => r.status === 'unreadable').length})`,
+  );
+  return { ledger: ledgerView(after, checklist), results };
 }
