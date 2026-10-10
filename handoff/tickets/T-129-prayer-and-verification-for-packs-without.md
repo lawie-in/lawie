@@ -43,3 +43,7 @@ Every court document has a prayer and a verification that Ajay wrote, so the Dra
 - Report: `handoff/data/rule-pack-report.md`
 - `handoff/design/T-127-one-flow-rules-and-prompts.md`, section 9
 - Legal sign-off: Ajay writes the content
+
+## Notes
+
+- 10 Oct 2026: Ajay rules the verification split ("true to my knowledge" for the facts, "based on legal advice" for the grounds) a go-live blocker before any real advocate gets `feature.fact_ledger`.
