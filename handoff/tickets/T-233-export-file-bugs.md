@@ -32,3 +32,7 @@ In `apps/web/src/components/editor/exportUtils.ts`:
 ## Added (Priya, 12 Oct 2026, from mahak during T-194)
 
 - A failed export after "Export anyway" is an unhandled rejection with no message to the user: `exportFile` in page.tsx has no catch. Show an error and let the user retry.
+
+## Follow-up added (Ajay, T-194 sign-off 5640356)
+
+- Make the blank-marker match case-insensitive. Low risk, and it needs no sign-off on its own.
