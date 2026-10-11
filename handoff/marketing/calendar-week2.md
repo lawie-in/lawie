@@ -11,6 +11,12 @@ All house rules from `calendar-week1.md` apply: verbatim disclaimer, Ajay's Ink 
 
 **Reel note:** R2 (legal notice, a 1-Ink document) is this week's reel, although the week's theme is bail (Meera, confirmed; `strategy.md` §7 updated to match: R1 Week 1, R2 Week 2, R3 Week 3).
 
+**X posts (Meera, round 2):** every X post here carries its CTA link in the text, so it uses X's link card and **no image** (attaching an image suppresses the card). Visual brief for each X post is "none (link card)"; see the "Rajesh: update" line under each brief. An image-only X post would have no link in the text; none is planned.
+
+**UI-screenshot posts** (W1-IG-1, W1-LI-2, both reel covers, W2-X-3) use the classic Browse document types screen. Redo the crops if describe-first is live at go-live. (W2-X-3 no longer carries an image under the X rule above; it is listed only so the crops are not forgotten if an image-only variant is ever approved.)
+
+**Reel swap rule (Meera, round 2):** the Week 1 Instagram reel (W1-IG-2) is **R4 (classic-path fallback)** if describe-first is not live for all users at go-live, otherwise **R1 (describe, bail)**. The Week 2 reel (W2-IG-2) is **R2 (describe, legal notice)** if describe-first is live, otherwise **R4 again**. Captions in this file are written for the classic flow ("pick, answer a few questions"); `reels.md` has the describe-flow caption wording for R1 and R2.
+
 ## Week at a glance
 
 | Day | ID | Channel | Pillar | Topic |
@@ -121,7 +127,7 @@ The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-1
 ```
 
-**CTA** — "Start with 5 free Ink" plus the link.
+**CTA** — "Start with 5 free Ink" in the text, plus the link. X shows the link card; no image attached.
 
 **Visual brief (Rajesh):**
 - **Format:** X image, 1600x900. `_en`, `_hi`.
@@ -134,6 +140,8 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 - **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour.
 - **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles: regular, anticipatory, before magistrate, interim, default, cancellation. Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink."
 - **Note for Madhuri/Ajay:** Same link-card caveat as W1-X-1.
+
+**Rajesh: update** — this X post carries the CTA link, so it uses the link card and NO image (an attached image suppresses the card). Visual brief is now: none (link card). The image brief above is superseded; keep it only if Meera later approves an image-only variant with no link in the text.
 
 **Claims to check (Ajay):**
 1. Six bail drafts are live.
@@ -372,7 +380,7 @@ Grounds और prayer
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-2
 ```
 
-**CTA** — the link.
+**CTA** — the link only (the post text has no separate CTA line, to stay under 280). X shows the link card; no image attached.
 
 **Visual brief (Rajesh):**
 - **Format:** X image, 1600x900. `_en`, `_hi`.
@@ -384,6 +392,8 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** The post's own closing sentence is the disclaimer pointer; set it in the footer zone at full strength.
 - **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Four things to check before you file a bail application drafted in Lawie: every section cited, names, dates and FIR details, the court heading, and the grounds and prayer. The draft is a start. The advocate is responsible for legal accuracy and filing."
+
+**Rajesh: update** — this X post carries the CTA link, so it uses the link card and NO image (an attached image suppresses the card). Visual brief is now: none (link card). The image brief above is superseded; keep it only if Meera later approves an image-only variant with no link in the text.
 
 **Claims to check (Ajay):**
 1. Review checklist (as W2-LI-2).
@@ -539,7 +549,7 @@ The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-3
 ```
 
-**CTA** — "Start with 5 free Ink" plus the link.
+**CTA** — "Start with 5 free Ink" in the text, plus the link. X shows the link card; no image attached.
 
 **Visual brief (Rajesh):**
 - **Format:** X image, 1600x900. `_en`, `_hi`.
@@ -552,6 +562,8 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 - **Disclaimer:** Pointer sentence (the post's own closing line), full-strength, in the footer zone.
 - **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Three steps: pick the bail application, answer a few questions about the matter, review, edit and download in Word or PDF. Bail applications use 2 Ink. Start with 5 free Ink."
 - **Note for Madhuri/Ajay:** Crops are small; they are cues, not content. Do not enlarge them to 'show the draft'.
+
+**Rajesh: update** — this X post carries the CTA link, so it uses the link card and NO image (an attached image suppresses the card). Visual brief is now: none (link card). The image brief above is superseded; keep it only if Meera later approves an image-only variant with no link in the text.
 
 **Claims to check (Ajay):**
 1. Flow: pick, answer questions, review, edit, download (Word or PDF).
