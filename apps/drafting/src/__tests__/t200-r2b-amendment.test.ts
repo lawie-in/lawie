@@ -382,6 +382,15 @@ beforeEach(async () => {
   });
 });
 
+const systemOf = () => {
+  const config = loadTemplateConfig(KIND);
+  return config ? systemParts(config) : [];
+};
+const event = (text: string, name: string): Record<string, any> | null => {
+  const blocks = text.split('\n\n').filter((b) => b.startsWith(`event: ${name}\n`));
+  return blocks.length === 0 ? null : JSON.parse(blocks[blocks.length - 1].split('\ndata: ')[1]);
+};
+
 const missingIds = (done: { missingClauses: Array<{ id: string }> }) =>
   done.missingClauses.map((m) => m.id).sort();
 
@@ -476,9 +485,44 @@ describe("Ajay R2b.4: the fact check's model repair", () => {
   ])(
     'Ajay R2b.4 (b): the repair %s: the uncued clauses are missing (clause_not_in_paragraph)',
     async (_n, p1) => {
-      const { done } = await draft(`[[P0]]\n${p1}`);
+      const { res, done } = await draft(`[[P0]]\n${p1}`);
       expect(missingIds(done)).toEqual(['apprehension', 'no_flight_risk']);
       expect(done.mandatoryClausesComplete).toBe(false);
+      expect(done.startingDraft).toBe(true);
+      // The route's payload carries ids and titles only, not the reason. The warnings name the clauses:
+      const warned = (event(res.text, 'warning')?.warnings ?? []) as Array<{
+        type: string;
+        details: { clauseId: string };
+      }>;
+      expect(
+        warned
+          .filter((w) => w.type === 'missing_clause')
+          .map((w) => w.details.clauseId)
+          .sort(),
+      ).toEqual(['apprehension', 'no_flight_risk']);
+      // The reason, by the same steps the route takes: record on the first check, edit as the model
+      // repair did with the flagged span, check the repaired body.
+      const recorded = new Map<string, string>();
+      const first = splitDrafterOutput(`${BAD}\n\n${CLAUSES_MARKER}\n${reportOf()}`);
+      findMissingClauses(PACK, first, [], { recorded });
+      const repaired = `${p1}\n\n${P2}`;
+      const at = BAD.indexOf('law-abiding citizen');
+      recordAgainAfterCodeEdit(
+        first.report,
+        BAD,
+        repaired,
+        recorded,
+        [],
+        [{ from: at, to: at + 'law-abiding citizen'.length }],
+      );
+      const after = splitDrafterOutput(`${repaired}\n\n${CLAUSES_MARKER}\n${reportOf()}`);
+      const reasons = findMissingClauses(PACK, after, systemOf(), { recorded })
+        .filter((m) => ['apprehension', 'no_flight_risk'].includes(m.id))
+        .map((m) => [m.id, m.reason]);
+      expect(reasons).toEqual([
+        ['apprehension', 'clause_not_in_paragraph'],
+        ['no_flight_risk', 'clause_not_in_paragraph'],
+      ]);
     },
   );
 });

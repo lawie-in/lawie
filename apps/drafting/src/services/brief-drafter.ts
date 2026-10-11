@@ -784,6 +784,8 @@ function checkReportedParagraphs(
   const text = reported.join(' ');
   const before = context.recorded?.get(clause.id);
   if (before === undefined) {
+    // R2b.5: a first check finding nothing but blanks records nothing.
+    if (onlyBlanks(text)) return 'clause_not_in_paragraph';
     context.recorded?.set(clause.id, text);
     return null;
   }
