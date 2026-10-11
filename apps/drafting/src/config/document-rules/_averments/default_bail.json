@@ -1,0 +1,411 @@
+{
+  "_about": "T-147c averment allowlist and banned-assertion list. Schema and rules: README.md in this folder. PROPOSED by the developer; Ajay (CLO) reviews and signs.",
+  "pack": "default_bail",
+  "inherits": null,
+  "key_map": {},
+  "_signed_by": "Ajay (CLO) writes his name and the date here when he signs this list. His signature is not release on its own: a practising advocate still checks the list before the pack goes live. Null means proposed, not signed.",
+  "signed_by": null,
+  "signed_on": null,
+  "banned": [
+    {
+      "id": "chargesheet_not_filed",
+      "kind": "averment",
+      "what": "The charge sheet has not been filed",
+      "phrases": [
+        "no charge sheet has been filed",
+        "charge sheet not filed till date",
+        "police report under Section 193 BNSS not filed",
+        "the investigation is not complete",
+        "challan pesh nahi hua"
+      ],
+      "unlocked_by": {
+        "key": "charge_sheet_status",
+        "label": "Charge Sheet Status",
+        "equals": [
+          "Not filed"
+        ]
+      }
+    },
+    {
+      "id": "chargesheet_incomplete",
+      "kind": "averment",
+      "what": "The charge sheet is defective or incomplete",
+      "phrases": [
+        "incomplete charge sheet",
+        "defective charge sheet",
+        "adhoora challan"
+      ],
+      "unlocked_by": {
+        "key": "charge_sheet_status",
+        "label": "Charge Sheet Status",
+        "equals": [
+          "Filed but defective / incomplete"
+        ]
+      }
+    },
+    {
+      "id": "chargesheet_defect_particulars",
+      "kind": "averment",
+      "what": "Particulars of the defect",
+      "phrases": [
+        "piecemeal charge sheet",
+        "charge sheet without FSL report"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "chargesheet_late",
+      "kind": "averment",
+      "what": "The charge sheet was filed after the statutory period",
+      "phrases": [
+        "charge sheet was filed after the statutory period",
+        "filed belatedly"
+      ],
+      "unlocked_by": {
+        "key": "charge_sheet_status",
+        "label": "Charge Sheet Status",
+        "equals": [
+          "Filed after expiry of statutory period"
+        ]
+      }
+    },
+    {
+      "id": "statutory_period_expired",
+      "kind": "submission",
+      "what": "The statutory period has expired and the right to default bail has accrued",
+      "phrases": [
+        "the statutory period of 60 days has expired",
+        "the period of 90 days has expired",
+        "indefeasible right to default bail has accrued",
+        "right under Section 187(3) BNSS has accrued",
+        "the applicant is entitled to be released on default bail",
+        "miyaad khatam ho gayi"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "days_elapsed",
+      "kind": "averment",
+      "what": "A length of custody",
+      "phrases": [
+        "has been in custody for",
+        "days have elapsed",
+        "itne din se jail mein"
+      ],
+      "unlocked_by": {
+        "all_of": [
+          {
+            "key": "elapsed_days",
+            "label": "Days Elapsed Since First Remand",
+            "present": true
+          },
+          {
+            "key": "remand_date",
+            "label": "Date of First Remand to Custody",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "statutory_threshold_crossed",
+      "kind": "submission",
+      "what": "The 60- or 90-day period under s.187(3) BNSS has been crossed",
+      "phrases": [
+        "more than 60 days",
+        "more than 90 days",
+        "beyond the statutory period",
+        "charge sheet filed beyond 60 days",
+        "charge sheet filed beyond 90 days",
+        "punishable with imprisonment for less than ten years",
+        "punishable with imprisonment for ten years or more",
+        "punishable with death or imprisonment for life"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "arrested_on",
+      "kind": "averment",
+      "what": "The date of arrest",
+      "phrases": [
+        "was arrested on",
+        "was taken into custody on",
+        "giraftar kiya gaya"
+      ],
+      "unlocked_by": {
+        "key": "arrest_date",
+        "label": "Date of Arrest",
+        "present": true
+      }
+    },
+    {
+      "id": "remanded_on",
+      "kind": "averment",
+      "what": "The date of first remand",
+      "phrases": [
+        "was first remanded on",
+        "remanded to judicial custody on",
+        "remand mili"
+      ],
+      "unlocked_by": {
+        "key": "remand_date",
+        "label": "Date of First Remand to Custody",
+        "present": true
+      }
+    },
+    {
+      "id": "punishment_category",
+      "kind": "averment",
+      "what": "How the offence is punishable",
+      "phrases": [
+        "punishable with imprisonment of up to"
+      ],
+      "unlocked_by": {
+        "key": "offence_punishment_max_years",
+        "label": "Maximum Punishment (years) for Most Serious Offence",
+        "present": true
+      }
+    },
+    {
+      "id": "willing_to_furnish_bond",
+      "kind": "averment",
+      "what": "The applicant is ready to furnish bail bonds",
+      "phrases": [
+        "ready and willing to furnish bail bonds",
+        "prepared to furnish sureties",
+        "bond bharne ko taiyaar"
+      ],
+      "unlocked_by": {
+        "key": "willingness_to_furnish_bond",
+        "label": "Willing to Furnish Bond (mandatory)",
+        "equals": [
+          "Yes"
+        ]
+      }
+    },
+    {
+      "id": "no_extension_sought",
+      "kind": "averment",
+      "what": "The prosecution has not sought or obtained an extension of time",
+      "phrases": [
+        "no application for extension of time has been filed by the prosecution",
+        "no report of the Public Prosecutor seeking extension",
+        "no extension has been granted"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "application_before_chargesheet",
+      "kind": "averment",
+      "what": "This application was made before the charge sheet",
+      "phrases": [
+        "this application is filed before the charge sheet",
+        "the right was availed before the charge sheet was filed"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "first_bail_application",
+      "kind": "averment",
+      "what": "No other bail application was made, is pending or was rejected (suppression risk)",
+      "phrases": [
+        "this is the first bail application",
+        "no other bail application is pending",
+        "no bail application has been rejected",
+        "pehli zamanat arzi hai"
+      ],
+      "unlocked_by": {
+        "key": "earlier_bail_applications",
+        "label": "Earlier bail applications in this matter",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi",
+          "first application",
+          "no earlier application",
+          "no other application"
+        ]
+      }
+    },
+    {
+      "id": "no_criminal_antecedents",
+      "kind": "averment",
+      "what": "The applicant has no criminal antecedents",
+      "phrases": [
+        "has no criminal antecedents",
+        "no criminal history",
+        "no previous criminal record",
+        "first-time offender",
+        "koi criminal record nahi hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "default_bail_citation",
+      "kind": "submission",
+      "what": "A judgment on default bail that the advocate did not give",
+      "phrases": [
+        "Bikramjit Singh v. State of Punjab",
+        "M. Ravindran v. Intelligence Officer",
+        "Rakesh Kumar Paul v. State of Assam",
+        "Sanjay Dutt v. State",
+        "Uday Mohanlal Acharya",
+        "as held by the Hon'ble Supreme Court"
+      ],
+      "unlocked_by": null
+    }
+  ],
+  "allowed": [
+    {
+      "id": "chargesheet_not_filed",
+      "kind": "averment",
+      "averment": "the charge sheet has not been filed",
+      "requires": {
+        "key": "charge_sheet_status",
+        "label": "Charge Sheet Status",
+        "equals": [
+          "Not filed"
+        ]
+      }
+    },
+    {
+      "id": "chargesheet_incomplete",
+      "kind": "averment",
+      "averment": "the charge sheet was filed but is defective or incomplete",
+      "requires": {
+        "key": "charge_sheet_status",
+        "label": "Charge Sheet Status",
+        "equals": [
+          "Filed but defective / incomplete"
+        ]
+      }
+    },
+    {
+      "id": "chargesheet_late",
+      "kind": "averment",
+      "averment": "the charge sheet was filed after the expiry of the statutory period",
+      "requires": {
+        "key": "charge_sheet_status",
+        "label": "Charge Sheet Status",
+        "equals": [
+          "Filed after expiry of statutory period"
+        ]
+      }
+    },
+    {
+      "id": "statutory_period_expired",
+      "kind": "submission",
+      "averment": "it is submitted that, {{elapsed_days}} days having elapsed since the first remand on {{remand_date}} with no charge sheet filed, and the most serious offence being punishable with imprisonment of up to {{offence_punishment_max_years}} years, the applicant's right under Section 187(3) of the Bharatiya Nagarik Suraksha Sanhita, 2023 has accrued",
+      "requires": {
+        "all_of": [
+          {
+            "key": "remand_date",
+            "label": "Date of First Remand to Custody",
+            "present": true
+          },
+          {
+            "key": "elapsed_days",
+            "label": "Days Elapsed Since First Remand",
+            "present": true
+          },
+          {
+            "key": "offence_punishment_max_years",
+            "label": "Maximum Punishment (years) for Most Serious Offence",
+            "present": true
+          },
+          {
+            "key": "charge_sheet_status",
+            "label": "Charge Sheet Status",
+            "equals": [
+              "Not filed"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "days_elapsed",
+      "kind": "averment",
+      "averment": "{{elapsed_days}} days have elapsed since the first remand on {{remand_date}}",
+      "requires": {
+        "all_of": [
+          {
+            "key": "elapsed_days",
+            "label": "Days Elapsed Since First Remand",
+            "present": true
+          },
+          {
+            "key": "remand_date",
+            "label": "Date of First Remand to Custody",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "arrested_on",
+      "kind": "averment",
+      "averment": "the applicant was arrested on {{arrest_date}}",
+      "requires": {
+        "key": "arrest_date",
+        "label": "Date of Arrest",
+        "present": true
+      }
+    },
+    {
+      "id": "remanded_on",
+      "kind": "averment",
+      "averment": "the applicant was first remanded to custody on {{remand_date}}",
+      "requires": {
+        "key": "remand_date",
+        "label": "Date of First Remand to Custody",
+        "present": true
+      }
+    },
+    {
+      "id": "punishment_category",
+      "kind": "averment",
+      "averment": "the most serious offence alleged is punishable with imprisonment of up to {{offence_punishment_max_years}} years",
+      "requires": {
+        "key": "offence_punishment_max_years",
+        "label": "Maximum Punishment (years) for Most Serious Offence",
+        "present": true
+      }
+    },
+    {
+      "id": "willing_to_furnish_bond",
+      "kind": "averment",
+      "averment": "the applicant is ready and willing to furnish bail bonds and sureties as this Hon'ble Court directs",
+      "requires": {
+        "key": "willingness_to_furnish_bond",
+        "label": "Willing to Furnish Bond (mandatory)",
+        "equals": [
+          "Yes"
+        ]
+      }
+    },
+    {
+      "id": "first_bail_application",
+      "kind": "averment",
+      "averment": "no other bail application has been made by the applicant in this matter",
+      "requires": {
+        "key": "earlier_bail_applications",
+        "label": "Earlier bail applications in this matter",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi",
+          "first application",
+          "no earlier application",
+          "no other application"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "_about": "T-147c averment allowlist and banned-assertion list. Schema and rules: README.md in this folder. PROPOSED by the developer; Ajay (CLO) reviews and signs.",
+  "pack": "interim_bail",
+  "inherits": "bail_regular",
+  "key_map": {
+    "address": "applicant_address",
+    "father_name": "applicant_parentage"
+  },
+  "_signed_by": "Ajay (CLO) writes his name and the date here when he signs this list. His signature is not release on its own: a practising advocate still checks the list before the pack goes live. Null means proposed, not signed.",
+  "signed_by": null,
+  "signed_on": null,
+  "banned": [
+    {
+      "id": "urgency_ground",
+      "kind": "averment",
+      "what": "The ground of urgency (illness, death, marriage, examination in the family)",
+      "phrases": [
+        "an urgent family need",
+        "ghar mein emergency hai"
+      ],
+      "unlocked_by": {
+        "key": "urgency_details",
+        "label": "Urgency Details",
+        "present": true
+      }
+    },
+    {
+      "id": "urgency_particulars",
+      "kind": "averment",
+      "what": "An urgency other than the one given",
+      "phrases": [
+        "medical emergency in the family",
+        "death in the family",
+        "to attend the last rites",
+        "marriage of the applicant's sister",
+        "appearing in an examination",
+        "ghar mein shaadi hai",
+        "maa bimaar hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "interim_duration",
+      "kind": "averment",
+      "what": "The period for which interim bail is sought",
+      "phrases": [
+        "for a period of",
+        "for a short period of",
+        "kuch dino ke liye"
+      ],
+      "unlocked_by": {
+        "key": "duration_sought_days",
+        "label": "Duration Sought (days)",
+        "present": true
+      }
+    }
+  ],
+  "allowed": [
+    {
+      "id": "urgency_ground",
+      "kind": "averment",
+      "averment": "interim bail is sought because {{urgency_details}}",
+      "requires": {
+        "key": "urgency_details",
+        "label": "Urgency Details",
+        "present": true
+      }
+    },
+    {
+      "id": "interim_duration",
+      "kind": "averment",
+      "averment": "interim bail is sought for {{duration_sought_days}} days",
+      "requires": {
+        "key": "duration_sought_days",
+        "label": "Duration Sought (days)",
+        "present": true
+      }
+    }
+  ]
+}

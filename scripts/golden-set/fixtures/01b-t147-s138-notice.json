@@ -1,0 +1,82 @@
+{
+  "id": "1b-t147-s138-notice",
+  "pack": "legal_notice_s138",
+  "title": "Fixture 1b: Anushka's T-147 cheque-bounce notice (Delhi)",
+  "risk": "T-147 defect classes 2 and 3: 'Rs 3 lakh' came out blank five times, 'Demo Traders' was dropped, the memo date was rewritten as 'in the week following the presentation' (limitation runs from it), and the drawee branch Karol Bagh was moved to the presentation",
+  "source": "handoff/quality/2026-10-07-run-2-develop-FAIL.md scenario 5 and finding 2; apps/drafting/src/__tests__/fixtures/t147d/s138-notice.json. Her memo date was relative ('pichle hafte'); 1b gives it as a date so it can be asserted character-exact (AC2), and fixture 6 keeps her relative wording.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Mere client Suresh Gupta ko Demo Traders ke malik ne 3 lakh ka cheque diya tha, cheque no. 004512, date 1 sept 2026, HDFC Bank Karol Bagh branch ka. 15 sept 2026 ko bank mein lagaya, cheque bounce ho gaya, funds insufficient. Return memo 18 sept 2026 ko mila. Maal ka udhaar tha. Delhi. Notice bhejna hai.",
+  "court": null,
+  "expect": {
+    "present": [
+      {
+        "any_of": [
+          "3,00,000",
+          "3 lakh",
+          "300000"
+        ],
+        "why": "AC2: the cheque amount she gave"
+      },
+      {
+        "any_of": [
+          "Demo Traders"
+        ],
+        "why": "run 2: the drawer was dropped"
+      }
+    ],
+    "exact": [
+      {
+        "any_of": [
+          "18 September 2026"
+        ],
+        "why": "AC2: the memo date, character-exact as the ledger displays it"
+      },
+      {
+        "any_of": [
+          "Karol Bagh"
+        ],
+        "why": "AC2: the drawee branch, character-exact"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "in the week following"
+        ],
+        "why": "run 2: the memo date was replaced by a paraphrase"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "cheque_amount",
+        "why": "read from the description",
+        "display": "Rs 3,00,000"
+      },
+      {
+        "key": "drawee_branch",
+        "why": "read from the description",
+        "display": "Karol Bagh"
+      },
+      {
+        "key": "dishonour_date",
+        "why": "read from the description",
+        "display": "18 September 2026"
+      },
+      {
+        "key": "respondent_name",
+        "why": "read from the description",
+        "display": "Demo Traders"
+      }
+    ],
+    "allow_violations": []
+  },
+  "recorded": {
+    "clean": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"applicant_name\", \"value\": \"Suresh Gupta\", \"quote\": \"Suresh Gupta\"}, {\"id\": \"respondent_name\", \"value\": \"Demo Traders\", \"quote\": \"Demo Traders ke malik\"}, {\"id\": \"cheque_amount\", \"value\": \"300000\", \"quote\": \"3 lakh ka cheque\"}, {\"id\": \"cheque_number\", \"value\": \"004512\", \"quote\": \"cheque no. 004512\"}, {\"id\": \"drawee_bank\", \"value\": \"HDFC Bank\", \"quote\": \"HDFC Bank\"}, {\"id\": \"drawee_branch\", \"value\": \"Karol Bagh\", \"quote\": \"Karol Bagh branch\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"span\": \"Suresh Gupta\", \"confidence\": 0.97}, {\"key\": \"respondent_name\", \"span\": \"Demo Traders\", \"confidence\": 0.9}, {\"key\": \"cheque_amount\", \"span\": \"3 lakh\", \"confidence\": 0.97}, {\"key\": \"cheque_date\", \"span\": \"1 sept 2026\", \"confidence\": 0.95}, {\"key\": \"drawee_bank\", \"span\": \"HDFC Bank\", \"confidence\": 0.95}, {\"key\": \"drawee_branch\", \"span\": \"Karol Bagh\", \"confidence\": 0.94}, {\"key\": \"presentation_date\", \"span\": \"15 sept 2026\", \"confidence\": 0.92}, {\"key\": \"dishonour_date\", \"span\": \"18 sept 2026\", \"confidence\": 0.91}]}",
+      "drafter": "1. That you, Demo Traders, issued to my client Suresh Gupta a cheque dated 1 September 2026 for Rs 3,00,000 drawn on HDFC Bank, Karol Bagh.\n\n2. That my client presented the said cheque on 15 September 2026, and the return memo is dated 18 September 2026.\n\n3. That the amount of Rs 3,00,000 remains unpaid.\n"
+    }
+  }
+}

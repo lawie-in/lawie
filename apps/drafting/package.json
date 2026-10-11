@@ -19,7 +19,10 @@
     "seed:all": "yarn seed:courts && yarn seed:sections && yarn seed:templates",
     "diff:templates": "ts-node --transpile-only src/scripts/template-diff.ts",
     "gate:intake": "ts-node --transpile-only scripts/intake-gate.ts",
-    "report:rule-packs": "ts-node --transpile-only scripts/rule-pack-report.ts"
+    "report:rule-packs": "ts-node --transpile-only scripts/rule-pack-report.ts",
+    "report:averments": "ts-node --transpile-only scripts/averments-table.ts",
+    "report:fact-diffs": "ts-node --transpile-only scripts/fact-diff-report.ts",
+    "golden:set": "ts-node --transpile-only ../../scripts/golden-set/run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.0",

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 
 import { COURT_TYPES, DOC_TYPES, DocType } from '@lawie/shared';
+import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
@@ -29,10 +30,25 @@ import {
 } from '../services/brief-drafter';
 import { spendInk } from '../services/credits.service';
 import { namesSupremeCourt } from '../services/intake-brief';
-import { INTAKE_LIMITS, isDescribeFirstEnabled, updateBrief } from '../services/intake.service';
+import { AvermentLists, loadAvermentLists } from '../services/averments';
+import {
+  factDiffRunType,
+  FactDiffRunType,
+  rulePackVersionOf,
+  writeFactCheckLog,
+} from '../services/fact-diff-log';
+import { currentState, loadOwnLedger } from '../services/fact-ledger.service';
+import { buildChecklist } from '../services/intake-brief';
+import {
+  INTAKE_LIMITS,
+  isDescribeFirstEnabled,
+  isFactLedgerEnabled,
+  updateBrief,
+} from '../services/intake.service';
 import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
 import { contentToHtml, renderPdf } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
+import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 import { loadRulePack } from '../services/rule-pack.service';
 import {
   CourtLookupData,
@@ -265,6 +281,7 @@ router.get('/usage', authenticate, async (req: Request, res: Response): Promise<
     userId: payload.sub,
     createdAt: { $gte: startOfMonth },
     status: { $ne: 'failed' },
+    ...NOT_FIXTURE_GENERATION,
   });
 
   if (payload.plan === 'pro') {
@@ -283,7 +300,11 @@ router.get('/usage', authenticate, async (req: Request, res: Response): Promise<
 // GET /documents — list user's documents
 router.get('/', authenticate, async (req: Request, res: Response): Promise<void> => {
   const payload = req.jwtPayload!;
-  const docs = await LawieDocument.find({ userId: payload.sub, isDeleted: { $ne: true } })
+  const docs = await LawieDocument.find({
+    userId: payload.sub,
+    isDeleted: { $ne: true },
+    ...NOT_FIXTURE,
+  })
     .select('title docType courtName status createdAt')
     .sort({ createdAt: -1 })
     .limit(50)
@@ -654,6 +675,17 @@ const briefGenerateSchema = z.object({
    * inside the encrypted brief of the document, and is never logged.
    */
   described: z.string().max(INTAKE_LIMITS.descriptionMax).optional(),
+  /**
+   * T-147c: the advocate's fact ledger for this brief. Read only when
+   * `feature.fact_ledger` is on for the user and the document has a rule
+   * pack; then the Drafter is given the ledger's facts and the pack's
+   * skeleton only. A ledger that is not this user's, or not for this
+   * document, is a 404, as in T-147b.
+   */
+  ledger_id: z
+    .string()
+    .regex(/^[a-f0-9]{24}$/i, 'must be a ledger id')
+    .optional(),
 });
 
 /** The credit gate reads `template_id`. For a brief the rule pack is the template. */
@@ -708,6 +740,44 @@ router.post(
     if (templateConfig?.plan_access === 'pro' && payload.plan !== 'pro') {
       res.status(403).json({ error: 'This document requires a Pro plan' });
       return;
+    }
+
+    // T-147c: the ledger, when the switch is on. Without both, nothing below changes.
+    let ledger: {
+      id: string;
+      version: number;
+      facts: LedgerFact[];
+      unresolved: LedgerUnresolvedFact[];
+      runType: FactDiffRunType;
+      lists: AvermentLists;
+    } | null = null;
+    if (!guided && parsed.data.ledger_id !== undefined && (await isFactLedgerEnabled(payload.sub))) {
+      const doc = await loadOwnLedger(parsed.data.ledger_id, payload.sub);
+      if (!doc || doc.documentKind !== kind) {
+        res.status(404).json({ error: 'Ledger not found' });
+        return;
+      }
+      let lists: AvermentLists;
+      try {
+        lists = loadAvermentLists(kind);
+      } catch (err) {
+        // Ids only: never a fact value.
+        console.error(
+          `[drafting] averment list unreadable (kind=${kind}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        res.status(503).json({ error: 'averments_unavailable' });
+        return;
+      }
+      const state = currentState(doc);
+      ledger = {
+        id: String(doc.id),
+        version: doc.currentVersion,
+        facts: state.facts,
+        unresolved: state.unresolved,
+        runType: factDiffRunType(doc.runType),
+        lists,
+      };
     }
 
     // The brief is worked out again here. What the browser says about it is not
@@ -798,6 +868,15 @@ router.post(
                 pack,
                 templateConfig,
                 ...(described ? { described } : {}),
+                ...(ledger
+                  ? {
+                      ledger: {
+                        facts: ledger.facts,
+                        lists: ledger.lists,
+                        unresolved: ledger.unresolved,
+                      },
+                    }
+                  : {}),
                 advocateName: payload.name || undefined,
                 enrollmentNumber: undefined,
               },
@@ -891,6 +970,8 @@ router.post(
             // T-136: the description is kept here and nowhere else: with the
             // brief it belongs to, under the same encryption, for as long.
             ...(described ? { described } : {}),
+            // T-147c: which ledger version the draft was written from. Ids only.
+            ...(ledger ? { ledger_id: ledger.id, ledger_version: ledger.version } : {}),
           }),
         ),
       });
@@ -924,6 +1005,30 @@ router.post(
         `[drafting] DB save failed for a draft from a brief (${kind}, runId=${runId}):`,
         dbErr instanceof Error ? dbErr.name : 'unknown',
       );
+    }
+
+    // T-147d: the fact-diff log and the placeholder rate, for a ledger draft.
+    // Its own try: a failure here never stops the draft. Ids only in the log line.
+    if (ledger && pack && result.factCheck && !duplicateAttempt) {
+      try {
+        await writeFactCheckLog({
+          outcome: result.factCheck,
+          runId,
+          documentId: docId,
+          userId: payload.sub,
+          ledgerId: ledger.id,
+          rulePack: pack.id,
+          rulePackVersion: rulePackVersionOf(pack),
+          runType: ledger.runType,
+          requiredFactCount: buildChecklist(pack).filter((i) => i.required).length,
+          deliveredText: result.fullText,
+        });
+      } catch (logErr) {
+        console.error(
+          `[drafting] fact-diff log write failed (kind=${kind}, runId=${runId}):`,
+          logErr instanceof Error ? logErr.name : 'unknown',
+        );
+      }
     }
 
     // A demand signal for every draft with no rule pack: which documents to
@@ -981,6 +1086,10 @@ router.post(
         startingDraftLabel: result.startingDraft ? STARTING_DRAFT_LABEL : null,
         labelReason: result.labelReason,
         creditsSpent: [],
+        // T-147d: what the fact verifier needs the advocate to check. Ledger path only.
+        ...('factCheck' in result && result.factCheck
+          ? { factCheck: { banner: result.factCheck.banner } }
+          : {}),
       })}\n\n`,
     );
     res.end();

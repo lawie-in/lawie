@@ -13,6 +13,7 @@ import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 
 import { Generation } from '../models/Generation.model';
+import { NOT_FIXTURE_GENERATION } from '../services/run-origin';
 
 const PER_USER_DAILY_CAP_USD = 6; // ~₹500
 const TOTAL_DAILY_CAP_USD = 24; // ~₹2,000
@@ -38,7 +39,7 @@ export async function spendCapCheck(
     // here would silently never match any row (T-003 §3.7).
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const [userSpend] = await Generation.aggregate([
-      { $match: { userId: userObjectId, createdAt: { $gte: startOfDay } } },
+      { $match: { userId: userObjectId, createdAt: { $gte: startOfDay }, ...NOT_FIXTURE_GENERATION } },
       { $group: { _id: null, totalCost: { $sum: '$costUsd' } } },
     ]);
 
@@ -54,7 +55,7 @@ export async function spendCapCheck(
 
     // Aggregate total daily spend across all users
     const [totalSpend] = await Generation.aggregate([
-      { $match: { createdAt: { $gte: startOfDay } } },
+      { $match: { createdAt: { $gte: startOfDay }, ...NOT_FIXTURE_GENERATION } },
       { $group: { _id: null, totalCost: { $sum: '$costUsd' } } },
     ]);
 

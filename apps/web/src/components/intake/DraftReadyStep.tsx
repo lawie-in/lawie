@@ -26,7 +26,9 @@ export default function DraftReadyStep({
   onOpenEditor: () => void;
   onStartAnother: () => void;
 }) {
-  const nothingFound = result.missingClauses.length === 0 && result.findings.length === 0;
+  const factCheck = result.factCheck ?? null;
+  const nothingFound =
+    result.missingClauses.length === 0 && result.findings.length === 0 && factCheck === null;
 
   return (
     <div className="mx-auto w-full max-w-[720px] space-y-4">
@@ -63,6 +65,29 @@ export default function DraftReadyStep({
           </h2>
           <span className={tagTeal}>No charge</span>
         </div>
+        {factCheck && (
+          <div
+            role="note"
+            aria-labelledby="ready-fact-check"
+            className="border-brand-gold bg-brand-gold-light mt-3 rounded-lg border px-3.5 py-2.5"
+          >
+            {/* T-147d: the wording is the service's; Priya, Madhuri and Rajesh to word and design it. */}
+            <p id="ready-fact-check" className="text-brand-gold-dark text-sm font-semibold">
+              {factCheck.text}
+            </p>
+            <ul className="mt-2 space-y-1.5">
+              {factCheck.items.map((item, i) => (
+                <li key={i} className="text-brand-gold-dark flex items-start gap-2.5 text-sm">
+                  <span className="bg-brand-gold mt-1.5 h-2 w-2 flex-none rounded-full" />
+                  <span>
+                    <strong className="font-semibold">{item.label}:</strong> {item.note}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-brand-gold-dark mt-2 text-sm">{factCheck.disclaimer}</p>
+          </div>
+        )}
         {nothingFound ? (
           <p className="text-brand-navy mt-3 flex items-start gap-2.5 text-sm">
             <span className="bg-brand-teal flex h-6 w-6 flex-none items-center justify-center rounded-full text-white">

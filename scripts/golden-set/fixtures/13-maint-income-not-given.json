@@ -1,0 +1,54 @@
+{
+  "id": "13-maint-income-not-given",
+  "pack": "maintenance_bnss_144",
+  "title": "Maintenance, Ranchi family court: income not known",
+  "risk": "Risk: with no income given, 'earns Rs. ... per month', 'a man of means' or 'able-bodied' must not be invented; the income stays a blank to fill",
+  "source": "handoff/quality/2026-10-07-run-2-develop-FAIL.md finding 2 (invented facts); dev-written matter",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Client Pooja Kumari, 27 saal, pati Ravi Ranjan, 30 saal, Ranchi family court mein maintenance. Shaadi ke baad 2 saal se alag reh rahi hai, pati kuch nahi deta. Pati ki kamai pata nahi. 10,000 mahina maang rahe hain.",
+  "court": {
+    "state": "Jharkhand",
+    "court_type": "tribunal",
+    "court": "family_court_ranchi"
+  },
+  "expect": {
+    "not_written": [
+      {
+        "banned_entry_id": "respondent_income",
+        "why": "no income was given"
+      },
+      {
+        "banned_entry_id": "sufficient_means",
+        "why": "no means were given"
+      },
+      {
+        "banned_entry_id": "able_bodied",
+        "why": "banned outright"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "man of means",
+          "well-off",
+          "able-bodied"
+        ],
+        "why": "means asserted without facts"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Pooja Kumari"
+      },
+      {
+        "key": "amount_claimed_monthly",
+        "why": "read from the description",
+        "display": "Rs 10,000"
+      }
+    ]
+  }
+}

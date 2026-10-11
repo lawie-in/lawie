@@ -248,6 +248,39 @@ export interface DraftResult {
   missingClauses: Array<{ id: string; title: string }>;
   findings: Finding[];
   blanks: number;
+  /**
+   * T-147d: what the fact verifier needs the advocate to check before filing,
+   * as the service sent it. Null when nothing does, or the draft was not
+   * written from the fact ledger.
+   */
+  factCheck?: FactCheckBanner | null;
+}
+
+/** T-147d: the fact verifier's banner, printed as the service sent it. */
+export interface FactCheckBanner {
+  text: string;
+  items: Array<{ check: string; label: string; note: string }>;
+  disclaimer: string;
+}
+
+/** T-147d: the banner from the done event, or null when it is absent or not in shape. */
+export function readFactCheckBanner(raw: unknown): FactCheckBanner | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const banner = (raw as { banner?: unknown }).banner;
+  if (typeof banner !== 'object' || banner === null) return null;
+  const b = banner as Record<string, unknown>;
+  if (typeof b.text !== 'string' || typeof b.disclaimer !== 'string' || !Array.isArray(b.items)) {
+    return null;
+  }
+  const items = b.items.filter(
+    (i): i is { check: string; label: string; note: string } =>
+      typeof i === 'object' &&
+      i !== null &&
+      typeof (i as Record<string, unknown>).check === 'string' &&
+      typeof (i as Record<string, unknown>).label === 'string' &&
+      typeof (i as Record<string, unknown>).note === 'string',
+  );
+  return { text: b.text, items, disclaimer: b.disclaimer };
 }
 
 /** The id the API uses for a document with no rule pack. */
@@ -335,8 +368,9 @@ export function dateInWords(iso: string): string {
   return month ? `${Number(m[3])} ${month} ${m[1]}` : iso;
 }
 
+/** T-147c: `{{MISSING: label}}` is the blank of a draft written from the fact ledger. */
 const BLANK =
-  /\[To be confirmed: [^\]]*\]|\[Section — verify before filing\]|\[Authority — add if relied upon\]/g;
+  /\[To be confirmed: [^\]]*\]|\[Section — verify before filing\]|\[Authority — add if relied upon\]|\{\{\s*MISSING\s*:\s*[^}]*?\s*\}\}/g;
 
 /** A run of underscores left for the user, such as "Case No. _____". */
 const UNDERSCORE_BLANK = /_{3,}/g;

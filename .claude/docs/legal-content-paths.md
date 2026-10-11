@@ -14,5 +14,6 @@ A ticket touching any of the following requires Ajay's sign-off reference in the
 - `apps/drafting/src/config/intake/` and `apps/drafting/src/services/bail-guard.ts` (the bail cue lists and the bail rule, added by T-122)
 - `apps/drafting/src/services/intake-brief.ts` (the rules of the brief: what the model may read, what a date is the date of, when a brief can be confirmed; added by T-105)
 - `apps/drafting/src/services/drafter.prompts.ts` and `apps/drafting/src/services/brief-drafter.ts` (the Drafter and repair prompts, the missing-clause rule and the label rule, added by T-106; and, added by T-136, the checks that the draft keeps the brief's facts and is one document, and the rule for removing a repeated system part, all per `handoff/design/T-136-drafter-rules-signed.md`)
+- `apps/drafting/src/config/document-rules/_averments/` (the per-pack banned and allowed averment lists, already inside `document-rules/` above; added by T-147c). Each file is hash-signed by Ajay and its `signed_by` stays `null` on purpose, so any edit invalidates the sign-off. `yarn workspace @lawie/drafting report:averments --out <file>` prints the sign-off tables with each file's SHA-256.
 
 See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths above are covered by golden snapshot tests that the `tester` must never auto-update.

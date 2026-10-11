@@ -33,6 +33,7 @@ import {
   Ledger,
   LedgerEditResult,
   NO_RULE_PACK,
+  readFactCheckBanner,
   Value,
   valuesAfter,
   withValue,
@@ -564,6 +565,10 @@ export default function OneFlow({
             ...(runId.current ? { run_id: runId.current } : {}),
             ...(intakeId.current ? { intake_id: intakeId.current } : {}),
             ...(kind !== NO_RULE_PACK && described ? { described } : {}),
+            // T-147c: with the ledger switch on, the Drafter drafts from this ledger only.
+            ...(kind !== NO_RULE_PACK && ledgerRef.current
+              ? { ledger_id: ledgerRef.current.ledger_id }
+              : {}),
           }),
         });
         const header = res.headers.get('X-Run-Id');
@@ -691,6 +696,8 @@ export default function OneFlow({
             .filter((f) => !(f.details?.clauseId && missingIds.has(f.details.clauseId)))
             .map((f) => ({ type: f.type, message: f.message })),
           blanks: countBlanks(assembled || streamed),
+          // T-147d: present only for a draft written from the fact ledger.
+          factCheck: readFactCheckBanner(done.factCheck),
         });
         setPhase('ready');
       } catch {

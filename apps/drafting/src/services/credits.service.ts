@@ -21,6 +21,8 @@ import mongoose, { Types } from 'mongoose';
 import { CreditBucket, CreditLedger, CreditSource } from '../models/CreditLedger.model';
 import { User } from '../models/User.model';
 
+import { isFixtureUser } from './run-origin';
+
 export const TEMPLATE_COST: Record<string, number> = {
   legal_notice_s80: 1,
   legal_notice_s138: 1,
@@ -243,6 +245,8 @@ export async function spendInk(input: {
   runSequence?: number;
 }): Promise<{ success: boolean; reason?: string }> {
   const { userId, costCredits, reason, reference, runId, runSequence } = input;
+  // T-147e: a golden-set run is never charged and writes no inkledger row.
+  if (isFixtureUser(userId)) return { success: true, reason: 'fixture_run' };
   if (!mongoose.Types.ObjectId.isValid(userId)) return { success: false, reason: 'user_not_found' };
 
   const costUnits = costCredits * 2; // 1 Ink = 2 storage units

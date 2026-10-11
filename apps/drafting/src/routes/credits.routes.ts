@@ -15,6 +15,7 @@ import { CreditLedger } from '../models/CreditLedger.model';
 import { LawieDocument } from '../models/Document.model';
 import { User } from '../models/User.model';
 import { getCreditBalance, grantCredits, RATING_BONUS_PER_DRAFT } from '../services/credits.service';
+import { NOT_FIXTURE } from '../services/run-origin';
 
 const router = Router();
 
@@ -54,6 +55,8 @@ router.post('/credits/rate/:docId', authenticate, async (req, res): Promise<void
     _id: docId,
     userId,
     isDeleted: { $ne: true },
+    // T-147e: a fixture draft never earns a rating bonus.
+    ...NOT_FIXTURE,
   }).select('_id title');
   if (!doc) {
     res.status(404).json({ error: 'Document not found' });

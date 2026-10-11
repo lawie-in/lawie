@@ -81,6 +81,7 @@ import {
 } from './intake.prompts';
 import { getModelRates, priceUsage } from './llm-usage';
 import { loadRulePack, RulePack } from './rule-pack.service';
+import { isFixtureUser } from './run-origin';
 import {
   evaluateShowIf,
   FormField,
@@ -115,6 +116,9 @@ export async function isFactLedgerEnabled(userId: string): Promise<boolean> {
 }
 
 async function isSwitchOn(setting: string, userId: string): Promise<boolean> {
+  // T-147e: the golden set runs the describe-first ledger path whatever the
+  // switches say for users. Only the reserved fixture user; see run-origin.ts.
+  if (isFixtureUser(userId)) return true;
   try {
     const raw = (await getAppSetting(setting)).trim();
     if (raw === 'on') return true;

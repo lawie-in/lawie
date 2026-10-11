@@ -14,6 +14,7 @@ import { Generation } from '../models/Generation.model';
 import { Template } from '../models/Template.model';
 import { User } from '../models/User.model';
 import { getUsdInrRate } from '../services/llm-usage';
+import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 
 const router = Router();
 
@@ -45,25 +46,27 @@ router.get(
       aiCostAgg,
       usdInrRate,
     ] = await Promise.all([
-      LawieDocument.countDocuments({ isDeleted: { $ne: true } }),
+      LawieDocument.countDocuments({ isDeleted: { $ne: true }, ...NOT_FIXTURE }),
       LawieDocument.countDocuments({
         createdAt: { $gte: startOfMonth },
         isDeleted: { $ne: true },
+        ...NOT_FIXTURE,
       }),
       LawieDocument.countDocuments({
         status: { $in: ['finalised', 'exported'] },
         isDeleted: { $ne: true },
+        ...NOT_FIXTURE,
       }),
       // DocType breakdown
       LawieDocument.aggregate([
-        { $match: { isDeleted: { $ne: true } } },
+        { $match: { isDeleted: { $ne: true }, ...NOT_FIXTURE } },
         { $group: { _id: '$docType', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
       ]),
       // Template usage — group by templateId
       LawieDocument.aggregate([
-        { $match: { isDeleted: { $ne: true }, templateId: { $ne: null } } },
+        { $match: { isDeleted: { $ne: true }, templateId: { $ne: null }, ...NOT_FIXTURE } },
         {
           $group: {
             _id: '$templateId',
@@ -79,7 +82,7 @@ router.get(
       // AI cost this month — cost sum includes failed rows (we paid for
       // them); the generation count excludes them (T-003 §3.7).
       Generation.aggregate([
-        { $match: { createdAt: { $gte: startOfMonth } } },
+        { $match: { createdAt: { $gte: startOfMonth }, ...NOT_FIXTURE_GENERATION } },
         {
           $group: {
             _id: null,
@@ -152,6 +155,7 @@ router.get(
     const docs = await LawieDocument.find({
       status: 'exported',
       isDeleted: { $ne: true },
+      ...NOT_FIXTURE,
     })
       .sort({ updatedAt: -1 })
       .limit(limit)
@@ -204,7 +208,7 @@ router.get(
 
     const [agg, usdInrRate] = await Promise.all([
       Generation.aggregate([
-        { $match: { createdAt: { $gte: start, $lt: end } } },
+        { $match: { createdAt: { $gte: start, $lt: end }, ...NOT_FIXTURE_GENERATION } },
         {
           $group: {
             _id: null,

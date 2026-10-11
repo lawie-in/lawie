@@ -1,6 +1,8 @@
 import { DocType, DOC_TYPES, COURT_TYPES } from '@lawie/shared';
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
+import { fixtureOriginPlugin, RUN_ORIGINS, RunOrigin } from '../services/run-origin';
+
 export interface IDocument extends Document {
   userId: Types.ObjectId;
   templateId?: Types.ObjectId;
@@ -38,6 +40,11 @@ export interface IDocument extends Document {
   startingDraft?: boolean;
   /** T-106 — the confirmed brief the draft was written from (encrypted). A revision needs it. */
   brief?: string;
+  /**
+   * T-147e — 'fixture' for a golden-set run, 'user' otherwise. Rows written
+   * before T-147e have no value and count as 'user'. Filter with NOT_FIXTURE.
+   */
+  runType?: RunOrigin;
 
   createdAt: Date;
   updatedAt: Date;
@@ -131,9 +138,12 @@ const DocumentSchema = new Schema<IDocument>(
     rulePackId: { type: String, default: undefined, maxlength: 100 },
     startingDraft: { type: Boolean, default: undefined },
     brief: { type: String, default: undefined },
+    runType: { type: String, enum: RUN_ORIGINS, default: 'user' },
   },
   { timestamps: true },
 );
+
+DocumentSchema.plugin(fixtureOriginPlugin('runType'));
 
 // -- Indexes per CTO schema design --
 DocumentSchema.index({ userId: 1, createdAt: -1 });

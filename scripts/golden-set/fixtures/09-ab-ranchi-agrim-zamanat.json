@@ -1,0 +1,66 @@
+{
+  "id": "09-ab-ranchi-agrim-zamanat",
+  "pack": "bail_anticipatory",
+  "title": "Anticipatory bail, Ranchi: 'agrim zamanat chahiye'",
+  "risk": "Run 2 scenario 6: Hinglish anticipatory bail; risk that 'respectable person', 'irreparable loss to reputation' or 'civil dispute given criminal colour' are added without facts",
+  "source": "handoff/quality/2026-10-07-run-2-develop-FAIL.md scenario 6 (stopped at the brief there); dev-written facts",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "agrim zamanat chahiye, Sessions court Ranchi. Client Prakash Mahto s/o Jagdish Mahto, 45 saal. FIR 233/2026 dated 28 Sept 2026, PS Lalpur, section 316(2) BNS. Abhi giraftar nahi hua. Complainant ne zameen ke paise ka case kiya hai.",
+  "court": {
+    "state": "Jharkhand",
+    "court_type": "sessions",
+    "court": "jharkhand_sessions_ranchi"
+  },
+  "expect": {
+    "not_written": [
+      {
+        "banned_entry_id": "reputation_harm",
+        "why": "no standing was given"
+      },
+      {
+        "banned_entry_id": "civil_dispute",
+        "why": "no civil-dispute particulars were given"
+      },
+      {
+        "banned_entry_id": "complainant_ulterior_motive",
+        "why": "no motive was given"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "respectable person",
+          "irreparable loss"
+        ],
+        "why": "standing asserted without facts"
+      }
+    ],
+    "present": [
+      {
+        "any_of": [
+          "Lalpur"
+        ],
+        "why": "police station"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Prakash Mahto"
+      },
+      {
+        "key": "fir_date",
+        "why": "read from the description",
+        "display": "28 September 2026"
+      },
+      {
+        "key": "police_station",
+        "why": "read from the description",
+        "display": "Lalpur"
+      }
+    ]
+  }
+}

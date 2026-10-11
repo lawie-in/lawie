@@ -23,6 +23,7 @@
 import { Request, Response, NextFunction } from 'express';
 
 import { costForTemplate, getCreditBalance } from '../services/credits.service';
+import { isFixtureUser } from '../services/run-origin';
 
 // Belt-and-braces ceiling for free-plan accounts. Once we trust the credit
 // system end-to-end this can be lifted; for now it's a "won't accidentally
@@ -45,6 +46,14 @@ export async function enforceCredits(
   const body = req.body as { template_id?: string; docType?: string };
   const templateId = body.template_id ?? body.docType ?? 'unknown';
   const cost = costForTemplate(templateId);
+
+  // T-147e: the golden-set user has no balance and is never charged
+  // (spendInk skips it too). No balance is read for it.
+  if (isFixtureUser(payload.sub)) {
+    (req as Request & { creditCost?: number }).creditCost = cost;
+    next();
+    return;
+  }
 
   const balance = await getCreditBalance(payload.sub);
 

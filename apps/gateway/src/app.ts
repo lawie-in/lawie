@@ -152,11 +152,24 @@ app.use(
 );
 
 // ── Dev bypass middleware (development only) ────────────────────────────────
+/**
+ * The reserved golden-set fixture user (T-147e). Must equal GOLDEN_SET_USER_ID
+ * in apps/drafting/src/services/run-origin.ts; kept here so the gateway does
+ * not depend on the drafting service.
+ */
+export const GOLDEN_SET_USER_ID = '0000000000000000000f147e';
 // Postman: set header X-Dev-Bypass: true to skip JWT + session check.
 // Optionally set X-Dev-User-Plan: pro|free, X-Dev-User-Email, X-Dev-User-Name.
 function devBypass(req: express.Request, res: express.Response, next: express.NextFunction): void {
   if (env.NODE_ENV !== 'development' || req.headers['x-dev-bypass'] !== 'true') {
     next();
+    return;
+  }
+  // T-147e: the golden-set fixture user is never reachable from outside the
+  // drafting service's own runner, not even through the dev bypass.
+  const devUserId = req.headers['x-dev-user-id'];
+  if (typeof devUserId === 'string' && devUserId.trim().toLowerCase() === GOLDEN_SET_USER_ID) {
+    res.status(403).json({ error: 'Forbidden' });
     return;
   }
   // Inject mock JWT payload so downstream middleware/proxy sees a valid user
