@@ -24,3 +24,14 @@ Meera's copy review found claims beyond T-238:
 2. The footer carries Ajay's disclaimer line.
 3. `PainSolution.tsx` is deleted, and nothing imports it.
 4. A grep for "court-ready", "validated", "in minutes", "guaranteed" and "AI lawyer" on public pages finds nothing.
+
+## Added: watermark claims are false (Priya, 12 Oct 2026, code check)
+
+No export carries a watermark on any plan (policy test `document-export.test.ts:145-149`), but the copy says otherwise:
+- `dashboard/documents/[id]/page.tsx:407-411` shows "Free tier exports include a watermark."
+- `(marketing)/pricing/page.tsx:130` says "Lawie watermark on exports"; `:157` and `:184` say "No watermark on exports" (a paid-plan "benefit" that every plan has).
+- `(marketing)/faq/page.tsx:53` says "Free exports carry a Lawie watermark."
+
+Remove them all. Copy from Meera, ok from Ajay. The pricing-page lines go in with T-238 if it is still open.
+
+Also dead code: `login/page.tsx:162` writes `lawie_referral_code` to sessionStorage and nothing reads it. Remove it with T-234.
