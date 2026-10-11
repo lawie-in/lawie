@@ -32,7 +32,7 @@ Ajay states what proves a clause is present (for example its fixed wording, or a
 2. A clause whose reported paragraph exists but no longer carries the clause is reported missing with a new reason (e.g. `clause_not_in_paragraph`).
 3. Test: clause at paragraph 5, paragraph 5 replaced by other text → missing.
 4. Test: renumbered body where the clause moved from 5 to 6 and the report says 5 → missing, then fixed by the repair pass.
-5. Test: today's passing cases still pass (T-136 tests unchanged).
+5. Test: today's passing cases still pass. T-136 assertions unchanged; a fixture whose reported paragraph does not hold the clause is updated so the paragraph carries it (fixture text only, no assertion changed; Ajay sees each one in the signed diff). Reworded by Priya, 12 Oct 2026: the signed cues make the old 'every clause at paragraph 1' fixtures fail for the right reason.
 6. No prompt text changes unless Ajay signs the diff.
 7. Golden snapshots unchanged; if one moves, stop and report. CI green on drafting.
 
