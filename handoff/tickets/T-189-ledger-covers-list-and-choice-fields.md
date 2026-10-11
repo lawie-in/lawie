@@ -190,3 +190,33 @@ Risks (not blocking; recorded):
 - **Risk (pre-existing, T-231):** test R5-3 FINDING shows that `present()` for a `section_ref` entry matches on the section number alone, so "318(4) IPC" satisfies "318(4) BNS". This is not live for `sections_charged` (text). T-231 must close it before those entries are typed.
 - **Acceptable:** `applyMultiEdit` result `display` and `ledgerView` `previous_display` are comma-joined. They are UI strings only, never a fact, a `raw_span` or Drafter/verifier input.
 - **Risk (carried from 910ced6 item 4):** a repeated entry is kept once at ledger write. Anushka should check this on develop.
+
+## Ajay on the _averments README wording (12 Oct 2026)
+
+Read (read-only, after `git pull` and `git fetch origin`): `_averments/README.md` "Conditions" on `develop_staging` 58bac14; `conditionHolds` and `folded` in `averments.ts` at signed 1e3e7ac; `scripts/averments-table.ts`; the loader in `averments.ts`. No code, tests or builds run. No commit.
+
+**Verdict on Vishal's text: not approved as written (Risk).** The substance matches R3, but the text does not match the signed code in 3 places:
+- It does not say the entries are folded. `conditionHolds` compares each entry's folded value and display. So an entry like "-" is non-empty but folds to nothing, and does not count as `present`.
+- `not_in` also fails when an entry folds to nothing. The signed code needs `seen.size > 0` for every entry, and I approved that in the 1e3e7ac sign-off ("a blank-folded entry fails it"). Vishal's text would let the reader think a blank entry is "outside the set".
+- It does not say that unresolved entries are not entries.
+
+**Approved wording, exact.** Add it as a new bullet after the `all_of` bullet in "Conditions". Do not edit the existing bullets. Any other wording comes back to me.
+
+```
+- A key that holds several entries (a list, or several choices) is read entry
+  by entry. Nothing is joined or merged. Each entry is compared on its own
+  value and display, folded as for `equals`. An unresolved entry is not an
+  entry. A key with one entry reads exactly as the bullets above.
+  - `present`: at least one entry has text left after folding.
+  - `equals`: any one entry equals one of the wanted values.
+  - `not_in`: every entry has text left after folding and is outside the
+    list. One entry inside the list, or one entry blank after folding, fails
+    the condition.
+  - `all_of`: each inner condition is tested as above.
+  - A key with no entry that has text left after folding never unlocks
+    anything.
+```
+
+**Hash check: Approved.** Editing `README.md` does not touch any hash-signed `_averments` JSON. `averments-table.ts` hashes only `*.json` (`readdirSync(...).filter(f => f.endsWith('.json'))`, SHA-256 per `<id>.json`). The loader reads only `<id>.json`. The README edit must be the only file changed under `_averments/`. If any `.json` there shows up in the diff, it is a **Blocker**: that sign-off is void and the file comes back to me.
+
+Note (Acceptable): no seeded pack condition names a list or choices key today (1e3e7ac sign-off). This bullet describes the rule for when one does. It does not change any live unlock.
