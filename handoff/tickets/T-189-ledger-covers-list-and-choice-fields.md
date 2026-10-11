@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                      |
 | Owner          | Vishal (build). Ajay signs any prompt change. Anushka (verdict)                                                             |
 | Mode           | Build, full chain. Merge to develop                                                                                         |
-| Status         | Assigned to vishal, 11 Oct 2026. Not started. Founder confirmed option A, the approach below, 11 Oct 2026. AC1 done |
+| Status         | Merged into develop_staging (8bab9f7, 12 Oct 2026), waiting for Anushka on develop. T-228 folded in; follow-ups T-231, T-188, web brief for list/choice fields |
 | Assigned lead  | vishal |
 | Size           | M (1 day), plus Ajay's sign-off time if a prompt changes                                                                    |
 | Depends on     | T-147b (extraction and ledger), T-147c (the ledger-only Drafter)                                                            |
