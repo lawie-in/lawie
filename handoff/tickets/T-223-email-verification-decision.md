@@ -32,8 +32,8 @@ Cost side only. Nothing below is measured at scale: T-004 has not run, so every 
 
 | Assumption | Value | Source | Sensitivity |
 | --- | --- | --- | --- |
-| Free allowance per new account | 5 Ink, one-time (`inkTopup: 10` units) | `apps/auth/src/services/credit-bonus.service.ts` `grantSignupBonus` | Bail and consumer drafts cost 2 Ink, so 3 to 5 drafts per account |
-| Ink per draft | 1 by default, 2 for bail and consumer | `apps/drafting/src/services/credits.service.ts` `TEMPLATE_COST` | Not yet the drops formula (T-004) |
+| Free allowance per new account | 5 Ink, one-time (`inkTopup: 10` units) | `apps/auth/src/services/credit-bonus.service.ts` `grantSignupBonus` | Most drafts cost 2 Ink, so 2 to 5 drafts per account |
+| Ink per draft | 2 for most documents, 1 for 31 short ones (Vikram, T-227); each template is priced explicitly in one list | `apps/drafting/src/services/credits.service.ts` (price list, T-227) | Not yet the drops formula (T-004). Updated by Priya, 12 Oct 2026 |
 | Cost of one draft, measured floor | ₹1.2 to ₹1.8 | T-004 dev point: 1,599 in / 907 out tokens, 10 paragraphs, at Sonnet 5.5 ($2/$10) or 4.5 ($3/$15) | One short draft; proves nothing alone |
 | Cost of one draft, planning value | ₹6 (₹4 to ₹7 for 5 to 18 paragraphs) | T-004 estimate: 10 para ₹5.5, 25 para ₹8.7 at $3/$15 | About a third lower on Sonnet 5.5 rates |
 | Cost of one draft, worst case | ₹14 | T-004 estimate, 50 paragraphs | Guided drafts (T-108) about ₹5.5 at 25 paragraphs; page reading extra |

@@ -21,7 +21,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-Empty. Ask Priya for the slot when your chain is done. packages/shared: nobody holds it now.
+1. shashank — T-227. Chain complete (eb67b13). The slot is his now. Deploy note: the first boot must log 'Template registry → Mongo sync complete', or the shown prices stay stale.
 
 ## Last done
 
