@@ -70,3 +70,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - A document type the app does not recognise is refused with a clear message, and no Ink is taken.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-248 (shashank, merged to develop_staging 4787900, 12 Oct 2026)
+
+- A review petition cites the criminal review bar under S.403 BNSS, with no mention of a proviso that does not exist.
+- A habeas corpus petition cites S.100 BNSS for the search of a wrongfully confined person.
+- The discharge form offers the right third option, a warrant case before a Magistrate on a complaint under S.268 BNSS, in place of a summons case that never had discharge.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

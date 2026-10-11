@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (signed, 345bd24). Lead (build). Anushka (verdict) |
 | Mode           | Small fix. Legal content: apply Ajay's signed text only |
-| Status         | To do. Urgent: these are live errors. Next for shashank after T-227 |
+| Status         | Merged into develop_staging (4787900, 12 Oct 2026), waiting for Anushka on develop |
 
 Ajay found these while writing T-245 (handoff/legal/T-245-old-new-law-switch-signed.md):
 
