@@ -33,3 +33,16 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 - I sign up and sign in exactly as before; nothing looks or works differently.
 - My email, name, phone number and password are no longer kept in Lawie's server logs or in error reports, even when something goes wrong while I sign up or sign in.
 
+
+## T-189 (vishal, merged to develop_staging 8bab9f7, 12 Oct 2026)
+
+Needs the `feature.fact_ledger` setup above, or she sees the old path.
+
+- I am a district-court advocate drafting a bail application, regular or anticipatory. I give the sections I am charged under and my grounds for bail in my own words. Before, the draft marked both as missing even though I had given them. Now every section and every ground I gave appears in the draft.
+- If I gave neither, the draft still shows both as missing.
+- If I gave three grounds and one cannot be found in what I wrote, I still get the other two, and I am told the system could not find that detail in what I wrote.
+- If I repeat the same section twice in my list, it appears once.
+- I can add, remove or change entries in my list and the draft follows.
+- If a draft leaves out one of my sections or grounds, or rewords a ground, I am told to check it instead of it quietly disappearing.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
