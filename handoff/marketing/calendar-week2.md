@@ -9,7 +9,7 @@ All house rules from `calendar-week1.md` apply: verbatim disclaimer, Ajay's Ink 
 
 **How this week treats BNSS (Ajay, 12 Oct 2026):** Lawie's packs do not switch between old and new law, and offences before 1 July 2024 still go by IPC/CrPC. So no post here says or implies that Lawie handles the IPC→BNS / CrPC→BNSS switch, or that old formats are wrong. No section-correspondence tables (I had drafted a CrPC→BNSS bail-section post; it is cut). The BNSS angle is limited to (a) the signed line "Criminal drafts cite BNS, BNSS and BSA.", (b) the six bail drafts, and (c) the advocate checking every section cited.
 
-**Reel note:** per Meera's brief, R2 (legal notice, a 1-Ink document) is this week's reel, although the week's theme is bail. `strategy.md` §7 had the bail reel in Week 2 and the notice reel in Week 3. If Meera prefers the strategy order, swap W1-IG-2 (R1) and W2-IG-2 (R2); the captions travel with the reels.
+**Reel note:** R2 (legal notice, a 1-Ink document) is this week's reel, although the week's theme is bail (Meera, confirmed; `strategy.md` §7 updated to match: R1 Week 1, R2 Week 2, R3 Week 3).
 
 ## Week at a glance
 
