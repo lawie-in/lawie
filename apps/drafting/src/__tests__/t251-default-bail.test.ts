@@ -692,13 +692,83 @@ describe('AC2 (wiring): the draft built from the brief, model stubbed', () => {
     expect(outsideBrief).not.toMatch(/≤\s*10/);
   });
 
-  it('a stubbed Drafter that writes "90 days" into the body is not changed by the system parts', async () => {
-    // The checks do not treat the pack's "60 days"/"90 days" as a source of a period for the brief;
-    // this test only pins that the system-rendered parts never add one.
+  it('the system-rendered parts (prayer, verification, cause title) state no day count or period', async () => {
     const out = await draftWith(BODY, { ...BASE_GIVEN, period_claimed: '60 days' });
     expect(out.sectionText('prayer')).not.toMatch(/\d+ days/);
     expect(out.sectionText('verification')).not.toMatch(/\d+ days/);
     expect(out.sectionText('cause_title')).not.toMatch(/\d+ days/);
+  });
+
+  const DAYS_BODY = `${BODY}\n\n3. That the applicant has been in custody for 68 days.\n\n4. That the statutory period of 90 days has expired.`;
+
+  // Accepted gap (same as the bond pin below): in non-ledger mode nothing checks the Drafter's body for a
+  // day count the brief does not hold. Ajay's go-live gate: feature.fact_ledger ON before default_bail is offered.
+  it.failing(
+    'GAP (non-ledger mode): a Drafter body with "68 days" in custody and "90 days" is stopped or blanked',
+    async () => {
+      const out = await draftWith(DAYS_BODY, { ...BASE_GIVEN, period_claimed: '60 days' });
+      expect(out.fullText).not.toMatch(/68 days/);
+      expect(out.fullText).not.toMatch(/90 days/);
+    },
+  );
+
+  it('ledger mode: a body with a day count is caught as days_elapsed (banned), the way the go-live gate relies on', async () => {
+    const pack = loadRulePack('default_bail')!;
+    const lists = loadAvermentLists('default_bail');
+    const mk = (key: string, display: string) => ({
+      id: `f_${key}`,
+      key,
+      label: key,
+      type: 'text',
+      value: display,
+      display,
+      raw_span: display,
+      source: 'user',
+      confidence: 0.99,
+      required_in_draft: true,
+    });
+    const facts = Object.entries({ ...BASE_GIVEN, period_claimed: '60 days' }).map(([k, v]) =>
+      mk(k, String(v)),
+    );
+    const u = (key: string, value: string): GivenValue => ({ source: 'user', key, value });
+    const brief = buildBrief({
+      kind: { id: pack.id, name: pack.name, court_document: true },
+      checklist: buildChecklist(pack),
+      values: Object.entries({ ...BASE_GIVEN, period_claimed: '60 days' }).map(([k, v]) =>
+        u(k, String(v)),
+      ),
+      court: { state: 'bihar', court_type: 'cjm', court: 'bihar_cjm_patna' },
+    });
+    const clauses = pack.mandatoryClauses.map((c) => `${c.id}: 1`).join('\n');
+    mockMessagesStream
+      .mockReset()
+      .mockImplementation(async () =>
+        sdkAnswer(`${DAYS_BODY}\n\n${CLAUSES_MARKER}\n${clauses}`, 4000, 800),
+      );
+    const res = { setHeader: jest.fn(), write: jest.fn(), end: jest.fn(), headersSent: false };
+    const result = await streamGenerateFromBrief(
+      {
+        pack,
+        templateConfig: loadTemplateConfig('default_bail')!,
+        brief,
+        language: 'en',
+        targetParagraphs: 12,
+        advocateName: 'Test Advocate',
+        userId: 'u1',
+        runId: 'r1',
+        runSequence: 1,
+        runType: 'initial',
+        ledger: { facts: facts as never, lists },
+      },
+      res as unknown as Response,
+    );
+    const initial = result.factCheck!.initial as Array<{
+      check?: string;
+      bannedEntryId?: string | null;
+    }>;
+    const bannedIds = initial.filter((v) => v.check === 'banned').map((v) => v.bannedEntryId);
+    expect(bannedIds).toContain('days_elapsed');
+    expect(result.factCheck!.passed).toBe(false);
   });
 
   it('special-Act offence: the brief carries the special-Act choice and the Drafter gets instruction 7 with its blank', async () => {
@@ -778,15 +848,20 @@ describe('scope (Ajay): "No" on any other yes/no item is still a fact', () => {
     },
   );
 
-  it('only willingness_to_furnish_bond is an undertaking: "false" on the other items is also kept', () => {
+  it('only willingness_to_furnish_bond is an undertaking: "false" on another yes/no item gets the item’s ordinary treatment, not the undertaking rule', () => {
+    // A choice item holds only its options (Yes / No). "false" is not an option, so the brief drops it for
+    // every item that is not an undertaking, exactly as it drops any other non-option such as "banana".
+    // The undertaking rule (isDeclinedUndertaking) is not what drops it; "No" (an option) is kept (test above).
     const pack = loadRulePack('bail_before_magistrate')!;
-    const brief = buildBrief({
-      kind: { id: pack.id, name: pack.name, court_document: true },
-      checklist: buildChecklist(pack),
-      values: [{ source: 'user', key: 'sureties_available', value: 'No' }],
-      court: { state: 'bihar', court_type: 'cjm', court: 'bihar_cjm_patna' },
-    });
-    expect(brief.items.find((i) => i.key === 'sureties_available')!.value).toBe('No');
+    const valueFor = (value: string) =>
+      buildBrief({
+        kind: { id: pack.id, name: pack.name, court_document: true },
+        checklist: buildChecklist(pack),
+        values: [{ source: 'user', key: 'sureties_available', value }],
+        court: { state: 'bihar', court_type: 'cjm', court: 'bihar_cjm_patna' },
+      }).items.find((i) => i.key === 'sureties_available')!.value;
+    expect(valueFor('No')).toBe('No');
+    expect(valueFor('false')).toBe(valueFor('banana'));
   });
 });
 
@@ -943,6 +1018,19 @@ describe('buildPlaceholderContext: {governing_provision}', () => {
       }
     }
     expect(users).toEqual([expect.stringMatching(/document-rules\/default_bail\.json$/)]);
+  });
+
+  it('another pack does NOT get ctx.governing_provision set (the default is default_bail’s own)', () => {
+    for (const id of ['bail_regular', 'bail_anticipatory']) {
+      const ctx = buildPlaceholderContext(loadTemplateConfig(id)!, { applicant_name: 'X' });
+      expect(ctx.governing_provision).toBeUndefined();
+    }
+    // A value given to another pack is still kept as given.
+    expect(
+      buildPlaceholderContext(loadTemplateConfig('bail_regular')!, {
+        governing_provision: 'S. 480 BNSS',
+      }).governing_provision,
+    ).toBe('S. 480 BNSS');
   });
 
   it('bail_regular’s prayer does not print the default-bail blank', () => {

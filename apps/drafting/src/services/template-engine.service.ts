@@ -1073,8 +1073,11 @@ export function buildPlaceholderContext(
 
   // T-251 (Ajay's interim rule, 12 Oct 2026): until T-245a supplies the
   // provision, {governing_provision} prints the both-forms blank. A value
-  // already in the context wins. Only default_bail uses this placeholder.
-  if (!ctx.governing_provision?.trim()) ctx.governing_provision = GOVERNING_PROVISION_BLANK;
+  // already in the context wins. The pair is default_bail's own, so only that
+  // pack gets it; other packs will carry their own pair.
+  if (config.template_id === 'default_bail' && !ctx.governing_provision?.trim()) {
+    ctx.governing_provision = GOVERNING_PROVISION_BLANK;
+  }
 
   // T-146: aliases are set after the SCRUM-50 court-rule block, so an alias
   // such as {caseNomenclature} reads the same value as {case_nomenclature}.
