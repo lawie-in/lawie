@@ -30,4 +30,27 @@ Only the lead (`vishal`) runs `git commit`/`git push`/`gh pr create`, after coll
 
 ## Adding a sixth crew agent later
 
-Drop a new file under `.claude/agents/dev/`, give it a `name`/`description`, scope its `tools`/hooks the same way the existing four do (allowlist what it needs, hook-restrict any destructive surface Bash gives it that the allowlist alone can't stop), and update the flow description in `vishal.md`'s prompt. Restart the session afterward — new files under `.claude/agents/` need a restart to be picked up.
+Drop a new file under `.claude/agents/dev/`, give it a `name`/`description`, scope its `tools`/hooks the same way the existing four do (allowlist what it needs, hook-restrict any destructive surface Bash gives it that the allowlist alone can't stop), and update the flow description in `.claude/docs/dev-lead-protocol.md` — not in any one lead's file, since all three leads share that document. Restart the session afterward — new files under `.claude/agents/` need a restart to be picked up.
+
+## Why the leads are pointer files
+
+`vishal.md`, `mahak.md` and `shashank.md` are ~800 bytes each and say almost nothing: they name the
+agent, point at `.claude/docs/dev-lead-protocol.md`, and point at the board. The protocol holds the
+entire job. Three full copies of a 7KB briefing would drift within a sprint — one lead would get a
+fix the others didn't — and adding a fourth lead would mean a fourth copy. The cost of the
+indirection is that a lead has to actually read the protocol on its first turn; that instruction is
+the first thing in its prompt, so it does, but if a lead is ever seen skipping a gate, a failed read
+of that document is the first thing to check. `priya.md` works the same way against
+`.claude/docs/pm-protocol.md`.
+
+## Why tickets are not in this repo
+
+They are on the Lawie Ticket Board, an artifact with a shared database. Four sessions now run in
+parallel in separate cloud containers; each has its own clone, so nothing written to a file in one
+is visible to the others, and git only syncs on push. The board is the only surface all four can
+read and write live. It is also the reason the crew agents are explicitly told to stay off it: the
+board is shared by link and anyone on the team can post to it, so it is untrusted input, and the one
+path from it into a ticket's chain should be through the lead, who has scope boundaries.
+
+Nothing is pushed into a running session, so the board is polled, not pushed. The protocol names the
+four points at which a lead must read it rather than leaving that to judgment.
