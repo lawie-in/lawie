@@ -23,7 +23,9 @@ export async function registerUser(
     email: payload.email,
     password: payload.password,
     name: payload.name,
-    role: payload.role ?? 'Client',
+    // Always 'Client' (T-196). Never read a role from the request: Admin is the
+    // only gate on admin routes and bypasses enforceFreeLimit.
+    role: 'Client',
   });
 
   // Signup bonus — non-blocking, never fails registration
