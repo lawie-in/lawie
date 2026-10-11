@@ -19,6 +19,7 @@ import { sdkAnswer } from './sdkStream';
 
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -49,8 +50,17 @@ const VALUES = [
   { key: 'grounds_for_bail', value: [FIRST_GROUND] },
 ];
 const fact = (key: string, display: string, extra: Record<string, unknown> = {}) => ({
-  id: `f_${key}`, key, label: CHECKLIST.find((i) => i.key === key)?.label ?? key, type: 'text',
-  value: display, display, raw_span: display, source: 'user', confidence: 0.99, required_in_draft: true, ...extra,
+  id: `f_${key}`,
+  key,
+  label: CHECKLIST.find((i) => i.key === key)?.label ?? key,
+  type: 'text',
+  value: display,
+  display,
+  raw_span: display,
+  source: 'user',
+  confidence: 0.99,
+  required_in_draft: true,
+  ...extra,
 });
 const FACTS = [
   fact('applicant_name', 'Ram Kumar', { type: 'person_name' }),
@@ -66,8 +76,11 @@ const FACTS = [
 // every clause reported in paragraph 1
 const report = () => PACK.mandatoryClauses.map((c) => `${c.id}: 1`).join('\n');
 const answer = (body: string) => `${body}\n\n${CLAUSES_MARKER}\n${report()}`;
+// T-200: paragraph 1 carries the cue words of every clause reported there
+const CUES =
+  ' He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.';
 const BAD = [
-  '1. That the applicant Ram Kumar is a law-abiding citizen.',
+  `1. That the applicant Ram Kumar is a law-abiding citizen.${CUES}`,
   '2. That FIR No. 124/2026 was registered at PS Kotwali.',
   '3. That the applicant is in judicial custody.',
 ].join('\n\n');
@@ -77,13 +90,23 @@ async function draft(repairReply: string) {
   mockMessagesStream.mockResolvedValueOnce(sdkAnswer(answer(BAD), 4000, 800));
   mockMessagesStream.mockResolvedValueOnce(sdkAnswer(repairReply, 400, 80));
   const l = await FactLedgerModel.create({
-    userId: USER_ID, documentKind: 'bail_regular', runType: 'user', currentVersion: 1,
-    versions: [{ version: 1, facts: FACTS, unresolved: [], createdAt: new Date(), reason: 'extract' }],
+    userId: USER_ID,
+    documentKind: 'bail_regular',
+    runType: 'user',
+    currentVersion: 1,
+    versions: [
+      { version: 1, facts: FACTS, unresolved: [], createdAt: new Date(), reason: 'extract' },
+    ],
   });
-  const res = await request(app).post('/generate-from-brief').set(headers()).send({
-    kind: 'bail_regular', values: VALUES, ledger_id: String(l._id),
-    court: { state: 'bihar', court_type: 'sessions', court: 'district_sessions_patna' },
-  });
+  const res = await request(app)
+    .post('/generate-from-brief')
+    .set(headers())
+    .send({
+      kind: 'bail_regular',
+      values: VALUES,
+      ledger_id: String(l._id),
+      court: { state: 'bihar', court_type: 'sessions', court: 'district_sessions_patna' },
+    });
   const blocks = res.text.split('\n\n').filter((b) => b.startsWith('event: done\n'));
   return { res, done: JSON.parse(blocks[blocks.length - 1].split('\ndata: ')[1]) };
 }
@@ -94,23 +117,44 @@ beforeEach(async () => {
   await AppSetting.create({ key: 'feature.describe_first', value: 'on' });
   await AppSetting.create({ key: 'feature.fact_ledger', value: 'on' });
   await Court.create({
-    courtId: 'district_sessions_patna', name: 'District & Sessions Court, Patna',
-    designation: 'DISTRICT & SESSIONS JUDGE, PATNA', courtType: 'sessions', state: 'Bihar',
-    stateId: 'bihar', city: 'Patna', formattingRulesRef: 'bihar_district',
+    courtId: 'district_sessions_patna',
+    name: 'District & Sessions Court, Patna',
+    designation: 'DISTRICT & SESSIONS JUDGE, PATNA',
+    courtType: 'sessions',
+    state: 'Bihar',
+    stateId: 'bihar',
+    city: 'Patna',
+    formattingRulesRef: 'bihar_district',
   });
-  await User.create({ _id: USER_ID, plan: 'free', planTier: 'free', inkSub: 0, inkAnnualCarry: 0, inkTopup: 2000 });
+  await User.create({
+    _id: USER_ID,
+    plan: 'free',
+    planTier: 'free',
+    inkSub: 0,
+    inkAnnualCarry: 0,
+    inkTopup: 2000,
+  });
 });
 
 describe('T-147e: mandatory clauses re-checked after the fact verifier', () => {
   it('control: a repair that keeps the paragraph number leaves no clause missing', async () => {
-    const { done } = await draft("[[P0]]\n1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail.");
+    const { done } = await draft(
+      `[[P0]]\n1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail.${CUES}`,
+    );
     expect(done.missingClauses).toEqual([]);
   });
 
   it('a repair that returns paragraph 1 without its number reports the clauses reported there as missing', async () => {
-    const { done } = await draft("[[P0]]\nThat the applicant Ram Kumar has approached this Hon'ble Court for regular bail.");
+    const { done } = await draft(
+      "[[P0]]\nThat the applicant Ram Kumar has approached this Hon'ble Court for regular bail.",
+    );
     const ids = (done.missingClauses as Array<{ id: string }>).map((m) => m.id);
-    expect(ids.sort()).toEqual(PACK.mandatoryClauses.filter((c) => c.required && c.appliesWhen === null).map((c) => c.id).sort());
+    expect(ids.sort()).toEqual(
+      PACK.mandatoryClauses
+        .filter((c) => c.required && c.appliesWhen === null)
+        .map((c) => c.id)
+        .sort(),
+    );
     expect(done.mandatoryClausesComplete).toBe(false);
   });
 });
