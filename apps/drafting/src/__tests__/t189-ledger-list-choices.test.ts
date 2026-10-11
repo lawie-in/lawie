@@ -34,7 +34,6 @@ import {
 import { DRAFTER_LEDGER_SYSTEM_PROMPT } from '../services/drafter.prompts';
 import {
   LEDGER_DETAILS,
-  LEDGER_DETAILS_T189,
   applyEdit,
   carryOver,
   extractLines,
@@ -245,7 +244,7 @@ describe('T-189 AC3: each list entry has its own verbatim raw_span; one with non
       key: 'sections_charged',
       reason: 'no_verbatim_span',
       raw_span: '',
-      detail: LEDGER_DETAILS_T189.no_verbatim_span,
+      detail: LEDGER_DETAILS.no_verbatim_span,
       label: SECTIONS.label,
     });
     expect(JSON.stringify(r)).not.toContain('420');
@@ -771,7 +770,7 @@ describe('T-189 AC8: the server ledger view carries every entry', () => {
       raw_span: '',
       source: 'user',
       reason: 'no_verbatim_span',
-      detail: LEDGER_DETAILS_T189.no_verbatim_span,
+      detail: LEDGER_DETAILS.no_verbatim_span,
     };
     const v = ledgerView(
       doc([version(1, 'extract', [lf('sections_charged', '318(4) BNS')], [u])]),
@@ -877,19 +876,49 @@ describe('T-189: averments and the verifier read a key with several entries', ()
     expect(m.get('police_station')).toHaveLength(1);
   });
 
-  it('factsByKey: one entry is that fact itself; several are one fact with the displays comma-joined', () => {
+  it('factsByKey is as on develop_staging: one fact per key, the last entry wins, blanks skipped', () => {
     const one = lf('police_station', 'P');
     expect(factsByKey([one]).get('police_station')).toBe(one);
-    const merged = factsByKey([
+    const last = lf('sections_charged', '319(2) BNS');
+    const m = factsByKey([
       lf('sections_charged', '318(4) BNS'),
-      lf('sections_charged', '319(2) BNS'),
-    ]).get('sections_charged')!;
-    expect(merged.display).toBe('318(4) BNS, 319(2) BNS');
-    expect(merged.value).toBe('318(4) BNS, 319(2) BNS');
-    expect(merged.key).toBe('sections_charged');
+      last,
+      lf('sections_charged', '   '),
+    ]);
+    expect(m.get('sections_charged')).toBe(last);
+    expect(m.get('sections_charged')!.display).toBe('319(2) BNS');
+    expect(factsByKey([lf('sections_charged', ' ')]).has('sections_charged')).toBe(false);
   });
 
-  it('DOCUMENTS: the verifier sees every section of a list (merged display); an unlisted section is flagged', () => {
+  it('factEntriesByKey: trims only, no de-dup, no merge, ledger order, holds no key without a non-empty entry', () => {
+    const m = factEntriesByKey([
+      lf('sections_charged', ' B '),
+      lf('police_station', 'P'),
+      lf('sections_charged', 'A'),
+      lf('sections_charged', 'B'),
+      lf('grounds_for_bail', '\t\n '),
+      lf('grounds_for_bail', ''),
+    ] as never);
+    expect(m.get('sections_charged')!.map((f) => f.display.trim())).toEqual(['B', 'A', 'B']);
+    expect([...m.keys()]).toEqual(['sections_charged', 'police_station']);
+    expect(m.has('grounds_for_bail')).toBe(false);
+  });
+
+  it('unresolved items never reach factEntriesByKey, the Drafter facts or the skeleton array', () => {
+    const out = ledgerDrafterFacts(
+      [lf('sections_charged', '103 BNS')] as never,
+      CHECKLIST,
+      null,
+      false,
+    );
+    expect(JSON.stringify(out.facts)).not.toContain('Section 420');
+    const u = { key: 'sections_charged', raw_span: '', reason: 'no_verbatim_span' };
+    expect(factEntriesByKey([u] as never).has('sections_charged')).toBe(false);
+  });
+
+  it('T-228 pending: the verifier reads only the last list entry (documents today, not the wanted end state)', () => {
+    // averments.ts and fact-verifier.ts stay untouched in T-189 (Ajay). factsByKey keeps one fact
+    // per key, so the verifier flags every entry but the last as not_in_facts. T-228 fixes this.
     const base = {
       facts: [lf('sections_charged', '318(4) BNS'), lf('sections_charged', '319(2) BNS')],
       unresolved: [],
@@ -897,16 +926,18 @@ describe('T-189: averments and the verifier read a key with several entries', ()
       skeleton: [] as string[],
       packText: packTexts(PACK),
     };
-    const ok = verifyDraft({
-      ...base,
-      body: '1. That the applicant is charged under Section 318(4) and Section 319(2) of the Bharatiya Nyaya Sanhita, 2023.',
-    }).filter((v) => v.entityType === 'section');
-    expect(ok).toEqual([]);
-    const bad = verifyDraft({
-      ...base,
-      body: '1. That the applicant is also charged under Section 103 of the Bharatiya Nyaya Sanhita, 2023.',
-    }).filter((v) => v.entityType === 'section');
-    expect(bad.length).toBeGreaterThan(0);
+    const sections = (body: string) =>
+      verifyDraft({ ...base, body }).filter((v) => v.entityType === 'section');
+    const both = sections(
+      '1. That the applicant is charged under Section 318(4) and Section 319(2) of the Bharatiya Nyaya Sanhita, 2023.',
+    );
+    expect(both.length).toBeGreaterThan(0);
+    expect(JSON.stringify(both)).toContain('318');
+    expect(JSON.stringify(both)).not.toContain('"319(2)');
+    const last = sections(
+      '1. That the applicant is charged under Section 319(2) of the Bharatiya Nyaya Sanhita, 2023.',
+    );
+    expect(last).toEqual([]);
   });
 });
 
@@ -1008,7 +1039,7 @@ function drafterAnswer(body: string): string {
   return `${body}\n\n${CLAUSES_MARKER}\n${ids}`;
 }
 
-describe('T-189 AC5 and AC6: bail_regular, from the description to the draft and the export', () => {
+describe('T-189 AC5 and AC6: bail_regular, from the description to the Drafter input', () => {
   beforeEach(async () => {
     _clearAppSettingsCache();
     await redis.flushall();
@@ -1045,7 +1076,7 @@ describe('T-189 AC5 and AC6: bail_regular, from the description to the draft and
     jest.restoreAllMocks();
   });
 
-  it('AC5: given in the description, both reach the ledger, the Drafter and the draft, not as missing', async () => {
+  it('AC5 (up to the Drafter input): given in the description, both reach the ledger, every entry reaches the Drafter, neither is missing', async () => {
     const extraction = JSON.stringify({ facts: [S1, S2, GA, GB] });
     queue(
       MATCH_BAIL,
@@ -1092,15 +1123,9 @@ describe('T-189 AC5 and AC6: bail_regular, from the description to the draft and
     expect(user).not.toContain(`{{MISSING: ${SECTIONS.label}}}`);
     expect(user).not.toContain(`{{MISSING: ${GROUNDS.label}}}`);
 
+    // Scope (Ajay: verifier and averments untouched, T-228 pending): proven up to the Drafter
+    // input only. The streamed draft is not asserted; the verifier may still repair it.
     expect(event(gen.text, 'done')).toBeTruthy();
-    expect(gen.text).not.toContain(`MISSING: ${SECTIONS.label}`);
-    expect(gen.text).not.toContain(`MISSING: ${GROUNDS.label}`);
-    expect(gen.text).not.toContain(`To be confirmed: ${SECTIONS.label}`);
-    expect(gen.text).not.toContain(`To be confirmed: ${GROUNDS.label}`);
-    // export of what was generated
-    const html = contentToHtml(`${BODY_FIRST}\n\n2. Sections 318(4) BNS and 319(2) BNS.`, false);
-    expect(html).toContain('318(4) BNS');
-    expect(html).not.toContain('To be confirmed');
   });
 
   it('AC6: with neither given, both are missing, as today, and print as [To be confirmed: label]', async () => {
@@ -1225,7 +1250,7 @@ describe('T-189 AC5 and AC6: bail_regular, from the description to the draft and
     expect(cleared.body.ledger.version).toBe(3);
   });
 
-  it('the route still takes a string, and refuses a bad shape (a number, a number in an array, more than 50 entries)', async () => {
+  it('the route still takes a string, and refuses a bad shape (a number, a number in an array, more than 30 entries)', async () => {
     queue(MATCH_BAIL, EMPTY_READ, JSON.stringify({ facts: [S1] }));
     const first = await describeBail(TEXT);
     const id = first.body.ledger.ledger_id as string;
@@ -1240,7 +1265,33 @@ describe('T-189 AC5 and AC6: bail_regular, from the description to the draft and
         });
     expect((await send('Gandhi Maidan')).status).toBe(200);
     expect((await send(5)).status).toBe(400);
-    expect((await send(Array.from({ length: 51 }, (_, i) => String(i)))).status).toBe(400);
+    expect((await send(Array.from({ length: 31 }, (_, i) => String(i)))).status).toBe(400);
     expect((await send([5])).status).toBe(400);
+    expect((await send(Array.from({ length: 30 }, (_, i) => String(i)))).status).toBe(200);
+  });
+
+  it('the route caps one list entry at 500 characters and a list at 3000 in all', async () => {
+    queue(MATCH_BAIL, EMPTY_READ, JSON.stringify({ facts: [S1] }));
+    const first = await describeBail(TEXT);
+    const id = first.body.ledger.ledger_id as string;
+    const send = (text: unknown) =>
+      request(app)
+        .post('/intake/brief/update')
+        .set(headers())
+        .send({
+          kind: 'bail_regular',
+          ledger_id: id,
+          ledger_edits: [{ key: 'sections_charged', text }],
+        });
+    expect((await send(['a'.repeat(501)])).status).toBe(400);
+    expect((await send(['a'.repeat(500)])).status).toBe(200);
+    // 6 x 500 = 3000: at the total cap; one more character is over it
+    expect((await send(Array.from({ length: 6 }, () => 'b'.repeat(500)))).status).toBe(200);
+    expect((await send([...Array.from({ length: 6 }, () => 'b'.repeat(500)), 'c'])).status).toBe(
+      400,
+    );
+    // a single string keeps its own, larger, cap
+    expect((await send('d'.repeat(6000))).status).toBe(200);
+    expect((await send('d'.repeat(6001))).status).toBe(400);
   });
 });

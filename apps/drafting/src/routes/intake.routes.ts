@@ -241,6 +241,9 @@ router.post('/intake/brief', authenticate, async (req: Request, res: Response): 
   }
 });
 
+/** T-189: the most one list or several-choices edit may carry. */
+const LIST_EDIT_LIMITS = { entries: 30, entryMax: 500, totalMax: 3000 } as const;
+
 const briefUpdateSchema = z.object({
   kind: KIND,
   kind_name: z.string().max(120).optional(),
@@ -257,8 +260,19 @@ const briefUpdateSchema = z.object({
     .array(
       z.object({
         key: z.string().min(1).max(200),
-        /** T-189: every entry of a list or several choices, as an array. */
-        text: z.union([z.string().max(6000), z.array(z.string().max(6000)).max(50)]),
+        /**
+         * T-189: every entry of a list or several choices, as an array. Kept
+         * small: each ledger version stores the whole state.
+         */
+        text: z.union([
+          z.string().max(6000),
+          z
+            .array(z.string().max(LIST_EDIT_LIMITS.entryMax))
+            .max(LIST_EDIT_LIMITS.entries)
+            .refine((xs) => xs.reduce((n, x) => n + x.length, 0) <= LIST_EDIT_LIMITS.totalMax, {
+              message: `at most ${LIST_EDIT_LIMITS.totalMax} characters in all`,
+            }),
+        ]),
         /** True when the value was given on the questions step. */
         from_question: z.boolean().optional(),
       }),

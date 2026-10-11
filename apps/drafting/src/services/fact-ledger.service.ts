@@ -158,11 +158,8 @@ export const LEDGER_DETAILS = {
   low_confidence: 'We are not sure these words give this detail.',
   conflicting_values: 'You gave two different values for this.',
   not_an_option: 'This is not one of the choices for this detail.',
-} as const;
-
-/** T-189's detail sentence. User-facing; NOT YET SIGNED by Ajay. */
-export const LEDGER_DETAILS_T189 = {
-  no_verbatim_span: 'We could not find where you wrote this.',
+  /** T-189: signed by Ajay on 11 Oct 2026. Do not reword. */
+  no_verbatim_span: 'We could not find this detail in what you wrote.',
 } as const;
 
 function unresolvedOf(reason: UnresolvedReason, detail: string): Normalized<never> {
@@ -320,7 +317,7 @@ export function readExtraction(
     if (result.unresolved.some((u) => u.key === item.key && u.reason === 'no_verbatim_span'))
       return;
     result.unresolved.push(
-      makeUnresolved(item, '', 'user', 'no_verbatim_span', LEDGER_DETAILS_T189.no_verbatim_span),
+      makeUnresolved(item, '', 'user', 'no_verbatim_span', LEDGER_DETAILS.no_verbatim_span),
     );
   };
   for (const entry of raw) {
