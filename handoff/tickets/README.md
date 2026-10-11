@@ -154,9 +154,9 @@ Checked on `develop` after PR #29 and PR #30.
 | T-210 | Auth logs carry no email address (PII, `passport.ts:60`) | 0 | Lead (build), Ajay (heads-up) | Ready |
 | T-211 | The ReferralCode uniqueness test is not flaky | 0 | Lead (build) | Ready |
 | T-220 | Emails actually reach users: provider, sending domain (SPF/DKIM/DMARC), worker deployed | 0 | Arjun (call), founder (DNS, AWS), lead (build), Anushka | Needs scoping. Waits for Arjun. Before go-live |
-| T-221 | Forgot password works end to end (today the link is dead and no email is sent) | 0 | Rajesh (design), Madhuri (copy), lead (build), Anushka | To do. Needs design and copy. Before go-live |
+| T-221 | Forgot password works end to end | 0 | Rajesh (design done), lead (build) | ON HOLD: Phase 1 is Google sign-in only. Only if password login returns |
 | T-222 | A new user gets a welcome email | 0 | Madhuri (copy), Ajay (claims), lead (build), Anushka | To do. Needs copy |
-| T-223 | Do we verify a new user's email? (free-draft farming) | 0 | Arjun and Vikram (recommend), founder (decides) | Needs a decision |
+| T-223 | Free-draft farming: verify email (B) or switch server-side password sign-up off (D) | 0 | Arjun and Vikram (recommend), founder (decides) | Needs the founder's call |
 | T-224 | Payment and balance emails | 2 | Vikram, Madhuri, Ajay, lead | Blocked: drops pricing (T-201 to T-205) and T-220 |
 | T-225 | What our emails may and may not contain (DPDP, confidentiality, footer) | 0 | Ajay (rules, signs) | To do. Waits for Ajay. Gates all email copy |
 | T-226 | A user cannot draft past their balance (parallel requests; failed charge still delivers) | 0 | Arjun (mechanism), lead (build), Anushka | To do. Waits for Arjun. After T-197 merges. Before go-live |

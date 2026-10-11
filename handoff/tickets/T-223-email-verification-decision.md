@@ -86,3 +86,10 @@ Shape for the AC when the founder picks B:
 4. Signup register limit tightened separately at the gateway (per IP and per device), independent of this ticket.
 
 Risk: B depends on T-220 delivering to the inbox. If T-220 slips past go-live, fall back to C plus "daily bonus only for Google sign-in users" until verification ships. Cost of a farmed draft: Vikram's section.
+
+## Priya (11 Oct 2026): the question changes
+
+Phase 1 is Google sign-in only (founder decision, 17 May 2026), so every account made through the web app already has a verified email. The hole is that the auth API still accepts `POST /auth/register` and `/auth/login` with an email and password, so a script can make throwaway accounts without the UI. Option D, for the founder alongside B:
+
+- D. Switch the email and password register and login routes off on the server for Phase 1, the same way the web app hides them (Google only). No verification email is needed, so T-220 is not on this path. If password login returns, B applies then.
+
