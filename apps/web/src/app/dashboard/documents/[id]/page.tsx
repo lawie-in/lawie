@@ -38,6 +38,8 @@ interface DocumentData {
   startingDraft?: boolean;
   startingDraftLabel?: string | null;
   startingDraftFooter?: string | null;
+  /** T-197 — the signed disclaimer, shown on every draft. The text comes from the service. */
+  disclaimer?: string | null;
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -389,6 +391,16 @@ export default function DocumentEditorPage() {
           >
             {doc.startingDraftLabel}
           </p>
+        )}
+
+        {/* T-197 — the signed disclaimer, on every draft. The service's text; not dismissible. */}
+        {doc.disclaimer && (
+          <div
+            role="note"
+            className="border-brand-line bg-brand-page rounded-lg border px-3.5 py-2.5"
+          >
+            <p className="text-brand-navy text-sm">{doc.disclaimer}</p>
+          </div>
         )}
 
         {/* Watermark notice for free tier */}

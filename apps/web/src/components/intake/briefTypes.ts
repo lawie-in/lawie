@@ -254,6 +254,12 @@ export interface DraftResult {
    * written from the fact ledger.
    */
   factCheck?: FactCheckBanner | null;
+  /**
+   * T-197: the signed disclaimer, as the service sent it with every finished
+   * draft. Shown once: inside the banner when there is one, else as a note.
+   * Null when the service sent none; the web app keeps no copy of the text.
+   */
+  disclaimer?: string | null;
 }
 
 /** T-147d: the fact verifier's banner, printed as the service sent it. */
@@ -390,8 +396,7 @@ export function countBlanks(text: string): number {
   const marked = (text.match(BLANK) ?? []).length;
   const rest = text.replace(SIGNATURE_LINE, '');
   const signingDates = (rest.match(SIGNING_DATE_BLANK) ?? []).length;
-  const underscores = (rest.replace(SIGNING_DATE_BLANK, ' ').match(UNDERSCORE_BLANK) ?? [])
-    .length;
+  const underscores = (rest.replace(SIGNING_DATE_BLANK, ' ').match(UNDERSCORE_BLANK) ?? []).length;
   return marked + signingDates + underscores;
 }
 

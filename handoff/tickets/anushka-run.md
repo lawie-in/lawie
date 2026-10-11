@@ -15,3 +15,11 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 - I can be signed in on two tabs or devices at once; logging out of one leaves the other signed in.
 - I am not signed out by this release; my existing session keeps working.
 
+## T-197 (mahak, merged to develop_staging d74d063, 11 Oct 2026)
+
+- When my draft is ready, I always see "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.", whether or not the checks flagged anything.
+- When the checks flag something and the warning box shows, I see that line once, not twice.
+- When I reopen a saved document, I see the same line above the text.
+- It reads the same on my phone and on a desktop.
+- The Word and PDF files I download have the same footers as before.
+

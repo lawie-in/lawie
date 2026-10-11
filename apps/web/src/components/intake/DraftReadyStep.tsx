@@ -27,6 +27,10 @@ export default function DraftReadyStep({
   onStartAnother: () => void;
 }) {
   const factCheck = result.factCheck ?? null;
+  // T-197: the signed disclaimer shows on every draft, once. With the banner it is the
+  // banner's last line; without it, a neutral note in the same slot. The text is the
+  // service's; there is no copy of it in the web app.
+  const disclaimer = result.disclaimer ?? null;
   const nothingFound =
     result.missingClauses.length === 0 && result.findings.length === 0 && factCheck === null;
 
@@ -86,6 +90,14 @@ export default function DraftReadyStep({
               ))}
             </ul>
             <p className="text-brand-gold-dark mt-2 text-sm">{factCheck.disclaimer}</p>
+          </div>
+        )}
+        {!factCheck && disclaimer && (
+          <div
+            role="note"
+            className="border-brand-line bg-brand-page mt-3 rounded-lg border px-3.5 py-2.5"
+          >
+            <p className="text-brand-navy text-sm">{disclaimer}</p>
           </div>
         )}
         {nothingFound ? (
