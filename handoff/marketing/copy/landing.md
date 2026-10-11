@@ -99,7 +99,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 ```
 
 Three short points (icons by Rajesh):
-- **Edit everything.** Every line of the draft is yours to change. (44)
+- **Edit every line.** Every line of the draft is yours to change. (50)
 - **Word or PDF.** Download and keep working in the format you use. (48)
 - **Your call.** Lawie helps with drafting. Filing and the final call stay with you. (67)
 
@@ -234,10 +234,12 @@ Note: a Hindi page must not imply Hindi drafts. Drafts are in English; if this v
 | 6 | Ink line | Pricing teaser, FAQ 4 | Signed, exact |
 | 7 | Not charged for a failed generation | FAQ 5 | Signed (part of Ink line) |
 | 8 | Disclaimer on every draft; advocate responsible | You stay the advocate, FAQ 3, footer | T-197, signed |
-| 9 | Every line is editable in the editor | How it works, You stay the advocate, FAQ 6 | Live flow. Priya to confirm "every line" |
+| 9 | You can edit every line of the draft | How it works, You stay the advocate, FAQ 6 | Priya confirmed (12 Oct). The disclaimer banner and export footers cannot be removed, and no copy claims otherwise |
 | 10 | "Lawie does not give legal advice and does not file anything." | FAQ 3 only | Denial only. Confirm it is acceptable with "legal advice" on the banned list |
 | 11 | Sign in with Google; email and password coming soon | Hero note, sign-in note, FAQ 8 | Signed (coming soon until T-234 ships) |
 | 12 | Drafts in English; Hindi drafting coming soon | FAQ 7, Hindi variant | Signed |
 | 13 | Intake asks about parties, dates and the facts the document needs | How it works step 2 | Priya to confirm against the form |
 | 14 | Monthly plans and top-up packs exist | Pricing teaser | Vikram: Solo and top-ups final |
 | 15 | Sample PDFs, labelled "Sample, fictional matter" | Documents (optional) | Ajay to re-check the four PDFs |
+
+No watermark claim appears on this page (none exists on any plan; Priya). Offers (+5 / +3 Ink codes) are not mentioned here; if added, they must say "new accounts only" (Priya: codes apply on Google sign-in for new accounts only, invalid codes are silently ignored).
