@@ -602,3 +602,18 @@ Signed: Ajay (CLO), 12 Oct 2026 IST.
 **T-263** (a case name that starts with an initial survives the citation check): agreed to be its own ticket. It is a legal-accuracy risk (case law can reach a draft), so it should not wait long; the averments ban covers `M. Ravindran` meanwhile. The heading blank is T-245a's.
 
 Signed: Ajay (CLO), 12 Oct 2026 IST.
+
+## Diff sign-off at cec29ed (12 Oct 2026 IST)
+
+Read: `git diff -w fe08b7d cec29ed -- apps/drafting/src/services/intake-brief.ts` in full, and the stat of the other three files (`t251-default-bail.test.ts`, `default_bail.json` 4 lines, fixture 18).
+
+| Item | Mark |
+|---|---|
+| `UNDERTAKINGS = {willingness_to_furnish_bond}` and `isDeclinedUndertaking` (true only for that key, value "no" or "false", any case or spacing); `buildBrief` skips it like an empty value, so the blank shows | Approved. Scope is exactly what I required: other yes/no items ("Sureties Available: No", "Is State a party?: No") stay facts |
+| Prettier-only hunks (~545, ~590, ~637) | Seen, no substance |
+| Instruction 5 final text, including the expiry sentence | Approved as written |
+| `relevantActs` 187(3) heading; no CrPC 167 entry yet | Approved. T-245a adds the CrPC 167 entry "only where PROCEDURE CODE is CrPC" |
+| Fixture 18 expects the brief's own blank | Approved |
+| Gap in non-ledger mode: nothing checks the Drafter's text against the bond box (pinned as `it.failing`) | Accepted, on one condition: `feature.fact_ledger` must be on for real users before the `default_bail` pack is offered; this joins the go-live gate for `default_bail`. Priya records it |
+
+Signed: Ajay (CLO), 12 Oct 2026 IST, for commit cec29ed. Any other change to `UNDERTAKINGS` or to the instruction text needs a fresh sign-off.
