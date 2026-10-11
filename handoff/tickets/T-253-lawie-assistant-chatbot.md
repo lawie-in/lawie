@@ -68,3 +68,32 @@
 - **Ajay:** the system prompt's scope text, the refusal lines, the advice disclaimer and retention. He signs the final system prompt.
 - **Vikram:** the cost per message and the caps that keep Solo above the margin target.
 - **Rajesh:** the chat panel design.
+
+## Vikram: cost gate (12 Oct 2026)
+
+**Cost per message** (system prompt plus retrieval plus 6 turns of history, reply capped at 500 tokens):
+- Haiku 4.5: ₹0.59 typical, ₹0.86 max.
+- Haiku 5.5, thinking off: ₹0.06 typical, ₹0.09 max.
+- Vikram recommends **Haiku 5.5 with thinking off**. Arjun picks the model in the ADR.
+
+**Caps per user:**
+
+| Cap | Solo | Pro |
+|---|---|---|
+| Monthly chat spend | ₹30 | ₹75 |
+| Messages per day | 30 | 60 |
+| Max tokens per reply | 500 | 500 |
+
+**Global caps:**
+- ₹2,000 a month, with alerts at ₹1,000 and ₹1,600.
+- ₹300 a day.
+- Kill switch: the app setting `chat.enabled`.
+- A separate Anthropic API key with a $25 monthly limit in the console.
+
+**Free plan:** no access at launch. The panel shows as locked, with an upgrade message.
+
+**Fail closed:** if the model's rate is missing in `ai.rates`, chat refuses to run. Otherwise the ₹ cap would never trip. Set `finance.usd_inr` to 96.5 everywhere.
+
+**Note:** heavy Solo users already fall below the 60% margin on drafting alone (T-004 estimate). The chat cap only limits what chat adds.
+
+**ADR status:** Arjun's first attempt stopped at the session limit. Re-dispatched 12 Oct 02:50 IST.
