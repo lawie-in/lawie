@@ -161,3 +161,7 @@ Status: **Approved** with the three build conditions above.
 
 6. Ajay's consent line goes under submit in both tabs, word for word.
 7. Auth records `termsAcceptedAt`, `termsVersion` (2026-06-01) and `acceptedVia` (google or password) on sign-up, and for an existing Google user at their next sign-in. This touches `apps/auth` (User model and sign-in paths): the lead claims those files.
+
+## Added (Priya, 12 Oct 2026, from Meera)
+
+- `/login?mode=signup` opens the sign-up form. UTM sign-up links depend on it; today it lands on sign-in.

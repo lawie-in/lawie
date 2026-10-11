@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                        |
 | Owner          | Rajesh (design of the warning). Vishal (build). Ajay (signs the header text and the blank style). Anushka (verdict)           |
 | Mode           | Design first (Rajesh), then build, full chain. Merge to develop                                                               |
-| Status         | Assigned to mahak, 11 Oct 2026. Not started. Gates met: Rajesh's design (artifact v2), Ajay's AC8 sign-off, Priya's calls |
+| Status         | Merged into develop_staging (324416e, 12 Oct 2026), waiting for Anushka on develop; manual checks (real PDF render, fallback PDF em dash, DOCX in Word, Export DOCX anyway) before her run |
 | Assigned lead  | mahak |
 | Size           | Design S (0.5 day). Build M (1 day)                                                                                           |
 | Depends on     | T-147c (already writes `[To be confirmed: label]` in plain text)                                                              |
@@ -57,7 +57,7 @@ District court advocate who exports a draft to file it and must not file one wit
 
 ## Priya decisions (11 Oct 2026)
 
-1. Which blanks count: open. Ajay decides it together with AC8. Until he does, the build counts only `[To be confirmed: …]`.
+1. Which blanks count: superseded. Ajay decided it in set (d) and his 12 Oct rulings below. The temporary "count only `[To be confirmed: …]`" rule no longer applies.
 2. AC note (build requirement): save first, then count from the saved draft the file is built from.
 3. "Go back and fill" puts the cursor on the first blank: in scope. Tracking "warning shown / export anyway": out of v1 scope; if it comes back later it needs a PII review.
 
@@ -132,3 +132,15 @@ These narrow two rows of set (d). The signed strings are unchanged. Signed: Ajay
      - discharge_application: 1.
      - bail_cancellation: 2.
      - I.A. in a civil suit: 1.
+
+## AC9 for DOCX (Priya's call, 12 Oct 2026)
+
+- apps/web has no test runner, and drafting tests can't import web code.
+- So, for DOCX highlight and header only, AC9 is met by the tester's script. It checks the real DOCX XML at 0, 1 and several blanks, including the exempt registry and signing-date blanks: 20/20.
+- The script output is logged in the merge note.
+- A web test runner is not part of this ticket.
+- Before Anushka's run, a manual check:
+  - real Puppeteer render (header font, em dash);
+  - jsPDF fallback em dash;
+  - the DOCX opened in Word;
+  - "Export DOCX anyway" in a browser.

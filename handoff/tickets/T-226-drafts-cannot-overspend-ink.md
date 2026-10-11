@@ -99,3 +99,7 @@ Ink is kept only when a successful run's draft reached the user: the stream fini
 6. Fixture user: no hold, no ledger row (regression).
 
 Decision owner: Arjun. Vikram: no pricing change. Free Ink and paid Ink go through the same guard.
+
+## Added (Priya, 12 Oct 2026, from vishal)
+
+- In `credits.service.ts`, `spendInk` does two writes it doesn't await: the inkledger `insertMany` and the user `$unset`. Await them, or make them part of the hold-and-settle flow.

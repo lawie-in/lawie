@@ -46,7 +46,13 @@ import {
   updateBrief,
 } from '../services/intake.service';
 import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
-import { contentToHtml, renderPdf } from '../services/pdf-export.service';
+import {
+  blanksInContent,
+  contentToHtml,
+  draftHeaderText,
+  findBlanks,
+  renderPdf,
+} from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
 import { loadRulePack } from '../services/rule-pack.service';
 import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
@@ -1449,10 +1455,16 @@ router.post(
     const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
     const isFree = payload.plan !== 'pro';
 
-    const html = contentToHtml(content, isFree, doc.startingDraft === true);
+    // T-194: count the blanks of the saved draft this PDF is built from (Priya
+    // decision 2). Each prints bold and highlighted, and a draft with any carries
+    // "DRAFT — N items to be confirmed" on every page. None: as before.
+    const blankCount = blanksInContent(content, findBlanks).length;
+    const html = contentToHtml(content, isFree, doc.startingDraft === true, { findBlanks });
     let pdfBuffer: Buffer;
     try {
-      pdfBuffer = await renderPdf(html);
+      pdfBuffer = await renderPdf(html, {
+        headerText: blankCount > 0 ? draftHeaderText(blankCount) : undefined,
+      });
     } catch (pdfErr) {
       console.error(
         '[drafting] Puppeteer PDF render failed:',

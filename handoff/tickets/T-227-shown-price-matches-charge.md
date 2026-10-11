@@ -73,3 +73,25 @@ Why this way round: it matches the price every user has been shown for 89 of 92 
 
 AC3: there is no cost screen before generating on develop_staging today (Madhuri, T-222). Showing the cost is a UI change, so it needs Rajesh's design before the lead builds AC3. AC1, AC2 and AC4 can go first.
 
+
+## Vikram: ids that are not rule files (12 Oct 2026, night)
+
+Asked through Priya after Shashank found them silently charged 1 Ink. Vikram approved the proposal, with two corrections.
+
+| id | Ink | Basis |
+|---|---|---|
+| guided (kind `none`) | 2 | a whole draft with no rule pack, so a long draft |
+| bail_application | price of `bail_regular` (2) | alias, `DOC_TYPE_TO_RULE` |
+| complaint | price of `consumer_complaint` (2) | alias |
+| legal_notice | price of `legal_notice_s80` (1) | alias |
+| affidavit | 1 | short-document tier |
+| petition, plaint, injunction, reply | 2 | default; reply is a long pleading |
+| written_statement, vakalatnama, rent_agreement | their rule file | they are rule files, not gaps |
+
+- An alias takes its price from the rule file it maps to, never from its own number. Test: alias price = target price.
+- Unknown id → 400, not 402 (a 402 tells the user to top up, which is wrong for a bad id).
+  - The check sits in `enforceCredits`, before any spend or LLM call.
+  - Every rejection goes to Sentry.
+- AC2 test: loop over every rule file, every legacy enum value and `guided`. A missing price fails CI.
+- Vikram re-tiers `guided` and `reply` with the rest once T-003 has two weeks of usage data.
+- Pricing page copy ("Each document you generate uses 1 Ink") is wrong under these prices. Logged as T-238; not part of this ticket.

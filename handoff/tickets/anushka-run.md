@@ -46,3 +46,18 @@ Needs the `feature.fact_ledger` setup above, or she sees the old path.
 - If a draft leaves out one of my sections or grounds, or rewords a ground, I am told to check it instead of it quietly disappearing.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-194 (mahak, merged to develop_staging 324416e, 12 Oct 2026)
+
+Before her run, someone checks by hand: a real PDF render, the em dash in the fallback PDF, the DOCX opened in Word, and "Export DOCX anyway" in a browser.
+
+- The bold, italic and underlined text from my draft now shows in the Word file.
+- Before I export, I get a warning with the number of items still to be confirmed.
+- I can go back and fill them in. That puts me on the first blank.
+- Or I can export anyway.
+- Each blank prints bold and highlighted in yellow, in both Word and PDF.
+- "DRAFT — N items to be confirmed" prints at the top of every page.
+- If nothing is blank, there is no warning and no header, as before.
+- The registry case number in the title, the signing date in the verification and the signature line are not flagged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

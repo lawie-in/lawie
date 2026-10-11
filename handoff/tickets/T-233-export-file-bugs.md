@@ -28,3 +28,11 @@ In `apps/web/src/components/editor/exportUtils.ts`:
 1. An unedited plain-text draft exports a DOCX with its full text.
 2. The fallback PDF has its 1.5 in margin on the left.
 3. A manual check of both in the report (`apps/web` has no tests).
+
+## Added (Priya, 12 Oct 2026, from mahak during T-194)
+
+- A failed export after "Export anyway" is an unhandled rejection with no message to the user: `exportFile` in page.tsx has no catch. Show an error and let the user retry.
+
+## Follow-up added (Ajay, T-194 sign-off 5640356)
+
+- Make the blank-marker match case-insensitive. Low risk, and it needs no sign-off on its own.
