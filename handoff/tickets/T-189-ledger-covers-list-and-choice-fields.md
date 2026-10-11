@@ -96,3 +96,53 @@ Re-review needed after items 2 and 3 are fixed. Send me the new commit hash; I w
 
 Developer round 2 showed that AC5 cannot hold end to end while the verifier reads one entry per key: it flags 318(4) BNS as not in facts, runs a paid repair, and the delivered draft reads `{{MISSING: section}}`. Option A (Vishal): T-189 also makes the verifier (buildSources, checkDropped, repair facts) and averment unlocking read every entry of a list or choices key, each entry checked on its own, no merged fact and no joined `raw_span`. T-228's acceptance criteria 1 to 6 now belong to this ticket. `fact-verifier.ts` is added to vishal's claim. Ajay signs the per-entry read on the pushed diff. `factsByKey` stays byte-identical, and the new reads go through `factEntriesByKey`.
 
+
+## Ajay rule for per-entry read (11 Oct 2026)
+
+**Status: PRE-APPROVAL. It is not a sign-off.** It sets the rule Vishal builds against. The final sign-off is on the pushed diff to `averments.ts` and `fact-verifier.ts`, cited by commit hash in this file. Read (read-only): `conditionHolds` (averments.ts), `buildSources`, `checkDropped`, `present` (fact-verifier.ts). No code, tests or builds run.
+
+**Answer: Approved in principle.** A per-entry presence check is the rule I will sign. Each held entry of a list or choices key is its own fact for every check. No check ever reads a joined string, a merged fact or a joined `raw_span`.
+
+### R1. What counts as an entry being "present" in the draft
+
+- An entry is present when the **existing** `present()` test for its type passes for that entry alone. That means the same `fold` whole-phrase match, the same section_ref, date, amount and police_station matching as today. This ticket does not add looser matching (no fuzzy match, no part-word match, no "most entries" threshold).
+- Sections: the act has to match as well as the number. "318(4) IPC" or a bare "318(4)" in the draft does not satisfy the entry "318(4) BNS" if today's section_ref test would reject it. One draft phrase can satisfy several entries only when each entry passes its own test. Example: "Sections 318(4) and 319(2) BNS" passes both entries, provided today's section entity extraction reads both.
+- Text entries (for example `grounds_for_bail`): present means the entry's trimmed display appears, after folding, as a whole phrase. This is the same strictness as single-value text keys today. **Risk, accepted:** if the Drafter paraphrases a ground, the verifier reports it as left out and a repair runs. That is safer than letting a ground drop silently. Loosening this needs its own ticket and its own sign-off.
+- A `{{MISSING: ...}}` or `[To be confirmed: ...]` placeholder never counts as a held entry being present.
+
+### R2. Verifier (`buildSources`, `checkDropped`, repair facts)
+
+- `buildSources`: every held entry feeds the sources (ledger corpus, sectionKeys/sectionNumbers, dates, amounts, stations, verbatim corpus). A draft value is supported (not `not_in_facts`) if it matches **any** held entry of the key it belongs to. A value that matches no entry (for example 318(3) BNS when the advocate gave 318(4)) is still flagged.
+- `checkDropped`: `required_in_draft` applies to each entry. Every missing entry gets its **own** `dropped` violation, with that entry's display as `ledgerValue`. There is never one violation per key with a joined value.
+- Repair facts: each entry is passed as its own fact line with its own `raw_span`. The repair prompt's instruction text does not change. If it has to change, that is a separate prompt sign-off (AC9).
+- The unresolved cue skip (`byKey.has`) stays as it is. A key with at least one held entry is held. Unresolved entries never enter sources, `facts` or the repair input.
+- No repair fires when every entry is present (T-228 AC4).
+
+### R3. Averment unlock conditions over a list or choices key
+
+| Condition | Met when | Why |
+| --- | --- | --- |
+| `present: true` | at least 1 held, non-empty entry | Same as today |
+| `equals` | **any** entry equals one of the wanted values | `equals` on a list means "this value is among what the advocate gave" |
+| `not_in` | **every** entry is outside the `not_in` set. One entry inside the set fails the condition | `not_in` is an exclusion, so it fails closed. A barring value must not be outvoted by another entry |
+| `all_of` | each child is tested under the rows above | Same as today |
+| key missing, or zero non-empty entries | **false** | Same as today (Ajay, 10 Oct 2026). An empty array is never held |
+
+- Each entry is compared on its own `folded(value)` and `folded(display)`, as today. No concatenation.
+- Single-value keys (one entry): byte-identical results to today.
+- **Blocker trigger:** if any averment in the 5 seeded packs interpolates a list or choices key into its text (`{{key}}`), stop and send it to me. Do not invent a join for the averment text.
+
+### R4. Unchanged (T-189 conditions still apply)
+
+- `factsByKey` byte-identical to `origin/develop_staging`. The new reads go through `factEntriesByKey` only.
+- No change to `drafter.prompts.ts`, the extraction prompt, `missingPlaceholder`, the `missing` filter or the signed `LEDGER_DETAILS` sentences.
+- Golden snapshots unchanged (AC10). If one moves, stop and report it.
+- Blockers 2 and 3 on 910ced6 still have to be fixed in the same push.
+
+### R5. Tests I will look for in the diff
+
+1. Entries "318(4) BNS" and "319(2) BNS", draft cites both: no violation, no repair call, no `{{MISSING}}`.
+2. Draft cites only 319(2) BNS: exactly one `dropped` violation, for 318(4) BNS.
+3. Draft cites 318(4) IPC: the 318(4) BNS entry is not present.
+4. `equals` is met by the second entry of a list. `not_in` fails when any one entry is in the set.
+5. Single-value key regression: results are identical to today.
