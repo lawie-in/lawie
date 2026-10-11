@@ -526,3 +526,138 @@ describe("Ajay R2b.4: the fact check's model repair", () => {
     },
   );
 });
+
+// ── Ajay R2b.5: a first check that finds only blanks records nothing ────────
+
+describe('Ajay R2b.5: the first check of an empty reported paragraph', () => {
+  const pack = { ...BAIL, id: 'bail_anticipatory', mandatoryClauses: [clause('apprehension')] };
+  const out = (body: string, report = 'apprehension: 5') =>
+    splitDrafterOutput(`${body}\n\n${CLAUSES_MARKER}\n${report}`);
+
+  it.each([
+    ['"5." immediately followed by "6."', '5.\n\n6. Beta stays as it is.'],
+    ['"5." with only spaces before "6."', '5.   \n\n6. Beta stays as it is.'],
+    ['only {{MISSING: x}}', '5. {{MISSING: x}}\n\n6. Beta stays as it is.'],
+    ['only [To be confirmed: x]', '5. [To be confirmed: x]\n\n6. Beta stays as it is.'],
+    ['only ___', '5. ___\n\n6. Beta stays as it is.'],
+    ['blanks and punctuation', '5. {{MISSING: x}}. ; ___\n\n6. Beta stays as it is.'],
+  ])('Ajay R2b.5: %s gives clause_not_in_paragraph and records nothing', (_n, body) => {
+    const recorded = new Map<string, string>();
+    const missing = findMissingClauses(pack, out(body), [], { recorded });
+    expect(missing.map((m) => [m.id, m.reason])).toEqual([
+      ['apprehension', 'clause_not_in_paragraph'],
+    ]);
+    expect(recorded.has('apprehension')).toBe(false);
+    expect(recorded.size).toBe(0);
+  });
+
+  it('Ajay R2b.5: a first check with real text is recorded as before (control)', () => {
+    const recorded = new Map<string, string>();
+    const missing = findMissingClauses(
+      pack,
+      out('5. That the applicant fears arrest.\n\n6. Beta stays as it is.'),
+      [],
+      { recorded },
+    );
+    expect(missing).toEqual([]);
+    expect(recorded.get('apprehension')).toBe('that the applicant fears arrest.');
+  });
+
+  it('Ajay R2b.5: a word next to a blank is real text and is recorded (control)', () => {
+    const recorded = new Map<string, string>();
+    const missing = findMissingClauses(pack, out('5. That {{MISSING: x}}\n\n6. Beta.'), [], {
+      recorded,
+    });
+    expect(missing).toEqual([]);
+    expect(recorded.has('apprehension')).toBe(true);
+  });
+
+  it('Ajay R2b.5: with no recorded map, a one-off check of an empty paragraph fails', () => {
+    const missing = findMissingClauses(pack, out('5.\n\n6. Beta stays as it is.'), []);
+    expect(missing.map((m) => [m.id, m.reason])).toEqual([
+      ['apprehension', 'clause_not_in_paragraph'],
+    ]);
+  });
+
+  it('Ajay R2b.5: with no recorded map, a paragraph with real text still passes', () => {
+    expect(findMissingClauses(pack, out('5. That the applicant fears arrest.'), [])).toEqual([]);
+  });
+
+  it('Ajay R2b.5: an empty first check does not poison the next: real text is recorded then', () => {
+    const recorded = new Map<string, string>();
+    findMissingClauses(pack, out('5.\n\n6. Beta.'), [], { recorded });
+    const later = findMissingClauses(pack, out('5. That the applicant fears arrest.'), [], {
+      recorded,
+    });
+    expect(later).toEqual([]);
+    expect(recorded.get('apprehension')).toBe('that the applicant fears arrest.');
+  });
+
+  it('Ajay R2b.5: a cued or fixed-text clause is not changed by the guard', () => {
+    // bail_regular clauses have cues; an empty paragraph already fails them under R2a.
+    const cued = BAIL.mandatoryClauses.find((c) => c.required && c.appliesWhen === null);
+    expect(cued).toBeDefined();
+    const recorded = new Map<string, string>();
+    findMissingClauses(
+      { ...BAIL, mandatoryClauses: [cued as RulePackClause] },
+      out('5.\n\n6. Beta.', `${(cued as RulePackClause).id}: 5`),
+      [],
+      { recorded },
+    );
+    expect(recorded.size).toBe(0);
+  });
+});
+
+describe('Ajay R2b.5: end to end, an uncued clause whose reported paragraph is empty', () => {
+  it('goes to the clause repair pass at check 1, and the repair fills it', async () => {
+    mockMessagesStream.mockReset();
+    // paragraph 1 is empty; apprehension and no_flight_risk are reported there
+    mockMessagesStream.mockResolvedValueOnce(
+      sdkAnswer(`1.\n\n${P2}\n\n${CLAUSES_MARKER}\n${reportOf()}`, 4000, 800),
+    );
+    mockMessagesStream.mockResolvedValueOnce(
+      sdkAnswer(
+        `1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee.\n\n${P2}\n\n${CLAUSES_MARKER}\n${reportOf()}`,
+        400,
+        80,
+      ),
+    );
+    const res = await request(app)
+      .post('/generate-from-brief')
+      .set(headers())
+      .send({
+        kind: KIND,
+        values: VALUES,
+        court: { state: 'bihar', court_type: 'sessions', court: 'district_sessions_patna' },
+      });
+    expect(res.text).toContain('event: repair\ndata: {"missing":');
+    expect(mockMessagesStream).toHaveBeenCalledTimes(2);
+    // the repair prompt names both uncued clauses
+    const prompt = JSON.stringify(mockMessagesStream.mock.calls[1]);
+    expect(prompt).toContain('apprehension');
+    expect(prompt).toContain('no_flight_risk');
+    const done = event(res.text, 'done') as any;
+    expect(done.repaired).toBe(true);
+    expect(missingIds(done)).not.toEqual(expect.arrayContaining(['apprehension']));
+    expect(missingIds(done)).not.toEqual(expect.arrayContaining(['no_flight_risk']));
+  });
+
+  it('keeps them missing when the repair leaves the paragraph empty', async () => {
+    mockMessagesStream.mockReset();
+    const first = `1.\n\n${P2}\n\n${CLAUSES_MARKER}\n${reportOf()}`;
+    mockMessagesStream.mockResolvedValueOnce(sdkAnswer(first, 4000, 800));
+    mockMessagesStream.mockResolvedValueOnce(sdkAnswer(first, 400, 80));
+    const res = await request(app)
+      .post('/generate-from-brief')
+      .set(headers())
+      .send({
+        kind: KIND,
+        values: VALUES,
+        court: { state: 'bihar', court_type: 'sessions', court: 'district_sessions_patna' },
+      });
+    expect(res.text).toContain('event: repair\ndata: {"missing":');
+    const done = event(res.text, 'done') as any;
+    expect(missingIds(done)).toEqual(expect.arrayContaining(['apprehension', 'no_flight_risk']));
+    expect(done.mandatoryClausesComplete).toBe(false);
+  });
+});
