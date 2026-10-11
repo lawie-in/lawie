@@ -91,3 +91,8 @@ Reviewer: confirm each condition against the pushed diff and cite this section i
 5. **Conditions met in this diff:** `factEntriesByKey` drops entries whose display is empty or whitespace, and creates no key without a non-empty entry, so `held.has` still drives `{{MISSING}}`. Entries keep ledger order and are only trimmed. Non-list kinds take the single (last) entry as before. Unresolved entries never enter `facts` or the skeleton array.
 
 Re-review needed after items 2 and 3 are fixed. Send me the new commit hash; I will re-check only those two items and the golden snapshots (AC10).
+
+## Priya (11 Oct 2026, 23:15): T-228 folded in
+
+Developer round 2 showed that AC5 cannot hold end to end while the verifier reads one entry per key: it flags 318(4) BNS as not in facts, runs a paid repair, and the delivered draft reads `{{MISSING: section}}`. Option A (Vishal): T-189 also makes the verifier (buildSources, checkDropped, repair facts) and averment unlocking read every entry of a list or choices key, each entry checked on its own, no merged fact and no joined `raw_span`. T-228's acceptance criteria 1 to 6 now belong to this ticket. `fact-verifier.ts` is added to vishal's claim. Ajay signs the per-entry read on the pushed diff. `factsByKey` stays byte-identical, and the new reads go through `factEntriesByKey`.
+
