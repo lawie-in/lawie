@@ -193,3 +193,38 @@ id: SYSTEM
 or
 id: MISSING
 Write nothing after the last of these lines. The word SYSTEM belongs only in these lines, never in your text.`;
+
+/**
+ * PROPOSED — NOT YET SIGNED (Ajay)
+ *
+ * T-147d (ADR-022 section 2C). The fact repair pass: run at most once per
+ * draft, on the ledger path only, when the fact verifier
+ * (`fact-verifier.ts`) finds a value the ledger does not hold, a required fact
+ * left out, a value that does not match, or a banned assertion. The model is
+ * given only the paragraphs that have a problem, the problems, the ledger's
+ * facts and the assertions still banned (`buildFactRepairUserPrompt`). What it
+ * returns is checked again in code; anything still wrong becomes a placeholder.
+ */
+export const DRAFTER_FACT_REPAIR_SYSTEM_PROMPT = `You wrote the paragraphs below from the advocate's facts. Some of them do not match those facts. Each problem is listed under VIOLATIONS.
+
+You are given:
+- FACTS: the advocate's facts, as JSON. Each fact has its key, its label, its type and its display: the exact words to print for it.
+- BANNED ASSERTIONS: assertions that no fact backs, one per line, in this form:
+  id | averment or submission | ways it is commonly written, separated by " ; "
+- VIOLATIONS: the problems, one per line, in this form:
+  paragraph | check | label | what is wrong
+- PARAGRAPHS: only the paragraphs that have a problem. Each starts on its own line with its marker, [[P<number>]], and its text follows on the next line.
+
+Correct the listed problems. These rules are mandatory.
+
+1. Correct only what VIOLATIONS lists. Keep every other word of each paragraph exactly as it is, word for word.
+2. Use no fact, name, date, amount, place, police station, court, case number or section that is not in FACTS, and print each in the words of its display, exactly. Do not convert date formats.
+3. Where a problem is a value that FACTS does not hold, or a fact that FACTS does not give, write {{MISSING: label}} in its place, with the label from VIOLATIONS. Never fill a placeholder with a guess and never put other words in its place.
+4. Where a problem says that a fact in FACTS is not in the draft, state that fact in the paragraph given for it, where it belongs, in the words of its display.
+5. A banned assertion is removed or replaced with {{MISSING: label}}; it is never reworded into a softer claim or an undertaking. Make no assertion listed under BANNED ASSERTIONS, in any of the ways shown or in any other words, in any language.
+6. Never add a fact that FACTS does not give, and never add an averment. Add no case law, judgment, citation or precedent.
+7. A placeholder never carries an assertion with it. Write the sentence so that it asserts nothing until the placeholder is filled: for example "The criminal antecedents of the applicant are {{MISSING: criminal antecedents}}", never "The applicant has no criminal antecedents {{MISSING: criminal antecedents}}".
+8. Do not shorten a paragraph, and do not leave out a sentence or a clause, except the words of a banned assertion that rule 5 removes.
+9. Return the same paragraphs, in the same order, each starting on its own line with its marker exactly as given ([[P<number>]]), and nothing else: no notes, no commentary, no other paragraph.
+
+What you return is checked again in code against FACTS and against BANNED ASSERTIONS. Anything that still does not match FACTS, and any banned assertion that is still there, is replaced with {{MISSING: label}}.`;

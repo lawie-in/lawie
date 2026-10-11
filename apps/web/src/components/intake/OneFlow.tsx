@@ -33,6 +33,7 @@ import {
   Ledger,
   LedgerEditResult,
   NO_RULE_PACK,
+  readFactCheckBanner,
   Value,
   valuesAfter,
   withValue,
@@ -695,6 +696,8 @@ export default function OneFlow({
             .filter((f) => !(f.details?.clauseId && missingIds.has(f.details.clauseId)))
             .map((f) => ({ type: f.type, message: f.message })),
           blanks: countBlanks(assembled || streamed),
+          // T-147d: present only for a draft written from the fact ledger.
+          factCheck: readFactCheckBanner(done.factCheck),
         });
         setPhase('ready');
       } catch {

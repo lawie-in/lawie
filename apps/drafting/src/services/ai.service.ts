@@ -13,7 +13,7 @@
  * This file orchestrates both pipelines and handles streaming.
  */
 import Anthropic from '@anthropic-ai/sdk';
-import type { LedgerFact } from '@lawie/shared';
+import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 import { Response } from 'express';
 
 import bnsMapping from '../config/bns-mapping.json';
@@ -68,6 +68,7 @@ import {
   DRAFTER_PACK_SYSTEM_PROMPT,
   DRAFTER_REPAIR_SYSTEM_PROMPT,
 } from './drafter.prompts';
+import { FactCheckOutcome, verifyAndRepair } from './fact-verifier';
 import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
   estimateOutputTokens,
@@ -976,6 +977,8 @@ export interface BriefGenerateInput {
     facts: LedgerFact[];
     /** The pack's averment lists (`loadAvermentLists`). */
     lists: AvermentLists;
+    /** T-147d: the current version's unresolved items, read by the fact verifier only. */
+    unresolved?: LedgerUnresolvedFact[];
   };
   language: 'en' | 'hi' | 'bilingual';
   /** The number of numbered paragraphs wanted in the body. */
@@ -999,6 +1002,8 @@ export interface BriefGenerateResult extends TemplateGenerateResult {
   startingDraft: boolean;
   /** The line shown with a labelled draft (T-127, section 7.3). */
   labelReason: string | null;
+  /** T-147d: the fact verifier's outcome. Present only on the ledger path. */
+  factCheck?: FactCheckOutcome;
 }
 
 /**
@@ -1166,10 +1171,13 @@ export async function streamGenerateFromBrief(
       raw += text;
       // The clause report after the document is for the server, never for the user.
       const visible = filter.push(text);
-      if (visible) res.write(`data: ${JSON.stringify({ text: visible })}\n\n`);
+      // T-147d: on the ledger path nothing of the body reaches the advocate
+      // before the fact verifier has read it; the checked body is sent with
+      // the system's parts below.
+      if (visible && !ledgerInput) res.write(`data: ${JSON.stringify({ text: visible })}\n\n`);
     }
     const tail = filter.end();
-    if (tail) res.write(`data: ${JSON.stringify({ text: tail })}\n\n`);
+    if (tail && !ledgerInput) res.write(`data: ${JSON.stringify({ text: tail })}\n\n`);
     recordCall('body', draft, raw);
   } catch (llmErr) {
     recordCall('body', draft, raw);
@@ -1258,6 +1266,57 @@ export async function streamGenerateFromBrief(
       : [briefText(brief), input.described ?? ''],
   );
   output = { ...output, body: citations.text };
+
+  // ── The fact verifier (T-147d): the ledger path only ──────────────────────
+  // Every ledger draft is checked against the ledger in code. On failure one
+  // targeted repair of the offending paragraphs runs, on the same model,
+  // token cap and usage meter as the repair above; anything still wrong
+  // becomes {{MISSING: label}}. A draft that passes is unchanged. Nothing
+  // here is logged but ids and counts.
+  let factCheck: FactCheckOutcome | undefined;
+  if (ledgerInput && input.ledger) {
+    const ledger = input.ledger;
+    factCheck = await verifyAndRepair(
+      {
+        body: output.body,
+        facts: ledger.facts,
+        unresolved: ledger.unresolved ?? [],
+        lists: ledger.lists,
+        skeleton: [
+          systemText.before,
+          systemText.after,
+          ...(ledgerInput.facts.court ? [ledgerInput.facts.court] : []),
+          ...(promptInput.statedInstructions ?? []),
+        ],
+        packText: packTexts(pack),
+      },
+      async (system, user) => {
+        res.write(`event: repair\ndata: ${JSON.stringify({ facts: true })}\n\n`);
+        let factRaw = '';
+        const factDraft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+        try {
+          for await (const text of streamLLM(system, user, 8192, factDraft)) factRaw += text;
+          recordCall('fact_repair', factDraft, factRaw);
+          return factRaw;
+        } catch (factErr) {
+          // A failed repair never fails the draft: the placeholders follow. Its tokens are counted.
+          recordCall('fact_repair', factDraft, factRaw);
+          if (process.env.NODE_ENV !== 'test') {
+            console.error(
+              `[drafting] Fact repair pass failed (kind=${pack.id}, runId=${input.runId}):`,
+              factErr instanceof Error ? factErr.name : 'unknown',
+            );
+          }
+          return null;
+        }
+      },
+    );
+    // A citation the repair may have added goes the same way as above (T-148).
+    output = {
+      ...output,
+      body: removeUngivenCitations(factCheck.body, ledgerCitationSources(ledgerInput.facts)).text,
+    };
+  }
 
   // ── The body takes its place among the parts the system wrote ─────────────
   renderedSections[bodyAt] = { ...renderedSections[bodyAt], content: output.body };
@@ -1408,8 +1467,10 @@ export async function streamGenerateFromBrief(
     bodyParaCount,
     missingClauses: missing,
     repaired,
-    startingDraft: needsStartingDraftLabel(missing, allWarnings),
+    // T-147d: a draft the fact verifier had to change is never delivered as clean.
+    startingDraft: needsStartingDraftLabel(missing, allWarnings) || Boolean(factCheck?.banner),
     labelReason: labelReason(missing, allWarnings),
+    ...(factCheck ? { factCheck } : {}),
   };
 }
 

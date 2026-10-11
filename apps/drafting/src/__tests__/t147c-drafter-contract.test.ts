@@ -113,8 +113,8 @@ const VALUES = [
 ];
 
 const BODY = [
-  '1. That the applicant Ram Kumar is a law-abiding citizen.',
-  '2. That FIR No. 124/2026 was registered at PS Kotwali under Section 318 of BNS.',
+  '1. That the applicant Ram Kumar has approached this Hon\'ble Court for regular bail.',
+  '2. That FIR No. 124/2026 was registered at PS Kotwali.',
   '3. That the applicant is in judicial custody.',
 ].join('\n\n');
 
@@ -1068,7 +1068,7 @@ describe('PII on the ledger path', () => {
     const id = await ledger([
       ...baseFacts().filter((f) => f.key !== 'address'),
       fact('address', `Plot ${SENT_DISPLAY}, Patna`, { type: 'place_name' }),
-      fact('applicant_occupation', `Driver ${SENT_DISPLAY}`),
+      fact('applicant_occupation', `Driver ${SENT_DISPLAY}`, { required_in_draft: false }),
     ]);
     const logs = (['info', 'error', 'warn', 'log', 'debug'] as const).map((m) =>
       jest.spyOn(console, m).mockImplementation(() => undefined),

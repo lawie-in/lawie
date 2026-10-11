@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 import { COURT_TYPES, DOC_TYPES, DocType } from '@lawie/shared';
-import type { LedgerFact } from '@lawie/shared';
+import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
@@ -31,7 +31,14 @@ import {
 import { spendInk } from '../services/credits.service';
 import { namesSupremeCourt } from '../services/intake-brief';
 import { AvermentLists, loadAvermentLists } from '../services/averments';
+import {
+  factDiffRunType,
+  FactDiffRunType,
+  rulePackVersionOf,
+  writeFactCheckLog,
+} from '../services/fact-diff-log';
 import { currentState, loadOwnLedger } from '../services/fact-ledger.service';
+import { buildChecklist } from '../services/intake-brief';
 import {
   INTAKE_LIMITS,
   isDescribeFirstEnabled,
@@ -730,8 +737,14 @@ router.post(
     }
 
     // T-147c: the ledger, when the switch is on. Without both, nothing below changes.
-    let ledger: { id: string; version: number; facts: LedgerFact[]; lists: AvermentLists } | null =
-      null;
+    let ledger: {
+      id: string;
+      version: number;
+      facts: LedgerFact[];
+      unresolved: LedgerUnresolvedFact[];
+      runType: FactDiffRunType;
+      lists: AvermentLists;
+    } | null = null;
     if (!guided && parsed.data.ledger_id !== undefined && (await isFactLedgerEnabled(payload.sub))) {
       const doc = await loadOwnLedger(parsed.data.ledger_id, payload.sub);
       if (!doc || doc.documentKind !== kind) {
@@ -750,10 +763,13 @@ router.post(
         res.status(503).json({ error: 'averments_unavailable' });
         return;
       }
+      const state = currentState(doc);
       ledger = {
         id: String(doc.id),
         version: doc.currentVersion,
-        facts: currentState(doc).facts,
+        facts: state.facts,
+        unresolved: state.unresolved,
+        runType: factDiffRunType(doc.runType),
         lists,
       };
     }
@@ -846,7 +862,15 @@ router.post(
                 pack,
                 templateConfig,
                 ...(described ? { described } : {}),
-                ...(ledger ? { ledger: { facts: ledger.facts, lists: ledger.lists } } : {}),
+                ...(ledger
+                  ? {
+                      ledger: {
+                        facts: ledger.facts,
+                        lists: ledger.lists,
+                        unresolved: ledger.unresolved,
+                      },
+                    }
+                  : {}),
                 advocateName: payload.name || undefined,
                 enrollmentNumber: undefined,
               },
@@ -977,6 +1001,30 @@ router.post(
       );
     }
 
+    // T-147d: the fact-diff log and the placeholder rate, for a ledger draft.
+    // Its own try: a failure here never stops the draft. Ids only in the log line.
+    if (ledger && pack && result.factCheck && !duplicateAttempt) {
+      try {
+        await writeFactCheckLog({
+          outcome: result.factCheck,
+          runId,
+          documentId: docId,
+          userId: payload.sub,
+          ledgerId: ledger.id,
+          rulePack: pack.id,
+          rulePackVersion: rulePackVersionOf(pack),
+          runType: ledger.runType,
+          requiredFactCount: buildChecklist(pack).filter((i) => i.required).length,
+          deliveredText: result.fullText,
+        });
+      } catch (logErr) {
+        console.error(
+          `[drafting] fact-diff log write failed (kind=${kind}, runId=${runId}):`,
+          logErr instanceof Error ? logErr.name : 'unknown',
+        );
+      }
+    }
+
     // A demand signal for every draft with no rule pack: which documents to
     // write rules for next. It carries no user text, not even the name.
     if (guided && !duplicateAttempt) {
@@ -1032,6 +1080,10 @@ router.post(
         startingDraftLabel: result.startingDraft ? STARTING_DRAFT_LABEL : null,
         labelReason: result.labelReason,
         creditsSpent: [],
+        // T-147d: what the fact verifier needs the advocate to check. Ledger path only.
+        ...('factCheck' in result && result.factCheck
+          ? { factCheck: { banner: result.factCheck.banner } }
+          : {}),
       })}\n\n`,
     );
     res.end();
