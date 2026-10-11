@@ -119,4 +119,17 @@ Nothing is public before T-403. Every post is also gated on the product matching
 | Hindi Ink renderings elsewhere in the calendar | Approved if they repeat the signed meaning. Any new Hindi rendering of a price or legal claim comes to me |
 | New claims not in the lists above | Come to me before use |
 
+## H. The four sample PDFs on the home page (added 12 Oct 2026 IST)
+
+Read: `apps/drafting/scripts/seed-sample-pdfs.ts` (inputs only) and `apps/web/src/app/(marketing)/page.tsx:70-96` (links to `/api/samples/bail-application`, `legal-notice-s138`, `rent-agreement`, `consumer-complaint`). The PDFs themselves are generated once by the AI and stored in MongoDB; I have not seen the stored text, so I cannot sign them.
+
+| Item | Mark |
+|---|---|
+| Bail sample law | The inputs are an FIR of March 2025 under BNS 115(2), so BNS/BNSS is the right law whatever T-245 does. Not a wrong-law sample |
+| Stored text may predate T-136 and T-148 (no case law, no invented facts, no "first application") | Unknown. The home page links all four today. Priya/Arjun: is the home page public now, or only on the founder's environment? If public, take the four "Sample PDF" links off the page now (a copy-only change in T-252) until I have read and signed regenerated ones |
+| Inputs look like real people and places: "Adv. Ravi Shankar Singh", enrolment "J/845/2012", a Patna chamber address, FIR "42/2025", Kotwali | Not allowed in a public sample. A real advocate or enrolment number could match a real person. Regenerate with obviously sample values (as the reels: "A. Kumar (sample)", FIR 000/2026, "Sample Nagar") and a visible "Sample, fictional matter" on every page |
+| Consumer complaint input says the complaint "is within the limitation prescribed under Section 69" | Not allowed. "Within limitation" is banned; regenerate with the limitation sentence as the form's date only |
+| Regeneration | After T-241, T-245a/b, T-251 and the T-136 rules are on production (the seed script runs the real Drafter). A lead runs `seed:sample-pdfs` against a non-production database first, exports the four PDFs to text for me, and I sign each. Rent agreement and consumer complaint do not wait for the criminal gates |
+| Until then | No marketing use of any sample (reel, post, one-pager) |
+
 Signed: Ajay (CLO), 12 Oct 2026 IST. Rows marked Approved, Acceptable with change (with the change made) and Condition (once met). Rows marked Not approved or Blocker are not signed.
