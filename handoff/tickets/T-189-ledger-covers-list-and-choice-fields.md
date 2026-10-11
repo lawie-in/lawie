@@ -5,7 +5,8 @@
 | Phase          | 1 — Describe and draft                                                                                                      |
 | Owner          | Vishal (build). Ajay signs any prompt change. Anushka (verdict)                                                             |
 | Mode           | Build, full chain. Merge to develop                                                                                         |
-| Status         | Proposed, founder to confirm. The approach below is Vishal's; the founder has not confirmed it                              |
+| Status         | Assigned to vishal, 11 Oct 2026. Not started. Founder chose option A, the approach below (relayed by Vishal, 11 Oct); founder to confirm in one line for AC1 |
+| Assigned lead  | vishal |
 | Size           | M (1 day), plus Ajay's sign-off time if a prompt changes                                                                    |
 | Depends on     | T-147b (extraction and ledger), T-147c (the ledger-only Drafter)                                                            |
 | Blocks         | Switching `feature.fact_ledger` on for any real user. Same gate group as T-187, T-188 and T-147c                            |
