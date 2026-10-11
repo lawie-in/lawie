@@ -50,3 +50,27 @@ Extend T-147b's extraction and the ledger to list and choices items, under the s
 ## References
 
 - T-147b, T-147c, T-188, ADR-022
+
+## Ajay sign-off (11 Oct 2026)
+
+Read (read-only): `LEDGER_DETAILS` in `apps/drafting/src/services/fact-ledger.service.ts` (signed 10 Oct 2026), `UnresolvedReason` in `packages/shared/src/types/fact-ledger.ts`, `factsByKey` in `apps/drafting/src/services/averments.ts`, `ledgerDrafterFacts` / `ledgerSkeletonBrief` in `apps/drafting/src/services/brief-drafter.ts`, `BriefItem.value` in `intake-brief.ts`. Branch `feature/t-189-ledger-list-and-choice-fields` not on origin at time of review; no diff read.
+
+### (1) `no_verbatim_span` detail sentence: Approved with a rewording
+
+- Proposed "We could not find where you wrote this." is **not signed**. Risk: it states the advocate wrote the entry. A list entry with no verbatim span may be the extraction model's own wording, not the advocate's; the sentence must not attribute it to them. "this" also lacks the "this detail" anchor the signed siblings use.
+- **Signed text, exact:** `We could not find this detail in what you wrote.`
+- Add it to `LEDGER_DETAILS` as `no_verbatim_span`, next to the three 10 Oct sentences; same "Do not reword" rule. Any other wording comes back to me.
+
+### (2) `brief-drafter.ts` diff (factsByKey to factEntriesByKey): Approved, conditional: pending the pushed diff matching this description
+
+Legal effect as described: no averment, prompt, missing-clause or label rule changes in substance. Today list and choices items never reach the ledger, so every entry becomes a new fact the advocate gave with its own span (AC3); a key that was missing becomes held, which is the intended fix (AC5). Missing keys still get `{{MISSING: label}}`; array values in the skeleton match how the non-ledger brief already carries list values (`BriefItem.value: string | string[] | null`).
+
+Conditions (each one a Blocker if the pushed diff departs from it):
+- No change to `drafter.prompts.ts`, the extraction prompt, any prompt string inside `brief-drafter.ts`, `missingPlaceholder`, or the `missing` filter (`required && !held.has(key)`).
+- `averments.ts` `factsByKey`, `resolveAverments`, `conditionHolds` and `fact-verifier.ts` untouched. Averment selection and the verifier keep their current per-key reading; changing that is a separate sign-off.
+- `factEntriesByKey` keeps `factsByKey`'s filter: an entry whose `display` is empty or whitespace is dropped, and a key with no non-empty entry is **not** held (so it still renders `{{MISSING: label}}`). An empty array must never count as a held value.
+- Entries keep ledger order and are not de-duplicated, merged or re-worded; each `display` is trimmed only, as today.
+- Non-list, non-choices kinds: value stays the single string, byte-identical to today. Golden snapshots unchanged (AC10).
+- Unresolved list entries (including `no_verbatim_span`) never appear in `facts` or in the skeleton value array.
+
+Reviewer: confirm each condition against the pushed diff and cite this section in the handoff. If any fails, stop and send it back to me.
