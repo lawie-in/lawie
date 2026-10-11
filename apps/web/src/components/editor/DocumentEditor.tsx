@@ -3,6 +3,7 @@
 import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
+import type { Node as PmNode } from '@tiptap/pm/model';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useCallback, useEffect, useRef } from 'react';
@@ -12,6 +13,11 @@ import {
   SECTION_FINDER_OPEN_EVENT,
 } from '../sections/SectionFinderPanel';
 
+import {
+  EXPORT_BLANKS_GO_BACK_EVENT,
+  findBlanks,
+  type ExportBlanksGoBackDetail,
+} from './exportUtils';
 import Toolbar from './Toolbar';
 
 interface DocumentEditorProps {
@@ -30,6 +36,36 @@ function textToHtml(text: string): string {
     .split(/\n{2,}/)
     .map((para) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
     .join('');
+}
+
+/**
+ * T-194: the editor's text as `findBlanks` reads it (a "\n" before each block and
+ * for each hard break), with the document position of each character.
+ */
+function textWithPositions(doc: PmNode): { text: string; positions: number[] } {
+  const chars: string[] = [];
+  const positions: number[] = [];
+  doc.descendants((node, pos) => {
+    if (node.isText) {
+      const t = node.text ?? '';
+      for (let i = 0; i < t.length; i++) {
+        chars.push(t[i]);
+        positions.push(pos + i);
+      }
+      return false;
+    }
+    if (node.type.name === 'hardBreak') {
+      chars.push('\n');
+      positions.push(pos);
+      return false;
+    }
+    if (node.isBlock && chars.length > 0) {
+      chars.push('\n');
+      positions.push(pos);
+    }
+    return true;
+  });
+  return { text: chars.join(''), positions };
 }
 
 export default function DocumentEditor({
@@ -109,6 +145,31 @@ export default function DocumentEditor({
     }
     window.addEventListener(SECTION_FINDER_INSERT_EVENT, handler);
     return () => window.removeEventListener(SECTION_FINDER_INSERT_EVENT, handler);
+  }, [editor]);
+
+  // T-194 "Go back and fill": put the cursor at the start of the first blank in
+  // document order and scroll it to the middle of the view. The editor finds
+  // the blank in its own text with the same findBlanks the export uses, so a
+  // blank shown here as {{MISSING: label}} is found as well.
+  useEffect(() => {
+    if (!editor) return;
+    function handler(e: Event) {
+      const detail = (e as CustomEvent<ExportBlanksGoBackDetail>).detail;
+      const { text, positions } = textWithPositions(editor!.state.doc);
+      let at = findBlanks(text)[0]?.start ?? -1;
+      if (at < 0 && detail?.text) at = text.indexOf(detail.text);
+      if (at < 0 || positions[at] === undefined) {
+        editor!.commands.focus();
+        return;
+      }
+      const pos = positions[at];
+      editor!.chain().focus().setTextSelection(pos).run();
+      const { node } = editor!.view.domAtPos(pos);
+      const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as HTMLElement);
+      el?.scrollIntoView({ block: 'center' });
+    }
+    window.addEventListener(EXPORT_BLANKS_GO_BACK_EVENT, handler);
+    return () => window.removeEventListener(EXPORT_BLANKS_GO_BACK_EVENT, handler);
   }, [editor]);
 
   // SCRUM-83 polish: clicking an inserted citation pill re-opens the panel
