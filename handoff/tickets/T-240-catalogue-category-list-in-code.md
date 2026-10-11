@@ -24,4 +24,12 @@ Fixing this inside the rule files means touching signed legal content, and scali
 1. One catalogue list in code maps every template id to one of the 26 categories in T-239. `category` in the rule files is ignored. `document-rules/` is not touched.
 2. The library, filters and seed read the category from that list.
 3. Test: every rule file has exactly one category in the list. A new rule file without one fails CI.
-4. Ajay confirms the category names and the re-filing (e.g. `legal_notice_s138` → Cheque bounce / NI Act).
+4. Re-filing, signed by Ajay on 12 Oct 2026:
+   - `legal_notice_s138` → Cheque bounce / NI Act;
+   - `rent_agreement` → Rent control and tenancy;
+   - `posh_complaint` → Service and labour;
+   - Supreme Court review and curative petitions → Writs and constitutional;
+   - civil review (O.47) → Civil: appeals, revision, review, execution;
+   - all bail values → Criminal: bail and custody.
+   
+   Category names as in T-239.

@@ -5,7 +5,7 @@
 | Phase          | 4 — Matter context |
 | Owner          | Ajay (catalogue, signs every template). Leads (build, by batch). Vikram (prices). Anushka (samples) |
 | Mode           | One ticket per batch; full chain; legal content |
-| Status         | Plan drafted by Ajay, 12 Oct 2026 (founder's goal: about 500 templates by category). Batch 1 waits for T-240 and Ajay's signed specs |
+| Status         | Plan confirmed by Ajay with amendments, 12 Oct 2026 (founder's goal: about 500 templates by category). Batch 1 waits for T-240 and Ajay's signed specs |
 | Depends on     | T-227 (price list in code), T-240 (category list in code) |
 
 ## Target: 508 templates (416 new)
@@ -28,7 +28,7 @@ C = court-level variant through a `court-rules/` overlay (no new id). S = state 
 | 12 | Revenue and land records | 0 | 15 | — | Y |
 | 13 | Consumer | 1 | 12 | Y | — |
 | 14 | Service and labour | 2 | 18 | Y | Y (waits for Labour Code rules) |
-| 15 | Company, insolvency, commercial | 5 | 20 | — | — |
+| 15 | Company and insolvency | 5 | 20 | — | — |
 | 16 | Contracts and agreements | 7 | 30 | — | stamp only |
 | 17 | Writs and constitutional | 11 | 22 | Y | — |
 | 18 | Tax | 1 | 15 | — | — (waits) |
@@ -39,7 +39,7 @@ C = court-level variant through a `court-rules/` overlay (no new id). S = state 
 | 23 | Notices and replies | 7 | 22 | — | — |
 | 24 | Affidavits and court forms | 9 | 25 | Y | Y |
 | 25 | RTI | 0 | 5 | — | Y |
-| 26 | DRT / SARFAESI | 0 | 8 | — | — |
+| 26 | Banking recovery: DRT and SARFAESI | 0 | 8 | — | — |
 
 ## Batches
 
@@ -57,12 +57,12 @@ C = court-level variant through a `court-rules/` overlay (no new id). S = state 
 | 10 | Tax (Income-tax Act 2025, GST) and IP: last, held until verified | 26 |
 
 Batch 1 is 53 ids: 28 short and 25 long.
-- The full list (id, title, category, court, statute, averments, Ink) is in Ajay's plan, posted to his session. Each id gets a signed spec under `handoff/design/T-239-b1-*-signed.md`.
+- The full list (id, title, category, court, statute, averments, Ink) is in Ajay's plan, posted to his session. Each id gets a signed spec under `handoff/legal/T-239-b1-<id>-signed.md`.
 - Every citation marked "verify" stays blocked until Ajay has checked it against the bare act.
 
 ## Per template
 
-- **Ajay writes and signs:** `relevantActs` (bare act, dated), mandatory clauses, prayer, verification, cause title, filing checklist (cues only, no amounts), legal prompt parts, the `_averments` entries, and the short/long proposal. He signs a spec under `handoff/design/`.
+- **Ajay writes and signs:** `relevantActs` (bare act, dated), mandatory clauses, prayer, verification, cause title, filing checklist (cues only, no amounts), legal prompt parts, the `_averments` entries, and the short/long proposal. He signs a spec under `handoff/legal/`.
 - **The lead builds:**
   - `form_schema` from the spec (Ajay signs that diff);
   - the template's place in the seed, the promoter and the category list (T-240);
@@ -85,3 +85,11 @@ Batch 1 is 53 ids: 28 short and 25 long.
 - **itat_appeal:** re-verify against the Income-tax Act 2025.
 - **Release:** a practising advocate must check each batch before it goes live. Item for the founder's morning report: who that reviewer is.
 - **Marketing:** no "500 templates" or "court-ready" claim until those templates have shipped and been signed. Ajay approves the copy.
+
+## Ajay's amendments (12 Oct 2026)
+
+- Specs live under `handoff/legal/`. Categories 15 and 26 are renamed (above).
+- Citations #1–#12 and #17 are checked and correct. "verify" stays on #6, #14, #23, #28, #31, #34, #39 and #41.
+- The S/L tiers agree with T-227.
+- #12 moves to Tier A for sampling.
+- Order: criminal specs #1–#17 first. Each spec is its own commit.
