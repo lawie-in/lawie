@@ -18,7 +18,7 @@
  */
 import type { LedgerFact } from '@lawie/shared';
 
-import { factsByKey } from './averments';
+import { factEntriesByKey } from './averments';
 import type { ResolvedAverments } from './averments';
 import { dateKindLabel, statedDates } from './intake-brief';
 import type { Brief, BriefItem, ChecklistItem } from './intake-brief';
@@ -311,10 +311,7 @@ export function buildRepairUserPrompt(
 
 /** The placeholder for a fact the ledger does not hold (ADR-022 section 2B). Exactly this form. */
 export function missingPlaceholder(label: string): string {
-  const flat = label
-    .replace(/[{}]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const flat = label.replace(/[{}]/g, '').replace(/\s+/g, ' ').trim();
   return `{{MISSING: ${flat || 'detail'}}}`;
 }
 
@@ -340,10 +337,11 @@ export function ledgerDrafterFacts(
   courtLine: string | null,
   courtDocument: boolean,
 ): LedgerDrafterFacts {
-  const held = factsByKey(facts);
+  const held = factEntriesByKey(facts);
   return {
     court: courtDocument ? (courtLine ?? missingPlaceholder('court')) : null,
-    facts: [...held.values()].map((f) => ({
+    // T-189: a list or several choices gives one fact per entry, sharing its key.
+    facts: [...held.values()].flat().map((f) => ({
       key: f.key,
       label: f.label,
       type: f.type,
@@ -365,14 +363,17 @@ export function ledgerDrafterFacts(
  * court stays as chosen from the courts list.
  */
 export function ledgerSkeletonBrief(brief: Brief, facts: readonly LedgerFact[]): Brief {
-  const held = factsByKey(facts);
+  const held = factEntriesByKey(facts);
   return {
     ...brief,
     items: brief.items.map((item) => {
-      const fact = held.get(item.key);
-      return fact
-        ? { ...item, value: fact.display.trim() }
-        : { ...item, value: null, placeholder: missingPlaceholder(item.label) };
+      const entries = held.get(item.key);
+      if (!entries) return { ...item, value: null, placeholder: missingPlaceholder(item.label) };
+      // T-189: a list or several choices takes every entry's display.
+      if (item.kind === 'list' || item.kind === 'choices') {
+        return { ...item, value: entries.map((f) => f.display.trim()) };
+      }
+      return { ...item, value: entries[entries.length - 1].display.trim() };
     }),
     unplaced: [],
     still_unknown: brief.still_unknown.map((u) => ({

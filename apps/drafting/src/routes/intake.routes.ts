@@ -10,6 +10,7 @@ import { Request, Response, Router } from 'express';
 import { z } from 'zod';
 
 import { authenticate } from '../middleware/authenticate';
+import { LedgerConflictError, LedgerFullError } from '../services/fact-ledger.service';
 import {
   applyAnswers,
   INTAKE_LIMITS,
@@ -22,7 +23,6 @@ import {
   updateBrief,
   updateLedger,
 } from '../services/intake.service';
-import { LedgerConflictError, LedgerFullError } from '../services/fact-ledger.service';
 
 const router = Router();
 
@@ -257,7 +257,8 @@ const briefUpdateSchema = z.object({
     .array(
       z.object({
         key: z.string().min(1).max(200),
-        text: z.string().max(6000),
+        /** T-189: every entry of a list or several choices, as an array. */
+        text: z.union([z.string().max(6000), z.array(z.string().max(6000)).max(50)]),
         /** True when the value was given on the questions step. */
         from_question: z.boolean().optional(),
       }),
@@ -309,7 +310,10 @@ router.post(
           res.status(422).json({ error: 'ledger_version_limit' });
           return;
         }
-        console.error('[intake] ledger update failed:', err instanceof Error ? err.name : 'unknown');
+        console.error(
+          '[intake] ledger update failed:',
+          err instanceof Error ? err.name : 'unknown',
+        );
         res.status(503).json({ error: 'ledger_unavailable' });
         return;
       }

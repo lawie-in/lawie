@@ -210,7 +210,10 @@ function mergeById<T extends { id: string }>(...lists: T[][]): T[] {
  * have an allowed entry with the same id, so an unlocked assertion is always
  * made in signed words. Throws, naming the pack and the id.
  */
-export function checkUnlockPairs(packId: string, lists: Pick<AvermentLists, 'banned' | 'allowed'>): void {
+export function checkUnlockPairs(
+  packId: string,
+  lists: Pick<AvermentLists, 'banned' | 'allowed'>,
+): void {
   const allowedById = new Map(lists.allowed.map((a) => [a.id, a]));
   for (const b of lists.banned) {
     if (b.unlocked_by === null) continue;
@@ -308,15 +311,55 @@ export function loadAvermentLists(packId: string, dir: string = AVERMENTS_DIR): 
 
 function folded(v: unknown): string {
   if (typeof v === 'number' || typeof v === 'boolean') return String(v);
-  if (typeof v === 'string') return normalise(v).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  if (typeof v === 'string')
+    return normalise(v)
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim();
   return '';
 }
 
-/** The ledger's facts by key. Only `facts`: an unresolved item is not a fact. */
+/**
+ * Every entry the ledger holds for each key, in order (T-189). One entry for
+ * most items; several for a list or several choices. Only `facts`: an
+ * unresolved item is not a fact.
+ */
+export function factEntriesByKey(facts: readonly LedgerFact[]): Map<string, LedgerFact[]> {
+  const out = new Map<string, LedgerFact[]>();
+  for (const f of facts) {
+    if (typeof f.display !== 'string' || f.display.trim() === '') continue;
+    const list = out.get(f.key) ?? [];
+    list.push(f);
+    out.set(f.key, list);
+  }
+  return out;
+}
+
+/**
+ * One fact standing for several entries of one key: the first entry with
+ * every entry's display (and text value) comma-joined, so a check that reads
+ * one fact per key still sees every entry.
+ */
+function mergedEntries(list: LedgerFact[]): LedgerFact {
+  const join = (xs: string[]): string => xs.join(', ');
+  const values = list.map((f) => f.value);
+  const allText = values.every((v): v is string => typeof v === 'string');
+  return {
+    ...list[0],
+    display: join(list.map((f) => f.display.trim())),
+    raw_span: join(list.map((f) => f.raw_span)),
+    ...(allText ? { value: join(values) } : {}),
+  } as LedgerFact;
+}
+
+/**
+ * The ledger's facts by key, one per key. Only `facts`: an unresolved item is
+ * not a fact. A key with several entries (a list or several choices, T-189)
+ * gives one fact with every entry's display.
+ */
 export function factsByKey(facts: readonly LedgerFact[]): Map<string, LedgerFact> {
   const out = new Map<string, LedgerFact>();
-  for (const f of facts) {
-    if (typeof f.display === 'string' && f.display.trim() !== '') out.set(f.key, f);
+  for (const [key, list] of factEntriesByKey(facts)) {
+    out.set(key, list.length === 1 ? list[0] : mergedEntries(list));
   }
   return out;
 }
