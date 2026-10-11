@@ -38,6 +38,7 @@ import { decrypt } from '../utils/encryption';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -45,7 +46,6 @@ jest.mock('@anthropic-ai/sdk', () =>
 beforeEach(() => {
   mockMessagesStream.mockReset();
 });
-
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439091';
@@ -96,7 +96,7 @@ const VALUES = [
 ];
 
 const BODY = [
-  '1. That the applicant Ram Kumar, son of Shri Hari Kumar, is a law-abiding citizen.',
+  '1. That the applicant Ram Kumar, son of Shri Hari Kumar, is a law-abiding citizen. He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.',
   '2. That FIR No. 124/2026 dated 10.03.2026 was registered at PS Kotwali under Section 318 of BNS.',
   '3. That the applicant is in judicial custody. He was wrongly named in the FIR and falsely implicated due to a family land dispute.',
   '4. That the applicant has deep roots in society and will not flee from justice.',
@@ -641,8 +641,7 @@ describe('POST /generate-from-brief — what stops a draft before any model call
 
 describe('POST /generate-from-brief — a failed run', () => {
   it('is recorded as failed, saves no document, charges nothing, and a retry keeps the run', async () => {
-    const failing = mockMessagesStream
-      .mockRejectedValue(new Error('503 service unavailable'));
+    const failing = mockMessagesStream.mockRejectedValue(new Error('503 service unavailable'));
     global.fetch = failing as unknown as typeof fetch;
     const first = await post({ kind: 'bail_regular', values: VALUES, court });
     expect(first.status).toBe(200);
