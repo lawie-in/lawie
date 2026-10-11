@@ -132,4 +132,15 @@ Read: `apps/drafting/scripts/seed-sample-pdfs.ts` (inputs only) and `apps/web/sr
 | Regeneration | After T-241, T-245a/b, T-251 and the T-136 rules are on production (the seed script runs the real Drafter). A lead runs `seed:sample-pdfs` against a non-production database first, exports the four PDFs to text for me, and I sign each. Rent agreement and consumer complaint do not wait for the criminal gates |
 | Until then | No marketing use of any sample (reel, post, one-pager) |
 
+## I. Hindi lines and revised offers (added 12 Oct 2026 IST, checked at `calendar-week1.md` 735-810 and `calendar-week2.md` 339, 395, 642)
+
+| Item | Mark |
+|---|---|
+| "यह list एक शुरुआत है, पूरी नहीं।" (= "This list is a start, not a complete one.") | Approved. Faithful to the English line I required |
+| Bar-demo message, EN and HI: +5 Ink, on top of the 5 free Ink, first 50 sign-ups, new accounts only, until {EXPIRY_DATE}; code typed in "Have a referral code?"; STOP honoured | Approved. "पहले 50 साइन-अप के लिए" says the same as "for the first 50 sign-ups" |
+| Ambassador message, EN and HI: opening disclosure, +3 Ink, first 100 sign-ups, 60 days from {START_DATE}, new accounts only | Approved. "मैं Lawie का campus ambassador हूँ।" is the required disclosure and must stay the first line. "I use Lawie" must be true for each ambassador |
+| Ambassadors are law students, not enrolled advocates | Condition, as in section F: an enrolled advocate as a paid ambassador comes to me first |
+
+No Hindi-reading advocate reviewer is needed for these lines: they restate wording I have already signed. A new Hindi rendering of a price, an offer or a legal claim still comes to me.
+
 Signed: Ajay (CLO), 12 Oct 2026 IST. Rows marked Approved, Acceptable with change (with the change made) and Condition (once met). Rows marked Not approved or Blocker are not signed.
