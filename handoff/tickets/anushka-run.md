@@ -9,6 +9,8 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 
 - For default bail (T-251): `feature.fact_ledger` must also be ON for her test account, or the default bail template isn't offered.
 
+- Until Ajay has signed the IPC→BNS table recheck (T-267): in the Tier A criminal samples, check each BNS section number the draft cites against the bare act.
+
 ## T-208 (shashank, merged to develop_staging d305233, 11 Oct 2026)
 
 - When I sign up with a mistyped email, a short or weak password, or leave my name, email or password out, I see what is wrong instead of "Internal Server Error".
