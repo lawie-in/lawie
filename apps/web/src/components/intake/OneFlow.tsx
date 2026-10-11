@@ -421,7 +421,8 @@ export default function OneFlow({
         };
         // A newer change is already on its way. Its answer is the one to show,
         // but this edit was saved, so its result still goes back to its row.
-        if (seq !== updateSeq.current) return { brief: data.brief, results: data.ledger_results ?? [] };
+        if (seq !== updateSeq.current)
+          return { brief: data.brief, results: data.ledger_results ?? [] };
         adopt(data.brief);
         if (data.ledger) setLedger(data.ledger);
         return { brief: data.brief, results: data.ledger_results ?? [] };
@@ -682,6 +683,8 @@ export default function OneFlow({
         const name = current.kind.name;
         // The draft is written. Nothing the advocate typed is kept on this page any longer.
         reset();
+        // T-147d: present only for a draft written from the fact ledger.
+        const factCheck = readFactCheckBanner(done.factCheck);
         setResult({
           docId: typeof done.docId === 'string' ? done.docId : null,
           name,
@@ -696,8 +699,10 @@ export default function OneFlow({
             .filter((f) => !(f.details?.clauseId && missingIds.has(f.details.clauseId)))
             .map((f) => ({ type: f.type, message: f.message })),
           blanks: countBlanks(assembled || streamed),
-          // T-147d: present only for a draft written from the fact ledger.
-          factCheck: readFactCheckBanner(done.factCheck),
+          factCheck,
+          // T-197: sent with every finished draft. Falls back to the banner's own line.
+          disclaimer:
+            typeof done.disclaimer === 'string' ? done.disclaimer : (factCheck?.disclaimer ?? null),
         });
         setPhase('ready');
       } catch {
@@ -737,7 +742,8 @@ export default function OneFlow({
     reading === null &&
     brief !== null &&
     (phase === 'brief' ||
-      (phase === 'questions' && openQuestions(questions, brief, ledger, questionRound).length === 0));
+      (phase === 'questions' &&
+        openQuestions(questions, brief, ledger, questionRound).length === 0));
   useEffect(() => {
     if (!onBriefScreen || !fromOutstanding.current) return;
     fromOutstanding.current = false;
