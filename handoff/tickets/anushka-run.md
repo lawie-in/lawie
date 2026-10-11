@@ -8,3 +8,10 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 - When I sign in without a password or with a bad email, I am told what is missing.
 - If several things are wrong, I see all of them at once.
 - Signing up and signing in with correct details works exactly as before.
+
+## T-209 (shashank, merged to develop_staging d35ecee, 11 Oct 2026)
+
+- I can sign up and be signed in straight away, or tap "Sign in" twice, without an error.
+- I can be signed in on two tabs or devices at once; logging out of one leaves the other signed in.
+- I am not signed out by this release; my existing session keeps working.
+

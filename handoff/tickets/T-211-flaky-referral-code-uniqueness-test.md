@@ -28,3 +28,10 @@ The uniqueness test in `apps/auth/src/__tests__/referral.test.ts` passes or fail
 ## Out of scope
 
 - Referral rules
+
+## Priya (11 Oct 2026): likely root cause, scope widened
+
+CI run 246 (docs-only commit 0fa7b48) failed 25 auth tests in one suite with `Cannot unlock file "/home/runner/.cache/mongodb-binaries/7.0.24.lock", because it is not locked by this process` at `MongoMemoryServer.create()` in `apps/auth/src/__tests__/setupDb.ts`. Parallel Jest workers race to download the Mongo binary because CI has no cache for it. That is probably the "flaky referral test" too.
+
+Added acceptance criterion: CI downloads the Mongo binary once (an `actions/cache` step for `~/.cache/mongodb-binaries`, or a pre-download step before the tests), for every service job that uses mongodb-memory-server. That touches `.github/workflows/ci.yml` (root config, one lead at a time) and needs Arjun's ok on the approach before build.
+

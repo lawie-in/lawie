@@ -5,7 +5,8 @@
 | Phase          | 0 — Prep                                                                                  |
 | Owner          | Lead (build). Ajay (heads-up, DPDP). Anushka (verdict on sign-up still working)           |
 | Mode           | Build, full chain (auth)                                                                  |
-| Status         | Ready                                                                                     |
+| Status         | Assigned to shashank, 11 Oct 2026. Not started |
+| Assigned lead  | shashank |
 | Size           | XS (0.25 day)                                                                             |
 | Depends on     | None                                                                                      |
 | Gate           | Before v1 go-live (T-403): no personal data in logs or Sentry                              |
