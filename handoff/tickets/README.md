@@ -153,6 +153,12 @@ Checked on `develop` after PR #29 and PR #30.
 | T-209 | Auth: register then login in the same second no longer returns 500 (JWT collision) | 0 | Lead (build), Arjun (heads-up) | Ready |
 | T-210 | Auth logs carry no email address (PII, `passport.ts:60`) | 0 | Lead (build), Ajay (heads-up) | Ready |
 | T-211 | The ReferralCode uniqueness test is not flaky | 0 | Lead (build) | Ready |
+| T-220 | Emails actually reach users: provider, sending domain (SPF/DKIM/DMARC), worker deployed | 0 | Arjun (call), founder (DNS, AWS), lead (build), Anushka | Needs scoping. Waits for Arjun. Before go-live |
+| T-221 | Forgot password works end to end (today the link is dead and no email is sent) | 0 | Rajesh (design), Madhuri (copy), lead (build), Anushka | To do. Needs design and copy. Before go-live |
+| T-222 | A new user gets a welcome email | 0 | Madhuri (copy), Ajay (claims), lead (build), Anushka | To do. Needs copy |
+| T-223 | Do we verify a new user's email? (free-draft farming) | 0 | Arjun and Vikram (recommend), founder (decides) | Needs a decision |
+| T-224 | Payment and balance emails | 2 | Vikram, Madhuri, Ajay, lead | Blocked: drops pricing (T-201 to T-205) and T-220 |
+| T-225 | What our emails may and may not contain (DPDP, confidentiality, footer) | 0 | Ajay (rules, signs) | To do. Waits for Ajay. Gates all email copy |
 | T-301 | Attach images as matter context                                       | 3     | Vishal                                        | Blocked: the brief screen (T-125)                                                                                                        |
 | T-302 | Consent line and retention rule for uploads                           | 3     | Ajay                                          | Delivered by Ajay on 4 Oct 2026. Policy wording to be read by a practising lawyer before it is published                                 |
 | T-303 | Spike: can we read Hindi and handwritten FIRs?                        | 3     | Vishal, Ajay reviews the result               | Ready. T-302 is delivered                                                                                                                |
