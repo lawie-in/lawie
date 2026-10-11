@@ -39,32 +39,42 @@ function textToHtml(text: string): string {
 }
 
 /**
- * T-194: the editor's text as `findBlanks` reads it (a "\n" before each block and
- * for each hard break), with the document position of each character.
+ * T-194: the editor's text exactly as the export's `blankText` reads the
+ * editor's HTML, with the document position of each character. `blankText`
+ * gives a "\n" for every opening and every closing block tag and one for a
+ * <br> or <hr>. So here each block with content gives a "\n" where it opens
+ * and one where it closes (two between paragraphs, the empty line `findBlanks`
+ * reads as a paragraph break), and a hard break or a leaf block gives one.
+ * The editor and the export then see the same paragraphs, and the same blanks.
  */
 function textWithPositions(doc: PmNode): { text: string; positions: number[] } {
   const chars: string[] = [];
   const positions: number[] = [];
-  doc.descendants((node, pos) => {
-    if (node.isText) {
-      const t = node.text ?? '';
-      for (let i = 0; i < t.length; i++) {
-        chars.push(t[i]);
-        positions.push(pos + i);
+  const push = (ch: string, pos: number) => {
+    chars.push(ch);
+    positions.push(pos);
+  };
+  // `contentStart` is the document position of the parent's first child.
+  const walk = (parent: PmNode, contentStart: number) => {
+    parent.forEach((child, offset) => {
+      const pos = contentStart + offset;
+      if (child.isText) {
+        const t = child.text ?? '';
+        for (let i = 0; i < t.length; i++) push(t[i], pos + i);
+      } else if (child.type.name === 'hardBreak') {
+        push('\n', pos);
+      } else if (child.isBlock && child.isLeaf) {
+        push('\n', pos);
+      } else if (child.isBlock) {
+        push('\n', pos);
+        walk(child, pos + 1);
+        push('\n', pos + child.nodeSize - 1);
+      } else {
+        walk(child, pos + 1);
       }
-      return false;
-    }
-    if (node.type.name === 'hardBreak') {
-      chars.push('\n');
-      positions.push(pos);
-      return false;
-    }
-    if (node.isBlock && chars.length > 0) {
-      chars.push('\n');
-      positions.push(pos);
-    }
-    return true;
-  });
+    });
+  };
+  walk(doc, 0);
   return { text: chars.join(''), positions };
 }
 
