@@ -19,3 +19,8 @@
 2. A clause lost after check 3 goes through that repair. If the repair doesn't restore it, the draft is labelled, as today.
 3. The sentence splitter doesn't split at abbreviations: No., S., Sec., Art., Rs., v., Dr., Mr., Mrs. Tests for each.
 4. Golden snapshots that move are listed for Ajay. CI green on drafting.
+
+## Reviewer notes from T-200 round 2 (vishal, 12 Oct 2026)
+
+1. A clause never recorded can get its first recording at check 3 from the fact-checked body: missing at check 1, repair rejected, then the fact check edits that paragraph. R2b.5 narrows this; Ajay rules whether it needs more.
+2. A rejected repair candidate shares the R1.7 `notChecked` map, so a non-English commercial draft can keep an extra "not checked" warning. Separate the maps.
