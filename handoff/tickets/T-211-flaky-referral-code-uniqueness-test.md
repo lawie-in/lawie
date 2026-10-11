@@ -66,3 +66,8 @@ Scope: `.github/workflows/ci.yml` only (root config, one lead at a time per `mul
 - Model is not a product bug: `randomCode()` uses `crypto.randomInt` over 32 chars x 8 (about 1.1e12 codes) and retries on E11000. The retry only works if the unique index exists, which the test fix and prod `autoIndex` both provide.
 
 So the ticket has two fixes: `ci.yml` (cache + pre-download, three jobs) and auth `setupDb.ts` (wait for indexes). AC 3 (50 runs `--runInBand`) proves the second; one green CI run after a cache miss proves the first.
+
+## Priya (11 Oct 2026, 23:50)
+
+develop_staging CI run 269 (docs-only commit 50ba260) went red on `referral.test.ts` "enforces uniqueness on code" (the second `UNIQUE01` insert resolved). Arjun's fix 2, the `syncIndexes()` line in `apps/auth/src/__tests__/setupDb.ts`, moves into T-210 (shashank is in auth now), so the base goes green sooner. T-211 keeps fix 1: the Mongo binary pre-download and cache in `ci.yml`.
+
