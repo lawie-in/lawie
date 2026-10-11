@@ -92,3 +92,14 @@ This belongs to T-115 and doesn't block go-live:
 - a purge of BullMQ jobs by recipient;
 - log rotation (T-247);
 - Sentry header scrubbing (T-229).
+
+## Ajay's decisions (6941007): the erase condition is met
+
+| Item | Decision |
+|---|---|
+| Step 3, billing | Ledger rows kept under a pseudonym: yes. Any tax invoice Lawie issued is kept as issued for 72 months (CGST s.36). The email is never needed. Name, address and GSTIN are kept only if the invoice carries them. Vikram to confirm whether we issue invoices at all |
+| Step 4, user record | Tombstone. No hash or copy of the email kept anywhere |
+| 2a, reviewer feedback | Delete |
+| 2n, audit events | Keep `payment` and `account_delete` events, stripped to userId, type and time |
+| 2o, coupon usages | Delete |
+| Sentry | Erased by hand. §7 now says so. §7 and §9 disclose tax-record retention; the lead applies that text with the rest of T-235 |
