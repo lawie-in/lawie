@@ -64,3 +64,7 @@ Option (a), chosen: this ticket also fixes the seed path.
 2. `apply-clo-patch.ts` is retired. If it holds any line the corrected JSON doesn't carry and that isn't wrong, keep only those lines, corrected, in a patch file Ajay signs. Otherwise delete it. It must never run after the reseed.
 3. **Reseed with `--force`.** Skipping existing rows would keep the wrong ones. Condition (Arjun): before `--force` on any database, confirm SectionMapping holds only seeded rows (no admin-edited row; check updatedBy/updatedAt or equivalent).
 4. Order: the develop database first. Sample 20 rows against the table (IEA 5, 32, 45, 62, 63, 65A, 65B, 100, 113A, 166; CrPC 41, 97, 154, 167, 362, 358, 437, 439, 482, 10). Then production with the founder (morning list). Put the command in the merge note.
+
+## Reseed note (shashank, 12 Oct 2026)
+
+A stale, gitignored `dist/scripts/apply-clo-patch.js` can still be run locally after the source is deleted. Do a clean build before the reseed, and never run it.
