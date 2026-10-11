@@ -48,3 +48,7 @@ Also:
 - delete PainSolution.tsx.
 
 No "secure" or "encrypted" claim anywhere, since form answers are not encrypted (T-235).
+
+## Added (shashank, 12 Oct 2026)
+
+The section-converter page says "500+ section mappings validated by a practising advocate" (`page.tsx:130` and the meta in `layout.tsx`). Until Ajay has signed the IPC→BNS recheck (T-267), that claim holds only for the CrPC and IEA tables, because the seed sets `validatedBy`/`validatedAt` for those two and leaves the IPC table null (Ajay's ruling). Ajay gives the replacement words. Change both places.
