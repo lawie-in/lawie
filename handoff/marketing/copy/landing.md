@@ -38,13 +38,13 @@ Replaces the current description, "Legal drafting for Indian advocates, built ar
 | Subline | A drafting assistant for Indian advocates. Pick a document, answer a few questions about the matter, then review, edit and download the draft in Word or PDF. | 157 |
 | Primary CTA | Start with 5 free Ink | 21 |
 | Secondary CTA | See what you can draft | 22 |
-| Note under CTAs | 5 free Ink on sign-up · Sign in with Google | 43 |
+| Note under CTAs | 5 free Ink on sign-up · No card required · Sign in with Google | 65 |
 
 - Eyebrow replaces "AI legal drafting · built for India" (no AI hype).
 - If headline B is chosen, the subline stays the same.
 - Primary CTA links to `/login?mode=signup`. Secondary CTA anchors to `#documents`.
 - Primary CTA variants: A "Start with 5 free Ink" (21) · B "Start your first draft" (22) · C "Try Lawie with 5 free Ink" (25).
-- The current note "Free tier: 5 Ink (lifetime) · No credit card required" is dropped. "No credit card required" is not on Ajay's list of signed claims. If Priya confirms sign-up never asks for a card, it can come back after Ajay's check.
+- "No card required" returns: Priya confirmed (12 Oct) that Free sign-up never asks for payment details, Google or email, and Ajay's table C allows it on that confirmation. It replaces the current "Free tier: 5 Ink (lifetime) · No credit card required".
 - Hero visual: the current mock shows "Your district, your court" ("your court" is banned) and "S.480 BNSS". It is Rajesh's to replace; I am flagging the text only.
 
 ---
@@ -81,7 +81,7 @@ Subline: **Criminal drafts cite BNS, BNSS and BSA.** (39)
 
 Closing line: **Find yours in the document list after you sign in.** (51)
 
-Optional sample PDFs (the live page has four): keep the "Sample PDF" links only with the label **"Sample, fictional matter"** next to each. Ajay to look at the four PDFs once more against his "cite" ruling and the disclaimer. Priya to confirm they are still served.
+**Sample PDFs: HELD. Ajay has not seen them.** The live home page links four sample PDFs (bail application, s.138 notice, rent agreement, consumer complaint). T-254 Part A removes the links from the home page now (the routes stay); Part B regenerates them with obviously fictional values, each page marked "Sample, fictional matter", and Ajay signs each one. The rent and consumer samples can go back first; the bail and s.138 samples wait for T-241, T-245a/b and T-251. This page carries no sample link, and marketing uses no sample, until Ajay signs.
 
 ---
 
@@ -92,9 +92,9 @@ Heading: **You stay the advocate.** (23)
 Body:
 
 ```
-Lawie gives you a structured first draft. You read it, check every section and every fact, and change whatever needs changing. Then you download it in Word or PDF and file it the way you always have.
+Lawie gives you a structured first draft. You read it, check every section and every fact, and change whatever needs changing: every line of the draft is yours to change. Then you download it in Word or PDF and file it the way you always have.
 
-Every draft carries this line:
+Every draft carries this line, in a banner above the editor:
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 ```
 
@@ -163,7 +163,7 @@ Heading: **Questions advocates ask.** (24)
 Removed from the current home FAQ:
 - "Are the BNS section mappings accurate?" ("accurate"; the answer claims mappings "built directly from the official correspondence tables", which goes beyond Ajay's "cite" line and touches the old-law switch).
 - "Does Lawie cover my specific court?" (court coverage; T-140 not started).
-- "Is my case data secure?" (not on Ajay's signed list. It can stay if Ajay signs it separately. I didn't rewrite it).
+- "Is my case data secure?" (stays removed, Ajay: no "secure", "safe" or "encrypted" claim anywhere until he signs one; the privacy policy, T-235, says form answers and the fact list are not encrypted).
 
 ---
 
@@ -174,10 +174,10 @@ Removed from the current home FAQ:
 | Heading (A, recommended) | Your next draft starts here. | 28 |
 | Heading (B) | Start from a first draft, not a blank page. | 43 |
 | Heading (C) | Pick a document. Review the draft. | 34 |
-| Line | 5 free Ink on sign-up. Sign in with Google. | 43 |
+| Line | 5 free Ink on sign-up. No card required. Sign in with Google. | 62 |
 | Button | Start with 5 free Ink | 21 |
 
-Replaces "Start drafting in the next five minutes." (time claim, banned) and "Free for your first 5 Ink. No card required."
+Replaces "Start drafting in the next five minutes." (time claim, banned) and "Free for your first 5 Ink. No card required." (the card line is true and stays, reworded next to "5 free Ink").
 
 ---
 
@@ -234,12 +234,24 @@ Note: a Hindi page must not imply Hindi drafts. Drafts are in English; if this v
 | 6 | Ink line | Pricing teaser, FAQ 4 | Signed, exact |
 | 7 | Not charged for a failed generation | FAQ 5 | Signed (part of Ink line) |
 | 8 | Disclaimer on every draft; advocate responsible | You stay the advocate, FAQ 3, footer | T-197, signed |
-| 9 | You can edit every line of the draft | How it works, You stay the advocate, FAQ 6 | Priya confirmed (12 Oct). The disclaimer banner and export footers cannot be removed, and no copy claims otherwise |
+| 9 | Every line of the draft is yours to change | How it works, You stay the advocate, FAQ 6 | Ajay's approved wording; Priya confirmed (12 Oct) that the prayer and verification are editable. The disclaimer banner and export footers cannot be removed, and no copy claims otherwise |
 | 10 | "Lawie does not give legal advice and does not file anything." | FAQ 3 only | Denial only. Confirm it is acceptable with "legal advice" on the banned list |
 | 11 | Sign in with Google; email and password coming soon | Hero note, sign-in note, FAQ 8 | Signed (coming soon until T-234 ships) |
 | 12 | Drafts in English; Hindi drafting coming soon | FAQ 7, Hindi variant | Signed |
-| 13 | Intake asks about parties, dates and the facts the document needs | How it works step 2 | Priya to confirm against the form |
+| 13 | Intake asks about parties, dates and the facts the document needs | How it works step 2 | Ajay approved; Priya to confirm on the form that is live on the day (classic form or describe-first, see the variant below) |
 | 14 | Monthly plans and top-up packs exist | Pricing teaser | Vikram: Solo and top-ups final |
-| 15 | Sample PDFs, labelled "Sample, fictional matter" | Documents (optional) | Ajay to re-check the four PDFs |
+| 15 | Sample PDFs | Documents | **Held** (Ajay has not seen them; T-254). Not on the page until he signs each |
+| 16 | "No card required" | Hero note, final CTA | True (Priya, 12 Oct); allowed by Ajay's table C on that confirmation |
+| 17 | The disclaimer sits in a banner above the editor | You stay the advocate | Priya, 12 Oct: non-dismissible banner below the "starting draft" label |
 
-No watermark claim appears on this page (none exists on any plan; Priya). Offers (+5 / +3 Ink codes) are not mentioned here; if added, they must say "new accounts only" (Priya: codes apply on Google sign-in for new accounts only, invalid codes are silently ignored).
+No watermark claim appears on this page (none exists on any plan; Priya). Offers (+5 / +3 Ink codes) are not mentioned here; if added, they must say "new accounts only" and "enter the code in the 'Have a referral code?' box when you sign up" (Priya: codes work with Google sign-in for new accounts only, invalid codes are silently ignored, no link support; `?ref=` is T-242).
+
+### Variant for the day describe-first is on for everyone
+
+The three steps above describe the classic flow. Once describe-first is live for all users, use (screen headings from the app):
+
+1. **Describe the matter** (`What do you need to draft?`): write it in your own words.
+2. **Answer a few questions** (`A few questions about what you need`): Lawie asks for the details it still needs.
+3. **Check your brief, then review the draft**: edit, then download in Word or PDF.
+
+Hero subline, same day: *A drafting assistant for Indian advocates. Describe the matter in your own words, answer a few questions, then review, edit and download the draft in Word or PDF.* Ajay to check; do not publish before describe-first is on for all users.

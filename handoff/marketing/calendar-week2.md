@@ -7,6 +7,17 @@ Day 1 = go-live day. Week 2 = Days 8–14.
 
 All house rules from `calendar-week1.md` apply: verbatim disclaimer, Ajay's Ink line, "Criminal drafts cite BNS, BNSS and BSA.", "free" always next to "5 Ink", Vikram's rupee lines only, one link per post with UTM.
 
+## Gates (Ajay, `handoff/legal/marketing-package-signed.md` section A; apply to every post below)
+
+- **Nothing is public before T-403.** Each post is also gated on the product matching the claim on the day it goes out.
+- **No default-bail post before T-251 is merged** (the current pack has a live legal error). Posts here that list the six bail types (W2-LI-1, W2-X-1, W2-WA-1, W2-IG-1) name default bail. Until T-251 merges, use the five-type version: regular, anticipatory, before magistrate, interim, cancellation; "Six" becomes "Five" and "छह" / "6" becomes "पाँच" / "5". Rajesh updates the carousel slides to match.
+- **No criminal-draft screenshot, reel or sample PDF before T-245a/b are merged** (until then the packs cite BNS for old-law cases). A bail-draft image or reel waits.
+- **No "secure", "safe" or "encrypted" claim anywhere** (the privacy policy, T-235, says form answers and the fact list are not encrypted). No sample PDFs in any post (T-254; Ajay has not seen them).
+- **Nothing about highlighted blanks** until T-194 is live and Ajay gives a line.
+- **Every Ink or rupee line waits for T-227, T-238 and T-252 to be merged, and for the founder's Razorpay check** of the Solo and top-up prices. Without that, cut the Ink and rupee lines, not the post.
+- **WhatsApp broadcasts** go only to contacts who opted in to these messages, with the purpose stated, and the opt-in recorded (DPDP Act, 2023, s.6). "Reply STOP" works and is honoured.
+- **T-234** on production: swap "Email and password: coming soon" for the email sign-in line (landing page).
+
 **How this week treats BNSS (Ajay, 12 Oct 2026):** Lawie's packs do not switch between old and new law, and offences before 1 July 2024 still go by IPC/CrPC. So no post here says or implies that Lawie handles the IPC→BNS / CrPC→BNSS switch, or that old formats are wrong. No section-correspondence tables (I had drafted a CrPC→BNSS bail-section post; it is cut). The BNSS angle is limited to (a) the signed line "Criminal drafts cite BNS, BNSS and BSA.", (b) the six bail drafts, and (c) the advocate checking every section cited.
 
 **Reel note:** R2 (legal notice, a 1-Ink document) is this week's reel, although the week's theme is bail (Meera, confirmed; `strategy.md` §7 updated to match: R1 Week 1, R2 Week 2, R3 Week 3).
@@ -42,7 +53,7 @@ All house rules from `calendar-week1.md` apply: verbatim disclaimer, Ajay's Ink 
 **Copy (EN)** (~830 chars)
 
 ```
-Bail applications are the documents a district-court junior drafts most. Lawie has six:
+Bail applications are one of the documents a district-court junior drafts most often. Lawie has six:
 
 • Regular bail
 • Anticipatory bail
@@ -63,7 +74,7 @@ Start with 5 free Ink: https://lawie.in/login?mode=signup&utm_source=linkedin&ut
 **Copy (HI)** (~800 chars)
 
 ```
-डिस्ट्रिक्ट कोर्ट का junior सबसे ज़्यादा bail application ड्राफ्ट करता है। Lawie में इसके छह ड्राफ्ट हैं:
+डिस्ट्रिक्ट कोर्ट का junior जिन डॉक्यूमेंट को अक्सर ड्राफ्ट करता है, उनमें bail application भी है। Lawie में इसके छह ड्राफ्ट हैं:
 
 • Regular bail
 • Anticipatory bail
@@ -96,7 +107,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 - **Note for Madhuri/Ajay:** The headline is the post's own fragment `Lawie has six:`. I left the 'drafts most' sentence off the image because Ajay flagged it as unmeasured. If that reads too bare, Madhuri can give a one-line image headline.
 
 **Claims to check (Ajay):**
-1. "Bail applications are the documents a district-court junior drafts most." This is an observation from our ICP research, not a measured statistic. Soften to "one of the documents … drafts most often" if you prefer.
+1. "Bail applications are one of the documents a district-court junior drafts most often." Ajay's softer form; not a measured figure.
 2. Six bail drafts are live: regular, anticipatory, before magistrate, interim, default, cancellation.
 3. Flow: pick, answer questions, review, edit, download (Word or PDF).
 4. "Criminal drafts cite BNS, BNSS and BSA."
@@ -197,12 +208,13 @@ Reply STOP to stop these messages.
 - **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour.
 - **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles for the six bail drafts: regular, anticipatory, before magistrate, interim, default and cancellation. A bail application uses 2 Ink. Start with 5 free Ink."
 - **Note for Madhuri/Ajay:** The '2 Ink' line is still waiting on Ajay/Vikram confirming all six bail types are 2 Ink (claim 4). If not confirmed, drop that line from the image; the layout does not need it.
+- **Madhuri: update** — resolved. Ajay approved "a bail application uses 2 Ink" (signed package, section D), so the line stays on the image.
 
 **Claims to check (Ajay):**
 1. Six bail drafts are live.
 2. Flow: pick, answer questions, review, download (Word or PDF).
 3. "Criminal drafts cite BNS, BNSS and BSA."
-4. A bail application uses 2 Ink (all six bail types? T-227 names `bail_regular` and `bail_anticipatory` at 2 and "everything else 2" except the 31 on the 1-Ink list, and no bail type is on that list. Vikram/Ajay to confirm all six are 2).
+4. A bail application uses 2 Ink. Resolved: Ajay approved (none of the six bail types is on the 1-Ink list; T-227).
 
 ---
 
@@ -302,6 +314,8 @@ A short checklist we'd use ourselves:
 5. The prayer.
 6. Verification and the advocate block.
 
+This list is a start, not a complete one.
+
 Lawie gives you a first draft. The checking, and the judgement, are yours. That's why every draft says:
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
@@ -321,6 +335,8 @@ Lawie में बनी bail application फ़ाइल करने से �
 4. Grounds। आपके क्लाइंट के लिए जो ज़रूरी हैं, वे आपके शब्दों में हैं या नहीं?
 5. Prayer।
 6. Verification और advocate block।
+
+यह list एक शुरुआत है, पूरी नहीं।
 
 Lawie आपको पहला ड्राफ्ट देता है। जाँच और फ़ैसला आपका है। इसीलिए हर ड्राफ्ट पर लिखा रहता है:
 
@@ -344,15 +360,15 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 - **Note for Madhuri/Ajay:** Ajay's open point 1 (r.36 and 'your client') applies to row 4 on the image as well. If he trims rows 3 and 6 (claim 3), I drop them and re-space; layout holds for 4 to 6 rows.
 
 **Claims to check (Ajay):**
-1. The checklist is a review aid for advocates checking their own draft. It is not legal advice to anyone. Please confirm it reads that way, and that "your client" here is not a client-solicitation problem under r.36.
+1. Approved (Ajay): the checklist is a review aid for advocates checking their own draft, addressed to advocates; it does not solicit anyone, so "your client" is not a r.36 problem. Added at his request: "This list is a start, not a complete one." (LinkedIn post, carousel caption and X post; the Hindi rendering is new, Ajay to check).
 2. Every draft carries the disclaimer line (T-197).
-3. The draft includes a court heading/cause title, grounds, prayer, verification and advocate block. Priya/Ajay to confirm the bail packs output these parts; otherwise trim items 3 and 6.
+3. Bail packs output the court heading and cause title, prayer and verification; the advocate block is added by the system (Ajay). Priya confirms on production output.
 
 ---
 
 ## W2-X-2 — Day 11 — X — P3
 
-**Copy (EN)** — 257 / 280
+**Copy (EN)** — 278 / 280
 
 ```
 Before you file a bail application drafted in Lawie, check:
@@ -362,11 +378,11 @@ Names, dates, FIR details
 The court heading
 The grounds and the prayer
 
-The draft is a start. The advocate is responsible for legal accuracy and filing.
+This list is a start, not a complete one. The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-2
 ```
 
-**Copy (HI)** — 246 / 280
+**Copy (HI)** — 258 / 280
 
 ```
 Lawie में बनी bail application फ़ाइल करने से पहले जाँचें:
@@ -376,7 +392,7 @@ Lawie में बनी bail application फ़ाइल करने से �
 कोर्ट का heading
 Grounds और prayer
 
-ड्राफ्ट एक शुरुआत है। The advocate is responsible for legal accuracy and filing.
+यह list एक शुरुआत है, पूरी नहीं। The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-2
 ```
 
@@ -594,7 +610,7 @@ Caption (~380 chars):
 ```
 Save this for the next bail application you draft in Lawie.
 
-Lawie gives you a first draft. Reading it, checking it and signing it stay with you.
+This list is a start, not a complete one. Lawie gives you a first draft. Reading it, checking it and signing it stay with you.
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
@@ -623,7 +639,7 @@ Caption (~360 chars):
 ```
 अगली bail application के लिए इसे save कर लें।
 
-Lawie आपको पहला ड्राफ्ट देता है। पढ़ना, जाँचना और साइन करना आपका काम रहता है।
+यह list एक शुरुआत है, पूरी नहीं। Lawie आपको पहला ड्राफ्ट देता है। पढ़ना, जाँचना और साइन करना आपका काम रहता है।
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 

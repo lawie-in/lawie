@@ -7,6 +7,24 @@ Day 1 = go-live day. Week 1 = Days 1–7.
 
 Wording sources: Ajay, `handoff/legal/marketing-s1-claims-signed.md` (12 Oct 2026); Vikram, `handoff/tickets/vikram-gtm-decisions.md` (12 Oct 2026). Where they differ from Meera's first brief, they win.
 
+**X posts (Meera, round 2):** every X post carries its CTA link in the text, so it uses X's link card and **no image** (attaching an image suppresses the card). Visual brief for each X post is "none (link card)"; see the "Rajesh: update" line under each brief. An image-only X post would have no link in the text; none is planned.
+
+**UI-screenshot posts** (W1-IG-1, W1-LI-2, both reel covers, W2-X-3) use the classic Browse document types screen. Redo the crops if describe-first is live at go-live. (W2-X-3 no longer carries an image under the X rule above; it is listed only so the crops are not forgotten if an image-only variant is ever approved.)
+
+**Reel swap rule (Meera, round 2):** the Week 1 Instagram reel (W1-IG-2) is **R4 (classic-path fallback)** if describe-first is not live for all users at go-live, otherwise **R1 (describe, bail)**. The Week 2 reel (W2-IG-2) is **R2 (describe, legal notice)** if describe-first is live, otherwise **R4 again**. Captions in this file are written for the classic flow ("pick, answer a few questions"); `reels.md` has the describe-flow caption wording for R1 and R2.
+
+## Gates (Ajay, `handoff/legal/marketing-package-signed.md` section A; apply to every post)
+
+- **Nothing is public before T-403.** Each post is also gated on the product matching the claim on the day it goes out.
+- **No default-bail post before T-251 is merged** (the current pack has a live legal error). W1-IG-3 lists the six bail types and so names default bail. Until T-251 merges, use the five-type list: regular, anticipatory, before magistrate, interim, cancellation (slide 2 and the Hindi list drop "default"). Rajesh updates the slide to match.
+- **No criminal-draft screenshot, reel or sample PDF before T-245a/b are merged** (until then the packs cite BNS for old-law cases). R1 and R4 show a criminal draft, so the W1-IG-2 reel waits for T-245a/b.
+- **No "secure", "safe" or "encrypted" claim anywhere** (the privacy policy, T-235, says form answers and the fact list are not encrypted). No sample PDFs in any post (T-254; Ajay has not seen them).
+- **Nothing about highlighted blanks** until T-194 is live and Ajay gives a line.
+- **Every Ink or rupee line waits for T-227, T-238 and T-252 to be merged, and for the founder's Razorpay check** of the Solo and top-up prices. Without that, cut the Ink and rupee lines, not the post.
+- **WhatsApp broadcasts** (and the bar-demo message) go only to contacts who opted in to these messages, with the purpose stated, and the opt-in recorded (DPDP Act, 2023, s.6). "Reply STOP" works and is honoured.
+- **Referral codes have no link support** (`?ref=` is T-242). Codes are typed in the "Have a referral code?" box on the login page, by new accounts, with Google sign-in. No message says a link gives +5 or +3 Ink.
+- **T-234** on production: swap "Email and password: coming soon" for the email sign-in line (landing page).
+
 ## House rules used in every post
 
 - **Disclaimer**, verbatim, in English in both language versions (Ajay's exact wording, so not translated): `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` Where an X post cannot fit the full line, it carries the second sentence verbatim as the pointer: `The advocate is responsible for legal accuracy and filing.`
@@ -219,7 +237,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-1
 ```
 
-**CTA** — "Start with 5 free Ink" plus the link (X shows the card).
+**CTA** — "Start with 5 free Ink" in the text, plus the link. X shows the link card; no image attached.
 
 **Visual brief (Rajesh):**
 - **Format:** X image, 1600x900 (16:9). PNG-8 under 300 KB. One export per language version.
@@ -232,6 +250,8 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 - **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour. The post carries the full line, so the image carries it too (it describes the output).
 - **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Card reading: Lawie is live. Start with 5 free Ink. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
 - **Note for Madhuri/Ajay:** Attaching an image suppresses X's link card; the UTM link stays in the text as a plain link. The calendar CTA says 'X shows the card'. That is not true once an image is attached. Meera/Vishal to decide: image, or link card from the lawie.in OG image.
+
+**Rajesh: update** — this X post carries the CTA link, so it uses the link card and NO image (an attached image suppresses the card). Visual brief is now: none (link card). The image brief above is superseded; keep it only if Meera later approves an image-only variant with no link in the text.
 
 **Claims to check (Ajay):**
 1. Lawie is live.
@@ -295,7 +315,7 @@ Reply STOP to stop these messages.
 2. Flow: pick, answer a few questions, review, download (Word or PDF).
 3. More than 90 document types, including bail applications, legal notices, affidavits and agreements.
 4. 5 free Ink.
-5. STOP opt-out: an operations promise. Priya to confirm whoever runs the list honours it.
+5. STOP opt-out and opt-in record: an operations promise. List owner is Madhuri (under Meera, `strategy.md` §5); STOP honoured within 24 hours; opt-in recorded per number (DPDP s.6).
 
 ---
 
@@ -351,7 +371,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 1. Regular bail application, legal notice, affidavit and rent agreement are live document types.
 2. More than 90 document types.
 3. The questions cover parties, dates and the facts the document needs. Priya to confirm this describes the intake form.
-4. Everything in the draft can be changed in the editor.
+4. Every line of the draft is yours to change (Ajay's approved wording; Priya confirmed the prayer and verification are editable).
 5. Download in Word or PDF.
 6. 5 free Ink.
 
@@ -359,7 +379,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 ## W1-IG-2 — Day 3 — Instagram reel (R1) — P2 Everyday court work, P3 You stay the advocate
 
-Script: `reels.md` → R1 "Draft a bail application with me". The same video goes to YouTube Shorts.
+Script: `reels.md` → **R4** (classic path, fallback) if describe-first is not live for all users at go-live, otherwise **R1** "Draft a bail application with me" (describe flow, HOLD tag). Same video to YouTube Shorts. Either reel waits for T-245a/b.
 
 **Copy (EN)** — caption (~480 chars)
 
@@ -411,16 +431,16 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 1. A bail application is drafted by picking it, answering questions, then review, edit, download.
 2. "Criminal drafts cite BNS, BNSS and BSA."
 3. The matter shown is fictional and labelled.
-4. R1's own claims list in `reels.md` (the BNSS section visible on screen).
+4. The claims list of the reel used (R4 or R1) in `reels.md`: Section 483 BNSS with `[Sample Sessions Court]` (Ajay checks the actual frame).
 
 ---
 
 ## W1-X-2 — Day 4 — X — P2 Everyday court work
 
-**Copy (EN)** — 279 / 280
+**Copy (EN)** — 278 / 280
 
 ```
-Bail applications, legal notices, affidavits, petitions, agreements and more: over 90 document types. Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink.
+Bail applications, notices, affidavits, petitions, agreements and more: more than 90 document types. Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink.
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-2
@@ -435,7 +455,7 @@ The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-2
 ```
 
-**CTA** — "Start with 5 free Ink" plus the link.
+**CTA** — "Start with 5 free Ink" in the text, plus the link. X shows the link card; no image attached.
 
 **Visual brief (Rajesh):**
 - **Format:** X image, 1600x900. One export per language version.
@@ -449,8 +469,10 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 - **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles: bail applications, legal notices, affidavits, petitions, agreements and more. Over 90 document types. Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink."
 - **Note for Madhuri/Ajay:** Tile list is the post's own list, in the post's order. 'Over 90' follows the post (the headline); the calendar elsewhere says 'more than 90'. Ajay to confirm both read the same claim.
 
+**Rajesh: update** — this X post carries the CTA link, so it uses the link card and NO image (an attached image suppresses the card). Visual brief is now: none (link card). The image brief above is superseded; keep it only if Meera later approves an image-only variant with no link in the text.
+
 **Claims to check (Ajay):**
-1. More than 90 document types ("over 90").
+1. More than 90 document types.
 2. Bail applications, legal notices, affidavits, petitions and agreements among them.
 3. "Criminal drafts cite BNS, BNSS and BSA."
 4. 5 free Ink.
@@ -505,7 +527,7 @@ Lawie ड्राफ्टिंग में मदद करता है। 
 
 **Claims to check (Ajay):**
 1. Every draft shows the disclaimer line verbatim (T-197).
-2. Everything in the draft can be changed in the editor.
+2. Every line of the draft is yours to change (Priya confirmed the prayer and verification are editable).
 3. Download in Word or PDF.
 4. "The filing, and the judgement, stay with you": Lawie does not file anything.
 5. 5 free Ink.
@@ -596,33 +618,33 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 ## W1-X-3 — Day 6 — X — P4 Pay per draft, start with 5 free Ink
 
-**Copy (EN)** — 251 / 280
+**Copy (EN)** — 265 / 280
 
 ```
 How Ink works in Lawie:
 
 5 free Ink on sign-up
 Short ones, such as most notices and affidavits: 1 Ink
-Most documents, incl. bail and petitions: 2 Ink
+Most documents, such as bail applications and plaints: 2 Ink
 Charged only after a draft is generated; a failed generation is not charged.
 
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-3
 ```
 
-**Copy (HI)** — 268 / 280
+**Copy (HI)** — 279 / 280
 
 ```
 Lawie में Ink ऐसे चलता है:
 
 साइन-अप पर 5 free Ink
 छोटे डॉक्यूमेंट, जैसे ज़्यादातर notice और affidavit: 1 Ink
-ज़्यादातर डॉक्यूमेंट, जैसे bail और petition: 2 Ink
+ज़्यादातर डॉक्यूमेंट, जैसे bail application और plaint: 2 Ink
 Ink ड्राफ्ट generate होने के बाद ही कटता है; फ़ेल हुए generation का कोई चार्ज नहीं।
 
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-3
 ```
 
-**CTA** — the link.
+**CTA** — the link only (the post text has no separate CTA line, to stay under 280). X shows the link card; no image attached.
 
 **Visual brief (Rajesh):**
 - **Format:** X image, 1600x900. `_en`, `_hi`.
@@ -636,8 +658,10 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 - **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Table: Lawie Ink costs. 5 free Ink on sign-up. Short documents, such as most notices and affidavits, use 1 Ink. Most documents, including bail and petitions, use 2 Ink. You are charged only after a draft is generated; a failed generation is not charged."
 - **Note for Madhuri/Ajay:** The pill numbers on the left repeat the copy's 1 and 2. 'Free' stays attached to '5 Ink'.
 
+**Rajesh: update** — this X post carries the CTA link, so it uses the link card and NO image (an attached image suppresses the card). Visual brief is now: none (link card). The image brief above is superseded; keep it only if Meera later approves an image-only variant with no link in the text.
+
 **Claims to check (Ajay):**
-1. The Ink line, split into bullets to fit X. The words are Ajay's apart from the list layout and "incl. bail and petitions" (bail applications and petitions are 2 Ink per T-227).
+1. The Ink line, split into bullets to fit X. The words are Ajay's apart from the list layout and "such as bail applications and plaints" (Ajay's change: a mutual-consent divorce petition is 1 Ink, so "petitions" is not true across the board; bail applications and plaints are 2 Ink per T-227).
 2. No rupees in this post.
 
 ---
@@ -705,9 +729,13 @@ Condition (Vikram): the rupee bullet goes out only after T-227 and T-238 merge a
 
 ## Add-ons (not in the 11): bar demo and ambassador
 
-Offers approved by Vikram (`vikram-gtm-decisions.md`). They are used only in this copy, never in the scheduled posts. **Every offer line below is marked: Ajay to check.** Two things must be true before use: a lead confirms `passport.ts` applies the referral code on Google sign-in, and the code exists in `referral.service.ts` for that demo or ambassador.
+Offers approved by Vikram (`vikram-gtm-decisions.md`) and wording changes by Ajay (`marketing-package-signed.md`, section F). They are used only in this copy, never in the scheduled posts. **Every offer line below is marked: Ajay to check.** Say "+5 Ink" / "+3 Ink", never "free drafts".
+
+How a code works (Priya, from the code): codes are typed in the **"Have a referral code?"** box on the login page, by **new accounts**, with Google sign-in. An invalid code is silently ignored. There is **no link support yet** (`?ref=` is T-242), so no message says a link gives Ink; the link in each message is the normal sign-up link. Before any message goes out, a lead confirms the code exists in `referral.service.ts` for that demo or ambassador and that Google sign-in applies it (`passport.ts`).
 
 ### W1-BD-WA — after the Patna bar demo — WhatsApp to attendees who opted in at the demo
+
+Opt-in rule: each attendee opted in to this message at the demo, with the purpose stated, and the opt-in is recorded. STOP is honoured.
 
 **Copy (HI)**
 
@@ -716,7 +744,7 @@ Offers approved by Vikram (`vikram-gtm-decisions.md`). They are used only in thi
 
 आज Lawie के डेमो में आने के लिए धन्यवाद।
 
-डेमो कोड {CODE} से नया अकाउंट बनाने पर +5 Ink और मिलते हैं, साइन-अप के 5 free Ink के अलावा। [Ajay to check]
+साइन-अप करते समय login पेज के "Have a referral code?" बॉक्स में डेमो कोड {CODE} डालिए। नए अकाउंट को +5 Ink और मिलते हैं, साइन-अप के 5 free Ink के अलावा, पहले 50 साइन-अप के लिए। [Ajay to check]
 कोड सिर्फ़ नए अकाउंट के लिए है और {EXPIRY_DATE} तक चलेगा (डेमो से 14 दिन)। [Ajay to check]
 
 https://lawie.in/login?mode=signup&utm_source=bar_demo&utm_medium=offline&utm_campaign=launch_p1&utm_content={demo_id}
@@ -733,7 +761,7 @@ Hello,
 
 Thank you for coming to the Lawie demo today.
 
-Sign up with demo code {CODE} and a new account gets +5 Ink, on top of the 5 free Ink on sign-up. [Ajay to check]
+When you sign up, enter demo code {CODE} in the "Have a referral code?" box on the login page. A new account gets +5 Ink, on top of the 5 free Ink on sign-up, for the first 50 sign-ups. [Ajay to check]
 The code is for new accounts only and works until {EXPIRY_DATE} (14 days after the demo). [Ajay to check]
 
 https://lawie.in/login?mode=signup&utm_source=bar_demo&utm_medium=offline&utm_campaign=launch_p1&utm_content={demo_id}
@@ -743,16 +771,20 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 Reply STOP to stop these messages.
 ```
 
-Notes: Vikram's cap is up to 50 uses per code. The copy does not promise everyone a slot. If Ajay wants the cap disclosed, add "(first 50 sign-ups)" / "(पहले 50 साइन-अप)". Where the user enters the code (referral box in Create account, T-234) is Priya's to confirm. **Claims to check (Ajay):** +5 Ink for new accounts; 14-day expiry; on top of the 5 sign-up Ink (10 in total, per Vikram); whether the 50-use cap must be stated.
+**Claims to check (Ajay):** (1) +5 Ink for new accounts, on top of the 5 sign-up Ink (10 in total, Vikram). (2) Cap stated: first 50 sign-ups (Ajay's wording). (3) Expiry 14 days after the demo. (4) The code is typed in the "Have a referral code?" box and works with Google sign-in (Priya, confirmed from the code). (5) Opt-in recorded per number (date, source: bar demo).
 
 ### AMB-WA — ambassador share message (the ambassador sends it from their own phone to people who know them)
+
+**Who may send this:** Lawie campus ambassadors are **law students, not enrolled advocates**. Ajay (BCI Rules, Part VI, Chapter II, r.36): a paid enrolled advocate promoting a product to other advocates comes to him first, so no enrolled advocate is recruited or paid as an ambassador without his sign-off. Ambassadors are paid a flat stipend, not per sign-up (Vikram). The message is a paid endorsement, so the opening disclosure is required. "I use Lawie" must be true for each ambassador.
 
 **Copy (HI)**
 
 ```
+मैं Lawie का campus ambassador हूँ।
+
 मैं Lawie इस्तेमाल करता/करती हूँ, advocates के लिए drafting assistant। डॉक्यूमेंट चुनिए, कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचिए और Word या PDF में डाउनलोड कीजिए।
 
-मेरे कोड {CODE} से नया अकाउंट बनाने पर +3 Ink और मिलते हैं, साइन-अप के 5 free Ink के अलावा। [Ajay to check]
+साइन-अप करते समय login पेज के "Have a referral code?" बॉक्स में मेरा कोड {CODE} डालिए। नए अकाउंट को +3 Ink और मिलते हैं, साइन-अप के 5 free Ink के अलावा, पहले 100 साइन-अप के लिए, {START_DATE} से 60 दिन के लिए। [Ajay to check]
 सिर्फ़ नए अकाउंट के लिए। [Ajay to check]
 
 https://lawie.in/login?mode=signup&utm_source=ambassador&utm_medium=referral&utm_campaign=launch_p1&utm_content={ambassador_id}
@@ -763,9 +795,11 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 **Copy (EN)**
 
 ```
+I'm a Lawie campus ambassador.
+
 I use Lawie, a drafting assistant for advocates. Pick a document, answer a few questions, then review the draft and download it in Word or PDF.
 
-Sign up with my code {CODE} and a new account gets +3 Ink, on top of the 5 free Ink on sign-up. [Ajay to check]
+When you sign up, enter my code {CODE} in the "Have a referral code?" box on the login page. A new account gets +3 Ink, on top of the 5 free Ink on sign-up, for the first 100 sign-ups, valid for 60 days from {START_DATE}. [Ajay to check]
 New accounts only. [Ajay to check]
 
 https://lawie.in/login?mode=signup&utm_source=ambassador&utm_medium=referral&utm_campaign=launch_p1&utm_content={ambassador_id}
@@ -773,4 +807,4 @@ https://lawie.in/login?mode=signup&utm_source=ambassador&utm_medium=referral&utm
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 ```
 
-Notes: ambassadors are paid a flat stipend, not per sign-up (Vikram). Their posts are paid promotion, so Ajay to decide whether the message needs a disclosure such as "(I'm a Lawie campus ambassador)". The opening line "I use Lawie" must be true for each ambassador. The 60-day expiry is not in the message; add "valid for 60 days from {START_DATE}" if Ajay wants it. **Claims to check (Ajay):** +3 Ink for new accounts; on top of 5 (8 in total); endorsement disclosure; expiry wording.
+**Claims to check (Ajay):** (1) +3 Ink for new accounts, on top of the 5 sign-up Ink (8 in total, Vikram). (2) Cap stated: first 100 sign-ups. (3) Expiry stated: 60 days from {START_DATE}. (4) Opening disclosure "I'm a Lawie campus ambassador." / "मैं Lawie का campus ambassador हूँ।". (5) Ambassadors are law students, not enrolled advocates. (6) The code is typed in the "Have a referral code?" box (Priya).
