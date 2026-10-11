@@ -22,6 +22,7 @@ import {
   streamGenerateFromTemplate,
 } from '../services/ai.service';
 import { buildAnnexuresPack, estimateBodyParaCount } from '../services/annexures.service';
+import { AvermentLists, loadAvermentLists } from '../services/averments';
 import {
   briefText,
   clampTarget,
@@ -29,8 +30,6 @@ import {
   STARTING_DRAFT_LABEL,
 } from '../services/brief-drafter';
 import { spendInk } from '../services/credits.service';
-import { namesSupremeCourt } from '../services/intake-brief';
-import { AvermentLists, loadAvermentLists } from '../services/averments';
 import {
   factDiffRunType,
   FactDiffRunType,
@@ -38,7 +37,8 @@ import {
   writeFactCheckLog,
 } from '../services/fact-diff-log';
 import { currentState, loadOwnLedger } from '../services/fact-ledger.service';
-import { buildChecklist } from '../services/intake-brief';
+import { FACT_CHECK_DISCLAIMER } from '../services/fact-verifier';
+import { namesSupremeCourt, buildChecklist } from '../services/intake-brief';
 import {
   INTAKE_LIMITS,
   isDescribeFirstEnabled,
@@ -48,8 +48,8 @@ import {
 import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
 import { contentToHtml, renderPdf } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
-import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 import { loadRulePack } from '../services/rule-pack.service';
+import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 import {
   CourtLookupData,
   loadCourtRule,
@@ -618,6 +618,8 @@ router.post(
         sectionsCited: result.sectionsCited,
         mandatoryClausesComplete: result.mandatoryClausesComplete,
         creditsSpent,
+        // T-197: the signed disclaimer goes with every finished draft.
+        disclaimer: FACT_CHECK_DISCLAIMER,
       })}\n\n`,
     );
     res.end();
@@ -751,7 +753,11 @@ router.post(
       runType: FactDiffRunType;
       lists: AvermentLists;
     } | null = null;
-    if (!guided && parsed.data.ledger_id !== undefined && (await isFactLedgerEnabled(payload.sub))) {
+    if (
+      !guided &&
+      parsed.data.ledger_id !== undefined &&
+      (await isFactLedgerEnabled(payload.sub))
+    ) {
       const doc = await loadOwnLedger(parsed.data.ledger_id, payload.sub);
       if (!doc || doc.documentKind !== kind) {
         res.status(404).json({ error: 'Ledger not found' });
@@ -1086,6 +1092,8 @@ router.post(
         startingDraftLabel: result.startingDraft ? STARTING_DRAFT_LABEL : null,
         labelReason: result.labelReason,
         creditsSpent: [],
+        // T-197: the signed disclaimer goes with every finished draft, banner or not.
+        disclaimer: FACT_CHECK_DISCLAIMER,
         // T-147d: what the fact verifier needs the advocate to check. Ledger path only.
         ...('factCheck' in result && result.factCheck
           ? { factCheck: { banner: result.factCheck.banner } }
@@ -1285,6 +1293,8 @@ router.post(
         runId,
         sectionsCited: result.sectionsCited,
         mandatoryClausesComplete: result.mandatoryClausesComplete,
+        // T-197: the signed disclaimer goes with every finished draft.
+        disclaimer: FACT_CHECK_DISCLAIMER,
       })}\n\n`,
     );
     res.end();
@@ -1336,6 +1346,8 @@ router.get(
       startingDraftLabel: doc.startingDraft === true ? STARTING_DRAFT_LABEL : null,
       // The DOCX is made in the browser, so the footer text is sent with the document (T-125).
       startingDraftFooter: doc.startingDraft === true ? STARTING_DRAFT_FOOTER : null,
+      // T-197: the signed disclaimer the document page shows on every draft.
+      disclaimer: FACT_CHECK_DISCLAIMER,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });

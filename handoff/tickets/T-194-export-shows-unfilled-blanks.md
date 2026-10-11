@@ -5,7 +5,8 @@
 | Phase          | 1 — Describe and draft                                                                                                        |
 | Owner          | Rajesh (design of the warning). Vishal (build). Ajay (signs the header text and the blank style). Anushka (verdict)           |
 | Mode           | Design first (Rajesh), then build, full chain. Merge to develop                                                               |
-| Status         | To do. Needs Rajesh's design first                                                                                            |
+| Status         | Assigned to mahak, 11 Oct 2026. Not started. Gates met: Rajesh's design (artifact v2), Ajay's AC8 sign-off, Priya's calls |
+| Assigned lead  | mahak |
 | Size           | Design S (0.5 day). Build M (1 day)                                                                                           |
 | Depends on     | T-147c (already writes `[To be confirmed: label]` in plain text)                                                              |
 | Gate           | Go-live blocker (Ajay): blocks v1 go-live (T-403). Priya reads it as also blocking `feature.fact_ledger` for real users; Ajay to confirm |

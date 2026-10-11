@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                 |
 | Owner          | Lead (build). Anushka (verdict)                                                                                        |
 | Mode           | Build, full chain. Merge to develop_staging                                                                            |
-| Status         | Assigned to mahak, 11 Oct 2026. Not started |
+| Status         | Merged into develop_staging (d74d063, 11 Oct 2026), waiting for Anushka on develop |
 | Assigned lead  | mahak |
 | Size           | S (0.5 day)                                                                                                            |
 | Depends on     | None                                                                                                                   |
