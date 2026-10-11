@@ -1,0 +1,585 @@
+# Social calendar — Week 2: "Bail and BNSS"
+
+Owner: Madhuri (copy). Approver: Meera. Claims: Ajay (through Priya). Visuals: Rajesh.
+Status: **DRAFT, held until go-live.** Nothing here is posted until the launch gate in `strategy.md` §0 holds (T-403 after Anushka's PASS, T-227 and T-238 merged, Ajay's sign-off on every line).
+
+Day 1 = go-live day. Week 2 = Days 8–14.
+
+All house rules from `calendar-week1.md` apply: verbatim disclaimer, Ajay's Ink line, "Criminal drafts cite BNS, BNSS and BSA.", "free" always next to "5 Ink", Vikram's rupee lines only, one link per post with UTM.
+
+**How this week treats BNSS (Ajay, 12 Oct 2026):** Lawie's packs do not switch between old and new law, and offences before 1 July 2024 still go by IPC/CrPC. So no post here says or implies that Lawie handles the IPC→BNS / CrPC→BNSS switch, or that old formats are wrong. No section-correspondence tables (I had drafted a CrPC→BNSS bail-section post; it is cut). The BNSS angle is limited to (a) the signed line "Criminal drafts cite BNS, BNSS and BSA.", (b) the six bail drafts, and (c) the advocate checking every section cited.
+
+**Reel note:** per Meera's brief, R2 (legal notice, a 1-Ink document) is this week's reel, although the week's theme is bail. `strategy.md` §7 had the bail reel in Week 2 and the notice reel in Week 3. If Meera prefers the strategy order, swap W1-IG-2 (R1) and W2-IG-2 (R2); the captions travel with the reels.
+
+## Week at a glance
+
+| Day | ID | Channel | Pillar | Topic |
+| --- | --- | --- | --- | --- |
+| 8 | W2-LI-1 | LinkedIn | P2 | Six bail drafts in Lawie |
+| 8 | W2-X-1 | X | P2 | Six bail drafts |
+| 9 | W2-WA-1 | WhatsApp broadcast | P2 | Bail drafts |
+| 10 | W2-IG-1 | Instagram (carousel) | P2 | Six bail drafts |
+| 10 | W2-LI-2 | LinkedIn | P3 | Before you file: a review checklist |
+| 11 | W2-X-2 | X | P3 | Review checklist |
+| 12 | W2-IG-2 | Instagram (reel, R2) | P2, P4 | Legal notice in Lawie (1 Ink) |
+| 13 | W2-LI-3 | LinkedIn | P4 | Bail drafts and Ink |
+| 13 | W2-X-3 | X | P1 | A bail application in three steps |
+| 13 | W2-IG-3 | Instagram (carousel) | P3 | Review checklist |
+| 14 | W2-WA-2 | WhatsApp broadcast | P4 | Legal notices use 1 Ink |
+
+11 posts: LinkedIn 3, Instagram 3 (1 reel), X 3, WhatsApp 2.
+
+---
+
+## W2-LI-1 — Day 8 — LinkedIn — P2 Everyday court work
+
+**Copy (EN)** (~830 chars)
+
+```
+Bail applications are the documents a district-court junior drafts most. Lawie has six:
+
+• Regular bail
+• Anticipatory bail
+• Bail before the magistrate
+• Interim bail
+• Default bail
+• Cancellation of bail
+
+Pick the one you need, answer a few questions about the matter, then review the first draft, edit it and download it in Word or PDF. Criminal drafts cite BNS, BNSS and BSA.
+
+Check every section and every fact before you file. The draft is where you start, not where you stop.
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+Start with 5 free Ink: https://lawie.in/login?mode=signup&utm_source=linkedin&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-li-1
+```
+
+**Copy (HI)** (~800 chars)
+
+```
+डिस्ट्रिक्ट कोर्ट का junior सबसे ज़्यादा bail application ड्राफ्ट करता है। Lawie में इसके छह ड्राफ्ट हैं:
+
+• Regular bail
+• Anticipatory bail
+• Magistrate के सामने bail
+• Interim bail
+• Default bail
+• Bail cancellation
+
+ज़रूरत वाला चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर पहला ड्राफ्ट जाँचिए, बदलिए और Word या PDF में डाउनलोड कीजिए। Criminal drafts में BNS, BNSS और BSA cite होते हैं।
+
+फ़ाइल करने से पहले हर section और हर तथ्य जाँचें। ड्राफ्ट से काम शुरू होता है, ख़त्म नहीं।
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+5 free Ink से शुरू करें: https://lawie.in/login?mode=signup&utm_source=linkedin&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-li-1
+```
+
+**CTA** — A "Start with 5 free Ink" (21) · B "Pick your bail draft" (20) · C "Draft your next bail application" (32). HI: A "5 free Ink से शुरू करें" · B "अपना bail draft चुनिए" · C "अगली bail application यहाँ ड्राफ्ट कीजिए"
+
+**Visual brief (Rajesh):** TBD — Rajesh
+
+**Claims to check (Ajay):**
+1. "Bail applications are the documents a district-court junior drafts most." This is an observation from our ICP research, not a measured statistic. Soften to "one of the documents … drafts most often" if you prefer.
+2. Six bail drafts are live: regular, anticipatory, before magistrate, interim, default, cancellation.
+3. Flow: pick, answer questions, review, edit, download (Word or PDF).
+4. "Criminal drafts cite BNS, BNSS and BSA."
+
+---
+
+## W2-X-1 — Day 8 — X — P2
+
+**Copy (EN)** — 278 / 280
+
+```
+Six bail drafts in Lawie: regular, anticipatory, before magistrate, interim, default, cancellation.
+
+Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink.
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-1
+```
+
+**Copy (HI)** — 270 / 280
+
+```
+Lawie में 6 तरह के bail draft: regular, anticipatory, magistrate के सामने, interim, default और cancellation.
+
+Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।
+
+The advocate is responsible for legal accuracy and filing.
+https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-1
+```
+
+**CTA** — "Start with 5 free Ink" plus the link.
+
+**Visual brief (Rajesh):** TBD — Rajesh
+
+**Claims to check (Ajay):**
+1. Six bail drafts are live.
+2. "Criminal drafts cite BNS, BNSS and BSA."
+3. 5 free Ink.
+
+---
+
+## W2-WA-1 — Day 9 — WhatsApp broadcast (opt-in list only) — P2
+
+**Copy (HI)** (~420 chars)
+
+```
+नमस्ते,
+
+Lawie में bail application के छह ड्राफ्ट हैं: regular, anticipatory, magistrate के सामने, interim, default और cancellation.
+
+चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचकर Word या PDF में डाउनलोड कीजिए। Criminal drafts में BNS, BNSS और BSA cite होते हैं। Bail application में 2 Ink लगते हैं।
+
+https://lawie.in/login?mode=signup&utm_source=whatsapp&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-wa-1
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+यह मैसेज नहीं चाहिए तो STOP लिखें।
+```
+
+**Copy (EN)** (~440 chars)
+
+```
+Hello,
+
+Lawie has six bail drafts: regular, anticipatory, before magistrate, interim, default and cancellation.
+
+Pick one, answer a few questions about the matter, then review the draft and download it in Word or PDF. Criminal drafts cite BNS, BNSS and BSA. A bail application uses 2 Ink.
+
+https://lawie.in/login?mode=signup&utm_source=whatsapp&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-wa-1
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+Reply STOP to stop these messages.
+```
+
+**CTA** — the single link. Lead-in variants: A "Start with 5 free Ink:" (22) · B "Draft a bail application:" (25) · C "Open Lawie:" (11)
+
+**Visual brief (Rajesh):** TBD — Rajesh
+
+**Claims to check (Ajay):**
+1. Six bail drafts are live.
+2. Flow: pick, answer questions, review, download (Word or PDF).
+3. "Criminal drafts cite BNS, BNSS and BSA."
+4. A bail application uses 2 Ink (all six bail types? T-227 names `bail_regular` and `bail_anticipatory` at 2 and "everything else 2" except the 31 on the 1-Ink list, and no bail type is on that list. Vikram/Ajay to confirm all six are 2).
+
+---
+
+## W2-IG-1 — Day 10 — Instagram carousel — P2
+
+**Copy (EN)**
+
+On-slide text (7 slides):
+
+```
+1. Six bail drafts in Lawie.
+2. Regular bail.
+3. Anticipatory bail.
+4. Bail before the magistrate.
+5. Interim bail.
+6. Default bail. Cancellation of bail.
+7. Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink.
+   Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+```
+
+Caption (~430 chars):
+
+```
+Six bail drafts, one way to start: pick the one you need, answer a few questions about the matter, then review, edit and download.
+
+Criminal drafts cite BNS, BNSS and BSA. Check every section before you file.
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+Start with 5 free Ink. Link in bio.
+
+#bailapplication #BNSS #advocate #lawyersofindia #districtcourt #Lawie
+```
+
+**Copy (HI)**
+
+On-slide text:
+
+```
+1. Lawie में छह bail drafts.
+2. Regular bail.
+3. Anticipatory bail.
+4. Magistrate के सामने bail.
+5. Interim bail.
+6. Default bail. Bail cancellation.
+7. Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।
+   Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+```
+
+Caption (~410 chars):
+
+```
+छह bail drafts, शुरुआत एक ही तरह: ज़रूरत वाला चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर जाँचिए, बदलिए और डाउनलोड कीजिए।
+
+Criminal drafts में BNS, BNSS और BSA cite होते हैं। फ़ाइल करने से पहले हर section जाँचें।
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+5 free Ink से शुरू करें। Link bio में है।
+
+#bailapplication #BNSS #advocate #lawyersofindia #districtcourt #Lawie
+```
+
+**CTA** — "Start with 5 free Ink. Link in bio." Bio link `utm_content=w2-ig-1`. Variants: A "Start with 5 free Ink" · B "Pick your bail draft" (20) · C "Save this for your next bail matter" (35)
+
+**Visual brief (Rajesh):** TBD — Rajesh
+
+**Claims to check (Ajay):**
+1. Six bail drafts are live, by name.
+2. "Criminal drafts cite BNS, BNSS and BSA."
+3. Flow: pick, answer questions, review, edit, download.
+
+---
+
+## W2-LI-2 — Day 10 — LinkedIn — P3 You stay the advocate
+
+**Copy (EN)** (~880 chars)
+
+```
+Before you file a bail application drafted in Lawie, go through it once more.
+
+A short checklist we'd use ourselves:
+1. Every section cited. Is it the right provision for this matter?
+2. Names, ages, addresses, dates and FIR details, against the case file.
+3. The court heading and the cause title.
+4. The grounds. Are the ones that matter for your client there, in your words?
+5. The prayer.
+6. Verification and the advocate block.
+
+Lawie gives you a first draft. The checking, and the judgement, are yours. That's why every draft says:
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+Start with 5 free Ink: https://lawie.in/login?mode=signup&utm_source=linkedin&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-li-2
+```
+
+**Copy (HI)** (~850 chars)
+
+```
+Lawie में बनी bail application फ़ाइल करने से पहले एक बार फिर देख लें।
+
+एक छोटी checklist, जो हम ख़ुद इस्तेमाल करेंगे:
+1. हर cited section। क्या इस मामले के लिए यही सही प्रावधान है?
+2. नाम, उम्र, पता, तारीख़ें और FIR की जानकारी, केस फ़ाइल से मिलाकर।
+3. कोर्ट का heading और cause title।
+4. Grounds। आपके क्लाइंट के लिए जो ज़रूरी हैं, वे आपके शब्दों में हैं या नहीं?
+5. Prayer।
+6. Verification और advocate block।
+
+Lawie आपको पहला ड्राफ्ट देता है। जाँच और फ़ैसला आपका है। इसीलिए हर ड्राफ्ट पर लिखा रहता है:
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+5 free Ink से शुरू करें: https://lawie.in/login?mode=signup&utm_source=linkedin&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-li-2
+```
+
+**CTA** — A "Start with 5 free Ink" (21) · B "Save this checklist" (19) · C "Try it on your next bail matter" (31)
+
+**Visual brief (Rajesh):** TBD — Rajesh
+
+**Claims to check (Ajay):**
+1. The checklist is a review aid for advocates checking their own draft. It is not legal advice to anyone. Please confirm it reads that way, and that "your client" here is not a client-solicitation problem under r.36.
+2. Every draft carries the disclaimer line (T-197).
+3. The draft includes a court heading/cause title, grounds, prayer, verification and advocate block. Priya/Ajay to confirm the bail packs output these parts; otherwise trim items 3 and 6.
+
+---
+
+## W2-X-2 — Day 11 — X — P3
+
+**Copy (EN)** — 257 / 280
+
+```
+Before you file a bail application drafted in Lawie, check:
+
+Every section cited
+Names, dates, FIR details
+The court heading
+The grounds and the prayer
+
+The draft is a start. The advocate is responsible for legal accuracy and filing.
+https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-2
+```
+
+**Copy (HI)** — 246 / 280
+
+```
+Lawie में बनी bail application फ़ाइल करने से पहले जाँचें:
+
+हर cited section
+नाम, तारीख़ें, FIR की जानकारी
+कोर्ट का heading
+Grounds और prayer
+
+ड्राफ्ट एक शुरुआत है। The advocate is responsible for legal accuracy and filing.
+https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-2
+```
+
+**CTA** — the link.
+
+**Visual brief (Rajesh):** TBD — Rajesh
+
+**Claims to check (Ajay):**
+1. Review checklist (as W2-LI-2).
+2. Disclaimer pointer (second sentence, verbatim).
+
+---
+
+## W2-IG-2 — Day 12 — Instagram reel (R2) — P2 Everyday court work, P4 Pay per draft
+
+Script: `reels.md` → R2 "Legal notice in Lawie". The same video goes to YouTube Shorts.
+
+**Copy (EN)** — caption (~520 chars)
+
+```
+A legal notice in Lawie.
+
+Pick the notice, answer a few questions about the matter, then review the draft, edit it and download it in Word or PDF. Most notices use 1 Ink, and you start with 5 free Ink.
+
+Sample, fictional matter. No real case or client is shown.
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+Start with 5 free Ink. Link in bio.
+
+#legalnotice #advocate #lawyersofindia #legaldrafting #districtcourt #Lawie
+```
+
+**Copy (HI)** — caption (~500 chars)
+
+```
+Lawie में legal notice.
+
+Notice चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचिए, बदलिए और Word या PDF में डाउनलोड कीजिए। ज़्यादातर notice में 1 Ink लगता है, और शुरुआत 5 free Ink से।
+
+Sample, fictional matter. कोई असली केस या क्लाइंट नहीं दिखाया गया है।
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+5 free Ink से शुरू करें। Link bio में है।
+
+#legalnotice #advocate #lawyersofindia #legaldrafting #districtcourt #Lawie
+```
+
+**CTA** — "Start with 5 free Ink. Link in bio." Bio link `utm_content=w2-ig-2`. Variants: A "Start with 5 free Ink" · B "Draft your next notice" (22) · C "Most notices: 1 Ink" (19)
+
+**Visual brief (Rajesh):** TBD — Rajesh
+
+**Claims to check (Ajay):**
+1. Flow for a legal notice: pick, answer questions, review, edit, download (Word or PDF).
+2. "Most notices use 1 Ink" (Ajay's "most notices"; per T-227 all 8 legal-notice rule files are on the 1-Ink list).
+3. 5 free Ink.
+4. Matter fictional and labelled.
+5. R2's own claims list in `reels.md`.
+
+---
+
+## W2-LI-3 — Day 13 — LinkedIn — P4 Pay per draft
+
+**Copy (EN)** (~800 chars)
+
+```
+What a bail application costs in Lawie, in Ink.
+
+5 free Ink on sign-up. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.
+
+A bail application is a 2-Ink document. A legal notice or an affidavit is usually 1.
+
+When the 5 Ink run out: Solo ₹799/month, 50 Ink. Top-ups from ₹65 (3 Ink), no subscription needed.
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+Start with 5 free Ink: https://lawie.in/login?mode=signup&utm_source=linkedin&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-li-3
+```
+
+**Copy (HI)** (~780 chars)
+
+```
+Lawie में bail application कितने Ink की है?
+
+साइन-अप पर 5 free Ink. ज़्यादातर डॉक्यूमेंट में 2 Ink लगते हैं; छोटे डॉक्यूमेंट, जैसे ज़्यादातर notice और affidavit, में 1। Ink ड्राफ्ट generate होने के बाद ही कटता है; फ़ेल हुए generation का कोई चार्ज नहीं।
+
+Bail application 2 Ink का डॉक्यूमेंट है। Legal notice या affidavit आम तौर पर 1 Ink।
+
+5 Ink ख़त्म हो जाएँ तो: Solo ₹799/month, 50 Ink. Top-ups ₹65 (3 Ink) से, बिना subscription के।
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+5 free Ink से शुरू करें: https://lawie.in/login?mode=signup&utm_source=linkedin&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-li-3
+```
+
+Condition (Vikram): the rupee line goes out only after T-227 and T-238 merge and the founder has checked the Razorpay plans. If not, cut the "When the 5 Ink run out" paragraph; the post stands without it.
+
+**CTA** — A "Start with 5 free Ink" (21) · B "See how Ink works" (17) · C "Draft your first bail application" (33)
+
+**Visual brief (Rajesh):** TBD — Rajesh
+
+**Claims to check (Ajay):**
+1. Ink line (exact, signed). Hindi rendering is new.
+2. A bail application is 2 Ink; a legal notice or affidavit is "usually" 1.
+3. "Solo ₹799/month, 50 Ink" and "Top-ups from ₹65 (3 Ink)": Vikram's exact ad lines. "No subscription needed" for top-ups: the live pricing page says "no subscription required. Available on all plans."
+
+---
+
+## W2-X-3 — Day 13 — X — P1 Start from a draft
+
+**Copy (EN)** — 278 / 280
+
+```
+A bail application in Lawie:
+
+1. Pick the bail application
+2. Answer a few questions about the matter
+3. Review, edit, download (Word or PDF)
+
+Bail applications use 2 Ink. Start with 5 free Ink.
+
+The advocate is responsible for legal accuracy and filing.
+https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-3
+```
+
+**Copy (HI)** — 279 / 280
+
+```
+Lawie में bail application:
+
+1. Bail application चुनिए
+2. मामले के कुछ सवालों के जवाब दीजिए
+3. जाँचिए, बदलिए, Word या PDF डाउनलोड कीजिए
+
+Bail application में 2 Ink लगते हैं। शुरुआत 5 free Ink से।
+
+The advocate is responsible for legal accuracy and filing.
+https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-3
+```
+
+**CTA** — "Start with 5 free Ink" plus the link.
+
+**Visual brief (Rajesh):** TBD — Rajesh
+
+**Claims to check (Ajay):**
+1. Flow: pick, answer questions, review, edit, download (Word or PDF).
+2. Bail applications use 2 Ink.
+3. 5 free Ink.
+
+---
+
+## W2-IG-3 — Day 13 — Instagram carousel — P3 You stay the advocate
+
+**Copy (EN)**
+
+On-slide text (7 slides):
+
+```
+1. Before you file a bail application drafted in Lawie.
+2. Check every section cited.
+3. Check names, dates and FIR details against the case file.
+4. Check the court heading and cause title.
+5. Check the grounds and the prayer.
+6. Check the verification and the advocate block.
+7. The draft is a start.
+   Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+```
+
+Caption (~380 chars):
+
+```
+Save this for the next bail application you draft in Lawie.
+
+Lawie gives you a first draft. Reading it, checking it and signing it stay with you.
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+Start with 5 free Ink. Link in bio.
+
+#bailapplication #advocate #lawyersofindia #legaldrafting #districtcourt #Lawie
+```
+
+**Copy (HI)**
+
+On-slide text:
+
+```
+1. Lawie में बनी bail application फ़ाइल करने से पहले।
+2. हर cited section जाँचें।
+3. नाम, तारीख़ें और FIR की जानकारी केस फ़ाइल से मिलाएँ।
+4. कोर्ट का heading और cause title जाँचें।
+5. Grounds और prayer जाँचें।
+6. Verification और advocate block जाँचें।
+7. ड्राफ्ट एक शुरुआत है।
+   Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+```
+
+Caption (~360 chars):
+
+```
+अगली bail application के लिए इसे save कर लें।
+
+Lawie आपको पहला ड्राफ्ट देता है। पढ़ना, जाँचना और साइन करना आपका काम रहता है।
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+5 free Ink से शुरू करें। Link bio में है।
+
+#bailapplication #advocate #lawyersofindia #legaldrafting #districtcourt #Lawie
+```
+
+**CTA** — "Start with 5 free Ink. Link in bio." Bio link `utm_content=w2-ig-3`. Variants: A "Start with 5 free Ink" · B "Save this checklist" (19) · C "Share with a junior in your chamber" (35)
+
+**Visual brief (Rajesh):** TBD — Rajesh
+
+**Claims to check (Ajay):**
+1. Review checklist (as W2-LI-2), including whether the bail packs output each part listed.
+2. Disclaimer line verbatim.
+
+---
+
+## W2-WA-2 — Day 14 — WhatsApp broadcast (opt-in list only) — P4 Pay per draft
+
+**Copy (HI)** (~430 chars)
+
+```
+नमस्ते,
+
+Legal notice भेजना है? Lawie में ज़्यादातर notice 1 Ink के होते हैं, जैसे s.138 NI Act और s.80 CPC के notice।
+
+Notice चुनिए, मामले के कुछ सवालों के जवाब दीजिए, ड्राफ्ट जाँचिए और Word या PDF में डाउनलोड कीजिए। Ink ड्राफ्ट generate होने के बाद ही कटता है।
+
+https://lawie.in/login?mode=signup&utm_source=whatsapp&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-wa-2
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+यह मैसेज नहीं चाहिए तो STOP लिखें।
+```
+
+**Copy (EN)** (~450 chars)
+
+```
+Hello,
+
+Sending a legal notice? Most notices in Lawie use 1 Ink, including notices under s.138 NI Act and s.80 CPC.
+
+Pick the notice, answer a few questions about the matter, review the draft and download it in Word or PDF. You're charged only after a draft is generated.
+
+https://lawie.in/login?mode=signup&utm_source=whatsapp&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-wa-2
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+Reply STOP to stop these messages.
+```
+
+**CTA** — the single link. Lead-in variants: A "Start with 5 free Ink:" (22) · B "Draft your notice:" (18) · C "Open Lawie:" (11)
+
+**Visual brief (Rajesh):** TBD — Rajesh
+
+**Claims to check (Ajay):**
+1. Most notices use 1 Ink; the s.138 NI Act and s.80 CPC notices are on the 1-Ink list (T-227: `legal_notice_s138`, `legal_notice_s80`).
+2. "You're charged only after a draft is generated" (first half of the signed Ink sentence; the "failed generation" half is dropped for length. Restore it if you want the full sentence).
+3. Flow: pick, answer questions, review, download.

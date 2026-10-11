@@ -20,9 +20,9 @@ Source: ticket files in `handoff/tickets/` on `develop_staging`, 11 Oct 2026.
 | --- | --- |
 | Drafting assistant for Indian advocates: you get a first draft to review, edit and download (Word, PDF) | Live flow; Ajay-approved steps in T-222 |
 | More than 90 document types: bail applications (regular, anticipatory, before magistrate, interim, default, cancellation), legal notices, affidavits, petitions, family-court matters, agreements (rent, NDA, MOU, service, loan, employment) and more | 92 rule files, all on the free plan (Ajay's check, T-222) |
-| Criminal drafts use BNS, BNSS and BSA | Ajay's wording, T-222 |
+| Criminal drafts cite BNS, BNSS and BSA | Ajay, marketing-s1-claims-signed.md (12 Oct 2026). Never "use", never "updated for BNS / the new criminal laws"; no claim about old-law (pre-1 July 2024) matters |
 | Every draft carries: "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing." | T-197 |
-| 5 free Ink on sign-up. Most documents use 2 Ink; short ones (notices, affidavits, short applications, some simple agreements) use 1. A draft is charged only when it succeeds | T-227 (Vikram). **True only once T-227 merges** |
+| 5 free Ink on sign-up. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. | T-227 (Vikram); wording Ajay, marketing-s1-claims-signed.md. Never "succeeds" or "ready". **True only once T-227 merges** |
 | Sign in with Google | Live |
 | Drafts in English | FAQ; Hindi drafting is not released |
 
@@ -38,7 +38,11 @@ Source: ticket files in `handoff/tickets/` on `develop_staging`, 11 Oct 2026.
 | 500 templates | It is the aim, not today. Say "more than 90" |
 | Hindi drafts | Only as "Hindi drafting: coming soon" |
 | Accurate / guaranteed / 100% / replaces your advocate / legal advice / "get more clients" / "grow your practice" | Hard rules; BCI Rules Part VI Ch II r.36 |
-| "Less than ₹16 per document" (live pricing page) | False at 2 Ink per document. Goes to Priya with T-238 |
+| "Less than ₹16 per document" (live pricing page) | False at 2 Ink per document. Replaced by "Most documents use 2 Ink, short ones 1. Buy extra packs anytime." (Ajay + Vikram), T-238 |
+| "AI lawyer", "legal advice", "lawyer-verified", "checked by advocates" | Ajay: Lawie gives no legal advice; no advocate reviews each draft |
+| "Updated for BNS / the new criminal laws" as a whole-product claim | Ajay: old-law offences (before 1 July 2024) are not handled yet |
+| "Free" without "5 Ink" next to it | Ajay: the free plan is 5 Ink, lifetime. Say "Start with 5 free Ink" |
+| Pro price, any yearly price, any per-document rupee figure, "50 documents a month", any discount (in ads and posts) | Vikram, vikram-gtm-decisions.md. Ads may say only "Start free with 5 Ink", "Solo ₹799/month, 50 Ink", "Top-ups from ₹65 (3 Ink)" |
 
 ## 2. ICP
 
@@ -52,7 +56,7 @@ Source: ticket files in `handoff/tickets/` on `develop_staging`, 11 Oct 2026.
 
 ## 3. Positioning
 
-**For** district-court advocates in India **who** draft the same applications and notices again and again, **Lawie is** a drafting assistant **that** gives you a first draft to review, edit and download, across more than 90 document types, with criminal drafts on BNS, BNSS and BSA. **Unlike** old files and typists, you start from a structured draft, not a blank page. **You stay in charge:** the advocate is responsible for legal accuracy and filing.
+**For** district-court advocates in India **who** draft the same applications and notices again and again, **Lawie is** a drafting assistant **that** gives you a first draft to review, edit and download, across more than 90 document types. Criminal drafts cite BNS, BNSS and BSA. **Unlike** old files and typists, you start from a structured draft, not a blank page. **You stay in charge:** the advocate is responsible for legal accuracy and filing.
 
 **One line (EN):** "Your first draft, ready to review."
 **One line (HI):** "पहला ड्राफ्ट तैयार, आप बस जाँचें।"
@@ -62,9 +66,9 @@ Source: ticket files in `handoff/tickets/` on `develop_staging`, 11 Oct 2026.
 | # | Pillar | Message | Proof we can show | Never say |
 | --- | --- | --- | --- | --- |
 | 1 | Start from a draft, not a blank page | Pick the document, answer a few questions, review the draft | Screen recording of the live flow | "court-ready", "in minutes" |
-| 2 | Built for Indian courts' everyday work | Bail, notices, affidavits, petitions, agreements; criminal drafts on BNS, BNSS, BSA | Document list; BNS section visible in a sample draft | "any court", "validated" |
+| 2 | Built for Indian courts' everyday work | Bail, notices, affidavits, petitions, agreements; criminal drafts cite BNS, BNSS and BSA | Document list; BNS section visible in a sample draft | "any court", "validated" |
 | 3 | You stay the advocate | Every draft says the advocate is responsible; edit everything; download Word or PDF | The disclaimer on screen; the editor | "accurate", "replaces", "legal advice" |
-| 4 | Pay per draft, start free | 5 free Ink; 1 or 2 Ink per draft; charged only when the draft succeeds | Pricing page (after T-238) | Discounts not okayed by Vikram |
+| 4 | Pay per draft, start with 5 free Ink | 5 free Ink on sign-up. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. | Pricing page (after T-238) | Any discount (Solo discount rejected by Vikram); "free" without "5 Ink"; "succeeds" / "ready" |
 
 Tone: plain, respectful, peer-to-peer ("Advocate sahab" in Hindi only where natural). Hindi copy in Devanagari, everyday Hindi, legal terms in English where advocates use them (bail, FIR, affidavit, BNSS).
 
@@ -98,30 +102,34 @@ Tracking needs (to Priya as tickets, not built by marketing): UTM capture at sig
 
 ## 7. Four-week launch calendar (Week 1 = go-live week)
 
-**Pre-launch (now → go-live):** Ajay signs all copy; Rajesh finishes the one-pager, reel templates and pricing visuals; 3 reels shot; 10 ambassadors recruited; bar-association slots booked for Weeks 1–4; WhatsApp opt-in list from the waitlist form (if Priya tickets one); legal-news slot booked (Vikram okays spend).
+**Pre-launch (now → go-live):** Ajay signs all copy; Rajesh finishes the one-pager, reel templates and pricing visuals; 3 reels shot; 10 ambassadors recruited; bar-association slots booked for Weeks 1–4; WhatsApp opt-in list from the waitlist form (if Priya tickets one); legal-news slot quoted only (spend is T2, Week 3; Vikram, vikram-gtm-decisions.md). No rupee is spent before go-live.
 
 | Week | Theme | Key actions | Output | Goal |
 | --- | --- | --- | --- | --- |
 | 1 | "Your first draft, ready to review" | Go-live posts on all channels; founder LinkedIn launch post; Patna Civil Court bar demo; WhatsApp broadcast #1 to opt-ins; reel 1 | Social calendar week 1 | 150 sign-ups, 5 paid |
 | 2 | Bail and BNSS | Reel 2 (bail application walkthrough, fictional matter); BNSS explainer carousel; Ranchi bar demo; law-college lab #1 (Patna) | Social calendar week 2 | 300 sign-ups, 12 paid |
-| 3 | Notices and agreements (1-Ink documents) | Reel 3 (legal notice); legal-news sponsored slot; Lucknow bar demo; lab #2 (Lucknow) | Reuse winning week 1–2 formats | 420 sign-ups, 19 paid |
-| 4 | "You stay the advocate" + review | Founder AMA on LinkedIn/X; ambassador push; lab #3 (Ranchi); review KPIs, cut weak channels, plan days 31–90 | Phase 1 report | 500 sign-ups, 25 paid |
+| 3 | Notices and agreements (1-Ink documents) | Reel 3 (legal notice); legal-news sponsored slot if T2 is released (Vikram); Lucknow bar demo; lab #2 (Lucknow) | Reuse winning week 1–2 formats | 420 sign-ups, 19 paid |
+| 4 | "You stay the advocate" + review | Founder AMA on LinkedIn/X; ambassador push; lab #3 (Ranchi) if T2; review KPIs, cut weak channels, plan days 31–90 | Phase 1 report | 500 sign-ups, 25 paid |
 
-## 8. Budget asks for Vikram (4 weeks, ₹, all pending his okay)
+## 8. Budget (Vikram's decision, ₹1,00,000 at most)
 
-| Item | Ask | Note |
+Source: Vikram, vikram-gtm-decisions.md (12 Oct 2026). Cut from the ₹1,45,000 asked.
+
+| Item | Approved | Condition |
 | --- | --- | --- |
-| Paid social (Instagram/YouTube boosts of the best reel; targeting Bihar, Jharkhand, UP; law/advocate interests) | 30,000 | Only after go-live and T-238 merged |
-| LinkedIn boosts (launch post, 2 posts) | 10,000 | |
-| Legal-news sponsored newsletter or listing (one slot) | 25,000 | Quote first; pick one site |
-| Bar demos: printing (one-pagers, standees), tea, travel Patna–Ranchi–Lucknow | 30,000 | No payment or gifts to association members |
-| Law-college labs: venue, snacks, certificates | 12,000 | |
-| Ambassador stipends (10 × ₹1,500, flat, not per sign-up) | 15,000 | Vikram decides any per-sign-up reward |
-| Reel editing (freelance, 6 reels) | 15,000 | |
-| Tools: Canva Pro, WhatsApp Business API provider, scheduling | 8,000 | |
-| **Total** | **1,45,000** | Target CAC under ₹1,500 at 100 paid |
+| Paid social (Instagram/YouTube) | T1 ₹15,000 + T2 ₹15,000 | Cap ₹500/day. One reel at a time. UTM on every ad |
+| LinkedIn | ₹0 | Organic only |
+| Legal-news slot | T2 only, up to ₹15,000 | Week 3. Quote first, one site |
+| Bar demos | T1 ₹20,000 | Receipts. No gifts to association members |
+| Law-college labs | T1 ₹6,000 | 2 labs; a 3rd in T2 if they convert |
+| Ambassador stipends | T1 ₹15,000 | 10 × ₹1,500 flat, no per-sign-up pay |
+| Reel editing | T1 ₹7,500 + T2 ₹3,500 | 3 reels first |
+| Tools | T1 ₹3,000 | Canva Pro, free scheduler, free WhatsApp Business broadcast lists (opt-in only) |
+| **Total** | **T1 ₹66,500; T2 up to ₹33,500; ₹1,00,000 max** | |
 
-**Offers needing Vikram's okay (none is used in copy until he says yes):** (a) launch top-up bonus for bar-demo attendees; (b) ambassador code that gives the new user extra Ink; (c) first-month price on Solo. Default if he says no: the standard 5 free Ink only.
+**When money can be spent:** no rupee before go-live. T2 is released only if, by the end of Week 2, there are at least 250 sign-ups, at least 8 paying users and a blended CAC of ₹3,000 or less. Otherwise paid stops and bar demos continue.
+
+**Offers:** bar-demo code +5 Ink (new accounts, expires 14 days after the demo, up to 50 uses) and ambassador code +3 Ink (new accounts, 60 days, up to 100 uses) are approved. Say "+5 Ink" / "+3 Ink", never "free drafts"; Ajay checks the wording; a lead confirms `passport.ts` applies the code on Google sign-in. First-month Solo discount: rejected. Offers go only in bar-demo and ambassador copy.
 
 ## 9. Open items (to Priya)
 
