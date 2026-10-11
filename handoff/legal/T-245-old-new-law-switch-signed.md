@@ -53,7 +53,7 @@ Every sentence or phrase in the pack that says "never IPC", "NEVER use old IPC s
 | `discharge_application` | 227 → 250; 239 → 262; 245 → 268 | See citation fix 3 |
 | `fir_quashing`, `quashing_528_bnss` | 482 → 528 | Article 226 unaffected |
 | `writ_petition_criminal` | 154(3) → 173(4); 156(3) → 175(3); 41 → 35 | Article 226 unaffected |
-| `review_petition` (criminal limb only) | 362 → 402 | See citation fix 1 |
+| `review_petition` (criminal limb only) | 362 → 403 | See citation fix 1 |
 | `habeas_corpus` | 97 → 100; 57 → 58 | See citation fix 2. Articles 32 / 226 unaffected |
 
 ### Group B: offence only (no procedure key)
@@ -80,7 +80,7 @@ No change: `synopsis`, `list_of_dates`, `production_of_documents`, `vakalatnama`
 
 | # | Pack | Wrong | Exact fix |
 |---|---|---|---|
-| 1 | `review_petition` | "S.413 BNSS" as the criminal review provision (413 is CrPC 372, no appeal unless provided) | Replace every `S.413 BNSS` with `S.402 BNSS` (CrPC 362, court not to alter judgment) |
+| 1 | `review_petition` | "S.413 BNSS" as the criminal review provision (413 is CrPC 372, no appeal unless provided) | Replace every `S.413 BNSS` with `S.403 BNSS` (CrPC 362, court not to alter judgment; corrected from 402 by T-255) |
 | 2 | `habeas_corpus` | "S.97 BNSS" for search of a person wrongfully confined | Replace every `S.97 BNSS` with `S.100 BNSS` |
 | 3 | `discharge_application` | "S.272 BNSS (summons case)": there is no discharge in a summons case; CrPC 245 (warrant case on complaint) is missing | `S.250 BNSS (Sessions) / S.262 BNSS (warrant case before Magistrate) / S.272 BNSS (summons case)` → `S.250 BNSS (Sessions) / S.262 BNSS (warrant case on police report) / S.268 BNSS (warrant case on complaint)`; `(S.250 / S.262 / S.272 BNSS)` → `(S.250 / S.262 / S.268 BNSS)`. Any other `272` in the pack: list it for me, do not change it |
 
