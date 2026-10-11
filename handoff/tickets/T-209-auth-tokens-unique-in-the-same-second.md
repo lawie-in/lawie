@@ -5,7 +5,8 @@
 | Phase          | 0 — Prep                                                                     |
 | Owner          | Lead (build). Arjun (heads-up: token format change). Anushka (verdict)       |
 | Mode           | Build, full chain (auth)                                                     |
-| Status         | Ready                                                                        |
+| Status         | Assigned to shashank, 11 Oct 2026. Not started. Arjun's conditions are under "Arjun (11 Oct 2026)" |
+| Assigned lead  | shashank |
 | Size           | S (0.5 day)                                                                  |
 | Depends on     | None                                                                         |
 | Gate           | Before v1 go-live (T-403)                                                    |

@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep                                                                 |
 | Owner          | Lead (build). Anushka (verdict)                                          |
 | Mode           | Build, full chain (auth)                                                 |
-| Status         | Assigned to shashank, 11 Oct 2026. Not started |
+| Status         | Merged into develop_staging (d305233, 11 Oct 2026), waiting for Anushka on develop |
 | Assigned lead  | shashank |
 | Size           | S (0.5 day)                                                              |
 | Depends on     | None                                                                     |
