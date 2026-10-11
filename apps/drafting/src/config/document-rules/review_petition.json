@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "description": "Document-rules config for review_petition — Review Petition before the same court that passed the original order, under Order 47 Rule 1 CPC (civil) / Article 137 (SC) / S.413 BNSS (criminal HC). Grounds: discovery of new evidence, error apparent on face of record, sufficient reason. NOT a re-hearing.",
+    "description": "Document-rules config for review_petition — Review Petition before the same court that passed the original order, under Order 47 Rule 1 CPC (civil) / Article 137 (SC) / S.403 BNSS (criminal HC). Grounds: discovery of new evidence, error apparent on face of record, sufficient reason. NOT a re-hearing.",
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 7 writs + tribunals 2026-05-12",
     "last_updated": "2026-05-12",
@@ -243,7 +243,7 @@
       "   - Supreme Court: Article 137 + Order XLVII SC Rules 2013 (criminal review heard in chambers; civil review may also be in chambers).",
       "   - HC (writ side): Article 226 inherent power; in some states under HC Rules.",
       "   - HC (civil): Order 47 Rule 1 CPC.",
-      "   - HC (criminal): S.413 BNSS [S.362 CrPC bar on review — but inherent power S.528 BNSS limited]. NOTE: BNSS S.413 retains the bar on criminal review; criminal review is extremely narrow, restricted to clerical/arithmetical errors. Substantive criminal review by HC normally not permitted; remedy is SLP.",
+      "   - HC (criminal): S.403 BNSS [S.362 CrPC bar on review — but inherent power S.528 BNSS limited]. NOTE: BNSS S.403 retains the bar on criminal review; criminal review is extremely narrow, restricted to clerical/arithmetical errors. Substantive criminal review by HC normally not permitted; remedy is SLP.",
       "   - District court (civil): Order 47 Rule 1 CPC.",
       "Para 1: Parties.",
       "Para 2: Original proceedings — court, case number, date, brief outcome.",
@@ -260,7 +260,7 @@
       "Para 7: Status of appellate proceedings — disclose whether appeal/SLP filed; if SLP dismissed by speaking order, review may be barred by merger doctrine (Kunhayammed v. State of Kerala (2000) 6 SCC 359).",
       "Para 8: Where SC review under Art. 137 — note that curative petition (Rupa Ashok Hurra v. Ashok Hurra (2002) 4 SCC 388) lies after review dismissal in extremely limited circumstances.",
       "Para 9: For death sentence cases, oral hearing in open court mandatory (Mohd Arif v. Registrar, SC (2014) 9 SCC 737) — note this in criminal SC reviews.",
-      "Para 10: Where review of criminal HC order: only clerical/arithmetical errors under S.413 BNSS proviso. Substantive criminal review NOT permitted — pursue SLP instead. Clearly flag for advocate.",
+      "Para 10: Where review of criminal HC order: only clerical/arithmetical errors under S.403 BNSS (S.362 CrPC). Substantive criminal review NOT permitted — pursue SLP instead. Clearly flag for advocate.",
       "Prayer — modify / recall / set aside to extent specified.",
       "Affidavit in support mandatory.",
       "Append Lawie disclaimer."
@@ -293,7 +293,7 @@
       "act": "Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)",
       "sections": [
         {
-          "number": "S.413",
+          "number": "S.403",
           "description": "Bar on alteration of criminal judgment (was S.362 CrPC) — narrow review for clerical/arithmetical errors only"
         }
       ]
