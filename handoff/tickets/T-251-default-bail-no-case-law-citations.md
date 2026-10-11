@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (writes and signs the text). Lead (build). Anushka (verdict) |
 | Mode           | Rule first, then build. Legal content |
-| Status         | Building: mahak, fix/t-251-default-bail, 12 Oct 2026. Ajay signed 64e1e70 plus his interim rule. LIVE legal error |
+| Status         | Chain complete: mahak, 9e094ef. Ajay approved cec29ed. In the merge queue after T-200. Go-live gate: feature.fact_ledger ON for real users |
 | Gate           | Blocker for `feature.fact_ledger` with real users |
 
 ## Problem
@@ -38,3 +38,11 @@ In non-ledger mode (feature.fact_ledger off) nothing checks the Drafter's text a
 ## Go-live gate for default_bail (Ajay, 12 Oct 2026)
 
 `feature.fact_ledger` must be ON for real users before default_bail is offered to them. This is the condition on which Ajay accepted the non-ledger bond gap. Ajay approved the T-251 diff at cec29ed (recorded in handoff/legal/T-251-default-bail-text-signed.md). Cite it in the merge body.
+
+## After the merge (mahak, 12 Oct 2026)
+
+- `_averments/README.md` lines 3–4 still say every file there has `signed_by` null until Ajay signs. default_bail is now signed (and in `.prettierignore`). A small doc edit in Ajay's wording; it is a legal path, so he signs it.
+- T-191 is closed (superseded by this ticket).
+- `handoff/data/rule-pack-report.md` is generated and stale for default_bail. Regenerate it if it is kept current.
+- Marketing: no default-bail post until this is merged, and then only once the go-live gate holds.
+- Before Anushka's run: `feature.fact_ledger` must be ON in the develop environment, or she sees the old path and default_bail is not offered (setup in anushka-run.md).
