@@ -10,7 +10,7 @@
 | Size           | S (0.5 day)                                               |
 | Depends on     | None                                                      |
 | Gate           | None for go-live. Keeps CI on auth trustworthy            |
-| Branch         | fix/t-211-flaky-referral-test                             |
+| Branch         | fix/t-211-ci-mongo-binary-cache |
 | Legal sign-off | Not needed                                                |
 | Created        | 2026-10-11                                                |
 | Source         | Finding, 11 Oct 2026                                      |
