@@ -24,3 +24,5 @@
 2. The verifier passes "Sections 318(4) and 319(2) BNS" for entries 318(4) BNS and 319(2) BNS, and still fails 318(4) IPC.
 3. No repair call for a correct joined citation. Tests for each case in AC2.
 4. Ajay signs the diff before merge.
+5. From Ajay's T-189 final sign-off: before any list entry gets a section type, (a) a "differs" violation on a key with several entries must name the entry that differs, not the last one, and (b) `present()` must not count "318(4) IPC" as "318(4) BNS" for a `section_ref` entry.
+

@@ -165,3 +165,28 @@ Read-only: `buildFactRepairUserPrompt`, the repair call in `verifyAndRepair`, `p
 - Conditions for my sign-off on the pushed diff:
   1. A test for this exact case asserts: one `dropped` for 318(4) BNS, at most one repair call, no `{{MISSING}}` / `[To be confirmed]` inserted, and the original citation text not stripped or rewritten by the verifier.
   2. Follow-up ticket (Priya to raise; Ajay signs): section-aware matching for `sections_charged` entries. Either type each entry `section_ref`, or extract sections from text entries with today's section_ref rules (act must match; "318(4) IPC" or bare "318(4)" never satisfies "318(4) BNS"). It needs its own golden-snapshot check and my sign-off.
+
+## Ajay final sign-off on 1e3e7ac (11 Oct 2026)
+
+**Verdict: SIGNED.** Read (after `git fetch origin`): `git diff origin/develop_staging...1e3e7ac` for `averments.ts`, `fact-verifier.ts`, `brief-drafter.ts`, `fact-ledger.service.ts`, `packages/shared/src/types/fact-ledger.ts`; the T-189 test file's assertions; all 8 `_averments/*.json` against every multi-type field of the document-rule packs. No tests or builds run; CI green on all four services (AC10) is still the reviewer's check.
+
+| Item | Result |
+| --- | --- |
+| Prompt files (`intake.prompts.ts`, `drafter.prompts.ts`, `intake-brief.ts`, `apps/drafting/src/config`) | **Approved.** Diff empty. No prompt string in `brief-drafter.ts` or `fact-verifier.ts` changed (AC9) |
+| Golden snapshots (AC10) | **Approved.** No `court-rules*` test or snapshot in the diff |
+| 910ced6 blocker 2: `factsByKey` | **Approved.** Byte-identical to `origin/develop_staging`. `mergedEntries` is gone. New reads go through `factEntriesByKey` only |
+| 910ced6 blocker 3: signed sentence | **Approved.** `no_verbatim_span: 'We could not find this detail in what you wrote.'` sits inside `LEDGER_DETAILS` next to the 10 Oct sentences. `LEDGER_DETAILS_T189` and the rejected wording are gone. `UnresolvedReason` gains `no_verbatim_span`. Unresolved entry stores no words (`raw_span: ''`) |
+| Conditional sign-off (2) conditions 1-6 | **Approved.** `missingPlaceholder` is the formatting-only join already accepted. `missing` filter unchanged. Empty/blank displays are dropped, and an empty key is not held. Order is kept, nothing is merged, display is trimmed only. Non-list kinds take the single (last) entry as before. Unresolved entries never reach `facts`, the skeleton array or the sources |
+| R1 present | **Approved.** `checkDropped` runs the unchanged `present()` once per entry. No looser matching added |
+| R2 verifier | **Approved.** `buildSources` flattens every held entry into the sources. Each missing entry gets its own `dropped` (R5-2, T3). The repair facts use one line per entry in today's `{key, label, type, display}` shape, with no `raw_span` and no join. The `byKey.has` unresolved skip is unchanged |
+| R3 averments | **Approved.** `present` means any entry. `equals` means any entry. `not_in` needs every entry (fails closed, and a blank-folded entry fails it). A missing or empty key gives false. Single-key parity is tested against a copied develop_staging `conditionHolds` for every seeded condition |
+| R5 tests 1-5 | **Approved.** All five are present, including R5-3 for text entries |
+| Point 1: no `raw_span` in repair lines | **Approved.** Asserted in R5-2 |
+| Point 2 / condition 2.1: joined citation | **Approved.** The test asserts exactly one `dropped` for 318(4) BNS, at most 1 repair call, no `{{MISSING}}` or `[To be confirmed]`, and the citation is not stripped or rewritten. Condition 2.2 is met: T-231 is raised |
+| Blocker trigger: list key in a pack averment | **Approved.** Independent check: the only multi-type keys in averment packs are `sections_charged` and `grounds_for_bail` (bail_regular, bail_anticipatory). Across all 8 averment files, 0 `{{key}}` interpolations and 0 `requires`/`unlocked_by` conditions on either key. The repo test asserts the same |
+
+Risks (not blocking; recorded):
+- **Risk:** `mutation()` takes `ledgerValue` from `byKey` (the last entry). For a multi-entry key of a typed kind (date, amount, name), a "differs" violation would name one entry only. This is not live today because both list keys are `text`. Fold it into T-231 before any list entry is typed `section_ref` or similar.
+- **Risk (pre-existing, T-231):** test R5-3 FINDING shows that `present()` for a `section_ref` entry matches on the section number alone, so "318(4) IPC" satisfies "318(4) BNS". This is not live for `sections_charged` (text). T-231 must close it before those entries are typed.
+- **Acceptable:** `applyMultiEdit` result `display` and `ledgerView` `previous_display` are comma-joined. They are UI strings only, never a fact, a `raw_span` or Drafter/verifier input.
+- **Risk (carried from 910ced6 item 4):** a repeated entry is kept once at ledger write. Anushka should check this on develop.
