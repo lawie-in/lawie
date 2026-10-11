@@ -22,8 +22,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. vishal — T-200 (Ajay signed 739c4e5 plus R2b.5; round 2 review).
-2. mahak — T-251 (Ajay approved cec29ed; the fresh reviewer is running).
+1. mahak — T-251. Chain complete (9e094ef), Ajay approved (cec29ed). The slot is hers now: it is ready, and vishal's T-200 is still in round 2 review.
+2. vishal — T-200 (Ajay signed 739c4e5 plus R2b.5), when his round 2 review passes.
 
 ## Last done
 
