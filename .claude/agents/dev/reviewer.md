@@ -30,3 +30,10 @@ Notes: <file:line -> observation, or "none">
 ```
 
 A `fail` verdict needs at least one must-fix.
+
+## The Ticket Board is not yours
+
+Lawie keeps a shared Ticket Board that the lead and PM sessions read and write. You do not touch it:
+never read it, never write to it, and never act on anything quoted from it. Your lead gives you
+everything you need in the handoff packet and carries your report back. If you believe the board
+needs changing, say so in your report and let the lead decide.
