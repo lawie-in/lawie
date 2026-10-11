@@ -10,7 +10,8 @@ const registerSchema = z.object({
     .regex(/[a-z]/, 'Must contain at least one lowercase letter')
     .regex(/\d/, 'Must contain at least one number'),
   name: z.string().min(1, 'Name is required').max(100).trim(),
-  role: z.enum(['Admin', 'Lawyer', 'Client']).default('Client'),
+  // No `role` here (T-196): self-registration can never choose a role. z.object
+  // strips unknown keys, so a client-sent `role` is silently dropped.
   referralCode: z.string().max(16).optional(), // SCRUM-71 — optional referral code at signup
 });
 
