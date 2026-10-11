@@ -102,3 +102,17 @@ Building them needs T-240 and the T-245 mechanics (`procedure_code` and `governi
 |---|---|---|
 | #7–#12 | 49bce36 | All 1 Ink. #11 is sampled every time (Tier A). #12 is the granting court only; the superior-court version becomes a batch 2 id, `modification_bail_conditions_superior_court` |
 | #1–#6, #13, #15–#17 | 7112d14 | The criminal block is signed. **#14 bail_bihar_prohibition is HELD**: the Bihar Act sections are unchecked, so don't build it. #15 covers the accused's appeal only; the victim's appeal becomes a batch 2 id. #16 needs the DPDP s.9 note. Any IEA→BSA pair in #6, #13–#17 that T-250 changes goes back to Ajay. 16 of 17 are ready to build once T-240 and T-245a are in |
+
+## Batch 1 is fully signed (Ajay, a4e7ace, 12 Oct 2026)
+
+All 53 specs are done: 24 long (2 Ink) and 29 short (1 Ink). #14 bail_bihar_prohibition is HELD until Ajay has checked the Bihar Act sections.
+
+Build tickets:
+- T-257: criminal, 16 templates. Needs T-240 and T-245a.
+- T-258: civil, 16.
+- T-259: family, succession, consumer, 11.
+- T-260: notices, deeds, RTI, contempt, 9.
+
+T-258, T-259 and T-260 need only T-240, so they can start as soon as it merges. Each lead builds in their own batch file (T-240 point 9).
+
+Batch 2: Ajay starts the text for the 3 highest-risk families now, then pauses for Anushka's batch 1 results before the rest.
