@@ -580,3 +580,11 @@ Rule for every pack: a `displayName` or `title` carries no section number of one
 {governing_provision} with a code default: fine. Where the code default fills a blank, the T-194 export header still counts it.
 
 Signed: Ajay (CLO), 12 Oct 2026 IST.
+
+## Hash sign-off and blank wording (12 Oct 2026 IST)
+
+- `_averments/default_bail.json`: SHA-256 `d853935931de12e6fa0497b0bd1c6e5156038ac47a94cb411e0d0550bdeba3c9`, as printed by `report:averments` on mahak's branch and equal to the hash in the addendum above. **Signed** by Ajay (CLO). `signed_by` stays `null` in the file on purpose.
+- The brief's blank wording comes from the item's label (`placeholderFor`); I accept it for the unticked bond box and the empty `period_claimed`. Both count in the T-194 header. Instructions 5 and 9 steer the Drafter's own text.
+- A "No" on the bond box is treated like an unticked box: no undertaking is written, the blank is present, and Lawie never writes that the applicant will not furnish bonds. Test to add: "No" gives no bond sentence and the blank.
+
+Signed: Ajay (CLO), 12 Oct 2026 IST.
