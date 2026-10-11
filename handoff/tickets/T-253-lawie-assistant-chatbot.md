@@ -110,3 +110,28 @@ The build follows that file:
 - a 30-prompt legal-safety test set; one invented citation is a blocker.
 
 Ajay signs the assembled system prompt and the help text before merge. The ADR must follow this file.
+
+## ADR-023 (Arjun, 68fd5d2, handoff/tickets/ADR-T-253-lawie-assistant.md)
+
+**Decision:**
+- A module in drafting (`apps/drafting/src/assistant/`), reached through the gateway at `/api/assistant`.
+- Model `claude-haiku-5-5`, thinking off, 500 tokens per reply.
+- Five guardrail layers. All of Vikram's caps. Fails closed if a setting is missing.
+
+**Build split, in order:**
+1. 253a (access, caps, storage) and 253c (gateway route), in parallel.
+2. 253b (guardrails and the model call).
+3. 253d (web panel; needs Rajesh's design).
+4. 253e (nightly run; root config).
+
+None of these touch `packages/shared`. They are assigned after the v1 blockers.
+
+**Open:**
+- Rajesh: the panel design.
+- Priya and Meera: the curated help text. Ajay signs it.
+- Billing: which field marks a lapsed Solo plan. The token carries only free/pro, so chat reads `User.planTier`.
+
+**For the founder at launch** (morning report):
+- Create two Anthropic keys (chat, $25/month; nightly eval, $5).
+- Seed `ai.assistant_model`, `ai.rates.claude-haiku-5-5`, `finance.usd_inr=96.5` and `chat.canary`.
+- Keep `chat.enabled=false` until Anushka's PASS.
