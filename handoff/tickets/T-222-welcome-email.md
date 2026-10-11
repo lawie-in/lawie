@@ -91,3 +91,47 @@ Build notes:
 - Send from `Lawie <noreply@lawie.in>`. The help line names contact@lawie.in because noreply is not monitored.
 - Disclaimer line stays in the body, not only in small print (mandatory per T-225 AC1c).
 - Risk (from T-225): the registered address is a placeholder until the founder fills it.
+
+## Ajay claims check (11 Oct 2026)
+
+Checked against T-225 (AC1a, AC1b, AC1c, AC3) and, read-only, against `apps/drafting` and `apps/auth` on `develop_staging`. Result: **not signed yet. One Blocker, two required changes.** Apply the three changes below verbatim and the copy is Approved without coming back to me.
+
+### What I checked in the code
+
+- Live templates: all 92 files in `apps/drafting/src/config/document-rules/*.json` load into the registry (`template-promoter.ts`, `loadAllDocRules`) and every one is promoted with `plan_access: 'free'`, so a new free user sees all of them (`routes/templates.routes.ts`). Bail (6: regular, anticipatory, before magistrate, interim, default, cancellation), legal notices (8) and agreements (rent, NDA, MOU, service, loan, employment and others) are all live. The line is accurate, but it lists 3 of about 15 families, so it should not read as the full list.
+- Free allowance: `SIGNUP_BONUS_CREDITS = 5` (`apps/auth/src/services/credit-bonus.service.ts`) grants 5 **credits**, not 5 drafts. The enforced price (`apps/drafting/src/services/credits.service.ts`, `TEMPLATE_COST`) charges 2 credits for `bail_regular` and `bail_anticipatory`, 1 for everything else. A user who drafts regular bail applications gets 2 drafts, not 5.
+- BNS/BNSS/BSA: the bail templates cite BNSS/BNS. Agreements and civil notices do not (`nda`, `rent_agreement`, `legal_notice_breach_of_contract`: no Sanhita references; the s.138 notice is under the NI Act). "using BNS, BNSS and BSA" after the whole list says agreements use the Sanhitas.
+
+### Findings
+
+| # | Item | Mark | Basis |
+| --- | --- | --- | --- |
+| 1 | "{freeDrafts} free drafts" (preheader and body): overstates the allowance; 5 credits is 2 to 5 drafts | **Blocker** | T-225 AC3 last bullet; CPA 2019 s.2(28); CCPA Misleading Ads Guidelines 2022 |
+| 2 | "using BNS, BNSS and BSA" attached to agreements and notices | **Risk**, required change | T-225 AC3 ("accurately"); CPA 2019 s.2(28) |
+| 3 | "prepare a first draft faster": unsubstantiated comparative speed claim (same class as the removed "in under five minutes") | **Risk**, required change | T-225 AC3; CCPA Guidelines 2022 (claims must be substantiated) |
+| 4 | Document list (bail applications, legal notices, agreements) | Acceptable with change 2 | All three families live and free today |
+| 5 | Disclaimer line, verbatim, in the body | Approved | T-225 AC1c |
+| 6 | Footer | Approved; **Risk**: `[registered address]` and `[PIN]` are placeholders. Must be filled before send | T-225 AC1c |
+| 7 | No case details, no draft or document title, no ID numbers, name in greeting and subject only | Approved | T-225 AC1a |
+| 8 | Transactional status: onboarding only, no offer, referral, review ask or tips; no unsubscribe link | Approved | T-225 AC1b; DPDP s.7(a) |
+| 9 | BCI: no client-getting, practice-growth, endorsement, "approved", testimonial or legal-advice language | Approved | BCI Rules Pt VI Ch II r.36; T-225 AC3 |
+| 10 | Sender `Lawie <noreply@lawie.in>` with monitored contact@ in help line and footer | Approved | T-225 AC1c |
+| 11 | Subject A/B/C, button A/B/C, "Here's how to start", steps 1 to 3, help line | Approved, any variant | |
+
+### Exact changes (Madhuri applies verbatim)
+
+1. **Preheader.** Replace `Your {freeDrafts} free drafts are ready. Here's how to start.` with:
+   `Your {freeCredits} free credits are ready. Here's how to start.`
+2. **Body, allowance.** Replace `You have {freeDrafts} free drafts to try it.` with:
+   `You have {freeCredits} free credits to try it. Each draft uses 1 or 2 credits, and Lawie shows the cost before you start.`
+   Build: `{freeCredits}` reads `SIGNUP_BONUS_CREDITS`; the "1 or 2" must match `TEMPLATE_COST` on the day this ships. If either changes, this line comes back to me.
+3. **Body, what Lawie does.** Replace the paragraph starting `Lawie helps you prepare a first draft faster` with:
+   `Lawie helps you prepare a first draft for you to review, so you spend less time copying from old files. You can draft bail applications, legal notices, agreements and other documents. Criminal drafts use BNS, BNSS and BSA.`
+
+Condition: the "shows the cost before you start" clause in change 2 is a product claim. Priya confirms the draft screen shows the credit cost before generation; if it does not, drop that clause and keep the first sentence only.
+
+### Not in T-222 scope, flagged to Priya and Vikram
+
+- Price mismatch in code: 58 doc-rule JSONs carry `"creditsCost": 2`, which `GET /templates` returns to the UI, but enforcement (`TEMPLATE_COST`) charges those templates 1 credit, and charges `bail_regular` 2 while its JSON has no cost. Displayed price must equal charged price (CPA 2019 s.2(47) unfair trade practice). Needs a ticket before v1.
+
+Signed (conditional on changes 1 to 3 applied verbatim and the footer address filled): Ajay (CLO), 11 Oct 2026.

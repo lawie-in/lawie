@@ -160,6 +160,7 @@ Checked on `develop` after PR #29 and PR #30.
 | T-224 | Payment and balance emails | 2 | Vikram, Madhuri, Ajay, lead | Blocked: drops pricing (T-201 to T-205) and T-220 |
 | T-225 | What our emails may and may not contain (DPDP, confidentiality, footer) | 0 | Ajay (rules, signs) | To do. Waits for Ajay. Gates all email copy |
 | T-226 | A user cannot draft past their balance (parallel requests; failed charge still delivers) | 0 | Arjun (mechanism), lead (build), Anushka | To do. Waits for Arjun. After T-197 merges. Before go-live |
+| T-227 | The price a user sees is the price charged (58 templates show 2, most are charged 1) | 0 | Vikram (prices), lead (build), Anushka | To do. Waits for Vikram. Before go-live |
 | T-301 | Attach images as matter context                                       | 3     | Vishal                                        | Blocked: the brief screen (T-125)                                                                                                        |
 | T-302 | Consent line and retention rule for uploads                           | 3     | Ajay                                          | Delivered by Ajay on 4 Oct 2026. Policy wording to be read by a practising lawyer before it is published                                 |
 | T-303 | Spike: can we read Hindi and handwritten FIRs?                        | 3     | Vishal, Ajay reviews the result               | Ready. T-302 is delivered                                                                                                                |
