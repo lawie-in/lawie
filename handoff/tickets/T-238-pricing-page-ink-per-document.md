@@ -25,3 +25,10 @@
 - **AC3:** done by Ajay. There is no other public per-document price claim.
 - **Left out on purpose:** "You see the price before you generate". Add it back when T-227 AC3 ships.
 - **Separate:** Ajay is reviewing the refund FAQ against the Refund Policy and consumer law. No change tonight.
+
+## More pricing-page claims to fix (Vikram, 12 Oct 2026; Ajay to check)
+
+- The "Most Popular" and "POPULAR" badges have no users behind them. Remove them.
+- The Free plan lists "Court formatting" and "BNS validation". Ajay bans "court-ready" and "validated", so reword these.
+- The ₹16 line (line ~202): Vikram is fine with the replacement, since it quotes no rupee price per document.
+- Cleanup, not blocking launch: `Subscription.model.ts` still says "79900 or 699900", and the `/subscribe` comment still names `practice_*` / `firm_*`.
