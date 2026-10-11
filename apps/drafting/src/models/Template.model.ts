@@ -69,7 +69,9 @@ const TemplateSchema = new Schema<ITemplate>(
     courtLevels: { type: [String], default: [] },
     states: { type: [String], default: ['all'] },
     supportedLanguages: { type: [String], default: ['en'] },
-    creditsCost: { type: Number, default: 1, min: 0 },
+    // T-227: no default. The seed writes the price from the one price list
+    // (credits.service TEMPLATE_PRICES); a row without one is invalid.
+    creditsCost: { type: Number, required: true, min: 0 },
     formSchema: { type: Schema.Types.Mixed, default: () => ({ steps: [] }) },
     documentStructure: { type: Schema.Types.Mixed, default: () => ({ sections: [] }) },
     validationRules: { type: Schema.Types.Mixed, default: () => ({}) },
