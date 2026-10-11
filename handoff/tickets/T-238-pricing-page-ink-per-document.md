@@ -32,3 +32,7 @@
 - The Free plan lists "Court formatting" and "BNS validation". Ajay bans "court-ready" and "validated", so reword these.
 - The ₹16 line (line ~202): Vikram is fine with the replacement, since it quotes no rupee price per document.
 - Cleanup, not blocking launch: `Subscription.model.ts` still says "79900 or 699900", and the `/subscribe` comment still names `practice_*` / `firm_*`.
+
+## Scope widened (Priya, 12 Oct 2026)
+
+AC2 now covers the whole pricing page: rows 1–6 of Meera's `handoff/marketing/copy/pricing.md` before/after table. Rows 7–14 and the other pages are in T-252. Every changed line still needs Ajay's ok.
