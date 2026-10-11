@@ -33,3 +33,8 @@ Fixing this inside the rule files means touching signed legal content, and scali
    - all bail values → Criminal: bail and custody.
    
    Category names as in T-239.
+
+## Follow-ups folded in (from shashank, T-227)
+
+5. `PRICE_ALIASES` (credits.service.ts) duplicates `DOC_TYPE_TO_RULE` (prompt-assembler.ts, not exported). Export one map and use it in both places.
+6. The rule files still carry a `creditsCost` that is now ignored, and a `category` that this ticket makes ignored. Removing them touches legal paths: Ajay decides whether to remove them, and signs that diff.
