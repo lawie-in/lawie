@@ -92,4 +92,5 @@ Until the founder's morning report, nobody asks the founder anything or tags him
 - Gates that belong to Ajay, Arjun or Rajesh still come from them, and Priya gets them.
 - Anything that physically needs the founder (his AWS, DNS, GitHub settings, the database, prod, merging to `develop` or `main`) goes on Priya's list for the morning report. The lead skips it and takes other work. Nobody waits on him.
 - **Permission popups (founder, 11 Oct 2026, night):** wait at most 5 minutes for the founder to approve. Then stop waiting, post it to Priya on the relay and take other work. If Priya agrees it needs him, it goes on the morning list. Nobody holds the merge queue for a popup: if the lead in the slot has not moved within 15 minutes, Priya gives the slot to the next lead.
+- **Relay times (founder, 11 Oct 2026, night):** the `ts` on every relay post or ticket comment is the real time from `date -u +%Y-%m-%dT%H:%M:%S.000Z`, pasted as is. Never type a time by hand. The board shows it in the reader's local time (IST for the founder).
 
