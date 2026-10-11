@@ -97,3 +97,16 @@
 **Note:** heavy Solo users already fall below the 60% margin on drafting alone (T-004 estimate). The chat cap only limits what chat adds.
 
 **ADR status:** Arjun's first attempt stopped at the session limit. Re-dispatched 12 Oct 02:50 IST.
+
+## Ajay: scope text signed (10991fc, handoff/legal/T-253-assistant-scope-signed.md)
+
+The build follows that file:
+- system-prompt text, and 12 fixed refusal lines;
+- citation rules: section numbers only from the map, no case law unless the user gave it, no time limits in v1;
+- old/new law per T-245;
+- the code, not the model, appends "Legal information, not legal advice. Check the bare act before you rely on it.";
+- retention: 30 days after the last message, encrypted, never in logs;
+- public claims state the caps;
+- a 30-prompt legal-safety test set; one invented citation is a blocker.
+
+Ajay signs the assembled system prompt and the help text before merge. The ADR must follow this file.

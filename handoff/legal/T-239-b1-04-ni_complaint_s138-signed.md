@@ -1,4 +1,4 @@
-# T-239 b1 #4 ni_complaint_s138 (draft for Ajay)
+# T-239 b1 #4 ni_complaint_s138 (signed)
 
 Status: PROPOSED. Not signed. Nothing here is in the repo.
 
@@ -140,7 +140,7 @@ Complainant
   "Set out in order: the parties; the debt or liability as the BRIEF gives it; the cheque; its presentation and dishonour; the receipt of the return memo; the demand notice and what happened to it; and whether payment was made. Each as the BRIEF gives it.",
   "Give the reason for dishonour in the words of the return memo as the BRIEF gives them. Do not paraphrase it.",
   "Give each date the BRIEF gives with what it is the date of: the cheque, its presentation, the return memo, the receipt of the return memo, the dispatch of the notice, and the receipt or return of the notice. Do not say that the cheque was presented within its validity, that the notice was within time, that the notice period has expired, or that the complaint is within time. Do not work out any period or any date.",
-  "State what happened to the notice exactly as the BRIEF gives it. Do not say that the notice was served or refused unless the BRIEF says so. Never state as a fact that the notice is deemed to have been served. Only where the case details say the notice was returned refused or unclaimed, it may be written as a submission: 'It is submitted that the notice is deemed to have been served ...'.",
+  "State what happened to the notice exactly as the BRIEF gives it. Do not say that the notice was served or refused unless the BRIEF says so. Never state as a fact that the notice is deemed to have been served. Only where the case details say the notice was returned refused or unclaimed, it may be written as a submission: 'It is submitted that the notice is deemed to have been served.'",
   "Where the drawer is a company or a firm, state for each other accused the post held and only the particulars the BRIEF gives of that person's role in the conduct of its business. Do not use the words of Section 141 about any person for whom the BRIEF gives no particulars; write [To be confirmed: particulars of this accused's role in the conduct of the business of the drawer].",
   "Where the drawer is a Hindu Undivided Family, write [To be confirmed: whether section 141 applies to this drawer].",
   "Base jurisdiction only on the complainant's collecting bank branch as the BRIEF gives it.",
@@ -194,9 +194,16 @@ No `offence_date` key: the offence is under the NI Act on any date (see Notes). 
     {
       "id": "notice_served",
       "kind": "averment",
-      "what": "The demand notice was served, received or refused",
-      "phrases": ["the notice was duly served", "the accused received the notice", "the accused refused to accept the notice", "returned with the remark 'refused'", "notice mil gaya tha"],
+      "what": "The demand notice was served or received",
+      "phrases": ["the notice was duly served", "the accused received the notice", "notice mil gaya tha"],
       "unlocked_by": { "key": "notice_service_outcome", "label": "What happened to the notice", "equals": ["served", "delivered"] }
+    },
+    {
+      "id": "notice_returned",
+      "kind": "averment",
+      "what": "The demand notice was returned, refused or unclaimed",
+      "phrases": ["the accused refused to accept the notice", "returned with the remark 'refused'", "the notice was returned unclaimed", "returned with the remark 'unclaimed'", "returned undelivered", "notice wapas aa gaya"],
+      "unlocked_by": { "key": "notice_service_outcome", "label": "What happened to the notice", "equals": ["returned refused", "returned unclaimed", "returned other"] }
     },
     {
       "id": "deemed_service",
@@ -264,7 +271,8 @@ No `offence_date` key: the offence is under the NI Act on any date (see Notes). 
   ],
   "allowed": [
     { "id": "notice_served", "kind": "averment", "averment": "the notice dispatched on {{notice_dispatch_date}} was {{notice_service_outcome}}", "requires": { "all_of": [ { "key": "notice_service_outcome", "label": "What happened to the notice", "equals": ["served", "delivered"] }, { "key": "notice_dispatch_date", "label": "Date notice dispatched", "present": true } ] } },
-    { "id": "deemed_service", "kind": "submission", "averment": "It is submitted that the notice is deemed to have been served", "requires": { "key": "notice_service_outcome", "label": "What happened to the notice", "equals": ["returned refused", "returned unclaimed"] } },
+    { "id": "notice_returned", "kind": "averment", "averment": "the notice dispatched on {{notice_dispatch_date}} was {{notice_service_outcome}}", "requires": { "all_of": [ { "key": "notice_service_outcome", "label": "What happened to the notice", "equals": ["returned refused", "returned unclaimed", "returned other"] }, { "key": "notice_dispatch_date", "label": "Date notice dispatched", "present": true } ] } },
+    { "id": "deemed_service", "kind": "submission", "averment": "It is submitted that the notice is deemed to have been served. As stated above, the notice was {{notice_service_outcome}}.", "requires": { "key": "notice_service_outcome", "label": "What happened to the notice", "equals": ["returned refused", "returned unclaimed"] } },
     { "id": "non_payment", "kind": "averment", "averment": "the accused has not paid the amount of the cheque", "requires": { "key": "payment_after_notice", "label": "Payment made after notice?", "equals": ["none", "nil", "no", "no payment", "koi nahi", "kuch nahi"] } },
     { "id": "no_reply", "kind": "averment", "averment": "{{notice_reply}}", "requires": { "key": "notice_reply", "label": "Reply to the notice, if any", "present": true } },
     { "id": "in_charge_and_responsible", "kind": "averment", "averment": "{{director_role_particulars}}", "requires": { "key": "director_role_particulars", "label": "Role of each other accused in the business", "present": true } },
@@ -298,3 +306,21 @@ Notes on the file:
 - **Risk — no `offence_date`.** The brief to me asked for an `offence_date` switch on every criminal template. The 138 offence is under the NI Act on any date, so there is nothing to switch for the offence; procedure is fixed to BNSS and BSA for a new complaint (T-245). Add `offence_date` only if you want it as a dummy for uniformity; I advise against an unused key.
 - **Risk — section 141.** The Drafter is barred from the statutory words for a director unless particulars are given. This will produce blanks often; correct (vague 141 averments are a standard quashing ground).
 - **Acceptable.** Interest and costs blocked (parent allowed them for the notice).
+
+
+## Ajay review and sign-off (12 Oct 2026 IST)
+
+Amended before signing: the old/new law text is the T-245 S-text and P-text (345bd24), word for word; `{governing_provision}` and the T-245 keys `offence_date`, `fir_date`, `procedure_code` are used as T-245 gives them. Every BNSS/CrPC/IEA/BSA pair is in the signed tables (`crpc-to-bnss.json`, `iea-to-bsa.json`); the IEA to BSA table is being corrected under T-250, and any pair in this spec that T-250 changes comes back to me. The cue sets for `earlier_applications` are EA-standard (T-237, 909a49c), except EA-appeal for #15: all of [any: `bail`, `जमानत`, `ज़मानत`] and [any: `earlier`, `previous`, `prior`, `withdrawn`, `to be confirmed: whether any earlier`, `पूर्व`, `पहले`, `वापस`].
+
+The "Notes" and "Verify" sections are the drafter's reasoning, kept for the record. They are not build text. Nothing under "Verify" is signed; it stays out until checked against the bare act. Where a note offers a choice, my ruling is in the table below.
+
+| Item | Mark |
+|---|---|
+| Spec as amended | Approved |
+| Size and sampling | L (2 Ink); Anushka tier A |
+| Ruling | Approved, with the changes made in this file: the `notice_served` override is unlocked only by served / delivered; a returned, refused or unclaimed notice is stated through the new `notice_returned` entry and its twin, exactly as the brief gives it; `deemed_service` is a submission only, unlocked by returned refused / returned unclaimed. The HUF blank for section 141 is approved. No `offence_date` (NI Act on any date). The limitation dates are form questions only; nothing computes from them and "within limitation" is banned. |
+| Lead builds `form_schema` from this spec; I sign that diff | Condition |
+| Moved golden snapshots are listed for me before merge | Condition |
+| A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
+
+Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.

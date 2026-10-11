@@ -1,4 +1,4 @@
-# T-239 b1 #3 complaint_sp_173_4 (draft for Ajay)
+# T-239 b1 #3 complaint_sp_173_4 (signed)
 
 Status: PROPOSED. Not signed. Nothing here is in the repo.
 
@@ -188,3 +188,21 @@ Subject line is deliberately neutral: it does not say the officer refused. That 
 - **Risk.** Commissionerate addressee is a real practice gap for Lucknow/Kanpur/Delhi users. A wrong addressee may let the court say 173(4) was not complied with.
 - **Acceptable.** No verification and no affidavit drafted. The checklist cue keeps the affidavit question in front of the advocate until you settle the 175(3) reading.
 - Switch: T-245, as #1 (procedure always BNSS and BSA).
+
+
+## Ajay review and sign-off (12 Oct 2026 IST)
+
+Amended before signing: the old/new law text is the T-245 S-text and P-text (345bd24), word for word; `{governing_provision}` and the T-245 keys `offence_date`, `fir_date`, `procedure_code` are used as T-245 gives them. Every BNSS/CrPC/IEA/BSA pair is in the signed tables (`crpc-to-bnss.json`, `iea-to-bsa.json`); the IEA to BSA table is being corrected under T-250, and any pair in this spec that T-250 changes comes back to me. The cue sets for `earlier_applications` are EA-standard (T-237, 909a49c), except EA-appeal for #15: all of [any: `bail`, `जमानत`, `ज़मानत`] and [any: `earlier`, `previous`, `prior`, `withdrawn`, `to be confirmed: whether any earlier`, `पूर्व`, `पहले`, `वापस`].
+
+The "Notes" and "Verify" sections are the drafter's reasoning, kept for the record. They are not build text. Nothing under "Verify" is signed; it stays out until checked against the bare act. Where a note offers a choice, my ruling is in the table below.
+
+| Item | Mark |
+|---|---|
+| Spec as amended | Approved |
+| Size and sampling | S (1 Ink); Anushka tier C |
+| Ruling | Approved. The advocate signature block is suppressed for this id: the letter is signed by the informant. The addressee is free text, default "Superintendent of Police", hint "or the Deputy Commissioner of Police in a commissionerate". Lead builds the suppression and tests it. |
+| Lead builds `form_schema` from this spec; I sign that diff | Condition |
+| Moved golden snapshots are listed for me before merge | Condition |
+| A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
+
+Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.

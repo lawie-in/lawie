@@ -1,4 +1,4 @@
-# T-239 b1 #2 application_175_3_bnss (draft for Ajay)
+# T-239 b1 #2 application_175_3_bnss (signed)
 
 Status: PROPOSED. Not signed. Nothing here is in the repo.
 
@@ -235,3 +235,21 @@ Note: `sp_received` allowed text says "sent" and "holds proof", not "received": 
 - **Risk — no "refused" by default.** Many briefs will just say "thana ne FIR nahi likhi". That comes in through `police_response`; without it the Drafter writes a blank. Intended.
 - **Acceptable.** No "in the alternative, treat as complaint under Section 223" prayer. It is tactical and changes the procedure; add only as an optional prayer line on a form toggle if you approve the wording.
 - Switch: T-245, as #1 (procedure always BNSS and BSA).
+
+
+## Ajay review and sign-off (12 Oct 2026 IST)
+
+Amended before signing: the old/new law text is the T-245 S-text and P-text (345bd24), word for word; `{governing_provision}` and the T-245 keys `offence_date`, `fir_date`, `procedure_code` are used as T-245 gives them. Every BNSS/CrPC/IEA/BSA pair is in the signed tables (`crpc-to-bnss.json`, `iea-to-bsa.json`); the IEA to BSA table is being corrected under T-250, and any pair in this spec that T-250 changes comes back to me. The cue sets for `earlier_applications` are EA-standard (T-237, 909a49c), except EA-appeal for #15: all of [any: `bail`, `जमानत`, `ज़मानत`] and [any: `earlier`, `previous`, `prior`, `withdrawn`, `to be confirmed: whether any earlier`, `पूर्व`, `पहले`, `वापस`].
+
+The "Notes" and "Verify" sections are the drafter's reasoning, kept for the record. They are not build text. Nothing under "Verify" is signed; it stays out until checked against the bare act. Where a note offers a choice, my ruling is in the table below.
+
+| Item | Mark |
+|---|---|
+| Spec as amended | Approved |
+| Size and sampling | L (2 Ink); Anushka tier B |
+| Ruling | Approved. The affidavit supports the application to the Magistrate (BNSS 175(3) text); it stays a required checklist item and a required sentence; the affidavit itself is not drafted. The check that the substance of the information was sent to the Superintendent of Police "in writing and by post" stays as a checklist item. |
+| Lead builds `form_schema` from this spec; I sign that diff | Condition |
+| Moved golden snapshots are listed for me before merge | Condition |
+| A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
+
+Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
