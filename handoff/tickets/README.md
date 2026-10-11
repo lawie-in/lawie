@@ -154,9 +154,9 @@ Checked on `develop` after PR #29 and PR #30.
 | T-210 | Auth logs carry no email address (PII, `passport.ts:60`) | 0 | Lead (build), Ajay (heads-up) | Ready |
 | T-211 | The ReferralCode uniqueness test is not flaky | 0 | Lead (build) | Ready |
 | T-220 | Emails actually reach users: provider, sending domain (SPF/DKIM/DMARC), worker deployed | 0 | Arjun (call), founder (DNS, AWS), lead (build), Anushka | Needs scoping. Waits for Arjun. Before go-live |
-| T-221 | Forgot password works end to end | 0 | Rajesh (design done), lead (build) | ON HOLD: Phase 1 is Google sign-in only. Only if password login returns |
+| T-221 | Forgot password works end to end | 0 | Rajesh (design done), Madhuri (copy), lead (build) | To do. Back from hold: password sign-up ships in v1 (founder, 11 Oct). Before go-live |
 | T-222 | A new user gets a welcome email | 0 | Madhuri (copy), Ajay (claims), lead (build), Anushka | To do. Needs copy |
-| T-223 | Free-draft farming: verify email (B) or switch server-side password sign-up off (D) | 0 | Arjun and Vikram (recommend), founder (decides) | Needs the founder's call |
+| T-223 | Verify a new user's email (option B) | 0 | Lead (build), Madhuri (copy) | Decided B (11 Oct). Needs criteria and T-220 |
 | T-224 | Payment and balance emails | 2 | Vikram, Madhuri, Ajay, lead | Blocked: drops pricing (T-201 to T-205) and T-220 |
 | T-225 | What our emails may and may not contain (DPDP, confidentiality, footer) | 0 | Ajay (rules, signs) | To do. Waits for Ajay. Gates all email copy |
 | T-226 | A user cannot draft past their balance (parallel requests; failed charge still delivers) | 0 | Arjun (mechanism), lead (build), Anushka | To do. Waits for Arjun. After T-197 merges. Before go-live |
@@ -167,6 +167,7 @@ Checked on `develop` after PR #29 and PR #30.
 | T-231 | The verifier recognises sections cited together ("Sections 318(4) and 319(2) BNS") | 1 | Ajay (rule), lead (build), Anushka | To do. Waits for Ajay. After T-189 |
 | T-232 | Logging and Sentry follow-ups from T-210 (spans, e2e test, req.ip, console.warn, breadcrumbs, double capture) | 0 | Arjun (triage), lead | Needs triage |
 | T-233 | Exported files: empty DOCX for an unedited draft, PDF margin on the wrong side | 1 | Lead, Anushka | To do. After T-194. Before go-live |
+| T-234 | Email and password sign-up and sign-in in the web app | 0 | Rajesh (check), Madhuri, lead, Anushka | To do. Needs Rajesh's check. Before go-live |
 | T-301 | Attach images as matter context                                       | 3     | Vishal                                        | Blocked: the brief screen (T-125)                                                                                                        |
 | T-302 | Consent line and retention rule for uploads                           | 3     | Ajay                                          | Delivered by Ajay on 4 Oct 2026. Policy wording to be read by a practising lawyer before it is published                                 |
 | T-303 | Spike: can we read Hindi and handwritten FIRs?                        | 3     | Vishal, Ajay reviews the result               | Ready. T-302 is delivered                                                                                                                |

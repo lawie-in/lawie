@@ -5,10 +5,10 @@
 | Phase          | 0 — Prep |
 | Owner          | Rajesh (two screens), Madhuri (email and screen copy), Lead (build), Arjun (heads-up: reset link domain), Anushka (verdict) |
 | Mode           | Design first (Rajesh), then build, full chain (auth, web, email-worker, email-client) |
-| Status         | ON HOLD (Priya, 11 Oct 2026). Phase 1 is Google sign-in only (founder decision, 17 May 2026; `ENABLE_PASSWORD_LOGIN = false` in the login page). Resumes only if password login returns. Rajesh's design is kept |
+| Status         | To do. Back from hold (founder, 11 Oct 2026: password sign-up ships in v1). Rajesh's design done; Madhuri's copy needs a final pass with Ajay |
 | Size           | M (1.5 days) |
 | Depends on     | T-220 to send for real (can be built on dry-run). T-225 for the copy rules |
-| Gate           | Only if password login is switched back on |
+| Gate           | Before v1 go-live (T-403). A user who forgets the password is locked out |
 | Branch         | feature/t-221-forgot-password |
 | Legal sign-off | Copy within T-225's rules; no separate sign-off |
 | Created        | 2026-10-11 |
@@ -186,3 +186,7 @@ States:
 | Network or server error | Something went wrong. Your password was not changed. Please try again. | 70 |
 
 Note: one message covers both expired and used links on purpose (no need to tell the two apart). The weak-password lines match sign-up's rules in `apps/auth/src/validators/auth.validator.ts` (min 8, upper, lower, number); if the lead shows sign-up's own messages instead, these replace them on both pages so the wording stays the same.
+
+## Priya (11 Oct 2026)
+
+Founder, 11 Oct 2026 (in the Priya session and on the board): email and password sign-up and sign-in ship in this release, alongside Google. This replaces the 17 May 2026 'Google only for Phase 1' decision. So T-221 is a v1 blocker again. Copy: Madhuri's on-hold draft returns for Ajay's claims check.
