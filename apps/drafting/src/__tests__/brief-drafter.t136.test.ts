@@ -144,7 +144,7 @@ const NOTICE_SYSTEM = systemFor(NOTICE, NOTICE_BRIEF);
 const PARAS = [
   '1. That FIR No. 214/2026 dated 10.09.2026 was registered at PS Saraidhela under Section 303 of BNS against the applicant Ramesh Mahto, son of Shri Suresh Mahto.',
   '2. That the applicant was arrested on 12.09.2026 and has been in judicial custody since 13.09.2026. He is lodged in Dhanbad Divisional Jail.',
-  '3. That the applicant is the only earning member of his family.',
+  '3. That the applicant is the only earning member of his family. No earlier bail application has been filed.',
 ];
 const PARA_TEXT = PARAS.join('\n\n');
 
