@@ -146,3 +146,22 @@ Developer round 2 showed that AC5 cannot hold end to end while the verifier read
 3. Draft cites 318(4) IPC: the 318(4) BNS entry is not present.
 4. `equals` is met by the second entry of a list. `not_in` fails when any one entry is in the set.
 5. Single-value key regression: results are identical to today.
+
+## Ajay on Vishal's two points (11 Oct 2026)
+
+Read-only: `buildFactRepairUserPrompt`, the repair call in `verifyAndRepair`, `present()` and `finalResolution` (fact-verifier.ts on `develop_staging` 042652e). I have not seen Vishal's uncommitted diff. No code, tests or builds run. This is still not the sign-off; that stays on the pushed diff, cited by hash.
+
+### (1) `raw_span` in repair fact lines: **Approved: keep today's shape. Do not add `raw_span`.**
+
+- My R2 line was wrong. Repair facts have never carried `raw_span`; the shape is `{key, label, type, display}`, the same as the Drafter input. R2 now reads: "each held entry is its own repair fact line in today's `{key, label, type, display}` shape. Nothing is joined, and no `raw_span` is added."
+- Why not add it: it changes the repair input for every key (AC9 territory, a prompt sign-off) and gains nothing legally. The repair model needs the value to write, not the source quote. It would also send more of the client's own text to the model per call (DPDP Act 2023 s.8(7) and s.4: purpose-limited, minimum necessary).
+- Several lines may share one `key` (one per entry). That is expected. There is never a merged line.
+
+### (2) Joined citation "Sections 318(4) and 319(2) BNS": **Acceptable for T-189 (Risk, accepted), with a follow-up ticket.**
+
+- R1 governs: no looser matching in this ticket. My R1 example was conditional ("provided today's section entity extraction reads both"). `sections_charged` entries are type `text`, so it does not. The current behaviour follows the rule; my example was wrong for this key.
+- Why acceptable: it fails safe. The entry is flagged (`dropped` resolves to `flagged`, not a placeholder), the section stays in the draft text, and nothing drops silently. Cost: one extra repair call on such drafts.
+- **Risk, accepted:** if the repair keeps the joined form, the advocate sees a false "left out" flag for 318(4) BNS. This errs toward review, which is acceptable. A false "present" would not be.
+- Conditions for my sign-off on the pushed diff:
+  1. A test for this exact case asserts: one `dropped` for 318(4) BNS, at most one repair call, no `{{MISSING}}` / `[To be confirmed]` inserted, and the original citation text not stripped or rewritten by the verifier.
+  2. Follow-up ticket (Priya to raise; Ajay signs): section-aware matching for `sections_charged` entries. Either type each entry `section_ref`, or extract sections from text entries with today's section_ref rules (act must match; "318(4) IPC" or bare "318(4)" never satisfies "318(4) BNS"). It needs its own golden-snapshot check and my sign-off.

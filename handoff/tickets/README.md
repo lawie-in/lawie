@@ -164,6 +164,7 @@ Checked on `develop` after PR #29 and PR #30.
 | T-228 | The verifier and the averments read every entry of a list field (T-189 follow-up) | 1 | Ajay (signs), Vishal (build), Anushka | Folded into T-189 (11 Oct) |
 | T-229 | No credentials or personal data reach Sentry from any service (internal secret, user headers) | 0 | Arjun (approach), lead (build) | To do. P1. After T-210; needs packages/shared in turn |
 | T-230 | The sign-in token carries no email or name | 0 | Arjun (payload, /me route), lead (build) | Needs scoping. After T-229 |
+| T-231 | The verifier recognises sections cited together ("Sections 318(4) and 319(2) BNS") | 1 | Ajay (rule), lead (build), Anushka | To do. Waits for Ajay. After T-189 |
 | T-301 | Attach images as matter context                                       | 3     | Vishal                                        | Blocked: the brief screen (T-125)                                                                                                        |
 | T-302 | Consent line and retention rule for uploads                           | 3     | Ajay                                          | Delivered by Ajay on 4 Oct 2026. Policy wording to be read by a practising lawyer before it is published                                 |
 | T-303 | Spike: can we read Hindi and handwritten FIRs?                        | 3     | Vishal, Ajay reviews the result               | Ready. T-302 is delivered                                                                                                                |
