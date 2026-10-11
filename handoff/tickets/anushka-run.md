@@ -61,3 +61,12 @@ Before her run, someone checks by hand: a real PDF render, the em dash in the fa
 - The registry case number in the title, the signing date in the verification and the signature line are not flagged.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-227 (shashank, merged to develop_staging efa610b, 12 Oct 2026)
+
+- The Ink a document shows is the Ink taken.
+- Bail (regular and anticipatory) and consumer complaint now show 2 Ink, which is what they were always charged.
+- Most long documents now cost the 2 Ink they already showed.
+- A document type the app does not recognise is refused with a clear message, and no Ink is taken.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

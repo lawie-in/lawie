@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Lead (build). Arjun (glance at the path list) |
 | Mode           | Small fix. Root config (`.github/workflows/ci.yml`): one lead holds it |
-| Status         | To do. Queued for shashank after T-248. Founder saw many "cancelled" CI notifications, 12 Oct 2026 |
+| Status         | Building: shashank, fix/t-249-ci-skip-docs-only, 12 Oct 2026. Urgent: docs pushes cancel every code run |
 
 ## Problem
 
