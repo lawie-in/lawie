@@ -27,6 +27,7 @@ async function seedTemplates() {
       description: 'Standard bail application',
       planAccess: 'free',
       sourceFile: 'bail-application.json',
+      creditsCost: 2,
       isActive: true,
     },
     {
@@ -37,6 +38,7 @@ async function seedTemplates() {
       description: 'Writ petition under Article 226',
       planAccess: 'pro',
       sourceFile: 'writ-petition.json',
+      creditsCost: 2,
       isActive: true,
     },
     {
@@ -48,6 +50,7 @@ async function seedTemplates() {
         'Document-rules config for affidavit_identity — standalone affidavit of identity for KYC, bank, property, government use',
       planAccess: 'free',
       sourceFile: 'affidavit-identity.json',
+      creditsCost: 1,
       isActive: true,
     },
     {
@@ -58,6 +61,7 @@ async function seedTemplates() {
       description: 'Inactive template',
       planAccess: 'free',
       sourceFile: 'inactive-template.json',
+      creditsCost: 2,
       isActive: false,
     },
   ]);
