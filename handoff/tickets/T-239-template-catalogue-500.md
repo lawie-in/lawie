@@ -101,3 +101,4 @@ Building them needs T-240 and the T-245 mechanics (`procedure_code` and `governi
 | Specs | Commit | Notes |
 |---|---|---|
 | #7–#12 | 49bce36 | All 1 Ink. #11 is sampled every time (Tier A). #12 is the granting court only; the superior-court version becomes a batch 2 id, `modification_bail_conditions_superior_court` |
+| #1–#6, #13, #15–#17 | 7112d14 | The criminal block is signed. **#14 bail_bihar_prohibition is HELD**: the Bihar Act sections are unchecked, so don't build it. #15 covers the accused's appeal only; the victim's appeal becomes a batch 2 id. #16 needs the DPDP s.9 note. Any IEA→BSA pair in #6, #13–#17 that T-250 changes goes back to Ajay. 16 of 17 are ready to build once T-240 and T-245a are in |

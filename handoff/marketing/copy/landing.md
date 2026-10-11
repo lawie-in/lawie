@@ -32,8 +32,8 @@ Replaces the current description, "Legal drafting for Indian advocates, built ar
 | Part | Copy | Chars |
 | --- | --- | --- |
 | Eyebrow | Drafting assistant for Indian advocates | 39 |
-| Headline (A, recommended) | Your first draft, ready to review. | 34 |
-| Headline (B) | Start from a draft, not a blank page. | 37 |
+| Headline (A, recommended) | Start from a first draft, not a blank page. | 43 |
+| Headline (B) | Lawie drafts. You decide. | 25 |
 | Headline (C) | Bail applications, notices, affidavits: start from a first draft. | 65 |
 | Subline | A drafting assistant for Indian advocates. Pick a document, answer a few questions about the matter, then review, edit and download the draft in Word or PDF. | 157 |
 | Primary CTA | Start with 5 free Ink | 21 |
@@ -99,9 +99,9 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 ```
 
 Three short points (icons by Rajesh):
-- **Edit everything.** Every line of the draft is yours to change. (44)
+- **Edit every line.** Every line of the draft is yours to change. (50)
 - **Word or PDF.** Download and keep working in the format you use. (48)
-- **No legal advice.** Lawie helps with drafting. It does not advise or file. (55)
+- **Your call.** Lawie helps with drafting. Filing and the final call stay with you. (67)
 
 Heading variants: A "You stay the advocate." (23) · B "Lawie drafts. You decide." (25) · C "The draft is yours to check." (28)
 
@@ -172,7 +172,7 @@ Removed from the current home FAQ:
 | Part | Copy | Chars |
 | --- | --- | --- |
 | Heading (A, recommended) | Your next draft starts here. | 28 |
-| Heading (B) | Start from a draft, not a blank page. | 37 |
+| Heading (B) | Start from a first draft, not a blank page. | 43 |
 | Heading (C) | Pick a document. Review the draft. | 34 |
 | Line | 5 free Ink on sign-up. Sign in with Google. | 43 |
 | Button | Start with 5 free Ink | 21 |
@@ -198,8 +198,8 @@ For a Hindi landing variant or the bar-demo one-pager. Devanagari, everyday Hind
 | Part | Copy |
 | --- | --- |
 | Eyebrow | भारतीय advocates के लिए drafting assistant |
-| Headline (A, recommended) | पहला ड्राफ्ट तैयार, आप बस जाँचें। |
-| Headline (B) | खाली पन्ने से नहीं, ड्राफ्ट से शुरुआत। |
+| Headline (A, recommended) | खाली पन्ने से नहीं, पहले ड्राफ्ट से शुरू करें। |
+| Headline (B) | डॉक्यूमेंट चुनिए, ड्राफ्ट जाँचिए। |
 | Headline (C) | Bail application, notice, affidavit: पहला ड्राफ्ट यहाँ से। |
 | Subline | डॉक्यूमेंट चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचिए, बदलिए और Word या PDF में डाउनलोड कीजिए। |
 | Primary CTA | 5 free Ink से शुरू करें |
@@ -234,11 +234,12 @@ Note: a Hindi page must not imply Hindi drafts. Drafts are in English; if this v
 | 6 | Ink line | Pricing teaser, FAQ 4 | Signed, exact |
 | 7 | Not charged for a failed generation | FAQ 5 | Signed (part of Ink line) |
 | 8 | Disclaimer on every draft; advocate responsible | You stay the advocate, FAQ 3, footer | T-197, signed |
-| 9 | Every line is editable in the editor | How it works, You stay the advocate, FAQ 6 | Live flow. Priya to confirm "every line" |
-| 10 | Lawie does not give legal advice and does not file | You stay the advocate, FAQ 3 | Denial only. Confirm it is acceptable with "legal advice" on the banned list |
+| 9 | You can edit every line of the draft | How it works, You stay the advocate, FAQ 6 | Priya confirmed (12 Oct). The disclaimer banner and export footers cannot be removed, and no copy claims otherwise |
+| 10 | "Lawie does not give legal advice and does not file anything." | FAQ 3 only | Denial only. Confirm it is acceptable with "legal advice" on the banned list |
 | 11 | Sign in with Google; email and password coming soon | Hero note, sign-in note, FAQ 8 | Signed (coming soon until T-234 ships) |
 | 12 | Drafts in English; Hindi drafting coming soon | FAQ 7, Hindi variant | Signed |
 | 13 | Intake asks about parties, dates and the facts the document needs | How it works step 2 | Priya to confirm against the form |
 | 14 | Monthly plans and top-up packs exist | Pricing teaser | Vikram: Solo and top-ups final |
-| 15 | Headline "Your first draft, ready to review." | Hero A | "ready" refers to review, not filing. Ajay ruled "ready" out of the Ink line; confirm it is fine here |
-| 16 | Sample PDFs, labelled "Sample, fictional matter" | Documents (optional) | Ajay to re-check the four PDFs |
+| 15 | Sample PDFs, labelled "Sample, fictional matter" | Documents (optional) | Ajay to re-check the four PDFs |
+
+No watermark claim appears on this page (none exists on any plan; Priya). Offers (+5 / +3 Ink codes) are not mentioned here; if added, they must say "new accounts only" (Priya: codes apply on Google sign-in for new accounts only, invalid codes are silently ignored).

@@ -58,8 +58,8 @@ Source: ticket files in `handoff/tickets/` on `develop_staging`, 11 Oct 2026.
 
 **For** district-court advocates in India **who** draft the same applications and notices again and again, **Lawie is** a drafting assistant **that** gives you a first draft to review, edit and download, across more than 90 document types. Criminal drafts cite BNS, BNSS and BSA. **Unlike** old files and typists, you start from a structured draft, not a blank page. **You stay in charge:** the advocate is responsible for legal accuracy and filing.
 
-**One line (EN):** "Your first draft, ready to review."
-**One line (HI):** "पहला ड्राफ्ट तैयार, आप बस जाँचें।"
+**One line (EN):** "Start from a first draft, not a blank page."
+**One line (HI):** "खाली पन्ने से नहीं, पहले ड्राफ्ट से शुरू करें।"
 
 ## 4. Messaging pillars
 
@@ -77,10 +77,10 @@ Tone: plain, respectful, peer-to-peer ("Advocate sahab" in Hindi only where natu
 | Channel | Role | Phase 1 play | Rules |
 | --- | --- | --- | --- |
 | Bar associations (district) | Trust + demos | 1 live demo a week in a bar library or canteen, Patna → Ranchi → Lucknow. Printed one-pager with QR to sign-up. Ask the secretary for a slot; no payment to members | Demo the tool. Never offer client referrals; no endorsement claim by the association unless written |
-| WhatsApp | Main conversion channel | (a) Lawie broadcast list (opt-in only, from demos and the site); (b) advocates sharing our 30-sec reel in their own groups. No cold adds, no spam to groups we are not in | Opt-in only (DPDP). 2 broadcasts a week max |
+| WhatsApp | Main conversion channel | (a) Lawie broadcast list (opt-in only, from demos and the site); (b) advocates sharing our 30-sec reel in their own groups. No cold adds, no spam to groups we are not in | Opt-in only (DPDP). 2 broadcasts a week max. List owner: Madhuri (under Meera). Honour STOP/unsubscribe within 24h. Keep an opt-in record per number (date, source: bar demo / site form / ambassador). Broadcast list is opt-in only, no cold adds. |
 | Instagram + YouTube Shorts | Reach with juniors and students | 3 reels a week: "Draft this with me", BNS change explainers, chamber humour that stays respectful | No client stories; no case facts; sample matters are fictional and labelled |
 | LinkedIn | Credibility, seniors, law-firm juniors, press | Founder + Lawie page: build notes, document-of-the-week, BNS/BNSS posts | No "grow your practice" |
-| X | Legal Twitter, journalists | Short threads on BNS/BNSS section changes, product notes | Same |
+| X | Legal Twitter, journalists | Short product notes and document-of-the-week threads; no old-law vs new-law claims (Ajay) | Same |
 | Law colleges | Pipeline + ambassadors | 10 ambassadors (final-year, Patna/Ranchi/Lucknow) run a "drafting lab" with a moot-style fictional matter | Students are users, not resellers; no payment per sign-up until Vikram sets it |
 | Legal-news sites (LiveLaw, Bar & Bench, Lawctopus, regional Hindi legal portals) | Credibility + SEO | One sponsored newsletter slot or listing at launch; pitch a "BNSS drafting checklist" guest piece | Ads say "drafting tool", nothing more |
 
@@ -96,7 +96,7 @@ Funnel: reach → site visit → sign-up (5 free Ink) → **first draft generate
 | 2nd draft | 150 | 600 | 50% of activated |
 | Paying advocates | 25 | 100 | ~8% of activated |
 
-Weekly KPIs: sign-ups by source (UTM per channel, per bar association, per ambassador code); activation rate; time from sign-up to first draft; drafts per active user; paid conversion; CAC per paying advocate (target under ₹1,500 in Phase 1); demo-to-sign-up rate at bar demos (target 30%). Quality guardrails: refund requests, complaints about a wrong claim (target 0), Anushka/Ajay flags.
+Weekly KPIs: sign-ups by source (UTM per channel, per bar association, per ambassador code); activation rate; time from sign-up to first draft; drafts per active user; paid conversion; CAC per paying advocate (blended CAC ≤ ₹3,000 by end of Week 2 (Vikram's T2 gate); aim lower at 100 paid); demo-to-sign-up rate at bar demos (target 30%). Quality guardrails: refund requests, complaints about a wrong claim (target 0), Anushka/Ajay flags.
 
 Tracking needs (to Priya as tickets, not built by marketing): UTM capture at sign-up; a signup-source field; an ambassador/referral code report. Analytics must carry no PII or document content (house rule).
 
@@ -106,9 +106,9 @@ Tracking needs (to Priya as tickets, not built by marketing): UTM capture at sig
 
 | Week | Theme | Key actions | Output | Goal |
 | --- | --- | --- | --- | --- |
-| 1 | "Your first draft, ready to review" | Go-live posts on all channels; founder LinkedIn launch post; Patna Civil Court bar demo; WhatsApp broadcast #1 to opt-ins; reel 1 | Social calendar week 1 | 150 sign-ups, 5 paid |
-| 2 | Bail and BNSS | Reel 2 (bail application walkthrough, fictional matter); BNSS explainer carousel; Ranchi bar demo; law-college lab #1 (Patna) | Social calendar week 2 | 300 sign-ups, 12 paid |
-| 3 | Notices and agreements (1-Ink documents) | Reel 3 (legal notice); legal-news sponsored slot if T2 is released (Vikram); Lucknow bar demo; lab #2 (Lucknow) | Reuse winning week 1–2 formats | 420 sign-ups, 19 paid |
+| 1 | "Start from a first draft, not a blank page" | Go-live posts on all channels; founder LinkedIn launch post; Patna Civil Court bar demo; WhatsApp broadcast #1 to opt-ins; reel R1 (bail application, fictional matter) | Social calendar week 1 | 150 sign-ups, 5 paid |
+| 2 | Bail and BNSS | Reel R2 (legal notice, a 1-Ink document); six-bail-drafts carousel; Ranchi bar demo; law-college lab #1 (Patna) | Social calendar week 2 | 300 sign-ups, 12 paid |
+| 3 | Notices and agreements (1-Ink documents) | Reel R3 ("You stay the advocate"); legal-news sponsored slot if T2 is released (Vikram); Lucknow bar demo; lab #2 (Lucknow) | Reuse winning week 1–2 formats | 420 sign-ups, 19 paid |
 | 4 | "You stay the advocate" + review | Founder AMA on LinkedIn/X; ambassador push; lab #3 (Ranchi) if T2; review KPIs, cut weak channels, plan days 31–90 | Phase 1 report | 500 sign-ups, 25 paid |
 
 ## 8. Budget (Vikram's decision, ₹1,00,000 at most)
@@ -138,3 +138,4 @@ Source: Vikram, vikram-gtm-decisions.md (12 Oct 2026). Cut from the ₹1,45,000 
 3. Pricing page fixes beyond T-238: "Less than ₹16 per document on Solo" is false at 2 Ink; FAQ "Each document you generate uses 1 Ink" (same line T-238 names). Copy in `copy/pricing.md`.
 4. Tickets for tracking: UTM + signup source; waitlist/opt-in form before go-live.
 5. When T-234 merges, swap "coming soon" for email and password sign-up; when T-227 AC3 ships, add "you see the cost before you generate".
+6. UTM/source tracking is T-242, waitlist form is T-243 (Priya). /login?mode=signup is in T-234. T-238 covers pricing rows 1-6; T-252 covers rows 7-14, FAQ, about, footer disclaimer, PainSolution.tsx.

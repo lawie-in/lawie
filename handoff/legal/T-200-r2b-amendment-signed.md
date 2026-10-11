@@ -35,3 +35,20 @@ Clauses covered by a system part (`prayer`, `verification`, `advocate_details`, 
 | Code change in `brief-drafter.ts` within vishal's T-200 claim | Approved; I sign that diff with the rest of T-200 before merge |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Replaces the 11 Oct R2b only. Any other change needs a fresh sign-off.
+
+## Section 2: model repair inside the fact check, and the t147e assertion (12 Oct 2026 IST, 2:50 IST resume)
+
+Asked through Priya: does the fact check's targeted model repair (inside `verifyAndRepair`, removing a phrase such as "law-abiding citizen") count as a code edit under R2b.1? The model can rewrite more than the phrase.
+
+**R2b.4 Model repair inside the fact check.** A model repair is not a code edit by itself. It re-records a paragraph only when the code can prove the edit stayed confined:
+1. Compare the paragraph before and after the repair, word for word, numbers aside.
+2. If everything before and everything after one contiguous stretch is identical, and that stretch lies inside the sentence the fact check flagged, re-record that paragraph (R2b.1).
+3. If the model changed anything outside the flagged sentence, or changed more than one stretch, do not re-record. The clause is checked against the earlier record: an uncued clause reported there goes to `clause_not_in_paragraph` and the clause-repair pass.
+4. Cued clauses (R2a) are not affected.
+5. Re-record points: after `removeUngivenCitations`, and after the fact check, before check 3. "Only blanks" means no letter or digit is left once blanks are removed (R2b.2).
+
+**Tests (conditions):** (a) model repair replaces only the flagged phrase → clause present, no starting-draft label; (b) model repair also rewrites a neighbouring sentence → `clause_not_in_paragraph`.
+
+**t147e assertion: change approved.** "A repair that returns paragraph 1 without its number reports the clauses there as missing" becomes: it reports the non-system clauses reported there as missing, and never `prayer`, `verification` or `advocate_details`. To keep the original intent, the fixture adds one ordinary uncued clause at paragraph 1 that must still be reported missing. The changed assertion is listed in the merge note.
+
+Signed: Ajay (CLO), 12 Oct 2026 IST.
