@@ -16,7 +16,7 @@
   "expect": {
     "exact": [
       {
-        "any_of": ["[To be confirmed: the default-bail period that applies to this offence]"],
+        "any_of": ["[To be confirmed: default-bail period that applies]"],
         "why": "period_claimed is empty: Ajay's blank, not a period Lawie works out"
       }
     ],

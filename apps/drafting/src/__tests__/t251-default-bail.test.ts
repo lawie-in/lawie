@@ -73,7 +73,7 @@ const INSTRUCTIONS: string[] = [
   S_TEXT,
   P_TEXT,
   'State the date of arrest and the date of first remand to custody as the BRIEF gives them, and that the applicant remains in custody only if the BRIEF says so. Use a blank for any of them the BRIEF does not give.',
-  'State the period the BRIEF says applies (60 days, 90 days, or a period under a special Act) and the date on which the BRIEF says it expired. Do not work out which period applies, and do not count or tabulate days. Where the BRIEF does not give the period, write [To be confirmed: the default-bail period that applies to this offence]; where it does not give the date of expiry, write [To be confirmed: the date on which the period expired].',
+  'State the period the BRIEF says applies (60 days, 90 days, or a period under a special Act) and the date on which the BRIEF says it expired. Do not work out which period applies, and do not count or tabulate days. Where the BRIEF gives a blank for the period, write that blank exactly as the BRIEF gives it; where it does not, write [To be confirmed: the default-bail period that applies to this offence]. Where the BRIEF gives a blank for the date of expiry, write that blank exactly as the BRIEF gives it; where it does not, write [To be confirmed: the date on which the period expired].',
   'State whether a police report has been filed only as the BRIEF gives it, as on the date of this application. Where the BRIEF does not say, write [To be confirmed: whether a police report had been filed when this application was made]. Do not say that the investigation is incomplete unless the BRIEF says so.',
   'Where the BRIEF says an offence is under a special Act (for example the NDPS Act, the UAPA or the PMLA), do not apply the BNSS or CrPC periods to it; write [To be confirmed: the default-bail period and any extension under <that Act>].',
   'Submit, as "It is submitted that ...", that the period having expired without a police report, as stated above, the applicant is entitled to be released on bail. Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon].',
@@ -208,6 +208,18 @@ describe('AC1: Ajay’s text is applied word for word', () => {
       change_protocol: 'All edits require CLO sign-off.',
       note: 'A practising advocate checks this pack before it goes live, in particular the default-bail periods (60 and 90 days), which the pack leaves to the advocate to state.',
     });
+  });
+
+  it('relevantActs 187(3) carries the Gazette heading and no period; no CrPC 167 entry', () => {
+    const acts = RAW.relevantActs as Array<{
+      sections: Array<{ number: string; description: string }>;
+    }>;
+    const secs = acts.flatMap((a) => a.sections);
+    expect(secs.find((x) => x.number === '187(3)')!.description).toBe(
+      'Procedure when investigation cannot be completed in twenty-four hours',
+    );
+    expect(secs.find((x) => /167/.test(x.number))).toBeUndefined();
+    expect(JSON.stringify(RAW.relevantActs)).not.toMatch(/60 \/ 90|within 60|90 days/);
   });
 
   it('caseNomenclature and prayerTemplate use {governing_provision}; the old opening words are deleted', () => {
@@ -743,6 +755,41 @@ describe('AC2 (wiring): the draft built from the brief, model stubbed', () => {
   });
 });
 
+describe('scope (Ajay): "No" on any other yes/no item is still a fact', () => {
+  const cases: Array<[string, string]> = [
+    ['bail_before_magistrate', 'sureties_available'],
+    ['criminal_revision', 'state_party'],
+  ];
+  it.each(cases)(
+    '%s / %s: "No" is placed with its value, not moved to still_unknown',
+    (packId, key) => {
+      const pack = loadRulePack(packId)!;
+      const checklist = buildChecklist(pack);
+      const item = checklist.find((i) => i.key === key)!;
+      expect(item.options).toEqual(['Yes', 'No']);
+      const brief = buildBrief({
+        kind: { id: pack.id, name: pack.name, court_document: isCourtDocument(pack.id) },
+        checklist,
+        values: [{ source: 'user', key, value: 'No' }],
+        court: { state: 'bihar', court_type: 'cjm', court: 'bihar_cjm_patna' },
+      });
+      expect(brief.items.find((i) => i.key === key)!.value).toBe('No');
+      expect(brief.still_unknown.map((x) => x.key)).not.toContain(key);
+    },
+  );
+
+  it('only willingness_to_furnish_bond is an undertaking: "false" on the other items is also kept', () => {
+    const pack = loadRulePack('bail_before_magistrate')!;
+    const brief = buildBrief({
+      kind: { id: pack.id, name: pack.name, court_document: true },
+      checklist: buildChecklist(pack),
+      values: [{ source: 'user', key: 'sureties_available', value: 'No' }],
+      court: { state: 'bihar', court_type: 'cjm', court: 'bihar_cjm_patna' },
+    });
+    expect(brief.items.find((i) => i.key === 'sureties_available')!.value).toBe('No');
+  });
+});
+
 describe('willingness_to_furnish_bond = "No" must act like an unticked box (Ajay, via the lead)', () => {
   const BOND_LABEL = 'The applicant will furnish bail bonds and sureties as directed';
   const WILL_NOT =
@@ -767,19 +814,26 @@ describe('willingness_to_furnish_bond = "No" must act like an unticked box (Ajay
     expect(r.allowed.map((a) => a.id)).not.toContain('willing_to_furnish_bond');
   });
 
-  it('what the brief carries: "Yes" is a value; unticked is a blank; "No" is recorded below', async () => {
+  it('what the brief carries: "Yes" is a value; unticked and "No" are the same blank in still_unknown', async () => {
     const yes = await draftWith(BODY, { ...BASE_GIVEN, willingness_to_furnish_bond: 'Yes' });
     const unticked = await draftWith(BODY, BASE_GIVEN);
-    const no = await draftWith(BODY, { ...BASE_GIVEN, willingness_to_furnish_bond: 'No' });
     const blankFor = (o: typeof yes) =>
       o.briefObj.unknown.find((x) => x.what === BOND_LABEL)?.blank;
+    const BLANK = `[To be confirmed: ${BOND_LABEL.toLowerCase()}]`;
     expect(blankFor(yes)).toBeUndefined();
-    expect(blankFor(unticked)).toBe(`[To be confirmed: ${BOND_LABEL.toLowerCase()}]`);
-    // Today's behaviour for "No": a non-empty value of the item, so NOT in `unknown`, and no blank.
-    // (intake-brief.ts: isEmpty() is true only for null, '' and []; the unknown list is built from isEmpty.)
-    expect(no.brief.items.find((i) => i.key === 'willingness_to_furnish_bond')!.value).toBe('No');
-    expect(blankFor(no)).toBeUndefined();
-    expect(no.briefJson).toContain(BOND_LABEL);
+    expect(blankFor(unticked)).toBe(BLANK);
+    for (const v of ['No', 'no', ' NO ', 'false', 'False']) {
+      const no = await draftWith(BODY, { ...BASE_GIVEN, willingness_to_furnish_bond: v });
+      const item = no.brief.items.find((i) => i.key === 'willingness_to_furnish_bond')!;
+      expect({ v, value: item.value }).toEqual({ v, value: null });
+      expect(blankFor(no)).toBe(BLANK);
+      expect(no.brief.still_unknown.map((x) => x.key)).toContain('willingness_to_furnish_bond');
+      expect(
+        no.brief.still_unknown.find((x) => x.key === 'willingness_to_furnish_bond')!.placeholder,
+      ).toBe(BLANK);
+      // "No" is not carried to the Drafter as a fact about the bond.
+      expect(JSON.stringify((no.briefObj as { facts?: unknown }).facts)).not.toContain(BOND_LABEL);
+    }
   });
 
   it('the Drafter instructions are the same for "No" and unticked (instruction 9 only)', async () => {
@@ -794,20 +848,20 @@ describe('willingness_to_furnish_bond = "No" must act like an unticked box (Ajay
     );
   });
 
-  // GAP: expected by Ajay, not met today. it.failing: breaks when the gap is closed.
-  it.failing('GAP: with "No", the brief holds a bond blank, as for an unticked box', async () => {
+  it('with "No", the brief holds a bond blank, as for an unticked box (Ajay, scope-limited to undertakings)', async () => {
     const no = await draftWith(BODY, { ...BASE_GIVEN, willingness_to_furnish_bond: 'No' });
     const hit = no.briefObj.unknown.find((x) => x.what === BOND_LABEL);
     expect(hit).toBeDefined();
   });
 
-  it.failing('GAP: with "No", the brief does not carry "No" as a fact about the bond', async () => {
+  it('with "No", the brief does not carry "No" as a fact about the bond', async () => {
     const no = await draftWith(BODY, { ...BASE_GIVEN, willingness_to_furnish_bond: 'No' });
     expect(no.brief.items.find((i) => i.key === 'willingness_to_furnish_bond')!.value).not.toBe(
       'No',
     );
   });
 
+  // Still a GAP in non-ledger mode: nothing checks the draft against the box. it.failing: breaks when closed.
   it.failing(
     'GAP: a Drafter body that says the applicant will not furnish bonds is stopped or blanked',
     async () => {
