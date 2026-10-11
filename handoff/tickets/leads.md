@@ -14,15 +14,15 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 | Lead | Next, in order | Gate still open |
 |---|---|---|
-| vishal | 1. T-200 (brief-drafter.ts, already his) 2. T-190 with T-199 (bail_regular.json, one branch if Ajay agrees) 3. T-191, T-192 | T-200: Ajay's rule. T-190/T-199: Ajay's question text. T-191/T-192: Ajay signs the logic |
-| mahak | 1. T-226 (no overspend; documents.routes.ts, after T-194) 2. T-140 part 1 (after T-189 merges) 3. T-137 web part | T-226: Arjun's mechanism. T-140: Priya's scope + Ajay ok on the court rule. T-137: on hold (founder, 11 Oct) |
-| shashank | 1. T-229 (Sentry scrub in every service; needs packages/shared after vishal and mahak) 2. T-187 build | T-229: none (Arjun's approach in). T-187: Arjun + Ajay rule |
-| unassigned | T-129, T-193, T-198, T-188, T-207 | Ajay content (T-129, T-193, T-198); Arjun + Ajay option (T-188); Vishal's problem statement (T-207) |
+| vishal | 1. T-200 (missing-clause check; same files as T-189) 2. T-231 (section-aware matching, after Ajay's rule) | T-200: met (Ajay signed, 56f9be4). T-231: Ajay's matching rule |
+| mahak | 1. T-233 (empty DOCX, PDF margin; same file as T-194) 2. T-190 + T-199 on one branch (bail_regular.json questions; moved from vishal, 12 Oct) 3. T-226 (no overspend) | T-233: none. T-190/T-199: met (Ajay signed both, Arjun confirmed the gate). T-226: Arjun's mechanism (asked 12 Oct) |
+| shashank | 1. T-234 (email and password sign-up in the web app + terms acceptance record; moved in for v1, 12 Oct) 2. T-221 (forgot password; same login page) 3. T-229 (Sentry scrub, needs packages/shared) | T-234: met (Rajesh's check, Ajay's consent line). T-221: met (design, copy approved); sends for real only after T-220. T-229: none |
+| unassigned | T-191, T-192 (Ajay signs the logic), T-223 (criteria to write), T-232 (Arjun triage), T-235 (Ajay text), T-129, T-193, T-198, T-188, T-207 | As listed |
 
 ## Merge queue
 
-1. shashank — T-210 CI hotfix (t210-e11000-sentry.test.ts, test only; develop_staging auth CI is red, so this goes first; small-fix mode: developer + tester)
-2. vishal — T-189 (ready 12 Oct 01:40 IST; after the hotfix lands and the README bullet uses Ajay's exact text)
+1. vishal — T-189 (ready 12 Oct 01:40 IST; README bullet now Ajay's exact text, d2fb41b). Goes first by Priya's call, 12 Oct: it is ready and it unblocks mahak (packages/shared). The red auth job on develop_staging is the known T-210 test issue, not his: he re-runs drafting plus any workspace the merge changes; auth red alone does not stop his push.
+2. shashank — T-210 CI hotfix (t210-e11000-sentry.test.ts, test only), as soon as it is ready.
 
 ## Last done
 
