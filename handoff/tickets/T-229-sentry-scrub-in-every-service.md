@@ -39,3 +39,4 @@ With `sendDefaultPii: false`, Sentry error events still carry every request head
 
 - `apps/web` Sentry: no `beforeSend` scrub today. Add the same scrub here.
 - email-worker logs recipient addresses (`send.ts:50,56`, `ses.ts:57`). Mask them. This must land before T-220 sends real mail.
+- Gateway and drafting Sentry send the `x-user-email` and `x-user-name` headers. Allowlist the headers the way auth does (Ajay, T-235 follow-up).

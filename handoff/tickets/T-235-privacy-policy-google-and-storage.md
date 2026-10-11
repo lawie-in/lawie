@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Ajay (text, signs), Arjun (where data is stored, facts), Lead (build), Anushka (verdict) |
 | Mode           | Text first (Ajay), then build, small fix (web) |
-| Status         | To do. Waits for Ajay's text and Arjun's facts |
+| Status         | Ajay signed the text (handoff/legal/T-235-privacy-policy-signed.md, acfa09b). Small fix, web. Next for mahak after T-194. Condition: before go-live, Arjun confirms a manual erase can be run (Mongo user, documents, ledger, FactDiff, Redis keys); otherwise this is a blocker |
 | Size           | Ajay S. Build XS |
 | Depends on     | T-220 (email provider line, Ajay's T-225 AC2) |
 | Gate           | Before v1 go-live (T-403) |
@@ -76,3 +76,10 @@ It must change before go-live:
 - Whether we have an Anthropic zero-retention agreement.
 - Whether we move off M0 for backups before v1.
 - pm2 log rotation and retention.
+
+## Build notes (Priya, 12 Oct 2026)
+
+- Apply Ajay's signed text word for word on `/privacy`.
+- Bump `termsVersion` and send the transactional "policy changed" email. That waits for T-220 sending. Coordinate the version constant with shashank's T-234, which records `termsVersion`.
+- The founder's 6 open items don't block this: the fallback wording is true either way.
+- For the morning report: the Grievance Officer's name for §11.
