@@ -340,3 +340,23 @@ Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms
 - Neither email mentions drafting, so the T-225 drafting disclaimer is not required. No name, case, draft, ID or password in either email (AC1a).
 - Send from `Lawie <noreply@lawie.in>`, to the account's own address only. Open and click tracking off.
 - Risk (from T-225): `[registered address]` and `[PIN]` are placeholders until the founder fills them. Do not send before.
+
+## Ajay claims check (11 Oct 2026, night)
+
+Checked "Copy (Madhuri, final, 11 Oct 2026)" against T-225 (AC1a, AC1b, AC1c) and, read-only, against `apps/auth` and `apps/gateway`. Result: **Approved**, no wording changes, subject to the build conditions below.
+
+| # | Claim / item | Mark | Basis |
+| --- | --- | --- | --- |
+| 1 | "expires in 30 minutes" (F4, R5, E1 preview and body) | Approved | `apps/auth/src/services/auth.service.ts:155` sets 30 min |
+| 2 | "works once" (F4, R5, E1) | Approved | Token cleared on success, `auth.service.ts:175` |
+| 3 | "signed out on your other devices" (E1) and "signed you out on all other devices" (R4) | Approved **only if AC3 ships**, with a test | Sessions are Redis-backed and checked on every request (`apps/gateway/src/middleware/sessionCheck.ts`), so deleting them is immediate and the claim can be true. If AC3 slips, both sentences come out, E1 too (Madhuri's note names R4 only) |
+| 4 | Four-rule checklist on the reset page | Approved **only if AC3's rule fix ships** | Today reset accepts any 8 characters (T-208 follow-up 3). A checklist the server does not enforce is a false statement |
+| 5 | "Lawie will never ask for your password by email or phone" | Approved, keep it | A promise about our own conduct; binds support too. Anti-phishing value outweighs the risk |
+| 6 | Same reply for known and unknown emails (F4, F5); "an email", not "a link" | Approved | Prevents account enumeration (DPDP s.8(5) safeguards) |
+| 7 | E2 (Google-only): no link to reset, names "Continue with Google" | Approved | Matches `login/page.tsx` |
+| 8 | No name, case, draft, ID or password in E1/E2; no greeting | Approved | T-225 AC1a |
+| 9 | Transactional, no unsubscribe; sender `Lawie <noreply@lawie.in>`; tracking off | Approved | T-225 AC1b, AC1c |
+| 10 | Footer | Approved; **Risk**: `[registered address]`, `[PIN]` placeholders. No send until filled | T-225 AC1c |
+| 11 | All title, CTA, subject and button variants | Approved, any variant | |
+
+Signed: Ajay (CLO), 11 Oct 2026, night. Conditional on items 3, 4 and 10.

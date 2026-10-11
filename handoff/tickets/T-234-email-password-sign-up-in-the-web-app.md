@@ -121,3 +121,43 @@ S1 sign in, S2 create account, S3 422 summary, S4 409, S5 401, S6 in flight, S7 
 5. In scope, because it's the same page: AA contrast for the referral error text, footer links and input borders; tap targets of at least 44 px for Forgot password and the eye toggle.
 6. Forgot password stays hidden until T-221 merges, as Rajesh says.
 
+
+## Ajay consent line (11 Oct 2026)
+
+Checked against the live pages in `apps/web`: `/terms` ("Terms of Service", last updated 1 June 2026) and `/privacy` ("Privacy Policy", last updated 1 June 2026, DPDP Act, 2023).
+
+Exact line, the same in both modes (Sign in and Create account), directly under the submit button, so it also covers "Continue with Google" from either tab:
+
+> By continuing, you agree to Lawie's [Terms of Service](/terms) and confirm you have read our [Privacy Policy](/privacy).
+
+- Link text must match the page titles exactly: "Terms of Service" and "Privacy Policy" (not "Terms" / "Privacy"). Both open in a new tab (`target="_blank" rel="noopener"`).
+- "Agree to" the Terms only. Do not write "agree to the Privacy Policy": it is a notice, not a contract, and DPDP consent must not be bundled into contract acceptance (DPDP Act s.6(1)).
+- Wording is final. Madhuri may not change it without my sign-off.
+
+### Tick box or "By continuing"
+
+"By continuing" is enough. No checkbox. Approved.
+
+- Terms: a sign-in-wrap line next to the button, with visible links, is a valid electronic acceptance (IT Act 2000 s.10A; Indian Contract Act s.10). Conditions: the line is visible without scrolling at 375 x 667, sits directly under the button, `text-sm text-slate-600` or darker (AA), and is never hidden behind a toggle.
+- DPDP basis: account data (name, email, password hash, Google profile) and the case details a user types in are given voluntarily for the purpose of using the Service. That is a legitimate use under DPDP Act s.7(a), so no separate s.6 consent box is needed. The Privacy Policy is the s.5 notice.
+- A tick box becomes required only if we add marketing emails or any use beyond running the Service. Then it is a separate, optional, unticked box. Not in v1.
+
+### Conditions for build (Blocker if missing)
+
+1. Record acceptance on the user at account creation, for both email and Google: `termsAcceptedAt` (server time), `termsVersion` (`2026-06-01`), `acceptedVia` (`email` | `google`). Without it we cannot prove acceptance. Lead / Arjun own the field names.
+2. Existing Google users signed up with no consent line. Showing the line in Sign in mode covers them from their next sign-in; record `termsAcceptedAt` on that sign-in if it is empty.
+3. Do not render the line anywhere except under the submit button; do not pre-tick anything.
+
+### Gaps in the live pages (Risk, not blocking T-234)
+
+- `/privacy` s.1 does not say we receive name, email and profile picture from Google Sign-In, or that we store a password (hashed). Add one sentence before v1 go-live (T-403). I will draft it on request.
+- `/privacy` s.3 does not state where data is stored (India residency). Confirm the region with Arjun before v1.
+- `/terms` has no eligibility clause (for practising advocates only); `/privacy` s.8 implies it. Separate ticket, not this one.
+- The "Legal sign-off" row in this ticket's header ("as today for Google") is now stale. Priya to update it; I have not edited the header.
+
+Status: **Approved** with the three build conditions above.
+
+## Priya (11 Oct 2026, night): added to the acceptance criteria from Ajay's consent ruling
+
+6. Ajay's consent line goes under submit in both tabs, word for word.
+7. Auth records `termsAcceptedAt`, `termsVersion` (2026-06-01) and `acceptedVia` (google or password) on sign-up, and for an existing Google user at their next sign-in. This touches `apps/auth` (User model and sign-in paths): the lead claims those files.

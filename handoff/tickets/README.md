@@ -168,6 +168,7 @@ Checked on `develop` after PR #29 and PR #30.
 | T-232 | Logging and Sentry follow-ups from T-210 (spans, e2e test, req.ip, console.warn, breadcrumbs, double capture) | 0 | Arjun (triage), lead | Needs triage |
 | T-233 | Exported files: empty DOCX for an unedited draft, PDF margin on the wrong side | 1 | Lead, Anushka | To do. After T-194. Before go-live |
 | T-234 | Email and password sign-up and sign-in in the web app | 0 | Rajesh (check), Madhuri, lead, Anushka | To do. Needs Rajesh's check. Before go-live |
+| T-235 | Privacy policy covers Google sign-in data and where data is stored | 0 | Ajay (text), Arjun (facts), lead | To do. Before go-live |
 | T-301 | Attach images as matter context                                       | 3     | Vishal                                        | Blocked: the brief screen (T-125)                                                                                                        |
 | T-302 | Consent line and retention rule for uploads                           | 3     | Ajay                                          | Delivered by Ajay on 4 Oct 2026. Policy wording to be read by a practising lawyer before it is published                                 |
 | T-303 | Spike: can we read Hindi and handwritten FIRs?                        | 3     | Vishal, Ajay reviews the result               | Ready. T-302 is delivered                                                                                                                |
