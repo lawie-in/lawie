@@ -49,3 +49,18 @@ District court advocate who exports a draft to file it and must not file one wit
 ## References
 
 - T-147c, T-188, T-109
+
+## Design (Rajesh, 11 Oct 2026)
+
+- AC1 design and hand-off spec (claude.ai artifact; header text and blank style pending Ajay, AC8): https://claude.ai/artifact/6T24aZ5ihZY2R1G7MgZGtA
+
+## Priya decisions (11 Oct 2026)
+
+1. Which blanks count: open. Ajay decides it together with AC8. Until he does, the build counts only `[To be confirmed: …]`.
+2. AC note (build requirement): save first, then count from the saved draft the file is built from.
+3. "Go back and fill" puts the cursor on the first blank: in scope. Tracking "warning shown / export anyway": out of v1 scope; if it comes back later it needs a PII review.
+
+Follow-ups (Priya to ticket):
+
+- The editor shows a blank as `{{MISSING: label}}`, while the file and the warning say `[To be confirmed: label]`.
+- The PDF and DOCX export buttons are about 28px tall, under the 44px minimum tap target.
