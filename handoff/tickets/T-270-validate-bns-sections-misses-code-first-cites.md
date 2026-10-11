@@ -17,3 +17,7 @@
 2. The validator checks each against the signed section tables.
 3. Tests for each form, including a wrong number that must be flagged.
 4. Golden snapshots that move are listed for Ajay. CI green on drafting.
+
+## Detail (shashank, with Ajay's agreement, 12 Oct 2026)
+
+Priority: medium. The check should also read `<ACT> <number>` and `<number> <ACT>` for BNS, BNSS, BSA, IPC, CrPC and IEA, for example "BSA 85" and "103 BNS".
