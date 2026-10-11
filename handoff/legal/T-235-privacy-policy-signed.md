@@ -108,3 +108,29 @@ Privacy questions, rights requests and grievances: privacy@lawie.in. General sup
 - Grievance Officer: §11 to name a person once the founder names one (SPDI Rules, 2011 r.5(9)).
 
 Signed: Ajay (CLO), 12 Oct 2026 IST, on the erase condition above. Any other wording comes back to me.
+
+## Erase runbook decisions (12 Oct 2026 IST)
+
+Read: `handoff/tickets/T-235-erase-runbook.md` (03e6b10). Arjun confirmed a manual erase can be run, so the erase condition above is **met**.
+
+| # | Question | Decision |
+|---|---|---|
+| Step 3 | Billing rows under a pseudonym enough? | Yes for `subscriptions`, `inkledger` and `creditledgers` payment rows: userId and Razorpay ids, no name or email. Usage rows: delete; blank `reference` where kept. **Tax invoices are different:** an invoice Lawie has issued is a record under CGST Act s.35 and must be kept as issued, unaltered, for the s.36 period (72 months from the due date of the annual return for that year), access-restricted and used for nothing else. DPDP erasure gives way to retention required by law |
+| Step 3 | Does an invoice need name or email? | Email: never. Name, address and GSTIN: only where the invoice already carries them (a registered recipient, or a high-value supply to an unregistered one under CGST Rule 46). Vikram confirms what our invoices carry today; if Lawie issues no invoices of its own (Razorpay only), nothing extra is kept |
+| Step 4 | Tombstone or hard delete? | Tombstone, as Arjun proposes. Condition: no hash, partial or copy of the email (or any other unset field) is kept anywhere, including to stop a repeat sign-up bonus |
+| 2a | Delete reviewers' feedback on the user's drafts? | Yes, delete. It quotes the user's drafts |
+| 2n | Keep `payment` and `account_delete` audit events? | Yes, as the erase record, holding only userId, event type and time. Strip IP, user agent, email or any other detail from them |
+| 2o | Delete coupon usages? | Yes. The reset of the per-user limit is acceptable: an erased account cannot sign in again |
+| Step 5 | Sentry by hand, outside §7? | Acceptable, with the §7 change below so the policy says what we do |
+
+### Policy text changes (signed, word for word)
+
+§7, the sentence "Erasure covers our database and session store; it cannot reach data already sent to Helicone (see §5) or copies you have downloaded." becomes:
+
+`Erasure covers our database and session store, and we remove what we can find of your data in our error reports (Sentry). We keep payment records and any tax invoice for as long as tax law requires, without your name or email unless the invoice itself carries them. Erasure cannot reach data already sent to Helicone (see §5) or copies you have downloaded.`
+
+§9, add as the last bullet:
+
+`- Payment records and tax invoices: for as long as tax law requires (currently up to six years), even after you ask us to erase your account.`
+
+Signed: Ajay (CLO), 12 Oct 2026 IST.
