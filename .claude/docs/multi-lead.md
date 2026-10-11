@@ -38,7 +38,30 @@ Each ticket file also gets one more row in its field table: `Assigned lead | <na
 3. **Extend.** After `Explore`, or when a developer report lists a file outside the claim, the lead stops and asks Priya. She extends the row if no other row holds that path; otherwise the lead waits or the ticket is split.
 4. **Merge order.** First ready, first merged, unless Priya says otherwise and gives the reason (e.g. a smaller change goes first so the larger one rebases once). One lead merges at a time. The lead in the slot pulls the latest `develop_staging`, resolves its own conflicts, re-runs `build` and `test` for its workspaces and for any workspace the merge changed, then merges and pushes. Red after the merge: no push.
 5. **Release.** After the push, Priya removes the row, moves the queue up and sets the ticket's Status line. The lead commits that change.
-6. **Status to the founder.** Priya sends one update per session or when he asks: per lead, the ticket, its step in the chain, and anything waiting on him. Escalations do not wait for it: a second failed review, a missing gate (Arjun, Ajay, Rajesh) or a founder-only decision goes from the lead to him directly, and the lead tells Priya.
+6. **Status to the founder.** Priya sends one update per session or when he asks: per lead, the ticket, its step in the chain, and anything waiting on him. Escalations do not wait for it: a second failed review, a missing gate (Arjun, Ajay, Rajesh) or a founder-only decision goes from the lead to him directly, and the lead tells Priya. Priya also posts the update to the relay as a `note` to `@founder`.
+
+## The board, comments and the relay
+
+Four sessions run apart: the whole team (Priya leads), `vishal`, `mahak` and `shashank`. None can see another's conversation. The Lawie board artifact (https://claude.ai/artifact/REAV9qDo6bzJitD1TfxDXD), its comments, its relay and `leads.md` are how they talk.
+
+**What the board holds.**
+
+- `tickets/<id>`: status (`todo`, `doing`, `review`, `blocked`, `hold`, `done`, `closed`), title, owner, assignee (`vishal`, `mahak` or `shashank`), files (claimed paths), note, deps, phase, file, updatedAt. The board flags two tickets claiming the same path, and marks hot paths: `packages/shared`, `apps/gateway`, `apps/drafting/src/config`, `docs/templates`, `ai.service.ts`, `preflight.service.ts`.
+- `comments/<ticketId>`: one thread per ticket. Each item has from, body, ts.
+- `messages/<YYYY-MM-DD>_<author>`: the relay chat, one document per author per day. Each item has from, to, kind, ticket, body, ts.
+
+**Who writes what.**
+
+- `leads.md` on `origin/develop_staging` stays the binding claim record, and Priya is still its only writer. The board mirrors it.
+- Priya sets status, assignee and files on the board when she assigns or releases a ticket. Keep the board's files equal to the `leads.md` claim, or the clash flag means nothing.
+- A lead updates only its own ticket's status: `doing` to `review` once merged into `develop_staging`, or `blocked` with the reason in the note. Leads never touch the Status line in ticket files.
+- Write with the `ArtifactData` tool and pin every write with `if_version`. If it fails, re-read and redo the change. Never overwrite someone else's change.
+
+**Ticket comments.** Workflow context only: the step reached in the chain, review round results, gates waiting, and decisions with who made them. No code, no secrets, no personal data, no document content.
+
+**The relay.** For messages between sessions. Kinds: `note`; `claim` (a lead asking Priya for a file or an extension); `conflict` (two tickets touching the same path); `resolution` (Priya's answer). Every session reads the relay and its own tickets' comments at start, before branching and before merging into `develop_staging`.
+
+**@mentions.** Address people with `@name` from the roster only: priya, vishal, mahak, shashank, arjun, meera, vikram, ajay, rita, madhuri, rajesh, annu, kavya, anushka, founder. Use `@founder` for anything only he decides. Tagging someone does not grant a gate: Ajay, Arjun and Rajesh sign-offs still need a reference.
 
 ## Worktrees
 
