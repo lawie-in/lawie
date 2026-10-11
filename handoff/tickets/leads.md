@@ -22,7 +22,9 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-Empty. Ask Priya for the slot when your chain is done.
+1. shashank — T-248. Chain complete (c629089); Ajay cleared it. The slot is his now.
+2. vishal — T-200 (Ajay signed 739c4e5; the fresh reviewer is running).
+3. mahak — T-251 (waiting for Ajay's intake-brief diff and the reviewer).
 
 ## Last done
 
