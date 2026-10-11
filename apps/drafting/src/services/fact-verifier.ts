@@ -43,7 +43,7 @@ import {
 } from '@lawie/shared';
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 
-import { conditionHolds, factsByKey, resolveAverments } from './averments';
+import { conditionHolds, factEntriesByKey, factsByKey, resolveAverments } from './averments';
 import type { AvermentCondition, AvermentLists, BannedEntry, ResolvedBan } from './averments';
 import { DRAFTER_FACT_REPAIR_SYSTEM_PROMPT } from './drafter.prompts';
 
@@ -573,8 +573,11 @@ function properNouns(text: string, claimed: Uint8Array): Entity[] {
 // ── Facts, keyed for the checks ─────────────────────────────────────────────
 
 interface Sources {
+  /** Every held entry, each its own fact: several for a list or several choices (T-189). */
   facts: LedgerFact[];
   byKey: Map<string, LedgerFact>;
+  /** Every held entry by key, for averment conditions (T-189, Ajay's rule R3). */
+  entries: Map<string, LedgerFact[]>;
   unresolved: LedgerUnresolvedFact[];
   ledger: Corpus;
   skeleton: Corpus;
@@ -626,7 +629,9 @@ function displayOf(f: LedgerFact): string {
 
 function buildSources(input: VerifierInput): Sources {
   const byKey = factsByKey(input.facts);
-  const facts = [...byKey.values()];
+  // T-189 (Ajay's rule R2): every held entry feeds every source, on its own.
+  const entries = factEntriesByKey(input.facts);
+  const facts = [...entries.values()].flat();
   const skeletonText = input.skeleton.map((s) => s.replace(BLANK_RE, ' ')).join('\n');
   const ledgerTexts = facts.flatMap((f) => [
     displayOf(f),
@@ -687,6 +692,7 @@ function buildSources(input: VerifierInput): Sources {
   return {
     facts,
     byKey,
+    entries,
     unresolved: [...input.unresolved],
     ledger: new Corpus(ledgerTexts),
     skeleton: new Corpus([skeletonText]),
@@ -1151,7 +1157,10 @@ const FUTURE_AUXILIARY =
   /^\s*(?:jayega|jaayega|jaega|jayenge|jaenge|जाएगा|जायेगा|जाएँगे|will|jaana chahiye|jana chahiye|जाना चाहिए|जाना चाहिये|karega|karegi|karenge)(?![\p{L}\p{M}])/u;
 
 /** The label of the fact that would unlock a banned entry: the first one the ledger lacks. */
-function unlockLabel(entry: BannedEntry, byKey: ReadonlyMap<string, LedgerFact>): string {
+function unlockLabel(
+  entry: BannedEntry,
+  byKey: ReadonlyMap<string, readonly LedgerFact[]>,
+): string {
   const c: AvermentCondition | null = entry.unlocked_by;
   if (c === null) return humanise(entry.id);
   if ('all_of' in c) {
@@ -1210,8 +1219,8 @@ function checkBanned(src: Sources, input: VerifierInput, paragraphs: Paragraph[]
                 check: 'banned',
                 entityType: 'phrase',
                 reason: 'banned',
-                ledgerKey: firstKey(entry.unlocked_by, src.byKey),
-                label: unlockLabel(entry, src.byKey),
+                ledgerKey: firstKey(entry.unlocked_by, src.entries),
+                label: unlockLabel(entry, src.entries),
                 paragraphIndex: pi,
                 charOffset: from,
                 length: Math.max(0, e - from),
@@ -1230,7 +1239,10 @@ function checkBanned(src: Sources, input: VerifierInput, paragraphs: Paragraph[]
   return out;
 }
 
-function firstKey(c: AvermentCondition | null, byKey: ReadonlyMap<string, LedgerFact>): string | null {
+function firstKey(
+  c: AvermentCondition | null,
+  byKey: ReadonlyMap<string, readonly LedgerFact[]>,
+): string | null {
   if (c === null) return null;
   if ('all_of' in c) {
     for (const x of c.all_of) {
@@ -1446,11 +1458,12 @@ export async function verifyAndRepair(
     const indices = [...new Set(initial.map((v) => v.paragraphIndex))]
       .filter((i) => i >= 0 && i < paragraphs.length)
       .sort((a, b) => a - b);
-    const byKey = factsByKey(input.facts);
+    // T-189: one fact line per held entry, never a joined one.
+    const entries = factEntriesByKey(input.facts);
     const user = buildFactRepairUserPrompt({
       paragraphs: indices.map((i) => ({ index: i, text: paragraphs[i].text })),
       violations: initial,
-      facts: [...byKey.values()].map((f) => ({
+      facts: [...entries.values()].flat().map((f) => ({
         key: f.key,
         label: f.label,
         type: f.type,

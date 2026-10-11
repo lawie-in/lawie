@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (signs the change to how averments and checks read list facts), Vishal (build), Anushka (verdict) |
 | Mode           | Build, full chain (drafting). Ajay signs the diff before merge |
-| Status         | To do. Next for vishal after T-189 (same files and context) |
+| Status         | FOLDED INTO T-189 (Priya, 11 Oct 2026 23:15). AC5 of T-189 cannot hold end to end without it. Its acceptance criteria now apply to T-189 |
 | Size           | M (1 day) |
 | Depends on     | T-189 |
 | Gate           | Before `feature.fact_ledger` goes on for real users, next to T-189 |

@@ -83,3 +83,14 @@ Same for `shashank` (and `vishal`, if he moves off his current checkout). Per ti
 ## What stays the same
 
 Entry gate, modes, handoff packets, the review loop with its two-round cap, scope boundaries, the quality line in `.claude/docs/quality-gate.md`, and the rule that only the lead commits. Leads still cannot `Edit` or `Write`.
+
+## Founder away: Priya decides (founder, 11 Oct 2026, night)
+
+Until the founder's morning report, nobody asks the founder anything or tags him for approval, on the board or in a session.
+
+- Every approval or decision that would go to the founder goes to Priya on the relay instead. That includes the second failed review, scope calls and order of work. Priya decides on the founder's delegation and logs it in the ticket.
+- Gates that belong to Ajay, Arjun or Rajesh still come from them, and Priya gets them.
+- Anything that physically needs the founder (his AWS, DNS, GitHub settings, the database, prod, merging to `develop` or `main`) goes on Priya's list for the morning report. The lead skips it and takes other work. Nobody waits on him.
+- **Permission popups (founder, 11 Oct 2026, night):** wait at most 5 minutes for the founder to approve. Then stop waiting, post it to Priya on the relay and take other work. If Priya agrees it needs him, it goes on the morning list. Nobody holds the merge queue for a popup: if the lead in the slot has not moved within 15 minutes, Priya gives the slot to the next lead.
+- **Relay times (founder, 11 Oct 2026, night):** the `ts` on every relay post or ticket comment is the real time from `date -u +%Y-%m-%dT%H:%M:%S.000Z`, pasted as is. Never type a time by hand. The board shows it in the reader's local time (IST for the founder).
+

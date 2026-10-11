@@ -96,14 +96,27 @@ jobs:
           - 6379:6379
     env:
       NODE_ENV: test
+      # T-211: one pinned Mongo binary in one absolute dir, shared by the pre-download step and the tests.
+      MONGOMS_VERSION: '7.0.24'
+      MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-binaries
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
+      - name: Cache Mongo binary
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/mongodb-binaries
+          key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            mongoms-${{ runner.os }}-7.0.24-
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
+      # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
+      - name: Pre-download Mongo binary
+        run: yarn workspace @lawie/auth node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
       - run: yarn workspace @lawie/auth test
       - uses: codecov/codecov-action@v4
         if: always()
@@ -124,14 +137,27 @@ jobs:
           - 6379:6379
     env:
       NODE_ENV: test
+      # T-211: one pinned Mongo binary in one absolute dir, shared by the pre-download step and the tests.
+      MONGOMS_VERSION: '7.0.24'
+      MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-binaries
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
+      - name: Cache Mongo binary
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/mongodb-binaries
+          key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            mongoms-${{ runner.os }}-7.0.24-
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
+      # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
+      - name: Pre-download Mongo binary
+        run: yarn workspace @lawie/drafting node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
       - run: yarn workspace @lawie/drafting test
       - uses: codecov/codecov-action@v4
         if: always()
@@ -147,14 +173,27 @@ jobs:
     if: needs.changes.outputs.billing == 'true' || needs.changes.outputs.shared == 'true'
     env:
       NODE_ENV: test
+      # T-211: one pinned Mongo binary in one absolute dir, shared by the pre-download step and the tests.
+      MONGOMS_VERSION: '7.0.24'
+      MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-binaries
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
+      - name: Cache Mongo binary
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/mongodb-binaries
+          key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            mongoms-${{ runner.os }}-7.0.24-
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
+      # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
+      - name: Pre-download Mongo binary
+        run: yarn workspace @lawie/billing node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
       - run: yarn workspace @lawie/billing test
       - uses: codecov/codecov-action@v4
         if: always()

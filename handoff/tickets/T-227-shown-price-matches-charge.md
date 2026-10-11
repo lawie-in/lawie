@@ -5,7 +5,8 @@
 | Phase          | 0 — Prep |
 | Owner          | Vikram (the price of each document), Ajay (heads-up: CPA 2019), Lead (build), Anushka (verdict) |
 | Mode           | Vikram's price list first, then build, full chain (drafting, web) |
-| Status         | Ready. Vikram's price list is in (11 Oct 2026). Unassigned |
+| Status         | Assigned to shashank, 12 Oct 2026: AC1, AC2, AC4. AC3 (cost screen) waits for Rajesh's design and is not in this branch |
+| Assigned lead  | shashank |
 | Size           | S (0.5 day) after the list |
 | Depends on     | None. Drops pricing (T-201 to T-205) replaces this later; this fixes v1 as it stands |
 | Gate           | Before v1 go-live (T-403) and before T-222's welcome email ships |

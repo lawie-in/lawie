@@ -202,3 +202,56 @@ Build notes:
 2. The cost-before-you-start line stays out until T-227 AC3 ships a cost screen.
 3. Ships only after T-220 (sending) and T-227 (prices), and with the real registered address in the footer (founder).
 
+
+## Copy (Madhuri, password variant, 11 Oct 2026)
+
+For Ajay's claims check, then Meera. Founder, 11 Oct 2026: email and password sign-up ships in v1 alongside Google, so the welcome email goes to both (AC1).
+
+**Recommendation: one version for everyone, no variant.** Only one line in the final copy names the sign-in method (step 1), plus button variant C. Making them neutral is simpler than two templates and a branch in the build.
+
+| Part | Final copy above (Google only) | Neutral version (all sign-ups) | Chars |
+| --- | --- | --- | --- |
+| Step 1 | 1. Sign in with Google and pick a document. | 1. Sign in to Lawie and pick a document. | 43 → 40 |
+| Button variant C | Sign in with Google | Retired. Use A "Start your first draft" (22, recommended) or B "Open Lawie" (10) | |
+
+Everything else in "Copy (Madhuri, final, 11 Oct 2026)" stays as it is: subject, preheader, body, disclaimer, footer and build notes. That includes Priya decision 1: "credits" becomes "Ink" in both places once Ajay confirms the swap; this variant does not change that.
+
+If the founder prefers to name the method, a short variant line for password sign-ups only:
+- Step 1, password: `1. Sign in with your email and password, and pick a document.` (61). Google sign-ups keep the final copy's step 1. The template then needs a `signInMethod` value; I don't recommend it.
+
+Checks:
+- Nothing else mentions Google or passwords: subject, preheader, body and footer are method-neutral already.
+- "Your account is ready" stays true for password sign-ups: T-223 chose option B (verify before buying or the second free draft), so the first draft needs no verification. If T-223 moves to A, this line and step 1 come back to me.
+- No password, ever, in this email (T-225 AC1a). `{name}` comes from the sign-up form for password users (required field in `registerSchema`).
+- Send once per user, on email sign-up or first Google sign-in (AC1).
+
+## Ajay claims check (11 Oct 2026, night)
+
+Checked "Copy (Madhuri, password variant, 11 Oct 2026)" against my three changes above, T-225, T-223's decision and, read-only, the code on `develop_staging`.
+
+### My three changes
+
+| # | Change | Still holds? |
+| --- | --- | --- |
+| 1 | Preheader in credits, not drafts | Yes. `SIGNUP_BONUS_CREDITS = 5` unchanged. Word swap below |
+| 2 | "Each draft uses 1 or 2 ..." | Yes for the price: `TEMPLATE_COST` still charges 1 or 2. **No longer complete for password sign-ups**: see change 5 |
+| 3 | What-Lawie-does paragraph | Yes, unchanged and accurate |
+
+### Answers and required changes (Madhuri applies verbatim)
+
+4. **"credits" to "Ink": Approved** (Priya decision 1). The app says "5 Ink" everywhere. Use:
+   - Preheader: `You have {freeCredits} free Ink. Here's how to start.`
+   - Body: `You have {freeCredits} free Ink to try it. Each draft uses 1 or 2 Ink.`
+5. **Verification line: Blocker without it.** Under T-223 option B, a password user can use only the first draft until they verify their email; Google users are verified. "You have 5 free Ink to try it" with no condition hides a material limit (CPA 2019 s.2(28); CCPA Misleading Ads Guidelines 2022, conditions must be disclosed). Add, directly after the line in change 4:
+   `If you signed up with email and password, verify your email address before your second draft.`
+   This keeps one template for everyone, as Madhuri recommends. If T-223 changes, this line comes back to me.
+6. **Step 1 neutral version: Approved.** `1. Sign in to Lawie and pick a document.` Button C retired. The password-only step 1 is also acceptable but not needed.
+7. **Risk, recommended (not blocking):** a password sign-up is not verified, so this email can reach someone who never signed up. Add before the disclaimer: `Didn't create a Lawie account? Write to contact@lawie.in and we will look into it.` Keep it transactional, no unsubscribe.
+
+Unchanged and still Approved: findings 5 to 11 above (disclaimer, footer with the placeholder Risk, no case data, transactional status, BCI, sender, variants). "Your account is ready" is true for password users under option B.
+
+Signed: Ajay (CLO), 11 Oct 2026, night. Conditional on changes 4 and 5 applied verbatim, the footer address filled, and T-220 and T-227 landing first.
+
+## Priya (11 Oct 2026, night)
+
+Ajay's change 2 needs one more line for password sign-ups: how to verify the email (T-223 option B). Madhuri adds it once T-223's acceptance criteria are written. Ships with T-223.

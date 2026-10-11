@@ -1,8 +1,25 @@
 {
-  "agent": "vishal",
   "permissions": {
     "deny": ["Read(./.env)", "Read(./.env.*)", "Read(./**/*.pem)"],
-    "ask": ["Bash(git push *)", "Bash(gh pr merge *)", "Bash(gh workflow run *)"]
+    "ask": [],
+    "allow": [
+      "Bash(git pull *)",
+      "Bash(git add *)",
+      "Bash(cd *)",
+      "Bash(git commit *)",
+      "Bash(git fetch *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git diff *)",
+      "Bash(git status *)",
+      "Bash(python3 -I *)",
+      "Bash(grep *)",
+      "Bash(sed *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "ArtifactData",
+      "ArtifactComments"
+    ]
   },
   "hooks": {
     "PreToolUse": [
