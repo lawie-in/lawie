@@ -1,10 +1,21 @@
 name: CI — Test
 
 on:
+  # T-249: a push or PR that changes only docs starts no run, so it cannot cancel a real code run.
+  # GitHub skips only when every changed file matches; a change with code and docs still runs.
+  # docs/ is deliberately not ignored: docs/templates holds runtime JSON (template overrides, read by t139).
   push:
     branches: [develop, develop_staging]
+    paths-ignore:
+      - 'handoff/**'
+      - '.claude/**'
+      - '**/*.md'
   pull_request:
     branches: [develop, develop_staging]
+    paths-ignore:
+      - 'handoff/**'
+      - '.claude/**'
+      - '**/*.md'
   # T-147e: the golden set runs nightly against the real model (job golden-set).
   schedule:
     - cron: '30 20 * * *' # 02:00 IST
