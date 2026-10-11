@@ -65,3 +65,8 @@ Every unresolved ledger item is either asked or visibly marked in the draft. Non
 
 - T-147b (AC2, AC3, AC5, AC6), T-147c, T-187
 - ADR-022
+
+## Priya (11 Oct 2026): one more case for this ticket
+
+From the T-189 build (Vishal, tester round 1): a list or choices key that has some resolved entries and one unresolved entry is not asked again (`apps/drafting/src/services/intake.service.ts`, around line 1253). The unresolved entry never reaches the facts (Ajay's T-189 condition), so the draft carries the other entries and silently lacks that one. Arjun and Ajay's choice of option here must cover partly resolved list keys too. Not a T-189 blocker: T-189 ships with today's behaviour.
+
