@@ -47,3 +47,17 @@ Show the signed disclaimer on every draft screen, whether the banner shows or no
 ## References
 
 - T-127 §9, T-158, T-106 ("The standard disclaimer stays on every draft")
+
+## Design (Rajesh, 11 Oct 2026)
+
+No artifact needed. Reuse existing styles and tokens; the text is `FACT_CHECK_DISCLAIMER`, unchanged.
+
+| Where | Placement | Style |
+| ----- | --------- | ----- |
+| `DraftReadyStep`, banner showing | As today: last line inside the gold fact-check banner. Once only (AC4) | Unchanged: `text-brand-gold-dark mt-2 text-sm` |
+| `DraftReadyStep`, no banner | Same slot: inside the "Checks run for you" card, directly under its heading (`mt-3`), before the checks list | Neutral note: `role="note"`, `border-brand-line bg-brand-page rounded-lg border px-3.5 py-2.5`, text `text-brand-navy text-sm` |
+| Document page `apps/web/src/app/dashboard/documents/[id]` | Above the editor: after the starting-draft label (if any), before the free-tier watermark notice | Same neutral note as above |
+
+- Why neutral, not gold, when there is no banner: gold means "something to check" in this app. On a clean draft it would read as a false warning. The disclaimer goes in the same place in both cases, so advocates learn where it is.
+- Not dismissible. No icon. Wraps on a phone; no truncation.
+- Contrast: navy on page is 16:1 (WCAG AA). The manual check at 375 px and 1280 px stays as in AC7.

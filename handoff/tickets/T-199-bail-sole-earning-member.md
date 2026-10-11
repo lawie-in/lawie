@@ -44,3 +44,27 @@ Add `sole_earning_member` as an item in `bail_regular` with Ajay's question, so 
 ## References
 
 - T-147c, T-190, T-189
+
+## Ajay sign-off (11 Oct 2026)
+
+Read: this ticket; `_averments/bail_regular.json` (`sole_breadwinner`: `sole_earning_member` equals `yes` / `haan` / `ha` / `true`; `family_dependent_on_applicant`: `dependants` present); `bail_regular.json`; T-190 (my sign-off of today). Nothing in code, packs or snapshots changed. No edit to the `_averments` file is needed (AC5 holds).
+
+| Field | Text |
+|---|---|
+| Key | `sole_earning_member` |
+| Label | Whether the applicant is the only earning member of the family |
+| Question (exact text) | Is the applicant the only earning member of the family? |
+| Answer form | Choices: Yes / No / Not known. Store "Yes" with the value `yes`. "Not known" writes no fact. Until T-189 lands, show the choices as hint text |
+| Place in the T-190 order | **10a**: straight after 10 `applicant_occupation`, before 11 `local_ties`. Items 2 to 13 rank after the pack's required items (T-190 AC8), so it is the 11th of the 15 T-190 questions (1 to 13b, with 10a) |
+| Bail-family packs | Asked in `bail_regular`, `interim_bail`, `bail_before_magistrate` and `bail_anticipatory` (relevant in all four) |
+
+Conditions:
+1. **Read from the description (AC3).** "ghar ka akela kamane wala" (or "only earning member", "akela kamane wala", "sole breadwinner") must be stored with the value `yes` and the advocate's words as the verbatim `raw_span`. If the extractor stores the words themselves as the value, the `equals` test fails and the averment stays banned. Vishal confirms which happens; if it needs T-189's choice handling, say so and do not edit the `_averments` list.
+2. **"No" or "Not known"** writes no unlock. The test for AC4 checks that no phrase of `sole_breadwinner` appears.
+3. **The question stays neutral,** as written. Do not reword it to "Is the family dependent on the applicant?", which is a different averment (`family_dependent_on_applicant`).
+
+Recommended, not a condition: `dependants` (key exists; it unlocks "{{dependants}} depend on the applicant") is the natural follow-on and is asked nowhere. If Priya adds it to this ticket, it is **10b**, label "Who depends on the applicant", question: "Who in the family depends on the applicant's income (for example: aged mother, wife, two minor children)? If not known, leave it blank." Free text, with T-190 condition 5 (a "none" answer writes no fact). I sign that text too, but only for use if it is put in scope.
+
+Mark: Approved (high, as before: one of the commonest bail grounds in district courts).
+
+Signed: Ajay (CLO), 11 Oct 2026. The label, question, answer form and place 10a above, on conditions 1 to 3; the 10b text only if it is added to scope.

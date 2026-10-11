@@ -6,7 +6,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 | Lead | Ticket | Branch | Files and folders claimed | Legal paths | Since |
 |---|---|---|---|---|---|
-| vishal | T-189 | feature/t-189-ledger-list-and-choice-fields | apps/drafting/src/services/fact-ledger.service.ts; apps/drafting/src/services/intake-brief.ts; apps/drafting/src/services/intake.prompts.ts; apps/drafting/src/services/brief-drafter.ts; packages/shared/src/types/fact-ledger.ts (packages/shared held by vishal); apps/drafting/src/__tests__/t147b-ledger.test.ts, t147c-drafter-contract.test.ts, intake-brief.test.ts, new t189-*.test.ts | yes: intake-brief.ts, intake.prompts.ts, brief-drafter.ts. No Ajay ref yet: edit any of the three only with Ajay's signed diff (T-189 AC9); stop and escalate if needed. Golden snapshots read-only | 11 Oct 16:25 IST |
+| vishal | T-189 | feature/t-189-ledger-list-and-choice-fields | apps/drafting/src/services/fact-ledger.service.ts; apps/drafting/src/services/intake-brief.ts; apps/drafting/src/services/intake.prompts.ts; apps/drafting/src/services/brief-drafter.ts; packages/shared/src/types/fact-ledger.ts (packages/shared held by vishal); apps/drafting/src/services/averments.ts and apps/drafting/src/routes/intake.routes.ts (extended by Priya, 11 Oct 20:00 IST); apps/drafting/src/__tests__/t147b-ledger.test.ts, t147c-drafter-contract.test.ts, intake-brief.test.ts, new t189-*.test.ts | yes: intake-brief.ts, intake.prompts.ts, brief-drafter.ts. No Ajay ref yet: edit any of the three only with Ajay's signed diff (T-189 AC9); stop and escalate if needed. Golden snapshots read-only | 11 Oct 16:25 IST |
 | mahak | T-197 | fix/t-197-disclaimer-on-every-draft | apps/web/src/components/intake/DraftReadyStep.tsx; apps/web/src/components/intake/OneFlow.tsx; apps/web/src/components/intake/briefTypes.ts; apps/web/src/app/dashboard/documents/; apps/drafting/src/routes/documents.routes.ts; new apps/drafting/src/__tests__/t197-*.test.ts | no. Text is Ajay's, already signed (T-158, T-127 §9). `fact-verifier.ts` is import-only: read `FACT_CHECK_DISCLAIMER`, do not edit | 11 Oct 16:25 IST |
 | shashank | T-208 | fix/t-208-auth-validation-422 | apps/auth/src/validators/; apps/auth/src/middleware/errorHandler.ts; apps/auth/src/controllers/auth.controller.ts; apps/auth/src/routes/; new apps/auth/src/__tests__/t208-*.test.ts | no | 11 Oct 16:25 IST |
 
@@ -21,7 +21,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-Empty.
+1. shashank — T-208 (ready 11 Oct 19:40 IST; slot given by Priya 11 Oct 20:00 IST)
 
 ## Last done
 
