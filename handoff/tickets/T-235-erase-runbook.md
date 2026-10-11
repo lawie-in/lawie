@@ -103,3 +103,5 @@ This belongs to T-115 and doesn't block go-live:
 | 2n, audit events | Keep `payment` and `account_delete` events, stripped to userId, type and time |
 | 2o, coupon usages | Delete |
 | Sentry | Erased by hand. §7 now says so. §7 and §9 disclose tax-record retention; the lead applies that text with the rest of T-235 |
+
+- Compliance register (Ajay): batch 1 #16 bail_juvenile_jj_12 handles a child's data (DPDP s.9). Lawie acts as the advocate's processor. The policy and the register should note it.
