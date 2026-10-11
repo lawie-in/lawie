@@ -4,6 +4,16 @@
  * Uses Puppeteer for rendering (same pipeline as scripts/export-pdf.ts).
  * Court standard: A4, Times New Roman 12pt, double-spaced, 1.5" left margin.
  */
+import {
+  blankMarksToTags,
+  blankText,
+  draftHeaderText,
+  findBlanks,
+  markBlanks,
+  stripBlankMarks,
+  type Blank,
+  type FindBlanks,
+} from '@lawie/shared';
 import puppeteer from 'puppeteer';
 
 import { missingAsBlanks } from '../utils/missingAsBlanks';
@@ -27,14 +37,56 @@ function markdownBoldItalic(text: string): string {
 
 export { missingAsBlanks };
 
+// ── T-194: blanks in an export ───────────────────────────────────────────────
+// The one blank set (Ajay's sign-off (d)), the signed header text and the
+// marking of blanks in the content live in packages/shared/src/blanks.ts, used
+// by this file and by the web exports alike.
+
+export { draftHeaderText, findBlanks };
+export type { Blank, FindBlanks };
+
+/**
+ * The blanks of a saved draft, as the PDF prints it (after `missingAsBlanks`).
+ * T-194: the route takes the header's N from this; `contentToHtml` highlights
+ * the same blanks.
+ */
+export function blanksInContent(rawContent: string, find: FindBlanks = findBlanks): Blank[] {
+  return find(blankText(missingAsBlanks(rawContent)));
+}
+
+/** T-194 options for `contentToHtml`. */
+export interface ContentToHtmlOptions {
+  /** When given, each blank it finds prints bold and highlighted (Ajay (b)). */
+  findBlanks?: FindBlanks;
+}
+
+/** T-194, Ajay (b): bold, yellow #FFFF00, black text; colour kept in print. */
+const BLANK_CSS = `  .tbc {
+    font-weight: 700;
+    background: #FFFF00;
+    color: #000;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+`;
+
 /**
  * Convert document content to court-formatted HTML.
  * Handles two content formats:
  *  - TipTap HTML (saved after user edits): embedded directly, no escaping
  *  - Plain text / markdown (original AI output): converted to paragraphs
  */
-export function contentToHtml(rawContent: string, _isFree: boolean, startingDraft = false): string {
-  const content = missingAsBlanks(rawContent);
+export function contentToHtml(
+  rawContent: string,
+  _isFree: boolean,
+  startingDraft = false,
+  options: ContentToHtmlOptions = {},
+): string {
+  // T-194: blanks are marked with sentinels here and become <span class="tbc">
+  // once the body is built. No finder, or no blanks: the content is as before.
+  const { marked: content, blanks } = options.findBlanks
+    ? markBlanks(missingAsBlanks(rawContent), options.findBlanks)
+    : { marked: missingAsBlanks(rawContent), blanks: [] };
   let body = '';
 
   if (content.trimStart().startsWith('<')) {
@@ -49,17 +101,19 @@ export function contentToHtml(rawContent: string, _isFree: boolean, startingDraf
       const lines = para.split('\n');
       const lineHtml = lines.map((l) => markdownBoldItalic(l)).join('<br>');
 
+      // The blank sentinels (T-194) do not count toward the heading test.
+      const line = stripBlankMarks(lines[0]);
       const isHeading =
         lines.length === 1 &&
-        lines[0].length < 120 &&
-        (lines[0] === lines[0].toUpperCase() ||
-          lines[0].startsWith('PRAYER') ||
-          lines[0].startsWith('VERIFICATION') ||
-          lines[0].startsWith('DEMAND') ||
-          lines[0].startsWith('APPLICATION FOR') ||
-          lines[0].startsWith('THROUGH:') ||
-          lines[0].startsWith('LEGAL NOTICE') ||
-          lines[0].startsWith('Subject:'));
+        line.length < 120 &&
+        (line === line.toUpperCase() ||
+          line.startsWith('PRAYER') ||
+          line.startsWith('VERIFICATION') ||
+          line.startsWith('DEMAND') ||
+          line.startsWith('APPLICATION FOR') ||
+          line.startsWith('THROUGH:') ||
+          line.startsWith('LEGAL NOTICE') ||
+          line.startsWith('Subject:'));
 
       if (isHeading) {
         body += `<p class="heading">${lineHtml}</p>\n`;
@@ -67,6 +121,10 @@ export function contentToHtml(rawContent: string, _isFree: boolean, startingDraf
         body += `<p>${lineHtml}</p>\n`;
       }
     }
+  }
+
+  if (blanks.length > 0) {
+    body = blankMarksToTags(body, '<span class="tbc">', '</span>');
   }
 
   // T-106, ADR-021 rule 6 — a starting draft says so in its footer (T-107, section 4).
@@ -126,7 +184,7 @@ export function contentToHtml(rawContent: string, _isFree: boolean, startingDraf
   ul, ol { margin: 0.4em 0 0.4em 1.5em; padding: 0; }
   li { margin-bottom: 0.2em; }
   hr { border: none; border-top: 1px solid #999; margin: 1em 0; }
-</style>
+${blanks.length > 0 ? BLANK_CSS : ''}</style>
 </head>
 <body>
 ${body}
@@ -144,7 +202,27 @@ ${body}
  * failures in dev where the value evaluated to undefined but the option was
  * still present in the options object.
  */
-export async function renderPdf(html: string): Promise<Buffer> {
+/** T-194 options for `renderPdf`. */
+export interface RenderPdfOptions {
+  /**
+   * Printed at the top of every page, 10pt bold, centred over the text column
+   * ("DRAFT — N items to be confirmed"). Omitted: no header, as before.
+   */
+  headerText?: string;
+}
+
+function headerTemplate(text: string): string {
+  // Puppeteer renders the template in the page's top margin, outside the
+  // document's own CSS, so it carries its own font and size.
+  return (
+    '<div style="box-sizing:border-box;width:100%;padding:0 1in 0 1.5in;' +
+    "font-family:'Times New Roman',Times,serif;font-size:10pt;font-weight:bold;" +
+    'text-align:center;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact;">' +
+    `${escapeHtml(text)}</div>`
+  );
+}
+
+export async function renderPdf(html: string, options: RenderPdfOptions = {}): Promise<Buffer> {
   const launchOpts: Parameters<typeof puppeteer.launch>[0] = {
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
@@ -167,6 +245,16 @@ export async function renderPdf(html: string): Promise<Buffer> {
         right: '1in',
       },
       printBackground: true,
+      // T-194 AC5: the header only when the draft has blanks. The empty footer
+      // template keeps Puppeteer's default footer (date, page numbers) off the
+      // page; the in-page disclaimer footer is unchanged.
+      ...(options.headerText
+        ? {
+            displayHeaderFooter: true,
+            headerTemplate: headerTemplate(options.headerText),
+            footerTemplate: '<span></span>',
+          }
+        : {}),
     });
 
     return Buffer.from(pdfBuffer);

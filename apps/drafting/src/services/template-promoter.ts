@@ -23,6 +23,7 @@ import { join } from 'path';
 
 import logger from '../config/logger';
 
+import { costForTemplate } from './credits.service';
 import type {
   DocumentSection,
   FieldOption,
@@ -163,8 +164,7 @@ export function normaliseOption(o: unknown, idx: number): FieldOption | null {
   }
   if (o && typeof o === 'object') {
     const obj = o as Record<string, unknown>;
-    const label =
-      typeof obj.label === 'string' ? obj.label : String(obj.id ?? `Option ${idx + 1}`);
+    const label = typeof obj.label === 'string' ? obj.label : String(obj.id ?? `Option ${idx + 1}`);
     const id =
       typeof obj.id === 'string' && obj.id.length > 0
         ? obj.id
@@ -895,7 +895,10 @@ export function promoteDocRuleToTemplateConfig(
 
   // Preserve fields the engine doesn't model yet but downstream consumers (SCRUM-80
   // / SCRUM-81 golden-PDF compare / billing credit math) need to read.
-  config.creditsCost = typeof rule.creditsCost === 'number' ? rule.creditsCost : 1;
+  // T-227: the shown price comes from the one price list (credits.service), the
+  // same one the charge reads. The rule file's own `creditsCost` is ignored.
+  // An id with no price is left unpriced here; the registry build refuses it.
+  config.creditsCost = costForTemplate(template_id);
   config._source = {
     sourceFile,
     formSchemaShape: shape,
@@ -949,6 +952,18 @@ export function loadAllDocRules(dir: string = DOC_RULES_DIR): RegistryBuild {
     } catch (err) {
       mismatchReport.push(`[${file}] parse/promote failed: ${(err as Error).message}`);
     }
+  }
+
+  // T-227: every template needs an explicit price. A rule file with no entry in
+  // TEMPLATE_PRICES stops the build (and the boot) instead of showing a default.
+  const unpriced = [...configs.values()]
+    .filter((c) => typeof (c as { creditsCost?: unknown }).creditsCost !== 'number')
+    .map((c) => c.template_id)
+    .sort();
+  if (unpriced.length > 0) {
+    throw new Error(
+      `Template promoter: no price in TEMPLATE_PRICES (credits.service) for: ${unpriced.join(', ')}`,
+    );
   }
 
   return { configs, mismatchReport, byFile };

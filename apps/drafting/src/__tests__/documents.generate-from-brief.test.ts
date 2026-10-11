@@ -606,9 +606,9 @@ describe('POST /generate-from-brief — what stops a draft before any model call
     await expectNothingHappened(fetchMock);
   });
 
-  it('a kind that is not a rule pack: 404', async () => {
+  it('a kind that is not a rule pack: 400 from enforceCredits (no price, T-227)', async () => {
     const fetchMock = mockModel();
-    expect((await post({ kind: 'not_a_pack', values: [] })).status).toBe(404);
+    expect((await post({ kind: 'not_a_pack', values: [] })).status).toBe(400);
     await expectNothingHappened(fetchMock);
   });
 
@@ -767,8 +767,8 @@ describe('POST /generate-from-brief — no rule pack', () => {
       llmCalls: 1,
       paragraphCount: 2,
     });
-    // One Ink, which is two units in the store.
-    expect((await User.findById(USER_ID).lean())!.inkTopup).toBe(1998);
+    // `guided` is 2 Ink (T-227, Vikram), which is four units in the store.
+    expect((await User.findById(USER_ID).lean())!.inkTopup).toBe(1996);
 
     // The demand signal says a draft with no rule pack was made. It holds none of the user's words.
     const signals = await Event.find({ type: 'demand.guided_draft' }).lean();

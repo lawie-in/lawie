@@ -33,3 +33,40 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 - I sign up and sign in exactly as before; nothing looks or works differently.
 - My email, name, phone number and password are no longer kept in Lawie's server logs or in error reports, even when something goes wrong while I sign up or sign in.
 
+
+## T-189 (vishal, merged to develop_staging 8bab9f7, 12 Oct 2026)
+
+Needs the `feature.fact_ledger` setup above, or she sees the old path.
+
+- I am a district-court advocate drafting a bail application, regular or anticipatory. I give the sections I am charged under and my grounds for bail in my own words. Before, the draft marked both as missing even though I had given them. Now every section and every ground I gave appears in the draft.
+- If I gave neither, the draft still shows both as missing.
+- If I gave three grounds and one cannot be found in what I wrote, I still get the other two, and I am told the system could not find that detail in what I wrote.
+- If I repeat the same section twice in my list, it appears once.
+- I can add, remove or change entries in my list and the draft follows.
+- If a draft leaves out one of my sections or grounds, or rewords a ground, I am told to check it instead of it quietly disappearing.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-194 (mahak, merged to develop_staging 324416e, 12 Oct 2026)
+
+Before her run, someone checks by hand: a real PDF render, the em dash in the fallback PDF, the DOCX opened in Word, and "Export DOCX anyway" in a browser.
+
+- The bold, italic and underlined text from my draft now shows in the Word file.
+- Before I export, I get a warning with the number of items still to be confirmed.
+- I can go back and fill them in. That puts me on the first blank.
+- Or I can export anyway.
+- Each blank prints bold and highlighted in yellow, in both Word and PDF.
+- "DRAFT — N items to be confirmed" prints at the top of every page.
+- If nothing is blank, there is no warning and no header, as before.
+- The registry case number in the title, the signing date in the verification and the signature line are not flagged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-227 (shashank, merged to develop_staging efa610b, 12 Oct 2026)
+
+- The Ink a document shows is the Ink taken.
+- Bail (regular and anticipatory) and consumer complaint now show 2 Ink, which is what they were always charged.
+- Most long documents now cost the 2 Ink they already showed.
+- A document type the app does not recognise is refused with a clear message, and no Ink is taken.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
