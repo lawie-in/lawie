@@ -77,7 +77,17 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 **CTA** — A "Start with 5 free Ink" (21) · B "Pick your bail draft" (20) · C "Draft your next bail application" (32). HI: A "5 free Ink से शुरू करें" · B "अपना bail draft चुनिए" · C "अगली bail application यहाँ ड्राफ्ट कीजिए"
 
-**Visual brief (Rajesh):** TBD — Rajesh
+**Visual brief (Rajesh):**
+- **Format:** LinkedIn single image, 1200x1350. `_en`, `_hi`.
+- **Template:** T3 document-family tile (six bail tiles) (`design-notes.md` §3)
+- **Layout and hierarchy:** Headline 80 px. 2 x 3 grid of tiles, each 500 x 190, in the post's order: Regular bail, Anticipatory bail, Bail before the magistrate, Interim bail, Default bail, Cancellation of bail. Tile label 52 px. Under the grid: `Criminal drafts cite BNS, BNSS and BSA.` (48 px). Footer zone with disclaimer, then lockup.
+- **Text on image, EN layer (verbatim from the post):** `Lawie has six:` / tiles / `Criminal drafts cite BNS, BNSS and BSA.` / `Check every section and every fact before you file.` / CTA `Start with 5 free Ink`.
+- **Text on image, HI layer (verbatim from the HI post):** `Lawie में इसके छह ड्राफ्ट हैं:` / tiles `Regular bail` `Anticipatory bail` `Magistrate के सामने bail` `Interim bail` `Default bail` `Bail cancellation` / `Criminal drafts में BNS, BNSS और BSA cite होते हैं।` / `फ़ाइल करने से पहले हर section और हर तथ्य जाँचें।` / CTA `5 free Ink से शुरू करें`
+- **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
+- **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
+- **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour.
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles: regular bail, anticipatory bail, bail before the magistrate, interim bail, default bail, cancellation of bail. Criminal drafts cite BNS, BNSS and BSA. Check every section and every fact before you file. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+- **Note for Madhuri/Ajay:** The headline is the post's own fragment `Lawie has six:`. I left the 'drafts most' sentence off the image because Ajay flagged it as unmeasured. If that reads too bare, Madhuri can give a one-line image headline.
 
 **Claims to check (Ajay):**
 1. "Bail applications are the documents a district-court junior drafts most." This is an observation from our ICP research, not a measured statistic. Soften to "one of the documents … drafts most often" if you prefer.
@@ -113,7 +123,17 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 
 **CTA** — "Start with 5 free Ink" plus the link.
 
-**Visual brief (Rajesh):** TBD — Rajesh
+**Visual brief (Rajesh):**
+- **Format:** X image, 1600x900. `_en`, `_hi`.
+- **Template:** T3 document-family tile (landscape, 3 x 2) (`design-notes.md` §3)
+- **Layout and hierarchy:** Same tile system as W1-X-2, six bail tiles, headline 96 px, BNS/BNSS/BSA line 56 px, disclaimer in the footer zone (full line).
+- **Text on image, EN layer (verbatim from the post):** `Six bail drafts in Lawie` / tiles `Regular` `Anticipatory` `Before magistrate` `Interim` `Default` `Cancellation` / `Criminal drafts cite BNS, BNSS and BSA.` / `Start with 5 free Ink` / the disclaimer.
+- **Text on image, HI layer (verbatim from the HI post):** `Lawie में 6 तरह के bail draft` / tiles `Regular` `Anticipatory` `Magistrate के सामने` `Interim` `Default` `Cancellation` / `Criminal drafts में BNS, BNSS और BSA cite होते हैं।` / `5 free Ink से शुरू करें` / the disclaimer.
+- **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
+- **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
+- **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour.
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles: regular, anticipatory, before magistrate, interim, default, cancellation. Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink."
+- **Note for Madhuri/Ajay:** Same link-card caveat as W1-X-1.
 
 **Claims to check (Ajay):**
 1. Six bail drafts are live.
@@ -158,7 +178,17 @@ Reply STOP to stop these messages.
 
 **CTA** — the single link. Lead-in variants: A "Start with 5 free Ink:" (22) · B "Draft a bail application:" (25) · C "Open Lawie:" (11)
 
-**Visual brief (Rajesh):** TBD — Rajesh
+**Visual brief (Rajesh):**
+- **Format:** WhatsApp broadcast image, 1080x1080, JPEG q80 under 150 KB. Use the `_hi` file with the Hindi-first message.
+- **Template:** T3 document-family tile, six bail tiles on cream (`design-notes.md` §3)
+- **Layout and hierarchy:** Headline 80 px, 2 x 3 tiles (440 x 190), a single line `Bail application: 2 Ink` under the grid (it is in the message), footer disclaimer.
+- **Text on image, EN layer (verbatim from the post):** `Lawie has six bail drafts` / tiles as W2-X-1 / `A bail application uses 2 Ink.` / `Start with 5 free Ink` / the disclaimer.
+- **Text on image, HI layer (verbatim from the HI post):** `Lawie में bail application के छह ड्राफ्ट हैं` / tiles as W2-X-1 HI / `Bail application में 2 Ink लगते हैं।` / `5 free Ink से शुरू करें` / the disclaimer.
+- **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
+- **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
+- **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour.
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles for the six bail drafts: regular, anticipatory, before magistrate, interim, default and cancellation. A bail application uses 2 Ink. Start with 5 free Ink."
+- **Note for Madhuri/Ajay:** The '2 Ink' line is still waiting on Ajay/Vikram confirming all six bail types are 2 Ink (claim 4). If not confirmed, drop that line from the image; the layout does not need it.
 
 **Claims to check (Ajay):**
 1. Six bail drafts are live.
@@ -230,7 +260,17 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 **CTA** — "Start with 5 free Ink. Link in bio." Bio link `utm_content=w2-ig-1`. Variants: A "Start with 5 free Ink" · B "Pick your bail draft" (20) · C "Save this for your next bail matter" (35)
 
-**Visual brief (Rajesh):** TBD — Rajesh
+**Visual brief (Rajesh):**
+- **Format:** Instagram carousel, 7 slides, 1080x1350, JPEG q85 each under 200 KB. One per language version.
+- **Template:** S1 T1 (navy). S2 to S6 T3 single large tile per slide. S7 end-card. (`design-notes.md` §3)
+- **Layout and hierarchy:** S1 headline 104 px. S2 to S5 each show one bail type as a large tile (936 x 520) with a lucide file-text icon 120 px and the name 88 px; S6 two tiles stacked (each 936 x 360). All tiles same size and position slide to slide, so the swipe feels like a flip-book. S7: BNS/BNSS/BSA line, CTA, disclaimer, lockup. Same tile style as W1-IG-3.
+- **Text on image, EN layer (verbatim from the post):** S1 `Six bail drafts in Lawie.` S2 `Regular bail.` S3 `Anticipatory bail.` S4 `Bail before the magistrate.` S5 `Interim bail.` S6 `Default bail. Cancellation of bail.` S7 `Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink.` + disclaimer.
+- **Text on image, HI layer (verbatim from the HI post):** S1 `Lawie में छह bail drafts.` S2 `Regular bail.` S3 `Anticipatory bail.` S4 `Magistrate के सामने bail.` S5 `Interim bail.` S6 `Default bail. Bail cancellation.` S7 `Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।` + disclaimer.
+- **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
+- **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
+- **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour. It sits on the last slide only, as in the copy.
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Slide 1 of 7: Six bail drafts in Lawie. Slides 2 to 6 name them: regular bail, anticipatory bail, bail before the magistrate, interim bail, default bail and cancellation of bail. Slide 7: Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+- **Note for Madhuri/Ajay:** No definitions or section numbers on the tiles: the copy gives none and that would be new legal content.
 
 **Claims to check (Ajay):**
 1. Six bail drafts are live, by name.
@@ -283,7 +323,17 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 **CTA** — A "Start with 5 free Ink" (21) · B "Save this checklist" (19) · C "Try it on your next bail matter" (31)
 
-**Visual brief (Rajesh):** TBD — Rajesh
+**Visual brief (Rajesh):**
+- **Format:** LinkedIn single image, 1200x1350 (a saveable checklist). `_en`, `_hi`.
+- **Template:** T1 quote card, cream ground, checklist variant (`design-notes.md` §3)
+- **Layout and hierarchy:** Headline 72 px (Lora 600). Six numbered rows, each with a hollow square (a checkbox shape, not ticked: ticks would read as 'verified'), text 48 px, rows 100 px apart. Gold rule above the closing line. Footer zone with disclaimer. The only imagery is the checkboxes. It must look like a checklist you go through, not a certificate.
+- **Text on image, EN layer (verbatim from the post):** `Before you file a bail application drafted in Lawie, go through it once more.` / `1. Every section cited. Is it the right provision for this matter?` / `2. Names, ages, addresses, dates and FIR details, against the case file.` / `3. The court heading and the cause title.` / `4. The grounds. Are the ones that matter for your client there, in your words?` / `5. The prayer.` / `6. Verification and the advocate block.` / `Lawie gives you a first draft. The checking, and the judgement, are yours.` The headline is long at 72 px (3 lines): acceptable.
+- **Text on image, HI layer (verbatim from the HI post):** `Lawie में बनी bail application फ़ाइल करने से पहले एक बार फिर देख लें।` / `1. हर cited section। क्या इस मामले के लिए यही सही प्रावधान है?` / `2. नाम, उम्र, पता, तारीख़ें और FIR की जानकारी, केस फ़ाइल से मिलाकर।` / `3. कोर्ट का heading और cause title।` / `4. Grounds। आपके क्लाइंट के लिए जो ज़रूरी हैं, वे आपके शब्दों में हैं या नहीं?` / `5. Prayer।` / `6. Verification और advocate block।` / `Lawie आपको पहला ड्राफ्ट देता है। जाँच और फ़ैसला आपका है।`
+- **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
+- **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
+- **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour.
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Checklist of six things to check before filing a bail application drafted in Lawie: every section cited, names and dates against the case file, the court heading and cause title, the grounds, the prayer, and the verification and advocate block. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+- **Note for Madhuri/Ajay:** Ajay's open point 1 (r.36 and 'your client') applies to row 4 on the image as well. If he trims rows 3 and 6 (claim 3), I drop them and re-space; layout holds for 4 to 6 rows.
 
 **Claims to check (Ajay):**
 1. The checklist is a review aid for advocates checking their own draft. It is not legal advice to anyone. Please confirm it reads that way, and that "your client" here is not a client-solicitation problem under r.36.
@@ -324,7 +374,16 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 
 **CTA** — the link.
 
-**Visual brief (Rajesh):** TBD — Rajesh
+**Visual brief (Rajesh):**
+- **Format:** X image, 1600x900. `_en`, `_hi`.
+- **Template:** T1 quote card, checklist variant (landscape) (`design-notes.md` §3)
+- **Layout and hierarchy:** Headline left 80 px; four check rows in a 2 x 2 grid, 56 px, hollow square markers; footer zone with the disclaimer pointer.
+- **Text on image, EN layer (verbatim from the post):** `Before you file a bail application drafted in Lawie, check:` / `Every section cited` / `Names, dates, FIR details` / `The court heading` / `The grounds and the prayer` / `The draft is a start. The advocate is responsible for legal accuracy and filing.`
+- **Text on image, HI layer (verbatim from the HI post):** `Lawie में बनी bail application फ़ाइल करने से पहले जाँचें:` / `हर cited section` / `नाम, तारीख़ें, FIR की जानकारी` / `कोर्ट का heading` / `Grounds और prayer` / `ड्राफ्ट एक शुरुआत है। The advocate is responsible for legal accuracy and filing.`
+- **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
+- **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
+- **Disclaimer:** The post's own closing sentence is the disclaimer pointer; set it in the footer zone at full strength.
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Four things to check before you file a bail application drafted in Lawie: every section cited, names, dates and FIR details, the court heading, and the grounds and prayer. The draft is a start. The advocate is responsible for legal accuracy and filing."
 
 **Claims to check (Ajay):**
 1. Review checklist (as W2-LI-2).
@@ -370,7 +429,17 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 **CTA** — "Start with 5 free Ink. Link in bio." Bio link `utm_content=w2-ig-2`. Variants: A "Start with 5 free Ink" · B "Draft your next notice" (22) · C "Most notices: 1 Ink" (19)
 
-**Visual brief (Rajesh):** TBD — Rajesh
+**Visual brief (Rajesh):**
+- **Format:** Reel cover 1080x1350 (centre-safe 1080x1080) plus the reel (see `reels.md` R2, 1080x1920).
+- **Template:** T2 screen-with-callout (cover) (`design-notes.md` §3)
+- **Layout and hierarchy:** Same composition as W1-IG-2, so the two reels read as a series: headline top, screenshot card, label chip, lockup bottom-left.
+- **Text on image, EN layer (verbatim from the post):** `A legal notice. 1 Ink.` (the reel hook text).
+- **Text on image, HI layer (verbatim from the HI post):** `Legal notice भेजना है?` (the reel's HI line) for the HI cover variant.
+- **Screenshot:** The notices group of the 'Browse document types' screen. Sample values from R2: B. Sharma (sample), C. Traders (sample), Cheque No. 000000, amount `₹00,000 (sample)`, Sample Bank. Live app, desktop browser capture at 2x, no phone frame, no browser chrome, no account email or name, fresh account state. Sample matter only: A. Kumar (sample), FIR No. 000/2026, Sample Nagar, offence date 02/09/2026 (same values as R1). The chip `Sample, fictional matter` is pinned top-left of the screenshot card for as long as any case detail is visible.
+- **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
+- **Disclaimer:** Not on the cover (no output shown). On the reel end card and in the caption.
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Cover of a reel: A legal notice. 1 Ink. Shows the Lawie document list, notices group, labelled Sample, fictional matter."
+- **Note for Madhuri/Ajay:** The sample amount `₹00,000 (sample)` contains a rupee sign. It is not a price, and it is the reel's own sample value, but if the cover shows any intake screen, crop it out: 'rupee figures only as in the copy'.
 
 **Claims to check (Ajay):**
 1. Flow for a legal notice: pick, answer questions, review, edit, download (Word or PDF).
@@ -419,7 +488,17 @@ Condition (Vikram): the rupee line goes out only after T-227 and T-238 merge and
 
 **CTA** — A "Start with 5 free Ink" (21) · B "See how Ink works" (17) · C "Draft your first bail application" (33)
 
-**Visual brief (Rajesh):** TBD — Rajesh
+**Visual brief (Rajesh):**
+- **Format:** LinkedIn single image, 1200x627. `_en`, `_hi`.
+- **Template:** T1 quote card used as a two-row Ink table (`design-notes.md` §3)
+- **Layout and hierarchy:** Headline 64 px. Two rows with large Ink pills (as W1-X-3): `2 Ink` Bail application; `1 Ink` Legal notice or affidavit (usually). Under them the signed charge line at 40 px. NO RUPEES on the image: the post's rupee paragraph is conditional on T-227/T-238 and the Razorpay check, and the image must survive if that paragraph is cut. Footer with the disclaimer.
+- **Text on image, EN layer (verbatim from the post):** `What a bail application costs in Lawie, in Ink.` / `Bail application: 2 Ink` / `Legal notice or affidavit: usually 1 Ink` / `5 free Ink on sign-up.` / `You're charged only after a draft is generated; a failed generation is not charged.`
+- **Text on image, HI layer (verbatim from the HI post):** `Lawie में bail application कितने Ink की है?` / `Bail application: 2 Ink` / `Legal notice या affidavit: आम तौर पर 1 Ink` / `साइन-अप पर 5 free Ink.` / `Ink ड्राफ्ट generate होने के बाद ही कटता है; फ़ेल हुए generation का कोई चार्ज नहीं।`
+- **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
+- **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
+- **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour. At 1200x627 the footer zone is 150 px high: disclaimer on 2 lines at 44 px fits; the charge line sits above it.
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Ink costs in Lawie. A bail application is 2 Ink. A legal notice or affidavit is usually 1 Ink. 5 free Ink on sign-up. You are charged only after a draft is generated; a failed generation is not charged. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+- **Note for Madhuri/Ajay:** The two rows on the image are my layout of the post's sentences 'A bail application is a 2-Ink document. A legal notice or an affidavit is usually 1.' The words are shortened to labels; the numbers are unchanged. Madhuri to OK the label form.
 
 **Claims to check (Ajay):**
 1. Ink line (exact, signed). Hindi rendering is new.
@@ -462,7 +541,17 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 
 **CTA** — "Start with 5 free Ink" plus the link.
 
-**Visual brief (Rajesh):** TBD — Rajesh
+**Visual brief (Rajesh):**
+- **Format:** X image, 1600x900. `_en`, `_hi`.
+- **Template:** T2 screen-with-callout (three small cards in a row) (`design-notes.md` §3)
+- **Layout and hierarchy:** Headline left 80 px. Three step cards in a row (each 440 x 330): numeral, label 52 px, and a small UI crop (Browse document types / questions / editor). Under the row: `Bail applications use 2 Ink. Start with 5 free Ink.` and the disclaimer pointer in the footer zone.
+- **Text on image, EN layer (verbatim from the post):** `A bail application in Lawie:` / `1. Pick the bail application` / `2. Answer a few questions about the matter` / `3. Review, edit, download (Word or PDF)` / `Bail applications use 2 Ink. Start with 5 free Ink.` / `The advocate is responsible for legal accuracy and filing.`
+- **Text on image, HI layer (verbatim from the HI post):** `Lawie में bail application:` / `1. Bail application चुनिए` / `2. मामले के कुछ सवालों के जवाब दीजिए` / `3. जाँचिए, बदलिए, Word या PDF डाउनलोड कीजिए` / `Bail application में 2 Ink लगते हैं। शुरुआत 5 free Ink से।` / `The advocate is responsible for legal accuracy and filing.`
+- **Screenshot:** Three small crops, same screens as W1-LI-2, each under 440 x 200. Live app, desktop browser capture at 2x, no phone frame, no browser chrome, no account email or name, fresh account state. Sample matter only: A. Kumar (sample), FIR No. 000/2026, Sample Nagar, offence date 02/09/2026 (same values as R1). The chip `Sample, fictional matter` is pinned top-left of the screenshot card for as long as any case detail is visible.
+- **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
+- **Disclaimer:** Pointer sentence (the post's own closing line), full-strength, in the footer zone.
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Three steps: pick the bail application, answer a few questions about the matter, review, edit and download in Word or PDF. Bail applications use 2 Ink. Start with 5 free Ink."
+- **Note for Madhuri/Ajay:** Crops are small; they are cues, not content. Do not enlarge them to 'show the draft'.
 
 **Claims to check (Ajay):**
 1. Flow: pick, answer questions, review, edit, download (Word or PDF).
@@ -533,7 +622,17 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 **CTA** — "Start with 5 free Ink. Link in bio." Bio link `utm_content=w2-ig-3`. Variants: A "Start with 5 free Ink" · B "Save this checklist" (19) · C "Share with a junior in your chamber" (35)
 
-**Visual brief (Rajesh):** TBD — Rajesh
+**Visual brief (Rajesh):**
+- **Format:** Instagram carousel, 7 slides, 1080x1350, JPEG q85 each under 200 KB. A saveable checklist.
+- **Template:** S1 T1 (navy). S2 to S6 T1 checklist (one item per slide). S7 end-card. (`design-notes.md` §3)
+- **Layout and hierarchy:** S1 headline 88 px. S2 to S6: a large hollow checkbox (180 px, never ticked) at upper-left, item text 80 px (EN) / 72 px (HI) beneath. Slide counter bottom-right. S7: `The draft is a start.` 96 px, then disclaimer, lockup, CTA. Consistent positions slide to slide.
+- **Text on image, EN layer (verbatim from the post):** S1 `Before you file a bail application drafted in Lawie.` S2 `Check every section cited.` S3 `Check names, dates and FIR details against the case file.` S4 `Check the court heading and cause title.` S5 `Check the grounds and the prayer.` S6 `Check the verification and the advocate block.` S7 `The draft is a start.` + disclaimer (and the CTA from the caption: `Start with 5 free Ink`, link in bio, if the slide has room; not required, the S7 copy has no CTA).
+- **Text on image, HI layer (verbatim from the HI post):** S1 `Lawie में बनी bail application फ़ाइल करने से पहले।` S2 `हर cited section जाँचें।` S3 `नाम, तारीख़ें और FIR की जानकारी केस फ़ाइल से मिलाएँ।` S4 `कोर्ट का heading और cause title जाँचें।` S5 `Grounds और prayer जाँचें।` S6 `Verification और advocate block जाँचें।` S7 `ड्राफ्ट एक शुरुआत है।` + disclaimer.
+- **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
+- **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
+- **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour. It sits on the last slide only, as in the copy.
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Slide 1 of 7: Before you file a bail application drafted in Lawie. Slides 2 to 6 are a checklist: every section cited; names, dates and FIR details against the case file; court heading and cause title; grounds and prayer; verification and advocate block. Slide 7: The draft is a start. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+- **Note for Madhuri/Ajay:** Same Ajay checks as W2-LI-2 (r.36 wording, whether the bail packs output each part). Slide order stays aligned to the post.
 
 **Claims to check (Ajay):**
 1. Review checklist (as W2-LI-2), including whether the bail packs output each part listed.
@@ -577,7 +676,17 @@ Reply STOP to stop these messages.
 
 **CTA** — the single link. Lead-in variants: A "Start with 5 free Ink:" (22) · B "Draft your notice:" (18) · C "Open Lawie:" (11)
 
-**Visual brief (Rajesh):** TBD — Rajesh
+**Visual brief (Rajesh):**
+- **Format:** None. No image for this broadcast.
+- **Template:** n/a (`design-notes.md` §3)
+- **Layout and hierarchy:** Same reasoning as W1-WA-2: short text message, one link, low bandwidth. The message names the s.138 NI Act and s.80 CPC notices, and an image would add legal wording that would need its own Ajay check.
+- **Text on image, EN layer (verbatim from the post):** n/a
+- **Text on image, HI layer (verbatim from the HI post):** n/a
+- **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
+- **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
+- **Disclaimer:** In the message text, as in the copy.
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "n/a (no image)."
+- **Note for Madhuri/Ajay:** If Meera wants an image: reuse the R2 reel cover frame at 1080x1080 (no rupees, labelled sample).
 
 **Claims to check (Ajay):**
 1. Most notices use 1 Ink; the s.138 NI Act and s.80 CPC notices are on the 1-Ink list (T-227: `legal_notice_s138`, `legal_notice_s80`).
