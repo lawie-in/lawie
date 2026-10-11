@@ -4,8 +4,9 @@
 | -------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Phase          | 1 — Describe and draft                                                                                              |
 | Owner          | Vishal (harness), Anushka (fixtures, jointly)                                                                       |
+| Assigned lead  | vishal                                                                                                              |
 | Mode           | Build, full chain. Merge to develop                                                                                 |
-| Status         | Blocked on T-147d                                                                                                   |
+| Status         | Merged to develop_staging (11 Oct); waiting for founder's merge to develop                                          |
 | Size           | S (half a day for the harness; fixtures run alongside)                                                              |
 | Depends on     | T-147d (the verifier is the assertion)                                                                              |
 | Branch         | feat/t-147e-golden-set                                                                                              |

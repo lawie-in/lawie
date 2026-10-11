@@ -4,8 +4,9 @@
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Phase          | 1 — Describe and draft                                                                                                                                                           |
 | Owner          | Vishal (build), Anushka (tests on develop with the batch)                                                                                                                        |
+| Assigned lead  | vishal                                                                                                                                                                           |
 | Mode           | Build, full chain (developer + reviewer + tester). Merge to develop                                                                                                              |
-| Status         | Blocked on T-147a                                                                                                                                                                |
+| Status         | Merged to develop (PR #87), 10 Oct                                                                                                                                               |
 | Size           | M (1.5 days)                                                                                                                                                                     |
 | Depends on     | T-147a (the ledger type and the normalizer)                                                                                                                                      |
 | Branch         | feat/t-147b-reception-to-ledger                                                                                                                                                  |

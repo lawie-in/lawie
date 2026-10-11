@@ -4,9 +4,10 @@
 | -------------- | ------------------------------------------------------------------------------------------------------- |
 | Phase          | 0 — Prep (security)                                                                                     |
 | Owner          | Vishal (build). Arjun gets a security heads-up                                                          |
+| Assigned lead  | vishal                                                                                                  |
 | Mode           | Build, full chain (touches auth). Merge to develop                                                      |
 | Priority       | Urgent. The founder said "fix it right now", 11 Oct 2026                                                |
-| Status         | In build                                                                                                |
+| Status         | Merged to develop_staging (11 Oct); waiting for founder's merge to develop                              |
 | Size           | S (half a day), plus the founder's ops check                                                            |
 | Depends on     | None                                                                                                    |
 | Gate           | Before anything else is merged to `main`, and before v1 (T-403)                                         |

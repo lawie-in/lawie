@@ -9,9 +9,15 @@ Local ticket files, one per ticket. Founder decision on 3 Oct 2026: no Jira or N
 - These files still hold the full detail of each ticket.
 - Founder rule, 8 Oct 2026: Priya owns the Status line in every `T-*.md`. Each time a ticket's state changes (building, PR open, merged, done), Priya updates that line, and only that line, in the branch the ticket lives on. The dev lead commits and pushes.
 
+## Branch flow (founder, 11 Oct 2026)
+
+- Cut every ticket branch from `develop_staging`. Merge finished work back into `develop_staging`.
+- Nobody on the team opens a PR to `develop` or merges into it. The founder merges `develop_staging` into `develop`, normally at night.
+- `main` is still production. "Merged to develop" in a Status line below, from before 11 Oct, is history; new work reads "Merged to develop_staging".
+
 ## How to use
 
-- One ticket at a time goes to the dev lead.
+- One ticket per lead, assigned by Priya. The claim record is `leads.md`; rules in `.claude/docs/multi-lead.md`.
 - The ticket file is the source of truth. Change its Status line as work moves.
 - Do not rename a ticket file once work has started.
 - Design, legal and research tickets do not go through the dev lead. Their owner writes the result into the file.
@@ -131,7 +137,7 @@ Checked on `develop` after PR #29 and PR #30.
 | T-193 | Bail packs warn when the applicant is under 18: the forum is the JJ Board (JJ Act 2015 s.12) | 1 | Ajay (text, signs), Vishal (apply), Anushka (verdict) | To do. Proposed gate: before v1 go-live (Ajay to confirm) |
 | T-194 | Exports show every blank still to be confirmed: bold and highlighted, a warning with the count, "DRAFT — N items to be confirmed" in the header | 1 | Rajesh (design), Vishal (build), Ajay (signs), Anushka (verdict) | To do. Needs Rajesh's design. Go-live blocker (Ajay) |
 | T-195 | Allowed texts for banned entries that have no allowed partner (legal content) | 1 | Ajay (decides, signs), Vishal (apply), Anushka (verdict) | Backlog. Low priority |
-| T-196 | Registration can never create an Admin account (security) | 0 | Vishal (build), Arjun (security heads-up), Anushka (verdict) | In build. Urgent: founder, 11 Oct 2026 |
+| T-196 | Registration can never create an Admin account (security) | 0 | Vishal (build), Arjun (security heads-up), Anushka (verdict) | Merged to develop_staging (11 Oct); waiting for founder's merge to develop |
 | T-201 | Ledger moves from Ink units to drops                                  | 2     | Vishal                                        | Ready. ADR-020 approved on 4 Oct 2026                                                                                                    |
 | T-202 | Charge by paragraphs: 50 drops + 2 per paragraph                      | 2     | Vishal                                        | Blocked: T-201 and T-003 done. Go-live waits for T-004                                                                                   |
 | T-203 | Web: length picker, estimate and drops balance                        | 2     | Vishal                                        | Blocked: T-202 and T-109                                                                                                                 |

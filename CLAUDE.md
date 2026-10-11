@@ -21,7 +21,7 @@ Express 4 + Mongoose 8 services. Next.js 16 + React 19 + Tailwind 3 web. Redis v
 
 ## Branches
 
-`feature/scrum-<n>-<slug>` or `fix/<slug>` for a `SCRUM-n` ticket; `feature/t-<nnn>-<slug>` or `fix/t-<nnn>-<slug>` for a local `T-nnn` ticket (`handoff/tickets/`, used while Jira and Notion are paused pre-v1). Cut from `develop`, PR to `develop`. `main` is production. Jira project key: `SCRUM`. Remote: `github.com/lawie-in/lawie`.
+`feature/scrum-<n>-<slug>` or `fix/<slug>` for a `SCRUM-n` ticket; `feature/t-<nnn>-<slug>` or `fix/t-<nnn>-<slug>` for a local `T-nnn` ticket (`handoff/tickets/`, used while Jira and Notion are paused pre-v1). Cut from `develop_staging`, merge back into `develop_staging` (founder, 11 Oct 2026). Only the founder merges `develop_staging` into `develop`; nobody else opens PRs to `develop` or merges into it. `main` is production. Three leads (`vishal`, `mahak`, `shashank`) work one ticket each, assigned by Priya; see `.claude/docs/multi-lead.md`. Jira project key: `SCRUM`. Remote: `github.com/lawie-in/lawie`.
 
 ## Commits
 
@@ -39,8 +39,8 @@ Every dev-crew subagent (`developer`, `tester`, `reviewer`, `doc-writer`) follow
 ## Quality gate
 
 Nothing goes to `main` or the prod env without Anushka's `PASS` (founder's rule, 8 Oct 2026; supersedes the 6 Oct develop gate). She is the CQO: a lawyer with no code access who tests the develop env end to end in a browser once a batch is done.
-PRs into `develop` merge without her verdict and end with `Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)`.
-PRs into `main` open with `Quality: waiting for Anushka` and the lead stops; nobody in the dev crew plays her or writes her verdict. Full rule: `.claude/docs/quality-gate.md`.
+Merges into `develop_staging` and `develop` are not gated. Each lead's `--no-ff` merge commit into `develop_staging` ends with `Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)`.
+The founder releases to `main` (T-403), and only after Anushka's `PASS`; no lead opens a PR into `main`. Nobody in the dev crew plays her or writes her verdict. Full rule: `.claude/docs/quality-gate.md`.
 
 ## Deeper reference (read on demand)
 
@@ -48,6 +48,7 @@ PRs into `main` open with `Quality: waiting for Anushka` and the lead stops; nob
 - `.claude/docs/test-gaps.md` — which services have no tests and which have no CI job.
 - `.claude/docs/golden-snapshots.md` — court-rules snapshot mechanics; read this before touching anything under `apps/drafting/src/__tests__/court-rules*`.
 - `.claude/docs/legal-content-paths.md` — the exact paths that count as "legal content" and require Ajay's sign-off.
+- `.claude/docs/multi-lead.md` — three dev leads in parallel: claim record, file overlap rules, merge queue, worktrees.
 - `.claude/docs/quality-gate.md` — the quality gate: what Anushka is sent, what counts as a pass, and what happens when she cannot reach the app.
 
 ## Stale, do not trust

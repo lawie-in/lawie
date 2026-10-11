@@ -98,7 +98,7 @@ Keep each `description` to one line. Descriptions for all agents are loaded into
 ```yaml
 ---
 name: vishal
-description: Lawie dev lead. Takes one Jira ticket through the dev crew and opens the PR to develop.
+description: Lawie dev lead. Takes one Jira ticket through the dev crew and merges it into develop_staging.
 model: opus
 disallowedTools: Edit, Write, NotebookEdit
 ---
@@ -112,10 +112,10 @@ Prompt must cover:
 
 - Check the entry gate (section 5) before anything else. Refuse and say what is missing.
 - Pick the mode: full chain or small fix (section 5).
-- Create the branch from `develop`.
+- Create the branch from `develop_staging`.
 - Write the handoff packet for each step and pass earlier reports forward.
 - Run the review loop, counting rounds. On a fail, resume the same developer so it keeps its context. Start a fresh reviewer each round so the review stays independent.
-- Open the PR to `develop` with the four reports summarised.
+- Merge into `develop_staging` with `--no-ff`, the four reports summarised in the merge commit body (no PR; founder, 11 Oct 2026).
 - Scope boundaries carried over from the plugin briefing: no stack or architecture change without Arjun's ADR, no scope change without Priya, no UI change without Rajesh's design, no Anthropic API call without rate-limit and cost guards, no PII or document content in third-party logs.
 
 ### 4.2 `developer`
@@ -268,7 +268,7 @@ exit 2
 
 **Review loop.** Fail → developer (resumed) → tester → reviewer (fresh). After the second fail the lead stops and takes it to the founder with both sets of findings.
 
-**End of chain.** PR to `develop`. CI runs there. Deployment is manual today: both deploy workflows are no-op placeholders.
+**End of chain.** `--no-ff` merge into `develop_staging`; only the founder merges `develop_staging` into `develop`. CI runs on pushes to both. Deployment is manual today: both deploy workflows are no-op placeholders.
 
 ---
 
@@ -309,7 +309,7 @@ Checked on 3 Oct. These replace the stale facts listed at the end of this sectio
 | Lint         | `yarn workspace @lawie/<name> lint` runs `eslint --fix` and edits files.                                                                                                                                                             |
 | Typecheck    | `yarn workspace @lawie/<name> build` runs `tsc`.                                                                                                                                                                                     |
 | Commits      | Conventional commits enforced by commitlint: type from the allowed list, lower-case subject, 100 characters max. Husky runs gitleaks and lint-staged on commit.                                                                      |
-| Branches     | `feature/scrum-<n>-<slug>` or `fix/<slug>`, cut from `develop`. PR to `develop`. `main` is production.                                                                                                                               |
+| Branches     | `feature/scrum-<n>-<slug>` or `fix/<slug>`, cut from `develop_staging`, merged back into it. Founder merges it into `develop`. `main` is production.                                                                                                                               |
 | Jira         | Project key `SCRUM`.                                                                                                                                                                                                                 |
 | Remote       | `github.com/lawie-in/lawie`                                                                                                                                                                                                          |
 

@@ -2,6 +2,12 @@
 
 Written by Priya, 6 Oct 2026, 10:4x. Updated 15:5x. Read this first, then `handoff/tickets/README.md`, section "Where we are".
 
+## Branch flow, founder, 11 Oct 2026 — supersedes every branch instruction below
+
+- Cut new work from `develop_staging`, not `develop`. Merge finished work back into `develop_staging` and push it.
+- Do not open a PR to `develop` or merge into it. The founder merges `develop_staging` into `develop` himself, normally at night.
+- `main` is still production. Where a section below says "into `develop`" or "cut from `develop`", read `develop_staging`.
+
 The war-room chat built T-124 (PR #38), T-122 step 2 (PR #39) and T-105 (PR #40) today. All three are merged. T-106 part 1 (PR #41) and T-130 (PR #43) are merged too. Do not build those again.
 
 ## New rule, 6 Oct 2026, 17:1x: the quality gate

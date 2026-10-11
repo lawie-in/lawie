@@ -4,6 +4,23 @@ This file is for humans only. No agent reads it automatically — only root `CLA
 
 See `DEV_TEAM_SPEC.md` in this same directory for the full founder/CTO-approved spec this was built from, including the open decisions in its section 9 that are not resolved by this implementation.
 
+## Leads and crew (roster)
+
+Three leads, same strategy, run in parallel (founder, 11 Oct 2026). Priya coordinates them; rules in `docs/multi-lead.md`.
+
+| Agent | File | Runs as | Worktree |
+|---|---|---|---|
+| `vishal` | `agents/vishal.md` | main session (default, `"agent": "vishal"` in `settings.json`) | his own |
+| `mahak` | `agents/mahak.md` | main session, `claude --agent mahak` | `/home/user/lawie-wt/mahak` |
+| `shashank` | `agents/shashank.md` | main session, `claude --agent shashank` | `/home/user/lawie-wt/shashank` |
+| `developer`, `tester`, `reviewer`, `doc-writer` | `agents/dev/*.md` | subagents, shared by all three leads | the lead's |
+
+How to start a lead: `cd /home/user/lawie-wt/<lead> && claude --agent <lead>`. `--agent` overrides the `agent` setting for that session only. A plain `claude` still starts as `vishal`. Starting inside the lead's own worktree is not optional: subagents work in the session's directory.
+
+Why the crew is shared, not copied per lead: a crew agent starts with no memory, gets everything from the handoff packet, and runs in the directory of the session that dispatched it. Nothing about it is lead-specific, so three copies would only add drift between them (a hook fixed in one copy and not the others). Each dispatch is a fresh instance, so two leads using `developer` at the same time do not share state. The "resume the same developer" step in the review loop resumes that lead's own instance.
+
+When the leads' shared rules change, change all three lead files the same way. Only the name, identity line and worktree path differ between them (`diff agents/mahak.md agents/shashank.md` shows exactly that).
+
 ## Why the files are split the way they are
 
 `CLAUDE.md` is loaded in full into every single agent's context, every run — lead and all four crew. Anything in it is a standing cost multiplied by every dispatch in a ticket's chain. So it holds only what's universally needed (layout, stack, commands, branch convention, the crew protocol rules). Everything else — coverage thresholds, test gaps, golden-snapshot mechanics, the legal-content path list — lives under `.claude/docs/` and is only pulled into context when an agent actually `Read`s it, because its task calls for it. `CLAUDE.md` points at these files as plain paths, never with Claude Code's `@path` import syntax — that syntax eagerly inlines the target file's content at session start, which would defeat the point.
@@ -26,8 +43,8 @@ The spec flagged "`Read` deny doesn't reliably stop `cat .env` through Bash" as 
 
 ## Division of git responsibility
 
-Only the lead (`vishal`) runs `git commit`/`git push`/`gh pr create`, after collecting all four crew reports. Crew agents only modify the working tree. This isn't enforced by a hook — it's structural (none of the four crew prompts mention committing, and the flow is strictly sequential in one checkout per the spec's own worktree correction in section 1) plus the `permissions.ask` gate on `git push`/`gh pr merge`/`gh workflow run`, which only the lead's main session can actually answer since subagents can't use `AskUserQuestion`.
+Only the lead (`vishal`, `mahak` or `shashank`, each in its own worktree) runs `git commit`/`git merge --no-ff`/`git push`, after collecting all four crew reports. There are no pull requests: the lead merges into `develop_staging`, and only the founder merges on to `develop` and releases to `main` (T-403). Crew agents only modify the working tree. This isn't enforced by a hook — it's structural (none of the four crew prompts mention committing, and the flow is strictly sequential in one checkout per the spec's own worktree correction in section 1) plus the `permissions.ask` gate on `git push`/`gh pr merge`/`gh workflow run`, which only the lead's main session can actually answer since subagents can't use `AskUserQuestion`.
 
 ## Adding a sixth crew agent later
 
-Drop a new file under `.claude/agents/dev/`, give it a `name`/`description`, scope its `tools`/hooks the same way the existing four do (allowlist what it needs, hook-restrict any destructive surface Bash gives it that the allowlist alone can't stop), and update the flow description in `vishal.md`'s prompt. Restart the session afterward — new files under `.claude/agents/` need a restart to be picked up.
+Drop a new file under `.claude/agents/dev/`, give it a `name`/`description`, scope its `tools`/hooks the same way the existing four do (allowlist what it needs, hook-restrict any destructive surface Bash gives it that the allowlist alone can't stop), and update the flow description in all three lead prompts (`vishal.md`, `mahak.md`, `shashank.md`). Restart the session afterward — new files under `.claude/agents/` need a restart to be picked up.

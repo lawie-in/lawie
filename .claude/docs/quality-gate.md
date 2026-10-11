@@ -10,22 +10,22 @@ Why she exists: before this rule, the team wrote the code, wrote the test plan a
 
 ## The rule
 
-1. Pull requests into `develop` merge without her verdict. Their body ends with `Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)`.
+1. Merges into `develop_staging`, and the founder's merge of `develop_staging` into `develop`, go ahead without her verdict. Each lead's merge commit into `develop_staging` ends with `Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)`, and the lead sends Priya the same text for Anushka's run on `develop`.
 2. No pull request into `main` is merged, and nothing goes to the prod env, without one of these three lines on it:
    - `Quality: PASS — Anushka, <date and time>` with her report in a comment;
    - `Quality: nothing to test in the UI — <reason>`, written by the lead, for a change no user can see (documents, CI, tests only);
    - `Quality: overruled by the founder — <reason>`.
 3. `FAIL` and `BLOCKED` are not passes. A release with either one waits.
-4. The lead who built the change never plays Anushka and never writes her verdict. The lead opens the pull request into `main` with `Quality: waiting for Anushka` in the body and stops. The war-room chat invokes her.
+4. The lead who built the change never plays Anushka and never writes her verdict. Release to `main` belongs to the founder (T-403), and Anushka's `PASS` is required first. No lead opens a pull request into `main`. The war-room chat invokes her.
 5. What she is sent: what a user should now be able to do (in a user's words), the address to open, the state of the account, and how many drafts she may generate. Never the diff, the ticket's build notes, the developer's test plan or anyone's opinion of the work.
 6. Her report goes on the pull request into `main` word for word.
-7. `FAIL` → her findings become work for Priya to scope. The fix goes to `develop`, and she tests again from the start, not just the fixed part.
+7. `FAIL` → her findings become work for Priya to scope. The fix goes to `develop_staging` (the founder takes it on to `develop`), and she tests again from the start, not just the fixed part.
 8. She may test any pull request marked "nothing to test in the UI".
 9. Only the founder overrules a verdict.
 
 ## Where the gate sits
 
-The gate is at the release to production: the merge into `main` and the prod env. `develop` is what runs on AWS behind lawie.in today, with the dashboard disabled so no one uses it by accident. Once a batch of work is done, she tests the develop env end to end as an end-user lawyer. Her `PASS` on that is what lets it go to `main` and prod. Pushes to feature branches and merges into `develop` are not gated.
+The gate is at the release to production: the merge into `main` and the prod env. `develop` is what runs on AWS behind lawie.in today, with the dashboard disabled so no one uses it by accident. Once a batch of work is done, she tests the develop env end to end as an end-user lawyer. Her `PASS` on that is what lets it go to `main` and prod. Pushes to feature branches and merges into `develop_staging` and `develop` are not gated.
 
 ## What she needs, and what happens without it
 
