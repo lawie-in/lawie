@@ -30,3 +30,7 @@ It also asks the Drafter to count days. That conflicts with T-148 (no case law o
 - `{governing_provision}` in the heading and the prayer prints `[To be confirmed: Section 167(2) CrPC or Section 187(3) BNSS]`.
 - The S-text and P-text go in word for word.
 - T-245a later adds the key and the derived lines without touching T-251's wording.
+
+## Known gap, accepted (Priya, 12 Oct 2026)
+
+In non-ledger mode (feature.fact_ledger off) nothing checks the Drafter's text against the bond box, so a body saying "the applicant will not furnish bail bonds" is not stopped. The averments ban applies only with the ledger on. Accepted: the ledger path is the v1 path, and fact_ledger stays off for real users until T-187, T-188, T-190 and T-194 are done. Pinned as `it.failing` in the t251 test; it turns red the day it is fixed.
