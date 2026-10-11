@@ -64,3 +64,43 @@ Follow-ups (Priya to ticket):
 
 - The editor shows a blank as `{{MISSING: label}}`, while the file and the warning say `[To be confirmed: label]`.
 - The PDF and DOCX export buttons are about 28px tall, under the 44px minimum tap target.
+
+## Ajay sign-off (11 Oct 2026)
+
+Read: this ticket; Rajesh's artifact (opened, version of 11 Oct 2026); `apps/web/src/components/intake/briefTypes.ts` (`BLANK`, `countBlanks`); `apps/drafting/src/services/fact-verifier.ts` (blank regex); `citation-check.ts` (`AUTHORITY_BLANK`); `brief-drafter.ts` (`SECTION_BLANK`); `bail_regular.json` (`caseNomenclature`). Nothing in code changed.
+
+**(a) Header text: Approved.**
+- N > 1: `DRAFT — N items to be confirmed`. N = 1: `DRAFT — 1 item to be confirmed`. N is written in digits, with an em dash, exactly as shown.
+- It prints on every page of both formats, top of the page, as in Rajesh's spec. In the DOCX it is an ordinary section header the advocate can delete. That is intended.
+- N is the count under (d), from the saved draft the file is built from (Priya decision 2).
+
+**(b) Blank style: Approved, with one condition.**
+- Bold, yellow highlight (`#FFFF00` / Word `yellow`), black text. The marker text, square brackets included, prints unchanged.
+- I accept the black-and-white printer trade-off. On a mono print the bold, the brackets, the words "To be confirmed" and the page header still show. Grey is not wanted.
+- Condition: the brackets and the marker words must never be removed or restyled to rely on colour alone. In the PDF, `print-color-adjust: exact` (with the `-webkit-` prefix) is required, as in the spec.
+
+**(c) "Do not file" line: Yes.** Add it as the last sentence of the dialog body, word for word:
+> Do not file this document until each item is filled in or removed. You are responsible for what is filed.
+- It speaks to the advocate about our tool's output, not about the merits of the matter, so it is not legal advice. It matches the mandatory disclaimer ("The advocate is responsible for legal accuracy and filing").
+- Madhuri may polish the rest of the dialog. This sentence changes only with my sign-off. It is not printed in the file.
+
+**(d) Which markers count as blanks: one set, for the header count, the dialog count, the dialog list and the highlighting (this settles AC7).**
+
+| Marker | Counts and is highlighted | Why |
+|---|---|---|
+| `[To be confirmed: …]` | Yes | A fact still missing |
+| `{{MISSING: …}}` | Yes, and it prints as `[To be confirmed: …]` (T-147c). It should never reach the file raw; if it does, it still counts | Same blank in another form |
+| `[Section — verify before filing]` | Yes | A provision not given. Filing it as is, is the worst defect |
+| `[Authority — add if relied upon]` | Yes | The advocate must add the authority or delete the marker. Either way, the marker text must not be filed |
+| Underscore runs of 3 or more inside a line (`Case No. _____`, a date) | Yes, except the three below | A value left for the advocate |
+| Except: a line of underscores only (the signature line) | No | A place to sign, not a gap |
+| Except: the verification's signing date (`___ day of ______, 20___`) | No | Filled by hand at signing, as is normal practice |
+| Except: the registry's case number in the cause title, an underscore run between `No.` and `of` (e.g. `BAIL APPLICATION No. _____ of 2026`) | No | The registry fills it on filing. Counting it would put the header on every bail export forever and teach advocates to ignore it |
+
+- One function, used by web and server, implements this set. A test covers each row, including the three exceptions.
+- The dialog lists the label for `[To be confirmed: label]` and `{{MISSING: label}}`, and the marker words themselves for the other markers (e.g. "Section — verify before filing").
+- Note for Priya: `countBlanks` in `briefTypes.ts` counts the signing date and the registry number today. I prefer one set across the product; where else it is used is your call.
+
+**Gate: confirmed.** T-147c is what writes these markers on the ledger path, so T-194 also blocks `feature.fact_ledger` for real users, as well as v1 go-live.
+
+Signed: Ajay (CLO), 11 Oct 2026. (a), (b) on its condition, the sentence in (c), and the set in (d). Any change to these strings or to the set needs a fresh sign-off.
