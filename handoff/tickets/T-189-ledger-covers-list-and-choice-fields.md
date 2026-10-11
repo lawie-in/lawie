@@ -74,3 +74,20 @@ Conditions (each one a Blocker if the pushed diff departs from it):
 - Unresolved list entries (including `no_verbatim_span`) never appear in `facts` or in the skeleton value array.
 
 Reviewer: confirm each condition against the pushed diff and cite this section in the handoff. If any fails, stop and send it back to me.
+
+## Ajay sign-off on pushed diff 910ced6 (11 Oct 2026)
+
+**Verdict: BLOCKED.** Read `git diff origin/develop_staging...910ced6` (after `git fetch origin`) for `brief-drafter.ts`, `averments.ts`, `fact-verifier.ts`, `fact-ledger.service.ts`, `intake.routes.ts`, `packages/shared/src/types/fact-ledger.ts`. No tests or builds run.
+
+1. **`missingPlaceholder` (brief-drafter.ts): Acceptable.** The 4-line chain is joined onto one line; same three calls, same order, same output `{{MISSING: <label>}}`. Formatting only; this does not breach condition 1. No prompt string, `drafter.prompts.ts`, extraction prompt or `missing` filter changed. (The same commit also splits other chains across lines, so "prettier did it" does not explain everything. Not a legal point.)
+2. **`averments.ts` `factsByKey`: Blocker.** It was meant to stay untouched, but it was rewritten. A key with several entries now becomes one made-up fact (`mergedEntries`): `display` and `raw_span` are comma-joined, and `value` is comma-joined only when every entry is text. Otherwise it keeps the first entry's value. Breaches:
+   - `factsByKey` is changed, against condition 2.
+   - Entries are merged, against condition 4.
+   - The joined `raw_span` is not a verbatim span from the source, which breaks the "every fact carries a verbatim span" rule (ADR-022 / T-147b).
+   - `resolveAverments` and `conditionHolds` (averments.ts line 425) and `fact-verifier.ts` (`buildSources` line 628, repair prompt facts line 1449) all call `factsByKey`. So averment selection, the verifier's held-value sources and the fact-repair prompt input all change behaviour, even though `fact-verifier.ts` itself has no diff lines. For a non-text list (for example section refs), only the first entry's value reaches the verifier, so it can flag correctly given sections as unsupported.
+   - Fix: restore `factsByKey` byte-identical to `origin/develop_staging`. Keep the new exported `factEntriesByKey`, used only by `brief-drafter.ts`. Changing how averments and the verifier read multi-entry keys needs its own ticket and sign-off.
+3. **`no_verbatim_span` sentence: Blocker.** The branch ships `'We could not find where you wrote this.'`, the wording I rejected. It sits in a separate `LEDGER_DETAILS_T189` const and is commented "NOT YET SIGNED by Ajay". Fix: add `no_verbatim_span: 'We could not find this detail in what you wrote.'` to `LEDGER_DETAILS` next to the 10 Oct sentences. Delete `LEDGER_DETAILS_T189`, and update any test that asserts the old text.
+4. **Risk (not blocking, noted):** `readMultiEntries` and `applyMultiEdit` drop an entry when its normalised value repeats an earlier one, keeping one. This happens at ledger write, not in `factEntriesByKey`, so it does not breach condition 4 as written. It is acceptable only because both entries normalise to the same value. Anushka should check a list with a repeated entry on develop.
+5. **Conditions met in this diff:** `factEntriesByKey` drops entries whose display is empty or whitespace, and creates no key without a non-empty entry, so `held.has` still drives `{{MISSING}}`. Entries keep ledger order and are only trimmed. Non-list kinds take the single (last) entry as before. Unresolved entries never enter `facts` or the skeleton array.
+
+Re-review needed after items 2 and 3 are fixed. Send me the new commit hash; I will re-check only those two items and the golden snapshots (AC10).
