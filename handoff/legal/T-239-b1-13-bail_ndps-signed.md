@@ -1,6 +1,6 @@
-# T-239 b1 #13 bail_ndps (draft for Ajay)
+# T-239 b1 #13 bail_ndps (signed)
 
-Status: DRAFT, not signed. BNSS mapping checked against `config/sections/crpc-to-bnss.json`: CrPC 439 -> BNSS 483, CrPC 484 -> BNSS 531. NDPS section numbers below are from knowledge of the bare act (not in any repo table): 19, 24, 27A, 36A, 37 as whole sections only. Every sub-section and every other NDPS section is under "Verify".
+Status: SIGNED (see the end). Drafted 12 Oct 2026; reviewed and amended by Ajay. BNSS mapping checked against `config/sections/crpc-to-bnss.json`: CrPC 439 -> BNSS 483, CrPC 484 -> BNSS 531. NDPS section numbers below are from knowledge of the bare act (not in any repo table): 19, 24, 27A, 36A, 37 as whole sections only. Every sub-section and every other NDPS section is under "Verify".
 
 | Field | Value |
 |---|---|
@@ -129,7 +129,7 @@ Verified at {place} on this {date}.
 
 ```json
 [
-  "Draft a Regular Bail Application in a case under the Narcotic Drugs and Psychotropic Substances Act, 1985, before the Special Court or the High Court. Cite Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023 as the only provision under which bail is sought, in the heading, the opening paragraph and the prayer. Do not cite Section 480, 481 or 482.",
+  "Draft a Regular Bail Application in a case under the Narcotic Drugs and Psychotropic Substances Act, 1985, before the Special Court or the High Court. Cite only the provision given as GOVERNING PROVISION in the case details as the provision under which bail is sought, in the heading, the opening paragraph and the prayer.",
   "Cite the offences as the BRIEF gives them (FIR, charge sheet, complaint or order). The law of the offence follows the date of the offence: an offence committed before 1 July 2024 is under the Indian Penal Code, 1860; one committed on or after that date is under the Bharatiya Nyaya Sanhita, 2023. Never convert a section from one code to the other. Where the BRIEF does not give the date of the offence, write the sections as the BRIEF gives them and add [To be confirmed: date of the alleged offence, which decides whether the IPC or the BNS applies]. Where the sections the BRIEF gives are under the other code from the one the date points to, or the alleged acts run across 1 July 2024, keep the sections as the BRIEF gives them and add [To be confirmed: whether the IPC or the BNS applies to the offence].",
   "Cite the procedure under the code given as PROCEDURE CODE in the case details: the Bharatiya Nagarik Suraksha Sanhita, 2023 with the Bharatiya Sakshya Adhiniyam, 2023, or the Code of Criminal Procedure, 1973 with the Indian Evidence Act, 1872. Cite only that code, in the heading, the body and the prayer. Where no PROCEDURE CODE is given, cite the provision in both forms inside a blank, for example [To be confirmed: Section 437 of the CrPC or Section 480 of the BNSS].",
   "Where the BRIEF says the application is before a Special Court, cite the bail provision as GOVERNING PROVISION gives it, and NDPS section 36A as the BRIEF gives the court.",
@@ -280,3 +280,21 @@ Pairing check: every banned entry with non-null `unlocked_by` (quantity_class, s
 - Risk: `quantity_class` select includes "not stated in record" so the form never forces a guess.
 - Acceptable: no averment file override needed for bail_regular cue `before` issue (T-237 #3); this pack uses EA-standard.
 - Found while reading, outside scope: `default_bail.json` `prompt_context` names four judgments with citations and asks for a "precise day-count" — conflicts with T-136 rules 3 and 7. For Priya to ticket.
+
+
+## Ajay review and sign-off (12 Oct 2026 IST)
+
+Amended before signing: the old/new law text is the T-245 S-text and P-text (345bd24), word for word; `{governing_provision}` and the T-245 keys `offence_date`, `fir_date`, `procedure_code` are used as T-245 gives them. Every BNSS/CrPC/IEA/BSA pair is in the signed tables (`crpc-to-bnss.json`, `iea-to-bsa.json`); the IEA to BSA table is being corrected under T-250, and any pair in this spec that T-250 changes comes back to me. The cue sets for `earlier_applications` are EA-standard (T-237, 909a49c), except EA-appeal for #15: all of [any: `bail`, `जमानत`, `ज़मानत`] and [any: `earlier`, `previous`, `prior`, `withdrawn`, `to be confirmed: whether any earlier`, `पूर्व`, `पहले`, `वापस`].
+
+The "Notes" and "Verify" sections are the drafter's reasoning, kept for the record. They are not build text. Nothing under "Verify" is signed; it stays out until checked against the bare act. Where a note offers a choice, my ruling is in the table below.
+
+| Item | Mark |
+|---|---|
+| Spec as amended | Approved |
+| Size and sampling | L (2 Ink); Anushka tier A |
+| Ruling | Approved. Special Court / High Court bail under the provision given as GOVERNING PROVISION (CrPC 439 to BNSS 483). NDPS section 37 conditions are written only as submissions on facts the brief gives; the quantity class only as the brief gives it. Verification closing line `{verifierCapacity}` is approved. |
+| Lead builds `form_schema` from this spec; I sign that diff | Condition |
+| Moved golden snapshots are listed for me before merge | Condition |
+| A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
+
+Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.

@@ -1,6 +1,6 @@
-# T-239 b1 #15 bail_sc_st_appeal_14a (draft for Ajay)
+# T-239 b1 #15 bail_sc_st_appeal_14a (signed)
 
-Status: DRAFT, not signed. SC/ST Act section numbers are from knowledge of the bare act (not in any repo table): 14, 14A, 15A as whole sections only. Every sub-section, including the bail-appeal sub-section of 14A and the time limit in 14A(3), is under "Verify". BNSS 531 checked in `crpc-to-bnss.json` (CrPC 484 -> BNSS 531).
+Status: SIGNED (see the end). Drafted 12 Oct 2026; reviewed and amended by Ajay. SC/ST Act section numbers are from knowledge of the bare act (not in any repo table): 14, 14A, 15A as whole sections only. Every sub-section, including the bail-appeal sub-section of 14A and the time limit in 14A(3), is under "Verify". BNSS 531 checked in `crpc-to-bnss.json` (CrPC 484 -> BNSS 531).
 
 | Field | Value |
 |---|---|
@@ -269,3 +269,21 @@ EA-standard would pass falsely here: the impugned-order paragraph of every accus
 - Risk: `earlier_applications` and `victim_notice` texts are new wording, not T-237 word for word.
 - Acceptable: no sub-section of 14A or 15A is cited in any signed field.
 - Batch 2: `bail_sc_st_appeal_14a_victim` (appeal against grant).
+
+
+## Ajay review and sign-off (12 Oct 2026 IST)
+
+Amended before signing: the old/new law text is the T-245 S-text and P-text (345bd24), word for word; `{governing_provision}` and the T-245 keys `offence_date`, `fir_date`, `procedure_code` are used as T-245 gives them. Every BNSS/CrPC/IEA/BSA pair is in the signed tables (`crpc-to-bnss.json`, `iea-to-bsa.json`); the IEA to BSA table is being corrected under T-250, and any pair in this spec that T-250 changes comes back to me. The cue sets for `earlier_applications` are EA-standard (T-237, 909a49c), except EA-appeal for #15: all of [any: `bail`, `जमानत`, `ज़मानत`] and [any: `earlier`, `previous`, `prior`, `withdrawn`, `to be confirmed: whether any earlier`, `पूर्व`, `पहले`, `वापस`].
+
+The "Notes" and "Verify" sections are the drafter's reasoning, kept for the record. They are not build text. Nothing under "Verify" is signed; it stays out until checked against the bare act. Where a note offers a choice, my ruling is in the table below.
+
+| Item | Mark |
+|---|---|
+| Spec as amended | Approved |
+| Size and sampling | L (2 Ink); Anushka tier A |
+| Ruling | Approved as the accused's appeal against refusal of bail only. The victim's appeal against a grant is a separate id in batch 2 (`bail_sc_st_appeal_14a_victim`). `filing_date` is approved, stated as a date only; the time limit under section 14A is not stated, computed or commented on; the checklist cue to check it stays. Earlier-applications cue set: EA-appeal (below). |
+| Lead builds `form_schema` from this spec; I sign that diff | Condition |
+| Moved golden snapshots are listed for me before merge | Condition |
+| A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
+
+Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.

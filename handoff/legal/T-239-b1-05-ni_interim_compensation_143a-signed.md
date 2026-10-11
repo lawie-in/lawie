@@ -1,4 +1,4 @@
-# T-239 b1 #5 ni_interim_compensation_143a (draft for Ajay)
+# T-239 b1 #5 ni_interim_compensation_143a (signed)
 
 Status: PROPOSED. Not signed. Nothing here is in the repo.
 
@@ -214,3 +214,21 @@ Validation (code, not Drafter): warn if `compensation_sought` > 20% of `cheque_a
 - **Risk.** The power is discretionary ("may"). Prayer is "such amount ... as this Hon'ble Court may deem fit", with the advocate's figure only as "in particular". Do not let marketing call this "get 20% interim compensation".
 - **Risk — switch.** No `offence_date`: NI Act on any date. `fir_date` (labelled "Date the complaint was filed") and `procedure_code` follow T-245 (Ajay ruling). Same reasoning as #4.
 - **Acceptable.** No 60-day period stated; avoids C3 firing and avoids a period being misread as running from filing.
+
+
+## Ajay review and sign-off (12 Oct 2026 IST)
+
+Amended before signing: the old/new law text is the T-245 S-text and P-text (345bd24), word for word; `{governing_provision}` and the T-245 keys `offence_date`, `fir_date`, `procedure_code` are used as T-245 gives them. Every BNSS/CrPC/IEA/BSA pair is in the signed tables (`crpc-to-bnss.json`, `iea-to-bsa.json`); the IEA to BSA table is being corrected under T-250, and any pair in this spec that T-250 changes comes back to me. The cue sets for `earlier_applications` are EA-standard (T-237, 909a49c), except EA-appeal for #15: all of [any: `bail`, `जमानत`, `ज़मानत`] and [any: `earlier`, `previous`, `prior`, `withdrawn`, `to be confirmed: whether any earlier`, `पूर्व`, `पहले`, `वापस`].
+
+The "Notes" and "Verify" sections are the drafter's reasoning, kept for the record. They are not build text. Nothing under "Verify" is signed; it stays out until checked against the bare act. Where a note offers a choice, my ruling is in the table below.
+
+| Item | Mark |
+|---|---|
+| Spec as amended | Approved |
+| Size and sampling | S (1 Ink); Anushka tier B |
+| Ruling | Approved. The checklist cue "Confirm that section 143A applies to this cheque (verify)" is approved; no date is stated. |
+| Lead builds `form_schema` from this spec; I sign that diff | Condition |
+| Moved golden snapshots are listed for me before merge | Condition |
+| A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
+
+Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
