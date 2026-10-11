@@ -11,7 +11,7 @@ Format: 9:16, 30–45 s, captions burned in. Voice-over in Hindi, with English s
 | R2 | Legal notice in Lawie | W2-IG-2 (Week 2, Day 12), plus YouTube Shorts |
 | R3 | You stay the advocate | Week 3 reel (calendar not yet written) |
 
-`strategy.md` §7 had the bail reel in Week 2 and the notice reel in Week 3. This file follows Meera's brief (R1 Week 1, R2 Week 2). Swap if Meera prefers.
+Order confirmed by Meera; `strategy.md` §7 matches (R1 Week 1, R2 Week 2, R3 Week 3).
 
 ## Production rules (all three reels)
 

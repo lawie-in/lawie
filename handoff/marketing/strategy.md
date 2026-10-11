@@ -58,8 +58,8 @@ Source: ticket files in `handoff/tickets/` on `develop_staging`, 11 Oct 2026.
 
 **For** district-court advocates in India **who** draft the same applications and notices again and again, **Lawie is** a drafting assistant **that** gives you a first draft to review, edit and download, across more than 90 document types. Criminal drafts cite BNS, BNSS and BSA. **Unlike** old files and typists, you start from a structured draft, not a blank page. **You stay in charge:** the advocate is responsible for legal accuracy and filing.
 
-**One line (EN):** "Your first draft, ready to review."
-**One line (HI):** "पहला ड्राफ्ट तैयार, आप बस जाँचें।"
+**One line (EN):** "Start from a first draft, not a blank page."
+**One line (HI):** "खाली पन्ने से नहीं, पहले ड्राफ्ट से शुरू करें।"
 
 ## 4. Messaging pillars
 
@@ -80,7 +80,7 @@ Tone: plain, respectful, peer-to-peer ("Advocate sahab" in Hindi only where natu
 | WhatsApp | Main conversion channel | (a) Lawie broadcast list (opt-in only, from demos and the site); (b) advocates sharing our 30-sec reel in their own groups. No cold adds, no spam to groups we are not in | Opt-in only (DPDP). 2 broadcasts a week max |
 | Instagram + YouTube Shorts | Reach with juniors and students | 3 reels a week: "Draft this with me", BNS change explainers, chamber humour that stays respectful | No client stories; no case facts; sample matters are fictional and labelled |
 | LinkedIn | Credibility, seniors, law-firm juniors, press | Founder + Lawie page: build notes, document-of-the-week, BNS/BNSS posts | No "grow your practice" |
-| X | Legal Twitter, journalists | Short threads on BNS/BNSS section changes, product notes | Same |
+| X | Legal Twitter, journalists | Short product notes and document-of-the-week threads; no old-law vs new-law claims (Ajay) | Same |
 | Law colleges | Pipeline + ambassadors | 10 ambassadors (final-year, Patna/Ranchi/Lucknow) run a "drafting lab" with a moot-style fictional matter | Students are users, not resellers; no payment per sign-up until Vikram sets it |
 | Legal-news sites (LiveLaw, Bar & Bench, Lawctopus, regional Hindi legal portals) | Credibility + SEO | One sponsored newsletter slot or listing at launch; pitch a "BNSS drafting checklist" guest piece | Ads say "drafting tool", nothing more |
 
@@ -96,7 +96,7 @@ Funnel: reach → site visit → sign-up (5 free Ink) → **first draft generate
 | 2nd draft | 150 | 600 | 50% of activated |
 | Paying advocates | 25 | 100 | ~8% of activated |
 
-Weekly KPIs: sign-ups by source (UTM per channel, per bar association, per ambassador code); activation rate; time from sign-up to first draft; drafts per active user; paid conversion; CAC per paying advocate (target under ₹1,500 in Phase 1); demo-to-sign-up rate at bar demos (target 30%). Quality guardrails: refund requests, complaints about a wrong claim (target 0), Anushka/Ajay flags.
+Weekly KPIs: sign-ups by source (UTM per channel, per bar association, per ambassador code); activation rate; time from sign-up to first draft; drafts per active user; paid conversion; CAC per paying advocate (blended CAC ≤ ₹3,000 by end of Week 2 (Vikram's T2 gate); aim lower at 100 paid); demo-to-sign-up rate at bar demos (target 30%). Quality guardrails: refund requests, complaints about a wrong claim (target 0), Anushka/Ajay flags.
 
 Tracking needs (to Priya as tickets, not built by marketing): UTM capture at sign-up; a signup-source field; an ambassador/referral code report. Analytics must carry no PII or document content (house rule).
 
@@ -106,9 +106,9 @@ Tracking needs (to Priya as tickets, not built by marketing): UTM capture at sig
 
 | Week | Theme | Key actions | Output | Goal |
 | --- | --- | --- | --- | --- |
-| 1 | "Your first draft, ready to review" | Go-live posts on all channels; founder LinkedIn launch post; Patna Civil Court bar demo; WhatsApp broadcast #1 to opt-ins; reel 1 | Social calendar week 1 | 150 sign-ups, 5 paid |
-| 2 | Bail and BNSS | Reel 2 (bail application walkthrough, fictional matter); BNSS explainer carousel; Ranchi bar demo; law-college lab #1 (Patna) | Social calendar week 2 | 300 sign-ups, 12 paid |
-| 3 | Notices and agreements (1-Ink documents) | Reel 3 (legal notice); legal-news sponsored slot if T2 is released (Vikram); Lucknow bar demo; lab #2 (Lucknow) | Reuse winning week 1–2 formats | 420 sign-ups, 19 paid |
+| 1 | "Start from a first draft, not a blank page" | Go-live posts on all channels; founder LinkedIn launch post; Patna Civil Court bar demo; WhatsApp broadcast #1 to opt-ins; reel R1 (bail application, fictional matter) | Social calendar week 1 | 150 sign-ups, 5 paid |
+| 2 | Bail and BNSS | Reel R2 (legal notice, a 1-Ink document); six-bail-drafts carousel; Ranchi bar demo; law-college lab #1 (Patna) | Social calendar week 2 | 300 sign-ups, 12 paid |
+| 3 | Notices and agreements (1-Ink documents) | Reel R3 ("You stay the advocate"); legal-news sponsored slot if T2 is released (Vikram); Lucknow bar demo; lab #2 (Lucknow) | Reuse winning week 1–2 formats | 420 sign-ups, 19 paid |
 | 4 | "You stay the advocate" + review | Founder AMA on LinkedIn/X; ambassador push; lab #3 (Ranchi) if T2; review KPIs, cut weak channels, plan days 31–90 | Phase 1 report | 500 sign-ups, 25 paid |
 
 ## 8. Budget (Vikram's decision, ₹1,00,000 at most)

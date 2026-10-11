@@ -1,4 +1,4 @@
-# Social calendar — Week 1: "Your first draft, ready to review"
+# Social calendar — Week 1: "Start from a first draft, not a blank page"
 
 Owner: Madhuri (copy). Approver: Meera. Claims: Ajay (through Priya). Visuals: Rajesh.
 Status: **DRAFT, held until go-live.** Nothing here is posted until the launch gate in `strategy.md` §0 holds: v1 released to production (T-403) after Anushka's PASS, T-227 and T-238 merged, and Ajay has signed every line below.
@@ -25,7 +25,7 @@ Wording sources: Ajay, `handoff/legal/marketing-s1-claims-signed.md` (12 Oct 202
 | Day | ID | Channel | Pillar | Topic |
 | --- | --- | --- | --- | --- |
 | 1 | W1-LI-1 | LinkedIn | P1, P3 | Lawie is live |
-| 1 | W1-IG-1 | Instagram (carousel) | P1 | Your first draft, ready to review |
+| 1 | W1-IG-1 | Instagram (carousel) | P1 | Start from a first draft, not a blank page |
 | 1 | W1-X-1 | X | P1, P3 | Lawie is live |
 | 1 | W1-WA-1 | WhatsApp broadcast | P1, P4 | Launch note to opt-ins |
 | 3 | W1-LI-2 | LinkedIn | P1 | Three steps to a first draft |
@@ -107,7 +107,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 On-slide text (5 slides):
 
 ```
-1. Your first draft, ready to review.
+1. Start from a first draft, not a blank page.
 2. Pick a document. Bail application, legal notice, affidavit, agreement and more.
 3. Answer a few questions about the matter.
 4. Review the draft. Edit anything. Download in Word or PDF.
@@ -136,7 +136,7 @@ Start with 5 free Ink. Link in bio.
 On-slide text:
 
 ```
-1. पहला ड्राफ्ट तैयार, आप बस जाँचें।
+1. खाली पन्ने से नहीं, पहले ड्राफ्ट से शुरू करें।
 2. डॉक्यूमेंट चुनिए: bail application, legal notice, affidavit, agreement और भी।
 3. मामले के कुछ सवालों के जवाब दीजिए।
 4. ड्राफ्ट जाँचिए। जो चाहें बदलिए। Word या PDF में डाउनलोड कीजिए।
@@ -170,7 +170,6 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 3. More than 90 document types; bail application, legal notice, affidavit and agreement among them.
 4. "Criminal drafts cite BNS, BNSS and BSA."
 5. 5 free Ink; sign in with Google.
-6. Slide 1 headline "Your first draft, ready to review": "ready" here describes the draft as ready for the advocate's review, not as ready to file. Ajay said "ready" must not be used in the Ink line; please confirm the positioning line itself is acceptable.
 
 ---
 
@@ -400,7 +399,7 @@ Every draft in Lawie carries one line:
 
 We mean it. Lawie gives you a structured first draft. You read every paragraph, check every section and every fact, and change whatever needs changing in the editor. Then you download it in Word or PDF and work on it the way you always have.
 
-Lawie does not give legal advice and does not file anything. It helps with the drafting. The judgement stays with you.
+Lawie helps with the drafting. The filing, and the judgement, stay with you.
 
 Start with 5 free Ink: https://lawie.in/login?mode=signup&utm_source=linkedin&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-li-3
 ```
@@ -415,7 +414,7 @@ Lawie के हर ड्राफ्ट पर एक लाइन रहत�
 
 यह हम सच में मानते हैं। Lawie आपको एक व्यवस्थित पहला ड्राफ्ट देता है। हर पैराग्राफ़ आप पढ़ते हैं, हर section और हर तथ्य आप जाँचते हैं, और editor में जो बदलना हो बदलते हैं। फिर Word या PDF में डाउनलोड करके अपने तरीक़े से आगे काम करते हैं।
 
-Lawie कानूनी सलाह नहीं देता और कुछ फ़ाइल नहीं करता। यह ड्राफ्टिंग में मदद करता है। फ़ैसला आपका रहता है।
+Lawie ड्राफ्टिंग में मदद करता है। फ़ाइलिंग और फ़ैसला आपके हाथ में रहते हैं।
 
 5 free Ink से शुरू करें: https://lawie.in/login?mode=signup&utm_source=linkedin&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-li-3
 ```
@@ -428,7 +427,7 @@ Lawie कानूनी सलाह नहीं देता और कुछ
 1. Every draft shows the disclaimer line verbatim (T-197).
 2. Everything in the draft can be changed in the editor.
 3. Download in Word or PDF.
-4. "Lawie does not give legal advice and does not file anything." This uses "legal advice" only as a denial. Please confirm it's acceptable under your banned list.
+4. "The filing, and the judgement, stay with you": Lawie does not file anything.
 5. 5 free Ink.
 
 ---
