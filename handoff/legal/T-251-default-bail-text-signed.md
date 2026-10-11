@@ -588,3 +588,17 @@ Signed: Ajay (CLO), 12 Oct 2026 IST.
 - A "No" on the bond box is treated like an unticked box: no undertaking is written, the blank is present, and Lawie never writes that the applicant will not furnish bonds. Test to add: "No" gives no bond sentence and the blank.
 
 Signed: Ajay (CLO), 12 Oct 2026 IST.
+
+## Fixtures, "No" scope, and two notes (12 Oct 2026 IST)
+
+**Fixtures 15, 16, 17 and the new 18 (`scripts/golden-set/fixtures`), as described by Priya from mahak's branch: Approved.** The input swaps (`period_claimed`, `period_expiry_date`), the flipped `statutory_period_expired` (banned to allowed when the new keys are present), `days_elapsed` and `punishment_category` kept banned, and the "absent" lists (no day count, no judgment) are what the addendum asked for. Fixture 17 keeps its file name. **One change to fixture 18:** the expected blank is the brief's own blank, `[To be confirmed: default-bail period that applies]`, see the amendment to instruction 5 below.
+
+**"No" on the bond box (`intake-brief.ts`): approved in principle, with a scope condition.** The change must apply to `willingness_to_furnish_bond` (or to an item type that is an undertaking checkbox) only. It must **not** make "No" or false count as empty for other yes/no items: for example "currently in custody: No" is real information. The diff comes to me with its commit hash, since `intake-brief.ts` is a legal path.
+
+**Instruction 5 amended.** Replace the instruction's blank sentence with: `Where the BRIEF gives a blank for the period, write that blank exactly as the BRIEF gives it; where it does not, write [To be confirmed: the default-bail period that applies to this offence].` The same for the date of expiry (`[To be confirmed: the date on which the period expired]` only when the BRIEF gives none). This removes the conflict with the Drafter prompt rule that tells the Drafter to write the BRIEF's blank.
+
+**`relevantActs`, section 187(3).** Change the description from `within 60 / 90 days from first remand` to the Gazette heading: `Procedure when investigation cannot be completed in twenty-four hours`. The CrPC 167 entry (only where PROCEDURE CODE is CrPC) gets the same treatment: `Procedure when investigation cannot be completed in twenty-four hours`. The pack states no period of its own.
+
+**T-263** (a case name that starts with an initial survives the citation check): agreed to be its own ticket. It is a legal-accuracy risk (case law can reach a draft), so it should not wait long; the averments ban covers `M. Ravindran` meanwhile. The heading blank is T-245a's.
+
+Signed: Ajay (CLO), 12 Oct 2026 IST.
