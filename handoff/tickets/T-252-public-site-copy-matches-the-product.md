@@ -52,3 +52,5 @@ No "secure" or "encrypted" claim anywhere, since form answers are not encrypted 
 ## Added (shashank, 12 Oct 2026)
 
 The section-converter page says "500+ section mappings validated by a practising advocate" (`page.tsx:130` and the meta in `layout.tsx`). Until Ajay has signed the IPC→BNS recheck (T-267), that claim holds only for the CrPC and IEA tables, because the seed sets `validatedBy`/`validatedAt` for those two and leaves the IPC table null (Ajay's ruling). Ajay gives the replacement words. Change both places.
+
+**URGENT part, moved out and done first (Ajay, 12 Oct 2026):** the converter claim is T-252a. Remove it now, not at T-403: exact strings in `handoff/legal/section-converter-copy-signed.md`. It also drops "auto-conversion" (Lawie never converts) and "Instantly". Mahak does it on her T-235 + T-254A branch (files: `tools/section-converter/page.tsx` and `layout.tsx`). A validation claim may come back only as "Mappings checked against the Gazette text of the Acts", after T-267, and never as "validated by a practising advocate" unless one actually has.
