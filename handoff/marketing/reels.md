@@ -36,7 +36,11 @@ Why the HOLD: describe-first is behind feature flags today (on only for the foun
 7. **CTA** on every end card: `Start with 5 free Ink` + `lawie.in`. The caption carries the UTM link via the bio (see the calendar post). No rupees in reels.
 8. **Wording:** "Criminal drafts cite BNS, BNSS and BSA." (Ajay, exact). "Free" only next to "5 Ink". Do not say "asks only for what is missing" (banned, T-141a); say "asks for the details it still needs".
 9. **Real screen headings** (from `apps/web/src/components/intake`): `What do you need to draft?` (the describe screen; its text reads "Describe the matter in your own words"), `A few questions about what you need`, `Check your brief`, then the draft. The classic gallery heading is `Browse document types`. Do not invent other headings.
-10. **What Lawie asks.** After the description, Lawie asks for the required facts it could not find in it. The only facts the reels may name are: FIR number and date, police station, sections, custody, court, applicant details, facts, grounds. It is not a fixed form, and the questions differ by matter. Priya to confirm the real questions on the recording day; change the voice-over to match what is on screen.
+10. **What Lawie asks (Priya, from the code, 12 Oct).** After the description, Lawie asks only for the required facts it could not find in it. It is not a fixed form, and the questions differ by matter. The only facts a reel may name:
+    - **Bail (describe flow):** FIR number and date, police station, sections, custody (and since when), state, court type and name, applicant name, father's or husband's name, age, address, language, brief facts, grounds (at least 2).
+    - **s.138 notice:** payee and drawer with addresses, drawer type, advocate name/chamber/enrolment no., cheque no./date/amount, bank/branch, presentation date, dishonour date and reason, underlying liability.
+    - **Rent agreement (not scripted yet):** state, place/date, landlord and tenant names/addresses/PAN, property address/area/type, rent and due date, payment mode, escalation, deposit, duration, notice period, permitted use, maintenance, extra terms.
+    Say "asks for the details it still needs", never "asks only for what is missing" (banned, T-141a). Use sample values for every one shown.
 
 ---
 
@@ -99,7 +103,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 **Claims to check (Ajay):**
 1. "Regular bail" can be described and drafted through the describe flow (`bail_regular`).
-2. The screen headings and the questions named in the voice-over match the real screens (Priya, on the recording day).
+2. Screen headings (`What do you need to draft?`, `A few questions about what you need`, `Check your brief`) match the real screens; the questions named in the voice-over come from the bail list in production rule 10 (Priya, 12 Oct).
 3. "Criminal drafts cite BNS, BNSS and BSA."
 4. **Section 483 BNSS** visible in the draft, with `[Sample Sessions Court]`. **Ajay to check the actual frame.**
 5. Everything in the draft can be changed in the editor; download in Word or PDF.
@@ -126,7 +130,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 | 0:09–0:14 | Screen `A few questions about what you need`: one or two questions answered with sample values | A few questions | जो details अभी चाहिए, Lawie पूछता है। | Lawie asks for the details it still needs. |
 | 0:14–0:17 | Screen `Check your brief` | Check your brief | अपना brief जाँचिए। | Check your brief. |
 | 0:17–0:19 | Click "Generate", plain cut | (none) | (none) | (none) |
-| 0:19–0:25 | The notice opens. Zoom on the demand paragraph: payment **within fifteen days of receipt of this notice**. The header Ink pill drops by 1 (only if the pill shows it; otherwise cut this overlay) | Most notices use 1 Ink. Charged only after a draft is generated. | ज़्यादातर notice में 1 Ink लगता है, और Ink ड्राफ्ट generate होने के बाद ही कटता है। | Most notices use 1 Ink, and you're charged only after a draft is generated. |
+| 0:19–0:25 | The notice opens. Zoom on the demand paragraph: payment **within fifteen days of receipt of this notice**. The Ink pill in the top bar (count, tier, Top-up button) drops by 1 | Most notices use 1 Ink. Charged only after a draft is generated. | ज़्यादातर notice में 1 Ink लगता है, और Ink ड्राफ्ट generate होने के बाद ही कटता है। | Most notices use 1 Ink, and you're charged only after a draft is generated. |
 | 0:25–0:32 | Editor: the advocate edits the demand paragraph | Review. Edit anything. | पढ़िए, जाँचिए, जो बदलना हो बदलिए। | Read it, check it, change what you need to. |
 | 0:32–0:35 | Download as PDF | Download: Word or PDF | Word या PDF में डाउनलोड। | Download in Word or PDF. |
 | 0:35–0:40 | End card | Start with 5 free Ink · lawie.in / Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing. | 5 free Ink से शुरू कीजिए। | Start with 5 free Ink. |
@@ -168,8 +172,8 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 **Claims to check (Ajay):**
 1. The s.138 NI Act notice is live (`legal_notice_s138`) and is a 1-Ink document (T-227).
 2. "Most notices use 1 Ink. Charged only after a draft is generated." (signed wording, shortened; approved after T-227).
-3. The header Ink pill drops by 1 after generation (Priya to confirm on production; else cut the overlay and keep the line).
-4. Screen headings and questions match the real screens (Priya).
+3. The Ink pill sits in the top bar on every dashboard page, including the draft screen (count, tier, Top-up button), so the overlay stays (Priya, 12 Oct).
+4. Screen headings match the real screens; the questions named in the voice-over come from the s.138 list in production rule 10 (Priya, 12 Oct).
 5. **Demand paragraph shows payment within fifteen days of receipt of the notice. Ajay to check the actual frame.**
 6. Sample matter fictional and labelled. If a less loaded example is wanted, use `legal_notice_breach_of_contract` with the same beats.
 
@@ -186,7 +190,7 @@ Uses the R1 or R4 sample draft (fictional, offence date after 1 July 2024), so n
 | Time | On-screen visual | On-screen text (EN) | Voice-over (HI) | Subtitle (EN) |
 | --- | --- | --- | --- | --- |
 | 0:00–0:02 | Draft in the editor, disclaimer line visible | Lawie drafts. You decide. | ड्राफ्ट Lawie का, फ़ैसला आपका। | Lawie drafts. You decide. |
-| 0:02–0:08 | Zoom on the disclaimer line as it appears on the draft | Every draft says this. | हर ड्राफ्ट पर यह लाइन रहती है। | Every draft carries this line. |
+| 0:02–0:08 | Zoom on the disclaimer banner above the editor (below the "starting draft" label) | Every draft says this. | हर ड्राफ्ट पर यह लाइन रहती है। | Every draft carries this line. |
 | 0:08–0:16 | Advocate's cursor goes paragraph by paragraph; a section reference is highlighted by the cursor (not by the app) | Read every line. Check every section. | हर line पढ़िए। हर section जाँचिए। | Read every line. Check every section. |
 | 0:16–0:24 | Advocate rewrites a sentence and adds a fact | Edit anything. | जो बदलना हो, बदलिए। तथ्य आपके, शब्द आपके। | Change whatever you need. Your facts, your words. |
 | 0:24–0:29 | Download menu: Word and PDF | Download in Word or PDF | फिर Word या PDF में डाउनलोड करके अपने तरीक़े से काम कीजिए। | Then download in Word or PDF and work the way you always do. |
@@ -196,8 +200,8 @@ Uses the R1 or R4 sample draft (fictional, offence date after 1 July 2024), so n
 
 **Disclaimer on end card:** `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.`
 
-**Claims to check (Ajay):** (approved in section E; Priya confirms where the disclaimer shows)
-1. The disclaimer line appears on every draft, on screen, verbatim (T-197). Priya to confirm where it shows (editor and/or export) so the 0:02 shot is real.
+**Claims to check (Ajay):** (approved in section E)
+1. The disclaimer line appears on every draft, on screen, verbatim (T-197), in a non-dismissible banner above the editor, below the "starting draft" label (Priya, 12 Oct). The 0:02 shot films that banner.
 2. Everything in the draft can be changed in the editor.
 3. Download in Word or PDF.
 4. The cursor highlight at 0:08 is the advocate's, not a product feature. No "highlighted blanks" implication (T-194 not merged).
@@ -237,7 +241,7 @@ No HOLD tag: this is the path every user has today. It waits only for T-245a/b (
 
 **Claims to check (Ajay):**
 1. "Regular bail" is a live document in the bail group, picked from `Browse document types` (`bail_regular`).
-2. The form fields named in the voice-over match the real form (Priya).
+2. The form fields named in the voice-over come from the bail list in production rule 10 (Priya, 12 Oct); on the recording day Priya confirms the classic form shows the same fields.
 3. "Criminal drafts cite BNS, BNSS and BSA."
 4. **Section 483 BNSS** in the draft with `[Sample Sessions Court]`. **Ajay to check the actual frame.**
 5. Everything in the draft can be changed in the editor; download in Word or PDF.
