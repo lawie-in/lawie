@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep                                                                                  |
 | Owner          | Lead (build). Ajay (heads-up, DPDP). Anushka (verdict on sign-up still working)           |
 | Mode           | Build, full chain (auth)                                                                  |
-| Status         | Assigned to shashank, 11 Oct 2026. Not started |
+| Status         | Merged into develop_staging (37a1d32, 11 Oct 2026), waiting for Anushka on develop. Also carries T-211's syncIndexes fix |
 | Assigned lead  | shashank |
 | Size           | XS (0.25 day)                                                                             |
 | Depends on     | None                                                                                      |

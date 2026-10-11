@@ -23,3 +23,8 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 - It reads the same on my phone and on a desktop.
 - The Word and PDF files I download have the same footers as before.
 
+## T-210 (shashank, merged to develop_staging 37a1d32, 11 Oct 2026)
+
+- I sign up and sign in exactly as before; nothing looks or works differently.
+- My email, name, phone number and password are no longer kept in Lawie's server logs or in error reports, even when something goes wrong while I sign up or sign in.
+

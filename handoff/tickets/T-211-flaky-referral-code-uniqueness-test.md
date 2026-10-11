@@ -5,7 +5,8 @@
 | Phase          | 0 — Prep                                                  |
 | Owner          | Lead (build)                                              |
 | Mode           | Small fix: developer + tester + reviewer                  |
-| Status         | Ready. Arjun chose both fixes, 11 Oct 2026 (ci.yml pre-download + cache; syncIndexes in auth setupDb.ts). Next for shashank after T-210 |
+| Status         | Assigned to shashank, 11 Oct 2026. Fix 2 (syncIndexes) shipped in T-210 (37a1d32); fix 1 (ci.yml Mongo pre-download + cache) remains |
+| Assigned lead  | shashank |
 | Size           | S (0.5 day)                                               |
 | Depends on     | None                                                      |
 | Gate           | None for go-live. Keeps CI on auth trustworthy            |
