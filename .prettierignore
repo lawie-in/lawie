@@ -4,3 +4,4 @@ dist
 out
 coverage
 *.lock
+apps/drafting/src/config/document-rules/_averments/
