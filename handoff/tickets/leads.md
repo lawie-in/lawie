@@ -22,8 +22,10 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. vishal — T-200. Round 2 review passed. The slot is his now (mahak's T-251 has merged).
-2. shashank — T-250 + T-255 (when its chain is done).
+1. mahak — T-252a (one commit, fd0d12f + Ajay's two extra strings). Tiny and urgent: the slot is hers now.
+2. vishal — T-200 (round 2 passed; his slot follows hers).
+3. shashank — T-250 + T-255 (when its chain is done).
+4. mahak — T-235 + T-254A (privacy branch) after its tests and Ajay's sign-off.
 
 ## Last done
 

@@ -46,3 +46,5 @@ In non-ledger mode (feature.fact_ledger off) nothing checks the Drafter's text a
 - `handoff/data/rule-pack-report.md` is generated and stale for default_bail. Regenerate it if it is kept current.
 - Marketing: no default-bail post until this is merged, and then only once the go-live gate holds.
 - Before Anushka's run: `feature.fact_ledger` must be ON in the develop environment, or she sees the old path and default_bail is not offered (setup in anushka-run.md).
+
+CI for the merge: run 378 on 871f7c6 is green (12 Oct 2026).
