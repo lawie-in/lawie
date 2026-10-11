@@ -52,3 +52,26 @@ Asked through Priya: does the fact check's targeted model repair (inside `verify
 **t147e assertion: change approved.** "A repair that returns paragraph 1 without its number reports the clauses there as missing" becomes: it reports the non-system clauses reported there as missing, and never `prayer`, `verification` or `advocate_details`. To keep the original intent, the fixture adds one ordinary uncued clause at paragraph 1 that must still be reported missing. The changed assertion is listed in the merge note.
 
 Signed: Ajay (CLO), 12 Oct 2026 IST.
+
+## Section 3: two readings from the build (12 Oct 2026 IST, vishal's c1e2d9f)
+
+1. **One stretch.** Two changes inside the same flagged sentence count as one stretch, because everything outside that sentence is identical. Approved. A sentence ends at `.`, `?`, `!` or `।` followed by whitespace; the splitter also splits at abbreviations such as "No. 124", which makes the flagged sentence shorter than it is. That is the safe side: an edit then looks as if it touched something outside the flagged sentence, the paragraph is not re-recorded, and the clause is reported missing with the starting-draft label. Accepted for now. Follow-up (not blocking, no sign-off needed for the change alone): an abbreviation-aware splitter (No., S., Sec., Art., Rs., v., Dr., Mr., Mrs.).
+2. **Clause repair after check 3.** R2b.4.3 is read as: the clause is reported missing (`clause_not_in_paragraph`) and the clause-repair pass runs where the flow has one. Today none runs after check 3, so the draft carries the starting-draft label. Accepted for T-200. The repair after check 3 is a follow-up ticket (a flow change outside T-200). Test (b) in section 2 expects the missing report and the label.
+
+Signed: Ajay (CLO), 12 Oct 2026 IST.
+
+## Section 4: R2b.5, empty first record, and cue matching notes (12 Oct 2026 IST)
+
+**R2b.5 First check, empty paragraph.** On the first check, an uncued clause whose reported paragraphs hold nothing or only blanks (no letter or digit left once blanks are removed, as in R2b.2; for example "5." directly followed by "6.") is **not recorded**. It is reported `clause_not_in_paragraph` and goes to the repair pass at check 1. Otherwise the empty text would be recorded, `includes('')` is always true, and the clause would stay present whatever later edits do. **Included in T-200** (vishal's last round); the 2-3 line change plus one test is approved in advance on this description. If the diff does anything else, it comes back to me with its commit hash. Test: first check with an empty reported paragraph -> `clause_not_in_paragraph`, nothing recorded.
+
+**Cue matching: follow-up, not in T-200.** The reviewer's notes are right and each tightens the signed cues, so each needs my sign-off when it is built:
+1. A Latin cue entry matches only at the start of a word, so `ground` no longer matches inside `background` (it still matches `grounds`).
+2. The FIR number cue matches the whole token only: not when a digit or `/` sits next to it, so a short number such as "12" does not match a date.
+3. `submitted` stays a weak cue; accepted as a word test, not a check of meaning.
+4. The FIR cue matching its own blank placeholder is intended: a paragraph that carries the blank for the FIR number carries the clause.
+5. `bail ... before this Hon'ble Court` is closed by dropping `before` in T-241 (EA-standard).
+Ticket for 1 and 2: after T-200 merges.
+
+UI check on the warning type: closed by Priya (the UI shows only the message).
+
+Signed: Ajay (CLO), 12 Oct 2026 IST.

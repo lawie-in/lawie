@@ -141,7 +141,7 @@
       },
       {
         "id": "representations_made",
-        "label": "Representations made (police complaint, Magistrate u/S.97 BNSS, Advisory Board, etc.)",
+        "label": "Representations made (police complaint, Magistrate u/S.100 BNSS, Advisory Board, etc.)",
         "type": "textarea",
         "required": true
       },
@@ -254,7 +254,7 @@
       "   (d) Illegal private confinement of adult woman — Cite Lata Singh v. State of UP (2006) 5 SCC 475 (adult woman right to choose).",
       "   (e) Child custody — habeas where retention is so unlawful that legal remedy by guardianship would be illusory; otherwise Guardians and Wards Act may be appropriate. Cite Tejaswini Gaud v. Shekhar Jagdish Prasad Tewari (2019) 7 SCC 42.",
       "   (f) Missing person with state action suspected — Cite Bhim Singh v. State of J&K (1985) 4 SCC 677 (compensation awarded for illegal detention of MLA).",
-      "Para 9: Representations made — to police (Diary No., dates), Magistrate u/S.97 BNSS [S.97 CrPC search warrant for unlawfully confined person], higher authorities. Show inadequacy / inaction.",
+      "Para 9: Representations made — to police (Diary No., dates), Magistrate u/S.100 BNSS [S.97 CrPC search warrant for unlawfully confined person], higher authorities. Show inadequacy / inaction.",
       "Para 10: Article 21 (procedure not just/fair/reasonable) and Article 22 (procedural safeguards) violation.",
       "Para 11: Urgency — every day's detention is irreparable injury to liberty. Health, communication blackout, risk to life.",
       "Para 12: Where preventive detention — challenge specific grounds:",
@@ -294,8 +294,8 @@
           "description": "Person arrested not to be detained more than 24 hours (replaces S.57 CrPC)"
         },
         {
-          "number": "S.97",
-          "description": "Search warrant for person wrongfully confined (replaces S.97 CrPC)"
+          "number": "S.100",
+          "description": "Search for persons wrongfully confined (replaces S.97 CrPC)"
         },
         {
           "number": "S.35",

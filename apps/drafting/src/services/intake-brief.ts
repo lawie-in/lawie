@@ -545,7 +545,9 @@ function isNumber(v: string): boolean {
 // ── Police station and sections (AJ-2026-10-08-T139, parts 1 and 2) ─────────
 
 function isPoliceStationItem(item: ChecklistItem): boolean {
-  return item.kind === 'text' && /(^|_)(police_station|ps_name|thana)(_|$)/.test(lastSegment(item.key));
+  return (
+    item.kind === 'text' && /(^|_)(police_station|ps_name|thana)(_|$)/.test(lastSegment(item.key))
+  );
 }
 
 const STATION_CUE = '(?:p\\.?\\s?s\\.?|thana|police station|थाना|पुलिस स्टेशन)';
@@ -588,13 +590,14 @@ function actId(word: string): string {
 // ── Citation groups (AJ-2026-10-08-T139-A2) ─────────────────────────────────
 
 /** A section number standing whole in a normalised quote; not part of a date or a word. */
-const SECTION_IN_TEXT = /(?<![a-z0-9(])(?<!\d[.:-])\d+[a-z]?(?:\(\d+[a-z]?\))*(?![a-z0-9(])(?![.:-]\d)/g;
+const SECTION_IN_TEXT =
+  /(?<![a-z0-9(])(?<!\d[.:-])\d+[a-z]?(?:\(\d+[a-z]?\))*(?![a-z0-9(])(?![.:-]\d)/g;
 /** What may join two numbers of one run, or two acts into an "IPC/BNS" doubt. */
 // "r/w", "read with", "सपठित" and the like: AJ-2026-10-08-T139-final-2, item 2.
-const JOINER =
-  /^(?:\s*(?:,|&|\/|and|or|व|एवं|और|तथा|r\/w\.?|r\.w\.|read\s+with|सपठित|पठित)\s*)+$/i;
+const JOINER = /^(?:\s*(?:,|&|\/|and|or|व|एवं|और|तथा|r\/w\.?|r\.w\.|read\s+with|सपठित|पठित)\s*)+$/i;
 /** What may stand between an act and the run it qualifies, act first: "IPC की धारा 302", "BNS s. 103". */
-const ACT_BEFORE_GAP = /^\s*(?:(?:की|के)\s+)?(?:(?:s|ss|sec|secs|section|sections|u\/s|धारा)\.?)?\s*$/;
+const ACT_BEFORE_GAP =
+  /^\s*(?:(?:की|के)\s+)?(?:(?:s|ss|sec|secs|section|sections|u\/s|धारा)\.?)?\s*$/;
 /** What may stand between a run and its act, act last: "302, 307 IPC", "103 of BNS". */
 const ACT_AFTER_GAP = /^\s*(?:of(?:\s+the)?)?\s*$/;
 
@@ -634,11 +637,11 @@ function sectionsByAct(normQuote: string): Array<{ section: string; act: string 
     for (let i = 0; i < acts.length && acts[i].end <= start; i++) before = i;
     const after = acts.findIndex((a) => a.start >= end);
     const bound = new Set<number>();
-    if (before >= 0 && ACT_BEFORE_GAP.test(normQuote.slice(acts[before].end, start))) bound.add(before);
+    if (before >= 0 && ACT_BEFORE_GAP.test(normQuote.slice(acts[before].end, start)))
+      bound.add(before);
     if (after >= 0 && ACT_AFTER_GAP.test(normQuote.slice(end, acts[after].start))) bound.add(after);
     const ids = new Set([...bound].map((i) => acts[i].id));
-    const act =
-      ids.size === 1 && ![...bound].some(joinedToAnother) ? [...ids][0] : null;
+    const act = ids.size === 1 && ![...bound].some(joinedToAnother) ? [...ids][0] : null;
     for (const n of run) out.push({ section: n.section, act });
   }
   return out;
@@ -1022,6 +1025,16 @@ function isEmpty(v: string | string[] | null): boolean {
   return v === null || v === '' || (Array.isArray(v) && v.length === 0);
 }
 
+/** Undertaking checkboxes: a "No" is not a fact, it is an undertaking not yet given (T-251). */
+const UNDERTAKINGS = new Set(['willingness_to_furnish_bond']);
+
+/** A "No" or false on an undertaking box counts as unticked, so its blank shows. */
+function isDeclinedUndertaking(given: GivenValue): boolean {
+  if (!UNDERTAKINGS.has(lastSegment(given.key))) return false;
+  const v = normalise(String(given.value));
+  return v === 'no' || v === 'false';
+}
+
 /** "Applicant Name" -> "applicant". The party as it reads after "the name of the". */
 function partyLabel(label: string): string {
   const stripped = label
@@ -1135,7 +1148,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
   const placed = new Map<string, GivenValue>();
   const unplaced = new Map<string, { label: string; value: string | string[] }>();
   for (const given of input.values) {
-    if (isEmpty(given.value)) continue;
+    if (isEmpty(given.value) || isDeclinedUndertaking(given)) continue;
     let item = byKey.get(given.key);
     if (!item && !given.key.startsWith('fixed.')) {
       const sameName = byName.get(lastSegment(given.key)) ?? [];

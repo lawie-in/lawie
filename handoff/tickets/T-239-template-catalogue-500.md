@@ -116,3 +116,17 @@ Build tickets:
 T-258, T-259 and T-260 need only T-240, so they can start as soon as it merges. Each lead builds in their own batch file (T-240 point 9).
 
 Batch 2: Ajay starts the text for the 3 highest-risk families now, then pauses for Anushka's batch 1 results before the rest.
+
+## Batch 2: first three families signed (Ajay, 96da5c8 and 21aa6d9, 12 Oct 2026)
+
+11 specs, `handoff/legal/T-239-b2-<nn>-<id>-signed.md`. Ajay pauses the rest of batch 2 until Anushka's batch 1 results are in.
+
+| # | id | Ink | Tier |
+|---|---|---|---|
+| 1–4 | bail_pocso, bail_up_gangsters, bail_arms_act, bail_pmla | 2 | A |
+| 5–7 | criminal_appeal_sessions_from_magistrate, leave_to_appeal_acquittal_419, state_appeal_inadequate_sentence_418 | 2 | A |
+| 8 | application_additional_evidence_432 | 1 | B |
+| 9–10 | transfer_petition_hc_447, transfer_petition_sc_446 | 2 | B |
+| 11 | transfer_application_sessions_448 | 1 | B |
+
+Build notes: see T-265.

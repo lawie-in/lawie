@@ -7,6 +7,8 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 - `feature.describe_first`: on for the signed-in account (founder checked, 12 Oct).
 - `feature.fact_ledger`: not set in the database today, so it is off. Before Anushka tests T-189, once T-189 is on `develop`, the founder adds the app setting `feature.fact_ledger` with the same value as `feature.describe_first` (his user id, or the comma-separated list of ids). Never `on`: that would switch it on for every user, and it stays off for real users until T-187, T-188, T-190 and T-194 are done.
 
+- For default bail (T-251): `feature.fact_ledger` must also be ON for her test account, or the default bail template isn't offered.
+
 ## T-208 (shashank, merged to develop_staging d305233, 11 Oct 2026)
 
 - When I sign up with a mistyped email, a short or weak password, or leave my name, email or password out, I see what is wrong instead of "Internal Server Error".
@@ -68,5 +70,27 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Bail (regular and anticipatory) and consumer complaint now show 2 Ink, which is what they were always charged.
 - Most long documents now cost the 2 Ink they already showed.
 - A document type the app does not recognise is refused with a clear message, and no Ink is taken.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-248 (shashank, merged to develop_staging 4787900, 12 Oct 2026)
+
+- A review petition cites the criminal review bar under S.403 BNSS, with no mention of a proviso that does not exist.
+- A habeas corpus petition cites S.100 BNSS for the search of a wrongfully confined person.
+- The discharge form offers the right third option, a warrant case before a Magistrate on a complaint under S.268 BNSS, in place of a summons case that never had discharge.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-251 (mahak, merged to develop_staging 871f7c6, 12 Oct 2026)
+
+Needs `feature.fact_ledger` ON for her test account, or the default bail template isn't offered.
+
+- A default bail draft no longer cites any judgment you did not give, and it never counts days.
+- You choose the period (60 days, 90 days, or a period under a special Act) and the date it expired. Lawie does not decide which one applies.
+- An offence with a 10-year maximum is no longer forced into 90 days.
+- Missing details show as "[To be confirmed: ...]" blanks, and the export warning counts them.
+- Until the old/new law choice arrives, the prayer names the provision as a blank for you to confirm (CrPC 167(2) or BNSS 187(3)).
+- The undertaking to furnish bail bonds appears only when you tick it. If it is unticked or answered "No", you get a blank, never "will not furnish".
+- Earlier bail applications are stated as you give them.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
