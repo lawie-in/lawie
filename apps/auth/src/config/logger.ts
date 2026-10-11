@@ -60,9 +60,29 @@ export function serializeErr(err: unknown): unknown {
   return scrub(base, 0, new WeakSet());
 }
 
+/**
+ * Masks emails in string args (the msg and printf params) before pino formats them.
+ * pino also copies the RAW `err.message` into the top-level `msg` when no message
+ * string is passed, bypassing serializers — so in that case we supply a masked one.
+ */
+function maskLogArgs(this: pino.Logger, args: unknown[], method: pino.LogFn): void {
+  const masked = args.map((a) => (typeof a === 'string' ? maskEmails(a) : a));
+  const [first] = masked;
+  if (masked.length === 1 && first !== null && typeof first === 'object') {
+    const obj = first as Record<string, unknown>;
+    const err = first instanceof Error ? first : obj['err'];
+    if (obj['msg'] === undefined && err && typeof err === 'object') {
+      const message = (err as { message?: unknown }).message;
+      if (message !== undefined) masked.push(maskEmails(String(message)));
+    }
+  }
+  (method as (...a: unknown[]) => void).apply(this, masked);
+}
+
 export const loggerOptions: pino.LoggerOptions = {
   level: env.LOG_LEVEL,
   timestamp: pino.stdTimeFunctions.isoTime,
+  hooks: { logMethod: maskLogArgs },
   redact: {
     paths: ['email', 'password', 'phone', '*.email', '*.password', '*.phone'],
     censor: REDACT_CENSOR,

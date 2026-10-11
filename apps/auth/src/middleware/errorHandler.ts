@@ -26,11 +26,14 @@ export function errorHandler(
 
   // Logs only: err (via the PII-scrubbing `err` serializer), method, url (emails masked), ip,
   // statusCode. Never req.body, headers or query objects (T-210).
-  logger.error({
-    err,
-    req: { method: req.method, url: maskEmails(req.url), ip: req.ip },
-    statusCode,
-  });
+  logger.error(
+    {
+      err,
+      req: { method: req.method, url: maskEmails(req.url), ip: req.ip },
+      statusCode,
+    },
+    'Request failed',
+  );
 
   // Send non-operational (unexpected) errors to Sentry
   if (!isAppError || !err.isOperational) {
