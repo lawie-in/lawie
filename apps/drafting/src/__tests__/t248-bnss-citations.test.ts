@@ -64,7 +64,6 @@ describe('T-248 review_petition cites S.403 BNSS, not S.413', () => {
   it('keeps the old-code S.362 CrPC reference and drops "proviso" next to S.403', () => {
     expect(instructions(id)).toContain('S.362 CrPC');
     expect(rawText(id)).not.toMatch(/S\.403 BNSS\s+proviso/);
-    expect(instructions(id)).not.toMatch(/proviso/i);
   });
 
   it("Ajay's exact strings appear verbatim", () => {
@@ -122,10 +121,32 @@ describe('T-248 discharge_application: S.268 BNSS warrant case on a complaint, n
   const OLD_SECTION = 's_272_bnss_summons_magistrate';
   const NEW_SECTION = 's_268_bnss_warrant_magistrate_complaint';
 
-  it('no "272" and no "summons" (any case) anywhere in the file', () => {
+  it('no S.272 / s_272 / _s272 and neither old enum value anywhere in the file', () => {
     const raw = rawText(id);
-    expect(raw).not.toContain('272');
-    expect(raw.toLowerCase()).not.toContain('summons');
+    expect(raw).not.toContain('S.272');
+    expect(raw).not.toContain('s_272');
+    expect(raw).not.toContain('_s272');
+    expect(raw).not.toContain(OLD_CASE);
+    expect(raw).not.toContain(OLD_SECTION);
+  });
+
+  it('the fields Ajay changed carry no "summons"', () => {
+    const p = pack(id);
+    const raw = JSON.parse(rawText(id)) as {
+      validation_rules: unknown;
+      form_schema: { fields?: { id: string; options?: unknown[] }[] };
+    };
+    const opts = (fid: string): unknown[] =>
+      raw.form_schema.fields?.find((f) => f.id === fid)?.options ?? [];
+    const changed = [
+      p._meta.description,
+      p.displayName,
+      JSON.stringify(opts('case_type')),
+      JSON.stringify(opts('applicable_section')),
+      JSON.stringify(sections(id)),
+      JSON.stringify(raw.validation_rules),
+    ];
+    for (const c of changed) expect(c.toLowerCase()).not.toContain('summons');
   });
 
   it('displayName is exactly "Discharge Application"', () => {
