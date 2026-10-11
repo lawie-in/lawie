@@ -7,6 +7,8 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 - `feature.describe_first`: on for the signed-in account (founder checked, 12 Oct).
 - `feature.fact_ledger`: not set in the database today, so it is off. Before Anushka tests T-189, once T-189 is on `develop`, the founder adds the app setting `feature.fact_ledger` with the same value as `feature.describe_first` (his user id, or the comma-separated list of ids). Never `on`: that would switch it on for every user, and it stays off for real users until T-187, T-188, T-190 and T-194 are done.
 
+- For default bail (T-251): `feature.fact_ledger` must also be ON for her test account, or the default bail template isn't offered.
+
 ## T-208 (shashank, merged to develop_staging d305233, 11 Oct 2026)
 
 - When I sign up with a mistyped email, a short or weak password, or leave my name, email or password out, I see what is wrong instead of "Internal Server Error".
@@ -59,5 +61,22 @@ Before her run, someone checks by hand: a real PDF render, the em dash in the fa
 - "DRAFT — N items to be confirmed" prints at the top of every page.
 - If nothing is blank, there is no warning and no header, as before.
 - The registry case number in the title, the signing date in the verification and the signature line are not flagged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-227 (shashank, merged to develop_staging efa610b, 12 Oct 2026)
+
+- The Ink a document shows is the Ink taken.
+- Bail (regular and anticipatory) and consumer complaint now show 2 Ink, which is what they were always charged.
+- Most long documents now cost the 2 Ink they already showed.
+- A document type the app does not recognise is refused with a clear message, and no Ink is taken.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-248 (shashank, merged to develop_staging 4787900, 12 Oct 2026)
+
+- A review petition cites the criminal review bar under S.403 BNSS, with no mention of a proviso that does not exist.
+- A habeas corpus petition cites S.100 BNSS for the search of a wrongfully confined person.
+- The discharge form offers the right third option, a warrant case before a Magistrate on a complaint under S.268 BNSS, in place of a summons case that never had discharge.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

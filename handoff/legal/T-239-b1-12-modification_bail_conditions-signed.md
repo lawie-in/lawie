@@ -5,7 +5,7 @@ Status: SIGNED (see end). Drafted 12 Oct 2026, reviewed and amended by Ajay. Map
 | Field | Value |
 |---|---|
 | id | `modification_bail_conditions` |
-| displayName | Application for Modification of Bail Conditions (BNSS 480 / 483) |
+| displayName | Application for Modification of Bail Conditions |
 | category | Criminal: bail and custody |
 | court_levels | `["magistrate", "cjm", "sessions"]` |
 | Ink | S = 1 |
@@ -196,6 +196,7 @@ The "Notes" section is the drafter's reasoning, kept for the record; it is not t
 
 | Item | Mark |
 |---|---|
+| `displayName` carries no section number (the Drafter sees it); the section appears in the cause title through `{governing_provision}` | Amended |
 | Spec as amended | Approved |
 | Only the court that granted bail; the Sessions Court changing a Magistrate's conditions is a separate id | Approved. New id for batch 2: `modification_bail_conditions_superior_court` |
 | Averments inherit `bail_regular` | Approved (default-deny makes the unused entries harmless) |

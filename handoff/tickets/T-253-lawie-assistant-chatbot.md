@@ -135,3 +135,25 @@ None of these touch `packages/shared`. They are assigned after the v1 blockers.
 - Create two Anthropic keys (chat, $25/month; nightly eval, $5).
 - Seed `ai.assistant_model`, `ai.rates.claude-haiku-5-5`, `finance.usd_inr=96.5` and `chat.canary`.
 - Keep `chat.enabled=false` until Anushka's PASS.
+
+## Rajesh: panel design (0c24ba0, handoff/design/T-253-assistant-panel.md)
+
+**Desktop and phone:** a 400px right panel on desktop, a full-screen sheet on phone. It shares the right-side slot with Section finder, so only one is open at a time.
+
+**Priya's calls:**
+- The button says "Copy paragraph", not "Use this paragraph".
+- While `chat.enabled` is off, the entry points are hidden, not shown as "paused".
+
+**Build notes:**
+- 253b: return the suggested wording as its own field.
+- 253a: a status endpoint (on/off, plan, messages used, limit, reset time); reason codes on 429/503; a stopped reply still records its cost.
+- 253d: claims `layout.tsx` and `Sidebar.tsx`.
+- Before Hindi is tested: add the Mukta font (Devanagari).
+
+**Sent to Ajay:**
+- wording for the monthly-cap and cool-down messages;
+- keeping the client-names notice visible while pasted text is present;
+- a Hindi version of the line under answers;
+- the 90-day line in the report dialog.
+
+- The help text is paused: the founder paused Meera's session (12 Oct 2026). Pick it up when she resumes. Nothing else in T-253 waits on it until 253b.

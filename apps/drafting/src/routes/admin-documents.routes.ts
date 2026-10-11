@@ -98,7 +98,7 @@ router.get(
     // Fetch template metadata for the top templates
     const templateIds = templateAgg.map((t: { _id: string }) => t._id).filter(Boolean);
     const templates = await Template.find({ templateId: { $in: templateIds } })
-      .select('templateId displayName category planAccess creditsCost')
+      .select('templateId displayName category planAccess')
       .lean();
     const tmplMap = new Map(templates.map((t) => [t.templateId, t]));
 

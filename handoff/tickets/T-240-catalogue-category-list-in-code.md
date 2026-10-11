@@ -40,3 +40,10 @@ Fixing this inside the rule files means touching signed legal content, and scali
 6. The rule files still carry a `creditsCost` that is now ignored, and a `category` that this ticket makes ignored. Removing them touches legal paths: Ajay decides whether to remove them, and signs that diff.
 7. Settle one list of `court_levels` values. Packs use different names today (`magistrate` vs `magistrate_jmfc`, `sessions` vs `sessions_court`). Ajay, 12 Oct 2026.
 8. Check the price at the top of each generate handler in documents.routes.ts, the lines outside T-227's range (shashank, 12 Oct 2026).
+
+## Per-batch files, so leads don't collide (Priya, 12 Oct 2026)
+
+Every new template touches the category list and the price list (T-227), and two leads building at once would both edit them. So:
+9. The category list and the price list are each split into one file per batch under `apps/drafting/src/config/catalogue/` (for example `batch1-civil.ts`), merged when loaded. The existing 92 ids go in `base.ts`.
+10. The tests from T-227 and this ticket still apply to the merged list: every rule file has exactly one category and an explicit price, and a missing entry fails CI.
+11. A lead claims only their own batch file, so builds run in parallel.

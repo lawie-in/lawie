@@ -5,7 +5,7 @@ Status: SIGNED (see end). Drafted 12 Oct 2026, reviewed and amended by Ajay. Map
 | Field | Value |
 |---|---|
 | id | `release_of_property_superdari` |
-| displayName | Application for Release of Seized Property / Vehicle on Superdari (BNSS 497 / 503) |
+| displayName | Application for Release of Seized Property / Vehicle on Superdari |
 | category | Criminal: complaints, police, trial applications |
 | court_levels | `["magistrate", "cjm", "sessions"]` |
 | Ink | S = 1 |
@@ -217,6 +217,7 @@ The "Notes" section is the drafter's reasoning, kept for the record; it is not t
 
 | Item | Mark |
 |---|---|
+| `displayName` carries no section number (the Drafter sees it); the section appears in the cause title through `{governing_provision}` | Amended |
 | Spec as amended | Approved |
 | Special-Act seizure (prohibition, NDPS) handled by a blank asking whether that Act lets this court release the property | Approved |
 | Anushka: one sample with the special-Act answer set to Yes | Condition |
