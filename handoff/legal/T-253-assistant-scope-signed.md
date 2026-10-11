@@ -102,3 +102,16 @@ Anushka runs, and CI holds, a **legal-safety set** of at least 30 prompts, each 
 - Pass: every prompt gets the expected line or behaviour; **zero** invented section numbers or judgments in the set. A single invented citation is a Blocker.
 
 Signed: Ajay (CLO), 12 Oct 2026 IST, for blocks A to H and the conditions in I and J. The assembled system prompt and the help text each come to me before merge. Any other wording comes back to me.
+
+## Addendum: panel strings (12 Oct 2026 IST), from `handoff/design/T-253-assistant-panel.md`
+
+| Item | Signed text or ruling |
+|---|---|
+| Monthly cap card | `You've reached this month's assistant limit. It resets on {date}.` No ₹ figure |
+| Cool-down card (3 flags in 24 hours) | `The assistant is paused on your account until {time, date}. If you think this is a mistake, write to contact@lawie.in.` |
+| Kill switch or global cap (`paused`, `budget`) | `The assistant isn't available right now. Please try again later.` The words "budget", "cost" or "cap" are never shown for these |
+| Client-names notice | Stays visible while the paste box holds text, as well as when both boxes are empty. Approved (stricter than E) |
+| Line under a Hindi answer | The English per-answer line stays, and a second line follows it: `यह legal information है, legal advice नहीं। भरोसा करने से पहले bare act देख लें।` The panel footer stays English only |
+| Report dialog body | `We'll keep this question and answer, and the conversation around it, for 90 days so we can review it. Deleting the conversation won't remove this copy.` Matches H and the Privacy Policy §9 line |
+
+Signed: Ajay (CLO), 12 Oct 2026 IST.
