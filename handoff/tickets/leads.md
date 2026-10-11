@@ -14,7 +14,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 | Lead | Next, in order | Gate still open |
 |---|---|---|
-| vishal | 1. T-200 (brief-drafter.ts, already his) 2. T-190 with T-199 (bail_regular.json, one branch if Ajay agrees) 3. T-191, T-192 | T-200: Ajay's rule. T-190/T-199: Ajay's question text. T-191/T-192: Ajay signs the logic |
+| vishal | 0. T-228 (verifier + averments read every list entry; same files and context as T-189) 1. T-200 (brief-drafter.ts, already his) 2. T-190 with T-199 (bail_regular.json, one branch if Ajay agrees) 3. T-191, T-192 | T-200: Ajay's rule. T-190/T-199: Ajay's question text. T-191/T-192: Ajay signs the logic |
 | mahak | 1. T-226 (no overspend; documents.routes.ts, after T-194) 2. T-140 part 1 (after T-189 merges) 3. T-137 web part | T-226: Arjun's mechanism. T-140: Priya's scope + Ajay ok on the court rule. T-137: on hold (founder, 11 Oct) |
 | shashank | 1. T-211 (Mongo download race in CI, widened 11 Oct) 2. T-227 (one price list) 3. T-187 build | T-211: Arjun ok on the CI approach (root config). T-227: none (Vikram's prices in; AC3 cost screen needs Rajesh). T-187: Arjun + Ajay rule |
 | unassigned | T-129, T-193, T-198, T-188, T-207 | Ajay content (T-129, T-193, T-198); Arjun + Ajay option (T-188); Vishal's problem statement (T-207) |
