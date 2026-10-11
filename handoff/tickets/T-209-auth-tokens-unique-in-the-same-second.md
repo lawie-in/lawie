@@ -37,3 +37,18 @@ Advocate who signs up and is signed in straight away, or taps "Sign in" twice.
 ## References
 
 - `apps/auth/src/services/jwt.service.ts`, `session.service.ts`
+
+## Arjun (11 Oct 2026)
+
+**Call: AC4 is met by design. No forced sign-out, and I do not accept one for this ticket.**
+
+Why it holds: auth (`verifyAccessToken`, `verifyRefreshToken`) and gateway (`middleware/authenticate.ts`) call `jwt.verify` with the secret only. Drafting does not verify the JWT; it reads the gateway's `X-User-*` headers. Sessions are keyed by `sha256(token)`, so the Redis and Mongo rows for tokens already issued still match. A token with no `jti` keeps verifying, and the old and new formats overlap only until the old ones expire.
+
+Conditions on the build:
+
+- Add the id through `jwtid: crypto.randomUUID()` in the sign options, on both access and refresh tokens. Do not change the secret, the algorithm, the claims already there, or the expiry.
+- Do not require `jti` on verify. No `jwtid` in `jwt.verify` options, no `jti` check in auth or gateway, and no required `jti` field on `TokenPayload`.
+- Keep keying sessions by token hash. Moving to `jti` keys is a separate ticket.
+- Extra test (AC4): a token signed the old way (same secret, no `jti`) verifies in auth and passes the gateway `authenticate` middleware, and an old-format refresh token still refreshes.
+
+If the build turns out to need any of the forbidden changes, stop and come back to me. A sign-out is not accepted by default.

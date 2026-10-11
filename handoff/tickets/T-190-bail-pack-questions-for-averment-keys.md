@@ -63,3 +63,11 @@ Add questions for the unlock keys to `bail_regular`, in Ajay's order. The bail-f
 ## References
 
 - T-147b, T-147c, T-188, T-189, ADR-022
+
+## Arjun (11 Oct 2026)
+
+**Call: gate confirmed as proposed.** T-190 blocks `feature.fact_ledger` going on for real users. This matches T-199, T-200 and T-207.
+
+- Scope of the gate: real users only. The flag may be on for internal and staging accounts and for Anushka's runs, so T-190 can be tested before it lands.
+- Not a v1 blocker on its own. It becomes one only if `feature.fact_ledger` is meant to be on at go-live (T-403). With the flag off, bail drafts use the path that does not use the ledger and are not affected.
+- Why it blocks: averments that cannot unlock are fail-safe (no invented facts) but leave the draft weaker. On a bail application that is a product failure, not a safety one, and real users should not get it.
