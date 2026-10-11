@@ -203,6 +203,72 @@ describe('Ajay R2b (d): system parts are not checked in the paragraphs', () => {
   });
 });
 
+// ── unit: R2b.4, a model repair inside the fact check ────────────────────────
+
+describe('recordAgainAfterCodeEdit with flagged spans (R2b.4)', () => {
+  const S1 = 'Alpha sentence one.';
+  const S2 = 'The man is a law-abiding citizen here.';
+  const S3 = 'Gamma sentence three.';
+  const before = `1. ${S1} ${S2} ${S3}`;
+  const at = before.indexOf('law-abiding citizen');
+  const span = [{ from: at, to: at + 'law-abiding citizen'.length }];
+  const run = (
+    after: string,
+    flagged: ReadonlyArray<{ from: number; to: number }> | null = span,
+  ) => {
+    const recorded = new Map([['a', 'old text']]);
+    recordAgainAfterCodeEdit(lines('a: 1'), before, after, recorded, [], flagged ?? undefined);
+    return recorded.get('a');
+  };
+  const OLD = 'old text';
+
+  it('only the flagged phrase replaced: re-recorded', () => {
+    const r = run(`1. ${S1} ${S2.replace('law-abiding citizen', 'good man')} ${S3}`);
+    expect(r).toContain('good man here');
+  });
+
+  it('the whole flagged sentence removed: re-recorded', () => {
+    expect(run(`1. ${S1} ${S3}`)).toBe(`${S1} ${S3}`.toLowerCase());
+  });
+
+  it('two changes inside the same flagged sentence: one stretch, re-recorded', () => {
+    const r = run(`1. ${S1} A man is a good citizen here and there. ${S3}`);
+    expect(r).not.toBe(OLD);
+  });
+
+  it('the neighbouring sentence rewritten as well: not re-recorded', () => {
+    expect(
+      run(`1. ${S1} ${S2.replace('law-abiding citizen', 'good man')} Gamma was rewritten.`),
+    ).toBe(OLD);
+    expect(
+      run(`1. Alpha was rewritten. ${S2.replace('law-abiding citizen', 'good man')} ${S3}`),
+    ).toBe(OLD);
+  });
+
+  it("the previous sentence's closing mark changed: not re-recorded", () => {
+    expect(
+      run(`1. Alpha sentence one! ${S2.replace('law-abiding citizen', 'good man')} ${S3}`),
+    ).toBe(OLD);
+  });
+
+  it("the flagged sentence's own closing mark changed with the phrase: still one stretch inside that sentence, re-recorded", () => {
+    expect(run(`1. ${S1} The man is a good man here! ${S3}`)).toContain('good man here!');
+  });
+
+  it('a changed paragraph with no flagged span covering the change: not re-recorded', () => {
+    const elsewhere = [{ from: before.indexOf('Gamma'), to: before.indexOf('Gamma') + 5 }];
+    expect(run(`1. ${S1} ${S2.replace('law-abiding citizen', 'good man')} ${S3}`, elsewhere)).toBe(
+      OLD,
+    );
+    expect(run(`1. ${S1} ${S2.replace('law-abiding citizen', 'good man')} ${S3}`, [])).toBe(OLD);
+  });
+
+  it('no flagged argument: any change is a code edit and is re-recorded (R2b.1)', () => {
+    const r = run(`1. Alpha was rewritten. ${S2} Gamma was rewritten too.`, null);
+    expect(r).toContain('gamma was rewritten too');
+  });
+});
+
 // ── end to end, ledger path: Ajay R2b (a), (b), (c), (d) ────────────────────
 
 const USER_ID = '507f1f77bcf86cd7994390e3';
@@ -384,4 +450,35 @@ describe('Ajay R2b (c): the clause repair pass rewrites a paragraph holding an u
     expect(done.repaired).toBe(false);
     expect(missingIds(done)).toEqual(['fir_details']);
   });
+});
+
+describe("Ajay R2b.4: the fact check's model repair", () => {
+  const NAME =
+    'That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee.';
+
+  it('Ajay R2b.4 (a): the repair replaces only the flagged phrase: the clauses are present, no starting-draft label', async () => {
+    const { done } = await draft(`[[P0]]\n1. ${NAME} He is a citizen.`);
+    expect(mockMessagesStream).toHaveBeenCalledTimes(2);
+    expect(done.missingClauses).toEqual([]);
+    expect(done.mandatoryClausesComplete).toBe(true);
+    expect(done.startingDraft).toBe(false);
+  });
+
+  it.each([
+    [
+      'rewrites the neighbouring sentence too',
+      `1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will never flee. He is a citizen.`,
+    ],
+    [
+      "changes only the neighbour's closing mark",
+      `1. ${NAME.replace(/\.$/, '!')} He is a citizen.`,
+    ],
+  ])(
+    'Ajay R2b.4 (b): the repair %s: the uncued clauses are missing (clause_not_in_paragraph)',
+    async (_n, p1) => {
+      const { done } = await draft(`[[P0]]\n${p1}`);
+      expect(missingIds(done)).toEqual(['apprehension', 'no_flight_risk']);
+      expect(done.mandatoryClausesComplete).toBe(false);
+    },
+  );
 });
