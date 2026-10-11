@@ -1,6 +1,6 @@
-# T-239 b1 #16 bail_juvenile_jj_12 (draft for Ajay)
+# T-239 b1 #16 bail_juvenile_jj_12 (signed)
 
-Status: DRAFT, not signed. JJ Act section numbers are from knowledge of the bare act (not in any repo table): 4 and 12 as whole sections only. Every sub-section, the definition clauses, and every other JJ Act section are under "Verify". BNSS 531 checked in `crpc-to-bnss.json`.
+Status: SIGNED (see the end). Drafted 12 Oct 2026; reviewed and amended by Ajay. JJ Act section numbers are from knowledge of the bare act (not in any repo table): 4 and 12 as whole sections only. Every sub-section, the definition clauses, and every other JJ Act section are under "Verify". BNSS 531 checked in `crpc-to-bnss.json`.
 
 | Field | Value |
 |---|---|
@@ -280,3 +280,21 @@ Risk, low: "the inquiry is pending before this Hon'ble Board" in a paragraph tha
 - Risk: "the accused" phrase ban (see loader question above). Resolved: removed (Ajay ruling).
 - Acceptable: no sub-section of s.12 is cited in any signed field; the instruction paraphrases s.12 without a sub-section number.
 - Acceptable: verification by the parent / guardian; the child does not verify.
+
+
+## Ajay review and sign-off (12 Oct 2026 IST)
+
+Amended before signing: the old/new law text is the T-245 S-text and P-text (345bd24), word for word; `{governing_provision}` and the T-245 keys `offence_date`, `fir_date`, `procedure_code` are used as T-245 gives them. Every BNSS/CrPC/IEA/BSA pair is in the signed tables (`crpc-to-bnss.json`, `iea-to-bsa.json`); the IEA to BSA table is being corrected under T-250, and any pair in this spec that T-250 changes comes back to me. The cue sets for `earlier_applications` are EA-standard (T-237, 909a49c), except EA-appeal for #15: all of [any: `bail`, `जमानत`, `ज़मानत`] and [any: `earlier`, `previous`, `prior`, `withdrawn`, `to be confirmed: whether any earlier`, `पूर्व`, `पहले`, `वापस`].
+
+The "Notes" and "Verify" sections are the drafter's reasoning, kept for the record. They are not build text. Nothing under "Verify" is signed; it stays out until checked against the bare act. Where a note offers a choice, my ruling is in the table below.
+
+| Item | Mark |
+|---|---|
+| Spec as amended | Approved |
+| Size and sampling | L (2 Ink); Anushka tier A |
+| Ruling | Approved. "child in conflict with law", never "the accused". JJ Act section 12 is paraphrased, never quoted. DPDP Act s.9 (children's data) goes on the compliance register (Priya). |
+| Lead builds `form_schema` from this spec; I sign that diff | Condition |
+| Moved golden snapshots are listed for me before merge | Condition |
+| A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
+
+Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.

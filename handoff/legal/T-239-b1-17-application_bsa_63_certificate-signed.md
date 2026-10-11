@@ -1,6 +1,6 @@
-# T-239 b1 #17 application_bsa_63_certificate (draft for Ajay)
+# T-239 b1 #17 application_bsa_63_certificate (signed)
 
-Status: DRAFT, not signed. Mapping checked against `config/sections/iea-to-bsa.json`: IEA 65A -> BSA 62, IEA 65B -> BSA 63, and the note "BSA 63(4) carries the certificate requirement" (also `new_provisions["63(4)"]`). IEA 65B(4) as the certificate sub-section is from certain knowledge. Nothing else cited.
+Status: SIGNED (see the end). Drafted 12 Oct 2026; reviewed and amended by Ajay. Mapping checked against `config/sections/iea-to-bsa.json`: IEA 65A -> BSA 62, IEA 65B -> BSA 63, and the note "BSA 63(4) carries the certificate requirement" (also `new_provisions["63(4)"]`). IEA 65B(4) as the certificate sub-section is from certain knowledge. Nothing else cited.
 
 | Field | Value |
 |---|---|
@@ -111,11 +111,11 @@ Verified at {place} on this {date}.
 
 ```json
 [
-  "Draft an application asking the court to take on record one or more electronic records together with the certificate for them. Cite as the provision the one given in ACTS: Section 63 of the Bharatiya Sakshya Adhiniyam, 2023, and Section 63(4) for the certificate.",
+  "Draft an application asking the court to take on record one or more electronic records together with the certificate for them. Cite as the provision the one given as GOVERNING PROVISION in the case details, and sub-section (4) of that provision for the certificate.",
   "Cite the procedure under the code given as PROCEDURE CODE in the case details: the Bharatiya Nagarik Suraksha Sanhita, 2023 with the Bharatiya Sakshya Adhiniyam, 2023, or the Code of Criminal Procedure, 1973 with the Indian Evidence Act, 1872. Cite only that code, in the heading, the body and the prayer. Where no PROCEDURE CODE is given, cite the provision in both forms inside a blank, for example [To be confirmed: Section 437 of the CrPC or Section 480 of the BNSS].",
   "Describe each electronic record, the device or system it came from, the medium on which it is filed, and why it is relevant, only as the BRIEF gives them. Do not add a date, time, duration, file name, hash value or device detail the BRIEF does not give.",
   "Say who signed, or will sign, the certificate, and in what capacity, only as the BRIEF gives it; otherwise write [To be confirmed: who has signed the certificate and in what capacity]. Do not state that the certificate satisfies the conditions of Section 63, that the device was in regular use or operating properly, that the record is genuine, unaltered or untampered, or that it is admissible. Those are for the certificate and for the court.",
-  "Do not set out the contents of the certificate in the application; the certificate is a separate document filed with it. Refer to it as the certificate in the form prescribed under section 63(4) of the BSA. Do not draft the Schedule.",
+  "Do not set out the contents of the certificate in the application; the certificate is a separate document filed with it. Refer to it as the certificate required under sub-section (4) of the provision given as GOVERNING PROVISION, in the form prescribed. Do not draft the Schedule.",
   "Do not say that the application is made at the proper stage or within time, and do not say why it was not filed earlier, unless the BRIEF says so.",
   "Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon].",
   "Use formal, respectful legal language appropriate for Indian courts.",
@@ -222,3 +222,21 @@ None. Not a bail template; no `earlier_applications` clause. Proposed cue for `c
 - Switch key (Ajay ruling): T-245 `fir_date`, labelled "Date the case began (FIR, complaint or suit)", with `procedure_code`; the pair IEA 65B → BSA 63 follows `procedure_code`.
 - Risk: category. The same application is common in civil suits. A civil variant needs CPC routes (Verify) and a separate id or a court-rules overlay.
 - Acceptable: short (S = 1).
+
+
+## Ajay review and sign-off (12 Oct 2026 IST)
+
+Amended before signing: the old/new law text is the T-245 S-text and P-text (345bd24), word for word; `{governing_provision}` and the T-245 keys `offence_date`, `fir_date`, `procedure_code` are used as T-245 gives them. Every BNSS/CrPC/IEA/BSA pair is in the signed tables (`crpc-to-bnss.json`, `iea-to-bsa.json`); the IEA to BSA table is being corrected under T-250, and any pair in this spec that T-250 changes comes back to me. The cue sets for `earlier_applications` are EA-standard (T-237, 909a49c), except EA-appeal for #15: all of [any: `bail`, `जमानत`, `ज़मानत`] and [any: `earlier`, `previous`, `prior`, `withdrawn`, `to be confirmed: whether any earlier`, `पूर्व`, `पहले`, `वापस`].
+
+The "Notes" and "Verify" sections are the drafter's reasoning, kept for the record. They are not build text. Nothing under "Verify" is signed; it stays out until checked against the bare act. Where a note offers a choice, my ruling is in the table below.
+
+| Item | Mark |
+|---|---|
+| Spec as amended | Approved |
+| Size and sampling | S (1 Ink); Anushka tier B |
+| Ruling | Approved. The IEA 65A / 65B act block (only where PROCEDURE CODE is CrPC and Evidence Act) is approved. The certificate is a separate document; the Schedule form is not drafted; the signatory is a free-text form field. |
+| Lead builds `form_schema` from this spec; I sign that diff | Condition |
+| Moved golden snapshots are listed for me before merge | Condition |
+| A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
+
+Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.

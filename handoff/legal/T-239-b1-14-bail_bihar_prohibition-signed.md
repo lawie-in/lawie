@@ -1,8 +1,8 @@
-# T-239 b1 #14 bail_bihar_prohibition (draft for Ajay)
+# T-239 b1 #14 bail_bihar_prohibition (HELD)
 
 HELD — not for build until every section of the Bihar Prohibition and Excise Act, 2016 it needs is checked against the bare act.
 
-Status: DRAFT, not signed. BNSS mapping checked against `config/sections/crpc-to-bnss.json`: CrPC 436 -> 478, 437 -> 480, 439 -> 483, 484 -> 531. **No section number of the Bihar Prohibition and Excise Act, 2016 appears in any signed field.** All of them are under "Verify". State template (Bihar only).
+Status: HELD, not signed. Drafted 12 Oct 2026; reviewed and amended by Ajay. BNSS mapping checked against `config/sections/crpc-to-bnss.json`: CrPC 436 -> 478, 437 -> 480, 439 -> 483, 484 -> 531. **No section number of the Bihar Prohibition and Excise Act, 2016 appears in any signed field.** All of them are under "Verify". State template (Bihar only).
 
 | Field | Value |
 |---|---|
@@ -115,7 +115,7 @@ Same text as #13 `bail_ndps` (applicant or pairokar; no "Deponent"). Approved (A
 
 ```json
 [
-  "Draft a Bail Application in a case under the Bihar Prohibition and Excise Act, 2016. Cite as the provision under which bail is sought only the BNSS provision for this court as given in ACTS: Section 483 before a Special Court, a Court of Session or the High Court. Do not cite Section 481 or 482.",
+  "Draft a Bail Application in a case under the Bihar Prohibition and Excise Act, 2016. Cite as the provision under which bail is sought only the provision given as GOVERNING PROVISION in the case details.",
   "Cite the offences as the BRIEF gives them (FIR, charge sheet, complaint or order). The law of the offence follows the date of the offence: an offence committed before 1 July 2024 is under the Indian Penal Code, 1860; one committed on or after that date is under the Bharatiya Nyaya Sanhita, 2023. Never convert a section from one code to the other. Where the BRIEF does not give the date of the offence, write the sections as the BRIEF gives them and add [To be confirmed: date of the alleged offence, which decides whether the IPC or the BNS applies]. Where the sections the BRIEF gives are under the other code from the one the date points to, or the alleged acts run across 1 July 2024, keep the sections as the BRIEF gives them and add [To be confirmed: whether the IPC or the BNS applies to the offence].",
   "Cite the procedure under the code given as PROCEDURE CODE in the case details: the Bharatiya Nagarik Suraksha Sanhita, 2023 with the Bharatiya Sakshya Adhiniyam, 2023, or the Code of Criminal Procedure, 1973 with the Indian Evidence Act, 1872. Cite only that code, in the heading, the body and the prayer. Where no PROCEDURE CODE is given, cite the provision in both forms inside a blank, for example [To be confirmed: Section 437 of the CrPC or Section 480 of the BNSS].",
   "Cite a section of the Bihar Prohibition and Excise Act, 2016 only where the BRIEF gives it, exactly as written there. ACTS gives no section of that Act. Never state a section of that Act from your own knowledge. Where a provision of that Act would normally be cited and the BRIEF does not give it, write [Section — verify before filing]. Do not describe any amendment to the Act or any rule made under it.",
@@ -240,3 +240,21 @@ Every item is a provision of the Bihar Prohibition and Excise Act, 2016 (as amen
 - Risk: old/new switch text same as #13 (contested reading of s.531). Same decision applies.
 - Risk: the 2022 amendment area changes often; a dated bare-act check (`relevantActs` date) is needed at sign and at each release.
 - Acceptable: Hindi drafts for Bihar are the main demand; English only in batch 1 per T-239.
+
+
+## Ajay review and sign-off (12 Oct 2026 IST)
+
+Amended before signing: the old/new law text is the T-245 S-text and P-text (345bd24), word for word; `{governing_provision}` and the T-245 keys `offence_date`, `fir_date`, `procedure_code` are used as T-245 gives them. Every BNSS/CrPC/IEA/BSA pair is in the signed tables (`crpc-to-bnss.json`, `iea-to-bsa.json`); the IEA to BSA table is being corrected under T-250, and any pair in this spec that T-250 changes comes back to me. The cue sets for `earlier_applications` are EA-standard (T-237, 909a49c), except EA-appeal for #15: all of [any: `bail`, `जमानत`, `ज़मानत`] and [any: `earlier`, `previous`, `prior`, `withdrawn`, `to be confirmed: whether any earlier`, `पूर्व`, `पहले`, `वापस`].
+
+The "Notes" and "Verify" sections are the drafter's reasoning, kept for the record. They are not build text. Nothing under "Verify" is signed; it stays out until checked against the bare act. Where a note offers a choice, my ruling is in the table below.
+
+| Item | Mark |
+|---|---|
+| Spec as amended | HELD |
+| Size and sampling | L (2 Ink); Anushka tier A |
+| Ruling | **HELD.** Not for build until every section of the Bihar Prohibition and Excise Act, 2016 that the pack needs is checked against the bare act. Everything else is approved so that the work is not repeated when it is released. |
+| Lead builds `form_schema` from this spec; I sign that diff | Condition |
+| Moved golden snapshots are listed for me before merge | Condition |
+| A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
+
+Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
