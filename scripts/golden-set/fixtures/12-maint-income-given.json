@@ -1,0 +1,66 @@
+{
+  "id": "12-maint-income-given",
+  "pack": "maintenance_bnss_144",
+  "title": "Maintenance, Patna family court: income given, nothing else added",
+  "risk": "T-147 class 1 on a family pack: the respondent's stated income must print as given, and desertion, cruelty or dowry must not be added when not given",
+  "source": "handoff/quality/2026-10-07-run-2-develop-FAIL.md finding 2 (invented facts), applied to maintenance; dev-written matter",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Meri client Rekha Devi, 32 saal, apne pati Sanjay Kumar, 36 saal, se maintenance chahti hai, s.144 BNSS, family court Patna. Sanjay railway mein clerk hai, har mahine 45,000 kamata hai. Rekha ki koi aamdani nahi hai. Ek saal se kharcha nahi de raha. 15,000 mahina chahiye. Dono Patna mein rehte hain.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "tribunal",
+    "court": "family_court_patna"
+  },
+  "expect": {
+    "exact": [
+      {
+        "any_of": [
+          "45,000"
+        ],
+        "why": "the income as given"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "cruelty_or_dowry",
+        "why": "no cruelty or dowry was given"
+      },
+      {
+        "banned_entry_id": "desertion",
+        "why": "no desertion was given"
+      },
+      {
+        "banned_entry_id": "respondent_assets",
+        "why": "no assets were given"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "demanded dowry",
+          "thrown out of the matrimonial home"
+        ],
+        "why": "facts nobody gave"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "respondent_income_monthly",
+        "why": "read from the description",
+        "display": "Rs 45,000"
+      },
+      {
+        "key": "amount_claimed_monthly",
+        "why": "read from the description",
+        "display": "Rs 15,000"
+      },
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Rekha Devi"
+      }
+    ]
+  }
+}

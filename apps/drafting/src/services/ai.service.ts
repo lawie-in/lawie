@@ -1316,6 +1316,10 @@ export async function streamGenerateFromBrief(
       ...output,
       body: removeUngivenCitations(factCheck.body, ledgerCitationSources(ledgerInput.facts)).text,
     };
+    // T-147e (T-147d review follow-up): the verifier may strip a sentence or
+    // replace a paragraph, so the mandatory clauses are checked again on the
+    // body as it will be delivered. Re-signed by Ajay (CLO) for T-147e.
+    if (!factCheck.passed) missing = findMissingClauses(pack, output, parts);
   }
 
   // ── The body takes its place among the parts the system wrote ─────────────

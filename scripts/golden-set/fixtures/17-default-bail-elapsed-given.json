@@ -1,0 +1,61 @@
+{
+  "id": "17-default-bail-elapsed-given",
+  "pack": "default_bail",
+  "title": "Default bail, Bokaro: elapsed days given, printed as given",
+  "risk": "Risk from T-147 class 2 (changed facts): the days she states must print unchanged and not be recomputed or rounded",
+  "source": "handoff/quality/2026-10-06-baseline-run-FAIL.md blocker 2 (custody misstated); dev-written matter",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Default bail application, Sessions Judge Bokaro. Client Manoj Mahato s/o Kailash Mahato, 35 saal. FIR 201/2026 dated 20 June 2026, PS Chas, section 318(4) BNS, max saza 7 saal. Arrest 21 June 2026, remand 22 June 2026. Remand se 65 din ho gaye, charge sheet nahi. Bond dene ko ready.",
+  "court": {
+    "state": "Jharkhand",
+    "court_type": "sessions",
+    "court": "jharkhand_sessions_bokaro"
+  },
+  "expect": {
+    "not_written": [
+      {
+        "banned_entry_id": "statutory_period_expired",
+        "why": "the model must not conclude it"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "66 days",
+          "64 days",
+          "two months"
+        ],
+        "why": "a recomputed or rounded period"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "elapsed_days",
+        "why": "read from the description",
+        "display": "65"
+      },
+      {
+        "key": "remand_date",
+        "why": "read from the description",
+        "display": "22 June 2026"
+      },
+      {
+        "key": "police_station",
+        "why": "read from the description",
+        "display": "Chas"
+      }
+    ],
+    "present": [
+      {
+        "any_of": [
+          "65 days",
+          "65 din",
+          "sixty-five days"
+        ],
+        "why": "the elapsed days she gave"
+      }
+    ]
+  }
+}

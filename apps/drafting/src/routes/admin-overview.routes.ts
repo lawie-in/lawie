@@ -17,6 +17,7 @@ import { LawieDocument } from '../models/Document.model';
 import { ReviewToken } from '../models/ReviewToken.model';
 import { User } from '../models/User.model';
 import { getAppSetting, AppSettingMissingError } from '../services/app-settings.service';
+import { NOT_FIXTURE } from '../services/run-origin';
 
 const router = Router();
 
@@ -62,14 +63,16 @@ router.get(
     ] = await Promise.all([
       User.countDocuments({}),
       User.countDocuments({ createdAt: { $gte: startOfThisWeek } }),
-      LawieDocument.countDocuments({ isDeleted: { $ne: true } }),
+      LawieDocument.countDocuments({ isDeleted: { $ne: true }, ...NOT_FIXTURE }),
       LawieDocument.countDocuments({
         createdAt: { $gte: startOfThisWeek },
         isDeleted: { $ne: true },
+        ...NOT_FIXTURE,
       }),
       LawieDocument.countDocuments({
         createdAt: { $gte: startOfLastWeek, $lt: startOfThisWeek },
         isDeleted: { $ne: true },
+        ...NOT_FIXTURE,
       }),
       ReviewToken.countDocuments({ isUsed: false, isActive: true, expiresAt: { $gt: new Date() } }),
       ReviewToken.countDocuments({
@@ -172,7 +175,7 @@ router.get(
           .sort({ createdAt: -1 })
           .limit(15)
           .lean(),
-        LawieDocument.find({ createdAt: { $gte: since }, isDeleted: { $ne: true } })
+        LawieDocument.find({ createdAt: { $gte: since }, isDeleted: { $ne: true }, ...NOT_FIXTURE })
           .select('title userId createdAt docType')
           .sort({ createdAt: -1 })
           .limit(15)

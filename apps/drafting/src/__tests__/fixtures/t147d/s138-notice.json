@@ -4,7 +4,7 @@
   "ledger": {
     "facts": [
       { "id": "f1", "key": "applicant_name", "label": "Payee / Notice Sender", "type": "person_name", "value": "sureshgupta", "display": "Suresh Gupta", "raw_span": "Suresh Gupta", "source": "user", "confidence": 0.99, "required_in_draft": true },
-      { "id": "f2", "key": "respondent_name", "label": "Drawer / Noticee", "type": "person_name", "value": "rajeshtraders", "display": "Rajesh Traders", "raw_span": "Rajesh Traders ke malik", "source": "user", "confidence": 0.9, "required_in_draft": true },
+      { "id": "f2", "key": "respondent_name", "label": "Drawer / Noticee", "type": "person_name", "value": "demotraders", "display": "Demo Traders", "raw_span": "Demo Traders ke malik", "source": "user", "confidence": 0.9, "required_in_draft": true },
       { "id": "f3", "key": "cheque_amount", "label": "Cheque Amount (Rs.)", "type": "amount", "value": 300000, "display": "Rs 3,00,000", "raw_span": "3 lakh ka cheque", "source": "user", "confidence": 0.99, "required_in_draft": true },
       { "id": "f4", "key": "cheque_date", "label": "Cheque Date", "type": "date", "value": "2026-09-01", "display": "1 September 2026", "raw_span": "date 1 sept 2026", "source": "user", "confidence": 0.99, "required_in_draft": true },
       { "id": "f5", "key": "drawee_bank", "label": "Drawee Bank Name", "type": "text", "value": "HDFC Bank", "display": "HDFC Bank", "raw_span": "HDFC Bank", "source": "user", "confidence": 0.95, "required_in_draft": true },
@@ -22,7 +22,7 @@
   "body": "1. That you issued a cheque dated 01.09.2026 for [To be confirmed: cheque amount (rs.)] drawn on HDFC Bank, Karol Bagh in favour of my client.\n\n2. That my client presented the said cheque for encashment on 15.09.2026 at HDFC Bank, Karol Bagh.\n\n3. That the said cheque was returned unpaid and the return memo was received by my client in the week following the presentation.\n\n4. That the amount of [To be confirmed: cheque amount (rs.)] remains unpaid.",
   "expected": [
     { "check": "dropped", "ledgerKey": "cheque_amount", "from_report": "\"3 lakh\" (amount blank five times)" },
-    { "check": "dropped", "ledgerKey": "respondent_name", "from_report": "\"Rajesh Traders\" gone" },
+    { "check": "dropped", "ledgerKey": "respondent_name", "from_report": "\"Demo Traders\" gone" },
     { "check": "mutation", "ledgerKey": "dishonour_date", "reason": "unresolved", "from_report": "memo received \"in the week following the presentation\"" },
     { "check": "mutation", "ledgerKey": "drawee_branch", "reason": "wrong_fact", "from_report": "\"presented the said cheque for encashment on 15.09.2026 at HDFC Bank, Karol Bagh\"" }
   ]

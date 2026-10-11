@@ -158,7 +158,7 @@ function editDistance(a: string, b: string): number {
   return dp[b.length];
 }
 
-/** `212/2026` -> `999/9999`. */
+/** `901/2026` -> `999/9999`. */
 function shapeOf(s: string): string {
   return s.replace(/\p{L}/gu, 'A').replace(/\d/g, '9');
 }

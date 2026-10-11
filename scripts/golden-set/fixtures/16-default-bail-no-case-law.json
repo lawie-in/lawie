@@ -1,0 +1,59 @@
+{
+  "id": "16-default-bail-no-case-law",
+  "pack": "default_bail",
+  "title": "Default bail, Patna: no case law added on its own",
+  "risk": "Run 2 finding 3: case law put in a bail application unasked; on default bail the risk is Bikramjit Singh / Rakesh Kumar Paul / M. Ravindran cited from the model's memory",
+  "source": "handoff/quality/2026-10-07-run-2-develop-FAIL.md scenario 9 and finding 3",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "CJM Patna ke court me default bail. Client Raju Paswan s/o Shambhu Paswan, 24 saal. FIR 88/2026 dated 5 June 2026, PS Gardanibagh, section 331(4) BNS, saza 10 saal. Arrest 6 June 2026, remand 7 June 2026. 90 din se zyada ho gaye, charge sheet nahi aayi.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "cjm",
+    "court": "bihar_cjm_patna"
+  },
+  "expect": {
+    "not_written": [
+      {
+        "banned_entry_id": "default_bail_citation",
+        "why": "no judgment was given"
+      },
+      {
+        "banned_entry_id": "authority_not_given",
+        "why": "no judgment was given"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "Bikramjit Singh",
+          "Rakesh Kumar Paul",
+          "Ravindran",
+          "SCC"
+        ],
+        "why": "case law nobody gave"
+      }
+    ],
+    "present": [
+      {
+        "any_of": [
+          "Gardanibagh"
+        ],
+        "why": "police station"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "arrest_date",
+        "why": "read from the description",
+        "display": "6 June 2026"
+      },
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Raju Paswan"
+      }
+    ]
+  }
+}

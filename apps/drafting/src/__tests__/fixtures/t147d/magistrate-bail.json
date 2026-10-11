@@ -3,7 +3,7 @@
   "pack": "bail_before_magistrate",
   "ledger": {
     "facts": [
-      { "id": "f1", "key": "applicant_name", "label": "Applicant Name", "type": "person_name", "value": "mohanprasad", "display": "Mohan Prasad", "raw_span": "Mohan Prasad", "source": "user", "confidence": 0.99, "required_in_draft": true },
+      { "id": "f1", "key": "applicant_name", "label": "Applicant Name", "type": "person_name", "value": "testmohanprasad", "display": "Testmohan Prasad", "raw_span": "Testmohan Prasad", "source": "user", "confidence": 0.99, "required_in_draft": true },
       { "id": "f2", "key": "police_station", "label": "Police Station", "type": "police_station", "value": "pirbahore", "display": "Pirbahore", "raw_span": "PS Pirbahore", "source": "user", "confidence": 0.99, "required_in_draft": true }
     ],
     "unresolved": []
@@ -11,7 +11,7 @@
   "skeleton": [
     "IN THE COURT OF _____\n\n_____ ... Applicant/Accused\nVERSUS\nState of Bihar ... Opposite Party\n\nTO, THE HON'BLE _____,"
   ],
-  "body": "1. That the applicant Mohan Prasad is in judicial custody in connection with the FIR registered at Police Station _____.\n\n2. That the applicant is innocent. He is a long-standing resident of Patna with family ties to the locality.\n\n5. Applying the well-established triple-test laid down in Sushila Aggarwal v. State (NCT of Delhi) (2020) 5 SCC 1 and P. Chidambaram v. Directorate of Enforcement (2019) 9 SCC 24, the applicant deserves bail.",
+  "body": "1. That the applicant Testmohan Prasad is in judicial custody in connection with the FIR registered at Police Station _____.\n\n2. That the applicant is innocent. He is a long-standing resident of Patna with family ties to the locality.\n\n5. Applying the well-established triple-test laid down in Sushila Aggarwal v. State (NCT of Delhi) (2020) 5 SCC 1 and P. Chidambaram v. Directorate of Enforcement (2019) 9 SCC 24, the applicant deserves bail.",
   "expected": [
     { "check": "dropped", "ledgerKey": "police_station", "from_report": "\"PS Pirbahore\" (police station blank)" },
     { "check": "banned", "bannedEntryId": "permanent_resident", "from_report": "\"He is a long-standing resident of Patna with family ties to the locality.\"", "note": "not in AC2's list; caught once Ajay's phrases landed" }

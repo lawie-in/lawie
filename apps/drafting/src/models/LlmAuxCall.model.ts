@@ -1,5 +1,7 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
+import { fixtureOriginPlugin, RUN_ORIGINS, RunOrigin } from '../services/run-origin';
+
 /**
  * LlmAuxCall — one row per model call that is not a document generation
  * (ADR-019 §3.7). Intake now; Reception, review and preflight later.
@@ -32,6 +34,8 @@ export interface ILlmAuxCall extends Document {
   rateInputUsdPerMTok?: number;
   rateOutputUsdPerMTok?: number;
   durationMs?: number;
+  /** T-147e — 'fixture' for a golden-set run. Old rows have none and count as 'user'. */
+  runType?: RunOrigin;
   createdAt: Date;
 }
 
@@ -52,9 +56,12 @@ const LlmAuxCallSchema = new Schema<ILlmAuxCall>(
     rateInputUsdPerMTok: { type: Number, default: undefined, min: 0 },
     rateOutputUsdPerMTok: { type: Number, default: undefined, min: 0 },
     durationMs: { type: Number, default: undefined, min: 0 },
+    runType: { type: String, enum: RUN_ORIGINS, default: 'user' },
   },
   { timestamps: { createdAt: true, updatedAt: false } },
 );
+
+LlmAuxCallSchema.plugin(fixtureOriginPlugin('runType'));
 
 LlmAuxCallSchema.index({ intakeId: 1 });
 LlmAuxCallSchema.index({ userId: 1, createdAt: -1 });

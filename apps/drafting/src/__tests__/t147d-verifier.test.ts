@@ -118,13 +118,13 @@ const S138 = fixture('s138-notice');
 const MAG = fixture('magistrate-bail');
 
 const S138_CLEAN = [
-  '1. That you, Rajesh Traders, issued a cheque dated 01.09.2026 for Rs 3,00,000 drawn on HDFC Bank, Karol Bagh in favour of my client.',
+  '1. That you, Demo Traders, issued a cheque dated 01.09.2026 for Rs 3,00,000 drawn on HDFC Bank, Karol Bagh in favour of my client.',
   '2. That my client presented the said cheque for encashment on 15.09.2026.',
   '3. That the said cheque was returned unpaid.',
 ].join('\n\n');
 
 const RB_CLEAN = [
-  '1. That the applicant Ramesh Yadav has been in judicial custody since 13 September 2026 in connection with FIR No. 212/2026 registered at Police Station Hazratganj, Lucknow under Section 318(4) of the Bharatiya Nyaya Sanhita, 2023.',
+  '1. That the applicant Testpal Yadav has been in judicial custody since 13 September 2026 in connection with FIR No. 901/2026 registered at Police Station Hazratganj, Lucknow under Section 318(4) of the Bharatiya Nyaya Sanhita, 2023.',
   '2. That the bail application of the applicant was rejected by the learned Chief Judicial Magistrate, Lucknow on 22 September 2026.',
 ].join('\n\n');
 
@@ -201,9 +201,9 @@ describe('AC1: all four checks run; a draft that passes is unchanged', () => {
   });
 
   it('check 2 alone: a required fact left out is reported with its key; a not-required one is not', () => {
-    const noFir = RB_CLEAN.replace('FIR No. 212/2026 registered at ', '').replace('in connection with ', '');
+    const noFir = RB_CLEAN.replace('FIR No. 901/2026 registered at ', '').replace('in connection with ', '');
     const vs = verifyDraft(inputOf(RB, noFir));
-    // 212/2026 is in the skeleton (cause title), so it still counts as printed.
+    // 901/2026 is in the skeleton (cause title), so it still counts as printed.
     expect(vs.filter((v) => v.check === 'dropped')).toEqual([]);
     const noDate = RB_CLEAN.replace('since 13 September 2026 ', '');
     expect(verifyDraft(inputOf(RB, noDate)).map((v) => [v.check, v.ledgerKey])).toEqual([
@@ -279,7 +279,7 @@ describe('AC2: the T-147 draft fails this verifier (run-2 replay)', () => {
     expect(out.body).toContain(p2.text);
   });
 
-  it('s138: Rs 3 lakh and Rajesh Traders are check 2; the memo date and Karol Bagh are check 3, with the reason', () => {
+  it('s138: Rs 3 lakh and Demo Traders are check 2; the memo date and Karol Bagh are check 3, with the reason', () => {
     const vs = verifyDraft(inputOf(S138));
     expect(vs.filter((v) => v.check === 'dropped').map((v) => v.ledgerKey).sort()).toEqual([
       'cheque_amount',
@@ -409,7 +409,7 @@ describe('AC3: the pack allowlist', () => {
 describe('check 3: mutation / wrong fact', () => {
   it('a date that is the ledger\'s but bound to the wrong fact is flagged both ways', () => {
     const body = [
-      '1. That the applicant Ramesh Yadav has been in judicial custody since 22 September 2026 in FIR No. 212/2026 at Police Station Hazratganj under Section 318(4) BNS.',
+      '1. That the applicant Testpal Yadav has been in judicial custody since 22 September 2026 in FIR No. 901/2026 at Police Station Hazratganj under Section 318(4) BNS.',
       '2. That bail was rejected on 13 September 2026.',
     ].join('\n\n');
     const vs = verifyDraft(inputOf(RB, body)).filter((v) => v.check === 'mutation');
@@ -455,7 +455,7 @@ describe('check 3: mutation / wrong fact', () => {
   });
 
   it('a one-letter change to a person\'s name is a mutation of the name fact', () => {
-    const body = S138_CLEAN.replace('Rajesh Traders', 'Rakesh Traders');
+    const body = S138_CLEAN.replace('Demo Traders', 'Demu Traders');
     const vs = verifyDraft(inputOf(S138, body));
     expect(vs.some((v) => v.check === 'mutation' && v.ledgerKey === 'respondent_name')).toBe(true);
   });
@@ -489,7 +489,7 @@ describe('check 4: banned phrases', () => {
     },
   ] as never[];
   const withNarrative = (body: string): VerifierInput => ({ ...inputOf(RB, body), facts });
-  const HEAD = '1. That Ramesh Yadav, in custody since 13 September 2026 (FIR No. 212/2026, PS Hazratganj):';
+  const HEAD = '1. That Testpal Yadav, in custody since 13 September 2026 (FIR No. 901/2026, PS Hazratganj):';
 
   it('a banned phrase inside a ledger display printed verbatim is not flagged', () => {
     const vs = verifyDraft(withNarrative(`${HEAD} He has no criminal antecedents as per the FIR note.`));
@@ -553,9 +553,9 @@ describe('check 4: banned phrases', () => {
 describe('AC4: the repair pass sends only the offending paragraphs, at most once', () => {
   const SENT = ['alphauniqsentinel', 'bravouniqsentinel', 'charlieuniqsentinel', 'deltauniqsentinel'];
   const body = [
-    `1. That the applicant Ramesh Yadav is in judicial custody since 13 September 2026 ${SENT[0]}.`,
+    `1. That the applicant Testpal Yadav is in judicial custody since 13 September 2026 ${SENT[0]}.`,
     `2. That the applicant is gainfully employed ${SENT[1]}.`,
-    `3. That FIR No. 212/2026 is registered at Police Station Hazratganj ${SENT[2]}.`,
+    `3. That FIR No. 901/2026 is registered at Police Station Hazratganj ${SENT[2]}.`,
     `4. That the applicant has cooperated with the police ${SENT[3]}.`,
   ].join('\n\n');
 
@@ -715,7 +715,7 @@ describe('AC5: a draft that still fails is delivered with {{MISSING}} and a bann
     expect(FACT_CHECK_DISCLAIMER.length).toBeGreaterThan(20);
     expect(FACT_CHECK_DISCLAIMER).toMatch(/advocate is responsible/i);
     const json = JSON.stringify(out.banner);
-    for (const secret of ['Karol Bagh', 'Rajesh Traders', '3,00,000', 'week following']) {
+    for (const secret of ['Karol Bagh', 'Demo Traders', '3,00,000', 'week following']) {
       expect(json).not.toContain(secret);
     }
     for (const i of out.banner!.items) {
@@ -847,7 +847,7 @@ describe('AC6 and AC7: the fact-diff log and the placeholder rate', () => {
     await log(S138, { userId: U1, documentId: D1, ledgerId: L1 });
     const docs = await raw('factdiffs');
     const dump = JSON.stringify(docs);
-    for (const plain of ['Karol Bagh', 'week following', 'Rajesh Traders', '3,00,000', 'Date of Dishonour']) {
+    for (const plain of ['Karol Bagh', 'week following', 'Demo Traders', '3,00,000', 'Date of Dishonour']) {
       // labels are in the clear by design (Date of Dishonour is a label); values are not
       if (plain === 'Date of Dishonour') continue;
       expect({ plain, in: dump.includes(plain) }).toEqual({ plain, in: false });
@@ -861,7 +861,7 @@ describe('AC6 and AC7: the fact-diff log and the placeholder rate', () => {
     // a dropped fact: the draft value is null, the ledger value is encrypted
     const dropped = docs.find((d) => d.ledgerKey === 'respondent_name')!;
     expect(dropped.draftValue).toBeNull();
-    expect(decrypt(dropped.ledgerValue)).toBe('Rajesh Traders');
+    expect(decrypt(dropped.ledgerValue)).toBe('Demo Traders');
     // no paragraph text is stored
     expect(dump).not.toMatch(/That my client presented/);
   });
@@ -968,7 +968,7 @@ describe('AC6 and AC7: the fact-diff log and the placeholder rate', () => {
       expect(keys).not.toContain('runId');
     }
     const dump = JSON.stringify(rates);
-    for (const s of [U1, U2, D1, D2, L1, L2, 'Karol Bagh', 'Rajesh', '3,00,000', 'Suresh']) {
+    for (const s of [U1, U2, D1, D2, L1, L2, 'Karol Bagh', 'Demo', '3,00,000', 'Suresh']) {
       expect({ s, in: dump.includes(s) }).toEqual({ s, in: false });
     }
   });
@@ -1046,8 +1046,8 @@ describe('the weekly fact-diff report', () => {
     await seed(RB, U2, D2, L2);
     const md = buildWeeklyFactDiffReport(from, to, await loadWeeklyFactDiffData(from, to));
     for (const secret of [
-      'Karol Bagh', 'Rajesh Traders', 'Suresh Gupta', '3,00,000', '300000', '15.09.2026', '15 September 2026',
-      '01.09.2026', '1 September 2026', 'Pirbahore', 'Mohan Prasad', 'Ramesh Yadav', 'Hazratganj', '212/2026',
+      'Karol Bagh', 'Demo Traders', 'Suresh Gupta', '3,00,000', '300000', '15.09.2026', '15 September 2026',
+      '01.09.2026', '1 September 2026', 'Pirbahore', 'Testmohan Prasad', 'Testpal Yadav', 'Hazratganj', '901/2026',
       'week following the presentation', U1, U2, D1, D2, L1, L2, userRefOf(U1), userRefOf(U2),
     ]) {
       expect({ secret, in: md.includes(secret) }).toEqual({ secret, in: false });
@@ -1101,12 +1101,12 @@ describe('the weekly fact-diff report', () => {
 
   it('describeDiff masks names, amounts, dates, case numbers and stations; shows sections and phrases', () => {
     const cases: Array<[string, string, string | null, string | null, string[], string[]]> = [
-      ['name', 'mutation', 'Rajesh Traders', 'Rakesh Traders', ['Rajesh', 'Rakesh', 'Traders'], ['edit distance 1']],
+      ['name', 'mutation', 'Demo Traders', 'Demu Traders', ['Demo', 'Demu', 'Traders'], ['edit distance 1']],
       ['police_station', 'mutation', 'Hazratganj', 'Aliganj', ['Hazratganj', 'Aliganj'], ['police_station']],
       ['amount', 'mutation', 'Rs 3,00,000', 'Rs 3,50,000', ['3,00,000', '3,50,000', '300000'], ['digits']],
       ['date', 'mutation', '13 September 2026', '14 September 2026', ['13 September', '14 September', '2026'], ['day differs']],
       ['date', 'mutation', null, 'in the week following the presentation', ['week following'], ['date']],
-      ['case_no', 'mutation', '212/2026', '213/2026', ['212', '213', '2026'], ['999/9999']],
+      ['case_no', 'mutation', '901/2026', '902/2026', ['901', '902', '2026'], ['999/9999']],
       ['name', 'unsupported', null, 'Mukesh Agarwal', ['Mukesh', 'Agarwal'], ['tokens']],
       ['name', 'mutation', '9876543210', '9876543211', ['9876543210', '9876543211'], ['digits']],
       ['amount', 'dropped', 'Rs 3,00,000', null, ['3,00,000'], ['not in the draft']],

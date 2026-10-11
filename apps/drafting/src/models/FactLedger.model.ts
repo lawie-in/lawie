@@ -18,6 +18,8 @@ import type {
 } from '@lawie/shared';
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
+import { fixtureOriginPlugin } from '../services/run-origin';
+
 export const FACT_LEDGER_REASONS: readonly FactLedgerVersionReason[] = [
   'extract',
   'answer',
@@ -70,6 +72,9 @@ const FactLedgerSchema = new Schema<IFactLedger>(
   },
   { timestamps: true },
 );
+
+// T-147e: a ledger written for the golden-set user is always 'fixture'.
+FactLedgerSchema.plugin(fixtureOriginPlugin('runType'));
 
 FactLedgerSchema.index({ userId: 1, createdAt: -1 });
 FactLedgerSchema.index({ intakeId: 1 });

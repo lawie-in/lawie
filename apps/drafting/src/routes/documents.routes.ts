@@ -48,6 +48,7 @@ import {
 import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
 import { contentToHtml, renderPdf } from '../services/pdf-export.service';
 import { preflightCheck } from '../services/preflight.service';
+import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 import { loadRulePack } from '../services/rule-pack.service';
 import {
   CourtLookupData,
@@ -280,6 +281,7 @@ router.get('/usage', authenticate, async (req: Request, res: Response): Promise<
     userId: payload.sub,
     createdAt: { $gte: startOfMonth },
     status: { $ne: 'failed' },
+    ...NOT_FIXTURE_GENERATION,
   });
 
   if (payload.plan === 'pro') {
@@ -298,7 +300,11 @@ router.get('/usage', authenticate, async (req: Request, res: Response): Promise<
 // GET /documents — list user's documents
 router.get('/', authenticate, async (req: Request, res: Response): Promise<void> => {
   const payload = req.jwtPayload!;
-  const docs = await LawieDocument.find({ userId: payload.sub, isDeleted: { $ne: true } })
+  const docs = await LawieDocument.find({
+    userId: payload.sub,
+    isDeleted: { $ne: true },
+    ...NOT_FIXTURE,
+  })
     .select('title docType courtName status createdAt')
     .sort({ createdAt: -1 })
     .limit(50)
