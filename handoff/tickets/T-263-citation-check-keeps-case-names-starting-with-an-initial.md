@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (writes the rule, signs). Lead (build). Anushka (verdict) |
 | Mode           | Rule first, then build. Legal content (`citation-check.ts`, T-148) |
-| Status         | To do. Unassigned. Found by mahak during T-251, 12 Oct 2026. Affects every pack, so it is its own ticket |
+| Status         | To do. Unassigned. HIGH priority per Ajay: case law reaching a draft is a legal-accuracy risk. Found by mahak during T-251, 12 Oct 2026 |
 
 ## Problem
 
