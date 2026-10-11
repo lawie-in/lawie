@@ -39,7 +39,7 @@ Found in the repo on 3 Oct. The first one silently defeats the whole plan.
 | 3   | `.claude/launch.json` is tracked, points at the same old path and at `apps/api`, which no longer exists.                                                                                                                                                                         | Fix or delete.                                                                                  |
 | 4   | There is no `CLAUDE.md` anywhere in the repo. Crew agents get only their own prompt plus `CLAUDE.md`, so without it every agent file has to repeat the repo conventions.                                                                                                         | Add a root `CLAUDE.md` holding section 7. See open decision 5.                                  |
 | 5   | `docs/` is gitignored. Existing files in it stay tracked, but any new file the doc-writer adds there will not be committed.                                                                                                                                                      | Decide where new docs go, or narrow the ignore rule.                                            |
-| 6   | The checkout is on `fix/branding-assets`, 7 commits behind `develop`, with an uncommitted change.                                                                                                                                                                                | Start crew work from an up-to-date `develop`.                                                   |
+| 6   | The checkout is on `fix/branding-assets`, 7 commits behind `develop`, with an uncommitted change.                                                                                                                                                                                | Start crew work from an up-to-date `develop_staging`.                                           |
 | 7   | The 7 Aug framework doc says `.claude/agents`, six skills, `.claude/settings.json` and `scripts/build-plugin.sh` are committed. None of them exist on any branch here, local or remote. The installed plugin is v0.2.0 with 10 agents and one skill, not v0.3.0 with 11 and six. | Ask the founder whether that work is unpushed on the other machine before recreating any of it. |
 
 `.gitignore` replacement for the `.claude/` line. Git cannot re-include a file whose parent directory is ignored, which is why the first line changes to `.claude/*`:
@@ -98,7 +98,7 @@ Keep each `description` to one line. Descriptions for all agents are loaded into
 ```yaml
 ---
 name: vishal
-description: Lawie dev lead. Takes one Jira ticket through the dev crew and opens the PR to develop.
+description: Lawie dev lead. Takes one ticket through the dev crew and opens the PR to develop_staging.
 model: opus
 disallowedTools: Edit, Write, NotebookEdit
 ---
@@ -112,10 +112,10 @@ Prompt must cover:
 
 - Check the entry gate (section 5) before anything else. Refuse and say what is missing.
 - Pick the mode: full chain or small fix (section 5).
-- Create the branch from `develop`.
+- Create the branch from `develop_staging`.
 - Write the handoff packet for each step and pass earlier reports forward.
 - Run the review loop, counting rounds. On a fail, resume the same developer so it keeps its context. Start a fresh reviewer each round so the review stays independent.
-- Open the PR to `develop` with the four reports summarised.
+- Open the PR to `develop_staging` with the four reports summarised.
 - Scope boundaries carried over from the plugin briefing: no stack or architecture change without Arjun's ADR, no scope change without Priya, no UI change without Rajesh's design, no Anthropic API call without rate-limit and cost guards, no PII or document content in third-party logs.
 
 ### 4.2 `developer`
@@ -268,7 +268,7 @@ exit 2
 
 **Review loop.** Fail → developer (resumed) → tester → reviewer (fresh). After the second fail the lead stops and takes it to the founder with both sets of findings.
 
-**End of chain.** PR to `develop`. CI runs there. Deployment is manual today: both deploy workflows are no-op placeholders.
+**End of chain.** PR to `develop_staging`. CI runs there. Deployment is manual today: both deploy workflows are no-op placeholders.
 
 ---
 
@@ -278,7 +278,6 @@ Arjun's rule from the framework doc applies: a prompt is not a security boundary
 
 ```json
 {
-  "agent": "vishal",
   "permissions": {
     "deny": ["Read(./.env)", "Read(./.env.*)", "Read(./**/*.pem)"],
     "ask": ["Bash(git push *)", "Bash(gh pr merge *)", "Bash(gh workflow run *)"]
@@ -286,7 +285,9 @@ Arjun's rule from the framework doc applies: a prompt is not a security boundary
 }
 ```
 
-- `"agent": "vishal"` makes every session in this repo start as the lead.
+- **No `"agent"` default.** The repo runs three interchangeable dev leads (`vishal`, `mahak`, `shashank`), so the lead is chosen per session: `claude --agent mahak`. A single `"agent"` default would force every session into one lead, including non-dev work.
+- All three leads share one briefing: `.claude/docs/dev-lead-protocol.md`. Each file in `.claude/agents/` is a thin pointer to it. To add a fourth lead, copy one pointer file and change the name — never fork the protocol.
+- Parallel-lead collision rules (one lead per worktree, never touch another lead's branch, file-overlap escalates to the founder) are section 9 of that protocol.
 - Check the rule syntax against the permissions docs before committing. The `.env.*` rule also blocks the `.env.*.example` files, which is acceptable or can be loosened.
 - Crew agents use a `tools` allowlist without `Agent`, so they cannot spawn subagents of their own.
 - **Known gap:** real secrets sit in this checkout (`.env`, `.env.production`, `.env.demo`). A `Read` deny rule does not reliably stop `cat .env` through Bash. Open decision 6.
@@ -309,7 +310,7 @@ Checked on 3 Oct. These replace the stale facts listed at the end of this sectio
 | Lint         | `yarn workspace @lawie/<name> lint` runs `eslint --fix` and edits files.                                                                                                                                                             |
 | Typecheck    | `yarn workspace @lawie/<name> build` runs `tsc`.                                                                                                                                                                                     |
 | Commits      | Conventional commits enforced by commitlint: type from the allowed list, lower-case subject, 100 characters max. Husky runs gitleaks and lint-staged on commit.                                                                      |
-| Branches     | `feature/scrum-<n>-<slug>` or `fix/<slug>`, cut from `develop`. PR to `develop`. `main` is production.                                                                                                                               |
+| Branches     | `feature/scrum-<n>-<slug>` or `fix/<slug>`, cut from `develop_staging`. PR to `develop_staging`. The founder promotes `develop_staging` → `develop` → `main`. `main` is production.                                                  |
 | Jira         | Project key `SCRUM`.                                                                                                                                                                                                                 |
 | Remote       | `github.com/lawie-in/lawie`                                                                                                                                                                                                          |
 
@@ -378,3 +379,34 @@ Sources
 - Project docs: `Lawie_Agentic_Framework.md` (7 Aug 2026), `Lawie_Vishal_Protocol.docx` (Apr 2026)
 - Installed plugin `lawie-team` v0.2.0
 - This repo at `fix/branding-assets` @ `9459a72`
+
+---
+
+## 11. Change log — three leads and the board (11 Oct 2026)
+
+The spec above describes one lead (`vishal`) running one ticket at a time in one checkout. That is
+no longer the shape. What changed, and where the current truth lives:
+
+**Three interchangeable leads.** `vishal`, `mahak`, `shashank`, plus `priya` as PM — four sessions,
+each its own cloud session. No `"agent"` default in `.claude/settings.json`; the lead is chosen per
+session with `claude --agent <name>`. Adding a fifth is one file.
+
+**One briefing, not three.** Every lead's file under `.claude/agents/` is a thin pointer to
+`.claude/docs/dev-lead-protocol.md`, which holds the whole job. Change behaviour there, never in a
+pointer file, or the three drift apart. Priya's equivalent is `.claude/docs/pm-protocol.md`.
+
+**Base branch is `develop_staging`.** Leads cut from it and open their PRs against it; the founder
+promotes `develop_staging` -> `develop` -> `main`. Section 6's guardrail block above predates this.
+
+**Tickets moved out of the repo** onto the Lawie Ticket Board (section 9 of the lead protocol). It
+carries ticket state, file-scope declarations with an automatic clash check, an `assignee` naming
+who a ticket is waiting on, a per-ticket comment thread that takes screenshots, and a relay the four
+sessions post to. Crew agents are excluded from it by their briefings.
+
+**Still open from this change:**
+
+- The quality gate (`.claude/docs/quality-gate.md`, founder's rule of 8 Oct) was written for
+  `feature -> develop -> main`. It says nothing about the new `develop_staging -> develop` step.
+- `files` is declared on no existing ticket, so the clash check reports nothing until leads start
+  filling it in.
+- `assignee` is unset on all 104 tickets, 35 of which are blocked, in review, or on hold.
