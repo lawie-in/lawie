@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                   |
 | Owner          | Ajay (rule: what counts as present, signs). Lead (build). Anushka (verdict)                                              |
 | Mode           | Rule first (Ajay), then build, full chain                                                                                |
-| Status         | Assigned to vishal, 12 Oct 2026. Ajay's rule signed (56f9be4). Cues stay in code, not in bail_regular.json |
+| Status         | Merged into develop_staging (89afcef, 12 Oct 2026), waiting for Anushka on develop |
 | Size           | Ajay S. Build M (1 day)                                                                                                  |
 | Depends on     | T-136 (the check exists)                                                                                                 |
 | Gate           | Before `feature.fact_ledger` for real users and before v1 go-live: a missing mandatory clause can pass as present        |
