@@ -2,16 +2,18 @@ name: CI — Test
 
 on:
   push:
-    branches: [develop]
+    branches: [develop, develop_staging]
   pull_request:
-    branches: [develop]
+    branches: [develop, develop_staging]
   # T-147e: the golden set runs nightly against the real model (job golden-set).
   schedule:
     - cron: '30 20 * * *' # 02:00 IST
   workflow_dispatch:
 
 concurrency:
-  # T-147e: the nightly run has its own group, so a push to develop cannot cancel a real golden-set run.
+  # T-147e: the nightly run has its own group, so a push to develop or develop_staging cannot cancel a
+  # real golden-set run. Every other run is grouped by github.ref, so each branch (and each PR) cancels
+  # only its own older runs: a push to develop_staging never cancels a develop run, or the reverse.
   group: ${{ github.workflow }}-${{ github.event_name == 'schedule' && 'schedule' || github.ref }}
   cancel-in-progress: true
 
@@ -175,7 +177,10 @@ jobs:
     env:
       NODE_ENV: test
     steps:
+      # Nightly runs test develop_staging (what goes into develop next); '' means the event's own ref.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
       - uses: dorny/paths-filter@v3
         id: filter
         if: github.event_name == 'pull_request'
