@@ -5,7 +5,7 @@ Status: SIGNED (see end). Drafted 12 Oct 2026, reviewed and amended by Ajay. Map
 | Field | Value |
 |---|---|
 | id | `summon_additional_accused_358` |
-| displayName | Application to Proceed against an Additional Person (BNSS 358) |
+| displayName | Application to Proceed against an Additional Person |
 | category | Criminal: complaints, police, trial applications |
 | court_levels | `["magistrate", "cjm", "sessions"]` |
 | Ink | S = 1 |
@@ -190,6 +190,7 @@ The "Notes" section is the drafter's reasoning, kept for the record; it is not t
 
 | Item | Mark |
 |---|---|
+| `displayName` carries no section number (the Drafter sees it); the section appears in the cause title through `{governing_provision}` | Amended |
 | Spec as amended | Approved |
 | Guilt never stated as fact; collusion and motive only if the brief states them | Approved |
 | Allowed submission naming `{{proposed_person_name}}` | Condition: `requires` becomes `all_of` with `proposed_person_name` present |

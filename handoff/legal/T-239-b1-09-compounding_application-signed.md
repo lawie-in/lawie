@@ -5,7 +5,7 @@ Status: SIGNED (see end). Drafted 12 Oct 2026, reviewed and amended by Ajay. Map
 | Field | Value |
 |---|---|
 | id | `compounding_application` |
-| displayName | Joint Application for Compounding of Offence (BNSS 359) |
+| displayName | Joint Application for Compounding of Offence |
 | category | Criminal: complaints, police, trial applications |
 | court_levels | `["magistrate", "cjm", "sessions"]` |
 | Ink | S = 1 |
@@ -194,6 +194,7 @@ The "Notes" section is the drafter's reasoning, kept for the record; it is not t
 
 | Item | Mark |
 |---|---|
+| `displayName` carries no section number (the Drafter sees it); the section appears in the cause title through `{governing_provision}` | Amended |
 | Spec as amended | Approved |
 | Compoundability and court permission always a blank for the advocate; no table reproduced | Approved |
 | Prayer (b) acquittal, citing 359 at section level only | Approved |

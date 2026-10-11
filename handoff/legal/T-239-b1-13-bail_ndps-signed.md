@@ -5,7 +5,7 @@ Status: SIGNED (see the end). Drafted 12 Oct 2026; reviewed and amended by Ajay.
 | Field | Value |
 |---|---|
 | id | `bail_ndps` |
-| displayName | Bail Application in NDPS Case (BNSS 483) |
+| displayName | Bail Application in NDPS Case |
 | category | Criminal: bail and custody |
 | court_levels | `["special_court_ndps", "high_court"]` |
 | Ink | L = 2 |
@@ -290,6 +290,7 @@ The "Notes" and "Verify" sections are the drafter's reasoning, kept for the reco
 
 | Item | Mark |
 |---|---|
+| `displayName` carries no section number (the Drafter sees it); the section appears in the cause title through `{governing_provision}` | Amended |
 | Spec as amended | Approved |
 | Size and sampling | L (2 Ink); Anushka tier A |
 | Ruling | Approved. Special Court / High Court bail under the provision given as GOVERNING PROVISION (CrPC 439 to BNSS 483). NDPS section 37 conditions are written only as submissions on facts the brief gives; the quantity class only as the brief gives it. Verification closing line `{verifierCapacity}` is approved. |
