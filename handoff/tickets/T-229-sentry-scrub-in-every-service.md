@@ -34,3 +34,8 @@ With `sendDefaultPii: false`, Sentry error events still carry every request head
 
 6. `/auth/reset-password/:token` puts the live reset token into the logged URL and the Sentry URL (Shashank, T-210). Mask path tokens in the shared scrub.
 
+
+## Scope added (Priya, 12 Oct 2026, from Arjun's T-235 facts)
+
+- `apps/web` Sentry: no `beforeSend` scrub today. Add the same scrub here.
+- email-worker logs recipient addresses (`send.ts:50,56`, `ses.ts:57`). Mask them. This must land before T-220 sends real mail.
