@@ -93,3 +93,11 @@ Batch 1 is 53 ids: 28 short and 25 long.
 - The S/L tiers agree with T-227.
 - #12 moves to Tier A for sampling.
 - Order: criminal specs #1–#17 first. Each spec is its own commit.
+
+## Batch 1 signed specs
+
+Building them needs T-240 and the T-245 mechanics (`procedure_code` and `governing_provision`).
+
+| Specs | Commit | Notes |
+|---|---|---|
+| #7–#12 | 49bce36 | All 1 Ink. #11 is sampled every time (Tier A). #12 is the granting court only; the superior-court version becomes a batch 2 id, `modification_bail_conditions_superior_court` |

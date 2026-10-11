@@ -38,3 +38,4 @@ Fixing this inside the rule files means touching signed legal content, and scali
 
 5. `PRICE_ALIASES` (credits.service.ts) duplicates `DOC_TYPE_TO_RULE` (prompt-assembler.ts, not exported). Export one map and use it in both places.
 6. The rule files still carry a `creditsCost` that is now ignored, and a `category` that this ticket makes ignored. Removing them touches legal paths: Ajay decides whether to remove them, and signs that diff.
+7. Settle one list of `court_levels` values. Packs use different names today (`magistrate` vs `magistrate_jmfc`, `sessions` vs `sessions_court`). Ajay, 12 Oct 2026.
