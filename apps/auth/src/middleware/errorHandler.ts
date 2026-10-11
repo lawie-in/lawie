@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 import { Request, Response, NextFunction } from 'express';
 
-import logger from '../config/logger';
+import logger, { maskEmails } from '../config/logger';
 
 export class AppError extends Error {
   constructor(
@@ -24,9 +24,11 @@ export function errorHandler(
   const statusCode = isAppError ? err.statusCode : 500;
   const message = isAppError ? err.message : 'Internal Server Error';
 
+  // Logs only: err (via the PII-scrubbing `err` serializer), method, url (emails masked), ip,
+  // statusCode. Never req.body, headers or query objects (T-210).
   logger.error({
     err,
-    req: { method: req.method, url: req.url, ip: req.ip },
+    req: { method: req.method, url: maskEmails(req.url), ip: req.ip },
     statusCode,
   });
 
