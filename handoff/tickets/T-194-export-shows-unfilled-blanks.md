@@ -57,7 +57,7 @@ District court advocate who exports a draft to file it and must not file one wit
 
 ## Priya decisions (11 Oct 2026)
 
-1. Which blanks count: open. Ajay decides it together with AC8. Until he does, the build counts only `[To be confirmed: …]`.
+1. Which blanks count: superseded. Ajay decided it in set (d) and his 12 Oct rulings below. The temporary "count only `[To be confirmed: …]`" rule no longer applies.
 2. AC note (build requirement): save first, then count from the saved draft the file is built from.
 3. "Go back and fill" puts the cursor on the first blank: in scope. Tracking "warning shown / export anyway": out of v1 scope; if it comes back later it needs a PII review.
 

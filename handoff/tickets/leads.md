@@ -21,7 +21,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-Empty. Ask Priya for the slot when your chain is done.
+1. mahak — T-194. Chain complete (0a70e0b). She merges once Ajay's final sign-off on the diff is in the ticket.
 
 ## Last done
 
