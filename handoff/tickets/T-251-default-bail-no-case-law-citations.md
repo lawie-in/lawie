@@ -34,3 +34,7 @@ It also asks the Drafter to count days. That conflicts with T-148 (no case law o
 ## Known gap, accepted (Priya, 12 Oct 2026)
 
 In non-ledger mode (feature.fact_ledger off) nothing checks the Drafter's text against the bond box, so a body saying "the applicant will not furnish bail bonds" is not stopped. The averments ban applies only with the ledger on. Accepted: the ledger path is the v1 path, and fact_ledger stays off for real users until T-187, T-188, T-190 and T-194 are done. Pinned as `it.failing` in the t251 test; it turns red the day it is fixed.
+
+## Go-live gate for default_bail (Ajay, 12 Oct 2026)
+
+`feature.fact_ledger` must be ON for real users before default_bail is offered to them. This is the condition on which Ajay accepted the non-ledger bond gap. Ajay approved the T-251 diff at cec29ed (recorded in handoff/legal/T-251-default-bail-text-signed.md). Cite it in the merge body.
