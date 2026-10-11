@@ -35,6 +35,9 @@ import { isFixtureUser } from '../services/run-origin';
 // give away the farm" guard.
 export const FREE_TIER_SAFETY_MAX_MONTHLY = 25;
 
+/** The only values the Sentry `templateId` tag can take when an id is refused. */
+const REFUSAL_TAGS = ['(missing)', '(malformed)', '(unlisted)', '(conflict)'] as const;
+
 export async function enforceCredits(
   req: Request,
   res: Response,
@@ -51,19 +54,33 @@ export async function enforceCredits(
   const body = (req.body ?? {}) as { template_id?: unknown; docType?: unknown };
   const rawId = body.template_id ?? body.docType;
   const templateId = typeof rawId === 'string' ? rawId : undefined;
-  const cost = templateId === undefined ? undefined : costForTemplate(templateId);
-  if (cost === undefined) {
-    // Only the id goes to Sentry (it is a document type, not user data), and
-    // only when it is a short id-shaped string.
-    const reportedId =
-      templateId === undefined
-        ? '(missing)'
-        : /^[a-z0-9_]{1,100}$/.test(templateId)
-          ? templateId
-          : '(malformed)';
+
+  // T-227: a body carrying both ids must agree. The legacy route drafts
+  // `docType` while the gate would price `template_id`, so a mismatch could
+  // buy a long draft at a short draft's price.
+  const hasTemplateId = body.template_id !== undefined && body.template_id !== null;
+  const hasDocType = body.docType !== undefined && body.docType !== null;
+  const conflict = hasTemplateId && hasDocType && body.template_id !== body.docType;
+
+  let refusal: (typeof REFUSAL_TAGS)[number] | undefined;
+  let cost: number | undefined;
+  if (conflict) {
+    refusal = '(conflict)';
+  } else if (templateId === undefined) {
+    refusal = '(missing)';
+  } else if (!/^[a-z0-9_]{1,100}$/.test(templateId)) {
+    refusal = '(malformed)';
+  } else {
+    cost = costForTemplate(templateId);
+    if (cost === undefined) refusal = '(unlisted)';
+  }
+
+  if (refusal !== undefined || cost === undefined) {
+    // The tag is one of a fixed set; the submitted id itself never goes to
+    // Sentry (it is user-controlled text).
     Sentry.captureMessage('enforceCredits: document id has no price', {
       level: 'warning',
-      tags: { feature: 'pricing', templateId: reportedId },
+      tags: { feature: 'pricing', templateId: refusal ?? '(unlisted)' },
     });
     res.status(400).json({ error: 'Unknown document type' });
     return;
