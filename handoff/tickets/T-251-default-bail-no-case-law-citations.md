@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (writes and signs the text). Lead (build). Anushka (verdict) |
 | Mode           | Rule first, then build. Legal content |
-| Status         | Chain complete: mahak, 9e094ef. Ajay approved cec29ed. In the merge queue after T-200. Go-live gate: feature.fact_ledger ON for real users |
+| Status         | Merged into develop_staging (871f7c6, 12 Oct 2026), waiting for Anushka on develop; go-live gate: feature.fact_ledger ON before default_bail is offered |
 | Gate           | Blocker for `feature.fact_ledger` with real users |
 
 ## Problem

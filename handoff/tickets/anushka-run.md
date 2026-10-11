@@ -80,3 +80,17 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The discharge form offers the right third option, a warrant case before a Magistrate on a complaint under S.268 BNSS, in place of a summons case that never had discharge.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-251 (mahak, merged to develop_staging 871f7c6, 12 Oct 2026)
+
+Needs `feature.fact_ledger` ON for her test account, or the default bail template isn't offered.
+
+- A default bail draft no longer cites any judgment you did not give, and it never counts days.
+- You choose the period (60 days, 90 days, or a period under a special Act) and the date it expired. Lawie does not decide which one applies.
+- An offence with a 10-year maximum is no longer forced into 90 days.
+- Missing details show as "[To be confirmed: ...]" blanks, and the export warning counts them.
+- Until the old/new law choice arrives, the prayer names the provision as a blank for you to confirm (CrPC 167(2) or BNSS 187(3)).
+- The undertaking to furnish bail bonds appears only when you tick it. If it is unticked or answered "No", you get a blank, never "will not furnish".
+- Earlier bail applications are stated as you give them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
