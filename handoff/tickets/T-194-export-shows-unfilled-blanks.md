@@ -132,3 +132,15 @@ These narrow two rows of set (d). The signed strings are unchanged. Signed: Ajay
      - discharge_application: 1.
      - bail_cancellation: 2.
      - I.A. in a civil suit: 1.
+
+## AC9 for DOCX (Priya's call, 12 Oct 2026)
+
+- apps/web has no test runner, and drafting tests can't import web code.
+- So, for DOCX highlight and header only, AC9 is met by the tester's script. It checks the real DOCX XML at 0, 1 and several blanks, including the exempt registry and signing-date blanks: 20/20.
+- The script output is logged in the merge note.
+- A web test runner is not part of this ticket.
+- Before Anushka's run, a manual check:
+  - real Puppeteer render (header font, em dash);
+  - jsPDF fallback em dash;
+  - the DOCX opened in Word;
+  - "Export DOCX anyway" in a browser.
