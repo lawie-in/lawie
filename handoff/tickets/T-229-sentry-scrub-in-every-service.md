@@ -29,3 +29,8 @@ With `sendDefaultPii: false`, Sentry error events still carry every request head
 ## References
 
 - T-210 ("Arjun (11 Oct 2026, T-210 round 2)"), T-117
+
+## Added (Priya, 11 Oct 2026)
+
+6. `/auth/reset-password/:token` puts the live reset token into the logged URL and the Sentry URL (Shashank, T-210). Mask path tokens in the shared scrub.
+

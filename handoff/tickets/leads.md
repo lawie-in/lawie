@@ -21,7 +21,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-Empty.
+1. shashank — T-210 (ready 12 Oct 00:30 IST; slot now)
 
 ## Last done
 

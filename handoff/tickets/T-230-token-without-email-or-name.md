@@ -24,3 +24,5 @@ Access and refresh tokens carry the user's email and name. Anyone holding the to
 2. Code that reads email or name from the token gets it another way: gateway (`x-user-email`, `x-user-name`), drafting (`name` as the advocate name, `documents.routes.ts`), billing (`email` for `createSubscription`, `billing.routes.ts:49`), web (`getSessionUser` in `apps/web/src/lib/auth.ts`). Auth gets a `/me` route for the web app.
 3. Old tokens keep working until they expire. No forced sign-out.
 4. Tests for old and new tokens through gateway, drafting and billing.
+5. `apps/auth/src/config/passport.ts:57` stores the email as the user's name when Google gives none (Arjun, T-210). Fix it here.
+
