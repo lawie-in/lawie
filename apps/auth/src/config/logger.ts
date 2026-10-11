@@ -55,8 +55,9 @@ function scrub(value: unknown, depth: number, seen: WeakSet<object>): unknown {
 }
 
 export function serializeErr(err: unknown): unknown {
-  const base =
-    err instanceof Error ? pino.stdSerializers.err(err) : (err as Record<string, unknown>);
+  if (!(err instanceof Error)) return scrub(err, 0, new WeakSet());
+  // `name` (e.g. MongoServerError) is a prototype getter the std serializer does not copy.
+  const base = { name: err.name, ...pino.stdSerializers.err(err) };
   return scrub(base, 0, new WeakSet());
 }
 
