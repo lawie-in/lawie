@@ -104,3 +104,33 @@ Cue format: `any` is a list where one entry is enough. `all` is a list of `any` 
 | Overlap: putting cues in `bail_regular.json` touches the same file as T-190 and T-199. Run in sequence (`multi-lead.md` rule 1), or keep the cues in code | Note for Priya |
 
 Signed: Ajay (CLO), 11 Oct 2026. R0 to R3 and the `bail_regular` cue table above, on the AC3 and AC4 test conditions. Any later change to the cues or to this rule needs a fresh sign-off.
+
+## Ajay: cue mapping per pack (12 Oct 2026). Replaces the "same id" rule
+
+Asked through Priya after vishal found `undertakings`, `fir_particulars` and `custody` getting no cues.
+
+"Same id" is withdrawn because it fails both ways:
+- The same id can mean different things. `no_flight_risk` in `interim_bail` and `bail_anticipatory` is not the `bail_regular` undertaking.
+- Different ids can mean the same thing.
+
+Cues now follow the clause's meaning, through an explicit `(pack, clauseId) → cueSet` map in code with no fallback by id. Anything not listed falls back to R2b. The cue sets are the 11 Oct `bail_regular` ones.
+
+| Pack | Clause id | Cues | Mark |
+|---|---|---|---|
+| `bail_regular` | every row signed 11 Oct | unchanged | Approved |
+| `bail_anticipatory` | `fir_details` | FIR cue: any `{{fir_number}}` | Approved |
+| `bail_anticipatory` | `no_flight_risk` | none, R2b (the meaning differs) | Approved |
+| `interim_bail` | `undertakings` | undertaking cue: any `undertak`, `वचन`, `आश्वासन` | Approved |
+| `interim_bail` | `no_flight_risk` | none, R2b (the meaning differs) | Approved |
+| `bail_before_magistrate` | `fir_particulars` | FIR cue: any `{{fir_number}}` | Approved |
+| `bail_before_magistrate` | `custody` | custody cue: any `custody`, `arrest`, `jail`, `हिरासत`, `अभिरक्षा`, `गिरफ्तार`, `गिरफ़्तार`, `जेल` | Approved |
+| `bail_before_magistrate` | `grounds` | grounds cue: any `ground`, `submitted`, `आधार`, `निवेदन` | Approved |
+| `bail_before_magistrate` | `undertakings` | undertaking cue, as above | Approved |
+| `interim_bail` | `urgency`, `main_application_reference`, `duration_sought` | none, R2b | Acceptable |
+| `bail_before_magistrate` | `offence_classification`, `triple_test` | none, R2b | Acceptable |
+| any of these packs | `prayer`, `verification`, `advocate_details` | system parts, no cues | n/a |
+
+- AC4's `earlier_applications` test runs on `bail_regular` only.
+- `ai.service.ts` call-site edits: Acceptable. Ajay signs that diff together with `brief-drafter.ts` before merge.
+- AC5 rewording: Approved, on one condition. Only fixture body text changes. Reported paragraph numbers, clause ids and assertions stay as they are. List each changed fixture in the merge note. If any assertion has to change, stop and send it to Ajay.
+- Risks outside this ticket: logged as T-237.
