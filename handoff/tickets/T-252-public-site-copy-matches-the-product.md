@@ -54,3 +54,9 @@ No "secure" or "encrypted" claim anywhere, since form answers are not encrypted 
 The section-converter page says "500+ section mappings validated by a practising advocate" (`page.tsx:130` and the meta in `layout.tsx`). Until Ajay has signed the IPC→BNS recheck (T-267), that claim holds only for the CrPC and IEA tables, because the seed sets `validatedBy`/`validatedAt` for those two and leaves the IPC table null (Ajay's ruling). Ajay gives the replacement words. Change both places.
 
 **URGENT part, moved out and done first (Ajay, 12 Oct 2026):** the converter claim is T-252a. Remove it now, not at T-403: exact strings in `handoff/legal/section-converter-copy-signed.md`. It also drops "auto-conversion" (Lawie never converts) and "Instantly". Mahak does it on her T-235 + T-254A branch (files: `tools/section-converter/page.tsx` and `layout.tsx`). A validation claim may come back only as "Mappings checked against the Gazette text of the Acts", after T-267, and never as "validated by a practising advocate" unless one actually has.
+
+## From mahak's T-235 + T-254A work (12 Oct 2026)
+
+- Removing the sample links made two home-page lines false: L243 ("Four come with a sample PDF...") is deleted, and the L171 hero button becomes "See what you can draft" (Priya's call; a plain label, no claim). Both done on her branch.
+- The home FAQ answer at L98, "Your documents are encrypted in storage…", contradicts Ajay's signed privacy §4 (form answers and the fact list are not encrypted). A public false claim, the same kind as T-252a. Ajay gives the exact text; Mahak changes it on her branch.
+- `terms/page.tsx` still says "Last updated: 1 June 2026" and may repeat the old privacy claims (cookies, deletion). Ajay checks it; any change is a follow-up to T-235.
