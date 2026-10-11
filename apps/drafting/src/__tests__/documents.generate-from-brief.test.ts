@@ -38,6 +38,7 @@ import { decrypt } from '../utils/encryption';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -45,7 +46,6 @@ jest.mock('@anthropic-ai/sdk', () =>
 beforeEach(() => {
   mockMessagesStream.mockReset();
 });
-
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439091';
@@ -606,9 +606,9 @@ describe('POST /generate-from-brief — what stops a draft before any model call
     await expectNothingHappened(fetchMock);
   });
 
-  it('a kind that is not a rule pack: 404', async () => {
+  it('a kind that is not a rule pack: 400 from enforceCredits (no price, T-227)', async () => {
     const fetchMock = mockModel();
-    expect((await post({ kind: 'not_a_pack', values: [] })).status).toBe(404);
+    expect((await post({ kind: 'not_a_pack', values: [] })).status).toBe(400);
     await expectNothingHappened(fetchMock);
   });
 
@@ -641,8 +641,7 @@ describe('POST /generate-from-brief — what stops a draft before any model call
 
 describe('POST /generate-from-brief — a failed run', () => {
   it('is recorded as failed, saves no document, charges nothing, and a retry keeps the run', async () => {
-    const failing = mockMessagesStream
-      .mockRejectedValue(new Error('503 service unavailable'));
+    const failing = mockMessagesStream.mockRejectedValue(new Error('503 service unavailable'));
     global.fetch = failing as unknown as typeof fetch;
     const first = await post({ kind: 'bail_regular', values: VALUES, court });
     expect(first.status).toBe(200);
@@ -768,8 +767,8 @@ describe('POST /generate-from-brief — no rule pack', () => {
       llmCalls: 1,
       paragraphCount: 2,
     });
-    // One Ink, which is two units in the store.
-    expect((await User.findById(USER_ID).lean())!.inkTopup).toBe(1998);
+    // `guided` is 2 Ink (T-227, Vikram), which is four units in the store.
+    expect((await User.findById(USER_ID).lean())!.inkTopup).toBe(1996);
 
     // The demand signal says a draft with no rule pack was made. It holds none of the user's words.
     const signals = await Event.find({ type: 'demand.guided_draft' }).lean();

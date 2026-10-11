@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 import { z } from 'zod';
 
 import { authenticate } from '../middleware/authenticate';
-import { enforceCredits } from '../middleware/enforceCredits';
+import { chargedCost, enforceCredits } from '../middleware/enforceCredits';
 import { FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
 import { spendCapCheck } from '../middleware/spendCap';
 import { Court } from '../models/Court.model';
@@ -597,7 +597,7 @@ router.post(
     // duplicate Generation means a concurrent request (e.g. a double-sent
     // retry) already recorded and paid for this exact attempt — spending
     // again here would charge Ink twice for one logical draft.
-    const cost = (req as Request & { creditCost?: number }).creditCost ?? 1;
+    const cost = chargedCost(req); // T-227: no default price
     if (!duplicateAttempt) {
       const inkResult = await spendInk({
         userId: payload.sub,
@@ -1067,7 +1067,7 @@ router.post(
 
     // Charged once, after a successful draft. The repair pass is not charged:
     // the charge is the document's fixed cost, whatever the run used.
-    const cost = (req as Request & { creditCost?: number }).creditCost ?? 1;
+    const cost = chargedCost(req); // T-227: no default price
     if (!duplicateAttempt) {
       const inkResult = await spendInk({
         userId: payload.sub,
@@ -1273,7 +1273,7 @@ router.post(
 
     // Deduct ink after successful generation — skipped for a duplicate
     // attempt (a concurrent request already recorded and paid for it).
-    const legacyCost = (req as Request & { creditCost?: number }).creditCost ?? 1;
+    const legacyCost = chargedCost(req); // T-227: no default price
     if (!duplicateAttempt) {
       const legacyInkResult = await spendInk({
         userId: payload.sub,
