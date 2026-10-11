@@ -10,7 +10,7 @@
 | Size           | S (0.5 day)                                                                  |
 | Depends on     | None                                                                         |
 | Gate           | Before v1 go-live (T-403)                                                    |
-| Branch         | fix/t-209-auth-token-collision                                               |
+| Branch         | fix/t-209-token-unique-same-second |
 | Legal sign-off | Not needed                                                                   |
 | Created        | 2026-10-11                                                                   |
 | Source         | Finding from the T-196 build, 11 Oct 2026                                    |
