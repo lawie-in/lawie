@@ -16,11 +16,14 @@ import { env } from './env';
 export const REDACT_CENSOR = '[Redacted]';
 export const EMAIL_MASK = '[email]';
 
-const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+// The lookbehind anchors a match at the start of a local-part run, so a long run of
+// local-part chars (e.g. attacker-controlled req.url) is not retried from every offset.
+const EMAIL_RE = /(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 const DROPPED_ERR_KEYS = new Set(['keyValue']);
 const MAX_DEPTH = 6;
 
 export function maskEmails(value: string): string {
+  if (!value.includes('@')) return value;
   return value.replace(EMAIL_RE, EMAIL_MASK);
 }
 
@@ -68,9 +71,14 @@ export function scrubPii(value: unknown): unknown {
 }
 
 export function serializeErr(err: unknown): unknown {
-  if (!(err instanceof Error)) return scrubPii(err);
+  // Error-like check (as pino-std-serializers does), so cross-realm errors keep message/stack.
+  const e = err as { message?: unknown; name?: unknown } | null | undefined;
+  if (!e || typeof e !== 'object' || typeof e.message !== 'string') return scrubPii(err);
   // `name` (e.g. MongoServerError) is a prototype getter the std serializer does not copy.
-  const base = { name: err.name, ...pino.stdSerializers.err(err) };
+  const base = {
+    ...(typeof e.name === 'string' && { name: e.name }),
+    ...pino.stdSerializers.err(err as Error),
+  };
   return scrubPii(base);
 }
 
