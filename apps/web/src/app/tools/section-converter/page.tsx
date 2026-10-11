@@ -62,8 +62,8 @@ export default function SectionConverterPage() {
                 IPC / CrPC / IEA Section Converter
               </h1>
               <p className="text-sm text-slate-500">
-                Instantly convert between old (IPC, CrPC, IEA) and new (BNS, BNSS, BSA) section
-                numbers. Free, no login required.
+                Look up old (IPC, CrPC, IEA) and new (BNS, BNSS, BSA) section numbers side by side.
+                Free, no login required.
               </p>
             </div>
           </div>
