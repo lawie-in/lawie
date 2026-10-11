@@ -35,3 +35,16 @@ No export carries a watermark on any plan (policy test `document-export.test.ts:
 Remove them all. Copy from Meera, ok from Ajay. The pricing-page lines go in with T-238 if it is still open.
 
 Also dead code: `login/page.tsx:162` writes `lawie_referral_code` to sessionStorage and nothing reads it. Remove it with T-234.
+
+## Ajay's rulings (c9ab6f8)
+
+Blockers on the about page:
+- "court" claims;
+- "maps IPC/CrPC/IEA to BNS/BNSS/BSA" (we never convert);
+- "in minutes".
+
+Also:
+- remove the in-app POPULAR badge and "Priority support";
+- delete PainSolution.tsx.
+
+No "secure" or "encrypted" claim anywhere, since form answers are not encrypted (T-235).
