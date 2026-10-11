@@ -12,7 +12,7 @@ import { useRef } from 'react';
 
 import { primaryButton, secondaryButton } from '../intake/ui';
 
-import { draftHeaderText } from './exportUtils';
+import { draftHeaderText, type BlankListItem } from './exportUtils';
 
 /** How many labels the list shows before "and M more". */
 const LIST_MAX = 5;
@@ -27,7 +27,7 @@ const DO_NOT_FILE =
 export default function ExportBlanksDialog({
   open,
   count,
-  labels,
+  items,
   format,
   onExport,
   onBack,
@@ -35,8 +35,8 @@ export default function ExportBlanksDialog({
   open: boolean;
   /** Every blank in the saved draft (the header's N). */
   count: number;
-  /** Each blank's label once, in document order. */
-  labels: string[];
+  /** The list's rows, in document order: each label, with a few words around it. */
+  items: BlankListItem[];
   format: 'pdf' | 'docx';
   /** Close and export as is, with the header and the blank style. */
   onExport: () => void;
@@ -48,8 +48,8 @@ export default function ExportBlanksDialog({
   // export button. Exporting lets it return there as usual.
   const exportingRef = useRef(false);
 
-  const shown = labels.slice(0, LIST_MAX);
-  const more = labels.length - shown.length;
+  const shown = items.slice(0, LIST_MAX);
+  const more = items.length - shown.length;
 
   return (
     <Dialog.Root
@@ -69,7 +69,7 @@ export default function ExportBlanksDialog({
             if (!exportingRef.current) e.preventDefault();
             exportingRef.current = false;
           }}
-          className="fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] flex-col gap-4 overflow-y-auto rounded-t-2xl bg-white p-5 sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-[14vh] sm:w-[480px] sm:-translate-x-1/2 sm:rounded-2xl sm:p-7"
+          className="fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] flex-col gap-4 overflow-y-auto rounded-t-2xl bg-white p-5 sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-[14vh] sm:max-h-[80vh] sm:w-[480px] sm:-translate-x-1/2 sm:rounded-2xl sm:p-7"
         >
           <span
             aria-hidden="true"
@@ -99,9 +99,14 @@ export default function ExportBlanksDialog({
                     Still blank
                   </p>
                   <ul className="divide-brand-line border-brand-line divide-y border-t">
-                    {shown.map((label, i) => (
-                      <li key={`${i}-${label}`} className="text-brand-navy px-3 py-2 text-sm">
-                        {label}
+                    {shown.map((item, i) => (
+                      <li key={`${i}-${item.label}`} className="text-brand-navy px-3 py-2 text-sm">
+                        <span className="block">{item.label}</span>
+                        {item.context && item.context !== item.label && (
+                          <span className="text-brand-muted mt-0.5 block font-serif text-[13px]">
+                            {item.context}
+                          </span>
+                        )}
                       </li>
                     ))}
                     {more > 0 && (

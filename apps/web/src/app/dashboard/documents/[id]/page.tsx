@@ -18,7 +18,7 @@ import DocumentEditor from '@/components/editor/DocumentEditor';
 import ExportBlanksDialog from '@/components/editor/ExportBlanksDialog';
 import {
   EXPORT_BLANKS_GO_BACK_EVENT,
-  blankLabels,
+  blankListItems,
   blanksInContent,
   exportDocx,
   exportPdf,
@@ -512,7 +512,7 @@ export default function DocumentEditorPage() {
         <ExportBlanksDialog
           open
           count={blankWarning.blanks.length}
-          labels={blankLabels(blankWarning.blanks)}
+          items={blankListItems(blankWarning.blanks)}
           format={blankWarning.format}
           onExport={handleBlanksExportAnyway}
           onBack={handleBlanksGoBack}

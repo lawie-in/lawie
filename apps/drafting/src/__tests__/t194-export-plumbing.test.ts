@@ -262,8 +262,10 @@ describe('blanksInContent (the count the route uses; AC7)', () => {
     }
   });
 
-  it('with the phase-1 stub finder nothing is found', () => {
-    expect(blanksInContent(`a ${TBC('x')}`)).toEqual([]);
+  it('with the real (phase-2) finder the default finds the blank', () => {
+    const found = blanksInContent(`a ${TBC('x')}`);
+    expect(found).toHaveLength(1);
+    expect(found[0].label).toBe('x');
   });
 });
 
@@ -368,16 +370,26 @@ describe('POST /:id/export/pdf (route wiring)', () => {
 
   const DOC = `IN THE COURT OF ${TBC('Court')}\n\nThat FIR ${TBC('FIR number')} was lodged.\n\nPRAYER\n\nGrant bail.\n\nVERIFICATION\n\nVerified at ${TBC('Place')}.`;
 
-  it('phase-1 stub finder (N = 0): no header, no .tbc, output as before', async () => {
+  it('real finder (phase 2), N = 3: header, one highlighted span per blank', async () => {
     const res = await exportOf(DOC);
     expect(res.status).toBe(200);
     expect(mockRenderPdf).toHaveBeenCalledTimes(1);
     const [html, opts] = mockRenderPdf.mock.calls[0];
+    expect(opts?.headerText).toBe('DRAFT — 3 items to be confirmed');
+    expect(count(html, '<span class="tbc">')).toBe(3);
+    expect(html).toContain('#FFFF00');
+    expect(html).toBe(contentToHtml(DOC, true, false, { findBlanks: real.findBlanks }));
+    expect(res.headers['content-type']).toMatch(/application\/pdf/);
+  });
+
+  it('real finder, N = 0: no header, no .tbc, output as before', async () => {
+    const clean = 'IN THE COURT\n\nAll facts are filled in.\n\n______________';
+    const res = await exportOf(clean);
+    expect(res.status).toBe(200);
+    const [html, opts] = mockRenderPdf.mock.calls[0];
     expect(opts?.headerText).toBeUndefined();
     expect(html).not.toContain('class="tbc"');
-    expect(html).not.toContain('#FFFF00');
-    expect(html).toBe(contentToHtml(DOC, true, false));
-    expect(res.headers['content-type']).toMatch(/application\/pdf/);
+    expect(html).toBe(contentToHtml(clean, true, false));
   });
 
   it('a draft with no blanks, fake finder in the route: no header, unchanged html', async () => {
@@ -425,8 +437,8 @@ describe('POST /:id/export/pdf (route wiring)', () => {
   });
 });
 
-describe('the exported stub finder (phase-1 seam)', () => {
-  it('finds nothing, so no export changes before phase 2', () => {
-    expect(real.findBlanks(`a ${TBC('x')} {{MISSING: y}} ____`)).toEqual([]);
+describe('the exported finder (phase-2: the shared one)', () => {
+  it('finds the markers and an underscore blank', () => {
+    expect(real.findBlanks(`a ${TBC('x')} {{MISSING: y}} ____`)).toHaveLength(3);
   });
 });
