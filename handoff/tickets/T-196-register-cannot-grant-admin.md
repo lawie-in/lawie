@@ -7,7 +7,7 @@
 | Assigned lead  | vishal                                                                                                  |
 | Mode           | Build, full chain (touches auth). Merge to develop                                                      |
 | Priority       | Urgent. The founder said "fix it right now", 11 Oct 2026                                                |
-| Status         | Merged to develop_staging (11 Oct); waiting for founder's merge to develop                              |
+| Status         | Merged to develop_staging (11 Oct). Founder's ops check done, 11 Oct: no unexpected Admin account                              |
 | Size           | S (half a day), plus the founder's ops check                                                            |
 | Depends on     | None                                                                                                    |
 | Gate           | Before anything else is merged to `main`, and before v1 (T-403)                                         |
@@ -56,6 +56,8 @@ The server decides the role at signup. No field from the client can set or chang
 3. If any such account exists, tell Arjun. He decides whether to look at what it did on the admin routes (`admin-audit` log) and whether any secret or setting needs to change.
 
 Vishal writes the exact query in the delivery report.
+
+**Done (founder, 11 Oct 2026):** the founder checked the users collection. No unexpected Admin account, so nothing was changed and nothing goes to Arjun.
 
 ## Out of scope
 

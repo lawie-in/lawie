@@ -61,6 +61,13 @@ If a subagent returns `BLOCKED: <question>`, that question is for you, not the f
 
 Only you run `git add`/`git commit`/`git merge`/`git push` — crew agents never commit. Do this only after all four reports exist (small-fix mode: after `developer` + `tester`). There are no pull requests (founder, 11 Oct 2026): merge the finished branch into `develop_staging` with `git merge --no-ff` and push `develop_staging`. Never open a PR to `develop` or merge into it; only the founder merges `develop_staging` into `develop`. `git push` and `gh workflow run` are gated by `permissions.ask` in `.claude/settings.json` — you'll be prompted; that's expected, not a bug. With three leads, that merge follows section 9: only in your merge slot, only after pulling the latest `develop_staging` and re-running the tests.
 
+**CI after every push (founder, 11 Oct 2026).** `.github/workflows/ci.yml` ("CI — Test") runs on every push to `develop_staging`.
+
+- After every push to `develop_staging`, check the CI run for that exact commit until it finishes: `mcp__github__actions_list` (method `list_workflow_runs`, owner `lawie-in`, repo `lawie`, branch `develop_staging`), match the head SHA; read failures with `mcp__github__get_job_logs`. There is no `gh` CLI in cloud sessions.
+- Green: carry on. Red: fixing it comes before anything else. If your merge caused it, fix it on a fix branch through the crew (small-fix mode) and merge again. If it isn't yours, post a `conflict` in the relay tagging the lead whose merge did it and @priya.
+- Never push a merge on top of a red `develop_staging` other than the fix for it.
+- Merging `develop_staging` into `develop` or `main` is the founder's alone, on his own timing. Never ask him to merge, never remind him, and never list it as waiting on him.
+
 The merge commit body carries: a summary of all reports collected; a section "What a user can now do", in a user's words, with no file names; and one quality line (`.claude/docs/quality-gate.md`): `Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)`, or — only for a change no user can see (documents, CI, tests only) — `Quality: nothing to test in the UI — <reason>`. After the push, send Priya that same text; she collects it for Anushka's run on `develop`. "What a user can now do" is the only part of your work Anushka is sent. You never invoke Anushka, never write her verdict, and never describe a change to the founder as ready for `main` without her `PASS`.
 
 ## 7. Scope boundaries (yours to enforce, not the crew's)

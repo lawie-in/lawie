@@ -15,7 +15,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 | Lead | Next, in order | Gate still open |
 |---|---|---|
 | vishal | 1. T-200 (brief-drafter.ts, already his) 2. T-190 with T-199 (bail_regular.json, one branch if Ajay agrees) 3. T-191, T-192 | T-200: Ajay's rule. T-190/T-199: Ajay's question text. T-191/T-192: Ajay signs the logic |
-| mahak | 1. T-140 part 1, type in a court (needs intake-brief.ts, so after T-189 merges) 2. T-194 (export blanks) 3. T-137 web part | T-140: Priya's scope + Ajay ok on the court rule in intake-brief.ts. T-194: Rajesh's design. T-137: founder's call (quick fix or wait for drops) |
+| mahak | 1. T-140 part 1, type in a court (needs intake-brief.ts, so after T-189 merges) 2. T-194 (export blanks) 3. T-137 web part | T-140: Priya's scope + Ajay ok on the court rule in intake-brief.ts. T-194: Rajesh's design. T-137: on hold (founder, 11 Oct) until drafting is complete and Vikram's payment calculations are done |
 | shashank | 1. T-209 (token collision) 2. T-210 (email in logs) 3. T-211 (flaky referral test) 4. T-187 build | T-209: Arjun heads-up only. T-210, T-211: none. T-187: Arjun + Ajay rule |
 | unassigned | T-129, T-193, T-198, T-188, T-207 | Ajay content (T-129, T-193, T-198); Arjun + Ajay option (T-188); Vishal's problem statement (T-207) |
 

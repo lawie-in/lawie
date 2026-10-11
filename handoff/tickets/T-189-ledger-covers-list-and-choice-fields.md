@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                      |
 | Owner          | Vishal (build). Ajay signs any prompt change. Anushka (verdict)                                                             |
 | Mode           | Build, full chain. Merge to develop                                                                                         |
-| Status         | Assigned to vishal, 11 Oct 2026. Not started. Founder chose option A, the approach below (relayed by Vishal, 11 Oct); founder to confirm in one line for AC1 |
+| Status         | Assigned to vishal, 11 Oct 2026. Not started. Founder confirmed option A, the approach below, 11 Oct 2026. AC1 done |
 | Assigned lead  | vishal |
 | Size           | M (1 day), plus Ajay's sign-off time if a prompt changes                                                                    |
 | Depends on     | T-147b (extraction and ledger), T-147c (the ledger-only Drafter)                                                            |
@@ -30,7 +30,7 @@ Extend T-147b's extraction and the ledger to list and choices items, under the s
 
 ## Acceptance criteria
 
-1. The founder confirms the approach in this file before the build starts.
+1. The founder confirms the approach in this file before the build starts. **Done:** the founder confirmed option A, 11 Oct 2026.
 2. `isLedgerItem` accepts list and choices items. Every list and choices item in the 5 seeded packs reaches the ledger when the advocate gave it.
 3. Each list entry is its own ledger value with its own `raw_span`, copied verbatim from the source. An entry with no verbatim span is not stored as a fact; it goes to `unresolved` with its reason (T-147b AC5).
 4. A choices value is stored only when it matches one of the item's allowed choices and has a verbatim span. A value outside the allowed choices goes to `unresolved`.
