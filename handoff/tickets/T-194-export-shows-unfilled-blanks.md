@@ -57,7 +57,7 @@ District court advocate who exports a draft to file it and must not file one wit
 
 ## Priya decisions (11 Oct 2026)
 
-1. Which blanks count: open. Ajay decides it together with AC8. Until he does, the build counts only `[To be confirmed: …]`.
+1. Which blanks count: superseded. Ajay decided it in set (d) and his 12 Oct rulings below. The temporary "count only `[To be confirmed: …]`" rule no longer applies.
 2. AC note (build requirement): save first, then count from the saved draft the file is built from.
 3. "Go back and fill" puts the cursor on the first blank: in scope. Tracking "warning shown / export anyway": out of v1 scope; if it comes back later it needs a PII review.
 
@@ -105,3 +105,42 @@ Read: this ticket; Rajesh's artifact (opened, version of 11 Oct 2026); `apps/web
 **Gate: confirmed.** T-147c is what writes these markers on the ledger path, so T-194 also blocks `feature.fact_ledger` for real users, as well as v1 go-live.
 
 Signed: Ajay (CLO), 11 Oct 2026. (a), (b) on its condition, the sentence in (c), and the set in (d). Any change to these strings or to the set needs a fresh sign-off.
+
+## Ajay's rulings on Mahak's phase 2 questions (11 Oct 2026, night)
+
+These narrow two rows of set (d). The signed strings are unchanged. Signed: Ajay (CLO), 11 Oct 2026, with the changes below.
+
+1. **Dialog labels.** These appear only in the dialog, never in the file; the file keeps the marker or underscores as they are.
+   - Underscore blank: "Blank to fill in". Approved by Ajay; Madhuri: keep.
+   - Empty `[To be confirmed: ]`: **"To be confirmed — add the detail"**. Ajay approved the label; Madhuri's wording adds the action. Priya's call on the founder's delegation, in place of Meera's copy sign-off overnight.
+   - Priya's call: each row in the list also shows a few words of the draft around the blank (e.g. "Case No. _____"), so the advocate can find it.
+2. **Signing-date exception.**
+   - Approved: a printed year (`_____ day of _________, 2026`) is exempt, the same as `20___`.
+   - Not anywhere in the document. Exempt a day-of date only when it is (i) inside the verification, affidavit or jurat block, or (ii) directly preceded by `this` on the same line ("on this ___ day of", "Dated this ___ day of"). Every other day-of date counts.
+   - Tests:
+     - "Verified at Patna on this ___ day of ___, 2026": not counted.
+     - "arrested on the ___ day of ___, 2026" in a body paragraph: counted.
+3. **Registry-number exception.** The first version was a blocker. Changed to:
+   - Exempt only the **first** `No. ___ of` in the cause title, and only when the whole words `in` or `arising out of` (any case) do not appear before it on the same line. Every other `No. ___ of` counts.
+   - The cause title ends at whichever comes first:
+     - a line that is only `VERSUS` / `VS` / `V/S` (any case, dots allowed);
+     - paragraph 1.
+   - An inline "v." or "vs." in a citation never ends it.
+   - If neither is found, the blank counts.
+   - Tests:
+     - bail_regular: 0 counted.
+     - discharge_application: 1.
+     - bail_cancellation: 2.
+     - I.A. in a civil suit: 1.
+
+## AC9 for DOCX (Priya's call, 12 Oct 2026)
+
+- apps/web has no test runner, and drafting tests can't import web code.
+- So, for DOCX highlight and header only, AC9 is met by the tester's script. It checks the real DOCX XML at 0, 1 and several blanks, including the exempt registry and signing-date blanks: 20/20.
+- The script output is logged in the merge note.
+- A web test runner is not part of this ticket.
+- Before Anushka's run, a manual check:
+  - real Puppeteer render (header font, em dash);
+  - jsPDF fallback em dash;
+  - the DOCX opened in Word;
+  - "Export DOCX anyway" in a browser.

@@ -42,3 +42,9 @@ What the privacy policy promises about deletion and encryption is true in the co
 - Design: Not needed
 - ADR: Not needed
 - Legal sign-off: Ajay, T-302, 4 Oct 2026
+
+## Note (Priya, 12 Oct 2026)
+
+Ajay: having no in-app delete is a DPDP s.12 risk (T-235 follow-up). Until this ticket ships, the privacy policy promises "erase by request", and Arjun must confirm before go-live that a manual erase can be run.
+
+- Repeatable erase: `scripts/erase-user.ts` with a dry run and counts, following T-235-erase-runbook.md (Arjun, 12 Oct 2026).

@@ -8,6 +8,21 @@ import './setupEnv';
 
 jest.mock('ioredis', () => require('ioredis-mock'));
 
+// passport.ts only registers the Google strategy when env.GOOGLE_CLIENT_ID/SECRET are set, and CI
+// has neither. Supply them here (real env kept for everything else) so the shell does not matter.
+jest.mock('../config/env', () => {
+  const actual = jest.requireActual('../config/env');
+  return {
+    ...actual,
+    env: {
+      ...actual.env,
+      GOOGLE_CLIENT_ID: 'test-client-id',
+      GOOGLE_CLIENT_SECRET: 'test-client-secret',
+      GOOGLE_CALLBACK_URL: 'http://localhost:4001/google/callback',
+    },
+  };
+});
+
 type Verify = (
   req: unknown,
   at: string,
