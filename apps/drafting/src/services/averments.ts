@@ -325,8 +325,8 @@ export function factsByKey(facts: readonly LedgerFact[]): Map<string, LedgerFact
  * Every entry the ledger holds for each key, in ledger order (T-189): one for
  * most items, several for a list or several choices. The same filter as
  * `factsByKey`: an entry with an empty display is not held, so a key with no
- * such entry is not held at all. Used only by `brief-drafter.ts`; averments
- * and the verifier read `factsByKey`.
+ * such entry is not held at all. Each entry is read on its own, never joined:
+ * by `brief-drafter.ts`, by averment conditions here, and by the verifier.
  */
 export function factEntriesByKey(facts: readonly LedgerFact[]): Map<string, LedgerFact[]> {
   const out = new Map<string, LedgerFact[]>();
@@ -339,24 +339,38 @@ export function factEntriesByKey(facts: readonly LedgerFact[]): Map<string, Ledg
   return out;
 }
 
+/**
+ * Whether a condition holds over the ledger's entries by key
+ * (`factEntriesByKey`). Each entry is read on its own, never joined (T-189,
+ * Ajay's rule R3): `present` needs one entry, `equals` any entry, `not_in`
+ * every entry. A key with one entry reads as before.
+ */
 export function conditionHolds(
   c: AvermentCondition | null,
-  facts: ReadonlyMap<string, LedgerFact>,
+  facts: ReadonlyMap<string, readonly LedgerFact[]>,
 ): boolean {
   if (c === null) return false;
   if ('all_of' in c) return c.all_of.every((x) => conditionHolds(x, facts));
-  const fact = facts.get(c.key);
+  const entries = facts.get(c.key) ?? [];
   // A missing key never unlocks anything (Ajay, 10 Oct 2026).
-  if (!fact) return false;
-  const seen = new Set([folded(fact.value), folded(fact.display)].filter((s) => s !== ''));
-  if (c.present === true) return seen.size > 0;
+  if (entries.length === 0) return false;
+  const seenOf = (fact: LedgerFact): Set<string> =>
+    new Set([folded(fact.value), folded(fact.display)].filter((s) => s !== ''));
+  if (c.present === true) return entries.some((fact) => seenOf(fact).size > 0);
   if (c.equals !== undefined) {
     const wanted = (Array.isArray(c.equals) ? c.equals : [c.equals]).map(folded);
-    return wanted.some((w) => seen.has(w));
+    return entries.some((fact) => {
+      const seen = seenOf(fact);
+      return wanted.some((w) => seen.has(w));
+    });
   }
   if (c.not_in !== undefined) {
-    if (seen.size === 0) return false;
-    return !c.not_in.map(folded).some((w) => seen.has(w));
+    const barred = c.not_in.map(folded);
+    // An exclusion fails closed: one entry inside the set fails it.
+    return entries.every((fact) => {
+      const seen = seenOf(fact);
+      return seen.size > 0 && !barred.some((w) => seen.has(w));
+    });
   }
   return false;
 }
@@ -398,14 +412,15 @@ export function resolveAverments(
   facts: readonly LedgerFact[],
 ): ResolvedAverments {
   const byKey = factsByKey(facts);
+  const entries = factEntriesByKey(facts);
   const stillBanned = new Set(
-    lists.banned.filter((b) => !conditionHolds(b.unlocked_by, byKey)).map((b) => b.id),
+    lists.banned.filter((b) => !conditionHolds(b.unlocked_by, entries)).map((b) => b.id),
   );
   const allowed: ResolvedAverment[] = [];
   for (const a of lists.allowed) {
     // An allowed entry is never offered while its banned twin stays banned.
     if (stillBanned.has(a.id)) continue;
-    if (!conditionHolds(a.requires, byKey)) continue;
+    if (!conditionHolds(a.requires, entries)) continue;
     let complete = true;
     const text = a.averment.replace(/\{\{([a-z0-9_.]+)\}\}/g, (_m, key: string) => {
       const fact = byKey.get(key);
