@@ -50,3 +50,7 @@ Drafts for those cases cite the wrong law.
 - B, C and D are built in T-245b.
 
 The text is the shared S-text and P-text, exact. Each pack gets its own CrPC→BNSS pair, and `{governing_provision}` goes in the heading and the prayer.
+
+## Added (Priya, 12 Oct 2026, from mahak's T-251 findings)
+
+The pack's `caseNomenclature` "(Under {governing_provision})" is never printed today: the rendered cause title takes its nomenclature from court data (it prints `_____`). So in default_bail only the prayer carries the interim blank. T-245a must make the governing provision reach the heading too, through the court-rule and template-engine nomenclature path. That is part of its job, not a separate ticket.
