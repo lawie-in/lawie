@@ -352,6 +352,7 @@ describe('unknown id: 400 from enforceCredits, before any spend or LLM call', ()
     res: request.Response,
     templateIdTag: string,
     startingUnits = 2000,
+    submitted?: string,
   ): Promise<void> {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Unknown document type' });
@@ -363,6 +364,10 @@ describe('unknown id: 400 from enforceCredits, before any spend or LLM call', ()
       level: 'warning',
       tags: { feature: 'pricing', templateId: templateIdTag },
     });
+    expect(['(missing)', '(malformed)', '(unlisted)', '(conflict)']).toContain(templateIdTag);
+    if (submitted !== undefined) {
+      expect(JSON.stringify(captureMessage.mock.calls)).not.toContain(submitted);
+    }
   }
 
   beforeEach(async () => {
@@ -374,7 +379,7 @@ describe('unknown id: 400 from enforceCredits, before any spend or LLM call', ()
       .post('/generate-from-template')
       .set(headers())
       .send({ template_id: 'not_a_template', form_data: {} });
-    await expectRefused(res, 'not_a_template');
+    await expectRefused(res, '(unlisted)', 2000, 'not_a_template');
     expect(JSON.stringify(res.body)).not.toContain('not_a_template');
   });
 
@@ -404,21 +409,20 @@ describe('unknown id: 400 from enforceCredits, before any spend or LLM call', ()
       .post('/generate-from-template')
       .set(headers())
       .send({ template_id: bad, form_data: {} });
-    await expectRefused(res, '(malformed)');
+    await expectRefused(res, '(malformed)', 2000, bad);
     expect(JSON.stringify(res.body)).not.toContain(bad);
-    expect(JSON.stringify(captureMessage.mock.calls)).not.toContain(bad);
   });
 
   it.each([
-    ['constructor', 'constructor'],
-    ['__proto__', '__proto__'],
+    ['constructor', '(unlisted)'],
+    ['__proto__', '(unlisted)'],
     ['toString', '(malformed)'],
   ])('object key %s is not a price', async (key, tag) => {
     const res = await request(app)
       .post('/generate-from-template')
       .set(headers())
       .send({ template_id: key, form_data: {} });
-    await expectRefused(res, tag);
+    await expectRefused(res, tag, 2000, key);
   });
 
   it('POST /generate (legacy) with an unknown docType', async () => {
@@ -426,7 +430,68 @@ describe('unknown id: 400 from enforceCredits, before any spend or LLM call', ()
       .post('/generate')
       .set(headers())
       .send({ docType: 'sale_deed_of_the_moon' });
-    await expectRefused(res, 'sale_deed_of_the_moon');
+    await expectRefused(res, '(unlisted)', 2000, 'sale_deed_of_the_moon');
+  });
+
+  it('a body with both ids that differ is a (conflict) on legacy /generate', async () => {
+    const res = await request(app)
+      .post('/generate')
+      .set(headers())
+      .send({ docType: 'petition', template_id: 'nda' });
+    await expectRefused(res, '(conflict)', 2000, 'petition');
+    expect(JSON.stringify(captureMessage.mock.calls)).not.toContain('nda');
+  });
+
+  it('a conflict is refused even when the balance is zero (400, not 402)', async () => {
+    await User.updateOne({ _id: USER_ID }, { inkTopup: 0 });
+    const res = await request(app)
+      .post('/generate')
+      .set(headers())
+      .send({ docType: 'petition', template_id: 'nda' });
+    await expectRefused(res, '(conflict)', 0);
+  });
+
+  it('an empty template_id next to a docType counts as present, so it is a conflict', async () => {
+    const res = await request(app)
+      .post('/generate')
+      .set(headers())
+      .send({ docType: 'petition', template_id: '' });
+    await expectRefused(res, '(conflict)');
+  });
+
+  it('equal ids proceed and are charged at that id price', async () => {
+    mockMessagesStream.mockResolvedValue(sdkAnswer('1. That the applicant prays.', 1000, 200));
+    const req = {
+      jwtPayload: { sub: USER_ID },
+      body: { template_id: 'nda', docType: 'nda' },
+    } as unknown as Request;
+    const next = jest.fn();
+    await enforceCredits(req, {} as Response, next);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(chargedCost(req)).toBe(1);
+    const req2 = {
+      jwtPayload: { sub: USER_ID },
+      body: { template_id: 'petition', docType: 'petition' },
+    } as unknown as Request;
+    await enforceCredits(req2, {} as Response, next);
+    expect(next).toHaveBeenCalledTimes(2);
+    expect(chargedCost(req2)).toBe(2);
+    expect(captureMessage).not.toHaveBeenCalled();
+  });
+
+  it('only one of the two ids present is unchanged: priced by whichever is there', async () => {
+    for (const body of [
+      { template_id: 'nda' },
+      { docType: 'nda' },
+      { template_id: 'nda', docType: null },
+    ]) {
+      const req = { jwtPayload: { sub: USER_ID }, body } as unknown as Request;
+      const next = jest.fn();
+      await enforceCredits(req, {} as Response, next);
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(chargedCost(req)).toBe(1);
+    }
+    expect(captureMessage).not.toHaveBeenCalled();
   });
 
   it('POST /generate-from-brief with an unknown kind', async () => {
@@ -436,7 +501,7 @@ describe('unknown id: 400 from enforceCredits, before any spend or LLM call', ()
       .post('/generate-from-brief')
       .set(headers())
       .send({ kind: 'not_a_pack', values: [] });
-    await expectRefused(res, 'not_a_pack');
+    await expectRefused(res, '(unlisted)', 2000, 'not_a_pack');
   });
 
   it('is a 400, not a 402, even for a user with no Ink at all', async () => {
@@ -445,7 +510,7 @@ describe('unknown id: 400 from enforceCredits, before any spend or LLM call', ()
       .post('/generate-from-template')
       .set(headers())
       .send({ template_id: 'not_a_template', form_data: {} });
-    await expectRefused(res, 'not_a_template', 0);
+    await expectRefused(res, '(unlisted)', 0, 'not_a_template');
   });
 
   it('a known id with too little Ink is still a 402 with the listed cost, and is not reported', async () => {
