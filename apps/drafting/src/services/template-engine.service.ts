@@ -687,11 +687,7 @@ function courtHeading(courtData: CourtLookupData): { designation: string; header
     // a seat or bench. The cached rule is read, never changed.
     rawDesignation = own;
     fromRule = false;
-  } else if (
-    courtData.formattingRulesRef === 'family_court' &&
-    own &&
-    !isGenericDesignation(own)
-  ) {
+  } else if (courtData.formattingRulesRef === 'family_court' && own && !isGenericDesignation(own)) {
     // T-176 (AJ-2026-10-08-T174, FU-1): a family court names its seat. The
     // courts-list entry's own designation ("IN THE FAMILY COURT AT TIS HAZARI,
     // DELHI") prints as stored, over the rule's bare "IN THE FAMILY COURT"
@@ -917,6 +913,10 @@ export interface PlaceholderContext {
   [key: string]: string;
 }
 
+/** T-251: what {governing_provision} prints while no procedure code is given. */
+export const GOVERNING_PROVISION_BLANK =
+  '[To be confirmed: Section 167(2) CrPC or Section 187(3) BNSS]';
+
 /**
  * Build the full placeholder context from form data + computed fields + system values.
  */
@@ -1071,6 +1071,14 @@ export function buildPlaceholderContext(
     ctx.verification_text = `I, ${ctx.applicant_name ?? '_____'}, the ${ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${ctx.court_city ?? '_____'} on this _____ day of _________, ${ctx.current_year}.`;
   }
 
+  // T-251 (Ajay's interim rule, 12 Oct 2026): until T-245a supplies the
+  // provision, {governing_provision} prints the both-forms blank. A value
+  // already in the context wins. The pair is default_bail's own, so only that
+  // pack gets it; other packs will carry their own pair.
+  if (config.template_id === 'default_bail' && !ctx.governing_provision?.trim()) {
+    ctx.governing_provision = GOVERNING_PROVISION_BLANK;
+  }
+
   // T-146: aliases are set after the SCRUM-50 court-rule block, so an alias
   // such as {caseNomenclature} reads the same value as {case_nomenclature}.
   applyPlaceholderAliases(ctx);
@@ -1112,7 +1120,9 @@ export function buildPlaceholderContext(
  * one reads. An alias is set only when the rule's own key is not in the context,
  * so a value the form gave under the camelCase name is kept.
  */
-export const PLACEHOLDER_ALIASES: ReadonlyArray<readonly [alias: string, sources: readonly string[]]> = [
+export const PLACEHOLDER_ALIASES: ReadonlyArray<
+  readonly [alias: string, sources: readonly string[]]
+> = [
   ['courtDesignation', ['court_designation']],
   ['courtHeader', ['court_header']],
   ['courtPlace', ['court_city']],
@@ -1182,7 +1192,6 @@ function applyCourtAndAliases(
   if (courtData?.caseNomenclature && !ctx.case_nomenclature) {
     ctx.case_nomenclature = courtData.caseNomenclature.replace(/\{year\}/g, ctx.current_year);
   }
-
 
   if (ctx.lastParagraph === undefined) ctx.lastParagraph = '{body_para_count}';
 

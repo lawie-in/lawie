@@ -16,7 +16,9 @@
         "charge sheet not filed till date",
         "police report under Section 193 BNSS not filed",
         "the investigation is not complete",
-        "challan pesh nahi hua"
+        "challan pesh nahi hua",
+        "no police report had been filed",
+        "police report not filed till date"
       ],
       "unlocked_by": {
         "key": "charge_sheet_status",
@@ -72,40 +74,78 @@
     {
       "id": "statutory_period_expired",
       "kind": "submission",
-      "what": "The statutory period has expired and the right to default bail has accrued",
+      "what": "The default-bail period has expired and the applicant is entitled to be released",
       "phrases": [
         "the statutory period of 60 days has expired",
         "the period of 90 days has expired",
         "indefeasible right to default bail has accrued",
-        "right under Section 187(3) BNSS has accrued",
         "the applicant is entitled to be released on default bail",
-        "miyaad khatam ho gayi"
-      ],
-      "unlocked_by": null
-    },
-    {
-      "id": "days_elapsed",
-      "kind": "averment",
-      "what": "A length of custody",
-      "phrases": [
-        "has been in custody for",
-        "days have elapsed",
-        "itne din se jail mein"
+        "right to default bail has accrued"
       ],
       "unlocked_by": {
         "all_of": [
           {
-            "key": "elapsed_days",
-            "label": "Days Elapsed Since First Remand",
+            "key": "remand_date",
+            "label": "Date of First Remand to Custody",
             "present": true
           },
           {
-            "key": "remand_date",
-            "label": "Date of First Remand to Custody",
+            "key": "period_claimed",
+            "label": "Default-bail period that applies",
+            "equals": [
+              "60 days",
+              "90 days"
+            ]
+          },
+          {
+            "key": "period_expiry_date",
+            "label": "Date the period expired",
+            "present": true
+          },
+          {
+            "key": "charge_sheet_status",
+            "label": "Charge Sheet Status",
             "present": true
           }
         ]
       }
+    },
+    {
+      "id": "applicable_window",
+      "kind": "submission",
+      "what": "Which default-bail period applies to the offence (the advocate states it)",
+      "phrases": [
+        "the applicable period is 60 days",
+        "the applicable period is 90 days",
+        "falls in the 60-day category",
+        "falls in the 90-day category",
+        "the offence being punishable, the period is"
+      ],
+      "unlocked_by": {
+        "all_of": [
+          {
+            "key": "period_claimed",
+            "label": "Default-bail period that applies",
+            "equals": [
+              "60 days",
+              "90 days"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "days_elapsed",
+      "kind": "averment",
+      "what": "A length of custody or a count of days (Lawie does not count days)",
+      "phrases": [
+        "has been in custody for",
+        "days have elapsed",
+        "days have passed",
+        "days in custody",
+        "itne din se jail mein"
+      ],
+      "unlocked_by": null
     },
     {
       "id": "statutory_threshold_crossed",
@@ -156,20 +196,19 @@
     {
       "id": "punishment_category",
       "kind": "averment",
-      "what": "How the offence is punishable",
+      "what": "How the offence is punishable (the advocate states the period; Lawie does not classify the offence)",
       "phrases": [
-        "punishable with imprisonment of up to"
+        "punishable with imprisonment of up to",
+        "punishable with imprisonment for life",
+        "punishable with death",
+        "punishable with imprisonment for a term of not less than ten years"
       ],
-      "unlocked_by": {
-        "key": "offence_punishment_max_years",
-        "label": "Maximum Punishment (years) for Most Serious Offence",
-        "present": true
-      }
+      "unlocked_by": null
     },
     {
       "id": "willing_to_furnish_bond",
       "kind": "averment",
-      "what": "The applicant is ready to furnish bail bonds",
+      "what": "The applicant undertakes to furnish bail bonds",
       "phrases": [
         "ready and willing to furnish bail bonds",
         "prepared to furnish sureties",
@@ -177,9 +216,11 @@
       ],
       "unlocked_by": {
         "key": "willingness_to_furnish_bond",
-        "label": "Willing to Furnish Bond (mandatory)",
+        "label": "Undertaking to furnish bail bonds",
         "equals": [
-          "Yes"
+          "Yes",
+          "true",
+          "yes"
         ]
       }
     },
@@ -248,12 +289,14 @@
       "kind": "submission",
       "what": "A judgment on default bail that the advocate did not give",
       "phrases": [
+        "Uday Mohanlal Acharya",
+        "Sanjay Dutt",
+        "Bikramjit Singh",
+        "M. Ravindran",
+        "Rakesh Kumar Paul",
         "Bikramjit Singh v. State of Punjab",
         "M. Ravindran v. Intelligence Officer",
-        "Rakesh Kumar Paul v. State of Assam",
-        "Sanjay Dutt v. State",
-        "Uday Mohanlal Acharya",
-        "as held by the Hon'ble Supreme Court"
+        "Rakesh Kumar Paul v. State of Assam"
       ],
       "unlocked_by": null
     }
@@ -262,7 +305,7 @@
     {
       "id": "chargesheet_not_filed",
       "kind": "averment",
-      "averment": "the charge sheet has not been filed",
+      "averment": "as on the date of this application, the police report (charge sheet) has not been filed",
       "requires": {
         "key": "charge_sheet_status",
         "label": "Charge Sheet Status",
@@ -298,7 +341,7 @@
     {
       "id": "statutory_period_expired",
       "kind": "submission",
-      "averment": "it is submitted that, {{elapsed_days}} days having elapsed since the first remand on {{remand_date}} with no charge sheet filed, and the most serious offence being punishable with imprisonment of up to {{offence_punishment_max_years}} years, the applicant's right under Section 187(3) of the Bharatiya Nagarik Suraksha Sanhita, 2023 has accrued",
+      "averment": "it is submitted that the default-bail period of {{period_claimed}} from the first remand on {{remand_date}} expired on {{period_expiry_date}}, and that the applicant is therefore entitled to be released on bail",
       "requires": {
         "all_of": [
           {
@@ -307,40 +350,39 @@
             "present": true
           },
           {
-            "key": "elapsed_days",
-            "label": "Days Elapsed Since First Remand",
-            "present": true
+            "key": "period_claimed",
+            "label": "Default-bail period that applies",
+            "equals": [
+              "60 days",
+              "90 days"
+            ]
           },
           {
-            "key": "offence_punishment_max_years",
-            "label": "Maximum Punishment (years) for Most Serious Offence",
+            "key": "period_expiry_date",
+            "label": "Date the period expired",
             "present": true
           },
           {
             "key": "charge_sheet_status",
             "label": "Charge Sheet Status",
-            "equals": [
-              "Not filed"
-            ]
+            "present": true
           }
         ]
       }
     },
     {
-      "id": "days_elapsed",
-      "kind": "averment",
-      "averment": "{{elapsed_days}} days have elapsed since the first remand on {{remand_date}}",
+      "id": "applicable_window",
+      "kind": "submission",
+      "averment": "it is submitted that the default-bail period applicable to the offence charged is {{period_claimed}}",
       "requires": {
         "all_of": [
           {
-            "key": "elapsed_days",
-            "label": "Days Elapsed Since First Remand",
-            "present": true
-          },
-          {
-            "key": "remand_date",
-            "label": "Date of First Remand to Custody",
-            "present": true
+            "key": "period_claimed",
+            "label": "Default-bail period that applies",
+            "equals": [
+              "60 days",
+              "90 days"
+            ]
           }
         ]
       }
@@ -366,24 +408,16 @@
       }
     },
     {
-      "id": "punishment_category",
-      "kind": "averment",
-      "averment": "the most serious offence alleged is punishable with imprisonment of up to {{offence_punishment_max_years}} years",
-      "requires": {
-        "key": "offence_punishment_max_years",
-        "label": "Maximum Punishment (years) for Most Serious Offence",
-        "present": true
-      }
-    },
-    {
       "id": "willing_to_furnish_bond",
       "kind": "averment",
-      "averment": "the applicant is ready and willing to furnish bail bonds and sureties as this Hon'ble Court directs",
+      "averment": "the applicant undertakes to furnish bail bonds and sureties as this Hon'ble Court directs",
       "requires": {
         "key": "willingness_to_furnish_bond",
-        "label": "Willing to Furnish Bond (mandatory)",
+        "label": "Undertaking to furnish bail bonds",
         "equals": [
-          "Yes"
+          "Yes",
+          "true",
+          "yes"
         ]
       }
     },
