@@ -155,3 +155,5 @@ None of these touch `packages/shared`. They are assigned after the v1 blockers.
 - keeping the client-names notice visible while pasted text is present;
 - a Hindi version of the line under answers;
 - the 90-day line in the report dialog.
+
+- The help text is paused: the founder paused Meera's session (12 Oct 2026). Pick it up when she resumes. Nothing else in T-253 waits on it until 253b.
