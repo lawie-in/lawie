@@ -135,3 +135,70 @@ Condition: the "shows the cost before you start" clause in change 2 is a product
 - Price mismatch in code: 58 doc-rule JSONs carry `"creditsCost": 2`, which `GET /templates` returns to the UI, but enforcement (`TEMPLATE_COST`) charges those templates 1 credit, and charges `bail_regular` 2 while its JSON has no cost. Displayed price must equal charged price (CPA 2019 s.2(47) unfair trade practice). Needs a ticket before v1.
 
 Signed (conditional on changes 1 to 3 applied verbatim and the footer address filled): Ajay (CLO), 11 Oct 2026.
+
+## Copy (Madhuri, final, 11 Oct 2026)
+
+Ajay's changes 1 to 3 applied verbatim. The earlier draft above stays as it was. Everything else is unchanged from that draft and approved in Ajay's findings 5 to 11.
+
+**Change 2 condition: the clause is dropped.** Ajay's change 2 keeps "and Lawie shows the cost before you start" only if Priya confirms the draft screen shows the credit cost before generation. On `develop_staging` today it does not: the web app shows a cost only in `PaywallModal`, after a user without enough Ink tries to generate (`apps/web/src/components/intake/OneFlow.tsx`). Nothing in `apps/web` reads `creditsCost`. So, per Ajay's fallback, only the first sentence stays. When T-227 AC3 ships and Priya confirms, the clause goes back in exactly as Ajay wrote it, with no further check needed.
+
+**Open item for Ajay: "credits" or "Ink".** The app calls the unit **Ink** (header pill, paywall, low-balance and failed-generation modals). Ajay's verbatim wording says "credits". If the email says "credits" and the app says "Ink", a new user sees two names for the same thing. Swapping the word is a change to his verbatim lines, so it needs his OK. Until he gives it, the copy below says "credits".
+
+Vikram's numbers (T-227): 5 sign-up credits = 5 Ink. That buys 5 short drafts, or 2 long drafts and 1 short one. A draft is charged only when it succeeds. Ajay's line ("Each draft uses 1 or 2 credits") is true under Vikram's v1 rule and today's `TEMPLATE_COST`. **I did not use Vikram's suggested line** ("5 free Ink: up to 5 drafts. Notices and affidavits use 1 Ink; bail applications, petitions, plaints and agreements use 2.") for two reasons:
+- It is not Ajay's wording, and "up to 5 drafts" brings back the drafts framing Ajay marked as a Blocker.
+- "agreements use 2" contradicts Vikram's own 1-Ink list, which includes `rent_agreement`, `nda`, `mou` and `service_agreement`.
+
+| Part | Copy | Chars |
+| --- | --- | --- |
+| Subject (A, recommended) | Welcome to Lawie, {name} | 18 + name |
+| Preheader | Your {freeCredits} free credits are ready. Here's how to start. | 51 with "5" |
+| Button (A, recommended) | Start your first draft | 22 |
+
+Subject variants: B "Your Lawie account is ready" (27) · C "Welcome to Lawie" (16). Button variants: B "Open Lawie" (10) · C "Sign in with Google" (19). Ajay approved all variants.
+
+Body:
+
+```
+Hello {name},
+
+Welcome to Lawie. Your account is ready.
+
+Lawie helps you prepare a first draft for you to review, so you spend less time copying from old files. You can draft bail applications, legal notices, agreements and other documents. Criminal drafts use BNS, BNSS and BSA.
+
+You have {freeCredits} free credits to try it. Each draft uses 1 or 2 credits.
+
+How to start:
+1. Sign in with Google and pick a document.
+2. Answer a few questions about the matter.
+3. Review the draft, edit it, and download it.
+
+[Start your first draft]   -> {loginUrl}
+
+Need help? Write to contact@lawie.in and we will get back to you.
+
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+
+Team Lawie
+```
+
+Footer (verbatim from T-225 AC1c, unchanged):
+
+```
+Lawie (Sole Proprietorship), [registered address], Patna, Bihar [PIN]
+You are receiving this because you have a Lawie account.
+Help: contact@lawie.in · Data and privacy requests: privacy@lawie.in
+Privacy Policy: https://lawie.in/privacy · Terms: https://lawie.in/terms
+```
+
+Build notes:
+- `{freeCredits}` reads `SIGNUP_BONUS_CREDITS` (`apps/auth/src/services/credit-bonus.service.ts`). Do not hard-code it. `{freeDrafts}` is retired.
+- "1 or 2" must match the charged price on the day this ships (T-227 lands first, per its Gate). If either value changes, the line goes back to Ajay.
+- Do not send until the founder fills `[registered address]` and `[PIN]` (Ajay finding 6).
+- Before publishing: Meera's sign-off, and Ajay's answer on "credits" vs "Ink".
+
+## Priya decisions (11 Oct 2026)
+
+1. The unit is "Ink" in the email, the same word the app shows. Ajay to confirm the one-word swap from "credits" before build.
+2. The cost-before-you-start line stays out until T-227 AC3 ships a cost screen.
+3. Ships only after T-220 (sending) and T-227 (prices), and with the real registered address in the footer (founder).
+

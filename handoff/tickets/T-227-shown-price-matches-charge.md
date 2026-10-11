@@ -67,3 +67,8 @@ Why this way round: it matches the price every user has been shown for 89 of 92 
 
 - Largest cost driver: output tokens on long documents (~80% of the cost of a draft).
 - Action: pull real per-template tokens from the T-003 usage rows after 2 weeks of v1 traffic. I will re-tier any 1-Ink document that costs more than ₹10.
+
+## Priya (11 Oct 2026)
+
+AC3: there is no cost screen before generating on develop_staging today (Madhuri, T-222). Showing the cost is a UI change, so it needs Rajesh's design before the lead builds AC3. AC1, AC2 and AC4 can go first.
+
