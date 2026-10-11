@@ -202,3 +202,25 @@ Build notes:
 2. The cost-before-you-start line stays out until T-227 AC3 ships a cost screen.
 3. Ships only after T-220 (sending) and T-227 (prices), and with the real registered address in the footer (founder).
 
+
+## Copy (Madhuri, password variant, 11 Oct 2026)
+
+For Ajay's claims check, then Meera. Founder, 11 Oct 2026: email and password sign-up ships in v1 alongside Google, so the welcome email goes to both (AC1).
+
+**Recommendation: one version for everyone, no variant.** Only one line in the final copy names the sign-in method (step 1), plus button variant C. Making them neutral is simpler than two templates and a branch in the build.
+
+| Part | Final copy above (Google only) | Neutral version (all sign-ups) | Chars |
+| --- | --- | --- | --- |
+| Step 1 | 1. Sign in with Google and pick a document. | 1. Sign in to Lawie and pick a document. | 43 → 40 |
+| Button variant C | Sign in with Google | Retired. Use A "Start your first draft" (22, recommended) or B "Open Lawie" (10) | |
+
+Everything else in "Copy (Madhuri, final, 11 Oct 2026)" stays as it is: subject, preheader, body, disclaimer, footer and build notes. That includes Priya decision 1: "credits" becomes "Ink" in both places once Ajay confirms the swap; this variant does not change that.
+
+If the founder prefers to name the method, a short variant line for password sign-ups only:
+- Step 1, password: `1. Sign in with your email and password, and pick a document.` (61). Google sign-ups keep the final copy's step 1. The template then needs a `signInMethod` value; I don't recommend it.
+
+Checks:
+- Nothing else mentions Google or passwords: subject, preheader, body and footer are method-neutral already.
+- "Your account is ready" stays true for password sign-ups: T-223 chose option B (verify before buying or the second free draft), so the first draft needs no verification. If T-223 moves to A, this line and step 1 come back to me.
+- No password, ever, in this email (T-225 AC1a). `{name}` comes from the sign-up form for password users (required field in `registerSchema`).
+- Send once per user, on email sign-up or first Google sign-in (AC1).

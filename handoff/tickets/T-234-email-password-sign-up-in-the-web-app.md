@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Rajesh (design review of the form), Madhuri (copy), Lead (build), Arjun (heads-up), Anushka (verdict) |
 | Mode           | Design check first, then build, full chain (web, auth) |
-| Status         | To do. Needs Rajesh's design check |
+| Status         | To do. Rajesh's design check done (11 Oct); waits for Ajay's consent wording |
 | Size           | S to M |
 | Depends on     | T-208 (validation messages, merged), T-209 (merged), T-210 (merged). T-221 and T-223 ship with it for v1 |
 | Gate           | Before v1 go-live (T-403) |
@@ -26,6 +26,98 @@
 4. A new password user gets the same sign-up bonus and referral handling as a Google user; nothing is granted twice.
 5. Manual browser check at 375 and 1280 px in the report.
 
+## Design (Rajesh, 11 Oct 2026)
+
+Verdict: reuse the hidden form in `login/page.tsx`. Its structure is fine, but it needs the changes below before it ships. All copy in quotes is a draft for Madhuri to finalise. Written spec only, no new mocks; the T-221 artifact (https://claude.ai/artifact/JqpTng8PhBncn3DcHQC8gf) covers `/forgot-password`.
+
+### Layout (one column, the same at both sizes)
+
+Card order: logo, heading and subline, mode switch, referral box (Create account only), "Continue with Google", divider "or with email", fields, error summary, submit button, consent line, switch link.
+
+| | 375 px | 1280 px |
+| --- | --- | --- |
+| Card | Full width with 16 px side gutter (`px-4`), padding `p-5` | Centred, `max-w-md` (448 px), padding `p-8` |
+| Logo | `h-12`, `mb-6` (today `h-28` pushes the form below the fold) | `h-14`, `mb-8` |
+| Inputs and buttons | 48 px tall, `text-base` (16 px) | Same |
+| Fold check (375 x 667, sign in) | Submit button sits at about 520 px, above the fold | n/a |
+
+- Remove the amber notice banner ("Sign in with Google to continue."). It contradicts the new form.
+- No side hero or image at 1280: keeps the page light on 4G.
+
+### Switching between sign in and sign up
+
+- A segmented control at the top of the card: "Sign in" | "Create account". Full width, 44 px tall, `role="tablist"`.
+- A text link at the bottom does the same: "New to Lawie? Create an account" / "Already have an account? Sign in". It replaces "New advocate? Sign in with Google to create your account."
+- The mode lives in the URL (`/login?mode=signup`), so marketing CTAs can link straight to Create account and Back works.
+- Switching keeps the email, clears the password and any errors, and moves focus to the first empty field.
+- Heading per mode: "Sign in to Lawie" / "Create your Lawie account".
+
+| Form field | Sign in | Create account | `autoComplete` | Note |
+| --- | --- | --- | --- | --- |
+| Full name | no | yes (the API requires `name`) | `name` | Devanagari input falls back to the system font (Noto on Android). That is fine |
+| Email | yes | yes | `email` | `type="email"`, no placeholder (drop "you@legalfirm.com", most users are on Gmail) |
+| Password | yes | yes | `current-password` / `new-password` | Show/hide toggle needs a 44 x 44 hit area. No confirm-password field: the toggle covers it |
+| Password rules | no | yes | n/a | A live checklist under the field that mirrors the API: 8+ characters, one uppercase, one lowercase, one number. Each item ticks as it is met. Neutral styling, not red |
+
+### Where validation messages show
+
+- Client side, check only empty fields and email format, on blur and on submit. Do not disable the submit button for invalid input.
+- The 422 response from the server is a single `message` string joined with "; " and has no field names. Show it in an error summary box directly above the submit button: `role="alert"`, `bg-red-50`, `text-red-700`, AlertTriangle icon. Split the string on "; " into a bullet list and move focus to the box.
+- Also mark the field: when a message starts with Email, Password/Must contain, or Name, set `aria-invalid` and a red border on that field. It is cheap string matching. Cleaner long term: the API returns `errors: [{ field, message }]` (lead or Arjun to decide, not blocking).
+
+| Response | What shows |
+| --- | --- |
+| 422 | The summary with the API's messages as a list |
+| 409 (email exists) | Summary: the API message plus a "Sign in instead" link, which switches mode and keeps the email |
+| 401 (sign in) | "Invalid email or password", plus a second line: "Signed up with Google? Use Continue with Google above." Clear the password and keep the email |
+| 403 | The API message as is |
+| 429, 5xx, network error | "Couldn't reach Lawie. Check your connection and try again." Inputs keep their values |
+| In flight | Spinner on the button with "Signing in…" / "Creating account…". The button is disabled only while the request runs |
+
+- Error text uses `red-700` (6.5:1 on white). The referral box today uses `text-red-500` at 12 px, which is 3.8:1 and fails AA. Fix it in the same change.
+
+### Consent line
+
+- One line in both modes, directly under the submit button. It covers Google and email, because Google sign-in from either tab can create an account. Draft: "By continuing, you agree to Lawie's Terms and Privacy Policy." Both are underlined links that open in a new tab, so typed input is kept.
+- Style: `text-sm text-slate-600`. Today the footer links use `slate-400`, which is 2.6:1 and fails AA.
+- No checkbox, the same as the Google path.
+- UX risk: the page has no consent line today, not even for Google. It only has the footer "Terms · Privacy" links, so "consent as today for Google" means nothing at the moment. This line is new for both paths. Priya to decide whether Ajay should look at the wording.
+
+### Forgot password link
+
+- Sign in mode only. Keep it right-aligned in the password label row.
+- Make it a `<Link href="/forgot-password">` (T-221 screen F1). Do not put the email in the URL, because it would land in logs (T-210).
+- `text-sm`, `text-lawie-700`, with a 44 px tall hit area. Today it is a 12 px `<span>`, too small to tap.
+- Hidden until T-221 merges (AC3). The dead span must not ship.
+
+### Other fixes to the reused form
+
+- Referral modal: the CTA "Claim offer & continue with Google" forces Google. Change it to "Claim offer". It closes the modal and returns to the form. The code then goes with Google (as today) or in the `referralCode` field of the register request.
+- Input borders: `slate-300` is 1.5:1, below the 3:1 that WCAG 1.4.11 asks of field boundaries. Use `slate-500`.
+- Drop the "••••••••" placeholder. The labels are enough.
+- Replace the `alert()` in `handleEmailLogin` (build).
+
+### Screens for the lead's report (375 and 1280)
+
+S1 sign in, S2 create account, S3 422 summary, S4 409, S5 401, S6 in flight, S7 network error, S8 referral applied in Create account.
+
+### Open for Priya
+
+1. Default mode with no `?mode=`: I suggest Sign in, with every marketing CTA linking to `?mode=signup`.
+2. The referral box shows only in Create account. A new user who uses Google from the Sign in tab gets no box. Is that OK?
+3. Consent wording: does it need Ajay?
+4. T-223 option B (verify later) means this flow has no "check your email" step. Please confirm.
+
 ## References
 
 - T-208, T-209, T-210, T-221, T-222, T-223
+
+## Priya decisions (11 Oct 2026, night)
+
+1. Default mode: Sign in. "Create account" is one tap away at the top.
+2. The referral box shows only in Create account. The referral modal's call to action offers both Google and email, not Google only.
+3. Consent line: new for both paths. Ajay writes or approves the exact wording before build.
+4. T-223 option B stands: no verify step at sign-up. Verification comes before the second draft (T-223).
+5. In scope, because it's the same page: AA contrast for the referral error text, footer links and input borders; tap targets of at least 44 px for Forgot password and the eye toggle.
+6. Forgot password stays hidden until T-221 merges, as Rajesh says.
+
