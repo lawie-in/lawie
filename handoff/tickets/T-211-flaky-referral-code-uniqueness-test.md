@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep                                                  |
 | Owner          | Lead (build)                                              |
 | Mode           | Small fix: developer + tester + reviewer                  |
-| Status         | Assigned to shashank, 11 Oct 2026. Fix 2 (syncIndexes) shipped in T-210 (37a1d32); fix 1 (ci.yml Mongo pre-download + cache) remains |
+| Status         | Done. Merged into develop_staging (0d37a2e, 12 Oct 2026). Nothing to test in the UI (CI only). Fix 2 shipped in T-210 |
 | Assigned lead  | shashank |
 | Size           | S (0.5 day)                                               |
 | Depends on     | None                                                      |
