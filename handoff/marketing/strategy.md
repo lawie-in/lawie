@@ -77,7 +77,7 @@ Tone: plain, respectful, peer-to-peer ("Advocate sahab" in Hindi only where natu
 | Channel | Role | Phase 1 play | Rules |
 | --- | --- | --- | --- |
 | Bar associations (district) | Trust + demos | 1 live demo a week in a bar library or canteen, Patna → Ranchi → Lucknow. Printed one-pager with QR to sign-up. Ask the secretary for a slot; no payment to members | Demo the tool. Never offer client referrals; no endorsement claim by the association unless written |
-| WhatsApp | Main conversion channel | (a) Lawie broadcast list (opt-in only, from demos and the site); (b) advocates sharing our 30-sec reel in their own groups. No cold adds, no spam to groups we are not in | Opt-in only (DPDP). 2 broadcasts a week max |
+| WhatsApp | Main conversion channel | (a) Lawie broadcast list (opt-in only, from demos and the site); (b) advocates sharing our 30-sec reel in their own groups. No cold adds, no spam to groups we are not in | Opt-in only (DPDP). 2 broadcasts a week max. List owner: Madhuri (under Meera). Honour STOP/unsubscribe within 24h. Keep an opt-in record per number (date, source: bar demo / site form / ambassador). Broadcast list is opt-in only, no cold adds. |
 | Instagram + YouTube Shorts | Reach with juniors and students | 3 reels a week: "Draft this with me", BNS change explainers, chamber humour that stays respectful | No client stories; no case facts; sample matters are fictional and labelled |
 | LinkedIn | Credibility, seniors, law-firm juniors, press | Founder + Lawie page: build notes, document-of-the-week, BNS/BNSS posts | No "grow your practice" |
 | X | Legal Twitter, journalists | Short product notes and document-of-the-week threads; no old-law vs new-law claims (Ajay) | Same |
@@ -138,3 +138,4 @@ Source: Vikram, vikram-gtm-decisions.md (12 Oct 2026). Cut from the ₹1,45,000 
 3. Pricing page fixes beyond T-238: "Less than ₹16 per document on Solo" is false at 2 Ink; FAQ "Each document you generate uses 1 Ink" (same line T-238 names). Copy in `copy/pricing.md`.
 4. Tickets for tracking: UTM + signup source; waitlist/opt-in form before go-live.
 5. When T-234 merges, swap "coming soon" for email and password sign-up; when T-227 AC3 ships, add "you see the cost before you generate".
+6. UTM/source tracking is T-242, waitlist form is T-243 (Priya). /login?mode=signup is in T-234. T-238 covers pricing rows 1-6; T-252 covers rows 7-14, FAQ, about, footer disclaimer, PainSolution.tsx.
