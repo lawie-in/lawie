@@ -14,3 +14,8 @@
 3. An admin can count sign-ups by source. A simple query or endpoint is enough.
 4. No personal data goes into logs or Sentry (T-229 rules).
 5. T-235: the privacy policy mentions that we keep the source.
+
+## Added (Priya, 12 Oct 2026)
+
+- A `?ref=CODE` link pre-fills the referral box on `/login` (today the code can only be typed in), so offer links work.
+- Remove the unused `sessionStorage` `lawie_referral_code` write.
