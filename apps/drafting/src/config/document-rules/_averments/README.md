@@ -95,6 +95,18 @@ fact's `label`, for the reader and for the sign-off table.
 - `not_in`: the fact is present and is none of the list. This is how
   `applicant_occupation = unemployed` does not unlock "gainfully employed".
 - `all_of`: every inner condition holds.
+- A key that holds several entries (a list, or several choices) is read entry
+  by entry. Nothing is joined or merged. Each entry is compared on its own
+  value and display, folded as for `equals`. An unresolved entry is not an
+  entry. A key with one entry reads exactly as the bullets above.
+  - `present`: at least one entry has text left after folding.
+  - `equals`: any one entry equals one of the wanted values.
+  - `not_in`: every entry has text left after folding and is outside the
+    list. One entry inside the list, or one entry blank after folding, fails
+    the condition.
+  - `all_of`: each inner condition is tested as above.
+  - A key with no entry that has text left after folding never unlocks
+    anything.
 - A key that is not a fact never unlocks anything: missing, or still
   `unresolved` in the ledger.
 - No chaining: a condition reads ledger facts only, never another averment.
