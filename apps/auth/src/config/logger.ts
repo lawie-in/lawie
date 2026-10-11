@@ -24,41 +24,54 @@ export function maskEmails(value: string): string {
   return value.replace(EMAIL_RE, EMAIL_MASK);
 }
 
-function scrub(value: unknown, depth: number, seen: WeakSet<object>): unknown {
+function scrub(value: unknown, depth: number, ancestors: Set<object>): unknown {
   if (typeof value === 'string') return maskEmails(value);
   if (value === null || typeof value !== 'object') return value;
-  if (seen.has(value) || depth > MAX_DEPTH) return '[Truncated]';
-  seen.add(value);
+  // Truncate only true cycles (object is its own ancestor) and very deep trees. Objects
+  // shared by two branches (E11000 keyPattern and errorResponse.keyPattern) are kept in both.
+  if (ancestors.has(value) || depth > MAX_DEPTH) return '[Truncated]';
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) return value.map((v) => scrub(v, depth + 1, ancestors));
 
-  if (Array.isArray(value)) return value.map((v) => scrub(v, depth + 1, seen));
-
-  const out: Record<string, unknown> = {};
-  for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
-    if (DROPPED_ERR_KEYS.has(key)) continue;
-    if (key === 'errors' && v && typeof v === 'object' && !Array.isArray(v)) {
-      // Mongoose ValidationError: keep which path failed and how, never the value.
-      const errors: Record<string, unknown> = {};
-      for (const [path, e] of Object.entries(v as Record<string, unknown>)) {
-        const ve = (e ?? {}) as Record<string, unknown>;
-        errors[path] = {
-          path: ve['path'],
-          kind: ve['kind'],
-          message: typeof ve['message'] === 'string' ? maskEmails(ve['message']) : undefined,
-        };
+    const out: Record<string, unknown> = {};
+    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+      if (DROPPED_ERR_KEYS.has(key)) continue;
+      if (key === 'errors' && v && typeof v === 'object' && !Array.isArray(v)) {
+        // Mongoose ValidationError: keep which path failed and how, never the value.
+        const errors: Record<string, unknown> = {};
+        for (const [path, e] of Object.entries(v as Record<string, unknown>)) {
+          const ve = (e ?? {}) as Record<string, unknown>;
+          errors[path] = {
+            path: ve['path'],
+            kind: ve['kind'],
+            message: typeof ve['message'] === 'string' ? maskEmails(ve['message']) : undefined,
+          };
+        }
+        out[key] = errors;
+        continue;
       }
-      out[key] = errors;
-      continue;
+      out[key] = scrub(v, depth + 1, ancestors);
     }
-    out[key] = scrub(v, depth + 1, seen);
+    return out;
+  } finally {
+    ancestors.delete(value);
   }
-  return out;
+}
+
+/**
+ * Deep PII scrub shared by the Pino serializer and the Sentry beforeSend: masks
+ * email-shaped strings, drops `keyValue`, reduces Mongoose `errors.*` to {path, kind, message}.
+ */
+export function scrubPii(value: unknown): unknown {
+  return scrub(value, 0, new Set());
 }
 
 export function serializeErr(err: unknown): unknown {
-  if (!(err instanceof Error)) return scrub(err, 0, new WeakSet());
+  if (!(err instanceof Error)) return scrubPii(err);
   // `name` (e.g. MongoServerError) is a prototype getter the std serializer does not copy.
   const base = { name: err.name, ...pino.stdSerializers.err(err) };
-  return scrub(base, 0, new WeakSet());
+  return scrubPii(base);
 }
 
 /**
