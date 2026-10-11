@@ -11,7 +11,7 @@ Ajay found these while writing T-245 (handoff/legal/T-245-old-new-law-switch-sig
 
 | Pack | Wrong | Right |
 |---|---|---|
-| review_petition | S.413 BNSS | S.402 BNSS |
+| review_petition | S.413 BNSS | **S.403 BNSS** (Ajay corrected his own 402 on 12 Oct: CrPC 362 = BNSS 403, T-255) |
 | habeas_corpus | S.97 BNSS | S.100 BNSS |
 | discharge_application | S.272 BNSS (summons case) | S.268 BNSS (warrant case instituted on complaint) |
 
@@ -21,3 +21,5 @@ Ajay found these while writing T-245 (handoff/legal/T-245-old-new-law-switch-sig
 2. Test: each pack cites the right section and not the wrong one.
 3. Any golden snapshot that moves is listed for Ajay. CI green on drafting.
 4. T-245b later builds on top of this fix, not over it.
+
+**Correction (12 Oct 2026):** review_petition takes **S.403**, not 402. Use Ajay's current signed text in handoff/legal/T-245-old-new-law-switch-signed.md.

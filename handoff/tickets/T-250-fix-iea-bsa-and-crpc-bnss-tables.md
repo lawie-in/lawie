@@ -37,3 +37,5 @@ Also suspect: 166/167→169/170. BSA 170 is repeal and savings.
 - **E.** Grep the repo for any other BSA number and list each hit for Ajay.
 
 The full recheck of the `crpc-to-bnss` `mappings` pairs (40 spot-checked, all right) is T-255.
+
+T-255's corrected `crpc-to-bnss.json` goes in the same branch (Ajay, 12 Oct 2026).
