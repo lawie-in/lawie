@@ -57,7 +57,7 @@ export function initPassport(): void {
                 plan: 'free',
                 docCount: 0,
               });
-              logger.info({ userId: user.id, email }, 'New user created via Google OAuth');
+              logger.info({ userId: user.id }, 'New user created via Google OAuth');
               isNewUser = true;
               // Signup bonus — non-blocking, never fails OAuth callback
               void grantSignupBonus(user._id.toString());
