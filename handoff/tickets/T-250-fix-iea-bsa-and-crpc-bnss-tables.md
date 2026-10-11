@@ -50,3 +50,17 @@ Option (a), chosen: this ticket also fixes the seed path.
 - **apply-clo-patch.ts** writes values that conflict with the signed table (IEA 32→32 where Ajay signs 26; notes 41C→37(2), 65A→62(2), 65B→63(4)). The signed table wins. Ajay confirms the changes to this script.
 - **Re-seed:** `seed()` skips rows that already exist, and `--force` wipes the rows `apply-clo-patch` wrote. Ajay says which of the two to use after the patch is corrected.
 - **Deploy note:** the tables are not live in any environment until the seed has been re-run there. Running it against the production database is the founder's step (morning report).
+
+## Ajay's follow-up citations and the seed decisions (12 Oct 2026)
+
+**Eight more hits, signed exactly** (handoff/legal/T-250-followup-citations-signed.md, 551d546), all in Shashank's row:
+- `production_of_documents.json` beyond para 7: L218, the provisions entries at L246–254, and L307.
+- `bns-mapping.json`: delete the `iea_to_bsa` object, and change "BSA 85 Affidavit" to "Affidavit".
+- `court-rules/cjm_generic.json`: L13 and L55, S.16 becomes S.10 and S.23.
+- `courts/indian-courts.json`: only the three metropolitan notes (Ahmedabad, Bengaluru, Chennai). The other metropolitan notes are listed for Ajay and left as they are.
+
+**Seed path (Ajay):**
+1. The signed tables win over apply-clo-patch's values: IEA 32 → BSA 26; IEA 65A → 62 and 65B → 63 (sub-section 63(4) belongs in the note, not in `new`); CrPC 41C → 37. The new enum value and reading both `notes` and `note`: approved.
+2. `apply-clo-patch.ts` is retired. If it holds any line the corrected JSON doesn't carry and that isn't wrong, keep only those lines, corrected, in a patch file Ajay signs. Otherwise delete it. It must never run after the reseed.
+3. **Reseed with `--force`.** Skipping existing rows would keep the wrong ones. Condition (Arjun): before `--force` on any database, confirm SectionMapping holds only seeded rows (no admin-edited row; check updatedBy/updatedAt or equivalent).
+4. Order: the develop database first. Sample 20 rows against the table (IEA 5, 32, 45, 62, 63, 65A, 65B, 100, 113A, 166; CrPC 41, 97, 154, 167, 362, 358, 437, 439, 482, 10). Then production with the founder (morning list). Put the command in the merge note.
