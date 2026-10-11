@@ -548,15 +548,20 @@ export function paragraphNumbers(body: string): Set<number> {
  */
 export function paragraphTexts(body: string): Map<number, string> {
   const out = new Map<number, string>();
-  const starts = [...body.matchAll(/^\s*(\d{1,3})\.\s/gm)];
-  starts.forEach((m, i) => {
-    const from = (m.index ?? 0) + m[0].length;
-    const to = i + 1 < starts.length ? (starts[i + 1].index ?? body.length) : body.length;
-    const n = +m[1];
-    const text = body.slice(from, to);
+  for (const { n, text } of numberedParagraphs(body)) {
     out.set(n, out.has(n) ? `${out.get(n)} ${text}` : text);
-  });
+  }
   return out;
+}
+
+/** The numbered paragraphs in order: the number, where the text after it starts, and the text. */
+function numberedParagraphs(body: string): Array<{ n: number; start: number; text: string }> {
+  const starts = [...body.matchAll(/^\s*(\d{1,3})\.\s/gm)];
+  return starts.map((m, i) => {
+    const start = (m.index ?? 0) + m[0].length;
+    const end = i + 1 < starts.length ? (starts[i + 1].index ?? body.length) : body.length;
+    return { n: +m[1], start, text: body.slice(start, end) };
+  });
 }
 
 /** Which system part a clause belongs to, by what it is called. Null when it belongs to none. */
@@ -790,13 +795,74 @@ function onlyBlanks(text: string): boolean {
   return !/[\p{L}\p{N}]/u.test(text.replace(BLANK, ''));
 }
 
+/** A sentence ends at ., ?, ! or the danda । followed by white space, or at a blank line. */
+const SENTENCE_END = /([.?!।])\s+|\n[ \t]*\n\s*/g;
+
 /**
- * T-200, R2b.1 and R2b.2 (Ajay, 12 Oct 2026): after Lawie's code has edited
- * the body without the Drafter, each recorded clause reported at a paragraph
- * the edit changed is recorded again from the edited text. Not when the edit
- * removed one of its paragraphs or left it holding nothing but blanks: the
- * next check then finds the clause missing. A clause already missing is not
- * recorded again, so a code edit never undoes what a Drafter edit broke.
+ * Where the sentence that holds the span [from, to) starts and ends in the
+ * text: from just after the closing mark before it to the end of the space
+ * after its own closing mark, so the space on either side is included. A
+ * span that crosses a sentence end gets every sentence it touches.
+ */
+function sentenceAround(text: string, from: number, to: number): { start: number; end: number } {
+  let start = 0;
+  let end = text.length;
+  for (const m of text.matchAll(SENTENCE_END)) {
+    const close = (m.index ?? 0) + (m[1] ? 1 : 0);
+    const after = (m.index ?? 0) + m[0].length;
+    if (after <= from) start = close;
+    else if (after >= to) {
+      end = after;
+      break;
+    }
+  }
+  return { start, end };
+}
+
+/**
+ * T-200, R2b.4: true when paragraph n changed in one contiguous stretch that
+ * lies inside a sentence the fact check flagged, everything before and after
+ * that stretch being identical, character for character. `flagged` holds the
+ * flagged spans in `before`.
+ */
+function changeConfined(
+  before: string,
+  after: string,
+  n: number,
+  flagged: ReadonlyArray<{ from: number; to: number }>,
+): boolean {
+  const was = numberedParagraphs(before).filter((p) => p.n === n);
+  const now = numberedParagraphs(after).filter((p) => p.n === n);
+  if (was.length !== 1 || now.length !== 1) return false;
+  const a = was[0].text.trimEnd();
+  const b = now[0].text.trimEnd();
+  const shorter = Math.min(a.length, b.length);
+  // The longest identical start and the longest identical end.
+  let same = 0;
+  while (same < shorter && a[same] === b[same]) same += 1;
+  let tail = 0;
+  while (tail < shorter && a[a.length - 1 - tail] === b[b.length - 1 - tail]) tail += 1;
+  // The stretch is the sentence itself, cut to the paragraph: what lies before
+  // it must be an identical start, what lies after it an identical end.
+  return flagged.some((f) => {
+    const sentence = sentenceAround(before, f.from, f.to);
+    const head = Math.max(0, sentence.start - was[0].start);
+    const rest = Math.max(0, was[0].start + a.length - sentence.end);
+    return head <= same && rest <= tail && head + rest <= shorter;
+  });
+}
+
+/**
+ * T-200, R2b.1, R2b.2 and R2b.4 (Ajay, 12 Oct 2026): after an edit made
+ * without the Drafter, each recorded clause reported at a paragraph the edit
+ * changed is recorded again from the edited text. Not when the edit removed
+ * one of its paragraphs or left it holding nothing but blanks: the next check
+ * then finds the clause missing. A clause already missing is not recorded
+ * again, so such an edit never undoes what a Drafter edit broke.
+ *
+ * Without `flagged`, the edit is Lawie's code (R2b.1). With it, the edit is
+ * the fact check's model repair (R2b.4): a changed paragraph is recorded
+ * again only when the change is confined to one flagged sentence.
  */
 export function recordAgainAfterCodeEdit(
   report: Map<string, ClauseStatus> | null,
@@ -804,6 +870,7 @@ export function recordAgainAfterCodeEdit(
   after: string,
   recorded: Map<string, string>,
   missing: readonly MissingClause[],
+  flagged?: ReadonlyArray<{ from: number; to: number }>,
 ): void {
   if (!report) return;
   const was = paragraphTexts(before);
@@ -817,6 +884,7 @@ export function recordAgainAfterCodeEdit(
     );
     if (changed.length === 0) continue;
     if (changed.some((n) => !now.has(n) || onlyBlanks(now.get(n) ?? ''))) continue; // R2b.2
+    if (flagged && !changed.every((n) => changeConfined(before, after, n, flagged))) continue;
     recorded.set(id, numbers.map((n) => normalise(now.get(n) ?? '')).join(' '));
   }
 }

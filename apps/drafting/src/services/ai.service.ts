@@ -69,7 +69,7 @@ import {
   DRAFTER_PACK_SYSTEM_PROMPT,
   DRAFTER_REPAIR_SYSTEM_PROMPT,
 } from './drafter.prompts';
-import { FactCheckOutcome, verifyAndRepair } from './fact-verifier';
+import { FactCheckOutcome, splitParagraphs, verifyAndRepair } from './fact-verifier';
 import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
   estimateOutputTokens,
@@ -1316,14 +1316,35 @@ export async function streamGenerateFromBrief(
         }
       },
     );
+    // T-200: the fact check's edits record the changed paragraphs again. With
+    // no model repair applied (afterRepair null) only code edited the body
+    // (R2b.1). With one, a paragraph counts only when its change stays inside
+    // a sentence the fact check flagged (R2b.4). Spans are in the body it read.
+    const factParas = splitParagraphs(output.body);
+    const flagged =
+      factCheck.afterRepair === null
+        ? undefined
+        : factCheck.initial
+            .filter((v) => v.check !== 'dropped' && factParas[v.paragraphIndex] !== undefined)
+            .map((v) => {
+              const from = factParas[v.paragraphIndex].start + v.charOffset;
+              return { from, to: from + v.length };
+            });
+    recordAgainAfterCodeEdit(
+      output.report,
+      output.body,
+      factCheck.body,
+      recorded,
+      missing,
+      flagged,
+    );
     // A citation the repair may have added goes the same way as above (T-148).
     const checkedBody = removeUngivenCitations(
       factCheck.body,
       ledgerCitationSources(ledgerInput.facts),
     ).text;
-    // T-200, R2b.1: the fact check's edits (its targeted repair included, as
-    // Ajay's amendment treats them) record the changed paragraphs again.
-    recordAgainAfterCodeEdit(output.report, output.body, checkedBody, recorded, missing);
+    // T-200, R2b.1: a code edit records the changed paragraphs again.
+    recordAgainAfterCodeEdit(output.report, factCheck.body, checkedBody, recorded, missing);
     output = { ...output, body: checkedBody };
     // T-147e (T-147d review follow-up): the verifier may strip a sentence or
     // replace a paragraph, so the mandatory clauses are checked again on the
