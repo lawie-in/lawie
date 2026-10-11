@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                        |
 | Owner          | Rajesh (design of the warning). Vishal (build). Ajay (signs the header text and the blank style). Anushka (verdict)           |
 | Mode           | Design first (Rajesh), then build, full chain. Merge to develop                                                               |
-| Status         | Assigned to mahak, 11 Oct 2026. Not started. Gates met: Rajesh's design (artifact v2), Ajay's AC8 sign-off, Priya's calls |
+| Status         | Merged into develop_staging (324416e, 12 Oct 2026), waiting for Anushka on develop; manual checks (real PDF render, fallback PDF em dash, DOCX in Word, Export DOCX anyway) before her run |
 | Assigned lead  | mahak |
 | Size           | Design S (0.5 day). Build M (1 day)                                                                                           |
 | Depends on     | T-147c (already writes `[To be confirmed: label]` in plain text)                                                              |
