@@ -39,3 +39,14 @@ Also suspect: 166/167→169/170. BSA 170 is repeal and savings.
 The full recheck of the `crpc-to-bnss` `mappings` pairs (40 spot-checked, all right) is T-255.
 
 T-255's corrected `crpc-to-bnss.json` goes in the same branch (Ajay, 12 Oct 2026).
+
+## Seed and deploy (shashank's finding, Priya's call, 12 Oct 2026)
+
+The app never reads these JSON files directly. They reach users through `seed-sections.ts` → Mongo `SectionMapping` → `sections.service` (prompts, auto-convert fields, the validator, and the `/tools/section-converter` page). So replacing the JSON changes nothing users see until the seed works and is re-run.
+
+Option (a), chosen: this ticket also fixes the seed path.
+- **Enum:** `SectionMapping.model.ts` allows only direct, partial, merged, split and repealed. The signed IEA table has 6 rows typed `repealed_no_equivalent`, so the seed would throw. Add that value.
+- **Notes:** `seed()` reads `notes`, but the CrPC rows use `note`, so CrPC notes seed empty. Read both.
+- **apply-clo-patch.ts** writes values that conflict with the signed table (IEA 32→32 where Ajay signs 26; notes 41C→37(2), 65A→62(2), 65B→63(4)). The signed table wins. Ajay confirms the changes to this script.
+- **Re-seed:** `seed()` skips rows that already exist, and `--force` wipes the rows `apply-clo-patch` wrote. Ajay says which of the two to use after the patch is corrected.
+- **Deploy note:** the tables are not live in any environment until the seed has been re-run there. Running it against the production database is the founder's step (morning report).
