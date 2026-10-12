@@ -8,7 +8,14 @@ import './setupEnv';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { checkDraftCitations } from '../services/validator';
+import {
+  checkDraftCitations,
+  detectOldLawReferences,
+  dropOldLawForNotFound,
+  extractBNSSectionNumbers,
+  validateBNSWhitelist,
+  validateSectionReferences,
+} from '../services/validator';
 
 jest.mock('../services/sections.service', () => ({
   convertOldReferencesInText: jest.fn(async (text: string) => ({
@@ -60,6 +67,32 @@ describe('T-346 checkDraftCitations', () => {
   it('returns [] for empty text and for text with no citations', async () => {
     expect(await checkDraftCitations('')).toEqual([]);
     expect(await checkDraftCitations('The accused was present at the scene.')).toEqual([]);
+  });
+
+  it('equals the old inline sequence (old-law kept, BNS whitelist, other-code minus BNS) for mixed texts', async () => {
+    const texts = [
+      MIXED,
+      'Section 302 IPC and Section 420 IPC',
+      'BNS 999 and BNSS 999',
+      'Section 999 IPC only',
+      'The accused was present.',
+    ];
+    for (const t of texts) {
+      const other = validateSectionReferences(t, null).filter((w) => w.details?.code !== 'BNS');
+      const expected = [
+        ...dropOldLawForNotFound(await detectOldLawReferences(t), other),
+        ...validateBNSWhitelist(extractBNSSectionNumbers(t)),
+        ...other,
+      ];
+      expect(await checkDraftCitations(t)).toEqual(expected);
+    }
+  });
+
+  it('each of the three paths pushes the helper result into allWarnings on its own text', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../services/ai.service.ts'), 'utf8');
+    for (const v of ['aiText', 'body', 'fullText']) {
+      expect(src).toContain(`allWarnings.push(...(await checkDraftCitations(${v})))`);
+    }
   });
 
   it('ai.service.ts calls only the helper, not the three checks directly', () => {
