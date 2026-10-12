@@ -34,6 +34,7 @@ T-208, T-209, T-210, T-197, T-189, T-194, T-227, T-248, T-251, T-200, T-252a, T-
 Vikram's prices and the two-tranche marketing budget; chatbot design and caps (T-253); CI skips docs-only pushes; converter claim removed; email/password sign-up in this release; T-275 labels for repealed rows; no production reseed until it is merged.
 
 ## Your to-dos (need your logins)
+0. **New users get describe-first by default (T-356 part 1, merging soon):** on the develop and prod servers, remove `FEATURE_DEFAULT_DESCRIBE_FIRST=off` from the server env file, or set it to `on`. Also set the `feature.describe_first` app setting to `on`, or delete it, if it holds a user-id list. Otherwise the new default is overridden.
 1. **`feature.fact_ledger`** app setting, same value as `feature.describe_first`, before Anushka tests T-189 and T-251.
 2. **SES and DNS for T-220** (the "policy changed" email and verification mail). Once T-223 merges, the develop email worker also needs `AUTH_SERVICE_URL` set (step 7 of the email doc, Arjun).
 3. **The registered address, with PIN code,** for the privacy policy, invoices and the footer of the verification email (T-223; no verification email goes out until it is filled).
