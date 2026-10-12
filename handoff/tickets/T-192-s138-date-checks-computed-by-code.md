@@ -33,7 +33,7 @@ Each check unlocks one entry: (a) unlocks `presented_within_validity`, (b) unloc
 
 ## Acceptance criteria
 
-1. Ajay signs the logic in this file before the build starts: the inputs, the periods, how the days are counted, and what happens when an input is missing.
+1. Ajay signed the logic (inputs, periods, day counting, missing inputs) in `handoff/legal/T-192-s138-date-checks-signed.md` (fa246a7). Build to that file.
 2. Inputs are ledger facts only: the cheque date, its validity if stated, the presentation date, the date the return memo was received, and the notice date. No input comes from the model.
 3. Code computes both checks. The model never computes or states a date difference.
 4. The brief shows the inputs and each result.
