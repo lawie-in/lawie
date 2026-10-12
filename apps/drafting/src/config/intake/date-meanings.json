@@ -2,7 +2,7 @@
   "_meta": {
     "description": "What a date is the date of. A date read from the description is placed under a fact only when its quote carries a cue for the kind of that fact (T-105).",
     "owner": "Ajay (CLO)",
-    "signed": "T-127, 6 Oct 2026, section 6. T-342 (kinds memo_received, notice_sent, cheque_validity; Ajay's Option B, labels L4, L5, L2 from T-192): pending Ajay's sign-off",
+    "signed": "T-127, 6 Oct 2026, section 6. T-342 (kinds memo_received, notice_sent, cheque_validity; Ajay's Option B, labels L4, L5, L2 from T-192): signed by Ajay, 12 Oct 2026, handoff/legal/T-192-s138-date-checks-signed.md (T-342 sign-off, 54951db)",
     "last_updated": "2026-10-12",
     "change_protocol": "Legal content. All edits require CLO sign-off.",
     "keys": "pack_only: the kind is read only for a pack that has a fact of it; elsewhere it is as if absent. not_with: words that stop a clause being this kind of date."
