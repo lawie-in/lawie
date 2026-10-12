@@ -35,7 +35,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. shashank — T-297 (ff4eaac). Slot given 12 Oct 2026, merge once Ajay signs ff4eaac.
+1. tanvi — T-309 (7895efa). Slot given 12 Oct 2026 (no sign-off needed; goes ahead while T-297 waits on Ajay).
+2. shashank — T-297 (ff4eaac). After tanvi, once Ajay signs ff4eaac.
 
 ## Last done
 
