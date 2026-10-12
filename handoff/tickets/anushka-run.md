@@ -330,3 +330,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Where the Schedule gives no single court, the bail checker and the section finder say "Depends on the offence. Check the First Schedule."
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-293 — bail draft reads the sections charged safely (cf05202)
+
+- Nothing changes on screen. A bail draft's bailable / non-bailable lines still match the sections charged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
