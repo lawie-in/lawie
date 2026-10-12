@@ -42,9 +42,9 @@ Items 5 and 6 (security) are in this ticket. Kunal builds T-299 right after T-23
 
 Fix the stale comment in the apps/gateway register-role test that says "role forced to Client".
 
-## Rides along (Priya, 12 Oct 2026, from T-307)
+## Moved (Priya, 12 Oct 2026)
 
-Auth gets the T-307 JSON-error handler: malformed, oversized and bad-encoding bodies get plain JSON with no echo, in the response or the logs, in every environment. Login bodies hold passwords. Copy the approach from drafting (T-307), and add a test.
+The auth JSON-error handler (from T-307) is now part of T-315, shared with the other services (Arjun).
 
 ## Rides along (Priya, 12 Oct 2026, from T-234 review)
 
