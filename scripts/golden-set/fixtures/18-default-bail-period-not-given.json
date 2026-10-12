@@ -1,0 +1,66 @@
+{
+  "id": "18-default-bail-period-not-given",
+  "pack": "default_bail",
+  "title": "Default bail, Patna: period not given, the draft carries the blank",
+  "risk": "T-251 (Ajay's condition): a 10-year-maximum offence with the period left empty gives the blank, never 90 days (the old rule forced 90 days)",
+  "source": "handoff/legal/T-251-default-bail-text-signed.md Addendum section 2; dev-written matter",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "asserts Ajay's signed blank wording for the default-bail period (T-251)",
+  "language": "en",
+  "description": "Default bail application, CJM Patna. Client Deepak Ravidas s/o Hari Ravidas, 28 saal. FIR 143/2026 dated 2 June 2026, PS Kotwali, section 318(4) BNS, saza 10 saal tak. Arrest 3 June 2026, remand 4 June 2026. Charge sheet nahi aayi. Bond dene ko ready.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "cjm",
+    "court": "bihar_cjm_patna"
+  },
+  "expect": {
+    "exact": [
+      {
+        "any_of": ["[To be confirmed: default-bail period that applies]"],
+        "why": "period_claimed is empty: Ajay's blank, not a period Lawie works out"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "applicable_window",
+        "why": "no period_claimed, so the advocate has not stated a period (T-251)"
+      },
+      {
+        "banned_entry_id": "statutory_period_expired",
+        "why": "no period_claimed and no expiry date, so it stays banned"
+      },
+      {
+        "banned_entry_id": "days_elapsed",
+        "why": "Lawie neither counts days nor states a length of custody (T-251)"
+      },
+      {
+        "banned_entry_id": "punishment_category",
+        "why": "Lawie does not classify the offence (T-251)"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": ["90 days", "60 days", "days in custody", "days have elapsed"],
+        "why": "a 10-year-maximum offence with no period given is never drafted as 90 days (or 60); the blank stands"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["Kotwali"],
+        "why": "police station"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "period_claimed",
+        "why": "the description does not give it",
+        "unresolved": true
+      },
+      {
+        "key": "remand_date",
+        "why": "read from the description",
+        "display": "4 June 2026"
+      }
+    ]
+  }
+}

@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (pack change, signs). Lead (build). Anushka (verdict) |
 | Mode           | Rule first (Ajay), then build, full chain. Legal content |
-| Status         | To do. Waits for Ajay's pack text. Raised by Ajay, 12 Oct 2026, during T-200 |
+| Status         | Merged into develop_staging (8f31985), 12 Oct 2026. Waiting for Anushka on develop |
 | Gate           | Before `feature.fact_ledger` for real users and before v1 go-live |
 | Depends on     | T-200 (cue map) |
 
@@ -21,3 +21,7 @@
 3. The lead applies Ajay's signed diff only; no other wording.
 4. Tests: a draft in each pack without disclosure of earlier applications → the clause is reported missing.
 5. Golden snapshots: any snapshot that moves is listed for Ajay; CI green on drafting.
+
+## Follow-up noted 12 Oct 2026 (Vishal)
+
+`validator.ts`'s soft keyword check for `no_flight_risk` (abscond / flight risk / tamper) may warn on the new anticipatory undertaking wording. Not in T-237. Check after the merge and ticket it if it warns.

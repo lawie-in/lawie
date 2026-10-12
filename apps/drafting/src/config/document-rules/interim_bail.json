@@ -132,9 +132,15 @@
     },
     {
       "id": "no_flight_risk",
-      "name": "No Flight Risk",
+      "name": "Roots of the Applicant",
+      "required": false,
+      "description": "The applicant's residence, family, occupation and conduct, only as the brief states them. Where the brief states none, leave this out. Never a statement of fact the brief does not give."
+    },
+    {
+      "id": "earlier_applications",
+      "name": "Earlier Bail Applications",
       "required": true,
-      "description": "Assertion of social roots and that applicant will not abscond"
+      "description": "Every earlier application for interim bail, bail or anticipatory bail in this matter, other than the pending main application, with the court, the date of the order and the result, or that it is pending; or the blank where the brief does not say."
     },
     {
       "id": "prayer",
@@ -160,6 +166,7 @@
     "Include undertakings: cooperation with investigation, will not tamper with evidence, will surrender on expiry of interim period.",
     "Cite BNS sections (NEVER IPC) for the underlying offences.",
     "Prayer must be SPECIFIC to interim duration — do not seek regular bail in this application.",
+    "Apart from the pending main application, state every earlier application for interim bail, bail or anticipatory bail in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no such earlier application, do not say that there was none; write [To be confirmed: whether any earlier application for interim bail, bail or anticipatory bail, other than the pending main application, was made in this matter, to which court, and with what result].",
     "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
   ],
   "relevantActs": [

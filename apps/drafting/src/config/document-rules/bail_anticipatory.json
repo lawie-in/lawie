@@ -237,9 +237,15 @@
     },
     {
       "id": "no_flight_risk",
-      "name": "No Flight Risk",
+      "name": "Undertakings",
       "required": true,
-      "description": "Assertion that applicant will cooperate with investigation"
+      "description": "Undertakings by the applicant for the future, if granted anticipatory bail: to make himself or herself available for interrogation by the police as and when required, not to make any inducement, threat or promise to any witness or other person acquainted with the facts of the case, not to leave India without the Court's permission, and to abide by the conditions imposed. Never a statement of fact."
+    },
+    {
+      "id": "earlier_applications",
+      "name": "Earlier Bail Applications",
+      "required": true,
+      "description": "Every earlier application for anticipatory bail or bail in this matter, with the court, the date of the order and the result, or that it is pending; or the blank where the brief does not say."
     },
     {
       "id": "prayer",
@@ -292,8 +298,9 @@
     "State grounds for anticipatory bail: no prima facie case, false implication, malafide intention of complainant, clean antecedents, cooperation with investigation.",
     "Address the nature and gravity of the accusation, the applicant's role, and the likelihood of the applicant fleeing from justice, as reasoning on the facts in the brief. Do not name any judgment; where an authority would normally be cited, write [Authority — add if relied upon].",
     "Reference Bharatiya Nyaya Sanhita (BNS) section numbers — NEVER use old IPC section numbers.",
-    "Include standard conditions the applicant is willing to comply with: joining investigation, not leaving jurisdiction, surrendering passport.",
+    "Give the undertakings as undertakings by the applicant for the future, never as facts and never as undertakings by the advocate: the applicant undertakes that, if granted anticipatory bail, the applicant will make himself or herself available for interrogation by the police as and when required, will not make any inducement, threat or promise to any witness or other person acquainted with the facts of the case, will not leave India without this Hon'ble Court's permission, and will abide by every condition this Hon'ble Court imposes.",
     "Use formal, respectful legal language appropriate for Indian courts.",
+    "State every earlier application for anticipatory bail or bail in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier application for anticipatory bail or bail was made in this matter, to which court, and with what result].",
     "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
   ]
 }

@@ -48,6 +48,7 @@ jest.mock('../services/sections.service', () => ({
 
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -232,7 +233,7 @@ const bail = (over: Partial<RunOptions> & { answers: string[] }) =>
   });
 
 const PARA_1 =
-  '1. That FIR No. 214/2026 dated 10.09.2026 was registered at PS Saraidhela under Section 303 of BNS against the applicant Ramesh Mahto, son of Shri Suresh Mahto.';
+  '1. That FIR No. 214/2026 dated 10.09.2026 was registered at PS Saraidhela under Section 303 of BNS against the applicant Ramesh Mahto, son of Shri Suresh Mahto. He is in custody, the grounds are submitted below, he gives an undertaking, and his earlier bail application is dealt with below.';
 const PARA_ARREST =
   '2. That the applicant was arrested on 12.09.2026 and has been in judicial custody since 13.09.2026. He is lodged in Dhanbad Divisional Jail.';
 const PARA_REJECTED =
@@ -897,16 +898,10 @@ describe('T-136 review round 1 — lines of the system re-paired are kept and ra
   });
 
   it('the bail draft with the State made the applicant: kept, and C4 names the lines', async () => {
-    const above =
-      'State of Bihar\n\n... Applicant\n\nVersus\n\nRamesh Mahto\n\n... Opposite Party';
+    const above = 'State of Bihar\n\n... Applicant\n\nVersus\n\nRamesh Mahto\n\n... Opposite Party';
     const r = await bail({ answers: [answer(BAIL, `${above}\n\n${CLEAN_BAIL}`)] });
     expect(bodyOf(r)).toBe(`${above}\n\n${CLEAN_BAIL}`);
-    for (const line of [
-      'State of Bihar',
-      'Versus',
-      'Ramesh Mahto',
-      '... Opposite Party',
-    ]) {
+    for (const line of ['State of Bihar', 'Versus', 'Ramesh Mahto', '... Opposite Party']) {
       expect(messages(r)).toContain(C4(line));
     }
     expect(r.result.startingDraft).toBe(true);
@@ -982,8 +977,8 @@ describe('T-136 review round 1 — old-law references in a regular bail brief (p
   beforeEach(() => {
     (convertOldReferencesInText as jest.Mock).mockClear();
     (convertOldReferencesInText as jest.Mock).mockImplementation(async (text: string) => ({
-      converted: text.replace(/379 IPC/g, 'Section 303 BNS (converted)'),
-      conversions: [{ from: '379 IPC', to: '303 BNS' }],
+      converted: text.replace(/379 IPC/g, 'Section 303(2) BNS (converted)'),
+      conversions: [{ from: '379 IPC', to: '303(2) BNS' }],
     }));
   });
   afterEach(() => {

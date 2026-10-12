@@ -64,6 +64,7 @@ import { SdkStreamParams, sdkAnswer } from './sdkStream';
 
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -163,7 +164,10 @@ describe('AC1: all four checks run; a draft that passes is unchanged', () => {
   it('one draft with one violation of each kind: all four checks report', () => {
     const body = [
       // unsupported (an amount no fact gives) + dropped (custody_since, 13 September 2026, is left out)
-      RB_CLEAN.split('\n\n')[0].replace('has been in judicial custody since 13 September 2026', 'is in judicial custody'),
+      RB_CLEAN.split('\n\n')[0].replace(
+        'has been in judicial custody since 13 September 2026',
+        'is in judicial custody',
+      ),
       // mutation (the custody date is 13 September 2026; this is the one dropped above, so say it wrongly in para 2)
       '2. That the applicant has been in custody since 14 September 2026 and bail was rejected on 22 September 2026.',
       // banned
@@ -173,7 +177,10 @@ describe('AC1: all four checks run; a draft that passes is unchanged', () => {
     const vs = verifyDraft(inputOf(RB, body));
     expect(checksOf(vs)).toEqual(['banned', 'dropped', 'mutation', 'unsupported']);
     expect(vs.find((v) => v.check === 'dropped')?.ledgerKey).toBe('custody_since');
-    expect(vs.find((v) => v.check === 'mutation')).toMatchObject({ ledgerKey: 'custody_since', reason: 'differs' });
+    expect(vs.find((v) => v.check === 'mutation')).toMatchObject({
+      ledgerKey: 'custody_since',
+      reason: 'differs',
+    });
     expect(vs.find((v) => v.check === 'banned')?.bannedEntryId).toBe('gainfully_employed');
     expect(vs.find((v) => v.check === 'unsupported')?.draftValue).toMatch(/7,50,000/);
   });
@@ -181,11 +188,17 @@ describe('AC1: all four checks run; a draft that passes is unchanged', () => {
   it('check 1 alone: an invented police station, court, case number, period and capitalised name', () => {
     const base = RB_CLEAN;
     const cases: Array<[string, string]> = [
-      ['court', `${base}\n\n3. That the applicant appeared before the Chief Judicial Magistrate, Kanpur.`],
+      [
+        'court',
+        `${base}\n\n3. That the applicant appeared before the Chief Judicial Magistrate, Kanpur.`,
+      ],
       ['case_no', `${base}\n\n3. That Crime No. 77/2025 is also pending.`],
       ['date', `${base}\n\n3. That the applicant has lived here for 32 years.`],
       ['name', `${base}\n\n3. That the complainant, Mukesh Agarwal, has no objection.`],
-      ['section', `${base}\n\n3. That the applicant is also charged under Section 103 of the Bharatiya Nyaya Sanhita, 2023.`],
+      [
+        'section',
+        `${base}\n\n3. That the applicant is also charged under Section 103 of the Bharatiya Nyaya Sanhita, 2023.`,
+      ],
       ['amount', `${base}\n\n3. That the applicant paid Rs 7,50,000.`],
     ];
     for (const [type, body] of cases) {
@@ -194,14 +207,30 @@ describe('AC1: all four checks run; a draft that passes is unchanged', () => {
     }
     // a station the ledger does not hold at all (the s138 ledger has none) is unsupported;
     // where the ledger holds a different station it is a mutation of that fact (check 3)
-    const none = verifyDraft(inputOf(S138, `${S138_CLEAN}\n\n4. That the matter was noted at Police Station Gomti Nagar.`));
-    expect(none.some((v) => v.check === 'unsupported' && v.entityType === 'police_station')).toBe(true);
-    const other = verifyDraft(inputOf(RB, `${RB_CLEAN}\n\n3. That the matter was noted at Police Station Gomti Nagar.`));
-    expect(other.some((v) => v.check === 'mutation' && v.entityType === 'police_station' && v.ledgerKey === 'police_station')).toBe(true);
+    const none = verifyDraft(
+      inputOf(S138, `${S138_CLEAN}\n\n4. That the matter was noted at Police Station Gomti Nagar.`),
+    );
+    expect(none.some((v) => v.check === 'unsupported' && v.entityType === 'police_station')).toBe(
+      true,
+    );
+    const other = verifyDraft(
+      inputOf(RB, `${RB_CLEAN}\n\n3. That the matter was noted at Police Station Gomti Nagar.`),
+    );
+    expect(
+      other.some(
+        (v) =>
+          v.check === 'mutation' &&
+          v.entityType === 'police_station' &&
+          v.ledgerKey === 'police_station',
+      ),
+    ).toBe(true);
   });
 
   it('check 2 alone: a required fact left out is reported with its key; a not-required one is not', () => {
-    const noFir = RB_CLEAN.replace('FIR No. 901/2026 registered at ', '').replace('in connection with ', '');
+    const noFir = RB_CLEAN.replace('FIR No. 901/2026 registered at ', '').replace(
+      'in connection with ',
+      '',
+    );
     const vs = verifyDraft(inputOf(RB, noFir));
     // 901/2026 is in the skeleton (cause title), so it still counts as printed.
     expect(vs.filter((v) => v.check === 'dropped')).toEqual([]);
@@ -215,15 +244,30 @@ describe('AC1: all four checks run; a draft that passes is unchanged', () => {
   });
 
   it('check 2 normalises: Rs 3 lakh / Rs. 3,00,000/- / 300000 all satisfy value 300000', () => {
-    for (const written of ['Rs 3,00,000', 'Rs. 3,00,000/-', '₹3,00,000', 'Rs 3 lakh', 'Rs. 300000']) {
+    for (const written of [
+      'Rs 3,00,000',
+      'Rs. 3,00,000/-',
+      '₹3,00,000',
+      'Rs 3 lakh',
+      'Rs. 300000',
+    ]) {
       const body = S138_CLEAN.replace('Rs 3,00,000', written);
       const dropped = verifyDraft(inputOf(S138, body)).filter((v) => v.check === 'dropped');
-      expect({ written, dropped: dropped.map((d) => d.ledgerKey) }).toEqual({ written, dropped: [] });
+      expect({ written, dropped: dropped.map((d) => d.ledgerKey) }).toEqual({
+        written,
+        dropped: [],
+      });
     }
   });
 
   it('check 2 normalises dates: 1 September 2026 / 01.09.2026 / 2026-09-01 satisfy the cheque date', () => {
-    for (const written of ['01.09.2026', '1 September 2026', '1st September, 2026', '2026-09-01', '01/09/2026']) {
+    for (const written of [
+      '01.09.2026',
+      '1 September 2026',
+      '1st September, 2026',
+      '2026-09-01',
+      '01/09/2026',
+    ]) {
       const body = S138_CLEAN.replace('01.09.2026', written);
       const vs = verifyDraft(inputOf(S138, body));
       expect({ written, vs: vs.map((v) => [v.check, v.ledgerKey]) }).toEqual({ written, vs: [] });
@@ -252,26 +296,30 @@ describe('AC2: the T-147 draft fails this verifier (run-2 replay)', () => {
       expect(out.banner).not.toBeNull();
     });
 
-    it.each(fx.expected.map((e, i) => [`${e.check}:${e.bannedEntryId ?? e.ledgerKey}`, e, i] as const))(
-      'catches %s with the named check',
-      (_label, e) => {
-        const vs = verifyDraft(inputOf(fx));
-        const hit = vs.filter((v) => matches(v, e));
-        expect(hit.length).toBeGreaterThanOrEqual(1);
-      },
-    );
+    it.each(
+      fx.expected.map((e, i) => [`${e.check}:${e.bannedEntryId ?? e.ledgerKey}`, e, i] as const),
+    )('catches %s with the named check', (_label, e) => {
+      const vs = verifyDraft(inputOf(fx));
+      const hit = vs.filter((v) => matches(v, e));
+      expect(hit.length).toBeGreaterThanOrEqual(1);
+    });
   });
 
   it('regular bail: the four invented averments are check 4, each once, with the unlocking fact as the label', async () => {
     const vs = verifyDraft(inputOf(RB));
     const banned = vs.filter((v) => v.check === 'banned');
-    expect(banned.map((v) => v.bannedEntryId).sort()).toEqual(
-      ['cooperated_with_investigation', 'deep_roots_in_society', 'gainfully_employed', 'no_criminal_antecedents'],
-    );
+    expect(banned.map((v) => v.bannedEntryId).sort()).toEqual([
+      'cooperated_with_investigation',
+      'deep_roots_in_society',
+      'gainfully_employed',
+      'no_criminal_antecedents',
+    ]);
     // nothing else in this draft is wrong: no false positive on the true paragraphs
     expect(vs.filter((v) => v.check !== 'banned')).toEqual([]);
     const out = await verifyAndRepair(inputOf(RB), repairSpy(null));
-    expect(out.body).not.toMatch(/no criminal antecedents|gainfully employed|cooperated with the police|family and social connections/i);
+    expect(out.body).not.toMatch(
+      /no criminal antecedents|gainfully employed|cooperated with the police|family and social connections/i,
+    );
     expect((out.body.match(/\{\{MISSING: [^}]+\}\}/g) ?? []).length).toBeGreaterThanOrEqual(3);
     // the true paragraphs are left alone
     const [p1, p2] = splitParagraphs(RB.body);
@@ -281,10 +329,12 @@ describe('AC2: the T-147 draft fails this verifier (run-2 replay)', () => {
 
   it('s138: Rs 3 lakh and Demo Traders are check 2; the memo date and Karol Bagh are check 3, with the reason', () => {
     const vs = verifyDraft(inputOf(S138));
-    expect(vs.filter((v) => v.check === 'dropped').map((v) => v.ledgerKey).sort()).toEqual([
-      'cheque_amount',
-      'respondent_name',
-    ]);
+    expect(
+      vs
+        .filter((v) => v.check === 'dropped')
+        .map((v) => v.ledgerKey)
+        .sort(),
+    ).toEqual(['cheque_amount', 'respondent_name']);
     const mem = vs.find((v) => v.check === 'mutation' && v.ledgerKey === 'dishonour_date');
     expect(mem?.reason).toBe('unresolved');
     expect(mem?.draftValue).toMatch(/week following the presentation/);
@@ -312,7 +362,9 @@ describe('AC2: the T-147 draft fails this verifier (run-2 replay)', () => {
   it('magistrate: PS Pirbahore dropped is check 2; "long-standing resident" is check 4 and stripped', async () => {
     const vs = verifyDraft(inputOf(MAG));
     expect(vs.some((v) => v.check === 'dropped' && v.ledgerKey === 'police_station')).toBe(true);
-    expect(vs.some((v) => v.check === 'banned' && v.bannedEntryId === 'permanent_resident')).toBe(true);
+    expect(vs.some((v) => v.check === 'banned' && v.bannedEntryId === 'permanent_resident')).toBe(
+      true,
+    );
     const out = await verifyAndRepair(inputOf(MAG), repairSpy(null));
     expect(out.body).not.toMatch(/long-standing resident/i);
     expect(out.banner!.items.some((i) => i.check === 'dropped')).toBe(true);
@@ -360,10 +412,19 @@ describe('AC3: the pack allowlist', () => {
       'The sender is shown as [Anil Kapoor] in the template, or {Sunita Rao}.',
       'Use Registered Post A.D. for service.',
     ];
-    for (const sample of ['Mohan Lal Sharma', 'Gopal Verma', 'Acme Fabrics', 'Anil Kapoor', 'Sunita Rao']) {
+    for (const sample of [
+      'Mohan Lal Sharma',
+      'Gopal Verma',
+      'Acme Fabrics',
+      'Anil Kapoor',
+      'Sunita Rao',
+    ]) {
       const body = `${S138_CLEAN}\n\n4. That ${sample} stood surety for the debt.`;
       const vs = unsupportedOf(S138, body, packText);
-      expect({ sample, flagged: vs.some((v) => v.draftValue?.includes(sample.split(' ')[0])) }).toEqual({
+      expect({
+        sample,
+        flagged: vs.some((v) => v.draftValue?.includes(sample.split(' ')[0])),
+      }).toEqual({
         sample,
         flagged: true,
       });
@@ -372,7 +433,11 @@ describe('AC3: the pack allowlist', () => {
 
   it('the same name written in the pack as plain static text (no sample markup) is allowed', () => {
     const packText = ['The notice is addressed to the Station House Officer, Cyber Crime Cell.'];
-    const vs = unsupportedOf(S138, `${S138_CLEAN}\n\n4. That a copy goes to the Station House Officer, Cyber Crime Cell.`, packText);
+    const vs = unsupportedOf(
+      S138,
+      `${S138_CLEAN}\n\n4. That a copy goes to the Station House Officer, Cyber Crime Cell.`,
+      packText,
+    );
     expect(vs.filter((v) => v.entityType === 'name')).toEqual([]);
   });
 
@@ -383,7 +448,9 @@ describe('AC3: the pack allowlist', () => {
 
   it('the allowlist is built from the pack text given: a period only the pack states is allowed with it and flagged without it', () => {
     const body = `${S138_CLEAN}\n\n4. Pay within 21 days.`;
-    expect(unsupportedOf(S138, body, ['The period for payment is 21 days from receipt.'])).toEqual([]);
+    expect(unsupportedOf(S138, body, ['The period for payment is 21 days from receipt.'])).toEqual(
+      [],
+    );
     expect(unsupportedOf(S138, body, []).map((v) => v.draftValue)).toEqual(['21 days']);
   });
 
@@ -398,7 +465,10 @@ describe('AC3: the pack allowlist', () => {
     expect(vs.map((v) => v.entityType)).toEqual(['section']);
     // and the one the skeleton states is not
     expect(
-      unsupportedOf(RB, `${RB_CLEAN}\n\n3. That this is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023.`),
+      unsupportedOf(
+        RB,
+        `${RB_CLEAN}\n\n3. That this is made under Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023.`,
+      ),
     ).toEqual([]);
   });
 });
@@ -407,7 +477,7 @@ describe('AC3: the pack allowlist', () => {
 // Check 3 and check 4 in detail
 // ═════════════════════════════════════════════════════════════════════════════
 describe('check 3: mutation / wrong fact', () => {
-  it('a date that is the ledger\'s but bound to the wrong fact is flagged both ways', () => {
+  it("a date that is the ledger's but bound to the wrong fact is flagged both ways", () => {
     const body = [
       '1. That the applicant Testpal Yadav has been in judicial custody since 22 September 2026 in FIR No. 901/2026 at Police Station Hazratganj under Section 318(4) BNS.',
       '2. That bail was rejected on 13 September 2026.',
@@ -419,10 +489,14 @@ describe('check 3: mutation / wrong fact', () => {
     ]);
   });
 
-  it('a date that is nobody\'s, cued to a fact, is a mutation of that fact, not a nameless unsupported', () => {
+  it("a date that is nobody's, cued to a fact, is a mutation of that fact, not a nameless unsupported", () => {
     const body = RB_CLEAN.replace('since 13 September 2026', 'since 14 September 2026');
     const vs = verifyDraft(inputOf(RB, body));
-    expect(vs.some((v) => v.check === 'mutation' && v.ledgerKey === 'custody_since' && v.reason === 'differs')).toBe(true);
+    expect(
+      vs.some(
+        (v) => v.check === 'mutation' && v.ledgerKey === 'custody_since' && v.reason === 'differs',
+      ),
+    ).toBe(true);
   });
 
   it('a value given for an unresolved key is flagged, as a number and as a relative phrase', () => {
@@ -454,7 +528,7 @@ describe('check 3: mutation / wrong fact', () => {
     expect(vs.some((v) => v.check === 'mutation' && v.ledgerKey === 'police_station')).toBe(true);
   });
 
-  it('a one-letter change to a person\'s name is a mutation of the name fact', () => {
+  it("a one-letter change to a person's name is a mutation of the name fact", () => {
     const body = S138_CLEAN.replace('Demo Traders', 'Demu Traders');
     const vs = verifyDraft(inputOf(S138, body));
     expect(vs.some((v) => v.check === 'mutation' && v.ledgerKey === 'respondent_name')).toBe(true);
@@ -468,7 +542,9 @@ describe('check 3: mutation / wrong fact', () => {
       'presented the said cheque for encashment on 15.09.2026 at HDFC Bank, Karol Bagh',
     );
     const vs = verifyDraft(inputOf(S138, bad));
-    expect(vs.map((v) => [v.check, v.ledgerKey, v.reason])).toEqual([['mutation', 'drawee_branch', 'wrong_fact']]);
+    expect(vs.map((v) => [v.check, v.ledgerKey, v.reason])).toEqual([
+      ['mutation', 'drawee_branch', 'wrong_fact'],
+    ]);
   });
 });
 
@@ -489,17 +565,26 @@ describe('check 4: banned phrases', () => {
     },
   ] as never[];
   const withNarrative = (body: string): VerifierInput => ({ ...inputOf(RB, body), facts });
-  const HEAD = '1. That Testpal Yadav, in custody since 13 September 2026 (FIR No. 901/2026, PS Hazratganj):';
+  const HEAD =
+    '1. That Testpal Yadav, in custody since 13 September 2026 (FIR No. 901/2026, PS Hazratganj):';
 
   it('a banned phrase inside a ledger display printed verbatim is not flagged', () => {
-    const vs = verifyDraft(withNarrative(`${HEAD} He has no criminal antecedents as per the FIR note.`));
+    const vs = verifyDraft(
+      withNarrative(`${HEAD} He has no criminal antecedents as per the FIR note.`),
+    );
     expect(vs.filter((v) => v.check === 'banned')).toEqual([]);
   });
 
   it('the same phrase NOT printed as a ledger display is flagged, even with other case and spacing', () => {
-    for (const w of ['He has NO  Criminal   Antecedents.', 'the applicant has no criminal antecedents.']) {
+    for (const w of [
+      'He has NO  Criminal   Antecedents.',
+      'the applicant has no criminal antecedents.',
+    ]) {
       const vs = verifyDraft(withNarrative(`${HEAD} ${w}`)).filter((v) => v.check === 'banned');
-      expect({ w, id: vs.map((v) => v.bannedEntryId) }).toEqual({ w, id: ['no_criminal_antecedents'] });
+      expect({ w, id: vs.map((v) => v.bannedEntryId) }).toEqual({
+        w,
+        id: ['no_criminal_antecedents'],
+      });
     }
   });
 
@@ -533,7 +618,11 @@ describe('check 4: banned phrases', () => {
       ...inputOf(RB, `${RB_CLEAN}\n\n3. That the applicant is gainfully employed.`),
       facts: [...(RB.ledger.facts as unknown[]), occ] as never[],
     };
-    expect(verifyDraft(input).filter((v) => v.check === 'banned' && v.bannedEntryId === 'gainfully_employed')).toEqual([]);
+    expect(
+      verifyDraft(input).filter(
+        (v) => v.check === 'banned' && v.bannedEntryId === 'gainfully_employed',
+      ),
+    ).toEqual([]);
   });
 
   it('strips the sentence and writes the placeholder in its place, leaving the sentences around it', async () => {
@@ -551,7 +640,12 @@ describe('check 4: banned phrases', () => {
 // AC4: one targeted repair
 // ═════════════════════════════════════════════════════════════════════════════
 describe('AC4: the repair pass sends only the offending paragraphs, at most once', () => {
-  const SENT = ['alphauniqsentinel', 'bravouniqsentinel', 'charlieuniqsentinel', 'deltauniqsentinel'];
+  const SENT = [
+    'alphauniqsentinel',
+    'bravouniqsentinel',
+    'charlieuniqsentinel',
+    'deltauniqsentinel',
+  ];
   const body = [
     `1. That the applicant Testpal Yadav is in judicial custody since 13 September 2026 ${SENT[0]}.`,
     `2. That the applicant is gainfully employed ${SENT[1]}.`,
@@ -616,11 +710,19 @@ describe('AC4: the repair pass sends only the offending paragraphs, at most once
     expect(out.body).not.toMatch(/gainfully|cooperated/i);
     expect(out.body).not.toContain('{{MISSING');
     // every initial record is resolved as repaired, and there are no after-repair records
-    expect(out.records.every((r) => r.phase === 'initial' && r.resolution === 'repaired')).toBe(true);
+    expect(out.records.every((r) => r.phase === 'initial' && r.resolution === 'repaired')).toBe(
+      true,
+    );
   });
 
   it('at most one repair, even if the second check still fails: the model is not asked again', async () => {
-    const reply = [`[[P1]]`, `2. That the applicant is gainfully employed again ${SENT[1]}.`, '', '[[P3]]', `4. That the applicant has cooperated with the police ${SENT[3]}.`].join('\n');
+    const reply = [
+      `[[P1]]`,
+      `2. That the applicant is gainfully employed again ${SENT[1]}.`,
+      '',
+      '[[P3]]',
+      `4. That the applicant has cooperated with the police ${SENT[3]}.`,
+    ].join('\n');
     const repair = repairSpy(reply);
     const out = await verifyAndRepair(inputOf(RB, body), repair);
     expect(repair).toHaveBeenCalledTimes(1);
@@ -648,16 +750,26 @@ describe('AC4: the repair pass sends only the offending paragraphs, at most once
     ['two paragraphs under one marker', '[[P1]]\n2. a.\n\n3. b.\n\n[[P3]]\n4. ok.'],
     ['the drafter trailer is returned', `[[P1]]\n2. a.\n\n[[P3]]\n4. b.\n${CLAUSES_MARKER}`],
     ['empty', ''],
-  ])('an unusable reply (%s) is ignored: the original draft goes on to placeholders', async (_n, reply) => {
-    const out = await verifyAndRepair(inputOf(RB, body), repairSpy(reply));
-    expect(out.afterRepair).toBeNull();
-    expect(out.repairFixed).toBe(false);
-    expect(out.body).not.toMatch(/gainfully|cooperated with the police/i);
-    expect(out.banner).not.toBeNull();
-  });
+  ])(
+    'an unusable reply (%s) is ignored: the original draft goes on to placeholders',
+    async (_n, reply) => {
+      const out = await verifyAndRepair(inputOf(RB, body), repairSpy(reply));
+      expect(out.afterRepair).toBeNull();
+      expect(out.repairFixed).toBe(false);
+      expect(out.body).not.toMatch(/gainfully|cooperated with the police/i);
+      expect(out.banner).not.toBeNull();
+    },
+  );
 
   it('parseFactRepair returns the paragraphs by index, in order, or null', () => {
-    expect(parseFactRepair('[[P1]]\na\n\n[[P3]]\nb', [1, 3])).toEqual(new Map([[1, 'a'], [3, 'b']].map(([k, v]) => [k, v]) as never));
+    expect(parseFactRepair('[[P1]]\na\n\n[[P3]]\nb', [1, 3])).toEqual(
+      new Map(
+        [
+          [1, 'a'],
+          [3, 'b'],
+        ].map(([k, v]) => [k, v]) as never,
+      ),
+    );
     expect(parseFactRepair('[[P3]]\nb\n[[P1]]\na', [1, 3])).toBeNull();
     expect(parseFactRepair('[[P1]]\na', [1, 3])).toBeNull();
   });
@@ -735,7 +847,8 @@ describe('AC5: a draft that still fails is delivered with {{MISSING}} and a bann
   });
 
   it('a repair that fixes one and leaves one: the banner counts only what is left', async () => {
-    const reply = "[[P2]]\n3. That the applicant has approached this Hon'ble Court.\n\n[[P3]]\n4. That the applicant has cooperated with the police.";
+    const reply =
+      "[[P2]]\n3. That the applicant has approached this Hon'ble Court.\n\n[[P3]]\n4. That the applicant has cooperated with the police.";
     const out = await verifyAndRepair(inputOf(RB, twoBad), repairSpy(reply));
     expect(out.banner!.items).toHaveLength(1);
     expect(out.banner!.text).toBe(factCheckBannerText(1));
@@ -745,7 +858,9 @@ describe('AC5: a draft that still fails is delivered with {{MISSING}} and a bann
   it('a placeholder replaces an unsupported value in place and leaves the rest of the sentence', async () => {
     const bad = `${RB_CLEAN}\n\n3. That the applicant paid Rs 7,50,000 to the complainant.`;
     const out = await verifyAndRepair(inputOf(RB, bad), repairSpy(null));
-    expect(splitParagraphs(out.body)[2].text).toMatch(/^3\. That the applicant paid \{\{MISSING: [^}]+\}\} to the complainant\.$/);
+    expect(splitParagraphs(out.body)[2].text).toMatch(
+      /^3\. That the applicant paid \{\{MISSING: [^}]+\}\} to the complainant\.$/,
+    );
   });
 
   it('wrong-fact and unresolved values become placeholders named for the fact', async () => {
@@ -847,7 +962,13 @@ describe('AC6 and AC7: the fact-diff log and the placeholder rate', () => {
     await log(S138, { userId: U1, documentId: D1, ledgerId: L1 });
     const docs = await raw('factdiffs');
     const dump = JSON.stringify(docs);
-    for (const plain of ['Karol Bagh', 'week following', 'Demo Traders', '3,00,000', 'Date of Dishonour']) {
+    for (const plain of [
+      'Karol Bagh',
+      'week following',
+      'Demo Traders',
+      '3,00,000',
+      'Date of Dishonour',
+    ]) {
       // labels are in the clear by design (Date of Dishonour is a label); values are not
       if (plain === 'Date of Dishonour') continue;
       expect({ plain, in: dump.includes(plain) }).toEqual({ plain, in: false });
@@ -869,7 +990,9 @@ describe('AC6 and AC7: the fact-diff log and the placeholder rate', () => {
   it('the banned phrase is stored encrypted too', async () => {
     await log(RB, { userId: U1, documentId: D1, ledgerId: L1 });
     const docs = await raw('factdiffs');
-    expect(JSON.stringify(docs)).not.toMatch(/has no criminal antecedents|gainfully employed|cooperated with the police|family and social connections/i);
+    expect(JSON.stringify(docs)).not.toMatch(
+      /has no criminal antecedents|gainfully employed|cooperated with the police|family and social connections/i,
+    );
     const d = docs.find((x) => x.bannedEntryId === 'gainfully_employed')!;
     expect(decrypt(d.draftValue).toLowerCase()).toContain('gainfully employed');
   });
@@ -889,7 +1012,15 @@ describe('AC6 and AC7: the fact-diff log and the placeholder rate', () => {
     await FactDiff.init();
     const idx = await FactDiff.collection.indexes();
     const keys = idx.map((i) => Object.keys(i.key).join('+'));
-    expect(keys).toEqual(expect.arrayContaining(['rulePack+createdAt', 'userId', 'documentId', 'ledgerId', 'createdAt']));
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        'rulePack+createdAt',
+        'userId',
+        'documentId',
+        'ledgerId',
+        'createdAt',
+      ]),
+    );
     const ttl = idx.find((i) => i.expireAfterSeconds !== undefined)!;
     expect(ttl.key).toEqual({ createdAt: 1 });
     expect(ttl.expireAfterSeconds).toBe(90 * 24 * 60 * 60);
@@ -937,12 +1068,20 @@ describe('AC6 and AC7: the fact-diff log and the placeholder rate', () => {
     const n = await FactDiff.countDocuments({});
     expect(await deleteFactDiffsFor({ userId: 'not-an-id' })).toBe(0);
     expect(await deleteFactDiffsFor({ documentId: '' })).toBe(0);
-    expect(await deleteFactDiffsFor({ ledgerId: new mongoose.Types.ObjectId().toString() })).toBe(0);
+    expect(await deleteFactDiffsFor({ ledgerId: new mongoose.Types.ObjectId().toString() })).toBe(
+      0,
+    );
     expect(await FactDiff.countDocuments({})).toBe(n);
   });
 
   it('AC7: a PlaceholderRate per draft, with counts and the pack, and no userId / documentId / values', async () => {
-    const out = await log(S138, { userId: U1, documentId: D1, ledgerId: L1 }, 'real', null, 'run-a');
+    const out = await log(
+      S138,
+      { userId: U1, documentId: D1, ledgerId: L1 },
+      'real',
+      null,
+      'run-a',
+    );
     await log(RB, { userId: U2, documentId: D2, ledgerId: L2 }, 'real', null, 'run-b');
     const rates = await raw('placeholderrates');
     expect(rates).toHaveLength(2);
@@ -990,7 +1129,11 @@ describe('AC6 and AC7: the fact-diff log and the placeholder rate', () => {
     expect(await FactDiff.countDocuments({})).toBe(0);
     const rates = await PlaceholderRate.find({}).lean();
     expect(rates).toHaveLength(1);
-    expect(rates[0]).toMatchObject({ placeholderCount: 0, verifierPlaceholderCount: 0, repairRan: false });
+    expect(rates[0]).toMatchObject({
+      placeholderCount: 0,
+      verifierPlaceholderCount: 0,
+      repairRan: false,
+    });
   });
 
   it('the ledgerId and documentId may be null (a draft with no saved ledger): the write still succeeds', async () => {
@@ -1007,7 +1150,9 @@ describe('AC6 and AC7: the fact-diff log and the placeholder rate', () => {
       requiredFactCount: 7,
       deliveredText: outcome.body,
     });
-    expect(await FactDiff.countDocuments({ documentId: null, ledgerId: null })).toBe(outcome.records.length);
+    expect(await FactDiff.countDocuments({ documentId: null, ledgerId: null })).toBe(
+      outcome.records.length,
+    );
   });
 });
 
@@ -1024,7 +1169,13 @@ describe('the weekly fact-diff report', () => {
   const from = new Date(Date.now() - 24 * 3600 * 1000);
   const to = new Date(Date.now() + 24 * 3600 * 1000);
 
-  async function seed(fx: Fixture, userId: string, documentId: string, ledgerId: string, runType: 'real' | 'fixture' = 'real') {
+  async function seed(
+    fx: Fixture,
+    userId: string,
+    documentId: string,
+    ledgerId: string,
+    runType: 'real' | 'fixture' = 'real',
+  ) {
     const outcome = await verifyAndRepair(inputOf(fx), repairSpy(null));
     await writeFactCheckLog({
       outcome,
@@ -1046,17 +1197,44 @@ describe('the weekly fact-diff report', () => {
     await seed(RB, U2, D2, L2);
     const md = buildWeeklyFactDiffReport(from, to, await loadWeeklyFactDiffData(from, to));
     for (const secret of [
-      'Karol Bagh', 'Demo Traders', 'Suresh Gupta', '3,00,000', '300000', '15.09.2026', '15 September 2026',
-      '01.09.2026', '1 September 2026', 'Pirbahore', 'Testmohan Prasad', 'Testpal Yadav', 'Hazratganj', '901/2026',
-      'week following the presentation', U1, U2, D1, D2, L1, L2, userRefOf(U1), userRefOf(U2),
+      'Karol Bagh',
+      'Demo Traders',
+      'Suresh Gupta',
+      '3,00,000',
+      '300000',
+      '15.09.2026',
+      '15 September 2026',
+      '01.09.2026',
+      '1 September 2026',
+      'Pirbahore',
+      'Testmohan Prasad',
+      'Testpal Yadav',
+      'Hazratganj',
+      '901/2026',
+      'week following the presentation',
+      U1,
+      U2,
+      D1,
+      D2,
+      L1,
+      L2,
+      userRefOf(U1),
+      userRefOf(U2),
     ]) {
       expect({ secret, in: md.includes(secret) }).toEqual({ secret, in: false });
     }
     expect(md).not.toMatch(/userId|documentId|ledgerId/);
     // labels, keys, banned ids and the pack are in the clear
     for (const shown of [
-      'legal_notice_s138', 'bail_regular', 'bail_before_magistrate', 'drawee_branch', 'dishonour_date',
-      'Drawee Branch', 'Cheque Amount (Rs.)', 'no_criminal_antecedents', 'permanent_resident',
+      'legal_notice_s138',
+      'bail_regular',
+      'bail_before_magistrate',
+      'drawee_branch',
+      'dishonour_date',
+      'Drawee Branch',
+      'Cheque Amount (Rs.)',
+      'no_criminal_antecedents',
+      'permanent_resident',
     ]) {
       expect({ shown, in: md.includes(shown) }).toEqual({ shown, in: true });
     }
@@ -1083,29 +1261,81 @@ describe('the weekly fact-diff report', () => {
 
   it('rows outside the window are left out', async () => {
     await seed(S138, U1, D1, L1);
-    const md = buildWeeklyFactDiffReport(from, to, await loadWeeklyFactDiffData(new Date(0), new Date(1000)));
+    const md = buildWeeklyFactDiffReport(
+      from,
+      to,
+      await loadWeeklyFactDiffData(new Date(0), new Date(1000)),
+    );
     expect(md).not.toContain('drawee_branch');
   });
 
   it('groups by userRef, never by userId: two users, same difference, "users" is 2', () => {
     const row = (userRef: string) => ({
-      rulePack: 'p', check: 'mutation', entityType: 'name', label: 'L', ledgerKey: 'k', bannedEntryId: null,
-      userRef, resolution: 'placeholdered', phase: 'initial', diff: 'name: 2 tokens vs 2, edit distance 1',
+      rulePack: 'p',
+      check: 'mutation',
+      entityType: 'name',
+      label: 'L',
+      ledgerKey: 'k',
+      bannedEntryId: null,
+      userRef,
+      resolution: 'placeholdered',
+      phase: 'initial',
+      diff: 'name: 2 tokens vs 2, edit distance 1',
     });
     const md = buildWeeklyFactDiffReport(from, to, {
-      rows: [row('refA'), row('refB'), row('refB')], rates: [], previousRates: [], fixtureRows: 0,
+      rows: [row('refA'), row('refB'), row('refB')],
+      rates: [],
+      previousRates: [],
+      fixtureRows: 0,
     });
-    expect(md).toMatch(/\| 1 \| p \| mutation \| name \| k \| L \| name: 2 tokens vs 2, edit distance 1 \| 3 \| 2 \|/);
+    expect(md).toMatch(
+      /\| 1 \| p \| mutation \| name \| k \| L \| name: 2 tokens vs 2, edit distance 1 \| 3 \| 2 \|/,
+    );
     expect(md).not.toMatch(/ref[AB]/);
   });
 
   it('describeDiff masks names, amounts, dates, case numbers and stations; shows sections and phrases', () => {
     const cases: Array<[string, string, string | null, string | null, string[], string[]]> = [
-      ['name', 'mutation', 'Demo Traders', 'Demu Traders', ['Demo', 'Demu', 'Traders'], ['edit distance 1']],
-      ['police_station', 'mutation', 'Hazratganj', 'Aliganj', ['Hazratganj', 'Aliganj'], ['police_station']],
-      ['amount', 'mutation', 'Rs 3,00,000', 'Rs 3,50,000', ['3,00,000', '3,50,000', '300000'], ['digits']],
-      ['date', 'mutation', '13 September 2026', '14 September 2026', ['13 September', '14 September', '2026'], ['day differs']],
-      ['date', 'mutation', null, 'in the week following the presentation', ['week following'], ['date']],
+      [
+        'name',
+        'mutation',
+        'Demo Traders',
+        'Demu Traders',
+        ['Demo', 'Demu', 'Traders'],
+        ['edit distance 1'],
+      ],
+      [
+        'police_station',
+        'mutation',
+        'Hazratganj',
+        'Aliganj',
+        ['Hazratganj', 'Aliganj'],
+        ['police_station'],
+      ],
+      [
+        'amount',
+        'mutation',
+        'Rs 3,00,000',
+        'Rs 3,50,000',
+        ['3,00,000', '3,50,000', '300000'],
+        ['digits'],
+      ],
+      [
+        'date',
+        'mutation',
+        '13 September 2026',
+        '14 September 2026',
+        ['13 September', '14 September', '2026'],
+        ['day differs'],
+      ],
+      [
+        'date',
+        'mutation',
+        null,
+        'in the week following the presentation',
+        ['week following'],
+        ['date'],
+      ],
       ['case_no', 'mutation', '901/2026', '902/2026', ['901', '902', '2026'], ['999/9999']],
       ['name', 'unsupported', null, 'Mukesh Agarwal', ['Mukesh', 'Agarwal'], ['tokens']],
       ['name', 'mutation', '9876543210', '9876543211', ['9876543210', '9876543211'], ['digits']],
@@ -1113,12 +1343,20 @@ describe('the weekly fact-diff report', () => {
     ];
     for (const [type, check, l, d, hidden, shown] of cases) {
       const out = describeDiff(type, check, l, d);
-      for (const h of hidden) expect({ type, h, in: out.includes(h) }).toEqual({ type, h, in: false });
-      for (const s of shown) expect({ type, s, in: out.includes(s) }).toEqual({ type, s, in: true });
+      for (const h of hidden)
+        expect({ type, h, in: out.includes(h) }).toEqual({ type, h, in: false });
+      for (const s of shown)
+        expect({ type, s, in: out.includes(s) }).toEqual({ type, s, in: true });
     }
-    expect(describeDiff('section', 'unsupported', null, 'Section 480 BNSS')).toContain('Section 480 BNSS');
-    expect(describeDiff('section', 'mutation', 'Section 318(4) BNS', 'Section 318(2) BNS')).toContain('318(4)');
-    expect(describeDiff('phrase', 'banned', null, 'gainfully employed')).toContain('gainfully employed');
+    expect(describeDiff('section', 'unsupported', null, 'Section 480 BNSS')).toContain(
+      'Section 480 BNSS',
+    );
+    expect(
+      describeDiff('section', 'mutation', 'Section 318(4) BNS', 'Section 318(2) BNS'),
+    ).toContain('318(4)');
+    expect(describeDiff('phrase', 'banned', null, 'gainfully employed')).toContain(
+      'gainfully employed',
+    );
   });
 });
 
@@ -1149,20 +1387,23 @@ const VALUES = [
   { key: 'grounds_for_bail', value: [FIRST_GROUND] },
 ];
 
+// T-200: paragraph 1, where every clause is reported, carries each clause's cue words
+const CUES =
+  ' He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.';
 const CLEAN = [
-  "1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail.",
+  `1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail.${CUES}`,
   '2. That FIR No. 124/2026 was registered at PS Kotwali.',
   '3. That the applicant is in judicial custody.',
 ].join('\n\n');
 // one banned phrase
 const BAD = [
-  '1. That the applicant Ram Kumar is a law-abiding citizen.',
+  `1. That the applicant Ram Kumar is a law-abiding citizen.${CUES}`,
   '2. That FIR No. 124/2026 was registered at PS Kotwali.',
   '3. That the applicant is in judicial custody.',
 ].join('\n\n');
 // two violations: the banned phrase and a section the ledger does not hold
 const BAD2 = `${BAD}\n\n4. That the offence is under Section 318 of the Bharatiya Nyaya Sanhita, 2023.`;
-const FIXED_P0 = "[[P0]]\n1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail.";
+const FIXED_P0 = `[[P0]]\n1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail.${CUES}`;
 
 function headers() {
   return {
@@ -1189,7 +1430,10 @@ function event(text: string, name: string): Record<string, any> | null {
   return blocks.length === 0 ? null : JSON.parse(blocks[blocks.length - 1].split('\ndata: ')[1]);
 }
 const savedContent = async (res: request.Response) =>
-  decrypt((await LawieDocument.findById(event(res.text, 'done')!.docId as string).lean())!.generatedContent);
+  decrypt(
+    (await LawieDocument.findById(event(res.text, 'done')!.docId as string).lean())!
+      .generatedContent,
+  );
 
 function fact(key: string, display: string, extra: Record<string, unknown> = {}) {
   return {
@@ -1217,7 +1461,10 @@ const baseFacts = () => [
   fact('currently_in_custody', 'Judicial custody'),
   fact('facts_narrative', 'He was wrongly named in the FIR.'),
 ];
-async function ledger(facts: Array<Record<string, unknown>>, runType: 'user' | 'fixture' = 'fixture') {
+async function ledger(
+  facts: Array<Record<string, unknown>>,
+  runType: 'user' | 'fixture' = 'fixture',
+) {
   const doc = await FactLedgerModel.create({
     userId: USER_ID,
     documentKind: 'bail_regular',
@@ -1231,7 +1478,13 @@ function post(ledgerId?: string, extra: Record<string, unknown> = {}) {
   return request(app)
     .post('/generate-from-brief')
     .set(headers())
-    .send({ kind: 'bail_regular', values: VALUES, court, ...(ledgerId ? { ledger_id: ledgerId } : {}), ...extra });
+    .send({
+      kind: 'bail_regular',
+      values: VALUES,
+      court,
+      ...(ledgerId ? { ledger_id: ledgerId } : {}),
+      ...extra,
+    });
 }
 
 beforeEach(async () => {
@@ -1254,7 +1507,14 @@ beforeEach(async () => {
     city: 'Patna',
     formattingRulesRef: 'bihar_district',
   });
-  await User.create({ _id: USER_ID, plan: 'free', planTier: 'free', inkSub: 0, inkAnnualCarry: 0, inkTopup: 2000 });
+  await User.create({
+    _id: USER_ID,
+    plan: 'free',
+    planTier: 'free',
+    inkSub: 0,
+    inkAnnualCarry: 0,
+    inkTopup: 2000,
+  });
 });
 afterEach(() => {
   jest.restoreAllMocks();
@@ -1273,7 +1533,12 @@ describe('the route: the verifier sits between the Drafter and the advocate', ()
     expect(await FactDiff.countDocuments({})).toBe(0);
     const rates = await PlaceholderRate.find({}).lean();
     expect(rates).toHaveLength(1);
-    expect(rates[0]).toMatchObject({ rulePack: 'bail_regular', runType: 'real', repairRan: false, verifierPlaceholderCount: 0 });
+    expect(rates[0]).toMatchObject({
+      rulePack: 'bail_regular',
+      runType: 'real',
+      repairRan: false,
+      verifierPlaceholderCount: 0,
+    });
   });
 
   it('the unchecked body is never sent: with a banned phrase and a failed repair, the stream never carries it', async () => {
@@ -1326,7 +1591,9 @@ describe('the route: the verifier sits between the Drafter and the advocate', ()
     // fixed: the document carries the repaired paragraph, no banner, no placeholder from the verifier
     expect(event(res.text, 'done')!.factCheck.banner).toBeNull();
     const content = await savedContent(res);
-    expect(content).toContain("1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail.");
+    expect(content).toContain(
+      "1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail.",
+    );
     expect(content).not.toMatch(/law-abiding/);
     // metered as fact_repair
     const gen = await Generation.findOne({ userId: USER_ID }).lean();
@@ -1335,14 +1602,27 @@ describe('the route: the verifier sits between the Drafter and the advocate', ()
     // the log: initial rows resolved as repaired
     const rows = await FactDiff.find({}).lean();
     expect(rows.length).toBe(1);
-    expect(rows[0]).toMatchObject({ check: 'banned', bannedEntryId: 'good_character', phase: 'initial', resolution: 'repaired', runType: 'fixture' });
+    expect(rows[0]).toMatchObject({
+      check: 'banned',
+      bannedEntryId: 'good_character',
+      phase: 'initial',
+      resolution: 'repaired',
+      runType: 'fixture',
+    });
     const rate = await PlaceholderRate.findOne({}).lean();
     expect(rate).toMatchObject({ repairRan: true, repairFixed: true, verifierPlaceholderCount: 0 });
   });
 
   it('at most one repair per draft: a repair that still fails is not followed by a second', async () => {
     const id = await ledger(baseFacts());
-    mockModel(answer(BAD), BAD.split('\n\n').slice(0, 1).map((p) => `[[P0]]\n${p}`).join(''), 'third answer: must never be asked for');
+    mockModel(
+      answer(BAD),
+      BAD.split('\n\n')
+        .slice(0, 1)
+        .map((p) => `[[P0]]\n${p}`)
+        .join(''),
+      'third answer: must never be asked for',
+    );
     const res = await post(id);
     expect(res.status).toBe(200);
     expect(mockMessagesStream).toHaveBeenCalledTimes(2);
@@ -1368,7 +1648,9 @@ describe('the route: the verifier sits between the Drafter and the advocate', ()
   it('a failure writing the fact-diff log never fails the draft and logs the error name only', async () => {
     const id = await ledger(baseFacts());
     mockModel(answer(BAD), 'no');
-    jest.spyOn(FactDiff, 'insertMany').mockRejectedValueOnce(new Error('boom: Ram Kumar law-abiding'));
+    jest
+      .spyOn(FactDiff, 'insertMany')
+      .mockRejectedValueOnce(new Error('boom: Ram Kumar law-abiding'));
     const err = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     const res = await post(id);
     expect(res.status).toBe(200);
@@ -1384,8 +1666,14 @@ describe('the route: the verifier sits between the Drafter and the advocate', ()
     mockModel(answer(BAD), 'no', answer(BAD), 'no');
     await post(await ledger(baseFacts(), 'user'));
     await post(await ledger(baseFacts(), 'fixture'));
-    expect((await FactDiff.find({}).lean()).map((r) => r.runType).sort()).toEqual(['fixture', 'real']);
-    expect((await PlaceholderRate.find({}).lean()).map((r) => r.runType).sort()).toEqual(['fixture', 'real']);
+    expect((await FactDiff.find({}).lean()).map((r) => r.runType).sort()).toEqual([
+      'fixture',
+      'real',
+    ]);
+    expect((await PlaceholderRate.find({}).lean()).map((r) => r.runType).sort()).toEqual([
+      'fixture',
+      'real',
+    ]);
   });
 
   it('one PlaceholderRate per draft and one FactDiff per violation per phase', async () => {
@@ -1488,7 +1776,15 @@ describe('switch off: the verifier is not there', () => {
 describe('PII: no fact value in console output, error responses or LlmAuxCall rows across a failing run', () => {
   const SENT = 'SENTDISPLAYxq95';
   // values a leak would show: ledger displays, the draft's wrong values, banned phrase
-  const VALUES_THAT_MUST_NOT_LEAK = [SENT, 'law-abiding', 'Ram Kumar', 'Kotwali', '124/2026', 'Hari Kumar', 'Section 318'];
+  const VALUES_THAT_MUST_NOT_LEAK = [
+    SENT,
+    'law-abiding',
+    'Ram Kumar',
+    'Kotwali',
+    '124/2026',
+    'Hari Kumar',
+    'Section 318',
+  ];
 
   const spyAll = () =>
     (['info', 'error', 'warn', 'log', 'debug'] as const).map((m) =>
@@ -1511,7 +1807,9 @@ describe('PII: no fact value in console output, error responses or LlmAuxCall ro
     mockMessagesStream.mockResolvedValueOnce(sdkAnswer(answer(BAD2), 4000, 800));
     mockMessagesStream.mockRejectedValueOnce(new Error(`api said: ${SENT} Ram Kumar law-abiding`));
     jest.spyOn(FactDiff, 'insertMany').mockRejectedValueOnce(new Error(`db said: ${SENT} Kotwali`));
-    jest.spyOn(PlaceholderRate, 'create').mockRejectedValueOnce(new Error('never reached') as never);
+    jest
+      .spyOn(PlaceholderRate, 'create')
+      .mockRejectedValueOnce(new Error('never reached') as never);
     const res = await post(id);
     expect(res.status).toBe(200);
     expect(leaked(spies)).toEqual([]);
@@ -1527,14 +1825,22 @@ describe('PII: no fact value in console output, error responses or LlmAuxCall ro
     expect(res.status).toBe(200);
     expect(leaked(spies)).toEqual([]);
     const aux = JSON.stringify(await LlmAuxCall.find({}).lean());
-    for (const v of VALUES_THAT_MUST_NOT_LEAK) expect({ v, in: aux.includes(v) }).toEqual({ v, in: false });
+    for (const v of VALUES_THAT_MUST_NOT_LEAK)
+      expect({ v, in: aux.includes(v) }).toEqual({ v, in: false });
     const gen = JSON.stringify(await Generation.find({}).lean());
-    for (const v of VALUES_THAT_MUST_NOT_LEAK) expect({ v, in: gen.includes(v) }).toEqual({ v, in: false });
+    for (const v of VALUES_THAT_MUST_NOT_LEAK)
+      expect({ v, in: gen.includes(v) }).toEqual({ v, in: false });
     // the fact-diff rows hold values only encrypted
-    const raw = JSON.stringify(await mongoose.connection.collection('factdiffs').find({}).toArray());
-    for (const v of ['law-abiding', 'Section 318']) expect({ v, in: raw.includes(v) }).toEqual({ v, in: false });
-    const rates = JSON.stringify(await mongoose.connection.collection('placeholderrates').find({}).toArray());
-    for (const v of VALUES_THAT_MUST_NOT_LEAK) expect({ v, in: rates.includes(v) }).toEqual({ v, in: false });
+    const raw = JSON.stringify(
+      await mongoose.connection.collection('factdiffs').find({}).toArray(),
+    );
+    for (const v of ['law-abiding', 'Section 318'])
+      expect({ v, in: raw.includes(v) }).toEqual({ v, in: false });
+    const rates = JSON.stringify(
+      await mongoose.connection.collection('placeholderrates').find({}).toArray(),
+    );
+    for (const v of VALUES_THAT_MUST_NOT_LEAK)
+      expect({ v, in: rates.includes(v) }).toEqual({ v, in: false });
   });
 
   it('the repair prompt is built from FACTS only: no brief value, no description', async () => {
@@ -1554,7 +1860,9 @@ describe('PII: no fact value in console output, error responses or LlmAuxCall ro
       documentKind: 'bail_regular',
       runType: 'user',
       currentVersion: 1,
-      versions: [{ version: 1, facts: facts(), unresolved: [], createdAt: new Date(), reason: 'extract' }],
+      versions: [
+        { version: 1, facts: facts(), unresolved: [], createdAt: new Date(), reason: 'extract' },
+      ],
     });
     const spies = spyAll();
     const res = await post(String(doc._id));
@@ -1622,7 +1930,9 @@ describe('check 4: undertakings are kept, past averments are stripped (empty led
     const out = await verifyAndRepair(empty(`1. ${sentence}`), repairSpy(null));
     expect(out.body).toMatch(/\{\{MISSING: [^}]+\}\}/);
     // the placeholder's own label may say "cooperated"; look at the text outside it
-    expect(out.body.replace(/\{\{MISSING:[^}]*\}\}/g, '')).not.toMatch(/cooperated|co-operated|sahyog kiya|bulane par/i);
+    expect(out.body.replace(/\{\{MISSING:[^}]*\}\}/g, '')).not.toMatch(
+      /cooperated|co-operated|sahyog kiya|bulane par/i,
+    );
   });
 
   it.each([
@@ -1638,11 +1948,15 @@ describe('check 4: undertakings are kept, past averments are stripped (empty led
   });
 
   it('KEPT: "suffering from a heart ailment since birth"', () => {
-    expect(bannedIn('That the applicant is suffering from a heart ailment since birth.')).toEqual([]);
+    expect(bannedIn('That the applicant is suffering from a heart ailment since birth.')).toEqual(
+      [],
+    );
   });
 
   it('KEPT: "has been residing at the address given in the cause title"', () => {
-    expect(bannedIn('The applicant has been residing at the address given in the cause title.')).toEqual([]);
+    expect(
+      bannedIn('The applicant has been residing at the address given in the cause title.'),
+    ).toEqual([]);
   });
 
   it('whole-word start: "she cooperated with the police" is stripped by its own match', () => {

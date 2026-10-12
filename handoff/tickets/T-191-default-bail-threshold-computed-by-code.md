@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                   |
 | Owner          | Vishal (build). Ajay signs the logic. Anushka (verdict)                                                                  |
 | Mode           | Build, full chain. Merge to develop                                                                                      |
-| Status         | To do                                                                                                                    |
+| Status         | Closed, not built (Priya, 12 Oct 2026). Replaced by T-251: Ajay ruled that Lawie never computes the default-bail period or counts days. The advocate states it |
 | Size           | M (1 day), plus Ajay's sign-off time                                                                                     |
 | Depends on     | T-147c (the banned entry and its unlock key)                                                                             |
 | Gate           | Before `default_bail.statutory_period_expired` may unlock for any user. Until then it stays banned, which is fail-safe   |

@@ -541,6 +541,29 @@ export function paragraphNumbers(body: string): Set<number> {
   return out;
 }
 
+/**
+ * T-200: the text of each numbered paragraph, by its number, without the
+ * number: from "N." to the next numbered paragraph. A number written twice
+ * gets both texts, in order.
+ */
+export function paragraphTexts(body: string): Map<number, string> {
+  const out = new Map<number, string>();
+  for (const { n, text } of numberedParagraphs(body)) {
+    out.set(n, out.has(n) ? `${out.get(n)} ${text}` : text);
+  }
+  return out;
+}
+
+/** The numbered paragraphs in order: the number, where the text after it starts, and the text. */
+function numberedParagraphs(body: string): Array<{ n: number; start: number; text: string }> {
+  const starts = [...body.matchAll(/^\s*(\d{1,3})\.\s/gm)];
+  return starts.map((m, i) => {
+    const start = (m.index ?? 0) + m[0].length;
+    const end = i + 1 < starts.length ? (starts[i + 1].index ?? body.length) : body.length;
+    return { n: +m[1], start, text: body.slice(start, end) };
+  });
+}
+
 /** Which system part a clause belongs to, by what it is called. Null when it belongs to none. */
 const CLAUSE_TO_PART: Array<{ clause: RegExp; part: RegExp }> = [
   { clause: /cause[\s_-]*title|court[\s_-]*header/i, part: /^(cause_title|header)$/ },
@@ -568,19 +591,197 @@ export function coveredBySystemPart(clause: RulePackClause, parts: SystemPart[])
  * blanks: each stretch of 12 characters or more must appear, in order.
  */
 export function hasFixedWording(body: string, fixedText: string): boolean {
-  const normBody = normalise(body);
-  const stretches = fixedText
-    .split(/\{\{[^}]*\}\}|\{[^}]*\}|\[[^\]]*\]|_{3,}/)
+  const stretches = fixedStretches(fixedText);
+  if (stretches.length === 0) return true;
+  return inOrder(normalise(body), stretches);
+}
+
+/** A blank: {{...}}, {...}, [...] or a line of three or more underscores. */
+const BLANK = /\{\{[^}]*\}\}|\{[^}]*\}|\[[^\]]*\]|_{3,}/g;
+
+/** The normalised stretches of 12 characters or more between the blanks of fixed wording. */
+function fixedStretches(fixedText: string): string[] {
+  return fixedText
+    .split(BLANK)
     .map((s) => normalise(s).replace(/^[\s.,;:]+|[\s.,;:]+$/g, ''))
     .filter((s) => s.length >= 12);
-  if (stretches.length === 0) return true;
+}
+
+/** True when every stretch is in the normalised text, in order. */
+function inOrder(normText: string, stretches: string[]): boolean {
   let from = 0;
   for (const stretch of stretches) {
-    const at = normBody.indexOf(stretch, from);
+    const at = normText.indexOf(stretch, from);
     if (at < 0) return false;
     from = at + stretch.length;
   }
   return true;
+}
+
+// ── T-200: what proves a clause is in its paragraphs (Ajay, 11 and 12 Oct 2026) ──
+
+/**
+ * A cue (T-200, R2a). `any`: one entry is enough. `all`: each list must be
+ * met. Entries match as substrings of the normalised paragraph text.
+ * `{{key}}` is the brief's value for that key, or its blank.
+ */
+type Cue = { any: string[] } | { all: string[][] };
+
+const FIR_CUE: Cue = { any: ['{{fir_number}}'] };
+const CUSTODY_CUE: Cue = {
+  any: ['custody', 'arrest', 'jail', 'हिरासत', 'अभिरक्षा', 'गिरफ्तार', 'गिरफ़्तार', 'जेल'],
+};
+const GROUNDS_CUE: Cue = { any: ['ground', 'submitted', 'आधार', 'निवेदन'] };
+const UNDERTAKING_CUE: Cue = { any: ['undertak', 'वचन', 'आश्वासन'] };
+const EARLIER_APPLICATIONS_CUE: Cue = {
+  all: [
+    ['bail', 'जमानत', 'ज़मानत'],
+    [
+      'earlier',
+      'previous',
+      'prior',
+      'before',
+      'pending',
+      'rejected',
+      'dismissed',
+      'withdrawn',
+      'to be confirmed: whether any earlier bail application',
+      'पूर्व',
+      'पहले',
+      'लंबित',
+      'खारिज',
+      'ख़ारिज',
+      'निरस्त',
+      'अस्वीकृत',
+      'वापस',
+    ],
+  ],
+};
+
+/** T-237 (Ajay, 12 Oct 2026): EA-standard, for bail_anticipatory and bail_before_magistrate. */
+const EARLIER_APPLICATIONS_STANDARD_CUE: Cue = {
+  all: [
+    ['bail', 'जमानत', 'ज़मानत'],
+    [
+      'earlier',
+      'previous',
+      'prior',
+      'pending',
+      'rejected',
+      'dismissed',
+      'withdrawn',
+      'to be confirmed: whether any earlier',
+      'पूर्व',
+      'पहले',
+      'लंबित',
+      'खारिज',
+      'ख़ारिज',
+      'निरस्त',
+      'अस्वीकृत',
+      'वापस',
+    ],
+  ],
+};
+/**
+ * T-237 (Ajay, 12 Oct 2026): EA-interim, for interim_bail. No `pending` or
+ * `लंबित`: every interim draft says the main application is pending.
+ */
+const EARLIER_APPLICATIONS_INTERIM_CUE: Cue = {
+  all: [
+    ['bail', 'जमानत', 'ज़मानत'],
+    [
+      'earlier',
+      'previous',
+      'prior',
+      'rejected',
+      'dismissed',
+      'withdrawn',
+      'to be confirmed: whether any earlier',
+      'पूर्व',
+      'पहले',
+      'खारिज',
+      'ख़ारिज',
+      'निरस्त',
+      'अस्वीकृत',
+      'वापस',
+    ],
+  ],
+};
+
+/**
+ * The signed cues, by pack and clause id (12 Oct 2026). No fallback by id: a
+ * clause not listed here is checked under R2b.
+ */
+const CLAUSE_CUES: Record<string, Record<string, Cue>> = {
+  bail_regular: {
+    fir_details: FIR_CUE,
+    custody_status: CUSTODY_CUE,
+    grounds: GROUNDS_CUE,
+    no_flight_risk: UNDERTAKING_CUE,
+    earlier_applications: EARLIER_APPLICATIONS_CUE,
+  },
+  bail_anticipatory: {
+    fir_details: FIR_CUE,
+    no_flight_risk: UNDERTAKING_CUE,
+    earlier_applications: EARLIER_APPLICATIONS_STANDARD_CUE,
+  },
+  interim_bail: {
+    undertakings: UNDERTAKING_CUE,
+    earlier_applications: EARLIER_APPLICATIONS_INTERIM_CUE,
+  },
+  bail_before_magistrate: {
+    fir_particulars: FIR_CUE,
+    custody: CUSTODY_CUE,
+    grounds: GROUNDS_CUE,
+    undertakings: UNDERTAKING_CUE,
+    earlier_applications: EARLIER_APPLICATIONS_STANDARD_CUE,
+  },
+};
+
+function cueFor(packId: string, clauseId: string): Cue | null {
+  const own = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
+  if (!own(CLAUSE_CUES, packId) || !own(CLAUSE_CUES[packId], clauseId)) return null;
+  return CLAUSE_CUES[packId][clauseId];
+}
+
+/** The brief's value for a key as written, or its blank when it has none. */
+function briefValue(brief: Brief | undefined, key: string): string {
+  const item = brief?.items.find((i) => i.key === key);
+  const value = item?.value;
+  if (typeof value === 'string' && value.trim() !== '') return value;
+  if (Array.isArray(value) && value.length > 0) return value.join(', ');
+  return item?.placeholder ?? brief?.still_unknown.find((u) => u.key === key)?.placeholder ?? '';
+}
+
+/** True when one normalised paragraph carries the cue. A cue that resolves to nothing never matches. */
+function carriesCue(cue: Cue, paragraph: string, brief: Brief | undefined): boolean {
+  const has = (entry: string): boolean => {
+    let blank = false;
+    const resolved = entry.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, key: string) => {
+      const value = briefValue(brief, key);
+      if (normalise(value) === '') blank = true;
+      return value;
+    });
+    const wanted = normalise(resolved);
+    return !blank && wanted !== '' && paragraph.includes(wanted);
+  };
+  const lists = 'any' in cue ? [cue.any] : cue.all;
+  return lists.every((list) => list.some(has));
+}
+
+/** What `findMissingClauses` needs beyond the draft. Every field is optional. */
+export interface ClauseCheckContext {
+  /** For `{{key}}` in a cue. */
+  brief?: Brief;
+  /** Fixed wording is checked on English drafts only (R1.7). English when not given. */
+  language?: 'en' | 'hi' | 'bilingual';
+  /**
+   * R2b: the text of a clause without cues when it was first counted present,
+   * by clause id. Filled in here; pass the same map to every later check.
+   */
+  recorded?: Map<string, string>;
+  /** R1.7: the clauses whose fixed wording was not checked, id to title. Filled in here. */
+  notChecked?: Map<string, string>;
 }
 
 export interface MissingClause {
@@ -591,15 +792,170 @@ export interface MissingClause {
     | 'reported_missing'
     | 'paragraph_not_found'
     | 'wording_not_found'
+    | 'clause_not_in_paragraph'
     | 'not_a_system_part';
+}
+
+/**
+ * T-200, R1 to R3: whether reported paragraphs that exist carry the clause.
+ * Null when they do; otherwise the reason it is missing.
+ */
+function checkReportedParagraphs(
+  packId: string,
+  clause: RulePackClause,
+  numbers: number[],
+  body: string,
+  context: ClauseCheckContext,
+): MissingClause['reason'] | null {
+  const texts = paragraphTexts(body);
+  const reported = [...new Set(numbers)]
+    .sort((a, b) => a - b)
+    .map((n) => normalise(texts.get(n) ?? ''));
+
+  // R1: fixed wording, on an English draft, with stretches to test.
+  if (clause.fixedText !== null) {
+    const stretches = fixedStretches(clause.fixedText);
+    if ((context.language ?? 'en') !== 'en') {
+      context.notChecked?.set(clause.id, clause.title); // R1.7, then R2
+    } else if (stretches.length > 0) {
+      if (inOrder(reported.join(' '), stretches)) return null; // R1.2
+      for (const [n, text] of texts) {
+        // R1.3, the only re-pointing: complete and in order in one other paragraph.
+        if (!numbers.includes(n) && inOrder(normalise(text), stretches)) return null;
+      }
+      const normBody = normalise(body);
+      if (!stretches.some((s) => normBody.includes(s))) return 'wording_not_found'; // R1.4
+      return 'clause_not_in_paragraph'; // R1.5
+    }
+    // R1.6: no stretch of 12 characters or more, so R2.
+  }
+
+  // R2a: one reported paragraph carries the cue. R3: no other paragraph counts.
+  const cue = cueFor(packId, clause.id);
+  if (cue) {
+    return reported.some((p) => carriesCue(cue, p, context.brief))
+      ? null
+      : 'clause_not_in_paragraph';
+  }
+
+  // R2b: no cues. Recorded when first present; later the text must still be there.
+  const text = reported.join(' ');
+  const before = context.recorded?.get(clause.id);
+  if (before === undefined) {
+    // R2b.5: a first check finding nothing but blanks records nothing.
+    if (onlyBlanks(text)) return 'clause_not_in_paragraph';
+    context.recorded?.set(clause.id, text);
+    return null;
+  }
+  return text.includes(before) ? null : 'clause_not_in_paragraph';
+}
+
+/** True when a paragraph holds nothing but blanks, once punctuation and spaces are set aside. */
+function onlyBlanks(text: string): boolean {
+  return !/[\p{L}\p{N}]/u.test(text.replace(BLANK, ''));
+}
+
+/** A sentence ends at ., ?, ! or the danda । followed by white space, or at a blank line. */
+const SENTENCE_END = /([.?!।])\s+|\n[ \t]*\n\s*/g;
+
+/**
+ * Where the sentence that holds the span [from, to) starts and ends in the
+ * text: from just after the closing mark before it to the end of the space
+ * after its own closing mark, so the space on either side is included. A
+ * span that crosses a sentence end gets every sentence it touches.
+ */
+function sentenceAround(text: string, from: number, to: number): { start: number; end: number } {
+  let start = 0;
+  let end = text.length;
+  for (const m of text.matchAll(SENTENCE_END)) {
+    const close = (m.index ?? 0) + (m[1] ? 1 : 0);
+    const after = (m.index ?? 0) + m[0].length;
+    if (after <= from) start = close;
+    else if (after >= to) {
+      end = after;
+      break;
+    }
+  }
+  return { start, end };
+}
+
+/**
+ * T-200, R2b.4: true when paragraph n changed in one contiguous stretch that
+ * lies inside a sentence the fact check flagged, everything before and after
+ * that stretch being identical, character for character. `flagged` holds the
+ * flagged spans in `before`.
+ */
+function changeConfined(
+  before: string,
+  after: string,
+  n: number,
+  flagged: ReadonlyArray<{ from: number; to: number }>,
+): boolean {
+  const was = numberedParagraphs(before).filter((p) => p.n === n);
+  const now = numberedParagraphs(after).filter((p) => p.n === n);
+  if (was.length !== 1 || now.length !== 1) return false;
+  const a = was[0].text.trimEnd();
+  const b = now[0].text.trimEnd();
+  const shorter = Math.min(a.length, b.length);
+  // The longest identical start and the longest identical end.
+  let same = 0;
+  while (same < shorter && a[same] === b[same]) same += 1;
+  let tail = 0;
+  while (tail < shorter && a[a.length - 1 - tail] === b[b.length - 1 - tail]) tail += 1;
+  // The stretch is the sentence itself, cut to the paragraph: what lies before
+  // it must be an identical start, what lies after it an identical end.
+  return flagged.some((f) => {
+    const sentence = sentenceAround(before, f.from, f.to);
+    const head = Math.max(0, sentence.start - was[0].start);
+    const rest = Math.max(0, was[0].start + a.length - sentence.end);
+    return head <= same && rest <= tail && head + rest <= shorter;
+  });
+}
+
+/**
+ * T-200, R2b.1, R2b.2 and R2b.4 (Ajay, 12 Oct 2026): after an edit made
+ * without the Drafter, each recorded clause reported at a paragraph the edit
+ * changed is recorded again from the edited text. Not when the edit removed
+ * one of its paragraphs or left it holding nothing but blanks: the next check
+ * then finds the clause missing. A clause already missing is not recorded
+ * again, so such an edit never undoes what a Drafter edit broke.
+ *
+ * Without `flagged`, the edit is Lawie's code (R2b.1). With it, the edit is
+ * the fact check's model repair (R2b.4): a changed paragraph is recorded
+ * again only when the change is confined to one flagged sentence.
+ */
+export function recordAgainAfterCodeEdit(
+  report: Map<string, ClauseStatus> | null,
+  before: string,
+  after: string,
+  recorded: Map<string, string>,
+  missing: readonly MissingClause[],
+  flagged?: ReadonlyArray<{ from: number; to: number }>,
+): void {
+  if (!report) return;
+  const was = paragraphTexts(before);
+  const now = paragraphTexts(after);
+  for (const [id, status] of report) {
+    if (status.kind !== 'paragraphs' || !recorded.has(id)) continue;
+    if (missing.some((m) => m.id === id)) continue;
+    const numbers = [...new Set(status.numbers)].sort((a, b) => a - b);
+    const changed = numbers.filter(
+      (n) => normalise(was.get(n) ?? '') !== normalise(now.get(n) ?? ''),
+    );
+    if (changed.length === 0) continue;
+    if (changed.some((n) => !now.has(n) || onlyBlanks(now.get(n) ?? ''))) continue; // R2b.2
+    if (flagged && !changed.every((n) => changeConfined(before, after, n, flagged))) continue;
+    recorded.set(id, numbers.map((n) => normalise(now.get(n) ?? '')).join(' '));
+  }
 }
 
 /**
  * The mandatory clauses the draft does not cover (T-127, section 4, server
  * step 2). A clause counts as missing when the Drafter says so, when it has
- * no line, when a paragraph on its line is not in the body, when its fixed
- * wording is not in the body, or when it is reported as a system part that the
- * system did not add.
+ * no line, when a paragraph on its line is not in the body, when its
+ * paragraphs do not carry it (T-200: its fixed wording, its cue, or the text
+ * recorded for it), or when it is reported as a system part that the system
+ * did not add.
  *
  * A clause that applies only in some cases is not checked: code cannot tell
  * whether the case arises. An optional clause is never missing.
@@ -608,6 +964,7 @@ export function findMissingClauses(
   pack: RulePack,
   output: DrafterOutput,
   parts: SystemPart[],
+  context: ClauseCheckContext = {},
 ): MissingClause[] {
   const inBody = paragraphNumbers(output.body);
   const missing: MissingClause[] = [];
@@ -626,10 +983,14 @@ export function findMissingClauses(
       add('reported_missing');
     } else if (status.kind === 'system') {
       if (!coveredBySystemPart(clause, parts)) add('not_a_system_part');
+    } else if (coveredBySystemPart(clause, parts)) {
+      // T-200: a part the system added is never checked in the paragraphs.
+      continue;
     } else if (status.numbers.length === 0 || !status.numbers.every((n) => inBody.has(n))) {
       add('paragraph_not_found');
-    } else if (clause.fixedText !== null && !hasFixedWording(output.body, clause.fixedText)) {
-      add('wording_not_found');
+    } else {
+      const reason = checkReportedParagraphs(pack.id, clause, status.numbers, output.body, context);
+      if (reason) add(reason);
     }
   }
   return missing;

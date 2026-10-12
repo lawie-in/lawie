@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Lead (build), Anushka (verdict) |
 | Mode           | Small fix (web) |
-| Status         | To do. After T-194 (same file) |
+| Status         | Merged into develop_staging (0e965e7), waiting for Anushka on develop |
 | Size           | S |
 | Depends on     | T-194 (exportUtils.ts) |
 | Gate           | Before v1 go-live: an empty DOCX is a broken download |

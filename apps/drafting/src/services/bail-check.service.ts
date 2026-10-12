@@ -39,6 +39,8 @@ export interface SectionResult {
   offence: OffenceInfo | null;
   /** True if section found in our database */
   found: boolean;
+  /** Set when an IPC input has no BNS target, or no row in the IPC table */
+  note?: string;
 }
 
 export interface BailCheckResult {
@@ -225,6 +227,11 @@ function determineBnssBailSection(
 
 // ── Main Check ─────────────────────────────────────────────────────────────────
 
+/** Ajay (CLO), T-267 ruling C: a null BNS target is reported, never looked up as BNS. */
+export const NO_BNS_EQUIVALENT = 'No BNS equivalent. Check the Gazette';
+/** Ajay (CLO), T-267: an explicit "NNN-IPC" with no row is never looked up as BNS. */
+export const NOT_IN_IPC_TABLE = 'Not found in the IPC table. Check the Gazette';
+
 export async function checkBailEligibility(sectionInputs: string[]): Promise<BailCheckResult> {
   const results: SectionResult[] = [];
 
@@ -233,10 +240,11 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
     if (!input) continue;
 
     // Check if user provided code prefix (e.g., "302-IPC", "103-BNS")
-    const dashMatch = input.match(/^(\d+[A-Za-z]?(?:\(\d+\))?)\s*[-–]\s*(\w+)$/);
+    const dashMatch = input.match(/^(\d+[A-Za-z]{0,2}(?:\(\d+\))?)\s*[-–]\s*(\w+)$/);
     let bnsSection = input;
     let convertedFromIpc = false;
     let ipcSection: string | undefined;
+    let note: string | undefined;
 
     if (dashMatch) {
       const [, num, code] = dashMatch;
@@ -249,9 +257,10 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
           bnsSection = mapping.new_section;
           convertedFromIpc = true;
         } else {
-          bnsSection = num;
+          bnsSection = '';
           ipcSection = num;
           convertedFromIpc = true;
+          note = mapping ? NO_BNS_EQUIVALENT : NOT_IN_IPC_TABLE;
         }
       } else {
         bnsSection = num;
@@ -263,6 +272,11 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
         ipcSection = input;
         bnsSection = mapping.new_section;
         convertedFromIpc = true;
+      } else if (mapping) {
+        bnsSection = '';
+        ipcSection = input;
+        convertedFromIpc = true;
+        note = NO_BNS_EQUIVALENT;
       } else {
         // Section is likely IPC (> 358 or in known set) but no mapping found
         ipcSection = input;
@@ -270,7 +284,7 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
       }
     }
 
-    const offence = lookupOffence(bnsSection);
+    const offence = note ? null : lookupOffence(bnsSection);
 
     results.push({
       input,
@@ -279,6 +293,7 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
       ipcSection,
       offence,
       found: offence !== null,
+      ...(note ? { note } : {}),
     });
   }
 

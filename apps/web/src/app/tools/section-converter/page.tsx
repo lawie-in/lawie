@@ -12,7 +12,7 @@ interface MappingResult {
   old_section: string;
   old_code: string;
   old_code_full: string;
-  new_section: string;
+  new_section: string | null;
   new_code: string;
   new_code_full: string;
   title?: string;
@@ -62,8 +62,8 @@ export default function SectionConverterPage() {
                 IPC / CrPC / IEA Section Converter
               </h1>
               <p className="text-sm text-slate-500">
-                Instantly convert between old (IPC, CrPC, IEA) and new (BNS, BNSS, BSA) section
-                numbers. Free, no login required.
+                Look up old (IPC, CrPC, IEA) and new (BNS, BNSS, BSA) section numbers side by side.
+                Free, no login required.
               </p>
             </div>
           </div>
@@ -127,10 +127,11 @@ export default function SectionConverterPage() {
               </li>
             </ul>
             <p>
-              This tool covers 500+ section mappings validated by a practising advocate. For
-              professional drafting with auto-conversion, try{' '}
+              This tool maps section numbers between the old and new criminal laws. Check the bare
+              act before you rely on a mapping: a section number alone does not tell you which law
+              applies to your case. For a first draft to review, try{' '}
               <Link href="/login" className="font-medium text-blue-600 hover:underline">
-                Lawie&apos;s AI document generator
+                Lawie&apos;s drafting assistant
               </Link>
               .
             </p>
@@ -213,7 +214,7 @@ function SearchTab() {
         <label htmlFor="section-search" className="mb-2 block text-sm font-medium text-slate-700">
           Enter a section number
         </label>
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <input
             id="section-search"
             type="text"
@@ -223,12 +224,12 @@ function SearchTab() {
               if (e.key === 'Enter') handleSearch();
             }}
             placeholder="e.g. 302 IPC, 103 BNS, 154 CrPC"
-            className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="w-full min-w-0 rounded-lg border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 sm:flex-1"
           />
           <button
             onClick={() => handleSearch()}
             disabled={loading || !query.trim()}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            className="flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
           >
             <Search className="h-4 w-4" />
             {loading ? 'Looking up...' : 'Look up'}
@@ -287,6 +288,11 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
   const oldLabel = `Section ${mapping.old_section} ${mapping.old_code}`;
   const newLabel = `Section ${mapping.new_section} ${mapping.new_code}`;
   const copyText = reverse ? oldLabel : newLabel;
+  const repealedNoSection =
+    (mapping.mapping_type === 'repealed' || mapping.mapping_type === 'repealed_no_equivalent') &&
+    (mapping.new_section === null || mapping.new_section === undefined);
+  const unverified = mapping.mapping_type === 'unverified';
+  const hasNoSection = repealedNoSection || unverified;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(copyText);
@@ -297,7 +303,7 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="p-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
           {/* Old */}
           <div
             className={`flex-1 rounded-lg p-4 ${reverse ? 'border border-blue-200 bg-blue-50' : 'bg-slate-100'}`}
@@ -309,7 +315,7 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
           </div>
 
           {/* Arrow */}
-          <ArrowLeftRight className="h-5 w-5 shrink-0 text-slate-400" />
+          <ArrowLeftRight className="h-5 w-5 shrink-0 rotate-90 self-center text-slate-400 sm:rotate-0" />
 
           {/* New */}
           <div
@@ -318,7 +324,13 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
               {mapping.new_code_full || mapping.new_code}
             </p>
-            <p className="text-2xl font-bold text-slate-900">Section {mapping.new_section}</p>
+            <p className="text-2xl font-bold text-slate-900">
+              {repealedNoSection
+                ? 'None'
+                : unverified
+                  ? 'Check the Gazette'
+                  : `Section ${mapping.new_section}`}
+            </p>
           </div>
         </div>
 
@@ -335,9 +347,12 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
             <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
               {mapping.mapping_type === 'partial'
                 ? 'Partial mapping — verify scope'
-                : mapping.mapping_type === 'repealed'
+                : mapping.mapping_type === 'repealed' ||
+                    mapping.mapping_type === 'repealed_no_equivalent'
                   ? 'Repealed — no equivalent'
-                  : mapping.mapping_type}
+                  : mapping.mapping_type === 'unverified'
+                    ? 'Not verified'
+                    : mapping.mapping_type}
             </span>
           </div>
         )}
@@ -355,22 +370,24 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
         <p className="text-xs text-slate-400">
           {reverse ? 'Old law equivalent' : 'New law equivalent'}
         </p>
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800"
-        >
-          {copied ? (
-            <>
-              <Check className="h-3.5 w-3.5" />
-              Copied
-            </>
-          ) : (
-            <>
-              <Copy className="h-3.5 w-3.5" />
-              Copy
-            </>
-          )}
-        </button>
+        {!hasNoSection && (
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3.5 w-3.5" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-3.5 w-3.5" />
+                Copy
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

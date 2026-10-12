@@ -34,7 +34,7 @@ Why the HOLD: describe-first is behind feature flags today (on only for the foun
 5. **Show the real product as it is on production (after T-403).** R1 and R2 show describe-first, so they are published only when it is on for everyone. For all reels: no FIR upload, no "AI reads your FIR" claim, no highlighted blanks in exports, no "cost shown before you generate", no Hindi drafts.
 6. **End card** on every reel carries the disclaimer verbatim: `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.`
 7. **CTA** on every end card: `Start with 5 free Ink` + `lawie.in`. The caption carries the UTM link via the bio (see the calendar post). No rupees in reels.
-8. **Wording:** "Criminal drafts cite BNS, BNSS and BSA." (Ajay, exact). "Free" only next to "5 Ink". Do not say "asks only for what is missing" (banned, T-141a); say "asks for the details it still needs".
+8. **Wording:** "Criminal drafts use BNS, BNSS and BSA section numbers." (Ajay, exact). "Free" only next to "5 Ink". Do not say "asks only for what is missing" (banned, T-141a); say "asks for the details it still needs".
 9. **Real screen headings** (from `apps/web/src/components/intake`): `What do you need to draft?` (the describe screen; its text reads "Describe the matter in your own words"), `A few questions about what you need`, `Check your brief`, then the draft. The classic gallery heading is `Browse document types`. Do not invent other headings.
 10. **What Lawie asks (Priya, from the code, 12 Oct).** After the description, Lawie asks only for the required facts it could not find in it. It is not a fixed form, and the questions differ by matter. The only facts a reel may name:
     - **Bail (describe flow):** FIR number and date, police station, sections, custody (and since when), state, court type and name, applicant name, father's or husband's name, age, address, language, brief facts, grounds (at least 2).
@@ -84,7 +84,7 @@ Canvas 1080x1920. Layout bands, top to bottom (all x 80-930; Reels and Shorts pu
 | 0:09–0:15 | Screen `A few questions about what you need`: two or three questions, answered with sample values (for example custody, court, grounds) | Step 2: a few questions | जो details अभी चाहिए, Lawie वही पूछता है। जवाब दीजिए। | Lawie asks for the details it still needs. Answer them. |
 | 0:15–0:19 | Screen `Check your brief`: the brief with the sample values | Step 3: check your brief | फिर अपना brief जाँच लीजिए। | Then check your brief. |
 | 0:19–0:21 | Click "Generate", plain cut (no wait shown) | (none) | (none) | (none) |
-| 0:21–0:28 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** (and the prayer) | Criminal drafts cite BNS, BNSS and BSA. | पहला ड्राफ्ट आ गया। Criminal drafts में BNS, BNSS और BSA cite होते हैं। | The first draft is here. Criminal drafts cite BNS, BNSS and BSA. |
+| 0:21–0:28 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** (and the prayer) | Criminal drafts use BNS, BNSS and BSA section numbers. | पहला ड्राफ्ट आ गया। Criminal drafts में BNS, BNSS और BSA cite होते हैं। | The first draft is here. Criminal drafts use BNS, BNSS and BSA section numbers. |
 | 0:28–0:35 | Editor: the advocate rewrites one ground in their own words | Review and edit | अब असली काम: हर line पढ़िए, हर section जाँचिए, grounds अपने शब्दों में लिखिए। | Now the real work: read every line, check every section, put the grounds in your own words. |
 | 0:35–0:38 | Download menu, "Word" chosen; the file appears | Download: Word or PDF | फिर Word या PDF में डाउनलोड कीजिए। | Then download it in Word or PDF. |
 | 0:38–0:44 | End card: Lawie logo, CTA, disclaimer | Start with 5 free Ink · lawie.in / Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing. | ड्राफ्ट Lawie देता है, फ़ैसला आपका। 5 free Ink से शुरू कीजिए। | Lawie gives you the draft; the call is yours. Start with 5 free Ink. |
@@ -110,7 +110,7 @@ Canvas 1080x1920. Layout bands, top to bottom (all x 80-930; Reels and Shorts pu
 ```
 Draft a bail application with me.
 
-Describe the matter in your own words, answer a few questions about the details Lawie still needs, check your brief, then review, edit and download the draft. Criminal drafts cite BNS, BNSS and BSA.
+Describe the matter in your own words, answer a few questions about the details Lawie still needs, check your brief, then review, edit and download the draft. Criminal drafts use BNS, BNSS and BSA section numbers.
 
 Sample, fictional matter. No real case or client is shown.
 
@@ -140,7 +140,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 **Claims to check (Ajay):**
 1. "Regular bail" can be described and drafted through the describe flow (`bail_regular`).
 2. Screen headings (`What do you need to draft?`, `A few questions about what you need`, `Check your brief`) match the real screens; the questions named in the voice-over come from the bail list in production rule 10 (Priya, 12 Oct).
-3. "Criminal drafts cite BNS, BNSS and BSA."
+3. "Criminal drafts use BNS, BNSS and BSA section numbers."
 4. **Section 483 BNSS** visible in the draft, with `[Sample Sessions Court]`. **Ajay to check the actual frame.**
 5. Everything in the draft can be changed in the editor; download in Word or PDF.
 6. Sample matter fictional, labelled, offence date after 1 July 2024.
@@ -287,7 +287,7 @@ No HOLD tag: this is the path every user has today. It waits only for T-245a/b (
 | 0:02–0:06 | Cursor picks the regular bail template | Step 1: pick the document | Document list से regular bail चुनी। | I pick regular bail from the list. |
 | 0:06–0:16 | The form is filled with the sample values; label visible | Step 2: fill in the matter | अब मामले की details भरते हैं: नाम, FIR, police station, तारीख़। यहाँ सब fictional है। | Now the details of the matter: name, FIR, police station, date. All fictional here. |
 | 0:16–0:18 | Click "Generate", plain cut | (none) | (none) | (none) |
-| 0:18–0:25 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** | Criminal drafts cite BNS, BNSS and BSA. | पहला ड्राफ्ट आ गया। Criminal drafts में BNS, BNSS और BSA cite होते हैं। | The first draft is here. Criminal drafts cite BNS, BNSS and BSA. |
+| 0:18–0:25 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** | Criminal drafts use BNS, BNSS and BSA section numbers. | पहला ड्राफ्ट आ गया। Criminal drafts में BNS, BNSS और BSA cite होते हैं। | The first draft is here. Criminal drafts use BNS, BNSS and BSA section numbers. |
 | 0:25–0:33 | Editor: the advocate rewrites one ground in their own words | Step 3: review and edit | अब असली काम: हर line पढ़िए, हर section जाँचिए, grounds अपने शब्दों में लिखिए। | Now the real work: read every line, check every section, put the grounds in your own words. |
 | 0:33–0:37 | Download menu, "Word" chosen | Download: Word or PDF | फिर Word या PDF में डाउनलोड कीजिए। | Then download it in Word or PDF. |
 | 0:37–0:42 | End card | Start with 5 free Ink · lawie.in / Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing. | ड्राफ्ट Lawie देता है, फ़ैसला आपका। 5 free Ink से शुरू कीजिए। | Lawie gives you the draft; the call is yours. Start with 5 free Ink. |
@@ -316,7 +316,7 @@ No HOLD tag: this is the path every user has today. It waits only for T-245a/b (
 **Claims to check (Ajay):**
 1. "Regular bail" is a live document in the bail group, picked from `Browse document types` (`bail_regular`).
 2. The form fields named in the voice-over come from the bail list in production rule 10 (Priya, 12 Oct); on the recording day Priya confirms the classic form shows the same fields.
-3. "Criminal drafts cite BNS, BNSS and BSA."
+3. "Criminal drafts use BNS, BNSS and BSA section numbers."
 4. **Section 483 BNSS** in the draft with `[Sample Sessions Court]`. **Ajay to check the actual frame.**
 5. Everything in the draft can be changed in the editor; download in Word or PDF.
 6. Sample matter fictional, labelled, offence date after 1 July 2024.

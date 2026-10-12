@@ -5,7 +5,7 @@ Status: SIGNED (see end). Drafted 12 Oct 2026, reviewed and amended by Ajay. Map
 | Field | Value |
 |---|---|
 | id | `exemption_personal_appearance` |
-| displayName | Application for Exemption from Personal Appearance (BNSS 228 / 355) |
+| displayName | Application for Exemption from Personal Appearance |
 | category | Criminal: complaints, police, trial applications |
 | court_levels | `["magistrate", "cjm", "sessions"]` |
 | Ink | S = 1 |
@@ -198,6 +198,7 @@ The "Notes" section is the drafter's reasoning, kept for the record; it is not t
 
 | Item | Mark |
 |---|---|
+| `displayName` carries no section number (the Drafter sees it); the section appears in the cause title through `{governing_provision}` | Amended |
 | Spec as amended | Approved |
 | "Will not dispute identity" and "evidence may be taken in absence through pleader" offered, opt-in only, blank if none ticked | Approved. They bind the accused, so the form shows them unticked, with the label "Only if the accused agrees" |
 | Note 2 (permanent exemption practice) | Not encoded. No practice rule from knowledge goes into a pack |

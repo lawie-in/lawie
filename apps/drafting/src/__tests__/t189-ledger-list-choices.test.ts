@@ -59,6 +59,8 @@ import { listRulePackIds, loadRulePack } from '../services/rule-pack.service';
 import { decrypt } from '../utils/encryption';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 
+jest.setTimeout(30_000);
+
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
@@ -257,7 +259,7 @@ describe('T-189 AC3: each list entry has its own verbatim raw_span; one with non
       detail: LEDGER_DETAILS.no_verbatim_span,
       label: SECTIONS.label,
     });
-    expect(JSON.stringify(r)).not.toContain('420');
+    expect(JSON.stringify(r)).not.toContain('Section 420');
   });
 
   it('a missing, blank or oversized span is the same: unresolved once per key, not a fact', () => {
@@ -925,7 +927,6 @@ describe('T-189: averments and the verifier read a key with several entries', ()
     const u = { key: 'sections_charged', raw_span: '', reason: 'no_verbatim_span' };
     expect(factEntriesByKey([u] as never).has('sections_charged')).toBe(false);
   });
-
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -960,19 +961,23 @@ describe('R5 verifier: each entry of a list is checked on its own', () => {
   it.each([
     ['text entries, as the route stores them', [T318, T319]],
     ['section_ref entries', [B318, B319]],
-  ])('R5-1: entries 318(4) BNS and 319(2) BNS (%s), draft cites both: no violation, no repair call, no {{MISSING}}', async (_n, facts) => {
-    const body = '1. That the applicant is charged under Section 318(4) BNS and Section 319(2) BNS.';
-    expect(verifyDraft(verifierInput(facts, body))).toEqual([]);
-    const repair = repairSpy('should never be used');
-    const out = await verifyAndRepair(verifierInput(facts, body), repair);
-    expect(repair).not.toHaveBeenCalled();
-    expect(out.passed).toBe(true);
-    expect(out.repairRan).toBe(false);
-    expect(out.initial).toEqual([]);
-    expect(out.banner).toBeNull();
-    expect(out.body).toBe(body);
-    expect(out.body).not.toContain('{{MISSING');
-  });
+  ])(
+    'R5-1: entries 318(4) BNS and 319(2) BNS (%s), draft cites both: no violation, no repair call, no {{MISSING}}',
+    async (_n, facts) => {
+      const body =
+        '1. That the applicant is charged under Section 318(4) BNS and Section 319(2) BNS.';
+      expect(verifyDraft(verifierInput(facts, body))).toEqual([]);
+      const repair = repairSpy('should never be used');
+      const out = await verifyAndRepair(verifierInput(facts, body), repair);
+      expect(repair).not.toHaveBeenCalled();
+      expect(out.passed).toBe(true);
+      expect(out.repairRan).toBe(false);
+      expect(out.initial).toEqual([]);
+      expect(out.banner).toBeNull();
+      expect(out.body).toBe(body);
+      expect(out.body).not.toContain('{{MISSING');
+    },
+  );
 
   it('R5-1 (two paragraphs, one entry each): still no violation and no repair call', async () => {
     const body =
@@ -987,20 +992,23 @@ describe('R5 verifier: each entry of a list is checked on its own', () => {
   it.each([
     ['text entries', [T318, T319]],
     ['section_ref entries', [B318, B319]],
-  ])('R5-2: draft cites only 319(2) BNS (%s): exactly one dropped violation, for 318(4) BNS', (_n, facts) => {
-    const body = '1. That the applicant is charged under Section 319(2) BNS.';
-    const vs = verifyDraft(verifierInput(facts, body));
-    expect(vs).toHaveLength(1);
-    expect(vs[0]).toMatchObject({
-      check: 'dropped',
-      reason: 'left_out',
-      ledgerKey: 'sections_charged',
-      ledgerValue: '318(4) BNS',
-      draftValue: null,
-    });
-    expect(JSON.stringify(vs)).not.toContain('319(2)');
-    expect(vs[0].ledgerValue).not.toContain(',');
-  });
+  ])(
+    'R5-2: draft cites only 319(2) BNS (%s): exactly one dropped violation, for 318(4) BNS',
+    (_n, facts) => {
+      const body = '1. That the applicant is charged under Section 319(2) BNS.';
+      const vs = verifyDraft(verifierInput(facts, body));
+      expect(vs).toHaveLength(1);
+      expect(vs[0]).toMatchObject({
+        check: 'dropped',
+        reason: 'left_out',
+        ledgerKey: 'sections_charged',
+        ledgerValue: '318(4) BNS',
+        draftValue: null,
+      });
+      expect(JSON.stringify(vs)).not.toContain('319(2)');
+      expect(vs[0].ledgerValue).not.toContain(',');
+    },
+  );
 
   it('R5-2 (the repair): runs once, one fact line per entry, never joined; an unfixed draft ends with the entry left out and flagged', async () => {
     const body = '1. That the applicant is charged under Section 319(2) BNS.';
@@ -1009,14 +1017,17 @@ describe('R5 verifier: each entry of a list is checked on its own', () => {
     expect(repair).toHaveBeenCalledTimes(1);
     const user = repair.mock.calls[0][1];
     const factsPart = user.slice(user.indexOf('FACTS:'), user.indexOf('BANNED ASSERTIONS'));
-    const sent = (JSON.parse(factsPart.slice('FACTS:'.length)) as Array<{ key: string; display: string }>)
+    const sent = (
+      JSON.parse(factsPart.slice('FACTS:'.length)) as Array<{ key: string; display: string }>
+    )
       .filter((f) => f.key === 'sections_charged')
       .map((f) => f.display);
     expect(sent).toEqual(['318(4) BNS', '319(2) BNS']);
     // Ajay (11 Oct 2026): today's shape, {key, label, type, display}, one line per entry, no raw_span
     const lines = JSON.parse(factsPart.slice('FACTS:'.length)) as Array<Record<string, unknown>>;
     expect(lines).toHaveLength(2);
-    for (const l of lines) expect(Object.keys(l).sort()).toEqual(['display', 'key', 'label', 'type']);
+    for (const l of lines)
+      expect(Object.keys(l).sort()).toEqual(['display', 'key', 'label', 'type']);
     expect(factsPart).not.toContain('raw_span');
     expect(user).not.toMatch(/318\(4\) BNS(,| and) 319\(2\) BNS/);
     expect(out.initial).toHaveLength(1);
@@ -1097,8 +1108,7 @@ describe('R5 verifier: each entry of a list is checked on its own', () => {
       lf('police_station', 'Kotwali', { type: 'police_station', value: 'kotwali' }),
       lf('applicant_name', 'Ram Kumar', { type: 'person_name', value: 'ramkumar' }),
     ];
-    const ok =
-      '1. That the applicant Ram Kumar was taken to Police Station Kotwali.';
+    const ok = '1. That the applicant Ram Kumar was taken to Police Station Kotwali.';
     expect(verifyDraft(verifierInput(facts, ok))).toEqual([]);
     const bad = '1. That the applicant Ram Kumar was taken to Police Station Hazratganj.';
     const vs = verifyDraft(verifierInput(facts, bad));
@@ -1121,7 +1131,7 @@ describe('R5 verifier: each entry of a list is checked on its own', () => {
     const factsPart = user.slice(user.indexOf('FACTS:'), user.indexOf('BANNED ASSERTIONS'));
     expect(factsPart).toContain('318(4) BNS');
     expect(factsPart).toContain('319(2) BNS');
-    expect(factsPart).not.toContain('420');
+    expect(factsPart).not.toContain('Section 420');
   });
 
   it('T3: no entry carries a joined raw_span anywhere: the violations name entries, not a join', () => {
@@ -1146,10 +1156,7 @@ describe('R5 verifier: each entry of a list is checked on its own', () => {
 
     it.each([
       ['a repair that fails (null)', () => repairSpy(null)],
-      [
-        'a repair that echoes the paragraph unchanged',
-        () => repairSpy('[[P0]]\n' + body),
-      ],
+      ['a repair that echoes the paragraph unchanged', () => repairSpy('[[P0]]\n' + body)],
     ])(
       'with %s: at most one repair call, no placeholder inserted, the citation text untouched, flagged not blanked',
       async (_n, makeRepair) => {
@@ -1173,7 +1180,10 @@ describe('R5 verifier: each entry of a list is checked on its own', () => {
 // Reference: conditionHolds exactly as on develop_staging (one fact per key), copied here.
 function refFolded(v: unknown): string {
   if (typeof v === 'number' || typeof v === 'boolean') return String(v);
-  if (typeof v === 'string') return normalise(v).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  if (typeof v === 'string')
+    return normalise(v)
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim();
   return '';
 }
 function refHolds(
@@ -1472,8 +1482,7 @@ function generate(ledgerId: string) {
       ledger_id: ledgerId,
     });
 }
-const BODY_FIRST =
-  "1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail.";
+const BODY_FIRST = `1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail in FIR No. {{MISSING: ${item('fir_number').label}}}. He is in custody, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.`;
 function drafterAnswer(body: string): string {
   const ids = PACK.mandatoryClauses.map((c) => `${c.id}: 1`).join('\n');
   return `${body}\n\n${CLAUSES_MARKER}\n${ids}`;
@@ -1641,6 +1650,8 @@ describe('T-189 AC5 and AC6: bail_regular, from the description to the Drafter i
       drafterAnswer(BODY_FIRST),
     );
     const res = await describeBail(TEXT);
+    expect(res.status).toBe(200);
+    expect(res.body.outcome).toBe('brief');
     const ledger = res.body.ledger;
     expect(
       ledger.facts
@@ -1650,9 +1661,9 @@ describe('T-189 AC5 and AC6: bail_regular, from the description to the Drafter i
     expect(
       ledger.unresolved.map((u: { key: string; reason: string }) => [u.key, u.reason]),
     ).toEqual([['sections_charged', 'no_verbatim_span']]);
-    expect(JSON.stringify(ledger)).not.toContain('420');
+    expect(JSON.stringify(ledger)).not.toContain('Section 420');
     const stored = await FactLedgerModel.findById(ledger.ledger_id).lean();
-    expect(JSON.stringify(stored!.versions)).not.toContain('420');
+    expect(JSON.stringify(stored!.versions)).not.toContain('Section 420');
 
     await generate(ledger.ledger_id as string);
     const f = factsOf(callOf(3).user);

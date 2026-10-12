@@ -26,9 +26,44 @@ import { saveAs } from 'file-saver';
  * T-147c: a draft written from the fact ledger marks a missing fact as
  * `{{MISSING: label}}`. In an export it prints as today's blank,
  * `[To be confirmed: label]`, as the server PDF does. Text substitution only.
+ * Any case, as the shared blank marker (Ajay's T-194 follow-up).
  */
 export function missingAsBlanks(text: string): string {
-  return text.replace(/\{\{\s*MISSING\s*:\s*([^}]*?)\s*\}\}/g, '[To be confirmed: $1]');
+  return text.replace(/\{\{\s*MISSING\s*:\s*([^}]*?)\s*\}\}/gi, '[To be confirmed: $1]');
+}
+
+// T-233 review: plain text unless it starts with '<' after leading whitespace,
+// as shared projectContent reads it (blanks.ts). textToHtml is aligned in T-274.
+function isPlainContent(content: string): boolean {
+  return !content.trimStart().startsWith('<');
+}
+
+// T-274 review: CRLF/CR line ends become LF on the raw content, before
+// missingAsBlanks and markBlanks, in the count (blanksInContent) and in both
+// exports alike, so a blank whose label spans a line end is found and marked the
+// same as with LF, and the warning's count equals the header's N. In HTML a CR
+// is whitespace the parser already folds into LF, so this changes nothing there.
+function normaliseLineEnds(text: string): string {
+  return text.replace(/\r\n?/g, '\n');
+}
+
+/**
+ * T-233: an unedited draft is the server's plain text, not HTML. Mirrors
+ * DocumentEditor's textToHtml (keep the two in step): an empty line starts a
+ * new <p>, a single line break becomes <br>. T-274: like textToHtml, the text
+ * is HTML-escaped before the tags go in, so '<', '>' and '&' print as written.
+ * The blank marks (U+E000/U+E001) from markBlanks are not touched by the
+ * escaping and survive to blankMarksToTags. Its only callers (exportPdf,
+ * exportDocx) pass it text already made LF by normaliseLineEnds; textToHtml
+ * makes its own input LF.
+ * Content that starts with '<' (after any leading whitespace) is already HTML.
+ */
+function plainTextToHtml(text: string): string {
+  if (!isPlainContent(text)) return text;
+  return escapeHtml(text)
+    .split(/\n{2,}/)
+    .map((para) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+    .join('');
 }
 
 // ── T-194: blanks in an export ───────────────────────────────────────────────
@@ -76,7 +111,7 @@ export interface ExportBlanksGoBackDetail {
  * come from this one call over the same content.
  */
 export function blanksInContent(content: string, find: FindBlanks = findBlanks): Blank[] {
-  return find(blankText(missingAsBlanks(content)));
+  return find(blankText(missingAsBlanks(normaliseLineEnds(content))));
 }
 
 /** Options shared by both exports (T-194). */
@@ -150,8 +185,15 @@ export async function exportPdf(
   startingDraftFooter?: string | null,
   options: ExportBlankOptions = {},
 ): Promise<void> {
-  const { marked, blanks } = markBlanks(missingAsBlanks(rawHtml), options.findBlanks ?? findBlanks);
-  const html = blankMarksToTags(marked, '<span class="tbc">', '</span>');
+  // T-233: as in exportDocx, mark the blanks in the content as saved, then turn
+  // an unedited plain-text draft into HTML so its paragraphs and line breaks print.
+  const isPlainText = isPlainContent(rawHtml);
+  const { marked, blanks } = markBlanks(
+    missingAsBlanks(normaliseLineEnds(rawHtml)),
+    options.findBlanks ?? findBlanks,
+  );
+  const markedHtml = isPlainText ? plainTextToHtml(marked) : marked;
+  const html = blankMarksToTags(markedHtml, '<span class="tbc">', '</span>');
   const headerText = blanks.length > 0 ? draftHeaderText(blanks.length) : null;
   // Dynamic import — html2pdf.js is a large bundle, only load when needed
   const html2pdf = (await import('html2pdf.js')).default;
@@ -210,13 +252,14 @@ export async function exportPdf(
   `;
 
   const filename = `${title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}.pdf`;
-  // html2pdf's margin order is [top, left, bottom, right], in mm.
-  const margin: [number, number, number, number] = [25.4, 25.4, 25.4, 38.1];
+  // html2pdf's margin order is [top, left, bottom, right], in mm (T-233: the
+  // 1.5" goes in the second slot, the left).
+  const margin: [number, number, number, number] = [25.4, 38.1, 25.4, 25.4];
 
   let worker = html2pdf()
     .set({
       // 1.5" left, 1" top/bottom/right — court convention (matches server margins)
-      margin, // mm: 1in, 1in, 1in, 1.5in
+      margin, // mm: top 1in, left 1.5in, bottom 1in, right 1in
       filename,
       image: { type: 'jpeg', quality: 0.95 },
       html2canvas: { scale: 2, useCORS: true },
@@ -372,9 +415,18 @@ export async function exportDocx(
   startingDraftFooter?: string | null,
   options: ExportBlankOptions = {},
 ): Promise<void> {
-  const { marked, blanks } = markBlanks(missingAsBlanks(html), options.findBlanks ?? findBlanks);
+  // T-233: find and mark the blanks in the content as saved, the same text the
+  // export warning counts (blanksInContent), then turn plain text into HTML.
+  // The marks are single characters that never span a line break, so the
+  // conversion keeps them whole; blankMarksToTags then makes them spans.
+  const isPlainText = isPlainContent(html);
+  const { marked, blanks } = markBlanks(
+    missingAsBlanks(normaliseLineEnds(html)),
+    options.findBlanks ?? findBlanks,
+  );
+  const markedHtml = isPlainText ? plainTextToHtml(marked) : marked;
   const paragraphs = htmlToDocxParagraphs(
-    blankMarksToTags(marked, '<span data-lawie-blank="">', '</span>'),
+    blankMarksToTags(markedHtml, '<span data-lawie-blank="">', '</span>'),
     isFree,
   );
 

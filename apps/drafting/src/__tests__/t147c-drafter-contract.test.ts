@@ -61,6 +61,7 @@ import { SdkStreamParams, sdkAnswer } from './sdkStream';
 
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -113,7 +114,7 @@ const VALUES = [
 ];
 
 const BODY = [
-  '1. That the applicant Ram Kumar has approached this Hon\'ble Court for regular bail.',
+  "1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail. He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.",
   '2. That FIR No. 124/2026 was registered at PS Kotwali.',
   '3. That the applicant is in judicial custody.',
 ].join('\n\n');
@@ -292,7 +293,8 @@ describe('AC1: the Drafter call is built from the ledger and the skeleton only',
     expect(user).toContain('123 Main St, Patna');
     // The shape of FACTS is exactly the four fields and no more.
     const f = factsOf(user);
-    for (const row of f.facts) expect(Object.keys(row).sort()).toEqual(['display', 'key', 'label', 'type']);
+    for (const row of f.facts)
+      expect(Object.keys(row).sort()).toEqual(['display', 'key', 'label', 'type']);
   });
 
   it('a brief-only value appears only inside SYSTEM PARTS / BEFORE / AFTER YOUR TEXT (ADR-021 skeleton), main and repair', async () => {
@@ -302,7 +304,13 @@ describe('AC1: the Drafter call is built from the ledger and the skeleton only',
       v.key === 'address' ? { ...v, value: `123 Main St, Patna ${SENT_ADDR}` } : v,
     );
     mockModel(drafterAnswer(BODY, { [CLAUSE_IDS[0]]: '0' }), drafterAnswer());
-    const res = await post({ kind: 'bail_regular', values, court, ledger_id: id, described: SENT_DESC });
+    const res = await post({
+      kind: 'bail_regular',
+      values,
+      court,
+      ledger_id: id,
+      described: SENT_DESC,
+    });
     expect(res.status).toBe(200);
     expect(mockMessagesStream).toHaveBeenCalledTimes(2);
     for (const n of [0, 1]) {
@@ -444,7 +452,9 @@ describe('AC4: the backing fact allows the averment, in the ledger display', () 
     ] as never);
     const withEmployer = r.allowed.filter((a) => a.text.includes('Shree Travels'));
     expect(withEmployer.length).toBeGreaterThan(0);
-    expect(withEmployer.map((a) => a.text)).toContain("the applicant's occupation is driver, at Shree Travels");
+    expect(withEmployer.map((a) => a.text)).toContain(
+      "the applicant's occupation is driver, at Shree Travels",
+    );
     for (const a of withEmployer) expect(a.text).toContain('driver');
     expect(r.banned.map((b) => b.id)).not.toContain('gainfully_employed');
   });
@@ -469,7 +479,9 @@ describe('AC4: the backing fact allows the averment, in the ledger display', () 
         },
       ],
     };
-    expect(resolveAverments(lists, [fact('applicant_occupation', 'driver')] as never).allowed).toEqual([]);
+    expect(
+      resolveAverments(lists, [fact('applicant_occupation', 'driver')] as never).allowed,
+    ).toEqual([]);
   });
 });
 
@@ -526,7 +538,9 @@ describe('AC5: a required fact the ledger lacks is {{MISSING: label}}', () => {
   it('the system prompt tells the Drafter to write it exactly and not to shorten', () => {
     expect(DRAFTER_LEDGER_SYSTEM_PROMPT).toContain('{{MISSING: label}}');
     expect(DRAFTER_LEDGER_SYSTEM_PROMPT).toMatch(/write its placeholder exactly as given/);
-    expect(DRAFTER_LEDGER_SYSTEM_PROMPT).toMatch(/Do not shorten or leave out a sentence or a clause/);
+    expect(DRAFTER_LEDGER_SYSTEM_PROMPT).toMatch(
+      /Do not shorten or leave out a sentence or a clause/,
+    );
     expect(DRAFTER_LEDGER_SYSTEM_PROMPT).toMatch(/never put other words in its place/);
   });
 });
@@ -577,7 +591,12 @@ describe('AC6: default-deny, inheritance, no chaining, files', () => {
       {
         _default: EMPTY,
         parent: { banned: [u.banned], allowed: [u.allowed] },
-        child: { inherits: 'parent', key_map: { address: 'applicant_address' }, banned: [], allowed: [] },
+        child: {
+          inherits: 'parent',
+          key_map: { address: 'applicant_address' },
+          banned: [],
+          allowed: [],
+        },
       },
       (dir) => {
         const child = loadAvermentLists('child', dir);
@@ -668,9 +687,19 @@ describe('AC6: default-deny, inheritance, no chaining, files', () => {
     it('a condition naming another entry id (not a ledger key) never unlocks', () => {
       const lists = {
         banned: [
-          { id: 'A', kind: 'averment' as const, phrases: ['a'], unlocked_by: { key: 'x', present: true as const } },
+          {
+            id: 'A',
+            kind: 'averment' as const,
+            phrases: ['a'],
+            unlocked_by: { key: 'x', present: true as const },
+          },
           // B is unlocked only "by A": it names A's id, which is not a ledger fact.
-          { id: 'B', kind: 'averment' as const, phrases: ['b'], unlocked_by: { key: 'A', present: true as const } },
+          {
+            id: 'B',
+            kind: 'averment' as const,
+            phrases: ['b'],
+            unlocked_by: { key: 'A', present: true as const },
+          },
         ],
         allowed: [],
       };
@@ -684,7 +713,8 @@ describe('AC6: default-deny, inheritance, no chaining, files', () => {
         fact('employer_name', 'Shree Travels'),
       ] as never);
       const banned = r.banned.map((b) => b.id);
-      for (const id of EIGHT.filter((x) => x !== 'gainfully_employed')) expect(banned).toContain(id);
+      for (const id of EIGHT.filter((x) => x !== 'gainfully_employed'))
+        expect(banned).toContain(id);
     });
 
     it('a ledger fact keyed like a banned id does not unlock a different entry', () => {
@@ -713,7 +743,10 @@ describe('AC6: default-deny, inheritance, no chaining, files', () => {
     });
 
     it.each(EXPECTED)('%s parses, passes the loader checks, and carries signed_by', (name) => {
-      const raw = JSON.parse(readFileSync(join(AVERMENTS_DIR, `${name}.json`), 'utf-8')) as Record<string, unknown>;
+      const raw = JSON.parse(readFileSync(join(AVERMENTS_DIR, `${name}.json`), 'utf-8')) as Record<
+        string,
+        unknown
+      >;
       expect(Object.prototype.hasOwnProperty.call(raw, 'signed_by')).toBe(true);
       expect(Object.prototype.hasOwnProperty.call(raw, 'signed_on')).toBe(true);
       expect(readAvermentFile(name)).not.toBeNull();
@@ -785,7 +818,9 @@ describe('AC7: no case law from a ledger that has none', () => {
   it('the prompt restates the rule (T-148)', () => {
     expect(DRAFTER_LEDGER_SYSTEM_PROMPT).toMatch(/No case law, judgment, citation or precedent/);
     expect(DRAFTER_LEDGER_SYSTEM_PROMPT).toContain('[Authority — add if relied upon]');
-    expect(DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT).toMatch(/No case law, judgment, citation or precedent/);
+    expect(DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT).toMatch(
+      /No case law, judgment, citation or precedent/,
+    );
   });
 });
 
@@ -818,7 +853,13 @@ describe('AC8: the parts the system writes carry only ledger displays or {{MISSI
   it('ledger path: a brief-only value is absent and its blank is {{MISSING: label}}; a held item prints its ledger display', async () => {
     const id = await ledger(ledgerWithoutStation());
     mockModel(drafterAnswer());
-    const res = await post({ kind: 'bail_regular', values: briefValues, court, ledger_id: id, described: SENT_DESC });
+    const res = await post({
+      kind: 'bail_regular',
+      values: briefValues,
+      court,
+      ledger_id: id,
+      described: SENT_DESC,
+    });
     expect(res.status).toBe(200);
     const sys = parts(callOf(0).user);
     // Ajay's condition: no brief value the ledger lacks.
@@ -826,13 +867,16 @@ describe('AC8: the parts the system writes carry only ledger displays or {{MISSI
     expect(sys).not.toContain(SENT_NAME);
     expect(sys).not.toContain(SENT_BRIEF);
     expect(sys).not.toContain(SENT_DESC);
-    expect(sys).toContain(missingPlaceholder(CHECKLIST.find((i) => i.key === 'police_station')!.label));
+    expect(sys).toContain(
+      missingPlaceholder(CHECKLIST.find((i) => i.key === 'police_station')!.label),
+    );
     // A held item takes the ledger's display, not the brief's value.
     expect(sys).toContain(LEDGER_NAME);
     expect(sys).toContain('10 March 2026'); // ledger display of fir_date; the brief says 2026-03-10
     expect(sys).not.toContain('10.03.2026');
     // The whole prompt, not only these blocks, is free of the brief-only values.
-    for (const s of [SENT_PS, SENT_NAME, SENT_BRIEF, SENT_DESC]) expect(callOf(0).user).not.toContain(s);
+    for (const s of [SENT_PS, SENT_NAME, SENT_BRIEF, SENT_DESC])
+      expect(callOf(0).user).not.toContain(s);
   });
 
   it('ledger path: the saved document carries the same: no brief-only value in its printed content', async () => {
@@ -879,7 +923,7 @@ describe('ledgerSkeletonBrief', () => {
       kind: { id: 'bail_regular', name: 'Regular bail', court_document: true },
       court: { state: 'bihar', court_type: 'sessions', court: COURT_ID },
       items: [
-        mkItem('applicant_name', 'Applicant name', "Ram SENTNAMEunit"),
+        mkItem('applicant_name', 'Applicant name', 'Ram SENTNAMEunit'),
         mkItem('police_station', 'Police station', 'Brief Station'),
         mkItem('sections_charged', 'Sections charged', ['318', '319']),
         mkItem('other', 'Other', 'a private note'),
@@ -891,10 +935,11 @@ describe('ledgerSkeletonBrief', () => {
       confirm_blockers: [],
       confirm_message: null,
     }) as never as Parameters<typeof ledgerSkeletonBrief>[0];
-  const held = () => [
-    fact('applicant_name', '  Ledger Display  ') as never,
-    fact('father_name', 'Shri X') as never,
-  ] as Parameters<typeof ledgerSkeletonBrief>[1];
+  const held = () =>
+    [
+      fact('applicant_name', '  Ledger Display  ') as never,
+      fact('father_name', 'Shri X') as never,
+    ] as Parameters<typeof ledgerSkeletonBrief>[1];
 
   it('a held item takes the ledger display (trimmed); an unheld item is empty with {{MISSING: label}}', () => {
     const out = ledgerSkeletonBrief(brief(), held());
@@ -905,7 +950,9 @@ describe('ledgerSkeletonBrief', () => {
     }
     expect(by('police_station').placeholder).toBe('{{MISSING: Police station}}');
     expect(by('sections_charged').placeholder).toBe('{{MISSING: Sections charged}}');
-    expect(JSON.stringify(out)).not.toMatch(/Brief Station|318|private note|stray value|SENTNAMEunit/);
+    expect(JSON.stringify(out)).not.toMatch(
+      /Brief Station|318|private note|stray value|SENTNAMEunit/,
+    );
   });
 
   it('drops the unplaced notes and re-blanks still_unknown; keeps kind, court and item order', () => {
@@ -939,7 +986,9 @@ describe('ledgerSkeletonBrief', () => {
 
   it('an empty ledger blanks every item', () => {
     const out = ledgerSkeletonBrief(brief(), []);
-    expect(out.items.every((i) => i.value === null && /^\{\{MISSING: .+\}\}$/.test(i.placeholder ?? ''))).toBe(true);
+    expect(
+      out.items.every((i) => i.value === null && /^\{\{MISSING: .+\}\}$/.test(i.placeholder ?? '')),
+    ).toBe(true);
   });
 });
 
@@ -962,7 +1011,7 @@ describe('switch off', () => {
     expect(JSON.parse(decrypt(d!.brief!))).not.toHaveProperty('ledger_id');
   });
 
-  it('switch off: someone else\'s or a made-up ledger_id is not a 404', async () => {
+  it("switch off: someone else's or a made-up ledger_id is not a 404", async () => {
     await AppSetting.updateOne({ key: 'feature.fact_ledger' }, { value: 'off' });
     _clearAppSettingsCache();
     const other = await ledger(baseFacts(), { userId: OTHER_USER_ID });
@@ -987,7 +1036,7 @@ describe('switch off', () => {
   });
 });
 
-describe('route: the ledger must be this user\'s and for this document', () => {
+describe("route: the ledger must be this user's and for this document", () => {
   async function expect404(ledgerId: string) {
     mockModel(drafterAnswer());
     const res = await draft(ledgerId);
@@ -998,7 +1047,7 @@ describe('route: the ledger must be this user\'s and for this document', () => {
     expect(await LawieDocument.countDocuments({})).toBe(0);
   }
 
-  it('another user\'s ledger -> 404, no model call, no document, no run', async () => {
+  it("another user's ledger -> 404, no model call, no document, no run", async () => {
     await expect404(await ledger(baseFacts(), { userId: OTHER_USER_ID }));
   });
   it('a ledger for another document kind -> 404', async () => {
@@ -1015,7 +1064,10 @@ describe('route: the ledger must be this user\'s and for this document', () => {
   });
 
   it('lists that cannot be read -> 503 averments_unavailable, nothing drafted, no fact value in the logs', async () => {
-    const id = await ledger([...baseFacts(), fact('address', SENT_DISPLAY, { type: 'place_name' })]);
+    const id = await ledger([
+      ...baseFacts(),
+      fact('address', SENT_DISPLAY, { type: 'place_name' }),
+    ]);
     const logs = (['info', 'error', 'warn', 'log'] as const).map((m) =>
       jest.spyOn(console, m).mockImplementation(() => undefined),
     );
@@ -1058,7 +1110,12 @@ describe('the repair pass on the ledger path', () => {
     for (const s of [SENT_BRIEF, SENT_DESC, SENT_SPAN, SENT_VALUE, 'BRIEF:', '"described"']) {
       expect(repair.user).not.toContain(s);
     }
-    expect(ids(bannedSection(repair.user.replace(/\n\nLANGUAGE:[\s\S]*$/, '\n\nTARGET:')), 'gainfully_employed')).toBe(true);
+    expect(
+      ids(
+        bannedSection(repair.user.replace(/\n\nLANGUAGE:[\s\S]*$/, '\n\nTARGET:')),
+        'gainfully_employed',
+      ),
+    ).toBe(true);
   });
 });
 
@@ -1085,7 +1142,9 @@ describe('PII on the ledger path', () => {
     expect(gen).toMatchObject({ status: 'completed', llmCalls: 1 });
     expect(JSON.stringify(gen)).not.toContain(SENT_DISPLAY);
     const d = await LawieDocument.findById(event(res.text, 'done')!.docId as string).lean();
-    expect(JSON.stringify({ ...d, brief: undefined, generatedContent: undefined })).not.toContain(SENT_DISPLAY);
+    expect(JSON.stringify({ ...d, brief: undefined, generatedContent: undefined })).not.toContain(
+      SENT_DISPLAY,
+    );
   });
 });
 
@@ -1094,7 +1153,9 @@ describe('export: {{MISSING: label}} becomes [To be confirmed: label]', () => {
   const BLANK_OF = (l: string) => `[To be confirmed: ${l}]`;
 
   it('missingAsBlanks: one, and several in one text, each with its own label', () => {
-    expect(missingAsBlanks('FIR {{MISSING: FIR number}} dated x')).toBe(`FIR ${BLANK_OF('FIR number')} dated x`);
+    expect(missingAsBlanks('FIR {{MISSING: FIR number}} dated x')).toBe(
+      `FIR ${BLANK_OF('FIR number')} dated x`,
+    );
     const out = missingAsBlanks(
       'At {{MISSING: Police station}} on {{MISSING: Date of FIR}}; again {{MISSING: Police station}}.',
     );
@@ -1150,8 +1211,11 @@ describe('missingAsBlanks: tolerant of spacing; other braces untouched', () => {
       '[To be confirmed: Date of FIR] / [To be confirmed: Police station]',
     );
   });
-  it('non-MISSING braces are untouched', () => {
-    for (const t of ['{{other}}', '{{missing: x}}'.replace('missing', 'Missing'), '{MISSING: x}', '{{MISSING x}}', 'a {b} {{c}}']) {
+  it('MISSING in any case is a blank (T-273); non-MISSING braces are untouched', () => {
+    for (const t of ['{{missing: x}}', '{{Missing: x}}', '{{MISSING: x}}']) {
+      expect(missingAsBlanksUtil(t)).toBe(BLANK);
+    }
+    for (const t of ['{{other}}', '{{foo}}', '{MISSING: x}', '{{MISSING x}}', 'a {b} {{c}}']) {
       expect(missingAsBlanksUtil(t)).toBe(t);
     }
   });
@@ -1184,7 +1248,9 @@ describe('review link: GET /review/:token converts {{MISSING: label}}', () => {
 
   it('generated content: spaced and unspaced tokens print as [To be confirmed: label]', async () => {
     const token = await tokenFor({
-      generatedContent: encrypt('PS {{MISSING: Police station}} and {{ MISSING:Date of FIR }}; keep {{other}}.'),
+      generatedContent: encrypt(
+        'PS {{MISSING: Police station}} and {{ MISSING:Date of FIR }}; keep {{other}}.',
+      ),
     });
     const res = await request(app).get(`/review/${token}`);
     expect(res.status).toBe(200);
@@ -1223,7 +1289,10 @@ describe('loader checks (synthetic lists)', () => {
 
   describe('check 1: every {{key}} in an allowed text is in its requires', () => {
     it('throws, naming the pack and the id, when requires lacks the key', () => {
-      const lists = { banned: [], allowed: [allowed('roots', 'lives at {{address}} near {{landmark}}', cond('address'))] };
+      const lists = {
+        banned: [],
+        allowed: [allowed('roots', 'lives at {{address}} near {{landmark}}', cond('address'))],
+      };
       expect(() => checkUnlockPairs('packA', lists)).toThrow(AvermentFileError);
       expect(() => checkUnlockPairs('packA', lists)).toThrow(/packA/);
       expect(() => checkUnlockPairs('packA', lists)).toThrow(/roots/);
@@ -1264,7 +1333,11 @@ describe('loader checks (synthetic lists)', () => {
     it('throws, naming the pack and the id, when they differ', () => {
       const lists = {
         banned: [banned('e', cond('occupation'))],
-        allowed: [allowed('e', 'works as {{occupation}}', { all_of: [cond('occupation'), cond('employer')] })],
+        allowed: [
+          allowed('e', 'works as {{occupation}}', {
+            all_of: [cond('occupation'), cond('employer')],
+          }),
+        ],
       };
       expect(() => checkUnlockPairs('packB', lists)).toThrow(AvermentFileError);
       expect(() => checkUnlockPairs('packB', lists)).toThrow(/packB/);
@@ -1284,13 +1357,29 @@ describe('loader checks (synthetic lists)', () => {
       };
       expect(() => checkUnlockPairs('packD', lists)).not.toThrow();
       const nested = {
-        banned: [banned('n', { all_of: [{ key: 'a', present: true }, { key: 'b', equals: ['x', 'y'] }] })],
-        allowed: [allowed('n', '{{a}} {{b}}', { all_of: [{ present: true, key: 'a' }, { equals: ['x', 'y'], key: 'b' }] })],
+        banned: [
+          banned('n', {
+            all_of: [
+              { key: 'a', present: true },
+              { key: 'b', equals: ['x', 'y'] },
+            ],
+          }),
+        ],
+        allowed: [
+          allowed('n', '{{a}} {{b}}', {
+            all_of: [
+              { present: true, key: 'a' },
+              { equals: ['x', 'y'], key: 'b' },
+            ],
+          }),
+        ],
       };
       expect(() => checkUnlockPairs('packE', nested)).not.toThrow();
     });
     it('a banned entry that is never unlocked (null) needs no twin and is not compared', () => {
-      expect(() => checkUnlockPairs('packF', { banned: [banned('n', null)], allowed: [] })).not.toThrow();
+      expect(() =>
+        checkUnlockPairs('packF', { banned: [banned('n', null)], allowed: [] }),
+      ).not.toThrow();
     });
   });
 });
@@ -1314,7 +1403,7 @@ describe('every real averment file and every pack loads', () => {
 });
 
 describe('switch off: end to end, generate-from-brief is unchanged', () => {
-  it('system and user prompts are byte-identical across a call with a ledger_id and one without, and are the old builders\' shape', async () => {
+  it("system and user prompts are byte-identical across a call with a ledger_id and one without, and are the old builders' shape", async () => {
     await AppSetting.updateOne({ key: 'feature.fact_ledger' }, { value: 'off' });
     _clearAppSettingsCache();
     const id = await ledger(baseFacts());

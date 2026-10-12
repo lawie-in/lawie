@@ -1,10 +1,21 @@
 name: CI — Test
 
 on:
+  # T-249: a push or PR that changes only docs starts no run, so it cannot cancel a real code run.
+  # GitHub skips only when every changed file matches; a change with code and docs still runs.
+  # docs/ is deliberately not ignored: docs/templates holds runtime JSON (template overrides, read by t139).
   push:
     branches: [develop, develop_staging]
+    paths-ignore:
+      - 'handoff/**'
+      - '.claude/**'
+      - '**/*.md'
   pull_request:
     branches: [develop, develop_staging]
+    paths-ignore:
+      - 'handoff/**'
+      - '.claude/**'
+      - '**/*.md'
   # T-147e: the golden set runs nightly against the real model (job golden-set).
   schedule:
     - cron: '30 20 * * *' # 02:00 IST
@@ -45,6 +56,7 @@ jobs:
               - 'apps/auth/**'
             drafting:
               - 'apps/drafting/**'
+              - 'scripts/golden-set/**'
             billing:
               - 'apps/billing/**'
             shared:
@@ -159,6 +171,9 @@ jobs:
       - name: Pre-download Mongo binary
         run: yarn workspace @lawie/drafting node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
       - run: yarn workspace @lawie/drafting test
+      # T-264: the golden-set dry run (recorded replies, in-memory DB, no secrets) on every drafting run.
+      - name: Golden set — dry run (recorded replies, no cost)
+        run: yarn workspace @lawie/drafting golden:set --dry-run
       - uses: codecov/codecov-action@v4
         if: always()
         with:

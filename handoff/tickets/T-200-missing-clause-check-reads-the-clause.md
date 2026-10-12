@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                   |
 | Owner          | Ajay (rule: what counts as present, signs). Lead (build). Anushka (verdict)                                              |
 | Mode           | Rule first (Ajay), then build, full chain                                                                                |
-| Status         | Assigned to vishal, 12 Oct 2026. Ajay's rule signed (56f9be4). Cues stay in code, not in bail_regular.json |
+| Status         | Merged into develop_staging (89afcef, 12 Oct 2026), waiting for Anushka on develop |
 | Size           | Ajay S. Build M (1 day)                                                                                                  |
 | Depends on     | T-136 (the check exists)                                                                                                 |
 | Gate           | Before `feature.fact_ledger` for real users and before v1 go-live: a missing mandatory clause can pass as present        |
@@ -134,3 +134,7 @@ Cues now follow the clause's meaning, through an explicit `(pack, clauseId) → 
 - `ai.service.ts` call-site edits: Acceptable. Ajay signs that diff together with `brief-drafter.ts` before merge.
 - AC5 rewording: Approved, on one condition. Only fixture body text changes. Reported paragraph numbers, clause ids and assertions stay as they are. List each changed fixture in the merge note. If any assertion has to change, stop and send it to Ajay.
 - Risks outside this ticket: logged as T-237.
+
+## Note 12 Oct 2026 (Vishal, T-237)
+
+The `earlier_applications` cue row in this ticket's cue table is partly superseded by the cue sets EA-standard and EA-interim (T-237 signed text, `handoff/legal/T-237-pack-text-signed.md`). Read the signed T-237 file for the current cues.

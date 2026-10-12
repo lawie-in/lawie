@@ -6,7 +6,7 @@
     "last_updated": "2026-05-10",
     "source": "Bharatiya Nyaya Sanhita 2023, Bharatiya Nagarik Suraksha Sanhita 2023, Bharatiya Sakshya Adhiniyam 2023; cross-mapped against IPC 1860/CrPC 1973/IEA 1872",
     "change_protocol": "All edits to this file require CLO sign-off. Vishal must not author entries; raise Jira ticket to Ajay if a doc-type, section, or alias is missing or incorrect.",
-    "schema_note": "Doc-type keys (bail_application, legal_notice, etc.) carry sections[] + bns_offences{}. Alias maps live under ipc_to_bns, crpc_to_bnss, iea_to_bsa for keyword resolution."
+    "schema_note": "Doc-type keys (bail_application, legal_notice, etc.) carry sections[] + bns_offences{}. The alias map for keyword resolution lives under crpc_to_bnss."
   },
   "bail_application": {
     "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
@@ -128,12 +128,27 @@
     ]
   },
   "affidavit": {
-    "act": "Oaths Act, 1969 / Bharatiya Sakshya Adhiniyam (BSA), 2023",
+    "act": "Oaths Act, 1969 / Notaries Act, 1952 / Code of Civil Procedure, 1908",
     "sections": [
       {
-        "number": "85",
-        "description": "Affidavit",
-        "act": "BSA"
+        "number": "3",
+        "description": "Power to administer oaths and affirmations",
+        "act": "Oaths Act, 1969"
+      },
+      {
+        "number": "8",
+        "description": "Functions of notaries",
+        "act": "Notaries Act, 1952"
+      },
+      {
+        "number": "Order XIX",
+        "description": "Affidavits",
+        "act": "Code of Civil Procedure, 1908"
+      },
+      {
+        "number": "Order XIX Rule 3",
+        "description": "Matters to which affidavits shall be confined",
+        "act": "Code of Civil Procedure, 1908"
       }
     ]
   },
@@ -250,252 +265,6 @@
       }
     ]
   },
-  "ipc_to_bns": {
-    "302": {
-      "bns": "103",
-      "title": "Murder"
-    },
-    "304": {
-      "bns": "105",
-      "title": "Culpable homicide not amounting to murder"
-    },
-    "304A": {
-      "bns": "106",
-      "title": "Causing death by negligence"
-    },
-    "304B": {
-      "bns": "80",
-      "title": "Dowry death"
-    },
-    "306": {
-      "bns": "108",
-      "title": "Abetment of suicide"
-    },
-    "307": {
-      "bns": "109",
-      "title": "Attempt to murder"
-    },
-    "308": {
-      "bns": "110",
-      "title": "Attempt to commit culpable homicide"
-    },
-    "319": {
-      "bns": "114",
-      "title": "Hurt"
-    },
-    "320": {
-      "bns": "116",
-      "title": "Grievous hurt"
-    },
-    "323": {
-      "bns": "115",
-      "title": "Voluntarily causing hurt"
-    },
-    "324": {
-      "bns": "118",
-      "title": "Voluntarily causing hurt by dangerous weapons"
-    },
-    "325": {
-      "bns": "117",
-      "title": "Voluntarily causing grievous hurt"
-    },
-    "326": {
-      "bns": "118(2)",
-      "title": "Voluntarily causing grievous hurt by dangerous weapons"
-    },
-    "336": {
-      "bns": "125",
-      "title": "Act endangering life or personal safety of others"
-    },
-    "337": {
-      "bns": "125(a)",
-      "title": "Causing hurt by act endangering life"
-    },
-    "338": {
-      "bns": "125(b)",
-      "title": "Causing grievous hurt by act endangering life"
-    },
-    "339": {
-      "bns": "126",
-      "title": "Wrongful restraint"
-    },
-    "340": {
-      "bns": "127",
-      "title": "Wrongful confinement"
-    },
-    "349": {
-      "bns": "130",
-      "title": "Force"
-    },
-    "350": {
-      "bns": "131",
-      "title": "Criminal force"
-    },
-    "351": {
-      "bns": "130",
-      "title": "Assault"
-    },
-    "354": {
-      "bns": "74",
-      "title": "Assault or criminal force to woman with intent to outrage modesty"
-    },
-    "354A": {
-      "bns": "75",
-      "title": "Sexual harassment"
-    },
-    "354B": {
-      "bns": "76",
-      "title": "Assault or use of criminal force with intent to disrobe"
-    },
-    "354C": {
-      "bns": "77",
-      "title": "Voyeurism"
-    },
-    "354D": {
-      "bns": "78",
-      "title": "Stalking"
-    },
-    "363": {
-      "bns": "137",
-      "title": "Kidnapping"
-    },
-    "365": {
-      "bns": "140",
-      "title": "Kidnapping or abducting with intent to secretly and wrongfully confine"
-    },
-    "366": {
-      "bns": "87",
-      "title": "Kidnapping, abducting or inducing woman to compel her marriage"
-    },
-    "370": {
-      "bns": "143",
-      "title": "Trafficking of person"
-    },
-    "375": {
-      "bns": "63",
-      "title": "Rape (definition)"
-    },
-    "376": {
-      "bns": "64",
-      "title": "Punishment for rape"
-    },
-    "376A": {
-      "bns": "66",
-      "title": "Causing death or persistent vegetative state of victim"
-    },
-    "376B": {
-      "bns": "67",
-      "title": "Sexual intercourse by husband during separation"
-    },
-    "376D": {
-      "bns": "70",
-      "title": "Gang rape"
-    },
-    "379": {
-      "bns": "303(2)",
-      "title": "Theft"
-    },
-    "380": {
-      "bns": "305",
-      "title": "Theft in dwelling house"
-    },
-    "384": {
-      "bns": "308(2)",
-      "title": "Extortion"
-    },
-    "392": {
-      "bns": "309",
-      "title": "Robbery"
-    },
-    "395": {
-      "bns": "310(2)",
-      "title": "Dacoity"
-    },
-    "403": {
-      "bns": "314",
-      "title": "Dishonest misappropriation of property"
-    },
-    "406": {
-      "bns": "316(2)",
-      "title": "Criminal breach of trust"
-    },
-    "409": {
-      "bns": "316(5)",
-      "title": "Criminal breach of trust by public servant"
-    },
-    "415": {
-      "bns": "318",
-      "title": "Cheating (definition)"
-    },
-    "417": {
-      "bns": "318(2)",
-      "title": "Punishment for cheating"
-    },
-    "420": {
-      "bns": "318(4)",
-      "title": "Cheating and dishonestly inducing delivery of property"
-    },
-    "441": {
-      "bns": "329",
-      "title": "Criminal trespass"
-    },
-    "447": {
-      "bns": "329(3)",
-      "title": "Punishment for criminal trespass"
-    },
-    "448": {
-      "bns": "329(4)",
-      "title": "Punishment for house-trespass"
-    },
-    "463": {
-      "bns": "335",
-      "title": "Forgery (definition)"
-    },
-    "465": {
-      "bns": "336",
-      "title": "Punishment for forgery"
-    },
-    "468": {
-      "bns": "336(3)",
-      "title": "Forgery for purpose of cheating"
-    },
-    "471": {
-      "bns": "340(2)",
-      "title": "Using as genuine a forged document"
-    },
-    "498A": {
-      "bns": "85",
-      "title": "Cruelty by husband or relatives"
-    },
-    "499": {
-      "bns": "356",
-      "title": "Defamation (definition)"
-    },
-    "500": {
-      "bns": "356(2)",
-      "title": "Punishment for defamation"
-    },
-    "503": {
-      "bns": "351",
-      "title": "Criminal intimidation"
-    },
-    "504": {
-      "bns": "352",
-      "title": "Intentional insult with intent to provoke breach of peace"
-    },
-    "506": {
-      "bns": "351(2)",
-      "title": "Punishment for criminal intimidation"
-    },
-    "509": {
-      "bns": "79",
-      "title": "Word, gesture or act intended to insult modesty of a woman"
-    },
-    "511": {
-      "bns": "62",
-      "title": "Attempt to commit offences"
-    }
-  },
   "crpc_to_bnss": {
     "154": {
       "bnss": "173",
@@ -572,48 +341,6 @@
     "482": {
       "bnss": "528",
       "title": "Saving of inherent powers of High Court"
-    }
-  },
-  "iea_to_bsa": {
-    "3": {
-      "bsa": "2",
-      "title": "Interpretation clause"
-    },
-    "17": {
-      "bsa": "15",
-      "title": "Admission defined"
-    },
-    "24": {
-      "bsa": "22",
-      "title": "Confession caused by inducement, threat or promise"
-    },
-    "25": {
-      "bsa": "23",
-      "title": "Confession to police officer not to be proved"
-    },
-    "27": {
-      "bsa": "23(2)",
-      "title": "How much of information received from accused may be proved"
-    },
-    "32": {
-      "bsa": "26",
-      "title": "Cases in which statement of relevant fact by person who is dead is relevant"
-    },
-    "45": {
-      "bsa": "39",
-      "title": "Opinions of experts"
-    },
-    "65B": {
-      "bsa": "63",
-      "title": "Admissibility of electronic records"
-    },
-    "85": {
-      "bsa": "85",
-      "title": "Affidavit"
-    },
-    "114": {
-      "bsa": "119",
-      "title": "Court may presume existence of certain facts"
     }
   }
 }

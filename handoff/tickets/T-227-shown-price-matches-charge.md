@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Vikram (the price of each document), Ajay (heads-up: CPA 2019), Lead (build), Anushka (verdict) |
 | Mode           | Vikram's price list first, then build, full chain (drafting, web) |
-| Status         | Assigned to shashank, 12 Oct 2026: AC1, AC2, AC4. AC3 (cost screen) waits for Rajesh's design and is not in this branch |
+| Status         | Merged into develop_staging (efa610b, 12 Oct 2026), waiting for Anushka on develop. Deploy note: first boot must log 'Template registry → Mongo sync complete', or stored prices stay stale. AC3 (price before generating) still waits for Rajesh |
 | Assigned lead  | shashank |
 | Size           | S (0.5 day) after the list |
 | Depends on     | None. Drops pricing (T-201 to T-205) replaces this later; this fixes v1 as it stands |

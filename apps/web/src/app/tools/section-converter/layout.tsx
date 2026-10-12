@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'IPC to BNS Section Converter | Free Tool — Lawie',
   description:
-    'Free IPC to BNS, CrPC to BNSS, IEA to BSA section converter. Instantly look up old and new Indian criminal law section numbers. 500+ validated mappings.',
+    'Free IPC to BNS, CrPC to BNSS, IEA to BSA section converter. Look up old and new Indian criminal law section numbers. Check the bare act before you rely on a mapping.',
   keywords: [
     'IPC to BNS converter',
     'CrPC to BNSS converter',

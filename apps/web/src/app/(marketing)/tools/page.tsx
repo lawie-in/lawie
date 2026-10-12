@@ -65,8 +65,8 @@ export default function ToolsPage() {
               </div>
               <h3>IPC → BNS Converter</h3>
               <p>
-                Lookup any IPC, CrPC, or IEA section and get the equivalent BNS, BNSS, or BSA
-                section instantly.
+                Look up an IPC, CrPC or IEA section and see the BNS, BNSS or BSA section that
+                replaced it.
               </p>
               <div className="tool-viz" aria-hidden="true">
                 <span className="viz-chip old">IPC §420</span>

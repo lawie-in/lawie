@@ -17,12 +17,12 @@ Status: **DRAFT for Priya.** Rows marked "Signed" use wording already signed; ev
 
 | # | Line | Current (exact) | New | Status |
 | --- | --- | --- | --- | --- |
-| 1 | 42, FAQ "What is Ink?" answer | `Ink is Lawie's credit unit. Each document you generate uses 1 Ink. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.` | `Ink is Lawie's credit unit. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.` | **Signed** (Ajay + Meera, T-238). Replaces Meera's earlier "…when a draft is ready" version |
-| 2 | 202, "Why Ink?" panel | `Less than ₹16 per document on Solo. Buy extra packs anytime.` | `Most documents use 2 Ink, short ones 1. Buy extra packs anytime.` | **Signed** (Ajay + Vikram) |
+| 1 | 42, FAQ "What is Ink?" answer | `Ink is Lawie's credit unit. Each document you generate uses 1 Ink. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.` | `Ink is Lawie's credit unit. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.` | **Signed** (Ajay + Meera, T-238). Replaces Meera's earlier "…when a draft is ready" version |
+| 2 | 202, "Why Ink?" panel | `Less than ₹16 per document on Solo. Buy extra packs anytime.` | `Most documents use 2 Ink, short documents 1. Buy extra packs anytime.` | **Signed** (Ajay + Vikram) |
 | 3 | 143, Solo card badge | `Most Popular` | *(remove the badge element)* | Meera, T-238. No usage data supports "most popular" |
 | 4 | 224, top-up badge on ₹199 | `POPULAR` | *(remove the badge element)* | Meera, T-238. Same reason |
 | 5 | 121, Free plan list | `Court formatting` | `Every line of the draft is yours to change` | New, Ajay to check. No court-format claim (T-140 not started; "formatted to your court" banned) |
-| 6 | 124, Free plan list | `BNS validation` | `Criminal drafts cite BNS, BNSS and BSA` | Ajay's signed line. "Validation" is banned |
+| 6 | 124, Free plan list | `BNS validation` | `Criminal drafts use BNS, BNSS and BSA section numbers` | Ajay's signed line. "Validation" is banned |
 | 7 | 99, hero subline | `Ink credits — start free, buy more when you need it.` | `Start with 5 free Ink. Buy more when you need it.` | Ajay rule: "free" next to "5 Ink" |
 | 8 | 115, Free plan sub-price line | `5 Ink — forever` | `5 Ink on sign-up · No card required` | "Forever" can read as a monthly or renewing allowance. It is a one-time grant (`SIGNUP_BONUS_CREDITS`) |
 | 9 | 118, Free plan list | `All templates` | `All document types (more than 90)` | Ajay signed "more than 90". Optional: "All templates" is true too |
@@ -64,7 +64,7 @@ The "[under review, Vikram]" tags are notes in this file only. They are **not** 
 - Name: Free
 - Price: ₹0 /lifetime
 - Line: 5 Ink on sign-up · No card required
-- List: All document types (more than 90) · Every line of the draft is yours to change · Criminal drafts cite BNS, BNSS and BSA · Download in Word or PDF
+- List: All document types (more than 90) · Every line of the draft is yours to change · Criminal drafts use BNS, BNSS and BSA section numbers · Download in Word or PDF
 - Button: Start with 5 free Ink
 
 **Solo** *(no badge)*
@@ -81,12 +81,12 @@ The "[under review, Vikram]" tags are notes in this file only. They are **not** 
 
 **Why Ink? panel**
 - Heading: Why Ink?
-- Line: Most documents use 2 Ink, short ones 1. Buy extra packs anytime. (64)
+- Line: Most documents use 2 Ink, short documents 1. Buy extra packs anytime. (64)
 
 Variants for the panel line, if Meera wants one more Ink fact there (each needs Ajay; the signed line above is the default):
-- A (signed): "Most documents use 2 Ink, short ones 1. Buy extra packs anytime." (64)
-- B: "Pay per draft: most documents use 2 Ink, short ones 1. Buy extra packs anytime." (79)
-- C: "Most documents use 2 Ink, short ones 1. A failed generation is not charged." (75)
+- A (signed): "Most documents use 2 Ink, short documents 1. Buy extra packs anytime." (64)
+- B: "Pay per draft: most documents use 2 Ink, short documents 1. Buy extra packs anytime." (79)
+- C: "Most documents use 2 Ink, short documents 1. A failed generation is not charged." (75)
 
 **Top-up packs**
 - Eyebrow: Top-up packs
@@ -100,7 +100,7 @@ Variants for the panel line, if Meera wants one more Ink fact there (each needs 
 3. What payment methods do you accept? *(unchanged)*
 4. Do you have a team plan? *(unchanged)*
 5. Is GST included? *(unchanged. Vikram's founder item 3: GST status is being checked with a CA. If the answer changes, this line changes)*
-6. What is Ink? → `Ink is Lawie's credit unit. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.` **(Signed)**
+6. What is Ink? → `Ink is Lawie's credit unit. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.` **(Signed)**
 
 When T-227 AC3 ships (cost shown before generating) and Priya confirms it, Meera can add "You see the cost before you generate." Ajay checks it then. Not before.
 
@@ -110,14 +110,14 @@ When T-227 AC3 ships (cost shown before generating) and Priya confirms it, Meera
 
 | File:line | Current (exact) | Problem | Proposed |
 | --- | --- | --- | --- |
-| `app/(marketing)/faq/page.tsx:48` | `Lawie has a free tier that includes 5 Ink (lifetime). Solo is ₹799/month (50 Ink/month). Pro is ₹1,999/month (150 Ink/month).` | Pro price in other copy (Vikram: Pro goes in no other copy); no Ink-per-document rule | `Lawie has a free tier with 5 Ink on sign-up (lifetime). Solo is ₹799/month with 50 Ink a month. Top-up packs start at ₹65 for 3 Ink. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. See the pricing page for all plans.` |
-| `app/(marketing)/faq/page.tsx:53` | `Five Ink lifetime for free users. All templates, court formatting, BNS validation, PDF/DOCX export. Free exports carry a Lawie watermark.` | "court formatting", "BNS validation" (banned) | `5 Ink on sign-up (lifetime). All document types, PDF and DOCX export. Criminal drafts cite BNS, BNSS and BSA.  |
+| `app/(marketing)/faq/page.tsx:48` | `Lawie has a free tier that includes 5 Ink (lifetime). Solo is ₹799/month (50 Ink/month). Pro is ₹1,999/month (150 Ink/month).` | Pro price in other copy (Vikram: Pro goes in no other copy); no Ink-per-document rule | `Lawie has a free tier with 5 Ink on sign-up (lifetime). Solo is ₹799/month with 50 Ink a month. Top-up packs start at ₹65 for 3 Ink. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. See the pricing page for all plans.` |
+| `app/(marketing)/faq/page.tsx:53` | `Five Ink lifetime for free users. All templates, court formatting, BNS validation, PDF/DOCX export. Free exports carry a Lawie watermark.` | "court formatting", "BNS validation" (banned) | `5 Ink on sign-up (lifetime). All document types, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers.  |
 | `app/(marketing)/page.tsx:104–106` | `'5 Ink, lifetime'` · `'₹799' … '50 Ink a month'` · `'₹1,999' … '150 Ink a month'` | Pro price on the home page | Replace the three plan cards with the Ink teaser in `copy/landing.md` (no rupees) |
 | `app/(marketing)/page.tsx:208` | `Free tier: 5 Ink (lifetime) · No credit card required` | Claim is true: Free sign-up never asks for payment details (Priya, 12 Oct; Ajay's table returns it on that confirmation). Line stays, shortened | `5 free Ink on sign-up · No card required` (landing.md) |
 | `app/(marketing)/page.tsx:300` | `Drafts are paid for with Ink credits.` | Not false, but no rule | Ajay's Ink line (landing.md pricing teaser) |
 | `app/(marketing)/page.tsx:341` | `Free for your first 5 Ink. No card required.` | The heading above it is a time claim ("Start drafting in the next five minutes."). "No card required" is true (Priya) | Heading: `Your next draft starts here.` Line: `5 free Ink on sign-up. No card required.` |
 | `app/(marketing)/about/page.tsx:129` | `Free for your first 5 Ink. No card required.` | True (Priya); only "Free" needs "5 Ink" next to it, which it has | No change, or `5 free Ink on sign-up. No card required.` |
-| `app/(marketing)/pricing/layout.tsx:6` (metadata) | `Simple, transparent pricing. Free tier with 5 Ink lifetime, or Solo at ₹799/month for 50 Ink/month.` | OK on prices; no rule | `Start with 5 free Ink. Most documents use 2 Ink, short ones 1. Solo is ₹799/month for 50 Ink. Top-ups from ₹65.` (≈115 chars) |
+| `app/(marketing)/pricing/layout.tsx:6` (metadata) | `Simple, transparent pricing. Free tier with 5 Ink lifetime, or Solo at ₹799/month for 50 Ink/month.` | OK on prices; no rule | `Start with 5 free Ink. Most documents use 2 Ink, short documents 1. Solo is ₹799/month for 50 Ink. Top-ups from ₹65.` (≈115 chars) |
 | `components/marketing/SiteFooter.tsx:29` | `Start Drafting` | Not about Ink; fine. Optional: `Start with 5 free Ink` | Optional |
 | `components/marketing/SiteFooter.tsx:70` | `AI-assisted drafting tool — not a substitute for legal advice.` | Not the signed disclaimer | `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` |
 | `app/(marketing)/tools/page.tsx` | No Ink or price line | — | No change |
@@ -139,7 +139,7 @@ Priya: there is no watermark on any plan (policy, locked by a test). Every line 
 | W1 | `app/(marketing)/pricing/page.tsx:130` | `Lawie watermark on exports` | Drop the row (pricing table row 17) |
 | W2 | `app/(marketing)/pricing/page.tsx:157` | `No watermark on exports` | Drop the row (row 18) |
 | W3 | `app/(marketing)/pricing/page.tsx:184` | `No watermark on exports` | Drop the row (row 19) |
-| W4 | `app/(marketing)/faq/page.tsx:53` | `Five Ink lifetime for free users. All templates, court formatting, BNS validation, PDF/DOCX export. Free exports carry a Lawie watermark.` | `5 Ink on sign-up (lifetime). All document types, PDF and DOCX export. Criminal drafts cite BNS, BNSS and BSA.` |
+| W4 | `app/(marketing)/faq/page.tsx:53` | `Five Ink lifetime for free users. All templates, court formatting, BNS validation, PDF/DOCX export. Free exports carry a Lawie watermark.` | `5 Ink on sign-up (lifetime). All document types, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers.` |
 | W5 | `app/dashboard/documents/[id]/page.tsx:406–420` (document page, free users) | Comment `Watermark notice for free tier` and the notice `Free tier exports include a watermark. [Upgrade to Pro] for clean exports.` | Remove the whole notice block (`{isFree && (...)}`). Nothing true is left to say, and its "Upgrade to Pro" button pushes a plan that is under review (Vikram). Ajay to confirm no replacement line is wanted |
 
 Not claimed anywhere: the disclaimer banner and the export footers sit outside the editor and cannot be removed (Priya), so no copy may say or imply they can. "Every line of the draft is yours to change" is allowed (Priya confirmed the prayer and verification are editable; Ajay's approved wording).
@@ -151,17 +151,17 @@ Lines read 12 Oct 2026, `develop_staging` working tree. Each replacement makes n
 | # | File:line | Current (exact) | Problem | Replacement |
 | --- | --- | --- | --- | --- |
 | A1 | `about/page.tsx:82–83` | `Formats the cause title, prayer, verification, and advocate block for your selected court.` | Court claim (banned) | `Lays out the cause title, prayer, verification and advocate block in the draft.` |
-| A2 | `about/page.tsx:78–79` | `Maps IPC, CrPC, and IEA references to their current BNS, BNSS, and BSA equivalents.` | Says Lawie converts sections; it does not and must not (old-law offences before 1 July 2024 are not handled) | `Criminal drafts cite BNS, BNSS and BSA.` |
+| A2 | `about/page.tsx:78–79` | `Maps IPC, CrPC, and IEA references to their current BNS, BNSS, and BSA equivalents.` | Says Lawie converts sections; it does not and must not (old-law offences before 1 July 2024 are not handled) | `Criminal drafts use BNS, BNSS and BSA section numbers.` |
 | A3 | `about/page.tsx:118–119` | `…get an advocate from a blank page to a first draft in minutes, on the current law, for the specific court in front of them.` | Time claim; "current law" and "specific court" claims | `…get an advocate from a blank page to a first draft to review, edit and download.` |
 
 Same page, not on Ajay's list but the same kind of claim; Ajay to rule, replacement proposed:
 
 | # | File:line | Current (exact) | Proposed |
 | --- | --- | --- | --- |
-| A4 | `about/page.tsx:99–100` | `Section mappings are built from the published IPC→BNS, CrPC→BNSS, and IEA→BSA section-wise comparison tables. Check every section before you file.` | `Criminal drafts cite BNS, BNSS and BSA. Check every section before you file.` |
+| A4 | `about/page.tsx:99–100` | `Section mappings are built from the published IPC→BNS, CrPC→BNSS, and IEA→BSA section-wise comparison tables. Check every section before you file.` | `Criminal drafts use BNS, BNSS and BSA section numbers. Check every section before you file.` |
 | A5 | `about/page.tsx:103–106` | `The court-formatting rules — how a cause title reads for a District Court versus a High Court, … and we are still adding it court by court.` | Drop the paragraph (court-formatting and coverage claims; T-140 not started) |
 | A6 | `about/page.tsx:116–118` | `More states and court levels, more document types, and support for drafting in Hindi alongside English.` | `More document types, and Hindi drafting: coming soon.` |
-| A7 | `about/page.tsx:97` | `<h2>Built on the current law</h2>` | `Criminal drafts cite BNS, BNSS and BSA` (the heading would otherwise stand over a paragraph that no longer supports it) |
+| A7 | `about/page.tsx:97` | `<h2>Built on the current law</h2>` | `Criminal drafts use BNS, BNSS and BSA section numbers` (the heading would otherwise stand over a paragraph that no longer supports it) |
 
 ## Offers on these pages
 
@@ -172,9 +172,9 @@ Pricing and landing copy mention no referral or demo code. If either ever does (
 | # | Claim | Row |
 | --- | --- | --- |
 | 1 | FAQ "What is Ink?" answer | 1 (signed) |
-| 2 | "Most documents use 2 Ink, short ones 1. Buy extra packs anytime." | 2 (signed) |
+| 2 | "Most documents use 2 Ink, short documents 1. Buy extra packs anytime." | 2 (signed) |
 | 3 | "Every line of the draft is yours to change" | 5 (Ajay approved) |
-| 4 | "Criminal drafts cite BNS, BNSS and BSA" in the Free plan list | 6 (signed wording) |
+| 4 | "Criminal drafts use BNS, BNSS and BSA section numbers" in the Free plan list | 6 (signed wording) |
 | 5 | "Start with 5 free Ink. Buy more when you need it." | 7 |
 | 6 | "5 Ink on sign-up" in place of "5 Ink — forever" | 8 |
 | 7 | "All document types (more than 90)" | 9 |
