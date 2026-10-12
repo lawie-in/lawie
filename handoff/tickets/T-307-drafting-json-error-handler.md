@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (build, drafting). Arjun glance |
 | Mode   | Small fix (drafting app.ts) |
-| Status | To do. Unassigned. Found by Tanvi in T-290, 12 Oct 2026. Pre-existing |
+| Status | Building: tanvi (12 Oct 2026) |
 
 A malformed JSON body to drafting gets Express's default 400 page. In development it echoes about 12 characters of the body. Production must return a plain JSON 400 that echoes nothing.
 

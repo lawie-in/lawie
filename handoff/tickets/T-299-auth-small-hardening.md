@@ -37,3 +37,7 @@ Tests: unknown email, wrong password, Google-only account and deactivated-with-w
 ## Priya (12 Oct 2026)
 
 Items 5 and 6 (security) are in this ticket. Kunal builds T-299 right after T-234 (same auth files). Priority: high, before v1 go-live; T-115c depends on item 5.
+
+## Rides along (Priya, 12 Oct 2026, from T-234)
+
+Fix the stale comment in the apps/gateway register-role test that says "role forced to Client".

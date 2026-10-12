@@ -11,7 +11,7 @@
   "courtId": "pb_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Punjab, governed by the Punjab Courts Act, 1918 read with the Punjab and Haryana High Court Rules and Orders (Volumes I-VI). Sessions courts try offences punishable with imprisonment exceeding 7 years. Punjab presently comprises 23 revenue districts and the subordinate judiciary is supervised by the Punjab and Haryana High Court at Chandigarh, which is the common High Court for the States of Punjab and Haryana and the Union Territory of Chandigarh. Punjabi (Gurmukhi) is the official language of the State subordinate courts under the Punjab Official Language Act, 1967 read with the Punjab State Language Act, 2008.",
+  "jurisdictionNote": "District-level criminal and civil courts in Punjab, governed by the Punjab Courts Act, 1918 read with the Punjab and Haryana High Court Rules and Orders (Volumes I-VI). Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Punjab presently comprises 23 revenue districts and the subordinate judiciary is supervised by the Punjab and Haryana High Court at Chandigarh, which is the common High Court for the States of Punjab and Haryana and the Union Territory of Chandigarh. Punjabi (Gurmukhi) is the official language of the State subordinate courts under the Punjab Official Language Act, 1967 read with the Punjab State Language Act, 2008.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",

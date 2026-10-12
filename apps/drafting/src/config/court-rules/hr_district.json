@@ -11,7 +11,7 @@
   "courtId": "hr_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Haryana, governed by the Punjab Courts Act, 1918 (as in force in Haryana) read with the Punjab and Haryana High Court Rules and Orders (Volumes I-VI). Sessions courts try offences punishable with imprisonment exceeding 7 years. Haryana presently comprises 22 revenue districts and the subordinate judiciary is supervised by the Punjab and Haryana High Court at Chandigarh, which is the common High Court for the States of Punjab and Haryana and the Union Territory of Chandigarh. Hindi is the official language of the State subordinate courts under the Haryana Official Language Act, 1969.",
+  "jurisdictionNote": "District-level criminal and civil courts in Haryana, governed by the Punjab Courts Act, 1918 (as in force in Haryana) read with the Punjab and Haryana High Court Rules and Orders (Volumes I-VI). Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Haryana presently comprises 22 revenue districts and the subordinate judiciary is supervised by the Punjab and Haryana High Court at Chandigarh, which is the common High Court for the States of Punjab and Haryana and the Union Territory of Chandigarh. Hindi is the official language of the State subordinate courts under the Haryana Official Language Act, 1969.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",

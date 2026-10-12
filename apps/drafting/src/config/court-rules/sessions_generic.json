@@ -10,7 +10,7 @@
   "courtId": "sessions_generic",
   "courtType": "sessions",
   "designation": "IN THE COURT OF SESSIONS JUDGE",
-  "jurisdictionNote": "Tries offences punishable with imprisonment exceeding 7 years, life imprisonment, or death. Hears bail applications under Section 483 BNSS for non-bailable offences triable by Sessions Court.",
+  "jurisdictionNote": "Tries the offences that the First Schedule to BNSS makes triable by the Court of Session, and cases committed to it by a Magistrate. Hears bail applications under Section 483 BNSS.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT\n\nVERSUS\n\n{respondent} ... OPPOSITE PARTY",
   "party_designation": {
     "petitioner": "Applicant",
@@ -39,10 +39,7 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": [
-    "en",
-    "hi"
-  ],
+  "supported_languages": ["en", "hi"],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",
