@@ -5,7 +5,7 @@
 | Phase  | 0 — Prep |
 | Owner  | Arjun (triage). Lead (build). Vikram if Ink is affected |
 | Mode   | Small fix (auth), after T-234 merges |
-| Status | Ruled by Arjun (in this file). Folded into T-234 (kunal, same auth files) so the referral offer is true when the login page ships |
+| Status | Merged into develop_staging (b4d6b58, 12 Oct 2026). Waiting for Anushka on develop |
 
 Two findings outside T-234:
 

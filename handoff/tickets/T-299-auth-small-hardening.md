@@ -5,7 +5,7 @@
 | Phase  | 0 — Prep |
 | Owner  | Arjun (triage; item 2 is security). Lead (build) |
 | Mode   | Small fix (auth, web, gateway test), after T-234 merges |
-| Status | Ruled by Arjun (in this file), incl. security items 5 and 6. Kunal, right after T-234. HIGH |
+| Status | Building: kunal (12 Oct 2026) |
 
 1. Google sign-ups are stored with `authProvider: 'email'`. It should say Google.
 2. Login returns 403 for a deactivated account, which tells anyone the email exists. Arjun decides the response (likely the same 401 as a wrong password).
@@ -42,6 +42,12 @@ Items 5 and 6 (security) are in this ticket. Kunal builds T-299 right after T-23
 
 Fix the stale comment in the apps/gateway register-role test that says "role forced to Client".
 
-## Rides along (Priya, 12 Oct 2026, from T-307)
+## Moved (Priya, 12 Oct 2026)
 
-Auth gets the T-307 JSON-error handler: malformed, oversized and bad-encoding bodies get plain JSON with no echo, in the response or the logs, in every environment. Login bodies hold passwords. Copy the approach from drafting (T-307), and add a test.
+The auth JSON-error handler (from T-307) is now part of T-315, shared with the other services (Arjun).
+
+## Rides along (Priya, 12 Oct 2026, from T-234 review)
+
+- Referral grant after the $inc: close the known limitation (grant and counter can diverge on failure).
+- Re-check the code's `expiresAt` at slot time, not only at first check.
+- Remove the timing difference that tells a password-less (Google-only) account apart at login.

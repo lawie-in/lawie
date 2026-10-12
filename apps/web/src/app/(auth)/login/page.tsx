@@ -1,130 +1,208 @@
 'use client';
 
-import { Eye, EyeOff, AlertTriangle, CheckCircle2, Tag, Gift, X, Zap } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Circle, Eye, EyeOff, Gift, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
-// Founder decision 2026-05-17: Google OAuth is the only sign-in for Phase 1.
-// Keep the email/password code path intact (handlers, state, JSX block below)
-// so we can flip the flag back if Google ever goes down or a regulator demands
-// non-OAuth fallback. Flipping `ENABLE_PASSWORD_LOGIN = true` restores it.
-const ENABLE_PASSWORD_LOGIN = false;
+import ReferralOfferModal from './ReferralOfferModal';
 
-function ReferralOfferModal({
-  code,
-  label,
-  bonusInk,
-  onAccept,
-  onClose,
-}: {
-  code: string;
-  label: string;
-  bonusInk: number;
-  onAccept: () => void;
-  onClose: () => void;
-}) {
+import { useAuth } from '@/context/AuthContext';
+
+// T-234 — email + password sign-in and sign-up next to Google.
+// Design: Rajesh (handoff/tickets/T-234-…md). Copy: "Final" column of
+// handoff/marketing/copy/login-page-t234.md, signed by Ajay (handoff/legal/T-234-login-copy-signed.md).
+// "Forgot password?" is deliberately not rendered until T-221 ships /forgot-password (AC3).
+
+type Mode = 'signin' | 'signup';
+type Field = 'name' | 'email' | 'password';
+type FieldErrors = Partial<Record<Field, string>>;
+
+type ServerError =
+  | { kind: 'list'; items: string[] } // 422
+  | { kind: 'conflict'; message: string } // 409
+  | { kind: 'unauthorized' } // 401
+  | { kind: 'message'; message: string } // 403
+  | { kind: 'network' }; // 429, 5xx, network
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Mirrors apps/auth/src/validators/auth.validator.ts registerSchema.password exactly:
+// .min(8) · /[A-Z]/ · /[a-z]/ · /\d/. Change both together.
+const PASSWORD_RULES: { label: string; test: (p: string) => boolean }[] = [
+  { label: 'At least 8 characters', test: (p) => p.length >= 8 },
+  { label: 'One capital letter (A–Z)', test: (p) => /[A-Z]/.test(p) },
+  { label: 'One small letter (a–z)', test: (p) => /[a-z]/.test(p) },
+  { label: 'One number (0–9)', test: (p) => /\d/.test(p) },
+];
+
+const NETWORK_MESSAGE = 'Couldn’t reach Lawie. Check your connection and try again.';
+// Ajay Addendum 1: a code that showed R5/R6 (applied) and was no longer valid at sign-up.
+const REFERRAL_NOT_APPLIED_MESSAGE =
+  'Your referral code was no longer valid, so no bonus Ink was added.';
+// Ajay Addendum 3: a code typed but never applied (R5/R6 never shown) and invalid at sign-up.
+const REFERRAL_NOT_VALID_MESSAGE = 'Your referral code was not valid, so no bonus Ink was added.';
+// Tab-scoped marker read once by /auth/callback to pick between the two lines above after a
+// Google sign-up: '1' = R5/R6 showed for the code sent, '0' = never applied. Wording only; the
+// server never sees it and it grants nothing.
+const REFERRAL_SHOWN_KEY = 'lawie_referral_shown';
+
+// Which field a T-208 422 message belongs to (cheap prefix match, per design).
+// "Invalid email format" is the API's email-format message, so it maps to Email too.
+function fieldForMessage(msg: string): Field | null {
+  if (/^(email|invalid email)/i.test(msg)) return 'email';
+  if (/^(password|must contain)/i.test(msg)) return 'password';
+  if (/^name/i.test(msg)) return 'name';
+  return null;
+}
+
+function validateField(field: Field, value: string): string | undefined {
+  if (field === 'name') return value.trim() ? undefined : 'Enter your full name.';
+  if (field === 'email') {
+    if (!value.trim()) return 'Enter your email.';
+    return EMAIL_RE.test(value.trim()) ? undefined : 'Enter a valid email, like name@gmail.com';
+  }
+  return value ? undefined : 'Enter your password.';
+}
+
+const inputBase =
+  'h-12 w-full rounded-xl border bg-white px-4 text-base text-slate-900 transition focus:outline-none focus:ring-2 focus:ring-lawie-600';
+
+function inputClass(invalid: boolean) {
+  return `${inputBase} ${invalid ? 'border-red-700' : 'border-slate-500'}`;
+}
+
+function GoogleIcon() {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
-      onClick={onClose}
+    <svg
+      className="h-5 w-5 shrink-0"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
     >
-      <div
-        className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header band */}
-        <div
-          className="relative overflow-hidden px-6 py-5"
-          style={{ background: 'linear-gradient(135deg, #b45309 0%, #d97706 60%, #f59e0b 100%)' }}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-4 top-4 rounded-full p-1 text-white/60 hover:bg-white/20 hover:text-white"
-          >
-            <X size={15} />
-          </button>
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/25">
-              <Gift size={18} className="text-white" />
-            </span>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-100">
-                Referral offer
-              </p>
-              <h2 className="mt-0.5 text-lg font-bold text-white">You&apos;ve been invited!</h2>
-            </div>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="px-6 py-5">
-          {/* Code chip */}
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <Tag size={14} className="shrink-0 text-amber-600" />
-            <span className="font-mono text-sm font-bold tracking-widest text-amber-800">
-              {code}
-            </span>
-            {label && <span className="ml-auto text-xs text-amber-700">{label}</span>}
-          </div>
-
-          {/* What you get */}
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            What you get
-          </p>
-          <ul className="space-y-2.5">
-            <li className="flex items-start gap-2.5 text-sm text-slate-700">
-              <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-green-500" />
-              <span>
-                <strong>{bonusInk} Ink credit</strong> added to your account on sign-in
-              </span>
-            </li>
-            <li className="flex items-start gap-2.5 text-sm text-slate-700">
-              <Zap size={15} className="mt-0.5 shrink-0 text-amber-500" />
-              <span>Stacks with your free daily login bonus</span>
-            </li>
-            <li className="flex items-start gap-2.5 text-sm text-slate-700">
-              <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-green-500" />
-              <span>No credit card required — start drafting immediately</span>
-            </li>
-          </ul>
-
-          {/* CTA */}
-          <button
-            type="button"
-            onClick={onAccept}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-700 active:scale-[0.98]"
-          >
-            Claim offer &amp; continue with Google
-          </button>
-          <p className="mt-2 text-center text-[11px] text-slate-400">
-            Bonus applied automatically after sign-in
-          </p>
-        </div>
-      </div>
-    </div>
+      <path
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+        fill="#34A853"
+      />
+      <path
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+        fill="#EA4335"
+      />
+    </svg>
   );
 }
 
-export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
+function LoginContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login } = useAuth();
+
+  // Sign in links use an explicit ?mode=signin, never bare /login. Next 16.2.4 bug: after a direct
+  // load of /login?mode=signup, hydration caches the route under the key "/login" with canonical URL
+  // "/login?mode=signup" (create-initial-router-state → discoverKnownRoute), so a client navigation
+  // to plain /login resolves to the current URL and does nothing. No param still means Sign in.
+  const SIGNIN_HREF = '/login?mode=signin';
+  const SIGNUP_HREF = '/login?mode=signup';
+
+  // Mode lives in the URL (/login?mode=signup) so marketing links and Back work. Default: Sign in.
+  const mode: Mode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+  const isSignup = mode === 'signup';
+
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [notice] = useState('Sign in with Google to continue.');
+  const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [serverInvalid, setServerInvalid] = useState<Set<Field>>(new Set());
+  const [serverError, setServerError] = useState<ServerError | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [referralNotice, setReferralNotice] = useState<string | null>(null);
 
-  // Referral code — SCRUM-71
+  // Referral code — SCRUM-71 (Create account only)
   const [referralCode, setReferralCode] = useState('');
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
   const [referralLabel, setReferralLabel] = useState('');
   const [referralBonusInk, setReferralBonusInk] = useState(0);
   const [validating, setValidating] = useState(false);
   const [showOfferModal, setShowOfferModal] = useState(false);
+  // Ajay condition 2: an existing account (409) never sees R5/R6; show R7 until the email changes.
+  const [referralExistingAccount, setReferralExistingAccount] = useState(false);
 
-  const validateCode = async (code: string) => {
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const applyRef = useRef<HTMLButtonElement>(null);
+  const tabRefs = useRef<Record<Mode, HTMLButtonElement | null>>({ signin: null, signup: null });
+  const prevMode = useRef<Mode>(mode);
+  // Focus moves to the first empty field only for a switch from the bottom switch link or
+  // "Sign in instead". Tablist switches (click, arrows, Home/End) keep focus on the tab.
+  const focusFieldOnSwitch = useRef(false);
+  // True only while the mode switch moves focus itself, so that move doesn't blur-validate the
+  // field the user was in (it keeps focus while a switch link is pressed, see keepFieldFocus).
+  const switchingFocus = useRef(false);
+  const fieldsRef = useRef({ name, email });
+  fieldsRef.current = { name, email };
+
+  // Switching mode (tab, switch link, "Sign in instead" or Back) keeps the email, clears the
+  // password and errors, and moves focus to the first empty field.
+  useEffect(() => {
+    if (prevMode.current === mode) return;
+    prevMode.current = mode;
+    const moveFocus = focusFieldOnSwitch.current;
+    focusFieldOnSwitch.current = false;
+    setPassword('');
+    setShowPassword(false);
+    setFieldErrors({});
+    setServerInvalid(new Set());
+    setServerError(null);
+    if (!moveFocus) return;
+    const { name: n, email: em } = fieldsRef.current;
+    const target = mode === 'signup' && !n.trim() ? nameRef : !em.trim() ? emailRef : passwordRef;
+    // Wait a frame so the signup-only Full name field is mounted.
+    requestAnimationFrame(() => {
+      switchingFocus.current = true;
+      target.current?.focus();
+      switchingFocus.current = false;
+    });
+  }, [mode]);
+
+  useEffect(() => {
+    if (serverError) summaryRef.current?.focus();
+  }, [serverError]);
+
+  const switchMode = useCallback(
+    (next: Mode) => {
+      if (next === mode) return;
+      router.push(next === 'signup' ? SIGNUP_HREF : SIGNIN_HREF, { scroll: false });
+    },
+    [mode, router],
+  );
+
+  const onTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    const next: Mode =
+      e.key === 'Home' ? 'signin' : e.key === 'End' ? 'signup' : isSignup ? 'signin' : 'signup';
+    tabRefs.current[next]?.focus();
+    switchMode(next);
+  };
+
+  // ── Referral ────────────────────────────────────────────────────────────────
+
+  const validateCode = async (code: string): Promise<boolean | null> => {
     if (!code) {
       setReferralValid(null);
-      return;
+      return null;
     }
     setValidating(true);
     try {
@@ -135,248 +213,637 @@ export default function LoginPage() {
         const data = await res.json();
         setReferralValid(data.valid);
         setReferralLabel(data.label ?? '');
+        // {n} comes from the server: ReferralCode.bonusInk, the value grantReferralInk credits.
         setReferralBonusInk(data.bonusInk ?? 0);
+        return Boolean(data.valid);
       }
+      return null;
     } catch {
       setReferralValid(null);
+      return null;
     } finally {
       setValidating(false);
     }
   };
 
+  // Stable identity so the modal's mount effect (focus, trap, focus return) runs once.
+  const closeOfferModal = useCallback(() => setShowOfferModal(false), []);
+
   const handleApply = async () => {
     const code = referralCode.trim().toUpperCase();
     if (!code) return;
-    await validateCode(code);
-    // modal is shown only after validation confirms valid
-    setShowOfferModal(true);
+    const valid = await validateCode(code);
+    if (valid) setShowOfferModal(true);
   };
 
-  const handleEmailLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert('Email/password login coming soon. Please use Google sign-in.');
+  // The code is sent only from Create account, and not when it was already shown as invalid (R7).
+  const referralToSend = (): string | undefined => {
+    const code = referralCode.trim().toUpperCase();
+    if (!isSignup || !code || referralValid === false) return undefined;
+    return code;
   };
 
   const handleGoogleLogin = () => {
-    const code = referralCode.trim().toUpperCase();
+    const code = referralToSend();
     if (code) sessionStorage.setItem('lawie_referral_code', code);
+    try {
+      if (code) sessionStorage.setItem(REFERRAL_SHOWN_KEY, referralValid === true ? '1' : '0');
+      else sessionStorage.removeItem(REFERRAL_SHOWN_KEY);
+    } catch {
+      // Storage unavailable: the callback falls back to the "not valid" line.
+    }
     const base = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
-    const url = code ? `${base}?referralCode=${encodeURIComponent(code)}` : base;
-    window.location.href = url;
+    window.location.href = code ? `${base}?referralCode=${encodeURIComponent(code)}` : base;
   };
+
+  // ── Email + password ────────────────────────────────────────────────────────
+
+  const fieldValue = (f: Field) => (f === 'name' ? name : f === 'email' ? email : password);
+
+  const onBlurField = (f: Field) => {
+    if (switchingFocus.current) return;
+    setFieldErrors((prev) => ({ ...prev, [f]: validateField(f, fieldValue(f)) }));
+  };
+
+  // Once a field shows an error, re-check it as the user types so the error clears when fixed.
+  const onChangeField = (f: Field, value: string) => {
+    if (f === 'name') setName(value);
+    else if (f === 'email') {
+      setEmail(value);
+      setReferralExistingAccount(false);
+    } else setPassword(value);
+    if (fieldErrors[f]) {
+      setFieldErrors((prev) => ({ ...prev, [f]: validateField(f, value) }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting) return;
+
+    const fields: Field[] = isSignup ? ['name', 'email', 'password'] : ['email', 'password'];
+    const errs: FieldErrors = {};
+    for (const f of fields) {
+      const msg = validateField(f, fieldValue(f));
+      if (msg) errs[f] = msg;
+    }
+    setFieldErrors(errs);
+    const firstInvalid = fields.find((f) => errs[f]);
+    if (firstInvalid) {
+      const refs = { name: nameRef, email: emailRef, password: passwordRef };
+      refs[firstInvalid].current?.focus();
+      return;
+    }
+
+    setSubmitting(true);
+    setServerError(null);
+    setServerInvalid(new Set());
+
+    const body = isSignup
+      ? { name: name.trim(), email: email.trim(), password, referralCode: referralToSend() }
+      : { email: email.trim(), password };
+
+    let res: Response;
+    try {
+      res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/${isSignup ? 'register' : 'login'}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        },
+      );
+    } catch {
+      setSubmitting(false);
+      setServerError({ kind: 'network' });
+      return;
+    }
+
+    let json: {
+      message?: unknown;
+      data?: { accessToken?: string; refreshToken?: string; referralApplied?: boolean };
+    } = {};
+    try {
+      json = await res.json();
+    } catch {
+      // Non-JSON body (proxy error page etc.) — handled by status below.
+    }
+
+    const accessToken = json.data?.accessToken;
+    const refreshToken = json.data?.refreshToken;
+    if (res.ok && accessToken && refreshToken) {
+      login(accessToken, refreshToken);
+      // The code sent was not valid at account creation. The account exists; tell the user once
+      // before going on. Addendum 1 line if R5/R6 showed for it, Addendum 3 line if never applied.
+      if (isSignup && json.data?.referralApplied === false) {
+        setSubmitting(false);
+        setReferralNotice(
+          referralValid === true ? REFERRAL_NOT_APPLIED_MESSAGE : REFERRAL_NOT_VALID_MESSAGE,
+        );
+        return;
+      }
+      router.replace('/dashboard');
+      return;
+    }
+
+    setSubmitting(false);
+    const message = typeof json.message === 'string' ? json.message : '';
+
+    if (res.status === 422 && message) {
+      const items = message
+        .split('; ')
+        .map((m) => m.trim())
+        .filter(Boolean);
+      const marked = new Set<Field>();
+      for (const m of items) {
+        const f = fieldForMessage(m);
+        if (f && fields.includes(f)) marked.add(f);
+      }
+      setServerInvalid(marked);
+      setServerError({ kind: 'list', items });
+    } else if (res.status === 409 && message) {
+      if (isSignup) setReferralExistingAccount(true);
+      setServerError({ kind: 'conflict', message });
+    } else if (res.status === 401) {
+      setPassword('');
+      setServerError({ kind: 'unauthorized' });
+    } else if (res.status === 403 && message) {
+      setServerError({ kind: 'message', message });
+    } else {
+      setServerError({ kind: 'network' });
+    }
+  };
+
+  // Pressing a mode-switch link must not blur the focused field: the blur would show its
+  // validation error, push the link down, and the mouseup would miss it (no click fires).
+  const keepFieldFocus = (e: React.MouseEvent) => e.preventDefault();
+
+  const isInvalid = (f: Field) => Boolean(fieldErrors[f]) || serverInvalid.has(f);
+  const describedBy = (...ids: (string | false | undefined)[]) =>
+    ids.filter(Boolean).join(' ') || undefined;
+
+  const showReferralInvalid =
+    referralValid === false || (referralValid === true && referralExistingAccount);
+  const showReferralApplied = referralValid === true && !referralExistingAccount;
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <>
-      {showOfferModal && referralValid === true && (
+      {showOfferModal && showReferralApplied && isSignup && (
         <ReferralOfferModal
           code={referralCode.trim().toUpperCase()}
           label={referralLabel}
           bonusInk={referralBonusInk}
-          onAccept={() => {
-            setShowOfferModal(false);
-            handleGoogleLogin();
-          }}
-          onClose={() => setShowOfferModal(false)}
+          onClose={closeOfferModal}
+          fallbackFocusRef={applyRef}
         />
       )}
 
-      <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50 px-4 py-12">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50 px-4 pb-6 pt-4 sm:py-12">
         {/* Logo */}
-        <Link href="/" className="mb-8">
+        <Link href="/" className="mb-6 sm:mb-8">
           <Image
             src="/assets/lawie-lockup.png"
             alt="Lawie"
             width={210}
             height={48}
-            className="h-28 w-auto"
+            className="h-12 w-auto sm:h-14"
             priority
           />
         </Link>
 
         {/* Card */}
         <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl shadow-slate-200/60">
-          {/* Dev notice banner */}
-          <div className="flex items-start gap-2.5 border-b border-amber-200 bg-amber-50 px-5 py-3 text-xs text-amber-800">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{notice}</span>
-          </div>
-
-          <div className="p-8">
-            <h1 className="text-2xl font-bold text-slate-900">Sign in to Lawie</h1>
-            <p className="mt-1.5 text-sm text-slate-500">
-              Access your AI legal drafting workspace.
-            </p>
-
-            {/* Referral code — SCRUM-71 */}
-            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <Gift size={14} className="text-amber-500" />
-                <span className="text-sm font-semibold text-slate-800">Have a referral code?</span>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="e.g. LAWIE2026"
-                  value={referralCode}
-                  onChange={(e) => {
-                    setReferralCode(e.target.value.toUpperCase());
-                    setReferralValid(null);
-                  }}
-                  onKeyDown={(e) => e.key === 'Enter' && void handleApply()}
-                  maxLength={16}
-                  className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm uppercase tracking-widest text-slate-900 placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
+          <div className="p-5 sm:p-8">
+            {referralNotice ? (
+              <div role="status">
+                <p className="flex items-start gap-2 text-base text-slate-900">
+                  <AlertTriangle
+                    className="mt-0.5 h-5 w-5 shrink-0 text-amber-700"
+                    aria-hidden="true"
+                  />
+                  <span>{referralNotice}</span>
+                </p>
                 <button
                   type="button"
-                  onClick={() => void handleApply()}
-                  disabled={!referralCode.trim() || validating}
-                  className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40"
+                  onClick={() => router.replace('/dashboard')}
+                  className="bg-lawie-600 hover:bg-lawie-700 mt-5 h-12 w-full rounded-xl text-base font-semibold text-white"
                 >
-                  {validating ? 'Checking…' : 'Apply'}
+                  Continue
                 </button>
               </div>
-
-              {/* Inline feedback */}
-              {referralValid === true && (
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-green-700">
-                  <CheckCircle2 size={12} />
-                  Code accepted{referralLabel ? ` — ${referralLabel}` : ''}.{' '}
-                  {referralBonusInk > 0
-                    ? `${referralBonusInk} Ink credited on signup.`
-                    : 'Ink bonus credited on signup.'}
+            ) : (
+              <>
+                <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
+                  {isSignup ? 'Create your Lawie account' : 'Sign in to Lawie'}
+                </h1>
+                <p className="mt-1 text-sm text-slate-600">
+                  {isSignup
+                    ? 'Set up your account and start your first draft.'
+                    : 'Welcome back. Sign in to continue drafting.'}
                 </p>
-              )}
-              {referralValid === false && (
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-red-500">
-                  <AlertTriangle size={12} />
-                  Code not recognised or no longer active.
-                </p>
-              )}
-            </div>
 
-            {/* Google OAuth */}
-            <button
-              onClick={handleGoogleLogin}
-              type="button"
-              className="mt-5 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98]"
-            >
-              <svg
-                className="h-5 w-5 shrink-0"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              Continue with Google
-            </button>
-
-            {ENABLE_PASSWORD_LOGIN && (
-              <div className="my-6 flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-200" />
-                <span className="text-xs font-medium text-slate-400">or continue with email</span>
-                <div className="h-px flex-1 bg-slate-200" />
-              </div>
-            )}
-
-            {ENABLE_PASSWORD_LOGIN && (
-              <form onSubmit={handleEmailLogin} className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                  >
-                    Email address
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@legalfirm.com"
-                    className="focus:ring-lawie-600 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2"
-                  />
+                {/* Mode switch */}
+                <div
+                  role="tablist"
+                  aria-label="Sign in or create account"
+                  className="mt-4 grid grid-cols-2 rounded-xl bg-slate-100 p-1 sm:mt-5"
+                >
+                  {(
+                    [
+                      ['signin', 'Sign in'],
+                      ['signup', 'Create account'],
+                    ] as const
+                  ).map(([m, label]) => {
+                    const selected = mode === m;
+                    return (
+                      <button
+                        key={m}
+                        ref={(el) => {
+                          tabRefs.current[m] = el;
+                        }}
+                        id={`tab-${m}`}
+                        type="button"
+                        role="tab"
+                        aria-selected={selected}
+                        aria-controls="auth-panel"
+                        tabIndex={selected ? 0 : -1}
+                        onClick={() => switchMode(m)}
+                        onKeyDown={onTabKeyDown}
+                        className={`h-11 rounded-lg text-sm font-semibold transition ${
+                          selected
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-                      Password
-                    </label>
-                    <span className="text-lawie-600 hover:text-lawie-700 cursor-pointer text-xs font-medium">
-                      Forgot password?
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="focus:ring-lawie-600 w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((p) => !p)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4.5 w-4.5" />
-                      ) : (
-                        <Eye className="h-4.5 w-4.5" />
+                <div id="auth-panel" role="tabpanel" aria-labelledby={`tab-${mode}`}>
+                  {/* Referral code — SCRUM-71, Create account only (Priya decision 2) */}
+                  {isSignup && (
+                    <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <Gift size={14} className="text-amber-600" aria-hidden="true" />
+                        <label
+                          htmlFor="referral-code"
+                          className="text-sm font-semibold text-slate-800"
+                        >
+                          Have a referral code?
+                        </label>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          id="referral-code"
+                          type="text"
+                          placeholder="Enter code"
+                          value={referralCode}
+                          onChange={(e) => {
+                            setReferralCode(e.target.value.toUpperCase());
+                            setReferralValid(null);
+                            setReferralExistingAccount(false);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              void handleApply();
+                            }
+                          }}
+                          maxLength={16}
+                          autoComplete="off"
+                          aria-describedby={
+                            referralValid !== null ? 'referral-feedback' : undefined
+                          }
+                          className="focus:ring-lawie-600 h-12 min-w-0 flex-1 rounded-lg border border-slate-500 bg-white px-3 font-mono text-base uppercase tracking-widest text-slate-900 placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-500 focus:outline-none focus:ring-2"
+                        />
+                        <button
+                          ref={applyRef}
+                          type="button"
+                          onClick={() => void handleApply()}
+                          disabled={!referralCode.trim() || validating}
+                          className="h-12 shrink-0 rounded-lg bg-slate-900 px-4 text-base font-semibold text-white hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40"
+                        >
+                          {validating ? 'Checking…' : 'Apply'}
+                        </button>
+                      </div>
+
+                      {/* Inline feedback */}
+                      {showReferralApplied && (
+                        <p
+                          id="referral-feedback"
+                          className="mt-2 flex items-start gap-1.5 text-sm text-green-700"
+                        >
+                          <CheckCircle2 size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                          <span>
+                            {referralBonusInk > 0
+                              ? `Code applied${referralLabel ? ` — ${referralLabel}` : ''}. ${referralBonusInk} Ink will be added when you create your account.`
+                              : 'Code applied. Bonus Ink will be added when you create your account.'}
+                          </span>
+                        </p>
                       )}
-                    </button>
+                      {showReferralInvalid && (
+                        <p
+                          id="referral-feedback"
+                          className="mt-2 flex items-start gap-1.5 text-sm text-red-700"
+                        >
+                          <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                          <span>
+                            This code isn&apos;t valid or has expired. Check it and try again.
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Google OAuth */}
+                  <button
+                    onClick={handleGoogleLogin}
+                    type="button"
+                    className="mt-4 flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-500 bg-white px-4 text-base font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98] sm:mt-5"
+                  >
+                    <GoogleIcon />
+                    Continue with Google
+                  </button>
+
+                  <div className="my-4 flex items-center gap-3 sm:my-5">
+                    <div className="h-px flex-1 bg-slate-200" />
+                    <span className="text-sm text-slate-600">or with email</span>
+                    <div className="h-px flex-1 bg-slate-200" />
                   </div>
+
+                  <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                    {isSignup && (
+                      <div>
+                        <label
+                          htmlFor="name"
+                          className="mb-1.5 block text-sm font-medium text-slate-700"
+                        >
+                          Full name
+                        </label>
+                        <input
+                          ref={nameRef}
+                          id="name"
+                          type="text"
+                          autoComplete="name"
+                          value={name}
+                          onChange={(e) => onChangeField('name', e.target.value)}
+                          onBlur={() => onBlurField('name')}
+                          aria-invalid={isInvalid('name') || undefined}
+                          aria-describedby={describedBy(fieldErrors.name && 'name-error')}
+                          className={inputClass(isInvalid('name'))}
+                        />
+                        {fieldErrors.name && (
+                          <p id="name-error" className="mt-1.5 text-sm text-red-700">
+                            {fieldErrors.name}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div>
+                      <label
+                        htmlFor="email"
+                        className="mb-1.5 block text-sm font-medium text-slate-700"
+                      >
+                        Email
+                      </label>
+                      <input
+                        ref={emailRef}
+                        id="email"
+                        type="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => onChangeField('email', e.target.value)}
+                        onBlur={() => onBlurField('email')}
+                        aria-invalid={isInvalid('email') || undefined}
+                        aria-describedby={describedBy(fieldErrors.email && 'email-error')}
+                        className={inputClass(isInvalid('email'))}
+                      />
+                      {fieldErrors.email && (
+                        <p id="email-error" className="mt-1.5 text-sm text-red-700">
+                          {fieldErrors.email}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      {/* "Forgot password?" goes in this row (right-aligned, Sign in only, a
+                          <Link href="/forgot-password"> with a 44 px hit area) once T-221 ships.
+                          Not rendered until then (AC3). */}
+                      <label
+                        htmlFor="password"
+                        className="mb-1.5 block text-sm font-medium text-slate-700"
+                      >
+                        Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          ref={passwordRef}
+                          id="password"
+                          type={showPassword ? 'text' : 'password'}
+                          autoComplete={isSignup ? 'new-password' : 'current-password'}
+                          value={password}
+                          onChange={(e) => onChangeField('password', e.target.value)}
+                          onBlur={() => onBlurField('password')}
+                          aria-invalid={isInvalid('password') || undefined}
+                          aria-describedby={describedBy(
+                            fieldErrors.password && 'password-error',
+                            isSignup && 'password-rules',
+                          )}
+                          className={`${inputClass(isInvalid('password'))} pr-12`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((p) => !p)}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          className="absolute right-0 top-0 flex h-12 w-12 items-center justify-center rounded-r-xl text-slate-600 transition-colors hover:text-slate-900"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-5 w-5" aria-hidden="true" />
+                          ) : (
+                            <Eye className="h-5 w-5" aria-hidden="true" />
+                          )}
+                        </button>
+                      </div>
+                      {fieldErrors.password && (
+                        <p id="password-error" className="mt-1.5 text-sm text-red-700">
+                          {fieldErrors.password}
+                        </p>
+                      )}
+                      {isSignup && (
+                        <div id="password-rules" className="mt-2 text-sm text-slate-600">
+                          <p>Your password needs:</p>
+                          <ul className="mt-1 space-y-1">
+                            {PASSWORD_RULES.map((rule) => {
+                              const met = rule.test(password);
+                              return (
+                                <li key={rule.label} className="flex items-center gap-2">
+                                  {met ? (
+                                    <CheckCircle2
+                                      className="h-4 w-4 shrink-0 text-slate-900"
+                                      aria-hidden="true"
+                                    />
+                                  ) : (
+                                    <Circle
+                                      className="h-4 w-4 shrink-0 text-slate-500"
+                                      aria-hidden="true"
+                                    />
+                                  )}
+                                  <span className={met ? 'text-slate-900' : undefined}>
+                                    {rule.label}
+                                  </span>
+                                  <span className="sr-only">{met ? '(done)' : '(not yet)'}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Error summary — directly above submit */}
+                    {serverError && (
+                      <div
+                        ref={summaryRef}
+                        role="alert"
+                        tabIndex={-1}
+                        className="flex items-start gap-2.5 rounded-xl bg-red-50 p-4 text-sm text-red-700 focus:outline-none focus:ring-2 focus:ring-red-700"
+                      >
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                        <div>
+                          {serverError.kind === 'list' &&
+                            (serverError.items.length > 1 ? (
+                              <>
+                                <p className="font-semibold">Please check the following:</p>
+                                <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                                  {serverError.items.map((m) => (
+                                    <li key={m}>{m}</li>
+                                  ))}
+                                </ul>
+                              </>
+                            ) : (
+                              <p>{serverError.items[0]}</p>
+                            ))}
+                          {serverError.kind === 'conflict' && (
+                            <p>
+                              {serverError.message}{' '}
+                              <Link
+                                href={SIGNIN_HREF}
+                                scroll={false}
+                                onMouseDown={keepFieldFocus}
+                                onClick={() => {
+                                  focusFieldOnSwitch.current = true;
+                                }}
+                                className="font-semibold underline hover:text-red-900"
+                              >
+                                Sign in instead
+                              </Link>
+                            </p>
+                          )}
+                          {serverError.kind === 'unauthorized' && (
+                            <>
+                              <p>Email or password is incorrect.</p>
+                              <p className="mt-1">
+                                Signed up with Google? Use Continue with Google above.
+                              </p>
+                            </>
+                          )}
+                          {serverError.kind === 'message' && <p>{serverError.message}</p>}
+                          {serverError.kind === 'network' && <p>{NETWORK_MESSAGE}</p>}
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        aria-busy={submitting || undefined}
+                        className="bg-lawie-600 shadow-lawie-600/25 hover:bg-lawie-700 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold text-white shadow-lg transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-80"
+                      >
+                        {submitting && (
+                          <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                        )}
+                        {submitting
+                          ? isSignup
+                            ? 'Creating your account…'
+                            : 'Signing in…'
+                          : isSignup
+                            ? 'Create account'
+                            : 'Sign in'}
+                      </button>
+
+                      {/* Consent line — Ajay, 11 Oct 2026. Word for word; no edits without his
+                          sign-off. Directly under submit, both modes, covers Google too. No checkbox. */}
+                      <p className="mt-3 text-sm text-slate-600">
+                        By continuing, you agree to Lawie&apos;s{' '}
+                        <Link
+                          href="/terms"
+                          target="_blank"
+                          rel="noopener"
+                          className="underline hover:text-slate-900"
+                        >
+                          Terms of Service
+                        </Link>{' '}
+                        and confirm you have read our{' '}
+                        <Link
+                          href="/privacy"
+                          target="_blank"
+                          rel="noopener"
+                          className="underline hover:text-slate-900"
+                        >
+                          Privacy Policy
+                        </Link>
+                        .
+                      </p>
+                    </div>
+                  </form>
+
+                  <p className="mt-5 text-center text-sm text-slate-600">
+                    {isSignup ? 'Already have an account? ' : 'New to Lawie? '}
+                    <Link
+                      href={isSignup ? SIGNIN_HREF : SIGNUP_HREF}
+                      scroll={false}
+                      onMouseDown={keepFieldFocus}
+                      onClick={() => {
+                        focusFieldOnSwitch.current = true;
+                      }}
+                      className="text-lawie-700 inline-block py-3 font-semibold hover:underline"
+                    >
+                      {isSignup ? 'Sign in' : 'Create an account'}
+                    </Link>
+                  </p>
                 </div>
-
-                <button
-                  type="submit"
-                  className="bg-lawie-600 shadow-lawie-600/25 hover:bg-lawie-700 mt-2 w-full rounded-xl py-3 text-sm font-semibold text-white shadow-lg transition-all active:scale-[0.98]"
-                >
-                  Sign in
-                </button>
-              </form>
+              </>
             )}
-
-            <p className="mt-6 text-center text-sm text-slate-500">
-              New advocate?{' '}
-              <span className="text-slate-700">Sign in with Google to create your account.</span>
-            </p>
           </div>
         </div>
 
-        <p className="mt-8 max-w-sm text-center text-xs text-slate-400">
-          AI-assisted drafting tool — not a substitute for legal advice.
+        <p className="mt-6 max-w-sm text-center text-xs text-slate-600 sm:mt-8">
+          Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
           <br />
-          <Link href="/terms" className="underline hover:text-slate-600">
+          <Link href="/terms" className="underline hover:text-slate-900">
             Terms
           </Link>{' '}
           ·{' '}
-          <Link href="/privacy" className="underline hover:text-slate-600">
+          <Link href="/privacy" className="underline hover:text-slate-900">
             Privacy
           </Link>
         </p>
       </main>
     </>
+  );
+}
+
+// useSearchParams in a client page needs a Suspense boundary for `next build`.
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-slate-50" />}>
+      <LoginContent />
+    </Suspense>
   );
 }
