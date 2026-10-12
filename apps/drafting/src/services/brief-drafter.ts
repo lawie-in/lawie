@@ -89,7 +89,8 @@ export function formDataFromBrief(
 
   const data: Record<string, unknown> = {};
   for (const item of brief.items) {
-    if (isEmpty(item.value)) {
+    // T-336: a description-read "none" not yet confirmed is not a fact. Its blank shows.
+    if (isEmpty(item.value) || item.unconfirmed === true) {
       data[item.key] = item.placeholder;
     } else if (Array.isArray(item.value)) {
       data[item.key] = item.value.map((v) => toId(item.key, v));
@@ -182,6 +183,13 @@ function briefParts(
   };
   for (const item of brief.items) {
     if (isEmpty(item.value)) continue;
+    // T-336: a description-read "none" on earlier bail applications, not yet
+    // confirmed, is not a fact. It is listed as unknown, so the Drafter writes
+    // its blank even though the advocate's description appears to give it.
+    if (item.unconfirmed === true) {
+      out.unknown.push({ what: item.label, blank: item.placeholder });
+      continue;
+    }
     const value = shown(item, converted);
     if (item.part === 'dates') {
       out.dates.push({
@@ -367,13 +375,16 @@ export function ledgerSkeletonBrief(brief: Brief, facts: readonly LedgerFact[]):
   return {
     ...brief,
     items: brief.items.map((item) => {
+      // T-336: the ledger decides what is held, so the brief's `unconfirmed` mark is dropped.
+      const rest: BriefItem = { ...item };
+      delete rest.unconfirmed;
       const entries = held.get(item.key);
-      if (!entries) return { ...item, value: null, placeholder: missingPlaceholder(item.label) };
+      if (!entries) return { ...rest, value: null, placeholder: missingPlaceholder(item.label) };
       // T-189: a list or several choices takes every entry's display.
       if (item.kind === 'list' || item.kind === 'choices') {
-        return { ...item, value: entries.map((f) => f.display.trim()) };
+        return { ...rest, value: entries.map((f) => f.display.trim()) };
       }
-      return { ...item, value: entries[entries.length - 1].display.trim() };
+      return { ...rest, value: entries[entries.length - 1].display.trim() };
     }),
     unplaced: [],
     still_unknown: brief.still_unknown.map((u) => ({
@@ -1900,7 +1911,8 @@ export function checkBriefIsUsed(
     }
   };
   for (const item of brief.items) {
-    if (isEmpty(item.value)) continue;
+    // T-336: an unconfirmed value is not put in the draft, so it is not looked for.
+    if (isEmpty(item.value) || item.unconfirmed === true) continue;
     const values = Array.isArray(item.value) ? item.value : [item.value as string];
     if (item.kind === 'narrative') {
       for (const v of values) bySentence(item.label, v);
