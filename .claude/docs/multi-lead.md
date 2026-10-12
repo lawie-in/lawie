@@ -46,7 +46,7 @@ Six sessions run apart: the whole team (Priya leads), `vishal`, `mahak`, `shasha
 
 **What the board holds.**
 
-- `tickets/<id>`: status (`todo`, `doing`, `review`, `blocked`, `hold`, `done`, `closed`), title, owner, assignee (`vishal`, `mahak` or `shashank`), files (claimed paths), note, deps, phase, file, updatedAt. The board flags two tickets claiming the same path, and marks hot paths: `packages/shared`, `apps/gateway`, `apps/drafting/src/config`, `docs/templates`, `ai.service.ts`, `preflight.service.ts`.
+- `tickets/<id>`: status (`todo`, `doing`, `review`, `blocked`, `hold`, `done`, `closed`), title, owner, assignee (`vishal`, `mahak`, `shashank`, `kunal` or `tanvi`), files (claimed paths), note, deps, phase, file, updatedAt. The board flags two tickets claiming the same path, and marks hot paths: `packages/shared`, `apps/gateway`, `apps/drafting/src/config`, `docs/templates`, `ai.service.ts`, `preflight.service.ts`.
 - `comments/<ticketId>`: one thread per ticket. Each item has from, body, ts.
 - `messages/<YYYY-MM-DD>_<author>`: the relay chat, one document per author per day. Each item has from, to, kind, ticket, body, ts.
 
@@ -61,7 +61,7 @@ Six sessions run apart: the whole team (Priya leads), `vishal`, `mahak`, `shasha
 
 **The relay.** For messages between sessions. Kinds: `note`; `claim` (a lead asking Priya for a file or an extension); `conflict` (two tickets touching the same path); `resolution` (Priya's answer). Every session reads the relay and its own tickets' comments at start, before branching and before merging into `develop_staging`.
 
-**@mentions.** Address people with `@name` from the roster only: priya, vishal, mahak, shashank, arjun, meera, vikram, ajay, rita, madhuri, rajesh, annu, kavya, anushka, founder. Use `@founder` for anything only he decides. Tagging someone does not grant a gate: Ajay, Arjun and Rajesh sign-offs still need a reference.
+**@mentions.** Address people with `@name` from the roster only: priya, vishal, mahak, shashank, kunal, tanvi, arjun, meera, vikram, ajay, rita, madhuri, rajesh, annu, kavya, anushka, founder. Use `@founder` for anything only he decides. Tagging someone does not grant a gate: Ajay, Arjun and Rajesh sign-offs still need a reference.
 
 ## Worktrees
 
@@ -73,7 +73,7 @@ git -C /home/user/lawie worktree add --detach /home/user/lawie-wt/mahak origin/d
 cd /home/user/lawie-wt/mahak && yarn install
 ```
 
-Same for `shashank` (and `vishal`, if he moves off his current checkout). Per ticket, the lead creates its branch inside its own worktree from `origin/develop_staging`.
+Same for `shashank`, `kunal` and `tanvi` (and `vishal`, if he moves off his current checkout). Per ticket, the lead creates its branch inside its own worktree from `origin/develop_staging`.
 
 - Start each lead's session from inside its worktree. Subagents run in the session's directory, so this is what keeps each crew on its own lead's files.
 - Run `yarn install` in each worktree. Do not symlink `node_modules` from another checkout: its `@lawie/*` links resolve to that checkout's `apps/` and `packages/shared`, so a build in the worktree would test the wrong code.
