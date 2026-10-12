@@ -361,6 +361,7 @@ function MultiSelectSearchField({
   searchHandler?: (query: string) => Promise<FieldOption[]>;
 }) {
   const [search, setSearch] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [remoteResults, setRemoteResults] = useState<FieldOption[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
 
@@ -423,27 +424,35 @@ function MultiSelectSearchField({
       )}
       {/* Selected items as tags */}
       {selectedItems.length > 0 && (
-        <div className="mt-1 flex flex-wrap gap-1">
+        <div className="mt-1 space-y-2 sm:space-y-1">
           {selectedItems.map((item) => (
-            <span
-              key={item.id}
-              className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
-            >
-              {item.label}
-              <X
-                size={12}
-                className="cursor-pointer hover:text-amber-600"
-                onClick={() => onChange(value.filter((v) => v !== item.id))}
-              />
-            </span>
+            <div key={item.id}>
+              <div className="flex items-center gap-2 sm:gap-1">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                  {item.label}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(value.filter((v) => v !== item.id));
+                    searchInputRef.current?.focus();
+                  }}
+                  aria-label={`Remove ${item.label}`}
+                  className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 sm:h-6 sm:w-6 sm:rounded-full sm:border-0"
+                >
+                  <X size={16} className="sm:h-3 sm:w-3" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}
       {/* Search + dropdown */}
-      <div className="relative mt-1">
+      <div className="relative mt-2 sm:mt-1">
         <div className={`${inputClasses} flex items-center gap-2`}>
           <Search size={14} className="flex-shrink-0 text-slate-400" />
           <input
+            ref={searchInputRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -577,6 +586,7 @@ function FileField({
   onChange: (v: UploadedFile[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const chooseButtonRef = useRef<HTMLButtonElement>(null);
   function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
     const list = e.target.files;
     if (!list) return;
@@ -593,6 +603,7 @@ function FileField({
     <div>
       <FieldLabel field={field} />
       <button
+        ref={chooseButtonRef}
         type="button"
         onClick={() => inputRef.current?.click()}
         className={`${inputClasses} flex items-center gap-2 text-left text-slate-600 hover:bg-slate-50`}
@@ -615,23 +626,26 @@ function FileField({
         onChange={handlePick}
       />
       {value.length > 0 && (
-        <ul className="mt-1 space-y-1">
+        <ul className="mt-2 space-y-2 sm:mt-1 sm:space-y-1">
           {value.map((f, i) => (
             <li
               key={`${f.name}-${i}`}
-              className="flex items-center justify-between rounded border border-slate-100 px-2 py-1 text-xs text-slate-600"
+              className="flex items-center justify-between gap-2 rounded border border-slate-100 py-0 pl-2 pr-0 text-xs text-slate-600 sm:pr-1"
             >
-              <span className="truncate">
+              <span className="min-w-0 truncate">
                 {f.name}
                 <span className="ml-2 text-slate-400">{(f.size / 1024).toFixed(0)} KB</span>
               </span>
               <button
                 type="button"
-                onClick={() => onChange(value.filter((_, j) => j !== i))}
-                className="text-slate-400 hover:text-slate-600"
-                aria-label="Remove"
+                onClick={() => {
+                  onChange(value.filter((_, j) => j !== i));
+                  chooseButtonRef.current?.focus();
+                }}
+                aria-label={`Remove ${f.name}`}
+                className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 sm:h-6 sm:w-6 sm:border-0"
               >
-                <X size={12} />
+                <X size={16} className="sm:h-3 sm:w-3" aria-hidden="true" />
               </button>
             </li>
           ))}
