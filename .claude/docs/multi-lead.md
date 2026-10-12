@@ -84,6 +84,17 @@ Same for `shashank` (and `vishal`, if he moves off his current checkout). Per ti
 
 Entry gate, modes, handoff packets, the review loop with its two-round cap, scope boundaries, the quality line in `.claude/docs/quality-gate.md`, and the rule that only the lead commits. Leads still cannot `Edit` or `Write`.
 
+## Speed rules (founder, 12 Oct 2026)
+
+The founder finds the chain too slow. Test enough to be safe, not more:
+
+1. **Developer:** run `tsc` and only the test files for what you changed (`yarn workspace @lawie/<name> test -- <paths>`). No full suite.
+2. **Tester:** write tests for the acceptance criteria only. Run them plus the existing tests for the touched files. Run the full workspace suite **once**, right before the merge. No extra property sweeps, mutation checks or repeat runs unless the ticket is legal content.
+3. **Reviewer:** one pass. Only must-fix findings block. Should-fix and nice-to-have go into a follow-up ticket (tell Priya), not another round.
+4. **Small-fix mode** (developer, tester, merge) for any ticket that stays in one service and touches no legal path, auth, billing or `packages/shared`, even if it is a small feature. The reviewer runs only for those four.
+5. **Doc-writer** only when a doc outside `handoff/` is made wrong. Otherwise skip it and say so in the merge body.
+6. Unchanged: Ajay's sign-off on legal diffs, golden snapshot rules, never skip or weaken a test, CI green after every push.
+
 ## Founder away: Priya decides (founder, 11 Oct 2026, night)
 
 Until the founder's morning report, nobody asks the founder anything or tags him for approval, on the board or in a session.
