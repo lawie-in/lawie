@@ -122,3 +122,8 @@ E1 shows only when there are two or more items; a single message (409, 401, 403,
 1. R11 and R12: Priya to confirm the daily login bonus and no-card sign-up, or the lines go.
 2. Footer under the card still says "AI-assisted drafting tool — not a substitute for legal advice." with "Terms · Privacy". T-252 (Ajay signed) replaces that line site-wide with "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing." Suggest the login page follows T-252. Not in this ticket's list, so not changed here.
 3. F9–F12 must match the API rules exactly; lead to check `apps/auth` before build.
+
+## Priya (12 Oct 2026)
+
+- "Stacks with your free daily login bonus": drop it. The future of the daily bonus is still open (T-201, T-223), so the page must not promise it.
+- "No credit card required": keep. Sign-up asks for no card.
