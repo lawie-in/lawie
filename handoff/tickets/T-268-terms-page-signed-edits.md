@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build). Ajay (signed text). Anushka (verdict) |
 | Mode           | Small fix, web. Legal text: apply Ajay's signed edits only |
-| Status         | To do. Unassigned. Queued for mahak after her privacy branch, and after T-234 (the `termsVersion` bump). Raised by Ajay, 12 Oct 2026 |
+| Status         | Building: mahak (12 Oct 2026). Terms version bump by kunal in T-299 |
 | Depends on     | T-235, T-234 |
 
 ## Scope

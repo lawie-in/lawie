@@ -113,6 +113,20 @@ function validateObjectId(req: Request, _res: Response, next: NextFunction): voi
 const router = Router();
 
 /**
+ * T-314: the legacy body's advocateEnrollment under the same check as the
+ * advocate name (T-300, `resolveLegacyAdvocate`), but capped at 50: after trim,
+ * 1-50 characters (Ajay, 12 Oct 2026; the name stays 1-100) with no `{`, `}`,
+ * CR, LF, U+2028 or U+2029. A value that fails is dropped (undefined), so it
+ * counts as empty under T-311's order. Never a refusal, and nothing from the
+ * value is logged.
+ */
+function checkedLegacyEnrollment(bodyValue: string | undefined): string | undefined {
+  const typed = bodyValue?.trim() ?? '';
+  const ok = typed.length >= 1 && typed.length <= 50 && !/[{}\r\n\u2028\u2029]/.test(typed);
+  return ok ? typed : undefined;
+}
+
+/**
  * T-311 (Arjun, 12 Oct 2026): the user's enrolment number from the profile, by
  * the JWT `sub`, read once per request that builds a draft. Read only. A
  * failed read counts as an empty profile: a warn with the user id only (never
@@ -1455,8 +1469,9 @@ router.post(
     input.advocateName = advocate.name;
     // T-311: a typed advocateEnrollment always prints; the profile number fills
     // an empty one only when the name is the profile's. Never a refusal.
+    // T-314: a typed value that fails checkedLegacyEnrollment is dropped first.
     input.advocateEnrollment = resolveEnrollmentNumber(
-      input.advocateEnrollment,
+      checkedLegacyEnrollment(input.advocateEnrollment),
       await profileEnrollmentNumber(payload.sub),
       advocate.fromProfile,
     );
