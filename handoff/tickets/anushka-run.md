@@ -461,3 +461,18 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Leave it empty and still get the draft: the profile number is used if the advocate is you, otherwise a blank to fill in.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-295 — old-law sections warn instead of block (2e06933)
+
+- Enter an old IPC, CrPC or IEA section (e.g. "302 IPC"): a warning says it's an old-law section and points to the section converter for offences on or after 1 July 2024. You can continue with "generate anyway" instead of being blocked.
+- The warning never shows a mixed label like "BNS Section 302 IPC".
+- A BNS section that doesn't exist is still blocked.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-280 — converter shows section titles (d80774f)
+
+- In the section converter, see the title of the old section and of the new section under each number, so a wrong number is easy to spot.
+- Test only after the founder has reseeded develop (seed-sections --force), Ajay's condition.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
