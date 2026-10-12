@@ -953,7 +953,10 @@ export interface BriefGenerateInput {
     facts: LedgerFact[];
     /** The pack's averment lists (`loadAvermentLists`). */
     lists: AvermentLists;
-    /** T-147d: the current version's unresolved items, read by the fact verifier only. */
+    /**
+     * T-147d: the current version's unresolved items. Read by the fact verifier and,
+     * since T-338, by the `ledgerDrafterFacts` call (unresolved keys become visible blanks).
+     */
     unresolved?: LedgerUnresolvedFact[];
   };
   language: 'en' | 'hi' | 'bilingual';
