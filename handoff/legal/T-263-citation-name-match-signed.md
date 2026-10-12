@@ -64,3 +64,9 @@ Vishal is right: rule 4 as I wrote it ("a full stop after a word of three or mor
 - **Q1:** the search back from a reporter for the versus word stops at a blank line or 250 characters. Approved.
 - **Q2:** a versus word with no reporter, followed in the same sentence by a bare reporter, may blank everything between them. Approved ("too wide is safe"), inside the same sentence and the Q1 limits.
 - **Q3:** `v`, `v.`, `vs`, `vs.` and `versus` never end a sentence while walking back for the first party. With two names and a reporter only on the second, both names go: "Ram v. Shyam and Mohan Rao v. State of Kerala (2019) 4 SCC 12 apply." becomes "[Authority — add if relied upon] apply." Approved. The property check stands: no versus word stands directly before a blank unless the advocate wrote that name.
+
+## Addendum 3, 12 Oct 2026 (Vishal's Q4; sign-off of 7f843fa)
+
+- **Q4:** when the ten-token limit on the first party would leave a versus word as the last word before the blank, the cut goes back to the previous sentence end. General form: after any cut, no versus word may stand directly before a blank unless the advocate wrote that name. Wider is safe. Example: "Ram v. Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa v. State of Kerala (2019) 4 SCC 12 apply." becomes "[Authority — add if relied upon] apply."
+- The test pinned as expected-to-fail becomes a plain test.
+- Commit 7f843fa is approved with this change. Sign-off reference for the `citation-check.ts` change: this file with Addenda 1 to 3.
