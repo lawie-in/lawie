@@ -209,3 +209,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The plans and packs carry no "Most Popular", "POPULAR" or "BEST VALUE" labels.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-282 (vishal, merged to develop_staging 4958b96, 12 Oct 2026)
+
+Nothing new on screen. Tests only: the signed wording of the bail packs' earlier-applications and undertakings parts can no longer change by accident without a test failing.
+
+Quality: nothing to test in the UI — tests only.

@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Lead (build). Ajay sees the diff |
 | Mode           | Small fix (drafting tests only) |
-| Status         | To do. Unassigned. Raised by Vishal's reviewer (T-237), 12 Oct 2026 |
+| Status         | Merged into develop_staging (4958b96), 12 Oct 2026. Tests only, nothing to test in the UI |
 | Depends on     | T-237 merged. Best done with T-241 (same packs) |
 
 The reviewer's should-fix on T-237, not taken so the approved commit stayed unchanged: the `t237-*` tests do not pin Ajay's exact signed strings. If someone edits the wording later, no test fails.

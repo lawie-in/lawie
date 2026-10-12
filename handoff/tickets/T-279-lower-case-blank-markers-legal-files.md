@@ -33,3 +33,13 @@ All three places become case-insensitive: the `i` flag on the marker words only;
 3. `brief-drafter.ts` BLANK_LINE (~L1407): yes, and this matters most. Today a whole-line "[to be confirmed: x]" in lower case can be taken for a note line and deleted before saving, which silently drops a blank the advocate must fill. It must be kept.
 
 Tests: one per place (lower case and Title case), plus "a lower-case blank line survives the note stripper". The `_averments/README.md` line 19: leave it (the marker we write stays upper case). Ajay sees the diff before merge.
+
+## Mahak's Explore findings (12 Oct 2026) — questions for Ajay after the usage reset
+
+1. Fact correction: a whole-line lower-case "[to be confirmed: x]" is NOT deleted today. `brief-drafter` `checkOneDocument` has no stripper; `BLANK_LINE` only decides whether such a line gets a false C4 warning ("The draft has a part that may not belong … Check that the draft is one document."). The blank stays in the text; the harm today is the false warning, which may lead the advocate to delete the blank. The fix stops the warning. Test: "no C4 warning, line kept".
+2. Scoping per "i on the marker words only": `BLANK_RE` in `fact-verifier` is split into a case-insensitive marker part (`{{MISSING}}`, `[To be confirmed:`) and an unchanged fixed part (`[Section — verify before filing]`, `[Authority — add if relied upon]`, `___`). In `BLANK_LINE` only "to be confirmed:" becomes case-insensitive. `countMissingPlaceholders` gets `i`. The shared and web finders already match all four markers in any case since T-233. Ajay: loosen the fixed-text ones too, or not?
+3. One more upper-case-only spot, outside the three: `fact-verifier.ts` ~L1051 `present()` checks `/\{\{\s*MISSING/` on a ledger display, so a "{{missing: …}}" display would not count as present. Include it, or leave it?
+
+## Priya's call on the format hunks (12 Oct 2026, to be sent to Mahak after the usage reset)
+
+The commit hook's prettier run made `fact-verifier.ts` a 180-line diff, mostly format-only; the real change is about 10 lines. Keep the commit as is (no .prettierignore, no claim extension) and list the format-only hunks separately for Ajay, as with T-189 and T-194 (he accepted that before). He judges the substance at sign-off. Branch `fix/t-279-blank-marker-case-legal-files`, WIP head 658dac4.
