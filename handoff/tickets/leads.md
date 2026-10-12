@@ -35,7 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(empty)
+1. vishal — T-327 (19500e9). Slot is his once Ajay re-signs 19500e9. Anyone ready earlier asks Priya.
 
 ## Last done
 
