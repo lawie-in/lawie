@@ -15,6 +15,7 @@
  */
 import './setupEnv';
 
+import { execFileSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -56,10 +57,14 @@ beforeEach(() => {
 // ── The signed file ─────────────────────────────────────────────────────────
 
 const REPO = join(__dirname, '..', '..', '..', '..');
-const SIGNED = readFileSync(
-  join(REPO, 'handoff', 'legal', 'T-241-bail-instructions-signed.md'),
-  'utf8',
-);
+const SIGNED_PATH = 'handoff/legal/T-241-bail-instructions-signed.md';
+const SIGNED_LOCAL = readFileSync(join(REPO, SIGNED_PATH), 'utf8');
+// Ajay's Addendum 1 may not be in this branch's copy yet; fall back to origin/develop_staging.
+const SIGNED = SIGNED_LOCAL.includes('## Addendum 1')
+  ? SIGNED_LOCAL
+  : execFileSync('git', ['-C', REPO, 'show', `origin/develop_staging:${SIGNED_PATH}`], {
+      encoding: 'utf8',
+    });
 const RULES = join(__dirname, '..', 'config', 'document-rules');
 type RawPack = {
   promptInstructions: string[];
@@ -166,6 +171,75 @@ describe('T-241 AC1: the signed text is in the packs, word for word', () => {
       expect(ins[ins.length - 2]).toMatch(/^State every earlier /);
       expect(ins[ins.length - 1]).toMatch(/^Do NOT generate the verification clause/);
     }
+  });
+});
+
+// ── Addendum 1 (round 2): three descriptions outside the table ──────────────
+
+/** The signed replacement in an Addendum 1 table row whose first cell contains `firstCell`. */
+function addendumRow(firstCell: string): string {
+  const from = SIGNED.indexOf('## Addendum 1');
+  expect(from).toBeGreaterThan(-1);
+  const rows = SIGNED.slice(from)
+    .split('\n')
+    .filter((l) => l.startsWith('|') && l.includes(firstCell));
+  expect(rows).toHaveLength(1);
+  const start = rows[0].lastIndexOf('| `') + 3;
+  const text = rows[0].slice(start, rows[0].lastIndexOf('`'));
+  expect(text.length).toBeGreaterThan(40);
+  return text;
+}
+
+describe('T-241 Addendum 1: grounds and false_implication descriptions', () => {
+  const SIGNED_GROUNDS = addendumRow('clause `grounds`');
+  const SIGNED_FALSE_IMPL = addendumRow('clause `false_implication`');
+  const ant = raw('bail_anticipatory');
+  const mag = raw('bail_before_magistrate');
+  const clause = (p: RawPack, id: string) => p.mandatoryClauses.find((c) => c.id === id);
+
+  it('magistrate grounds description is the signed text, word for word', () => {
+    expect(clause(mag, 'grounds')!.description).toBe(SIGNED_GROUNDS);
+  });
+
+  it('anticipatory false_implication description is the signed text, word for word', () => {
+    expect(clause(ant, 'false_implication')!.description).toBe(SIGNED_FALSE_IMPL);
+  });
+
+  it('the old texts are gone', () => {
+    const grounds = String(clause(mag, 'grounds')!.description);
+    expect(grounds).not.toContain(
+      'No prima facie case, no need for custody, clean antecedents, false implication',
+    );
+    expect(grounds.toLowerCase()).not.toContain('clean antecedents');
+    const fi = String(clause(ant, 'false_implication')!.description);
+    expect(fi).not.toContain('if applicable');
+    expect(fi).not.toContain('Allegation of false implication');
+  });
+
+  it('the rest of both clauses is unchanged (id, name, required)', () => {
+    expect(clause(mag, 'grounds')).toMatchObject({
+      id: 'grounds',
+      name: 'Grounds for Bail',
+      required: true,
+    });
+    expect(clause(ant, 'false_implication')).toMatchObject({
+      id: 'false_implication',
+      name: 'False Implication / Malafide',
+      required: false,
+    });
+  });
+
+  // PENDING Ajay's decision: the signed addendum says to delete the legacy item, but only if
+  // that moves nothing. It moves the loader note and the rulePackVersionOf hash, so the item
+  // was left in place. If Ajay rules to delete it, update this pin to 8 items without it.
+  it('legacy mandatory_clauses still holds "clean antecedents or explanation thereof" (9 items)', () => {
+    const legacy = (
+      JSON.parse(readFileSync(join(RULES, 'bail_before_magistrate.json'), 'utf8')) as {
+        mandatory_clauses: string[];
+      }
+    ).mandatory_clauses;
+    expect(legacy).toHaveLength(9);
+    expect(legacy).toContain('clean antecedents or explanation thereof');
   });
 });
 

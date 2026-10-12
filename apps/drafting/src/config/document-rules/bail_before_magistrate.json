@@ -160,7 +160,7 @@
       "id": "grounds",
       "name": "Grounds for Bail",
       "required": true,
-      "description": "No prima facie case, no need for custody, clean antecedents, false implication"
+      "description": "The grounds for bail that the brief gives, and no others, each stated as the brief puts it. Never a ground the brief does not state."
     },
     {
       "id": "triple_test",

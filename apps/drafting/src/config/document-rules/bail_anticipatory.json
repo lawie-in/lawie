@@ -233,7 +233,7 @@
       "id": "false_implication",
       "name": "False Implication / Malafide",
       "required": false,
-      "description": "Allegation of false implication or malafide intention of complainant if applicable"
+      "description": "Only if the brief states that the applicant is falsely implicated, and only as the brief puts it."
     },
     {
       "id": "no_flight_risk",
