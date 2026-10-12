@@ -246,8 +246,7 @@ export async function exportPdf(
     </style>
     <div class="lawie-pdf-root">
       ${html}
-      ${startingDraftFooter ? `<div class="disclaimer">${escapeHtml(startingDraftFooter)}</div>` : ''}
-      <div class="disclaimer">First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.</div>
+      ${startingDraftFooter ? `<div class="disclaimer">${escapeHtml(startingDraftFooter)}</div>` : `<div class="disclaimer">First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.</div>`}
     </div>
   `;
 

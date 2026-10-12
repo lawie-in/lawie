@@ -421,3 +421,78 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - An exported PDF's footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-306 — login stays out of the address bar and analytics (ba54d48)
+
+- Sign in with Google as before. The sign-in no longer puts the login in the page address, browser history or analytics.
+- The dashboard, drafts and login pages are no longer tracked; only public pages are counted, without query details.
+- The browser tab title reads "Lawie — Drafting Assistant for Indian Advocates".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-278 — bail checker and timeline show signed notes (92efbc3)
+
+- In the bail checker, an old IPC section with no new equivalent, or one not in the table, shows a clear note to check the Gazette, instead of a blank or a guessed section.
+- In the timeline tracker, every section left out of the period says why: it's an old-law section (with a pointer to the section converter), it doesn't create an offence, or it wasn't found in the BNS offences table.
+- Typing "BNS 103" or "103-BNS" in the timeline works like typing 103.
+- Unknown values show "Depends…", never "Non-Bailable" or a guessed court.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-318 — footers on server PDFs, annexures and the welcome email (f5e7edb)
+
+- Export a draft as PDF from the server; the footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+- Open the annexures (Vakalatnama, Memo of Parties and the others); the footer reads "Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice."
+- The welcome email says "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-319 — Google sign-in can't be hijacked (2b02eae)
+
+- Sign in with Google as before.
+- A sign-in link someone else started can no longer log you into another person's account; you see "We couldn't finish signing you in. Please try again." and start again.
+- Needs develop on https (founder's check).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-313 — optional enrollment number on three documents (a6b2162)
+
+- When drafting a regular bail, anticipatory bail or consumer complaint, type a Bar Council enrollment number (or a "to be confirmed" note) in the new optional "Bar Council Enrollment No." field under Court & Parties. It prints in the advocate block, the Vakalatnama and the Memo of Parties.
+- Leave it empty and still get the draft: the profile number is used if the advocate is you, otherwise a blank to fill in.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-295 — old-law sections warn instead of block (2e06933)
+
+- Enter an old IPC, CrPC or IEA section (e.g. "302 IPC"): a warning says it's an old-law section and points to the section converter for offences on or after 1 July 2024. You can continue with "generate anyway" instead of being blocked.
+- The warning never shows a mixed label like "BNS Section 302 IPC".
+- A BNS section that doesn't exist is still blocked.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-280 — converter shows section titles (d80774f)
+
+- In the section converter, see the title of the old section and of the new section under each number, so a wrong number is easy to spot.
+- Test only after the founder has reseeded develop (seed-sections --force), Ajay's condition.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-322 — a signed blank is accepted as is (e4523df)
+
+- An anticipatory, magistrate or default bail draft that leaves the prescribed "To be confirmed" blank for a missing fact is accepted as is. It is no longer sent back to the AI for a rewrite that could invent the fact.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-321 — one AI footer per exported draft (36ea45e)
+
+- Export a starting draft as PDF (in the app or from the server): one footer only, "Starting draft prepared with AI assistance from the details you gave. Not checked against court rules. Review every line before use. Lawie does not provide legal advice."
+- Export any other draft: one footer, "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-326 — new BNS sections in the converter (d51311e)
+
+- Look up a new BNS, BNSS or BSA section that has no old equivalent: it shows "No equivalent in the IPC" (or CrPC, IEA) instead of a made-up number.
+- Copy gives just the new section, e.g. "BNS 111".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

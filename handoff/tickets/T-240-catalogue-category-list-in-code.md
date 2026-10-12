@@ -5,7 +5,7 @@
 | Phase          | 4 — Matter context |
 | Owner          | Lead (build). Ajay (confirms the category names). Anushka (checks the library filters) |
 | Mode           | Full chain |
-| Status         | To do. Unassigned. Needed before T-239 batch 1. Starts after T-227 merges (same pattern, nearby files) |
+| Status         | Building: tanvi (12 Oct 2026) |
 | Depends on     | T-227 |
 
 ## Problem

@@ -70,8 +70,8 @@ export const authWelcomeTemplate: TemplateDef<WelcomeData> = {
             </Section>
             <Hr style={{ borderColor: '#0D1F3C20', margin: '32px 0 16px' }} />
             <Text style={{ color: '#0D1F3C99', fontSize: 11, lineHeight: '18px' }}>
-              AI-assisted drafting — verify with applicable law before filing. Lawie does not
-              provide legal advice.
+              Lawie is a drafting assistant. The advocate is responsible for legal accuracy and
+              filing.
             </Text>
           </Container>
         </Body>

@@ -142,8 +142,10 @@ I verify the contents are true.`;
 
   it('includes AI disclaimer', () => {
     const html = contentToHtml(sampleContent, false);
-    expect(html).toContain('AI-assisted draft');
-    expect(html).toContain('class="disclaimer"');
+    expect(html).toContain(
+      '<div class="disclaimer">First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.</div>',
+    );
+    expect(html).not.toContain('AI-assisted');
   });
 
   it('never includes watermark regardless of tier (policy: no watermark on any output)', () => {

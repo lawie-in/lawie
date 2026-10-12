@@ -5,7 +5,7 @@
 | Phase  | 0 — Prep |
 | Owner  | Arjun (fix design). Lead (build, web). Ajay heads-up (DPDP) |
 | Mode   | Small fix (web), security |
-| Status | Building: kunal (12 Oct 2026) |
+| Status | Merged into develop_staging (ba54d48, 12 Oct 2026). Waiting for Anushka on develop. Founder flushes develop sessions after the deploy |
 
 After Google sign-in the app lands on `/auth/callback?accessToken=…`. Google Analytics records `page_location`, so the access token is likely being sent to Google in the page URL.
 

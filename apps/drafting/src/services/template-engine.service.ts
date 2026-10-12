@@ -20,6 +20,7 @@ import {
   BNS_OFFENCE_KEYS,
   ChargedCode,
   ChargedSection,
+  OLD_LAW_LINE,
   readChargedField,
   readSectionsCharged,
   resolveOffence,
@@ -1643,7 +1644,7 @@ CRITICAL RULES:
 6. Generate ONLY the numbered body paragraphs as instructed. Do NOT include:
    - Any court header or cause-title block ("IN THE COURT OF..." / "IN THE HIGH COURT OF...") — the cause title is already rendered above by the template engine; a second copy corrupts the document (A7)
    - The prayer clause, verification clause, or advocate block
-   - The AI disclaimer text ("AI-assisted draft" / "Lawie does not provide legal advice") — it is auto-appended to the export footer and must NOT appear in the body (A6)
+   - The footer disclaimer ("First draft generated with AI" / "Lawie does not provide legal advice") — it is added to the export footer automatically and must NOT appear in the body (A6)
 7. Use today's date format (DD/MM/YYYY) where needed.${contractRule}
 
 ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
@@ -1667,12 +1668,21 @@ RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ?
   }`;
 }
 
-/** Ajay Q8 / round 5c: old-law codes, how the line names them, and the new code. */
-const OLD_LAW_LINE: Partial<Record<ChargedCode, { name: string; newCode: string }>> = {
-  IPC: { name: 'IPC', newCode: 'BNS' },
-  CRPC: { name: 'CrPC', newCode: 'BNSS' },
-  IEA: { name: 'IEA', newCode: 'BSA' },
-};
+/**
+ * T-295: Ajay's signed old-law line (handoff/legal/T-295-old-law-block-signed.md,
+ * 455559c), byte for byte. PREFLIGHT ONLY: the question of the soft old_law_section
+ * finding in preflight.service.ts. The prompt's old-law block in
+ * classifySectionsBailability keeps Ajay's T-277 line ("…is not classified here…"),
+ * which stops the model classifying IPC sections from memory; do not use this there.
+ * Code first, then the number as read ("302 IPC" -> "IPC 302"); never "BNS" in front
+ * of an old-law number. Returns null for any non-old-law code.
+ * Legal content: do not edit without Ajay's sign-off.
+ */
+export function oldLawLine(code: ChargedCode | null, number: string): string | null {
+  const old = code === null ? undefined : OLD_LAW_LINE[code];
+  if (!old) return null;
+  return `${old.name} ${number} is an old-law section. For an offence committed on or after 1 July 2024, use the section converter to find the ${old.newCode} section. For an earlier offence, the old section may still apply.`;
+}
 
 /**
  * Classify BNS sections as bailable/non-bailable.
