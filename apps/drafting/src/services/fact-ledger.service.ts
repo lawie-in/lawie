@@ -45,6 +45,7 @@ import {
 import mongoose from 'mongoose';
 
 import { FactLedgerModel, IFactLedger, IFactLedgerVersion } from '../models/FactLedger.model';
+import { decrypt, encrypt } from '../utils/encryption';
 
 import { ChecklistItem, dateKindLabel } from './intake-brief';
 import { normalise } from './intake-text';
@@ -670,10 +671,13 @@ export function ledgerView(
 ): LedgerView {
   const versions = doc.versions;
   const current = versions[versions.length - 1];
-  const facts = (current?.facts ?? []).map((fact) => {
+  // T-115a: every version is opened once, encrypted or legacy plain alike.
+  const opened = versions.map((v) => openVersion(v));
+  const currentOpen = opened[opened.length - 1] ?? { facts: [], unresolved: [] };
+  const facts = currentOpen.facts.map((fact) => {
     for (let i = versions.length - 1; i > 0; i -= 1) {
-      const now = entriesOf(versions[i].facts, fact.key);
-      const before = entriesOf(versions[i - 1].facts, fact.key);
+      const now = entriesOf(opened[i].facts, fact.key);
+      const before = entriesOf(opened[i - 1].facts, fact.key);
       if (sameEntries(now, before)) continue;
       if (versions[i].reason === 'edit' && before.length > 0 && now.length > 0) {
         return { ...fact, previous_display: before.map((f) => f.display).join(', ') };
@@ -688,7 +692,7 @@ export function ledgerView(
     run_type: doc.runType,
     document_kind: doc.documentKind,
     facts,
-    unresolved: [...(current?.unresolved ?? [])],
+    unresolved: currentOpen.unresolved,
     fields: Object.fromEntries(checklist.filter(isLedgerItem).map((i) => [i.key, factTypeFor(i)])),
   };
 }
@@ -702,18 +706,69 @@ export class LedgerConflictError extends Error {
   }
 }
 
+// ── Encryption at rest (T-115a) ─────────────────────────────────────────────
+//
+// A version's facts and unresolved items are stored as one encrypted value,
+// `factsEnc`. Only this file seals or opens a version; nothing else reads
+// `facts`, `unresolved` or `factsEnc` on a stored version.
+
+/** The stored fields `openVersion` reads. A hydrated subdocument and a `.lean()` one both fit. */
+export interface StoredLedgerVersion {
+  facts?: readonly LedgerFact[] | null;
+  unresolved?: readonly LedgerUnresolvedFact[] | null;
+  factsEnc?: string | null;
+}
+
+/** The plaintext sealed into `factsEnc`. The backfill compares against it. */
+export function sealedPlaintext(state: LedgerState): string {
+  return JSON.stringify({ facts: state.facts, unresolved: state.unresolved });
+}
+
+/**
+ * A version as stored: `factsEnc` set, no plain `facts` or `unresolved`.
+ * `createdAt` is kept as given, so the backfill can seal an old version
+ * without changing when it was written.
+ */
+export function sealVersion(
+  v: { version: number; createdAt: Date; reason: FactLedgerVersionReason } & LedgerState,
+): IFactLedgerVersion {
+  return {
+    version: v.version,
+    factsEnc: encrypt(sealedPlaintext(v)),
+    createdAt: v.createdAt,
+    reason: v.reason,
+  };
+}
+
+/**
+ * A stored version's facts and unresolved items: `factsEnc` decrypted when
+ * set, else the legacy plain fields (missing ones read as empty). Throws when
+ * `factsEnc` cannot be decrypted (wrong key, tampered) or does not hold both
+ * lists; never returns a partial or garbled state. Returns fresh arrays.
+ */
+export function openVersion(v: StoredLedgerVersion | null | undefined): LedgerState {
+  if (!v) return { facts: [], unresolved: [] };
+  const enc = v.factsEnc;
+  if (typeof enc === 'string' && enc.length > 0) {
+    const parsed: unknown = JSON.parse(decrypt(enc));
+    const ok =
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      Array.isArray((parsed as LedgerState).facts) &&
+      Array.isArray((parsed as LedgerState).unresolved);
+    if (!ok) throw new Error('factsEnc does not hold a ledger state');
+    const state = parsed as LedgerState;
+    return { facts: [...state.facts], unresolved: [...state.unresolved] };
+  }
+  return { facts: [...(v.facts ?? [])], unresolved: [...(v.unresolved ?? [])] };
+}
+
 function version(
   n: number,
   state: LedgerState,
   reason: FactLedgerVersionReason,
 ): IFactLedgerVersion {
-  return {
-    version: n,
-    facts: state.facts,
-    unresolved: state.unresolved,
-    createdAt: new Date(),
-    reason,
-  };
+  return sealVersion({ version: n, createdAt: new Date(), reason, ...state });
 }
 
 export async function createLedger(args: {
@@ -739,9 +794,9 @@ export async function loadOwnLedger(ledgerId: string, userId: string): Promise<I
   return FactLedgerModel.findOne({ _id: ledgerId, userId });
 }
 
-export function currentState(doc: IFactLedger): LedgerState {
-  const v = doc.versions[doc.versions.length - 1];
-  return { facts: [...(v?.facts ?? [])], unresolved: [...(v?.unresolved ?? [])] };
+/** The last version's facts and unresolved items. Takes a hydrated ledger or a `.lean()` one. */
+export function currentState(doc: { versions: readonly StoredLedgerVersion[] }): LedgerState {
+  return openVersion(doc.versions[doc.versions.length - 1]);
 }
 
 /**

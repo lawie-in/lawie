@@ -48,6 +48,7 @@ import {
   isLedgerItem,
   isMultiItem,
   ledgerView,
+  openVersion,
   readExtraction,
 } from '../services/fact-ledger.service';
 import { VerifierInput, verifyAndRepair, verifyDraft } from '../services/fact-verifier';
@@ -1663,7 +1664,16 @@ describe('T-189 AC5 and AC6: bail_regular, from the description to the Drafter i
     ).toEqual([['sections_charged', 'no_verbatim_span']]);
     expect(JSON.stringify(ledger)).not.toContain('Section 420');
     const stored = await FactLedgerModel.findById(ledger.ledger_id).lean();
+    // Raw row: no plain case details at all; the value is only in the decrypted version.
     expect(JSON.stringify(stored!.versions)).not.toContain('Section 420');
+    expect(JSON.stringify(stored!.versions)).not.toContain('318(4) BNS');
+    for (const v of stored!.versions) {
+      expect(v).not.toHaveProperty('facts');
+      expect(v).not.toHaveProperty('unresolved');
+    }
+    const openState = openVersion(stored!.versions[stored!.versions.length - 1]);
+    expect(JSON.stringify(openState)).toContain('318(4) BNS');
+    expect(JSON.stringify(openState)).not.toContain('Section 420');
 
     await generate(ledger.ledger_id as string);
     const f = factsOf(callOf(3).user);
