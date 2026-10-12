@@ -261,7 +261,11 @@ describe('5b: the request is killed without cleanup (no beat, no close)', () => 
     await seed(20);
     const res = makeRes();
     void drive(res, () => new Promise<void>(() => undefined)); // never returns
-    await waitUntil(async () => !!(await holdOf()));
+    // The hold can be visible in the DB before withInkHold has resumed from
+    // holdInk and started its timer (the write lands before its reply is
+    // read), so wait for both. The DB read goes first so every pass costs a
+    // round trip, not one bare setImmediate.
+    await waitUntil(async () => !!(await holdOf()) && timers.length === 1);
     expect(timers).toHaveLength(1); // the timer exists but never fires again
     return res;
   }
@@ -646,7 +650,9 @@ describe('5e: past 60 minutes beats stop and the sweep may release', () => {
       ink = h;
       await ended;
     });
-    for (let i = 0; i < 200 && !(await holdOf()); i++) await flush();
+    // As in 5b: wait for the timer too, not just the hold.
+    for (let i = 0; i < 200 && !((await holdOf()) && timers.length === 1); i++) await flush();
+    expect(timers).toHaveLength(1);
 
     for (let m = 5; m <= 55; m += 5) {
       at(m);
