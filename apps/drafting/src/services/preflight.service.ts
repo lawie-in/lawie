@@ -25,12 +25,19 @@
 import Anthropic from '@anthropic-ai/sdk';
 import mongoose from 'mongoose';
 
-import bnsOffences from '../config/bns-offences.json';
 import { env } from '../config/env';
 import { Court } from '../models/Court.model';
 import { Event } from '../models/Event.model';
 
 import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
+import {
+  ChargedSection,
+  readChargedField,
+  readSectionsCharged,
+  resolveBnsKey,
+  resolveOffence,
+} from './bns-offence-resolver';
+import { fieldSourceOf, loadTemplateConfig } from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,13 +61,15 @@ export interface PreflightResult {
 
 // ── BNS whitelist ─────────────────────────────────────────────────────────────
 
-const BNS_WHITELIST = new Set(Object.keys((bnsOffences as { offences: Record<string, unknown> }).offences));
+// T-277 R5: a citation passes when it is a table key or has a parent row.
+// Same resolveBnsKey as validator.ts BNS_SECTION_WHITELIST, so they cannot drift.
+const BNS_WHITELIST = { has: (section: string): boolean => resolveBnsKey(section) !== null };
 
-const BNS_BAILABLE_SECTIONS = new Set(
-  Object.entries((bnsOffences as { offences: Record<string, { bailable: boolean }> }).offences)
-    .filter(([, v]) => v.bailable)
-    .map(([k]) => k),
-);
+// T-277: E1 goes through the same resolver. Only a definite "bailable" counts;
+// a null ("depends") or a non-offence never does.
+const BNS_BAILABLE_SECTIONS = {
+  has: (section: string): boolean => resolveOffence(section).bailable === true,
+};
 
 /** Valid BNSS bail sections per chapter (BNSS 478–484) */
 const BNSS_BAIL_SECTIONS = new Set(['478', '479', '480', '481', '482', '483', '484']);
@@ -103,18 +112,34 @@ function parseFirYear(firNumber: string): number | null {
   return y < 100 ? 2000 + y : y;
 }
 
-/** Normalise BNS section string: "103", "103(1)", "BNS 103" → "103" or "103(1)" */
-function normaliseBnsSection(raw: string): string {
-  return raw.replace(/^(BNS|BNSS|BSA)\s*/i, '').trim();
+/**
+ * Parse sections_charged with the one shared reader (Arjun, T-277 round 4) and his
+ * step 7 correction: picker array values of a `source: bns_mapping` field default
+ * to BNS; a plain string keeps bare numbers bare.
+ */
+function parseSectionsCharged(templateId: string, value: unknown): ChargedSection[] {
+  return readChargedField(value, fieldSourceOf(loadTemplateConfig(templateId), 'sections_charged'));
 }
 
-/** Parse sections_charged field — accepts comma-separated or array */
-function parseSectionsCharged(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map((v) => normaliseBnsSection(str(v))).filter(Boolean);
-  return str(value)
-    .split(/[,;]+/)
-    .map((s) => normaliseBnsSection(s))
-    .filter(Boolean);
+/**
+ * The develop_staging split of sections_charged, verbatim: array entries, or the
+ * string split on "," / ";", each with a leading BNS/BNSS/BSA stripped. Used ONLY
+ * to word the old-law block exactly as before (Arjun, round 7c: T-277 changes
+ * reading and labels, not gates).
+ */
+function legacySectionParts(value: unknown): Array<{ raw: string; shown: string }> {
+  const raws = Array.isArray(value) ? value.map((v) => str(v)) : str(value).split(/[,;]+/);
+  return raws
+    .map((raw) => ({ raw, shown: raw.replace(/^(BNS|BNSS|BSA)\s*/i, '').trim() }))
+    .filter((p) => p.shown);
+}
+
+const OLD_LAW_CODES = new Set(['IPC', 'CRPC', 'IEA']);
+
+/** Display: a BNS number as before ("303"); another code named ("IPC 302"); bare as typed. */
+function sectionLabel(e: ChargedSection): string {
+  if (e.code === null || e.code === 'BNS') return e.number;
+  return `${e.code === 'CRPC' ? 'CrPC' : e.code} ${e.number}`;
 }
 
 /** Levenshtein distance ≤ 2 (used for name-match check D1) */
@@ -207,13 +232,41 @@ async function runPureRules(
   }
 
   // ── HARD BLOCK #3: BNS section not in whitelist ──────────────────────────
-  const sections = parseSectionsCharged(formData['sections_charged']);
-  for (const s of sections) {
-    if (s && !BNS_WHITELIST.has(s)) {
+  const sections = parseSectionsCharged(templateId, formData['sections_charged']);
+  // Round 7c: an explicit IPC / CrPC / IEA entry (alias included) keeps exactly the
+  // develop_staging outcome. Such a part was never a table key, so it hard-blocked
+  // with the part, as split and shown there, in the message.
+  const pickerDefault =
+    fieldSourceOf(loadTemplateConfig(templateId), 'sections_charged') === 'bns_mapping' &&
+    Array.isArray(formData['sections_charged'])
+      ? 'BNS'
+      : undefined;
+  for (const part of legacySectionParts(formData['sections_charged'])) {
+    const read = readSectionsCharged(part.raw, pickerDefault);
+    if (read.some((e) => e.code !== null && OLD_LAW_CODES.has(e.code))) {
       findings.push({
         rule_id: 'section_whitelist',
         severity: 'hard',
-        question: `BNS Section ${s} is not in the First Schedule (recognised BNS offences). Please verify — this may be a typo or hallucination.`,
+        question: `BNS Section ${part.shown} is not in the First Schedule (recognised BNS offences). Please verify — this may be a typo or hallucination.`,
+      });
+    }
+  }
+  for (const e of sections) {
+    if (e.code === null) {
+      // Arjun (step 7 correction): a bare number is a soft warning, never a block,
+      // and is never looked up in the BNS table.
+      findings.push({
+        rule_id: 'section_no_code',
+        severity: 'soft',
+        question: `Section ${e.number} has no code (BNS, IPC …). Add the code so it can be checked.`,
+      });
+    } else if (e.code === 'BNS' && !BNS_WHITELIST.has(e.number)) {
+      // Otherwise hard block only for an explicit BNS code with an unknown parent
+      // (BNS 999(1)). BNSS, BSA and other Acts no longer block (they did by accident).
+      findings.push({
+        rule_id: 'section_whitelist',
+        severity: 'hard',
+        question: `BNS Section ${sectionLabel(e)} is not in the First Schedule (recognised BNS offences). Please verify — this may be a typo or hallucination.`,
       });
     }
   }
@@ -234,7 +287,8 @@ async function runPureRules(
       findings.push({
         rule_id: 'F2',
         severity: 'hard',
-        question: "Bank's dishonour reason (e.g. 'insufficient funds') is required to establish s.138 ingredients. Please add.",
+        question:
+          "Bank's dishonour reason (e.g. 'insufficient funds') is required to establish s.138 ingredients. Please add.",
       });
     }
   }
@@ -245,7 +299,8 @@ async function runPureRules(
       findings.push({
         rule_id: 'F4',
         severity: 'hard',
-        question: 'Bar enrolment number is missing. Required under BCI Rules — vakalatnama will be rejected by registry without it.',
+        question:
+          'Bar enrolment number is missing. Required under BCI Rules — vakalatnama will be rejected by registry without it.',
       });
     }
   }
@@ -316,12 +371,14 @@ async function runPureRules(
 
   // ── E1: Anticipatory bail for bailable offence ───────────────────────────
   if (templateId === 'bail_anticipatory' && sections.length > 0) {
-    const allBailable = sections.every((s) => BNS_BAILABLE_SECTIONS.has(s));
+    const allBailable = sections.every(
+      (e) => e.code === 'BNS' && BNS_BAILABLE_SECTIONS.has(e.number),
+    );
     if (allBailable) {
       findings.push({
         rule_id: 'E1',
         severity: 'soft',
-        question: `All sections cited (${sections.join(', ')}) are bailable. Anticipatory bail (BNSS 482) isn't required — bail is a right under BNSS 478. Proceed?`,
+        question: `All sections cited (${sections.map(sectionLabel).join(', ')}) are bailable. Anticipatory bail (BNSS 482) isn't required — bail is a right under BNSS 478. Proceed?`,
       });
     }
   }
@@ -331,7 +388,8 @@ async function runPureRules(
     findings.push({
       rule_id: 'E2',
       severity: 'soft',
-      question: 'No arrest date provided. If the petitioner has not been arrested yet, anticipatory bail (BNSS 482) may be the correct route.',
+      question:
+        'No arrest date provided. If the petitioner has not been arrested yet, anticipatory bail (BNSS 482) may be the correct route.',
     });
   }
 
@@ -408,7 +466,7 @@ async function runLLMChecks(
     return { findings: [], ran: false };
   }
 
-  const sections = parseSectionsCharged(formData['sections_charged']);
+  const sections = parseSectionsCharged(templateId, formData['sections_charged']);
   const factsNarrative = str(formData['facts_narrative'] ?? formData['key_facts'] ?? '');
 
   // Only run LLM if there's enough text to analyse
@@ -418,7 +476,7 @@ async function runLLMChecks(
 
   const payload = {
     template_id: templateId,
-    sections_charged: sections,
+    sections_charged: sections.map(sectionLabel),
     facts_narrative: factsNarrative.slice(0, 1500), // token budget
     respondent_type: str(formData['respondent_type'] ?? ''),
   };
@@ -436,8 +494,7 @@ async function runLLMChecks(
       messages: [{ role: 'user', content: JSON.stringify(payload) }],
     });
 
-    const text =
-      response.content[0].type === 'text' ? response.content[0].text : '';
+    const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
     // Strip markdown fences if any
     const clean = text.replace(/```(?:json)?/gi, '').trim();
