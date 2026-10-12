@@ -582,7 +582,7 @@ function SectionReadLines({ state }: { state: SectionReadState | undefined }) {
           <p key={key} className="mt-0.5 break-words text-xs text-slate-600">
             Read as{' '}
             <span className="font-medium">
-              {s.code} {s.number}
+              {displayReadAsCode(s.code)} {s.number}
             </span>
             {s.code === 'BNS' && s.title ? `: ${s.title}` : null}
           </p>
@@ -937,6 +937,33 @@ export interface SectionRead {
   code: 'BNS' | 'BNSS' | 'BSA' | 'IPC' | 'CRPC' | 'IEA' | 'OTHER' | null;
   number: string;
   title: string | null;
+}
+
+// T-290 (Ajay, on ba4b11c) — display only: the code as practitioners write it in
+// the "Read as" line ("Read as CrPC 41"). Stored values and the server response
+// keep the reader's codes unchanged.
+type NamedReadCode = Exclude<SectionRead['code'], 'OTHER' | null>;
+const READ_AS_DISPLAY_CODE: Readonly<Record<NamedReadCode, string>> = {
+  IPC: 'IPC',
+  CRPC: 'CrPC',
+  IEA: 'IEA',
+  BNS: 'BNS',
+  BNSS: 'BNSS',
+  BSA: 'BSA',
+};
+
+/** T-290 — the display form of a named reader code, e.g. CRPC → "CrPC". */
+export function displayReadAsCode(code: NamedReadCode): string {
+  return READ_AS_DISPLAY_CODE[code];
+}
+
+/** T-290 — the plain text of the S2/S3/S4 line for one named-code section, e.g.
+ *  "Read as CrPC 41" or "Read as BNS 303: Theft". Null for OTHER or a bare
+ *  number (those are not S2 to S4). Pure, so it can be unit-tested. */
+export function formatReadAsLine(s: SectionRead): string | null {
+  if (s.code === null || s.code === 'OTHER') return null;
+  const title = s.code === 'BNS' && s.title ? `: ${s.title}` : '';
+  return `Read as ${displayReadAsCode(s.code)} ${s.number}${title}`;
 }
 
 type SectionReadState = { status: 'ok'; sections: SectionRead[] } | { status: 'failed' };
