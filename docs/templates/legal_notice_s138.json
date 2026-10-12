@@ -165,6 +165,15 @@
             ]
           },
           {
+            "field_id": "cheque_validity_date",
+            "label": "Last date of validity printed on the cheque, if any",
+            "type": "date",
+            "required": false,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
             "field_id": "cheque_amount",
             "label": "Cheque Amount (Rs.)",
             "type": "number",
@@ -220,6 +229,24 @@
             ]
           },
           {
+            "field_id": "memo_received_date",
+            "label": "Date the return memo was received",
+            "type": "date",
+            "required": false,
+            "inject_into": [
+              "body"
+            ]
+          },
+          {
+            "field_id": "notice_sent_date",
+            "label": "Date the notice is sent",
+            "type": "date",
+            "required": false,
+            "inject_into": [
+              "header"
+            ]
+          },
+          {
             "field_id": "dishonour_reason",
             "label": "Reason for Dishonour (as per memo)",
             "type": "text",
@@ -245,8 +272,14 @@
     ]
   },
   "computed_fields": {
+    "notice_date_unless_form_blank": {
+      "logic": "if notice_sent_date === '' then '{current_date}' else '{notice_sent_date}'"
+    },
+    "notice_date_unless_ledger_blank": {
+      "logic": "if notice_sent_date === '{{MISSING: Date the notice is sent}}' then '{current_date}' else '{notice_date_unless_form_blank}'"
+    },
     "notice_date": {
-      "logic": "'current_date'"
+      "logic": "if notice_sent_date === '[To be confirmed: date the notice is sent]' then '{current_date}' else '{notice_date_unless_ledger_blank}'"
     },
     "payment_deadline_days": {
       "logic": "'15'"
@@ -261,7 +294,7 @@
         "section_id": "header",
         "type": "template",
         "alignment": "left",
-        "template": "LEGAL NOTICE\n(Under Section {ni_act_sections_ref} of the Negotiable Instruments Act, 1881)\n\nDate: {current_date}\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\n{respondent_name}\n{respondent_address}\n\nFrom,\n{applicant_name}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
+        "template": "LEGAL NOTICE\n(Under Section {ni_act_sections_ref} of the Negotiable Instruments Act, 1881)\n\nDate: {notice_date}\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\n{respondent_name}\n{respondent_address}\n\nFrom,\n{applicant_name}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
       },
       {
         "section_id": "subject_line",
