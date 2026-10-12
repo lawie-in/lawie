@@ -55,6 +55,7 @@ import {
   privacyPrecheck,
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
+import { openVerifyInsteadOfPaywall } from '@/components/VerifyEmailPrompt';
 import { apiFetch } from '@/lib/apiFetch';
 
 type Phase =
@@ -610,6 +611,11 @@ export default function OneFlow({
             balance?: { totalInk?: number; total?: number };
           };
           if (res.status === 402) {
+            // T-223 trigger 2: an unverified email user gets the verify modal, not the paywall.
+            if (await openVerifyInsteadOfPaywall()) {
+              setPhase('brief');
+              return;
+            }
             setPaywall({
               cost: data.cost ?? 1,
               balance: data.balance?.totalInk ?? data.balance?.total ?? 0,

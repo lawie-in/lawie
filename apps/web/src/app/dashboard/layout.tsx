@@ -8,6 +8,7 @@ import { HeaderCreditPill } from '@/components/credits/HeaderCreditPill';
 import Sidebar from '@/components/dashboard/Sidebar';
 import PrivacyUpdatePrompt, { PrivacyAcceptedStatus } from '@/components/PrivacyUpdatePrompt';
 import { SectionFinderPanel } from '@/components/sections/SectionFinderPanel';
+import VerifyEmailPrompt from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -66,6 +67,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <HeaderCreditPill />
           </div>
         </div>
+
+        {/* T-223: verify-your-email banner under the top bar (unverified email users only) and
+            the Ink-refusal verify modal. The privacy dialog (below) is modal over both. */}
+        <VerifyEmailPrompt />
 
         {/* T-343: id and tabIndex so focus can return here when the privacy prompt closes.
             Not "main": app/layout.tsx already has div#main (T-310). */}
