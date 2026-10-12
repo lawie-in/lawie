@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Lead (drafting) |
 | Mode   | Small fix |
-| Status | To do. After T-345 (same file). Found by Tanvi in T-340, 12 Oct 2026 |
+| Status | Building: tanvi, with T-349 (12 Oct 2026) |
 
 `loadTemplateConfig` in `apps/drafting/src/services/template-engine.service.ts` silently falls back to the registry when a `docs/templates` override is invalid JSON. A broken signed override would go unnoticed and the old text would be used.
 

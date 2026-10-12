@@ -100,6 +100,7 @@ import {
   TO_BE_CONFIRMED_DESIGNATION_RULE,
   CourtRuleData,
   PLACEHOLDER_ALIASES,
+  MONTH_NAMES,
 } from './template-engine.service';
 import {
   validate,
@@ -1730,8 +1731,9 @@ export async function streamGenerateGuided(
  * Basic fact-alteration check: extract key entities (numbers, dates, names in caps)
  * from user facts and verify they appear in AI output.
  *
- * SCRUM-54 B4: Dates are normalised to DD.MM.YYYY in the AI prompt context,
- * so we check all equivalent representations of each date (ISO, DD.MM.YYYY, DD/MM/YYYY).
+ * SCRUM-54 B4, T-340: the template parts print dates as "D Month YYYY"
+ * (e.g. "10 March 2026") and the facts may give them as numbers, so we check
+ * every equivalent form of each date (see getDateVariants).
  */
 function checkFactAlteration(userFacts: string, aiOutput: string): ValidationWarning | null {
   // Extract FIR numbers, dates, and proper nouns from user input
@@ -1753,7 +1755,9 @@ function checkFactAlteration(userFacts: string, aiOutput: string): ValidationWar
   for (const date of dates) {
     // Generate all common format variants of this date for comparison
     const variants = getDateVariants(date);
-    const found = variants.some((v) => aiOutput.includes(v));
+    const found = variants.some((v) =>
+      new RegExp(`(?<!\\d)${v.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?!\\d)`).test(aiOutput),
+    );
     if (!found) {
       missing.push(`Date ${date}`);
     }
@@ -1772,6 +1776,11 @@ function checkFactAlteration(userFacts: string, aiOutput: string): ValidationWar
 /**
  * Given a date string in any common format, return all equivalent representations
  * so the fact-alteration check doesn't false-positive on format differences.
+ *
+ * T-340 (Ajay): a numeric date is read day first only (Indian form), so
+ * "03.10.2026" is 3 October 2026, never 10 March. Its variants are the numeric
+ * forms plus "D Month YYYY" and "DD Month YYYY" (full English month name) for
+ * the same day, month and year only.
  */
 function getDateVariants(dateStr: string): string[] {
   const variants = [dateStr];
@@ -1799,6 +1808,14 @@ function getDateVariants(dateStr: string): string[] {
   variants.push(`${day}/${month}/${year}`); // DD/MM/YYYY
   variants.push(`${day}-${month}-${year}`); // DD-MM-YYYY
   variants.push(`${year}-${month}-${day}`); // YYYY-MM-DD (ISO)
+
+  // T-340: the month-name forms the template parts print, for this date only.
+  const monthName = MONTH_NAMES[Number(month) - 1];
+  const dayNumber = Number(day);
+  if (monthName !== undefined && dayNumber >= 1 && dayNumber <= 31) {
+    variants.push(`${dayNumber} ${monthName} ${year}`); // D Month YYYY
+    variants.push(`${day} ${monthName} ${year}`); // DD Month YYYY
+  }
 
   return [...new Set(variants)];
 }

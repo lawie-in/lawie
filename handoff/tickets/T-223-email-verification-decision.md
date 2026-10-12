@@ -102,3 +102,4 @@ Founder, 11 Oct 2026 (in the Priya session and on the board): email and password
 Founder flagged fake email sign-ups farming the 5 free Ink. T-351 (now) gives email sign-ups no free Ink until verified; Google counts as verified. This ticket then adds the signed, single-use, 24 h verify link, a resend button (rate-limited) and the "verify your email" prompt, and grants the sign-up bonus once on verification. Needs T-220 sending; builds against dry-run meanwhile (Arjun). Lead: mahak, with T-220. Release gate.
 
 - When this ticket sets `emailVerified` true, it must call `grantSignupBonus` once (T-351 holds the bonus back until then). From Shashank, 12 Oct 2026.
+- An existing unverified email user who links Google becomes eligible via googleId (T-351) but passport grants the sign-up bonus only to new Google users. Decide here whether linking Google also calls grantSignupBonus once. From Shashank, 12 Oct 2026.

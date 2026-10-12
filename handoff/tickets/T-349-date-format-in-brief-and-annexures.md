@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Ajay (format ruled in T-192). Lead (drafting) |
 | Mode   | Small fix (legal content) |
-| Status | To do. After T-340 (shared formatter) and Mahak's T-338 (brief-drafter.ts). Raised by Tanvi, 12 Oct 2026 |
+| Status | Building: tanvi, with T-350 (12 Oct 2026) |
 
 T-340 makes the template engine print dates as "4 April 2026". Two other paths don't follow it yet:
 - `apps/drafting/src/services/brief-drafter.ts` (`filingDate`) prints DD.MM.YYYY.

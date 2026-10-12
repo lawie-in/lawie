@@ -266,7 +266,7 @@ describe('removeRepeatedParts (T-136, part 1 condition 4)', () => {
       BAIL_SYSTEM,
     ],
     ['a party name', 'before', (t) => t.replace('Ramesh Mahto', 'Rakesh Mahto'), BAIL_SYSTEM],
-    ['a date', 'before', (t) => t.replace('01.08.2026', '01.09.2026'), NOTICE_SYSTEM],
+    ['a date', 'before', (t) => t.replace('1 August 2026', '1 September 2026'), NOTICE_SYSTEM],
     ['an amount', 'after', (t) => t.replace(/Rs\. 500000/g, 'Rs. 600000'), NOTICE_SYSTEM],
     ['a section', 'before', (t) => t.replace('SECTION 483', 'SECTION 480'), BAIL_SYSTEM],
     [
