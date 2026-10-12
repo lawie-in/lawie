@@ -146,3 +146,5 @@ Plan 1-5 approved (pack `question` + `ask_when_empty`, a tier after required ite
 3. **"Not known" is remembered.** It writes no fact, but the item is marked asked for that draft so it is not asked again on the next pass (no loop). It is asked again only through the `confirm` path in step 5.
 4. Past-cap items write no fact: keep the test you planned.
 No new dependency, no migration, no `_averments` change: agreed.
+
+Addendum (Arjun, 12 Oct 2026): **condition 2 replaced.** Mahak showed every bail pack already has more than 10 askable required items on an empty description (11, 11, 13, 16), so "no required item past the cap" never held. The cap stays 10 (Ajay's AC8). Condition 2 is now Mahak's (a)-(c): (a) the protected slot displaces only the lowest-ranked item, never a party name or an `alwaysAsk` key; (b) with the typical-description fixture, required-empty + protected ≤ 10 for each bail pack; (c) items past the cap write no fact and stay as visible blanks in the brief (T-188 behaviour, unchanged).
