@@ -496,3 +496,12 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Copy gives just the new section, e.g. "BNS 111".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-299 + T-308 + T-325 — sign-in hardening and privacy wording (991c0f6, 84d9e4c)
+
+- A clear message when Google sign-in fails; a Contact support link if the account is deactivated.
+- A wrong email or a wrong password gives the same answer either way.
+- Linking Google signs out your other sessions; signing out ends the old login everywhere in the account service.
+- The Privacy Policy says Google Analytics runs on public pages only and sets _ga cookies.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
