@@ -13,6 +13,7 @@ All house rules from `calendar-week1.md` apply: verbatim disclaimer, Ajay's Ink 
 - **No default-bail post before T-251 is merged** (the current pack has a live legal error). Posts here that list the six bail types (W2-LI-1, W2-X-1, W2-WA-1, W2-IG-1) name default bail. Until T-251 merges, use the five-type version: regular, anticipatory, before magistrate, interim, cancellation; "Six" becomes "Five" and "छह" / "6" becomes "पाँच" / "5". Rajesh updates the carousel slides to match.
 - **No criminal-draft screenshot, reel or sample PDF before T-245a/b are merged** (until then the packs cite BNS for old-law cases). A bail-draft image or reel waits.
 - **No "secure", "safe" or "encrypted" claim anywhere** (the privacy policy, T-235, says form answers and the fact list are not encrypted). No sample PDFs in any post (T-254; Ajay has not seen them).
+- **"Six bail drafts in Lawie" (and any "six bail types" line)** is OK only while all six bail rule files are live at publish: regular, anticipatory, before magistrate, interim, default, cancellation (Ajay, 12 Oct).
 - **Nothing about highlighted blanks** until T-194 is live and Ajay gives a line.
 - **Every Ink or rupee line waits for T-227, T-238 and T-252 to be merged, and for the founder's Razorpay check** of the Solo and top-up prices. Without that, cut the Ink and rupee lines, not the post.
 - **WhatsApp broadcasts** go only to contacts who opted in to these messages, with the purpose stated, and the opt-in recorded (DPDP Act, 2023, s.6). "Reply STOP" works and is honoured.
