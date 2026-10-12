@@ -20,6 +20,20 @@ const LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
 const sign = (body: string) =>
   crypto.createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');
 
+// No wall-clock sleeps. flush() drains the event loop a few turns; waitFor() polls a condition
+// every 5 ms for at most 2 s, then fails with a clear message, then flushes.
+const flush = async () => {
+  for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
+};
+const waitFor = async (cond: () => boolean, what: string) => {
+  const deadline = Date.now() + 2000;
+  while (!cond()) {
+    if (Date.now() > deadline) throw new Error(`Timed out after 2s waiting for: ${what}`);
+    await new Promise((r) => setTimeout(r, 5));
+  }
+  await flush();
+};
+
 describe('T-320 billing webhook with malformed JSON', () => {
   let loggerSpies: jest.SpyInstance[];
   let stderrSpy: jest.SpyInstance;
@@ -100,7 +114,7 @@ describe('T-320 billing webhook with malformed JSON', () => {
       .send(body);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: 'ok' });
-    await new Promise((r) => setTimeout(r, 20));
+    await waitFor(() => handler.mock.calls.length > 0, 'handleWebhookEvent to be called');
     expect(handler).toHaveBeenCalledTimes(1);
   });
 });
