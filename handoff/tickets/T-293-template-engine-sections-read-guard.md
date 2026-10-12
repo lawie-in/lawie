@@ -5,7 +5,7 @@
 | Phase  | 1 — Legal accuracy |
 | Owner  | Lead (build). Ajay sees the diff (template-engine is legal content) |
 | Mode   | Small fix (drafting) |
-| Status | To do. After T-277 merges. Found in T-277 review round 4, 12 Oct 2026 |
+| Status         | Building: mahak (12 Oct 2026) |
 
 In `apps/drafting/src/services/template-engine.service.ts`, a formData key `__sections_charged_read` sent by the client can overwrite the server's own pre-read of the sections, and bad JSON in it throws while the prompt is built. It only affects the requester's own draft, but it must not be possible.
 

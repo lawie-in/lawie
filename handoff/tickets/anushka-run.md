@@ -314,3 +314,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - On a computer the remove "x" sits beside each section and works from the keyboard. A screen reader reads it as "Remove" plus the name.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-292 (mahak, merged to develop_staging 613e151, 12 Oct 2026)
+
+Nothing changes on screen. Lawie no longer asks the AI to name the user's matter when it looks for a template.
+
+Test: describe a document; Lawie still finds the right template, or offers choices, as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

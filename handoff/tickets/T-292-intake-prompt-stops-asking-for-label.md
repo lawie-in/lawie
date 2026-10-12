@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Ajay (signs the prompt change). Lead (build). Arjun if the output shape changes |
 | Mode           | Small fix, legal content (`intake.prompts.ts`) |
-| Status         | Building: mahak (12 Oct 2026). Ajay signs the diff |
+| Status         | Merged to `develop_staging` (613e151, 12 Oct 2026). Waiting for Anushka on develop |
 
 T-115e stops storing the matter label and maps the category to a fixed list. The intake prompt in `apps/drafting/src/services/intake.prompts.ts` (path to be confirmed by the lead) still asks the model for a label, which is then thrown away. Remove that ask so the model is not told to produce a matter label at all.
 
