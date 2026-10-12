@@ -64,3 +64,7 @@ The section-converter page says "500+ section mappings validated by a practising
 ## Added 12 Oct 2026 (Mahak, T-238)
 
 `apps/web/src/app/(marketing)/faq/page.tsx` ~L53 still says "court formatting, BNS validation" and "Free exports carry a Lawie watermark". That contradicts the pricing page after T-238 and the no-watermark policy. The in-app TopUpModal "POPULAR" badge is row 21 of Meera's table. Ajay signs the words.
+
+## Align wording (Mahak, T-238, 12 Oct 2026)
+
+`handoff/marketing/copy/pricing.md` and the T-252 lines (`faq/page.tsx` ~L53, about page) still say "Criminal drafts cite BNS, BNSS and BSA". Ajay's final wording (T-238) is "Criminal drafts use BNS, BNSS and BSA section numbers". Use it everywhere.
