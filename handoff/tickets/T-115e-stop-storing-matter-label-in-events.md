@@ -15,10 +15,14 @@
 1. New events no longer store the label. The category stays.
 2. A one-line `$unset` removes `metadata.label` from existing event rows (develop first; production by the founder with the other T-115 steps).
 3. A test: an intake that would have written a label stores only the category.
-4. Ajay confirms the label is not needed. If he wants a label kept, it must carry no party names, in words he signs.
+4. Ajay ruled (below): no label; category only. Any other place a matter label or description reaches events, logs or analytics is listed and fixed the same way, or ticketed.
 
 ## Gates
 
 - Design: Not needed
 - ADR: Arjun's T-115 design
 - Legal sign-off: Ajay (point 4)
+
+## Ajay (12 Oct 2026)
+
+The label is NOT needed. Keep only the category, a fixed value from our own list, never user text. Stop writing the label and unset old rows as planned. The same rule applies anywhere else a matter label or description could reach events, logs or analytics: the lead greps for other places and lists them in the report.
