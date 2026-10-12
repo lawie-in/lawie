@@ -56,6 +56,8 @@ lawie/
 | `/api/sections/*`  | `drafting:4002` | Drafting Service (public, no JWT) |
 | `/api/billing/*`   | `billing:4003`  | Billing Service                   |
 
+**Analytics consent.** Google Analytics (GA4) loads in the browser only after a visitor presses Accept on a public page; with no answer or Decline there is no Google script and no `_ga` cookie. The choice is kept in the browser (`localStorage`, key `lawie.consent.analytics`) and can be changed from the footer ("Cookie settings") or the privacy page. Each choice is also recorded by the auth service via the public, unauthenticated `POST /api/auth/consent` (body: random id, `granted`/`denied`, text version; 1 KB limit; returns 204). The record holds no IP, user agent or account link, is deleted after 12 months, and the visitor is asked again then. If the store write fails, auth logs the fixed message `consent_store_failed` with the error name and code only. Browser-side Sentry is off (server and edge Sentry are on); turning it on needs a new ticket. Web tests: `yarn workspace @lawie/web test`.
+
 ---
 
 ## Quick Start

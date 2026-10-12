@@ -9,6 +9,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import ReferralOfferModal from './ReferralOfferModal';
 
 import { useAuth } from '@/context/AuthContext';
+import { clearSignupSource, readSignupSource } from '@/lib/signup-source';
 
 // T-234 — email + password sign-in and sign-up next to Google.
 // Design: Rajesh (handoff/tickets/T-234-…md). Copy: "Final" column of
@@ -23,8 +24,12 @@ type ServerError =
   | { kind: 'list'; items: string[] } // 422
   | { kind: 'conflict'; message: string } // 409
   | { kind: 'unauthorized' } // 401
-  | { kind: 'message'; message: string } // 403
-  | { kind: 'network' }; // 429, 5xx, network
+  | { kind: 'message'; message: string } // 403 (any other text)
+  | { kind: 'accountDeactivated' } // T-299: 403 with the deactivated text, or ?error=account_deactivated
+  | { kind: 'oauthFailed' } // T-299: ?error=oauth_failed or ?error=invalid_code
+  | { kind: 'network' } // 429, 5xx, network
+  | { kind: 'signInIncomplete' } // T-319: ?error=sign_in_incomplete from /auth/callback
+  | { kind: 'insecureContext' }; // T-319: no crypto.subtle / getRandomValues (not https)
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -47,6 +52,95 @@ const REFERRAL_NOT_VALID_MESSAGE = 'Your referral code was not valid, so no bonu
 // Google sign-up: '1' = R5/R6 showed for the code sent, '0' = never applied. Wording only; the
 // server never sees it and it grants nothing.
 const REFERRAL_SHOWN_KEY = 'lawie_referral_shown';
+
+// T-319: the line for /login?error=sign_in_incomplete (no verifier in this tab at /auth/callback).
+// Approved by Ajay; change it only here.
+const SIGN_IN_INCOMPLETE_MESSAGE = "We couldn't finish signing you in. Please try again.";
+
+// T-299: the line for /login?error=oauth_failed and ?error=invalid_code (the Google sign-in did not
+// complete). Approved by Priya; change it only here.
+const OAUTH_FAILED_MESSAGE = "Google sign-in didn't work. Please try again.";
+
+// T-299: the deactivated-account line (Ajay). "Contact support" is rendered as a link to /contact
+// (Ajay's condition, Priya chose /contact), the same for ?error=account_deactivated and for a
+// password sign-in answered 403 with exactly the API text below.
+const DEACTIVATED_LEAD = 'Your account has been deactivated.';
+const DEACTIVATED_LINK_TEXT = 'Contact support';
+const CONTACT_HREF = '/contact';
+// Must equal the 403 text in apps/auth/src/services/auth.service.ts (loginUser). Matched exactly;
+// the API text itself is never rendered for this case.
+const DEACTIVATED_API_MESSAGE = 'Your account has been deactivated. Contact support.';
+
+// T-299: the fixed set of ?error= codes this page answers. Anything else shows nothing, and the
+// query value is never printed.
+// T-242: ?ref=CODE → the referral box value. Trimmed, upper-cased, capped at 16 (the box's and the
+// API's limit). Empty → null. The visitor can still see and edit it (Ajay, T-242 signed).
+const REFERRAL_CODE_MAX_LENGTH = 16;
+function referralFromQuery(raw: string | null): string | null {
+  const code = (raw ?? '').trim().toUpperCase().slice(0, REFERRAL_CODE_MAX_LENGTH);
+  return code || null;
+}
+
+function serverErrorFromQuery(code: string | null): ServerError | null {
+  switch (code) {
+    case 'oauth_failed':
+    case 'invalid_code':
+      return { kind: 'oauthFailed' };
+    case 'account_deactivated':
+      return { kind: 'accountDeactivated' };
+    case 'sign_in_incomplete':
+      return { kind: 'signInIncomplete' };
+    default:
+      return null;
+  }
+}
+
+// T-319 round 2: shown instead of the network error when the browser has no crypto.subtle or
+// crypto.getRandomValues (a non-secure origin). Approved by Arjun and Ajay; change it only here.
+const GOOGLE_NEEDS_HTTPS_MESSAGE = 'Google sign-in needs a secure (https) connection.';
+
+// T-319 (Arjun): PKCE-style binding for Google sign-in. The verifier stays in this tab's
+// sessionStorage; only its SHA-256 (the challenge) goes to the API. /auth/callback reads, deletes
+// and sends it with the one-time code. Must match the key in app/auth/callback/page.tsx.
+const OAUTH_VERIFIER_KEY = 'lawie.oauth.verifier';
+
+function base64url(bytes: Uint8Array): string {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+type OAuthChallengeResult =
+  | { ok: true; challenge: string }
+  // insecure: crypto.subtle or crypto.getRandomValues is missing (non-secure origin).
+  // failed: anything else, e.g. sessionStorage blocked or full.
+  | { ok: false; reason: 'insecure' | 'failed' };
+
+// Creates and stores a fresh verifier and returns its challenge.
+async function createOAuthChallenge(): Promise<OAuthChallengeResult> {
+  let subtle: SubtleCrypto | undefined;
+  try {
+    subtle = window.crypto?.subtle;
+    if (!subtle || typeof window.crypto.getRandomValues !== 'function') {
+      return { ok: false, reason: 'insecure' };
+    }
+  } catch {
+    return { ok: false, reason: 'insecure' };
+  }
+  try {
+    const bytes = new Uint8Array(32);
+    window.crypto.getRandomValues(bytes);
+    const verifier = base64url(bytes);
+    const digest = await subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    sessionStorage.setItem(OAUTH_VERIFIER_KEY, verifier);
+    if (sessionStorage.getItem(OAUTH_VERIFIER_KEY) !== verifier) {
+      return { ok: false, reason: 'failed' };
+    }
+    return { ok: true, challenge: base64url(new Uint8Array(digest)) };
+  } catch {
+    return { ok: false, reason: 'failed' };
+  }
+}
 
 // Which field a T-208 422 message belongs to (cheap prefix match, per design).
 // "Invalid email format" is the API's email-format message, so it maps to Email too.
@@ -113,8 +207,16 @@ function LoginContent() {
   const SIGNIN_HREF = '/login?mode=signin';
   const SIGNUP_HREF = '/login?mode=signup';
 
+  // T-242 (Priya): /login?ref=CODE pre-fills the referral box. Same shape as the box and the
+  // API: trimmed, upper-cased, at most 16 characters (registerSchema.referralCode .max(16)).
+  const refParam = referralFromQuery(searchParams.get('ref'));
+
   // Mode lives in the URL (/login?mode=signup) so marketing links and Back work. Default: Sign in.
-  const mode: Mode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+  // A ?ref= link opens Create account, the only mode with the referral box, unless the link
+  // explicitly asks for ?mode=signin.
+  const modeParam = searchParams.get('mode');
+  const mode: Mode =
+    modeParam === 'signup' || (refParam && modeParam !== 'signin') ? 'signup' : 'signin';
   const isSignup = mode === 'signup';
 
   const [name, setName] = useState('');
@@ -123,12 +225,15 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverInvalid, setServerInvalid] = useState<Set<Field>>(new Set());
-  const [serverError, setServerError] = useState<ServerError | null>(null);
+  // T-319 / T-299: read ?error= once, on mount, and map it through the fixed set above.
+  const [serverError, setServerError] = useState<ServerError | null>(() =>
+    serverErrorFromQuery(searchParams.get('error')),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [referralNotice, setReferralNotice] = useState<string | null>(null);
 
   // Referral code — SCRUM-71 (Create account only)
-  const [referralCode, setReferralCode] = useState('');
+  const [referralCode, setReferralCode] = useState(() => refParam ?? '');
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
   const [referralLabel, setReferralLabel] = useState('');
   const [referralBonusInk, setReferralBonusInk] = useState(0);
@@ -243,17 +348,35 @@ function LoginContent() {
     return code;
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
+    // T-319: no verifier, no redirect. No crypto (non-secure origin): the https line. Any other
+    // failure (sessionStorage): the existing network-style error.
+    const result = await createOAuthChallenge();
+    if (!result.ok) {
+      setServerError(
+        result.reason === 'insecure' ? { kind: 'insecureContext' } : { kind: 'network' },
+      );
+      return;
+    }
+    const { challenge } = result;
     const code = referralToSend();
-    if (code) sessionStorage.setItem('lawie_referral_code', code);
     try {
       if (code) sessionStorage.setItem(REFERRAL_SHOWN_KEY, referralValid === true ? '1' : '0');
       else sessionStorage.removeItem(REFERRAL_SHOWN_KEY);
     } catch {
       // Storage unavailable: the callback falls back to the "not valid" line.
     }
-    const base = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
-    window.location.href = code ? `${base}?referralCode=${encodeURIComponent(code)}` : base;
+    const params = new URLSearchParams({ challenge });
+    if (code) params.set('referralCode', code);
+    // T-242: the landing link's tags go to our auth service only, which keeps them only if this
+    // Google sign-in creates a new account. T-344: not cleared here. A cancelled or failed Google
+    // sign-in comes back to /login?error=… with the tags still in sessionStorage for the next try;
+    // /auth/callback clears them only once the sign-in has succeeded.
+    const source = readSignupSource();
+    if (source?.utmSource) params.set('utmSource', source.utmSource);
+    if (source?.utmMedium) params.set('utmMedium', source.utmMedium);
+    if (source?.utmCampaign) params.set('utmCampaign', source.utmCampaign);
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google?${params.toString()}`;
   };
 
   // ── Email + password ────────────────────────────────────────────────────────
@@ -299,8 +422,15 @@ function LoginContent() {
     setServerError(null);
     setServerInvalid(new Set());
 
+    // T-242: the landing link's tags go only with Create account (sanitized again by the API).
     const body = isSignup
-      ? { name: name.trim(), email: email.trim(), password, referralCode: referralToSend() }
+      ? {
+          name: name.trim(),
+          email: email.trim(),
+          password,
+          referralCode: referralToSend(),
+          ...(readSignupSource() ?? {}),
+        }
       : { email: email.trim(), password };
 
     let res: Response;
@@ -333,6 +463,8 @@ function LoginContent() {
     const refreshToken = json.data?.refreshToken;
     if (res.ok && accessToken && refreshToken) {
       login(accessToken, refreshToken);
+      // T-242: the account now holds the tags; the browser keeps them no longer.
+      if (isSignup) clearSignupSource();
       // The code sent was not valid at account creation. The account exists; tell the user once
       // before going on. Addendum 1 line if R5/R6 showed for it, Addendum 3 line if never applied.
       if (isSignup && json.data?.referralApplied === false) {
@@ -367,6 +499,9 @@ function LoginContent() {
     } else if (res.status === 401) {
       setPassword('');
       setServerError({ kind: 'unauthorized' });
+    } else if (res.status === 403 && message === DEACTIVATED_API_MESSAGE) {
+      // T-299: same line and link as ?error=account_deactivated.
+      setServerError({ kind: 'accountDeactivated' });
     } else if (res.status === 403 && message) {
       setServerError({ kind: 'message', message });
     } else {
@@ -561,7 +696,7 @@ function LoginContent() {
 
                   {/* Google OAuth */}
                   <button
-                    onClick={handleGoogleLogin}
+                    onClick={() => void handleGoogleLogin()}
                     type="button"
                     className="mt-4 flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-500 bg-white px-4 text-base font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98] sm:mt-5"
                   >
@@ -753,7 +888,26 @@ function LoginContent() {
                             </>
                           )}
                           {serverError.kind === 'message' && <p>{serverError.message}</p>}
+                          {serverError.kind === 'accountDeactivated' && (
+                            <p>
+                              {DEACTIVATED_LEAD}{' '}
+                              <Link
+                                href={CONTACT_HREF}
+                                className="font-semibold underline hover:text-red-900"
+                              >
+                                {DEACTIVATED_LINK_TEXT}
+                              </Link>
+                              .
+                            </p>
+                          )}
+                          {serverError.kind === 'oauthFailed' && <p>{OAUTH_FAILED_MESSAGE}</p>}
                           {serverError.kind === 'network' && <p>{NETWORK_MESSAGE}</p>}
+                          {serverError.kind === 'insecureContext' && (
+                            <p>{GOOGLE_NEEDS_HTTPS_MESSAGE}</p>
+                          )}
+                          {serverError.kind === 'signInIncomplete' && (
+                            <p>{SIGN_IN_INCOMPLETE_MESSAGE}</p>
+                          )}
                         </div>
                       </div>
                     )}

@@ -13,6 +13,8 @@ import {
 import Link from 'next/link';
 import { useState, useCallback } from 'react';
 
+import CookieSettingsButton from '@/components/CookieSettingsButton';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -312,7 +314,8 @@ export default function TimelineTrackerPage() {
               </div>
             )}
 
-            {/* Per-section notes from the API (T-277) */}
+            {/* Per-section notes from the API (T-277). T-278: a not-found section's
+                note also comes from here; the page adds no text of its own. */}
             {sectionNoteList.length > 0 &&
               sectionNoteList.map((note, i) => (
                 <div key={i} className="rounded-lg border border-amber-200 bg-amber-50 p-3">
@@ -322,17 +325,6 @@ export default function TimelineTrackerPage() {
                   </div>
                 </div>
               ))}
-
-            {/* Sections Not Found Warning */}
-            {sectionNoteList.length === 0 && result.sectionsNotFound.length > 0 && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                <div className="flex items-center gap-2 text-sm text-amber-700">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                  Sections not found in BNS database: {result.sectionsNotFound.join(', ')}. Timeline
-                  calculated using remaining sections only.
-                </div>
-              </div>
-            )}
 
             {/* Visual Timeline */}
             <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -517,6 +509,11 @@ export default function TimelineTrackerPage() {
             </p>
           </div>
         )}
+
+        {/* T-310: reopens the analytics consent notice (S9). */}
+        <div className="mt-8 text-center">
+          <CookieSettingsButton variant="tool" />
+        </div>
       </div>
     </div>
   );

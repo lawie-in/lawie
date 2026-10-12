@@ -100,6 +100,7 @@ import {
   TO_BE_CONFIRMED_DESIGNATION_RULE,
   CourtRuleData,
   PLACEHOLDER_ALIASES,
+  MONTH_NAMES,
 } from './template-engine.service';
 import {
   validate,
@@ -108,6 +109,8 @@ import {
   buildSectionsCited,
   extractBNSSectionNumbers,
   validateBNSWhitelist,
+  validateSectionReferences,
+  dropOldLawForNotFound,
   checkFactSectionSanity,
 } from './validator';
 
@@ -357,10 +360,6 @@ export interface GenerateDocumentResult {
 }
 
 /**
- * Legacy validateBnsSections — kept for backwards compatibility.
- * The new validator.ts provides richer validation.
- */
-/**
  * Placeholders a template section left unfilled.
  *
  * T-146: only a field the user is asked for (one in the form schema) becomes a
@@ -406,24 +405,6 @@ export function leakedPlaceholderWarnings(
     }
   }
   return warnings;
-}
-
-export function validateBnsSections(docType: string, generatedText: string): string[] {
-  // bns-mapping.json now carries non-doctype keys (_meta, alias maps) that the
-  // TS type widens into the union. Narrow with a structural guard so the legacy
-  // doc-type-keyed lookup still works.
-  const mapping = bnsMapping[docType as DocTypeKey] as
-    | { sections?: { number: string; description?: string }[] }
-    | undefined;
-  if (!mapping || !Array.isArray(mapping.sections)) return [];
-
-  const knownSections = new Set(mapping.sections.map((s) => s.number));
-  const sectionPattern = /(?:section|sec\.?|u\/s)\s+(\d+[A-Z]?(?:\([a-z0-9]+\))?)/gi;
-  const matches = [...generatedText.matchAll(sectionPattern)];
-  const mentioned = matches.map((m) => m[1]);
-
-  const unmatched = mentioned.filter((s) => !knownSections.has(s));
-  return [...new Set(unmatched)];
 }
 
 /**
@@ -824,18 +805,33 @@ export async function streamGenerateFromTemplate(
     const aiSections = renderedSections.filter((s) => s.type === 'ai_generated');
     const aiText = aiSections.map((s) => s.content).join('\n');
 
-    const oldLawWarnings = await detectOldLawReferences(aiText);
+    // T-333: the other five codes (BNSS, BSA, IPC, CrPC, IEA), as validate() checks them.
+    // BNS is left to the whitelist below, so it is not warned twice.
+    const otherCodeWarnings = validateSectionReferences(aiText, null).filter(
+      (w) => w.details?.code !== 'BNS',
+    );
+
+    // T-333 / T-270 ruling A: an old-code cite that is not found gets only invalid_section.
+    const oldLawWarnings = dropOldLawForNotFound(
+      await detectOldLawReferences(aiText),
+      otherCodeWarnings,
+    );
     allWarnings.push(...oldLawWarnings);
 
     // SCRUM-64 (b): BNS whitelist validation — flag hallucinated section numbers
     const bnsCited = extractBNSSectionNumbers(aiText);
     const bnsWhitelistWarnings = validateBNSWhitelist(bnsCited);
     allWarnings.push(...bnsWhitelistWarnings);
+    allWarnings.push(...otherCodeWarnings);
 
     // SCRUM-64 (c): Fact↔section sanity — BNS 103 (Murder) requires death keywords in facts
     if (templateConfig.category === 'criminal') {
       const factsNarrative = String(convertedFormData.facts_narrative ?? '');
-      const sanitySanityWarnings = checkFactSectionSanity(factsNarrative, bnsCited);
+      // T-333 ruling B: explicit cites only, not numbers inside an expanded range.
+      const sanitySanityWarnings = checkFactSectionSanity(
+        factsNarrative,
+        extractBNSSectionNumbers(aiText, { includeRangeInner: false }),
+      );
       allWarnings.push(...sanitySanityWarnings);
     }
 
@@ -1133,6 +1129,8 @@ export async function streamGenerateFromBrief(
             buildChecklist(pack),
             ctx.court_designation || courtData?.designation || null,
             brief.kind.court_document,
+            // T-338: an unresolved optional key with no fact is a visible blank.
+            (input.ledger.unresolved ?? []).map((u) => u.key),
           ),
           averments: resolveAverments(input.ledger.lists, input.ledger.facts),
         }
@@ -1417,15 +1415,29 @@ export async function streamGenerateFromBrief(
 
     allWarnings.push(...leakedPlaceholderWarnings(templateConfig, ctx));
 
-    allWarnings.push(...(await detectOldLawReferences(body)));
+    // T-333: the other five codes, as validate() checks them; BNS is the whitelist's.
+    const otherCodeWarnings = validateSectionReferences(body, null).filter(
+      (w) => w.details?.code !== 'BNS',
+    );
+    // T-333 / T-270 ruling A: an old-code cite that is not found gets only invalid_section.
+    allWarnings.push(
+      ...dropOldLawForNotFound(await detectOldLawReferences(body), otherCodeWarnings),
+    );
 
     const bnsCited = extractBNSSectionNumbers(body);
     allWarnings.push(...validateBNSWhitelist(bnsCited));
+    allWarnings.push(...otherCodeWarnings);
 
     const facts =
       given.get('facts_narrative') ?? given.get('facts') ?? given.get('fixed.facts') ?? '';
     if (templateConfig.category === 'criminal' && facts) {
-      allWarnings.push(...checkFactSectionSanity(facts, bnsCited));
+      // T-333 ruling B: explicit cites only, not numbers inside an expanded range.
+      allWarnings.push(
+        ...checkFactSectionSanity(
+          facts,
+          extractBNSSectionNumbers(body, { includeRangeInner: false }),
+        ),
+      );
     }
 
     const grounds = formData.grounds_for_bail ?? formData.grounds_for_quashing ?? formData.grounds;
@@ -1650,8 +1662,16 @@ export async function streamGenerateGuided(
 
     // ── The free checks (T-107, section 9, condition 3): always run, always shown ──
     const allWarnings: ValidationWarning[] = [];
-    allWarnings.push(...(await detectOldLawReferences(fullText)));
+    // T-333: the other five codes, as validate() checks them; BNS is the whitelist's.
+    const otherCodeWarnings = validateSectionReferences(fullText, null).filter(
+      (w) => w.details?.code !== 'BNS',
+    );
+    // T-333 / T-270 ruling A: an old-code cite that is not found gets only invalid_section.
+    allWarnings.push(
+      ...dropOldLawForNotFound(await detectOldLawReferences(fullText), otherCodeWarnings),
+    );
     allWarnings.push(...validateBNSWhitelist(extractBNSSectionNumbers(fullText)));
+    allWarnings.push(...otherCodeWarnings);
 
     const given = briefText(brief);
     if (given) {
@@ -1711,8 +1731,9 @@ export async function streamGenerateGuided(
  * Basic fact-alteration check: extract key entities (numbers, dates, names in caps)
  * from user facts and verify they appear in AI output.
  *
- * SCRUM-54 B4: Dates are normalised to DD.MM.YYYY in the AI prompt context,
- * so we check all equivalent representations of each date (ISO, DD.MM.YYYY, DD/MM/YYYY).
+ * SCRUM-54 B4, T-340: the template parts print dates as "D Month YYYY"
+ * (e.g. "10 March 2026") and the facts may give them as numbers, so we check
+ * every equivalent form of each date (see getDateVariants).
  */
 function checkFactAlteration(userFacts: string, aiOutput: string): ValidationWarning | null {
   // Extract FIR numbers, dates, and proper nouns from user input
@@ -1734,7 +1755,9 @@ function checkFactAlteration(userFacts: string, aiOutput: string): ValidationWar
   for (const date of dates) {
     // Generate all common format variants of this date for comparison
     const variants = getDateVariants(date);
-    const found = variants.some((v) => aiOutput.includes(v));
+    const found = variants.some((v) =>
+      new RegExp(`(?<!\\d)${v.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?!\\d)`).test(aiOutput),
+    );
     if (!found) {
       missing.push(`Date ${date}`);
     }
@@ -1753,6 +1776,11 @@ function checkFactAlteration(userFacts: string, aiOutput: string): ValidationWar
 /**
  * Given a date string in any common format, return all equivalent representations
  * so the fact-alteration check doesn't false-positive on format differences.
+ *
+ * T-340 (Ajay): a numeric date is read day first only (Indian form), so
+ * "03.10.2026" is 3 October 2026, never 10 March. Its variants are the numeric
+ * forms plus "D Month YYYY" and "DD Month YYYY" (full English month name) for
+ * the same day, month and year only.
  */
 function getDateVariants(dateStr: string): string[] {
   const variants = [dateStr];
@@ -1780,6 +1808,14 @@ function getDateVariants(dateStr: string): string[] {
   variants.push(`${day}/${month}/${year}`); // DD/MM/YYYY
   variants.push(`${day}-${month}-${year}`); // DD-MM-YYYY
   variants.push(`${year}-${month}-${day}`); // YYYY-MM-DD (ISO)
+
+  // T-340: the month-name forms the template parts print, for this date only.
+  const monthName = MONTH_NAMES[Number(month) - 1];
+  const dayNumber = Number(day);
+  if (monthName !== undefined && dayNumber >= 1 && dayNumber <= 31) {
+    variants.push(`${dayNumber} ${monthName} ${year}`); // D Month YYYY
+    variants.push(`${day} ${monthName} ${year}`); // DD Month YYYY
+  }
 
   return [...new Set(variants)];
 }

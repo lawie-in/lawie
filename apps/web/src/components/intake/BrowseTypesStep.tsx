@@ -11,13 +11,32 @@ import { useMemo, useState } from 'react';
 import type { KindSummary } from './briefTypes';
 import { h1, input, linkButton, sub, tagPlain } from './ui';
 
+/**
+ * A documents-list row with its T-240 library category. The service always
+ * sends these with GET /api/documents/template-configs; they are optional here
+ * only so the shared `KindSummary` rows still type-check.
+ */
+type CatalogueKind = KindSummary & {
+  catalogueCategory?: string;
+  catalogueCategoryName?: string;
+  catalogueCategoryOrder?: number;
+};
+
+const catalogueId = (k: CatalogueKind) => k.catalogueCategory ?? k.category;
+/** T-345: a raw category id on the fallback path, readable: "civil_suit" -> "Civil suit". */
+const readableCategory = (id: string) => {
+  const spaced = id.replace(/_/g, ' ').trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+};
+const catalogueName = (k: CatalogueKind) => k.catalogueCategoryName ?? readableCategory(k.category);
+
 export default function BrowseTypesStep({
   kinds,
   loading,
   onPick,
   onDescribe,
 }: {
-  kinds: KindSummary[];
+  kinds: CatalogueKind[];
   loading: boolean;
   onPick: (kind: KindSummary) => void;
   /** "I do not see my document": describe with nothing set. */
@@ -26,19 +45,27 @@ export default function BrowseTypesStep({
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
 
+  // Catalogue categories (T-240) that have a document, in T-239 order.
   const categories = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const k of kinds) counts.set(k.category, (counts.get(k.category) ?? 0) + 1);
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([id]) => id);
+    const byId = new Map<string, { id: string; name: string; order: number }>();
+    for (const k of kinds) {
+      const id = catalogueId(k);
+      if (!byId.has(id)) {
+        byId.set(id, {
+          id,
+          name: catalogueName(k),
+          order: k.catalogueCategoryOrder ?? Number.MAX_SAFE_INTEGER,
+        });
+      }
+    }
+    return Array.from(byId.values()).sort((a, b) => a.order - b.order);
   }, [kinds]);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return kinds.filter(
       (k) =>
-        (category === 'all' || k.category === category) &&
+        (category === 'all' || catalogueId(k) === category) &&
         (q === '' ||
           k.display_name.toLowerCase().includes(q) ||
           k.description.toLowerCase().includes(q)),
@@ -46,7 +73,7 @@ export default function BrowseTypesStep({
   }, [kinds, query, category]);
 
   const chip = (on: boolean) =>
-    `focus-visible:ring-brand-teal inline-flex min-h-[40px] items-center rounded-full border px-3.5 text-sm capitalize focus:outline-none focus-visible:ring-2 ${
+    `focus-visible:ring-brand-teal inline-flex min-h-[40px] items-center rounded-full border px-3.5 text-sm focus:outline-none focus-visible:ring-2 ${
       on ? 'bg-brand-navy border-brand-navy font-medium text-white' : 'border-brand-line bg-white'
     }`;
 
@@ -84,13 +111,13 @@ export default function BrowseTypesStep({
         </button>
         {categories.map((c) => (
           <button
-            key={c}
+            key={c.id}
             type="button"
-            aria-pressed={category === c}
-            onClick={() => setCategory(c)}
-            className={chip(category === c)}
+            aria-pressed={category === c.id}
+            onClick={() => setCategory(c.id)}
+            className={chip(category === c.id)}
           >
-            {c.replace(/_/g, ' ')}
+            {c.name}
           </button>
         ))}
       </div>
@@ -113,7 +140,7 @@ export default function BrowseTypesStep({
               <span className="text-brand-navy font-semibold">{k.display_name}</span>
               <span className="text-brand-muted text-sm">{k.description}</span>
               <span className="mt-auto pt-1">
-                <span className={`${tagPlain} capitalize`}>{k.category.replace(/_/g, ' ')}</span>
+                <span className={tagPlain}>{catalogueName(k)}</span>
               </span>
             </button>
           </li>

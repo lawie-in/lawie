@@ -395,3 +395,294 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - A Google-only advocate trying a password gets a plain "incorrect" message pointing to Google.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-268 — terms page (f6566b4)
+
+Open /terms and check:
+
+- It calls Lawie a drafting assistant whose drafts the advocate reviews and is responsible for.
+- It says drafts are paid for with Ink: most use 2, short ones 1, nothing for a failed draft.
+- It says nothing takes away rights under law or the right to approach a Consumer Commission.
+- "Last updated: 12 October 2026". No "AI-assisted" or "formatted for Indian courts" in the page body (the footer is T-317).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-241 — bail drafts don't assert facts the user didn't give (6bb8f85)
+
+- Anticipatory and magistrate bail drafts no longer claim grounds, antecedents, roots or a filed charge sheet the user didn't give; a missing fact gets a blank to fill.
+- In regular and default bail, "before this Hon'ble Court" no longer counts as covering earlier applications.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-317 — one consistent description across the site (ca2d88f)
+
+- The home page, FAQ, About and Tools pages and the site footer all describe Lawie the same way: a drafting assistant for Indian advocates, where criminal drafts use BNS, BNSS and BSA section numbers and the advocate is responsible for legal accuracy and filing.
+- FAQ answers say each document is a first draft generated with AI that the filing advocate must review.
+- An exported PDF's footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-306 — login stays out of the address bar and analytics (ba54d48)
+
+- Sign in with Google as before. The sign-in no longer puts the login in the page address, browser history or analytics.
+- The dashboard, drafts and login pages are no longer tracked; only public pages are counted, without query details.
+- The browser tab title reads "Lawie — Drafting Assistant for Indian Advocates".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-278 — bail checker and timeline show signed notes (92efbc3)
+
+- In the bail checker, an old IPC section with no new equivalent, or one not in the table, shows a clear note to check the Gazette, instead of a blank or a guessed section.
+- In the timeline tracker, every section left out of the period says why: it's an old-law section (with a pointer to the section converter), it doesn't create an offence, or it wasn't found in the BNS offences table.
+- Typing "BNS 103" or "103-BNS" in the timeline works like typing 103.
+- Unknown values show "Depends…", never "Non-Bailable" or a guessed court.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-318 — footers on server PDFs, annexures and the welcome email (f5e7edb)
+
+- Export a draft as PDF from the server; the footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+- Open the annexures (Vakalatnama, Memo of Parties and the others); the footer reads "Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice."
+- The welcome email says "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-319 — Google sign-in can't be hijacked (2b02eae)
+
+- Sign in with Google as before.
+- A sign-in link someone else started can no longer log you into another person's account; you see "We couldn't finish signing you in. Please try again." and start again.
+- Needs develop on https (founder's check).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-313 — optional enrollment number on three documents (a6b2162)
+
+- When drafting a regular bail, anticipatory bail or consumer complaint, type a Bar Council enrollment number (or a "to be confirmed" note) in the new optional "Bar Council Enrollment No." field under Court & Parties. It prints in the advocate block, the Vakalatnama and the Memo of Parties.
+- Leave it empty and still get the draft: the profile number is used if the advocate is you, otherwise a blank to fill in.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-295 — old-law sections warn instead of block (2e06933)
+
+- Enter an old IPC, CrPC or IEA section (e.g. "302 IPC"): a warning says it's an old-law section and points to the section converter for offences on or after 1 July 2024. You can continue with "generate anyway" instead of being blocked.
+- The warning never shows a mixed label like "BNS Section 302 IPC".
+- A BNS section that doesn't exist is still blocked.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-280 — converter shows section titles (d80774f)
+
+- In the section converter, see the title of the old section and of the new section under each number, so a wrong number is easy to spot.
+- Test only after the founder has reseeded develop (seed-sections --force), Ajay's condition.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-322 — a signed blank is accepted as is (e4523df)
+
+- An anticipatory, magistrate or default bail draft that leaves the prescribed "To be confirmed" blank for a missing fact is accepted as is. It is no longer sent back to the AI for a rewrite that could invent the fact.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-321 — one AI footer per exported draft (36ea45e)
+
+- Export a starting draft as PDF (in the app or from the server): one footer only, "Starting draft prepared with AI assistance from the details you gave. Not checked against court rules. Review every line before use. Lawie does not provide legal advice."
+- Export any other draft: one footer, "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-326 — new BNS sections in the converter (d51311e)
+
+- Look up a new BNS, BNSS or BSA section that has no old equivalent: it shows "No equivalent in the IPC" (or CrPC, IEA) instead of a made-up number.
+- Copy gives just the new section, e.g. "BNS 111".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-299 + T-308 + T-325 — sign-in hardening and privacy wording (991c0f6, 84d9e4c)
+
+- A clear message when Google sign-in fails; a Contact support link if the account is deactivated.
+- A wrong email or a wrong password gives the same answer either way.
+- Linking Google signs out your other sessions; signing out ends the old login everywhere in the account service.
+- The Privacy Policy says Google Analytics runs on public pages only and sets _ga cookies.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-324 — matching IPC alias on a BNS entry (cf26a25)
+
+- Enter a BNS section with its old IPC number in brackets, e.g. "BNS 303 (IPC 379)": no old-law warning when the IPC number truly corresponds to that BNS section.
+- The warning still shows when the bracketed IPC number doesn't match, or when an IPC section is entered on its own.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-327 — default bail blanks accepted as is (cd5b32b)
+
+- In a default bail where the user hasn't given the default-bail period or its expiry date, a draft that leaves the brief's own blank is accepted as is. It is no longer sent back to the AI for a rewrite that could invent them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-310 — consent before Google Analytics (af975f2)
+
+- First visit: a small card asks about analytics. Accept and Decline are equally prominent.
+- Ignore it or press Decline, and nothing about the visit goes to Google.
+- Press Accept and analytics starts at once, with no reload.
+- "Cookie settings" in the footer or on /privacy reopens the card; Decline stops analytics and clears its cookies.
+- The privacy page says the choice is kept with no IP or account link and is deleted after 12 months.
+- On a small phone or with large text, the card text scrolls and the buttons stay in view.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-190 + T-199 — bail packs ask for the facts behind their averments (65d8707, mahak, 12 Oct 2026)
+
+What a user can now do:
+- When drafting a regular, interim, anticipatory or Magistrate bail application, be asked (after the required details, up to 10 questions) about earlier bail applications, criminal history, arrest date, investigation stage, health, whether the applicant is named in the FIR, recovery, cooperation, work, whether the applicant is the only earning member, who depends on them, local ties, the Section 35 notice and a co-accused's bail, using buttons for yes/no and stage answers.
+- Answer "Not known" or "None" and get no claim about it in the draft; leave any of them blank and still get the draft.
+- If the description says no earlier bail application was made, be asked to confirm it once; skip it and the draft leaves that line blank for them to fill.
+- Test with the fact-ledger setting both on and off; the questions appear either way.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-328 + T-332 — cookie card focus, splash, no browser error reporting (5482b37, kunal, 12 Oct 2026)
+
+What a user can now do:
+- After answering the cookie card, keyboard and screen-reader users land on the page content with no stray focus stop left behind.
+- The logo splash always finishes and the cookie card still appears, even when the browser blocks storage (private mode).
+- Nothing about a visitor's browser goes to an error service, same as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-339 — splash with blocked storage (5adf962, kunal, 12 Oct 2026)
+
+What a user can now do:
+- With browser storage blocked (private mode, site data off), the opening logo animation plays and finishes normally with no error.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-270 — wrong-section warnings for code-first citations (e43420d, shashank, 12 Oct 2026)
+
+What a user can now do:
+- After a draft is generated, get a warning for a wrong section in any of the six codes, written any common way ("BSA 85", "85 BSA", "S. 85 of the BSA", "Ss. 3-5 BSA"). There's never a false warning for a real old IPC, CrPC or IEA section.
+- Each section number is checked against the Act it's cited under, so "Section 3 BSA" no longer passes just because the Oaths Act has a section 3.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-336 — confirm a "None" on earlier bail applications, ledger off (273b6d4, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting off: if their description says "Earlier bail applications: None" (or nil, no, koi nahi and the like), see that question asked again to confirm it.
+- Confirm it and get the draft saying it is the first application; skip it and get a blank in the draft to fill in instead.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-333 — every draft path checks sections in all codes (2852e94, shashank, 12 Oct 2026)
+
+What a user can now do:
+- Drafts made from a template, a brief or the guided flow get the same section warnings as any other draft. A wrong BSA, BNSS, IPC, CrPC or IEA section is flagged, not only BNS.
+- Cite a range like "Ss. 100-105 BNS" without a murder warning when the facts don't mention a death. An explicit "BNS 103" still gets it.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-341 — warning when "first bail application" wasn't confirmed (08103ec, mahak, 12 Oct 2026)
+
+What a user can now do:
+- If a bail draft says no earlier bail application was made but they never confirmed that, see a warning asking them to check it before filing.
+- If they said an earlier bail application was made and the draft still says it is the first, see a warning to correct the draft.
+- Confirm "None" (or say it is the first application) and see no such warning.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-240 — templates grouped under plain-language categories (6a6cd2a, tanvi, 12 Oct 2026)
+
+What a user can now do:
+- Browse templates grouped under the 26 plain-language categories, in a fixed order, when starting a new document, changing the document type, or in the templates library.
+- Admins see and filter by each document's category.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-338 — blanks for half-read or unasked bail details (10faf08, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting on: when a bail detail was only half-read from their description or was never asked, see a clear blank for it in the draft to fill in, instead of the point being left out.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-192 — cheque-bounce notice date checks (5dd6388, vishal, 12 Oct 2026)
+
+What a user can now do:
+- In a cheque-bounce notice, enter the cheque validity, return-memo-received and notice-sent dates. Lawie checks presentation in time and notice within 30 days, and only then lets the notice say so.
+- A missing date leaves a named blank. The notice is dated with the sending date, or today.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-242 — sign-up source and referral links (6b37ed6, kunal, 12 Oct 2026)
+
+What a user can now do:
+- Arrive from a campaign link with utm_ tags and sign up by email or Google; the account records the campaign. The tags vanish from the address bar and aren't shared with GA or anyone else.
+- /login?ref=CODE opens Create account with the referral box filled in.
+- Admins can see how many sign-ups came from each source.
+- The privacy page says the campaign tags are kept.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-347 — impossible section numbers flagged (a75c522, shashank, 12 Oct 2026)
+
+What a user can now do:
+- See a wrong-section warning when a draft cites a section number that cannot exist, like "BNS 1034" or "Section 4521 CrPC".
+- Years such as "2023" and ordinary numbers like amounts, pages or days are never flagged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-335 — answers survive a description edit (fcc74a5, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting on: answer "Not known" to a question, then edit the description, and the answer stays "Not known" instead of the old reading coming back.
+- Type or answer a detail, then edit the description, and the draft still uses what they typed.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-344 — campaign source kept through a cancelled Google sign-in (c16b5db, kunal, 12 Oct 2026)
+
+What a user can now do:
+- Arrive from a campaign link, start a Google sign-in, cancel, then try again in the same tab. The account still records which campaign brought them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-334 — "none filed" in the advocate's own words (828d55e, mahak, 12 Oct 2026)
+
+What a user can now do:
+- Answer the earlier-bail-applications question in their own words, such as "none filed", "koi bail nahi" or "कोई नहीं", and get the draft saying no other bail application has been made, with no "earlier bail applications are: koi bail nahi" line.
+- If a draft claims no earlier bail application was filed but they never confirmed it, have that claim removed or flagged before filing.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-345 + T-340 — one date format, no false "facts changed", clean category names (0d90ed7, tanvi, 12 Oct 2026)
+
+What a user can now do:
+- See every date in a template draft written like "4 April 2026", including dates of birth and custody dates.
+- Type dates as numbers without a false "facts changed" warning; a real change is still flagged.
+- See category names without underscores.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-351 — no free credits before an email is verified (eae46a9, shashank, 12 Oct 2026)
+
+What a user can now do:
+- Sign up with Google and get the free Ink straight away, as before.
+- Sign up with an email and password and start with no free Ink until the address is verified; the daily bonus waits for that too.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-343 — accept a changed privacy policy (3cbcd78, kunal, 12 Oct 2026)
+
+What a user can now do:
+- After a privacy change, see a short notice of what changed on the next sign-in, with a link to the policy and two choices: Accept or Not now.
+- After Not now, still view, download and export. A new draft or payment asks for acceptance right at the button, and anything typed is kept.
+- Accept and carry on without signing in again. A dismissed notice doesn't come back in the same sign-in.
+- Please also check the notice with a screen reader and with reduced motion switched on (not yet checked).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-331 — admin template usage (d1b4372, mahak, 12 Oct 2026)
+
+What a user can now do:
+- An admin opening document analytics sees which templates are used, by name, with counts and how many were finalised, instead of an empty table.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -74,12 +74,12 @@ describe('readSectionsCharged: Arjun round-4 fixtures', () => {
     expect(readSectionsCharged('BNS 64, 115(2) (IPC 376, 323)')).toEqual([
       { code: 'BNS', number: '64' },
       { code: 'BNS', number: '115(2)' },
-      { code: 'IPC', number: '376', alias: true },
-      { code: 'IPC', number: '323', alias: true },
+      { code: 'IPC', number: '376', alias: true, attachedTo: { code: 'BNS', number: '115(2)' } },
+      { code: 'IPC', number: '323', alias: true, attachedTo: { code: 'BNS', number: '115(2)' } },
     ]);
     expect(readSectionsCharged('BNS 64 (IPC 376), 115(2)')).toEqual([
       { code: 'BNS', number: '64' },
-      { code: 'IPC', number: '376', alias: true },
+      { code: 'IPC', number: '376', alias: true, attachedTo: { code: 'BNS', number: '64' } },
       { code: 'BNS', number: '115(2)' },
     ]);
   });
@@ -288,49 +288,51 @@ describe('preflight reads sections_charged with the shared reader', () => {
     expect(r.verdict).toBe('soft');
   });
 
-  // Arjun (lead's scope update): explicit IPC / CrPC / IEA entries keep TODAY's
-  // outcome, i.e. origin/develop_staging's: hard block, rule section_whitelist, and the
-  // message below (develop_staging prints the text as typed after "BNS Section ").
-  describe('explicit old-law codes keep the origin/develop_staging outcome (hard block)', () => {
-    const DEVELOP_STAGING_MESSAGE = (typed: string): string =>
-      `BNS Section ${typed} is not in the First Schedule (recognised BNS offences). Please verify — this may be a typo or hallucination.`;
+  // T-295 (Priya soft decision, Arjun build, Ajay signed line): explicit IPC / CrPC / IEA
+  // entries are a SOFT warning, rule old_law_section, carrying the signed line (code first).
+  describe('explicit old-law codes give a soft old_law_section warning (T-295)', () => {
+    const SIGNED = (code: string, n: string, newCode: string): string =>
+      `${code} ${n} is an old-law section. For an offence committed on or after 1 July 2024, use the section converter to find the ${newCode} section. For an earlier offence, the old section may still apply.`;
 
-    it.each(['IPC 302', 'CrPC 41', 'IEA 65B'])(
-      '"%s" blocks with the develop_staging text',
-      async (typed) => {
-        const { r, hits } = await run(typed);
-        expect(r.verdict).toBe('hard');
-        expect(hits).toContain('section_whitelist');
-        expect(r.hardBlockReason).toBe(DEVELOP_STAGING_MESSAGE(typed));
-      },
-    );
+    it.each([
+      ['IPC 302', 'IPC', '302', 'BNS'],
+      ['CrPC 41', 'CrPC', '41', 'BNSS'],
+      ['IEA 65B', 'IEA', '65B', 'BSA'],
+    ])('"%s" is soft with the signed line', async (typed, code, n, newCode) => {
+      const { r, hits } = await run(typed);
+      expect(r.verdict).toBe('soft');
+      expect(hits).toContain('old_law_section');
+      expect(hits).not.toContain('section_whitelist');
+      expect(r.hardBlockReason).toBeUndefined();
+      expect(r.questions).toContain(SIGNED(code, n, newCode));
+    });
 
     it('E1 is as before: an old-law entry among bailable BNS sections is not "all bailable"', async () => {
       const { hits } = await run(['115', 'IPC 302']);
       expect(hits).not.toContain('E1');
     });
 
-    it('fixture 1 "BNS 64, 115(2) (IPC 376, 323)": hard via the IPC part, no section_no_code for 323', async () => {
+    it('fixture 1 "BNS 64, 115(2) (IPC 376, 323)": soft old-law findings for IPC 376 and 323, no section_no_code', async () => {
       const { r, hits } = await run('BNS 64, 115(2) (IPC 376, 323)');
-      expect(r.verdict).toBe('hard');
-      expect(hits).toContain('section_whitelist');
+      expect(r.verdict).toBe('soft');
+      expect(hits).toContain('old_law_section');
+      expect(hits).not.toContain('section_whitelist');
       expect(hits).not.toContain('section_no_code');
       expect(r.questions.join('\n')).not.toContain('Section 323 has no code');
     });
 
-    it('"BNS 303 (IPC 379)" (alias form) hard-blocks with the develop_staging text', async () => {
+    it('"BNS 303 (IPC 379)" (alias form) with no table row: the warning is kept (soft, IPC 379 line)', async () => {
       const { r, hits } = await run('BNS 303 (IPC 379)');
-      expect(r.verdict).toBe('hard');
-      expect(hits).toContain('section_whitelist');
-      expect(r.hardBlockReason).toBe(DEVELOP_STAGING_MESSAGE('303 (IPC 379)'));
+      expect(r.verdict).toBe('soft');
+      expect(hits).toContain('old_law_section');
+      expect(r.questions).toContain(SIGNED('IPC', '379', 'BNS'));
     });
 
-    it('["303","302 IPC"] hard-blocks on IPC 302', async () => {
+    it('["303","302 IPC"] is soft on IPC 302 (code first)', async () => {
       const { r, hits } = await run(['303', '302 IPC']);
-      expect(r.verdict).toBe('hard');
-      expect(hits).toContain('section_whitelist');
-      // develop_staging prints the array entry as typed: "302 IPC".
-      expect(r.hardBlockReason).toBe(DEVELOP_STAGING_MESSAGE('302 IPC'));
+      expect(r.verdict).toBe('soft');
+      expect(hits).toContain('old_law_section');
+      expect(r.questions).toContain(SIGNED('IPC', '302', 'BNS'));
     });
   });
 

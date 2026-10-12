@@ -10,7 +10,7 @@ import SiteNav from '@/components/marketing/SiteNav';
 export const metadata: Metadata = {
   title: 'Lawie — Frequently Asked Questions',
   description:
-    'Answers to common questions about Lawie: documents, BNS/BNSS/BSA mappings, pricing, privacy, and how the AI-assisted drafting tool works.',
+    'Answers to common questions about Lawie: documents, BNS/BNSS/BSA mappings, pricing, privacy, and how Lawie drafts documents.',
 };
 
 const productFaq = [
@@ -73,7 +73,7 @@ const legalFaq = [
   {
     question: 'Is Lawie a substitute for a lawyer?',
     answer:
-      'No. Lawie is an AI-assisted drafting tool — not a substitute for legal advice. You remain responsible for reviewing and finalising every document before it is used or filed.',
+      'No. Lawie is a drafting assistant. You are responsible for legal accuracy, and for reviewing and finalising every document before it is used or filed.',
   },
   {
     question: 'How is my case data handled?',
@@ -83,12 +83,12 @@ const legalFaq = [
   {
     question: 'What disclaimer applies to generated documents?',
     answer:
-      'Every document is produced by an AI-assisted tool and should be reviewed by the filing advocate before use. Lawie does not certify any document as court-approved or legally valid.',
+      'Every document is a first draft generated with AI and must be reviewed by the filing advocate before use. Lawie does not certify any document as court-approved or legally valid.',
   },
   {
     question: 'Who reviews the templates?',
     answer:
-      "Templates follow Lawie's court rules for the courts in its list. Lawie is an AI-assisted tool — the filing advocate is responsible for reviewing each generated draft before use.",
+      "Templates follow Lawie's court rules for the courts in its list. Lawie is a drafting assistant: the filing advocate is responsible for reviewing each generated draft before use.",
   },
 ];
 

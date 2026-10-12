@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release. Before go-live |
 | Owner  | Ajay (signs replacement text). Lead (build, web). Anushka (verdict) |
 | Mode   | Small fix (web, legal text) |
-| Status | To do. Text signed by Ajay (handoff/legal/T-317-home-faq-footer-signed.md, 8bac42c). Mahak after T-268. Found by Mahak in T-268, 12 Oct 2026 |
+| Status | Merged into develop_staging (ca2d88f, 12 Oct 2026). Waiting for Anushka on develop |
 
 ## What's wrong
 
@@ -19,3 +19,7 @@
 
 1. Every listed place uses Ajay's signed text (8bac42c), word for word.
 2. No other change. Check at 375 and 1280 px.
+
+## Addendum 2 (Ajay, 9f7be55)
+
+Five more lines, found by Mahak. One is the footer printed on every exported PDF (`apps/web/src/components/editor/exportUtils.ts` ~250). It's folded into T-317 so it ships before go-live.

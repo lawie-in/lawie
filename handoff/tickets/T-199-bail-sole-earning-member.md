@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                      |
 | Owner          | Ajay (question text, signs). Lead applies. Anushka (verdict)                                                                |
 | Mode           | Legal content, then a small change through the lead                                                                         |
-| Status         | To do. Waits for Ajay's question text. Runs with or straight after T-190 (same file)                                        |
+| Status         | Merged into develop_staging 65d8707, with T-190 (12 Oct 2026). Anushka tests on develop |
 | Size           | Ajay XS. Build S (0.5 day); XS if folded into T-190                                                                         |
 | Depends on     | T-147c (the unlock key exists)                                                                                              |
 | Gate           | Ajay rates it high. Same gate as T-190: before `feature.fact_ledger` for real users                                         |

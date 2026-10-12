@@ -2,6 +2,7 @@ import './setupDb';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import request from 'supertest';
+import { CURRENT_PRIVACY_VERSION } from '@lawie/shared';
 import { User } from '../models/User.model';
 import { Subscription } from '../models/Subscription.model';
 import * as subscriptionService from '../services/subscription.service';
@@ -29,6 +30,8 @@ function internalHeaders(payload: {
   name: string;
   plan?: string;
   role?: string;
+  /** T-343: the gateway sets this from the pv claim; POST /subscribe and /topup/order need the current one. */
+  privacyVersion?: string;
 }) {
   return {
     'x-internal-secret': INTERNAL_SECRET,
@@ -37,6 +40,7 @@ function internalHeaders(payload: {
     'x-user-name': payload.name,
     'x-user-plan': payload.plan ?? 'free',
     'x-user-role': payload.role ?? 'Client',
+    'x-user-privacy-version': payload.privacyVersion ?? CURRENT_PRIVACY_VERSION,
   };
 }
 

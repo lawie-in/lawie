@@ -4,6 +4,8 @@ import { ArrowLeftRight, Search, FileText, ArrowLeft, Copy, Check } from 'lucide
 import Link from 'next/link';
 import { useState, useCallback } from 'react';
 
+import CookieSettingsButton from '@/components/CookieSettingsButton';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -15,7 +17,8 @@ interface MappingResult {
   new_section: string | null;
   new_code: string;
   new_code_full: string;
-  title?: string;
+  old_title?: string | null;
+  new_title?: string | null;
   mapping_type?: string;
   notes?: string;
 }
@@ -135,6 +138,10 @@ export default function SectionConverterPage() {
               </Link>
               .
             </p>
+          </div>
+          {/* T-310: reopens the analytics consent notice (S9). */}
+          <div className="mt-6">
+            <CookieSettingsButton variant="tool" />
           </div>
         </div>
       </footer>
@@ -293,12 +300,30 @@ const MAPPING_TYPE_BADGES: Record<string, string | undefined> = {
   split: 'Split across several sections — check which one applies',
 };
 
+// New provisions are seeded with a placeholder old section, `NEW-<new section>`
+// (e.g. NEW-111, NEW-173(1)); the id is never shown or copied (Ajay, T-326 Addendum 2).
+const PLACEHOLDER_OLD_SECTION = /^NEW-\d+[A-Z]?(?:\([a-z0-9]+\))*$/i;
+
+// Old-code abbreviation in T-295 casing, from the old code or, failing that, the new code.
+const OLD_CODE_DISPLAY: Record<string, string> = { IPC: 'IPC', CRPC: 'CrPC', IEA: 'IEA' };
+const OLD_CODE_FOR_NEW: Record<string, string> = { BNS: 'IPC', BNSS: 'CrPC', BSA: 'IEA' };
+
 function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: boolean }) {
   const [copied, setCopied] = useState(false);
 
+  const placeholderOld = PLACEHOLDER_OLD_SECTION.test(mapping.old_section?.trim() ?? '');
+  const oldCodeDisplay =
+    OLD_CODE_DISPLAY[mapping.old_code?.toUpperCase() ?? ''] ??
+    OLD_CODE_FOR_NEW[mapping.new_code?.toUpperCase() ?? ''] ??
+    mapping.old_code;
   const oldLabel = `Section ${mapping.old_section} ${mapping.old_code}`;
   const newLabel = `Section ${mapping.new_section} ${mapping.new_code}`;
-  const copyText = reverse ? oldLabel : newLabel;
+  // Placeholder rows copy only the new side, e.g. "BNS 111".
+  const copyText = placeholderOld
+    ? `${mapping.new_code} ${mapping.new_section}`
+    : reverse
+      ? oldLabel
+      : newLabel;
   const missingNewSection = mapping.new_section === null || mapping.new_section === undefined;
   const repealed =
     mapping.mapping_type === 'repealed' || mapping.mapping_type === 'repealed_no_equivalent';
@@ -308,6 +333,11 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
   const displayType = missingNewSection && !repealed ? 'unverified' : mapping.mapping_type;
   const unverified = displayType === 'unverified';
   const hasNoSection = repealedNoSection || unverified;
+  // Each title sits under its own section number; blank or missing titles render nothing.
+  // Placeholder rows: the box line replaces the seed's "No equivalent in old code" title.
+  const oldTitle = placeholderOld ? null : mapping.old_title?.trim() || null;
+  // No new-title line when the new box shows 'None' or 'Check the Gazette'.
+  const newTitle = hasNoSection ? null : mapping.new_title?.trim() || null;
   // Unknown or 'direct' types get no badge; a raw mapping_type is never shown.
   const mappingTypeBadge =
     displayType && Object.prototype.hasOwnProperty.call(MAPPING_TYPE_BADGES, displayType)
@@ -326,12 +356,17 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
         <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
           {/* Old */}
           <div
-            className={`flex-1 rounded-lg p-4 ${reverse ? 'border border-blue-200 bg-blue-50' : 'bg-slate-100'}`}
+            className={`min-w-0 flex-1 rounded-lg p-4 ${reverse ? 'border border-blue-200 bg-blue-50' : 'bg-slate-100'}`}
           >
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
               {mapping.old_code_full || mapping.old_code}
             </p>
-            <p className="text-2xl font-bold text-slate-900">Section {mapping.old_section}</p>
+            <p className="text-2xl font-bold text-slate-900">
+              {placeholderOld
+                ? `No equivalent in the ${oldCodeDisplay}`
+                : `Section ${mapping.old_section}`}
+            </p>
+            {oldTitle && <p className="mt-1 break-words text-sm text-slate-600">{oldTitle}</p>}
           </div>
 
           {/* Arrow */}
@@ -339,7 +374,7 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
 
           {/* New */}
           <div
-            className={`flex-1 rounded-lg p-4 ${reverse ? 'bg-slate-100' : 'border border-blue-200 bg-blue-50'}`}
+            className={`min-w-0 flex-1 rounded-lg p-4 ${reverse ? 'bg-slate-100' : 'border border-blue-200 bg-blue-50'}`}
           >
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
               {mapping.new_code_full || mapping.new_code}
@@ -351,15 +386,9 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
                   ? 'Check the Gazette'
                   : `Section ${mapping.new_section}`}
             </p>
+            {newTitle && <p className="mt-1 break-words text-sm text-slate-600">{newTitle}</p>}
           </div>
         </div>
-
-        {/* Title */}
-        {mapping.title && (
-          <p className="mt-4 text-sm text-slate-600">
-            <span className="font-medium">Title:</span> {mapping.title}
-          </p>
-        )}
 
         {/* Mapping Type */}
         {mappingTypeBadge && (
@@ -380,8 +409,10 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
 
       {/* Copy action */}
       <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3">
+        {/* No caption on placeholder rows: the old box already says there is no equivalent
+            (Ajay, T-326, 633aff5). The empty <p> keeps Copy right-aligned. */}
         <p className="text-xs text-slate-400">
-          {reverse ? 'Old law equivalent' : 'New law equivalent'}
+          {placeholderOld ? null : reverse ? 'Old law equivalent' : 'New law equivalent'}
         </p>
         {!hasNoSection && (
           <button

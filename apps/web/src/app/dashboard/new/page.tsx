@@ -42,6 +42,13 @@ import { PaywallModal } from '@/components/credits/PaywallModal';
 import PipelineStatus, { PipelineState } from '@/components/draft/PipelineStatus';
 import DynamicFormRenderer from '@/components/form/DynamicFormRenderer';
 import OneFlow from '@/components/intake/OneFlow';
+import {
+  PrivacyBlockedNotice,
+  isPrivacyBlocked,
+  privacyFetch,
+  privacyPrecheck,
+  usePrivacyDescribedBy,
+} from '@/components/PrivacyUpdatePrompt';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/apiFetch';
 
@@ -51,6 +58,10 @@ interface TemplateSummary {
   template_id: string;
   display_name: string;
   category: string;
+  /** T-240: library category id, display name and T-239 order (from the service). */
+  catalogueCategory: string;
+  catalogueCategoryName: string;
+  catalogueCategoryOrder: number;
   description: string;
   icon: string;
   plan_access: 'free' | 'pro';
@@ -71,12 +82,20 @@ const ICON_MAP: Record<string, typeof Scale> = {
   shield_check: ShieldCheck,
 };
 
-const CATEGORY_COLORS: Record<string, { color: string; border: string }> = {
-  criminal: { color: 'text-blue-500', border: 'border-t-blue-400' },
-  civil: { color: 'text-green-500', border: 'border-t-green-400' },
-  corporate: { color: 'text-purple-500', border: 'border-t-purple-400' },
-  family: { color: 'text-rose-500', border: 'border-t-rose-400' },
-};
+// Colours cycle by the catalogue category's T-239 order (T-240), so a new
+// category needs no edit here.
+const CATEGORY_PALETTE: { color: string; border: string }[] = [
+  { color: 'text-blue-500', border: 'border-t-blue-400' },
+  { color: 'text-green-500', border: 'border-t-green-400' },
+  { color: 'text-purple-500', border: 'border-t-purple-400' },
+  { color: 'text-rose-500', border: 'border-t-rose-400' },
+  { color: 'text-amber-500', border: 'border-t-amber-400' },
+  { color: 'text-teal-500', border: 'border-t-teal-400' },
+];
+
+function categoryColors(order: number): { color: string; border: string } {
+  return CATEGORY_PALETTE[(Math.max(order, 1) - 1) % CATEGORY_PALETTE.length];
+}
 
 // ── Category filter chip ────────────────────────────────────────────────────
 
@@ -95,7 +114,7 @@ function CategoryChip({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors ${
+      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
         active
           ? 'bg-slate-900 text-white'
           : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -118,6 +137,7 @@ function CategoryChip({
 function NewDocumentContent() {
   const router = useRouter();
   const { user } = useAuth();
+  const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
 
   // Phase: the one flow when the switch is on; otherwise select → form → generating
   const [phase, setPhase] = useState<'loading' | 'one_flow' | 'select' | 'form' | 'generating'>(
@@ -160,15 +180,25 @@ function NewDocumentContent() {
   const lastRunId = useRef<string | undefined>(undefined);
 
   // ── Search + filter pipeline ──────────────────────────────────────────────
-  // Categories with counts, derived from the live template list (so any
-  // category Ajay coins in a new doc-rule auto-appears as a filter chip).
+  // Catalogue categories (T-240) with counts, derived from the live template
+  // list in T-239 order. Only categories that have a template get a chip.
   const categories = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const t of templates) counts.set(t.category, (counts.get(t.category) ?? 0) + 1);
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([id, count]) => ({ id, count }));
+    const byId = new Map<string, { id: string; name: string; order: number; count: number }>();
+    for (const t of templates) {
+      const c = byId.get(t.catalogueCategory) ?? {
+        id: t.catalogueCategory,
+        name: t.catalogueCategoryName,
+        order: t.catalogueCategoryOrder,
+        count: 0,
+      };
+      c.count += 1;
+      byId.set(t.catalogueCategory, c);
+    }
+    return Array.from(byId.values()).sort((a, b) => a.order - b.order);
   }, [templates]);
+
+  const categoryFilterName =
+    categories.find((c) => c.id === categoryFilter)?.name ?? categoryFilter;
 
   // Filter pipeline: category first, then case-insensitive substring on
   // display_name + description + template_id. Cheap enough at 92 rows; revisit
@@ -176,7 +206,7 @@ function NewDocumentContent() {
   const filteredTemplates = useMemo(() => {
     const q = query.trim().toLowerCase();
     return templates.filter((t) => {
-      if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
+      if (categoryFilter !== 'all' && t.catalogueCategory !== categoryFilter) return false;
       if (!q) return true;
       return (
         t.display_name.toLowerCase().includes(q) ||
@@ -254,7 +284,7 @@ function NewDocumentContent() {
       setGenerationRetryable(true);
 
       try {
-        const res = await apiFetch('/api/documents/generate-from-template', {
+        const res = await privacyFetch('generate', '/api/documents/generate-from-template', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -263,6 +293,8 @@ function NewDocumentContent() {
             ...(lastRunId.current ? { run_id: lastRunId.current } : {}),
           }),
         });
+        // T-343: privacy re-acceptance needed; the prompt or P7 box is shown. Back to the form.
+        if (isPrivacyBlocked(res)) return setPhase('form');
 
         // The server always resolves a run (new or continued) before it
         // starts streaming, so the header is there whether this attempt
@@ -412,6 +444,8 @@ function NewDocumentContent() {
   const handleSubmit = useCallback(
     async (formData: Record<string, unknown>) => {
       if (!user || !selectedConfig) return;
+      // T-343: ask before leaving the form, so a privacy block never unmounts (empties) it.
+      if (await privacyPrecheck('generate')) return;
 
       // A fresh submit (not the retry button) means the form changed —
       // T-003 §3.8 has the web page drop the stored run id so this starts a
@@ -557,11 +591,13 @@ function NewDocumentContent() {
           <ArrowLeft size={12} />
           Choose a different template
         </button>
+        <PrivacyBlockedNotice actionKey="generate" />
         <DynamicFormRenderer
           key={selectedConfig.template_id}
           config={selectedConfig}
           onSubmit={handleSubmit}
           onCancel={() => router.push('/dashboard')}
+          submitDescribedBy={privacyDescribedBy}
         />
         {showPaywall && (
           <PaywallModal
@@ -635,7 +671,7 @@ function NewDocumentContent() {
               {categories.map((c) => (
                 <CategoryChip
                   key={c.id}
-                  label={c.id.replace(/_/g, ' ')}
+                  label={c.name}
                   count={c.count}
                   active={categoryFilter === c.id}
                   onClick={() => setCategoryFilter(c.id)}
@@ -645,7 +681,7 @@ function NewDocumentContent() {
             <p className="text-xs text-slate-400">
               Showing {filteredTemplates.length} of {templates.length}
               {query && ` matching "${query}"`}
-              {categoryFilter !== 'all' && ` in ${categoryFilter.replace(/_/g, ' ')}`}
+              {categoryFilter !== 'all' && ` in ${categoryFilterName}`}
             </p>
           </div>
 
@@ -653,10 +689,7 @@ function NewDocumentContent() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredTemplates.map((t) => {
                 const Icon = ICON_MAP[t.icon] ?? FileText;
-                const colors = CATEGORY_COLORS[t.category] ?? {
-                  color: 'text-slate-500',
-                  border: 'border-t-slate-400',
-                };
+                const colors = categoryColors(t.catalogueCategoryOrder);
 
                 return (
                   <button
@@ -670,7 +703,7 @@ function NewDocumentContent() {
                     <p className="mt-0.5 text-xs text-slate-400">{t.description}</p>
                     <div className="mt-2 flex items-center gap-2">
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                        {t.category.replace(/_/g, ' ')}
+                        {t.catalogueCategoryName}
                       </span>
                       {t.plan_access === 'pro' && (
                         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
@@ -687,7 +720,7 @@ function NewDocumentContent() {
               <Search size={24} className="mx-auto text-slate-300" />
               <p className="mt-2 text-sm text-slate-500">
                 No templates match {query ? `"${query}"` : 'this filter'}
-                {categoryFilter !== 'all' && ` in ${categoryFilter.replace(/_/g, ' ')}`}.
+                {categoryFilter !== 'all' && ` in ${categoryFilterName}`}.
               </p>
               <button
                 type="button"

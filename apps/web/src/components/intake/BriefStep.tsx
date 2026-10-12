@@ -410,6 +410,7 @@ export default function BriefStep({
   onEditDescription,
   onCancel,
   onConfirm,
+  confirmDescribedBy,
 }: {
   brief: Brief;
   /** T-147b: the fact ledger, when the service sent one. Rows render from it. */
@@ -437,6 +438,8 @@ export default function BriefStep({
   onEditDescription: () => void;
   onCancel: () => void;
   onConfirm: () => void;
+  /** T-343: aria-describedby for the confirm (generate) button, e.g. the privacy P7 box. */
+  confirmDescribedBy?: string;
 }) {
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [name, setName] = useState(brief.kind.name);
@@ -804,6 +807,7 @@ export default function BriefStep({
           type="button"
           onClick={brief.can_confirm ? onConfirm : focusFirstBlocker}
           aria-disabled={!brief.can_confirm || busy || confirming}
+          aria-describedby={confirmDescribedBy}
           disabled={busy || confirming}
           className={`${primaryButton} ${brief.can_confirm ? '' : 'opacity-40'}`}
         >

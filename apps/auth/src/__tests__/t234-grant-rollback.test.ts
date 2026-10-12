@@ -19,7 +19,7 @@ import { User } from '../models/User.model';
 import * as bonus from '../services/credit-bonus.service';
 import { applyReferralCode } from '../services/referral.service';
 
-import { ledger, makeCode, rawUsers, waitForSeed } from './t234-helpers';
+import { ledger, makeCode, rawUsers, verifyAndSeed } from './t234-helpers';
 
 const PASSWORD = 'Passw0rdOk';
 const BONUS = 3;
@@ -89,7 +89,7 @@ describe.each<Mode>(['returns 0', 'throws'])('grantReferralInk %s', (mode) => {
     expect(res.body.data.referralApplied).toBe(false);
 
     const u = await User.findOne({ email: `rb3-${mode.replace(' ', '')}@example.com` }).lean();
-    await waitForSeed(u!._id);
+    await verifyAndSeed(u!._id);
     expect((await rawUsers().findOne({ _id: u!._id }))!.inkTopup).toBe(10);
     expect(await ledger().countDocuments({ userId: u!._id })).toBe(1);
     expect(await ledger().countDocuments({ userId: u!._id, reason: 'referral_bonus' })).toBe(0);

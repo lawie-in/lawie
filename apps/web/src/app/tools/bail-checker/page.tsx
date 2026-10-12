@@ -15,6 +15,8 @@ import {
 import Link from 'next/link';
 import { useState, useCallback } from 'react';
 
+import CookieSettingsButton from '@/components/CookieSettingsButton';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -47,7 +49,11 @@ interface SectionResult {
   ipcSection?: string;
   offence: OffenceInfo | null;
   found: boolean;
-  /** e.g. "This section does not create an offence. Check the Gazette." */
+  /**
+   * Ajay's signed note from the API, shown as is: "No BNS equivalent. Check the
+   * Gazette", "Not found in the IPC table. Check the Gazette", or "This section
+   * does not create an offence. Check the Gazette." (T-267, T-278)
+   */
   note?: string;
 }
 
@@ -346,14 +352,10 @@ export default function BailCheckerPage() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <AlertTriangle className="h-4 w-4 text-amber-500" />
-                        Section &ldquo;{s.input}&rdquo; —{' '}
-                        {s.note ?? 'not found in our BNS database.'}
-                        {s.convertedFromIpc && (
-                          <span className="text-xs text-amber-600">
-                            (Tried converting from IPC {s.ipcSection})
-                          </span>
-                        )}
+                        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+                        Section &ldquo;{s.input}&rdquo;
+                        {/* T-278: only the API's signed note; the page adds no text of its own. */}
+                        {s.note && <> — {s.note}</>}
                       </div>
                     )}
                   </div>
@@ -381,6 +383,11 @@ export default function BailCheckerPage() {
             </p>
           </div>
         )}
+
+        {/* T-310: reopens the analytics consent notice (S9). */}
+        <div className="mt-8 text-center">
+          <CookieSettingsButton variant="tool" />
+        </div>
       </div>
     </div>
   );

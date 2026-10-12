@@ -66,8 +66,8 @@ describe('T-234 AC7 — Google sign-in records Terms acceptance', () => {
     expect(err).toBeNull();
     const u = await User.findOne({ email: 'gnew@example.com' }).lean();
     expect(u!.termsAcceptedAt).toBeInstanceOf(Date);
-    expect(u!.termsVersion).toBe('2026-06-01');
-    expect(u!.privacyVersion).toBe('2026-10-12');
+    expect(u!.termsVersion).toBe('2026-10-12');
+    expect(u!.privacyVersion).toBe('2026-10-12b');
     expect(u!.acceptedVia).toBe('google');
     await waitForSeed(u!._id);
   });
@@ -91,8 +91,8 @@ describe('T-234 AC7 — Google sign-in records Terms acceptance', () => {
       },
     );
     const u = await User.findOne({ email: 'gspoof@example.com' }).lean();
-    expect(u!.termsVersion).toBe('2026-06-01');
-    expect(u!.privacyVersion).toBe('2026-10-12');
+    expect(u!.termsVersion).toBe('2026-10-12');
+    expect(u!.privacyVersion).toBe('2026-10-12b');
     expect(u!.acceptedVia).toBe('google');
     await waitForSeed(u!._id);
   });
@@ -102,8 +102,8 @@ describe('T-234 AC7 — Google sign-in records Terms acceptance', () => {
     await runVerify({ query: {} }, profile('g-link-empty', 'linkempty@example.com'));
     const u = await User.findOne({ email: 'linkempty@example.com' }).lean();
     expect(u!.termsAcceptedAt).toBeInstanceOf(Date);
-    expect(u!.termsVersion).toBe('2026-06-01');
-    expect(u!.privacyVersion).toBe('2026-10-12');
+    expect(u!.termsVersion).toBe('2026-10-12');
+    expect(u!.privacyVersion).toBe('2026-10-12b');
     expect(u!.acceptedVia).toBe('google');
   });
 
@@ -135,12 +135,12 @@ describe('T-234 AC7 — Google sign-in records Terms acceptance', () => {
     expect(err).toBeNull();
     const u = await User.findOne({ email: 'retempty@example.com' }).lean();
     expect(u!.termsAcceptedAt).toBeInstanceOf(Date);
-    expect(u!.termsVersion).toBe('2026-06-01');
-    expect(u!.privacyVersion).toBe('2026-10-12');
+    expect(u!.termsVersion).toBe('2026-10-12');
+    expect(u!.privacyVersion).toBe('2026-10-12b');
     expect(u!.acceptedVia).toBe('google');
     // the document handed to passport reflects the write
     expect(user!.acceptedVia).toBe('google');
-    expect(user!.privacyVersion).toBe('2026-10-12');
+    expect(user!.privacyVersion).toBe('2026-10-12b');
   });
 
   it('returning Google user with existing acceptance: unchanged over repeated sign-ins', async () => {
@@ -171,7 +171,7 @@ describe('T-234 AC7 — Google sign-in records Terms acceptance', () => {
     ]);
     const u = await User.findOne({ email: 'retrace@example.com' }).lean();
     expect(u!.acceptedVia).toBe('google');
-    expect(u!.termsVersion).toBe('2026-06-01');
-    expect(u!.privacyVersion).toBe('2026-10-12');
+    expect(u!.termsVersion).toBe('2026-10-12');
+    expect(u!.privacyVersion).toBe('2026-10-12b');
   });
 });

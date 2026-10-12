@@ -86,3 +86,15 @@ Release check (Ajay, T-308 condition 1): before release, record here that the fo
 ## Mailbox check (Mahak, T-268, 12 Oct)
 
 Does the legal@lawie.in mailbox exist and get read? It is on Terms §14 and the Contact page. If not, tell Priya; both switch to contact@lawie.in.
+
+## HTTPS check on develop (Arjun, T-319, 12 Oct)
+
+Open the develop web app and confirm it loads on https:// with a padlock and no redirect loop. Google sign-in needs a secure address once T-319 merges. The real develop host config is not in the repo, so only you can check it. If it fails, tell Priya.
+
+## Develop reseed before Anushka tests the converter (Ajay, T-280, 12 Oct)
+
+Run the section seed with --force on develop (seed-sections) after T-280 merges and before Anushka tests the section converter, so the titles shown are Ajay's signed ones. This is the same develop-first reseed as item 5, so one run covers both.
+
+## Overnight note (Priya, 12 Oct 2026)
+
+- T-220 step 1 merged (b958216). Until your SES session, the email worker on develop will refuse to start, with one line naming the missing settings (INTERNAL_SECRET and AWS_SES_*): the develop server's production environment file is still SMTP-era. Arjun wants this visible failure; the SES session (item 2 above) fixes it. Nothing else depends on the worker yet.

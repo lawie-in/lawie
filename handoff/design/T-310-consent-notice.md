@@ -37,7 +37,7 @@
 +-------------------------------------+
 ```
 
-- Width: viewport minus 24 px. Height: content, target about 150 to 170 px at the default font size. Never more than 40% of the viewport height; if text grows (200% zoom), the text area scrolls inside the card and the buttons stay visible.
+- Width: viewport minus 24 px. Height: content, target about 150 to 170 px at the default font size. Never more than 40% of the viewport height; if text grows (200% zoom), the text area scrolls inside the card and the buttons stay visible. The card itself never scrolls.
 - Buttons: a 2-column grid, each 50% wide minus an 8 px gap, 44 px tall.
 
 ### 2b. 1280 px (desktop, >= 640 px)
@@ -56,6 +56,7 @@
 +--------------------------------------------------------------+
 ```
 
+- Same 40% height cap and the same inner text scroll as 2a. The cap holds at **every** width: at 1280 px with 200% zoom the CSS viewport is 640 px wide, so `sm:` classes apply, but the viewport is also only ~350 to 450 CSS px tall, and an uncapped card would cover most of it (WCAG 1.4.10 reflow, AC1 "does not cover the page"). Do not add `sm:max-h-none`.
 - Bottom-left, 24 px from the left and bottom edges, fixed width 400 px. Bottom-left keeps it clear of the bottom-right float CTA at 641 to 900 px (also hidden per D6) and of the sticky nav.
 - Buttons sit side by side, each auto width with a minimum of 120 px, both the same width (grid with two equal columns), 40 px tall (44 px on touch, see classes).
 
@@ -77,12 +78,14 @@
   aria-labelledby="consent-title"
   aria-describedby="consent-desc"
   className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-[55]
-             max-h-[40vh] overflow-y-auto
+             flex max-h-[max(40vh,8rem)] flex-col
              rounded-xl border border-brand-line bg-white p-4 text-brand-navy
              shadow-[0_12px_32px_rgba(13,31,60,0.14)]
-             sm:inset-x-auto sm:left-6 sm:bottom-6 sm:w-[400px] sm:max-h-none sm:p-5
+             sm:inset-x-auto sm:left-6 sm:bottom-6 sm:w-[400px] sm:p-5
              motion-safe:animate-[consent-in_200ms_ease-out]"
 >
+  {/* Text area: the only part that scrolls */}
+  <div className="min-h-0 flex-1 overflow-y-auto">
   <h2 id="consent-title" tabIndex={-1}
       className="font-heading text-base font-semibold leading-snug focus:outline-none">
     {/* S1 */}
@@ -100,8 +103,10 @@
 
   {/* Only when reopened from "Cookie settings" and a choice exists */}
   <p className="mt-2 text-sm text-brand-navy">{/* S4 */}</p>
+  </div>
 
-  <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4">
+  {/* Buttons: never shrink, never scroll out of view */}
+  <div className="mt-3 grid shrink-0 grid-cols-2 gap-2 sm:mt-4">
     <button type="button" onClick={decline} className={choiceBtn}>{/* S5 Decline */}</button>
     <button type="button" onClick={accept}  className={choiceBtn}>{/* S6 Accept */}</button>
   </div>
@@ -110,6 +115,12 @@
 {/* Polite announcement after a choice; always in the DOM, visually hidden */}
 <div role="status" aria-live="polite" className="sr-only">{announcement /* S7 or S8 */}</div>
 ```
+
+Height and scroll rules (all widths, no `sm:` override):
+
+- The card has the cap and no `overflow`; only the inner text `div` has `overflow-y-auto` (with `min-h-0` so it can shrink inside the flex column). The button row is `shrink-0`.
+- `max(40vh, 8rem)`: 40% of the viewport, but never less than the button row plus padding and one line of text, so at extreme zoom on a short screen the buttons stay inside the card instead of spilling over its border.
+- Keyboard: the Privacy link sits inside the scroll area, so tabbing to it scrolls the text and arrow keys then scroll the rest. No extra tab stop.
 
 One class string for **both** buttons (D2). Do not add a variant prop.
 
@@ -221,7 +232,7 @@ Hindi strings: not in this ticket; the card's text area scrolls if a later Devan
 4. Decline: card gone, focus on main content; next public page has no card.
 5. Footer "Cookie settings": card back, shows "current choice", focus on its title; Esc closes and returns focus to the footer button.
 6. `/login` and `/dashboard`: no card.
-7. 200% browser zoom at 375: buttons stay visible; text scrolls inside the card.
+7. 200% browser zoom at 375 and at 1280: card no taller than 40% of the window; buttons stay visible; only the text scrolls, never the whole card.
 
 ## 7. UX risks
 

@@ -13,6 +13,12 @@
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
+import {
+  catalogueCategoryDisplay,
+  catalogueCategoryFor,
+  requireCatalogueCategory,
+  type CatalogueCategoryId,
+} from '../config/catalogue';
 import logger from '../config/logger';
 
 import {
@@ -20,6 +26,7 @@ import {
   BNS_OFFENCE_KEYS,
   ChargedCode,
   ChargedSection,
+  OLD_LAW_LINE,
   readChargedField,
   readSectionsCharged,
   resolveOffence,
@@ -123,7 +130,19 @@ export interface TemplateMetadata {
 export interface TemplateConfig {
   template_id: string;
   display_name: string;
+  /**
+   * The behaviour value, from the rule file (or the docs/templates override).
+   * Gates what is drafted (civil contract rule, CATEGORY prompt line, BNS
+   * whitelist). NOT the library category: see `catalogueCategory`.
+   */
   category: string;
+  /**
+   * The library category (T-240): one of T-239's 26, from config/catalogue,
+   * never from the rule file. Drives the library, filters, seed and web only.
+   * Always set on configs from the registry and the overrides (a template
+   * without one fails at load); optional in the type for hand-built configs.
+   */
+  catalogueCategory?: CatalogueCategoryId;
   description: string;
   icon: string;
   plan_access: 'free' | 'pro';
@@ -151,6 +170,10 @@ export interface TemplateSummary {
   template_id: string;
   display_name: string;
   category: string;
+  /** T-240: library category id, its display name and its T-239 order. */
+  catalogueCategory: CatalogueCategoryId;
+  catalogueCategoryName: string;
+  catalogueCategoryOrder: number;
   description: string;
   icon: string;
   plan_access: 'free' | 'pro';
@@ -162,6 +185,51 @@ export interface TemplateSummary {
 
 const TEMPLATES_DIR = join(__dirname, '..', '..', '..', '..', 'docs', 'templates');
 const configCache = new Map<string, TemplateConfig>();
+
+/**
+ * T-345: every docs/templates/*.json override must have a catalogue entry
+ * (config/catalogue). Checks the id `loadTemplateConfig` files it under (the
+ * file's `template_id`, else its file name) and throws ONE error naming every
+ * missing id. A missing or unreadable directory is tolerated (registry-only
+ * mode); an override that is not valid JSON is checked by its file name.
+ *
+ * Runs once when this module is first loaded (the engine is imported at boot),
+ * so an unknown override id stops the boot instead of a request.
+ */
+export function assertOverridesCatalogued(dir: string = TEMPLATES_DIR): void {
+  let files: string[];
+  try {
+    files = readdirSync(dir).filter((f) => f.endsWith('.json'));
+  } catch (err) {
+    logger.warn(
+      { dir, err: (err as Error).message },
+      'T-345: docs/templates not readable; running without overrides',
+    );
+    return;
+  }
+
+  const missing: string[] = [];
+  for (const f of files) {
+    const fileId = f.replace(/\.json$/, '');
+    let id = fileId;
+    try {
+      const parsed = JSON.parse(readFileSync(join(dir, f), 'utf-8')) as { template_id?: unknown };
+      if (typeof parsed.template_id === 'string') id = parsed.template_id;
+    } catch {
+      // Unreadable or invalid JSON: check the file name id.
+    }
+    if (catalogueCategoryFor(id) === undefined) missing.push(id);
+  }
+  if (missing.length > 0) {
+    throw new Error(
+      `Template engine: no catalogue category in config/catalogue for docs/templates override(s): ${missing
+        .sort()
+        .join(', ')}`,
+    );
+  }
+}
+
+assertOverridesCatalogued();
 
 /**
  * Load a template config by ID. Override files at /docs/templates/{id}.json
@@ -177,13 +245,23 @@ export function loadTemplateConfig(templateId: string): TemplateConfig | null {
   if (cached !== undefined) return cached;
 
   // Try the override path first — hand-tuned configs trump anything synthesised.
+  let override: TemplateConfig | null = null;
   try {
     const raw = readFileSync(join(TEMPLATES_DIR, `${templateId}.json`), 'utf-8');
-    const config: TemplateConfig = JSON.parse(raw);
-    configCache.set(templateId, config);
-    return config;
+    override = JSON.parse(raw) as TemplateConfig;
   } catch {
     // No override on disk — fall through to the promoter registry.
+  }
+  if (override) {
+    // T-240: the library category comes from config/catalogue, never from the
+    // override file; an override with no catalogue entry is refused (throws).
+    // `category` (the behaviour value) is the override's own, unchanged.
+    const config: TemplateConfig = {
+      ...override,
+      catalogueCategory: requireCatalogueCategory(override.template_id ?? templateId),
+    };
+    configCache.set(templateId, config);
+    return config;
   }
 
   const fromRegistry = getTemplateRegistry().configs.get(templateId);
@@ -208,39 +286,47 @@ export function loadTemplateConfig(templateId: string): TemplateConfig | null {
 export function listTemplateConfigs(): TemplateSummary[] {
   const byId = new Map<string, TemplateSummary>();
 
-  const toSummary = (config: TemplateConfig): TemplateSummary => ({
-    template_id: config.template_id,
-    display_name: config.display_name,
-    category: config.category,
-    description: config.description,
-    icon: config.icon,
-    plan_access: config.plan_access,
-    supported_languages: config.supported_languages,
-    metadata: config.metadata,
-  });
+  const toSummary = (config: TemplateConfig): TemplateSummary => {
+    const catalogueCategory =
+      config.catalogueCategory ?? requireCatalogueCategory(config.template_id);
+    const { name, order } = catalogueCategoryDisplay(catalogueCategory);
+    return {
+      template_id: config.template_id,
+      display_name: config.display_name,
+      category: config.category,
+      catalogueCategory,
+      catalogueCategoryName: name,
+      catalogueCategoryOrder: order,
+      description: config.description,
+      icon: config.icon,
+      plan_access: config.plan_access,
+      supported_languages: config.supported_languages,
+      metadata: config.metadata,
+    };
+  };
 
-  // 1. Overrides win.
+  // 1. Overrides win. T-345: only a missing or unreadable docs/templates dir is
+  // tolerated (registry-only mode). A per-file catalogue error throws.
+  let overrideFiles: string[] = [];
   try {
-    const files = readdirSync(TEMPLATES_DIR).filter((f) => f.endsWith('.json'));
-    for (const f of files) {
-      const id = f.replace('.json', '');
-      const config = loadTemplateConfig(id);
-      if (!config || config.metadata.status !== 'active') continue;
-      byId.set(config.template_id, toSummary(config));
-    }
+    overrideFiles = readdirSync(TEMPLATES_DIR).filter((f) => f.endsWith('.json'));
   } catch {
-    // ignore — registry-only mode is fine
+    // No overrides dir: registry-only mode.
+  }
+  for (const f of overrideFiles) {
+    const id = f.replace(/\.json$/, '');
+    const config = loadTemplateConfig(id);
+    if (!config || config.metadata.status !== 'active') continue;
+    byId.set(config.template_id, toSummary(config));
   }
 
-  // 2. Fill in everything else from the promoter registry.
-  try {
-    for (const config of getTemplateRegistry().configs.values()) {
-      if (byId.has(config.template_id)) continue;
-      if (config.metadata.status !== 'active') continue;
-      byId.set(config.template_id, toSummary(config));
-    }
-  } catch {
-    // registry not available at this code path — overrides-only result is fine
+  // 2. Fill in everything else from the promoter registry. T-345: no catch.
+  // loadAllDocRules already tolerates a missing doc-rules dir and a bad file;
+  // what it throws (a missing price or catalogue entry) must fail loudly.
+  for (const config of getTemplateRegistry().configs.values()) {
+    if (byId.has(config.template_id)) continue;
+    if (config.metadata.status !== 'active') continue;
+    byId.set(config.template_id, toSummary(config));
   }
 
   return Array.from(byId.values());
@@ -938,6 +1024,54 @@ export function fieldSourceOf(config: TemplateConfig | null, fieldId: string): s
  */
 export const SECTIONS_CHARGED_READ_KEY = '__sections_charged_read';
 
+// ── Draft dates (T-340, Ajay's T-192 ruling) ────────────────────────────────
+
+/**
+ * English month names, explicit so the output never depends on locale/ICU.
+ * Also read by ai.service's fact-alteration check (T-340).
+ */
+export const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+/**
+ * T-340: a draft date as "D Month YYYY" (no leading zero, full English month),
+ * e.g. "4 April 2026". Reads the date's local day, month and year, as
+ * `toLocaleDateString` did before.
+ */
+export function formatDraftDate(date: Date): string {
+  return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+/**
+ * T-340: an ISO "YYYY-MM-DD" string as "D Month YYYY". Returns null when the
+ * string is not ISO or not a real calendar date (e.g. 2026-02-30), so the
+ * caller leaves it unchanged.
+ */
+export function formatIsoDraftDate(iso: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  if (month < 1 || month > 12 || day < 1) return null;
+  const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  if (day > daysInMonth) return null;
+  return `${day} ${MONTH_NAMES[month - 1]} ${year}`;
+}
+
 /**
  * T-300 list A (Arjun, 12 Oct 2026): context keys the server sets and no client
  * value may set, even if a template declares the field. Also never client-set:
@@ -987,6 +1121,15 @@ export function declaredFieldIds(config: TemplateConfig | null | undefined): Set
   const ids = new Set<string>();
   for (const step of config?.form_schema?.steps ?? []) {
     for (const field of step.fields ?? []) ids.add(field.field_id);
+  }
+  return ids;
+}
+
+/** T-340: the field ids this template's form declares with `type: "date"`. */
+function declaredDateFieldIds(config: TemplateConfig | null | undefined): Set<string> {
+  const ids = new Set<string>();
+  for (const step of config?.form_schema?.steps ?? []) {
+    for (const field of step.fields ?? []) if (field.type === 'date') ids.add(field.field_id);
   }
   return ids;
 }
@@ -1146,11 +1289,8 @@ export function buildPlaceholderContext(
   const now = new Date();
   const ctx: PlaceholderContext = {
     // System values
-    current_date: now.toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    }),
+    // T-340: "4 April 2026" (Ajay, T-192). Same "today" and time zone as before.
+    current_date: formatDraftDate(now),
     current_year: String(now.getFullYear()),
 
     // Advocate details: the declared, typed name, else the user profile (T-300)
@@ -1214,12 +1354,14 @@ export function buildPlaceholderContext(
       .join(' ');
   }
 
-  // SCRUM-54 B5: Normalise dates to DD.MM.YYYY (Indian filing format)
+  // SCRUM-54 B5, T-340: an ISO date in any "*date*" key, or in any field the
+  // template declares as type "date" (e.g. minor_dob, custody_since), prints as
+  // "D Month YYYY" (Ajay, T-192). Not a real calendar date: left unchanged.
+  const dateFields = declaredDateFieldIds(config);
   for (const key of Object.keys(ctx)) {
-    if (key.includes('date') && /^\d{4}-\d{2}-\d{2}$/.test(ctx[key])) {
-      const [y, m, d] = ctx[key].split('-');
-      ctx[key] = `${d}.${m}.${y}`;
-    }
+    if (!key.includes('date') && !dateFields.has(key)) continue;
+    const formatted = formatIsoDraftDate(ctx[key]);
+    if (formatted !== null) ctx[key] = formatted;
   }
 
   applyCourtAndAliases(ctx, computed, courtData);
@@ -1643,7 +1785,7 @@ CRITICAL RULES:
 6. Generate ONLY the numbered body paragraphs as instructed. Do NOT include:
    - Any court header or cause-title block ("IN THE COURT OF..." / "IN THE HIGH COURT OF...") — the cause title is already rendered above by the template engine; a second copy corrupts the document (A7)
    - The prayer clause, verification clause, or advocate block
-   - The AI disclaimer text ("AI-assisted draft" / "Lawie does not provide legal advice") — it is auto-appended to the export footer and must NOT appear in the body (A6)
+   - The footer disclaimer ("First draft generated with AI" / "Lawie does not provide legal advice") — it is added to the export footer automatically and must NOT appear in the body (A6)
 7. Use today's date format (DD/MM/YYYY) where needed.${contractRule}
 
 ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
@@ -1667,12 +1809,21 @@ RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ?
   }`;
 }
 
-/** Ajay Q8 / round 5c: old-law codes, how the line names them, and the new code. */
-const OLD_LAW_LINE: Partial<Record<ChargedCode, { name: string; newCode: string }>> = {
-  IPC: { name: 'IPC', newCode: 'BNS' },
-  CRPC: { name: 'CrPC', newCode: 'BNSS' },
-  IEA: { name: 'IEA', newCode: 'BSA' },
-};
+/**
+ * T-295: Ajay's signed old-law line (handoff/legal/T-295-old-law-block-signed.md,
+ * 455559c), byte for byte. PREFLIGHT ONLY: the question of the soft old_law_section
+ * finding in preflight.service.ts. The prompt's old-law block in
+ * classifySectionsBailability keeps Ajay's T-277 line ("…is not classified here…"),
+ * which stops the model classifying IPC sections from memory; do not use this there.
+ * Code first, then the number as read ("302 IPC" -> "IPC 302"); never "BNS" in front
+ * of an old-law number. Returns null for any non-old-law code.
+ * Legal content: do not edit without Ajay's sign-off.
+ */
+export function oldLawLine(code: ChargedCode | null, number: string): string | null {
+  const old = code === null ? undefined : OLD_LAW_LINE[code];
+  if (!old) return null;
+  return `${old.name} ${number} is an old-law section. For an offence committed on or after 1 July 2024, use the section converter to find the ${old.newCode} section. For an earlier offence, the old section may still apply.`;
+}
 
 /**
  * Classify BNS sections as bailable/non-bailable.

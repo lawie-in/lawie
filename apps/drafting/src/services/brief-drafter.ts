@@ -18,9 +18,9 @@
  */
 import type { LedgerFact } from '@lawie/shared';
 
-import { factEntriesByKey } from './averments';
-import type { ResolvedAverments } from './averments';
-import { dateKindLabel, statedDates } from './intake-brief';
+import { factEntriesByKey, loadAvermentLists } from './averments';
+import type { AvermentCondition, ResolvedAverments } from './averments';
+import { dateKindLabel, PROTECTED_QUESTION_KEY, statedDates } from './intake-brief';
 import type { Brief, BriefItem, ChecklistItem } from './intake-brief';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
 import type { RulePack, RulePackClause } from './rule-pack.service';
@@ -89,7 +89,8 @@ export function formDataFromBrief(
 
   const data: Record<string, unknown> = {};
   for (const item of brief.items) {
-    if (isEmpty(item.value)) {
+    // T-336: a description-read "none" not yet confirmed is not a fact. Its blank shows.
+    if (isEmpty(item.value) || item.unconfirmed === true) {
       data[item.key] = item.placeholder;
     } else if (Array.isArray(item.value)) {
       data[item.key] = item.value.map((v) => toId(item.key, v));
@@ -182,6 +183,13 @@ function briefParts(
   };
   for (const item of brief.items) {
     if (isEmpty(item.value)) continue;
+    // T-336: a description-read "none" on earlier bail applications, not yet
+    // confirmed, is not a fact. It is listed as unknown, so the Drafter writes
+    // its blank even though the advocate's description appears to give it.
+    if (item.unconfirmed === true) {
+      out.unknown.push({ what: item.label, blank: item.placeholder });
+      continue;
+    }
     const value = shown(item, converted);
     if (item.part === 'dates') {
       out.dates.push({
@@ -330,14 +338,26 @@ export interface LedgerDrafterFacts {
  * of them, the `{{MISSING: label}}` placeholder. An unresolved item is not a
  * fact. Nothing else: no description, no brief value, no span of the
  * advocate's words.
+ *
+ * T-338 (Ajay): an optional item the ledger holds as unresolved, with no fact,
+ * gets the same placeholder, so a key that went unasked past the question cap
+ * shows as a blank instead of being silently left out. `unresolvedKeys` are the
+ * current version's unresolved keys. An optional item that is merely empty, or
+ * that the advocate answered "Not known" (no fact, no longer unresolved), gets
+ * no blank (T-190, condition 4). Earlier bail applications is left to its
+ * mandatory clause, which prints its own blank (T-136 B4), so it is not doubled.
  */
 export function ledgerDrafterFacts(
   facts: readonly LedgerFact[],
   checklist: ReadonlyArray<Pick<ChecklistItem, 'key' | 'label' | 'required'>>,
   courtLine: string | null,
   courtDocument: boolean,
+  unresolvedKeys: readonly string[] = [],
 ): LedgerDrafterFacts {
   const held = factEntriesByKey(facts);
+  const unresolved = new Set(
+    unresolvedKeys.filter((k) => lastSegment(k) !== PROTECTED_QUESTION_KEY),
+  );
   return {
     court: courtDocument ? (courtLine ?? missingPlaceholder('court')) : null,
     // T-189: a list or several choices gives one fact per entry, sharing its key.
@@ -348,7 +368,7 @@ export function ledgerDrafterFacts(
       display: f.display.trim(),
     })),
     missing: checklist
-      .filter((i) => i.required && !held.has(i.key))
+      .filter((i) => (i.required || unresolved.has(i.key)) && !held.has(i.key))
       .map((i) => ({ key: i.key, label: i.label, write: missingPlaceholder(i.label) })),
   };
 }
@@ -367,13 +387,25 @@ export function ledgerSkeletonBrief(brief: Brief, facts: readonly LedgerFact[]):
   return {
     ...brief,
     items: brief.items.map((item) => {
+      // T-336: the ledger decides what is held, so the brief's `unconfirmed` mark is dropped.
+      const rest: BriefItem = { ...item };
+      delete rest.unconfirmed;
       const entries = held.get(item.key);
-      if (!entries) return { ...item, value: null, placeholder: missingPlaceholder(item.label) };
+      // T-341: with no fact there is no value, so no source: it is never a confirmed fact.
+      if (!entries) {
+        return { ...rest, value: null, source: null, placeholder: missingPlaceholder(item.label) };
+      }
+      // T-341: the ledger's source, in the brief's words. A fact the advocate
+      // typed (`asked`) is the user's; one read from the description (the
+      // ledger's `user`) is the description's. Every entry must be typed.
+      const source = entries.every((f) => f.source === 'asked')
+        ? ('user' as const)
+        : ('description' as const);
       // T-189: a list or several choices takes every entry's display.
       if (item.kind === 'list' || item.kind === 'choices') {
-        return { ...item, value: entries.map((f) => f.display.trim()) };
+        return { ...rest, value: entries.map((f) => f.display.trim()), source };
       }
-      return { ...item, value: entries[entries.length - 1].display.trim() };
+      return { ...rest, value: entries[entries.length - 1].display.trim(), source };
     }),
     unplaced: [],
     still_unknown: brief.still_unknown.map((u) => ({
@@ -643,32 +675,11 @@ const CUSTODY_CUE: Cue = {
 };
 const GROUNDS_CUE: Cue = { any: ['ground', 'submitted', 'आधार', 'निवेदन'] };
 const UNDERTAKING_CUE: Cue = { any: ['undertak', 'वचन', 'आश्वासन'] };
-const EARLIER_APPLICATIONS_CUE: Cue = {
-  all: [
-    ['bail', 'जमानत', 'ज़मानत'],
-    [
-      'earlier',
-      'previous',
-      'prior',
-      'before',
-      'pending',
-      'rejected',
-      'dismissed',
-      'withdrawn',
-      'to be confirmed: whether any earlier bail application',
-      'पूर्व',
-      'पहले',
-      'लंबित',
-      'खारिज',
-      'ख़ारिज',
-      'निरस्त',
-      'अस्वीकृत',
-      'वापस',
-    ],
-  ],
-};
-
-/** T-237 (Ajay, 12 Oct 2026): EA-standard, for bail_anticipatory and bail_before_magistrate. */
+/**
+ * T-237 (Ajay, 12 Oct 2026): EA-standard, for bail_anticipatory and
+ * bail_before_magistrate; T-241 (Ajay, 12 Oct 2026) adds bail_regular, and
+ * T-251 (Ajay) adds default_bail.
+ */
 const EARLIER_APPLICATIONS_STANDARD_CUE: Cue = {
   all: [
     ['bail', 'जमानत', 'ज़मानत'],
@@ -728,7 +739,7 @@ const CLAUSE_CUES: Record<string, Record<string, Cue>> = {
     custody_status: CUSTODY_CUE,
     grounds: GROUNDS_CUE,
     no_flight_risk: UNDERTAKING_CUE,
-    earlier_applications: EARLIER_APPLICATIONS_CUE,
+    earlier_applications: EARLIER_APPLICATIONS_STANDARD_CUE,
   },
   bail_anticipatory: {
     fir_details: FIR_CUE,
@@ -744,6 +755,9 @@ const CLAUSE_CUES: Record<string, Record<string, Cue>> = {
     custody: CUSTODY_CUE,
     grounds: GROUNDS_CUE,
     undertakings: UNDERTAKING_CUE,
+    earlier_applications: EARLIER_APPLICATIONS_STANDARD_CUE,
+  },
+  default_bail: {
     earlier_applications: EARLIER_APPLICATIONS_STANDARD_CUE,
   },
 };
@@ -877,12 +891,112 @@ function checkReportedParagraphs(
   const text = reported.join(' ');
   const before = context.recorded?.get(clause.id);
   if (before === undefined) {
-    // R2b.5: a first check finding nothing but blanks records nothing.
-    if (onlyBlanks(text)) return 'clause_not_in_paragraph';
+    // R2b.5: a first check finding nothing but blanks records nothing, unless
+    // one of those blanks is the exact signed blank for this clause (T-322),
+    // or, for default_bail applicable_window only, the brief's own period or
+    // expiry-date blank (T-327).
+    if (
+      onlyBlanks(text) &&
+      !holdsSignedBlank(packId, clause.id, text) &&
+      !holdsBriefWindowBlank(packId, clause.id, text, context.brief)
+    ) {
+      return 'clause_not_in_paragraph';
+    }
     context.recorded?.set(clause.id, text);
     return null;
   }
   return text.includes(before) ? null : 'clause_not_in_paragraph';
+}
+
+/** T-327: pack id to clause id to signed blanks, read-only. */
+type SignedBlanks = Readonly<Record<string, Readonly<Record<string, readonly string[]>>>>;
+
+/**
+ * T-322 (Ajay, 12 Oct 2026): the exact blank the signed pack instructions
+ * prescribe for a clause without cues, by pack and clause id. "The blank
+ * should count as covered. The repair call is wrong here: it pushes the model
+ * to invent the very facts the brief lacks." A paragraph that contains one of
+ * these blanks covers the clause under R2b.5, and no repair runs. Only the
+ * exact blank counts, not any other "[To be confirmed" text. No fallback by
+ * id: a clause not listed here keeps R2b.5 as it was.
+ *
+ * Exported read-only (T-327) so the T-322 pin can import it.
+ */
+export const SIGNED_BLANKS: SignedBlanks = {
+  bail_anticipatory: {
+    // T-241-bail-instructions-signed.md, bail_anticipatory entry 1.
+    apprehension: ['[To be confirmed: the facts on which the applicant apprehends arrest]'],
+  },
+  bail_before_magistrate: {
+    // T-241-bail-instructions-signed.md, bail_before_magistrate promptInstructions 4:
+    // one blank per risk, each with one of the three words.
+    triple_test: [
+      '[To be confirmed: facts relied on to show no risk of flight]',
+      '[To be confirmed: facts relied on to show no risk of tampering with the evidence]',
+      '[To be confirmed: facts relied on to show no risk of influencing witnesses]',
+    ],
+  },
+  default_bail: {
+    // T-251-default-bail-text-signed.md, instruction 5 as amended (period and expiry).
+    applicable_window: [
+      '[To be confirmed: the default-bail period that applies to this offence]',
+      '[To be confirmed: the date on which the period expired]',
+    ],
+    // T-251-default-bail-text-signed.md, instruction 6.
+    non_filing: [
+      '[To be confirmed: whether a police report had been filed when this application was made]',
+    ],
+  },
+};
+
+/** T-322: true when the normalised text contains an exact signed blank for the clause. */
+function holdsSignedBlank(packId: string, clauseId: string, text: string): boolean {
+  const own = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
+  if (!own(SIGNED_BLANKS, packId) || !own(SIGNED_BLANKS[packId], clauseId)) return false;
+  return SIGNED_BLANKS[packId][clauseId].some((blank) => text.includes(normalise(blank)));
+}
+
+/**
+ * T-327: the brief items whose own blanks the Drafter copies for
+ * applicable_window (default_bail.json): the period and the date it expired.
+ */
+const BRIEF_WINDOW_KEYS = ['period_claimed', 'period_expiry_date'] as const;
+
+/** T-327: the whole value is one blank, as BLANK finds them, with words inside it. */
+const WHOLE_BLANK = new RegExp(`^(?:${BLANK.source})$`);
+
+/**
+ * T-327 (Ajay, 12 Oct 2026): "yes, cover it, but narrowly. A paragraph covers
+ * applicable_window if it contains exactly the blank that this brief holds for
+ * the period, read from the brief at check time, not any '[To be confirmed'
+ * text. The same logic is the reason as before: a repair can only push the
+ * model to invent the period."
+ *
+ * And on the expiry date (Ajay, 12 Oct 2026): "On the expiry date: yes, the
+ * same rule applies if T-251 instruction 5 tells the Drafter to copy the
+ * brief's expiry blank. Add it here if it's that small, with the same pair of
+ * tests." It does: instruction 5, as amended, tells the Drafter to write the
+ * brief's own blank exactly for the period and for the date of expiry, and
+ * neither is one of SIGNED_BLANKS.
+ *
+ * So, for default_bail applicable_window only, the normalised text covers the
+ * clause when it contains the brief's period_claimed blank or its
+ * period_expiry_date blank. The brief is read on each call, never cached. A
+ * real value (one that is not a single blank) never counts here; a paragraph
+ * restating it takes the normal R2b path.
+ */
+function holdsBriefWindowBlank(
+  packId: string,
+  clauseId: string,
+  text: string,
+  brief: Brief | undefined,
+): boolean {
+  if (packId !== 'default_bail' || clauseId !== 'applicable_window') return false;
+  return BRIEF_WINDOW_KEYS.some((key) => {
+    const blank = briefValue(brief, key).trim();
+    if (!WHOLE_BLANK.test(blank) || !/[\p{L}\p{N}]/u.test(blank)) return false;
+    return text.includes(normalise(blank));
+  });
 }
 
 /** True when a paragraph holds nothing but blanks, once punctuation and spaces are set aside. */
@@ -1818,7 +1932,8 @@ export function checkBriefIsUsed(
     }
   };
   for (const item of brief.items) {
-    if (isEmpty(item.value)) continue;
+    // T-336: an unconfirmed value is not put in the draft, so it is not looked for.
+    if (isEmpty(item.value) || item.unconfirmed === true) continue;
     const values = Array.isArray(item.value) ? item.value : [item.value as string];
     if (item.kind === 'narrative') {
       for (const v of values) bySentence(item.label, v);
@@ -1832,7 +1947,129 @@ export function checkBriefIsUsed(
   for (const u of brief.unplaced) {
     for (const v of Array.isArray(u.value) ? u.value : [u.value]) bySentence(u.label, v);
   }
+  // T-341: "no earlier bail application" in the draft, without a fact that says so.
+  warnings.push(...checkFirstApplicationClaim(documentText, brief));
   return warnings;
+}
+
+// ── "No earlier bail application" without a confirmed fact (T-341) ─────────
+
+/** T-341 (Ajay's wording): the draft says it, and the advocate has not confirmed it. */
+export const FIRST_APPLICATION_UNCONFIRMED =
+  'The draft says no earlier bail application was made, but this was not confirmed. Check before filing.';
+
+/** T-341 (Ajay's ruling 2, 12 Oct): the draft says it, and the advocate's answer lists one. */
+export const FIRST_APPLICATION_CONTRADICTED =
+  'The draft says no earlier bail application was made, but the details you gave list an earlier bail application. Correct the draft before filing.';
+
+const FIRST_APPLICATION_ID = 'first_bail_application';
+
+/** A letter, combining mark or digit: what a phrase may not start or end next to. */
+const CLAIM_WORD_CHAR = /[\p{L}\p{M}\p{N}]/u;
+
+/** Case and whitespace folded, for finding a phrase in the draft. */
+function claimFold(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+/** A value folded as the averment conditions fold it, for the unlock list. */
+function valueFold(v: unknown): string {
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (typeof v !== 'string') return '';
+  return normalise(v)
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/** True when the phrase is in the text as whole words. */
+function hasWholePhrase(foldedText: string, phrase: string): boolean {
+  const np = claimFold(phrase);
+  if (np === '') return false;
+  let at = foldedText.indexOf(np);
+  while (at >= 0) {
+    const end = at + np.length;
+    if (
+      !CLAIM_WORD_CHAR.test(foldedText.charAt(at - 1) || ' ') &&
+      !CLAIM_WORD_CHAR.test(foldedText.charAt(end) || ' ')
+    ) {
+      return true;
+    }
+    at = foldedText.indexOf(np, at + 1);
+  }
+  return false;
+}
+
+/** The `equals` values of the condition on earlier bail applications, wherever it sits. */
+function noneValues(c: AvermentCondition | null | undefined): string[] {
+  if (!c) return [];
+  if ('all_of' in c) return c.all_of.flatMap(noneValues);
+  if (lastSegment(c.key) !== PROTECTED_QUESTION_KEY || c.equals === undefined) return [];
+  return (Array.isArray(c.equals) ? c.equals : [c.equals]).map(valueFold).filter((v) => v !== '');
+}
+
+function lastSegment(key: string): string {
+  const at = key.lastIndexOf('.');
+  return at < 0 ? key : key.slice(at + 1);
+}
+
+/**
+ * T-341: a draft that says no earlier bail application was made, when the
+ * advocate has not confirmed it, or has given one. The phrases are the pack's
+ * banned `first_bail_application` phrases and its allowed averment, from the
+ * signed averment file (`loadAvermentLists`, with inheritance); no other list.
+ * A wording outside that file is not caught.
+ *
+ * Confirmed: the advocate typed the value (`source: 'user'`), it is not marked
+ * `unconfirmed`, and it is not empty. With the ledger on, the brief is the
+ * ledger skeleton, whose sources follow the ledger's facts.
+ *
+ * At most one warning. It does not block the draft.
+ */
+export function checkFirstApplicationClaim(
+  documentText: string,
+  brief: Brief,
+): ValidationWarning[] {
+  const packId = brief.kind.id;
+  if (!packId) return [];
+  let phrases: string[];
+  let none: string[];
+  try {
+    const lists = loadAvermentLists(packId);
+    const allowed = lists.allowed.filter((a) => a.id === FIRST_APPLICATION_ID);
+    phrases = [
+      ...lists.banned.filter((b) => b.id === FIRST_APPLICATION_ID).flatMap((b) => b.phrases),
+      ...allowed.map((a) => a.averment),
+    ];
+    none = allowed.flatMap((a) => noneValues(a.requires));
+  } catch {
+    return [];
+  }
+  if (phrases.length === 0) return [];
+  const text = claimFold(documentText);
+  if (!phrases.some((p) => hasWholePhrase(text, p))) return [];
+
+  const item = brief.items.find((i) => lastSegment(i.key) === PROTECTED_QUESTION_KEY);
+  const values = item
+    ? (Array.isArray(item.value) ? item.value : [item.value]).filter(
+        (v): v is string => typeof v === 'string' && v.trim() !== '',
+      )
+    : [];
+  const confirmed =
+    item !== undefined && item.source === 'user' && item.unconfirmed !== true && values.length > 0;
+  const field = item?.key ?? PROTECTED_QUESTION_KEY;
+  if (!confirmed) {
+    return [
+      { type: 'fact_alteration', message: FIRST_APPLICATION_UNCONFIRMED, details: { field } },
+    ];
+  }
+  // Every entry must be a "none" value; one that is not lists an earlier application.
+  // An entry that itself says it is the first application, in the same words
+  // the draft is scanned for, is the advocate's own "none" (Ajay, T-341 round 2).
+  // This only stops the warning: it unlocks nothing.
+  const saysNone = (v: string): boolean =>
+    none.includes(valueFold(v)) || phrases.some((p) => hasWholePhrase(claimFold(v), p));
+  if (values.every(saysNone)) return [];
+  return [{ type: 'fact_alteration', message: FIRST_APPLICATION_CONTRADICTED, details: { field } }];
 }
 
 // ── No period the brief does not state (T-136) ──────────────────────────────

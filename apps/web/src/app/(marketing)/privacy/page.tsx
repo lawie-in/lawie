@@ -1,6 +1,7 @@
 import { Calendar } from 'lucide-react';
 import type { Metadata } from 'next';
 
+import CookieSettingsButton from '@/components/CookieSettingsButton';
 import FloatCta from '@/components/marketing/FloatCta';
 import SiteFooter from '@/components/marketing/SiteFooter';
 import SiteNav from '@/components/marketing/SiteNav';
@@ -13,6 +14,22 @@ export const metadata: Metadata = {
 
 // Text signed by Ajay (CLO): handoff/legal/T-235-privacy-policy-signed.md, including the
 // erase-runbook changes to §7 and §9. Apply word for word; any other wording goes back to him.
+// T-308: §6 heading and body and the §5 Google row from handoff/legal/T-308-analytics-privacy-signed.md.
+// T-310: §6 body is Ajay's "§6 text once T-310 ships" (handoff/legal/T-310-consent-notice-signed.md,
+// SHA-256 of the block plus a final newline: ecd2b0be2d751d0e194c7fe5f81cb8edc3342aa2a5f28eb39d04d5976f66a4be);
+// the §5 Google row is Addendum 1 of the T-308 file (fonts self-hosted).
+// T-242: §6 body is Ajay's "§6 v3" and the §1 "How you found us" bullet is his new §1 bullet
+// (handoff/legal/T-242-signup-source-signed.md, SHA-256 of the §6 block plus a final newline:
+// a98bbde316ff1fd6e234beef685124be3cf70a48ca0bc2a8576df14909dc81e8). It replaces the T-310 block.
+
+// T-310: set to the T-310 merge date at merge. Keep in step with CURRENT_PRIVACY_VERSION in
+// apps/auth/src/models/User.model.ts (the same date as YYYY-MM-DD, plus a letter suffix when the
+// policy changes more than once on one date, e.g. '2026-10-12b' for T-242).
+const PRIVACY_LAST_UPDATED = '12 October 2026';
+
+// Byte for byte; one string so the hash can be checked.
+const SECTION_6_BODY =
+  "To keep you signed in, we store a sign-in token in your browser's local storage; it carries your name and email. We also store your referral code, the campaign tags of the link that brought you to Lawie (until you close the tab), and small display settings in your browser. Signing out removes the sign-in token. On our public pages, the ones you can open without signing in, Google Analytics loads only if you accept it in the cookie notice; it then sets cookies whose names start with _ga so we can count visits. It does not run on the sign-in pages or anywhere inside your account. We keep a record of your choice (a random number, the choice, the version of the notice and the time, but not your name, email or IP address) for 12 months, and ask again after 12 months or when the notice changes. You can change your choice at any time with Cookie settings at the bottom of every public page. Lawie sets no other cookies. Clearing your browser's site data removes what is stored in your browser.";
 
 const sections = [
   { id: 'collect', title: '1. Information We Collect' },
@@ -20,7 +37,7 @@ const sections = [
   { id: 'storage', title: '3. Where Data Is Stored, and Backups' },
   { id: 'encryption', title: '4. Encryption of Your Documents' },
   { id: 'third-party', title: '5. Who Else Receives Data' },
-  { id: 'browser-storage', title: '6. Browser Storage (no cookies)' },
+  { id: 'browser-storage', title: '6. Browser Storage and Cookies' },
   { id: 'rights', title: '7. Your Rights' },
   { id: 'clients', title: "8. Your Clients' Data" },
   { id: 'retention', title: '9. How Long We Keep Data' },
@@ -68,8 +85,8 @@ const providers = [
   {
     provider: 'Google',
     receives:
-      'Your name, email and Google account ID (if you use Google sign-in); your IP address when our pages load Google Fonts',
-    why: 'Sign-in; fonts',
+      'Your name, email and Google account ID (if you use Google sign-in); on our public pages only, and only if you accept analytics, your IP address, browser details and the address of the page you visit (Google Analytics)',
+    why: 'Sign-in; counting visits to public pages',
     where: 'May be outside India',
   },
   {
@@ -115,7 +132,7 @@ export default function PrivacyPage() {
         <div className="container">
           <div style={{ marginBottom: '44px' }}>
             <span className="legal-updated">
-              <Calendar strokeWidth={1.5} /> Last updated: 12 October 2026
+              <Calendar strokeWidth={1.5} /> Last updated: {PRIVACY_LAST_UPDATED}
             </span>
             <p
               style={{
@@ -158,6 +175,11 @@ export default function PrivacyPage() {
                     number, state, practice areas and years of practice.
                   </li>
                   <li>Plan, Ink balance, payments and referrals.</li>
+                  <li>
+                    How you found us: if the link that brought you to Lawie carried campaign tags,
+                    the source, medium and campaign named in it, saved with your account when you
+                    sign up.
+                  </li>
                   <li>
                     Case details you enter to create a draft: your answers to the form, your
                     description of the matter, the brief, the list of facts Lawie builds from it,
@@ -265,14 +287,9 @@ export default function PrivacyPage() {
                 </p>
               </section>
               <section id="browser-storage">
-                <h3>6. Browser Storage (no cookies)</h3>
-                <p>
-                  Lawie does not set its own cookies. To keep you signed in, we store a sign-in
-                  token in your browser&apos;s local storage; it carries your name and email. We
-                  also store your referral code and small display settings in your browser. Signing
-                  out removes the sign-in token. Clearing your browser&apos;s site data removes all
-                  of it.
-                </p>
+                <h3>6. Browser Storage and Cookies</h3>
+                <p>{SECTION_6_BODY}</p>
+                <CookieSettingsButton variant="privacy" />
               </section>
               <section id="rights">
                 <h3>7. Your Rights</h3>

@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { COURT_TYPES, DOC_TYPES, DocType } from '@lawie/shared';
+import { COURT_TYPES, DOC_TYPES, DocType, requireCurrentPrivacy } from '@lawie/shared';
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
@@ -67,6 +67,7 @@ import {
 import { preflightCheck } from '../services/preflight.service';
 import { loadRulePack } from '../services/rule-pack.service';
 import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
+import { withS138DateChecks } from '../services/s138-date-checks';
 import {
   CourtLookupData,
   loadCourtRule,
@@ -727,6 +728,7 @@ router.post('/preflight', authenticate, async (req: Request, res: Response): Pro
 router.post(
   '/generate-from-template',
   authenticate,
+  requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
   enforceCredits, // SCRUM-73 / SCRUM-59 — credit gate; replaces enforceFreeLimit
   spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {
@@ -1037,6 +1039,7 @@ async function describeFirstOnly(req: Request, res: Response, next: NextFunction
 router.post(
   '/generate-from-brief',
   authenticate,
+  requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
   describeFirstOnly,
   kindAsTemplateId,
   enforceCredits,
@@ -1119,7 +1122,15 @@ router.post(
       ledger = {
         id: String(doc.id),
         version: doc.currentVersion,
-        facts: state.facts,
+        // T-192: the s.138 date checks, worked out by code per request from the
+        // stored user/asked facts. A computed fact is appended only on a pass
+        // and is never stored; an unresolved input counts as missing. For any
+        // other pack the facts are as stored.
+        facts: withS138DateChecks(
+          state.facts,
+          kind,
+          state.unresolved.map((u) => u.key),
+        ),
         unresolved: state.unresolved,
         runType: factDiffRunType(doc.runType),
         lists,
@@ -1448,6 +1459,7 @@ router.post(
 router.post(
   '/generate',
   authenticate,
+  requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
   enforceCredits,
   spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {

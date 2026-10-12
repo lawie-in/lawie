@@ -51,7 +51,7 @@ export default function ToolsPage() {
           </span>
           <h1>Free legal tools for Indian advocates.</h1>
           <p className="sub">
-            Quick utilities built around the new criminal codes — free to use, no sign-up required.
+            Quick utilities for the new criminal laws: free to use, no sign-up required.
           </p>
         </div>
       </header>

@@ -9,7 +9,7 @@ import SiteNav from '@/components/marketing/SiteNav';
 export const metadata: Metadata = {
   title: 'Lawie — Terms of Service',
   description:
-    'The Terms of Service that govern your use of Lawie, an AI-assisted legal drafting tool for Indian advocates.',
+    'The Terms of Service that govern your use of Lawie, a drafting assistant for Indian advocates.',
 };
 
 export default function TermsPage() {
@@ -33,7 +33,7 @@ export default function TermsPage() {
         <div className="container">
           <div style={{ marginBottom: '44px' }}>
             <span className="legal-updated">
-              <Calendar strokeWidth={1.5} /> Last updated: 1 June 2026
+              <Calendar strokeWidth={1.5} /> Last updated: 12 October 2026
             </span>
             <p
               style={{
@@ -44,7 +44,7 @@ export default function TermsPage() {
               }}
             >
               Please read these Terms carefully. They explain your rights and responsibilities when
-              using Lawie, and the limits of what an AI-assisted drafting tool can do.
+              using Lawie, and the limits of what a drafting assistant can do.
             </p>
           </div>
           <div className="legal-wrap">
@@ -58,7 +58,7 @@ export default function TermsPage() {
                   <a href="#description">2. Description of Service</a>
                 </li>
                 <li>
-                  <a href="#disclaimer">3. AI-Assisted Drafting Disclaimer</a>
+                  <a href="#disclaimer">3. Drafting Disclaimer</a>
                 </li>
                 <li>
                   <a href="#responsibilities">4. User Responsibilities</a>
@@ -106,17 +106,18 @@ export default function TermsPage() {
               <section id="description">
                 <h3>2. Description of Service</h3>
                 <p>
-                  Lawie is an AI-assisted tool that generates draft legal documents formatted for
-                  Indian courts, built around the current criminal codes (BNS, BNSS, and BSA) and
-                  other applicable laws. The Service produces drafts for your review; it does not
-                  provide legal advice or representation.
+                  Lawie is a drafting assistant for advocates. It creates first drafts of legal
+                  documents for the advocate to review, edit and download. Criminal drafts use BNS,
+                  BNSS and BSA section numbers. The Service does not provide legal advice or
+                  representation.
                 </p>
               </section>
               <section id="disclaimer">
-                <h3>3. AI-Assisted Drafting Disclaimer</h3>
+                <h3>3. Drafting Disclaimer</h3>
                 <p>
                   <strong>
-                    Lawie is an AI-assisted drafting tool — not a substitute for legal advice.
+                    Lawie is a drafting assistant. The advocate is responsible for legal accuracy
+                    and filing.
                   </strong>{' '}
                   Generated documents may contain errors and must be reviewed by a qualified
                   advocate before they are relied upon, filed, or used. Lawie does not certify any
@@ -144,10 +145,13 @@ export default function TermsPage() {
                 <h3>6. Subscription &amp; Billing</h3>
                 <p>
                   Paid plans are billed in advance on a monthly or annual basis through our payment
-                  processor. Subscriptions renew automatically until cancelled. You may cancel at
-                  any time from your account settings; cancellation stops future charges and takes
+                  processor. Drafts are paid for with Ink. Most documents use 2 Ink; short ones use
+                  1. You are charged only after a draft is generated; a failed generation is not
+                  charged. Subscriptions renew automatically until cancelled. You may cancel at any
+                  time from your account settings; cancellation stops future charges and takes
                   effect at the end of the current billing period. All payments are non-refundable,
-                  as set out in our <Link href="/refunds">Refund Policy</Link>.
+                  as set out in our <Link href="/refunds">Refund Policy</Link>. This does not affect
+                  any right you have under law.
                 </p>
               </section>
               <section id="ip">
@@ -173,7 +177,8 @@ export default function TermsPage() {
                   To the maximum extent permitted by law, Lawie is not liable for any indirect,
                   incidental, or consequential damages, or for any loss arising from your reliance
                   on a generated document. Our total liability is limited to the amount you paid for
-                  the Service in the three months preceding the claim.
+                  the Service in the three months preceding the claim. Nothing in these Terms limits
+                  any liability that cannot be limited by law.
                 </p>
               </section>
               <section id="indemnity">
@@ -195,7 +200,9 @@ export default function TermsPage() {
                 <h3>12. Governing Law</h3>
                 <p>
                   These Terms are governed by the laws of India. Any dispute is subject to the
-                  exclusive jurisdiction of the courts at Patna, Bihar.
+                  exclusive jurisdiction of the courts at Patna, Bihar. Nothing in this section
+                  limits any right you have to approach a Consumer Commission where you live or
+                  work.
                 </p>
               </section>
               <section id="changes">

@@ -22,6 +22,8 @@ export interface ITemplate extends Document {
   displayName: string;
   slug: string;
   category: string;
+  /** T-240: library category id (one of T-239's 26), from config/catalogue. */
+  catalogueCategory: string;
   description: string;
   icon: string;
   planAccess: 'free' | 'pro';
@@ -63,6 +65,9 @@ const TemplateSchema = new Schema<ITemplate>(
     },
     displayName: { type: String, required: true, trim: true, maxlength: 200 },
     category: { type: String, required: true, trim: true },
+    // T-240: the library category, from config/catalogue (never the rule file).
+    // `category` above stays the behaviour value. The seed always writes it.
+    catalogueCategory: { type: String, required: true, trim: true },
     description: { type: String, default: '', maxlength: 2000 },
     icon: { type: String, default: 'file-text' },
     planAccess: { type: String, enum: ['free', 'pro'], default: 'free' },
@@ -88,6 +93,7 @@ const TemplateSchema = new Schema<ITemplate>(
 
 // Indexes — catalog filters by plan + category, sort by display name.
 TemplateSchema.index({ category: 1 });
+TemplateSchema.index({ catalogueCategory: 1 });
 TemplateSchema.index({ planAccess: 1 });
 TemplateSchema.index({ isActive: 1 });
 TemplateSchema.index({ courtLevels: 1 });

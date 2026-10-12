@@ -206,7 +206,22 @@ export interface ChargedSection {
   number: string;
   /** True when read from an alias bracket, e.g. the IPC 420 in "BNS 318(4) (IPC 420)". */
   alias?: true;
+  /**
+   * T-324: on an alias entry, the non-alias entry its bracket belongs to (BNS 318(4)
+   * above), recorded before dedupe. Absent when the bracket follows no entry.
+   */
+  attachedTo?: { code: ChargedCode | null; number: string };
 }
+
+/**
+ * Ajay Q8 / round 5c: old-law codes, how the line names them, and the new code.
+ * Moved here from template-engine (T-278) so template-engine and timeline share one copy.
+ */
+export const OLD_LAW_LINE: Partial<Record<ChargedCode, { name: string; newCode: string }>> = {
+  IPC: { name: 'IPC', newCode: 'BNS' },
+  CRPC: { name: 'CrPC', newCode: 'BNSS' },
+  IEA: { name: 'IEA', newCode: 'BSA' },
+};
 
 /** Step 3: code names (case-insensitive; specific names before the generic "… Act"). */
 const CODE_NAMES: Array<[ChargedCode, string]> = [
@@ -279,9 +294,19 @@ function readList(text: string): ChargedSection[] {
     i = close + 1;
   }
 
-  const entries: Array<{ code: ChargedCode | null; number: string; alias: boolean }> = [];
+  const entries: Array<{
+    code: ChargedCode | null;
+    number: string;
+    alias: boolean;
+    /** T-324: alias only: index of the non-alias entry the bracket belongs to. */
+    owner?: number;
+    /** T-324: alias only: an owner already recorded by a nested bracket. */
+    attachedTo?: ChargedSection['attachedTo'];
+  }> = [];
   let carry: ChargedCode | null = null;
   let crossPending: number[] = [];
+  // T-324: the latest non-alias entry; an alias bracket belongs to it.
+  let lastEntry: number | undefined;
 
   // Step 6/7: segments; a code before numbers carries forward, a code after
   // numbers applies back within its segment (and to the start, before any code).
@@ -311,19 +336,35 @@ function readList(text: string): ChargedSection[] {
         segHasCode = true;
         carry = t.code;
       } else if (t.kind === 'alias') {
-        for (const e of t.entries) entries.push({ code: e.code, number: e.number, alias: true });
+        for (const e of t.entries) {
+          entries.push({
+            code: e.code,
+            number: e.number,
+            alias: true,
+            owner: lastEntry,
+            attachedTo: e.attachedTo,
+          });
+        }
       } else if (t.bare) {
-        entries.push({ code: null, number: t.number, alias: false });
+        lastEntry = entries.push({ code: null, number: t.number, alias: false }) - 1;
       } else {
         const i = entries.push({ code: carry, number: t.number, alias: false }) - 1;
+        lastEntry = i;
         if (!segHasCode) segPending.push(i);
         if (carry === null) crossPending.push(i);
       }
     }
   }
-  return entries.map(({ code, number, alias }) =>
-    alias ? { code, number, alias: true as const } : { code, number },
-  );
+  // Owners are resolved here, after every code (including one applied back) is set.
+  return entries.map(({ code, number, alias, owner, attachedTo }) => {
+    if (!alias) return { code, number };
+    const ownerEntry = owner === undefined ? undefined : entries[owner];
+    const at =
+      attachedTo ?? (ownerEntry ? { code: ownerEntry.code, number: ownerEntry.number } : undefined);
+    return at
+      ? { code, number, alias: true as const, attachedTo: at }
+      : { code, number, alias: true as const };
+  });
 }
 
 /**
@@ -345,14 +386,36 @@ export function readSectionsCharged(
   // Step 2: remove what is never a section.
   for (const re of NEVER_A_SECTION) clean = clean.replace(re, ' ');
 
-  const seen = new Set<string>();
+  // key → index in `out` of the kept entry.
+  const seen = new Map<string, number>();
   const out: ChargedSection[] = [];
   for (const e of readList(clean)) {
     const code = e.code ?? defaultCode ?? null;
     const key = `${code ?? ''}|${e.number}`;
-    if (seen.has(key)) continue; // Step 9
-    seen.add(key);
-    out.push(e.alias ? { code, number: e.number, alias: true } : { code, number: e.number });
+    const kept = seen.get(key);
+    if (kept !== undefined) {
+      // Step 9. T-324: an alias kept first and a non-alias duplicate later → the
+      // kept entry becomes non-alias (no alias, no attachedTo), at the same position.
+      if (out[kept].alias && !e.alias) out[kept] = { code, number: e.number };
+      continue;
+    }
+    seen.set(key, out.length);
+    if (!e.alias) {
+      out.push({ code, number: e.number });
+      continue;
+    }
+    // T-324: carry attachedTo through, its code defaulted as its own entry's is.
+    const at = e.attachedTo;
+    out.push(
+      at
+        ? {
+            code,
+            number: e.number,
+            alias: true,
+            attachedTo: { code: at.code ?? defaultCode ?? null, number: at.number },
+          }
+        : { code, number: e.number, alias: true },
+    );
   }
   return out;
 }
@@ -377,12 +440,19 @@ export function readChargedField(value: unknown, fieldSource?: string): ChargedS
         readSectionsCharged(entryText(v), fieldSource === 'bns_mapping' ? 'BNS' : undefined),
       )
     : [readSectionsCharged(entryText(value))];
-  const seen = new Set<string>();
+  // key → index in `out` of the kept entry.
+  const seen = new Map<string, number>();
   const out: ChargedSection[] = [];
   for (const e of reads.flat()) {
     const key = `${e.code ?? ''}|${e.number}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
+    const kept = seen.get(key);
+    if (kept !== undefined) {
+      // T-324: an alias kept first and a non-alias duplicate later → the kept entry
+      // becomes non-alias (no alias, no attachedTo), at the same position.
+      if (out[kept].alias && !e.alias) out[kept] = { code: e.code, number: e.number };
+      continue;
+    }
+    seen.set(key, out.length);
     out.push(e);
   }
   return out;

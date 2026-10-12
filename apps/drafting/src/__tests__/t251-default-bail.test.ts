@@ -318,7 +318,8 @@ describe('the averments file (Addendum section 1)', () => {
 
   it('sha256 is the signed value', () => {
     const hash = createHash('sha256').update(readFileSync(FILE)).digest('hex');
-    expect(hash).toBe('d853935931de12e6fa0497b0bd1c6e5156038ac47a94cb411e0d0550bdeba3c9');
+    // Re-pinned for T-334 (Ajay, T-334 Addendum 1, signed 9b484ee).
+    expect(hash).toBe('2e882516bf7c5ad8f35edace6fbc53b5c264112fc9f4005a06b5878e78bdc96d');
   });
 
   it('stays unsigned in the file (signed_by is null on purpose)', () => {
@@ -531,7 +532,7 @@ const BASE_GIVEN: Given = {
 };
 
 const BODY =
-  '1. That FIR No. 143/2026 was registered at PS Kotwali against Deepak Ravidas.\n\n2. That the applicant was arrested on 03.06.2026 and first remanded to custody on 04.06.2026.';
+  '1. That FIR No. 143/2026 was registered at PS Kotwali against Deepak Ravidas.\n\n2. That the applicant was arrested on 03.06.2026 and first remanded to custody on 04.06.2026. [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result]';
 
 async function draftWith(body: string, given: Given, described: string | null = null) {
   const pack = loadRulePack('default_bail')!;
@@ -543,7 +544,10 @@ async function draftWith(body: string, given: Given, described: string | null = 
     court: { state: 'bihar', court_type: 'cjm', court: 'bihar_cjm_patna' },
   });
   if (!brief.can_confirm) throw new Error('brief cannot be confirmed');
-  const clauses = pack.mandatoryClauses.map((c) => `${c.id}: 1`).join('\n');
+  // T-241: earlier_applications now has a cue, so the report must point at the paragraph that carries it (BODY paragraph 2).
+  const clauses = pack.mandatoryClauses
+    .map((c) => `${c.id}: ${c.id === 'earlier_applications' ? 2 : 1}`)
+    .join('\n');
   mockMessagesStream
     .mockReset()
     .mockImplementation(async () =>
@@ -737,7 +741,9 @@ describe('AC2 (wiring): the draft built from the brief, model stubbed', () => {
       ),
       court: { state: 'bihar', court_type: 'cjm', court: 'bihar_cjm_patna' },
     });
-    const clauses = pack.mandatoryClauses.map((c) => `${c.id}: 1`).join('\n');
+    const clauses = pack.mandatoryClauses
+      .map((c) => `${c.id}: ${c.id === 'earlier_applications' ? 2 : 1}`)
+      .join('\n');
     mockMessagesStream
       .mockReset()
       .mockImplementation(async () =>

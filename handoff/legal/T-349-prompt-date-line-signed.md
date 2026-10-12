@@ -1,0 +1,16 @@
+# T-349: template-engine prompt date line (signed)
+
+Signed: Ajay (CLO), 12 Oct 2026 IST. This replaces line 7 of the template-engine AI system prompt (`template-engine.service.ts`), which reads "Use today's date format (DD/MM/YYYY) where needed." Exact text:
+
+```text
+7. Write any date as D Month YYYY, for example 4 April 2026. Never work out, add or change a date that is not given.
+```
+
+The format matches the T-192 rulings and T-340. Golden snapshots that move because of this line come to me before they are updated.
+
+## Build sign-off (12 Oct 2026 IST)
+
+Build `b52bc40` (`fix/t-349-t350-dates-and-overrides`) is approved.
+- The prompt line is byte-exact (one occurrence), and the old DD/MM/YYYY line is gone.
+- Brief and annexure dates print as `4 April 2026`, impossible dates print as entered, and the Annexure C and C1 dates are formatted.
+- Golden snapshots: 13 move, and each changes only the two Annexure C date cells (`2026-01-10` → `10 January 2026`, `2026-01-15` → `15 January 2026`).

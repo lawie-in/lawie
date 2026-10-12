@@ -8,6 +8,7 @@
  */
 import { Router, Request, Response } from 'express';
 
+import { catalogueCategoryDisplay, isCatalogueCategoryId } from '../config/catalogue';
 import { authenticate } from '../middleware/authenticate';
 import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
@@ -64,19 +65,48 @@ router.get(
         { $sort: { count: -1 } },
         { $limit: 10 },
       ]),
-      // Template usage — group by templateId
-      LawieDocument.aggregate([
-        { $match: { isDeleted: { $ne: true }, templateId: { $ne: null }, ...NOT_FIXTURE } },
+      // Template usage (T-331). Documents never carry a template id of their
+      // own; the slug is on the completed Generation that produced them. One
+      // row per (slug, document) pair, then keep live, non-fixture documents
+      // only and count them per slug. The document lookup reads `status` only.
+      Generation.aggregate([
+        {
+          $match: {
+            status: 'completed',
+            templateId: { $nin: [null, ''] },
+            documentId: { $ne: null },
+            ...NOT_FIXTURE_GENERATION,
+          },
+        },
+        { $group: { _id: { templateId: '$templateId', documentId: '$documentId' } } },
+        {
+          $lookup: {
+            from: LawieDocument.collection.collectionName,
+            let: { docId: '$_id.documentId' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ['$_id', '$$docId'] },
+                  isDeleted: { $ne: true },
+                  ...NOT_FIXTURE,
+                },
+              },
+              { $project: { _id: 0, status: 1 } },
+            ],
+            as: 'doc',
+          },
+        },
+        { $unwind: '$doc' },
         {
           $group: {
-            _id: '$templateId',
+            _id: '$_id.templateId',
             count: { $sum: 1 },
             finalised: {
-              $sum: { $cond: [{ $in: ['$status', ['finalised', 'exported']] }, 1, 0] },
+              $sum: { $cond: [{ $in: ['$doc.status', ['finalised', 'exported']] }, 1, 0] },
             },
           },
         },
-        { $sort: { count: -1 } },
+        { $sort: { count: -1, _id: 1 } },
         { $limit: 20 },
       ]),
       // AI cost this month — cost sum includes failed rows (we paid for
@@ -96,9 +126,12 @@ router.get(
     ]);
 
     // Fetch template metadata for the top templates
+    // Generation.templateId is the Template slug (Template.templateId). Brief
+    // record ids that are not catalogue slugs find no Template and fall back
+    // to the id below.
     const templateIds = templateAgg.map((t: { _id: string }) => t._id).filter(Boolean);
     const templates = await Template.find({ templateId: { $in: templateIds } })
-      .select('templateId displayName category planAccess')
+      .select('templateId displayName category catalogueCategory planAccess')
       .lean();
     const tmplMap = new Map(templates.map((t) => [t.templateId, t]));
 
@@ -133,6 +166,12 @@ router.get(
             templateId: t._id,
             displayName: meta?.displayName ?? t._id,
             category: meta?.category ?? '—',
+            // T-240: the library category and its name. Absent on a row the
+            // seed has not rewritten yet; the page then shows `category`.
+            catalogueCategory: meta?.catalogueCategory,
+            catalogueCategoryName: isCatalogueCategoryId(meta?.catalogueCategory)
+              ? catalogueCategoryDisplay(meta.catalogueCategory).name
+              : undefined,
             planAccess: meta?.planAccess ?? 'free',
             count: t.count,
             finalisedRate: t.count > 0 ? Math.round((t.finalised / t.count) * 100) : 0,

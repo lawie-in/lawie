@@ -51,6 +51,14 @@ export interface RulePackFact {
   option_ids?: string[];
   /** The pack's `show_if` (or `depends_on`) condition, as written (T-153). */
   show_if?: string;
+  /**
+   * T-190: the pack's own question for this fact, exactly as the file writes it
+   * (legal content, signed by Ajay). `source: 'pack'` marks where it came from:
+   * only a question with this origin is asked as written, at any length.
+   */
+  question?: { text: string; source: 'pack' };
+  /** T-190: the pack asks this optional fact when it is empty (`ask_when_empty: true`). */
+  ask_when_empty?: true;
 }
 
 /**
@@ -223,7 +231,21 @@ function factFromDef(
     required,
     options: optionLabels(def.options ?? def.enum ?? def.values),
     ...optionIdsAndCondition(def),
+    ...packQuestion(def),
   };
+}
+
+/**
+ * T-190: the pack's question and `ask_when_empty`, when the pack gives them.
+ * The text is kept byte for byte: it is Ajay's signed wording.
+ */
+function packQuestion(def: Obj): Pick<RulePackFact, 'question' | 'ask_when_empty'> {
+  const out: Pick<RulePackFact, 'question' | 'ask_when_empty'> = {};
+  if (typeof def.question === 'string' && def.question.trim() !== '') {
+    out.question = { text: def.question, source: 'pack' };
+  }
+  if (def.ask_when_empty === true) out.ask_when_empty = true;
+  return out;
 }
 
 /**

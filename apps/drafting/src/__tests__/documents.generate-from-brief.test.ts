@@ -97,7 +97,7 @@ const VALUES = [
 ];
 
 const BODY = [
-  '1. That the applicant Ram Kumar, son of Shri Hari Kumar, is a law-abiding citizen. He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.',
+  '1. That the applicant Ram Kumar, son of Shri Hari Kumar, is a law-abiding citizen. He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and the details of any earlier bail application are as the brief gives them.',
   '2. That FIR No. 124/2026 dated 10.03.2026 was registered at PS Kotwali under Section 318 of BNS.',
   '3. That the applicant is in judicial custody. He was wrongly named in the FIR and falsely implicated due to a family land dispute.',
   '4. That the applicant has deep roots in society and will not flee from justice.',
@@ -218,7 +218,7 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     ]);
     expect(sections.cause_title).toContain('DISTRICT & SESSIONS JUDGE, PATNA');
     expect(sections.cause_title).toContain('Ram Kumar');
-    expect(sections.prayer).toContain('FIR No. 124/2026 dated 10.03.2026');
+    expect(sections.prayer).toContain('FIR No. 124/2026 dated 10 March 2026');
     expect(sections.body).toBe(BODY);
     expect(sections.verification).toContain('I, Ram Kumar, the Applicant');
     expect(sections.verification).toContain('Verified at Patna');

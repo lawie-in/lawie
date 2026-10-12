@@ -32,12 +32,6 @@
     },
     { "name": "applicant_age", "label": "Applicant Age", "type": "number", "required": true },
     {
-      "name": "applicant_occupation",
-      "label": "Applicant Occupation",
-      "type": "text",
-      "required": true
-    },
-    {
       "name": "applicant_address",
       "label": "Applicant Address",
       "type": "textarea",
@@ -72,7 +66,6 @@
       "options": ["Bailable", "Non-bailable (within Magistrate's powers)"],
       "required": true
     },
-    { "name": "arrest_date", "label": "Date of Arrest", "type": "date", "required": true },
     { "name": "days_in_custody", "label": "Days in Custody", "type": "number", "required": true },
     {
       "name": "currently_in_custody",
@@ -93,17 +86,138 @@
       "show_if": "currently_in_custody === yes_judicial"
     },
     {
-      "name": "investigation_status",
-      "label": "Investigation Status",
-      "type": "select",
-      "options": ["Ongoing", "Charge sheet filed", "Cognizance taken"],
-      "required": true
+      "name": "earlier_bail_applications",
+      "label": "Earlier bail applications in this matter",
+      "type": "textarea",
+      "required": false,
+      "question": "Has any bail application (regular, anticipatory or interim) been made for the applicant in this case before, in any court, including the High Court? If yes, give for each: the court, the date of the order and the result (rejected, dismissed as withdrawn, granted and cancelled, or still pending). If none, write \"None\".",
+      "ask_when_empty": true
     },
     {
       "name": "antecedents",
-      "label": "Criminal Antecedents (if any)",
+      "label": "Criminal antecedents",
       "type": "textarea",
-      "required": false
+      "required": false,
+      "question": "Is any other criminal case (FIR, charge sheet or conviction) pending or past against the applicant? If yes, give each case number, police station or court, sections and its status. If none, write \"None\".",
+      "ask_when_empty": true
+    },
+    {
+      "name": "arrest_date",
+      "label": "Date of arrest",
+      "type": "date",
+      "required": false,
+      "question": "On what date was the applicant arrested? Give the date in the arrest memo, even if custody began on another date.",
+      "ask_when_empty": true
+    },
+    {
+      "name": "investigation_status",
+      "label": "Investigation status",
+      "type": "select",
+      "options": ["Under investigation", "Charge sheet filed", "Cognizance taken", "Not known"],
+      "required": false,
+      "question": "What is the stage of the investigation?",
+      "ask_when_empty": true
+    },
+    {
+      "name": "applicant_sex",
+      "label": "Sex of the applicant",
+      "type": "select",
+      "options": ["Male", "Female", "Transgender", "Not given"],
+      "required": false,
+      "question": "Sex of the applicant.",
+      "ask_when_empty": true
+    },
+    {
+      "name": "medical_condition",
+      "label": "Medical condition of the applicant",
+      "type": "textarea",
+      "required": false,
+      "question": "Does the applicant suffer from any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, leave it blank.",
+      "ask_when_empty": true
+    },
+    {
+      "name": "named_in_fir",
+      "label": "Whether the applicant is named in the FIR",
+      "type": "select",
+      "options": ["Yes", "No", "Not known"],
+      "required": false,
+      "question": "Is the applicant named in the FIR?",
+      "ask_when_empty": true
+    },
+    {
+      "name": "recovery_status",
+      "label": "Recovery or seizure from the applicant",
+      "type": "textarea",
+      "required": false,
+      "question": "Has anything been recovered or seized from the applicant, or at the applicant's instance? If yes, say what. If nothing, write \"None\".",
+      "ask_when_empty": true
+    },
+    {
+      "name": "cooperated_with_investigation",
+      "label": "Whether the applicant has cooperated with the investigation",
+      "type": "select",
+      "options": ["Yes", "No", "Not known"],
+      "required": false,
+      "question": "Has the applicant so far joined or cooperated with the investigation (for example, appeared when called or gave a statement)?",
+      "ask_when_empty": true
+    },
+    {
+      "name": "applicant_occupation",
+      "label": "Applicant occupation",
+      "type": "text",
+      "required": false,
+      "question": "What does the applicant do for a living (for example: daily-wage labourer, farmer, driver, shopkeeper)? If nothing, write \"Unemployed\".",
+      "ask_when_empty": true
+    },
+    {
+      "name": "sole_earning_member",
+      "label": "Whether the applicant is the only earning member of the family",
+      "type": "select",
+      "options": ["Yes", "No", "Not known"],
+      "required": false,
+      "question": "Is the applicant the only earning member of the family?",
+      "ask_when_empty": true
+    },
+    {
+      "name": "dependants",
+      "label": "Who depends on the applicant",
+      "type": "textarea",
+      "required": false,
+      "question": "Who in the family depends on the applicant's income (for example: aged mother, wife, two minor children)? If not known, leave it blank.",
+      "ask_when_empty": true
+    },
+    {
+      "name": "local_ties",
+      "label": "Family and local ties of the applicant",
+      "type": "textarea",
+      "required": false,
+      "question": "What family or local ties does the applicant have at the address given (for example: lives there with parents, wife and children; owns the house; has lived there since birth)? If not known, leave it blank.",
+      "ask_when_empty": true
+    },
+    {
+      "name": "s35_notice_status",
+      "label": "Notice under Section 35 BNSS",
+      "type": "select",
+      "options": ["Served", "Not served", "Not known"],
+      "required": false,
+      "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS served on the applicant?",
+      "ask_when_empty": true
+    },
+    {
+      "name": "co_accused_bail_court",
+      "label": "Court that granted bail to the co-accused",
+      "type": "text",
+      "required": false,
+      "question": "Has any co-accused in this case been granted bail? If yes, which court granted it? If not, leave it blank.",
+      "ask_when_empty": true
+    },
+    {
+      "name": "co_accused_bail_date",
+      "label": "Date of the co-accused's bail order",
+      "type": "date",
+      "required": false,
+      "question": "Date of that bail order.",
+      "ask_when_empty": true
     },
     {
       "name": "grounds_for_bail",
@@ -131,7 +245,6 @@
     "fact of arrest and custody",
     "nature of offence — bailable / non-bailable within Magistrate's competence",
     "grounds for bail — no prima facie case / no need for further custody / no risk of flight, tampering with evidence or influencing witnesses",
-    "clean antecedents or explanation thereof",
     "willingness to furnish bond and sureties",
     "undertakings (not tamper with evidence, attend court, not leave jurisdiction)",
     "prayer for bail",
@@ -160,13 +273,13 @@
       "id": "grounds",
       "name": "Grounds for Bail",
       "required": true,
-      "description": "No prima facie case, no need for custody, clean antecedents, false implication"
+      "description": "The grounds for bail that the brief gives, and no others, each stated as the brief puts it. Never a ground the brief does not state."
     },
     {
       "id": "triple_test",
-      "name": "Triple Test",
+      "name": "Flight, Evidence and Witnesses",
       "required": true,
-      "description": "Flight risk, tampering with evidence, influencing witnesses — all addressed"
+      "description": "Submissions on the risk of flight, of tampering with the evidence and of influencing witnesses, each reasoned only on facts the brief gives, with a blank where it gives none. Never a statement of fact the brief does not give."
     },
     {
       "id": "undertakings",
@@ -190,15 +303,15 @@
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Release the applicant {applicant} on bail in connection with FIR No. {fir_number} dated {fir_date} of Police Station {police_station}, under Section 480 of the BNSS, 2023;\nb) Direct release on such bond and sureties as this Hon'ble Court may deem fit;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
   "verificationTemplate": "VERIFICATION\n\nI, {applicant}, S/o {parentName}, aged about {age} years{custody_clause}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
-  "prompt_context": "Draft a Bail Application before the Magistrate / CJM under Section 480 of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (corresponding to Section 437 CrPC). DISTINCTION: Section 480 BNSS deals with bail by the trial court / magistrate; Section 483 BNSS deals with special powers of High Court / Sessions Court. The Magistrate's competence is limited — it cannot grant bail in offences punishable with death or imprisonment for life, unless certain conditions are met (under-18, woman, sick/infirm, no prima facie case after the court hears the prosecution). The application must: (1) establish particulars of FIR; (2) demonstrate offence is within Magistrate's bail competence; (3) address flight risk, tampering with evidence and influencing witnesses as reasoning on the facts in the brief, naming no judgment — where an authority would normally be cited, write [Authority — add if relied upon]; (4) show clean antecedents or contextualise; (5) furnish undertakings. Cite BNS for offences (never IPC), BNSS for procedural provisions.",
+  "prompt_context": "Draft a Bail Application before the Magistrate / CJM under Section 480 of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (corresponding to Section 437 CrPC). DISTINCTION: Section 480 BNSS deals with bail by the trial court / magistrate; Section 483 BNSS deals with special powers of High Court / Sessions Court. The Magistrate's competence is limited — it cannot grant bail in offences punishable with death or imprisonment for life, unless certain conditions are met (under-18, woman, sick/infirm, no prima facie case after the court hears the prosecution). The application must: (1) establish particulars of FIR; (2) demonstrate offence is within Magistrate's bail competence; (3) address flight risk, tampering with evidence and influencing witnesses as reasoning on the facts in the brief, naming no judgment — where an authority would normally be cited, write [Authority — add if relied upon]; (4) state the applicant's antecedents only as the BRIEF gives them, with a blank where it does not; (5) furnish undertakings. Cite BNS for offences (never IPC), BNSS for procedural provisions.",
   "promptInstructions": [
     "Draft a Bail Application before the Magistrate under Section 480 BNSS, 2023 (successor to Section 437 CrPC).",
     "Confirm at outset that the offence is within the Magistrate's bail competence under BNSS 480.",
     "If offence is punishable with death / life imprisonment, the Magistrate's powers are restricted — flag whether applicant falls in special categories (woman / under-18 / sick / infirm).",
-    "Set out FIR particulars and circumstances of arrest.",
-    "Apply the triple-test: flight risk (no — give antecedents and roots), tampering with evidence (no — give reasons), influencing witnesses (no — distance from witnesses).",
+    "Set out the FIR particulars and the circumstances of arrest as the BRIEF gives them. Use a blank for any of them the BRIEF does not give.",
+    "Address the risk of flight, of tampering with the evidence and of influencing witnesses as submissions, each written as \"It is submitted that ...\" and each reasoned only on facts the BRIEF gives (for example residence, family, occupation, antecedents, the stage of investigation). Do not state any such fact the BRIEF does not give. Where the BRIEF gives no fact for one of the three, write [To be confirmed: facts relied on to show no risk of <flight / tampering with the evidence / influencing witnesses>] for that one.",
     "Do not name any judgment. Where an authority on bail would normally be cited, write [Authority — add if relied upon].",
-    "If charge sheet has been filed, mention that custody is no longer required for investigation.",
+    "Only if the BRIEF states that the charge sheet has been filed, submit that custody is no longer required for investigation. Do not say that the charge sheet has been filed, or that investigation is complete, unless the BRIEF states it.",
     "Include undertakings: attend court on every date, not tamper with evidence, not leave jurisdiction.",
     "Use BNS section numbers for offences (never IPC).",
     "State every earlier bail application in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier bail application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result].",

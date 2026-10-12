@@ -6,3 +6,12 @@ process.env.ENCRYPTION_KEY = '00000000000000000000000000000000000000000000000000
 process.env.ANTHROPIC_API_KEY = 'sk-ant-test-dummy-key-for-testing-minimum-20';
 process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.LOG_LEVEL = 'error';
+
+// T-343: requireCurrentPrivacy is a pass-through for every existing drafting test, which sends no
+// x-user-privacy-version header. The real middleware is tested in t343-privacy-reaccept.test.ts
+// (it takes it back with jest.requireActual). Tests that jest.mock('@lawie/shared') themselves
+// replace this mock for their own file.
+jest.mock('@lawie/shared', () => ({
+  ...jest.requireActual('@lawie/shared'),
+  requireCurrentPrivacy: (_req: unknown, _res: unknown, next: () => void) => next(),
+}));

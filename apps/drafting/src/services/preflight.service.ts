@@ -32,12 +32,14 @@ import { Event } from '../models/Event.model';
 import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import {
   ChargedSection,
+  normaliseBnsSection,
+  parentSection,
   readChargedField,
-  readSectionsCharged,
   resolveBnsKey,
   resolveOffence,
 } from './bns-offence-resolver';
-import { fieldSourceOf, loadTemplateConfig } from './template-engine.service';
+import { lookupOldToNew } from './sections.service';
+import { fieldSourceOf, loadTemplateConfig, oldLawLine } from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -121,25 +123,59 @@ function parseSectionsCharged(templateId: string, value: unknown): ChargedSectio
   return readChargedField(value, fieldSourceOf(loadTemplateConfig(templateId), 'sections_charged'));
 }
 
-/**
- * The develop_staging split of sections_charged, verbatim: array entries, or the
- * string split on "," / ";", each with a leading BNS/BNSS/BSA stripped. Used ONLY
- * to word the old-law block exactly as before (Arjun, round 7c: T-277 changes
- * reading and labels, not gates).
- */
-function legacySectionParts(value: unknown): Array<{ raw: string; shown: string }> {
-  const raws = Array.isArray(value) ? value.map((v) => str(v)) : str(value).split(/[,;]+/);
-  return raws
-    .map((raw) => ({ raw, shown: raw.replace(/^(BNS|BNSS|BSA)\s*/i, '').trim() }))
-    .filter((p) => p.shown);
-}
-
-const OLD_LAW_CODES = new Set(['IPC', 'CRPC', 'IEA']);
-
 /** Display: a BNS number as before ("303"); another code named ("IPC 302"); bare as typed. */
 function sectionLabel(e: ChargedSection): string {
   if (e.code === null || e.code === 'BNS') return e.number;
   return `${e.code === 'CRPC' ? 'CrPC' : e.code} ${e.number}`;
+}
+
+/** True when `a` is `b` or an ancestor of `b` along the T-277 parentSection chain. */
+function isSelfOrAncestor(a: string, b: string): boolean {
+  for (let k: string | null = b; k; k = parentSection(k)) if (k === a) return true;
+  return false;
+}
+
+/**
+ * T-324 sub-section rule: the table's BNS target and the attached BNS section match
+ * when, after normaliseBnsSection, one is the other or an ancestor of it (T-277
+ * parentSection chain). "303" matches a "303(2)" target and "303(2)(a)" does too;
+ * siblings ("303(1)" vs "303(2)") and different sections never match.
+ */
+function sameBnsSection(tableTarget: string, attached: string): boolean {
+  const t = normaliseBnsSection(tableTarget);
+  const a = normaliseBnsSection(attached);
+  if (!t || !a) return false;
+  return isSelfOrAncestor(t, a) || isSelfOrAncestor(a, t);
+}
+
+/**
+ * T-324 (Arjun's alias follow-up to T-295; Ajay's condition): indices in `sections`
+ * of IPC alias entries whose old-law finding is skipped. The attached entry is the
+ * reader's `attachedTo` (recorded before dedupe). Skip only when it is an explicit
+ * BNS entry AND the signed T-267 table (via lookupOldToNew) maps the IPC number to it.
+ * CrPC / IEA aliases, a missing or non-BNS attachedTo, IPC numbers with no BNS
+ * target, and any lookup failure keep the warning.
+ */
+async function bnsMatchedAliasIndices(sections: ChargedSection[]): Promise<Set<number>> {
+  const skip = new Set<number>();
+  for (let i = 0; i < sections.length; i++) {
+    const e = sections[i];
+    const attached = e.attachedTo;
+    if (!e.alias || e.code !== 'IPC' || attached?.code !== 'BNS') continue;
+    try {
+      const row = await lookupOldToNew(e.number, 'IPC');
+      if (
+        row?.new_code === 'BNS' &&
+        row.new_section &&
+        sameBnsSection(row.new_section, attached.number)
+      ) {
+        skip.add(i);
+      }
+    } catch {
+      // Lookup unavailable: keep the warning (never skip on an unknown).
+    }
+  }
+  return skip;
 }
 
 /** Levenshtein distance ≤ 2 (used for name-match check D1) */
@@ -231,28 +267,22 @@ async function runPureRules(
     });
   }
 
-  // ── HARD BLOCK #3: BNS section not in whitelist ──────────────────────────
+  // ── BNS whitelist (hard, #3) / old-law section (soft, T-295) / no code (soft) ──
   const sections = parseSectionsCharged(templateId, formData['sections_charged']);
-  // Round 7c: an explicit IPC / CrPC / IEA entry (alias included) keeps exactly the
-  // develop_staging outcome. Such a part was never a table key, so it hard-blocked
-  // with the part, as split and shown there, in the message.
-  const pickerDefault =
-    fieldSourceOf(loadTemplateConfig(templateId), 'sections_charged') === 'bns_mapping' &&
-    Array.isArray(formData['sections_charged'])
-      ? 'BNS'
-      : undefined;
-  for (const part of legacySectionParts(formData['sections_charged'])) {
-    const read = readSectionsCharged(part.raw, pickerDefault);
-    if (read.some((e) => e.code !== null && OLD_LAW_CODES.has(e.code))) {
-      findings.push({
-        rule_id: 'section_whitelist',
-        severity: 'hard',
-        question: `BNS Section ${part.shown} is not in the First Schedule (recognised BNS offences). Please verify — this may be a typo or hallucination.`,
-      });
-    }
-  }
-  for (const e of sections) {
-    if (e.code === null) {
+  // `sections` comes from the T-277 reader, already deduped on (code, number).
+  const matchedAliases = await bnsMatchedAliasIndices(sections);
+  for (const [i, e] of sections.entries()) {
+    // T-295 (Priya's soft decision; Arjun's ruling: the T-277 reader, not a per-part
+    // loop): an IPC / CrPC / IEA entry is a SOFT warning carrying Ajay's signed line.
+    // Never a section_whitelist finding; an old-law number never goes through the BNS
+    // whitelist. T-245 will make this date-aware.
+    // T-324: an IPC alias on a BNS entry the T-267 table maps it to gets no finding.
+    const oldLine = oldLawLine(e.code, e.number);
+    if (oldLine) {
+      if (!matchedAliases.has(i)) {
+        findings.push({ rule_id: 'old_law_section', severity: 'soft', question: oldLine });
+      }
+    } else if (e.code === null) {
       // Arjun (step 7 correction): a bare number is a soft warning, never a block,
       // and is never looked up in the BNS table.
       findings.push({

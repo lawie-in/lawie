@@ -206,12 +206,13 @@ describe('T-210 AC2 - errorHandler logs', () => {
       expect(s).not.toContain(raw);
   });
 
-  it('masks an email in the url', () => {
+  it('logs the url as the path only (T-242): no query, no email', () => {
     const { arg } = run(new Error('x'), req);
-    expect((arg.req as { url: string }).url).toBe(
-      `/auth/register?email=q%40x.com&ref=${EMAIL_MASK}`,
-    );
+    const url = (arg.req as { url: string }).url;
+    expect(url).toBe('/auth/register');
+    expect(url).not.toContain('?');
     expect(JSON.stringify(arg)).not.toContain('me@x.com');
+    expect(JSON.stringify(arg)).not.toContain('q%40x.com');
   });
 
   it('real serialized output of the logged object has no PII, still responds normally', () => {

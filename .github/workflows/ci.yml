@@ -43,6 +43,7 @@ jobs:
       auth: ${{ steps.filter.outputs.auth }}
       drafting: ${{ steps.filter.outputs.drafting }}
       billing: ${{ steps.filter.outputs.billing }}
+      email-worker: ${{ steps.filter.outputs.email-worker }}
       shared: ${{ steps.filter.outputs.shared }}
     steps:
       - uses: actions/checkout@v4
@@ -59,6 +60,10 @@ jobs:
               - 'scripts/golden-set/**'
             billing:
               - 'apps/billing/**'
+            # T-320: email-worker builds against email-client's dist; shared changes come in via the shared filter.
+            email-worker:
+              - 'apps/email-worker/**'
+              - 'packages/email-client/**'
             shared:
               - 'packages/shared/**'
               - 'package.json'
@@ -215,6 +220,45 @@ jobs:
         if: always()
         with:
           flags: billing
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ── Test Email worker (T-320) ───────────────────────────────────────────
+  # Redis service for the T-220 AC4 retry/replay test (real BullMQ queue, forced provider
+  # error, dry-run provider). No Mongo. src/__tests__/setupEnv.ts sets the other env vars.
+  test-email-worker:
+    name: Test — Email worker
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.email-worker == 'true' || needs.changes.outputs.shared == 'true'
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      # email-worker resolves @lawie/email-client from its dist, so build it first.
+      - run: yarn workspace @lawie/email-client build
+      - run: yarn workspace @lawie/email-worker build
+      - run: yarn workspace @lawie/email-worker test
+      - uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          flags: email-worker
           token: ${{ secrets.CODECOV_TOKEN }}
 
   # ── Golden set (T-147e) ──────────────────────────────────────────────────

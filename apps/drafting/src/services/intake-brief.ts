@@ -62,6 +62,10 @@ export interface ChecklistItem {
   showIf?: string;
   /** Option ids, in the same order as `options` (T-153), for `showIf`. */
   optionIds?: string[];
+  /** T-190: the pack's own question, exactly as the pack writes it (`source: 'pack'`). */
+  question?: string;
+  /** T-190: an optional fact the pack asks for when it is empty, after every required fact. */
+  askWhenEmpty?: boolean;
 }
 
 export type ValueSource = 'description' | 'user';
@@ -96,6 +100,19 @@ export interface BriefItem {
   /** The blank the draft will show while this is not given. */
   placeholder: string;
   party_name: boolean;
+  /**
+   * T-190: the advocate answered "Not known" or "Not given", or "none" on a fact
+   * that must be present to be used (Ajay, condition 5). No value is placed and
+   * no fact is written, but the fact counts as asked: it is not asked again.
+   */
+  asked_empty?: true;
+  /**
+   * T-336 (T-190 AC8 without the ledger): a "none" for earlier bail
+   * applications read from the description, not yet confirmed by the advocate.
+   * The value stays on the brief, marked "Please check", and is asked to
+   * confirm; until then the draft treats it as unknown and shows its blank.
+   */
+  unconfirmed?: true;
 }
 
 export interface BriefCourt {
@@ -138,6 +155,13 @@ export interface BriefQuestion {
   label: string;
   kind: ValueKind;
   options: string[];
+  /** T-190: the question is the pack's own signed text, asked as written. */
+  source?: 'pack';
+  /**
+   * T-190 (AC8): asked to confirm a value the brief already shows, because the
+   * ledger holds no fact for it. It stays open until the advocate answers it.
+   */
+  confirm?: boolean;
 }
 
 export const QUESTION_LIMITS = { perRound: 5, rounds: 2 } as const;
@@ -445,6 +469,8 @@ export function buildChecklist(pack: RulePack): ChecklistItem[] {
       ...(fact.option_ids && fact.option_ids.length === options.length
         ? { optionIds: fact.option_ids }
         : {}),
+      ...(fact.question?.source === 'pack' ? { question: fact.question.text } : {}),
+      ...(fact.ask_when_empty === true ? { askWhenEmpty: true } : {}),
     });
   }
 
@@ -978,6 +1004,65 @@ function canonical(item: ChecklistItem, value: string | string[]): string | stri
   return Array.isArray(value) ? value.map((v) => v.trim()) : value.trim();
 }
 
+// ── Answers that write no fact (T-190, Ajay's conditions 3 and 5) ───────────
+//
+// LEGAL CONTENT: the lists are Ajay's (T-190 sign-off, 11 Oct 2026, and his
+// rulings of 12 Oct 2026). Do not change them without his sign-off.
+
+/**
+ * T-190 AC8: the fact asked straight after the party names, ahead of every
+ * other question, because leaving it out risks suppressing an earlier bail
+ * application (Kusha Duruka v. State of Odisha, SC, 2024).
+ */
+export const PROTECTED_QUESTION_KEY = 'earlier_bail_applications';
+
+/** Condition 3: these choices write no fact. */
+const NOT_KNOWN_ANSWERS = new Set(['not known', 'not given']);
+
+/** Condition 5: the facts used only when present. A "none" answer on them writes no fact. */
+const NONE_IS_EMPTY_KEYS = new Set([
+  'medical_condition',
+  'local_ties',
+  'co_accused_bail_court',
+  'co_accused_bail_date',
+  'dependants',
+]);
+
+/**
+ * Case, spacing and punctuation folded: "N/A." reads as "n a". The same folding
+ * as the averment conditions (`averments.ts`), so a value compares here as it
+ * would there.
+ */
+export function foldAnswer(v: string): string {
+  return normalise(v)
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/** Condition 5: "none" in the advocate's words, folded. */
+const NONE_ANSWERS = new Set(
+  ['none', 'nil', 'no', 'not applicable', 'n/a', 'nahi', 'koi nahi', 'kuch nahi'].map(foldAnswer),
+);
+
+/**
+ * True when this answer writes no fact (T-190), on a fact the pack asks for
+ * when empty only: "Not known" or "Not given", or a "none" answer on a fact
+ * that is used only when present (`medical_condition`, `local_ties`, `co_accused_bail_court`,
+ * `co_accused_bail_date`, `dependants`).
+ */
+export function isNoFactAnswer(
+  item: Pick<ChecklistItem, 'key' | 'askWhenEmpty'>,
+  value: string,
+): boolean {
+  const folded = foldAnswer(value);
+  if (folded === '') return false;
+  // Only on a fact the bail pack asks for when empty, so another pack that
+  // reuses a key such as `dependants` is not affected.
+  if (item.askWhenEmpty !== true) return false;
+  if (NOT_KNOWN_ANSWERS.has(folded)) return true;
+  return NONE_IS_EMPTY_KEYS.has(lastSegment(item.key)) && NONE_ANSWERS.has(folded);
+}
+
 // ── Building the brief ──────────────────────────────────────────────────────
 
 export interface GivenValue {
@@ -1008,6 +1093,12 @@ export interface BuildBriefInput {
   extraUnknowns?: string[];
   /** Keys an edited description left unclear (T-150): marked `reask` while empty. */
   reask?: readonly string[];
+  /**
+   * T-336: the answers that would make earlier bail applications aver "no
+   * earlier bail application" (the pack's `first_bail_application` values).
+   * Such a value read from the description is marked `unconfirmed`.
+   */
+  holdNone?: readonly string[];
 }
 
 function clean(s: unknown): string | null {
@@ -1147,6 +1238,8 @@ export function buildBrief(input: BuildBriefInput): Brief {
 
   const placed = new Map<string, GivenValue>();
   const unplaced = new Map<string, { label: string; value: string | string[] }>();
+  /** T-190: facts answered "Not known", or "none" where only a present fact is used. */
+  const askedEmpty = new Set<string>();
   for (const given of input.values) {
     if (isEmpty(given.value) || isDeclinedUndertaking(given)) continue;
     let item = byKey.get(given.key);
@@ -1154,14 +1247,37 @@ export function buildBrief(input: BuildBriefInput): Brief {
       const sameName = byName.get(lastSegment(given.key)) ?? [];
       if (sameName.length === 1) item = sameName[0];
     }
+    if (item && typeof given.value === 'string' && isNoFactAnswer(item, given.value)) {
+      // No value is placed: the draft shows no fact for it. Only the advocate's
+      // own answer or typed value marks it asked; the same words read from the
+      // description leave it to be asked (T-190 review round 1).
+      unplaced.delete(given.key);
+      if (given.source === 'user') {
+        placed.delete(item.key);
+        askedEmpty.add(item.key);
+      }
+      continue;
+    }
     if (!item || checkUserValue(item, given.value) !== null) {
       const label = clean(given.label) ?? lastSegment(given.key).replace(/_/g, ' ');
       unplaced.set(given.key, { label, value: given.value });
       continue;
     }
     unplaced.delete(given.key);
+    askedEmpty.delete(item.key);
     placed.set(item.key, { ...given, key: item.key, value: canonical(item, given.value) });
   }
+
+  // T-336: a "none" on earlier bail applications read from the description is
+  // held until the advocate confirms it. The later entry for a key wins, so the
+  // advocate's own answer replaces it and clears the mark.
+  const holdNone = new Set((input.holdNone ?? []).map(foldAnswer).filter((v) => v !== ''));
+  const unconfirmed = (given: GivenValue | undefined): boolean =>
+    given !== undefined &&
+    given.source === 'description' &&
+    lastSegment(given.key) === PROTECTED_QUESTION_KEY &&
+    typeof given.value === 'string' &&
+    holdNone.has(foldAnswer(given.value));
 
   // T-153: a fact the form hides (show_if false) is not asked and shows no blank.
   const hidden = hiddenByShowIf(input.checklist, placed);
@@ -1201,6 +1317,8 @@ export function buildBrief(input: BuildBriefInput): Brief {
         ...(meaning !== undefined ? { meaning } : {}),
         placeholder: placeholderFor(meaning ?? item.label),
         party_name: item.partyName,
+        ...(!given && askedEmpty.has(item.key) ? { asked_empty: true as const } : {}),
+        ...(unconfirmed(given) ? { unconfirmed: true as const } : {}),
       };
     });
 
@@ -1345,6 +1463,8 @@ export interface EditedDescriptionResult {
  * - It says nothing: the earlier answer stays, unmarked.
  * - A name is never replaced. When the description gives a different name, the
  *   typed name stays and is marked "Please check".
+ * - T-335: an answer that writes no fact ("Not known", `isNoFactAnswer`) is
+ *   never replaced or cleared by the new description.
  *
  * Only an edited description comes here (`descriptionWasEdited`). A first
  * description has no earlier answers, so it never does.
@@ -1373,6 +1493,18 @@ export function valuesAfterEditedDescription(
     if (!item && !given.key.startsWith('fixed.')) {
       const sameName = byName.get(lastSegment(given.key)) ?? [];
       if (sameName.length === 1) item = sameName[0];
+    }
+    // T-335 (Arjun, 12 Oct 2026): the advocate's "Not known" stays until the
+    // advocate removes it, even when the new description gives a value. This
+    // overrides Rule A for that case only.
+    if (
+      item &&
+      given.source === 'user' &&
+      typeof given.value === 'string' &&
+      isNoFactAnswer(item, given.value)
+    ) {
+      kept.push(given);
+      continue;
     }
     if (item && isNameItem(item) && !isEmpty(given.value)) {
       const now = read.get(item.key);
@@ -1437,6 +1569,17 @@ function fallbackQuestion(item: BriefItem): string {
   return `Please give: ${what.replace(/[?.:]+\s*$/, '')}.`;
 }
 
+/** T-190: what `buildQuestions` needs to ask the pack's own questions. */
+export interface PackQuestionInput {
+  /** The brief's checklist: each fact's pack question and `askWhenEmpty`. */
+  checklist?: readonly ChecklistItem[];
+  /** Facts asked to confirm a value the brief already shows (T-190 AC8). */
+  confirm?: ReadonlySet<string>;
+}
+
+/** T-190: the pack's optional questions rank after every part of the required ones. */
+const OPTIONAL_PACK_RANK = 10;
+
 /**
  * One question for each required fact that is missing, in Ajay's order: the
  * names of the parties, then the numbers and dates that identify the case, then
@@ -1445,6 +1588,11 @@ function fallbackQuestion(item: BriefItem): string {
  * The model words the questions. It does not decide which are asked: a
  * question about a fact that is not missing, or not on the checklist, is
  * dropped, and a missing fact with no question gets one written from its label.
+ *
+ * T-190: with the pack's checklist, an empty optional fact the pack asks for
+ * (`askWhenEmpty`) is asked too, after every required fact, in pack order, in
+ * the pack's own words. Earlier bail applications is asked straight after the
+ * party names, inside the cap. A fact answered "Not known" is not asked again.
  */
 export function buildQuestions(
   brief: Brief,
@@ -1457,50 +1605,86 @@ export function buildQuestions(
    * are kept within the cap before any other question.
    */
   alwaysAsk: ReadonlySet<string> = new Set(),
+  /**
+   * T-190: the pack's own questions. `checklist` gives each fact's pack
+   * question and `askWhenEmpty`; `confirm` holds facts asked to confirm a value
+   * the brief already shows (AC8). Without it, nothing changes.
+   */
+  pack: PackQuestionInput = {},
 ): BriefQuestion[] {
   const cap = QUESTION_LIMITS.perRound * QUESTION_LIMITS.rounds;
+  const packItems = new Map((pack.checklist ?? []).map((i) => [i.key, i]));
+  const confirm = pack.confirm ?? new Set<string>();
+  const askWhenEmpty = (item: BriefItem): boolean =>
+    packItems.get(item.key)?.askWhenEmpty === true && isEmpty(item.value) && !item.asked_empty;
+  const confirming = (item: BriefItem): boolean =>
+    confirm.has(item.key) && packItems.get(item.key)?.askWhenEmpty === true;
+  // T-190 AC8: earlier bail applications, asked straight after the party names.
+  const isProtected = (item: BriefItem): boolean =>
+    !item.party_name &&
+    lastSegment(item.key) === PROTECTED_QUESTION_KEY &&
+    (askWhenEmpty(item) || confirming(item));
   const sorted = brief.items
     .map((item, index) => ({ item, index }))
     .filter(
       ({ item }) =>
         alwaysAsk.has(item.key) ||
-        ((item.required || alsoAsk.has(item.key)) && isEmpty(item.value)),
+        ((item.required || alsoAsk.has(item.key)) && isEmpty(item.value)) ||
+        askWhenEmpty(item) ||
+        confirming(item),
     )
     .sort((a, b) => {
       // A fact an edited description left unclear comes straight after the
       // party names, so the cap never leaves it unasked (T-150).
+      // T-190: the pack's optional questions come after every required fact,
+      // in the pack's order.
       const rank = (item: BriefItem): number =>
         item.party_name
           ? 0
-          : alsoAsk.has(item.key) || alwaysAsk.has(item.key)
-            ? 0.5
-            : PART_ORDER[item.part];
+          : isProtected(item)
+            ? 0.25
+            : alsoAsk.has(item.key) || alwaysAsk.has(item.key)
+              ? 0.5
+              : !item.required && (askWhenEmpty(item) || confirming(item))
+                ? OPTIONAL_PACK_RANK
+                : PART_ORDER[item.part];
       const pa = rank(a.item);
       const pb = rank(b.item);
       return pa - pb || a.index - b.index;
     });
   // Ajay's order for the cap (T-147b): the party names keep their places first,
+  // then earlier bail applications (T-190 AC8, inside the cap, never an 11th),
   // then what the ledger could not read, then the rest. Party names rank first
   // in `sorted`, so with no `alwaysAsk` this is the first `cap` of it, as before.
   const parties = sorted.filter(({ item }) => item.party_name).slice(0, cap);
-  const always = sorted
-    .filter(({ item }) => !item.party_name && alwaysAsk.has(item.key))
+  const protectedOnes = sorted
+    .filter(({ item }) => isProtected(item))
     .slice(0, cap - parties.length);
-  const room = cap - parties.length - always.length;
+  const always = sorted
+    .filter(({ item }) => !item.party_name && !isProtected(item) && alwaysAsk.has(item.key))
+    .slice(0, cap - parties.length - protectedOnes.length);
+  const room = cap - parties.length - protectedOnes.length - always.length;
   const others = sorted
-    .filter(({ item }) => !item.party_name && !alwaysAsk.has(item.key))
+    .filter(({ item }) => !item.party_name && !isProtected(item) && !alwaysAsk.has(item.key))
     .slice(0, room);
-  const kept = new Set([...parties, ...always, ...others]);
+  const kept = new Set([...parties, ...protectedOnes, ...always, ...others]);
   const missing = sorted.filter((m) => kept.has(m));
 
-  return missing.map(({ item }, i) => ({
-    key: item.key,
-    question: cleanQuestion(worded.get(item.key)) ?? fallbackQuestion(item),
-    round: i < QUESTION_LIMITS.perRound ? 1 : 2,
-    label: item.label,
-    kind: item.kind,
-    options: item.options,
-  }));
+  return missing.map(({ item }, i) => {
+    // T-190: the pack's question is asked exactly as signed, at any length
+    // (Arjun, condition 1). A model's wording keeps the 240-character limit.
+    const own = packItems.get(item.key)?.question;
+    return {
+      key: item.key,
+      question: own ?? cleanQuestion(worded.get(item.key)) ?? fallbackQuestion(item),
+      round: i < QUESTION_LIMITS.perRound ? 1 : 2,
+      label: item.label,
+      kind: item.kind,
+      options: item.options,
+      ...(own !== undefined ? { source: 'pack' as const } : {}),
+      ...(confirming(item) ? { confirm: true } : {}),
+    };
+  });
 }
 
 /** The model's questions, by checklist key. Anything that is not text is ignored. */

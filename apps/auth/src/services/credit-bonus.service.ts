@@ -15,6 +15,7 @@
  */
 import mongoose from 'mongoose';
 
+import logger from '../config/logger';
 import { User } from '../models/User.model';
 
 export const DAILY_LOGIN_BONUS = 2;
@@ -24,8 +25,26 @@ export const DAILY_LOGIN_BONUS = 2;
 export const SIGNUP_BONUS_CREDITS = 5;
 
 /**
+ * T-351 (Priya, on the founder's delegation, 12 Oct 2026): no free Ink until the address is
+ * verified. Google sign-in counts as verified. This filter goes inside each bonus's atomic
+ * findOneAndUpdate, so the eligibility check and the grant are one write: an unverified email
+ * user matches nothing, gets nothing, and has no idempotency marker (signupBonusGrantedAt /
+ * lastLoginBonusAt) stamped. Calling grantSignupBonus again after T-223 sets emailVerified
+ * then grants it exactly once (the signupBonusGrantedAt guard still applies).
+ */
+const VERIFIED_FOR_BONUS = {
+  $or: [
+    { authProvider: 'google' },
+    { emailVerified: true },
+    // T-351 (Priya, ruling A): a linked googleId counts as verified (pre-T-299 and linked accounts).
+    { googleId: { $exists: true, $nin: [null, ''] } },
+  ],
+};
+
+/**
  * Grant the daily login bonus if the user hasn't received it today.
- * Returns the amount granted (0 if already claimed today).
+ * Returns the amount granted (0 if already claimed today, or if the user is an email user
+ * whose address is not verified yet — T-351).
  */
 export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
@@ -33,13 +52,19 @@ export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
   startOfToday.setHours(0, 0, 0, 0);
 
   // Atomic guard — only one of two simultaneous logins grants.
+  // T-351: and only for a Google or verified-email user (VERIFIED_FOR_BONUS).
   const updated = await User.findOneAndUpdate(
     {
       _id: new mongoose.Types.ObjectId(userId),
-      $or: [
-        { lastLoginBonusAt: { $exists: false } },
-        { lastLoginBonusAt: null },
-        { lastLoginBonusAt: { $lt: startOfToday } },
+      $and: [
+        {
+          $or: [
+            { lastLoginBonusAt: { $exists: false } },
+            { lastLoginBonusAt: null },
+            { lastLoginBonusAt: { $lt: startOfToday } },
+          ],
+        },
+        VERIFIED_FOR_BONUS,
       ],
     },
     {
@@ -49,6 +74,7 @@ export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
     { new: true },
   ).lean();
 
+  // null → already claimed today, unverified email user (T-351), or no such user.
   if (!updated) return 0;
 
   await writeLedgerRow({
@@ -74,6 +100,13 @@ export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
  * the signup seed). balanceAfter comes from the document the update returns. Do NOT add
  * inkTopup to the auth schema (a default would break $exists guards elsewhere).
  * The once-per-user guard is the referredVia claim in applyReferralCode.
+ *
+ * T-299 (from T-234): the grant is also idempotent per user on its own. The $inc only matches a
+ * user with no referralInkGrantedAt ($exists: false, Arjun), and the same update stamps referralInkGrantedAt and
+ * referralInkCode, so the marker and the Ink land together or not at all. A retry credits
+ * nothing (returns 0), and referralInkLanded() can tell, after a throw, whether this grant landed.
+ * The marker sits on the user document, not in inkledger, because the ledger insert is a second
+ * write that can fail on its own (swallowed below) after the $inc has landed.
  */
 export async function grantReferralInk(
   userId: string,
@@ -88,13 +121,19 @@ export async function grantReferralInk(
   const inkUnits = bonusInk * 2;
   const freeTierBonus = bonusInk * 5;
 
-  const updated = await conn.db
-    .collection('users')
-    .findOneAndUpdate(
-      { _id: new mongoose.Types.ObjectId(userId) },
-      { $inc: { inkTopup: inkUnits }, $set: { freeTierBonusGrant: freeTierBonus } },
-      { returnDocument: 'after' },
-    );
+  const updated = await conn.db.collection('users').findOneAndUpdate(
+    // T-299 (Arjun): no match means already granted (or no such user); credit nothing.
+    { _id: new mongoose.Types.ObjectId(userId), referralInkGrantedAt: { $exists: false } },
+    {
+      $inc: { inkTopup: inkUnits },
+      $set: {
+        freeTierBonusGrant: freeTierBonus,
+        referralInkGrantedAt: new Date(),
+        referralInkCode: referralCode,
+      },
+    },
+    { returnDocument: 'after' },
+  );
   if (!updated) return 0;
 
   try {
@@ -108,18 +147,39 @@ export async function grantReferralInk(
       metadata: { referralCode, bonusInk },
       createdAt: new Date(),
     });
-  } catch (err) {
-    console.warn(
-      '[auth] referral ink ledger insert failed:',
-      err instanceof Error ? err.message : err,
-    );
+  } catch {
+    // T-299 (Arjun): best effort, logged without PII, never retried into a second $inc.
+    // userId only: the error text can echo document values (T-210 no-PII rule).
+    logger.warn({ userId }, 'Referral Ink ledger insert failed; Ink was credited');
   }
 
   return inkUnits;
 }
 
 /**
+ * T-299 — true if grantReferralInk has credited this user for this code (the marker it sets in
+ * the same update as the $inc is present). Used after a throw to tell a lost reply from a lost
+ * write. Throws if the database cannot be read; the caller decides what that means.
+ */
+export async function referralInkLanded(userId: string, referralCode: string): Promise<boolean> {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return false;
+  const conn = mongoose.connection;
+  if (!conn.db) return false;
+  const row = await conn.db.collection('users').findOne(
+    {
+      _id: new mongoose.Types.ObjectId(userId),
+      referralInkGrantedAt: { $exists: true },
+      referralInkCode: referralCode,
+    },
+    { projection: { _id: 1 } },
+  );
+  return row !== null;
+}
+
+/**
  * Grant SIGNUP_BONUS_CREDITS to a newly-registered user.
+ * T-351: grants nothing to an email user whose address is not verified yet; call again once
+ * it is (T-223) and it grants then.
  * Idempotent — uses signupBonusGrantedAt as an atomic guard so retries,
  * double-taps, or supervisor restarts never credit the user twice.
  * Non-fatal — never throws.
@@ -130,7 +190,12 @@ export async function grantSignupBonus(userId: string): Promise<void> {
   const updated = await User.findOneAndUpdate(
     {
       _id: new mongoose.Types.ObjectId(userId),
-      $or: [{ signupBonusGrantedAt: { $exists: false } }, { signupBonusGrantedAt: null }],
+      $and: [
+        { $or: [{ signupBonusGrantedAt: { $exists: false } }, { signupBonusGrantedAt: null }] },
+        // T-351: Google or verified email only. An unverified call matches nothing and leaves
+        // signupBonusGrantedAt unset, so a call after verification still grants (once).
+        VERIFIED_FOR_BONUS,
+      ],
     },
     {
       $inc: { earnedCredits: SIGNUP_BONUS_CREDITS },
@@ -139,7 +204,8 @@ export async function grantSignupBonus(userId: string): Promise<void> {
     { new: true },
   ).lean();
 
-  // null → already granted (or user not found). Skip ledger + drafting signal.
+  // null → already granted, unverified email user (T-351), or user not found.
+  // Skip ledger + Ink seed + drafting signal.
   if (!updated) return;
 
   await writeLedgerRow({

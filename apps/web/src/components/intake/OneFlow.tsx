@@ -48,6 +48,13 @@ import NoMatchStep from './NoMatchStep';
 import QuestionsStep from './QuestionsStep';
 
 import { PaywallModal } from '@/components/credits/PaywallModal';
+import {
+  PrivacyBlockedNotice,
+  isPrivacyBlocked,
+  privacyFetch,
+  privacyPrecheck,
+  usePrivacyDescribedBy,
+} from '@/components/PrivacyUpdatePrompt';
 import { apiFetch } from '@/lib/apiFetch';
 
 type Phase =
@@ -80,8 +87,20 @@ function outstandingKeys(ledger: Ledger | null | undefined): Set<string> {
 }
 
 /**
+ * T-190 (AC8): a confirm question stays open until the advocate answers it: a
+ * value they gave on the brief or the questions, an answer the ledger holds, or
+ * a "Not known".
+ */
+function confirmOpen(key: string, brief: Brief, ledger: Ledger | null | undefined): boolean {
+  const item = brief.items.find((i) => i.key === key);
+  if (!item || item.asked_empty || item.source === 'user') return false;
+  return !ledger?.facts.some((f) => f.key === key && f.source === 'asked');
+}
+
+/**
  * The questions of a round whose facts are still not given. With a ledger, a
  * key it could not read stays open even when the brief holds a value for it.
+ * T-190: a fact answered "Not known" is not open; a confirm question is.
  */
 function openQuestions(
   questions: BriefQuestion[],
@@ -90,8 +109,11 @@ function openQuestions(
   round?: 1 | 2,
 ) {
   if (!brief) return [];
-  const open = new Set(brief.items.filter((i) => isEmptyValue(i.value)).map((i) => i.key));
+  const open = new Set(
+    brief.items.filter((i) => isEmptyValue(i.value) && !i.asked_empty).map((i) => i.key),
+  );
   for (const key of outstandingKeys(ledger)) open.add(key);
+  for (const q of questions) if (q.confirm && confirmOpen(q.key, brief, ledger)) open.add(q.key);
   return questions.filter((q) => open.has(q.key) && (round === undefined || q.round === round));
 }
 
@@ -103,6 +125,7 @@ export default function OneFlow({
   loadingKinds: boolean;
 }) {
   const router = useRouter();
+  const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
   const [phase, setPhase] = useState<Phase>('describe');
   const [description, setDescription] = useState('');
   /** Set when the document was picked from "Browse document types". */
@@ -541,6 +564,8 @@ export default function OneFlow({
     async (retry: boolean) => {
       const current = briefRef.current;
       if (!current) return;
+      // T-343: ask before leaving the brief, so focus stays on the confirm button.
+      if (await privacyPrecheck('generate')) return;
       if (!retry) runId.current = undefined;
       setGenError(null);
       setRepairing(false);
@@ -553,7 +578,7 @@ export default function OneFlow({
       const described = (lastRead.current?.text || description).trim();
 
       try {
-        const res = await apiFetch('/api/documents/generate-from-brief', {
+        const res = await privacyFetch('generate', '/api/documents/generate-from-brief', {
           ...JSON_POST,
           body: JSON.stringify({
             kind,
@@ -572,6 +597,8 @@ export default function OneFlow({
               : {}),
           }),
         });
+        // T-343: privacy re-acceptance needed; the prompt or P7 box is shown. Back to the brief.
+        if (isPrivacyBlocked(res)) return setPhase('brief');
         const header = res.headers.get('X-Run-Id');
         if (header) runId.current = header;
 
@@ -883,6 +910,7 @@ export default function OneFlow({
     const outstandingRound: 1 | 2 = outstandingOpen[0]?.round ?? nextRound;
     return (
       <>
+        <PrivacyBlockedNotice actionKey="generate" />
         <BriefStep
           brief={brief}
           ledger={ledger}
@@ -910,6 +938,7 @@ export default function OneFlow({
           onEditDescription={editDescription}
           onCancel={cancel}
           onConfirm={() => void generate(false)}
+          confirmDescribedBy={privacyDescribedBy}
         />
         <ChangeDocumentDialog
           open={changeOpen}

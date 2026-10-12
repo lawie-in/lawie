@@ -51,3 +51,15 @@ Signed: Ajay (CLO), 12 Oct 2026 IST.
 | `split` | `Split across several sections — check which one applies` |
 
 No raw value (`merged`, `split` or any other) is ever shown as a badge; an unknown type shows no badge.
+
+## Addendum 2 (12 Oct 2026 IST): new provisions with no old equivalent (T-326)
+
+A row whose old side is a placeholder id (`NEW-1`, `NEW-2`, …) never shows or copies that id.
+
+| Place | Exact text |
+|---|---|
+| Old-code box (instead of "Section NEW-n") | `No equivalent in the {OldCode}` |
+| New-code box | the new section and its title, as for any other row |
+| Copy | `{NewCode} {n}` only (e.g. `BNS 111`); nothing for the old side |
+
+`{OldCode}` is `IPC`, `CrPC` or `IEA` (T-295 casing); `{NewCode}` is `BNS`, `BNSS` or `BSA`. The existing "No equivalent in old code" title from the seed is not shown on these rows (the box line replaces it).
