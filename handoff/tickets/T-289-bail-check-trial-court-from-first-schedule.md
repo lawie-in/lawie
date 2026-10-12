@@ -21,3 +21,7 @@ The bail check guesses the trial court from the maximum term ("3-7 years general
 - Design: Not needed (no layout change)
 - ADR: Not needed
 - Legal sign-off: Ajay (the column and the diff)
+
+## Follow-up (T-289 review, 12 Oct 2026, non-blocking)
+
+- `SectionFinderPanel.tsx` hard-codes a copy of the "Depends" text (COURT_LEVEL_DEPENDS). Share the signed constant, or have `/details` return the text, so the two cannot drift.
