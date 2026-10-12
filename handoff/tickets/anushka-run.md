@@ -476,3 +476,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Test only after the founder has reseeded develop (seed-sections --force), Ajay's condition.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-322 — a signed blank is accepted as is (e4523df)
+
+- An anticipatory, magistrate or default bail draft that leaves the prescribed "To be confirmed" blank for a missing fact is accepted as is. It is no longer sent back to the AI for a rewrite that could invent the fact.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
