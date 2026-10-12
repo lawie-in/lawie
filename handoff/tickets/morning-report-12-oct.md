@@ -86,3 +86,7 @@ Release check (Ajay, T-308 condition 1): before release, record here that the fo
 ## Mailbox check (Mahak, T-268, 12 Oct)
 
 Does the legal@lawie.in mailbox exist and get read? It is on Terms §14 and the Contact page. If not, tell Priya; both switch to contact@lawie.in.
+
+## HTTPS check on develop (Arjun, T-319, 12 Oct)
+
+Open the develop web app and confirm it loads on https:// with a padlock and no redirect loop. Google sign-in needs a secure address once T-319 merges. The real develop host config is not in the repo, so only you can check it. If it fails, tell Priya.
