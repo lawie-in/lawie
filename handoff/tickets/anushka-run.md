@@ -281,3 +281,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The FIR number must appear exactly, not inside a date, a longer number or a different FIR like "12-A", so a missing fact gets caught.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-115e (mahak, merged to develop_staging 2355979, 12 Oct 2026)
+
+Nothing changes on screen. When Lawie has no template for what a user describes, it records only the general category, never the user's words or names.
+
+Quality: nothing to test in the UI — a privacy change in stored records.
