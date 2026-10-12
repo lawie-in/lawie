@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Lead (build). Arjun (glance) |
 | Mode           | Small fix. Package config: `apps/drafting/package.json` |
-| Status         | To do. Unassigned. HIGH: CI and every crew run trust this build. Found by shashank, 12 Oct 2026 |
+| Status         | Merged to `develop_staging` (9ddda55, 12 Oct 2026). CI now builds drafting |
 
 ## Problem
 

@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (signed rule, 12 Oct 2026). Lead (build). Anushka (verdict) |
 | Mode           | Small fix after T-200 merges. Legal content (`brief-drafter.ts`, signed cue matching) |
-| Status         | To do. Unassigned. Queued for vishal after T-200 (his code). Raised by T-200's reviewer, ruled by Ajay |
+| Status         | Building: vishal (12 Oct 2026). Ajay signs the diff |
 | Depends on     | T-200 |
 
 ## Acceptance criteria

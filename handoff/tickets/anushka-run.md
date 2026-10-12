@@ -260,3 +260,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 Nothing to test in a browser: the case cannot be reproduced there.
 
 Quality: nothing to test in the UI — a rare fault path that no user can trigger on demand.
+
+## T-269 (vishal, merged to develop_staging 9ddda55, 12 Oct 2026)
+
+Nothing new on screen. The build now stops on a code error instead of hiding it, and CI checks it on every push.
+
+Quality: nothing to test in the UI — build and CI only.
