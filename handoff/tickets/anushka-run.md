@@ -136,3 +136,15 @@ Needs develop's section tables reseeded first (Arjun does this on develop; the c
 - Affidavits are no longer checked against an Evidence Act section that has nothing to do with affidavits.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-233 + T-271 (mahak, merged to develop_staging 0e965e7, 12 Oct 2026)
+
+- Bold, italic and underlined text, and drafts I never edited, now export to Word and PDF with their full text. (A draft I never edited used to give an empty Word file.)
+- The PDF has the wider 1.5 inch margin on the left, where the binding goes.
+- If an export fails I see "Export failed. Please try again." with Try again and Dismiss, instead of nothing happening. After a failed "Export anyway", Try again opens the blanks dialog again (by design).
+- "[To be confirmed: ...]" blanks are found and highlighted however they are capitalised.
+- On the privacy page I can reach and scroll the table with the keyboard alone.
+
+Note for her run: the 1.5 inch margin is on the browser-fallback PDF. A real .docx opened in Word and a measured PDF page were not checked by hand: check both.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
