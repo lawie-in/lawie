@@ -77,3 +77,17 @@ The ticket is marked SETTLED on Addendum 2 (8b2a4c1), and that is the rule. Adde
 - A daily unlink job runs. Redis TTL is 30 minutes.
 
 The ticket's SETTLED section (8b2a4c1) is the single source. Any change needs a new ticket.
+
+## Addendum 5 (12 Oct 2026 IST): the rule in full, self-contained (THIS IS THE RULE)
+
+The ticket (1b1de6a) now says "the rule is the latest addendum in this file", while Addendum 4 pointed back to the ticket, which left a loop. To close it, this addendum states the whole rule and refers to nothing else. It is the rule I have confirmed to Vishal and Priya:
+
+| Item | Rule |
+|---|---|
+| `FactLedger`, every version | Kept as long as its draft or matter exists. Hard delete (all versions) when the draft or matter is deleted, including today's soft-delete, or when the account is erased. |
+| Intake never drafted | `expiresAt` = 30 days after the last update, enforced by a TTL index. It is unset when a draft is generated. |
+| `intake_extract` rows | Unlinked (`userId` and `intakeId` removed) at the same moments. The daily job covers TTL-expired ledgers. |
+| Redis `intake_extract` key | 30-minute TTL, and deleted at the same moments. |
+| Fixtures | Synthetic data only. |
+
+Basis: DPDP Act 2023, s.8(7), s.8(5) and s.12. Within Privacy Policy §9. Addenda 1–4 are superseded. Any change needs a new ticket and a new addendum.
