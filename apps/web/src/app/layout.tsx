@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Lora } from 'next/font/google';
 
-import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
+import AnalyticsConsent from '@/components/AnalyticsConsent';
 import { AuthProvider } from '@/context/AuthContext';
 import './globals.css';
 
@@ -32,9 +32,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} ${lora.variable}`}>
-        {/* T-306: GA only on public allowlisted pages, page views without query or hash. */}
-        <GoogleAnalytics />
-        <AuthProvider>{children}</AuthProvider>
+        {/* T-310: the consent notice, first in the body content (design: focus order). GA loads
+            only after Accept, only on T-306's public allowlist, page views without query or hash. */}
+        <AnalyticsConsent />
+        {/* T-310: focus target after a first-time choice. A div, not <main>: the dashboard, admin,
+            login and review pages render their own <main>. tabindex is set only at focus time
+            (AnalyticsConsent's returnFocus), so the whole app is not a focusable region. */}
+        <div id="main" className="focus:outline-none">
+          <AuthProvider>{children}</AuthProvider>
+        </div>
       </body>
     </html>
   );
