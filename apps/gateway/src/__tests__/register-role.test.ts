@@ -6,7 +6,7 @@
  * request body unchanged to the upstream's /register, and (b) return the upstream's status and
  * body unchanged. It must not add, drop or rewrite `role` in either direction.
  *
- * The real auth behaviour (role forced to Client) is proven in
+ * The real auth behaviour (sign-up gives role Lawyer, T-298) is proven in
  * apps/auth/src/__tests__/register-role.test.ts. The real auth app cannot be loaded into the
  * gateway's ts-jest run: both apps augment Express.Request.jwtPayload with different types (TS2717).
  */
@@ -43,7 +43,7 @@ beforeAll(async () => {
   });
   await new Promise<void>((resolve) => upstream.listen(0, '127.0.0.1', resolve));
   process.env.AUTH_SERVICE_URL = `http://127.0.0.1:${(upstream.address() as AddressInfo).port}`;
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
   app = require('../app').default;
 });
 

@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build); Arjun if it needs a call |
 | Mode           | Small fix (root config) |
-| Status         | Building: mahak (12 Oct 2026) |
+| Status         | Merged into develop_staging (8db6fd3, 12 Oct 2026). Nothing to test in the UI |
 
 `.gitignore` has `docs/`, yet `docs/seeding.md` is tracked. When a commit touches it, lint-staged prints "[FAILED] paths are ignored … docs" and re-adds the file. The commit still goes through with every file intact, but the noise is alarming and could block a hook run where prettier really rewrites a docs file.
 

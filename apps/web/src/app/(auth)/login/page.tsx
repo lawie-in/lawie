@@ -23,7 +23,9 @@ type ServerError =
   | { kind: 'list'; items: string[] } // 422
   | { kind: 'conflict'; message: string } // 409
   | { kind: 'unauthorized' } // 401
-  | { kind: 'message'; message: string } // 403
+  | { kind: 'message'; message: string } // 403 (any other text)
+  | { kind: 'accountDeactivated' } // T-299: 403 with the deactivated text, or ?error=account_deactivated
+  | { kind: 'oauthFailed' } // T-299: ?error=oauth_failed or ?error=invalid_code
   | { kind: 'network' } // 429, 5xx, network
   | { kind: 'signInIncomplete' } // T-319: ?error=sign_in_incomplete from /auth/callback
   | { kind: 'insecureContext' }; // T-319: no crypto.subtle / getRandomValues (not https)
@@ -53,6 +55,36 @@ const REFERRAL_SHOWN_KEY = 'lawie_referral_shown';
 // T-319: the line for /login?error=sign_in_incomplete (no verifier in this tab at /auth/callback).
 // Approved by Ajay; change it only here.
 const SIGN_IN_INCOMPLETE_MESSAGE = "We couldn't finish signing you in. Please try again.";
+
+// T-299: the line for /login?error=oauth_failed and ?error=invalid_code (the Google sign-in did not
+// complete). Approved by Priya; change it only here.
+const OAUTH_FAILED_MESSAGE = "Google sign-in didn't work. Please try again.";
+
+// T-299: the deactivated-account line (Ajay). "Contact support" is rendered as a link to /contact
+// (Ajay's condition, Priya chose /contact), the same for ?error=account_deactivated and for a
+// password sign-in answered 403 with exactly the API text below.
+const DEACTIVATED_LEAD = 'Your account has been deactivated.';
+const DEACTIVATED_LINK_TEXT = 'Contact support';
+const CONTACT_HREF = '/contact';
+// Must equal the 403 text in apps/auth/src/services/auth.service.ts (loginUser). Matched exactly;
+// the API text itself is never rendered for this case.
+const DEACTIVATED_API_MESSAGE = 'Your account has been deactivated. Contact support.';
+
+// T-299: the fixed set of ?error= codes this page answers. Anything else shows nothing, and the
+// query value is never printed.
+function serverErrorFromQuery(code: string | null): ServerError | null {
+  switch (code) {
+    case 'oauth_failed':
+    case 'invalid_code':
+      return { kind: 'oauthFailed' };
+    case 'account_deactivated':
+      return { kind: 'accountDeactivated' };
+    case 'sign_in_incomplete':
+      return { kind: 'signInIncomplete' };
+    default:
+      return null;
+  }
+}
 
 // T-319 round 2: shown instead of the network error when the browser has no crypto.subtle or
 // crypto.getRandomValues (a non-secure origin). Approved by Arjun and Ajay; change it only here.
@@ -176,10 +208,9 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverInvalid, setServerInvalid] = useState<Set<Field>>(new Set());
-  // T-319: read ?error= once, on mount. Only sign_in_incomplete gets a message here (T-299 owns
-  // the other codes).
+  // T-319 / T-299: read ?error= once, on mount, and map it through the fixed set above.
   const [serverError, setServerError] = useState<ServerError | null>(() =>
-    searchParams.get('error') === 'sign_in_incomplete' ? { kind: 'signInIncomplete' } : null,
+    serverErrorFromQuery(searchParams.get('error')),
   );
   const [submitting, setSubmitting] = useState(false);
   const [referralNotice, setReferralNotice] = useState<string | null>(null);
@@ -434,6 +465,9 @@ function LoginContent() {
     } else if (res.status === 401) {
       setPassword('');
       setServerError({ kind: 'unauthorized' });
+    } else if (res.status === 403 && message === DEACTIVATED_API_MESSAGE) {
+      // T-299: same line and link as ?error=account_deactivated.
+      setServerError({ kind: 'accountDeactivated' });
     } else if (res.status === 403 && message) {
       setServerError({ kind: 'message', message });
     } else {
@@ -820,6 +854,19 @@ function LoginContent() {
                             </>
                           )}
                           {serverError.kind === 'message' && <p>{serverError.message}</p>}
+                          {serverError.kind === 'accountDeactivated' && (
+                            <p>
+                              {DEACTIVATED_LEAD}{' '}
+                              <Link
+                                href={CONTACT_HREF}
+                                className="font-semibold underline hover:text-red-900"
+                              >
+                                {DEACTIVATED_LINK_TEXT}
+                              </Link>
+                              .
+                            </p>
+                          )}
+                          {serverError.kind === 'oauthFailed' && <p>{OAUTH_FAILED_MESSAGE}</p>}
                           {serverError.kind === 'network' && <p>{NETWORK_MESSAGE}</p>}
                           {serverError.kind === 'insecureContext' && (
                             <p>{GOOGLE_NEEDS_HTTPS_MESSAGE}</p>

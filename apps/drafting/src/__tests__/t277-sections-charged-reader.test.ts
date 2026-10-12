@@ -74,12 +74,12 @@ describe('readSectionsCharged: Arjun round-4 fixtures', () => {
     expect(readSectionsCharged('BNS 64, 115(2) (IPC 376, 323)')).toEqual([
       { code: 'BNS', number: '64' },
       { code: 'BNS', number: '115(2)' },
-      { code: 'IPC', number: '376', alias: true },
-      { code: 'IPC', number: '323', alias: true },
+      { code: 'IPC', number: '376', alias: true, attachedTo: { code: 'BNS', number: '115(2)' } },
+      { code: 'IPC', number: '323', alias: true, attachedTo: { code: 'BNS', number: '115(2)' } },
     ]);
     expect(readSectionsCharged('BNS 64 (IPC 376), 115(2)')).toEqual([
       { code: 'BNS', number: '64' },
-      { code: 'IPC', number: '376', alias: true },
+      { code: 'IPC', number: '376', alias: true, attachedTo: { code: 'BNS', number: '64' } },
       { code: 'BNS', number: '115(2)' },
     ]);
   });
@@ -321,7 +321,7 @@ describe('preflight reads sections_charged with the shared reader', () => {
       expect(r.questions.join('\n')).not.toContain('Section 323 has no code');
     });
 
-    it('"BNS 303 (IPC 379)" (alias form) is soft with the IPC 379 line', async () => {
+    it('"BNS 303 (IPC 379)" (alias form) with no table row: the warning is kept (soft, IPC 379 line)', async () => {
       const { r, hits } = await run('BNS 303 (IPC 379)');
       expect(r.verdict).toBe('soft');
       expect(hits).toContain('old_law_section');

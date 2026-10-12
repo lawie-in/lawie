@@ -1644,7 +1644,7 @@ CRITICAL RULES:
 6. Generate ONLY the numbered body paragraphs as instructed. Do NOT include:
    - Any court header or cause-title block ("IN THE COURT OF..." / "IN THE HIGH COURT OF...") — the cause title is already rendered above by the template engine; a second copy corrupts the document (A7)
    - The prayer clause, verification clause, or advocate block
-   - The AI disclaimer text ("AI-assisted draft" / "Lawie does not provide legal advice") — it is auto-appended to the export footer and must NOT appear in the body (A6)
+   - The footer disclaimer ("First draft generated with AI" / "Lawie does not provide legal advice") — it is added to the export footer automatically and must NOT appear in the body (A6)
 7. Use today's date format (DD/MM/YYYY) where needed.${contractRule}
 
 ANTI-HALLUCINATION GUARDRAILS (MANDATORY):

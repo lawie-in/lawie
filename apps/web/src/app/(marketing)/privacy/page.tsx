@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 
 // Text signed by Ajay (CLO): handoff/legal/T-235-privacy-policy-signed.md, including the
 // erase-runbook changes to §7 and §9. Apply word for word; any other wording goes back to him.
+// T-308: §6 heading and body and the §5 Google row from handoff/legal/T-308-analytics-privacy-signed.md.
 
 const sections = [
   { id: 'collect', title: '1. Information We Collect' },
@@ -20,7 +21,7 @@ const sections = [
   { id: 'storage', title: '3. Where Data Is Stored, and Backups' },
   { id: 'encryption', title: '4. Encryption of Your Documents' },
   { id: 'third-party', title: '5. Who Else Receives Data' },
-  { id: 'browser-storage', title: '6. Browser Storage (no cookies)' },
+  { id: 'browser-storage', title: '6. Browser Storage and Cookies' },
   { id: 'rights', title: '7. Your Rights' },
   { id: 'clients', title: "8. Your Clients' Data" },
   { id: 'retention', title: '9. How Long We Keep Data' },
@@ -68,8 +69,8 @@ const providers = [
   {
     provider: 'Google',
     receives:
-      'Your name, email and Google account ID (if you use Google sign-in); your IP address when our pages load Google Fonts',
-    why: 'Sign-in; fonts',
+      'Your name, email and Google account ID (if you use Google sign-in); your IP address when our pages load Google Fonts; on our public pages only, your IP address, browser details and the address of the page you visit (Google Analytics)',
+    why: 'Sign-in; fonts; counting visits to public pages',
     where: 'May be outside India',
   },
   {
@@ -265,13 +266,15 @@ export default function PrivacyPage() {
                 </p>
               </section>
               <section id="browser-storage">
-                <h3>6. Browser Storage (no cookies)</h3>
+                <h3>6. Browser Storage and Cookies</h3>
                 <p>
-                  Lawie does not set its own cookies. To keep you signed in, we store a sign-in
-                  token in your browser&apos;s local storage; it carries your name and email. We
-                  also store your referral code and small display settings in your browser. Signing
-                  out removes the sign-in token. Clearing your browser&apos;s site data removes all
-                  of it.
+                  To keep you signed in, we store a sign-in token in your browser&apos;s local
+                  storage; it carries your name and email. We also store your referral code and
+                  small display settings in your browser. Signing out removes the sign-in token. On
+                  our public pages, the ones you can open without signing in, Google Analytics sets
+                  cookies whose names start with _ga so we can count visits. Google Analytics does
+                  not run on the sign-in pages or anywhere inside your account. Lawie sets no other
+                  cookies. Clearing your browser&apos;s site data removes all of it.
                 </p>
               </section>
               <section id="rights">

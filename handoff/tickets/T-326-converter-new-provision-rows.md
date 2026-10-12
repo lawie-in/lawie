@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (how it looks), Ajay (the words). Lead (build, web) |
 | Mode   | Small fix (web) |
-| Status | Building: tanvi (12 Oct 2026). Ajay signed 1bacf6b |
+| Status | Merged into develop_staging (d51311e, 12 Oct 2026). Waiting for Anushka on develop |
 
 In the section converter, reverse lookups for provisions that are new in BNS (no IPC equivalent) show "Section NEW-1" under the INDIAN PENAL CODE heading. Copy gives "Section NEW-1 IPC". Both look like a real IPC section.
 
