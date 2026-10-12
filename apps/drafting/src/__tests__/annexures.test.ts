@@ -32,10 +32,7 @@ import app from '../app';
 // eslint-disable-next-line import/order
 import { LawieDocument } from '../models/Document.model';
 // eslint-disable-next-line import/order
-import {
-  buildAnnexuresPack,
-  estimateBodyParaCount,
-} from '../services/annexures.service';
+import { buildAnnexuresPack, estimateBodyParaCount } from '../services/annexures.service';
 // eslint-disable-next-line import/order
 import { encrypt } from '../utils/encryption';
 // eslint-disable-next-line import/order
@@ -76,7 +73,6 @@ const BIHAR_FORM: Record<string, unknown> = {
   fir_date: '15.06.2024',
   incident_date: '10.06.2024',
   police_station: 'Kotwali PS',
-  advocate_name: 'Adv. Ravi Shankar',
   enrollment_number: 'BAR/2018/1234',
   sections_charged: ['103', '109'],
 };
@@ -95,7 +91,6 @@ const JHARKHAND_FORM: Record<string, unknown> = {
   fir_date: '20.01.2025',
   incident_date: '18.01.2025',
   police_station: 'Ranchi Sadar PS',
-  advocate_name: 'Adv. Sunita Kumari',
   enrollment_number: 'JHA/2020/567',
   sections_charged: ['103'],
 };
@@ -144,7 +139,11 @@ describe('buildAnnexuresPack — Bihar district', () => {
       return Promise.resolve(undefined);
     });
 
-    await buildAnnexuresPack({ formData: BIHAR_FORM, bodyParaCount: 8 });
+    await buildAnnexuresPack({
+      formData: BIHAR_FORM,
+      bodyParaCount: 8,
+      advocateName: 'Adv. Ravi Shankar',
+    });
   });
 
   it('contains Bihar district court designation', () => {
@@ -223,7 +222,11 @@ describe('buildAnnexuresPack — Jharkhand HC', () => {
       return Promise.resolve(undefined);
     });
 
-    await buildAnnexuresPack({ formData: JHARKHAND_FORM, bodyParaCount: 12 });
+    await buildAnnexuresPack({
+      formData: JHARKHAND_FORM,
+      bodyParaCount: 12,
+      advocateName: 'Adv. Sunita Kumari',
+    });
   });
 
   it('contains Jharkhand HC designation', () => {
@@ -424,16 +427,12 @@ describe('POST /documents/:id/annexures-pack', () => {
   });
 
   it('404 for non-existent document', async () => {
-    const res = await supertest(app)
-      .post('/000000000000000000000099/annexures-pack')
-      .set(AUTH);
+    const res = await supertest(app).post('/000000000000000000000099/annexures-pack').set(AUTH);
     expect(res.status).toBe(404);
   });
 
   it('200 for valid document → returns PDF headers', async () => {
-    const res = await supertest(app)
-      .post(`/${docId}/annexures-pack`)
-      .set(AUTH);
+    const res = await supertest(app).post(`/${docId}/annexures-pack`).set(AUTH);
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/application\/pdf/);
@@ -464,9 +463,7 @@ describe('POST /documents/:id/annexures-pack', () => {
       generatedContent: 'enc',
     });
 
-    const res = await supertest(app)
-      .post(`/documents/${otherDoc._id}/annexures-pack`)
-      .set(AUTH);
+    const res = await supertest(app).post(`/documents/${otherDoc._id}/annexures-pack`).set(AUTH);
     expect(res.status).toBe(404);
   });
 
