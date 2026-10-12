@@ -282,17 +282,34 @@ function SearchTab() {
 
 // ── Mapping Result Card ─────────────────────────────────────────────────────
 
+// Badge text per mapping_type. merged/split signed by Ajay (T-296 addendum,
+// handoff/legal/section-converter-copy-signed.md).
+const MAPPING_TYPE_BADGES: Record<string, string | undefined> = {
+  partial: 'Partial mapping — verify scope',
+  repealed: 'Repealed — no equivalent',
+  repealed_no_equivalent: 'Repealed — no equivalent',
+  unverified: 'Not verified',
+  merged: 'Merged with other sections — verify scope',
+  split: 'Split across several sections — check which one applies',
+};
+
 function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: boolean }) {
   const [copied, setCopied] = useState(false);
 
   const oldLabel = `Section ${mapping.old_section} ${mapping.old_code}`;
   const newLabel = `Section ${mapping.new_section} ${mapping.new_code}`;
   const copyText = reverse ? oldLabel : newLabel;
-  const repealedNoSection =
-    (mapping.mapping_type === 'repealed' || mapping.mapping_type === 'repealed_no_equivalent') &&
-    (mapping.new_section === null || mapping.new_section === undefined);
   const unverified = mapping.mapping_type === 'unverified';
+  // Any row without a new section shows 'None' (never "Section null"), whatever its mapping_type.
+  const repealedNoSection =
+    !unverified && (mapping.new_section === null || mapping.new_section === undefined);
   const hasNoSection = repealedNoSection || unverified;
+  // Unknown or 'direct' types get no badge; a raw mapping_type is never shown.
+  const mappingTypeBadge =
+    mapping.mapping_type &&
+    Object.prototype.hasOwnProperty.call(MAPPING_TYPE_BADGES, mapping.mapping_type)
+      ? MAPPING_TYPE_BADGES[mapping.mapping_type]
+      : undefined;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(copyText);
@@ -342,17 +359,10 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
         )}
 
         {/* Mapping Type */}
-        {mapping.mapping_type && mapping.mapping_type !== 'direct' && (
+        {mappingTypeBadge && (
           <div className="mt-2">
             <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-              {mapping.mapping_type === 'partial'
-                ? 'Partial mapping — verify scope'
-                : mapping.mapping_type === 'repealed' ||
-                    mapping.mapping_type === 'repealed_no_equivalent'
-                  ? 'Repealed — no equivalent'
-                  : mapping.mapping_type === 'unverified'
-                    ? 'Not verified'
-                    : mapping.mapping_type}
+              {mappingTypeBadge}
             </span>
           </div>
         )}
@@ -494,7 +504,7 @@ function ConvertTab() {
             </button>
           </div>
           <div className="p-6">
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
+            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-800">
               {result.converted}
             </p>
           </div>
@@ -508,9 +518,13 @@ function ConvertTab() {
               <div className="space-y-1">
                 {result.conversions.map((c, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm">
-                    <span className="text-slate-500 line-through">{c.original}</span>
-                    <ArrowLeftRight className="h-3 w-3 text-slate-400" />
-                    <span className="font-medium text-blue-700">{c.replacement}</span>
+                    <span className="min-w-0 break-words text-slate-500 line-through">
+                      {c.original}
+                    </span>
+                    <ArrowLeftRight className="h-3 w-3 shrink-0 text-slate-400" />
+                    <span className="min-w-0 break-words font-medium text-blue-700">
+                      {c.replacement}
+                    </span>
                   </div>
                 ))}
               </div>
