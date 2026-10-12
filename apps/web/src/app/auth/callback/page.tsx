@@ -1,7 +1,8 @@
 'use client';
 
+import { AlertTriangle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
 
@@ -10,6 +11,9 @@ function CallbackHandler() {
   const params = useSearchParams();
   const { login } = useAuth();
   const handled = useRef(false);
+  // T-234 (Ajay Addendum 1): the auth service adds referral=not_applied when a referral code sent
+  // with a new Google sign-up was no longer valid. Show the notice once, then continue.
+  const [referralNotApplied, setReferralNotApplied] = useState(false);
 
   useEffect(() => {
     if (handled.current) return;
@@ -30,10 +34,37 @@ function CallbackHandler() {
     }
 
     login(accessToken, refreshToken);
+    if (params.get('referral') === 'not_applied') {
+      // Drop the tokens from the address bar while the notice is on screen.
+      window.history.replaceState(null, '', '/auth/callback');
+      setReferralNotApplied(true);
+      return;
+    }
     router.replace('/dashboard');
   }, [params, login, router]);
 
-  return null;
+  if (!referralNotApplied) return null;
+
+  // Same look as the email-path notice on the login page.
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-[#F8FAFC] px-4">
+      <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-8">
+        <div role="status">
+          <p className="flex items-start gap-2 text-base text-slate-900">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+            <span>Your referral code was no longer valid, so no bonus Ink was added.</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => router.replace('/dashboard')}
+            className="bg-lawie-600 hover:bg-lawie-700 mt-5 h-12 w-full rounded-xl text-base font-semibold text-white"
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function AuthCallbackPage() {

@@ -2,8 +2,9 @@ import crypto from 'crypto';
 
 import { RegisterPayload, LoginPayload } from '@lawie/shared';
 
+import logger from '../config/logger';
 import { AppError } from '../middleware/errorHandler';
-import { User, IUser } from '../models/User.model';
+import { User, IUser, CURRENT_TERMS_VERSION } from '../models/User.model';
 
 import { tryGrantDailyLoginBonus, grantSignupBonus } from './credit-bonus.service';
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
@@ -13,7 +14,11 @@ import { createSession, deleteSession, hashToken, SessionMeta } from './session.
 export async function registerUser(
   payload: RegisterPayload & { referralCode?: string },
   meta: SessionMeta = {},
-): Promise<{ user: IUser; tokens: { accessToken: string; refreshToken: string } }> {
+): Promise<{
+  user: IUser;
+  tokens: { accessToken: string; refreshToken: string };
+  referralApplied?: boolean;
+}> {
   const existing = await User.findOne({ email: payload.email.toLowerCase() });
   if (existing) {
     throw new AppError(409, 'An account with this email already exists');
@@ -23,17 +28,36 @@ export async function registerUser(
     email: payload.email,
     password: payload.password,
     name: payload.name,
-    // Always 'Client' (T-196). Never read a role from the request: Admin is the
-    // only gate on admin routes and bypasses enforceFreeLimit.
-    role: 'Client',
+    // Always 'Lawyer', the same as Google sign-up (T-298, Arjun 12 Oct 2026).
+    // Never read a role from the request (T-196): Admin is the only gate on admin
+    // routes and bypasses enforceFreeLimit. The schema default stays 'Client' on purpose.
+    role: 'Lawyer',
+    // T-234 — the sign-up form shows the Terms line under the submit button.
+    // Server time and server version only; nothing here comes from the request.
+    termsAcceptedAt: new Date(),
+    termsVersion: CURRENT_TERMS_VERSION,
+    acceptedVia: 'password',
   });
 
   // Signup bonus — non-blocking, never fails registration
   void grantSignupBonus(user._id.toString());
 
-  // Apply referral code non-blocking — never fails registration
+  // Referral (T-234 / Ajay Addendum 1: no silent drop). Awaited so the response can
+  // tell the page whether the code was applied, but it never fails registration.
+  // applyReferralCode grants at most once per user (T-298 d).
+  // referralApplied: true = applied, false = code no longer valid, undefined = no code
+  // sent or an unexpected error (we cannot honestly say either way).
+  let referralApplied: boolean | undefined;
   if (payload.referralCode) {
-    void applyReferralCode(user._id.toString(), payload.referralCode);
+    try {
+      const outcome = await applyReferralCode(user._id.toString(), payload.referralCode);
+      referralApplied = outcome === 'applied' ? true : outcome === 'invalid' ? false : undefined;
+    } catch (err) {
+      logger.warn(
+        { userId: user._id.toString(), err: err instanceof Error ? err.message : String(err) },
+        'Referral code apply failed at registration',
+      );
+    }
   }
 
   const tokens = generateTokenPair({
@@ -52,7 +76,7 @@ export async function registerUser(
     meta,
   );
 
-  return { user, tokens };
+  return { user, tokens, referralApplied };
 }
 
 export async function loginUser(
@@ -67,6 +91,13 @@ export async function loginUser(
 
   if (!user.isActive) {
     throw new AppError(403, 'Your account has been deactivated. Contact support.');
+  }
+
+  // T-234 — a Google-only account has no password. comparePassword would throw
+  // (500 + Sentry); answer exactly like a wrong password so the account type
+  // does not leak.
+  if (!user.password) {
+    throw new AppError(401, 'Invalid email or password');
   }
 
   const isMatch = await user.comparePassword(payload.password);

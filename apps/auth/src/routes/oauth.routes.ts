@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import passport from 'passport';
 
 import { env } from '../config/env';
+import { REFERRAL_NOT_APPLIED_FLAG } from '../config/passport';
 import { IUser } from '../models/User.model';
 import { tryGrantDailyLoginBonus } from '../services/credit-bonus.service';
 import { generateTokenPair } from '../services/jwt.service';
@@ -74,6 +75,11 @@ router.get(
     const redirectUrl = new URL(`${env.FRONTEND_URL}/auth/callback`);
     redirectUrl.searchParams.set('accessToken', accessToken);
     redirectUrl.searchParams.set('refreshToken', refreshToken);
+    // T-234 (Ajay Addendum 1): a referral code sent with a new Google sign-up was no longer
+    // valid, so no bonus Ink was added. The web app shows the one-time notice.
+    if ((req as unknown as Record<string, unknown>)[REFERRAL_NOT_APPLIED_FLAG] === true) {
+      redirectUrl.searchParams.set('referral', 'not_applied');
+    }
 
     res.redirect(redirectUrl.toString());
   },
