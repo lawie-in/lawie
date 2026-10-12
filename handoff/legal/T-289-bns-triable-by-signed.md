@@ -4,7 +4,7 @@ Ajay (CLO), 12 Oct 2026 IST. Source: BNSS 2023 First Schedule Part I, column 6, 
 
 ## What the lead does (shashank, T-289, after T-277)
 
-1. Add `apps/drafting/src/config/bns-triable-by.json` with the JSON block below, byte for byte. SHA-256 of the block text (between the fences, with its final newline): `e1770de1bdec653e5ab6e638b4ce8c84284f4dc77221d6905d54c8272dbb6561`.
+1. Add `apps/drafting/src/config/bns-triable-by.json` with the JSON block below, byte for byte. SHA-256 of the block text (between the fences, with its final newline): `aa68395db2643298041df1597697a280e939aefeecd3805c84bd77903f7bbc05`.
 2. Bail-check and every other reader take the court **only** from this file. Delete the code that guesses the court from the maximum term (for example "3-7 years generally triable by Sessions Court", which is wrong: most of those are triable by a Magistrate).
 3. Display: `Court: {triable_by}` as printed. `triable_by` null: `Court: Depends on the offence. Check the First Schedule.` A target resolves as in T-277 rule 3 (exact key, else parent row; with `variants`, use the sub-section's value; a variant that is null shows the Depends line).
 4. Several charged sections: if any is `Court of Session`, the case goes there (`Court: Court of Session`); otherwise, if all are known, show the highest of `Magistrate of the first class` over `Any Magistrate`; if any is null or a reference ("Court by which offence abetted is triable"), show the Depends line unless one known section is `Court of Session`.
@@ -15,7 +15,8 @@ Ajay (CLO), 12 Oct 2026 IST. Source: BNSS 2023 First Schedule Part I, column 6, 
 
 | Item | Mark |
 |---|---|
-| 276 sections with one court | Approved, as printed in the Schedule |
+| 275 sections with one court | Approved, as printed in the Schedule |
+| 357, and the 356(3) and 356(4) variants | `null`, verify (Addendum 1) |
 | 30 sections whose parts differ | `null` with `variants` or `lines`; Approved |
 | 11 sections with no Schedule line (definitions and the like) | `null`; Approved |
 | Later amendment of the Schedule | Not checked; follow-up with the India Code check in T-277 |
@@ -1176,8 +1177,8 @@ Ajay (CLO), 12 Oct 2026 IST. Source: BNSS 2023 First Schedule Part I, column 6, 
       "verify": "The First Schedule gives different courts for parts of this section.",
       "variants": {
         "356(2)": null,
-        "356(3)": "of Session. of the first",
-        "356(4)": "of Session. of the first"
+        "356(3)": null,
+        "356(4)": null
       }
     },
     "356(1)": {
@@ -1185,8 +1186,13 @@ Ajay (CLO), 12 Oct 2026 IST. Source: BNSS 2023 First Schedule Part I, column 6, 
       "verify": "No line in the First Schedule for this section."
     },
     "357": {
-      "triable_by": "Magistrate"
+      "triable_by": null,
+      "verify": "Printed court not confirmed; check against India Code."
     }
   }
 }
 ```
+
+## Addendum 1 (12 Oct 2026 IST): extraction fixes
+
+Shashank found three values that were extraction errors, not Schedule text: 356(3) and 356(4) ("of Session. of the first") and 357 ("Magistrate"). All three are now null, so the screen shows the Depends line. Each is **verify** against India Code; I will send real values in a later addendum if confirmed. New SHA: `aa68395db2643298041df1597697a280e939aefeecd3805c84bd77903f7bbc05`. No other row changed.
