@@ -20,7 +20,12 @@ import { join } from 'path';
 import { Response } from 'express';
 
 import { streamGenerateFromBrief } from '../services/ai.service';
-import { CLAUSES_MARKER, findMissingClauses, splitDrafterOutput } from '../services/brief-drafter';
+import {
+  CLAUSES_MARKER,
+  findMissingClauses,
+  SIGNED_BLANKS,
+  splitDrafterOutput,
+} from '../services/brief-drafter';
 import { buildBrief, buildChecklist, GivenValue, isCourtDocument } from '../services/intake-brief';
 import { loadRulePack, RulePack } from '../services/rule-pack.service';
 import { loadTemplateConfig } from '../services/template-engine.service';
@@ -101,13 +106,18 @@ describe('T-322 extraction from the signed files', () => {
   });
 
   it('the blanks in the code are exactly the signed ones (no extra, none missing)', () => {
-    const src = readFileSync(join(__dirname, '..', 'services', 'brief-drafter.ts'), 'utf8');
-    const from = src.indexOf('const SIGNED_BLANKS');
-    const to = src.indexOf('function holdsSignedBlank');
-    expect(from).toBeGreaterThan(-1);
-    expect(to).toBeGreaterThan(from);
-    const inCode = (src.slice(from, to).match(BLANKS) ?? []).sort();
+    const inCode = Object.values(SIGNED_BLANKS)
+      .flatMap((clauses) => Object.values(clauses).flat())
+      .sort();
     expect(inCode).toEqual(CASES.map((c) => c[2]).sort());
+    // And per pack and clause, not only as a flat set.
+    for (const [p, c, bs] of MAP) {
+      expect({ p, c, blanks: [...(SIGNED_BLANKS[p]?.[c] ?? [])].sort() }).toEqual({
+        p,
+        c,
+        blanks: [...bs].sort(),
+      });
+    }
   });
 });
 
@@ -251,8 +261,10 @@ describe('T-322 AC2, AC3: only the exact signed blank counts; near-misses still 
     expect(reasons('bail_anticipatory', 'apprehension', '{{apprehension_facts}}')).toEqual(NOT);
   });
 
-  it('KNOWN GAP (R2b.2, unchanged by T-322): the existing text-includes rule is not touched', () => {
-    // First check records the text; a later check with the blank only, where the recorded text had more, is R2b.2 and still fails.
+  it('a later check that no longer includes the recorded text fails, even if it is now the signed blank', () => {
+    // No code edit runs here; this is a second findMissingClauses call. The first check records the text.
+    // The later check holds only the signed blank, which does not include the recorded text
+    // (the later-check rule, `text.includes(before)`), so it is reported missing.
     const p = pack('bail_anticipatory');
     const only = {
       ...p,
@@ -266,7 +278,7 @@ describe('T-322 AC2, AC3: only the exact signed blank counts; near-misses still 
     const blankOnly = splitDrafterOutput(
       `1. ${APPREHENSION[0]}\n\n${CLAUSES_MARKER}\napprehension: 1`,
     );
-    // Pinned as today's behaviour: a code edit that leaves only the signed blank is reported missing.
+    // Pinned as today's behaviour: a later paragraph that drops the recorded text is reported missing.
     expect(findMissingClauses(only, blankOnly, [], { recorded }).map((m) => m.reason)).toEqual([
       'clause_not_in_paragraph',
     ]);
