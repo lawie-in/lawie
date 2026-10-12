@@ -35,7 +35,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. shashank: T-270 (2da00de, review passed). Merges once Ajay signs.
+1. kunal: T-339 (d4144f8, small fix green). Slot given 12 Oct; Shashank let him go first.
+2. shashank: T-270 (2da00de, Ajay signed). Merges after Kunal reports his merge.
 
 ## Last done
 
