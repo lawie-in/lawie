@@ -33,3 +33,7 @@ Decision (Priya, 12 Oct 2026, founder has delegated these calls): Google Analyti
 5. **Tests:** no choice → no `googletagmanager` script element and no `_ga` cookie (jest/RTL, and one recorded browser check at 375 and 1280 px); Decline → none, and the `_ga` cookies are cleared if present; Accept → the script appears once and exactly one page view carries a path with no query or hash; Accept then Decline removes the script and cookies and sets the disable flag; blocked `localStorage` → treated as denied, no throw; the notice and the footer link are reachable by keyboard and have accessible names.
 
 **Order:** after T-306 (it owns the page-view helper and the allowlist) and T-308's wording. The same web lead as T-306 builds it. Size S/M.
+
+## Ajay (12 Oct 2026): server-side consent record
+
+Keep a minimal record (DPDP puts the burden of proof on us): a random id (also in localStorage), Accept or Decline, the consent text version, and the time. No IP, no user agent, no account link. Re-ask after 12 months or when the text changes; delete records older than 12 months. Arjun adds the endpoint and TTL to the mechanism.
