@@ -38,6 +38,16 @@ function referralNoticeFor(value: string | null, shown: boolean): string | null 
   return null;
 }
 
+// T-306: the only error values the callback forwards to /login. Anything else is oauth_failed.
+const KNOWN_OAUTH_ERRORS = ['oauth_failed', 'missing_tokens', 'invalid_code'] as const;
+type KnownOAuthError = (typeof KNOWN_OAUTH_ERRORS)[number];
+
+function toKnownOAuthError(value: string): KnownOAuthError {
+  return (KNOWN_OAUTH_ERRORS as readonly string[]).includes(value)
+    ? (value as KnownOAuthError)
+    : 'oauth_failed';
+}
+
 function CallbackHandler() {
   const router = useRouter();
   const params = useSearchParams();
@@ -53,29 +63,56 @@ function CallbackHandler() {
     // Take (and clear) the marker first, so it never outlives this return, even on an error.
     const referralShown = takeReferralShown();
 
-    const accessToken = params.get('accessToken');
-    const refreshToken = params.get('refreshToken');
+    // T-306: read what we need, then drop the query string before anything else runs, so the
+    // one-time code never sits in the address bar, history or an analytics page view.
+    const code = params.get('code');
     const error = params.get('error');
+    const referral = params.get('referral');
+    window.history.replaceState(null, '', '/auth/callback');
 
     if (error) {
-      router.replace('/login?error=' + error);
+      // T-299/T-306: fixed set only, never echo the query value.
+      router.replace('/login?error=' + toKnownOAuthError(error));
       return;
     }
 
-    if (!accessToken || !refreshToken) {
+    if (!code) {
       router.replace('/login?error=missing_tokens');
       return;
     }
 
-    login(accessToken, refreshToken);
-    const notice = referralNoticeFor(params.get('referral'), referralShown);
-    if (notice) {
-      // Drop the tokens from the address bar while the notice is on screen.
-      window.history.replaceState(null, '', '/auth/callback');
-      setReferralNotice(notice);
-      return;
-    }
-    router.replace('/dashboard');
+    void (async () => {
+      let pair: { accessToken: string; refreshToken: string } | null = null;
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/oauth/exchange`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+          cache: 'no-store',
+        });
+        if (res.status === 200) {
+          const body = (await res.json()) as { accessToken?: unknown; refreshToken?: unknown };
+          if (typeof body.accessToken === 'string' && typeof body.refreshToken === 'string') {
+            pair = { accessToken: body.accessToken, refreshToken: body.refreshToken };
+          }
+        }
+      } catch {
+        pair = null;
+      }
+
+      if (!pair) {
+        router.replace('/login?error=invalid_code');
+        return;
+      }
+
+      login(pair.accessToken, pair.refreshToken);
+      const notice = referralNoticeFor(referral, referralShown);
+      if (notice) {
+        setReferralNotice(notice);
+        return;
+      }
+      router.replace('/dashboard');
+    })();
   }, [params, login, router]);
 
   if (!referralNotice) return null;
@@ -109,6 +146,9 @@ export default function AuthCallbackPage() {
   // ~150ms and a transient label reads as a context switch.
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC]">
+      {/* T-306: the first load's URL carries ?code=; keep it out of Referer headers. React 19
+          hoists this into <head>. It only covers requests started after the parser reaches it. */}
+      <meta name="referrer" content="no-referrer" />
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
       <Suspense>
         <CallbackHandler />
