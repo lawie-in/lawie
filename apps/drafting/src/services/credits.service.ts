@@ -597,9 +597,10 @@ export async function holdInk(input: {
   try {
     await releaseExpiredHolds(userId);
   } catch (err) {
+    // T-288: the error class and ids only, never the driver's message.
     console.error(
-      '[drafting] releaseExpiredHolds failed before a hold:',
-      err instanceof Error ? err.message : err,
+      `[drafting] releaseExpiredHolds failed before a hold (runId=${runId}, runSequence=${runSequence}):`,
+      err instanceof Error ? err.name : 'unknown',
     );
   }
 
@@ -1025,7 +1026,7 @@ export async function releaseExpiredHolds(
       } catch (err) {
         console.error(
           `[drafting] releaseExpiredHolds: could not close hold (runId=${hold.runId}, runSequence=${hold.runSequence}):`,
-          err instanceof Error ? err.message : err,
+          err instanceof Error ? err.name : 'unknown',
         );
       }
     }
@@ -1049,9 +1050,10 @@ export function startHoldSweep(intervalMs: number = INK_HOLD_SWEEP_INTERVAL_MS):
     sweepRunning = true;
     releaseExpiredHolds()
       .catch((err: unknown) => {
+        // The error class only (a whole-sweep failure has no single run).
         console.error(
           '[drafting] ink hold sweep failed:',
-          err instanceof Error ? err.message : err,
+          err instanceof Error ? err.name : 'unknown',
         );
       })
       .finally(() => {

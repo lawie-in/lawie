@@ -425,20 +425,48 @@ export async function withInkHold(
       }
       if (closed) return;
       closed = true;
+      let settled: Awaited<ReturnType<typeof settleInk>>;
       try {
-        const settled = await settleInk(userId, runId, runSequence, undefined, reference);
-        if (settled.settled || settled.reason !== 'no_hold') return;
-        // The hold is gone. If it was SETTLED (the sweep, e.g. after this
-        // request marked it delivered, or from the completed Generation), the
-        // draft is paid: re-holding would charge twice.
+        settled = await settleInk(userId, runId, runSequence, undefined, reference);
+      } catch (err) {
+        // The hold (marked delivered, if the mark landed) stays; the sweep
+        // settles or releases it.
+        console.error(
+          `[drafting] settleInk failed (runId=${runId}, runSequence=${runSequence}); left for the sweep:`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        return;
+      }
+      if (settled.settled || settled.reason !== 'no_hold') return;
+
+      // The hold is gone. If it was SETTLED (the sweep, e.g. after this
+      // request marked it delivered, or from the completed Generation), the
+      // draft is paid: re-holding would charge twice.
+      try {
         if (await wasInkSettled(userId, runId, runSequence)) return;
-        // It was released (a stall past the TTL). Do not deliver unpaid: hold
-        // the same cost once more and settle that.
+      } catch (err) {
+        // Paid or not is unknown, and there is no hold left for the sweep.
+        // The draft is delivered (T-288 scopes the withheld path to a run
+        // known to be unpaid).
+        console.error(
+          `[drafting] lost ink hold: could not check whether it was settled; draft delivered (runId=${runId}, runSequence=${runSequence}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        return;
+      }
+
+      // It was released (a stall past the TTL): the run is known unpaid. Do
+      // not deliver unpaid: hold the same cost once more and settle that.
+      // T-288: a re-hold or retried settle that THROWS is handled like a
+      // refused re-hold: no `done`, the 402 text as an SSE error.
+      let reheld = false;
+      try {
         const again = await holdInk({ userId, costCredits: cost, runId, runSequence });
         if (!again.ok && again.reason !== 'duplicate') {
           await withholdDraft();
           return;
         }
+        reheld = again.ok;
         const retried = await settleInk(userId, runId, runSequence, undefined, reference);
         if (!retried.settled && retried.reason === 'no_hold') {
           console.error(
@@ -447,9 +475,23 @@ export async function withInkHold(
         }
       } catch (err) {
         console.error(
-          `[drafting] settleInk failed (runId=${runId}, runSequence=${runSequence}); left for the sweep:`,
+          `[drafting] re-hold failed (runId=${runId}, runSequence=${runSequence}):`,
           err instanceof Error ? err.name : 'unknown',
         );
+        // The draft is withheld, so a hold this request just re-took must not
+        // be kept: return it (best effort; on failure the sweep releases it
+        // unless it was marked delivered).
+        if (reheld) {
+          try {
+            await releaseInk(userId, runId, runSequence);
+          } catch (releaseErr) {
+            console.error(
+              `[drafting] releaseInk failed after a failed re-hold (runId=${runId}, runSequence=${runSequence}):`,
+              releaseErr instanceof Error ? releaseErr.name : 'unknown',
+            );
+          }
+        }
+        await withholdDraft();
       }
     },
     sendDone(data) {
