@@ -31,7 +31,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(queue empty; founder's stop on 12 Oct, work resumes after the usage reset at 12:40 IST)
+1. mahak — T-279 (6bd2586; Ajay approved; the slot is hers now).
 
 ## Last done
 
