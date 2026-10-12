@@ -24,7 +24,7 @@ const pricingFaq = [
   {
     question: 'What payment methods do you accept?',
     answer:
-      'Payments are processed securely through Razorpay, which supports UPI, debit and credit cards, net banking, and popular wallets used across India.',
+      'Payments are processed through Razorpay, which supports UPI, debit and credit cards, net banking, and popular wallets used across India.',
   },
   {
     question: 'Do you have a team plan?',
