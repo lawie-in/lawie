@@ -84,6 +84,11 @@ export default function DocumentEditorPage() {
   // T-152: the text the server last had, so an update that changes nothing schedules no save.
   const savedHtmlRef = useRef('');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // T-233: the export buttons, so focus has somewhere to go when the error banner closes.
+  const exportButtonRefs = useRef<Record<ExportFormat, HTMLButtonElement | null>>({
+    pdf: null,
+    docx: null,
+  });
 
   const isFree = user?.plan !== 'pro';
 
@@ -315,10 +320,29 @@ export default function DocumentEditorPage() {
     }
   };
 
-  const handleExportPdf = () => handleExport('pdf');
-  const handleExportDocx = () => handleExport('docx');
+  // T-233: the export buttons stay focusable while an export runs (aria-disabled,
+  // not disabled, so focus is not dropped to <body>), so the handlers guard instead.
+  const handleExportPdf = () => {
+    if (exporting) return;
+    void handleExport('pdf');
+  };
+  const handleExportDocx = () => {
+    if (exporting) return;
+    void handleExport('docx');
+  };
+  // T-233: the banner unmounts when the error clears, so focus moves to the
+  // export button of the same format first instead of dropping to <body>. If the
+  // blank warning reopens, it takes focus itself (ExportBlanksDialog).
   const handleExportRetry = () => {
-    if (exportError) void handleExport(exportError);
+    if (!exportError || exporting) return;
+    const format = exportError;
+    exportButtonRefs.current[format]?.focus();
+    void handleExport(format);
+  };
+  const handleExportErrorDismiss = () => {
+    if (!exportError) return;
+    exportButtonRefs.current[exportError]?.focus();
+    setExportError(null);
   };
 
   const handleBlanksExportAnyway = () => {
@@ -452,10 +476,13 @@ export default function DocumentEditorPage() {
 
             {/* Export buttons */}
             <button
+              ref={(el) => {
+                exportButtonRefs.current.pdf = el;
+              }}
               onClick={handleExportPdf}
-              disabled={exporting !== null}
+              aria-disabled={exporting !== null}
               aria-busy={exporting === 'pdf'}
-              className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 aria-disabled:cursor-default aria-disabled:opacity-40"
             >
               {exporting === 'pdf' ? (
                 <Loader2 size={13} className="animate-spin" />
@@ -465,10 +492,13 @@ export default function DocumentEditorPage() {
               PDF
             </button>
             <button
+              ref={(el) => {
+                exportButtonRefs.current.docx = el;
+              }}
               onClick={handleExportDocx}
-              disabled={exporting !== null}
+              aria-disabled={exporting !== null}
               aria-busy={exporting === 'docx'}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 aria-disabled:cursor-default aria-disabled:opacity-40"
             >
               {exporting === 'docx' ? (
                 <Loader2 size={13} className="animate-spin" />
@@ -491,16 +521,16 @@ export default function DocumentEditorPage() {
               Export failed. Please try again.{' '}
               <button
                 onClick={handleExportRetry}
-                disabled={exporting !== null}
-                className="font-semibold underline disabled:opacity-40"
+                aria-disabled={exporting !== null}
+                className="font-semibold underline aria-disabled:cursor-default aria-disabled:opacity-40"
               >
                 Try again
               </button>
             </p>
             <button
-              onClick={() => setExportError(null)}
+              onClick={handleExportErrorDismiss}
               className="rounded p-0.5 text-red-400 hover:bg-red-100 hover:text-red-600"
-              aria-label="Dismiss"
+              aria-label="Dismiss export error"
               title="Dismiss"
             >
               <X size={13} />

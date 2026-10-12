@@ -32,14 +32,21 @@ export function missingAsBlanks(text: string): string {
   return text.replace(/\{\{\s*MISSING\s*:\s*([^}]*?)\s*\}\}/gi, '[To be confirmed: $1]');
 }
 
+// T-233 review: plain text unless it starts with '<' after leading whitespace,
+// as shared projectContent reads it (blanks.ts). textToHtml is aligned in T-274.
+function isPlainContent(content: string): boolean {
+  return !content.trimStart().startsWith('<');
+}
+
 /**
  * T-233: an unedited draft is the server's plain text, not HTML. Mirrors
  * DocumentEditor's textToHtml (keep the two in step): an empty line starts a
  * new <p>, a single line break becomes <br>. Like textToHtml, it does not
- * escape the text. Content that starts with '<' is already HTML.
+ * escape the text. Content that starts with '<' (after any leading
+ * whitespace) is already HTML.
  */
 function plainTextToHtml(text: string): string {
-  if (text.startsWith('<')) return text;
+  if (!isPlainContent(text)) return text;
   return text
     .split(/\n{2,}/)
     .map((para) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
@@ -167,7 +174,7 @@ export async function exportPdf(
 ): Promise<void> {
   // T-233: as in exportDocx, mark the blanks in the content as saved, then turn
   // an unedited plain-text draft into HTML so its paragraphs and line breaks print.
-  const isPlainText = !rawHtml.startsWith('<');
+  const isPlainText = isPlainContent(rawHtml);
   const { marked, blanks } = markBlanks(missingAsBlanks(rawHtml), options.findBlanks ?? findBlanks);
   const markedHtml = isPlainText ? plainTextToHtml(marked) : marked;
   const html = blankMarksToTags(markedHtml, '<span class="tbc">', '</span>');
@@ -396,7 +403,7 @@ export async function exportDocx(
   // export warning counts (blanksInContent), then turn plain text into HTML.
   // The marks are single characters that never span a line break, so the
   // conversion keeps them whole; blankMarksToTags then makes them spans.
-  const isPlainText = !html.startsWith('<');
+  const isPlainText = isPlainContent(html);
   const { marked, blanks } = markBlanks(missingAsBlanks(html), options.findBlanks ?? findBlanks);
   const markedHtml = isPlainText ? plainTextToHtml(marked) : marked;
   const paragraphs = htmlToDocxParagraphs(
