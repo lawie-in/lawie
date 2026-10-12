@@ -603,3 +603,11 @@ What a user can now do:
 - With the fact-ledger setting on: when a bail detail was only half-read from their description or was never asked, see a clear blank for it in the draft to fill in, instead of the point being left out.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-192 — cheque-bounce notice date checks (5dd6388, vishal, 12 Oct 2026)
+
+What a user can now do:
+- In a cheque-bounce notice, enter the cheque validity, return-memo-received and notice-sent dates. Lawie checks presentation in time and notice within 30 days, and only then lets the notice say so.
+- A missing date leaves a named blank. The notice is dated with the sending date, or today.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
