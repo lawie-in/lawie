@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build). Ajay signed the text |
 | Mode           | Small fix (web, copy only) |
-| Status         | To do. Unassigned. Condition for T-243 go-live, raised by Ajay 12 Oct 2026 |
+| Status         | Building (kunal), fix/t-284-privacy-waitlist-bullets. The 18-month retention line waits for Ajay's signed wording; no merge without it |
 
 The privacy policy does not mention the waitlist. Add exactly the section 2 bullet and the section 9 bullet that Ajay signed in `handoff/legal/emails-waitlist-panel-signed.md` (8b229b4) to `apps/web/src/app/(marketing)/privacy/page.tsx`. Also the retention line for an untouched waitlist entry: 18 months. Ajay signs the diff as applied. Must merge before T-243 goes live.
 

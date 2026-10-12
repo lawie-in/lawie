@@ -57,3 +57,11 @@ Everything Rajesh lists as "needs Ajay" is already signed in `T-253-assistant-sc
 - "Copy paragraph" (not "Use this paragraph"): approved. Copies the wording block only, markers kept.
 - Delete-conversation dialog ("This can't be undone."): approved.
 - Entry points before launch: hide them when `chat.enabled` is false (his risk 6): agreed.
+
+## Addendum 1 (12 Oct 2026 IST): §9 waitlist retention (T-284)
+
+Priya set 18 months for an untouched entry (T-243). This replaces the §9 bullet in item 1 above; the §2 bullet is unchanged.
+
+`- Waitlist details: until you ask us to delete them, and in any case no more than 18 months after you joined or we last wrote to you, whichever is later.`
+
+Condition: the line is true only if an entry really is erased at 18 months (by job or by hand, Arjun). Until that exists, ship the item 1 wording instead.
