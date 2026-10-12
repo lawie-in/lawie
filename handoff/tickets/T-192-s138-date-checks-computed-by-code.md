@@ -54,3 +54,7 @@ Each check unlocks one entry: (a) unlocks `presented_within_validity`, (b) unloc
 ## References
 
 - T-147c, ADR-022, NI Act s.138 provisos (a) and (b)
+
+## Scope note (Priya, 12 Oct 2026)
+
+AC4 is met in T-192 by showing the inputs and results in the Drafter's FACTS. Showing them in the web brief before drafting needs Mahak's T-190 files (ledgerView, intake.service.ts, the web brief), so that part moves to T-337, after T-190 merges.
