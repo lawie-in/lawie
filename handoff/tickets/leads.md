@@ -41,7 +41,7 @@ Each lead takes this after the current row is merged and released. Files are cla
 - kunal: T-354, then T-364 (Ink and plan display).
 - tanvi: T-349 + T-350, T-357, then T-363 (s.138).
 - mahak: T-223, then T-365 (brief and template picker).
-- Next free lead, in this order: T-362, T-361, T-367, T-366, T-368.
+- Next free lead, in this order: T-369 (web production build fails; a deploy blocker, goes first), T-362, T-361, T-367, T-366, T-368.
 
 ## Merge queue
 
