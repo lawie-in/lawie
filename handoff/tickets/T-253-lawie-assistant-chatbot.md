@@ -157,3 +157,7 @@ None of these touch `packages/shared`. They are assigned after the v1 blockers.
 - the 90-day line in the report dialog.
 
 - The help text is paused: the founder paused Meera's session (12 Oct 2026). Pick it up when she resumes. Nothing else in T-253 waits on it until 253b.
+
+## Design check (Rajesh, 12 Oct 2026)
+
+`handoff/design/T-253-assistant-panel.md` already covers entry points, open/closed, refusal, rate-limit, disclaimer and the free-plan locked state. Needs Ajay: signed strings for the monthly-cap and cool-down messages and the 90-day report line; keep the client-names notice visible while pasted text is present; a Hindi disclaimer. His signed refusal R1 differs from the quoted "I can only help with law and Lawie"; the panel uses R1.

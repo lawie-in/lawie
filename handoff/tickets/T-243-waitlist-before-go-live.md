@@ -14,3 +14,7 @@
 3. Rate-limited and protected from bots. No personal data in logs.
 4. The confirmation copy promises nothing about the launch date.
 5. A deletion path exists for an entry (DPDP).
+
+## Design (Rajesh, 12 Oct 2026)
+
+`handoff/design/T-243-waitlist-form.md`: fields, states, 375 px, tokens, accessibility. It replaces the off-brand `WaitlistForm.tsx` (lawie/slate/green colours). Needs Ajay: the consent line (DPDP wording), the privacy-policy link and the deletion-contact line, and an optional Hindi version. Madhuri owns the draft strings.
