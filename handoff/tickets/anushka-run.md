@@ -154,3 +154,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 Nothing new on screen. This makes the team's automatic checks reliable: a test that failed at random now passes on its merits, and the sample bail application used to catch invented facts is checked on every change.
 
 Quality: nothing to test in the UI — tests, a test fixture and CI only.
+
+## T-273 + T-274 (mahak, merged to develop_staging 346cde7, 12 Oct 2026)
+
+- If I write "a < b & c" or "<Name>" in a plain-text draft, I see it exactly as written in the editor, the Word file and the PDF.
+- "[To be confirmed: ...]" shows in the PDF even when a missing detail was written in lower case, and it is counted at the end of intake.
+- The editor and every export show the same paragraphs whatever line endings the draft has, and headings are found in the PDF even with extra blank lines.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
