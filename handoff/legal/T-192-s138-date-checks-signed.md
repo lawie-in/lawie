@@ -52,3 +52,14 @@ L3 is the date shown on the return memo. L5 is the date of dispatch. Sending wit
 ## Out of scope
 
 The complaint's own limitation (s.142) and the 15-day payment period after the notice is received.
+
+## Addendum 1 (12 Oct 2026 IST): unlock texts, fields, complaint
+
+| Item | Ruling |
+|---|---|
+| `presented_within_validity` twin text (`unlocked_by` A1) | `The said cheque dated {L1} was presented for payment on {L3}, within the period of its validity.` |
+| `notice_within_thirty_days` twin text (`unlocked_by` B1) | `This notice is issued within thirty days of the receipt, on {L4}, of the information from the bank regarding the return of the said cheque unpaid.` |
+| Dates in twin texts | Filled by code from the ledger, in the `10 January 2026` form. The model never writes them. |
+| Fields | Add L2, L4 and L5 to `legal_notice_s138` with the exact labels above. L1 and L3 are the existing `cheque_date` and `presentation_date`. |
+| L5 | Given by the advocate. When it is given, the notice's date line uses L5. When it is missing, the date line stays as today's date, the entry stays banned, and the brief shows B4. |
+| `ni_complaint_s138` | Overrides both entries back to banned (never). Extending the checks to the complaint needs a separate ticket and a new sign-off. |
