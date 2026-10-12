@@ -94,14 +94,19 @@
       "unlocked_by": {
         "all_of": [
           {
-            "key": "s138_notice_within_thirty_days",
-            "label": "Notice in time (worked out from your dates)",
-            "equals": true
-          },
-          {
             "key": "memo_received_date",
             "label": "Date the return memo was received",
             "present": true
+          },
+          {
+            "key": "notice_sent_date",
+            "label": "Date the notice is sent",
+            "present": true
+          },
+          {
+            "key": "s138_notice_within_thirty_days",
+            "label": "Notice in time (worked out from your dates)",
+            "equals": true
           }
         ]
       }
@@ -119,19 +124,19 @@
       "unlocked_by": {
         "all_of": [
           {
-            "key": "s138_presented_within_validity",
-            "label": "Presented in time (worked out from your dates)",
-            "equals": true
-          },
-          {
             "key": "cheque_date",
-            "label": "Cheque Date",
+            "label": "Date on the cheque",
             "present": true
           },
           {
             "key": "presentation_date",
-            "label": "Date of Presentation to Bank",
+            "label": "Date the cheque was presented to the bank",
             "present": true
+          },
+          {
+            "key": "s138_presented_within_validity",
+            "label": "Presented in time (worked out from your dates)",
+            "equals": true
           }
         ]
       }
@@ -400,14 +405,19 @@
       "requires": {
         "all_of": [
           {
-            "key": "s138_notice_within_thirty_days",
-            "label": "Notice in time (worked out from your dates)",
-            "equals": true
-          },
-          {
             "key": "memo_received_date",
             "label": "Date the return memo was received",
             "present": true
+          },
+          {
+            "key": "notice_sent_date",
+            "label": "Date the notice is sent",
+            "present": true
+          },
+          {
+            "key": "s138_notice_within_thirty_days",
+            "label": "Notice in time (worked out from your dates)",
+            "equals": true
           }
         ]
       }
@@ -419,19 +429,19 @@
       "requires": {
         "all_of": [
           {
-            "key": "s138_presented_within_validity",
-            "label": "Presented in time (worked out from your dates)",
-            "equals": true
-          },
-          {
             "key": "cheque_date",
-            "label": "Cheque Date",
+            "label": "Date on the cheque",
             "present": true
           },
           {
             "key": "presentation_date",
-            "label": "Date of Presentation to Bank",
+            "label": "Date the cheque was presented to the bank",
             "present": true
+          },
+          {
+            "key": "s138_presented_within_validity",
+            "label": "Presented in time (worked out from your dates)",
+            "equals": true
           }
         ]
       }

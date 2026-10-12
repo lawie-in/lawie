@@ -33,8 +33,9 @@ import { FactLedgerModel } from '../models/FactLedger.model';
 import { User } from '../models/User.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { AVERMENTS_DIR, loadAvermentLists, resolveAverments } from '../services/averments';
-import { CLAUSES_MARKER } from '../services/brief-drafter';
+import { CLAUSES_MARKER, packTexts } from '../services/brief-drafter';
 import { openVersion } from '../services/fact-ledger.service';
+import { verifyDraft } from '../services/fact-verifier';
 import { listRulePackIds, loadRulePack } from '../services/rule-pack.service';
 import {
   S138_BLANK,
@@ -1229,5 +1230,188 @@ describe("T-192 AC3/AC4 route: the Drafter's FACTS carry the computed result onl
     );
     const second = await run(id);
     expect(factsOf(second).facts.map((x) => x.key)).not.toContain('s138_notice_within_thirty_days');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Rounds 3-4: leaf order and labels; the blank the verifier shows; return_memo_received_on
+// ═════════════════════════════════════════════════════════════════════════════
+describe('T-192 rounds 3-4: unlock leaves, their order and their labels', () => {
+  const lists = loadAvermentLists(PACK);
+  interface Leaf {
+    key?: string;
+    label?: string;
+    present?: boolean;
+    equals?: unknown;
+    all_of?: Leaf[];
+  }
+  const leavesOf = (c: Leaf | null): Leaf[] =>
+    c === null ? [] : c.all_of ? c.all_of.flatMap(leavesOf) : [c];
+  const LABEL = S138_INPUT_LABELS;
+  const COMPUTED_LABEL = {
+    a: 'Presented in time (worked out from your dates)',
+    b: 'Notice in time (worked out from your dates)',
+  };
+  const EXPECT = {
+    presented_within_validity: [
+      ['cheque_date', LABEL.L1],
+      ['presentation_date', LABEL.L3],
+      ['s138_presented_within_validity', COMPUTED_LABEL.a],
+    ],
+    notice_within_thirty_days: [
+      ['memo_received_date', LABEL.L4],
+      ['notice_sent_date', LABEL.L5],
+      ['s138_notice_within_thirty_days', COMPUTED_LABEL.b],
+    ],
+  } as const;
+
+  it.each(Object.keys(EXPECT) as Array<keyof typeof EXPECT>)(
+    '%s: the banned unlock and the twin requires have the same leaves, inputs first, the computed leaf last, labels as signed',
+    (id) => {
+      const banned = lists.banned.find((b) => b.id === id)!;
+      const twin = lists.allowed.find((a) => a.id === id)!;
+      for (const cond of [banned.unlocked_by, twin.requires] as Leaf[]) {
+        const leaves = leavesOf(cond);
+        expect(leaves.map((l) => [l.key, l.label])).toEqual(EXPECT[id]);
+        // inputs are presence leaves, the last leaf is the computed "equals true"
+        expect(leaves.slice(0, -1).every((l) => l.present === true)).toBe(true);
+        expect(leaves[leaves.length - 1].equals).toBe(true);
+      }
+    },
+  );
+
+  it('the input labels in the leaves are the md labels (S138_INPUT_LABELS, pinned to the md above)', () => {
+    const inputLabels = Object.values(EXPECT)
+      .flat()
+      .filter(([k]) => !k.startsWith('s138_'))
+      .map(([, l]) => l);
+    for (const l of inputLabels) expect(Object.values(S138_INPUT_LABELS)).toContain(l);
+    expect(MD).toContain('`Date the notice is sent`');
+  });
+
+  it('the notice unlock requires L5 (notice_sent_date) as well as L4', () => {
+    const keys = leavesOf(
+      lists.banned.find((b) => b.id === 'notice_within_thirty_days')!.unlocked_by as Leaf,
+    ).map((l) => l.key);
+    expect(keys).toContain('notice_sent_date');
+    expect(keys).toContain('memo_received_date');
+  });
+});
+
+describe('T-192 rounds 3-4: the blank the verifier shows is the first failing leaf', () => {
+  const lists = loadAvermentLists(PACK);
+  const rulePack = loadRulePack(PACK)!;
+  const PRES_BODY = '1. That the cheque was presented within its validity.';
+  const NOTICE_BODY = '1. That this notice is within time.';
+
+  /** The label of the banned-strip violation for one entry, through the real verifier. */
+  function blankFor(
+    id: string,
+    body: string,
+    d: Dates,
+    unresolved: string[] = [],
+  ): string | undefined {
+    const ledgerFacts = withS138DateChecks(facts(d), PACK, unresolved);
+    const out = verifyDraft({
+      body,
+      facts: ledgerFacts,
+      unresolved: [],
+      lists,
+      skeleton: [],
+      packText: packTexts(rulePack),
+    });
+    return out.find((v) => v.check === 'banned' && v.bannedEntryId === id)?.label;
+  }
+  const OK_A = { L1: '2026-01-10', L3: '2026-04-09' };
+  const OK_B = { L4: '2026-03-05', L5: '2026-04-03' };
+
+  it.each([
+    ['L5 missing', { L4: '2026-03-05' }, 'Date the notice is sent'],
+    ['L4 missing (L5 given)', { L5: '2026-04-03' }, 'Date the return memo was received'],
+    ['L4 and L5 missing', {}, 'Date the return memo was received'],
+    [
+      'all present, check fails (after the 30 days)',
+      { L4: '2026-03-05', L5: '2026-04-05' },
+      'Notice in time (worked out from your dates)',
+    ],
+    [
+      'all present, L5 before L4',
+      { L4: '2026-03-05', L5: '2026-03-04' },
+      'Notice in time (worked out from your dates)',
+    ],
+  ])('notice, %s: the blank is "%s"', (_n, d, label) => {
+    expect(blankFor('notice_within_thirty_days', NOTICE_BODY, d as Dates)).toBe(label);
+  });
+
+  it.each([
+    ['L1 missing', { L3: '2026-04-09' }, 'Date on the cheque'],
+    ['L3 missing', { L1: '2026-01-10' }, 'Date the cheque was presented to the bank'],
+    ['L1 and L3 missing', {}, 'Date on the cheque'],
+    [
+      'all present, check fails (after validity)',
+      { L1: '2026-01-10', L3: '2026-04-11' },
+      'Presented in time (worked out from your dates)',
+    ],
+    [
+      'all present, L3 before L1',
+      { L1: '2026-01-10', L3: '2026-01-09' },
+      'Presented in time (worked out from your dates)',
+    ],
+  ])('presented, %s: the blank is "%s"', (_n, d, label) => {
+    expect(blankFor('presented_within_validity', PRES_BODY, d as Dates)).toBe(label);
+  });
+
+  it('an unresolved L2 withholds the pass: the blank is the computed leaf (the L2 blank is in the brief line, not here)', () => {
+    expect(
+      blankFor('presented_within_validity', PRES_BODY, { ...OK_A, L2: '2026-04-30' }, [
+        'cheque_validity_date',
+      ]),
+    ).toBe('Presented in time (worked out from your dates)');
+  });
+
+  it('when the checks pass, the verifier strips nothing for either entry', () => {
+    expect(blankFor('presented_within_validity', PRES_BODY, OK_A)).toBeUndefined();
+    expect(blankFor('notice_within_thirty_days', NOTICE_BODY, OK_B)).toBeUndefined();
+  });
+
+  it('the same labels come from the banned entry in resolveAverments when the verifier is not used', () => {
+    const r = resolveAverments(lists, withS138DateChecks(facts({ L4: '2026-03-05' }), PACK));
+    expect(r.banned.map((b) => b.id)).toContain('notice_within_thirty_days');
+  });
+});
+
+describe('T-192 rounds 3-4: return_memo_received_on (T-147c) follows memo_received_date', () => {
+  const lists = loadAvermentLists(PACK);
+  const ID = 'return_memo_received_on';
+
+  it('unlocks when L4 is given, with the text filled from the ledger', () => {
+    const r = resolveAverments(lists, withS138DateChecks(facts({ L4: '2026-03-05' }), PACK));
+    expect(r.banned.map((b) => b.id)).not.toContain(ID);
+    expect(r.allowed.find((a) => a.id === ID)!.text).toBe(
+      'the payee received the return memo on 5 March 2026',
+    );
+  });
+
+  it('stays banned, and is not offered, when L4 is missing', () => {
+    const r = resolveAverments(lists, withS138DateChecks(facts({ L1: '2026-01-10' }), PACK));
+    expect(r.banned.map((b) => b.id)).toContain(ID);
+    expect(r.allowed.map((a) => a.id)).not.toContain(ID);
+  });
+
+  it('the verifier strips the claim without L4 (blank: the L4 label) and leaves it with L4', () => {
+    const body = '1. That the payee received the return memo on 5 March 2026.';
+    const run = (d: Dates) =>
+      verifyDraft({
+        body,
+        facts: withS138DateChecks(facts(d), PACK),
+        unresolved: [],
+        lists,
+        skeleton: [],
+        packText: packTexts(loadRulePack(PACK)!),
+      }).filter((v) => v.bannedEntryId === ID);
+    const without = run({ L1: '2026-01-10' });
+    expect(without).toHaveLength(1);
+    expect(without[0].label).toBe('Date the return memo was received');
+    expect(run({ L4: '2026-03-05' })).toEqual([]);
   });
 });
