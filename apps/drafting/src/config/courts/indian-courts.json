@@ -4067,7 +4067,7 @@
       "city": "Ahmedabad",
       "formattingRulesRef": "cjm_generic",
       "caseNomenclature": "C.C. No. _____ of {current_year}",
-      "jurisdictionNote": "Ahmedabad is a metropolitan area under S.16 BNSS; CMM exercises powers analogous to a CJM in non-metropolitan districts.",
+      "jurisdictionNote": "Ahmedabad was a metropolitan area under the CrPC (proceedings pending before 1 July 2024), where the CMM exercises powers analogous to a CJM. The BNSS has no metropolitan areas; the designation of the city's criminal courts is as the State notification gives it.",
       "supportedLanguages": ["en", "gu"]
     },
     {
@@ -4825,7 +4825,7 @@
       "city": "Bengaluru",
       "formattingRulesRef": "cjm_generic",
       "caseNomenclature": "C.C. No. _____ of {current_year}",
-      "jurisdictionNote": "Bengaluru is a metropolitan area under S.16 BNSS; CMM exercises powers analogous to a CJM.",
+      "jurisdictionNote": "Bengaluru was a metropolitan area under the CrPC (proceedings pending before 1 July 2024), where the CMM exercises powers analogous to a CJM. The BNSS has no metropolitan areas; the designation of the city's criminal courts is as the State notification gives it.",
       "supportedLanguages": ["en", "kn"]
     },
     {
@@ -5775,7 +5775,7 @@
       "city": "Chennai",
       "formattingRulesRef": "cjm_generic",
       "caseNomenclature": "C.C. No. _____ of {current_year}",
-      "jurisdictionNote": "Chennai is a metropolitan area under S.16 BNSS; CMM Egmore exercises powers analogous to a CJM.",
+      "jurisdictionNote": "Chennai was a metropolitan area under the CrPC (proceedings pending before 1 July 2024), where the CMM Egmore exercises powers analogous to a CJM. The BNSS has no metropolitan areas; the designation of the city's criminal courts is as the State notification gives it.",
       "supportedLanguages": ["en", "ta"]
     },
     {

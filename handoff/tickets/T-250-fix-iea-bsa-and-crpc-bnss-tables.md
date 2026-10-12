@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (corrects the tables from the Gazette text and signs them). Lead (build). Anushka (verdict) |
 | Mode           | Rule first (Ajay), then build. Legal content (`apps/drafting/src/config/sections/`) |
-| Status         | Ajay signed the corrected text (handoff/legal/T-250-iea-to-bsa-corrected-signed.md). Ready for shashank after T-248. 117 of 185 IEA→BSA rows were wrong |
+| Status         | Merged into develop_staging (ee76d8e); tables not live until reseed (Arjun, develop first; production founder-only after T-275); waiting for Anushka on develop |
 
 ## Problem
 

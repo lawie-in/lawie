@@ -1,6 +1,12 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type MappingType = 'direct' | 'partial' | 'merged' | 'split' | 'repealed';
+export type MappingType =
+  | 'direct'
+  | 'partial'
+  | 'merged'
+  | 'split'
+  | 'repealed'
+  | 'repealed_no_equivalent';
 
 export interface ISectionMapping extends Document {
   oldCode: string; // IPC, CrPC, IEA
@@ -68,7 +74,7 @@ const SectionMappingSchema = new Schema<ISectionMapping>(
     mappingType: {
       type: String,
       required: [true, 'mappingType is required'],
-      enum: ['direct', 'partial', 'merged', 'split', 'repealed'],
+      enum: ['direct', 'partial', 'merged', 'split', 'repealed', 'repealed_no_equivalent'],
     },
     notes: {
       type: String,

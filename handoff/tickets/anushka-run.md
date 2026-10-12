@@ -9,6 +9,8 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 
 - For default bail (T-251): `feature.fact_ledger` must also be ON for her test account, or the default bail template isn't offered.
 
+- Build note for anyone building the web app: the lead shells set NODE_ENV=development, which makes `next build` fail at prerender. Use NODE_ENV=production.
+
 - Until Ajay has signed the IPC→BNS table recheck (T-267): in the Tier A criminal samples, check each BNS section number the draft cites against the bare act.
 
 ## T-208 (shashank, merged to develop_staging d305233, 11 Oct 2026)
@@ -104,5 +106,33 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Fixed wording in an English draft must actually appear. In Hindi drafts the cue words count. If the draft is not in English, Lawie tells me the fixed wording was not checked.
 - When Lawie cannot confirm a clause, the draft is marked "starting draft".
 - Some bail drafts that passed before can now carry the "starting draft" label when a required part's paragraph holds only a blank such as "[To be confirmed: …]" (for example interim bail urgency or duration with no detail given). That is intended.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-252a (mahak, merged to develop_staging 5355604, 12 Oct 2026)
+
+- The section converter page no longer says its mappings are validated or that it converts instantly.
+- The page heading and the Tools card say you can look up old and new section numbers side by side, free and without logging in.
+- The link at the bottom of the converter now reads "Lawie's drafting assistant".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-235 + T-254A (mahak, merged to develop_staging 77a06ec, 12 Oct 2026)
+
+- I can read a privacy policy that says what Lawie stores, where it is kept, which details are encrypted and which are not, who else receives them, and how to ask for my data to be erased.
+- When I ask "How is my case data handled?" on the home page or the FAQ, I get a plain answer that does not promise more than is true, including that there are no backups yet.
+- When I press "See what you can draft" on the home page I go straight to the list of documents; no sample files are offered.
+- The payment lines say payments go via Razorpay, with no "secure" claim and no promise of a GST invoice.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-250 + T-255 (shashank, merged to develop_staging ee76d8e, 12 Oct 2026)
+
+Needs develop's section tables reseeded first (Arjun does this on develop; the converter items below show nothing new before that).
+
+- In the section converter and in drafts that convert old sections, I get the corrected new section for Evidence Act and CrPC sections (for example CrPC 358 and 362).
+- A production-of-documents draft lists the right privilege sections of the Bharatiya Sakshya Adhiniyam.
+- The Chief Judicial Magistrate court note cites the right BNSS section.
+- Affidavits are no longer checked against an Evidence Act section that has nothing to do with affidavits.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
