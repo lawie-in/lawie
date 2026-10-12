@@ -125,6 +125,23 @@ interface StoredOAuthUtm {
   c?: string;
 }
 
+/** Longest the sign-in waits on Redis for the tags; past it, the tags are dropped (fail open). */
+export const OAUTH_UTM_REDIS_TIMEOUT_MS = 300;
+
+class OAuthUtmTimeout extends Error {}
+
+/** Rejects with OAuthUtmTimeout after `ms`; the timer never keeps the process alive. */
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new OAuthUtmTimeout()), ms);
+    timer.unref?.();
+  });
+  // A late rejection of `work` after the timeout must not become an unhandled rejection.
+  work.catch(() => undefined);
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
 /** oauth:utm:<sha256 hex of the challenge>. */
 export function oauthUtmKey(challenge: string): string {
   return OAUTH_UTM_PREFIX + crypto.createHash('sha256').update(challenge).digest('hex');
@@ -132,8 +149,8 @@ export function oauthUtmKey(challenge: string): string {
 
 /**
  * Sanitizes the three tags (sanitizeUtm: each at most 100 characters, "@" or 7+ digit runs
- * dropped) and stores whatever survives for OAUTH_UTM_TTL_SECONDS. Nothing is stored if none does.
- * Never throws.
+ * dropped) and stores whatever survives for OAUTH_UTM_TTL_SECONDS, SET NX (first store wins).
+ * Nothing is stored if none does. Waits at most OAUTH_UTM_REDIS_TIMEOUT_MS. Never throws.
  */
 export async function storeOAuthUtm(
   challenge: string,
@@ -147,7 +164,11 @@ export async function storeOAuthUtm(
   };
   if (Object.keys(stored).length === 0) return;
   try {
-    await redis.set(oauthUtmKey(challenge), JSON.stringify(stored), 'EX', OAUTH_UTM_TTL_SECONDS);
+    // NX: the first store for a challenge wins; a replayed /google can't overwrite it.
+    await withTimeout(
+      redis.set(oauthUtmKey(challenge), JSON.stringify(stored), 'EX', OAUTH_UTM_TTL_SECONDS, 'NX'),
+      OAUTH_UTM_REDIS_TIMEOUT_MS,
+    );
   } catch {
     logger.warn('Sign-up source not stored for Google sign-in');
   }
@@ -155,13 +176,17 @@ export async function storeOAuthUtm(
 
 /**
  * New account only: reads and deletes the tags atomically (MULTI GET+DEL, as T-306/T-299).
- * Returns them sanitized again, or undefined when none were stored or Redis failed. Never throws.
+ * Returns them sanitized again, or undefined when none were stored, Redis failed, or Redis took
+ * longer than OAUTH_UTM_REDIS_TIMEOUT_MS. Never throws.
  */
 export async function takeOAuthUtm(challenge: string): Promise<UtmTags | undefined> {
   const key = oauthUtmKey(challenge);
   let raw: unknown;
   try {
-    const results = await redis.multi().get(key).del(key).exec();
+    const results = await withTimeout(
+      redis.multi().get(key).del(key).exec(),
+      OAUTH_UTM_REDIS_TIMEOUT_MS,
+    );
     const [getErr, value] = results?.[0] ?? [];
     if (getErr) throw getErr;
     raw = value;
