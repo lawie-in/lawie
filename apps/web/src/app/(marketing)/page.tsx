@@ -22,7 +22,7 @@ import SiteNav from '@/components/marketing/SiteNav';
 export const metadata: Metadata = {
   title: 'Lawie — Legal drafting for Indian advocates',
   description:
-    'Legal drafting for Indian advocates, built around the current criminal codes — BNS, BNSS, and BSA.',
+    'Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers.',
 };
 
 const reasons = [
@@ -162,7 +162,7 @@ export default function HomePage() {
             <h1>
               Start from a draft, <span className="accent">not a blank page.</span>
             </h1>
-            <p className="hero-sub">Built around the current criminal codes — BNS, BNSS and BSA.</p>
+            <p className="hero-sub">Criminal drafts use BNS, BNSS and BSA section numbers.</p>
             <div className="hero-ctas">
               <Link className="btn btn-primary btn-lg" href="/login">
                 Start Drafting Free <ArrowRight strokeWidth={1.5} />

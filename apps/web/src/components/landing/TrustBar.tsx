@@ -14,7 +14,7 @@ export default function TrustBar() {
 
         <div className="mt-6 inline-flex items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-500/10 px-4 py-2 text-sm text-amber-300">
           <AlertTriangle className="h-4 w-4 shrink-0" />
-          AI-assisted drafting tool — not a substitute for legal advice.
+          Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
         </div>
       </div>
     </section>
