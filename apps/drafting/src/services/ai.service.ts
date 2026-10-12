@@ -108,6 +108,7 @@ import {
   buildSectionsCited,
   extractBNSSectionNumbers,
   validateBNSWhitelist,
+  validateSectionReferences,
   checkFactSectionSanity,
 } from './validator';
 
@@ -809,6 +810,11 @@ export async function streamGenerateFromTemplate(
     const bnsCited = extractBNSSectionNumbers(aiText);
     const bnsWhitelistWarnings = validateBNSWhitelist(bnsCited);
     allWarnings.push(...bnsWhitelistWarnings);
+    // T-333: the other five codes (BNSS, BSA, IPC, CrPC, IEA), as validate() checks them.
+    // BNS is left to the whitelist above, so it is not warned twice.
+    allWarnings.push(
+      ...validateSectionReferences(aiText, null).filter((w) => w.details?.code !== 'BNS'),
+    );
 
     // SCRUM-64 (c): Fact↔section sanity — BNS 103 (Murder) requires death keywords in facts
     if (templateConfig.category === 'criminal') {
@@ -1399,6 +1405,10 @@ export async function streamGenerateFromBrief(
 
     const bnsCited = extractBNSSectionNumbers(body);
     allWarnings.push(...validateBNSWhitelist(bnsCited));
+    // T-333: the other five codes, as validate() checks them; BNS is the whitelist's.
+    allWarnings.push(
+      ...validateSectionReferences(body, null).filter((w) => w.details?.code !== 'BNS'),
+    );
 
     const facts =
       given.get('facts_narrative') ?? given.get('facts') ?? given.get('fixed.facts') ?? '';
@@ -1630,6 +1640,10 @@ export async function streamGenerateGuided(
     const allWarnings: ValidationWarning[] = [];
     allWarnings.push(...(await detectOldLawReferences(fullText)));
     allWarnings.push(...validateBNSWhitelist(extractBNSSectionNumbers(fullText)));
+    // T-333: the other five codes, as validate() checks them; BNS is the whitelist's.
+    allWarnings.push(
+      ...validateSectionReferences(fullText, null).filter((w) => w.details?.code !== 'BNS'),
+    );
 
     const given = briefText(brief);
     if (given) {
