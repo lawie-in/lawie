@@ -35,7 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(empty)
+1. mahak: T-190 + T-199 (edceb11, review passed round 2). Merges once Ajay OKs the question-text byte-check.
 
 ## Last done
 
