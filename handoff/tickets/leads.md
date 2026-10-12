@@ -10,7 +10,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 | mahak | T-276 then T-321 | fix/t-276-* (Mahak names it) | T-276: .gitignore and the lint-staged config (root config, held by mahak alone until T-276 merges). Small fix; Arjun decides AC2. Then T-321 once Shashank's T-295 merges (template-engine.service.ts ~1646, the starting-draft footer skip, tests; Ajay sees the diff) | T-321 only: Ajay sees the diff | 12 Oct 2026 |
 | vishal | T-322 | fix/t-322-* (Vishal names it) | apps/drafting/src/services/brief-drafter.ts (rule R2b.5 ~863 only: an exact signed blank covers its clause) and a new t322 test. Small fix, legal content; Ajay sees the diff | yes: Ajay ruled; he sees the diff | 12 Oct 2026 |
 | kunal | T-299 + T-308 then T-325 | fix/t-299-* (Kunal names it; one branch or three, his call) | apps/auth (T-299 hardening and riders): User.model, auth.service, passport config, oauth.routes, auth.validator, auth.controller, referral.service, credit-bonus.service and their tests; NOT apps/auth/src/app.ts or apps/auth/src/config/sentry.ts (tanvi, T-315). apps/web: (auth)/login/page.tsx and auth/callback/page.tsx (T-299 messages, T-306 tokens), apps/web/src/app/layout.tsx and the GA helper (T-306: no tokens in page_location, GA only on public pages), apps/web/src/app/(marketing)/privacy/page.tsx (T-308, Ajay signed d686ce0), new t299/t306/t308 tests. Full chain (auth). T-310 follows (same files) Also (Priya, 12 Oct): bump CURRENT_TERMS_VERSION in User.model.ts to the date Mahak's T-268 terms edits merge. Also (Priya, 12 Oct, T-317 Addendum 1, Ajay 6cbe863): apps/web/src/app/layout.tsx site description, word for word. Also (Meera, 12 Oct): layout.tsx title "Lawie — Drafting Assistant for Indian Advocates" and keywords exactly: "legal drafting", "drafting assistant", "Indian advocates", "bail application", "legal notice", "affidavit", "rent agreement". Also (Priya, 12 Oct, T-306 residual): apps/web/next.config.mjs, a Referrer-Policy: no-referrer header for /auth/callback only. T-319 (T-306 merged ba54d48): same auth and web login/callback files. T-319 merged 2b02eae. Also: apps/gateway/src/__tests__/register-role.test.ts (the stale comment only). T-325 (HIGH, may stack, merges after T-299 + T-308): apps/auth/src/middleware/authenticate.ts and its test. | yes: T-308 privacy words signed d686ce0; any new account message goes to Ajay | 12 Oct 2026 |
-| tanvi | T-280 | fix/t-280-* (Tanvi names it) | apps/web/src/app/tools/section-converter/page.tsx only (show old_title and new_title; T-277 is merged). Small-fix mode; manual check at 375 and 1280 px; Ajay confirms the titles shown are his signed ones | Ajay confirms titles | 12 Oct 2026 |
+| tanvi | T-280 then T-326 | fix/t-280-* (Tanvi names it) | apps/web/src/app/tools/section-converter/page.tsx only (show old_title and new_title; T-277 is merged). Small-fix mode; manual check at 375 and 1280 px; Ajay confirms the titles shown are his signed ones T-326 next on the same page. | Ajay confirms titles | 12 Oct 2026 |
 
 ## Next per lead (Priya, 11 Oct 2026). Not claims: each is assigned only when its row is free and its gate is met
 
@@ -35,8 +35,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. shashank — T-295. Once Ajay signs.
-2. tanvi — T-280 (9e79ae4). Once Ajay OKs.
+1. shashank — T-295 (Ajay signed a6d38df). Merging now.
+2. tanvi — T-280 (9e79ae4). Ajay signed. Next after shashank.
 First signed merges first; tell Priya before you start.
 First signed merges first; tell Priya before you start.
 
