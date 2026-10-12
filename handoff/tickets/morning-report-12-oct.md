@@ -73,4 +73,4 @@ Arjun's founder tasks, 12 Oct (his session): (a) back up the encryption key OFFL
 
 From Arjun, 12 Oct: add FEATURE_DEFAULT_DESCRIBE_FIRST=on and FEATURE_DEFAULT_FACT_LEDGER=on to the develop environment file (or set the two AppSettings once in admin). Chatbot (T-253): two Anthropic keys ($25 chat, $5 eval), chat key in the production environment file, eval key as a GitHub secret, seed the AppSettings, flip chat.enabled only after Anushka's PASS.
 
-Possible founder task (T-285, Arjun to confirm): production nginx proxy_read_timeout is 60 s; long draft repairs can drop the stream.
+T-285 (long repairs drop the stream) needs no founder task: Arjun's fix is a keep-alive in code.

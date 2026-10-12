@@ -29,6 +29,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 - T-283 (env default for the two switches; small, drafting only, scoped by Arjun): next for vishal after T-263.
 - T-253a+c (assistant): after T-226 and the v1 blockers (Priya's call, 12 Oct). Overlaps: documents.routes.ts (T-226, then T-115a); drafting config/env.ts and app.ts (T-253a, T-283); web layout.tsx and Sidebar.tsx (T-253d, T-234, T-281).
 
+- T-285 (SSE keep-alive on the four drafting streams; small, drafting only; touches ai.service.ts, so after T-241 and T-245a or when no lead holds it): ready.
+
 ## Merge queue
 
 (queue empty)
