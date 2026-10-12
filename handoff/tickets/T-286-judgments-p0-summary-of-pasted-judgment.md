@@ -29,3 +29,10 @@ Source: `handoff/legal/judgments-scope.md` (Ajay, 12 Oct 2026).
 - Design: Rajesh, needed (new screen)
 - ADR: Arjun, needed
 - Legal sign-off: Ajay, needed
+
+## Arjun (12 Oct 2026)
+
+ADR-024 is written: `handoff/tickets/ADR-T-286-judgment-summary.md`. Short version: a module in drafting; pasted text only (150,000 characters); nothing stored; the code, not the model, enforces "quote, do not paraphrase" by checking every quote against its numbered paragraph and dropping what fails; no status words; T-148 check on all prose; fail-closed cost guards with zero defaults until Vikram sets them. Upload waits for T-304 (no PDF extractor exists in the repo). Split: T-286a backend, T-286c gateway, T-286b web, T-286d upload later.
+
+**Open before 286a:** Ajay's rule and final labels; Ajay's 10 sample judgments; Rajesh's design (286b); Vikram's choice (included with caps, or Ink through T-226) and numbers; T-285's keep-alive merged.
+**Founder:** create `ANTHROPIC_JUDGMENTS_API_KEY` with a console limit, and seed `ai.judgments_model`, its rate row and `judgments.enabled=false` at launch. Nothing earlier.
