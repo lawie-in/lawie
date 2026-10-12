@@ -529,3 +529,13 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - On a small phone or with large text, the card text scrolls and the buttons stay in view.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-190 + T-199 — bail packs ask for the facts behind their averments (65d8707, mahak, 12 Oct 2026)
+
+What a user can now do:
+- When drafting a regular, interim, anticipatory or Magistrate bail application, be asked (after the required details, up to 10 questions) about earlier bail applications, criminal history, arrest date, investigation stage, health, whether the applicant is named in the FIR, recovery, cooperation, work, whether the applicant is the only earning member, who depends on them, local ties, the Section 35 notice and a co-accused's bail, using buttons for yes/no and stage answers.
+- Answer "Not known" or "None" and get no claim about it in the draft; leave any of them blank and still get the draft.
+- If the description says no earlier bail application was made, be asked to confirm it once; skip it and the draft leaves that line blank for them to fill.
+- Test with the fact-ledger setting both on and off; the questions appear either way.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
