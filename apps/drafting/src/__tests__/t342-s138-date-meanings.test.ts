@@ -24,7 +24,6 @@
  *
  * No model call, no database. The model's answer is stubbed as spans.
  */
-import { execFileSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -71,11 +70,15 @@ interface Kind {
   label: string;
   subject: string[];
   tie?: string[];
+  pack_only?: boolean;
+  not_with?: string[];
   facts: string[];
 }
 const MEANINGS_REL = 'apps/drafting/src/config/intake/date-meanings.json';
 const MEANINGS = JSON.parse(readFileSync(join(REPO_ROOT, MEANINGS_REL), 'utf-8')) as {
+  _meta: Record<string, unknown>;
   kinds: Kind[];
+  [other: string]: unknown;
 };
 const kindById = (id: string): Kind => {
   const k = MEANINGS.kinds.find((x) => x.id === id);
@@ -83,18 +86,13 @@ const kindById = (id: string): Kind => {
   return k;
 };
 
-/** The file as it stood before T-342 part 1 (commit 487b91a), or null if git cannot give it. */
-function fileBeforeT342(): { kinds: Kind[] } | null {
-  try {
-    const out = execFileSync('git', ['-C', REPO_ROOT, 'show', `487b91a:${MEANINGS_REL}`], {
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
-    return JSON.parse(out) as { kinds: Kind[] };
-  } catch {
-    return null;
-  }
-}
+/**
+ * The file as it stood before T-342 (commit 487b91a), committed as a fixture so the
+ * comparison runs in CI, where the checkout has no git history.
+ */
+const BEFORE = JSON.parse(
+  readFileSync(join(__dirname, 'fixtures/date-meanings.pre-t342.json'), 'utf-8'),
+) as { _meta: Record<string, unknown>; kinds: Kind[]; [other: string]: unknown };
 
 // ── the checklist and the reading path ──────────────────────────────────────
 
@@ -104,6 +102,10 @@ function checklistOf(id: string): ChecklistItem[] {
   return buildChecklist(p);
 }
 const S138 = checklistOf(PACK);
+/** The kinds of the s.138 checklist's date facts: the scope the s.138 pack reads with. */
+const S138_KINDS: ReadonlySet<string> = new Set(
+  S138.map((i) => i.dateKind).filter((k): k is string => !!k),
+);
 const item = (key: string): ChecklistItem => {
   const i = S138.find((x) => x.key === key);
   if (!i) throw new Error(`no item ${key}`);
@@ -175,23 +177,45 @@ describe("T-342 AC1: the three new kinds, pinned to Ajay's signed wording", () =
       }
   });
 
-  it('no kind that existed before was changed (compared with commit 487b91a)', () => {
-    const before = fileBeforeT342();
-    // If the history is not there (a shallow clone) the pinned list below still runs.
-    if (before) {
-      for (const old of before.kinds) expect(kindById(old.id)).toEqual(old);
-      expect(MEANINGS.kinds.map((k) => k.id)).toEqual([
-        ...before.kinds
-          .slice(0, before.kinds.findIndex((k) => k.id === 'dishonour') + 1)
-          .map((k) => k.id),
-        'memo_received',
-        'notice_sent',
-        'cheque_validity',
-        ...before.kinds
-          .slice(before.kinds.findIndex((k) => k.id === 'dishonour') + 1)
-          .map((k) => k.id),
-      ]);
+  it('no kind that existed before was changed (compared with the committed pre-T-342 fixture)', () => {
+    expect(BEFORE.kinds.length).toBeGreaterThan(20);
+    for (const old of BEFORE.kinds) expect(kindById(old.id)).toStrictEqual(old);
+    const beforeIds = BEFORE.kinds.map((k) => k.id);
+    const at = beforeIds.indexOf('dishonour') + 1;
+    expect(MEANINGS.kinds.map((k) => k.id)).toEqual([
+      ...beforeIds.slice(0, at),
+      'memo_received',
+      'notice_sent',
+      'cheque_validity',
+      ...beforeIds.slice(at),
+    ]);
+  });
+
+  it('nothing else in the file moved: the other sections and the _meta are as before, bar the _meta.keys note', () => {
+    for (const key of Object.keys(BEFORE)) {
+      if (key === 'kinds' || key === '_meta') continue;
+      expect(MEANINGS[key]).toStrictEqual(BEFORE[key]);
     }
+    expect(Object.keys(MEANINGS).sort()).toEqual(Object.keys(BEFORE).sort());
+    const { signed, last_updated, keys, ...metaNow } = MEANINGS._meta;
+    const { signed: s0, last_updated: l0, ...metaBefore } = BEFORE._meta;
+    expect([typeof signed, typeof last_updated, typeof s0, typeof l0]).toEqual(
+      Array(4).fill('string'),
+    );
+    expect(typeof keys).toBe('string');
+    expect(metaNow).toStrictEqual(metaBefore);
+  });
+
+  it('the three new kinds are pack_only, so no other pack and no unscoped reader sees them; no old kind is pack_only', () => {
+    for (const id of ['memo_received', 'notice_sent', 'cheque_validity'])
+      expect(kindById(id).pack_only).toBe(true);
+    for (const old of BEFORE.kinds) expect(kindById(old.id).pack_only).toBeUndefined();
+  });
+
+  it('memo_received carries not_with "dated" (Ajay: the memo\'s own date is not the date it was received)', () => {
+    expect(kindById('memo_received').not_with).toEqual(['dated']);
+    expect(kindById('notice_sent').not_with).toBeUndefined();
+    expect(kindById('cheque_validity').not_with).toBeUndefined();
   });
 
   it('pinned: the s.138 and notice kinds already there keep their facts', () => {
@@ -323,8 +347,10 @@ describe("T-342 AC2: Ajay's reading rules (cues on the words)", () => {
     'मेमो प्राप्त हुआ 5 March 2026 को',
     'memo mila 5 March 2026 ko',
   ])('"%s" carries memo_received', (words) => {
-    expect(dateKindsIn(words)).toContain('memo_received');
+    expect(dateKindsIn(words, S138_KINDS)).toContain('memo_received');
     expect(carriesDateKind(words, 'memo_received')).toBe(true);
+    // pack_only: with no scope the kind is not seen
+    expect(dateKindsIn(words)).not.toContain('memo_received');
   });
 
   it.each([
@@ -334,7 +360,7 @@ describe("T-342 AC2: Ajay's reading rules (cues on the words)", () => {
     'got it on 5 March 2026',
     'the bank letter was received on 5 March 2026',
   ])('a bare "%s" never maps to memo_received', (words) => {
-    expect(dateKindsIn(words)).not.toContain('memo_received');
+    expect(dateKindsIn(words, S138_KINDS)).not.toContain('memo_received');
     expect(carriesDateKind(words, 'memo_received')).toBe(false);
   });
 
@@ -345,9 +371,9 @@ describe("T-342 AC2: Ajay's reading rules (cues on the words)", () => {
     'returned unpaid on 3 March 2026',
     'cheque bounced and dishonoured on 3 March 2026',
   ])('"%s" maps to dishonour, never memo_received', (words) => {
-    expect(dateKindsIn(words)).toContain('dishonour');
-    expect(dateKindsIn(words)).not.toContain('memo_received');
-    const stated = statedDates(words);
+    expect(dateKindsIn(words, S138_KINDS)).toContain('dishonour');
+    expect(dateKindsIn(words, S138_KINDS)).not.toContain('memo_received');
+    const stated = statedDates(words, S138_KINDS);
     expect(stated).toHaveLength(1);
     expect(stated[0].kind).toBe('dishonour');
   });
@@ -360,7 +386,8 @@ describe("T-342 AC2: Ajay's reading rules (cues on the words)", () => {
     'चेक की वैधता 10 April 2026',
     'chek ki vaidhta 10 April 2026',
   ])('"%s" includes cheque_validity (cheque context)', (words) => {
-    expect(dateKindsIn(words)).toContain('cheque_validity');
+    expect(dateKindsIn(words, S138_KINDS)).toContain('cheque_validity');
+    expect(dateKindsIn(words)).not.toContain('cheque_validity');
   });
 
   it.each([
@@ -369,7 +396,7 @@ describe("T-342 AC2: Ajay's reading rules (cues on the words)", () => {
     'The licence is valid until 10 April 2026.',
     'validity 10 April 2026',
   ])('"%s" without a cheque word is not cheque_validity', (words) => {
-    expect(dateKindsIn(words)).not.toContain('cheque_validity');
+    expect(dateKindsIn(words, S138_KINDS)).not.toContain('cheque_validity');
     expect(carriesDateKind(words, 'cheque_validity')).toBe(false);
     // and no fact on the s.138 checklist gets it from code
     expect(datesReadByCode(S138, words, new Map()).has('cheque_validity_date')).toBe(false);
@@ -381,7 +408,7 @@ describe("T-342 AC2: Ajay's reading rules (cues on the words)", () => {
     'The legal notice was received by the drawer on 5 April 2026.',
     'Notice delivered on 5 April 2026.',
   ])('"%s" never yields L4 or L5', (words) => {
-    const kinds = dateKindsIn(words);
+    const kinds = dateKindsIn(words, S138_KINDS);
     expect(kinds).not.toContain('memo_received');
     expect(kinds).not.toContain('notice_sent');
     const code = datesReadByCode(S138, words, new Map());
@@ -391,8 +418,9 @@ describe("T-342 AC2: Ajay's reading rules (cues on the words)", () => {
 
   it('a notice that is sent carries notice_sent, and that is not memo_received', () => {
     for (const words of ['The notice was sent on 3 April 2026.', 'notice bheja 3 April 2026 ko']) {
-      expect(dateKindsIn(words)).toContain('notice_sent');
-      expect(dateKindsIn(words)).not.toContain('memo_received');
+      expect(dateKindsIn(words, S138_KINDS)).toContain('notice_sent');
+      expect(dateKindsIn(words, S138_KINDS)).not.toContain('memo_received');
+      expect(dateKindsIn(words)).not.toContain('notice_sent');
     }
   });
 });
@@ -409,10 +437,12 @@ describe('T-342 part 2: the longer cue is placed; a collision it does not settle
   const modelEntry = (key: string, value: string, quote: string) => ({ id: key, value, quote });
 
   it('"received the return memo on X" is placed on memo_received (longest cue beats dishonour and served)', () => {
-    // dateKindsIn is unchanged: the collision is still there for any caller that reads without a scope.
-    expect(dateKindsIn(MEMO)).toEqual(
+    // On the s.138 scope the collision is there; the longest cue settles it.
+    expect(dateKindsIn(MEMO, S138_KINDS)).toEqual(
       expect.arrayContaining(['memo_received', 'dishonour', 'served']),
     );
+    // With no scope the reader is as before T-342: the same words give dishonour and served only.
+    expect(dateKindsIn(MEMO)).toEqual(['dishonour', 'served']);
     expect(statedDates(MEMO)).toEqual([
       expect.objectContaining({ value: '2026-03-05', kind: null }),
     ]);
@@ -422,14 +452,20 @@ describe('T-342 part 2: the longer cue is placed; a collision it does not settle
   });
 
   it('"valid till X" in a cheque sentence is placed on cheque_validity (beats end)', () => {
-    expect(dateKindsIn(VALID)).toEqual(expect.arrayContaining(['cheque_validity', 'end']));
+    expect(dateKindsIn(VALID, S138_KINDS)).toEqual(
+      expect.arrayContaining(['cheque_validity', 'end']),
+    );
+    expect(dateKindsIn(VALID)).toEqual(['end']);
     const placed = datesReadByCode(S138, VALID, new Map());
     expect([...placed.keys()]).toEqual(['cheque_validity_date']);
     expect(placed.get('cheque_validity_date')?.value).toBe('2026-04-10');
   });
 
   it('"the notice was sent on X" is placed on notice_sent (beats notice)', () => {
-    expect(dateKindsIn(SENT)).toEqual(expect.arrayContaining(['notice_sent', 'notice']));
+    expect(dateKindsIn(SENT, S138_KINDS)).toEqual(
+      expect.arrayContaining(['notice_sent', 'notice']),
+    );
+    expect(dateKindsIn(SENT)).toEqual(['notice']);
     const placed = datesReadByCode(S138, SENT, new Map());
     expect([...placed.keys()]).toEqual(['notice_sent_date']);
     expect(placed.get('notice_sent_date')?.value).toBe('2026-04-03');
@@ -759,15 +795,8 @@ describe('T-342 part 2: sentences placed nowhere on the s.138 pack', () => {
       value === '2 April 2026' ? '2026-04-02' : value === '5 April 2026' ? '2026-04-05' : '';
     for (const key of ['memo_received_date', 'notice_sent_date']) {
       const r = readPath(text, [{ id: key, value: iso, quote: text }]);
-      // notice_sent / memo_received are not accepted on a "served" quote
+      // notice_sent / memo_received are not accepted on a "served" quote (Ajay), on the model path too
       const kept = r.kept.get(key);
-      if (
-        key === 'notice_sent_date' &&
-        text === 'The notice sent to him was served on 5 April 2026.'
-      ) {
-        // known pre-existing gap (reported, out of scope): checkRead keeps it as L5
-        continue;
-      }
       expect(kept).toBeUndefined();
     }
   });
@@ -812,37 +841,76 @@ describe('T-342 part 2: sentences placed nowhere on the s.138 pack', () => {
   });
 });
 
-describe('T-342 part 2: reading with no scope is exactly as before', () => {
-  // Pinned from the unchanged reader (kind = the one kind dateKindsIn gives for a one-date clause, else null).
-  const SAMPLES: Array<[string, string | null]> = [
-    ['The accused was arrested on 5 March 2026.', 'arrest'],
-    ['The FIR was registered on 2 March 2026.', null],
-    ['He received the bail order on 5 March 2026.', null],
-    ['The chargesheet was filed on 9 April 2026.', null],
-    ['The notice was served on 5 April 2026.', null],
-    ['The application was dismissed on 7 May 2026.', 'order'],
-    ['The defect came to notice on 3 March 2026.', null],
-    ['The cheque is valid till 10 April 2026.', null],
-    ['The licence is valid till 10 April 2026.', 'end'],
-    ['I received the return memo on 5 March 2026.', null],
-    ['The notice was sent on 3 April 2026.', null],
-    ['The cheque was dishonoured on 3 March 2026.', 'dishonour'],
-    ['Received on 12 March 2026.', 'served'],
+describe('T-342 part 2: reading with no scope is exactly as before T-342', () => {
+  // Hard-coded from the reader at commit 487b91a (before T-342), run on each sentence:
+  // [sentence, dateKindsIn(sentence), the kind statedDates gives its one date].
+  // The values are NOT computed from the current reader, so this cannot go circular.
+  const BEFORE_TABLE: Array<[string, string[], string | null]> = [
+    ['The accused was arrested on 5 March 2026.', ['arrest'], 'arrest'],
+    ['The FIR was registered on 2 March 2026.', ['fir', 'registration'], null],
+    ['He received the bail order on 5 March 2026.', ['order', 'served'], null],
+    ['The chargesheet was filed on 9 April 2026.', ['chargesheet', 'filing'], null],
+    ['The notice was served on 5 April 2026.', ['notice', 'served'], null],
+    ['The application was dismissed on 7 May 2026.', ['order'], 'order'],
+    ['The defect came to notice on 3 March 2026.', ['notice', 'known'], null],
+    ['The cheque is valid till 10 April 2026.', ['end'], 'end'],
+    ['The licence is valid till 10 April 2026.', ['end'], 'end'],
+    ['I received the return memo on 5 March 2026.', ['dishonour', 'served'], null],
+    ['The notice was sent on 3 April 2026.', ['notice'], 'notice'],
+    ['The legal notice was sent on 3 April 2026.', ['notice'], 'notice'],
+    ['The cheque was dishonoured on 3 March 2026.', ['dishonour'], 'dishonour'],
+    ['Received on 12 March 2026.', ['served'], 'served'],
+    ['Memo received on 12 March 2026.', ['served'], 'served'],
+    ['The demand notice was sent on 3 April 2026.', ['notice', 'demand'], null],
+    ['The notice sent to him was served on 5 April 2026.', ['notice', 'served'], null],
+    ['The return memo was received on 12 March 2026.', ['dishonour', 'served'], null],
+    ['We received the dishonour memo on 12 March 2026.', ['dishonour', 'served'], null],
+    ['We received the dishonour memo dated 7 March 2026.', ['dishonour', 'served'], null],
+    ['The dishonour memo dated 7 March 2026.', ['dishonour'], 'dishonour'],
+    ['The cheque was returned unpaid on 3 March 2026.', ['dishonour'], 'dishonour'],
+    ['The legal notice dated 3 April 2026.', ['notice'], 'notice'],
+    ['The cheque validity is up to 9 April 2026.', [], null],
+    ['Receipt of the return memo on 5 March 2026.', ['dishonour', 'served'], null],
+    ['It came to notice on 12 March 2026.', ['notice', 'known'], null],
+    ['The loan was disbursed on 4 January 2026.', [], null],
   ];
 
-  it.each(SAMPLES)('statedDates("%s") gives kind %s', (text, kind) => {
-    const stated = statedDates(text);
-    expect(stated).toHaveLength(1);
-    expect(stated[0].kind).toBe(kind);
-  });
-
-  it.each(SAMPLES)(
-    '"%s": no scope equals the old rule (the one kind dateKindsIn gives)',
-    (text) => {
-      const kinds = dateKindsIn(text);
-      expect(statedDates(text)[0].kind).toBe(kinds.length === 1 ? kinds[0] : null);
+  it.each(BEFORE_TABLE)(
+    '"%s": dateKindsIn gives %j and statedDates gives kind %s',
+    (text, kinds, kind) => {
+      expect(dateKindsIn(text)).toEqual(kinds);
+      const stated = statedDates(text);
+      expect(stated).toHaveLength(1);
+      expect(stated[0].kind).toBe(kind);
     },
   );
+
+  it('unscoped, "The legal notice was sent on X" is kind notice and "Memo received on X" is kind served (the pre-T-342 reading)', () => {
+    expect(statedDates('The legal notice was sent on 3 April 2026.')[0].kind).toBe('notice');
+    expect(statedDates('Memo received on 12 March 2026.')[0].kind).toBe('served');
+    expect(statedDates('The cheque is valid till 10 April 2026.')[0].kind).toBe('end');
+  });
+
+  it('no unscoped reading ever gives one of the three new kinds, for any cue in the file', () => {
+    const NEW = ['memo_received', 'notice_sent', 'cheque_validity'];
+    for (const id of NEW) {
+      const k = kindById(id);
+      for (const cue of k.subject) {
+        const text = `The ${cue} ${k.tie ? k.tie[0] : ''} on 12 March 2026.`;
+        expect(dateKindsIn(text)).not.toEqual(expect.arrayContaining([id]));
+        expect(statedDates(text).map((d) => d.kind)).not.toEqual(expect.arrayContaining([id]));
+      }
+    }
+  });
+
+  it('the scope of another pack does not bring the new kinds in', () => {
+    const bail = new Set(['arrest', 'fir', 'order', 'served', 'notice']);
+    expect(dateKindsIn('I received the return memo on 5 March 2026.', bail)).toEqual([
+      'dishonour',
+      'served',
+    ]);
+    expect(dateKindsIn('The notice was sent on 3 April 2026.', bail)).toEqual(['notice']);
+  });
 
   it('a multi-date clause is still unread, with or without a scope', () => {
     const text = 'The cheque dated 10 January 2026 was presented on 9 April 2026.';
@@ -850,6 +918,112 @@ describe('T-342 part 2: reading with no scope is exactly as before', () => {
     expect(
       statedDates(text, new Set(['cheque', 'cheque_presented'])).every((d) => d.kind === null),
     ).toBe(true);
+  });
+});
+
+describe('T-342 part 2: the packs that share a kind read as they did before (reviewer round 1)', () => {
+  // Pinned from the reader at 487b91a.
+  const placed = (pack: string, text: string) =>
+    Object.fromEntries(
+      [...datesReadByCode(checklistOf(pack), text, new Map())].map(([k, v]) => [k, v.value]),
+    );
+
+  it.each([
+    'The legal notice was sent on 3 April 2026.',
+    'The notice was sent on 3 April 2026.',
+    'The legal notice dated 3 April 2026.',
+  ])('plaint_recovery: "%s" places legal_notice_date = 3 April', (text) => {
+    expect(placed('plaint_recovery', text)).toEqual({ legal_notice_date: '2026-04-03' });
+  });
+
+  it.each([
+    'The legal notice was sent on 3 April 2026.',
+    'The notice was sent on 3 April 2026.',
+    'The legal notice dated 3 April 2026.',
+  ])('ibc_application: "%s" places s8_demand_notice_date = 3 April', (text) => {
+    expect(placed('ibc_application', text)).toEqual({ s8_demand_notice_date: '2026-04-03' });
+  });
+
+  it('ibc_application: "The demand notice was sent on X" is ambiguous at 487b91a (notice and demand), so still nothing', () => {
+    expect(placed('ibc_application', 'The demand notice was sent on 3 April 2026.')).toEqual({});
+    expect(placed('plaint_recovery', 'The demand notice was sent on 3 April 2026.')).toEqual({});
+  });
+
+  it('the s.138 pack itself places that sentence on the new L5 fact, and not on the notice fact', () => {
+    expect(placed(PACK, 'The legal notice was sent on 3 April 2026.')).toEqual({
+      notice_sent_date: '2026-04-03',
+    });
+  });
+
+  it('the model path on plaint_recovery: a "notice was sent" quote is kept for legal_notice_date as before', () => {
+    const cl = checklistOf('plaint_recovery');
+    const text = 'The legal notice was sent on 3 April 2026.';
+    const r = checkRead(cl, text, {
+      outcome: 'read',
+      read: [{ id: 'legal_notice_date', value: '2026-04-03', quote: text }],
+    });
+    expect(r.dropped).toEqual([]);
+    expect(r.values.get('legal_notice_date')?.value).toBe('2026-04-03');
+  });
+});
+
+describe("T-342 part 2: Ajay's dishonour-memo rulings on the s.138 pack", () => {
+  const placed = (text: string) =>
+    Object.fromEntries([...datesReadByCode(S138, text, new Map())].map(([k, v]) => [k, v.value]));
+
+  it('"We received the dishonour memo on X" is L4 (received governs the date)', () => {
+    expect(placed('We received the dishonour memo on 12 March 2026.')).toEqual({
+      memo_received_date: '2026-03-12',
+    });
+  });
+
+  it('"We received the dishonour memo dated X" is nothing (that is the memo\'s own date)', () => {
+    expect(placed('We received the dishonour memo dated 7 March 2026.')).toEqual({});
+  });
+
+  it('"The dishonour memo dated X" is the dishonour date, as before', () => {
+    expect(placed('The dishonour memo dated 7 March 2026.')).toEqual({
+      dishonour_date: '2026-03-07',
+    });
+  });
+
+  it('"We received the return memo dated X" is also nothing (not_with "dated")', () => {
+    expect(placed('We received the return memo dated 7 March 2026.')).toEqual({});
+  });
+
+  it('"The legal notice was sent on X" is L5', () => {
+    expect(placed('The legal notice was sent on 3 April 2026.')).toEqual({
+      notice_sent_date: '2026-04-03',
+    });
+  });
+
+  it('"The notice sent to him was served on X" is nothing, by code', () => {
+    expect(placed('The notice sent to him was served on 5 April 2026.')).toEqual({});
+  });
+
+  it('the model path: a notice_sent quote "The notice sent to him was served on X" is dropped', () => {
+    const quote = 'The notice sent to him was served on 5 April 2026.';
+    const r = checkRead(S138, quote, {
+      outcome: 'read',
+      read: [{ id: 'notice_sent_date', value: '2026-04-05', quote }],
+    });
+    expect(r.values.has('notice_sent_date')).toBe(false);
+    expect(r.dropped.map((d) => d.key)).toContain('notice_sent_date');
+  });
+
+  it('the model path: "We received the dishonour memo dated X" under L4 is dropped; "... on X" is kept', () => {
+    const dated = 'We received the dishonour memo dated 7 March 2026.';
+    const a = checkRead(S138, dated, {
+      outcome: 'read',
+      read: [{ id: 'memo_received_date', value: '2026-03-07', quote: dated }],
+    });
+    expect(a.values.has('memo_received_date')).toBe(false);
+    const on = 'We received the dishonour memo on 12 March 2026.';
+    const b = checkRead(S138, on, {
+      outcome: 'read',
+      read: [{ id: 'memo_received_date', value: '2026-03-12', quote: on }],
+    });
+    expect(b.values.get('memo_received_date')?.value).toBe('2026-03-12');
   });
 });
 

@@ -4,7 +4,8 @@
     "owner": "Ajay (CLO)",
     "signed": "T-127, 6 Oct 2026, section 6. T-342 (kinds memo_received, notice_sent, cheque_validity; Ajay's Option B, labels L4, L5, L2 from T-192): pending Ajay's sign-off",
     "last_updated": "2026-10-12",
-    "change_protocol": "Legal content. All edits require CLO sign-off."
+    "change_protocol": "Legal content. All edits require CLO sign-off.",
+    "keys": "pack_only: the kind is read only for a pack that has a fact of it; elsewhere it is as if absent. not_with: words that stop a clause being this kind of date."
   },
   "hindi_months": {
     "जनवरी": 1,
@@ -451,6 +452,8 @@
         "memo mila",
         "memo prapt"
       ],
+      "pack_only": true,
+      "not_with": ["dated"],
       "facts": ["memo_received_date"]
     },
     {
@@ -480,6 +483,7 @@
         "notice bhej diya",
         "notis bheja"
       ],
+      "pack_only": true,
       "facts": ["notice_sent_date"]
     },
     {
@@ -495,6 +499,7 @@
         "vaidhta"
       ],
       "tie": ["cheque", "चेक", "chek"],
+      "pack_only": true,
       "facts": ["cheque_validity_date"]
     },
     {
