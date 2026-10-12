@@ -37,7 +37,6 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 Each lead takes this after the current row is merged and released. Files are claimed then, as usual.
 - vishal: T-342, then T-359 (invented facts; check the overlap with T-187/T-188 first), then T-187 + T-188.
-- tanvi: T-357 (c741f59, small fix tested green). After vishal; check with the slot holder first.
 - shashank: T-356 part 1, then T-360 (converter numbers).
 - kunal: T-354, then T-364 (Ink and plan display).
 - tanvi: T-349 + T-350, T-357, then T-363 (s.138).
@@ -50,6 +49,7 @@ Each lead takes this after the current row is merged and released. Files are cla
 - kunal: T-354 (tests green, small fix, Arjun ruled option A). After mahak's CI fix; check with the slot holder first.
 - shashank: T-356 part 1 (152df3b, small fix tested green; release gate). After kunal (T-354 unblocks Mahak's T-223), ahead of vishal and tanvi T-357.
 - vishal: T-342 (round 2 review passed, tests green, Ajay signed 59eff64 at 54951db). Merges once the _meta.signed line is in. After kunal T-354; check with the slot holder first.
+- tanvi: T-357 (c741f59, small fix tested green). After vishal; check with the slot holder first.
 
 ## Last done
 
