@@ -37,6 +37,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 1. vishal — T-241 (78a123b). Slot given 12 Oct 2026; once Ajay signs 78a123b and records Addendum 2.
 2. shashank — T-278 (0c7638c). After vishal, once Ajay signs the bail-check.service.ts diff.
+3. mahak — T-314 (3f9fa83). After shashank, once Ajay signs 3f9fa83. Order among the three follows whoever has Ajay's sign first.
 
 ## Last done
 
