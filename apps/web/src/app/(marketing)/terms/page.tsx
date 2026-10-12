@@ -107,8 +107,9 @@ export default function TermsPage() {
                 <h3>2. Description of Service</h3>
                 <p>
                   Lawie is a drafting assistant for advocates. It creates first drafts of legal
-                  documents for the advocate to review, edit and download. Criminal drafts cite BNS,
-                  BNSS and BSA. The Service does not provide legal advice or representation.
+                  documents for the advocate to review, edit and download. Criminal drafts use BNS,
+                  BNSS and BSA section numbers. The Service does not provide legal advice or
+                  representation.
                 </p>
               </section>
               <section id="disclaimer">
