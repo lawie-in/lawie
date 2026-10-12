@@ -20,3 +20,11 @@ Under Arjun's corrected T-277 rule, a bare number with no code (for example "303
 - Design: Rajesh only if the look changes
 - ADR: Not needed
 - Legal sign-off: Ajay (the hint words)
+
+## Ajay signed the words (12 Oct 2026, board comment T-290 / c_t290_ajay_words)
+
+- Hint under the picker: "Type the Act with each section, for example BNS 303(2) or IPC 379."
+- Message when a bare number is entered: "Add the Act before the section number, for example BNS 303(2) or IPC 379."
+- An optional Hindi line is in the comment.
+
+Use these words exactly. Rajesh is needed only if the layout changes.
