@@ -7,10 +7,10 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 | Lead | Ticket | Branch | Files and folders claimed | Legal paths | Since |
 |---|---|---|---|---|---|
 | shashank | T-278 | fix/t-278-* (Shashank names it) | apps/web/src/app/tools/bail-checker/page.tsx, apps/web/src/app/tools/timeline-tracker/page.tsx (render the API's signed notes; no new words, no design change), and apps/web/src/components/sections/SectionFinderPanel.tsx COURT_LEVEL_DEPENDS copy (T-289 follow-up: share the signed text or read it from /details). Small-fix mode. Manual check at 375 and 1280 px Also (Priya, 12 Oct, Ajay ruled): apps/drafting/src/services/bail-check.service.ts else branch (~327) returns the signed NOT_IN_IPC_TABLE note, plus its test. Ajay signs that diff. | words already signed; Ajay signs the bail-check.service.ts diff | 12 Oct 2026 |
-| mahak | T-311 | fix/t-311-* (Mahak names it) | T-311 (T-300 merged 048a632): drafting User model read-only enrollmentNumber by sub; template-engine/annexures/documents.routes enrollment order per Ajay (typed, then profile if empty, then blank); its tests. Ajay signs. | yes: template-engine is Ajay's | 12 Oct 2026 |
+| mahak | T-314 | fix/t-314-* (Mahak names it) | the legacy advocateEnrollment input check: apps/drafting/src/routes/documents.routes.ts and/or apps/drafting/src/services/prompt-assembler.ts (~572), whichever applies the name check today, plus a new t314 test. Small fix; Ajay sees the diff | Ajay sees the diff | 12 Oct 2026 |
 | vishal | T-241 | fix/t-241-bail-instructions | apps/drafting/src/config/document-rules/bail_anticipatory.json, bail_before_magistrate.json and bail_regular.json (prompt instructions and triple_test only, word for word from handoff/legal/T-241-bail-instructions-signed.md, fedb7ad); CLAUSE_CUES in apps/drafting/src/services/brief-drafter.ts (bail_regular and default_bail earlier_applications to EA-standard, signed); their tests; moved goldens listed for Ajay Also (Priya, 12 Oct): apps/drafting/src/__tests__/t266-cue-word-start-whole-token.test.ts lines 270-271 only (the "before" test flips to clause_not_in_paragraph, as its title expects). | yes: packs and cue map are Ajay's | 12 Oct 2026 |
 | kunal | T-234 + T-298 | feature/t-234-password-sign-up | apps/web/src/app/(auth)/login/page.tsx and components it alone uses (Rajesh's design in the T-234 ticket; Ajay's consent line; Madhuri's copy). apps/auth (Priya, 12 Oct, AC7 terms record + Google-only account login error): src/models/User.model.ts, src/services/auth.service.ts, src/config/passport.ts, src/routes/oauth.routes.ts, src/validators/auth.validator.ts, src/controllers/auth.controller.ts, new src/__tests__/t234-*.test.ts, and the register-role/oauth-role tests if they move. Not packages/shared. Full chain (auth). "Forgot password?" link stays hidden until T-221 merges Also T-298 (Arjun's ruling): referral Ink lands (auth User schema gets inkTopup, signup-seed race fixed, test first, no backfill) and password sign-up gets role Lawyer; apps/auth/src/services/referral.service.ts and credit-bonus.service.ts added. Also (Priya, 12 Oct): apps/web/src/app/auth/callback/page.tsx (show Ajay's "no longer valid" line once for referral=not_applied). Also (Priya, 12 Oct): root README.md, the 2 auth lines only. | no | 12 Oct 2026 |
-| tanvi | T-307 | fix/t-307-* (Tanvi names it) | apps/drafting/src/app.ts (a JSON-parse error handler: plain JSON 400, echoes nothing) and a new test file for it. Small-fix mode. Arjun glance | no | 12 Oct 2026 |
+| tanvi | T-307 | fix/t-307-* (Tanvi names it) | apps/drafting/src/app.ts (a JSON-parse error handler: plain JSON 400, echoes nothing) and a new test file for it. Small-fix mode. Arjun glance; apps/drafting/src/config/sentry.ts if AC2 needs a scrub | no | 12 Oct 2026 |
 
 ## Next per lead (Priya, 11 Oct 2026). Not claims: each is assigned only when its row is free and its gate is met
 
@@ -35,10 +35,12 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(empty)
+1. tanvi — T-307 (2a96551). Slot given 12 Oct 2026; merge once Arjun has OK'd it.
+2. kunal — T-234 + T-298 (c2fc394). After tanvi, once Ajay's byte check on c2fc394 passes.
 
 ## Last done
 
+- mahak — T-311 merged to `develop_staging` (0bff26f, 12 Oct 2026). Enrollment number from the profile, typed value first. Ajay signed 3afe965. Waiting for Anushka on develop.
 - tanvi — T-296 merged to `develop_staging` (32fc50b, 12 Oct 2026). Converter fits a phone; merged/split badges in plain words; None only for repealed. Ajay signed. Waiting for Anushka on develop.
 - mahak — T-300 merged to `develop_staging` (048a632, 12 Oct 2026). Server-only template keys; advocate name consistent across draft and annexures. Ajay signed 12482f0 + dd90fe5. Waiting for Anushka on develop.
 - shashank — T-294 merged to `develop_staging` (205e199, 12 Oct 2026). Seeding doc names the right files; wider t297 guard. Nothing to test in the UI.

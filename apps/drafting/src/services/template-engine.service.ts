@@ -1022,18 +1022,36 @@ export function clientFormData(
 }
 
 /**
+ * T-311: a resolved advocate name and whether it is the profile's name. Only
+ * a name from the profile may be paired with the profile's enrolment number.
+ */
+export interface ResolvedAdvocate {
+  name: string | undefined;
+  fromProfile: boolean;
+}
+
+/**
  * T-300 (Ajay, 12 Oct 2026): the advocate name the draft and the annexures
  * print. A value typed in a field this template declares wins when it is not
  * empty (missing, null or whitespace only); otherwise the profile name.
- * Undefined when neither is there, so each caller keeps its own blank.
+ * `name` is undefined when neither is there, so each caller keeps its own blank.
  */
+export function resolveAdvocate(
+  formData: Record<string, unknown>,
+  profile: { name?: string | null },
+  config: TemplateConfig | null | undefined,
+): ResolvedAdvocate {
+  const declared = declaredFieldIds(config).has('advocate_name');
+  return typedOrProfile(declared ? formData.advocate_name : undefined, profile.name);
+}
+
+/** The name `resolveAdvocate` returns. */
 export function resolveAdvocateName(
   formData: Record<string, unknown>,
   profile: { name?: string | null },
   config: TemplateConfig | null | undefined,
 ): string | undefined {
-  const declared = declaredFieldIds(config).has('advocate_name');
-  return typedOrProfileName(declared ? formData.advocate_name : undefined, profile);
+  return resolveAdvocate(formData, profile, config).name;
 }
 
 /**
@@ -1041,25 +1059,54 @@ export function resolveAdvocateName(
  * only if, after trim, it is 1 to 100 characters with no `{`, `}` or line
  * break; otherwise the profile name. A failing value never refuses a request.
  */
+export function resolveLegacyAdvocate(
+  bodyName: string | undefined,
+  profile: { name?: string | null },
+): ResolvedAdvocate {
+  const typed = bodyName?.trim() ?? '';
+  const ok = typed.length >= 1 && typed.length <= 100 && !/[{}\r\n\u2028\u2029]/.test(typed);
+  return typedOrProfile(ok ? typed : undefined, profile.name);
+}
+
+/** The name `resolveLegacyAdvocate` returns. */
 export function resolveLegacyAdvocateName(
   bodyName: string | undefined,
   profile: { name?: string | null },
 ): string | undefined {
-  const typed = bodyName?.trim() ?? '';
-  const ok = typed.length >= 1 && typed.length <= 100 && !/[{}\r\n\u2028\u2029]/.test(typed);
-  return typedOrProfileName(ok ? typed : undefined, profile);
+  return resolveLegacyAdvocate(bodyName, profile).name;
 }
 
 /**
- * The typed name when it is not empty (a "[To be confirmed: …]" blank counts as
- * typed and stays, AJ 12 Oct 2026), else the profile name.
+ * T-311 (Ajay, 12 Oct 2026): the enrolment number a document prints.
+ * - A typed value always prints (the advocate on the document may not be the
+ *   account holder), a "[To be confirmed: …]" placeholder included.
+ * - Otherwise the profile number, only when the field is truly empty (missing,
+ *   null or whitespace only) AND the advocate name the same document prints
+ *   came from the profile. A typed name is another advocate: no profile number
+ *   is paired with it.
+ * - Otherwise undefined, so each caller keeps its own blank.
  */
-function typedOrProfileName(typed: unknown, profile: { name?: string | null }): string | undefined {
+export function resolveEnrollmentNumber(
+  typed: unknown,
+  profileNumber: string | null | undefined,
+  nameFromProfile: boolean,
+): string | undefined {
+  return typedOrProfile(typed, nameFromProfile ? profileNumber : undefined).name;
+}
+
+/**
+ * The typed value when it is not empty (a "[To be confirmed: …]" blank counts
+ * as typed and stays, AJ 12 Oct 2026), else the profile value, with which of
+ * the two it was. `fromProfile` is false when neither is there.
+ */
+function typedOrProfile(typed: unknown, profileValue: string | null | undefined): ResolvedAdvocate {
   if (typeof typed === 'string' || typeof typed === 'number') {
     const value = String(typed);
-    if (value.trim() !== '') return value;
+    if (value.trim() !== '') return { name: value, fromProfile: false };
   }
-  return profile.name?.trim() ? profile.name : undefined;
+  return profileValue?.trim()
+    ? { name: profileValue, fromProfile: true }
+    : { name: undefined, fromProfile: false };
 }
 
 /**
@@ -1068,7 +1115,9 @@ function typedOrProfileName(typed: unknown, profile: { name?: string | null }): 
  * T-300: the formData keys a client may not set are dropped before anything
  * reads them (see `clientFormData`); one warn per request names them, never
  * their values. `extra.governingProvision` is the server's own
- * `{governing_provision}` (T-245a will compute it).
+ * `{governing_provision}` (T-245a will compute it). `extra.enrollmentNumber`
+ * is the profile's number, used only when no number was typed and the name is
+ * the profile's (T-311).
  */
 export function buildPlaceholderContext(
   config: TemplateConfig,
@@ -1086,6 +1135,14 @@ export function buildPlaceholderContext(
 
   const computed = resolveComputedFields(config, formData, courtData);
 
+  const advocate = resolveAdvocate(formData, { name: extra?.advocateName }, config);
+  const declaresEnrollment = declaredFieldIds(config).has('advocate_enrollment');
+  const enrollment = resolveEnrollmentNumber(
+    declaresEnrollment ? formData.advocate_enrollment : undefined,
+    extra?.enrollmentNumber,
+    advocate.fromProfile,
+  );
+
   const now = new Date();
   const ctx: PlaceholderContext = {
     // System values
@@ -1097,10 +1154,11 @@ export function buildPlaceholderContext(
     current_year: String(now.getFullYear()),
 
     // Advocate details: the declared, typed name, else the user profile (T-300)
-    advocate_name:
-      resolveAdvocateName(formData, { name: extra?.advocateName }, config) ??
-      '____________________',
-    enrollment_number: extra?.enrollmentNumber ?? '____________________',
+    advocate_name: advocate.name ?? '____________________',
+    // T-311: the declared, typed advocate_enrollment, else the profile number
+    // when the name is the profile's (extra.enrollmentNumber). A client
+    // `enrollment_number` is list A (T-300).
+    enrollment_number: enrollment ?? '____________________',
 
     // Computed fields
     ...computed,
@@ -1142,6 +1200,11 @@ export function buildPlaceholderContext(
       ctx[key] = String(val);
     }
   }
+
+  // T-311: a template that declares advocate_enrollment prints
+  // {advocate_enrollment} itself (legal_notice_s138, _s80). Same number as
+  // {enrollment_number}; with none, the flattened value (or nothing) stays.
+  if (declaresEnrollment && enrollment !== undefined) ctx.advocate_enrollment = enrollment;
 
   // SCRUM-54 B2: Capitalise state name (form sends lowercase stateId like "bihar")
   if (ctx.state) {
