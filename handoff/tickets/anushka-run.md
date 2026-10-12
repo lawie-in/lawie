@@ -644,3 +644,11 @@ What a user can now do:
 - Arrive from a campaign link, start a Google sign-in, cancel, then try again in the same tab. The account still records which campaign brought them.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-334 — "none filed" in the advocate's own words (828d55e, mahak, 12 Oct 2026)
+
+What a user can now do:
+- Answer the earlier-bail-applications question in their own words, such as "none filed", "koi bail nahi" or "कोई नहीं", and get the draft saying no other bail application has been made, with no "earlier bail applications are: koi bail nahi" line.
+- If a draft claims no earlier bail application was filed but they never confirmed it, have that claim removed or flagged before filing.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

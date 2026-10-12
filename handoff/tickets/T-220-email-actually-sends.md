@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Arjun (provider, domain, deploy; ADR if not already recorded). Founder (DNS and AWS account access). Lead (build). Anushka (verdict) |
 | Mode           | Arjun's call first, then build, full chain (email-worker, infra) |
-| Status         | Ruled by Arjun (11 + 12 Oct: SES v2 ap-south-1, lawie.in, worker under pm2 on EC2). Build step 1 (log fix, fail-fast, retry test) can start now; founder SES/DNS/IAM session on the morning report. RELEASE GATE with T-223. Lead: mahak after T-334 |
+| Status         | Building step 1: mahak (12 Oct 2026). Arjun ruled (SES v2 ap-south-1, lawie.in, worker under pm2 on EC2). Founder SES/DNS/IAM session on the morning report. RELEASE GATE with T-223 |
 | Size           | Arjun S. Build M |
 | Depends on     | None |
 | Gate           | Before v1 go-live (T-403). T-221 and T-222 cannot send for real without it |
