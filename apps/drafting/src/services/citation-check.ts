@@ -219,9 +219,10 @@ const JOIN_TOKENS = new Set([
  * party continues through, in any case (M/S, S/O, D/O, s/o, H/o and so on),
  * with or without a final full stop: M/s, s/o, d/o, w/o, r/o, h/o. A full stop
  * after one of them does not end a sentence, or the walk could not go through
- * "M/s." (see `endsSentenceAt`).
+ * "M/s." (see `endsSentenceAt`). Addendum 7 (485d836): the word may carry a
+ * trailing full stop or comma ("S/O,"), and the walk continues past it.
  */
-const SLASH_NAME_WORD = /^(?:m\/s|s\/o|d\/o|w\/o|r\/o|h\/o)\.?$/i;
+const SLASH_NAME_WORD = /^(?:m\/s|s\/o|d\/o|w\/o|r\/o|h\/o)[.,]?$/i;
 /** One token of the text before the versus word: a bracket group, or a run of non-space characters. */
 const TOKEN = /\([^()\n]{1,40}\),?|\S+/g;
 

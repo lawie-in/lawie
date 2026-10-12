@@ -3,9 +3,9 @@
  * and its addendum of 12 Oct 2026). Pure checks of services/citation-check.ts.
  * Invented names only.
  *
- * Also pins Ajay's Addenda 1 to 6 (c765ae7, 0e452b6, ac4dcae, d7f4f1b, Q7
- * Addendum 5, and Addendum 6 = 3c551da: Q8a unclosed bracket, Q8b slash name
- * words). Addenda 1 to 4: the
+ * Also pins Ajay's Addenda 1 to 7 (c765ae7, 0e452b6, ac4dcae, d7f4f1b, Q7
+ * Addendum 5, Addendum 6 = 3c551da: Q8a unclosed bracket, Q8b slash name
+ * words, and Addendum 7 = 485d836: a slash name word may carry a trailing comma). Addenda 1 to 4: the
  * abbreviation rule for sentence ends (Addendum 1), the 250-character and
  * blank-line search limit, the reporterless "A v. B" before a bare reporter and
  * the two-names case (Addendum 2, Q1 to Q3), "no versus word before a blank
@@ -61,10 +61,12 @@ function expectNoNameFragmentBesideBlank(out: string, given: string[] = []): voi
     const before = out.slice(0, at);
     const lastWord = before.split(/\s+/).filter(Boolean).pop() ?? '';
     const glued = /[\p{L}\p{N}][?!,;:][\p{L}\p{N}]/u.test(lastWord);
-    // A blank may follow a bare opening bracket or quote: "([blank])" (Addendum 6).
-    const fused = before.length > 0 && !/[\s(["]$/.test(before);
-    // Addendum 6 (Q8a): an opening ( or [ glued to a capital letter is the start of a name part.
-    const opener = /^[([]\p{Lu}/u.test(lastWord);
+    // A blank may follow an opening bracket or quote only when that opener stands alone
+    // (a space or the start of text before it): "([blank])" (Addendum 6), not "Bihar([blank]".
+    const fused =
+      before.length > 0 && !/\s$/.test(before) && !/(?:^|\s)[(["\u201c\u2018']+$/.test(before);
+    // Addendum 6 (Q8a): an opening bracket or quote glued to a capital letter is the start of a name part.
+    const opener = /[([\u201c\u2018"']+\p{Lu}\S*$/u.test(lastWord);
     expect({ out, glued, fused, opener }).toEqual({
       out,
       glued: false,
@@ -620,5 +622,24 @@ describe('T-263 Q8b (Addendum 6): slash name words are name words', () => {
   it('M/S. does not end a sentence while walking back', () => {
     const res = run('As held in M/S. Tata Steel Ltd. v. State of Bihar (2019) 4 SCC 12, bail.');
     expect(res.text).toBe(`As held in ${BLANK}, bail.`);
+  });
+  // Addendum 7 (485d836): a slash name word may carry a trailing comma.
+  it('Addendum 7: "Ram S/O, Shyam Lal v. …"', () => {
+    const res = run('Held in Ram S/O, Shyam Lal v. State of Bihar (2019) 4 SCC 12 applies.');
+    expect(res.text).toBe(`Held in ${BLANK} applies.`);
+  });
+
+  it.each(['s/o,', 'M/s,', 'D/O,', 'w/o,', 'R/o,', 'h/o,'])(
+    'Addendum 7: relation word "%s" with a comma inside party 1',
+    (w) => {
+      const res = run(`As held in Ram ${w} Shyam Lal v. State of Bihar (2019) 4 SCC 12, bail.`);
+      expect(res.text).toBe(`As held in ${BLANK}, bail.`);
+      expect(res.removed).toBe(1);
+    },
+  );
+
+  it('Addendum 7: "M/s, Tata Steel Ltd. v. …" at the start', () => {
+    const res = run('M/s, Tata Steel Ltd. v. State of Bihar (2019) 4 SCC 12 applies.');
+    expect(res.text).toBe(`${BLANK} applies.`);
   });
 });
