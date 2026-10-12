@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { RegisterPayload, LoginPayload } from '@lawie/shared';
+import { RegisterPayload, LoginPayload, refreshSessionKey } from '@lawie/shared';
 import bcrypt from 'bcryptjs';
 
 import logger from '../config/logger';
@@ -154,7 +154,7 @@ export async function refreshTokens(
   // takeOAuthCode). Missing (logged out, revoked, Google link, expired, or already used by a
   // parallel refresh): the same 401 as a bad JWT, and nothing is issued.
   const redis = (await import('../config/redis')).default;
-  const refreshKey = `session:refresh:${payload.sub}:${hashToken(refreshToken)}`;
+  const refreshKey = refreshSessionKey(payload.sub, hashToken(refreshToken));
   const taken = await redis.multi().get(refreshKey).del(refreshKey).exec();
   const [getErr, oldRefreshData] = taken?.[0] ?? [];
   if (getErr || typeof oldRefreshData !== 'string') {
