@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (decides: backfill, repair on read, or nothing pre-v1). Lead (build, drafting) |
 | Mode   | Small fix (drafting), mode per Arjun's call |
-| Status | To do. Unassigned. Waits on Arjun. After T-300 merges (same files). Found by Mahak in T-300, 12 Oct 2026 |
+| Status | Closed, not needed (Arjun, 12 Oct 2026). Reopens as a repair on read only if a pre-T-300 document is carried into production (see T-403) |
 
 Before T-300, `documents.routes.ts` (~850) stored `{template_id, ...form_data}`, so a client `template_id` inside `form_data` replaced the real one in the saved `formInputs`. T-300 fixes new saves (`{...form_data, template_id}`). Documents saved earlier may still carry a client-chosen `template_id`. Annexures read it for the config, ruleForMatter, party labels and doc type. It can't fall back to `doc.templateId` as-is, because that's an ObjectId.
 
