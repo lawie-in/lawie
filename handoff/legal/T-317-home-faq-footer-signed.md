@@ -31,3 +31,13 @@ The title ("Lawie — AI Legal Drafting for Indian Advocates") and keywords are 
 | `components/editor/exportUtils.ts` ~250 (footer on every exported PDF) | `First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.` |
 
 Saying that drafts are generated with AI is required transparency, not a claim; what the ban covers is "AI-assisted tool" as a description of what Lawie is. The export footer is legal content printed on the client's document: if exportUtils.ts is outside this ticket's claim, Priya routes it as its own small ticket with this exact text.
+
+## Addendum 3 (12 Oct 2026 IST): three more (found by Mahak's developer)
+
+| Where | Replace with, exact |
+|---|---|
+| `(marketing)/about/page.tsx` ~12 (meta description) | `Why we built Lawie: a drafting assistant for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers.` |
+| `(marketing)/tools/page.tsx` ~54 (subline) | `Quick utilities for the new criminal laws: free to use, no sign-up required.` |
+| `tools/bail-checker/page.tsx` ~379 (disclaimer) | **No change.** It is a tool disclaimer, accurate and more specific than the export footer; it stays as is. |
+
+A sweep of `apps/web/src` for "built around", "AI-assisted", "current criminal codes" and "new criminal codes" after Addenda 1–3 finds nothing else.
