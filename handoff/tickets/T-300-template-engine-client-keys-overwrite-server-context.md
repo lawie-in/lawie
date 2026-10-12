@@ -44,3 +44,25 @@ Read `buildPlaceholderContext` (`template-engine.service.ts` ≈ l.942). The con
 - `advocate_name`, `court_designation` and `jail` are declared form fields in many packs; Arjun and Ajay rule whether the form may set them.
 - `annexures.service.ts` prefers `formData.advocate_name`.
 - The legacy `/generate` route takes `advocateName` from the request body over the profile (`documents.routes.ts` about lines 549 and 1429). Same class of bug; Arjun decides if it is in T-300.
+
+## Arjun (12 Oct 2026): ruling on Mahak's Explore (declared fields) and the legacy route
+
+Mahak's proposal is right and replaces my "skip every server-only key" rule. **The rule is now two lists:**
+
+**A. Never client-settable, even if a template declares the field** (the key is dropped from `formData` before the flatten, and a declaration of one of these is a template bug listed for Ajay):
+`__*` (reserved prefix, includes the `__sections_charged_read` key), `current_date`, `current_year`, `enrollment_number`, `governing_provision`, `custody_clause`, and the court-rule outputs `party_label_*` (all, with `_upper`), `state_respondent`, `case_nomenclature`, `prayer_opening`, `prayer_closing`, `verification_text`, the camelCase aliases in `PLACEHOLDER_ALIASES`, and the deferred token `body_para_count`.
+
+**B. Server-set unless this template declares the field.** If the key is a `field_id` in **this template's** `form_schema`, the client value is accepted (it is what the user typed); if not, it is dropped. In this group: `advocate_name`, `court_designation`, `court_header`, `court_city`, `jail`, and every computed id (a computed id is never declared by its own template, so it stays server-only in practice).
+- `advocate_name`: a declared, non-empty value wins; empty or absent falls back to the profile name. Put it in **one helper** `resolveAdvocateName(formData, profile)` that the placeholder context **and** `annexures.service` both call, so the draft and the annexures can never disagree (Mahak's finding 1).
+- `court_designation`: stays settable where a pack declares it. It is only the fallback: when a court is chosen from the list the court-rule block keeps overwriting it, as today.
+- `jail`: client-settable where declared (`bail_before_magistrate`); `custody_clause` is code-only (list A).
+
+**Why `enrollment_number` is list A and `advocate_name` is not:** a name is what the user chooses to print on their own draft. The enrolment number is their Bar Council identity from the account; no form may set it, or one user could print another advocate's registration on a filing.
+
+**`governing_provision` and the T-251 tests.** The tests that pass it in `formData` change; that was a shortcut, not a feature. Add `extra.governingProvision` to `buildPlaceholderContext` (a server-side parameter), have the tests pass it there, and T-245a will compute it from the declared `procedure_code` and pass it the same way. `GOVERNING_PROVISION_BLANK` stays the default. Mahak lists the changed tests for Ajay.
+
+**Legacy `/generate` (Priya's question): in scope, same class.** `documents.routes.ts` (≈ l.549 and ≈ l.1429): the body's `advocateName` is accepted as the typed name only if, after trim, it is 1 to 100 characters with no `{`, `}` or line breaks; otherwise the profile name is used. The body's `enrollmentNumber` is **ignored**: the number always comes from the profile. Both call sites use the same helper. A body value that fails the check does not refuse the request.
+
+**Collision check (unchanged):** a pack that declares a list-A key is reported to Ajay, not changed. The 57 packs that declare `advocate_name` are expected and fine.
+
+**Tests:** as before (one per class), plus: `advocate_name` declared and typed → used by the draft **and** the annexures; empty → profile in both; `enrollment_number` in `formData` and in the legacy body → profile wins; legacy `advocateName` with `{x}` or a line break → profile name; `court_designation` declared with no court chosen → the typed value; with a court chosen → the court's.
