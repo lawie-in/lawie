@@ -36,6 +36,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 ## Merge queue
 
 1. kunal — T-319 (a75792e). Slot given 12 Oct 2026. Ajay OK'd. Founder checks develop https before Google sign-in is tried there (morning report).
+2. shashank — T-295 (0bb4b6c). Once Ajay signs.
 
 ## Last done
 
