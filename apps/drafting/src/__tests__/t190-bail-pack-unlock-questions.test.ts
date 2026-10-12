@@ -968,9 +968,14 @@ describe('T-190 AC8 (ledger): earlier_bail_applications read as "none" from the 
 describe('T-190 pack text and averment files are unchanged where they must be', () => {
   const sha = (s: Buffer | string) => createHash('sha256').update(s).digest('hex');
   const PINNED: Record<string, string> = {
-    bail_regular: '14268df27db1e5719d270f60e694fd7107a38c92ba9a981284640a4970c9e4aa',
+    // bail_regular and bail_anticipatory re-pinned for T-334 (Ajay, T-334 Addendum 1, signed 9b484ee).
+    bail_regular: '14bc53c396b5241ea09c874a5c0a09ccf12c68ed29adabb725dc055db1590b04',
     interim_bail: '8951ebda37020b9527672013595fabc1c1a7c80470d8ceade8f33c4883d3bf66',
     bail_before_magistrate: '6519fdc6a96efbe03d98f71f6f67ab55633e9634e28b6dbffe321e72c50efa56',
+    bail_anticipatory: '270a841d242ef26fc74859cfa94b4bf6feb414bbf0a01ffb32f1a7ae8caa83de',
+  };
+  const PRE_T334: Record<string, string> = {
+    bail_regular: '14268df27db1e5719d270f60e694fd7107a38c92ba9a981284640a4970c9e4aa',
     bail_anticipatory: '83102358cd6e22333e023e3969c7fb0a5ecd63cfdcd46936069ab263483a81e7',
   };
   it.each(Object.keys(PINNED))(
@@ -991,7 +996,9 @@ describe('T-190 pack text and averment files are unchanged where they must be', 
       } catch {
         upstream = null; // no such ref here (shallow clone): the pinned hash stands
       }
-      if (upstream) expect(sha(upstream)).toBe(PINNED[id]);
+      // T-334: until the signed files reach origin/develop_staging, that ref still holds the
+      // previous signed hash. Accept exactly that one value (and nothing else) for the two re-pinned packs.
+      if (upstream) expect([PINNED[id], PRE_T334[id]].filter(Boolean)).toContain(sha(upstream));
     },
   );
 });
