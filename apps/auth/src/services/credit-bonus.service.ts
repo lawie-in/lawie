@@ -68,6 +68,12 @@ export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
  * Grants bonusInk × 2 ledger units into inkTopup (non-expiring).
  * Also sets freeTierBonusGrant = bonusInk × 5 for legacy enforceFreeLimit compat.
  * Returns ink units granted (0 on failure).
+ *
+ * T-298 (Arjun, ruling b): inkTopup is not in the auth User schema, and Mongoose strict mode
+ * strips unknown paths from updates, so this writes through the raw `users` collection (like
+ * the signup seed). balanceAfter comes from the document the update returns. Do NOT add
+ * inkTopup to the auth schema (a default would break $exists guards elsewhere).
+ * The once-per-user guard is the referredVia claim in applyReferralCode.
  */
 export async function grantReferralInk(
   userId: string,
@@ -76,38 +82,37 @@ export async function grantReferralInk(
 ): Promise<number> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
 
+  const conn = mongoose.connection;
+  if (!conn.db) return 0;
+
   const inkUnits = bonusInk * 2;
   const freeTierBonus = bonusInk * 5;
 
-  const updated = await User.findByIdAndUpdate(
-    new mongoose.Types.ObjectId(userId),
-    {
-      $inc: { inkTopup: inkUnits },
-      $set: { freeTierBonusGrant: freeTierBonus },
-    },
-    { new: true },
-  ).lean();
+  const updated = await conn.db
+    .collection('users')
+    .findOneAndUpdate(
+      { _id: new mongoose.Types.ObjectId(userId) },
+      { $inc: { inkTopup: inkUnits }, $set: { freeTierBonusGrant: freeTierBonus } },
+      { returnDocument: 'after' },
+    );
   if (!updated) return 0;
 
-  const conn = mongoose.connection;
-  if (conn.db) {
-    try {
-      await conn.db.collection('inkledger').insertOne({
-        userId: new mongoose.Types.ObjectId(userId),
-        delta: inkUnits,
-        reason: 'referral_bonus',
-        sourceBucket: 'topup',
-        balanceAfter: (updated as Record<string, unknown>)['inkTopup'] ?? inkUnits,
-        reference: referralCode,
-        metadata: { referralCode, bonusInk },
-        createdAt: new Date(),
-      });
-    } catch (err) {
-      console.warn(
-        '[auth] referral ink ledger insert failed:',
-        err instanceof Error ? err.message : err,
-      );
-    }
+  try {
+    await conn.db.collection('inkledger').insertOne({
+      userId: new mongoose.Types.ObjectId(userId),
+      delta: inkUnits,
+      reason: 'referral_bonus',
+      sourceBucket: 'topup',
+      balanceAfter: updated['inkTopup'],
+      reference: referralCode,
+      metadata: { referralCode, bonusInk },
+      createdAt: new Date(),
+    });
+  } catch (err) {
+    console.warn(
+      '[auth] referral ink ledger insert failed:',
+      err instanceof Error ? err.message : err,
+    );
   }
 
   return inkUnits;
@@ -146,16 +151,27 @@ export async function grantSignupBonus(userId: string): Promise<void> {
     reference: `Signup bonus (${SIGNUP_BONUS_CREDITS} free drafts)`,
   });
 
-  // Seed 5 Ink (10 units) into inkTopup — one-time free tier (SCRUM-101)
+  // Seed 5 Ink (10 units) into inkTopup — one-time free tier (SCRUM-101).
+  // T-298 (Arjun, ruling c): order-independent with the referral grant, which may already have
+  // created inkTopup. The once-only guard is signupBonusGrantedAt above (we only get here on
+  // the winning call), so this always adds 10 and only fills the other ink fields if absent.
+  // Pipeline update = one atomic write. balanceAfter comes from the returned document.
   const conn = mongoose.connection;
   if (conn.db) {
     try {
       const inkSeeded = await conn.db.collection('users').findOneAndUpdate(
-        {
-          _id: new mongoose.Types.ObjectId(userId),
-          inkTopup: { $exists: false }, // only if not already set (idempotent)
-        },
-        { $set: { inkTopup: 10, inkSub: 0, inkAnnualCarry: 0, inkSubMonthlyAllotment: 0 } },
+        { _id: new mongoose.Types.ObjectId(userId) },
+        [
+          {
+            $set: {
+              inkTopup: { $add: [{ $ifNull: ['$inkTopup', 0] }, 10] },
+              inkSub: { $ifNull: ['$inkSub', 0] },
+              inkAnnualCarry: { $ifNull: ['$inkAnnualCarry', 0] },
+              inkSubMonthlyAllotment: { $ifNull: ['$inkSubMonthlyAllotment', 0] },
+            },
+          },
+        ],
+        { returnDocument: 'after' },
       );
       if (inkSeeded) {
         await conn.db.collection('inkledger').insertOne({
@@ -163,7 +179,7 @@ export async function grantSignupBonus(userId: string): Promise<void> {
           delta: 10,
           reason: 'free_seed',
           sourceBucket: 'topup',
-          balanceAfter: 10,
+          balanceAfter: inkSeeded['inkTopup'],
           createdAt: new Date(),
         });
       }

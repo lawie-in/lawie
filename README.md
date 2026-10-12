@@ -14,7 +14,7 @@
 | Backend        | Express.js microservices (4 services), TypeScript      |
 | Database       | MongoDB 7.0 (Mongoose)                                 |
 | Cache          | Redis 7.4 (ioredis)                                    |
-| Auth           | Google OAuth + JWT (access + refresh) + Redis sessions |
+| Auth           | Email+password/Google OAuth, JWT access+refresh, Redis |
 | AI             | Anthropic Claude (Sonnet 4)                            |
 | Payments       | Razorpay subscriptions + webhooks                      |
 | Infrastructure | Docker Compose (dev + demo), EC2 + Nginx (prod)        |
@@ -30,7 +30,7 @@
 lawie/
 ├── apps/
 │   ├── gateway/        # API Gateway — routing, JWT validation, rate limiting  (port 4000)
-│   ├── auth/           # Auth Service — Google OAuth, sessions, user model     (port 4001)
+│   ├── auth/           # Auth Service — email+password, Google, user model     (port 4001)
 │   ├── drafting/       # Drafting Service — AI engine, templates, sections     (port 4002)
 │   ├── billing/        # Billing Service — Razorpay subscriptions              (port 4003)
 │   └── web/            # Next.js frontend                                      (port 3000)

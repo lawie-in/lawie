@@ -13,7 +13,7 @@ import { validateRegister, validateLogin } from '../validators/auth.validator';
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const parsed = validateRegister(req.body);
-    const { user, tokens } = await registerUser(parsed, {
+    const { user, tokens, referralApplied } = await registerUser(parsed, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
@@ -23,6 +23,8 @@ export async function register(req: Request, res: Response, next: NextFunction):
       data: {
         user: { id: user._id, email: user.email, name: user.name, role: user.role },
         ...tokens,
+        // T-234: only present when a referral code was sent and the outcome is known.
+        ...(referralApplied !== undefined ? { referralApplied } : {}),
       },
     });
   } catch (err) {
