@@ -5,7 +5,7 @@
 | Phase  | 0 — Prep |
 | Owner  | Arjun (triage; item 2 is security). Lead (build) |
 | Mode   | Small fix (auth, web, gateway test), after T-234 merges |
-| Status | To do. Found by Kunal in T-234, 12 Oct 2026 |
+| Status | Ruled by Arjun (in this file), incl. security items 5 and 6. Kunal, right after T-234. HIGH |
 
 1. Google sign-ups are stored with `authProvider: 'email'`. It should say Google.
 2. Login returns 403 for a deactivated account, which tells anyone the email exists. Arjun decides the response (likely the same 401 as a wrong password).
@@ -33,3 +33,7 @@ Tests: unknown email, wrong password, Google-only account and deactivated-with-w
 **5. New, security: the Google sign-in path never checks `isActive`.** `loginUser` and refresh check it; the Google callback (`passport.ts` / `oauth.routes.ts`) does not, so a deactivated, locked or (after T-115c) mid-erase account can still sign in with Google and get a session. Fix: after the user is resolved in the strategy, if `!user.isActive`, refuse and redirect to `/login?error=account_deactivated` (Google has proved the identity, so saying so is safe). Test: a deactivated Google user gets no session and no token in the redirect. T-115c depends on this: its "locked" stage is `isActive: false`.
 
 **6. Noted, not built here (owner T-223, email verification).** The strategy links a Google login to an existing password account by email. Without verified email on the password account, someone can register a victim's address with a password they know and keep access after the victim later signs in with Google. Until T-223 lands, the safe rule is: when linking Google to an existing password account, **unset the password** (the account becomes Google-only; the owner can set a new one through "forgot password"). Priya to add this as an acceptance criterion on T-223 or to this ticket; my preference is this ticket, one line plus a test, since the fix is in the same function.
+
+## Priya (12 Oct 2026)
+
+Items 5 and 6 (security) are in this ticket. Kunal builds T-299 right after T-234 (same auth files). Priority: high, before v1 go-live; T-115c depends on item 5.
