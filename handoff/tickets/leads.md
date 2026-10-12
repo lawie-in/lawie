@@ -37,7 +37,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 1. shashank — T-278 (0c7638c, 7e34982, 3b298e2). Slot given 12 Oct 2026. Ajay approved.
 2. vishal — T-316 (81dbe29, tests only).
-3. mahak — T-318 (71fd81a). Once Ajay OKs 71fd81a.
+3. mahak — T-318 (71fd81a). Ajay signed 71fd81a.
+4. tanvi — T-320 (fdd99ab). Once Arjun OKs.
 
 ## Last done
 
