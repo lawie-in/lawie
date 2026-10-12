@@ -388,10 +388,8 @@ describe('bail-check: Ajay signed bail titles (BNSS 483 / 480)', () => {
     expect(summary.overallBailable).toBe(false);
     expect(summary.bnssBailSection).toBe('483');
     expect(summary.bnssBailSectionTitle).toBe(T483);
-    expect(summary.courtLevelExplanation).toContain(
-      'apply to the High Court under BNSS Section 483',
-    );
-    expect(summary.courtLevelExplanation).not.toContain('under BNSS Section 482');
+    // T-289: no term-based court explanation any more
+    expect(summary.courtLevelExplanation).toBe('');
     expect(summary.recommendation).toContain('filed under BNSS Section 483');
     expect(summary.recommendation).not.toContain('Section 480');
   });

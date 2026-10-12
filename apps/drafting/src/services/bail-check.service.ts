@@ -7,10 +7,13 @@
  *   - Compoundable / non-compoundable
  *   - Maximum punishment
  *   - Recommended BNSS bail section
- *   - Court jurisdiction level
+ *   - Court by which triable (First Schedule, T-289)
  */
 import {
+  ANY_MAGISTRATE,
+  COURT_OF_SESSION,
   DEPENDS_FIRST_SCHEDULE,
+  MAGISTRATE_FIRST_CLASS,
   NOT_AN_OFFENCE,
   ResolutionKind,
   resolveOffence,
@@ -32,8 +35,10 @@ export interface OffenceInfo {
   punishment: string;
   /** Only an exact-key row carries max_years; null otherwise (T-277, R1) */
   maxYears: number | null;
-  /** Term for the court level only: exact row or parent row without variants */
+  /** Term for the BNSS 480/483 choice only: exact row or parent row without variants */
   courtMaxYears: number | null;
+  /** T-289: court by which triable, as printed in the First Schedule; null = depends */
+  triableBy: string | null;
   /** null = "Depends. Check the First Schedule." (T-277, R3) — never false */
   bailable: boolean | null;
   cognizable: boolean | null;
@@ -86,13 +91,14 @@ export interface BailCheckResult {
     maxPunishment: string;
     /** null when any resolved section has no single max term */
     maxYears: number | null;
-    /** Term behind courtLevel only; may come from a parent row (never the period) */
+    /** Term behind the BNSS 480/483 choice only; may come from a parent row (never the period or the court) */
     courtMaxYears: number | null;
     /** Recommended BNSS section for bail; null when bailability depends */
     bnssBailSection: string | null;
     bnssBailSectionTitle: string;
-    /** Recommended court level */
+    /** T-289: court by which triable (First Schedule, as printed), or COURT_LEVEL_DEPENDS */
     courtLevel: string;
+    /** Always '': no court explanation text is signed (T-289) */
     courtLevelExplanation: string;
     /** CTA text */
     recommendation: string;
@@ -122,6 +128,7 @@ function lookupOffence(bnsSection: string): OffenceInfo | null {
     punishment: r.punishment ?? '',
     maxYears: r.maxYears,
     courtMaxYears: r.courtMaxYears,
+    triableBy: r.triableBy,
     bailable: r.bailable,
     cognizable: r.cognizable,
     compoundable,
@@ -193,7 +200,7 @@ function isLikelyIpc(section: string): boolean {
   return IPC_INDICATORS.has(section);
 }
 
-/** Ajay (CLO), T-277 round 6: court level when a charged section's term is unknown. */
+/** Ajay (CLO), T-277 round 6 / T-289: the court when the First Schedule gives no single court. */
 export const COURT_LEVEL_DEPENDS = 'Depends on the offence. Check the First Schedule.';
 /** Ajay (CLO), T-277 round 7 (signed): non-bailable, death/life or above 7 years. */
 export const BAIL_TITLE_483 =
@@ -207,45 +214,24 @@ export const BAIL_PROVISION_DEPENDS =
 
 // ── Jurisdiction Logic ─────────────────────────────────────────────────────────
 
-function determineCourtLevel(maxYears: number | null): {
-  level: string;
-  explanation: string;
-} {
-  // T-277: an unknown maximum term is never treated as 0.
-  if (maxYears === null) {
-    // Ajay (signed, T-277 round 6); the web prints its own "Court:" label. No explanation.
-    return { level: COURT_LEVEL_DEPENDS, explanation: '' };
+/**
+ * Ajay (CLO), T-289 rules 3-5 (signed): the court comes ONLY from the First
+ * Schedule value (`triableBy`), never from the term.
+ * - One charged section: its value as printed (a reference value included); null
+ *   is COURT_LEVEL_DEPENDS.
+ * - Several: any Court of Session decides; else, if every one is Magistrate of the
+ *   first class or Any Magistrate, the higher of the two; else (a null, a reference
+ *   value or any other value) COURT_LEVEL_DEPENDS.
+ * `null` in `values` is a charged section whose court is unknown.
+ */
+function determineCourtLevel(values: Array<string | null>): string {
+  if (values.length === 0) return COURT_LEVEL_DEPENDS;
+  if (values.length === 1) return values[0] ?? COURT_LEVEL_DEPENDS;
+  if (values.includes(COURT_OF_SESSION)) return COURT_OF_SESSION;
+  if (values.every((v) => v === MAGISTRATE_FIRST_CLASS || v === ANY_MAGISTRATE)) {
+    return values.includes(MAGISTRATE_FIRST_CLASS) ? MAGISTRATE_FIRST_CLASS : ANY_MAGISTRATE;
   }
-  if (maxYears === 0) {
-    return {
-      level: 'Judicial Magistrate First Class (JMFC)',
-      explanation:
-        'Offences punishable with fine only or imprisonment up to 3 years are triable by a Magistrate.',
-    };
-  }
-  if (maxYears <= 3) {
-    return {
-      level: 'Judicial Magistrate First Class (JMFC)',
-      explanation: `Maximum punishment is ${maxYears} year(s). Offences up to 3 years imprisonment are triable by JMFC.`,
-    };
-  }
-  if (maxYears <= 7) {
-    return {
-      level: 'Court of Sessions',
-      explanation: `Maximum punishment is ${maxYears} years. Offences with punishment between 3-7 years are generally triable by Sessions Court.`,
-    };
-  }
-  if (maxYears >= 99) {
-    return {
-      level: 'Court of Sessions (bail from High Court if rejected)',
-      explanation:
-        'Offences punishable with death or imprisonment for life. Triable exclusively by Sessions Court. If bail rejected by Sessions, apply to the High Court under BNSS Section 483.',
-    };
-  }
-  return {
-    level: 'Court of Sessions or High Court',
-    explanation: `Maximum punishment exceeds 7 years (${maxYears} years). Triable by Sessions Court. Bail may be sought from Sessions or High Court.`,
-  };
+  return COURT_LEVEL_DEPENDS;
 }
 
 function determineBnssBailSection(
@@ -392,9 +378,10 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
     foundResults.length === 0 || foundResults.some((r) => r.offence?.maxYears === null)
       ? null
       : Math.max(...foundResults.map((r) => r.offence?.maxYears ?? 0));
-  // Ajay (T-277 round 2): a parent row without variants may set the court level only.
-  // Court term: a known death/life term (exact, or a parent's court term) fixes
-  // Sessions even if another term is unknown; otherwise any unknown term → Depends.
+  // Ajay (T-277 rounds 2, 6, 7): the term behind the BNSS 480/483 choice only. A
+  // parent row without variants may set it. A known death/life term fixes 483 even
+  // if another term is unknown; otherwise any unknown term → no provision named.
+  // T-289: this term never decides the court.
   const knownCourtTerms = foundResults
     .map((r) => r.offence?.courtMaxYears)
     .filter((y): y is number => typeof y === 'number');
@@ -404,7 +391,14 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
     foundResults.length === 0 || (anyUnknownTerm && !anyKnownLife)
       ? null
       : Math.max(...knownCourtTerms);
-  const court = determineCourtLevel(courtMaxYears);
+  // Ajay (T-289): the court only from the First Schedule value. An IPC input with no
+  // BNS target is a charged section whose court is unknown; a section that creates
+  // no offence is left out (Q9).
+  const courtLevel = determineCourtLevel(
+    results
+      .filter((r) => r.offence !== null || r.note !== NOT_AN_OFFENCE)
+      .map((r) => r.offence?.triableBy ?? null),
+  );
   // Ajay (round 6): a non-bailable charge with an unknown term names no bail
   // provision, unless a known term (exact, or a parent's court term) is death or life.
   const bnssBail =
@@ -422,8 +416,8 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
     if (bnssBail.section === null) {
       recommendation = `One or more sections are non-bailable. ${BAIL_PROVISION_DEPENDS}`;
     } else {
-      const forum = courtMaxYears === null ? '' : ` before the ${court.level}`;
-      recommendation = `One or more sections are non-bailable. Bail application should be filed under BNSS Section ${bnssBail.section}${forum}. Consider filing for anticipatory bail under BNSS Section 482 if arrest is apprehended.`;
+      // T-289: no forum from the term; the signed 480/483 title names where to apply.
+      recommendation = `One or more sections are non-bailable. Bail application should be filed under BNSS Section ${bnssBail.section}. Consider filing for anticipatory bail under BNSS Section 482 if arrest is apprehended.`;
     }
     recommendation = [recommendation, ...dependsLines].join(' ');
   } else if (dependsLines.length > 0) {
@@ -453,8 +447,8 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
       courtMaxYears,
       bnssBailSection: bnssBail.section,
       bnssBailSectionTitle: bnssBail.title,
-      courtLevel: court.level,
-      courtLevelExplanation: court.explanation,
+      courtLevel,
+      courtLevelExplanation: '',
       recommendation,
     },
   };
