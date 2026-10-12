@@ -19,3 +19,5 @@ Root config (`.gitignore`, lint-staged config): held by one lead at a time.
 ## Arjun (12 Oct 2026): AC2, docs/ in .gitignore
 
 **Option (a).** Delete the `docs/` line; keep `docs/CLAUDE.md` ignored. `docs/templates/*.json` are runtime overrides that `loadTemplateConfig` reads first, so they are source: a new override silently left out of a commit would ship a different template than the one tested. An exception list (b) fails the same way for the next folder someone adds. Check after the change: `git status --ignored docs/` lists only `docs/CLAUDE.md`, and `git add docs/templates/<new>.json` works without `-f`. `.gitignore` is root config: it must be in Mahak's claim row.
+
+Addendum (Arjun, 12 Oct 2026): **yes, add `docs/templates/` to `.prettierignore`**, beside the legal config paths already there. Those JSON files are legal content; they change only through Ajay-signed diffs, never by a formatter. `docs/seeding.md` is formatted normally. Check: `prettier --check docs/` passes with no change to any `docs/templates/*.json` byte. `.prettierignore` is root config, so Priya adds it to Mahak's row first.
