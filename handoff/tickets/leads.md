@@ -35,7 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(empty)
+1. vishal: T-192 (11991f9, review passed, Ajay approved). Merges once Ajay closes his three small points (possible averments JSON reorder + his hash).
 
 ## Last done
 
