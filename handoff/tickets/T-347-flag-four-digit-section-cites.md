@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Ajay (rule). Lead (drafting) |
 | Mode   | Small fix |
-| Status | To do. After T-333 merges. Asked for by Ajay, 12 Oct 2026 |
+| Status | To do. Shashank, after T-346 (12 Oct 2026) |
 
 No section in the six codes has four digits, so such a cite is always wrong. The reader skips it today, so no warning appears.
 

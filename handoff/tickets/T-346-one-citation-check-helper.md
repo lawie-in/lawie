@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Lead (drafting) |
 | Mode   | Small fix |
-| Status | To do. After T-333 merges. Raised by Shashank's T-333 reviewer, 12 Oct 2026 |
+| Status | Building: shashank (12 Oct 2026), then T-347 |
 
 The three draft paths repeat the same three-step citation check. Move it into one helper so the paths can't drift apart.
 
