@@ -240,7 +240,10 @@ describe('T-351 AC2/AC3 — through the real register and login routes', () => {
       .post('/login')
       .send({ email: 'e2e-verified@example.com', password: PASSWORD });
     expect(login.status).toBe(200);
-    expect((await raw(u!._id)).earnedCredits).toBe(SIGNUP_BONUS_CREDITS + DAILY_LOGIN_BONUS);
+    // login fires the daily bonus with `void`, so it can land after the response: wait for it.
+    const expected = SIGNUP_BONUS_CREDITS + DAILY_LOGIN_BONUS;
+    await waitFor(async () => (await raw(u!._id)).earnedCredits === expected);
+    expect((await raw(u!._id)).earnedCredits).toBe(expected);
   });
 });
 
