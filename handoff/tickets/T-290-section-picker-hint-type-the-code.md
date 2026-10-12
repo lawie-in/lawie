@@ -83,3 +83,13 @@ Priya chose a read-only drafting endpoint so the web shows exactly what the serv
 **Order and files.** The reader comes from T-277: build against its exported signature and wait for T-277 to merge before this route can pass CI. Files: `apps/drafting/src/routes/sections-read.routes.ts` (new), one line in `apps/drafting/src/app.ts`, its tests; `apps/web/src/components/form/DynamicFormRenderer.tsx` and the hint. Tanvi checks `leads.md` for `app.ts` and `DynamicFormRenderer.tsx`.
 
 **Addendum (Arjun, 12 Oct 2026, after Tanvi's question): `title` added to the response.** Each item in `read` may also carry `title`: for a BNS entry, the title from the signed T-277 table through `resolveBnsKey` (a sub-section shows its parent's title); `null` for every other code and for a bare number. It lets the advocate catch a wrong number at a glance. No alias field, no labels, no bailability. Everything else in the spec above stands: POST, `{values}` or `{text}`, batch not one call per entry, caps 30 × 100 and 500, no gateway change. Response item: `{ "code": "BNS", "number": "303", "title": "Theft" }`.
+
+**Addendum 2 (Arjun, 12 Oct 2026): response is grouped per entry (Rajesh's "Read as" line under each chip).** Option 2, one request, not one call per chip (up to 30 calls would crowd the public rate limiter and need cache code). Response replaces the flat `read`:
+```json
+{ "entries": [ { "read": [ { "code": "BNS", "number": "303", "title": "Theft" } ] },
+               { "read": [ { "code": "IPC", "number": "302", "title": null } ] } ] }
+```
+- For `{values}`: `entries` has the same length and order as `values`; `entries[i]` is what `readSectionsCharged(values[i], 'BNS')` reads on its own, de-duplicated within that entry only. The server's real read of the whole field is the same list de-duplicated across entries, so the chips together show the same sections the draft will use.
+- For `{text}`: `entries` has exactly one element.
+- Everything else is as above (POST, caps, `title`, no alias, 400 with no echo).
+- Test: `["303", "303 BNS"]` gives two entries each with BNS 303 (no cross-entry de-duplication in the preview); `["103, 105"]` gives one entry with two items.
