@@ -37,6 +37,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 1. tanvi — T-307 (2a96551). Slot given 12 Oct 2026; merge once Arjun has OK'd it.
 2. kunal — T-234 + T-298 (c2fc394). After tanvi, once Ajay's byte check on c2fc394 passes.
+3. vishal — T-241 (78a123b). After kunal, once Ajay signs 78a123b and records Addendum 2.
 
 ## Last done
 
