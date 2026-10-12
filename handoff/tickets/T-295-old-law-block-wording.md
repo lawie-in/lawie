@@ -5,7 +5,7 @@
 | Phase  | 1 — Legal accuracy |
 | Owner  | Ajay (writes and signs the wording). Lead (build) |
 | Mode   | Small fix, legal content |
-| Status | To do. Wording signed (455559c). Soft warning decided; Arjun to confirm mechanism. Arjun confirmed (preflight soft severity). Builds after T-277 merges (same file: preflight.service.ts); the lead checks the web lets a soft verdict continue. Date-aware version waits for T-245a |
+| Status | Building: shashank (12 Oct 2026) |
 
 The old-law block in the drafting prompt can read "BNS Section 302 IPC…", which mixes the two codes. Ajay writes the correct wording; a lead applies it.
 
@@ -41,3 +41,14 @@ Soft is the right call, and the mechanism already exists: `preflight.service.ts`
 **T-245 tie-in (do not build here):** once T-245a adds `offence_date` to the packs, the finding becomes date-aware: offence before 1 July 2024 → no finding at all (IPC is the right law); on or after, or no date → the soft finding with the signed line, never an assumption about the law. Until then it is always soft. Ajay confirms that date rule when he signs the T-245a text; it is a small change in the same function.
 
 **Tests (AC3 and pins):** `302 IPC`, `420-IPC`, `CrPC 438`, `IEA 65B` each give the signed line with the code first; the verdict is `soft` and the draft continues; no line contains "BNS" before an old-law number; `BNS 999(1)` still hard-blocks; a mixed list (`BNS 103, IPC 302`) gives one soft finding and no block.
+
+## Arjun (12 Oct 2026): which reader finds old-law numbers
+
+Shashank asked: per-part (`legacySectionParts`) or the whole-string T-277 reader (`readSectionsCharged`)?
+
+**Use the T-277 reader.** Step 1 above is changed: old-law findings come from `readSectionsCharged`'s output (entries with code IPC, CRPC or IEA), not from a per-part loop. Reasons: per-part misses the most common shape, `302, 34 IPC` (302 would be bare), and the "use EXACTLY" block (step 4) already reads with T-277; two readers would disagree on the same text.
+
+- `302 IPC, 420` → two soft `old_law_section` findings (IPC 302, IPC 420).
+- `302, 34 IPC` → two findings. `IPC 302/34` → one finding (IPC 302) plus the bare-number soft warning for 34, as T-277 says.
+- A number the reader leaves bare keeps only the T-277 "no code" soft warning, never an old-law finding.
+- Add these three as fixtures. Everything else in steps 1-4 (soft, Ajay's signed line byte for byte, one finding per `(code, number)`) stays.
