@@ -43,6 +43,22 @@ export interface EmailJobData {
   data: Record<string, unknown>;
 }
 
+/**
+ * True when BullMQ will NOT retry this job after the current attempt fails.
+ * Mirrors Job.shouldRetryJob() in bullmq 5.x: inside the processor
+ * `attemptsMade` counts the attempts that already finished (it is
+ * incremented in moveToFailed, after the processor throws), so the current
+ * attempt is `attemptsMade + 1`, and BullMQ retries only while
+ * `attemptsMade + 1 < opts.attempts`. A missing `opts.attempts` means one
+ * attempt. An UnrecoverableError is never retried either. (BullMQ also skips
+ * retries for job.discard(), but `discarded` is protected and this worker
+ * never calls discard().)
+ */
+export function isFinalAttempt(job: Job, err?: unknown): boolean {
+  if ((err as { name?: unknown } | undefined)?.name === 'UnrecoverableError') return true;
+  return job.attemptsMade + 1 >= (job.opts?.attempts ?? 1);
+}
+
 export function createProcessor(send: SendEmailFn = sendEmail): Processor<EmailJobData> {
   return async (job: Job<EmailJobData>) => {
     const { template, to, cc, bcc, replyTo, data } = job.data;
@@ -88,11 +104,19 @@ export function createProcessor(send: SendEmailFn = sendEmail): Processor<EmailJ
       // AND what BullMQ stores as failedReason (kept 30 days). Throwing it
       // still fails the attempt, so BullMQ retries as before.
       const safeErr = toSentrySafeError(err);
-      Sentry.captureException(safeErr, {
-        tags: { template, queue: job.queueName },
-        extra: { jobId, userId, attempt },
-      });
-      logger.error({ jobId, template, userId, attempt, err: errFields }, 'Email send failed');
+      // T-353: one Sentry event per dead job, not one per retry. The
+      // breadcrumb above and the log line below still fire on every attempt.
+      const finalAttempt = isFinalAttempt(job, safeErr);
+      if (finalAttempt) {
+        Sentry.captureException(safeErr, {
+          tags: { template, queue: job.queueName },
+          extra: { jobId, userId, attempt, maxAttempts: job.opts?.attempts ?? 1 },
+        });
+      }
+      logger.error(
+        { jobId, template, userId, attempt, finalAttempt, err: errFields },
+        'Email send failed',
+      );
       throw safeErr;
     }
   };
@@ -132,6 +156,11 @@ export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
     });
     worker.on('completed', (job, result) => {
       logger.debug({ jobId: job.id, queue: queueName, result }, 'Job completed');
+    });
+    // T-353: without an 'error' listener a BullMQ/Redis error is emitted
+    // unhandled and reaches process-level handlers with the raw error.
+    worker.on('error', (err) => {
+      logger.error({ queue: queueName, err: safeErrorFields(err) }, 'Worker error');
     });
     worker.on('failed', (job, err) => {
       logger.warn(
