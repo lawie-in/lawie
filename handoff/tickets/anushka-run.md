@@ -274,3 +274,30 @@ Quality: nothing to test in the UI — build and CI only.
 Test: open an old draft and a new one. Both still show their details, checklist and annexures as before.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-266 (vishal, merged to develop_staging 633aa29, 12 Oct 2026)
+
+- When Lawie checks a draft for required facts, a word that only contains a cue word ("background" for "ground") no longer counts.
+- The FIR number must appear exactly, not inside a date, a longer number or a different FIR like "12-A", so a missing fact gets caught.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-115e (mahak, merged to develop_staging 2355979, 12 Oct 2026)
+
+Nothing changes on screen. When Lawie has no template for what a user describes, it records only the general category, never the user's words or names.
+
+Quality: nothing to test in the UI — a privacy change in stored records.
+
+## T-277 (shashank, merged to develop_staging 0e4832a, 12 Oct 2026)
+
+- The bail checker and timeline tracker show the correct offence titles, bail and cognizance status, and maximum term from the official First Schedule.
+- A sub-section such as 103(1) or 316(2) is understood as part of its main section.
+- Where the Schedule depends on the facts, it says "Depends. Check the First Schedule." instead of guessing.
+- Bail advice names BNSS 480 or 483 based on the maximum sentence.
+- A section that creates no offence is said to be left out.
+- Drafts use the same classification.
+- A section number written without IPC or BNS gets a reminder to add the code.
+
+Note: the section tables on develop are live only after Arjun reseeds develop.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
