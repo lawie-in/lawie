@@ -148,3 +148,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 Note for her run: the 1.5 inch margin is on the browser-fallback PDF. A real .docx opened in Word and a measured PDF page were not checked by hand: check both.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-256 + T-264 (vishal, merged to develop_staging addd9e7, 12 Oct 2026)
+
+Nothing new on screen. This makes the team's automatic checks reliable: a test that failed at random now passes on its merits, and the sample bail application used to catch invented facts is checked on every change.
+
+Quality: nothing to test in the UI — tests, a test fixture and CI only.

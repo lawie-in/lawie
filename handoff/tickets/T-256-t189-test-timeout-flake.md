@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Lead (build) |
 | Mode           | Small fix, test only (`apps/drafting/src/__tests__/t189-*.test.ts`) |
-| Status         | To do. Queued for vishal right after T-200 (his test). Found by mahak; vishal analysed it, 12 Oct 2026 |
+| Status         | Merged into develop_staging (addd9e7), 12 Oct 2026. Nothing to test in the UI |
 
 ## Cause (vishal)
 
