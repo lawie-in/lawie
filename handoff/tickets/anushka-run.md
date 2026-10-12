@@ -154,3 +154,30 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 Nothing new on screen. This makes the team's automatic checks reliable: a test that failed at random now passes on its merits, and the sample bail application used to catch invented facts is checked on every change.
 
 Quality: nothing to test in the UI — tests, a test fixture and CI only.
+
+## T-273 + T-274 (mahak, merged to develop_staging 346cde7, 12 Oct 2026)
+
+- If I write "a < b & c" or "<Name>" in a plain-text draft, I see it exactly as written in the editor, the Word file and the PDF.
+- "[To be confirmed: ...]" shows in the PDF even when a missing detail was written in lower case, and it is counted at the end of intake.
+- The editor and every export show the same paragraphs whatever line endings the draft has, and headings are found in the PDF even with extra blank lines.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-275 (mahak, merged to develop_staging 5900d7f, 12 Oct 2026)
+
+Needs develop's section tables reseeded first for the Evidence Act and CrPC rows to show it.
+
+- I look up an old section that was repealed with no replacement and see "Repealed — no equivalent" and "None", instead of a raw code and a blank "Section".
+- I see "Not verified" and "Check the Gazette" for a section Lawie has not confirmed, instead of a guessed number.
+- I am not offered a Copy button when there is no section to copy.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-281 (mahak, merged to develop_staging 089eb8c, 12 Oct 2026)
+
+- On a phone, the section converter page no longer slides sideways: the search box and the Look up button sit one above the other, and the old and new sections are shown one above the other with an arrow between them.
+- "Check the Gazette" reads on one line on most phones.
+
+This is NOT a "works on mobile" claim (T-138 and the T-141a ban stand).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

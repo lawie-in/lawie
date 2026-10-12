@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build). Ajay (the words) |
 | Mode           | Small fix (web, copy only) |
-| Status         | Words signed by Ajay, 12 Oct 2026. To do. Unassigned. Raised by Shashank (T-250 review), 12 Oct 2026 |
+| Status         | Merged into develop_staging (5900d7f), waiting for Anushka on develop |
 | Depends on     | T-250 + T-255 merged; the IPC rows follow T-267 |
 | Gate           | Before the production section reseed (founder-only). After the reseed the page is wrong without this |
 
