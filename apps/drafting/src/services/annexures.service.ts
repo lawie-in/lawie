@@ -289,7 +289,7 @@ function annexureSynopsis(formData: Record<string, unknown>, rules: CourtRules):
   </ul>
   <p>The petitioner has approached this Hon'ble Court seeking relief as set out in the accompanying petition/application. The facts are briefly summarised hereunder for the convenience of this Hon'ble Court.</p>
   <p><em>[Advocate to insert 3–5 sentence summary of the factual background before filing.]</em></p>
-  <div class="disclaimer">AI-assisted draft &mdash; verify before filing. Lawie does not provide legal advice.</div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>`;
 }
 
@@ -329,7 +329,7 @@ function annexureListOfDates(formData: Record<string, unknown>): string {
     ${rows.map(([d, e]) => `<tr><td>${d}</td><td>${e}</td></tr>`).join('\n    ')}
     <tr><td colspan="2"><em>[Advocate to add further dates as appropriate before filing.]</em></td></tr>
   </table>
-  <div class="disclaimer">AI-assisted draft &mdash; verify before filing. Lawie does not provide legal advice.</div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>`;
 }
 
@@ -374,7 +374,7 @@ function annexureIndexOfDocuments(formData: Record<string, unknown>): string {
     ${stdDocs.map(([n, d, r]) => `<tr><td>${n}.</td><td>${d}</td><td>${r}</td></tr>`).join('\n    ')}
   </table>
   <p style="margin-top:1em"><em>Note: Page numbers to be filled in by advocate before filing.</em></p>
-  <div class="disclaimer">AI-assisted draft &mdash; verify before filing. Lawie does not provide legal advice.</div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>`;
 }
 
@@ -426,7 +426,7 @@ function annexureVakalatnama(formData: Record<string, unknown>, rules: CourtRule
       </tr>
     </table>
   </div>
-  <div class="disclaimer">AI-assisted draft &mdash; verify before filing. Lawie does not provide legal advice.</div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>`;
 }
 
@@ -458,7 +458,7 @@ function annexureCourtFeeStatement(formData: Record<string, unknown>, rules: Cou
     <div class="sig-line"></div><br>
     <p>Date: _______________</p>
   </div>
-  <div class="disclaimer">AI-assisted draft &mdash; verify before filing. Lawie does not provide legal advice.</div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>`;
 }
 
@@ -543,7 +543,7 @@ function annexureAffidavit(
       </tr>
     </table>
   </div>
-  <div class="disclaimer">AI-assisted draft &mdash; verify before filing. Lawie does not provide legal advice.</div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>`;
 }
 
