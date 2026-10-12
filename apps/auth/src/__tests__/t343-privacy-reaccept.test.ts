@@ -299,11 +299,81 @@ describe('T-343 AC2 — POST /me/privacy-acceptance', () => {
     await seedUser('dbl@example.com', { privacyVersion: OLD_VERSION });
     const { accessToken } = await loginAs('dbl@example.com');
     const [a, b] = await Promise.all([accept(accessToken), accept(accessToken)]);
-    expect([a.status, b.status].some((s) => s === 200)).toBe(true);
-    for (const s of [a.status, b.status]) expect([200, 401]).toContain(s);
+    // Review round 1: the access session is taken atomically, so exactly one accept wins.
+    expect([a.status, b.status].sort()).toEqual([200, 401]);
     const u = await User.findOne({ email: 'dbl@example.com' }).lean();
     expect(u?.privacyHistory).toHaveLength(1);
     expect(u?.privacyVersion).toBe(CURRENT_PRIVACY_VERSION);
+  });
+
+  it('concurrent accepts on one token leave exactly one new live session pair', async () => {
+    await seedUser('conc@example.com', { privacyVersion: OLD_VERSION });
+    const old = await loginAs('conc@example.com');
+    const results = await Promise.all([
+      accept(old.accessToken),
+      accept(old.accessToken),
+      accept(old.accessToken),
+    ]);
+    const statuses = results.map((r) => r.status).sort();
+    expect(statuses).toEqual([200, 401, 401]);
+    const winner = results.find((r) => r.status === 200) as (typeof results)[number];
+
+    const accessKeys = await redis.keys(`session:${old.userId}:*`);
+    expect(accessKeys).toEqual([
+      `session:${old.userId}:${hashToken(winner.body.data.accessToken)}`,
+    ]);
+    expect(await validateSession(old.userId, hashToken(old.accessToken))).toBeNull();
+    expect(
+      await validateSession(old.userId, hashToken(winner.body.data.accessToken)),
+    ).not.toBeNull();
+    const rows = await mongoose.connection.db
+      ?.collection('sessions')
+      .find({ userId: new mongoose.Types.ObjectId(old.userId) })
+      .toArray();
+    expect(rows).toHaveLength(1);
+    const u = await User.findOne({ email: 'conc@example.com' }).lean();
+    expect(u?.privacyHistory).toHaveLength(1);
+  });
+
+  it('the old refresh token is dead after accept; the new one works once', async () => {
+    await seedUser('oldref@example.com', { privacyVersion: OLD_VERSION });
+    const old = await loginAs('oldref@example.com');
+    const res = await accept(old.accessToken);
+    expect(res.status).toBe(200);
+    const dead = await supertest(app).post('/refresh').send({ refreshToken: old.refreshToken });
+    expect(dead.status).toBe(401);
+    const live = await supertest(app)
+      .post('/refresh')
+      .send({ refreshToken: res.body.data.refreshToken });
+    expect(live.status).toBe(200);
+  });
+
+  it('an already-revoked session gets 401 and no DB write (version unchanged, no history row)', async () => {
+    await seedUser('revoked@example.com', { privacyVersion: OLD_VERSION });
+    const old = await loginAs('revoked@example.com');
+    const before = await rawUser('revoked@example.com');
+    await redis.flushall();
+    const res = await accept(old.accessToken);
+    expect(res.status).toBe(401);
+    expect(res.body.data?.accessToken).toBeUndefined();
+    const after = await rawUser('revoked@example.com');
+    expect(after).toEqual(before);
+    expect(after?.privacyVersion).toBe(OLD_VERSION);
+    expect(after?.privacyHistory).toBeUndefined();
+    expect(await redis.keys(`session:${old.userId}:*`)).toEqual([]);
+  });
+
+  it('an inactive user gets 401, no tokens, no new session and no acceptance recorded', async () => {
+    await seedUser('inactive@example.com', { privacyVersion: OLD_VERSION });
+    const old = await loginAs('inactive@example.com');
+    await User.updateOne({ email: 'inactive@example.com' }, { $set: { isActive: false } });
+    const res = await accept(old.accessToken);
+    expect(res.status).toBe(401);
+    expect(res.body.data?.accessToken).toBeUndefined();
+    const u = await User.findOne({ email: 'inactive@example.com' }).lean();
+    expect(u?.privacyVersion).toBe(OLD_VERSION);
+    expect(u?.privacyHistory).toBeUndefined();
+    expect(await redis.keys(`session:${old.userId}:*`)).toEqual([]);
   });
 
   it('a second accept with the new token is idempotent: 200, fresh tokens, still one row', async () => {

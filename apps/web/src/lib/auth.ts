@@ -1,5 +1,7 @@
 const ACCESS_TOKEN_KEY = 'lawie_access_token';
 const REFRESH_TOKEN_KEY = 'lawie_refresh_token';
+/** T-343: sessionStorage prefix of the privacy prompt's "shown this sign-in" flags. */
+export const PRIVACY_PROMPT_SHOWN_PREFIX = 'lawie_privacy_prompt_shown:';
 
 export interface AuthUser {
   id: string;
@@ -34,6 +36,15 @@ export function clearTokens(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  // T-343: signing out forgets "privacy prompt shown", so the next sign-in prompts again.
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
+      const k = sessionStorage.key(i);
+      if (k?.startsWith(PRIVACY_PROMPT_SHOWN_PREFIX)) sessionStorage.removeItem(k);
+    }
+  } catch {
+    // Storage unavailable: nothing to clear.
+  }
 }
 
 export function getAccessToken(): string | null {

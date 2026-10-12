@@ -299,6 +299,22 @@ describe('T-343 AC1 — when the prompt shows', () => {
     await h.mount();
     expect(dialog()).not.toBeNull();
   });
+
+  it('review round 1: an apiFetch redirect sign-out (clearTokens, no signed-out mount) shows it again at the next sign-in', async () => {
+    await h.mount();
+    await h.click(btnIn(dialog() as HTMLElement, SIGNED.P6) as HTMLElement);
+    expect(dialog()).toBeNull();
+    expect(sessionStorage.getItem('lawie_privacy_prompt_shown:u1:2026-10-12b')).toBe('1');
+    await h.unmount();
+    // apiFetch's redirect path calls clearTokens() and leaves the page; the component never
+    // renders with user === null.
+    h = load();
+    require('@/lib/auth').clearTokens();
+    expect(sessionStorage.getItem('lawie_privacy_prompt_shown:u1:2026-10-12b')).toBeNull();
+    mockUser = { id: 'u1' };
+    await h.mount();
+    expect(dialog()).not.toBeNull();
+  });
 });
 
 describe('T-343 round 5 — focus, reload and precheck', () => {

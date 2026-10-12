@@ -4,12 +4,14 @@ import {
   RegisterPayload,
   LoginPayload,
   refreshSessionKey,
+  sessionKey,
   getPrivacyVersionSummary,
 } from '@lawie/shared';
 import bcrypt from 'bcryptjs';
 
 import logger from '../config/logger';
 import { AppError } from '../middleware/errorHandler';
+import { Session } from '../models/Session.model';
 import {
   User,
   IUser,
@@ -261,16 +263,42 @@ export async function getPrivacyStatus(userId: string): Promise<PrivacyStatus> {
 /**
  * T-343 — POST /me/privacy-acceptance. Records acceptance of CURRENT_PRIVACY_VERSION with
  * server values only (version, time, via 'reaccept'); nothing comes from the request body.
- * The update is conditional on the stored version differing, so a double submit adds one
- * history row, not two. Then rotates the session like /refresh (Arjun's addendum): the
- * caller's access session and its refresh key are deleted and a new pair, carrying the new
- * `pv`, is issued with createSession. Logs only the user id, never tokens.
+ * Order: (1) atomically take the caller's access session (401 and nothing written if it is
+ * gone), deleting its refresh key and audit row; (2) the conditional update (only when the
+ * stored version differs, so a double submit adds one history row, not two); (3) a new pair,
+ * carrying the new `pv`, via createSession (rotation as /refresh, Arjun's addendum). Logs only
+ * the user id, never tokens.
  */
 export async function acceptPrivacy(
   userId: string,
   accessToken: string,
   meta: SessionMeta = {},
 ): Promise<{ accessToken: string; refreshToken: string }> {
+  // Review round 1 (must-fix): take the caller's access session atomically FIRST (MULTI GET+DEL,
+  // the /refresh pattern), so two concurrent accepts with one token can't both issue a pair
+  // (T-299 single use). Not taken (already used, revoked, expired): 401, no DB write, nothing
+  // issued. Never log the token or its hash.
+  const redis = (await import('../config/redis')).default;
+  const accessHash = hashToken(accessToken);
+  const accessKey = sessionKey(userId, accessHash);
+  const taken = await redis.multi().get(accessKey).del(accessKey).exec();
+  const [getErr, oldSessionData] = taken?.[0] ?? [];
+  if (getErr || typeof oldSessionData !== 'string') {
+    throw new AppError(401, 'Session expired or revoked. Please log in again.');
+  }
+  // The taken session's refresh key and audit row go too (as deleteSession does).
+  let oldRefreshHash: unknown;
+  try {
+    oldRefreshHash = (JSON.parse(oldSessionData) as { refreshTokenHash?: unknown })
+      .refreshTokenHash;
+  } catch {
+    oldRefreshHash = undefined;
+  }
+  if (typeof oldRefreshHash === 'string' && oldRefreshHash) {
+    await redis.del(refreshSessionKey(userId, oldRefreshHash));
+  }
+  await Session.deleteOne({ userId, jwtTokenHash: accessHash });
+
   const acceptedAt = new Date();
   await User.updateOne(
     { _id: userId, isActive: true, privacyVersion: { $ne: CURRENT_PRIVACY_VERSION } },
@@ -290,9 +318,6 @@ export async function acceptPrivacy(
   if (!user || !user.isActive) {
     throw new AppError(401, 'User not found or inactive');
   }
-
-  // Rotate like /refresh: the old access session and its refresh key go first.
-  await deleteSession(userId, hashToken(accessToken));
 
   const tokens = generateTokenPair({
     sub: user._id.toString(),

@@ -24,6 +24,7 @@ import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { linkButton } from '@/components/intake/ui';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch, refreshAccessToken } from '@/lib/apiFetch';
+import { PRIVACY_PROMPT_SHOWN_PREFIX } from '@/lib/auth';
 
 // ── Ajay's signed text, byte for byte. Changes only with his sign-off. ─────────────────────────
 // P1–P7: handoff/legal/T-343-privacy-reaccept-signed.md §1 (a0fc831).
@@ -42,7 +43,7 @@ export const PRIVACY_PROMPT_STRINGS = {
 const PRIVACY_HREF = '/privacy';
 /** Arjun, T-343: the 403 body's error code on a blocked action. */
 export const PRIVACY_REACCEPT_REQUIRED = 'privacy_reaccept_required';
-const SHOWN_KEY_PREFIX = 'lawie_privacy_prompt_shown:';
+const SHOWN_KEY_PREFIX = PRIVACY_PROMPT_SHOWN_PREFIX;
 
 /** Design §4 — T-310's choiceBtn at 48 px. One class string for BOTH buttons (D2). */
 const choiceBtn =
