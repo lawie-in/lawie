@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Rajesh (design review of the form), Madhuri (copy), Lead (build), Arjun (heads-up), Anushka (verdict) |
 | Mode           | Design check first, then build, full chain (web, auth) |
-| Status         | To do. Rajesh's design check done (11 Oct); waits for Ajay's consent wording |
+| Status         | Building: kunal (12 Oct 2026). Moved from shashank's queue to the web lane |
 | Size           | S to M |
 | Depends on     | T-208 (validation messages, merged), T-209 (merged), T-210 (merged). T-221 and T-223 ship with it for v1 |
 | Gate           | Before v1 go-live (T-403) |
