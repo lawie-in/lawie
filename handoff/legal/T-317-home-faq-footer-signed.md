@@ -19,3 +19,15 @@ Notes
 Description, exact: `Stop Googling legal formats. Lawie is a drafting assistant for Indian advocates. Draft bail applications, legal notices, and more, then review before you file.`
 
 The title ("Lawie — AI Legal Drafting for Indian Advocates") and keywords are marketing, not a legal claim: Meera's call, not part of this sign-off.
+
+## Addendum 2 (12 Oct 2026 IST): five more lines (found by Mahak)
+
+| Where | Replace with, exact |
+|---|---|
+| `components/marketing/SiteFooter.tsx` ~13 (tagline) | `Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers.` |
+| `faq/page.tsx` ~86 (answer, "What disclaimer applies…") | `Every document is a first draft generated with AI and must be reviewed by the filing advocate before use. Lawie does not certify any document as court-approved or legally valid.` |
+| `faq/page.tsx` ~91 (answer, "Who reviews the templates?") | `Templates follow Lawie's court rules for the courts in its list. Lawie is a drafting assistant: the filing advocate is responsible for reviewing each generated draft before use.` |
+| `faq/page.tsx` meta description | `Answers to common questions about Lawie: documents, BNS/BNSS/BSA mappings, pricing, privacy, and how Lawie drafts documents.` |
+| `components/editor/exportUtils.ts` ~250 (footer on every exported PDF) | `First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.` |
+
+Saying that drafts are generated with AI is required transparency, not a claim; what the ban covers is "AI-assisted tool" as a description of what Lawie is. The export footer is legal content printed on the client's document: if exportUtils.ts is outside this ticket's claim, Priya routes it as its own small ticket with this exact text.
