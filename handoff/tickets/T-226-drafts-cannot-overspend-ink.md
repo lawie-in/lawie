@@ -128,3 +128,7 @@ The mechanism above stands. Re-checked on `develop_staging`: `spendInk` is still
 ## Added (Priya, 12 Oct 2026, from vishal)
 
 - In `credits.service.ts`, `spendInk` does two writes it doesn't await: the inkledger `insertMany` and the user `$unset`. Await them, or make them part of the hold-and-settle flow.
+
+## Arjun (12 Oct 2026): duplicate ledger rows on settle (Mahak, reviewer round 1)
+
+Prod runs **one** drafting instance (`ecosystem.config.js`: pm2 fork mode, `instances: 1` for every app). So today there are no two sweeps. Decision for the code anyway, with no migration and no Redis lock: **only the caller whose `$pull` of the hold actually removed it may write the `generate` ledger rows.** `settleInk` does the `findOneAndUpdate` that requires the hold to be present and reads the removed hold back (`returnDocument: 'before'`); a null result means another settle won, and this call returns without writing anything. The ledger rows are then written from the removed hold's stored split. Two sweeps (or a sweep and a normal settle) can therefore never both insert. Residual risk, accepted: a crash between the `$pull` and the insert loses that run's ledger rows; it is logged at error level with the run id. Add a test: two concurrent `settleInk` calls for one hold produce one set of rows. No unique index on `inkledger` and no billing change; revisit only if drafting ever runs more than one instance.
