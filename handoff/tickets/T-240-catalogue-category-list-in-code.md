@@ -55,3 +55,7 @@ Conditions:
 1. A test pins `category` (the behaviour value) for every existing template id, before and after: no behaviour value changes.
 2. Prices: `TEMPLATE_PRICES` and the alias map move to `config/catalogue` as the single source. A test pins every current price and alias byte for byte; nothing else may keep its own copy (grep in the test or a lint rule).
 3. Every template has exactly one `catalogueCategory` from the list; an unknown value fails at load, not at request time.
+
+## Split (Priya, 12 Oct 2026)
+
+AC7 (one court_levels list) and AC8 (price check in every documents.routes.ts generate handler) move to T-329.
