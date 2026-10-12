@@ -143,6 +143,8 @@ describe('buildAnnexuresPack — Bihar district', () => {
       formData: BIHAR_FORM,
       bodyParaCount: 8,
       advocateName: 'Adv. Ravi Shankar',
+      // T-311: bail_anticipatory declares no advocate_enrollment; the profile number pairs with the profile name
+      enrollmentNumber: 'BAR/2018/1234',
     });
   });
 
@@ -226,6 +228,7 @@ describe('buildAnnexuresPack — Jharkhand HC', () => {
       formData: JHARKHAND_FORM,
       bodyParaCount: 12,
       advocateName: 'Adv. Sunita Kumari',
+      enrollmentNumber: 'JHA/2020/567',
     });
   });
 

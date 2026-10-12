@@ -111,6 +111,7 @@ describe('T-300 AC2: list A keys, a client value changes nothing', () => {
 
   it('enrollment_number: the server (profile) value is kept', () => {
     const { clean, attacked } = pair(regular, { enrollment_number: FORGED }, BASE, {
+      advocateName: 'Adv. Profile', // T-311: the number pairs with a profile name
       enrollmentNumber: 'BR/1234/2015',
     });
     expect(clean.enrollment_number).toBe('BR/1234/2015');
@@ -623,25 +624,18 @@ describe('T-300 advocate name (Ajay: a declared, typed value wins)', () => {
   });
 });
 
-describe('T-300 annexures enrollment is unchanged (follow-up T-311)', () => {
-  it('advocate_enrollment and enrollment_number from the form still print', async () => {
+describe('T-300/T-311 annexures: a client enrollment number is never read', () => {
+  it('enrollment_number and advocate_enrollment from the form do not print (T-311 supersedes)', async () => {
     const html = await annexuresHtml(
       {
         template_id: 'bail_regular',
         applicant_name: 'Ramesh Kumar',
         enrollment_number: 'BAR/2018/1234',
-      },
-      PROFILE,
-    );
-    expect(html).toContain('BAR/2018/1234');
-    const legacy = await annexuresHtml(
-      {
-        template_id: 'bail_regular',
-        applicant_name: 'Ramesh Kumar',
         advocate_enrollment: 'LEG/77',
       },
       PROFILE,
     );
-    expect(legacy).toContain('LEG/77');
+    expect(html).not.toContain('BAR/2018/1234');
+    expect(html).not.toContain('LEG/77');
   });
 });
