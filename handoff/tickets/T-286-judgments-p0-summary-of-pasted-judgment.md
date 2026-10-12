@@ -36,3 +36,7 @@ ADR-024 is written: `handoff/tickets/ADR-T-286-judgment-summary.md`. Short versi
 
 **Open before 286a:** Ajay's rule and final labels; Ajay's 10 sample judgments; Rajesh's design (286b); Vikram's choice (included with caps, or Ink through T-226) and numbers; T-285's keep-alive merged.
 **Founder:** create `ANTHROPIC_JUDGMENTS_API_KEY` with a console limit, and seed `ai.judgments_model`, its rate row and `judgments.enabled=false` at launch. Nothing earlier.
+
+## ADR (Arjun, 12 Oct 2026)
+
+`handoff/tickets/ADR-T-286-judgment-summary.md` (ADR-024). Split: 286a backend, 286c gateway, 286b web, 286d upload (later). Pasted text only, nothing stored. Open before 286a: Ajay's labels and 10 sample judgments, Rajesh's design, Vikram's call (caps, or Ink via T-226). T-285 keep-alive merges first.
