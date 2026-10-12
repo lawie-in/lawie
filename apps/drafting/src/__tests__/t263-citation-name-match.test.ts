@@ -3,12 +3,17 @@
  * and its addendum of 12 Oct 2026). Pure checks of services/citation-check.ts.
  * Invented names only.
  *
- * Also pins Ajay's Addenda 1 to 4 (c765ae7, 0e452b6, ac4dcae, d7f4f1b): the
+ * Also pins Ajay's Addenda 1 to 6 (c765ae7, 0e452b6, ac4dcae, d7f4f1b, Q7
+ * Addendum 5, and Addendum 6 = 3c551da: Q8a unclosed bracket, Q8b slash name
+ * words). Addenda 1 to 4: the
  * abbreviation rule for sentence ends (Addendum 1), the 250-character and
  * blank-line search limit, the reporterless "A v. B" before a bare reporter and
  * the two-names case (Addendum 2, Q1 to Q3), "no versus word before a blank
  * after any cut" (Addendum 3, Q4), versus words in any case and "K. V. Rao"
  * (Addendum 4, Q5), and the sentence ends ? ! danda and double danda (Q6).
+ * Addendum 5 (Q7): a mark glued between two words is a word break. Addendum 6:
+ * an unclosed ( or [ in party 1 is a limit (Q8a); M/s, s/o, d/o, w/o, r/o, h/o,
+ * S/o, D/o, W/o, R/o are name words (Q8b).
  */
 import { AUTHORITY_BLANK, removeUngivenCitations } from '../services/citation-check';
 
@@ -56,8 +61,16 @@ function expectNoNameFragmentBesideBlank(out: string, given: string[] = []): voi
     const before = out.slice(0, at);
     const lastWord = before.split(/\s+/).filter(Boolean).pop() ?? '';
     const glued = /[\p{L}\p{N}][?!,;:][\p{L}\p{N}]/u.test(lastWord);
-    const fused = before.length > 0 && !/\s$/.test(before);
-    expect({ out, glued, fused }).toEqual({ out, glued: false, fused: false });
+    // A blank may follow a bare opening bracket or quote: "([blank])" (Addendum 6).
+    const fused = before.length > 0 && !/[\s(["]$/.test(before);
+    // Addendum 6 (Q8a): an opening ( or [ glued to a capital letter is the start of a name part.
+    const opener = /^[([]\p{Lu}/u.test(lastWord);
+    expect({ out, glued, fused, opener }).toEqual({
+      out,
+      glued: false,
+      fused: false,
+      opener: false,
+    });
   }
 }
 
@@ -499,5 +512,113 @@ describe('T-263 Q7 (Addendum 5): marks glued between two words are a word break'
       expectNoNameFragmentBesideBlank(`Held in Shyam,Mohan ${BLANK} applies.`),
     ).toThrow();
     expect(() => expectNoNameFragmentBesideBlank(`Held in ${BLANK} applies.`)).not.toThrow();
+  });
+
+  it('the check catches an opening bracket glued to a capital before a blank (Addendum 6)', () => {
+    expect(() =>
+      expectNoNameFragmentBesideBlank(`the principle (Arnesh ${BLANK} applies.`),
+    ).toThrow();
+    expect(() =>
+      expectNoNameFragmentBesideBlank(`the principle [Arnesh ${BLANK} applies.`),
+    ).toThrow();
+    expect(() =>
+      expectNoNameFragmentBesideBlank(`the principle (${BLANK}) applies.`),
+    ).not.toThrow();
+    expect(() =>
+      expectNoNameFragmentBesideBlank(`the principle (see ${BLANK}) applies.`),
+    ).not.toThrow();
+  });
+});
+
+describe('T-263 Q8a (Addendum 6): an unclosed ( or [ is a limit of party 1', () => {
+  const CITE = 'Arnesh Kumar v. State of Bihar, (2014) 8 SCC 273';
+  const rows: Array<[string, string, string]> = [
+    [
+      'round 2 regression: round bracket',
+      `the principle (${CITE}) applies.`,
+      `the principle (${BLANK}) applies.`,
+    ],
+    ['square bracket', `the principle [${CITE}] applies.`, `the principle [${BLANK}] applies.`],
+    [
+      'one-word first party',
+      'the principle (Ravindran v. Intelligence Officer, (2021) 2 SCC 485) applies.',
+      `the principle (${BLANK}) applies.`,
+    ],
+    [
+      'straight quote right after the bracket opens a quotation',
+      'the principle ("Arnesh Kumar v. State of Bihar", (2014) 8 SCC 273) applies.',
+      `the principle ("${BLANK}) applies.`,
+    ],
+    [
+      'lead word after the bracket stays',
+      `the principle (see ${CITE}) applies.`,
+      `the principle (see ${BLANK}) applies.`,
+    ],
+    [
+      'closed bracket "(NCT of Delhi)" in party 1 is walked over',
+      'In Latha Devi (NCT of Delhi) v. State of Kerala (2019) 4 SCC 12 held.',
+      `In ${BLANK} held.`,
+    ],
+    [
+      'closed bracket "(I)" in party 1 is walked over',
+      'That in Latha Devi (I) v. Home Secretary (2019) 4 SCC 12 held.',
+      `That in ${BLANK} held.`,
+    ],
+  ];
+  it.each(rows)('%s', (_label, input, expected) => {
+    const res = run(input);
+    expect(res.text).toBe(expected);
+    expect(res.removed).toBe(1);
+  });
+
+  it('T-148 (b): the advocate gave "Arnesh Kumar", so it stays and the rest is blanked', () => {
+    const res = run(`the principle (${CITE}) applies.`, ['Rely on Arnesh Kumar.']);
+    expect(res.text).toBe(`the principle (Arnesh Kumar ${BLANK}) applies.`);
+    expect(res.text).not.toContain('SCC');
+  });
+});
+
+describe('T-263 Q8b (Addendum 6): slash name words are name words', () => {
+  it('M/s. as the first word of party 1', () => {
+    const res = run('M/s. Tata Steel Ltd. v. State of Bihar (2019) 4 SCC 12 applies.');
+    expect(res.text).toBe(`${BLANK} applies.`);
+  });
+
+  it('M/s. does not end a sentence, so the walk goes through it', () => {
+    const res = run('As held in M/s. Tata Steel Ltd. v. State of Bihar (2019) 4 SCC 12, bail.');
+    expect(res.text).toBe(`As held in ${BLANK}, bail.`);
+  });
+
+  it('M/s. Tata Steel Ltd. v. ..., bail. (no reporter glued to the name)', () => {
+    const res = run('As held in M/s. Tata Steel Ltd. v. State of Bihar, (2019) 4 SCC 12, bail.');
+    expect(res.text).toBe(`As held in ${BLANK}, bail.`);
+  });
+
+  it.each(['s/o', 'd/o', 'w/o', 'r/o', 'h/o', 'S/o', 'D/o', 'W/o', 'R/o'])(
+    'relation word "%s" inside party 1',
+    (w) => {
+      const res = run(`As held in Ram ${w} Shyam Lal v. State of Bihar (2019) 4 SCC 12, bail.`);
+      expect(res.text).toBe(`As held in ${BLANK}, bail.`);
+      expect(res.removed).toBe(1);
+    },
+  );
+  // Ajay's amendment to Addendum 6: any case, with or without a final full stop.
+  it.each(['S/O', 'D/O', 'W/O', 'R/O', 'H/O', 'H/o', 'h/O', 'S/O.', 's/o.'])(
+    'any-case relation word "%s" inside party 1',
+    (w) => {
+      const res = run(`As held in Ram ${w} Shyam Lal v. State of Bihar (2019) 4 SCC 12, bail.`);
+      expect(res.text).toBe(`As held in ${BLANK}, bail.`);
+      expect(res.removed).toBe(1);
+    },
+  );
+
+  it.each(['M/S', 'M/S.', 'm/s', 'm/s.', 'M/s'])('any-case "%s" at the start of party 1', (w) => {
+    const res = run(`${w} Tata Steel Ltd. v. State of Bihar (2019) 4 SCC 12 applies.`);
+    expect(res.text).toBe(`${BLANK} applies.`);
+  });
+
+  it('M/S. does not end a sentence while walking back', () => {
+    const res = run('As held in M/S. Tata Steel Ltd. v. State of Bihar (2019) 4 SCC 12, bail.');
+    expect(res.text).toBe(`As held in ${BLANK}, bail.`);
   });
 });

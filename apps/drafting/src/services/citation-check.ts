@@ -214,6 +214,14 @@ const JOIN_TOKENS = new Set([
   'bin',
   'binti',
 ]);
+/**
+ * Addendum 6, Q8b (amended, b5eeb0c): name words the walk back for the first
+ * party continues through, in any case (M/S, S/O, D/O, s/o, H/o and so on),
+ * with or without a final full stop: M/s, s/o, d/o, w/o, r/o, h/o. A full stop
+ * after one of them does not end a sentence, or the walk could not go through
+ * "M/s." (see `endsSentenceAt`).
+ */
+const SLASH_NAME_WORD = /^(?:m\/s|s\/o|d\/o|w\/o|r\/o|h\/o)\.?$/i;
 /** One token of the text before the versus word: a bracket group, or a run of non-space characters. */
 const TOKEN = /\([^()\n]{1,40}\),?|\S+/g;
 
@@ -320,6 +328,7 @@ function endsSentenceAt(text: string, i: number): boolean {
   if (NOT_A_SENTENCE_END_ABBREVIATIONS.has(word)) return false;
   if (INITIALS.test(word)) return false;
   if (VERSUS_ANY_CASE.test(word)) return false;
+  if (SLASH_NAME_WORD.test(word)) return false;
   return true;
 }
 
@@ -352,13 +361,25 @@ const isGluedAt = (text: string, i: number): boolean =>
  * no further than `lo`: the end of the previous sentence (rule 4, Addendum 4 Q6), a
  * semicolon, a colon, an opening quotation mark, or a line start. A semicolon
  * or colon glued between two words is a word break, not a limit (Addendum 5, Q7).
+ * An opening "(" or "[" with no closing mark before the versus word is a
+ * limit too, like an opening quotation mark (Addendum 6, Q8a): "(Arnesh Kumar
+ * v. State of Bihar, (2014) 8 SCC 273)" becomes "([blank])". A bracket that
+ * closes before the versus word, such as "(NCT of Delhi)", is walked over as
+ * before. A straight quote right after such a bracket opens a quotation too:
+ * '("Arnesh Kumar v. ...'.
  */
 function party1Limit(text: string, lo: number, versusStart: number): number {
+  let closed = 0;
   for (let i = versusStart - 1; i >= lo; i -= 1) {
     const ch = text[i];
     if ((ch === ';' || ch === ':') && !isGluedAt(text, i)) return i + 1;
     if (ch === '\n' || ch === '“' || ch === '‘') return i + 1;
-    if ((ch === '"' || ch === "'") && (i === 0 || /\s/.test(text[i - 1]))) return i + 1;
+    if ((ch === '"' || ch === "'") && (i === 0 || /[\s([]/.test(text[i - 1]))) return i + 1;
+    if (ch === ')' || ch === ']') closed += 1;
+    if (ch === '(' || ch === '[') {
+      if (closed === 0) return i + 1;
+      closed -= 1;
+    }
     if (endsSentenceAt(text, i)) return i + 1;
   }
   return lo;
@@ -396,7 +417,11 @@ function tokensOf(text: string, from: number, to: number): Token[] {
   return out;
 }
 const isNameToken = (text: string, { t, at }: Token): boolean =>
-  CAP_TOKEN.test(t) || BRACKET_TOKEN.test(t) || JOIN_TOKENS.has(t) || isVersusAt(text, at, t);
+  CAP_TOKEN.test(t) ||
+  BRACKET_TOKEN.test(t) ||
+  JOIN_TOKENS.has(t) ||
+  SLASH_NAME_WORD.test(t) ||
+  isVersusAt(text, at, t);
 /** Party 1 never starts with a joining word, a bracket or a versus word, so "and" or "(a)" before it stays in the text. */
 const isEdgeToken = (text: string, { t, at }: Token): boolean =>
   BRACKET_TOKEN.test(t) || JOIN_TOKENS.has(t) || isVersusAt(text, at, t);
@@ -521,14 +546,14 @@ function findCitations(text: string): Found[] {
     // and at the end of the previous sentence under rule 4 (Addendum 2, Q2).
     const lo = Math.max(from, paragraphStart(text, reporterStart), reporterStart - VERSUS_LOOKBACK);
     let versus: { start: number; end: number } | null = null;
-    VERSUS_CANDIDATE.lastIndex = sentenceStart(text, lo, reporterStart);
-    for (
-      let v = VERSUS_CANDIDATE.exec(text);
-      v && v.index < reporterStart;
-      v = VERSUS_CANDIDATE.exec(text)
-    ) {
-      if (v.index + v[0].length <= reporterStart && isVersusAt(text, v.index, v[0]))
-        versus = { start: v.index, end: v.index + v[0].length };
+    // Searched in a bounded slice (one character early, so the whitespace
+    // look-behind sees the same character as on the whole text).
+    const searchStart = sentenceStart(text, lo, reporterStart);
+    const sliceFrom = Math.max(0, searchStart - 1);
+    for (const v of text.slice(sliceFrom, reporterStart).matchAll(VERSUS_CANDIDATE)) {
+      const at = sliceFrom + (v.index ?? 0);
+      if (at >= searchStart && isVersusAt(text, at, v[0]))
+        versus = { start: at, end: at + v[0].length };
     }
     // A year-volume-page form with an unknown abbreviation is a citation only after a case name.
     if (
