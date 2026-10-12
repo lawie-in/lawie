@@ -35,7 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(empty)
+1. tanvi: T-345 + T-340 (a5de025, review passed round 3). Merges once Ajay signs the ai.service.ts diff; then ping Shashank.
 
 ## Last done
 
