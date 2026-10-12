@@ -1463,6 +1463,8 @@ export interface EditedDescriptionResult {
  * - It says nothing: the earlier answer stays, unmarked.
  * - A name is never replaced. When the description gives a different name, the
  *   typed name stays and is marked "Please check".
+ * - T-335: an answer that writes no fact ("Not known", `isNoFactAnswer`) is
+ *   never replaced or cleared by the new description.
  *
  * Only an edited description comes here (`descriptionWasEdited`). A first
  * description has no earlier answers, so it never does.
@@ -1491,6 +1493,18 @@ export function valuesAfterEditedDescription(
     if (!item && !given.key.startsWith('fixed.')) {
       const sameName = byName.get(lastSegment(given.key)) ?? [];
       if (sameName.length === 1) item = sameName[0];
+    }
+    // T-335 (Arjun, 12 Oct 2026): the advocate's "Not known" stays until the
+    // advocate removes it, even when the new description gives a value. This
+    // overrides Rule A for that case only.
+    if (
+      item &&
+      given.source === 'user' &&
+      typeof given.value === 'string' &&
+      isNoFactAnswer(item, given.value)
+    ) {
+      kept.push(given);
+      continue;
     }
     if (item && isNameItem(item) && !isEmpty(given.value)) {
       const now = read.get(item.key);
