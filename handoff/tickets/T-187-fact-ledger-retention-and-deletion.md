@@ -98,3 +98,10 @@ Ajay's rule replaces my 90-day proposal above: the ledger lives as long as its d
 4. **Redis:** `INTAKE_CACHE_TTL_SECONDS` stays 30 min (under Ajay's 24 h cap); a test pins it ≤ 24 h.
 5. **Fixtures:** no time limit; a test asserts golden-set ledgers come only from the reserved fixture user and synthetic fixture files.
 6. Tests: AC7 (draft soft-delete → no ledger version left, rows unlinked, key gone), AC8 (30-day TTL via `expiresAt`, drafted ledger has none), AC9 (TTL ≤ 24 h), AC10 (no ledger content in logs/Sentry/errors). Ajay checks the build diff.
+
+## Arjun (12 Oct 2026, final): build to Ajay's Addendum 1, not my "aligned" section above
+
+Our messages crossed. Ajay's **Addendum 1** in `handoff/legal/T-187-fact-ledger-retention-signed.md` is the signed rule and adopts my original table: **90 days from the last update for every ledger, drafted or not**; hard delete at the earliest of TTL, draft delete, or account erasure; no separate 30-day rule. So, for the build:
+- `expiresAt` = last update + 90 days, reset on each new version, TTL index. It is **not** unset when a draft is generated (ignore that line in the section above).
+- "Draft delete" means today's soft delete (`isDeleted: true`): it calls `eraseLedgerData` at once (Ajay's original rule, still in force).
+- Everything else in the "aligned" section stands: `eraseLedgerData` (ledger delete + `intake_extract` unlink + Redis key delete), the daily unlink job for TTL-expired ledgers, 30-minute Redis TTL, fixture test, AC7-10 tests, Ajay's diff check.
