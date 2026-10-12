@@ -11,7 +11,7 @@
   "courtId": "od_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Odisha, governed by the Bengal, Agra and Assam Civil Courts Act, 1887 (as in force) read with the Orissa High Court of Judicature Order, 1948 and Orissa High Court Rules, 1948. Sessions courts try offences punishable with imprisonment exceeding 7 years. Odisha comprises 30 revenue districts and the subordinate judiciary is supervised by the Orissa High Court, Cuttack. Odia is the official language of the State subordinate courts under the Orissa Official Language Act, 1954.",
+  "jurisdictionNote": "District-level criminal and civil courts in Odisha, governed by the Bengal, Agra and Assam Civil Courts Act, 1887 (as in force) read with the Orissa High Court of Judicature Order, 1948 and Orissa High Court Rules, 1948. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Odisha comprises 30 revenue districts and the subordinate judiciary is supervised by the Orissa High Court, Cuttack. Odia is the official language of the State subordinate courts under the Orissa Official Language Act, 1954.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",

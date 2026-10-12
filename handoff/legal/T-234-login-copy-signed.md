@@ -28,3 +28,9 @@ Facts from Priya (`apps/auth` referral.service.ts): each code may have an expiry
 3. Priya's line is approved as small text under the referral box (optional, Meera's call to show it):
    `Referral codes may expire or have limited uses.`
 4. If Vikram makes top-up Ink expire, R5, R6, R10 and R14 must say so; tell me first.
+
+## Addendum 2 (12 Oct 2026 IST): existing account via Google after a code
+
+When an existing account signs in through "Continue with Google" from Create account after R5/R6 showed, show once, after sign-in, with a "Continue" button (replaces condition 2's R7 for this path only):
+
+`Referral bonuses are for new accounts only, so no bonus Ink was added.`

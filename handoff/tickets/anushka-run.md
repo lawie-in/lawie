@@ -330,3 +330,32 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Where the Schedule gives no single court, the bail checker and the section finder say "Depends on the offence. Check the First Schedule."
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-293 — bail draft reads the sections charged safely (cf05202)
+
+- Nothing changes on screen. A bail draft's bailable / non-bailable lines still match the sections charged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-290 — section picker shows what each section was read as (83a5c07)
+
+- Under Sections Charged, a reminder that a bare number is read as a BNS section.
+- Under each section added, what Lawie read it as before drafting ("Read as BNS 303: Theft", "Read as IPC 302").
+- "Checking this section" shows while it checks; a red warning appears if the check fails or the entry isn't a section.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-309 — section picker hardening (ed989ee)
+
+- If one section can't be checked, only that one shows the warning; the others still show what they were read as. A failed check is retried once by itself.
+- Entries go up to 100 characters, up to 30 sections; at 30 the box stops taking more.
+- On a phone, a long section name wraps inside the box and its remove button stays visible.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-297 — court notes defer to the First Schedule (9b4468b)
+
+- Court notes no longer say which court tries a case from the length of the sentence. They say the First Schedule to BNSS decides, which matches the court the bail checker shows.
+- The Magistrate (JMFC) note no longer says it only tries offences up to 3 years.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
