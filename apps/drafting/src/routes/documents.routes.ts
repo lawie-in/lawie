@@ -67,6 +67,7 @@ import {
 import { preflightCheck } from '../services/preflight.service';
 import { loadRulePack } from '../services/rule-pack.service';
 import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
+import { withS138DateChecks } from '../services/s138-date-checks';
 import {
   CourtLookupData,
   loadCourtRule,
@@ -1119,7 +1120,15 @@ router.post(
       ledger = {
         id: String(doc.id),
         version: doc.currentVersion,
-        facts: state.facts,
+        // T-192: the s.138 date checks, worked out by code per request from the
+        // stored user/asked facts. A computed fact is appended only on a pass
+        // and is never stored; an unresolved input counts as missing. For any
+        // other pack the facts are as stored.
+        facts: withS138DateChecks(
+          state.facts,
+          kind,
+          state.unresolved.map((u) => u.key),
+        ),
         unresolved: state.unresolved,
         runType: factDiffRunType(doc.runType),
         lists,
