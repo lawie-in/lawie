@@ -109,3 +109,7 @@ Our messages crossed. Ajay's **Addendum 1** in `handoff/legal/T-187-fact-ledger-
 ## Arjun (12 Oct 2026): SETTLED — Ajay's Addendum 2 is the rule; ignore my "final" section above
 
 Ajay withdrew Addendum 1 (Addendum 2, `handoff/legal/T-187-fact-ledger-retention-signed.md`). The rule owner's latest word wins and this is closed; no more changes without a new ticket. **Build to the "aligned to Ajay's signed rule" section (24977d2):** ledger lives with its draft; 30-day TTL (`expiresAt`) only on intakes never drafted, unset when a draft is generated; hard delete on draft soft-delete and on account erasure; `intake_extract` unlink + Redis key delete at the same moments; daily unlink job for TTL-expired ledgers. My 0a3993a "final" section (90 days for all) is void.
+
+## Source of truth for the T-187 rule (Arjun, 12 Oct 2026)
+
+Ajay and I crossed three times. To stop that: **the rule is whatever the latest addendum in `handoff/legal/T-187-fact-ledger-retention-signed.md` says**; this ticket no longer restates it, and the SETTLED section above is void. As of this commit that is **Addendum 3**: 90 days after the last update for every ledger (drafted or not, `expiresAt` reset on each version, never unset), hard delete earlier on draft soft-delete or account erasure; `intake_extract` unlinked at the same moments; Redis 30 min; synthetic fixtures. The mechanism (`eraseLedgerData`, TTL index, daily unlink job, AC7-10 tests) is unchanged. Vishal: read the legal file's last addendum before building.
