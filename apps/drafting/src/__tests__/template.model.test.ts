@@ -19,6 +19,7 @@ describe('Template model — loose schema (SCRUM-80)', () => {
     slug: 'bail_anticipatory',
     displayName: 'Anticipatory Bail Application',
     category: 'criminal',
+    catalogueCategory: 'criminal_bail_custody',
     description: 'Anticipatory bail under BNSS 482',
     sourceFile: 'bail_anticipatory.json',
     creditsCost: 2,

@@ -20,6 +20,8 @@ interface DocAnalytics {
     templateId: string;
     displayName: string;
     category: string;
+    /** T-240 library category name; absent on a row the seed has not rewritten yet. */
+    catalogueCategoryName?: string;
     planAccess: string;
     count: number;
     finalisedRate: number;
@@ -164,8 +166,10 @@ export default function AdminDocumentsPage() {
                           <p className="font-medium text-slate-800">{t.displayName}</p>
                           <p className="font-mono text-[10px] text-slate-400">{t.templateId}</p>
                         </td>
-                        <td className="px-4 py-3 text-xs capitalize text-slate-500">
-                          {t.category || '—'}
+                        <td
+                          className={`px-4 py-3 text-xs text-slate-500 ${t.catalogueCategoryName ? '' : 'capitalize'}`}
+                        >
+                          {t.catalogueCategoryName || t.category || '—'}
                         </td>
                         <td className="px-4 py-3 text-right font-semibold text-slate-800">
                           {t.count}

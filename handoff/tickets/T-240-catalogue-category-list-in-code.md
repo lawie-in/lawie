@@ -5,7 +5,7 @@
 | Phase          | 4 — Matter context |
 | Owner          | Lead (build). Ajay (confirms the category names). Anushka (checks the library filters) |
 | Mode           | Full chain |
-| Status         | Building: tanvi (12 Oct 2026) |
+| Status         | Merged into develop_staging (6a6cd2a), 12 Oct 2026. Anushka tests on develop |
 | Depends on     | T-227 |
 
 ## Problem

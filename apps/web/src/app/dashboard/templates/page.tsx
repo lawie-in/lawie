@@ -20,6 +20,10 @@ interface TemplateSummary {
   template_id: string;
   display_name: string;
   category: string;
+  /** T-240: library category id, display name and T-239 order (from the service). */
+  catalogueCategory: string;
+  catalogueCategoryName: string;
+  catalogueCategoryOrder: number;
   description: string;
   icon: string;
   plan_access: 'free' | 'pro';
@@ -35,30 +39,48 @@ const ICON_MAP: Record<string, React.ElementType> = {
   shield_check: ShieldCheck,
 };
 
-const CATEGORY_COLORS: Record<string, { color: string; border: string; badge: string }> = {
-  criminal: {
-    color: 'text-blue-500',
-    border: 'border-t-blue-400',
-    badge: 'bg-blue-50 text-blue-600',
-  },
-  civil: {
-    color: 'text-green-500',
-    border: 'border-t-green-400',
-    badge: 'bg-green-50 text-green-600',
-  },
-  corporate: {
+type CategoryColors = { color: string; border: string; badge: string };
+
+// Colours cycle by the category's T-239 order, so a new category needs no edit here.
+const CATEGORY_PALETTE: CategoryColors[] = [
+  { color: 'text-blue-500', border: 'border-t-blue-400', badge: 'bg-blue-50 text-blue-600' },
+  { color: 'text-green-500', border: 'border-t-green-400', badge: 'bg-green-50 text-green-600' },
+  {
     color: 'text-purple-500',
     border: 'border-t-purple-400',
     badge: 'bg-purple-50 text-purple-600',
   },
-  family: {
-    color: 'text-rose-500',
-    border: 'border-t-rose-400',
-    badge: 'bg-rose-50 text-rose-600',
-  },
-};
+  { color: 'text-rose-500', border: 'border-t-rose-400', badge: 'bg-rose-50 text-rose-600' },
+  { color: 'text-amber-500', border: 'border-t-amber-400', badge: 'bg-amber-50 text-amber-600' },
+  { color: 'text-teal-500', border: 'border-t-teal-400', badge: 'bg-teal-50 text-teal-600' },
+];
 
-const CATEGORY_ORDER = ['criminal', 'civil', 'corporate', 'family'];
+function categoryColors(order: number): CategoryColors {
+  return CATEGORY_PALETTE[(Math.max(order, 1) - 1) % CATEGORY_PALETTE.length];
+}
+
+interface CategoryGroup {
+  id: string;
+  name: string;
+  order: number;
+  items: TemplateSummary[];
+}
+
+/** Templates grouped by catalogue category, in T-239 order. */
+function groupByCatalogueCategory(templates: TemplateSummary[]): CategoryGroup[] {
+  const groups = new Map<string, CategoryGroup>();
+  for (const t of templates) {
+    const group = groups.get(t.catalogueCategory) ?? {
+      id: t.catalogueCategory,
+      name: t.catalogueCategoryName,
+      order: t.catalogueCategoryOrder,
+      items: [],
+    };
+    group.items.push(t);
+    groups.set(t.catalogueCategory, group);
+  }
+  return Array.from(groups.values()).sort((a, b) => a.order - b.order);
+}
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
@@ -73,16 +95,7 @@ export default function TemplatesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const grouped = CATEGORY_ORDER.reduce<Record<string, TemplateSummary[]>>((acc, cat) => {
-    const items = templates.filter((t) => t.category === cat);
-    if (items.length > 0) acc[cat] = items;
-    return acc;
-  }, {});
-
-  // Uncategorised fallback
-  const known = new Set(CATEGORY_ORDER);
-  const other = templates.filter((t) => !known.has(t.category));
-  if (other.length > 0) grouped['other'] = other;
+  const grouped = groupByCatalogueCategory(templates);
 
   return (
     <div>
@@ -118,17 +131,13 @@ export default function TemplatesPage() {
 
       {!loading && !error && (
         <div className="space-y-8">
-          {Object.entries(grouped).map(([category, items]) => {
-            const colors = CATEGORY_COLORS[category] ?? {
-              color: 'text-slate-500',
-              border: 'border-t-slate-400',
-              badge: 'bg-slate-100 text-slate-600',
-            };
+          {grouped.map(({ id, name, order, items }) => {
+            const colors = categoryColors(order);
 
             return (
-              <div key={category}>
+              <div key={id}>
                 <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  {category}
+                  {name}
                 </h2>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {items.map((t) => {
@@ -155,9 +164,9 @@ export default function TemplatesPage() {
                         </p>
                         <div className="mt-3 flex items-center justify-between">
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${colors.badge}`}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${colors.badge}`}
                           >
-                            {category}
+                            {name}
                           </span>
                           <span className="text-xs font-medium text-amber-600 opacity-0 transition-opacity group-hover:opacity-100">
                             Use template →

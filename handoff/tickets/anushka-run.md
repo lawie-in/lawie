@@ -579,3 +579,27 @@ What a user can now do:
 - Cite a range like "Ss. 100-105 BNS" without a murder warning when the facts don't mention a death. An explicit "BNS 103" still gets it.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-341 — warning when "first bail application" wasn't confirmed (08103ec, mahak, 12 Oct 2026)
+
+What a user can now do:
+- If a bail draft says no earlier bail application was made but they never confirmed that, see a warning asking them to check it before filing.
+- If they said an earlier bail application was made and the draft still says it is the first, see a warning to correct the draft.
+- Confirm "None" (or say it is the first application) and see no such warning.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-240 — templates grouped under plain-language categories (6a6cd2a, tanvi, 12 Oct 2026)
+
+What a user can now do:
+- Browse templates grouped under the 26 plain-language categories, in a fixed order, when starting a new document, changing the document type, or in the templates library.
+- Admins see and filter by each document's category.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-338 — blanks for half-read or unasked bail details (10faf08, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting on: when a bail detail was only half-read from their description or was never asked, see a clear blank for it in the draft to fill in, instead of the point being left out.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
