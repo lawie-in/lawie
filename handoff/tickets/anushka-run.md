@@ -274,3 +274,10 @@ Quality: nothing to test in the UI — build and CI only.
 Test: open an old draft and a new one. Both still show their details, checklist and annexures as before.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-266 (vishal, merged to develop_staging 633aa29, 12 Oct 2026)
+
+- When Lawie checks a draft for required facts, a word that only contains a cue word ("background" for "ground") no longer counts.
+- The FIR number must appear exactly, not inside a date, a longer number or a different FIR like "12-A", so a missing fact gets caught.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -8,7 +8,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 |---|---|---|---|---|---|
 | shashank | T-277 | fix/t-277-bns-offences-table | apps/drafting/src/config/bns-offences.json (replace byte for byte with Ajay's signed file: handoff/legal/T-277-bns-offences-corrected-signed.md, 29f4872, SHA-256 in that file); apps/drafting/src/services/timeline.service.ts (null max_years); apps/drafting/src/services/bail-check.service.ts (null bailable/cognizable, parent-row resolution); their tests; also (extended by Priya 12 Oct, option a: the table plus everything that reads it): apps/drafting/src/config/bns-bailability.json (the stale copy injected into drafting prompts as 'use EXACTLY as given': retire it and generate from bns-offences.json; Ajay signs the result), apps/drafting/src/services/template-engine.service.ts (classifySectionsBailability, BNS_VALID_SECTIONS), sections.service.ts (null compoundable and null max_years must not become 'no' or 'Magistrate'; sub-section lookup), preflight.service.ts and validator.ts ('103(1)' resolves to its parent, never blocked), the routes and tests for these; apps/drafting/src/config/bns-mapping.json (only the two unused title copies bns_offences "141" and "318", Ajay's item 6; added by Priya 12 Oct); posh_complaint.json:438, fir_quashing.json:327 and golden fixtures 15/16/18 only with Ajay's signed lines; and a grep of the packs and prompts for BNS bailability or offence titles outside the table (ask me before changing any other file; list moved tests and snapshots for Ajay); also (Priya, 12 Oct): apps/drafting/src/services/bns-offence-resolver.ts (new), apps/drafting/src/__tests__/t267-ipc-bns-table.test.ts, and minimal null guards only in apps/web timeline-tracker/page.tsx and bail-checker/page.tsx (show the API's Ajay text, no layout change; T-278 web part follows) | yes: bns-offences.json is Ajay's signed table; the bail-check and timeline diffs go to him before merge | go given by the founder, 12 Oct 2026 |
 | mahak | T-115e | fix/t-115e-no-matter-label | apps/drafting/src/services/intake.service.ts (stop writing Event.metadata.label; category only), a one-line unset script under apps/drafting/src/scripts/, their tests; grep for other places a matter label or description reaches events, logs or analytics and list them to Priya before changing anything outside this row. Ajay's ruling in the T-115e ticket | no | 12 Oct 2026 |
-| vishal | T-266 | fix/t-266-cue-word-start | apps/drafting/src/services/brief-drafter.ts (cue matching only: word-start match for Latin cues, whole-token FIR number), new t266-*.test.ts. Ajay's rule in the T-266 ticket; he signs the diff, moved snapshots go to him. Not touched: ai.service.ts, the packs | yes: brief-drafter.ts cue matching is Ajay's rule | 12 Oct 2026 |
+| vishal | T-287 | fix/t-287-flaky-tests | apps/drafting/src/__tests__/documents.generate.usage.test.ts and apps/drafting/src/__tests__/t226-ink-holds.heartbeat.test.ts (root-cause the two flaky tests; test files only unless the cause is in code, then ask Priya first). Small-fix mode. Never skip or loosen a test | no | 12 Oct 2026 |
 | kunal | T-284 | fix/t-284-privacy-waitlist-bullets | apps/web/src/app/(marketing)/privacy/page.tsx (Ajay's two signed waitlist bullets and the retention line, word for word from handoff/legal/emails-waitlist-panel-signed.md, 8b229b4). Small-fix mode; Ajay sees the diff | yes: privacy page text is Ajay's | 12 Oct 2026 |
 | tanvi | T-291 | fix/t-291-chip-tap-target | apps/web/src/components/form/DynamicFormRenderer.tsx (the section chip remove control only: 44 px tap area, accessible label). Small-fix mode. T-290 (same file) comes to you next | no | 12 Oct 2026 |
 
@@ -35,12 +35,12 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. vishal — T-266 (f100564). Slot given 12 Oct 2026; merge once Ajay signs f100564.
-2. mahak — T-115e (e51d478). Next after vishal.
-3. shashank — T-277 (ae942b1). After mahak; merge once Ajay signs ae942b1.
+1. mahak — T-115e (e51d478). Slot given 12 Oct 2026.
+2. shashank — T-277 (ae942b1). After mahak. Ajay signed ae942b1.
 
 ## Last done
 
+- vishal — T-266 merged to `develop_staging` (633aa29, 12 Oct 2026). Cue matching: word start, whole-token FIR number. Waiting for Anushka on develop.
 - mahak — T-115a merged to `develop_staging` (7c697a2, 12 Oct 2026). Saved case details encrypted; reads old or new. Production backfill is the founder's, after an offline key backup. Waiting for Anushka on develop.
 - vishal — T-269 merged to `develop_staging` (9ddda55, 12 Oct 2026). The drafting build now fails on a type error, and CI runs it. Nothing to test in the UI.
 - mahak — T-288 merged to `develop_staging` (66753fc, 12 Oct 2026). A failed re-hold no longer delivers an unpaid draft. Waiting for Anushka on develop.
