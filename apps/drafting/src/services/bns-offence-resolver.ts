@@ -12,8 +12,13 @@
  *   if none matches, the target is a definition sub-section and creates no offence.
  * - R3: a null attribute, or a variant string other than exactly "yes"/"no", is
  *   "Depends. Check the First Schedule." and never false.
+ *
+ * T-289 (Ajay, signed 12 Oct 2026): the court comes ONLY from
+ * `config/bns-triable-by.json` (BNSS First Schedule, column 6, as printed). It is
+ * never derived from the term.
  */
 import offencesData from '../config/bns-offences.json';
+import triableByData from '../config/bns-triable-by.json';
 
 // ── Ajay's texts (exact strings, T-277) ──────────────────────────────────────
 
@@ -82,11 +87,18 @@ export interface ResolvedOffence {
   /** Only an exact-key row carries max_years (R1). Null otherwise. */
   maxYears: number | null;
   /**
-   * Term for the COURT LEVEL only (Ajay, T-277 round 2): an exact row's or a
-   * parent row's (no variants) max_years. Never drives the default-bail period,
-   * bailable or cognizable. Null for variants and non-offences.
+   * Term for the BNSS 480 / 483 choice only (Ajay, T-277 rounds 2 and 7): an exact
+   * row's or a parent row's (no variants) max_years. Never drives the default-bail
+   * period, bailable, cognizable or the court (T-289). Null for variants and
+   * non-offences.
    */
   courtMaxYears: number | null;
+  /**
+   * T-289: the court by which the offence is triable, as printed in the First
+   * Schedule (`bns-triable-by.json`). Null = "Depends on the offence. Check the
+   * First Schedule." Null for non-offences.
+   */
+  triableBy: string | null;
   /** DEPENDS_FIRST_SCHEDULE when bailable is null, else null. */
   bailableNote: string | null;
   /** DEPENDS_FIRST_SCHEDULE when cognizable is null, else null. */
@@ -131,6 +143,56 @@ export function resolveBnsKey(raw: string): BnsKeyResolution | null {
   while (parent) {
     if (getOffenceRow(parent)) return { key: parent, exact: false };
     parent = parentSection(parent);
+  }
+  return null;
+}
+
+// ── Court by which triable (T-289, Ajay signed 12 Oct 2026) ───────────────────
+
+/** First Schedule column 6 values that rank a multi-section result (Ajay, T-289 rule 4). */
+export const COURT_OF_SESSION = 'Court of Session';
+export const MAGISTRATE_FIRST_CLASS = 'Magistrate of the first class';
+export const ANY_MAGISTRATE = 'Any Magistrate';
+
+export interface BnsTriableByRow {
+  /** As printed; null = Depends (parts differ, or no line in the Schedule). */
+  triable_by: string | null;
+  verify?: string;
+  /** Sub-section → court as printed; a null value is Depends. */
+  variants?: Record<string, string | null>;
+  /** Parts differ but are not keyed by sub-section: display only, never resolved. */
+  lines?: string[];
+}
+
+const TRIABLE_BY: Readonly<Record<string, BnsTriableByRow>> = (
+  triableByData as unknown as { offences: Record<string, BnsTriableByRow> }
+).offences;
+
+function getTriableByRow(key: string): BnsTriableByRow | undefined {
+  return Object.prototype.hasOwnProperty.call(TRIABLE_BY, key) ? TRIABLE_BY[key] : undefined;
+}
+
+/**
+ * Ajay (T-289 rule 3, resolving as T-277 rule 3): the exact key's value; else the
+ * nearest parent row's. A parent with `variants` gives the sub-section's value (the
+ * target or a stripped form of it); no matching sub-section, or a null value, is
+ * null. `lines` are never resolved: such a row's own value (null) applies.
+ * Resolved against bns-triable-by.json's own rows and variants, which differ from
+ * bns-offences.json's. Never derived from the term.
+ */
+export function resolveTriableBy(raw: string): string | null {
+  const section = normaliseBnsSection(raw);
+  if (!section) return null;
+  const exact = getTriableByRow(section);
+  if (exact) return exact.triable_by;
+  for (let parent = parentSection(section); parent; parent = parentSection(parent)) {
+    const row = getTriableByRow(parent);
+    if (!row) continue;
+    if (!row.variants) return row.triable_by;
+    for (let k: string | null = section; k && k !== parent; k = parentSection(k)) {
+      if (Object.prototype.hasOwnProperty.call(row.variants, k)) return row.variants[k];
+    }
+    return null;
   }
   return null;
 }
@@ -381,6 +443,7 @@ function notAnOffence(section: string): ResolvedOffence {
     compoundable: null,
     maxYears: null,
     courtMaxYears: null,
+    triableBy: null,
     // Only Ajay's NOT_AN_OFFENCE text applies; no "Depends" notes.
     bailableNote: null,
     cognizableNote: null,
@@ -409,6 +472,7 @@ function fromRow(
     // R1: a parent row's max_years never drives a period.
     maxYears: kind === 'exact' ? row.max_years : null,
     courtMaxYears: row.max_years,
+    triableBy: resolveTriableBy(section),
     ...notes(row.bailable, row.cognizable, compoundable),
     ...(row.verify ? { verify: row.verify } : {}),
   };
@@ -452,6 +516,7 @@ export function resolveOffence(raw: string): ResolvedOffence {
       compoundable,
       maxYears: null,
       courtMaxYears: null,
+      triableBy: resolveTriableBy(section),
       ...notes(bailable, cognizable, compoundable),
       ...(row.verify ? { verify: row.verify } : {}),
     };

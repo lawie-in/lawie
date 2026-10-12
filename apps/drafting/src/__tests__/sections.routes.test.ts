@@ -494,9 +494,11 @@ describe('Sections Routes', () => {
       expect(typeof res.body.punishment).toBe('string');
     });
 
-    it('infers triable_by from max_years (>7 → Sessions, else Magistrate)', async () => {
+    it('returns triable_by from the signed file (T-289), as printed', async () => {
       const res = await request(app).get('/sections/details?section=103&code=BNS');
-      expect(['Sessions', 'Magistrate']).toContain(res.body.triable_by);
+      expect(res.body.triable_by).toBe('Court of Session');
+      const res2 = await request(app).get('/sections/details?section=74&code=BNS');
+      expect(res2.body.triable_by).toBe('Any Magistrate');
     });
 
     it('returns a placeholder envelope for unknown sections (no 404)', async () => {

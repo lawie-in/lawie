@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (writes and signs the text). Lead (build). Anushka (verdict) |
 | Mode           | Rule first (Ajay), then build, full chain. Legal content |
-| Status         | To do. Ajay signed the text (handoff/legal/T-241-bail-instructions-signed.md, fedb7ad). AC3: tighten bail_regular earlier_applications now. Queued for vishal after T-237. Touches bail_regular.json: run in sequence with mahak's T-190/T-199 |
+| Status         | Building: vishal (12 Oct 2026). Ajay signed fedb7ad |
 | Gate           | Blocker for `feature.fact_ledger` with real users |
 | Depends on     | T-237 (same pack files) |
 
