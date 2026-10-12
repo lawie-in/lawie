@@ -6,10 +6,10 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 | Lead | Ticket | Branch | Files and folders claimed | Legal paths | Since |
 |---|---|---|---|---|---|
-| shashank | T-289 | fix/t-289-triable-by | new apps/drafting/src/config/bns-triable-by.json (Ajay's signed file, byte for byte from handoff/legal/T-289-bns-triable-by-signed.md, 497a393); bns-offences.json stays at the T-277 signed SHA (not touched); one .prettierignore line for the new file (root config, yours until you release); apps/drafting/src/services/bail-check.service.ts (court only from that file), bns-offence-resolver.ts if needed, their tests. Also (Priya, 12 Oct, after Explore): apps/drafting/src/services/sections.service.ts (inferTriableBy removed; triable_by becomes string|null from the signed file), apps/drafting/src/__tests__/sections.routes.test.ts, the t277 tests that assert courtLevel/courtMaxYears/triable_by, apps/web/src/components/sections/SectionFinderPanel.tsx (triable_by type only, no layout change), apps/web/src/app/tools/bail-checker/page.tsx (type only, if needed). Ajay signs the diff; moved goldens go to him | yes: bns-offences.json and bail-check are Ajay's | 12 Oct 2026 |
+| shashank | T-289 | fix/t-289-triable-by | new apps/drafting/src/config/bns-triable-by.json (Ajay's signed file, byte for byte from handoff/legal/T-289-bns-triable-by-signed.md, 497a393); bns-offences.json stays at the T-277 signed SHA (not touched); one .prettierignore line for the new file (root config, yours until you release); apps/drafting/src/services/bail-check.service.ts (court only from that file), bns-offence-resolver.ts if needed, their tests. Also (Priya, 12 Oct, after Explore): apps/drafting/src/services/sections.service.ts (inferTriableBy removed; triable_by becomes string|null from the signed file), apps/drafting/src/__tests__/sections.routes.test.ts, the t277 tests that assert courtLevel/courtMaxYears/triable_by, apps/web/src/components/sections/SectionFinderPanel.tsx (triable_by type, and a null value shows Ajay's text "Depends on the offence. Check the First Schedule." instead of "—"; no layout change), apps/web/src/app/tools/bail-checker/page.tsx (type only, if needed). Ajay signs the diff; moved goldens go to him Also (Priya, 12 Oct): apps/drafting/src/__tests__/bail-check.test.ts and apps/drafting/src/__tests__/t267-ipc-bns-table.test.ts (court assertions only), and the triable_by doc comment in apps/drafting/src/routes/sections.routes.ts (comment only). | yes: bns-offences.json and bail-check are Ajay's | 12 Oct 2026 |
 | mahak | T-292 | fix/t-292-intake-no-label | apps/drafting/src/services/intake.prompts.ts (remove the label ask only), the matching parse in intake.service.ts, their tests. Ajay signs the diff; moved goldens go to him | yes: intake.prompts.ts is Ajay's | 12 Oct 2026 |
 | vishal | T-287 | fix/t-287-flaky-tests | apps/drafting/src/__tests__/documents.generate.usage.test.ts and apps/drafting/src/__tests__/t226-ink-holds.heartbeat.test.ts (root-cause the two flaky tests; test files only unless the cause is in code, then ask Priya first). Small-fix mode. Never skip or loosen a test | no | 12 Oct 2026 |
-| kunal | T-284 | fix/t-284-privacy-waitlist-bullets | apps/web/src/app/(marketing)/privacy/page.tsx (Ajay's two signed waitlist bullets and the retention line, word for word from handoff/legal/emails-waitlist-panel-signed.md, 8b229b4). Small-fix mode; Ajay sees the diff | yes: privacy page text is Ajay's | 12 Oct 2026 |
+| kunal | T-234 | feature/t-234-password-sign-up | apps/web/src/app/(auth)/login/page.tsx and components it alone uses (Rajesh's design in the T-234 ticket; Ajay's consent line; Madhuri's copy). apps/auth only if AC4 (bonus/referral parity) needs a change: list it to Priya first. Full chain (auth). "Forgot password?" link stays hidden until T-221 merges | no | 12 Oct 2026 |
 | tanvi | T-291 | fix/t-291-chip-tap-target | apps/web/src/components/form/DynamicFormRenderer.tsx (the section chip remove control and the file-list remove "x" near L627: 44 px tap area, accessible label). Small-fix mode. T-290 (same file) comes to you next | no | 12 Oct 2026 |
 
 ## Next per lead (Priya, 11 Oct 2026). Not claims: each is assigned only when its row is free and its gate is met
@@ -35,12 +35,13 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. kunal — T-284 (b894314). Slot given 12 Oct 2026. Ajay approved.
-2. tanvi — T-291 (e1f0a43). After kunal.
-3. mahak — T-292 (0ab2f19). After tanvi. Ajay signed 0ab2f19.
+1. tanvi — T-291 (e1f0a43). Slot given 12 Oct 2026.
+2. mahak — T-292 (0ab2f19). After tanvi. Ajay signed 0ab2f19.
+3. shashank — T-289 (dc642da). After mahak; merge once Ajay signs dc642da.
 
 ## Last done
 
+- kunal — T-284 merged to `develop_staging` (f1819ef, 12 Oct 2026). Privacy page waitlist bullets (Ajay's text). Waiting for Anushka on develop.
 - shashank — T-277 merged to `develop_staging` (0e4832a, 12 Oct 2026). Ajay's corrected BNS offence table everywhere it is read. Unblocks T-278, T-280, T-289, T-290, T-293, T-294, T-295, T-241. Waiting for Anushka on develop.
 - mahak — T-115e merged to `develop_staging` (2355979, 12 Oct 2026). Events keep a fixed category only, no matter label. Waiting for Anushka on develop.
 - vishal — T-266 merged to `develop_staging` (633aa29, 12 Oct 2026). Cue matching: word start, whole-token FIR number. Waiting for Anushka on develop.

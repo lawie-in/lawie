@@ -301,3 +301,9 @@ Quality: nothing to test in the UI — a privacy change in stored records.
 Note: the section tables on develop are live only after Arjun reseeds develop.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-284 (kunal, merged to develop_staging f1819ef, 12 Oct 2026)
+
+- The Privacy Policy now says what Lawie keeps if you join the waitlist (name, email, and phone, city, practice area and the link you came from if given), kept until you ask for deletion and never more than 18 months after you joined or Lawie last wrote to you.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
