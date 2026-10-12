@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 import { z } from 'zod';
 
 import { authenticate } from '../middleware/authenticate';
-import { chargedCost, enforceCredits } from '../middleware/enforceCredits';
+import { chargedCost, enforceCredits, insufficientInkBody } from '../middleware/enforceCredits';
 import { FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
 import { spendCapCheck } from '../middleware/spendCap';
 import { Court } from '../models/Court.model';
@@ -29,7 +29,7 @@ import {
   STARTING_DRAFT_FOOTER,
   STARTING_DRAFT_LABEL,
 } from '../services/brief-drafter';
-import { spendInk } from '../services/credits.service';
+import { getCreditBalance, holdInk, releaseInk, settleInk } from '../services/credits.service';
 import {
   factDiffRunType,
   FactDiffRunType,
@@ -230,6 +230,123 @@ export async function resolveRun(
     runSequence: (latest.runSequence ?? 1) + 1,
     runType: effectiveRunType(latest),
   };
+}
+
+/** What a generate handler gets from withInkHold to close its hold. */
+export interface InkHoldHandle {
+  /**
+   * Return the Ink: every failed ending. Call before the response is ended,
+   * so the balance is back by the time the client sees the error.
+   */
+  release(): Promise<void>;
+  /**
+   * Close the hold after a successful run, by the charge rule (Arjun): Ink is
+   * kept only when the draft reached the user. Settle if the document was
+   * saved OR the client is still connected; release if neither, and release
+   * a duplicate attempt (never charge twice). A settle DB error is logged at
+   * error level and the hold is left for the sweep (the Ink is already off
+   * the balance, so nothing is free).
+   */
+  finish(outcome: { saved: boolean; duplicate: boolean; reference?: string }): Promise<void>;
+  /** Write the SSE `done` event and end the response. */
+  sendDone(data: Record<string, unknown>): void;
+}
+
+/**
+ * T-226: hold the draft's cost before any model call, and make sure the hold
+ * is closed however the run ends. The one wrapper for all three generate
+ * paths (template, brief, legacy) so they cannot drift apart.
+ *
+ * Called right after resolveRun, before the pipeline: no header has been
+ * sent, so a refusal can still be plain JSON.
+ *   - not enough Ink → 402 with the same body as enforceCredits;
+ *   - a hold for this (runId, runSequence) already exists → 409.
+ * Neither calls the model.
+ *
+ * Disconnects: the pipeline takes no AbortSignal (ai.service.ts, which this
+ * ticket does not touch), so a client that goes away does NOT abort the model
+ * call. `res.on('close')` only records that the client left before `done`;
+ * finish() then decides settle or release when the run ends.
+ *
+ * Safety net: if `run` returns or throws without closing the hold, it is
+ * released here.
+ */
+export async function withInkHold(
+  req: Request,
+  res: Response,
+  key: { runId: string; runSequence: number },
+  cost: number,
+  run: (ink: InkHoldHandle) => Promise<void>,
+): Promise<void> {
+  const userId = req.jwtPayload!.sub;
+  const { runId, runSequence } = key;
+
+  const held = await holdInk({ userId, costCredits: cost, runId, runSequence });
+  if (!held.ok) {
+    if (held.reason === 'duplicate') {
+      res.status(409).json({ error: 'Draft already in progress', runId });
+      return;
+    }
+    res.status(402).json(insufficientInkBody(cost, await getCreditBalance(userId)));
+    return;
+  }
+
+  let closed = false;
+  let doneWritten = false;
+  let clientGone = false;
+  res.on('close', () => {
+    if (!doneWritten && !res.writableFinished) clientGone = true;
+  });
+
+  const release = async (): Promise<void> => {
+    if (closed) return;
+    closed = true;
+    try {
+      await releaseInk(userId, runId, runSequence);
+    } catch (err) {
+      // The hold stays; the sweep releases it (no completed Generation).
+      console.error(
+        `[drafting] releaseInk failed (runId=${runId}, runSequence=${runSequence}); left for the sweep:`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+  };
+
+  const handle: InkHoldHandle = {
+    release,
+    async finish({ saved, duplicate, reference }) {
+      if (duplicate || (!saved && clientGone)) {
+        await release();
+        return;
+      }
+      if (closed) return;
+      closed = true;
+      try {
+        const settled = await settleInk(userId, runId, runSequence, undefined, reference);
+        if (!settled.settled && settled.reason === 'no_hold') {
+          console.error(
+            `[drafting] settleInk found no hold (runId=${runId}, runSequence=${runSequence})`,
+          );
+        }
+      } catch (err) {
+        console.error(
+          `[drafting] settleInk failed (runId=${runId}, runSequence=${runSequence}); left for the sweep:`,
+          err instanceof Error ? err.message : err,
+        );
+      }
+    },
+    sendDone(data) {
+      doneWritten = true;
+      res.write(`event: done\ndata: ${JSON.stringify(data)}\n\n`);
+      res.end();
+    },
+  };
+
+  try {
+    await run(handle);
+  } finally {
+    await release();
+  }
 }
 
 const generateSchema = z.object({
@@ -451,173 +568,167 @@ router.post(
     res.setHeader('X-Run-Sequence', String(runSequence));
     const startedAt = Date.now();
 
-    // Stream the AI response via config-driven pipeline
-    let result;
-    try {
-      result = await streamGenerateFromTemplate(
-        {
-          templateConfig,
-          formData: form_data,
-          advocateName: payload.name || undefined,
-          enrollmentNumber: undefined,
-          userId: payload.sub,
-          runId,
-          runSequence,
-          runType,
-        },
-        res,
-      );
-    } catch (genErr) {
-      // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
-      // already emitted and the response is closed. Still record what the
-      // attempt actually used (T-003) — a failed generation isn't free. No
-      // Ink is spent on a failed attempt.
-      if (genErr instanceof GenerationFailedError) {
+    // T-226: hold the cost before any model call (402/409 refusals as JSON;
+    // no header has been sent yet). Every ending below closes the hold.
+    await withInkHold(req, res, { runId, runSequence }, chargedCost(req), async (ink) => {
+      // Stream the AI response via config-driven pipeline
+      let result;
+      try {
+        result = await streamGenerateFromTemplate(
+          {
+            templateConfig,
+            formData: form_data,
+            advocateName: payload.name || undefined,
+            enrollmentNumber: undefined,
+            userId: payload.sub,
+            runId,
+            runSequence,
+            runType,
+          },
+          res,
+        );
+      } catch (genErr) {
+        // T-226: a failed run returns its hold, before the response ends.
+        await ink.release();
+        // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
+        // already emitted and the response is closed. Still record what the
+        // attempt actually used (T-003) — a failed generation isn't free. No
+        // Ink is spent on a failed attempt.
+        if (genErr instanceof GenerationFailedError) {
+          await recordGeneration({
+            userId: payload.sub,
+            docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
+            status: 'failed',
+            templateId: template_id,
+            intakeId: intake_id,
+            aiModel: genErr.aiModel,
+            transport: genErr.transport,
+            usage: genErr.usage,
+            paragraphCount: 0,
+            durationMs: Date.now() - startedAt,
+            runId,
+            runSequence,
+            runType,
+          });
+          // Ended only now — after the row exists — so a fast retry's
+          // resolveRun query can never race the write that makes it findable.
+          res.end();
+          return;
+        }
+
+        // Anything else (template-config bug, prompt build error, etc.) — no
+        // usage data from the pipeline for this kind of failure, but a runId
+        // already exists and was already handed to the client, so it still
+        // gets a failed row (T-003 §3.8: "every way the request can fail
+        // returns it and saves a failed row").
+        const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
+        console.error(
+          `[drafting] generate-from-template threw (runId=${runId}, runType=${runType}):`,
+          msg,
+        );
         await recordGeneration({
           userId: payload.sub,
           docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
           status: 'failed',
           templateId: template_id,
           intakeId: intake_id,
-          aiModel: genErr.aiModel,
-          transport: genErr.transport,
-          usage: genErr.usage,
+          usage: { inputTokens: 0, outputTokens: 0, llmCalls: 0, usageSource: 'provider' },
           paragraphCount: 0,
           durationMs: Date.now() - startedAt,
           runId,
           runSequence,
           runType,
         });
-        // Ended only now — after the row exists — so a fast retry's
-        // resolveRun query can never race the write that makes it findable.
-        res.end();
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Generation failed', message: msg });
+        } else {
+          res.write(
+            `event: error\ndata: ${JSON.stringify({
+              reason:
+                'The drafting service hit an unexpected error. Please try again — your inputs are saved.',
+              retryable: true,
+              code: 'unknown',
+              runId,
+            })}\n\n`,
+          );
+          res.end();
+        }
         return;
       }
 
-      // Anything else (template-config bug, prompt build error, etc.) — no
-      // usage data from the pipeline for this kind of failure, but a runId
-      // already exists and was already handed to the client, so it still
-      // gets a failed row (T-003 §3.8: "every way the request can fail
-      // returns it and saves a failed row").
-      const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
-      console.error(
-        `[drafting] generate-from-template threw (runId=${runId}, runType=${runType}):`,
-        msg,
-      );
-      await recordGeneration({
-        userId: payload.sub,
-        docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
-        status: 'failed',
-        templateId: template_id,
-        intakeId: intake_id,
-        usage: { inputTokens: 0, outputTokens: 0, llmCalls: 0, usageSource: 'provider' },
-        paragraphCount: 0,
-        durationMs: Date.now() - startedAt,
-        runId,
-        runSequence,
-        runType,
-      });
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Generation failed', message: msg });
-      } else {
-        res.write(
-          `event: error\ndata: ${JSON.stringify({
-            reason:
-              'The drafting service hit an unexpected error. Please try again — your inputs are saved.',
-            retryable: true,
-            code: 'unknown',
-            runId,
-          })}\n\n`,
-        );
-        res.end();
-      }
-      return;
-    }
+      // Save to DB — must not block the done event if DB is unavailable
+      let docId: string | null = null;
+      let duplicateAttempt = false;
+      try {
+        const encryptedContent = encrypt(result.fullText);
+        const title =
+          `${templateConfig.display_name} — ${String(form_data.court_name || form_data.state || '')}`.slice(
+            0,
+            300,
+          );
+        // Sequential, not Promise.all — Generation.documentId needs the Document's _id.
+        const doc = await LawieDocument.create({
+          userId: payload.sub,
+          title,
+          docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
+          courtType: String(form_data.court_type || '') || undefined,
+          courtName: String(form_data.court_name || ''),
+          formInputs: { template_id, ...form_data },
+          generatedContent: encryptedContent,
+          sectionsCited: result.sectionsCited,
+          filingChecklist: result.filingChecklist,
+          checklistState: result.filingChecklist.map(() => false),
+          status: 'draft',
+          runId,
+          runSequence,
+        });
+        docId = String(doc._id);
 
-    // Save to DB — must not block the done event if DB is unavailable
-    let docId: string | null = null;
-    let duplicateAttempt = false;
-    try {
-      const encryptedContent = encrypt(result.fullText);
-      const title =
-        `${templateConfig.display_name} — ${String(form_data.court_name || form_data.state || '')}`.slice(
-          0,
-          300,
-        );
-      // Sequential, not Promise.all — Generation.documentId needs the Document's _id.
-      const doc = await LawieDocument.create({
-        userId: payload.sub,
-        title,
-        docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
-        courtType: String(form_data.court_type || '') || undefined,
-        courtName: String(form_data.court_name || ''),
-        formInputs: { template_id, ...form_data },
-        generatedContent: encryptedContent,
-        sectionsCited: result.sectionsCited,
-        filingChecklist: result.filingChecklist,
-        checklistState: result.filingChecklist.map(() => false),
-        status: 'draft',
-        runId,
-        runSequence,
-      });
-      docId = String(doc._id);
+        const { duplicate } = await recordGeneration({
+          userId: payload.sub,
+          docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
+          status: 'completed',
+          templateId: template_id,
+          intakeId: intake_id,
+          documentId: doc._id,
+          aiModel: result.aiModel,
+          transport: result.transport,
+          usage: result.usage,
+          paragraphCount: result.bodyParaCount,
+          durationMs: Date.now() - startedAt,
+          runId,
+          runSequence,
+          runType,
+        });
+        duplicateAttempt = duplicate;
 
-      const { duplicate } = await recordGeneration({
-        userId: payload.sub,
-        docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
-        status: 'completed',
-        templateId: template_id,
-        intakeId: intake_id,
-        documentId: doc._id,
-        aiModel: result.aiModel,
-        transport: result.transport,
-        usage: result.usage,
-        paragraphCount: result.bodyParaCount,
-        durationMs: Date.now() - startedAt,
-        runId,
-        runSequence,
-        runType,
-      });
-      duplicateAttempt = duplicate;
-
-      if (process.env.NODE_ENV !== 'test') {
-        console.info(
-          `[drafting] Generated template doc ${docId} for user ${payload.sub} (${template_id}, runId=${runId}, runSequence=${runSequence}, runType=${runType})`,
+        if (process.env.NODE_ENV !== 'test') {
+          console.info(
+            `[drafting] Generated template doc ${docId} for user ${payload.sub} (${template_id}, runId=${runId}, runSequence=${runSequence}, runType=${runType})`,
+          );
+        }
+      } catch (dbErr) {
+        console.error(
+          `[drafting] DB save failed for template ${template_id} (runId=${runId}, runType=${runType}):`,
+          dbErr instanceof Error ? dbErr.message : dbErr,
         );
       }
-    } catch (dbErr) {
-      console.error(
-        `[drafting] DB save failed for template ${template_id} (runId=${runId}, runType=${runType}):`,
-        dbErr instanceof Error ? dbErr.message : dbErr,
-      );
-    }
 
-    // Deduct ink AFTER successful generation. Failed streams don't take ink
-    // (the SSE error event already fired before reaching this point). A
-    // duplicate Generation means a concurrent request (e.g. a double-sent
-    // retry) already recorded and paid for this exact attempt — spending
-    // again here would charge Ink twice for one logical draft.
-    const cost = chargedCost(req); // T-227: no default price
-    if (!duplicateAttempt) {
-      const inkResult = await spendInk({
-        userId: payload.sub,
-        costCredits: cost,
-        reason: 'generate',
+      // T-226: close the hold by the charge rule — settled when the draft
+      // reached the user (saved, or the client is still here), else released.
+      // A duplicate Generation (recordGeneration still says so) releases this
+      // request's hold: one charge for one logical draft.
+      await ink.finish({
+        saved: docId !== null,
+        duplicate: duplicateAttempt,
         reference: docId
           ? `${templateConfig.display_name} (${docId})`
           : templateConfig.display_name,
-        runId,
-        runSequence,
       });
-      if (!inkResult.success) {
-        console.error('[drafting] spendInk failed after generation:', inkResult.reason);
-      }
-    }
-    const creditsSpent: Array<{ bucket: string; amount: number }> = [];
+      const creditsSpent: Array<{ bucket: string; amount: number }> = [];
 
-    // Send done event — always fires, even if DB save failed
-    res.write(
-      `event: done\ndata: ${JSON.stringify({
+      // Send done event — always fires, even if DB save failed
+      ink.sendDone({
         complete: true,
         docId,
         runId,
@@ -626,9 +737,8 @@ router.post(
         creditsSpent,
         // T-197: the signed disclaimer goes with every finished draft.
         disclaimer: FACT_CHECK_DISCLAIMER,
-      })}\n\n`,
-    );
-    res.end();
+      });
+    });
   },
 );
 
@@ -860,231 +970,228 @@ router.post(
     res.setHeader('X-Run-Sequence', String(runSequence));
     const startedAt = Date.now();
 
-    let result;
-    try {
-      const common = {
-        brief,
-        language,
-        targetParagraphs: clampTarget(parsed.data.paragraphs),
-        courtData,
-        userId: payload.sub,
-        runId,
-        runSequence,
-        runType,
-      };
-      result =
-        pack && templateConfig
-          ? await streamGenerateFromBrief(
-              {
-                ...common,
-                pack,
-                templateConfig,
-                ...(described ? { described } : {}),
-                ...(ledger
-                  ? {
-                      ledger: {
-                        facts: ledger.facts,
-                        lists: ledger.lists,
-                        unresolved: ledger.unresolved,
-                      },
-                    }
-                  : {}),
-                advocateName: payload.name || undefined,
-                enrollmentNumber: undefined,
-              },
-              res,
-            )
-          : await streamGenerateGuided(common, res);
-    } catch (genErr) {
-      // A failed run is recorded with what it used and charges nothing (T-003).
-      const failed = genErr instanceof GenerationFailedError ? genErr : null;
-      if (!failed) {
-        console.error(
-          `[drafting] generate-from-brief threw (runId=${runId}, runType=${runType}):`,
-          genErr instanceof Error ? genErr.name : 'unknown',
-        );
-      }
-      await recordGeneration({
-        userId: payload.sub,
-        docType,
-        status: 'failed',
-        templateId: recordId,
-        intakeId: intake_id,
-        aiModel: failed?.aiModel,
-        transport: failed?.transport,
-        usage: failed?.usage ?? {
-          inputTokens: 0,
-          outputTokens: 0,
-          llmCalls: 0,
-          usageSource: 'provider',
-        },
-        paragraphCount: 0,
-        durationMs: Date.now() - startedAt,
-        runId,
-        runSequence,
-        runType,
-      });
-      if (failed) {
-        // The error event was already sent. End only now, after the row exists.
-        res.end();
-      } else if (!res.headersSent) {
-        res.status(500).json({ error: 'Generation failed' });
-      } else {
-        res.write(
-          `event: error\ndata: ${JSON.stringify({
-            reason:
-              'The drafting service hit an unexpected error. Please try again — your brief is kept.',
-            retryable: true,
-            code: 'unknown',
-            runId,
-          })}\n\n`,
-        );
-        res.end();
-      }
-      return;
-    }
-
-    // Save. A database failure must not stop the done event.
-    let docId: string | null = null;
-    let duplicateAttempt = false;
-    try {
-      const courtType = brief.court.court_type ?? '';
-      const doc = await LawieDocument.create({
-        userId: payload.sub,
-        title: `${brief.kind.name} — ${courtData?.designation ?? ''}`
-          .replace(/ — $/, '')
-          .slice(0, 300),
-        docType,
-        courtType: (Object.values(COURT_TYPES) as string[]).includes(courtType)
-          ? courtType
-          : undefined,
-        courtName: brief.court.court ?? '',
-        // No case details here: this field is not encrypted. The brief is, below.
-        formInputs: { template_id: recordId, source: 'brief' },
-        generatedContent: encrypt(result.fullText),
-        sectionsCited: result.sectionsCited,
-        filingChecklist: result.filingChecklist,
-        checklistState: result.filingChecklist.map(() => false),
-        status: 'draft',
-        runId,
-        runSequence,
-        rulePackId: pack?.id,
-        startingDraft: result.startingDraft,
-        brief: encrypt(
-          JSON.stringify({
-            kind,
-            ...(guided
-              ? { kind_name: brief.kind.name, court_document: brief.kind.court_document }
-              : {}),
-            language,
-            court: brief.court,
-            values,
-            // T-136: the description is kept here and nowhere else: with the
-            // brief it belongs to, under the same encryption, for as long.
-            ...(described ? { described } : {}),
-            // T-147c: which ledger version the draft was written from. Ids only.
-            ...(ledger ? { ledger_id: ledger.id, ledger_version: ledger.version } : {}),
-          }),
-        ),
-      });
-      docId = String(doc._id);
-
-      const { duplicate } = await recordGeneration({
-        userId: payload.sub,
-        docType,
-        status: 'completed',
-        templateId: recordId,
-        intakeId: intake_id,
-        documentId: doc._id,
-        aiModel: result.aiModel,
-        transport: result.transport,
-        usage: result.usage,
-        paragraphCount: result.bodyParaCount,
-        durationMs: Date.now() - startedAt,
-        runId,
-        runSequence,
-        runType,
-      });
-      duplicateAttempt = duplicate;
-
-      if (process.env.NODE_ENV !== 'test') {
-        console.info(
-          `[drafting] Drafted from a brief: doc ${docId} for user ${payload.sub} (${kind}, runId=${runId}, runSequence=${runSequence}, repaired=${result.repaired}, missingClauses=${result.missingClauses.length}, findings=${result.warnings.length}, startingDraft=${result.startingDraft})`,
-        );
-      }
-    } catch (dbErr) {
-      console.error(
-        `[drafting] DB save failed for a draft from a brief (${kind}, runId=${runId}):`,
-        dbErr instanceof Error ? dbErr.name : 'unknown',
-      );
-    }
-
-    // T-147d: the fact-diff log and the placeholder rate, for a ledger draft.
-    // Its own try: a failure here never stops the draft. Ids only in the log line.
-    if (ledger && pack && result.factCheck && !duplicateAttempt) {
+    // T-226: hold the cost before any model call (402/409 refusals as JSON;
+    // no header has been sent yet). Every ending below closes the hold.
+    await withInkHold(req, res, { runId, runSequence }, chargedCost(req), async (ink) => {
+      let result;
       try {
-        await writeFactCheckLog({
-          outcome: result.factCheck,
+        const common = {
+          brief,
+          language,
+          targetParagraphs: clampTarget(parsed.data.paragraphs),
+          courtData,
+          userId: payload.sub,
           runId,
-          documentId: docId,
+          runSequence,
+          runType,
+        };
+        result =
+          pack && templateConfig
+            ? await streamGenerateFromBrief(
+                {
+                  ...common,
+                  pack,
+                  templateConfig,
+                  ...(described ? { described } : {}),
+                  ...(ledger
+                    ? {
+                        ledger: {
+                          facts: ledger.facts,
+                          lists: ledger.lists,
+                          unresolved: ledger.unresolved,
+                        },
+                      }
+                    : {}),
+                  advocateName: payload.name || undefined,
+                  enrollmentNumber: undefined,
+                },
+                res,
+              )
+            : await streamGenerateGuided(common, res);
+      } catch (genErr) {
+        // T-226: a failed run returns its hold, before the response ends.
+        await ink.release();
+        // A failed run is recorded with what it used and charges nothing (T-003).
+        const failed = genErr instanceof GenerationFailedError ? genErr : null;
+        if (!failed) {
+          console.error(
+            `[drafting] generate-from-brief threw (runId=${runId}, runType=${runType}):`,
+            genErr instanceof Error ? genErr.name : 'unknown',
+          );
+        }
+        await recordGeneration({
           userId: payload.sub,
-          ledgerId: ledger.id,
-          rulePack: pack.id,
-          rulePackVersion: rulePackVersionOf(pack),
-          runType: ledger.runType,
-          requiredFactCount: buildChecklist(pack).filter((i) => i.required).length,
-          deliveredText: result.fullText,
-        });
-      } catch (logErr) {
-        console.error(
-          `[drafting] fact-diff log write failed (kind=${kind}, runId=${runId}):`,
-          logErr instanceof Error ? logErr.name : 'unknown',
-        );
-      }
-    }
-
-    // A demand signal for every draft with no rule pack: which documents to
-    // write rules for next. It carries no user text, not even the name.
-    if (guided && !duplicateAttempt) {
-      try {
-        await Event.create({
-          userId: payload.sub,
-          type: 'demand.guided_draft',
-          ...(docId ? { docId } : {}),
-          metadata: {
-            intakeId: intake_id ?? null,
-            runId,
-            isCourtDocument: brief.kind.court_document,
+          docType,
+          status: 'failed',
+          templateId: recordId,
+          intakeId: intake_id,
+          aiModel: failed?.aiModel,
+          transport: failed?.transport,
+          usage: failed?.usage ?? {
+            inputTokens: 0,
+            outputTokens: 0,
+            llmCalls: 0,
+            usageSource: 'provider',
           },
+          paragraphCount: 0,
+          durationMs: Date.now() - startedAt,
+          runId,
+          runSequence,
+          runType,
         });
-      } catch (eventErr) {
+        if (failed) {
+          // The error event was already sent. End only now, after the row exists.
+          res.end();
+        } else if (!res.headersSent) {
+          res.status(500).json({ error: 'Generation failed' });
+        } else {
+          res.write(
+            `event: error\ndata: ${JSON.stringify({
+              reason:
+                'The drafting service hit an unexpected error. Please try again — your brief is kept.',
+              retryable: true,
+              code: 'unknown',
+              runId,
+            })}\n\n`,
+          );
+          res.end();
+        }
+        return;
+      }
+
+      // Save. A database failure must not stop the done event.
+      let docId: string | null = null;
+      let duplicateAttempt = false;
+      try {
+        const courtType = brief.court.court_type ?? '';
+        const doc = await LawieDocument.create({
+          userId: payload.sub,
+          title: `${brief.kind.name} — ${courtData?.designation ?? ''}`
+            .replace(/ — $/, '')
+            .slice(0, 300),
+          docType,
+          courtType: (Object.values(COURT_TYPES) as string[]).includes(courtType)
+            ? courtType
+            : undefined,
+          courtName: brief.court.court ?? '',
+          // No case details here: this field is not encrypted. The brief is, below.
+          formInputs: { template_id: recordId, source: 'brief' },
+          generatedContent: encrypt(result.fullText),
+          sectionsCited: result.sectionsCited,
+          filingChecklist: result.filingChecklist,
+          checklistState: result.filingChecklist.map(() => false),
+          status: 'draft',
+          runId,
+          runSequence,
+          rulePackId: pack?.id,
+          startingDraft: result.startingDraft,
+          brief: encrypt(
+            JSON.stringify({
+              kind,
+              ...(guided
+                ? { kind_name: brief.kind.name, court_document: brief.kind.court_document }
+                : {}),
+              language,
+              court: brief.court,
+              values,
+              // T-136: the description is kept here and nowhere else: with the
+              // brief it belongs to, under the same encryption, for as long.
+              ...(described ? { described } : {}),
+              // T-147c: which ledger version the draft was written from. Ids only.
+              ...(ledger ? { ledger_id: ledger.id, ledger_version: ledger.version } : {}),
+            }),
+          ),
+        });
+        docId = String(doc._id);
+
+        const { duplicate } = await recordGeneration({
+          userId: payload.sub,
+          docType,
+          status: 'completed',
+          templateId: recordId,
+          intakeId: intake_id,
+          documentId: doc._id,
+          aiModel: result.aiModel,
+          transport: result.transport,
+          usage: result.usage,
+          paragraphCount: result.bodyParaCount,
+          durationMs: Date.now() - startedAt,
+          runId,
+          runSequence,
+          runType,
+        });
+        duplicateAttempt = duplicate;
+
+        if (process.env.NODE_ENV !== 'test') {
+          console.info(
+            `[drafting] Drafted from a brief: doc ${docId} for user ${payload.sub} (${kind}, runId=${runId}, runSequence=${runSequence}, repaired=${result.repaired}, missingClauses=${result.missingClauses.length}, findings=${result.warnings.length}, startingDraft=${result.startingDraft})`,
+          );
+        }
+      } catch (dbErr) {
         console.error(
-          `[drafting] failed to record demand.guided_draft (runId=${runId}):`,
-          eventErr instanceof Error ? eventErr.name : 'unknown',
+          `[drafting] DB save failed for a draft from a brief (${kind}, runId=${runId}):`,
+          dbErr instanceof Error ? dbErr.name : 'unknown',
         );
       }
-    }
 
-    // Charged once, after a successful draft. The repair pass is not charged:
-    // the charge is the document's fixed cost, whatever the run used.
-    const cost = chargedCost(req); // T-227: no default price
-    if (!duplicateAttempt) {
-      const inkResult = await spendInk({
-        userId: payload.sub,
-        costCredits: cost,
-        reason: 'generate',
+      // T-147d: the fact-diff log and the placeholder rate, for a ledger draft.
+      // Its own try: a failure here never stops the draft. Ids only in the log line.
+      if (ledger && pack && result.factCheck && !duplicateAttempt) {
+        try {
+          await writeFactCheckLog({
+            outcome: result.factCheck,
+            runId,
+            documentId: docId,
+            userId: payload.sub,
+            ledgerId: ledger.id,
+            rulePack: pack.id,
+            rulePackVersion: rulePackVersionOf(pack),
+            runType: ledger.runType,
+            requiredFactCount: buildChecklist(pack).filter((i) => i.required).length,
+            deliveredText: result.fullText,
+          });
+        } catch (logErr) {
+          console.error(
+            `[drafting] fact-diff log write failed (kind=${kind}, runId=${runId}):`,
+            logErr instanceof Error ? logErr.name : 'unknown',
+          );
+        }
+      }
+
+      // A demand signal for every draft with no rule pack: which documents to
+      // write rules for next. It carries no user text, not even the name.
+      if (guided && !duplicateAttempt) {
+        try {
+          await Event.create({
+            userId: payload.sub,
+            type: 'demand.guided_draft',
+            ...(docId ? { docId } : {}),
+            metadata: {
+              intakeId: intake_id ?? null,
+              runId,
+              isCourtDocument: brief.kind.court_document,
+            },
+          });
+        } catch (eventErr) {
+          console.error(
+            `[drafting] failed to record demand.guided_draft (runId=${runId}):`,
+            eventErr instanceof Error ? eventErr.name : 'unknown',
+          );
+        }
+      }
+
+      // Charged once, after a successful draft. The repair pass is not charged:
+      // the charge is the document's fixed cost (held up front), whatever the
+      // run used. T-226: settled when the draft reached the user, else released;
+      // a duplicate attempt releases this request's hold.
+      await ink.finish({
+        saved: docId !== null,
+        duplicate: duplicateAttempt,
         // No user text in the ledger: a draft with no rule pack has a name the user may have typed.
         reference: `${pack ? pack.name : 'Starting draft'}${docId ? ` (${docId})` : ''}`,
-        runId,
-        runSequence,
       });
-      if (!inkResult.success) {
-        console.error('[drafting] spendInk failed after generation:', inkResult.reason);
-      }
-    }
 
-    res.write(
-      `event: done\ndata: ${JSON.stringify({
+      ink.sendDone({
         complete: true,
         docId,
         runId,
@@ -1104,9 +1211,8 @@ router.post(
         ...('factCheck' in result && result.factCheck
           ? { factCheck: { banner: result.factCheck.banner } }
           : {}),
-      })}\n\n`,
-    );
-    res.end();
+      });
+    });
   },
 );
 
@@ -1153,147 +1259,143 @@ router.post(
     res.setHeader('X-Run-Sequence', String(runSequence));
     const startedAt = Date.now();
 
-    // Stream the AI response via three-layer pipeline
-    let result;
-    try {
-      result = await streamGenerateDocument(
-        { ...input, userId: payload.sub, runId, runSequence, runType },
-        res,
-      );
-    } catch (genErr) {
-      // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
-      // already emitted and the response is closed. Still record what the
-      // attempt actually used (T-003) — a failed generation isn't free.
-      if (genErr instanceof GenerationFailedError) {
+    // T-226: hold the cost before any model call (402/409 refusals as JSON;
+    // no header has been sent yet). Every ending below closes the hold.
+    await withInkHold(req, res, { runId, runSequence }, chargedCost(req), async (ink) => {
+      // Stream the AI response via three-layer pipeline
+      let result;
+      try {
+        result = await streamGenerateDocument(
+          { ...input, userId: payload.sub, runId, runSequence, runType },
+          res,
+        );
+      } catch (genErr) {
+        // T-226: a failed run returns its hold, before the response ends.
+        await ink.release();
+        // GenerationFailedError = mid-stream LLM failure. SSE `event: error` was
+        // already emitted and the response is closed. Still record what the
+        // attempt actually used (T-003) — a failed generation isn't free.
+        if (genErr instanceof GenerationFailedError) {
+          await recordGeneration({
+            userId: payload.sub,
+            docType: input.docType,
+            status: 'failed',
+            aiModel: genErr.aiModel,
+            transport: genErr.transport,
+            usage: genErr.usage,
+            paragraphCount: 0,
+            durationMs: Date.now() - startedAt,
+            runId,
+            runSequence,
+            runType,
+          });
+          // Ended only now — after the row exists — so a fast retry's
+          // resolveRun query can never race the write that makes it findable.
+          res.end();
+          return;
+        }
+
+        // No usage data from the pipeline for this kind of failure, but a
+        // runId already exists and was already handed to the client, so it
+        // still gets a failed row (T-003 §3.8).
+        const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
+        console.error(
+          `[drafting] legacy generate threw (runId=${runId}, runType=${runType}):`,
+          msg,
+        );
         await recordGeneration({
           userId: payload.sub,
           docType: input.docType,
           status: 'failed',
-          aiModel: genErr.aiModel,
-          transport: genErr.transport,
-          usage: genErr.usage,
+          usage: { inputTokens: 0, outputTokens: 0, llmCalls: 0, usageSource: 'provider' },
           paragraphCount: 0,
           durationMs: Date.now() - startedAt,
           runId,
           runSequence,
           runType,
         });
-        // Ended only now — after the row exists — so a fast retry's
-        // resolveRun query can never race the write that makes it findable.
-        res.end();
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Generation failed', message: msg });
+        } else {
+          res.write(
+            `event: error\ndata: ${JSON.stringify({
+              reason:
+                'The drafting service hit an unexpected error. Please try again — your inputs are saved.',
+              retryable: true,
+              code: 'unknown',
+              runId,
+            })}\n\n`,
+          );
+          res.end();
+        }
         return;
       }
 
-      // No usage data from the pipeline for this kind of failure, but a
-      // runId already exists and was already handed to the client, so it
-      // still gets a failed row (T-003 §3.8).
-      const msg = genErr instanceof Error ? genErr.message : 'Unknown generation error';
-      console.error(`[drafting] legacy generate threw (runId=${runId}, runType=${runType}):`, msg);
-      await recordGeneration({
-        userId: payload.sub,
-        docType: input.docType,
-        status: 'failed',
-        usage: { inputTokens: 0, outputTokens: 0, llmCalls: 0, usageSource: 'provider' },
-        paragraphCount: 0,
-        durationMs: Date.now() - startedAt,
-        runId,
-        runSequence,
-        runType,
-      });
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Generation failed', message: msg });
-      } else {
-        res.write(
-          `event: error\ndata: ${JSON.stringify({
-            reason:
-              'The drafting service hit an unexpected error. Please try again — your inputs are saved.',
-            retryable: true,
-            code: 'unknown',
-            runId,
-          })}\n\n`,
-        );
-        res.end();
-      }
-      return;
-    }
+      // Save to DB — must not block the done event if DB is unavailable (mirrors
+      // the template route; a DB hiccup shouldn't strand the advocate's draft).
+      let docId: string | null = null;
+      let duplicateAttempt = false;
+      const paragraphCount = estimateBodyParaCount(result.fullText);
+      try {
+        const encryptedContent = encrypt(result.fullText);
+        const title = `${input.docType.replace(/_/g, ' ')} — ${input.courtName}`.slice(0, 300);
+        // Sequential, not Promise.all — Generation.documentId needs the Document's _id.
+        const doc = await LawieDocument.create({
+          userId: payload.sub,
+          title,
+          docType: input.docType,
+          courtType: input.courtType,
+          courtName: input.courtName,
+          formInputs: input,
+          generatedContent: encryptedContent,
+          sectionsCited: result.sectionsCited,
+          filingChecklist: result.filingChecklist,
+          checklistState: result.filingChecklist.map(() => false),
+          status: 'draft',
+          runId,
+          runSequence,
+        });
+        docId = String(doc._id);
 
-    // Save to DB — must not block the done event if DB is unavailable (mirrors
-    // the template route; a DB hiccup shouldn't strand the advocate's draft).
-    let docId: string | null = null;
-    let duplicateAttempt = false;
-    const paragraphCount = estimateBodyParaCount(result.fullText);
-    try {
-      const encryptedContent = encrypt(result.fullText);
-      const title = `${input.docType.replace(/_/g, ' ')} — ${input.courtName}`.slice(0, 300);
-      // Sequential, not Promise.all — Generation.documentId needs the Document's _id.
-      const doc = await LawieDocument.create({
-        userId: payload.sub,
-        title,
-        docType: input.docType,
-        courtType: input.courtType,
-        courtName: input.courtName,
-        formInputs: input,
-        generatedContent: encryptedContent,
-        sectionsCited: result.sectionsCited,
-        filingChecklist: result.filingChecklist,
-        checklistState: result.filingChecklist.map(() => false),
-        status: 'draft',
-        runId,
-        runSequence,
-      });
-      docId = String(doc._id);
+        const { duplicate } = await recordGeneration({
+          userId: payload.sub,
+          docType: input.docType,
+          status: 'completed',
+          documentId: doc._id,
+          aiModel: result.aiModel,
+          transport: result.transport,
+          usage: result.usage,
+          paragraphCount,
+          durationMs: Date.now() - startedAt,
+          runId,
+          runSequence,
+          runType,
+        });
+        duplicateAttempt = duplicate;
 
-      const { duplicate } = await recordGeneration({
-        userId: payload.sub,
-        docType: input.docType,
-        status: 'completed',
-        documentId: doc._id,
-        aiModel: result.aiModel,
-        transport: result.transport,
-        usage: result.usage,
-        paragraphCount,
-        durationMs: Date.now() - startedAt,
-        runId,
-        runSequence,
-        runType,
-      });
-      duplicateAttempt = duplicate;
-
-      if (process.env.NODE_ENV !== 'test') {
-        console.info(
-          `[drafting] Generated doc ${docId} for user ${payload.sub} (runId=${runId}, runSequence=${runSequence}, runType=${runType})`,
-        );
-      }
-    } catch (dbErr) {
-      console.error(
-        `[drafting] DB save failed for legacy generate (runId=${runId}, runType=${runType}):`,
-        dbErr instanceof Error ? dbErr.message : dbErr,
-      );
-    }
-
-    // Deduct ink after successful generation — skipped for a duplicate
-    // attempt (a concurrent request already recorded and paid for it).
-    const legacyCost = chargedCost(req); // T-227: no default price
-    if (!duplicateAttempt) {
-      const legacyInkResult = await spendInk({
-        userId: payload.sub,
-        costCredits: legacyCost,
-        reason: 'generate',
-        reference: docId ?? undefined,
-        runId,
-        runSequence,
-      });
-      if (!legacyInkResult.success) {
+        if (process.env.NODE_ENV !== 'test') {
+          console.info(
+            `[drafting] Generated doc ${docId} for user ${payload.sub} (runId=${runId}, runSequence=${runSequence}, runType=${runType})`,
+          );
+        }
+      } catch (dbErr) {
         console.error(
-          '[drafting] spendInk failed after legacy generation:',
-          legacyInkResult.reason,
+          `[drafting] DB save failed for legacy generate (runId=${runId}, runType=${runType}):`,
+          dbErr instanceof Error ? dbErr.message : dbErr,
         );
       }
-    }
 
-    // Send done event with docId so frontend can redirect to editor
-    res.write(
-      `event: done\ndata: ${JSON.stringify({
+      // T-226: close the hold by the charge rule — settled when the draft
+      // reached the user (saved, or the client is still here), else released.
+      // A duplicate attempt releases this request's hold (never charged twice).
+      await ink.finish({
+        saved: docId !== null,
+        duplicate: duplicateAttempt,
+        reference: docId ?? undefined,
+      });
+
+      // Send done event with docId so frontend can redirect to editor
+      ink.sendDone({
         complete: true,
         docId,
         runId,
@@ -1301,9 +1403,8 @@ router.post(
         mandatoryClausesComplete: result.mandatoryClausesComplete,
         // T-197: the signed disclaimer goes with every finished draft.
         disclaimer: FACT_CHECK_DISCLAIMER,
-      })}\n\n`,
-    );
-    res.end();
+      });
+    });
   },
 );
 

@@ -21,7 +21,8 @@
 import mongoose, { Types } from 'mongoose';
 
 import { CreditBucket, CreditLedger, CreditSource } from '../models/CreditLedger.model';
-import { User } from '../models/User.model';
+import { Generation } from '../models/Generation.model';
+import { IInkHold, User } from '../models/User.model';
 
 import { isFixtureUser } from './run-origin';
 
@@ -472,24 +473,457 @@ export async function spendInk(input: {
       });
     }
     if (rows.length > 0) {
-      conn.db
-        .collection('inkledger')
-        .insertMany(rows)
-        .catch((err: unknown) => {
-          console.warn(
-            '[drafting] inkledger write failed:',
-            err instanceof Error ? err.message : err,
-          );
-        });
+      // T-226 AC8: awaited, so the row exists when the caller moves on.
+      try {
+        await conn.db.collection('inkledger').insertMany(rows);
+      } catch (err: unknown) {
+        console.error(
+          '[drafting] inkledger write failed:',
+          err instanceof Error ? err.message : err,
+        );
+      }
     }
   }
 
-  // Clean up temp fields (fire-and-forget)
-  User.collection
-    .updateOne({ _id: oid }, { $unset: { _ds: '', _r1: '', _dc: '', _r2: '', _dt: '' } })
-    .catch(() => {});
+  // Clean up temp fields. T-226 AC8: awaited, not fire-and-forget.
+  try {
+    await User.collection.updateOne(
+      { _id: oid },
+      { $unset: { _ds: '', _r1: '', _dc: '', _r2: '', _dt: '' } },
+    );
+  } catch {
+    // A leftover temp field is harmless: every pipeline that sets them
+    // overwrites them first.
+  }
 
   return { success: true };
+}
+
+// ── Ink holds (T-226, Arjun 12 Oct 2026) ─────────────────────────────────────
+//
+// Debit-on-hold on the user document. One atomic write takes the Ink and
+// records the hold before any model call; after the run the hold is settled
+// (kept, with ledger rows) or released (refunded). Charge rule: Ink is kept
+// only when a successful run's draft reached the user.
+//
+// AC9: holdInk, settleInk, releaseInk and releaseExpiredHolds are the only
+// code that touches `inkHolds`. Billing renewal and cancel `$set` the buckets
+// and must never touch it.
+
+/**
+ * How long a hold lives before the sweep closes it. Above the longest real
+ * run: the brief path's SDK worst case (pipeline plus repair pass) is over
+ * 15 minutes, so the lead raised it from Arjun's 15 to 30.
+ */
+export const INK_HOLD_TTL_MS = 30 * 60 * 1000;
+
+/** How often the background sweep runs (startHoldSweep's default). */
+export const INK_HOLD_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+
+/**
+ * One open hold, as stored in `User.inkHolds`. Units are ×2 storage units;
+ * `unit: 'ink2'` lets the T-201 drops migration tell old holds apart.
+ */
+export type InkHold = IInkHold;
+
+export type HoldInkResult =
+  | { ok: true; fixture?: boolean; hold?: InkHold }
+  | { ok: false; reason: 'insufficient_ink' | 'duplicate' | 'user_not_found' };
+
+const nonNeg = (field: string) => ({ $ifNull: [field, 0] });
+
+/** The users collection, typed for the hold fields the raw driver writes. */
+interface UserInkFields {
+  inkSub?: number;
+  inkAnnualCarry?: number;
+  inkTopup?: number;
+  inkHolds?: InkHold[];
+}
+const inkUsers = () => User.collection as unknown as mongoose.mongo.Collection<UserInkFields>;
+
+/** Pipeline expression: does `$$this` (an inkHolds entry) have this key? */
+function isHoldFor(runId: string, runSequence: number) {
+  return {
+    $and: [
+      { $eq: ['$$this.runId', { $literal: runId }] },
+      { $eq: ['$$this.runSequence', { $literal: runSequence }] },
+    ],
+  };
+}
+
+/**
+ * Hold the cost of one draft (AC1). One pipeline findOneAndUpdate on the user:
+ * guarded by total >= cost and no existing hold for (runId, runSequence), it
+ * takes the units in spendInk's bucket order (inkSub → inkAnnualCarry →
+ * inkTopup) and pushes the hold in the same write, so the guard and the debit
+ * cannot race. The temp fields are $unset in the same pipeline.
+ *
+ * A refusal is classified with one re-read: a hold for the key means
+ * `duplicate` (1b), otherwise `insufficient_ink` (1a) or `user_not_found`.
+ */
+export async function holdInk(input: {
+  userId: string;
+  costCredits: number;
+  runId: string;
+  runSequence: number;
+}): Promise<HoldInkResult> {
+  const { userId, costCredits, runId, runSequence } = input;
+  // T-147e: a golden-set run is never held or charged.
+  if (isFixtureUser(userId)) return { ok: true, fixture: true };
+  if (!mongoose.Types.ObjectId.isValid(userId)) return { ok: false, reason: 'user_not_found' };
+
+  // Close this user's expired holds first, so a crashed run's Ink is back
+  // before this one is judged against the balance.
+  try {
+    await releaseExpiredHolds(userId);
+  } catch (err) {
+    console.error(
+      '[drafting] releaseExpiredHolds failed before a hold:',
+      err instanceof Error ? err.message : err,
+    );
+  }
+
+  const costUnits = costCredits * 2; // 1 Ink = 2 storage units
+  const oid = new mongoose.Types.ObjectId(userId);
+  const expiresAt = new Date(Date.now() + INK_HOLD_TTL_MS);
+
+  const result = await User.collection.findOneAndUpdate(
+    {
+      _id: oid,
+      // A missing inkHolds matches $not too.
+      inkHolds: { $not: { $elemMatch: { runId, runSequence } } },
+      $expr: {
+        $gte: [
+          { $add: [nonNeg('$inkSub'), nonNeg('$inkAnnualCarry'), nonNeg('$inkTopup')] },
+          costUnits,
+        ],
+      },
+    },
+    [
+      { $set: { _ds: { $min: [nonNeg('$inkSub'), costUnits] } } },
+      { $set: { _r1: { $subtract: [costUnits, '$_ds'] } } },
+      { $set: { _dc: { $min: [nonNeg('$inkAnnualCarry'), '$_r1'] } } },
+      { $set: { _r2: { $subtract: ['$_r1', '$_dc'] } } },
+      { $set: { _dt: { $min: [nonNeg('$inkTopup'), '$_r2'] } } },
+      {
+        $set: {
+          inkSub: { $subtract: [nonNeg('$inkSub'), '$_ds'] },
+          inkAnnualCarry: { $subtract: [nonNeg('$inkAnnualCarry'), '$_dc'] },
+          inkTopup: { $subtract: [nonNeg('$inkTopup'), '$_dt'] },
+          inkHolds: {
+            $concatArrays: [
+              { $ifNull: ['$inkHolds', []] },
+              [
+                {
+                  runId: { $literal: runId },
+                  runSequence: { $literal: runSequence },
+                  units: { $literal: costUnits },
+                  split: { sub: '$_ds', carry: '$_dc', topup: '$_dt' },
+                  unit: 'ink2',
+                  expiresAt: { $literal: expiresAt },
+                },
+              ],
+            ],
+          },
+        },
+      },
+      { $unset: ['_ds', '_r1', '_dc', '_r2', '_dt'] },
+    ],
+    { returnDocument: 'after' },
+  );
+
+  if (result) {
+    const holds = ((result as { inkHolds?: InkHold[] }).inkHolds ?? []).filter(
+      (h) => h.runId === runId && h.runSequence === runSequence,
+    );
+    return { ok: true, hold: holds[0] };
+  }
+
+  const current = await User.collection.findOne({ _id: oid }, { projection: { inkHolds: 1 } });
+  if (!current) return { ok: false, reason: 'user_not_found' };
+  const holds = ((current as { inkHolds?: InkHold[] }).inkHolds ?? []) as InkHold[];
+  if (holds.some((h) => h.runId === runId && h.runSequence === runSequence)) {
+    return { ok: false, reason: 'duplicate' };
+  }
+  return { ok: false, reason: 'insufficient_ink' };
+}
+
+/**
+ * Release a hold (AC3): one findOneAndUpdate that requires the hold, $pulls
+ * it and adds each bucket back by its split. Idempotent: with no hold there
+ * is nothing to match and nothing changes. No ledger row.
+ */
+export async function releaseInk(
+  userId: string,
+  runId: string,
+  runSequence: number,
+): Promise<{ released: boolean }> {
+  if (isFixtureUser(userId)) return { released: false };
+  if (!mongoose.Types.ObjectId.isValid(userId)) return { released: false };
+  const oid = new mongoose.Types.ObjectId(userId);
+
+  const result = await User.collection.findOneAndUpdate(
+    { _id: oid, inkHolds: { $elemMatch: { runId, runSequence } } },
+    [
+      {
+        $set: {
+          _h: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: { $ifNull: ['$inkHolds', []] },
+                  cond: isHoldFor(runId, runSequence),
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $set: {
+          inkSub: { $add: [nonNeg('$inkSub'), nonNeg('$_h.split.sub')] },
+          inkAnnualCarry: { $add: [nonNeg('$inkAnnualCarry'), nonNeg('$_h.split.carry')] },
+          inkTopup: { $add: [nonNeg('$inkTopup'), nonNeg('$_h.split.topup')] },
+          inkHolds: {
+            $filter: {
+              input: { $ifNull: ['$inkHolds', []] },
+              cond: { $not: [isHoldFor(runId, runSequence)] },
+            },
+          },
+        },
+      },
+      { $unset: '_h' },
+    ],
+    { returnDocument: 'after' },
+  );
+  return { released: result !== null };
+}
+
+/**
+ * Settle a hold (AC7, AC8): keep the Ink and write today's inkledger
+ * `generate` rows from the stored split.
+ *
+ * Order (lead's decision): the ledger rows go FIRST, as idempotent upserts
+ * keyed (userId, runId, runSequence, sourceBucket, reason 'generate'); THEN
+ * the hold is $pulled with a filter that requires it. If the ledger write
+ * fails it is logged at error level and the hold is left for the sweep, which
+ * settles it from the completed Generation. Running this twice changes
+ * nothing: the upserts only insert once and the second $pull matches nothing.
+ *
+ * `actualUnits` (T-202): when below the hold, the difference goes back to
+ * the buckets in the same write as the $pull. The kept part is taken from the
+ * split in spend order, so the refund comes back to the last buckets taken.
+ * Today `actualUnits` is always the hold.
+ */
+export async function settleInk(
+  userId: string,
+  runId: string,
+  runSequence: number,
+  actualUnits?: number,
+  reference?: string,
+): Promise<{ settled: boolean; reason?: 'fixture_run' | 'no_hold' | 'ledger_failed' }> {
+  if (isFixtureUser(userId)) return { settled: true, reason: 'fixture_run' };
+  if (!mongoose.Types.ObjectId.isValid(userId)) return { settled: false, reason: 'no_hold' };
+  const oid = new mongoose.Types.ObjectId(userId);
+
+  const current = (await User.collection.findOne(
+    { _id: oid, inkHolds: { $elemMatch: { runId, runSequence } } },
+    { projection: { inkHolds: 1, inkSub: 1, inkAnnualCarry: 1, inkTopup: 1 } },
+  )) as {
+    inkHolds?: InkHold[];
+    inkSub?: number;
+    inkAnnualCarry?: number;
+    inkTopup?: number;
+  } | null;
+  const hold = current?.inkHolds?.find((h) => h.runId === runId && h.runSequence === runSequence);
+  if (!current || !hold) return { settled: false, reason: 'no_hold' };
+
+  const charged = Math.max(0, Math.min(actualUnits ?? hold.units, hold.units));
+  const keptSub = Math.min(hold.split.sub, charged);
+  const keptCarry = Math.min(hold.split.carry, charged - keptSub);
+  const keptTopup = Math.min(hold.split.topup, charged - keptSub - keptCarry);
+  const refund = {
+    sub: hold.split.sub - keptSub,
+    carry: hold.split.carry - keptCarry,
+    topup: hold.split.topup - keptTopup,
+  };
+
+  // Balance after this settle (the hold is already off the buckets; the
+  // refund goes back on). Same balanceAfter shape as spendInk's rows.
+  const totalAfter =
+    (current.inkSub ?? 0) +
+    (current.inkAnnualCarry ?? 0) +
+    (current.inkTopup ?? 0) +
+    refund.sub +
+    refund.carry +
+    refund.topup;
+
+  const rows: Array<{ sourceBucket: string; delta: number; balanceAfter: number }> = [];
+  if (keptSub > 0) {
+    rows.push({
+      sourceBucket: 'sub',
+      delta: -keptSub,
+      balanceAfter: totalAfter + keptCarry + keptTopup,
+    });
+  }
+  if (keptCarry > 0) {
+    rows.push({
+      sourceBucket: 'annual_carry',
+      delta: -keptCarry,
+      balanceAfter: totalAfter + keptTopup,
+    });
+  }
+  if (keptTopup > 0) {
+    rows.push({ sourceBucket: 'topup', delta: -keptTopup, balanceAfter: totalAfter });
+  }
+
+  const db = mongoose.connection.db;
+  if (rows.length > 0) {
+    try {
+      if (!db) throw new Error('no database connection');
+      const createdAt = new Date();
+      await db.collection('inkledger').bulkWrite(
+        rows.map((row) => ({
+          updateOne: {
+            filter: {
+              userId: oid,
+              runId,
+              runSequence,
+              sourceBucket: row.sourceBucket,
+              reason: 'generate',
+            },
+            update: {
+              $setOnInsert: {
+                userId: oid,
+                delta: row.delta,
+                reason: 'generate',
+                sourceBucket: row.sourceBucket,
+                balanceAfter: row.balanceAfter,
+                reference,
+                runId,
+                runSequence,
+                createdAt,
+              },
+            },
+            upsert: true,
+          },
+        })),
+        { ordered: true },
+      );
+    } catch (err) {
+      console.error(
+        `[drafting] settleInk: inkledger write failed (runId=${runId}, runSequence=${runSequence}); the hold is left for the sweep:`,
+        err instanceof Error ? err.message : err,
+      );
+      return { settled: false, reason: 'ledger_failed' };
+    }
+  }
+
+  const pulled = await inkUsers().findOneAndUpdate(
+    // The filter pins this exact hold, so a hold re-taken for the same key
+    // after a release is never pulled by a stale settle.
+    {
+      _id: oid,
+      inkHolds: { $elemMatch: { runId, runSequence, expiresAt: hold.expiresAt } },
+    },
+    {
+      $pull: { inkHolds: { runId, runSequence } },
+      $inc: { inkSub: refund.sub, inkAnnualCarry: refund.carry, inkTopup: refund.topup },
+    },
+  );
+  return pulled ? { settled: true } : { settled: false, reason: 'no_hold' };
+}
+
+/**
+ * Close every expired hold (for one user, or for all users): settle it when a
+ * completed Generation exists for its (runId, runSequence), else release it.
+ * This also repairs a settle whose ledger write or $pull failed. Running it
+ * twice changes nothing: a closed hold is gone, and settle/release are both
+ * idempotent.
+ */
+export async function releaseExpiredHolds(
+  userId?: string,
+): Promise<{ settled: number; released: number }> {
+  const counts = { settled: 0, released: 0 };
+  if (userId !== undefined) {
+    if (isFixtureUser(userId) || !mongoose.Types.ObjectId.isValid(userId)) return counts;
+  }
+  const now = new Date();
+  const filter: Record<string, unknown> = { 'inkHolds.expiresAt': { $lte: now } };
+  if (userId !== undefined) filter._id = new mongoose.Types.ObjectId(userId);
+
+  const cursor = User.collection.find(filter, { projection: { inkHolds: 1 } });
+  for await (const doc of cursor) {
+    const ownerId = String(doc._id);
+    const holds = ((doc as { inkHolds?: InkHold[] }).inkHolds ?? []).filter(
+      (h) => h.expiresAt instanceof Date && h.expiresAt <= now,
+    );
+    for (const hold of holds) {
+      try {
+        const generation = await Generation.findOne({
+          runId: hold.runId,
+          runSequence: hold.runSequence,
+          status: 'completed',
+        })
+          .select('documentId')
+          .lean();
+        if (generation) {
+          const r = await settleInk(
+            ownerId,
+            hold.runId,
+            hold.runSequence,
+            undefined,
+            generation.documentId ? String(generation.documentId) : undefined,
+          );
+          if (r.settled) counts.settled += 1;
+        } else {
+          const r = await releaseInk(ownerId, hold.runId, hold.runSequence);
+          if (r.released) counts.released += 1;
+        }
+      } catch (err) {
+        console.error(
+          `[drafting] releaseExpiredHolds: could not close hold (runId=${hold.runId}, runSequence=${hold.runSequence}):`,
+          err instanceof Error ? err.message : err,
+        );
+      }
+    }
+  }
+  return counts;
+}
+
+let sweepTimer: NodeJS.Timeout | null = null;
+let sweepRunning = false;
+
+/**
+ * Start the background sweep (every 5 min by default). Started where the
+ * service boots (index.ts), never from app.ts, which the tests import. The
+ * timer is unref'd so it never keeps the process alive. A second call is a
+ * no-op; a run still going when the next tick fires is not overlapped.
+ */
+export function startHoldSweep(intervalMs: number = INK_HOLD_SWEEP_INTERVAL_MS): void {
+  if (sweepTimer) return;
+  sweepTimer = setInterval(() => {
+    if (sweepRunning) return;
+    sweepRunning = true;
+    releaseExpiredHolds()
+      .catch((err: unknown) => {
+        console.error(
+          '[drafting] ink hold sweep failed:',
+          err instanceof Error ? err.message : err,
+        );
+      })
+      .finally(() => {
+        sweepRunning = false;
+      });
+  }, intervalMs);
+  sweepTimer.unref();
+}
+
+/** Stop the background sweep (SIGTERM). Safe to call when it is not running. */
+export function stopHoldSweep(): void {
+  if (sweepTimer) clearInterval(sweepTimer);
+  sweepTimer = null;
 }
 
 // ── Daily login bonus + rating bonus helpers ───────────────────────────────
