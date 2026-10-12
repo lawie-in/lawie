@@ -21,7 +21,7 @@ flowchart LR
 
   subgraph mongo["MongoDB (Atlas / local)"]
     C1[("courts<br/>~1,734 rows")]
-    C2[("sectionmappings<br/>~1,311 rows")]
+    C2[("sectionmappings<br/>~1,313 rows")]
     C3[("templates<br/>5 rows")]
     C4[("appsettings<br/>2 rows")]
   end
@@ -91,7 +91,7 @@ The "states dropdown empty" bug means step 5 returned `[]`. The fix is always: r
 | Script | npm script | Source | Collection | Idempotent? |
 |---|---|---|---|---|
 | `seed-courts.ts` | `yarn workspace @lawie/drafting seed:courts` | `config/courts/indian-courts.json` | `courts` | Yes — upsert on `courtId` |
-| `seed-sections.ts` | `yarn workspace @lawie/drafting seed:sections` | `config/sections/{ipc-to-bns, crpc-to-bnss, iea-to-bsa}.json` | `sectionmappings` | Yes — skips matches on `(oldCode, oldSection, isNewProvision)`. Pass `--force` to drop and reseed. |
+| `seed-sections.ts` | `yarn workspace @lawie/drafting seed:sections` | `config/sections/{ipc-to-bns, crpc-to-bnss, iea-to-bsa}.json` | `sectionmappings` | Yes — skips matches on `(oldCode, oldSection, isNewProvision)`, so it never corrects a row that already exists. Pass `--force` to delete all rows and reseed (see [section 7](#7-reseeding-sectionmappings-after-the-t-250--t-255-table-corrections)). |
 | `seed-templates.ts` | `yarn workspace @lawie/drafting seed:templates` | inline array in the script | `templates` | Yes — skip if `slug` exists |
 | `seed-app-setting.ts` | `yarn workspace @lawie/drafting seed:setting <key> <value> [desc]` | CLI args | `appsettings` | Yes — no-op if (key, value) already match |
 
@@ -143,7 +143,7 @@ docker exec -i lawie_drafting sh -c \
 | Editing existing court name / formattingRulesRef in JSON | `seed:courts` (upsert overwrites) |
 | Deleting a court from JSON | `seed:courts` does **not** delete — handle manually in Mongo |
 | Adding a new IPC↔BNS row | `seed:sections` |
-| Changing existing section mapping | `seed:sections --force` (drops all, reseeds) |
+| Changing existing section mapping | `seed:sections --force` (deletes all rows, reseeds). Plain `seed:sections` keeps the old row. Check for admin-edited rows first: [section 7](#7-reseeding-sectionmappings-after-the-t-250--t-255-table-corrections) |
 | Adding a starter template | `seed:templates` |
 | Editing an existing template | Update the doc in Mongo directly, or delete + reseed |
 | AI model swap (Anthropic releases new model) | `seed:setting ai.drafting_model <new-id>` |
@@ -170,3 +170,44 @@ curl -sk https://demo.lawie.in/api/sections/all/IPC | jq '. | length'      # > 5
 ```
 
 After a successful seed the new-document form should show the full state dropdown, the court-type dropdown should populate when you pick a state, and the template list should have 5 entries.
+
+---
+
+## 7. Reseeding `sectionmappings` after the T-250 / T-255 table corrections
+
+**Owner:** Arjun runs the reseed. Ajay (CLO) and Arjun agree the dates through Priya. Production is founder-only.
+
+### What changed in the source files
+
+- `iea-to-bsa.json` was replaced with the table Ajay (CLO) corrected and signed against the Gazette text (T-250; 117 of 185 rows were wrong). Six rows are now typed `repealed_no_equivalent`: IEA 2, 22A, 82, 88, 113 and 166.
+- `crpc-to-bnss.json` was replaced with the table Ajay corrected and signed against the Gazette text (T-255; 103 of 535 rows were wrong, and `new_provisions` was corrected).
+- The `SectionMapping` model accepts a new `mappingType`, `repealed_no_equivalent`.
+- `seed-sections.ts` now sets `validatedBy` and `validatedAt` only for the signed tables (CrPC and IEA), from each file's `meta.validated_by` and `meta.last_updated`. IPC rows get the schema default `Pending CLO review` and `validatedAt: null` until T-267 signs `ipc-to-bns.json`.
+- `notes` come from `notes`, else `note` (CrPC rows use `note`). For `repealed_no_equivalent` rows they fall back to `new_law_status`.
+- `apps/drafting/src/scripts/apply-clo-patch.ts` is deleted. It wrote wrong pairs over the seed. **Never run it.** A stale compiled copy may still sit in a local, gitignored `dist/scripts/`; do a clean build before running any compiled seed.
+
+### Why a plain `seed:sections` is not enough
+
+Any database seeded from the old tables, or patched with `apply-clo-patch`, holds wrong pairs. Plain `seed:sections` skips every row that already exists, so it keeps them. The reseed must use `--force`.
+
+Until a database is reseeded, the section converter and old-to-new conversions in drafts on that database still read the old, wrong pairs. The code and JSON changes do not fix a database by themselves.
+
+### Procedure
+
+1. **Check for admin-edited rows.** `--force` deletes **all** `sectionmappings` rows, not just the seeded ones. Before running it on any database, confirm the collection holds only seeded rows: look at `updatedBy` and `updatedAt` for any row changed after the original seed. If an admin-edited row exists, do not run `--force`; raise it with Priya.
+2. **Clean build** so no stale `dist/scripts/apply-clo-patch.js` or old `seed-sections.js` is present.
+3. **Reseed develop first:**
+
+   ```bash
+   yarn workspace @lawie/drafting seed:sections --force
+   ```
+
+   On the demo box, from inside the container (section 4):
+
+   ```bash
+   docker exec lawie_drafting node dist/scripts/seed-sections.js --force
+   ```
+
+   Demo and dev share one cluster today (section 4), so this one run covers both.
+4. **Sample these 20 rows** on develop and compare each against Ajay's signed tables: IEA 5, 32, 45, 62, 63, 65A, 65B, 100, 113A, 166; CrPC 41, 97, 154, 167, 362, 358, 437, 439, 482, 10. Also check that `validatedBy` is Ajay's signature for CrPC and IEA rows and `Pending CLO review` for IPC rows.
+5. **Production after that**, founder-only, and only after T-275 ships. T-275 adds the section-converter label for `repealed_no_equivalent` rows.

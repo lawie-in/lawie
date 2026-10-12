@@ -107,26 +107,26 @@ async function seedSections() {
       newCode: 'BSA',
       newCodeFull: 'Bharatiya Sakshya Adhiniyam, 2023',
       oldSection: '45',
-      newSection: '44',
+      newSection: '39(1)',
       oldTitle: 'Opinions of experts',
       newTitle: 'Opinions of experts',
       mappingType: 'direct',
       effectiveDate: EFFECTIVE_DATE,
     },
-    // CLO patch: IEA 32 → BSA 32 (was incorrectly BSA 26)
+    // CLO patch: IEA 32 → BSA 26 (signed table, T-250)
     {
       oldCode: 'IEA',
       oldCodeFull: 'Indian Evidence Act, 1872',
       newCode: 'BSA',
       newCodeFull: 'Bharatiya Sakshya Adhiniyam, 2023',
       oldSection: '32',
-      newSection: '32',
+      newSection: '26',
       oldTitle:
         'Cases in which statement of relevant fact by person who is dead or cannot be found etc. is relevant (Dying declaration)',
       newTitle:
         'Cases in which statement of relevant fact by person who is dead or cannot be found etc. is relevant',
       mappingType: 'partial',
-      notes: 'CLO fix: was incorrectly mapped to BSA 26. Corrected to BSA 32.',
+      notes: 'CLO fix: IEA 32 is BSA 26 per the signed T-250 table.',
       validatedBy: 'Ajay - CLO',
       effectiveDate: EFFECTIVE_DATE,
     },
@@ -222,12 +222,12 @@ describe('Sections Routes', () => {
         expect(res.body.result.new_section).toBe('482');
       });
 
-      it('maps IEA 45 → BSA 44 (Opinions of experts)', async () => {
+      it('maps IEA 45 → BSA 39(1) (Opinions of experts)', async () => {
         const res = await request(app).get('/sections/map?old=45-IEA');
         expect(res.status).toBe(200);
         expect(res.body.result.old_code).toBe('IEA');
         expect(res.body.result.new_code).toBe('BSA');
-        expect(res.body.result.new_section).toBe('44');
+        expect(res.body.result.new_section).toBe('39(1)');
       });
 
       it('flags repealed sections (IPC 377)', async () => {
@@ -274,8 +274,8 @@ describe('Sections Routes', () => {
         expect(res.body.results[0].old_section).toBe('154');
       });
 
-      it('maps BSA 44 → IEA 45 (Opinions of experts)', async () => {
-        const res = await request(app).get('/sections/map?new=44-BSA');
+      it('maps BSA 39(1) → IEA 45 (Opinions of experts)', async () => {
+        const res = await request(app).get('/sections/map?new=39(1)-BSA');
         expect(res.status).toBe(200);
         expect(res.body.results[0].old_code).toBe('IEA');
         expect(res.body.results[0].old_section).toBe('45');
@@ -344,15 +344,15 @@ describe('Sections Routes', () => {
   });
 
   describe('CLO patch validation (SCRUM-27)', () => {
-    it('maps IEA 32 → BSA 32 (NOT BSA 26 — CLO fix)', async () => {
+    it('maps IEA 32 → BSA 26 (NOT BSA 32 — signed T-250 table)', async () => {
       const res = await request(app).get('/sections/map?old=32-IEA');
       expect(res.status).toBe(200);
       expect(res.body.result.old_code).toBe('IEA');
       expect(res.body.result.old_section).toBe('32');
       expect(res.body.result.new_code).toBe('BSA');
-      expect(res.body.result.new_section).toBe('32');
-      // Must NOT be 26 — that was the incorrect mapping
-      expect(res.body.result.new_section).not.toBe('26');
+      expect(res.body.result.new_section).toBe('26');
+      // Must NOT be 32 — that was the incorrect mapping
+      expect(res.body.result.new_section).not.toBe('32');
     });
 
     it('maps IPC 416 → BNS 319 (Cheating by personation — new row)', async () => {
@@ -365,8 +365,8 @@ describe('Sections Routes', () => {
       expect(res.body.result.old_title).toContain('personation');
     });
 
-    it('reverse lookup: BSA 32 → IEA 32 (dying declaration)', async () => {
-      const res = await request(app).get('/sections/map?new=32-BSA');
+    it('reverse lookup: BSA 26 → IEA 32 (dying declaration)', async () => {
+      const res = await request(app).get('/sections/map?new=26-BSA');
       expect(res.status).toBe(200);
       expect(res.body.direction).toBe('new_to_old');
       expect(res.body.results[0].old_code).toBe('IEA');

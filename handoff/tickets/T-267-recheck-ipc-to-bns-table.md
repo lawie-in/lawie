@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (rechecks every row against the Gazette, signs). Lead (applies; shashank, as with T-250 and T-255). Anushka (checks BNS sections in Tier A samples) |
 | Mode           | Rule first, then a small build. Legal content (`apps/drafting/src/config/sections/ipc-to-bns.json`) |
-| Status         | To do. Ajay has started the recheck. Raised by Ajay, 12 Oct 2026 |
+| Status         | Signed by Ajay (4fed16e, `handoff/legal/T-267-ipc-to-bns-corrected-signed.md`, SHA-256 of the JSON block `c7c8d74a661b304c6fe349e2dad64f1ef6663348746747d5103ca783121dcb78`). Build next: Shashank, after T-250 + T-255. 12 Oct 2026 |
 | Depends on     | T-250 + T-255 (same seed path and files) |
 
 ## Problem
@@ -22,3 +22,7 @@ The IEA→BSA and CrPC→BNSS tables had 117 and 103 wrong rows. `ipc-to-bns.jso
 
 - Marketing says only "Criminal drafts cite BNS, BNSS and BSA", with no accuracy claim.
 - Anushka checks the BNS sections in her Tier A samples against the bare act.
+
+## Signed (Ajay, 12 Oct 2026)
+
+233 of 576 rows changed. Build: replace `config/sections/ipc-to-bns.json` byte for byte with the signed JSON block; list changed test expectations and moved goldens for Ajay; grep packs, prompts and converter copy for IPC→BNS numbers outside the table. Rows marked "Pending CLO review" become validated when seeded. Left for Ajay as follow-ups: 4 rows "unverified" (236, 254, 292A, 376DA) and 21 repeals to confirm against India Code.

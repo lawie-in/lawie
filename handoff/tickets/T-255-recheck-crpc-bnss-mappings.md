@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (rechecks every pair against the Gazette, signs). Lead (applies) |
 | Mode           | Rule first, then a small build. Legal content |
-| Status         | Ajay signed the corrected table (handoff/legal/T-255-crpc-to-bnss-corrected-signed.md). Built by shashank in the same branch as T-250: replace crpc-to-bnss.json byte for byte (SHA-256 in the file) |
+| Status         | Merged into develop_staging (ee76d8e); tables not live until reseed (Arjun, develop first; production founder-only after T-275); waiting for Anushka on develop |
 
 Ajay spot-checked 40 `mappings` pairs in `apps/drafting/src/config/sections/crpc-to-bnss.json` and all were right. But `iea-to-bsa.json` turned out to have 117 of 185 rows wrong, so every remaining pair needs a check.
 
