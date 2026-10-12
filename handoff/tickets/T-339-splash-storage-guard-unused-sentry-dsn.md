@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish |
 | Owner  | Lead (web) |
 | Mode   | Small fix (web only) |
-| Status | Building: kunal (12 Oct 2026) |
+| Status | Merged into develop_staging 5adf962 (12 Oct 2026). Anushka tests on develop |
 
 Two leftovers from T-328 + T-332:
 
