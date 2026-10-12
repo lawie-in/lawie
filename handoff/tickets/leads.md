@@ -36,6 +36,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 ## Merge queue
 
 1. vishal: T-192 (11991f9, review passed, Ajay approved). Merges once Ajay closes his three small points (possible averments JSON reorder + his hash).
+2. tanvi: T-240 (5a838d3, review passed). Merges once Ajay signs the seed diff. Whichever of 1 and 2 has Ajay's sign-off first goes first; tell the other when pushed.
 
 ## Last done
 
