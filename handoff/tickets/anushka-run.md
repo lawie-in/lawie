@@ -637,3 +637,10 @@ What a user can now do:
 - Type or answer a detail, then edit the description, and the draft still uses what they typed.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-344 — campaign source kept through a cancelled Google sign-in (c16b5db, kunal, 12 Oct 2026)
+
+What a user can now do:
+- Arrive from a campaign link, start a Google sign-in, cancel, then try again in the same tab. The account still records which campaign brought them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

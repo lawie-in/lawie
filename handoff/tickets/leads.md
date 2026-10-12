@@ -9,7 +9,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 | shashank | T-346 (T-347 merged a75c522) | fix/t-346-* (parked at e3e77dc) | apps/drafting/src/services/validator.ts plus apps/drafting/src/services/ai.service.ts call sites (and the stale comment near line 975), only after Tanvi's T-345 + T-340 merges (she holds ai.service.ts getDateVariants/checkFactAlteration until then). Tests t270/t333/t347 unchanged, new t346 | no | 12 Oct 2026 |
 | mahak | T-334 (T-335 merged fcc74a5) | fix/t-334-* (Mahak names it) | apps/drafting/src/config/document-rules/_averments/bail_regular.json (first_bail_application equals list only, Ajay signed 26b66c4 word for word) + new t334 test | yes: Ajay signed 26b66c4 | 12 Oct 2026 |
 | vishal | T-342 | fix/t-342-* (Vishal names it) | apps/drafting/src/config/intake/date-meanings.json (legal: Ajay's Option B, new date kinds with his labels); then apps/drafting/src/services/intake-brief.ts (per-field labels, kind check scoped to the pack, longest-cue precedence) ONLY after Mahak's T-335 merges; apps/drafting/src/config/document-rules/legal_notice_s138.json and its docs/templates twin (legal: ask_when_empty on L4 and L5 with Ajay's labels); new t342 test running T-192's checks end to end from a description. Anything else after Explore: ask Priya | yes: Ajay signs the JSON diff | 12 Oct 2026 |
-| kunal | T-344 | fix/t-344-* (Kunal names it) | apps/web/src/app/auth/callback/page.tsx (clear stored UTM only after a successful sign-in), apps/web/src/lib/signup-source.ts, apps/web/src/app/(auth)/login/page.tsx if the clear lives there; tests for success, cancel and error. Small fix, web only | no | 12 Oct 2026 |
+| kunal | T-343 | feature/t-343-* (Kunal names it) | Auth: apps/auth/src/models/User.model.ts (privacyVersion compare), auth.routes.ts (accept-current-privacy endpoint), auth.controller.ts, auth.service.ts. Web: a new re-accept prompt component under apps/web/src/components/, mounted where the signed-in shell loads (name the file after Explore). Tests both sides. Gates: Ajay words the prompt, Rajesh designs it (ask them directly). Full chain. Anything else after Explore: ask Priya | yes: Ajay words the prompt | 12 Oct 2026 |
 | tanvi | T-345 + T-340 | fix/t-345-* (Tanvi names it) | apps/drafting/src/services/template-engine.service.ts (listTemplateConfigs try/catch; T-340 one date format "4 April 2026" for current_date and ISO dates, all templates), template-promoter.ts (catalogue check reachable, stale comment), apps/drafting/src/config/catalogue/ (boot validation of override ids), the intake fallback label (apps/web/src/components/intake/BrowseTypesStep.tsx and ChangeDocumentDialog.tsx, display only). Also apps/drafting/src/services/ai.service.ts (getDateVariants and its comment, plus the one date-match line in checkFactAlteration: no digit directly before or after; Ajay sees it). Tests for each. T-340: any golden that moves goes to Ajay. Anything else after Explore: ask Priya | yes: T-340 date format (Ajay ruled in T-192; moved goldens to Ajay) | 12 Oct 2026 |
 
 ## Next per lead (Priya, 11 Oct 2026). Not claims: each is assigned only when its row is free and its gate is met
@@ -35,10 +35,11 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. kunal: T-344 (02c0c40, small fix tested green). Slot given 12 Oct.
+(empty)
 
 ## Last done
 
+- kunal: T-344 merged c16b5db (12 Oct 2026).
 - kunal: T-348 merged 66bab38 (12 Oct 2026); Ajay approved e7c7849. Release gate cleared.
 - mahak: T-335 merged fcc74a5 (12 Oct 2026); Arjun read the diff. intake-brief.ts released to Vishal.
 - shashank: T-347 merged a75c522 (12 Oct 2026); Ajay approved 1c2fbf4.

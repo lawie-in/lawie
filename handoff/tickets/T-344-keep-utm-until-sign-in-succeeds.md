@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web) |
 | Mode   | Small fix (web) |
-| Status | Building: kunal (12 Oct 2026) |
+| Status | Merged into develop_staging c16b5db (12 Oct 2026). Anushka tests on develop |
 
 The web `/auth/callback` clears the stored UTM tags even when Google sign-in is cancelled, so a retry loses the source.
 
