@@ -567,6 +567,24 @@ export function checkFactSectionSanity(
 // ── Main Validator ───────────────────────────────────────────────────────────
 
 /**
+ * T-270 ruling A (Ajay): an IPC/CrPC/IEA cite that is not a table row gets only the
+ * "not found" invalid_section warning, never also old_law_reference. Matched on
+ * details.code + details.section, which both warnings carry ('IPC'/'CrPC'/'IEA').
+ * Used by validate() and, since T-333, by the stream draft paths.
+ */
+export function dropOldLawForNotFound(
+  oldLawWarnings: ValidationWarning[],
+  sectionWarnings: ValidationWarning[],
+): ValidationWarning[] {
+  const citeKey = (w: ValidationWarning): string =>
+    `${w.details?.code ?? ''}|${(w.details?.section ?? '').toUpperCase()}`;
+  const notFound = new Set(
+    sectionWarnings.filter((w) => w.type === 'invalid_section').map(citeKey),
+  );
+  return oldLawWarnings.filter((w) => !notFound.has(citeKey(w)));
+}
+
+/**
  * Run the full validation pipeline on the generated + post-processed text.
  */
 export async function validate(
@@ -582,15 +600,7 @@ export async function validate(
 
   const sectionsCited = buildSectionsCited(text);
 
-  // T-270 ruling A (Ajay): an IPC/CrPC/IEA cite that is not a table row gets only the
-  // "not found" invalid_section warning, never also old_law_reference. Matched on
-  // details.code + details.section, which both warnings carry ('IPC'/'CrPC'/'IEA').
-  const citeKey = (w: ValidationWarning): string =>
-    `${w.details?.code ?? ''}|${(w.details?.section ?? '').toUpperCase()}`;
-  const notFound = new Set(
-    sectionWarnings.filter((w) => w.type === 'invalid_section').map(citeKey),
-  );
-  const oldLawKept = oldLawWarnings.filter((w) => !notFound.has(citeKey(w)));
+  const oldLawKept = dropOldLawForNotFound(oldLawWarnings, sectionWarnings);
 
   return {
     warnings: [...sectionWarnings, ...oldLawKept, ...clauseResult.missing],
