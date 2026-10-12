@@ -1,4 +1,4 @@
-# T-355 — Two small clean-ups found in T-351
+# T-355 — Delete an unused credit grant in drafting
 
 | Field  | Value |
 | ------ | ----- |
@@ -10,4 +10,4 @@
 ## Acceptance criteria
 
 1. Delete the unused `tryGrantDailyLoginBonus` in `apps/drafting/src/services/credits.service.ts` (no caller; it grants without the T-351 verified check).
-2. Auth tests `t210-e11000-sentry` and `t210-review-fixes` pass under `--runInBand` (today Sentry.init is called twice). CI is unaffected, but local runs are noisy.
+2. (Dropped, Shashank 12 Oct: the t210 failures came from the container's SENTRY_DSN; unset, t210 passes. Not a bug.)
