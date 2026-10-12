@@ -106,6 +106,13 @@ export interface BriefItem {
    * no fact is written, but the fact counts as asked: it is not asked again.
    */
   asked_empty?: true;
+  /**
+   * T-336 (T-190 AC8 without the ledger): a "none" for earlier bail
+   * applications read from the description, not yet confirmed by the advocate.
+   * The value stays on the brief, marked "Please check", and is asked to
+   * confirm; until then the draft treats it as unknown and shows its blank.
+   */
+  unconfirmed?: true;
 }
 
 export interface BriefCourt {
@@ -1086,6 +1093,12 @@ export interface BuildBriefInput {
   extraUnknowns?: string[];
   /** Keys an edited description left unclear (T-150): marked `reask` while empty. */
   reask?: readonly string[];
+  /**
+   * T-336: the answers that would make earlier bail applications aver "no
+   * earlier bail application" (the pack's `first_bail_application` values).
+   * Such a value read from the description is marked `unconfirmed`.
+   */
+  holdNone?: readonly string[];
 }
 
 function clean(s: unknown): string | null {
@@ -1255,6 +1268,17 @@ export function buildBrief(input: BuildBriefInput): Brief {
     placed.set(item.key, { ...given, key: item.key, value: canonical(item, given.value) });
   }
 
+  // T-336: a "none" on earlier bail applications read from the description is
+  // held until the advocate confirms it. The later entry for a key wins, so the
+  // advocate's own answer replaces it and clears the mark.
+  const holdNone = new Set((input.holdNone ?? []).map(foldAnswer).filter((v) => v !== ''));
+  const unconfirmed = (given: GivenValue | undefined): boolean =>
+    given !== undefined &&
+    given.source === 'description' &&
+    lastSegment(given.key) === PROTECTED_QUESTION_KEY &&
+    typeof given.value === 'string' &&
+    holdNone.has(foldAnswer(given.value));
+
   // T-153: a fact the form hides (show_if false) is not asked and shows no blank.
   const hidden = hiddenByShowIf(input.checklist, placed);
   const matterDate = offenceOrFirDate(input.checklist, placed);
@@ -1294,6 +1318,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
         placeholder: placeholderFor(meaning ?? item.label),
         party_name: item.partyName,
         ...(!given && askedEmpty.has(item.key) ? { asked_empty: true as const } : {}),
+        ...(unconfirmed(given) ? { unconfirmed: true as const } : {}),
       };
     });
 
