@@ -35,6 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
+- **HOLD (12 Oct, 23:10): develop_staging CI red since T-343 (runs #482, #483). The golden-set dry run gets 403 privacy_reaccept_required. Only the fix merges: kunal, fix/t-343-golden-privacy, scope scripts/golden-set/** (plus the harness user seed). Everyone else waits for a green run on the fix commit.**
 - shashank: T-346 (2fff2d0, small fix tested green). Holds the slot once CI on d1b4372 is green.
 - tanvi: T-349 + T-350 (b52bc40, review passed, Ajay signed fe8113d). After mahak and shashank; check with the slot holder first. T-357 merges separately after, on the same branch.
 - kunal: T-354 (tests green, small fix, Arjun ruled option A). After tanvi; check with the slot holder first.
