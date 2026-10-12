@@ -18,3 +18,4 @@ A ticket touching any of the following requires Ajay's sign-off reference in the
 
 See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths above are covered by golden snapshot tests that the `tester` must never auto-update.
 - `apps/drafting/src/services/citation-check.ts` (removes case law the advocate did not give: T-148, rule matching of case names: T-263). Added by Priya, 12 Oct 2026. Any change comes with Ajay's signed rule.
+- `apps/drafting/src/assistant/prompt/` (the Lawie Assistant system prompt, refusal lines and disclaimer: T-253b, ADR-023 section 3b). Added by Arjun, 12 Oct 2026. Any change comes with Ajay's signed text.

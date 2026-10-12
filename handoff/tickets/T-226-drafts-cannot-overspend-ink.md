@@ -100,6 +100,35 @@ Ink is kept only when a successful run's draft reached the user: the stream fini
 
 Decision owner: Arjun. Vikram: no pricing change. Free Ink and paid Ink go through the same guard.
 
+### Final scoping (Arjun, 12 Oct 2026, after checking the code)
+
+The mechanism above stands. Re-checked on `develop_staging`: `spendInk` is still called after the run at `documents.routes.ts` l.602, l.1072 and l.1278, and no `inkHolds` exists yet. T-197 has merged (d74d063), so the file-overlap wait is over. Build can start once Priya assigns a lead.
+
+**Tightened acceptance criteria (add to the six above)**
+- 7. `settleInk` takes an optional `actualUnits`. If it is below the hold, the difference is returned in the same write. T-202 (charge by paragraph) will hold the shown estimate and settle the actual, so its "never more than the estimate" rule needs no second mechanism. Today `actualUnits` is always the hold.
+- 8. `spendInk`'s unawaited `insertMany` and `$unset` (Priya's note below) are awaited inside `settleInk`. A ledger write that fails is logged at error level and picked up by the sweep.
+- 9. `holdInk` and `releaseInk` are the only code that touches `inkHolds`. Billing renewal and cancel stay untouched (test: a renewal while a hold is open leaves the hold in place).
+
+**Files and services touched**
+- `apps/drafting`: `services/credits.service.ts`, `models/User.model.ts` (`inkHolds`), `middleware/enforceCredits.ts` (shared 402 body helper only), `routes/documents.routes.ts` (the three paths and `withInkHold`), a 5-minute sweep started where the drafting service boots.
+- Not touched: `apps/billing`, `packages/shared`, `apps/gateway`, `apps/web`. The 402 body is unchanged, so the web needs nothing. The 409 reuses the web's existing generic draft error; no new copy.
+- Hot path: `ai.service.ts` is not touched. The `AbortSignal` is passed only where the pipeline already accepts one; if it does not, release on disconnect without aborting, and say so in the report.
+
+**Gates**
+- Founder login: none. Ajay: none (no legal text). Rajesh: none. Vikram: heads-up only, no pricing change.
+- Anushka's end-to-end check on develop before prod (CLAUDE.md rule). She should open the same draft in two tabs at once and see one draft and one refusal.
+
+**Build order**
+1. `inkHolds` field plus `holdInk`, `settleInk`, `releaseInk`, `releaseExpiredHolds` with unit tests (parallel, release, duplicate, sweep).
+2. `insufficientInkBody` helper shared with `enforceCredits`.
+3. `withInkHold` wrapper, then switch the template path, the brief path (both kinds), then legacy. One commit each.
+4. Disconnect handling and the sweep job.
+5. Add the "zero open holds before the drops migration" line to T-201.
+
 ## Added (Priya, 12 Oct 2026, from vishal)
 
 - In `credits.service.ts`, `spendInk` does two writes it doesn't await: the inkledger `insertMany` and the user `$unset`. Await them, or make them part of the hold-and-settle flow.
+
+## Arjun (12 Oct 2026): duplicate ledger rows on settle (Mahak, reviewer round 1)
+
+Prod runs **one** drafting instance (`ecosystem.config.js`: pm2 fork mode, `instances: 1` for every app). So today there are no two sweeps. Decision for the code anyway, with no migration and no Redis lock: **only the caller whose `$pull` of the hold actually removed it may write the `generate` ledger rows.** `settleInk` does the `findOneAndUpdate` that requires the hold to be present and reads the removed hold back (`returnDocument: 'before'`); a null result means another settle won, and this call returns without writing anything. The ledger rows are then written from the removed hold's stored split. Two sweeps (or a sweep and a normal settle) can therefore never both insert. Residual risk, accepted: a crash between the `$pull` and the insert loses that run's ledger rows; it is logged at error level with the run id. Add a test: two concurrent `settleInk` calls for one hold produce one set of rows. No unique index on `inkledger` and no billing change; revisit only if drafting ever runs more than one instance.

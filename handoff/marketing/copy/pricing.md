@@ -15,6 +15,8 @@ Status: **DRAFT for Priya.** Rows marked "Signed" use wording already signed; ev
 
 ## Before → After (`pricing/page.tsx`)
 
+Status 12 Oct: rows 1–6 are already built on the page (commit 41a41ff, T-238; the Most Popular, POPULAR and BEST VALUE badges are gone). Rows 7–14 below are checked against the page as it is now, line numbers included. The "Current (exact)" column is quoted from `apps/web/src/app/(marketing)/pricing/page.tsx` as read on 12 Oct (read only). Rows 1–6 keep their original line numbers and the pre-T-238 text; they are history.
+
 | # | Line | Current (exact) | New | Status |
 | --- | --- | --- | --- | --- |
 | 1 | 42, FAQ "What is Ink?" answer | `Ink is Lawie's credit unit. Each document you generate uses 1 Ink. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.` | `Ink is Lawie's credit unit. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.` | **Signed** (Ajay + Meera, T-238). Replaces Meera's earlier "…when a draft is ready" version |
@@ -27,15 +29,15 @@ Status: **DRAFT for Priya.** Rows marked "Signed" use wording already signed; ev
 | 8 | 115, Free plan sub-price line | `5 Ink — forever` | `5 Ink on sign-up · No card required` | "Forever" can read as a monthly or renewing allowance. It is a one-time grant (`SIGNUP_BONUS_CREDITS`) |
 | 9 | 118, Free plan list | `All templates` | `All document types (more than 90)` | Ajay signed "more than 90". Optional: "All templates" is true too |
 | 10 | 134, Free plan button | `Start Free` | `Start with 5 free Ink` | Ajay rule: "free" next to "5 Ink" |
-| 11 | 167, Solo plan button | `Start Drafting Free` | `Sign up to choose Solo` | Ajay: never "free" on the Solo card. The button now goes to `/login` (sign-up), so the label is "Sign up to choose Solo". If it is wired to the Solo upgrade or checkout, use `Choose Solo` |
+| 11 | 161, Solo plan button | `Start Drafting Free` | `Sign up to choose Solo` | Ajay: never "free" on the Solo card. The button now goes to `/login` (sign-up), so the label is "Sign up to choose Solo". If it is wired to the Solo upgrade or checkout, use `Choose Solo` |
 | 12 | 113, Free plan price suffix | `/lifetime` | `/lifetime` *(no change)* | Listed for completeness; true (one-time 5 Ink) |
-| 13 | 215, top-up section sub | `Buy one-time packs — no subscription required. Available on all plans.` | *(no change)* | Condition met: Priya confirmed from the code (12 Oct) that a Free account can buy a top-up pack. "Available on all plans" stays. |
-| 14 | 229, top-up badge on ₹499 | `BEST VALUE` | `LOWEST PRICE PER INK OF THE 3 PACKS` *(or drop the badge)* | **"BEST VALUE" not approved (Ajay).** Solo is ₹799 for 50 Ink (about ₹16.0 per Ink) against ₹499 for 28 Ink (about ₹17.8), so "best value" and "lowest price per Ink" are false if read across the page. The long label is allowed only if it fits the badge; otherwise drop the badge |
-| 15 | 160, 186, Solo and Pro lists | `Priority email support` | *(drop the row)* | **Not approved (Ajay).** Priya: priority support does not exist, so the row is gone. A label with nothing behind it is a misleading advertisement (CPA 2019). Same for in-app `UpgradeSuccessModal.tsx:23` `Priority support` (row 20) |
-| 16 | 163, 189, Solo and Pro lists | `Early access to new templates` | *(drop the row)* | **Not approved (Ajay).** Drop until an early-access mechanism exists; add back with Ajay's line when it does |
+| 13 | 209, top-up section sub | `Buy one-time packs — no subscription required. Available on all plans.` | *(no change)* | Condition met: Priya confirmed from the code (12 Oct) that a Free account can buy a top-up pack. "Available on all plans" stays. |
+| 14 | (no line: the ₹499 top-up card on the pricing page now has no badge) | `BEST VALUE` (was on the ₹499 card; gone in 41a41ff) | *(no badge. Nothing to add.)* Optional only: `LOWEST PRICE PER INK OF THE 3 PACKS` | **"BEST VALUE" not approved (Ajay).** Solo is ₹799 for 50 Ink (about ₹16.0 per Ink) against ₹499 for 28 Ink (about ₹17.8), so "best value" and "lowest price per Ink" are false if read across the page. The long label is allowed only if it fits the badge; otherwise drop the badge |
+| 15 | 154, 181, Solo and Pro lists | `Priority email support` | *(drop the row)* | **Not approved (Ajay).** Priya: priority support does not exist, so the row is gone. A label with nothing behind it is a misleading advertisement (CPA 2019). Same for in-app `UpgradeSuccessModal.tsx:23` `Priority support` (row 20) |
+| 16 | 157, 184, Solo and Pro lists | `Early access to new templates` | *(drop the row)* | **Not approved (Ajay).** Drop until an early-access mechanism exists; add back with Ajay's line when it does |
 | 17 | 130, Free plan list | `Lawie watermark on exports` | *(drop the row)* | Priya: there is NO watermark on any plan (policy, locked by a test). Never claim one. The Free list already has `PDF / DOCX export` (clean copy: "Download in Word or PDF"), so nothing replaces it |
-| 18 | 157, Solo plan list | `No watermark on exports` | *(drop the row)* | Same. Not a paid benefit. Nothing true is left to say here, so the row goes |
-| 19 | 184, Pro plan list | `No watermark on exports` | *(drop the row)* | Same |
+| 18 | 151, Solo plan list | `No watermark on exports` | *(drop the row)* | Same. Not a paid benefit. Nothing true is left to say here, so the row goes |
+| 19 | 178, Pro plan list | `No watermark on exports` | *(drop the row)* | Same |
 | 20 | `components/credits/UpgradeSuccessModal.tsx:23` (in-app, Pro) | `Priority support` | *(drop the row)* | Ajay (section B): remove with row 15 |
 | 21 | `components/credits/TopUpModal.tsx:13,229` (in-app) | `POPULAR` badge | *(remove the badge)* | Ajay (section B): same reason as rows 3 and 4 (no data) |
 
@@ -111,7 +113,7 @@ When T-227 AC3 ships (cost shown before generating) and Priya confirms it, Meera
 | File:line | Current (exact) | Problem | Proposed |
 | --- | --- | --- | --- |
 | `app/(marketing)/faq/page.tsx:48` | `Lawie has a free tier that includes 5 Ink (lifetime). Solo is ₹799/month (50 Ink/month). Pro is ₹1,999/month (150 Ink/month).` | Pro price in other copy (Vikram: Pro goes in no other copy); no Ink-per-document rule | `Lawie has a free tier with 5 Ink on sign-up (lifetime). Solo is ₹799/month with 50 Ink a month. Top-up packs start at ₹65 for 3 Ink. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. See the pricing page for all plans.` |
-| `app/(marketing)/faq/page.tsx:53` | `Five Ink lifetime for free users. All templates, court formatting, BNS validation, PDF/DOCX export. Free exports carry a Lawie watermark.` | "court formatting", "BNS validation" (banned) | `5 Ink on sign-up (lifetime). All document types, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers.  |
+| `app/(marketing)/faq/page.tsx:53` | `Five Ink lifetime for free users. All templates, court formatting, BNS validation, PDF/DOCX export. Free exports carry a Lawie watermark.` | "court formatting", "BNS validation" (banned) | `5 Ink on sign-up (lifetime). All document types, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers.` |
 | `app/(marketing)/page.tsx:104–106` | `'5 Ink, lifetime'` · `'₹799' … '50 Ink a month'` · `'₹1,999' … '150 Ink a month'` | Pro price on the home page | Replace the three plan cards with the Ink teaser in `copy/landing.md` (no rupees) |
 | `app/(marketing)/page.tsx:208` | `Free tier: 5 Ink (lifetime) · No credit card required` | Claim is true: Free sign-up never asks for payment details (Priya, 12 Oct; Ajay's table returns it on that confirmation). Line stays, shortened | `5 free Ink on sign-up · No card required` (landing.md) |
 | `app/(marketing)/page.tsx:300` | `Drafts are paid for with Ink credits.` | Not false, but no rule | Ajay's Ink line (landing.md pricing teaser) |
@@ -137,10 +139,10 @@ Priya: there is no watermark on any plan (policy, locked by a test). Every line 
 | # | File:line | Current (exact) | Replacement |
 | --- | --- | --- | --- |
 | W1 | `app/(marketing)/pricing/page.tsx:130` | `Lawie watermark on exports` | Drop the row (pricing table row 17) |
-| W2 | `app/(marketing)/pricing/page.tsx:157` | `No watermark on exports` | Drop the row (row 18) |
-| W3 | `app/(marketing)/pricing/page.tsx:184` | `No watermark on exports` | Drop the row (row 19) |
+| W2 | `app/(marketing)/pricing/page.tsx:151` | `No watermark on exports` | Drop the row (row 18) |
+| W3 | `app/(marketing)/pricing/page.tsx:178` | `No watermark on exports` | Drop the row (row 19) |
 | W4 | `app/(marketing)/faq/page.tsx:53` | `Five Ink lifetime for free users. All templates, court formatting, BNS validation, PDF/DOCX export. Free exports carry a Lawie watermark.` | `5 Ink on sign-up (lifetime). All document types, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers.` |
-| W5 | `app/dashboard/documents/[id]/page.tsx:406–420` (document page, free users) | Comment `Watermark notice for free tier` and the notice `Free tier exports include a watermark. [Upgrade to Pro] for clean exports.` | Remove the whole notice block (`{isFree && (...)}`). Nothing true is left to say, and its "Upgrade to Pro" button pushes a plan that is under review (Vikram). Ajay to confirm no replacement line is wanted |
+| W5 | `app/dashboard/documents/[id]/page.tsx:561–576` (document page, free users) | Comment `Watermark notice for free tier` and the notice `Free tier exports include a watermark. [Upgrade to Pro] for clean exports.` | Remove the whole notice block (`{isFree && (...)}`). Nothing true is left to say, and its "Upgrade to Pro" button pushes a plan that is under review (Vikram). Ajay to confirm no replacement line is wanted |
 
 Not claimed anywhere: the disclaimer banner and the export footers sit outside the editor and cannot be removed (Priya), so no copy may say or imply they can. "Every line of the draft is yours to change" is allowed (Priya confirmed the prayer and verification are editable; Ajay's approved wording).
 
@@ -179,5 +181,9 @@ Pricing and landing copy mention no referral or demo code. If either ever does (
 | 6 | "5 Ink on sign-up" in place of "5 Ink — forever" | 8 |
 | 7 | "All document types (more than 90)" | 9 |
 | 8 | Top-ups "available on all plans", including Free (Priya confirmed from the code, 12 Oct) | 13 |
-| 9 | "LOWEST PRICE PER INK OF THE 3 PACKS" replaces "BEST VALUE" (Ajay) | 14 |
+| 9 | No badge on the ₹499 pack ("BEST VALUE" is gone). "LOWEST PRICE PER INK OF THE 3 PACKS" is optional, only if it fits at 375 px and 1280 px | 14 |
 | 10 | Proposed FAQ page lines (faq:48, faq:53, faq:40), pricing metadata, footer disclaimer | Grep table |
+
+## Final grep list (T-252)
+
+The full before-and-after table for the FAQ, about page, footer, in-app badges, watermark lines and PainSolution.tsx, and the grep list for "court-ready", "validated", "in minutes", "guaranteed", "AI lawyer", "secure" and "encrypted", is in `copy/site-copy-t252.md` (for Ajay).

@@ -75,3 +75,34 @@ Read-only survey of `apps/email-worker`, `packages/email-client`, `deploy.sh`, `
 4. Request SES production access for `ap-south-1`: transactional only (sign-up, password reset, payment receipts), under 1,000 mails/month, bounces and complaints handled by the SES suppression list. AWS usually answers in about a day.
 5. Create IAM user `lawie-ses-sender` (send-only), and put its keys plus `EMAIL_PROVIDER=ses` and a 32-char `INTERNAL_SECRET` into the server's `.env.production`. Never paste the keys into a ticket or chat.
 6. Create `contact@lawie.in` as a Google Workspace alias on your mailbox (Reply-To and DMARC reports land there).
+
+## Arjun (12 Oct 2026)
+
+The 11 Oct decision stands unchanged: AWS SES v2, ap-south-1, `lawie.in` with Easy DKIM, custom MAIL FROM `mail.lawie.in`, `Lawie <noreply@lawie.in>`, Reply-To `contact@lawie.in`, worker under pm2 on the existing EC2 host. Re-checked today: `ses.ts` dry-run branch still logs `to`, `cc`, `bcc` and an HTML preview (AC6 breach), and only `worker.ts` and `packages/email-client` reference `enqueue`, so no service sends yet. This note is the record for AC1; no ADR.
+
+**Assumption:** one AWS account owns the EC2 host and can hold SES. **Risk:** SES production access can take a day or be refused; the plan below starts it first. If refused, fallback is Google Workspace SMTP for the first 25 users (limit 2,000/day), which `EMAIL_PROVIDER=smtp` already supports. Decision stays SES.
+
+**Tightened acceptance criteria**
+- AC2 evidence: the lead's report pastes the `Authentication-Results` line from one Gmail and one Outlook message (spf=pass, dkim=pass, dmarc=pass, with the addresses redacted) and states the folder it landed in.
+- AC4 evidence: a test that forces a provider error and shows the job retried then kept as failed, and `scripts/replay.ts` re-sends it in dry-run.
+- AC6 also covers: the SES adapter's error path must not log the SES response body when it echoes the address. Add a test that greps captured log output for the test address and finds nothing.
+- New AC8: the worker fails fast with one clear log line when `INTERNAL_SECRET` or `AWS_SES_*` is missing under `EMAIL_PROVIDER=ses`, so a silent pm2 crash loop is visible.
+
+**Files and services touched**
+- `apps/email-worker/src/providers/ses.ts` (log fix), its config/env check, tests. `ecosystem.config.js` and `deploy.sh` only if the pm2 check shows a gap. `packages/email-client` only for tests. No change to auth, drafting or billing here (T-221, T-222, T-224 add the `enqueue` calls).
+
+**Founder login needed (physical, one session, list as in the 11 Oct note)**
+- AWS console in ap-south-1: SES identity and MAIL FROM, production-access request, IAM user `lawie-ses-sender`.
+- DNS host for `lawie.in`: 3 DKIM CNAMEs, `mail.lawie.in` MX and SPF TXT, `_dmarc` TXT.
+- Server `.env.production` edit and `pm2 status` / `pm2 logs lawie-email-worker`.
+- Google Workspace alias `contact@lawie.in`.
+- Order inside the session: SES production-access request first (longest wait), then identity and DNS, then IAM keys and the env file.
+
+**Ajay:** one privacy-policy line naming AWS SES (Mumbai) as the mail processor, via T-225 / T-235. Not a blocker for the build, a blocker for go-live. **Rajesh/Madhuri:** none here (templates are T-221, T-222).
+
+**Build order**
+1. Lead, no login: AC6 log fix and test, AC8 fail-fast, AC4 retry test. Merge to `develop_staging`.
+2. Founder session above (can run in parallel with step 1).
+3. Lead: after the keys are in place, deploy to develop, confirm worker is healthy, send one test mail from a script (not from a product flow), collect the AC2 headers.
+4. T-221 and T-222 build against `dry-run` at once and need not wait; they only need real SES for Anushka's check.
+5. Anushka verifies receipt on develop; the go-live gate (T-403) needs AC3 (production access) done.

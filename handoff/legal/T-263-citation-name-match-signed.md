@@ -49,3 +49,45 @@ Ajay (CLO), 12 Oct 2026 IST. Rule for `apps/drafting/src/services/citation-check
 | Ticket diagnosis ("initial") | Corrected above; update the ticket |
 | Golden snapshots that move | List them for me before merge |
 | Quality | Anushka tests on develop before prod |
+
+## Addendum, 12 Oct 2026 (after Vishal's question on rule 4)
+
+Vishal is right: rule 4 as I wrote it ("a full stop after a word of three or more letters ends a sentence") contradicts my own failing rows ("Ltd.,", "Dept.,", "Home Dept. (2016)"). Corrected:
+
+- **Rule 2 governs the second party, and no full stop ends it.** Between the versus word and the reporter, nothing ends the name: not a full stop, not a comma, not a line break. Rule 4 is only about walking back for the first party.
+- **Rule 4 for the first party.** A full stop ends the sentence only when the word before it is not an abbreviation and the next word starts with a capital letter after a space. These words never end a sentence: Ltd, Pvt, Ors, Anr, Dept, Govt, Co, Corp, Corpn, Inc, Bros, Assn, Secy, Comm, Commr, Addl, Dy, Dist, Hon'ble, No, Nos, Smt, Shri, Sri, Dr, Mr, Mrs, Ms, Md, Prof, Kum, etc, and any single or double capital letters ("M.", "K.M."). Vishal's extra test is approved: inside a citation, a full stop followed by "(", a digit or a comma never ends the sentence.
+- Tests: the table rows "Ltd.,", "Dept.,", "Home Dept. (2016) 7 SCC 221" and "Tata Steel Ltd., Jamshedpur," must be blanked in full, and "The Court held so. Mohan Rao v. ..." must still keep "The Court held so."
+- `citation-check.ts` is a legal-content path (now listed in `legal-content-paths.md`): this file and its addendum are the sign-off reference.
+
+## Addendum 2, 12 Oct 2026 (Vishal's Q1 to Q3)
+
+- **Q1:** the search back from a reporter for the versus word stops at a blank line or 250 characters. Approved.
+- **Q2:** a versus word with no reporter, followed in the same sentence by a bare reporter, may blank everything between them. Approved ("too wide is safe"), inside the same sentence and the Q1 limits.
+- **Q3:** `v`, `v.`, `vs`, `vs.` and `versus` never end a sentence while walking back for the first party. With two names and a reporter only on the second, both names go: "Ram v. Shyam and Mohan Rao v. State of Kerala (2019) 4 SCC 12 apply." becomes "[Authority — add if relied upon] apply." Approved. The property check stands: no versus word stands directly before a blank unless the advocate wrote that name.
+
+## Addendum 3, 12 Oct 2026 (Vishal's Q4; sign-off of 7f843fa)
+
+- **Q4:** when the ten-token limit on the first party would leave a versus word as the last word before the blank, the cut goes back to the previous sentence end. General form: after any cut, no versus word may stand directly before a blank unless the advocate wrote that name. Wider is safe. Example: "Ram v. Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa v. State of Kerala (2019) 4 SCC 12 apply." becomes "[Authority — add if relied upon] apply."
+- The test pinned as expected-to-fail becomes a plain test.
+- Commit 7f843fa is approved with this change. Sign-off reference for the `citation-check.ts` change: this file with Addenda 1 to 3.
+
+## Addendum 4, 12 Oct 2026 (reviewer round 1: Q5, Q6)
+
+- **Q5, capital versus words.** `Vs`, `Vs.`, `VS`, `VS.`, `Versus`, `VERSUS`, `V/s`, `v/s`, `V/S` are versus words in any case, same as `vs` today. `V` and `V.` (capital) are a versus word too, **except** when the word before it is an initial or a title (one or two capital letters, or Dr, Smt, Shri, Sri, Md, Mr, Mrs, Ms, Prof, Kum): "K. V. Rao" and "Dr. V. Rao" keep V as an initial. "Ram V. Shyam (2019) 4 SCC 12" is read as a case name; blanking a person's name in that rare case is the safe failure.
+- **Q6, sentence ends.** A sentence also ends at `?`, `!`, the danda `।` and the double danda `॥`, when a space or the end of the text follows. This applies to the same-sentence limit (Addendum 2, Q2) and to the walk back for the first party. Rule 4's abbreviation exceptions do not apply to these marks.
+- Tests: each Q5 form with a full name on both sides; "K. V. Rao v. State of Kerala (2019) 4 SCC 12" blanks in full and "K. V. Rao" is read as one name; a Hindi sentence ending in `।` followed by an English case name keeps the Hindi sentence.
+- Sign-off reference: this file, Addenda 1 to 4.
+
+## Addendum 5, 12 Oct 2026 (Vishal's Q7)
+
+- **Q7:** `?`, `!`, `,`, `;` and `:` glued between two words with no space are a word break, and the cut-back of rule 5 applies: "Held in Shyam?Mohan Rao v. State of Kerala (2019) 4 SCC 12 applies." becomes "Held in [Authority — add if relied upon] applies." Fix it in T-263, not as a follow-up: no part of a name may stand beside a blank. Sign-off reference: Addenda 1 to 5.
+
+## Addendum 6, 12 Oct 2026 (final review: Q8a, Q8b)
+
+- **Q8a:** an opening `(` or `[` with no closing mark before the versus word is a limit for the first party, like an opening quotation mark. "(Arnesh Kumar v. State of Bihar, (2014) 8 SCC 273)" becomes "([Authority — add if relied upon])". The brackets stay; nothing of the name stays.
+- **Q8b:** these are name words for rule 3 (the walk back continues through them), **in any case** (M/S, S/O, D/O, s/o, H/o and so on), with or without a final full stop: `M/s`, `s/o`, `d/o`, `w/o`, `r/o`, `h/o`. "M/s. Tata Steel Ltd. v. ..." and "Ram S/O Shyam Lal v. ..." blank in full.
+- Sign-off reference: Addenda 1 to 6.
+
+## Addendum 7, 12 Oct 2026 (round 3 check of c782d54)
+
+- A slash word (`M/s`, `s/o`, `d/o`, `w/o`, `r/o`, `h/o`, any case) may carry a trailing full stop **or comma**, and the walk back continues past it. "Held in Ram S/O, Shyam Lal v. State of Bihar (2019) 4 SCC 12 applies." becomes "Held in [Authority — add if relied upon] applies." Fix in T-263 (no name fragment beside a blank). Everything else in c782d54 checked and approved. Sign-off reference: Addenda 1 to 7.

@@ -193,7 +193,10 @@ export function fold(text: string): string {
 class Corpus {
   private readonly text: string;
   constructor(texts: readonly string[]) {
-    this.text = ` ${texts.map(fold).filter((t) => t !== '').join(' \n ')} `;
+    this.text = ` ${texts
+      .map(fold)
+      .filter((t) => t !== '')
+      .join(' \n ')} `;
   }
   has(needle: string): boolean {
     const n = fold(needle);
@@ -205,15 +208,64 @@ class Corpus {
 }
 
 /** The blanks the system and the Drafter write. Never an entity, never a fact. */
-const BLANK_RE =
-  /\{\{\s*MISSING\s*:[^}]*\}\}|\[To be confirmed:[^\]]*\]|\[Section — verify before filing\]|\[Authority — add if relied upon\]|_{3,}/g;
+const MARKER_BLANK_RE = /\{\{\s*MISSING\s*:[^}]*\}\}|\[To be confirmed:[^\]]*\]/gi;
+const FIXED_BLANK_RE =
+  /\[Section — verify before filing\]|\[Authority — add if relied upon\]|_{3,}/g;
 
 /** Words that end in a full stop without ending a sentence. */
 const ABBREVIATIONS = new Set([
-  'rs', 'no', 'nos', 's', 'sec', 'ss', 'vs', 'v', 'mr', 'mrs', 'ms', 'dr', 'smt', 'sh', 'shri',
-  'st', 'ltd', 'co', 'pvt', 'hon', 'addl', 'cr', 'crl', 'misc', 'govt', 'dist', 'distt', 'ps',
-  'p', 'r', 'u', 'w', 'd', 'o', 'i', 'e', 'g', 'viz', 'para', 'paras', 'art', 'cl', 'ch', 'km',
-  'sr', 'jr', 'inr', 'appl', 'crpc', 'ipc', 'bns', 'bnss',
+  'rs',
+  'no',
+  'nos',
+  's',
+  'sec',
+  'ss',
+  'vs',
+  'v',
+  'mr',
+  'mrs',
+  'ms',
+  'dr',
+  'smt',
+  'sh',
+  'shri',
+  'st',
+  'ltd',
+  'co',
+  'pvt',
+  'hon',
+  'addl',
+  'cr',
+  'crl',
+  'misc',
+  'govt',
+  'dist',
+  'distt',
+  'ps',
+  'p',
+  'r',
+  'u',
+  'w',
+  'd',
+  'o',
+  'i',
+  'e',
+  'g',
+  'viz',
+  'para',
+  'paras',
+  'art',
+  'cl',
+  'ch',
+  'km',
+  'sr',
+  'jr',
+  'inr',
+  'appl',
+  'crpc',
+  'ipc',
+  'bns',
+  'bnss',
 ]);
 
 /** True when `text[j]` ends a sentence or a clause. */
@@ -297,7 +349,10 @@ function replaceParagraphs(body: string, replaced: ReadonlyMap<number, string>):
 }
 
 function humanise(id: string): string {
-  const s = id.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const s = id
+    .replace(/[._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -376,7 +431,10 @@ function withoutSamples(text: string): string {
   return text
     .replace(/\{\{[^}]*\}\}|\{[^}]*\}|\[[^\]]*\]|<[^>]*>/g, ' ')
     .replace(/"[^"]*"|“[^”]*”|‘[^’]*’/g, ' ')
-    .replace(/\b(?:e\.\s?g\.|eg\.|for example|for instance|such as|example:|examples:|i\.\s?e\.)[^.;)\n]*/gi, ' ')
+    .replace(
+      /\b(?:e\.\s?g\.|eg\.|for example|for instance|such as|example:|examples:|i\.\s?e\.)[^.;)\n]*/gi,
+      ' ',
+    )
     .replace(/\([^)]*\d[^)]*\)/g, ' ');
 }
 
@@ -423,7 +481,10 @@ const AMOUNT_RES: readonly RegExp[] = [
 const DATE_RES: readonly RegExp[] = [
   /\b\d{4}-\d{2}-\d{2}\b/g,
   /\b\d{1,2}[./-]\d{1,2}[./-](?:\d{4}|\d{2})\b/g,
-  new RegExp(String.raw`\b\d{1,2}(?:st|nd|rd|th)?(?:\s+day\s+of)?[\s-]+${MONTH}\.?,?[\s-]+\d{4}\b`, 'gi'),
+  new RegExp(
+    String.raw`\b\d{1,2}(?:st|nd|rd|th)?(?:\s+day\s+of)?[\s-]+${MONTH}\.?,?[\s-]+\d{4}\b`,
+    'gi',
+  ),
   new RegExp(String.raw`\b${MONTH}\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}\b`, 'gi'),
 ];
 
@@ -467,11 +528,19 @@ function extractEntities(text: string): Entity[] {
     claim(en.start, en.end);
     out.push(en);
   };
-  for (const m of text.matchAll(BLANK_RE)) claim(m.index!, m.index! + m[0].length);
+  for (const re of [MARKER_BLANK_RE, FIXED_BLANK_RE]) {
+    for (const m of text.matchAll(re)) claim(m.index!, m.index! + m[0].length);
+  }
 
   for (const re of RELATIVE_TIME_PATTERNS) {
     for (const m of text.matchAll(re)) {
-      add({ type: 'date', text: m[0], start: m.index!, end: m.index! + m[0].length, relative: true });
+      add({
+        type: 'date',
+        text: m[0],
+        start: m.index!,
+        end: m.index! + m[0].length,
+        relative: true,
+      });
     }
   }
   for (const re of AMOUNT_RES) {
@@ -497,7 +566,13 @@ function extractEntities(text: string): Entity[] {
     for (const m of text.matchAll(re)) {
       const name = stripCommonEdges(m[1]);
       if (!name) continue;
-      add({ type: 'police_station', text: m[0], start: m.index!, end: m.index! + m[0].length, name });
+      add({
+        type: 'police_station',
+        text: m[0],
+        start: m.index!,
+        end: m.index! + m[0].length,
+        name,
+      });
     }
   }
   for (const m of text.matchAll(COURT_RE)) {
@@ -632,7 +707,9 @@ function buildSources(input: VerifierInput): Sources {
   // T-189 (Ajay's rule R2): every held entry feeds every source, on its own.
   const entries = factEntriesByKey(input.facts);
   const facts = [...entries.values()].flat();
-  const skeletonText = input.skeleton.map((s) => s.replace(BLANK_RE, ' ')).join('\n');
+  const skeletonText = input.skeleton
+    .map((s) => s.replace(MARKER_BLANK_RE, ' ').replace(FIXED_BLANK_RE, ' '))
+    .join('\n');
   const ledgerTexts = facts.flatMap((f) => [
     displayOf(f),
     typeof f.value === 'string' ? f.value : '',
@@ -697,7 +774,11 @@ function buildSources(input: VerifierInput): Sources {
     ledger: new Corpus(ledgerTexts),
     skeleton: new Corpus([skeletonText]),
     allow: new Corpus([...input.packText.map(withoutSamples), ...GENERIC_ALLOW]),
-    verbatim: new Corpus([...facts.map(displayOf), skeletonText, ...input.packText.map(withoutSamples)]),
+    verbatim: new Corpus([
+      ...facts.map(displayOf),
+      skeletonText,
+      ...input.packText.map(withoutSamples),
+    ]),
     amounts,
     dates,
     referenceYear,
@@ -711,7 +792,12 @@ function buildSources(input: VerifierInput): Sources {
     cues,
     personNames: facts
       .filter((f) => f.type === 'person_name' || f.type === 'place_name')
-      .map((f) => ({ fact: f, words: fold(displayOf(f)).split(' ').filter((w) => w !== '') })),
+      .map((f) => ({
+        fact: f,
+        words: fold(displayOf(f))
+          .split(' ')
+          .filter((w) => w !== ''),
+      })),
     skeletonText,
   };
 }
@@ -725,7 +811,11 @@ function cuedKeys(
 ): Array<{ key: string; unresolved: boolean }> {
   const [clauseStart] = sentenceAround(text, at, at);
   const before = text.slice(clauseStart, at);
-  const words = fold(before).split(' ').filter((w) => w !== '').slice(-8).reverse();
+  const words = fold(before)
+    .split(' ')
+    .filter((w) => w !== '')
+    .slice(-8)
+    .reverse();
   const out: Array<{ key: string; unresolved: boolean }> = [];
   const seen = new Set<string>();
   for (const w of words) {
@@ -776,8 +866,10 @@ const GENERIC_LABEL: Record<FactEntityType, string> = {
 const ROLE_RULES: ReadonlyArray<{ key: RegExp; wrong: RegExp; right: RegExp; what: string }> = [
   {
     key: /^drawee_branch$/,
-    wrong: /\b(?:present(?:ed|s|ing)?|deposit(?:ed|s|ing)?|collecting\s+bank|presenting\s+bank|banker)\b/i,
-    right: /\b(?:drawn\s+on|drawee|maintained\s+(?:by|with|at)|account\s+of\s+the\s+drawer|your\s+account)\b/i,
+    wrong:
+      /\b(?:present(?:ed|s|ing)?|deposit(?:ed|s|ing)?|collecting\s+bank|presenting\s+bank|banker)\b/i,
+    right:
+      /\b(?:drawn\s+on|drawee|maintained\s+(?:by|with|at)|account\s+of\s+the\s+drawer|your\s+account)\b/i,
     what: 'is used as the bank or branch where the cheque was presented; your facts give it as the branch the cheque was drawn on',
   },
 ];
@@ -789,7 +881,8 @@ function checkEntities(src: Sources, paragraphs: Paragraph[]): FactViolation[] {
   paragraphs.forEach((p, pi) => {
     for (const en of extractEntities(p.text)) {
       const v = judgeEntity(src, p.text, en);
-      if (v) out.push({ ...v, paragraphIndex: pi, charOffset: en.start, length: en.end - en.start });
+      if (v)
+        out.push({ ...v, paragraphIndex: pi, charOffset: en.start, length: en.end - en.start });
     }
   });
   return out;
@@ -847,8 +940,8 @@ function judgeEntity(src: Sources, text: string, en: Entity): Judged | null {
       if (s.key && src.sectionKeys.has(s.key)) return null;
       // Several sections in one reference: each number must be held.
       const numbersPart = en.text.replace(new RegExp(ACT_NAMES, 'giu'), ' ');
-      const nums = [...numbersPart.matchAll(/\d+[A-Z]?(?:\s*\(\s*[0-9a-z]{1,4}\s*\))*/gi)].map((m) =>
-        m[0].replace(/\s+/g, '').toUpperCase(),
+      const nums = [...numbersPart.matchAll(/\d+[A-Z]?(?:\s*\(\s*[0-9a-z]{1,4}\s*\))*/gi)].map(
+        (m) => m[0].replace(/\s+/g, '').toUpperCase(),
       );
       if (nums.length > 0 && nums.every((n) => src.sectionNumbers.has(n))) return null;
       return unsupported(en);
@@ -956,13 +1049,22 @@ function judgeName(src: Sources, text: string, en: Entity): Judged | null {
   const k = nameKey(en.text);
   if (!k.ok) return null;
   const folded = fold(en.text);
-  if (src.ledger.hasFolded(folded) || src.skeleton.hasFolded(folded) || src.allow.hasFolded(folded)) {
+  if (
+    src.ledger.hasFolded(folded) ||
+    src.skeleton.hasFolded(folded) ||
+    src.allow.hasFolded(folded)
+  ) {
     return roleCheck(src, text, en);
   }
   // A span that opens a sentence may carry one ordinary capitalised word first.
   if (atSentenceStart(text, en.start)) {
     const rest = folded.split(' ').slice(1).join(' ');
-    if (rest === '' || src.ledger.hasFolded(rest) || src.skeleton.hasFolded(rest) || src.allow.hasFolded(rest)) {
+    if (
+      rest === '' ||
+      src.ledger.hasFolded(rest) ||
+      src.skeleton.hasFolded(rest) ||
+      src.allow.hasFolded(rest)
+    ) {
       return null;
     }
   }
@@ -1048,7 +1150,7 @@ function entityTypeOfFact(f: LedgerFact): FactEntityType {
 
 function present(src: Sources, f: LedgerFact, entities: Entity[], allFolded: string): boolean {
   const display = displayOf(f);
-  if (display === '' || /\{\{\s*MISSING/.test(display)) return true;
+  if (display === '' || /\{\{\s*MISSING/i.test(display)) return true;
   const has = (s: string): boolean => {
     const n = fold(s);
     return n !== '' && allFolded.includes(` ${n} `);
@@ -1168,7 +1270,9 @@ function unlockLabel(
       return 'all_of' in x ? x.all_of.flatMap(leaves) : [x];
     });
     const lacking = leaves.find((x) => !conditionHolds(x, byKey)) ?? leaves[0];
-    return lacking && !('all_of' in lacking) ? (lacking.label ?? humanise(lacking.key)) : humanise(entry.id);
+    return lacking && !('all_of' in lacking)
+      ? (lacking.label ?? humanise(lacking.key))
+      : humanise(entry.id);
   }
   return c.label ?? humanise(c.key);
 }
@@ -1177,9 +1281,7 @@ function unlockLabel(
 function checkBanned(src: Sources, input: VerifierInput, paragraphs: Paragraph[]): FactViolation[] {
   const still = new Set(resolveAverments(input.lists, src.facts).banned.map((b) => b.id));
   const entries = input.lists.banned.filter((b) => still.has(b.id));
-  const displays = src.facts
-    .map((f) => normPhrase(displayOf(f)))
-    .filter((d) => d.length >= 4);
+  const displays = src.facts.map((f) => normPhrase(displayOf(f))).filter((d) => d.length >= 4);
   const out: FactViolation[] = [];
   paragraphs.forEach((p, pi) => {
     const { norm, map } = normaliseWithMap(p.text);
@@ -1298,7 +1400,11 @@ export function applyPlaceholders(
     if (!p) continue;
     // Banned spans (whole clauses) first, then values outside them.
     const ordered = [...list].sort((a, b) =>
-      a.check === 'banned' && b.check !== 'banned' ? -1 : b.check === 'banned' && a.check !== 'banned' ? 1 : 0,
+      a.check === 'banned' && b.check !== 'banned'
+        ? -1
+        : b.check === 'banned' && a.check !== 'banned'
+          ? 1
+          : 0,
     );
     const spans: Array<{ s: number; e: number; label: string }> = [];
     for (const v of ordered) {
@@ -1339,7 +1445,8 @@ export function buildFactRepairUserPrompt(input: FactRepairPromptInput): string 
     (b) => `- ${b.id} | ${b.kind} | ${b.phrases.map((p) => oneLine(p, 200)).join(' ; ')}`,
   );
   const violations = input.violations.map(
-    (v) => `- P${v.paragraphIndex} | ${v.check} | ${oneLine(v.label, 200)} | ${oneLine(v.what, 400)}`,
+    (v) =>
+      `- P${v.paragraphIndex} | ${v.check} | ${oneLine(v.label, 200)} | ${oneLine(v.what, 400)}`,
   );
   const paragraphs = input.paragraphs.map((p) => `[[P${p.index}]]\n${p.text}`);
   return [
@@ -1354,7 +1461,10 @@ export function buildFactRepairUserPrompt(input: FactRepairPromptInput): string 
  * The repaired paragraphs, by index, or null if the answer is not exactly the
  * paragraphs asked for, in the same order, each with some text.
  */
-export function parseFactRepair(raw: string, indices: readonly number[]): Map<number, string> | null {
+export function parseFactRepair(
+  raw: string,
+  indices: readonly number[],
+): Map<number, string> | null {
   if (raw.includes('===CLAUSES===')) return null;
   const marker = /^[ \t]*\[\[P(\d+)\]\][ \t]*$/gm;
   const found: Array<{ index: number; from: number; at: number }> = [];
@@ -1405,10 +1515,12 @@ function toRecord(v: FactViolation, resolution: FactResolution, phase: FactPhase
 const NOTE: Record<ViolationReason, string> = {
   not_in_facts: 'not in your facts. Left blank in the draft for you to fill.',
   differs: 'does not match your facts. Left blank in the draft for you to fill.',
-  wrong_fact: 'your facts give this for a different detail. Left blank in the draft for you to fill.',
+  wrong_fact:
+    'your facts give this for a different detail. Left blank in the draft for you to fill.',
   unresolved: 'not yet confirmed in your facts. Left blank in the draft for you to fill.',
   left_out: 'in your facts but not in the draft. Add it before you file.',
-  banned: 'stated in the draft but not in your facts. The statement was taken out and left blank for you to fill.',
+  banned:
+    'stated in the draft but not in your facts. The statement was taken out and left blank for you to fill.',
 };
 
 /** The banner for what is still wrong after the repair. Null when nothing is. */
@@ -1508,5 +1620,5 @@ export async function verifyAndRepair(
 
 /** `{{MISSING: ...}}` placeholders in a text. */
 export function countMissingPlaceholders(text: string): number {
-  return (text.match(/\{\{\s*MISSING\s*:[^}]*\}\}/g) ?? []).length;
+  return (text.match(/\{\{\s*MISSING\s*:[^}]*\}\}/gi) ?? []).length;
 }

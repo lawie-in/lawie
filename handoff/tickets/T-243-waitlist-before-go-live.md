@@ -14,3 +14,11 @@
 3. Rate-limited and protected from bots. No personal data in logs.
 4. The confirmation copy promises nothing about the launch date.
 5. A deletion path exists for an entry (DPDP).
+
+## Design (Rajesh, 12 Oct 2026)
+
+`handoff/design/T-243-waitlist-form.md`: fields, states, 375 px, tokens, accessibility. It replaces the off-brand `WaitlistForm.tsx` (lawie/slate/green colours). Needs Ajay: the consent line (DPDP wording), the privacy-policy link and the deletion-contact line, and an optional Hindi version. Madhuri owns the draft strings.
+
+## Ajay signed (12 Oct 2026, `handoff/legal/emails-waitlist-panel-signed.md`, 8b229b4)
+
+Exact consent line, the small text under it, the Hindi version and the success-card line are in that file; build them word for word. Two conditions before go-live: (1) the Privacy Policy does not mention the waitlist today, so add the section 2 bullet and section 9 bullet he signed (ticket T-284); (2) Arjun confirms an entry can be erased by hand. Retention for an untouched entry: **18 months** (Ajay's suggestion; Priya's decision on the founder's delegation, 12 Oct 2026), then deleted.

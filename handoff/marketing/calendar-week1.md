@@ -11,7 +11,7 @@ Wording sources: Ajay, `handoff/legal/marketing-s1-claims-signed.md` (12 Oct 202
 
 **UI-screenshot posts** (W1-IG-1, W1-LI-2, both reel covers, W2-X-3) use the classic Browse document types screen. Redo the crops if describe-first is live at go-live. (W2-X-3 no longer carries an image under the X rule above; it is listed only so the crops are not forgotten if an image-only variant is ever approved.)
 
-**Reel swap rule (Meera, round 2):** the Week 1 Instagram reel (W1-IG-2) is **R4 (classic-path fallback)** if describe-first is not live for all users at go-live, otherwise **R1 (describe, bail)**. The Week 2 reel (W2-IG-2) is **R2 (describe, legal notice)** if describe-first is live, otherwise **R4 again**. Captions in this file are written for the classic flow ("pick, answer a few questions"); `reels.md` has the describe-flow caption wording for R1 and R2.
+**Reel swap rule (Meera, round 2):** Pre-switch fallback. Retire when describe_first goes on for all users. No R4 posts after go-live. The Week 1 Instagram reel (W1-IG-2) is **R4 (classic-path fallback)** if describe-first is not live for all users at go-live, otherwise **R1 (describe, bail)**. The Week 2 reel (W2-IG-2) is **R2 (describe, legal notice)** if describe-first is live, otherwise **R4 again**. Captions in this file are written for the classic flow ("pick, answer a few questions"); `reels.md` has the describe-flow caption wording for R1 and R2.
 
 ## Gates (Ajay, `handoff/legal/marketing-package-signed.md` section A; apply to every post)
 
@@ -19,6 +19,7 @@ Wording sources: Ajay, `handoff/legal/marketing-s1-claims-signed.md` (12 Oct 202
 - **No default-bail post before T-251 is merged** (the current pack has a live legal error). W1-IG-3 lists the six bail types and so names default bail. Until T-251 merges, use the five-type list: regular, anticipatory, before magistrate, interim, cancellation (slide 2 and the Hindi list drop "default"). Rajesh updates the slide to match.
 - **No criminal-draft screenshot, reel or sample PDF before T-245a/b are merged** (until then the packs cite BNS for old-law cases). R1 and R4 show a criminal draft, so the W1-IG-2 reel waits for T-245a/b.
 - **No "secure", "safe" or "encrypted" claim anywhere** (the privacy policy, T-235, says form answers and the fact list are not encrypted). No sample PDFs in any post (T-254; Ajay has not seen them).
+- **"Six bail drafts in Lawie" (and any "six bail types" line)** is OK only while all six bail rule files are live at publish: regular, anticipatory, before magistrate, interim, default, cancellation (Ajay, 12 Oct).
 - **Nothing about highlighted blanks** until T-194 is live and Ajay gives a line.
 - **Every Ink or rupee line waits for T-227, T-238 and T-252 to be merged, and for the founder's Razorpay check** of the Solo and top-up prices. Without that, cut the Ink and rupee lines, not the post.
 - **WhatsApp broadcasts** (and the bar-demo message) go only to contacts who opted in to these messages, with the purpose stated, and the opt-in recorded (DPDP Act, 2023, s.6). "Reply STOP" works and is honoured.
@@ -93,7 +94,7 @@ Lawie भारतीय advocates के लिए एक drafting assistant �
 2. मामले के बारे में कुछ सवालों के जवाब दीजिए।
 3. पहला ड्राफ्ट जाँचिए, बदलिए और Word या PDF में डाउनलोड कीजिए।
 
-90 से ज़्यादा तरह के डॉक्यूमेंट बना सकते हैं: bail application, legal notice, affidavit, petition, family court के मामले, agreement और भी। Criminal drafts में BNS, BNSS और BSA cite होते हैं।
+90 से ज़्यादा तरह के डॉक्यूमेंट बना सकते हैं: bail application, legal notice, affidavit, petition, family court के मामले, agreement और भी। आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं।
 
 साइन-अप पर 5 free Ink. ज़्यादातर डॉक्यूमेंट में 2 Ink लगते हैं; छोटे डॉक्यूमेंट, जैसे ज़्यादातर notice और affidavit, में 1। Ink ड्राफ्ट generate होने के बाद ही कटता है; फ़ेल हुए generation का कोई चार्ज नहीं।
 
@@ -179,7 +180,7 @@ Lawie अब लाइव है।
 
 भारतीय advocates के लिए drafting assistant। डॉक्यूमेंट चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर पहला ड्राफ्ट जाँचिए, बदलिए और Word या PDF में डाउनलोड कीजिए।
 
-90 से ज़्यादा डॉक्यूमेंट टाइप। Criminal drafts में BNS, BNSS और BSA cite होते हैं।
+90 से ज़्यादा डॉक्यूमेंट टाइप। आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं।
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
@@ -386,7 +387,7 @@ Script: `reels.md` → **R4** (classic path, fallback) if describe-first is not 
 ```
 Draft a bail application with me.
 
-Pick the bail application, answer a few questions about the matter, then review the draft, edit it and download it. Criminal drafts in Lawie cite BNS, BNSS and BSA.
+Pick the bail application, answer a few questions about the matter, then review the draft, edit it and download it. Criminal drafts in Lawie use BNS, BNSS and BSA section numbers.
 
 Sample, fictional matter. No real case or client is shown.
 
@@ -402,7 +403,7 @@ Start with 5 free Ink. Link in bio.
 ```
 चलिए, साथ में एक bail application ड्राफ्ट करते हैं।
 
-Bail application चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचिए, बदलिए और डाउनलोड कीजिए। Lawie के criminal drafts में BNS, BNSS और BSA cite होते हैं।
+Bail application चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचिए, बदलिए और डाउनलोड कीजिए। Lawie के आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं।
 
 Sample, fictional matter. कोई असली केस या क्लाइंट नहीं दिखाया गया है।
 
@@ -437,21 +438,21 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 ## W1-X-2 — Day 4 — X — P2 Everyday court work
 
-**Copy (EN)** — 278 / 280
+**Copy (EN)** — 270 / 280
 
 ```
-Bail applications, notices, affidavits, petitions, agreements and more: more than 90 document types. Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.
+Bail applications, notices, agreements and more: more than 90 document types. Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-2
 ```
 
-**Copy (HI)** — 261 / 280
+**Copy (HI)** — 275 / 280
 
 ```
-Bail application, legal notice, affidavit, petition, agreement और भी: 90 से ज़्यादा डॉक्यूमेंट टाइप। Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।
+90 से ज़्यादा डॉक्यूमेंट टाइप: bail, notice, agreement और भी। आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं। 5 free Ink से शुरू करें।
 
-The advocate is responsible for legal accuracy and filing.
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-2
 ```
 
@@ -462,7 +463,7 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 - **Template:** T3 document-family tile (landscape) (`design-notes.md` §3)
 - **Layout and hierarchy:** Headline top-left 96 px. Below it, a 3 x 2 grid of tiles (each 440 x 150): Bail applications, Legal notices, Affidavits, Petitions, Agreements, 'and more' (the sixth tile is outlined, no icon). Each tile: lucide icon 56 px (file-text), label 52 px. Footer zone with the BNS/BNSS/BSA line and the disclaimer pointer.
 - **Text on image, EN layer (verbatim from the post):** `Over 90 document types` (headline) / tiles: `Bail applications` `Legal notices` `Affidavits` `Petitions` `Agreements` `and more` / `Criminal drafts use BNS, BNSS and BSA section numbers.` / `Start with 5 free Ink` / footer `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` (full line fits at 1600 wide in 2 lines, so use the full line, not the X pointer).
-- **Text on image, HI layer (verbatim from the HI post):** Headline `90 से ज़्यादा डॉक्यूमेंट टाइप` / tiles `Bail application` `Legal notice` `Affidavit` `Petition` `Agreement` `और भी` / `Criminal drafts में BNS, BNSS और BSA cite होते हैं।` / `5 free Ink से शुरू करें` / the disclaimer in English.
+- **Text on image, HI layer (verbatim from the HI post):** Headline `90 से ज़्यादा डॉक्यूमेंट टाइप` / tiles `Bail application` `Legal notice` `Affidavit` `Petition` `Agreement` `और भी` / `आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं।` / `5 free Ink से शुरू करें` / the disclaimer in English.
 - **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** Full line in the footer zone, English. The HI post carries only the second sentence, but the image carries the full line, which is allowed (verbatim, signed wording).
@@ -574,7 +575,7 @@ On-slide text:
 3. Legal notice, affidavit, petition और plaint.
 4. Family court के मामले।
 5. Agreement: rent, NDA, MOU, service, loan, employment.
-6. Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।
+6. आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं। 5 free Ink से शुरू करें।
    Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 ```
 
@@ -583,7 +584,7 @@ Caption (~410 chars):
 ```
 Lawie में 90 से ज़्यादा डॉक्यूमेंट टाइप।
 
-Bail application, legal notice, affidavit, petition, family court के मामले, agreement और भी। Criminal drafts में BNS, BNSS और BSA cite होते हैं।
+Bail application, legal notice, affidavit, petition, family court के मामले, agreement और भी। आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं।
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
@@ -599,7 +600,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 - **Template:** S1 T1 (navy). S2 to S5 T3 document-family tile. S6 end-card (§5). (`design-notes.md` §3)
 - **Layout and hierarchy:** S1 headline only. S2 to S5: slide headline 72 px at top, then 2 x 3 grid of tiles (440 x 220) for the types. S5 has six tiles; S2 has six bail tiles (see below). S6: BNS/BNSS/BSA line, CTA, disclaimer, lockup. Same grid and tile style as W2-IG-1 so the two carousels read as one family.
 - **Text on image, EN layer (verbatim from the post):** S1 `What can you draft in Lawie? More than 90 document types.` S2 `Bail applications: regular, anticipatory, before magistrate, interim, default, cancellation.` (six tiles: Regular, Anticipatory, Before magistrate, Interim, Default, Cancellation) S3 `Legal notices, affidavits, petitions and plaints.` (four tiles) S4 `Family-court matters.` (single large tile; no sub-list, since the copy lists none) S5 `Agreements: rent, NDA, MOU, service, loan, employment.` (six tiles) S6 `Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.` + disclaimer.
-- **Text on image, HI layer (verbatim from the HI post):** S1 `Lawie में क्या-क्या ड्राफ्ट कर सकते हैं? 90 से ज़्यादा डॉक्यूमेंट टाइप।` S2 `Bail application: regular, anticipatory, magistrate के सामने, interim, default, cancellation.` S3 `Legal notice, affidavit, petition और plaint.` S4 `Family court के मामले।` S5 `Agreement: rent, NDA, MOU, service, loan, employment.` S6 `Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।` + disclaimer.
+- **Text on image, HI layer (verbatim from the HI post):** S1 `Lawie में क्या-क्या ड्राफ्ट कर सकते हैं? 90 से ज़्यादा डॉक्यूमेंट टाइप।` S2 `Bail application: regular, anticipatory, magistrate के सामने, interim, default, cancellation.` S3 `Legal notice, affidavit, petition और plaint.` S4 `Family court के मामले।` S5 `Agreement: rent, NDA, MOU, service, loan, employment.` S6 `आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं। 5 free Ink से शुरू करें।` + disclaimer.
 - **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour. It sits on the last slide only, as in the copy.
@@ -618,20 +619,20 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 ## W1-X-3 — Day 6 — X — P4 Pay per draft, start with 5 free Ink
 
-**Copy (EN)** — 265 / 280
+**Copy (EN)** — 269 / 280
 
 ```
 How Ink works in Lawie:
 
 5 free Ink on sign-up
-Short ones, such as most notices and affidavits: 1 Ink
+Short documents, such as most notices and affidavits: 1 Ink
 Most documents, such as bail applications and plaints: 2 Ink
 Charged only after a draft is generated; a failed generation is not charged.
 
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-3
 ```
 
-**Copy (HI)** — 279 / 280
+**Copy (HI)** — 278 / 280
 
 ```
 Lawie में Ink ऐसे चलता है:
@@ -650,12 +651,12 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 - **Format:** X image, 1600x900. `_en`, `_hi`.
 - **Template:** T1 quote card used as a three-row table (Ink explainer) (`design-notes.md` §3)
 - **Layout and hierarchy:** Headline top-left 88 px. Three rows, each: an Ink pill on the left (re-draw the live header pill: Inter mono number + 'Ink', rounded, navy outline; the number is the cost), the line on the right at 52 px. Fourth line (the charge rule) full width beneath in 48 px with a gold rule above. No coin, droplet or currency icon, no rupee sign anywhere.
-- **Text on image, EN layer (verbatim from the post):** `How Ink works in Lawie:` / rows `5 free Ink on sign-up` · `Short ones, such as most notices and affidavits: 1 Ink` · `Most documents, incl. bail and petitions: 2 Ink` / `Charged only after a draft is generated; a failed generation is not charged.`
-- **Text on image, HI layer (verbatim from the HI post):** `Lawie में Ink ऐसे चलता है:` / rows `साइन-अप पर 5 free Ink` · `छोटे डॉक्यूमेंट, जैसे ज़्यादातर notice और affidavit: 1 Ink` · `ज़्यादातर डॉक्यूमेंट, जैसे bail और petition: 2 Ink` / `Ink ड्राफ्ट generate होने के बाद ही कटता है; फ़ेल हुए generation का कोई चार्ज नहीं।`
+- **Text on image, EN layer (verbatim from the post):** `How Ink works in Lawie:` / rows `5 free Ink on sign-up` · `Short documents, such as most notices and affidavits: 1 Ink` · `Most documents, such as bail applications and plaints: 2 Ink` / `Charged only after a draft is generated; a failed generation is not charged.`
+- **Text on image, HI layer (verbatim from the HI post):** `Lawie में Ink ऐसे चलता है:` / rows `साइन-अप पर 5 free Ink` · `छोटे डॉक्यूमेंट, जैसे ज़्यादातर notice और affidavit: 1 Ink` · `ज़्यादातर डॉक्यूमेंट, जैसे bail application और plaint: 2 Ink` / `Ink ड्राफ्ट generate होने के बाद ही कटता है; फ़ेल हुए generation का कोई चार्ज नहीं।`
 - **Screenshot:** None. No UI screenshot, so no sample-matter label is needed. The Ink pill is redrawn from the live header pill style, not a screenshot.
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** This post has no disclaimer in the copy and does not mention output quality, so none is added. (The post does say 'a draft is generated'; if Ajay wants the pointer line here, the footer zone is free.)
-- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Table: Lawie Ink costs. 5 free Ink on sign-up. Short documents, such as most notices and affidavits, use 1 Ink. Most documents, including bail and petitions, use 2 Ink. You are charged only after a draft is generated; a failed generation is not charged."
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Table: Lawie Ink costs. 5 free Ink on sign-up. Short documents, such as most notices and affidavits, use 1 Ink. Most documents, such as bail applications and plaints, use 2 Ink. You are charged only after a draft is generated; a failed generation is not charged."
 - **Note for Madhuri/Ajay:** The pill numbers on the left repeat the copy's 1 and 2. 'Free' stays attached to '5 Ink'.
 
 **Rajesh: update** — this X post carries the CTA link, so it uses the link card and NO image (an attached image suppresses the card). Visual brief is now: none (link card). The image brief above is superseded; keep it only if Meera later approves an image-only variant with no link in the text.

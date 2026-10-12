@@ -215,3 +215,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 Nothing new on screen. Tests only: the signed wording of the bail packs' earlier-applications and undertakings parts can no longer change by accident without a test failing.
 
 Quality: nothing to test in the UI — tests only.
+
+## T-279 (mahak, merged to develop_staging d0a51bf, 12 Oct 2026)
+
+- A "to be confirmed" blank still counts as a blank when it comes back in lower case, and no longer draws a false "may not belong" warning.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

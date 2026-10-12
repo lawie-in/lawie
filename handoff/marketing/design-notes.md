@@ -56,7 +56,7 @@ Owner: Rajesh. Build once in Figma (one file, one page per template, components 
 
 - Navy ground, lockup-on-dark centred (560 px wide on 1080), gold rule.
 - CTA `Start with 5 free Ink` (Lora 600, 76-80 px, white) then `lawie.in` (Inter 600, 56 px). Gold underline rule, no button shape.
-- Disclaimer, verbatim, Inter 48 px, white at 92%, 3 lines max, y 1100-1380 on a reel, inside the safe area. Visible for the whole end-card duration, no fade-in delay.
+- Disclaimer, verbatim, Inter 48 px, white at 92%, 3 lines max, y 900-1100 on a reel, inside the safe area (the subtitle band stays at y 1200-1400; full reel positions in `reels.md`). Visible for the whole end-card duration, no fade-in delay.
 - Nothing else: no offer, no rupee, no badge.
 
 ## 6. Accessibility and review
