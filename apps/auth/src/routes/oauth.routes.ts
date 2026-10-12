@@ -5,7 +5,11 @@ import passport from 'passport';
 
 import { env } from '../config/env';
 import logger from '../config/logger';
-import { REFERRAL_EXISTING_ACCOUNT_FLAG, REFERRAL_NOT_APPLIED_FLAG } from '../config/passport';
+import {
+  GOOGLE_ACCOUNT_DEACTIVATED,
+  REFERRAL_EXISTING_ACCOUNT_FLAG,
+  REFERRAL_NOT_APPLIED_FLAG,
+} from '../config/passport';
 import redis from '../config/redis';
 import { IUser } from '../models/User.model';
 import { tryGrantDailyLoginBonus } from '../services/credit-bonus.service';
@@ -134,14 +138,37 @@ router.get(
     (req as unknown as Record<string, unknown>)[OAUTH_VERIFIED_STATE_KEY] = verified;
     return next();
   },
-  passport.authenticate('google', {
-    session: false,
-    failureRedirect: `${env.FRONTEND_URL}/login?error=oauth_failed`,
-  }),
+  // T-299 ruling 5: a custom callback instead of failureRedirect, so the strategy's refusal reason
+  // picks the redirect. A deactivated account goes to ?error=account_deactivated; any other
+  // failure (consent denied, no email) to ?error=oauth_failed. Strategy errors still go to next().
+  (req: Request, res: Response, next) =>
+    passport.authenticate(
+      'google',
+      { session: false },
+      (err: unknown, user: Express.User | false | null, info?: unknown) => {
+        if (err) return next(err);
+        if (!user) {
+          const reason = (info as { reason?: unknown } | undefined)?.reason;
+          const error =
+            reason === GOOGLE_ACCOUNT_DEACTIVATED ? 'account_deactivated' : 'oauth_failed';
+          return res.redirect(`${env.FRONTEND_URL}/login?error=${error}`);
+        }
+        req.user = user;
+        return next();
+      },
+    )(req, res, next),
   async (req: Request, res: Response) => {
     // Passport sets req.user to the Mongoose document via the strategy done() callback.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = req.user as unknown as IUser;
+    // T-299 ruling 5, second line of defence: never a session or a code for a missing or
+    // deactivated user, whatever reached this handler.
+    if (!user) {
+      return res.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
+    }
+    if (user.isActive === false) {
+      return res.redirect(`${env.FRONTEND_URL}/login?error=account_deactivated`);
+    }
     const verifiedState = getVerifiedOAuthState(req);
     if (!verifiedState) {
       // Unreachable: the state check above runs first. Fail closed all the same.

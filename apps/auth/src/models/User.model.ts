@@ -5,9 +5,11 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 // T-234 — versions recorded when a user accepts the consent line. The values are set by Ajay's
 // rulings (T-234 consent ruling, 11 Oct 2026, and Addendum 3, 12 Oct 2026 in
 // handoff/legal/T-234-login-copy-signed.md); they are maintained by hand, not read from the pages.
-// Bump CURRENT_PRIVACY_VERSION when "Last updated" on /privacy changes (next: T-308/T-310), and
+// Bump CURRENT_PRIVACY_VERSION when "Last updated" on /privacy changes (next: T-310), and
 // CURRENT_TERMS_VERSION when /terms changes, each with Ajay's sign-off.
-export const CURRENT_TERMS_VERSION = '2026-06-01';
+// T-299: terms '2026-10-12' matches /terms "Last updated: 12 October 2026" (T-268, f6566b4).
+// T-308 changed /privacy text but not its "Last updated" (already 12 October 2026).
+export const CURRENT_TERMS_VERSION = '2026-10-12';
 export const CURRENT_PRIVACY_VERSION = '2026-10-12';
 export type TermsAcceptedVia = 'password' | 'google';
 
