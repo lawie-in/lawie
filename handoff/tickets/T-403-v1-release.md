@@ -68,3 +68,4 @@ Production starts fresh. If any document saved on develop before T-300 is ever c
 - T-338: unasked optional ledger keys must print as blanks before feature.fact_ledger goes on for any user (Ajay gate). Merged 10faf08.
 - T-351: no free Ink for an unverified email sign-up (founder, 12 Oct 2026). Merged eae46a9.
 - T-223 + T-220: email verification link actually sends (founder, 12 Oct 2026).
+- T-356: describe-first (and, after T-187 + T-188, the fact ledger) on by default for new users (founder, 12 Oct 2026).
