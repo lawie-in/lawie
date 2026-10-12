@@ -733,10 +733,6 @@ describe('T-342 part 2: sentences placed nowhere on the s.138 pack', () => {
       'memo received but "notice served" in the same clause',
       'Received the return memo, notice served on 5 April 2026.',
     ],
-    [
-      '"The return memo was received on X" (two cues neither holds: fail-safe)',
-      'The return memo was received on 12 March 2026.',
-    ],
   ])('%s is placed nowhere', (_why, text) => {
     expect(placedKeys(text)).toEqual([]);
     const stated = statedDates(
@@ -788,11 +784,26 @@ describe('T-342 part 2: sentences placed nowhere on the s.138 pack', () => {
     }
   });
 
-  it('"The memo was received on X" is L4; "The return memo was received on X" is left for the advocate', () => {
-    const memo = datesReadByCode(S138, 'The memo was received on 12 March 2026.', new Map());
-    expect(memo.get('memo_received_date')?.value).toBe('2026-03-12');
-    expect([...memo.keys()]).toEqual(['memo_received_date']);
-    expect(placedKeys('The return memo was received on 12 March 2026.')).toEqual([]);
+  it.each([
+    'The memo was received on 12 March 2026.',
+    'The return memo was received on 12 March 2026.',
+    'The return memo is received on 12 March 2026.',
+    'Return memo received on 12 March 2026.',
+  ])('"%s" places L4 and only L4', (text) => {
+    const placed = datesReadByCode(S138, text, new Map());
+    expect([...placed.keys()]).toEqual(['memo_received_date']);
+    expect(placed.get('memo_received_date')?.value).toBe('2026-03-12');
+  });
+
+  it('dishonour, returned-unpaid and a bare "received on" are unchanged by the new memo cues', () => {
+    for (const text of [
+      'The cheque was dishonoured on 12 March 2026.',
+      'The cheque was returned unpaid on 12 March 2026.',
+    ]) {
+      expect([...datesReadByCode(S138, text, new Map()).keys()]).toEqual(['dishonour_date']);
+    }
+    expect(placedKeys('Received on 12 March 2026.')).toEqual([]);
+    expect(placedKeys('It was received on 12 March 2026.')).toEqual([]);
   });
 
   it('"valid till X" with a cheque word is L2 and only L2', () => {
