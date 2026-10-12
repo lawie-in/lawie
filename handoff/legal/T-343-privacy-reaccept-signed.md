@@ -39,3 +39,23 @@ Signed: Ajay (CLO), 12 Oct 2026 IST.
 - "Not now": generate and payment routes return P7; drafts can still be viewed and downloaded, and data export and account deletion still work.
 - Accept: history gets one row, and the prompt stops.
 - Sign-up records `via: 'signup'` with no prompt.
+
+## Addendum 1 (12 Oct 2026 IST): design rulings, first summary, accounts with no record
+
+| Item | Ruling |
+|---|---|
+| P8, when saving the acceptance fails | `Could not save your acceptance. Please try again.` |
+| P9, announced once after a successful accept (polite live region) | `Privacy Policy accepted.` |
+| P7 box | It carries its own Accept button (P5) with the P4 link beside it. |
+| P5 and P6 styling | Equal size and weight, as in T-310. The table order is not emphasis. |
+| P4 link | Opens in the same tab. |
+| Auto-renewals | Razorpay-started renewals are not blocked. Only user-started payments and new drafts get P7. |
+| Server block | Applies only when the prompt can show (the current version has a signed summary). Never block without the prompt. |
+
+Signed `{summary}` for privacyVersion `2026-10-12b`:
+
+```text
+We now explain how Google Analytics works on our public pages, and that we keep the campaign link a new account came from.
+```
+
+Accounts with a privacyVersion but no acceptance record (linked Google accounts, returning users who never accepted): write no history row for them and invent no acceptance. They see the prompt like anyone else, and their acceptance is recorded with `via: 'reaccept'`.
