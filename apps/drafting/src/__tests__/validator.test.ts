@@ -128,14 +128,19 @@ describe('Layer 3 — Validator', () => {
   });
 
   describe('validateSectionReferences', () => {
-    it('warns about sections not in the config', () => {
+    it('warns about a section outside its own Act range (T-270: Act-scoped, not the doc config)', () => {
       const docRule = resolveDocRule('bail_regular');
-      // Section 485 is NOT in bail_regular's known sections
-      const text = 'under Section 485 BNSS the applicant seeks bail';
+      // BNSS 485 is in range (1-531), so it is valid even though bail_regular does not list it.
+      expect(
+        validateSectionReferences('under Section 485 BNSS the applicant seeks bail', docRule),
+      ).toEqual([]);
+      // BNSS 600 is out of range, and BSA 999 is out of the BSA range.
+      const text = 'under Section 600 BNSS the applicant seeks bail';
       const warnings = validateSectionReferences(text, docRule);
       expect(warnings.length).toBe(1);
       expect(warnings[0].type).toBe('invalid_section');
-      expect(warnings[0].details?.section).toBe('485');
+      expect(warnings[0].details?.section).toBe('600');
+      expect(warnings[0].details?.code).toBe('BNSS');
     });
 
     it('does not warn about known sections', () => {
@@ -146,9 +151,12 @@ describe('Layer 3 — Validator', () => {
       expect(warnings.length).toBe(0);
     });
 
-    it('returns empty when no doc rule', () => {
+    it('checks without a doc rule (T-270: no early exit; BNS 999 warns, BNS 103 does not)', () => {
       const warnings = validateSectionReferences('Section 999 BNS', null);
-      expect(warnings).toEqual([]);
+      expect(warnings.length).toBe(1);
+      expect(warnings[0].type).toBe('invalid_section');
+      expect(warnings[0].details?.section).toBe('999');
+      expect(validateSectionReferences('Section 103 BNS', null)).toEqual([]);
     });
 
     it('deduplicates repeated invalid sections', () => {
@@ -278,14 +286,14 @@ describe('Layer 3 — Validator', () => {
         Custody since last month.
         Grounds for bail stated.
         Will not flee.
-        Section 485 BNSS invoked.
+        Section 600 BNSS invoked.
         PRAYER: Bail granted.
       `;
       const result = await validate(text, docRule);
-      // Section 485 is NOT in bail_regular's config (SCRUM-43 test case #5)
+      // T-270: BNSS 485 is in range now; an out-of-range number (BNSS 600) is the hallucination.
       const invalidWarnings = result.warnings.filter((w) => w.type === 'invalid_section');
       expect(invalidWarnings.length).toBe(1);
-      expect(invalidWarnings[0].details?.section).toBe('485');
+      expect(invalidWarnings[0].details?.section).toBe('600');
     });
 
     it('catches old IPC reference in output', async () => {

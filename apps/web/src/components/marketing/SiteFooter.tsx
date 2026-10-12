@@ -1,6 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
+import CookieSettingsButton from '@/components/CookieSettingsButton';
+
 export default function SiteFooter() {
   return (
     <footer className="site-footer">
@@ -60,6 +62,10 @@ export default function SiteFooter() {
             </li>
             <li>
               <Link href="/refunds">Refund Policy</Link>
+            </li>
+            <li>
+              {/* T-310: reopens the analytics consent notice (S9). */}
+              <CookieSettingsButton variant="footer" />
             </li>
           </ul>
         </div>

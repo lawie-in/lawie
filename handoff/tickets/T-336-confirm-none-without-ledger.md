@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft. Before release (Ajay) |
 | Owner  | Ajay (rule). Lead (build, drafting) |
 | Mode   | Small fix (legal content) |
-| Status | To do. Before release. Mahak right after T-190 (same files), ahead of T-334 and T-335. Raised by Ajay via Mahak, 12 Oct 2026 |
+| Status | Merged into develop_staging 273b6d4 (12 Oct 2026). Ajay approved cd889c8. Anushka tests on develop |
 
 With `feature.fact_ledger` off, a "None" read from the description for `earlier_bail_applications` is not confirmed. It reaches the non-ledger draft as an averment the advocate never made.
 

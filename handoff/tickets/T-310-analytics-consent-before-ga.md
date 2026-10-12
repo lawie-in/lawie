@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release. Gate before v1 go-live (T-403) |
 | Owner  | Rajesh (design). Ajay (wording, signs). Arjun (mechanism). Lead (build, web) |
 | Mode   | Small feature (web) |
-| Status | Building: kunal (12 Oct 2026) |
+| Status | Merged into develop_staging (af975f2, 12 Oct 2026). Waiting for Anushka on develop. Founder records the GA property check before prod |
 
 Decision (Priya, 12 Oct 2026, founder has delegated these calls): Google Analytics loads only after the visitor agrees. No consent, no GA script and no `_ga` cookies. Recommended by Ajay for DPDP.
 

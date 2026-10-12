@@ -13,3 +13,7 @@ Account close (blocked while a subscription is active) goes through `/internal/e
 ## Acceptance criteria
 
 See the slice list and acceptance criteria in `T-115-permanent-delete-and-encrypted-inputs.md` (Arjun, 12 Oct 2026, revised design). Gate before v1 go-live.
+
+## Note (Priya, 12 Oct 2026)
+
+Ajay condition 5 on T-242: deleting an account must remove the whole User document, including `signupSource` (UTM tags and time). No delete path exists today.

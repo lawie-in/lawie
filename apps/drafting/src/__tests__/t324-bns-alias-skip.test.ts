@@ -15,6 +15,7 @@ import path from 'path';
 import { SectionMapping } from '../models/SectionMapping.model';
 import { readSectionsCharged } from '../services/bns-offence-resolver';
 import { preflightCheck } from '../services/preflight.service';
+import * as sectionsService from '../services/sections.service';
 import { invalidateCache } from '../services/sections.service';
 
 const TABLE = JSON.parse(
@@ -267,6 +268,23 @@ describe('T-324 preflight: the old-law warning on an IPC alias', () => {
       expect(r.verdict).toBe('soft');
       expect(hits).toContain('old_law_section');
       expect(r.questions).toContain(SIGNED('999'));
+    });
+  });
+
+  describe('T-270 rider: lookup rejects', () => {
+    beforeEach(() => seed());
+    afterEach(() => jest.restoreAllMocks());
+
+    it('"BNS 303 (IPC 379)" still gives old_law_section with the IPC 379 signed line when lookupOldToNew rejects', async () => {
+      const spy = jest
+        .spyOn(sectionsService, 'lookupOldToNew')
+        .mockRejectedValue(new Error('sections store unavailable'));
+      const { r, hits, oldLaw } = await run('BNS 303 (IPC 379)');
+      expect(spy).toHaveBeenCalled();
+      expect(hits).toContain('old_law_section');
+      expect(oldLaw).toBe(1);
+      expect(r.verdict).toBe('soft');
+      expect(r.questions).toContain(SIGNED('379'));
     });
   });
 

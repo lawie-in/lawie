@@ -4,6 +4,8 @@ import { ArrowLeftRight, Search, FileText, ArrowLeft, Copy, Check } from 'lucide
 import Link from 'next/link';
 import { useState, useCallback } from 'react';
 
+import CookieSettingsButton from '@/components/CookieSettingsButton';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -136,6 +138,10 @@ export default function SectionConverterPage() {
               </Link>
               .
             </p>
+          </div>
+          {/* T-310: reopens the analytics consent notice (S9). */}
+          <div className="mt-6">
+            <CookieSettingsButton variant="tool" />
           </div>
         </div>
       </footer>

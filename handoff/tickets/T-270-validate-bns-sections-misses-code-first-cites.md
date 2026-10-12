@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (rule, signs). Lead (build). Anushka (verdict) |
 | Mode           | Rule first, then build. Legal content (`ai.service.ts`) |
-| Status         | Building: shashank (12 Oct 2026). Rule first from Ajay |
+| Status         | Merged into develop_staging e43420d (12 Oct 2026). Ajay signed 2da00de. Anushka tests on develop |
 
 ## Problem
 
