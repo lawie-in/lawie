@@ -38,6 +38,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 1. kunal — T-306 (f718a2b). Slot given 12 Oct 2026. Ajay signed f718a2b.
 2. shashank — T-278 (0c7638c + timeline note). Once Ajay signs; goes next if ready first.
 3. vishal — T-316 (81dbe29, tests only).
+4. mahak — T-318 (71fd81a). Once Ajay OKs 71fd81a.
 
 ## Last done
 
