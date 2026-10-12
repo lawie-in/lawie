@@ -35,7 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(empty)
+1. shashank — T-297 (ff4eaac). Slot given 12 Oct 2026, merge once Ajay signs ff4eaac.
 
 ## Last done
 

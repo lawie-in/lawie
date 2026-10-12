@@ -12,3 +12,7 @@
 ## Acceptance criteria
 
 1. The line describes the current source (`bns-offences.json`, derived at load time). No other change.
+
+## Rides along (Priya, 12 Oct 2026, from T-297 review)
+
+Widen the t297 term-guard regex in `apps/drafting/src/__tests__/t297-jurisdiction-notes.test.ts` to also catch "more than / less than / below / above" and "N years or more". Nothing matches today; this is a guard for future text.
