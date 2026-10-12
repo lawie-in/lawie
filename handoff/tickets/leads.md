@@ -36,6 +36,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 ## Merge queue
 
 1. mahak — T-293 (120a97b). Slot given 12 Oct 2026. Ajay signed 120a97b.
+2. tanvi — T-290 (d235458). After mahak. Ajay signed d235458.
 
 ## Last done
 

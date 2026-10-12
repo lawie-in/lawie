@@ -93,3 +93,7 @@ Priya chose a read-only drafting endpoint so the web shows exactly what the serv
 - For `{text}`: `entries` has exactly one element.
 - Everything else is as above (POST, caps, `title`, no alias, 400 with no echo).
 - Test: `["303", "303 BNS"]` gives two entries each with BNS 303 (no cross-entry de-duplication in the preview); `["103, 105"]` gives one entry with two items.
+
+## Note (Ajay, 12 Oct 2026)
+
+- `formatReadAsLine` gets a unit test once the web app has Jest; the browser check stands in until then.
