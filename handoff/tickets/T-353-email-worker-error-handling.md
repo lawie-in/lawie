@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (email-worker). Arjun (says if it gates release) |
 | Mode   | Small fix |
-| Status | To do. Mahak after T-220 step 1 (same files), while T-223 waits. Not a release gate unless Arjun says so. From the T-220 step 1 review, 12 Oct 2026 |
+| Status | Merged into develop_staging 9531484 (12 Oct 2026). Nothing to test in the UI |
 
 ## Acceptance criteria
 
