@@ -15,6 +15,13 @@ export interface IInkHold {
   split: { sub: number; carry: number; topup: number };
   unit: 'ink2';
   expiresAt: Date;
+  /**
+   * Set by settleInk before its ledger write: the draft reached the user, so
+   * the sweep must settle this hold, never release it.
+   */
+  deliver?: boolean;
+  /** The ledger reference settleInk was given, for a settle the sweep finishes. */
+  reference?: string;
 }
 
 export interface IUserDrafting extends Document {
@@ -75,6 +82,8 @@ const UserSchema = new Schema<IUserDrafting>(
             },
             unit: { type: String, enum: ['ink2'], default: 'ink2' },
             expiresAt: { type: Date, required: true },
+            deliver: Boolean,
+            reference: String,
           },
           { _id: false },
         ),

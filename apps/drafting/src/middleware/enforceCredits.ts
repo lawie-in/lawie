@@ -98,8 +98,8 @@ export async function enforceCredits(
   const balance = await getCreditBalance(payload.sub);
 
   if (balance.totalInk >= cost) {
-    // Stash the cost so the route handler can pass it to spendInk without
-    // recomputing — and so the SSE done event can echo it.
+    // Stash the cost so the route handler can hold it (withInkHold → holdInk)
+    // without recomputing — and so the SSE done event can echo it.
     (req as Request & { creditCost?: number }).creditCost = cost;
     next();
     return;

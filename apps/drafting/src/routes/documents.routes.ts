@@ -260,8 +260,11 @@ export interface InkHoldHandle {
  * Called right after resolveRun, before the pipeline: no header has been
  * sent, so a refusal can still be plain JSON.
  *   - not enough Ink → 402 with the same body as enforceCredits;
- *   - a hold for this (runId, runSequence) already exists → 409.
- * Neither calls the model.
+ *   - a hold for this (runId, runSequence) already exists → 409;
+ *   - the hold (or the balance read for the 402) throws → 500 with
+ *     `preStreamError`, the route's own pre-stream "Generation failed" body,
+ *     so the web shows its existing generic error.
+ * None of these calls the model.
  *
  * Disconnects: the pipeline takes no AbortSignal (ai.service.ts, which this
  * ticket does not touch), so a client that goes away does NOT abort the model
@@ -276,18 +279,32 @@ export async function withInkHold(
   res: Response,
   key: { runId: string; runSequence: number },
   cost: number,
+  preStreamError: Record<string, unknown>,
   run: (ink: InkHoldHandle) => Promise<void>,
 ): Promise<void> {
   const userId = req.jwtPayload!.sub;
   const { runId, runSequence } = key;
 
-  const held = await holdInk({ userId, costCredits: cost, runId, runSequence });
-  if (!held.ok) {
-    if (held.reason === 'duplicate') {
-      res.status(409).json({ error: 'Draft already in progress', runId });
+  // Express 4 does not catch a rejected async handler: a throw here would
+  // leave the request hanging, so it is answered with the route's own 500.
+  try {
+    const held = await holdInk({ userId, costCredits: cost, runId, runSequence });
+    if (!held.ok) {
+      if (held.reason === 'duplicate') {
+        res.status(409).json({ error: 'Draft already in progress', runId });
+        return;
+      }
+      res.status(402).json(insufficientInkBody(cost, await getCreditBalance(userId)));
       return;
     }
-    res.status(402).json(insufficientInkBody(cost, await getCreditBalance(userId)));
+  } catch (err) {
+    // Ids and the error class only: no user data. If the hold was written
+    // before the throw, the sweep releases it (no delivery, no Generation).
+    console.error(
+      `[drafting] ink hold failed (runId=${runId}, runSequence=${runSequence}):`,
+      err instanceof Error ? err.name : 'unknown',
+    );
+    if (!res.headersSent) res.status(500).json(preStreamError);
     return;
   }
 
@@ -570,7 +587,12 @@ router.post(
 
     // T-226: hold the cost before any model call (402/409 refusals as JSON;
     // no header has been sent yet). Every ending below closes the hold.
-    await withInkHold(req, res, { runId, runSequence }, chargedCost(req), async (ink) => {
+    // The pre-stream 500 body below ("Generation failed"), with its existing
+    // fallback message rather than a database error's text.
+    const holdError = { error: 'Generation failed', message: 'Unknown generation error' };
+    const inkKey = { runId, runSequence };
+    const inkCost = chargedCost(req); // T-227: no default price
+    await withInkHold(req, res, inkKey, inkCost, holdError, async (ink) => {
       // Stream the AI response via config-driven pipeline
       let result;
       try {
@@ -972,7 +994,11 @@ router.post(
 
     // T-226: hold the cost before any model call (402/409 refusals as JSON;
     // no header has been sent yet). Every ending below closes the hold.
-    await withInkHold(req, res, { runId, runSequence }, chargedCost(req), async (ink) => {
+    // The pre-stream 500 body below.
+    const holdError = { error: 'Generation failed' };
+    const inkKey = { runId, runSequence };
+    const inkCost = chargedCost(req); // T-227: no default price
+    await withInkHold(req, res, inkKey, inkCost, holdError, async (ink) => {
       let result;
       try {
         const common = {
@@ -1261,7 +1287,12 @@ router.post(
 
     // T-226: hold the cost before any model call (402/409 refusals as JSON;
     // no header has been sent yet). Every ending below closes the hold.
-    await withInkHold(req, res, { runId, runSequence }, chargedCost(req), async (ink) => {
+    // The pre-stream 500 body below ("Generation failed"), with its existing
+    // fallback message rather than a database error's text.
+    const holdError = { error: 'Generation failed', message: 'Unknown generation error' };
+    const inkKey = { runId, runSequence };
+    const inkCost = chargedCost(req); // T-227: no default price
+    await withInkHold(req, res, inkKey, inkCost, holdError, async (ink) => {
       // Stream the AI response via three-layer pipeline
       let result;
       try {

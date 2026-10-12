@@ -717,6 +717,102 @@ describe.each(PATHS)('T-226 — $name', (p) => {
     });
   });
 
+  // ── Review should-fix 1: a throw from holdInk / getCreditBalance ─────────
+  describe("the hold step itself throws (answered with the route's own 500, no hang)", () => {
+    // The route's existing pre-stream body, per route.
+    const expectedBody =
+      p.url === '/generate-from-brief'
+        ? { error: 'Generation failed' }
+        : { error: 'Generation failed', message: 'Unknown generation error' };
+    const PII = ['test@test.com', 'Test Advocate', 'Ram Kumar', 'secret-driver-text'];
+
+    function captureLogs() {
+      return (['error', 'warn', 'log', 'info'] as const).map((m) =>
+        jest.spyOn(console, m).mockImplementation(() => undefined),
+      );
+    }
+    const logged = (spies: jest.SpyInstance[]) =>
+      spies
+        .flatMap((s) => s.mock.calls.flat())
+        .map(String)
+        .join(' ');
+
+    async function completes(pending: Promise<request.Response>) {
+      return Promise.race([
+        pending,
+        new Promise<never>((_, rej) =>
+          setTimeout(() => rej(new Error('request hung: no response in 5s')), 5000),
+        ),
+      ]);
+    }
+
+    function expectNothingSpent(u: Awaited<ReturnType<typeof rawUser>>, ink: number) {
+      expect(u.inkTopup).toBe(ink);
+      expect(u.inkHolds).toEqual([]);
+    }
+
+    it('holdInk throws: 500 with the route body, no model or fetch call, no hang, no PII in the log', async () => {
+      await setInk(units * 3);
+      stubModel(p);
+      const fetchSpy = jest.spyOn(global, 'fetch');
+      const logs = captureLogs();
+      jest
+        .spyOn(credits, 'holdInk')
+        .mockRejectedValueOnce(
+          new Error('secret-driver-text test@test.com Test Advocate Ram Kumar'),
+        );
+
+      const res = await completes(post(p));
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual(expectedBody);
+      expect(mockMessagesStream).not.toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      const text = logged(logs);
+      expect(text).toContain('runId=');
+      expect(text).toContain('runSequence=');
+      expect(text).toContain('Error'); // the class name only
+      for (const pii of PII) expect(text).not.toContain(pii);
+      expect(res.text).not.toContain('secret-driver-text');
+
+      expectNothingSpent(await rawUser(), units * 3);
+      expect(await generateRows()).toHaveLength(0);
+      expect(await Generation.countDocuments({})).toBe(0);
+    });
+
+    it('getCreditBalance throws while building the 402 body: 500 with the route body, no model or fetch call, no hang, no PII in the log', async () => {
+      // The early check is fooled so holdInk itself refuses; the refusal body
+      // then reads the balance, and that read throws.
+      await setInk(units - 1);
+      const real = credits.getCreditBalance;
+      jest
+        .spyOn(credits, 'getCreditBalance')
+        .mockImplementationOnce(async (id: string) => ({ ...(await real(id)), totalInk: 1000 }))
+        .mockRejectedValueOnce(
+          new Error('secret-driver-text test@test.com Test Advocate Ram Kumar'),
+        );
+      stubModel(p);
+      const fetchSpy = jest.spyOn(global, 'fetch');
+      const logs = captureLogs();
+
+      const res = await completes(post(p));
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual(expectedBody);
+      expect(mockMessagesStream).not.toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      const text = logged(logs);
+      expect(text).toContain('runId=');
+      expect(text).toContain('Error');
+      for (const pii of PII) expect(text).not.toContain(pii);
+      expect(res.text).not.toContain('secret-driver-text');
+
+      expectNothingSpent(await rawUser(), units - 1);
+      expect(await generateRows()).toHaveLength(0);
+      expect(await Generation.countDocuments({})).toBe(0);
+    });
+  });
+
   // ── AC6.6 ────────────────────────────────────────────────────────────────
   describe('the fixture user (AC6.6)', () => {
     it('drafts with no hold, no ledger row and no user document', async () => {

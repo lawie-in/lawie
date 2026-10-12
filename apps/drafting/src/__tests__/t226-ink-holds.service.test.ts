@@ -4,7 +4,7 @@
  * and spendInk's awaited writes.
  *
  * Covers AC1 (atomic hold), AC3 (release), AC5 (sweep), AC7 (actualUnits),
- * AC8 (ledger failure leaves the hold, the sweep settles it), AC9 (a billing
+ * AC8 (a ledger failure after the pull keeps the Ink; the deliver mark makes the sweep settle), AC9 (a billing
  * renewal leaves the hold alone) and the fixture-user regression (AC6.6).
  * The route-level behaviour is in t226-ink-holds.routes.test.ts.
  *
@@ -349,7 +349,7 @@ describe('settleInk (AC1, AC7, AC8)', () => {
     expect((await generateRows('over'))[0].delta).toBe(-4);
   });
 
-  it('AC8: a ledger write failure leaves the hold in place, logs at error level, and the sweep settles it later', async () => {
+  it('AC8: a ledger write failure after the pull keeps the Ink, loses the rows, and logs ids and units only', async () => {
     await seed({ inkTopup: 10 });
     await holdInk({ userId: USER_ID, costCredits: 2, runId: 'lf', runSequence: 1 });
     const errSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -358,28 +358,21 @@ describe('settleInk (AC1, AC7, AC8)', () => {
       .mockRejectedValueOnce(new Error('ledger down'));
 
     const r = await settleInk(USER_ID, 'lf', 1);
-    expect(r).toEqual({ settled: false, reason: 'ledger_failed' });
-    expect(errSpy).toHaveBeenCalled();
-    expect(errSpy.mock.calls.flat().join(' ')).toContain('ledger down');
+    expect(r).toEqual({ settled: true, reason: 'ledger_failed' });
 
-    // The hold is still there, the Ink is still off the balance, no ledger row.
-    let u = await rawUser();
-    expect(u.inkHolds).toHaveLength(1);
-    expect(u.inkTopup).toBe(6);
-    expect(await generateRows('lf')).toHaveLength(0);
+    const logged = errSpy.mock.calls.flat().join(' ');
+    expect(errSpy).toHaveBeenCalledTimes(1);
+    expect(logged).toContain(`userId=${USER_ID}`);
+    expect(logged).toContain('runId=lf');
+    expect(logged).toContain('runSequence=1');
+    expect(logged).toContain('units=4');
+    expect(logged).not.toContain('ledger down');
 
-    // The run did finish: a completed Generation exists. Once the hold expires
-    // the sweep settles it (keeps the Ink, writes the rows).
-    await completedGeneration('lf', 1);
-    await expire('lf', 1);
-    const counts = await releaseExpiredHolds(USER_ID);
-    expect(counts).toEqual({ settled: 1, released: 0 });
-    u = await rawUser();
+    // The hold is gone, the Ink stays kept, and no generate row exists.
+    const u = await rawUser();
     expect(u.inkHolds).toEqual([]);
     expect(u.inkTopup).toBe(6);
-    const rows = await generateRows('lf');
-    expect(rows).toHaveLength(1);
-    expect(rows[0].delta).toBe(-4);
+    expect(await generateRows('lf')).toHaveLength(0);
   });
 
   it('AC8: a retry of a settle that failed after some rows landed does not double the rows', async () => {
@@ -400,6 +393,126 @@ describe('settleInk (AC1, AC7, AC8)', () => {
     const rows = await generateRows('part');
     expect(rows.map((r) => r.sourceBucket).sort()).toEqual(['sub', 'topup']);
     expect((await rawUser()).inkHolds).toEqual([]);
+  });
+});
+
+describe('settleInk races and faults (Arjun 12 Oct ruling: only the pull winner writes rows)', () => {
+  it('5 concurrent settles on one hold: one returns settled, four return no_hold, one set of rows', async () => {
+    await seed({ inkSub: 1, inkAnnualCarry: 1, inkTopup: 10 });
+    await holdInk({ userId: USER_ID, costCredits: 3, runId: 'race', runSequence: 1 }); // 1/1/4
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () => settleInk(USER_ID, 'race', 1)),
+    );
+    expect(results.filter((r) => r.settled)).toHaveLength(1);
+    expect(results.filter((r) => !r.settled)).toEqual(
+      Array(4).fill({ settled: false, reason: 'no_hold' }),
+    );
+    expect(results.find((r) => r.settled)).toEqual({ settled: true });
+
+    const rows = await generateRows('race');
+    expect(rows.map((r) => r.sourceBucket).sort()).toEqual(['annual_carry', 'sub', 'topup']);
+    expect(rows.reduce((a, r) => a + (r.delta as number), 0)).toBe(-6);
+    const u = await rawUser();
+    expect(u.inkHolds).toEqual([]);
+    expect(total(u)).toBe(6); // 12 - 6 kept
+  });
+
+  it('concurrent settles with actualUnits write one set of rows and refund once', async () => {
+    await seed({ inkTopup: 20 });
+    await holdInk({ userId: USER_ID, costCredits: 5, runId: 'racea', runSequence: 1 }); // 10 units
+    const results = await Promise.all(
+      Array.from({ length: 3 }, () => settleInk(USER_ID, 'racea', 1, 4)),
+    );
+    expect(results.filter((r) => r.settled)).toHaveLength(1);
+    expect((await rawUser()).inkTopup).toBe(16); // refunded 6, once
+    const rows = await generateRows('racea');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].delta).toBe(-4);
+  });
+
+  it('double fault: document saved, ledger write fails, no completed Generation: the Ink is not refunded by the sweep', async () => {
+    await seed({ inkTopup: 10 });
+    await holdInk({ userId: USER_ID, costCredits: 2, runId: 'df', runSequence: 1 });
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    jest
+      .spyOn(mongoose.mongo.Collection.prototype, 'bulkWrite')
+      .mockRejectedValueOnce(new Error('ledger down'));
+    expect(await settleInk(USER_ID, 'df', 1)).toEqual({ settled: true, reason: 'ledger_failed' });
+    jest.restoreAllMocks();
+
+    expect(await Generation.countDocuments({ runId: 'df' })).toBe(0);
+    await expire('df', 1); // no-op: the hold is gone; the sweep must find nothing
+    expect(await releaseExpiredHolds(USER_ID)).toEqual({ settled: 0, released: 0 });
+    const u = await rawUser();
+    expect(u.inkTopup).toBe(6); // kept, not refunded
+    expect(u.inkHolds).toEqual([]);
+    expect(await generateRows('df')).toHaveLength(0);
+  });
+
+  it('process died after the deliver mark but before the pull: the expired hold is settled by the sweep with the stored reference, not released', async () => {
+    await seed({ inkSub: 1, inkTopup: 10 });
+    await holdInk({ userId: USER_ID, costCredits: 2, runId: 'dd', runSequence: 1 }); // sub 1, topup 3
+    // What settleInk's first step leaves behind.
+    await User.collection.updateOne(
+      { _id: OID },
+      { $set: { 'inkHolds.$[h].deliver': true, 'inkHolds.$[h].reference': 'doc-ref-9' } },
+      { arrayFilters: [{ 'h.runId': 'dd', 'h.runSequence': 1 }] },
+    );
+    expect(await Generation.countDocuments({ runId: 'dd' })).toBe(0);
+    await expire('dd', 1);
+
+    expect(await releaseExpiredHolds(USER_ID)).toEqual({ settled: 1, released: 0 });
+    let u = await rawUser();
+    expect(u.inkHolds).toEqual([]);
+    expect(total(u)).toBe(7); // 11 - 4 kept, nothing refunded
+    expect(u.inkSub).toBe(0);
+    expect(u.inkTopup).toBe(7);
+    const rows = await generateRows('dd');
+    expect(rows.map((r) => r.sourceBucket).sort()).toEqual(['sub', 'topup']);
+    expect(rows.reduce((a, r) => a + (r.delta as number), 0)).toBe(-4);
+    for (const row of rows) expect(row.reference).toBe('doc-ref-9');
+
+    // A second sweep changes nothing.
+    expect(await releaseExpiredHolds(USER_ID)).toEqual({ settled: 0, released: 0 });
+    u = await rawUser();
+    expect(u.inkTopup).toBe(7);
+    expect(await generateRows('dd')).toHaveLength(2);
+  });
+
+  it('an expired hold with no deliver mark and no completed Generation is still released (control)', async () => {
+    await seed({ inkTopup: 10 });
+    await holdInk({ userId: USER_ID, costCredits: 2, runId: 'ctl', runSequence: 1 });
+    await expire('ctl', 1);
+    expect(await releaseExpiredHolds(USER_ID)).toEqual({ settled: 0, released: 1 });
+    expect((await rawUser()).inkTopup).toBe(10);
+    expect(await generateRows('ctl')).toHaveLength(0);
+  });
+
+  it('concurrent settle and release on one hold: exactly one wins and the balance is consistent', async () => {
+    // Repeat to give the race a chance to fall both ways.
+    for (let i = 0; i < 12; i++) {
+      await User.deleteMany({});
+      await ledger().deleteMany({});
+      await seed({ inkSub: 1, inkTopup: 10 });
+      const runId = `sr-${i}`;
+      await holdInk({ userId: USER_ID, costCredits: 2, runId, runSequence: 1 }); // 4 units
+      const [s, r] = await Promise.all([
+        settleInk(USER_ID, runId, 1),
+        releaseInk(USER_ID, runId, 1),
+      ]);
+      expect(s.settled !== r.released).toBe(true); // exactly one won
+
+      const u = await rawUser();
+      expect(u.inkHolds).toEqual([]);
+      const rows = await generateRows(runId);
+      if (s.settled) {
+        expect(total(u)).toBe(7); // kept: 11 - 4
+        expect(rows.reduce((a, x) => a + (x.delta as number), 0)).toBe(-4);
+      } else {
+        expect(total(u)).toBe(11); // refunded
+        expect(rows).toHaveLength(0);
+      }
+    }
   });
 });
 
