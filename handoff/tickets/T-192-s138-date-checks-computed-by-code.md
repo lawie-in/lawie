@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                  |
 | Owner          | Vishal (build). Ajay signs the logic. Anushka (verdict)                                                                 |
 | Mode           | Build, full chain. Merge to develop                                                                                     |
-| Status         | To do                                                                                                                   |
+| Status         | Building: vishal (12 Oct 2026). Ajay signs the logic first |
 | Size           | M (1 day), plus Ajay's sign-off time                                                                                    |
 | Depends on     | T-147c (the banned entries and their unlock keys)                                                                       |
 | Gate           | Before `notice_within_thirty_days` or `presented_within_validity` may unlock for any user. Until then both stay banned, which is fail-safe |

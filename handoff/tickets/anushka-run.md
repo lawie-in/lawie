@@ -512,3 +512,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The warning still shows when the bracketed IPC number doesn't match, or when an IPC section is entered on its own.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-327 — default bail blanks accepted as is (cd5b32b)
+
+- In a default bail where the user hasn't given the default-bail period or its expiry date, a draft that leaves the brief's own blank is accepted as is. It is no longer sent back to the AI for a rewrite that could invent them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

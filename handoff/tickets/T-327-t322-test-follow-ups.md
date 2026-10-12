@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (tests; one small export) |
 | Mode   | Small fix (legal content; Ajay sees the diff) |
-| Status | Building: vishal (12 Oct 2026) |
+| Status | Merged into develop_staging (cd5b32b, 12 Oct 2026). Waiting for Anushka on develop |
 
 ## Acceptance criteria
 
