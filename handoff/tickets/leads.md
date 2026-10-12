@@ -22,8 +22,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. shashank — T-250 + T-255 (when its chain is done; the slot is free).
-2. mahak — T-235 + T-254A (privacy branch) after its tests and Ajay's sign-off.
+1. mahak — T-235 + T-254A (chain complete, Ajay approved d2d0885; the slot is hers now, 12 Oct).
+2. shashank — T-250 + T-255 (tester running; takes the slot when his chain is done).
 
 ## Last done
 
