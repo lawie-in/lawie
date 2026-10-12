@@ -63,3 +63,11 @@ The complaint's own limitation (s.142) and the 15-day payment period after the n
 | Fields | Add L2, L4 and L5 to `legal_notice_s138` with the exact labels above. L1 and L3 are the existing `cheque_date` and `presentation_date`. |
 | L5 | Given by the advocate. When it is given, the notice's date line uses L5. When it is missing, the date line stays as today's date, the entry stays banned, and the brief shows B4. |
 | `ni_complaint_s138` | Overrides both entries back to banned (never). Extending the checks to the complaint needs a separate ticket and a new sign-off. |
+
+## Addendum 2 (12 Oct 2026 IST): FACTS display, conflicting L2, date format
+
+| Item | Ruling |
+|---|---|
+| Model-facing FACTS display on a pass | `Presented in time: yes (checked by Lawie from the dates given)` / `Notice in time: yes (checked by Lawie from the dates given)`. A1/B1 appear only in the brief for the advocate; the notice may use only the twin texts. |
+| L2 unresolved (conflicting values) | Counts as missing: A4 with `[To be confirmed: Last date of validity printed on the cheque, if any]`. No fallback. Only an absent L2 falls back to 3 months. |
+| Date format on the notice's date line | `4 April 2026` (no leading zero) for both L5 and today's date. |
