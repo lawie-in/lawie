@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Lead (build). Ajay (sees the changed draft text) |
 | Mode           | Small fix. Fixture data under `scripts/golden-set/fixtures`, not a legal path |
-| Status         | To do. Queued for vishal with T-256. Found by mahak and vishal, 12 Oct 2026 |
+| Status         | Merged into develop_staging (addd9e7), 12 Oct 2026. Nothing to test in the UI |
 
 ## Problem
 
