@@ -6,7 +6,7 @@
     "last_updated": "2026-05-10",
     "source": "Bharatiya Nyaya Sanhita 2023, Bharatiya Nagarik Suraksha Sanhita 2023, Bharatiya Sakshya Adhiniyam 2023; cross-mapped against IPC 1860/CrPC 1973/IEA 1872",
     "change_protocol": "All edits to this file require CLO sign-off. Vishal must not author entries; raise Jira ticket to Ajay if a doc-type, section, or alias is missing or incorrect.",
-    "schema_note": "Doc-type keys (bail_application, legal_notice, etc.) carry sections[] + bns_offences{}. Alias maps live under ipc_to_bns, crpc_to_bnss, iea_to_bsa for keyword resolution."
+    "schema_note": "Doc-type keys (bail_application, legal_notice, etc.) carry sections[] + bns_offences{}. Alias maps live under ipc_to_bns and crpc_to_bnss for keyword resolution."
   },
   "bail_application": {
     "act": "Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023",
@@ -128,12 +128,27 @@
     ]
   },
   "affidavit": {
-    "act": "Oaths Act, 1969 / Bharatiya Sakshya Adhiniyam (BSA), 2023",
+    "act": "Oaths Act, 1969 / Notaries Act, 1952 / Code of Civil Procedure, 1908",
     "sections": [
       {
-        "number": "85",
-        "description": "Affidavit",
-        "act": "BSA"
+        "number": "3",
+        "description": "Power to administer oaths and affirmations",
+        "act": "Oaths Act, 1969"
+      },
+      {
+        "number": "8",
+        "description": "Functions of notaries",
+        "act": "Notaries Act, 1952"
+      },
+      {
+        "number": "Order XIX",
+        "description": "Affidavits",
+        "act": "Code of Civil Procedure, 1908"
+      },
+      {
+        "number": "Order XIX Rule 3",
+        "description": "Matters to which affidavits shall be confined",
+        "act": "Code of Civil Procedure, 1908"
       }
     ]
   },
@@ -572,48 +587,6 @@
     "482": {
       "bnss": "528",
       "title": "Saving of inherent powers of High Court"
-    }
-  },
-  "iea_to_bsa": {
-    "3": {
-      "bsa": "2",
-      "title": "Interpretation clause"
-    },
-    "17": {
-      "bsa": "15",
-      "title": "Admission defined"
-    },
-    "24": {
-      "bsa": "22",
-      "title": "Confession caused by inducement, threat or promise"
-    },
-    "25": {
-      "bsa": "23",
-      "title": "Confession to police officer not to be proved"
-    },
-    "27": {
-      "bsa": "23(2)",
-      "title": "How much of information received from accused may be proved"
-    },
-    "32": {
-      "bsa": "26",
-      "title": "Cases in which statement of relevant fact by person who is dead is relevant"
-    },
-    "45": {
-      "bsa": "39",
-      "title": "Opinions of experts"
-    },
-    "65B": {
-      "bsa": "63",
-      "title": "Admissibility of electronic records"
-    },
-    "85": {
-      "bsa": "85",
-      "title": "Affidavit"
-    },
-    "114": {
-      "bsa": "119",
-      "title": "Court may presume existence of certain facts"
     }
   }
 }
