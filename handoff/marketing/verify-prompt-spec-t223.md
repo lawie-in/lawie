@@ -6,14 +6,14 @@ Owner: Rajesh. For the lead building T-223. Copy: `handoff/marketing/copy/verify
 
 - Google sign-in counts as verified, no prompt. Email/password accounts are unverified until they click the link (signed, single-use, 24 h expiry).
 - An unverified user gets the first draft. The second draft, the daily login bonus and Razorpay checkout are refused with a "verify your email" prompt plus a resend button (resend is rate-limited).
-- Trigger (2) is therefore **a verification refusal, not an Ink refusal.** "Not enough Ink" stays on the existing Paywall flow. The refusal must come back as its own error code, so the web app can tell the two apart (lead and Arjun name it). Priya to confirm this reading; the ticket's three refusals are second draft, daily bonus, checkout.
+- Trigger (2), per Priya's decision: since T-351 an unverified email user has 0 Ink, so when the Ink refusal hits an unverified email user the web app shows this verify modal instead of the paywall. Verified users (including Google) still get the paywall. No new error code: the web app decides from the refusal plus the user's verified flag.
 
 ## 1. Component per place
 
 | Place | Component | Why |
 | --- | --- | --- |
 | 1. Sign-in (email/password user, still unverified) | **Banner**, full width under the top bar on every dashboard page, until verified. Dismissible for the session only; returns on next load. | It must not block the first draft, which stays free of friction. |
-| 2. Draft refused (second draft) | **Modal** (Radix Dialog, shadcn Dialog). Opens from the refusal, over the intake or draft screen. | The user's action was just stopped; they need the reason and the one next step. The entered matter must be kept behind it. |
+| 2. Draft refused for Ink, user unverified (email) | **Modal** (Radix Dialog, shadcn Dialog). Opens from the refusal, over the intake or draft screen. | The user's action was just stopped; they need the reason and the one next step. The entered matter must be kept behind it. |
 | 3. Checkout (Razorpay, plan or top-up) | **Inline card** in place of the pay button, plan summary left visible above it. Pay is not rendered while unverified. | The user is already on a page about paying; a modal would hide the plan they chose. |
 | Daily bonus | No UI of its own: the bonus is simply not granted. If the product shows a bonus toast, the same banner covers it. Priya to confirm. | |
 
@@ -84,7 +84,7 @@ Behaviour rules: Resend cooldown and limit come from the server's response (do n
 Fictional account only, address shown masked, no real names. Each at 375 px and 1280 px unless noted.
 
 1. Banner on the dashboard, unverified email/password user.
-2. Modal after a refused second draft (default).
+2. Modal after an Ink refusal for an unverified email user (default). Also one capture of a verified user hitting the Ink refusal and seeing the paywall, not this modal.
 3. Modal states: resend loading, sent, limit with countdown, network error.
 4. Checkout inline card on the payment page, and in the top-up flow.
 5. Verify landing page: success, link expired, already verified.
