@@ -26,6 +26,7 @@ interface JsonMapping {
     new_code_full: string;
     effective_date: string;
     validated_by: string;
+    last_updated: string;
   };
   mappings: Record<
     string,
@@ -35,6 +36,10 @@ interface JsonMapping {
       new_title: string | null;
       type: string;
       notes?: string;
+      // CrPC rows use `note` (singular); read it when `notes` is absent.
+      note?: string;
+      // repealed_no_equivalent rows carry their reason here.
+      new_law_status?: string;
     }
   >;
   new_provisions: Record<string, { title: string; notes: string }>;
@@ -45,6 +50,33 @@ const JSON_FILES: JsonMapping[] = [
   crpcToBnss as unknown as JsonMapping,
   ieaToBsa as unknown as JsonMapping,
 ];
+
+/**
+ * Tables Ajay (CLO) has signed row by row (T-250, T-255), keyed by meta.old_code.
+ * Only these carry validatedBy (meta.validated_by) and validatedAt (meta.last_updated).
+ * Rows from any other table omit validatedBy, so the schema default
+ * "Pending CLO review" applies, and validatedAt stays null.
+ * Explicit list: do not infer a signature from the meta text.
+ */
+const SIGNED_TABLES = new Set(['CrPC', 'IEA']);
+
+function validationFor(meta: JsonMapping['meta']): {
+  validatedBy?: string;
+  validatedAt: Date | null;
+} {
+  if (SIGNED_TABLES.has(meta.old_code)) {
+    return { validatedBy: meta.validated_by, validatedAt: new Date(meta.last_updated) };
+  }
+  return { validatedAt: null };
+}
+
+function notesFor(mapping: JsonMapping['mappings'][string]): string {
+  const notes = mapping.notes ?? mapping.note;
+  if (notes !== undefined) return notes;
+  // Ajay approved new_law_status as the note only for rows with no equivalent.
+  if (mapping.type === 'repealed_no_equivalent') return mapping.new_law_status ?? '';
+  return '';
+}
 
 async function seed() {
   const mongoUri = process.env.MONGO_URI;
@@ -68,6 +100,7 @@ async function seed() {
 
   for (const file of JSON_FILES) {
     const { meta } = file;
+    const validation = validationFor(meta);
     console.log(`\nProcessing ${meta.old_code} → ${meta.new_code}...`);
 
     // Seed regular mappings
@@ -93,9 +126,9 @@ async function seed() {
         oldTitle: mapping.old_title,
         newTitle: mapping.new_title,
         mappingType: mapping.type,
-        notes: mapping.notes ?? '',
+        notes: notesFor(mapping),
         effectiveDate: new Date(meta.effective_date),
-        validatedBy: meta.validated_by,
+        ...validation,
         isNewProvision: false,
       });
       created++;
@@ -126,7 +159,7 @@ async function seed() {
         mappingType: 'direct',
         notes: provision.notes,
         effectiveDate: new Date(meta.effective_date),
-        validatedBy: meta.validated_by,
+        ...validation,
         isNewProvision: true,
       });
       created++;

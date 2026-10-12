@@ -208,14 +208,14 @@
       "Para 4: Relevance and materiality — for each document or category, state how it relates to specific issue and why it is necessary for fair adjudication.",
       "Para 5: Documents are in non-applicant's possession, custody, or power — including documents held by non-applicant's agents, banks, accountants.",
       "Para 6: Applicant does not have copies and cannot reasonably obtain them.",
-      "Para 7: Documents not protected by legal privilege under Bharatiya Sakshya Adhiniyam, 2023 — note BSA replaces Indian Evidence Act 1872. Relevant privileges: S.132 BSA (privileged communication between spouses), S.134 (state communications), S.136 (no person to be compelled to produce title-deeds), S.139 (professional communications with legal advisers — replaces S.126 IEA).",
+      "Para 7: Documents not protected by privilege under the Bharatiya Sakshya Adhiniyam, 2023, which replaced the Indian Evidence Act, 1872. Privileges the advocate should check before listing a document: communications during marriage (BSA 128, IEA 122); evidence as to affairs of State (BSA 129, IEA 123); official communications (BSA 130, IEA 124); professional communications (BSA 132, IEA 126); confidential communications with legal advisers (BSA 134, IEA 129); production of title-deeds of a witness who is not a party (BSA 135, IEA 130). The advocate decides which, if any, applies.",
       "Para 8: Banking secrecy — bank documents may require notice / S.4 Bankers' Books Evidence Act for certified entries.",
       "Para 9: Documents not protected by RTI exemptions, official secrets, or other statutory immunity.",
       "Para 10: Previous demand — if applicant served notice on opposite party requesting voluntary production, note demand and any refusal.",
       "Para 11: Adverse inference under O.11 R.21 — refusal or failure to produce relevant documents in own custody invites adverse presumption.",
       "Where Commercial Courts Act applies (commercial dispute >= Rs.3 lakh): Schedule of CCA replaces Order 11 with detailed mandatory disclosure regime (Order XI of CCA Schedule) — mandatory affidavit of disclosure within 30 days of WS; further discovery on application; non-compliance carries serious consequences.",
       "For document held by third party (not opposite party): use Order 16 R.6 (subpoena duces tecum) and S.30(c) CPC — different application.",
-      "Where document held by government / public office: S.137-138 BSA (formerly S.123-124 IEA) — state privilege; production by way of certified copy if not privileged.",
+      "Where document held by government / public office: S.129-130 BSA (formerly S.123-124 IEA) — state privilege; production by way of certified copy if not privileged.",
       "Inspection facility — usually at advocate's office under supervision; copies on payment of cost.",
       "Interrogatories must be specific, relate to matters in question, not be in nature of cross-examination, not be oppressive.",
       "Affidavit in support is mandatory.",
@@ -243,15 +243,15 @@
     {
       "act": "Bharatiya Sakshya Adhiniyam, 2023 (replaces Indian Evidence Act, 1872)",
       "sections": [
-        { "number": "S.132", "description": "Communications during marriage — privilege" },
-        { "number": "S.134", "description": "Affairs of state — privilege" },
+        { "number": "S.128", "description": "Communications during marriage — privilege" },
+        { "number": "S.129", "description": "Affairs of state — privilege" },
         {
-          "number": "S.136",
+          "number": "S.135",
           "description": "Production of title-deeds — witness not bound to produce"
         },
-        { "number": "S.137", "description": "Production of documents — official records" },
+        { "number": "S.130", "description": "Official communications — privilege" },
         {
-          "number": "S.139",
+          "number": "S.132",
           "description": "Professional communications — legal adviser (replaces S.126 IEA)"
         }
       ]
@@ -304,7 +304,7 @@
     "Mathew George v. Cherian Punnan AIR 1990 Ker 67 — Specific identification of documents required",
     "S.C. Cement Industries Ltd v. UoI AIR 1990 Del 198 — Inspection of documents — principles",
     "Iridium India Telecom Ltd v. Motorola Inc (2005) 2 SCC 145 — Adverse inference principles under O.11 R.21",
-    "S.D. Khan v. State of Maharashtra (1997) 6 SCC 705 — Privilege under S.123 IEA (now S.134 BSA)"
+    "S.D. Khan v. State of Maharashtra (1997) 6 SCC 705 — Privilege under S.123 IEA (now S.129 BSA)"
   ],
   "disclaimer": "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
 }
