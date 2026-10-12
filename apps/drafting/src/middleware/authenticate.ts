@@ -9,6 +9,8 @@ export interface JwtPayload {
   name: string;
   role: string;
   plan: string;
+  /** T-343 — accepted privacy version (pv claim), forwarded by the gateway; absent = not accepted. */
+  pv?: string;
 }
 
 declare global {
