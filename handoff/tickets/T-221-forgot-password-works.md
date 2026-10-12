@@ -360,3 +360,7 @@ Checked "Copy (Madhuri, final, 11 Oct 2026)" against T-225 (AC1a, AC1b, AC1c) an
 | 11 | All title, CTA, subject and button variants | Approved, any variant | |
 
 Signed: Ajay (CLO), 11 Oct 2026, night. Conditional on items 3, 4 and 10.
+
+## Note (Priya, 12 Oct 2026, from the T-220 review)
+
+The email job must carry `userId` in its data, never an email address, or the worker logs carry no user id (T-210).
