@@ -14,3 +14,7 @@
 2. A FIR number matches as a whole token: no adjacent digit and no "/", so "12" doesn't match a date.
 3. No other change. "submitted" stays weak (accepted), and the FIR cue matching its own blank is intended. "bail … before this Hon'ble Court" is closed by dropping "before" in T-241, not here.
 4. Tests for each rule. Ajay signs the diff. Moved snapshots are listed for him.
+
+## Follow-up (vishal, 12 Oct 2026, non-blocking)
+
+- The t266 multi-word phrase test is weak. Strengthen it in the next ticket that touches brief-drafter.ts cue matching.

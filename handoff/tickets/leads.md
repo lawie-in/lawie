@@ -35,7 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(queue empty)
+1. vishal — T-266 (f100564). Slot given 12 Oct 2026; merge once Ajay signs f100564.
 
 ## Last done
 
