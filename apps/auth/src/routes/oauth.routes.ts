@@ -30,6 +30,8 @@ const OAUTH_CODE_BYTES = 32;
 // 32 random bytes in base64url are 43 characters; anything far off that is not one of ours.
 const OAUTH_CODE_MIN_LENGTH = 16;
 const OAUTH_CODE_MAX_LENGTH = 128;
+// T-319: mirrors registerSchema.referralCode .max(16) in validators/auth.validator.ts.
+const REFERRAL_CODE_MAX_LENGTH = 16;
 
 interface OAuthTokenPair {
   accessToken: string;
@@ -101,14 +103,19 @@ router.get(
     if (!isBase64Url43(challenge)) {
       return res.status(400).json({ error: 'invalid_challenge' });
     }
+    // Same cap as registerSchema.referralCode (max 16). An empty or longer code is dropped, not
+    // refused, so it can never push the signed state past OAUTH_STATE_MAX_LENGTH.
+    const rawReferral = req.query['referralCode'];
+    const trimmedReferral =
+      typeof rawReferral === 'string' ? rawReferral.trim().toUpperCase() : undefined;
     const referralCode =
-      typeof req.query['referralCode'] === 'string' && req.query['referralCode']
-        ? (req.query['referralCode'] as string).trim().toUpperCase()
+      trimmedReferral && trimmedReferral.length <= REFERRAL_CODE_MAX_LENGTH
+        ? trimmedReferral
         : undefined;
     return passport.authenticate('google', {
       scope: ['email', 'profile'],
       session: false,
-      state: createOAuthState(challenge, referralCode || undefined),
+      state: createOAuthState(challenge, referralCode),
     })(req, res, next);
   },
 );

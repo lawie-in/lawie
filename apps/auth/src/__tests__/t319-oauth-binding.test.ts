@@ -565,6 +565,54 @@ describe('T-319 referral code travels in the signed state (r)', () => {
     expect(verifyOAuthState(state)?.r).toBe('ABC123');
   });
 
+  describe('referral code length on /google (dropped, never a 400)', () => {
+    // OAUTH_STATE_MAX_LENGTH in oauth-state.ts is not exported, so its value is hard-coded here.
+    const STATE_MAX_LENGTH = 1024;
+    const stateFor = async (referralCode: string) => {
+      const res = await supertest(server)
+        .get('/google')
+        .query({ challenge: challengeForVerifier(newVerifier()), referralCode })
+        .redirects(0);
+      expect(res.status).toBe(302);
+      return new URL(res.headers.location).searchParams.get('state') as string;
+    };
+
+    it.each([
+      ['17 chars', 'a'.repeat(17)],
+      ['1000 chars', 'a'.repeat(1000)],
+      ['17 chars after trimming', `  ${'b'.repeat(17)}  `],
+    ])(
+      'a %s code is dropped: verified state with no r, state within the limit',
+      async (_l, code) => {
+        const state = await stateFor(code);
+        expect(state.length).toBeLessThanOrEqual(STATE_MAX_LENGTH);
+        const verified = verifyOAuthState(state);
+        expect(verified).not.toBeNull();
+        expect(verified).not.toHaveProperty('r');
+      },
+    );
+
+    it('a 16-char code is kept as r, upper-cased', async () => {
+      const verified = verifyOAuthState(await stateFor('abcdefghij123456'));
+      expect(verified?.r).toBe('ABCDEFGHIJ123456');
+    });
+
+    it('a whitespace-only code gives no r', async () => {
+      const verified = verifyOAuthState(await stateFor('   '));
+      expect(verified).not.toBeNull();
+      expect(verified).not.toHaveProperty('r');
+    });
+
+    it('sign-in still completes with an over-long code (no referral applied)', async () => {
+      await makeCode({ code: 'LONGDROP', bonusInk: 3 });
+      const { res, code } = await signIn(undefined, 'x'.repeat(1000), 'long319@example.com');
+      expect(res.status).toBe(302);
+      expect(new URL(res.headers.location).pathname).toBe('/auth/callback');
+      expect(code).toBeTruthy();
+      expect((await ReferralCode.findOne({ code: 'LONGDROP' }).lean())!.uses).toBe(0);
+    });
+  });
+
   it('no referral: the state has no r', async () => {
     const res = await supertest(server)
       .get('/google')
