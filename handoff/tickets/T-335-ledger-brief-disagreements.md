@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Arjun (mechanism). Lead (build, drafting) |
 | Mode   | Small fix |
-| Status | To do. Not v1-blocking. Mahak after T-190 (same files). Found in the T-190 review, 12 Oct 2026 |
+| Status | Building: mahak (12 Oct 2026), then T-334 |
 
 ## Problems
 

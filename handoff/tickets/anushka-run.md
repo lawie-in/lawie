@@ -596,3 +596,10 @@ What a user can now do:
 - Admins see and filter by each document's category.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-338 — blanks for half-read or unasked bail details (10faf08, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting on: when a bail detail was only half-read from their description or was never asked, see a clear blank for it in the draft to fill in, instead of the point being left out.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
