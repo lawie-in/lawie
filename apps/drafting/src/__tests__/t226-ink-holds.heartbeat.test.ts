@@ -32,6 +32,8 @@ import {
 } from '../services/credits.service';
 import { type InkHoldHandle, withInkHold } from '../routes/documents.routes';
 
+jest.mock('../utils/sse-keepalive', () => ({ startSseKeepAlive: () => () => {} }));
+
 jest.setTimeout(60_000);
 
 const USER_ID = '507f1f77bcf86cd7994392d1';
