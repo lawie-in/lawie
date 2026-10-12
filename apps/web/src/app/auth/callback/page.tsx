@@ -6,14 +6,26 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
 
+// T-234 — one-time notices when a referral code sent with Google added no Ink.
+// not_applied: Ajay Addendum 1. existing_account: Ajay Addendum 2.
+// Both signed in handoff/legal/T-234-login-copy-signed.md.
+const REFERRAL_NOT_APPLIED_MESSAGE =
+  'Your referral code was no longer valid, so no bonus Ink was added.';
+const REFERRAL_EXISTING_ACCOUNT_MESSAGE =
+  'Referral bonuses are for new accounts only, so no bonus Ink was added.';
+const REFERRAL_NOTICES = new Map<string, string>([
+  ['not_applied', REFERRAL_NOT_APPLIED_MESSAGE],
+  ['existing_account', REFERRAL_EXISTING_ACCOUNT_MESSAGE],
+]);
+
 function CallbackHandler() {
   const router = useRouter();
   const params = useSearchParams();
   const { login } = useAuth();
   const handled = useRef(false);
-  // T-234 (Ajay Addendum 1): the auth service adds referral=not_applied when a referral code sent
-  // with a new Google sign-up was no longer valid. Show the notice once, then continue.
-  const [referralNotApplied, setReferralNotApplied] = useState(false);
+  // T-234: the auth service adds referral=not_applied (new account, code no longer valid) or
+  // referral=existing_account (account already existed). Show the notice once, then continue.
+  const [referralNotice, setReferralNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (handled.current) return;
@@ -34,16 +46,17 @@ function CallbackHandler() {
     }
 
     login(accessToken, refreshToken);
-    if (params.get('referral') === 'not_applied') {
+    const notice = REFERRAL_NOTICES.get(params.get('referral') ?? '');
+    if (notice) {
       // Drop the tokens from the address bar while the notice is on screen.
       window.history.replaceState(null, '', '/auth/callback');
-      setReferralNotApplied(true);
+      setReferralNotice(notice);
       return;
     }
     router.replace('/dashboard');
   }, [params, login, router]);
 
-  if (!referralNotApplied) return null;
+  if (!referralNotice) return null;
 
   // Same look as the email-path notice on the login page.
   return (
@@ -52,7 +65,7 @@ function CallbackHandler() {
         <div role="status">
           <p className="flex items-start gap-2 text-base text-slate-900">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
-            <span>Your referral code was no longer valid, so no bonus Ink was added.</span>
+            <span>{referralNotice}</span>
           </p>
           <button
             type="button"

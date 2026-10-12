@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import passport from 'passport';
 
 import { env } from '../config/env';
-import { REFERRAL_NOT_APPLIED_FLAG } from '../config/passport';
+import { REFERRAL_EXISTING_ACCOUNT_FLAG, REFERRAL_NOT_APPLIED_FLAG } from '../config/passport';
 import { IUser } from '../models/User.model';
 import { tryGrantDailyLoginBonus } from '../services/credit-bonus.service';
 import { generateTokenPair } from '../services/jwt.service';
@@ -75,10 +75,14 @@ router.get(
     const redirectUrl = new URL(`${env.FRONTEND_URL}/auth/callback`);
     redirectUrl.searchParams.set('accessToken', accessToken);
     redirectUrl.searchParams.set('refreshToken', refreshToken);
-    // T-234 (Ajay Addendum 1): a referral code sent with a new Google sign-up was no longer
-    // valid, so no bonus Ink was added. The web app shows the one-time notice.
-    if ((req as unknown as Record<string, unknown>)[REFERRAL_NOT_APPLIED_FLAG] === true) {
+    // T-234: tell the web app why a referral code sent with Google added no Ink, so it can show
+    // a one-time notice. not_applied = new account, code no longer valid (Ajay Addendum 1);
+    // existing_account = the account already existed, bonuses are for new accounts only.
+    const flags = req as unknown as Record<string, unknown>;
+    if (flags[REFERRAL_NOT_APPLIED_FLAG] === true) {
       redirectUrl.searchParams.set('referral', 'not_applied');
+    } else if (flags[REFERRAL_EXISTING_ACCOUNT_FLAG] === true) {
+      redirectUrl.searchParams.set('referral', 'existing_account');
     }
 
     res.redirect(redirectUrl.toString());

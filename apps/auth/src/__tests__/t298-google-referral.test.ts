@@ -184,3 +184,70 @@ describe('Ajay Addendum 1 — Google redirect carries referral=not_applied', () 
     expect(await ledger().countDocuments({ reason: 'referral_bonus' })).toBe(1);
   });
 });
+
+describe('T-234 review R1 — existing account via Google with a code: referral=existing_account', () => {
+  const grantedRows = (userId: unknown) =>
+    ledger().countDocuments({ userId, reason: 'referral_bonus' });
+
+  it('existing user found by googleId: param set, no Ink, uses and referredVia unchanged', async () => {
+    await makeCode({ code: 'EXISTGID', bonusInk: BONUS, uses: 2 });
+    const first = await callback('gexist@example.com', 'g-exist');
+    expect(new URL(first.headers.location).searchParams.has('referral')).toBe(false);
+    const u = await User.findOne({ email: 'gexist@example.com' }).lean();
+    await waitForSeed(u!._id);
+
+    const res = await callback('gexist@example.com', 'g-exist', 'EXISTGID');
+    expect(res.status).toBe(302);
+    const url = new URL(res.headers.location);
+    expect(url.pathname).toBe('/auth/callback');
+    expect(url.searchParams.get('referral')).toBe('existing_account');
+    expect(url.searchParams.get('accessToken')).toBeTruthy();
+
+    expect((await rawUsers().findOne({ _id: u!._id }))!.inkTopup).toBe(10);
+    expect(await grantedRows(u!._id)).toBe(0);
+    expect((await ReferralCode.findOne({ code: 'EXISTGID' }).lean())!.uses).toBe(2);
+    expect((await User.findOne({ _id: u!._id }).lean())!.referredVia ?? null).toBeNull();
+  });
+
+  it('existing email-linked user: param set, no Ink, uses and referredVia unchanged', async () => {
+    await makeCode({ code: 'EXISTLNK', bonusInk: BONUS });
+    const existing = await User.create({
+      email: 'glinked2@example.com',
+      name: 'L',
+      password: 'Passw0rdOk',
+    });
+    const res = await callback('glinked2@example.com', 'g-linked2', 'EXISTLNK');
+    const url = new URL(res.headers.location);
+    expect(url.searchParams.get('referral')).toBe('existing_account');
+    expect(url.searchParams.get('accessToken')).toBeTruthy();
+    expect(await grantedRows(existing._id)).toBe(0);
+    expect((await ReferralCode.findOne({ code: 'EXISTLNK' }).lean())!.uses).toBe(0);
+    expect((await User.findOne({ _id: existing._id }).lean())!.referredVia ?? null).toBeNull();
+  });
+
+  it('existing user with a bogus code still gets existing_account (never not_applied)', async () => {
+    await callback('gexist3@example.com', 'g-exist3');
+    const u = await User.findOne({ email: 'gexist3@example.com' }).lean();
+    await waitForSeed(u!._id);
+    const res = await callback('gexist3@example.com', 'g-exist3', 'NOSUCHCODE');
+    expect(new URL(res.headers.location).searchParams.get('referral')).toBe('existing_account');
+  });
+
+  it('existing user with no code: no referral param', async () => {
+    await callback('gexist4@example.com', 'g-exist4');
+    const u = await User.findOne({ email: 'gexist4@example.com' }).lean();
+    await waitForSeed(u!._id);
+    const res = await callback('gexist4@example.com', 'g-exist4');
+    expect(new URL(res.headers.location).searchParams.has('referral')).toBe(false);
+  });
+
+  it('new user + invalid code is still not_applied; new user + valid code has no param', async () => {
+    const bad = await callback('gnewbad@example.com', 'g-newbad', 'NOSUCHCODE');
+    expect(new URL(bad.headers.location).searchParams.get('referral')).toBe('not_applied');
+    await makeCode({ code: 'NEWVALID', bonusInk: BONUS });
+    const ok = await callback('gnewok@example.com', 'g-newok', 'NEWVALID');
+    expect(new URL(ok.headers.location).searchParams.has('referral')).toBe(false);
+    const u = await User.findOne({ email: 'gnewok@example.com' }).lean();
+    await waitForSeed(u!._id);
+  });
+});

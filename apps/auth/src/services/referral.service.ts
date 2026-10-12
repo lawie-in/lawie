@@ -10,6 +10,7 @@ import crypto from 'crypto';
 
 import mongoose from 'mongoose';
 
+import logger from '../config/logger';
 import { IReferralCode, ReferralCode } from '../models/ReferralCode.model';
 import { User } from '../models/User.model';
 
@@ -102,6 +103,7 @@ export type ReferralApplyResult = 'applied' | 'invalid' | 'already_applied';
  * - Then takes a use slot on the code atomically (uses < maxUses checked in the same update as
  *   the $inc). If refused, the claim is undone and nothing is granted ('invalid').
  * - Only a winner of both steps grants Ink and signals drafting
+ * - If the grant credits nothing or throws, the slot and the claim are rolled back ('invalid')
  * - Grants rc.bonusInk Ink into the raw inkTopup bucket + writes an inkledger row
  * - Signals drafting service for legacy enforceFreeLimit compat
  *
@@ -131,18 +133,49 @@ export async function applyReferralCode(
     slotFilter['$expr'] = { $lt: ['$uses', '$maxUses'] };
   }
   const slot = await ReferralCode.findOneAndUpdate(slotFilter, { $inc: { uses: 1 } });
+
+  // Undo this call's own steps: give back the use slot (only if this call took it) and release
+  // the claim (only while the user still points at this code). Never throws.
+  const userOid = new mongoose.Types.ObjectId(userId);
+  const rollback = async (tookSlot: boolean): Promise<void> => {
+    try {
+      if (tookSlot) {
+        await ReferralCode.updateOne({ _id: rc._id, uses: { $gt: 0 } }, { $inc: { uses: -1 } });
+      }
+      await User.updateOne({ _id: userOid, referredVia: rc._id }, { $set: { referredVia: null } });
+    } catch {
+      logger.error({ userId, referralCodeId: String(rc._id) }, 'Referral rollback failed');
+    }
+  };
+
   if (!slot) {
-    // Slot refused (used up or disabled since validation): undo this call's claim, but only if
-    // the user still points at this code, and grant nothing.
-    await User.updateOne(
-      { _id: new mongoose.Types.ObjectId(userId), referredVia: rc._id },
-      { $set: { referredVia: null } },
-    );
+    // Slot refused (used up or disabled since validation): grant nothing.
+    await rollback(false);
     return 'invalid';
   }
 
-  // Grant Ink into inkTopup + set freeTierBonusGrant for legacy middleware
-  await grantReferralInk(userId, rc.bonusInk ?? 5, rc.code);
+  // Grant Ink into inkTopup + set freeTierBonusGrant for legacy middleware.
+  // 0 means nothing was credited (no DB connection, user not found). On 0 or a throw, roll back
+  // the slot and the claim so the code is not consumed for Ink the user never got (T-234 review).
+  let granted = 0;
+  try {
+    granted = await grantReferralInk(userId, rc.bonusInk ?? 5, rc.code);
+  } catch {
+    logger.error(
+      { userId, referralCodeId: String(rc._id) },
+      'Referral Ink grant threw; rolling back the referral',
+    );
+    await rollback(true);
+    return 'invalid';
+  }
+  if (granted <= 0) {
+    logger.error(
+      { userId, referralCodeId: String(rc._id) },
+      'Referral Ink grant credited nothing; rolling back the referral',
+    );
+    await rollback(true);
+    return 'invalid';
+  }
 
   // Signal drafting service to pre-load BonusCredit grants (legacy enforceFreeLimit path)
   void signalDraftingBonus(userId, (rc.bonusInk ?? 5) * 5);

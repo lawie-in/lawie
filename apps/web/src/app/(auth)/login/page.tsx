@@ -134,6 +134,7 @@ function LoginContent() {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
+  const applyRef = useRef<HTMLButtonElement>(null);
   const tabRefs = useRef<Record<Mode, HTMLButtonElement | null>>({ signin: null, signup: null });
   const prevMode = useRef<Mode>(mode);
   // Focus moves to the first empty field only for a switch from the bottom switch link or
@@ -217,6 +218,9 @@ function LoginContent() {
       setValidating(false);
     }
   };
+
+  // Stable identity so the modal's mount effect (focus, trap, focus return) runs once.
+  const closeOfferModal = useCallback(() => setShowOfferModal(false), []);
 
   const handleApply = async () => {
     const code = referralCode.trim().toUpperCase();
@@ -376,7 +380,8 @@ function LoginContent() {
           code={referralCode.trim().toUpperCase()}
           label={referralLabel}
           bonusInk={referralBonusInk}
-          onClose={() => setShowOfferModal(false)}
+          onClose={closeOfferModal}
+          fallbackFocusRef={applyRef}
         />
       )}
 
@@ -501,6 +506,7 @@ function LoginContent() {
                           className="focus:ring-lawie-600 h-12 min-w-0 flex-1 rounded-lg border border-slate-500 bg-white px-3 font-mono text-base uppercase tracking-widest text-slate-900 placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-500 focus:outline-none focus:ring-2"
                         />
                         <button
+                          ref={applyRef}
                           type="button"
                           onClick={() => void handleApply()}
                           disabled={!referralCode.trim() || validating}

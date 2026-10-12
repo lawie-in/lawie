@@ -15,6 +15,13 @@ import logger from './logger';
 export const REFERRAL_NOT_APPLIED_FLAG = 'lawieReferralNotApplied';
 
 /**
+ * T-234 review — request property set when an EXISTING account (found by googleId or linked by
+ * email) comes through Google with a referral code. Referral bonuses are for new accounts only:
+ * nothing is granted, and the callback tells the web app (referral=existing_account).
+ */
+export const REFERRAL_EXISTING_ACCOUNT_FLAG = 'lawieReferralExistingAccount';
+
+/**
  * T-234 — Terms acceptance for Google sign-in. The login page is the only entry to
  * /api/auth/google and shows Ajay's consent line in both modes, so reaching this callback
  * means the user saw it. Set only if empty: an existing acceptance is never overwritten
@@ -92,6 +99,11 @@ export function initPassport(): void {
               { $set: acceptance },
             );
             if (res.modifiedCount > 0) user.set(acceptance);
+          }
+
+          // Existing account with a code: grant nothing, but don't drop it silently (T-234 review).
+          if (!isNewUser && referralCode) {
+            (req as unknown as Record<string, unknown>)[REFERRAL_EXISTING_ACCOUNT_FLAG] = true;
           }
 
           // Apply referral code only for brand-new accounts. Awaited so a code that is no

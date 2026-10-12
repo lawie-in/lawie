@@ -12,26 +12,63 @@ export default function ReferralOfferModal({
   label,
   bonusInk,
   onClose,
+  fallbackFocusRef,
 }: {
   code: string;
   label: string;
   bonusInk: number;
   onClose: () => void;
+  // Where focus returns on close when the element focused at open is gone or is <body>
+  // (a mouse-clicked Apply button is disabled during "Checking…", which drops its focus).
+  fallbackFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
   const ctaRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // Latest onClose in a ref, so a new function identity from the parent never re-runs the
+  // mount effect below (which would re-focus the CTA and reset the focus-return target).
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const fallbackRef = useRef(fallbackFocusRef);
+  fallbackRef.current = fallbackFocusRef;
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
     ctaRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      // Focus trap for the aria-modal dialog: Tab / Shift+Tab cycle inside it.
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      const focusables = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      const inside = active instanceof Node && dialogRef.current.contains(active);
+      if (e.shiftKey && (active === first || !inside)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !inside)) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      previouslyFocused?.focus();
+      const opener =
+        previouslyFocused && previouslyFocused !== document.body && previouslyFocused.isConnected
+          ? previouslyFocused
+          : fallbackRef.current?.current;
+      opener?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   return (
     <div
@@ -39,6 +76,7 @@ export default function ReferralOfferModal({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="referral-offer-title"
@@ -94,9 +132,14 @@ export default function ReferralOfferModal({
                 className="mt-0.5 shrink-0 text-green-700"
                 aria-hidden="true"
               />
-              <span>
-                <strong>{bonusInk} Ink</strong> added to your account when you sign up
-              </span>
+              {bonusInk > 0 ? (
+                <span>
+                  <strong>{bonusInk} Ink</strong> added to your account when you sign up
+                </span>
+              ) : (
+                // Same fallback as the inline line (R6): never show "0 Ink".
+                <span>Bonus Ink will be added when you create your account.</span>
+              )}
             </li>
             <li className="flex items-start gap-2.5 text-sm text-slate-700">
               <CheckCircle2
