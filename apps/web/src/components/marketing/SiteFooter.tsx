@@ -10,10 +10,12 @@ export default function SiteFooter() {
             <Image src="/lockup-on-dark.png" alt="Lawie" width={150} height={35} />
           </Link>
           <p className="footer-tag">
-            Legal drafting for Indian advocates — built around BNS, BNSS, and BSA.
+            Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section
+            numbers.
           </p>
           <p className="footer-disclaimer">
-            AI-assisted drafting tool — not a substitute for legal advice.
+            Lawie is a drafting assistant. The advocate is responsible for legal accuracy and
+            filing.
           </p>
         </div>
         <div className="footer-col">
@@ -67,7 +69,9 @@ export default function SiteFooter() {
           © 2026 Lawie <span className="divider-dot">·</span> Contact:{' '}
           <a href="mailto:contact@lawie.in">contact@lawie.in</a>
         </span>
-        <span>AI-assisted drafting tool — not a substitute for legal advice.</span>
+        <span>
+          Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
+        </span>
       </div>
     </footer>
   );
