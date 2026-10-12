@@ -22,8 +22,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. vishal — T-256 + T-264 (chain complete, bee7185; Ajay approved fixture 1a; the slot is his now, pull first).
-2. mahak — T-233 + T-271 (reviewer round 1 passed; retest and re-review running).
+1. mahak — T-233 + T-271 (fc86570, all green; the slot is hers now, 12 Oct 03:33 UTC, since Vishal held it 30 minutes without a push).
+2. vishal — T-256 + T-264 (chain complete, bee7185; Ajay approved fixture 1a; right after mahak, pull first).
 
 ## Last done
 
