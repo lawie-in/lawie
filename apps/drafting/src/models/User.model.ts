@@ -50,6 +50,11 @@ export interface IUserDrafting extends Document {
    * INK_SETTLED_KEEP entries.
    */
   inkSettled?: Array<{ runId: string; runSequence: number; settledAt: Date }>;
+  /**
+   * T-311: the advocate's Bar Council enrolment number. Owned by auth; drafting
+   * only reads it (by the JWT `sub`, when a draft is built) and never writes it.
+   */
+  readonly enrollmentNumber?: string;
   /** ObjectId reference — typed permissively for cross-service shape */
   referredVia?: unknown;
   createdAt?: Date;
@@ -111,6 +116,9 @@ const UserSchema = new Schema<IUserDrafting>(
       default: undefined,
     },
     referredVia: { type: Schema.Types.ObjectId, default: null },
+    // T-311: read-only here (auth writes it). `immutable` refuses a change from
+    // drafting on an existing user document; no default, so nothing is written.
+    enrollmentNumber: { type: String, immutable: true },
   },
   {
     timestamps: true,
