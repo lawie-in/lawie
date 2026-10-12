@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (doc-only) |
 | Mode   | Small fix (docs) |
-| Status | Building: shashank (12 Oct 2026) |
+| Status | Merged into develop_staging (205e199, 12 Oct 2026). Nothing to test in the UI |
 
 `docs/seeding.md` (about line 41) still names `bns-bailability.json`, which T-277 retires (bailability is now derived from `bns-offences.json` at load time).
 
