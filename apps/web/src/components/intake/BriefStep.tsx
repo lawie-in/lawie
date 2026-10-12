@@ -74,7 +74,13 @@ type RowStatus =
   | { kind: 'failed'; typed: Value };
 
 /** T-147b, section 3: the advocate's own words, under the field they explain. */
-function Reveal({ id, lines }: { id: string; lines: string[] }) {
+function Reveal({
+  id,
+  lines,
+}: {
+  id: string;
+  lines: string[];
+}) {
   return (
     <div
       id={id}
@@ -135,12 +141,10 @@ function Item({
   const toBeAsked = onLedger && entry.unresolved !== undefined && !entry.fact;
   // A required fact, or one an edited description left unclear (T-150), shows its blank.
   const showBlank = empty && (item.required || item.reask === true || toBeAsked);
-  const pleaseCheck =
-    onLedger && entry.fact
-      ? entry.fact.source === 'user' || item.note !== undefined
-      : item.please_check;
-  const required =
-    ledger !== null && (item.required || blocksConfirm || entry.fact?.required_in_draft === true);
+  const pleaseCheck = onLedger && entry.fact
+    ? entry.fact.source === 'user' || item.note !== undefined
+    : item.please_check;
+  const required = ledger !== null && (item.required || blocksConfirm || entry.fact?.required_in_draft === true);
   const badRead = status?.kind === 'unreadable';
   // These sit on top of the shared field look, so they are marked important.
   const look =
@@ -176,10 +180,7 @@ function Item({
       ? factLines(entry.fact)
       : null
     : toBeAsked && entry.unresolved
-      ? [
-          spanLine(revealLabel(entry.unresolved.source, false), entry.unresolved.raw_span),
-          entry.unresolved.detail,
-        ]
+      ? [spanLine(revealLabel(entry.unresolved.source, false), entry.unresolved.raw_span), entry.unresolved.detail]
       : null;
   const revealButtonLabel = entry.fact
     ? revealLabel(entry.fact.source, entry.fact.previous_display !== undefined)
@@ -455,9 +456,7 @@ export default function BriefStep({
   const itemKeys = new Set(brief.items.map((i) => i.key));
   const ledgerFacts = ledger ? renderedLedgerFacts(ledger) : [];
   const otherFacts = ledger ? ledger.facts.filter((f) => !itemKeys.has(f.key)) : [];
-  const outstanding = ledger
-    ? ledger.unresolved.filter((u) => !ledger.facts.some((f) => f.key === u.key))
-    : [];
+  const outstanding = ledger ? ledger.unresolved.filter((u) => !ledger.facts.some((f) => f.key === u.key)) : [];
   const nothingRead = ledger !== null && ledgerFacts.length === 0 && outstanding.length === 0;
 
   // T-147b, section 9: coming back from the questions opened here, focus the block's
@@ -546,7 +545,8 @@ export default function BriefStep({
 
       {nothingRead && (
         <p className="bg-brand-page text-brand-navy mt-4 rounded-lg p-3 text-sm">
-          We did not find any details in your description. Add them below, or edit your description.
+          We did not find any details in your description. Add them below, or edit your
+          description.
         </p>
       )}
 
