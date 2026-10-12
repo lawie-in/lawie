@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release. Before go-live |
 | Owner  | Ajay (signs replacement text). Lead (build, web). Anushka (verdict) |
 | Mode   | Small fix (web, legal text) |
-| Status | Building: mahak (12 Oct 2026). Text signed 8bac42c; layout.tsx line with kunal |
+| Status | Merged into develop_staging (ca2d88f, 12 Oct 2026). Waiting for Anushka on develop |
 
 ## What's wrong
 

@@ -32,7 +32,7 @@ export default function Footer() {
 
         {/* Disclaimer */}
         <p className="mt-6 text-center text-xs text-slate-400">
-          AI-assisted drafting tool — not a substitute for legal advice.
+          Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
         </p>
       </div>
     </footer>

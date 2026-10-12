@@ -413,3 +413,28 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - In regular and default bail, "before this Hon'ble Court" no longer counts as covering earlier applications.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-317 — one consistent description across the site (ca2d88f)
+
+- The home page, FAQ, About and Tools pages and the site footer all describe Lawie the same way: a drafting assistant for Indian advocates, where criminal drafts use BNS, BNSS and BSA section numbers and the advocate is responsible for legal accuracy and filing.
+- FAQ answers say each document is a first draft generated with AI that the filing advocate must review.
+- An exported PDF's footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-306 — login stays out of the address bar and analytics (ba54d48)
+
+- Sign in with Google as before. The sign-in no longer puts the login in the page address, browser history or analytics.
+- The dashboard, drafts and login pages are no longer tracked; only public pages are counted, without query details.
+- The browser tab title reads "Lawie — Drafting Assistant for Indian Advocates".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-278 — bail checker and timeline show signed notes (92efbc3)
+
+- In the bail checker, an old IPC section with no new equivalent, or one not in the table, shows a clear note to check the Gazette, instead of a blank or a guessed section.
+- In the timeline tracker, every section left out of the period says why: it's an old-law section (with a pointer to the section converter), it doesn't create an offence, or it wasn't found in the BNS offences table.
+- Typing "BNS 103" or "103-BNS" in the timeline works like typing 103.
+- Unknown values show "Depends…", never "Non-Bailable" or a guessed court.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

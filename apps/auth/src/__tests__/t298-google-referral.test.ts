@@ -88,6 +88,16 @@ function callback(email: string, id: string, state?: string) {
     .redirects(0);
 }
 
+// T-306: the redirect carries a one-time code and never a token, in query or fragment.
+function expectCodeNoTokens(location: string) {
+  const url = new URL(location);
+  expect(url.searchParams.get('code')).toBeTruthy();
+  expect(url.searchParams.has('accessToken')).toBe(false);
+  expect(url.searchParams.has('refreshToken')).toBe(false);
+  expect(location).not.toMatch(/accessToken|refreshToken/);
+  expect(url.hash).toBe('');
+}
+
 describe('Ajay gate — NEW Google sign-up with a referral code credits top-up Ink', () => {
   it('inkTopup = 10 + 2N, ledger agrees, uses +1, redirect has tokens and no referral flag', async () => {
     await makeCode({ code: 'GATEGOOG', bonusInk: BONUS });
@@ -95,7 +105,7 @@ describe('Ajay gate — NEW Google sign-up with a referral code credits top-up I
     expect(res.status).toBe(302);
     const url = new URL(res.headers.location);
     expect(url.pathname).toBe('/auth/callback');
-    expect(url.searchParams.get('accessToken')).toBeTruthy();
+    expectCodeNoTokens(res.headers.location);
     expect(url.searchParams.has('referral')).toBe(false);
 
     const u = await User.findOne({ email: 'ggate@example.com' }).lean();
@@ -144,7 +154,7 @@ describe('Ajay Addendum 1 — Google redirect carries referral=not_applied', () 
     const url = new URL(res.headers.location);
     expect(url.pathname).toBe('/auth/callback');
     expect(url.searchParams.get('referral')).toBe('not_applied');
-    expect(url.searchParams.get('accessToken')).toBeTruthy();
+    expectCodeNoTokens(res.headers.location);
 
     const u = await User.findOne({ email: 'gdead@example.com' }).lean();
     expect(u).not.toBeNull();
@@ -201,7 +211,7 @@ describe('T-234 review R1 — existing account via Google with a code: referral=
     const url = new URL(res.headers.location);
     expect(url.pathname).toBe('/auth/callback');
     expect(url.searchParams.get('referral')).toBe('existing_account');
-    expect(url.searchParams.get('accessToken')).toBeTruthy();
+    expectCodeNoTokens(res.headers.location);
 
     expect((await rawUsers().findOne({ _id: u!._id }))!.inkTopup).toBe(10);
     expect(await grantedRows(u!._id)).toBe(0);
@@ -219,7 +229,7 @@ describe('T-234 review R1 — existing account via Google with a code: referral=
     const res = await callback('glinked2@example.com', 'g-linked2', 'EXISTLNK');
     const url = new URL(res.headers.location);
     expect(url.searchParams.get('referral')).toBe('existing_account');
-    expect(url.searchParams.get('accessToken')).toBeTruthy();
+    expectCodeNoTokens(res.headers.location);
     expect(await grantedRows(existing._id)).toBe(0);
     expect((await ReferralCode.findOne({ code: 'EXISTLNK' }).lean())!.uses).toBe(0);
     expect((await User.findOne({ _id: existing._id }).lean())!.referredVia ?? null).toBeNull();
