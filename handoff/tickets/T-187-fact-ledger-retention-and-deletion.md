@@ -88,3 +88,13 @@ Before any real user's facts go into a Fact Ledger, a written rule says how long
 3. Ledger contents are already encrypted at rest (`factsEnc`, T-115a). AC10 (no `raw_span`, `value`, `display` in logs, Sentry or errors) still gets its test.
 4. Out of scope, as written: `FactDiff` (T-147d, Ajay's own item), `Generation` rows.
 **Ajay:** set the period (90 days proposed: long enough to re-draft from the same facts, short enough not to hold client details idle), confirm hard delete and unlink, cite the DPDP sections, and sign here. Then Vishal builds 7-10.
+
+## Arjun (12 Oct 2026): mechanism, aligned to Ajay's signed rule (handoff/legal/T-187-fact-ledger-retention-signed.md, 33af21e)
+
+Ajay's rule replaces my 90-day proposal above: the ledger lives as long as its draft; abandoned intakes go after 30 days; draft delete (even soft) and account erase delete it at once. Mechanism (AC6):
+1. **Abandoned intakes:** `FactLedger.expiresAt` = last activity + 30 days, reset on every new version, with a **TTL index**. When a draft is generated from the intake, `expiresAt` is **unset**, so a drafted ledger never expires by time.
+2. **`eraseLedgerData({ userId } | { intakeIds })`**: `deleteMany` on `FactLedger`, unlink (`$unset userId, intakeId`) on `LlmAuxCall` `intake_extract` rows, `DEL` of the matching Redis `intake_extract` keys. Called from: (a) **today's soft-delete path for drafts/matters** (`isDeleted: true`), not waiting for T-115b, intakeIds via `Generation.intakeId`; (b) T-115c's `/internal/erase-user` when it lands.
+3. **TTL-expired ledgers:** a daily job unlinks `intake_extract` rows whose `intakeId` no longer has a ledger and deletes any leftover Redis key. A TTL index cannot cascade, so the job closes that gap; its lag is at most 24 h + the TTL monitor's 60 s.
+4. **Redis:** `INTAKE_CACHE_TTL_SECONDS` stays 30 min (under Ajay's 24 h cap); a test pins it ≤ 24 h.
+5. **Fixtures:** no time limit; a test asserts golden-set ledgers come only from the reserved fixture user and synthetic fixture files.
+6. Tests: AC7 (draft soft-delete → no ledger version left, rows unlinked, key gone), AC8 (30-day TTL via `expiresAt`, drafted ledger has none), AC9 (TTL ≤ 24 h), AC10 (no ledger content in logs/Sentry/errors). Ajay checks the build diff.

@@ -79,3 +79,5 @@ From the T-189 build (Vishal, tester round 1): a list or choices key that has so
 3. The brief lists every unresolved item as outstanding, past-cap ones included; what the brief shows and what the Drafter receives are the same set (AC7). The advocate can fill any of them in the brief before drafting, as today.
 4. Build is small: extend T-338's pass-through to required keys and to the list case, plus tests for AC4, AC5, AC7 (with 11+ unresolved), AC8 (10 or fewer: unchanged) and the list case. No prompt text change unless Ajay signs the diff.
 **Ajay:** sign option A and confirm the T-338 blank is the marker (AC1, AC2).
+
+Arjun (12 Oct 2026): Ajay signed option A at 33af21e (handoff/legal/T-188-unresolved-past-cap-signed.md). The marker is the existing `{{MISSING: label}}` blank; partly resolved lists print the resolved entries plus that blank. Matches my design above; build as written there.

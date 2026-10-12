@@ -15,3 +15,7 @@ If the database update fails after the privacy accept has taken the session, the
 2. A code comment at the accept route explains the order and why.
 3. Arjun decides whether to reorder (update first, then rotate the session). If yes, do it here.
 4. Screen-reader and reduced-motion checks of the T-343 prompt (untested in T-343) are done and noted, or handed to Anushka's run.
+
+## Arjun (12 Oct 2026): keep the order (option A)
+
+Keep take-session → update → createSession, same as `/refresh`. Reason: the acceptance is a consent record, so it is written only by a request whose session we have just proved live and consumed; reordering (B) lets a revoked session record consent in a race. The cost of A is a rare sign-out after a DB failure, which is safe. Add the comment and the test (AC1-2) as the ticket says.
