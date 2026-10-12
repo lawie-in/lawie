@@ -161,3 +161,7 @@ None of these touch `packages/shared`. They are assigned after the v1 blockers.
 ## Design check (Rajesh, 12 Oct 2026)
 
 `handoff/design/T-253-assistant-panel.md` already covers entry points, open/closed, refusal, rate-limit, disclaimer and the free-plan locked state. Needs Ajay: signed strings for the monthly-cap and cool-down messages and the 90-day report line; keep the client-names notice visible while pasted text is present; a Hindi disclaimer. His signed refusal R1 differs from the quoted "I can only help with law and Lawie"; the panel uses R1.
+
+## Ajay's addendum covers Rajesh's open strings (12 Oct 2026)
+
+Everything `handoff/design/T-253-assistant-panel.md` lists as needing Ajay (monthly cap, cool-down, unavailable, 90-day report line, Hindi line, notice stays visible) is signed in his T-253 file, Addendum of 12 Oct, with a table in `handoff/legal/emails-waitlist-panel-signed.md`. The panel uses refusal R1 word for word. The CTA text for the locked state comes from Meera and goes back to Ajay.

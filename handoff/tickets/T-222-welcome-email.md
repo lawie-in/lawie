@@ -255,3 +255,7 @@ Signed: Ajay (CLO), 11 Oct 2026, night. Conditional on changes 4 and 5 applied v
 ## Priya (11 Oct 2026, night)
 
 Ajay's change 2 needs one more line for password sign-ups: how to verify the email (T-223 option B). Madhuri adds it once T-223's acceptance criteria are written. Ships with T-223.
+
+## Ajay approved the email copy (12 Oct 2026, `handoff/legal/emails-waitlist-panel-signed.md`)
+
+Draft in `handoff/marketing/copy/emails.md`. The Ink swap is fine, but the email must not ship before T-227 merges (T-227 is merged: 12 Oct). Hindi welcome is faithful: keep the English disclaimer first, Hindi after. The verification email (24 h, single-use) is approved as a draft: "second draft / daily bonus / buy Ink" must equal what T-223 builds; delete the daily-bonus clause if it is not live. Subject C "One step left" is rejected. The reset page must answer the same whether or not an account exists. Footer address and PIN: the founder's.
