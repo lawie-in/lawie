@@ -686,3 +686,7 @@ What a user can now do:
 - An admin opening document analytics sees which templates are used, by name, with counts and how many were finalised, instead of an empty table.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## Run 3 result (13 Oct 2026): FAIL
+
+Report: `handoff/quality/2026-10-13-run-3-develop-FAIL.md`. Fix tickets: T-359 to T-368. Entries that failed or were blocked stay on the list for the next run, re-tested once their fix merges.

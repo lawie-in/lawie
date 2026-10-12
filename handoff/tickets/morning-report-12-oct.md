@@ -2,6 +2,19 @@
 
 Nothing here blocks the team and I need no approval. Merging to `develop` or `main` is yours and is not listed.
 
+## Anushka run 3 on develop: FAIL (13 Oct 2026)
+
+Report: `handoff/quality/2026-10-13-run-3-develop-FAIL.md`. I've turned the failures into 10 fix tickets, T-359 to T-368, all release gates for main. Ajay signs the legal ones. They go to leads as each one frees up.
+
+**Only you can unblock these before her next run:**
+1. Let her download PDF and DOCX (she asked during the run). This blocks 6 entries.
+2. Add an enrollment number to the test profile, or allow her to edit settings (T-311).
+3. Switch the `feature.fact_ledger` setting off for one run, so she can test the "off" half (T-336, T-333, T-190).
+4. HTTPS on develop (T-319).
+5. A separate Chrome profile for her, with a private window and a fresh account (T-209, T-339, T-328). For phone width she can use DevTools device mode at 375 px.
+
+**Test data in your account:** six test drafts with made-up names. Plaint `6acd6b989d9b5710e3805371` has a typed test line. Delete them when you choose.
+
 ## Merged into develop_staging overnight (waiting for Anushka on develop)
 T-208, T-209, T-210, T-197, T-189, T-194, T-227, T-248, T-251, T-200, T-252a, T-235 + T-254A; CI-only: T-211, T-249. CI is green on every merge (last: #380, #381).
 
