@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Arjun (mechanism). Lead (build, drafting) |
 | Mode   | Small fix |
-| Status | Building: mahak (12 Oct 2026), then T-334 |
+| Status | Merged into develop_staging fcc74a5 (12 Oct 2026). Anushka tests on develop |
 
 ## Problems
 

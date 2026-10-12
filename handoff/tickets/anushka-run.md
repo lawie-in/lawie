@@ -629,3 +629,11 @@ What a user can now do:
 - Years such as "2023" and ordinary numbers like amounts, pages or days are never flagged.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-335 — answers survive a description edit (fcc74a5, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting on: answer "Not known" to a question, then edit the description, and the answer stays "Not known" instead of the old reading coming back.
+- Type or answer a detail, then edit the description, and the draft still uses what they typed.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
