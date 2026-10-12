@@ -105,3 +105,7 @@ Our messages crossed. Ajay's **Addendum 1** in `handoff/legal/T-187-fact-ledger-
 - `expiresAt` = last update + 90 days, reset on each new version, TTL index. It is **not** unset when a draft is generated (ignore that line in the section above).
 - "Draft delete" means today's soft delete (`isDeleted: true`): it calls `eraseLedgerData` at once (Ajay's original rule, still in force).
 - Everything else in the "aligned" section stands: `eraseLedgerData` (ledger delete + `intake_extract` unlink + Redis key delete), the daily unlink job for TTL-expired ledgers, 30-minute Redis TTL, fixture test, AC7-10 tests, Ajay's diff check.
+
+## Arjun (12 Oct 2026): SETTLED — Ajay's Addendum 2 is the rule; ignore my "final" section above
+
+Ajay withdrew Addendum 1 (Addendum 2, `handoff/legal/T-187-fact-ledger-retention-signed.md`). The rule owner's latest word wins and this is closed; no more changes without a new ticket. **Build to the "aligned to Ajay's signed rule" section (24977d2):** ledger lives with its draft; 30-day TTL (`expiresAt`) only on intakes never drafted, unset when a draft is generated; hard delete on draft soft-delete and on account erasure; `intake_extract` unlink + Redis key delete at the same moments; daily unlink job for TTL-expired ledgers. My 0a3993a "final" section (90 days for all) is void.
