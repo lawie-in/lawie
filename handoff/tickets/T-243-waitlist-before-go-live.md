@@ -34,3 +34,7 @@ Checked: no waitlist backend exists. `WaitlistForm.tsx` still has `// TODO: POST
 9. No email address in logs or Sentry (as AC3); the erase script prints counts only.
 
 **For the T-284 privacy page (Kunal):** ship Ajay's 18-month line. It is true from the day the waitlist opens, because the waitlist cannot open without AC6. Do not open the waitlist (T-243) ahead of the page, and do not ship the page's waitlist bullets while T-243 is unbuilt if Ajay wants them tied to a live form; that timing is his and Priya's call.
+
+## Timing (Priya, 12 Oct 2026)
+
+T-284 (privacy page waitlist bullets) merges as soon as it is ready; it describes the waitlist before the form exists, which is safe on develop. The waitlist form (T-243) must not go live until both are on production together: T-284 merged, and AC6-9 here built (18-month TTL on retainUntil, erase-by-email script, tests). The founder releases them in the same production release.
