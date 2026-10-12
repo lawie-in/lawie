@@ -68,6 +68,7 @@ import { initPassport } from '../config/passport';
 import { ReferralCode } from '../models/ReferralCode.model';
 import { User } from '../models/User.model';
 import oauthRoutes from '../routes/oauth.routes';
+import { OAUTH_VERIFIED_STATE_KEY, createOAuthState } from '../services/oauth-state';
 
 import { ledger, makeCode, rawUsers, waitForSeed } from './t234-helpers';
 
@@ -80,11 +81,14 @@ beforeEach(() => {
   global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 }) as unknown as typeof fetch;
 });
 
-function callback(email: string, id: string, state?: string) {
+// T-319: the callback only accepts an HMAC-signed state, and the referral code reaches sign-up
+// only through its verified `r`. `referral` here is what /google would have put into the state.
+const CHALLENGE = 'A'.repeat(43);
+function callback(email: string, id: string, referral?: string) {
   nextProfile = { id, displayName: 'G User', emails: [{ value: email }] };
   return supertest(server)
     .get('/google/callback')
-    .query(state ? { state } : {})
+    .query({ state: createOAuthState(CHALLENGE, referral) })
     .redirects(0);
 }
 
@@ -99,7 +103,7 @@ function expectCodeNoTokens(location: string) {
 }
 
 describe('Ajay gate — NEW Google sign-up with a referral code credits top-up Ink', () => {
-  it('inkTopup = 10 + 2N, ledger agrees, uses +1, redirect has tokens and no referral flag', async () => {
+  it('inkTopup = 10 + 2N, ledger agrees, uses +1, redirect has a code, no tokens and no referral flag', async () => {
     await makeCode({ code: 'GATEGOOG', bonusInk: BONUS });
     const res = await callback('ggate@example.com', 'g-gate', 'gategoog');
     expect(res.status).toBe(302);
@@ -183,7 +187,10 @@ describe('Ajay Addendum 1 — Google redirect carries referral=not_applied', () 
     // verify uses a shared nextProfile, so drive verify directly for the race
     const run = (email: string, id: string) =>
       new Promise<unknown>((resolve) => {
-        const req: Record<string, unknown> = { query: { state: 'SLOTGOOG' } };
+        const req: Record<string, unknown> = {
+          query: {},
+          [OAUTH_VERIFIED_STATE_KEY]: { c: CHALLENGE, r: 'SLOTGOOG', t: Date.now() },
+        };
         void verify(req, 'at', 'rt', { id, displayName: 'x', emails: [{ value: email }] }, () =>
           resolve(req['lawieReferralNotApplied']),
         );
