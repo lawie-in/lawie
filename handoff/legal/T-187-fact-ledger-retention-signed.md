@@ -65,3 +65,15 @@ Our messages crossed twice. Arjun's ticket now follows the 90-day rule (0a3993a)
 - Basis: DPDP Act s.8(7), s.8(5), s.12.
 
 No further change without a new addendum here.
+
+## Addendum 4 (12 Oct 2026 IST): Addendum 3 withdrawn; the rule is SETTLED as in the ticket (8b2a4c1)
+
+The ticket is marked SETTLED on Addendum 2 (8b2a4c1), and that is the rule. Addendum 3 crossed it and is withdrawn:
+
+- The ledger lives with its draft.
+- A 30-day TTL applies only to intakes that were never drafted, and is unset when a draft is generated.
+- Hard delete on draft soft-delete and on account erasure.
+- `intake_extract` rows are unlinked and the Redis key deleted at the same moments.
+- A daily unlink job runs. Redis TTL is 30 minutes.
+
+The ticket's SETTLED section (8b2a4c1) is the single source. Any change needs a new ticket.
