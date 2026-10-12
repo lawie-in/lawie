@@ -7,8 +7,8 @@ Wording sources: Ajay, `handoff/legal/marketing-s1-claims-signed.md`; Vikram, `h
 
 Fixed lines, used verbatim:
 - Disclaimer: `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.`
-- Ink: `5 free Ink on sign-up. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.`
-- Sanhitas: `Criminal drafts cite BNS, BNSS and BSA.`
+- Ink: `5 free Ink on sign-up. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.`
+- Sanhitas: `Criminal drafts use BNS, BNSS and BSA section numbers.`
 
 No rupee figures on this page (the pricing teaser links to /pricing). "Free" always sits next to "5 Ink".
 
@@ -66,7 +66,7 @@ Replaces "Say what you need / Describe the matter in your own words." (describe-
 ## What you can draft (anchor `#documents`)
 
 Heading: **More than 90 document types.** (28)
-Subline: **Criminal drafts cite BNS, BNSS and BSA.** (39)
+Subline: **Criminal drafts use BNS, BNSS and BSA section numbers.** (39)
 
 | Family | Line |
 | --- | --- |
@@ -114,7 +114,7 @@ Heading: **Start with 5 free Ink.** (22)
 Body (Ajay's Ink line, verbatim):
 
 ```
-5 free Ink on sign-up. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.
+5 free Ink on sign-up. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.
 ```
 
 Line under it: **Need more? Monthly plans and top-up packs are on the pricing page.** (64)
@@ -140,13 +140,13 @@ Heading: **Questions advocates ask.** (24)
    Lawie is a drafting assistant for Indian advocates. You pick a document, answer a few questions about the matter, and get a first draft to review, edit and download in Word or PDF.
 
 2. **What can I draft?**
-   More than 90 document types, including bail applications, legal notices, affidavits, petitions, family-court matters and agreements. Criminal drafts cite BNS, BNSS and BSA.
+   More than 90 document types, including bail applications, legal notices, affidavits, petitions, family-court matters and agreements. Criminal drafts use BNS, BNSS and BSA section numbers.
 
 3. **Who is responsible for the draft?**
    You are. Every draft carries the line: "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing." Lawie does not give legal advice and does not file anything. Check every section and every fact before you file.
 
 4. **What is Ink?**
-   Ink is Lawie's credit unit. 5 free Ink on sign-up. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.
+   Ink is Lawie's credit unit. 5 free Ink on sign-up. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.
 
 5. **Am I charged if a draft fails?**
    No. You're charged only after a draft is generated; a failed generation is not charged.
@@ -230,7 +230,7 @@ Note: a Hindi page must not imply Hindi drafts. Drafts are in English; if this v
 | 2 | Flow: pick a document, answer a few questions, review, edit, download (Word or PDF) | Meta, hero, how it works, FAQ 1, FAQ 6 | Signed; T-222 steps |
 | 3 | More than 90 document types | How it works, documents, FAQ 2 | Signed; 92 rule files |
 | 4 | Families and examples in the document table (bail x6, s.80 and s.138 notices, affidavits, writ petitions, plaints, criminal appeals and revisions, mutual-consent divorce, maintenance, rent/NDA/MOU/service/loan/employment, condonation, restoration, amendment, vakalatnama, will, GPA, SPA) | Documents | Rule-file names in `apps/drafting/src/config/document-rules/`. New detail beyond the signed list: please check |
-| 5 | "Criminal drafts cite BNS, BNSS and BSA." | Documents, FAQ 2 | Signed, exact |
+| 5 | "Criminal drafts use BNS, BNSS and BSA section numbers." | Documents, FAQ 2 | Signed, exact |
 | 6 | Ink line | Pricing teaser, FAQ 4 | Signed, exact |
 | 7 | Not charged for a failed generation | FAQ 5 | Signed (part of Ink line) |
 | 8 | Disclaimer on every draft; advocate responsible | You stay the advocate, FAQ 3, footer | T-197, signed |

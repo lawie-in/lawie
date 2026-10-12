@@ -4,9 +4,11 @@
  * there; an edit by the Drafter is checked against the latest recording;
  * system-part clauses are never checked in the paragraphs.
  *
- * "Ajay R2b (a)" to "(e)" are his five test conditions. Uncued clauses of
- * bail_anticipatory (`apprehension`, `no_flight_risk`) are used, because every
- * non-system clause of bail_regular has cues.
+ * "Ajay R2b (a)" to "(e)" are his five test conditions. The uncued clause of
+ * bail_anticipatory (`apprehension`) is used, because every non-system clause of
+ * bail_regular has cues. T-237 (Ajay, 12 Oct 2026) cued `no_flight_risk` (undertaking) and added
+ * the cued `earlier_applications`, so the end-to-end paragraphs carry both cues (CUES below)
+ * wherever the test is not about them.
  */
 import './setupDb';
 import request from 'supertest';
@@ -325,9 +327,12 @@ const reportOf = (over: Record<string, string> = {}) =>
     .join('\n');
 const answer = (body: string) => `${body}\n\n${CLAUSES_MARKER}\n${reportOf()}`;
 const P2 = '2. That FIR No. 124/2026 was registered at PS Kotwali.';
-// paragraph 1 holds the uncued clauses (apprehension, no_flight_risk) and the banned phrase
+// T-237: the cue sentences of the two cued clauses reported at paragraph 1 (no_flight_risk: the
+// undertaking cue; earlier_applications: EA-standard), so they stay present unless a test is about them
+const CUES = 'He undertakes to join the investigation. No earlier bail application has been filed.';
+// paragraph 1 holds the uncued clause (apprehension), the two cues and the banned phrase
 const BAD = [
-  '1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. He is a law-abiding citizen.',
+  `1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. He is a law-abiding citizen. ${CUES}`,
   P2,
 ].join('\n\n');
 
@@ -397,7 +402,7 @@ const missingIds = (done: { missingClauses: Array<{ id: string }> }) =>
 describe('Ajay R2b (a) and (d): the fact check removes "law-abiding citizen"', () => {
   it('Ajay R2b (a): the clauses in that paragraph are still present, with no starting-draft label', async () => {
     const { res, done } = await draft(
-      '[[P0]]\n1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee.',
+      `[[P0]]\n1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. ${CUES}`,
     );
     expect(res.text).toContain('event: repair\ndata: {"facts":true}');
     expect(mockMessagesStream).toHaveBeenCalledTimes(2); // the Drafter, then the fact repair only
@@ -408,7 +413,7 @@ describe('Ajay R2b (a) and (d): the fact check removes "law-abiding citizen"', (
 
   it('Ajay R2b (d): prayer, verification and advocate_details, reported at paragraph 1 and edited, are not missing', async () => {
     const { done } = await draft(
-      '[[P0]]\n1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee.',
+      `[[P0]]\n1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. ${CUES}`,
     );
     expect(missingIds(done)).not.toEqual(expect.arrayContaining(['prayer']));
     expect(missingIds(done)).toEqual([]);
@@ -420,7 +425,8 @@ describe('Ajay R2b (b): the fact check leaves the paragraph holding only a blank
     'paragraph 1 is %s: the clauses reported there are missing (clause_not_in_paragraph)',
     async (blank) => {
       const { done } = await draft(`[[P0]]\n1. ${blank}`);
-      expect(missingIds(done)).toEqual(['apprehension', 'no_flight_risk']);
+      // T-237: the two cued clauses reported at paragraph 1 fail their cue as well
+      expect(missingIds(done)).toEqual(['apprehension', 'earlier_applications', 'no_flight_risk']);
       expect(done.mandatoryClausesComplete).toBe(false);
       expect(done.startingDraft).toBe(true);
     },
@@ -433,7 +439,7 @@ describe('Ajay R2b (c): the clause repair pass rewrites a paragraph holding an u
     // the first draft lacks the FIR paragraph's cue: FIR details are reported missing
     mockMessagesStream.mockResolvedValueOnce(
       sdkAnswer(
-        `1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee.\n\n${CLAUSES_MARKER}\n${reportOf({ fir_details: 'MISSING' })}`,
+        `1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. ${CUES}\n\n${CLAUSES_MARKER}\n${reportOf({ fir_details: 'MISSING' })}`,
         4000,
         800,
       ),
@@ -441,7 +447,7 @@ describe('Ajay R2b (c): the clause repair pass rewrites a paragraph holding an u
     // the repair rewrites paragraph 1 while adding the FIR paragraph
     mockMessagesStream.mockResolvedValueOnce(
       sdkAnswer(
-        `1. That the applicant is a student of law.\n\n${P2}\n\n${CLAUSES_MARKER}\n${reportOf()}`,
+        `1. That the applicant is a student of law. ${CUES}\n\n${P2}\n\n${CLAUSES_MARKER}\n${reportOf()}`,
         400,
         80,
       ),
@@ -466,7 +472,7 @@ describe("Ajay R2b.4: the fact check's model repair", () => {
     'That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee.';
 
   it('Ajay R2b.4 (a): the repair replaces only the flagged phrase: the clauses are present, no starting-draft label', async () => {
-    const { done } = await draft(`[[P0]]\n1. ${NAME} He is a citizen.`);
+    const { done } = await draft(`[[P0]]\n1. ${NAME} He is a citizen. ${CUES}`);
     expect(mockMessagesStream).toHaveBeenCalledTimes(2);
     expect(done.missingClauses).toEqual([]);
     expect(done.mandatoryClausesComplete).toBe(true);
@@ -476,17 +482,19 @@ describe("Ajay R2b.4: the fact check's model repair", () => {
   it.each([
     [
       'rewrites the neighbouring sentence too',
-      `1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will never flee. He is a citizen.`,
+      `1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will never flee. He is a citizen. ${CUES}`,
     ],
     [
       "changes only the neighbour's closing mark",
-      `1. ${NAME.replace(/\.$/, '!')} He is a citizen.`,
+      `1. ${NAME.replace(/\.$/, '!')} He is a citizen. ${CUES}`,
     ],
   ])(
-    'Ajay R2b.4 (b): the repair %s: the uncued clauses are missing (clause_not_in_paragraph)',
+    'Ajay R2b.4 (b): the repair %s: the uncued clause is missing (clause_not_in_paragraph)',
     async (_n, p1) => {
       const { res, done } = await draft(`[[P0]]\n${p1}`);
-      expect(missingIds(done)).toEqual(['apprehension', 'no_flight_risk']);
+      // T-237: no_flight_risk and earlier_applications are cued and the repair kept their cue
+      // sentences, so only the uncued apprehension is missing
+      expect(missingIds(done)).toEqual(['apprehension']);
       expect(done.mandatoryClausesComplete).toBe(false);
       expect(done.startingDraft).toBe(true);
       // The route's payload carries ids and titles only, not the reason. The warnings name the clauses:
@@ -499,7 +507,7 @@ describe("Ajay R2b.4: the fact check's model repair", () => {
           .filter((w) => w.type === 'missing_clause')
           .map((w) => w.details.clauseId)
           .sort(),
-      ).toEqual(['apprehension', 'no_flight_risk']);
+      ).toEqual(['apprehension']);
       // The reason, by the same steps the route takes: record on the first check, edit as the model
       // repair did with the flagged span, check the repaired body.
       const recorded = new Map<string, string>();
@@ -517,12 +525,9 @@ describe("Ajay R2b.4: the fact check's model repair", () => {
       );
       const after = splitDrafterOutput(`${repaired}\n\n${CLAUSES_MARKER}\n${reportOf()}`);
       const reasons = findMissingClauses(PACK, after, systemOf(), { recorded })
-        .filter((m) => ['apprehension', 'no_flight_risk'].includes(m.id))
+        .filter((m) => ['apprehension', 'no_flight_risk', 'earlier_applications'].includes(m.id))
         .map((m) => [m.id, m.reason]);
-      expect(reasons).toEqual([
-        ['apprehension', 'clause_not_in_paragraph'],
-        ['no_flight_risk', 'clause_not_in_paragraph'],
-      ]);
+      expect(reasons).toEqual([['apprehension', 'clause_not_in_paragraph']]);
     },
   );
 });
@@ -611,13 +616,13 @@ describe('Ajay R2b.5: the first check of an empty reported paragraph', () => {
 describe('Ajay R2b.5: end to end, an uncued clause whose reported paragraph is empty', () => {
   it('goes to the clause repair pass at check 1, and the repair fills it', async () => {
     mockMessagesStream.mockReset();
-    // paragraph 1 is empty; apprehension and no_flight_risk are reported there
+    // paragraph 1 is empty; apprehension, no_flight_risk and earlier_applications are reported there
     mockMessagesStream.mockResolvedValueOnce(
       sdkAnswer(`1.\n\n${P2}\n\n${CLAUSES_MARKER}\n${reportOf()}`, 4000, 800),
     );
     mockMessagesStream.mockResolvedValueOnce(
       sdkAnswer(
-        `1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee.\n\n${P2}\n\n${CLAUSES_MARKER}\n${reportOf()}`,
+        `1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. ${CUES}\n\n${P2}\n\n${CLAUSES_MARKER}\n${reportOf()}`,
         400,
         80,
       ),
@@ -632,14 +637,16 @@ describe('Ajay R2b.5: end to end, an uncued clause whose reported paragraph is e
       });
     expect(res.text).toContain('event: repair\ndata: {"missing":');
     expect(mockMessagesStream).toHaveBeenCalledTimes(2);
-    // the repair prompt names both uncued clauses
+    // the repair prompt names the uncued clause and, since T-237, the two cued ones
     const prompt = JSON.stringify(mockMessagesStream.mock.calls[1]);
     expect(prompt).toContain('apprehension');
     expect(prompt).toContain('no_flight_risk');
+    expect(prompt).toContain('earlier_applications');
     const done = event(res.text, 'done') as any;
     expect(done.repaired).toBe(true);
     expect(missingIds(done)).not.toEqual(expect.arrayContaining(['apprehension']));
     expect(missingIds(done)).not.toEqual(expect.arrayContaining(['no_flight_risk']));
+    expect(missingIds(done)).not.toEqual(expect.arrayContaining(['earlier_applications']));
   });
 
   it('keeps them missing when the repair leaves the paragraph empty', async () => {
@@ -657,7 +664,9 @@ describe('Ajay R2b.5: end to end, an uncued clause whose reported paragraph is e
       });
     expect(res.text).toContain('event: repair\ndata: {"missing":');
     const done = event(res.text, 'done') as any;
-    expect(missingIds(done)).toEqual(expect.arrayContaining(['apprehension', 'no_flight_risk']));
+    expect(missingIds(done)).toEqual(
+      expect.arrayContaining(['apprehension', 'no_flight_risk', 'earlier_applications']),
+    );
     expect(done.mandatoryClausesComplete).toBe(false);
   });
 });

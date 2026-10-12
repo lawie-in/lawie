@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (writes the rule, signs). Lead (build). Anushka (verdict) |
 | Mode           | Rule first, then build. Legal content (`citation-check.ts`, T-148) |
-| Status         | To do. Unassigned. HIGH priority per Ajay: case law reaching a draft is a legal-accuracy risk. Found by mahak during T-251, 12 Oct 2026 |
+| Status         | Rule signed by Ajay (108a57a, `handoff/legal/T-263-citation-name-match-signed.md`), 12 Oct 2026. To do: vishal. HIGH priority per Ajay: case law reaching a draft is a legal-accuracy risk. Found by mahak during T-251, 12 Oct 2026 |
 
 ## Problem
 
@@ -21,3 +21,11 @@ Only the reporter reference is removed and the case name stays. Names like Uday 
 2. A citation like the one above is blanked in full, name and reporter.
 3. Tests for names starting with an initial, with and without a full stop, and for "v." and "vs." variants.
 4. Golden snapshots that move are listed for Ajay. CI green on drafting.
+
+## Ajay's rule is signed; the diagnosis above was wrong (12 Oct 2026)
+
+Ajay ran the current code: names starting with an initial ARE blanked. The real fault: a party name cannot contain a comma, "&", "@", "alias" or a line break, so the whole name fails to match and only the reporter is removed (for example "X v. Union of India, Ministry of Law and Justice (2016) 7 SCC 221" keeps the name).
+
+Build exactly `handoff/legal/T-263-citation-name-match-signed.md` (commit 108a57a): the 9 failing shapes (invented names), the 7 rules (anchor on v./vs./versus; second party is everything up to the reporter; walk back for party 1; initials and titles never end a sentence; cut back wide when unsure; T-148 (b) unchanged), and the test list. Golden snapshots that move are listed for Ajay.
+
+Acceptance criteria 1 and 2 above are replaced by this. AC3: the tests in his file. AC4 stands.
