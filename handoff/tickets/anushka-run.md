@@ -106,3 +106,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Some bail drafts that passed before can now carry the "starting draft" label when a required part's paragraph holds only a blank such as "[To be confirmed: …]" (for example interim bail urgency or duration with no detail given). That is intended.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-252a (mahak, merged to develop_staging 5355604, 12 Oct 2026)
+
+- The section converter page no longer says its mappings are validated or that it converts instantly.
+- The page heading and the Tools card say you can look up old and new section numbers side by side, free and without logging in.
+- The link at the bottom of the converter now reads "Lawie's drafting assistant".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
