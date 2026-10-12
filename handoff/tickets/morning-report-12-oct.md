@@ -90,3 +90,7 @@ Does the legal@lawie.in mailbox exist and get read? It is on Terms §14 and the 
 ## HTTPS check on develop (Arjun, T-319, 12 Oct)
 
 Open the develop web app and confirm it loads on https:// with a padlock and no redirect loop. Google sign-in needs a secure address once T-319 merges. The real develop host config is not in the repo, so only you can check it. If it fails, tell Priya.
+
+## Develop reseed before Anushka tests the converter (Ajay, T-280, 12 Oct)
+
+Run the section seed with --force on develop (seed-sections) after T-280 merges and before Anushka tests the section converter, so the titles shown are Ajay's signed ones. This is the same develop-first reseed as item 5, so one run covers both.
