@@ -5,7 +5,7 @@
 | Phase  | 1 — Bail drafting |
 | Owner  | Ajay (ruled 12 Oct 2026). Lead (build, drafting) |
 | Mode   | Small fix (legal content; Ajay sees the diff) |
-| Status | To do. Vishal after T-316. Found by Vishal in T-241 |
+| Status | Building: vishal (12 Oct 2026) |
 
 `apps/drafting/src/services/brief-drafter.ts`, rule R2b.5 (~line 863), counts a clause as missing when its paragraph is only the signed blank, and then runs a repair call. Example: anticipatory `apprehension` with "[To be confirmed: the facts on which the applicant apprehends arrest]".
 
