@@ -34,6 +34,7 @@ import {
 } from '../services/drafter.prompts';
 import { buildChecklist } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
+import { readFormInputs } from '../utils/case-details';
 import { decrypt } from '../utils/encryption';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 const mockMessagesStream = jest.fn();
@@ -334,7 +335,8 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     });
     expect(doc!.title).toContain('DISTRICT & SESSIONS JUDGE, PATNA');
     // Case details are not in the unencrypted field. The brief is stored encrypted.
-    expect(doc!.formInputs).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    expect(readFormInputs(doc!)).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    expect(doc!).not.toHaveProperty('formInputs');
     expect(doc!.brief).not.toContain('Ram Kumar');
     const savedBrief = JSON.parse(decrypt(doc!.brief!)) as { kind: string; values: unknown[] };
     expect(savedBrief.kind).toBe('bail_regular');
@@ -749,7 +751,8 @@ describe('POST /generate-from-brief — no rule pack', () => {
       runSequence: 1,
     });
     expect(doc!.rulePackId).toBeUndefined();
-    expect(doc!.formInputs).toEqual({ template_id: 'guided', source: 'brief' });
+    expect(readFormInputs(doc!)).toEqual({ template_id: 'guided', source: 'brief' });
+    expect(doc!).not.toHaveProperty('formInputs');
     expect(doc!.brief).not.toContain('Sunita');
     expect(JSON.parse(decrypt(doc!.brief!))).toMatchObject({
       kind: 'none',
@@ -953,7 +956,8 @@ describe('POST /generate-from-brief — T-136 — described', () => {
     expect(doc!.brief).not.toContain(MARKER);
     const savedBrief = JSON.parse(decrypt(doc!.brief!)) as { described?: string };
     expect(savedBrief.described).toBe(DESCRIBED);
-    expect(doc!.formInputs).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    expect(readFormInputs(doc!)).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    expect(doc!).not.toHaveProperty('formInputs');
     expect(JSON.stringify({ ...doc, brief: undefined, generatedContent: undefined })).not.toContain(
       MARKER,
     );

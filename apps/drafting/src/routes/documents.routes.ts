@@ -72,6 +72,12 @@ import {
   listTemplateConfigs,
   validateFormData,
 } from '../services/template-engine.service';
+import {
+  readFilingChecklist,
+  readFormInputs,
+  sealFilingChecklist,
+  sealFormInputs,
+} from '../utils/case-details';
 import { decrypt, encrypt } from '../utils/encryption';
 import { presentDescription } from '../utils/presentDescription';
 
@@ -839,10 +845,11 @@ router.post(
           docType: TEMPLATE_TO_DOC_TYPE[template_id] || DOC_TYPES.PETITION,
           courtType: String(form_data.court_type || '') || undefined,
           courtName: String(form_data.court_name || ''),
-          formInputs: { template_id, ...form_data },
+          // T-115a: the case details are stored encrypted only.
+          formInputsEnc: sealFormInputs({ template_id, ...form_data }),
           generatedContent: encryptedContent,
           sectionsCited: result.sectionsCited,
-          filingChecklist: result.filingChecklist,
+          filingChecklistEnc: sealFilingChecklist(result.filingChecklist),
           checklistState: result.filingChecklist.map(() => false),
           status: 'draft',
           runId,
@@ -1244,11 +1251,11 @@ router.post(
             ? courtType
             : undefined,
           courtName: brief.court.court ?? '',
-          // No case details here: this field is not encrypted. The brief is, below.
-          formInputs: { template_id: recordId, source: 'brief' },
+          // No case details here, but sealed like every other write (T-115a). The brief is encrypted below.
+          formInputsEnc: sealFormInputs({ template_id: recordId, source: 'brief' }),
           generatedContent: encrypt(result.fullText),
           sectionsCited: result.sectionsCited,
-          filingChecklist: result.filingChecklist,
+          filingChecklistEnc: sealFilingChecklist(result.filingChecklist),
           checklistState: result.filingChecklist.map(() => false),
           status: 'draft',
           runId,
@@ -1521,10 +1528,10 @@ router.post(
           docType: input.docType,
           courtType: input.courtType,
           courtName: input.courtName,
-          formInputs: input,
+          formInputsEnc: sealFormInputs(input),
           generatedContent: encryptedContent,
           sectionsCited: result.sectionsCited,
-          filingChecklist: result.filingChecklist,
+          filingChecklistEnc: sealFilingChecklist(result.filingChecklist),
           checklistState: result.filingChecklist.map(() => false),
           status: 'draft',
           runId,
@@ -1607,7 +1614,21 @@ router.get(
       return;
     }
 
-    const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
+    // A wrong key or a damaged value throws (T-115a); answer 500 rather than
+    // leave the request hanging. Only the id and the error name are logged.
+    let content: string;
+    let filingChecklist: string[];
+    try {
+      content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
+      filingChecklist = readFilingChecklist(doc);
+    } catch (err) {
+      console.error(
+        `[drafting] Get document: could not read document ${String(doc._id)}:`,
+        err instanceof Error ? err.name : 'UnknownError',
+      );
+      if (!res.headersSent) res.status(500).json({ error: 'Could not read this document' });
+      return;
+    }
 
     res.json({
       _id: doc._id,
@@ -1618,7 +1639,7 @@ router.get(
       content,
       status: doc.status,
       sectionsCited: doc.sectionsCited,
-      filingChecklist: doc.filingChecklist ?? [],
+      filingChecklist,
       checklistState: doc.checklistState ?? [],
       exportedAs: doc.exportedAs,
       version: doc.version,
@@ -1857,12 +1878,24 @@ router.post(
       return;
     }
 
-    // Decrypt content for paragraph count estimation
-    const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
-    const bodyParaCount = estimateBodyParaCount(content);
-
-    // form_data is stored as formInputs on the document
-    const formData = (doc.formInputs ?? {}) as Record<string, unknown>;
+    // Decrypt content for paragraph count estimation, and read form_data (stored
+    // on the document, encrypted (T-115a) or legacy plain). A wrong key or a
+    // damaged value throws; answer 500 rather than leave the request hanging.
+    // Only the id and the error name are logged, never a message or content.
+    let bodyParaCount: number;
+    let formData: Record<string, unknown>;
+    try {
+      const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
+      bodyParaCount = estimateBodyParaCount(content);
+      formData = readFormInputs(doc) ?? {};
+    } catch (err) {
+      console.error(
+        `[drafting] Annexures pack: could not read document ${String(doc._id)}:`,
+        err instanceof Error ? err.name : 'UnknownError',
+      );
+      if (!res.headersSent) res.status(500).json({ error: 'Annexures pack generation failed' });
+      return;
+    }
 
     // T-156: the chosen court, looked up the same way the draft paths do. The
     // brief path saves its court id only in doc.courtName (formInputs holds no
