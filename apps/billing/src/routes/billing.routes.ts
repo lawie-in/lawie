@@ -179,23 +179,46 @@ router.post('/webhook/razorpay', (req: Request, res: Response) => {
   // would reach Express's default handler, which prints err.message (with a body
   // slice) to stderr. Plain 400, same shape as T-315; nothing from the body or the
   // error is logged.
-  let payload: { event: string; payload: Record<string, unknown> };
+  let parsed: unknown;
   try {
-    payload = JSON.parse((req.body as Buffer).toString()) as {
-      event: string;
-      payload: Record<string, unknown>;
-    };
+    parsed = JSON.parse((req.body as Buffer).toString());
   } catch {
     logger.warn('Webhook body is not valid JSON');
     res.status(400).json({ error: 'Bad Request' });
     return;
   }
 
+  // T-323: valid JSON that is not a plain object (null, array, string, number) or has
+  // no string `event` would throw a TypeError in the async handler after the ack.
+  // Reject it here, before the ack. Fixed messages only; nothing from the body is logged.
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    logger.warn('Webhook body is not an object');
+    res.status(400).json({ error: 'Bad Request' });
+    return;
+  }
+  if (typeof (parsed as { event?: unknown }).event !== 'string') {
+    logger.warn('Webhook body has no event');
+    res.status(400).json({ error: 'Bad Request' });
+    return;
+  }
+  const inner = (parsed as { payload?: unknown }).payload;
+  if (typeof inner !== 'object' || inner === null || Array.isArray(inner)) {
+    logger.warn('Webhook body has no payload');
+    res.status(400).json({ error: 'Bad Request' });
+    return;
+  }
+  const payload = parsed as { event: string; payload: Record<string, unknown> };
+
   // Acknowledge immediately — process async so Razorpay doesn't retry
   res.json({ status: 'ok' });
 
-  handleWebhookEvent(payload.event, payload.payload).catch((err) => {
-    logger.error({ err, event: payload.event }, 'Webhook handler error');
+  handleWebhookEvent(payload.event, payload.payload).catch((err: unknown) => {
+    // T-323: no err.message or stack (a duplicate-key message carries the duplicate value).
+    const e = err as { name?: unknown; code?: unknown } | null | undefined;
+    logger.error(
+      { event: payload.event, errorName: e?.name, errorCode: e?.code },
+      'Webhook handler error',
+    );
   });
 });
 

@@ -24,7 +24,9 @@ type ServerError =
   | { kind: 'conflict'; message: string } // 409
   | { kind: 'unauthorized' } // 401
   | { kind: 'message'; message: string } // 403
-  | { kind: 'network' }; // 429, 5xx, network
+  | { kind: 'network' } // 429, 5xx, network
+  | { kind: 'signInIncomplete' } // T-319: ?error=sign_in_incomplete from /auth/callback
+  | { kind: 'insecureContext' }; // T-319: no crypto.subtle / getRandomValues (not https)
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -47,6 +49,57 @@ const REFERRAL_NOT_VALID_MESSAGE = 'Your referral code was not valid, so no bonu
 // Google sign-up: '1' = R5/R6 showed for the code sent, '0' = never applied. Wording only; the
 // server never sees it and it grants nothing.
 const REFERRAL_SHOWN_KEY = 'lawie_referral_shown';
+
+// T-319: the line for /login?error=sign_in_incomplete (no verifier in this tab at /auth/callback).
+// Approved by Ajay; change it only here.
+const SIGN_IN_INCOMPLETE_MESSAGE = "We couldn't finish signing you in. Please try again.";
+
+// T-319 round 2: shown instead of the network error when the browser has no crypto.subtle or
+// crypto.getRandomValues (a non-secure origin). Approved by Arjun and Ajay; change it only here.
+const GOOGLE_NEEDS_HTTPS_MESSAGE = 'Google sign-in needs a secure (https) connection.';
+
+// T-319 (Arjun): PKCE-style binding for Google sign-in. The verifier stays in this tab's
+// sessionStorage; only its SHA-256 (the challenge) goes to the API. /auth/callback reads, deletes
+// and sends it with the one-time code. Must match the key in app/auth/callback/page.tsx.
+const OAUTH_VERIFIER_KEY = 'lawie.oauth.verifier';
+
+function base64url(bytes: Uint8Array): string {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+type OAuthChallengeResult =
+  | { ok: true; challenge: string }
+  // insecure: crypto.subtle or crypto.getRandomValues is missing (non-secure origin).
+  // failed: anything else, e.g. sessionStorage blocked or full.
+  | { ok: false; reason: 'insecure' | 'failed' };
+
+// Creates and stores a fresh verifier and returns its challenge.
+async function createOAuthChallenge(): Promise<OAuthChallengeResult> {
+  let subtle: SubtleCrypto | undefined;
+  try {
+    subtle = window.crypto?.subtle;
+    if (!subtle || typeof window.crypto.getRandomValues !== 'function') {
+      return { ok: false, reason: 'insecure' };
+    }
+  } catch {
+    return { ok: false, reason: 'insecure' };
+  }
+  try {
+    const bytes = new Uint8Array(32);
+    window.crypto.getRandomValues(bytes);
+    const verifier = base64url(bytes);
+    const digest = await subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    sessionStorage.setItem(OAUTH_VERIFIER_KEY, verifier);
+    if (sessionStorage.getItem(OAUTH_VERIFIER_KEY) !== verifier) {
+      return { ok: false, reason: 'failed' };
+    }
+    return { ok: true, challenge: base64url(new Uint8Array(digest)) };
+  } catch {
+    return { ok: false, reason: 'failed' };
+  }
+}
 
 // Which field a T-208 422 message belongs to (cheap prefix match, per design).
 // "Invalid email format" is the API's email-format message, so it maps to Email too.
@@ -123,7 +176,11 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverInvalid, setServerInvalid] = useState<Set<Field>>(new Set());
-  const [serverError, setServerError] = useState<ServerError | null>(null);
+  // T-319: read ?error= once, on mount. Only sign_in_incomplete gets a message here (T-299 owns
+  // the other codes).
+  const [serverError, setServerError] = useState<ServerError | null>(() =>
+    searchParams.get('error') === 'sign_in_incomplete' ? { kind: 'signInIncomplete' } : null,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [referralNotice, setReferralNotice] = useState<string | null>(null);
 
@@ -243,7 +300,17 @@ function LoginContent() {
     return code;
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
+    // T-319: no verifier, no redirect. No crypto (non-secure origin): the https line. Any other
+    // failure (sessionStorage): the existing network-style error.
+    const result = await createOAuthChallenge();
+    if (!result.ok) {
+      setServerError(
+        result.reason === 'insecure' ? { kind: 'insecureContext' } : { kind: 'network' },
+      );
+      return;
+    }
+    const { challenge } = result;
     const code = referralToSend();
     if (code) sessionStorage.setItem('lawie_referral_code', code);
     try {
@@ -252,8 +319,8 @@ function LoginContent() {
     } catch {
       // Storage unavailable: the callback falls back to the "not valid" line.
     }
-    const base = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
-    window.location.href = code ? `${base}?referralCode=${encodeURIComponent(code)}` : base;
+    const base = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google?challenge=${encodeURIComponent(challenge)}`;
+    window.location.href = code ? `${base}&referralCode=${encodeURIComponent(code)}` : base;
   };
 
   // ── Email + password ────────────────────────────────────────────────────────
@@ -561,7 +628,7 @@ function LoginContent() {
 
                   {/* Google OAuth */}
                   <button
-                    onClick={handleGoogleLogin}
+                    onClick={() => void handleGoogleLogin()}
                     type="button"
                     className="mt-4 flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-500 bg-white px-4 text-base font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98] sm:mt-5"
                   >
@@ -754,6 +821,12 @@ function LoginContent() {
                           )}
                           {serverError.kind === 'message' && <p>{serverError.message}</p>}
                           {serverError.kind === 'network' && <p>{NETWORK_MESSAGE}</p>}
+                          {serverError.kind === 'insecureContext' && (
+                            <p>{GOOGLE_NEEDS_HTTPS_MESSAGE}</p>
+                          )}
+                          {serverError.kind === 'signInIncomplete' && (
+                            <p>{SIGN_IN_INCOMPLETE_MESSAGE}</p>
+                          )}
                         </div>
                       </div>
                     )}

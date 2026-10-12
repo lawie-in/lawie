@@ -38,8 +38,30 @@ function referralNoticeFor(value: string | null, shown: boolean): string | null 
   return null;
 }
 
+// T-319: the verifier the login page stored before the Google redirect. Must match the key in
+// app/(auth)/login/page.tsx. 32 random bytes in base64url are exactly 43 characters.
+const OAUTH_VERIFIER_KEY = 'lawie.oauth.verifier';
+const VERIFIER_RE = /^[A-Za-z0-9_-]{43}$/;
+
+// Reads and deletes the verifier, so it serves this one return only. Null if absent or unreadable.
+function takeOAuthVerifier(): string | null {
+  try {
+    const verifier = sessionStorage.getItem(OAUTH_VERIFIER_KEY);
+    sessionStorage.removeItem(OAUTH_VERIFIER_KEY);
+    return verifier && VERIFIER_RE.test(verifier) ? verifier : null;
+  } catch {
+    return null;
+  }
+}
+
 // T-306: the only error values the callback forwards to /login. Anything else is oauth_failed.
-const KNOWN_OAUTH_ERRORS = ['oauth_failed', 'missing_tokens', 'invalid_code'] as const;
+// T-319: sign_in_incomplete = no verifier in this tab (another tab, or a link not started here).
+const KNOWN_OAUTH_ERRORS = [
+  'oauth_failed',
+  'missing_tokens',
+  'invalid_code',
+  'sign_in_incomplete',
+] as const;
 type KnownOAuthError = (typeof KNOWN_OAUTH_ERRORS)[number];
 
 function toKnownOAuthError(value: string): KnownOAuthError {
@@ -69,6 +91,8 @@ function CallbackHandler() {
     const error = params.get('error');
     const referral = params.get('referral');
     window.history.replaceState(null, '', '/auth/callback');
+    // T-319: take (and delete) the verifier on every return, so it never outlives this one.
+    const verifier = takeOAuthVerifier();
 
     if (error) {
       // T-299/T-306: fixed set only, never echo the query value.
@@ -81,13 +105,19 @@ function CallbackHandler() {
       return;
     }
 
+    // T-319: no verifier means this tab did not start the sign-in. No exchange, never a retry.
+    if (!verifier) {
+      router.replace('/login?error=sign_in_incomplete');
+      return;
+    }
+
     void (async () => {
       let pair: { accessToken: string; refreshToken: string } | null = null;
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/oauth/exchange`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({ code, verifier }),
           cache: 'no-store',
         });
         if (res.status === 200) {

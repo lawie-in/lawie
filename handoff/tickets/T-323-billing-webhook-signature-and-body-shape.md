@@ -5,7 +5,7 @@
 | Phase  | 2 — Payments. Before go-live |
 | Owner  | Lead (build, billing). Arjun glance |
 | Mode   | Small fix (billing) |
-| Status | Building: tanvi (12 Oct 2026) |
+| Status | Merged into develop_staging (6869fa1, 12 Oct 2026). Nothing to test in the UI |
 
 ## Acceptance criteria
 

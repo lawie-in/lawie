@@ -625,7 +625,33 @@ describe('T-300 advocate name (Ajay: a declared, typed value wins)', () => {
 });
 
 describe('T-300/T-311 annexures: a client enrollment number is never read', () => {
-  it('enrollment_number and advocate_enrollment from the form do not print (T-311 supersedes)', async () => {
+  it('enrollment_number from the form does not print (list A), on a pack that declares advocate_enrollment', async () => {
+    const html = await annexuresHtml(
+      {
+        template_id: 'bail_regular',
+        applicant_name: 'Ramesh Kumar',
+        enrollment_number: 'BAR/2018/1234',
+      },
+      PROFILE,
+    );
+    expect(html).not.toContain('BAR/2018/1234');
+  });
+
+  it('enrollment_number from the form does not print on a pack that does not declare it', async () => {
+    const html = await annexuresHtml(
+      {
+        template_id: 'default_bail',
+        applicant_name: 'Ramesh Kumar',
+        enrollment_number: 'BAR/2018/1234',
+        advocate_enrollment: 'LEG/77',
+      },
+      PROFILE,
+    );
+    expect(html).not.toContain('BAR/2018/1234');
+    expect(html).not.toContain('LEG/77');
+  });
+
+  it('bail_regular declares advocate_enrollment (T-313): the typed one prints, enrollment_number still does not', async () => {
     const html = await annexuresHtml(
       {
         template_id: 'bail_regular',
@@ -635,7 +661,7 @@ describe('T-300/T-311 annexures: a client enrollment number is never read', () =
       },
       PROFILE,
     );
+    expect(html).toContain('LEG/77');
     expect(html).not.toContain('BAR/2018/1234');
-    expect(html).not.toContain('LEG/77');
   });
 });

@@ -446,3 +446,18 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The welcome email says "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-319 — Google sign-in can't be hijacked (2b02eae)
+
+- Sign in with Google as before.
+- A sign-in link someone else started can no longer log you into another person's account; you see "We couldn't finish signing you in. Please try again." and start again.
+- Needs develop on https (founder's check).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-313 — optional enrollment number on three documents (a6b2162)
+
+- When drafting a regular bail, anticipatory bail or consumer complaint, type a Bar Council enrollment number (or a "to be confirmed" note) in the new optional "Bar Council Enrollment No." field under Court & Parties. It prints in the advocate block, the Vakalatnama and the Memo of Parties.
+- Leave it empty and still get the draft: the profile number is used if the advocate is you, otherwise a blank to fill in.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -5,7 +5,7 @@
 | Phase  | 0 — Before go-live. HIGH, security |
 | Owner  | Arjun (spec, at the end of the T-306 file). Kunal (build) |
 | Mode   | Full chain (auth + web) |
-| Status | Building: kunal (12 Oct 2026) |
+| Status | Merged into develop_staging (2b02eae, 12 Oct 2026). Waiting for Anushka on develop (develop must be on https) |
 
 An attacker can log a victim into the attacker's account through Google sign-in. Anything the victim then drafts lands in the attacker's account.
 
