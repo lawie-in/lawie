@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Kunal (build, with T-328) |
 | Mode   | Small fix (web + auth) |
-| Status | Building: kunal, with T-328 (12 Oct 2026) |
+| Status | Merged into develop_staging 5482b37, with T-328 (12 Oct 2026). Anushka tests on develop |
 
 ## Acceptance criteria
 

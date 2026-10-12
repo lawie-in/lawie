@@ -539,3 +539,12 @@ What a user can now do:
 - Test with the fact-ledger setting both on and off; the questions appear either way.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-328 + T-332 — cookie card focus, splash, no browser error reporting (5482b37, kunal, 12 Oct 2026)
+
+What a user can now do:
+- After answering the cookie card, keyboard and screen-reader users land on the page content with no stray focus stop left behind.
+- The logo splash always finishes and the cookie card still appears, even when the browser blocks storage (private mode).
+- Nothing about a visitor's browser goes to an error service, same as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

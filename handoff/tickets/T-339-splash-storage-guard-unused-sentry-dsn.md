@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish |
 | Owner  | Lead (web) |
 | Mode   | Small fix (web only) |
-| Status | To do. Follow-up from T-328 + T-332 (Kunal's reviewer, 12 Oct 2026) |
+| Status | Building: kunal (12 Oct 2026) |
 
 Two leftovers from T-328 + T-332:
 
