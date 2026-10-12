@@ -9,7 +9,13 @@
  *   - Staggered remand breakdown (first 15 days police, remainder judicial)
  *   - Key milestone dates as a visual timeline
  */
-import { DEPENDS_BNSS_187, resolveOffence } from './bns-offence-resolver';
+import {
+  DEPENDS_BNSS_187,
+  OLD_LAW_LINE,
+  readSectionsCharged,
+  resolveBnsKey,
+  resolveOffence,
+} from './bns-offence-resolver';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -111,6 +117,48 @@ export function leftOutOfPeriodNote(section: string): string {
   return `Section ${section} does not create an offence, so it was left out of this period.`;
 }
 
+/** Ajay (CLO), T-278 (signed f4244ec): an IPC / CrPC / IEA input is left out. */
+export function oldLawLeftOutNote(code: string, section: string, newCode: string): string {
+  return `${code} ${section} is an old-law section, so it was left out of this period. Use the section converter to find the ${newCode} section.`;
+}
+
+/** New-law codes named first in the not-found line (T-295 casing). */
+const NAMED_NEW_CODES = new Set(['BNS', 'BNSS', 'BSA']);
+
+/**
+ * Ajay (CLO), T-278 (signed f4244ec, Addendum 1 9f11633): no BNS row or parent row,
+ * or not a BNS input. Display tweak (Ajay, after 7e34982): a token whose single
+ * entry carries BNS, BNSS or BSA is named "{Code} {n}" with no "Section"; a bare
+ * number, text, or any other code keeps "Section {token}".
+ */
+export function notInBnsTableNote(token: string): string {
+  const entries = readSectionsCharged(token);
+  const e = entries.length === 1 ? entries[0] : undefined;
+  const label =
+    e?.code && NAMED_NEW_CODES.has(e.code) ? `${e.code} ${e.number}` : `Section ${token}`;
+  return `${label} was not found in the BNS offences table, so it was left out of this period. Check the Gazette.`;
+}
+
+type TimelineEntry = { kind: 'bns'; section: string } | { kind: 'left_out'; note: string };
+
+/**
+ * T-278 (Ajay): read one input token with the shared T-277 reader, so "103-BNS",
+ * "BNS 103" and "103" all read as BNS 103 (a bare number is BNS in this tool).
+ * Left-out lines in Ajay's order: old-law code; else a single BNS entry is resolved
+ * by the caller; else "not found in the BNS table" for the token as typed.
+ */
+function readTimelineEntry(token: string): TimelineEntry {
+  const entries = readSectionsCharged(token, 'BNS');
+  for (const e of entries) {
+    const old = e.code ? OLD_LAW_LINE[e.code] : undefined;
+    if (old) return { kind: 'left_out', note: oldLawLeftOutNote(old.name, e.number, old.newCode) };
+  }
+  if (entries.length === 1 && entries[0].code === 'BNS') {
+    return { kind: 'bns', section: entries[0].number };
+  }
+  return { kind: 'left_out', note: notInBnsTableNote(token) };
+}
+
 // ── Main Calculation ───────────────────────────────────────────────────────────
 
 export function calculateTimeline(input: TimelineInput): TimelineResult {
@@ -128,16 +176,27 @@ export function calculateTimeline(input: TimelineInput): TimelineResult {
   for (const section of input.sections) {
     const s = section.trim();
     if (!s) continue;
-    const r = resolveOffence(s);
+    // Keys stay the trimmed token as typed, so the web matches them (T-278).
+    const entry = readTimelineEntry(s);
+    if (entry.kind === 'left_out') {
+      sectionsNotFound.push(s);
+      sectionNotes[s] = entry.note;
+      continue;
+    }
+    const r = resolveOffence(entry.section);
     if (r.kind === 'not_an_offence') {
       sectionsNotFound.push(s);
-      sectionNotes[s] = leftOutOfPeriodNote(s);
+      // A row or parent row exists → not an offence; no row at all → not in the table.
+      sectionNotes[s] =
+        resolveBnsKey(entry.section) !== null
+          ? leftOutOfPeriodNote(entry.section)
+          : notInBnsTableNote(s);
     } else if (r.kind === 'exact' && r.maxYears !== null) {
       sectionsUsed.push(s);
       if (r.maxYears > maxYears) maxYears = r.maxYears;
     } else {
       sectionsWithoutPeriod.push(s);
-      sectionNotes[s] = `Section ${s}: ${DEPENDS_BNSS_187}`;
+      sectionNotes[s] = `Section ${entry.section}: ${DEPENDS_BNSS_187}`;
     }
   }
 
