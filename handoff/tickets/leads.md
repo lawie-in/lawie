@@ -38,6 +38,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 1. shashank — T-278 (0c7638c + timeline note). Once Ajay signs.
 2. tanvi — T-315 (0c58158). Slot given 12 Oct 2026 (first ready: Arjun OK'd).
 3. kunal — T-306 (f718a2b). Ajay signed f718a2b. Next after tanvi.
+4. vishal — T-316 (81dbe29, tests only). After kunal.
 First one ready merges first; tell Priya before you start.
 
 ## Last done
