@@ -14,3 +14,7 @@ T-240 adds `catalogueCategory` but leaves the behaviour gates on the old `catego
 1. Each gate keys on the template id or the catalogue category. Arjun picks which.
 2. A test shows that no existing template drafts differently, except where Ajay signs a change.
 3. Ajay signs the diff. Moved goldens go to him first.
+
+## Rides along (Tanvi, T-240)
+
+Intake (intake.service.ts, intake.prompts.ts) also moves to catalogueCategory here, after Mahak's T-190 merges. T-240 left intake unchanged because the LLM catalogue text is a behaviour change.
