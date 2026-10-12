@@ -149,23 +149,19 @@ const NEW_ACT_LAST_SECTION: Partial<Record<CheckedAct, number>> = {
 };
 
 /**
- * Q3 + Q6: an old-Act number is valid only if it is a row (a key) in Ajay's signed
- * mapping whose type is not a repealed one. Repealed: type "repealed", and IEA's
- * "repealed_no_equivalent". A row with no equivalent that is not repealed (IPC's
- * "unverified" rows with `new: null`) stays valid.
+ * Q3 (Q6 withdrawn): an old-Act number is valid if it is a row (a key) in Ajay's
+ * signed mapping, whatever its type (direct, merged, unverified, repealed,
+ * repealed_no_equivalent). In these tables "repealed" means "no equivalent in the
+ * new code"; those sections were in force until 2024. A number not in the table is
+ * flagged.
  */
-function liveRows(table: unknown): ReadonlySet<string> {
-  const mappings = (table as { mappings: Record<string, { type?: string }> }).mappings;
-  return new Set(
-    Object.entries(mappings)
-      .filter(([, row]) => !String(row?.type ?? '').startsWith('repealed'))
-      .map(([key]) => key),
-  );
+function tableRows(table: unknown): ReadonlySet<string> {
+  return new Set(Object.keys((table as { mappings: Record<string, unknown> }).mappings));
 }
 const OLD_ACT_ROWS: Partial<Record<CheckedAct, ReadonlySet<string>>> = {
-  IPC: liveRows(ipcToBns),
-  CrPC: liveRows(crpcToBnss),
-  IEA: liveRows(ieaToBsa),
+  IPC: tableRows(ipcToBns),
+  CrPC: tableRows(crpcToBnss),
+  IEA: tableRows(ieaToBsa),
 };
 
 /** Q1: a range is checked number by number, up to this many numbers. Wider is unreadable. */
@@ -291,8 +287,8 @@ export function extractActCitations(text: string): ActCitation[] {
  * T-270 Q3: whether a citation is valid under its own Act (Q2). Sub-sections are
  * checked by their parent number only: 61(2)(a) → 61.
  * - BNS 1-358, BNSS 1-531, BSA 1-170 by range; any letter suffix is invalid.
- * - IPC, CrPC, IEA: valid only if the parent number is a row in the signed mapping
- *   and the row is not repealed (Q6). Double letters (Q8) follow the same rules:
+ * - IPC, CrPC, IEA: valid only if the parent number is a row in the signed mapping,
+ *   whatever the row's type. Double letters (Q8) follow the same rules:
  *   "376AB IPC" is a row check, "BNS 103AB" is invalid.
  */
 export function isActCitationValid(act: CheckedAct, number: string): boolean {
