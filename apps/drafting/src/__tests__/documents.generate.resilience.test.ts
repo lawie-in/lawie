@@ -20,6 +20,7 @@ import { sdkAnswer } from './sdkStream';
 
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -106,7 +107,7 @@ describe('recordGeneration — duplicate (runId, runSequence)', () => {
 });
 
 describe('POST /generate-from-template — duplicate attempt does not double-spend Ink', () => {
-  it('skips spendInk when the Generation insert collides with a concurrent request', async () => {
+  it('releases its hold (no charge) when the Generation insert collides with a concurrent request', async () => {
     await AppSetting.create({ key: 'ai.drafting_model', value: 'claude-sonnet-4-5-20250929' });
 
     mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 10, 5));
