@@ -15,3 +15,6 @@ export * from './constants/headers';
 export * from './utils/validators';
 export * from './utils/normalize';
 export * from './blanks';
+
+// HTTP
+export * from './http/json-body-error-handler';
