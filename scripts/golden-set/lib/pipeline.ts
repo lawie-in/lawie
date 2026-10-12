@@ -197,9 +197,12 @@ export async function runFixture(
     const b1 = json(r1);
     ev.intakeId = b1.intake_id ?? null;
     if (r1.status !== 200 || b1.outcome !== 'brief') {
-      throw new Stop(`intake: HTTP ${r1.status}, outcome ${b1.outcome ?? b1.error ?? 'none'} (expected a brief)`);
+      throw new Stop(
+        `intake: HTTP ${r1.status}, outcome ${b1.outcome ?? b1.error ?? 'none'} (expected a brief)`,
+      );
     }
-    if (!b1.ledger) throw new Stop('intake: no fact ledger came back (feature.fact_ledger path not taken)');
+    if (!b1.ledger)
+      throw new Stop('intake: no fact ledger came back (feature.fact_ledger path not taken)');
     ev.ledgerId = b1.ledger.ledger_id;
     fields = b1.ledger.fields ?? {};
     let brief = b1.brief;
@@ -208,7 +211,10 @@ export async function runFixture(
     // 2. The advocate's answers, as the questions step sends them.
     if (fixture.answers && fixture.answers.length > 0) {
       for (const a of fixture.answers) {
-        values = [...values.filter((v) => v.key !== a.key), { key: a.key, value: a.value, source: 'user' }];
+        values = [
+          ...values.filter((v) => v.key !== a.key),
+          { key: a.key, value: a.value, source: 'user' },
+        ];
       }
       const r2 = await post('/intake/brief/update', {
         kind: fixture.pack,
@@ -216,10 +222,15 @@ export async function runFixture(
         ...(court ? { court } : {}),
         description: fixture.description,
         ledger_id: ev.ledgerId,
-        ledger_edits: fixture.answers.map((a) => ({ key: a.key, text: a.value, from_question: true })),
+        ledger_edits: fixture.answers.map((a) => ({
+          key: a.key,
+          text: a.value,
+          from_question: true,
+        })),
       });
       const b2 = json(r2);
-      if (r2.status !== 200 || !b2.brief) throw new Stop(`answers: HTTP ${r2.status} ${b2.error ?? ''}`.trim());
+      if (r2.status !== 200 || !b2.brief)
+        throw new Stop(`answers: HTTP ${r2.status} ${b2.error ?? ''}`.trim());
       brief = b2.brief;
       values = valuesOf(brief);
     }
@@ -244,7 +255,10 @@ export async function runFixture(
     const events = parseSse(r3.body as string);
     const err = events.find((e) => e.event === 'error');
     const done = events.find((e) => e.event === 'done');
-    if (err) throw new Stop(`generate: the model call failed (${err.data?.code ?? 'unknown'}: ${err.data?.reason ?? ''})`);
+    if (err)
+      throw new Stop(
+        `generate: the model call failed (${err.data?.code ?? 'unknown'}: ${err.data?.reason ?? ''})`,
+      );
     if (!done) throw new Stop('generate: the stream ended without a done event');
     ev.documentId = done.data.docId ?? null;
     ev.runId = done.data.runId ?? ev.runId;
@@ -252,7 +266,10 @@ export async function runFixture(
     ev.banner = Boolean(done.data.factCheck?.banner);
     if (!ev.documentId) throw new Stop('generate: the draft was not saved');
   } catch (e) {
-    ev.pipelineError = e instanceof Stop ? e.message : `harness: ${e instanceof Error ? e.name : 'error'}: ${e instanceof Error ? e.message.split('\n')[0] : ''}`;
+    ev.pipelineError =
+      e instanceof Stop
+        ? e.message
+        : `harness: ${e instanceof Error ? e.name : 'error'}: ${e instanceof Error ? e.message.split('\n')[0] : ''}`;
   }
 
   ev.calls = seam.takeCalls();
@@ -261,13 +278,27 @@ export async function runFixture(
   return ev;
 }
 
-function extractionReads(d: Drafting, replies: string[], fields: Record<string, string>): ExtractionRead[] {
+function extractionReads(
+  d: Drafting,
+  replies: string[],
+  fields: Record<string, string>,
+): ExtractionRead[] {
   const out: ExtractionRead[] = [];
   for (const text of replies) {
     const parsed = d.parseModelJson(text);
     for (const f of Array.isArray(parsed?.facts) ? parsed.facts : []) {
-      if (typeof f?.key !== 'string' || typeof f?.span !== 'string' || typeof f?.confidence !== 'number') continue;
-      out.push({ key: f.key, type: fields[f.key] ?? 'unknown', span: f.span, confidence: f.confidence });
+      if (
+        typeof f?.key !== 'string' ||
+        typeof f?.span !== 'string' ||
+        typeof f?.confidence !== 'number'
+      )
+        continue;
+      out.push({
+        key: f.key,
+        type: fields[f.key] ?? 'unknown',
+        span: f.span,
+        confidence: f.confidence,
+      });
     }
   }
   return out;
@@ -284,8 +315,12 @@ async function collect(d: Drafting, ev: RunEvidence, started: Date): Promise<voi
     const doc = await m.LawieDocument.findById(ev.documentId).lean();
     if (doc) {
       ev.deliveredText = d.decrypt(doc.finalContent ?? doc.generatedContent);
-      if (doc.runType !== 'fixture') problems.push(`Document ${ev.documentId} runType=${doc.runType}`);
-      const visible = await m.LawieDocument.countDocuments({ _id: doc._id, ...d.origin.NOT_FIXTURE });
+      if (doc.runType !== 'fixture')
+        problems.push(`Document ${ev.documentId} runType=${doc.runType}`);
+      const visible = await m.LawieDocument.countDocuments({
+        _id: doc._id,
+        ...d.origin.NOT_FIXTURE,
+      });
       if (visible !== 0) problems.push(`Document ${ev.documentId} passes the user-facing filter`);
     } else {
       ev.pipelineError = ev.pipelineError ?? `document ${ev.documentId} not found after the run`;
@@ -314,7 +349,8 @@ async function collect(d: Drafting, ev: RunEvidence, started: Date): Promise<voi
         paragraphIndex: r.paragraphIndex,
       }),
     );
-    for (const r of diffs) if (r.runType !== 'fixture') problems.push(`FactDiff ${r._id} runType=${r.runType}`);
+    for (const r of diffs)
+      if (r.runType !== 'fixture') problems.push(`FactDiff ${r._id} runType=${r.runType}`);
   }
   if (ev.intakeId) {
     for (const a of await m.LlmAuxCall.find({ intakeId: ev.intakeId }).lean()) {
@@ -329,10 +365,22 @@ async function collect(d: Drafting, ev: RunEvidence, started: Date): Promise<voi
     const l = await m.FactLedgerModel.findById(ev.ledgerId).lean();
     if (l) {
       if (l.runType !== 'fixture') problems.push(`FactLedger ${ev.ledgerId} runType=${l.runType}`);
-      const v = l.versions[l.versions.length - 1] ?? { facts: [], unresolved: [] };
+      // T-115a: versions are encrypted; open them only through the service (same loader as r()).
+      const v = requireFromDrafting<any>(src('services/fact-ledger.service')).currentState(l);
       const ledger: LedgerEvidence = {
-        facts: (v.facts ?? []).map((f: any) => ({ key: f.key, type: f.type, display: String(f.display), confidence: f.confidence, raw_span: f.raw_span })),
-        unresolved: (v.unresolved ?? []).map((u: any) => ({ key: u.key, type: u.type, reason: u.reason, raw_span: u.raw_span })),
+        facts: (v.facts ?? []).map((f: any) => ({
+          key: f.key,
+          type: f.type,
+          display: String(f.display),
+          confidence: f.confidence,
+          raw_span: f.raw_span,
+        })),
+        unresolved: (v.unresolved ?? []).map((u: any) => ({
+          key: u.key,
+          type: u.type,
+          reason: u.reason,
+          raw_span: u.raw_span,
+        })),
       };
       ev.ledger = ledger;
     }
@@ -341,12 +389,16 @@ async function collect(d: Drafting, ev: RunEvidence, started: Date): Promise<voi
     if (e.runType !== 'fixture') problems.push(`Event ${e._id} (${e.type}) runType=${e.runType}`);
   }
   const db = d.mongoose.connection.db;
-  const ink = await db.collection('inkledger').countDocuments({ userId: oid, createdAt: { $gte: started } });
+  const ink = await db
+    .collection('inkledger')
+    .countDocuments({ userId: oid, createdAt: { $gte: started } });
   if (ink > 0) problems.push(`${ink} inkledger row(s) written for the fixture user`);
   const credit = await m.CreditLedger.countDocuments({ userId: oid, createdAt: { $gte: started } });
   if (credit > 0) problems.push(`${credit} CreditLedger row(s) written for the fixture user`);
   if (await db.collection('users').findOne({ _id: oid })) {
-    problems.push('a users row exists for the fixture user (it must have none: no balance, no counts)');
+    problems.push(
+      'a users row exists for the fixture user (it must have none: no balance, no counts)',
+    );
   }
   ev.tokens = tokens;
   ev.isolation.ok = problems.length === 0;

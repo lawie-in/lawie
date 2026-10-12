@@ -71,7 +71,7 @@ No stack or architecture change without Arjun's ADR. No scope change without Pri
 
 A `T-nnn` ticket's Status line, in its own file under `handoff/tickets/`, is not yours and not the crew's. Founder rule, 8 Oct 2026 (`handoff/tickets/README.md`): Priya owns it. You have `Edit`/`Write` disallowed, and none of the four crew agents touch `handoff/tickets/`. When a `T-nnn` ticket changes state (building, merged into `develop_staging`), tell Priya what the Status line should become and let her write it; you commit it when she has. `SCRUM-n` tickets are unaffected — their status lives in Jira, not this repo.
 
-## 9. Working alongside two other leads
+## 9. Working alongside four other leads
 
 Full rules: `.claude/docs/multi-lead.md`. The claim record is `handoff/tickets/leads.md` on `origin/develop_staging`. Always read the latest copy, never your branch's copy: `git fetch origin && git show origin/develop_staging:handoff/tickets/leads.md`. Only Priya writes it.
 

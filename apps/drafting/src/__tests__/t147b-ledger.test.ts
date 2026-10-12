@@ -23,13 +23,14 @@ import { LlmAuxCall } from '../models/LlmAuxCall.model';
 import { User } from '../models/User.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { Brief, buildBrief, buildChecklist, buildQuestions } from '../services/intake-brief';
+import { openVersion } from '../services/fact-ledger.service';
 import { INTAKE_LIMITS, MAX_LEDGER_VERSIONS, runBriefIntake } from '../services/intake.service';
 import { loadRulePack } from '../services/rule-pack.service';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 
 // apps/web is outside this workspace's rootDir for tsc, so the pure function the
 // brief screen renders its rows from is loaded by path (ts-jest compiles it).
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 const { renderedLedgerFacts } = require(
   path.join(__dirname, '../../../web/src/components/intake/briefTypes'),
 ) as {
@@ -43,6 +44,7 @@ const { renderedLedgerFacts } = require(
 
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -204,14 +206,19 @@ describe('T-147b AC2: every span is verbatim in the description', () => {
     expect(factOf(ledger, 'court')).toBeUndefined();
     expect(factOf(ledger, 'compensation_claimed_amount')).toBeDefined();
 
-    const spans = [...ledger.facts, ...ledger.unresolved].map((x: { raw_span: string }) => x.raw_span);
+    const spans = [...ledger.facts, ...ledger.unresolved].map(
+      (x: { raw_span: string }) => x.raw_span,
+    );
     expect(spans.length).toBeGreaterThan(0);
     for (const span of spans) expect(DESC).toContain(span);
 
     // The stored copy too, in every version.
     const doc = await FactLedgerModel.findById(ledger.ledger_id).lean();
     for (const v of doc!.versions) {
-      for (const x of [...v.facts, ...v.unresolved]) expect(DESC).toContain(x.raw_span);
+      expect(v).not.toHaveProperty('facts');
+      expect(v).not.toHaveProperty('unresolved');
+      const open = openVersion(v);
+      for (const x of [...open.facts, ...open.unresolved]) expect(DESC).toContain(x.raw_span);
     }
     // Only a count is logged for what was dropped.
     expect(JSON.stringify(logs.flatMap((l) => l.mock.calls))).not.toContain('9,99,999');
@@ -275,7 +282,8 @@ describe('T-147b AC4: the headline MACT case', () => {
 
 describe('T-147b AC5: what cannot be read is asked, not stored', () => {
   it('puts an unreadable value in unresolved with a reason and asks for its key', async () => {
-    const description = 'Mere client ka accident hua. Muavza kuch lakh ka claim hai, naam Ramesh hai.';
+    const description =
+      'Mere client ka accident hua. Muavza kuch lakh ka claim hai, naam Ramesh hai.';
     mockDescribe(
       extract(
         { key: 'compensation_claimed_amount', span: 'kuch lakh', confidence: 0.99 },
@@ -287,7 +295,9 @@ describe('T-147b AC5: what cannot be read is asked, not stored', () => {
 
     expect(factOf(ledger, 'compensation_claimed_amount')).toBeUndefined();
     expect(factOf(ledger, 'victim_name')).toBeUndefined();
-    const amount = ledger.unresolved.find((u: LUnresolved) => u.key === 'compensation_claimed_amount');
+    const amount = ledger.unresolved.find(
+      (u: LUnresolved) => u.key === 'compensation_claimed_amount',
+    );
     expect(amount).toBeDefined();
     expect(typeof amount.reason).toBe('string');
     expect(amount.reason.length).toBeGreaterThan(0);
@@ -356,7 +366,11 @@ describe('T-147b AC7: an edit is a new version', () => {
     });
     expect(up.status).toBe(200);
     const edited = factOf(up.body.ledger, 'compensation_claimed_amount')!;
-    expect(edited).toMatchObject({ value: 300000, display: 'Rs 3,00,000', previous_display: 'Rs 2,00,000' });
+    expect(edited).toMatchObject({
+      value: 300000,
+      display: 'Rs 3,00,000',
+      previous_display: 'Rs 2,00,000',
+    });
 
     const after = await FactLedgerModel.findById(id).lean();
     expect(after!.currentVersion).toBe(2);
@@ -364,7 +378,11 @@ describe('T-147b AC7: an edit is a new version', () => {
     expect(after!.versions[1].reason).toBe('edit');
     // The earlier version is untouched.
     expect(JSON.stringify(after!.versions[0])).toBe(JSON.stringify(before!.versions[0]));
-    expect(after!.versions[0].facts[0]).toMatchObject({ value: 200000, display: 'Rs 2,00,000' });
+    expect(after!.versions[0]).not.toHaveProperty('facts');
+    expect(openVersion(after!.versions[0]).facts[0]).toMatchObject({
+      value: 200000,
+      display: 'Rs 2,00,000',
+    });
   });
 
   it('an answer to an unresolved key, or from a question, is an answer version', async () => {
@@ -376,7 +394,9 @@ describe('T-147b AC7: an edit is a new version', () => {
       ledger_edits: [{ key: 'victim_name', text: 'Ramesh Kumar' }],
     });
     expect(factOf(up.body.ledger, 'victim_name')).toMatchObject({ source: 'asked' });
-    expect(up.body.ledger.unresolved.find((u: LUnresolved) => u.key === 'victim_name')).toBeUndefined();
+    expect(
+      up.body.ledger.unresolved.find((u: LUnresolved) => u.key === 'victim_name'),
+    ).toBeUndefined();
     const doc = await FactLedgerModel.findById(id).lean();
     expect(doc!.versions[1].reason).toBe('answer');
   });
@@ -391,7 +411,10 @@ describe('T-147b AC7: an edit is a new version', () => {
       ledger_edits: [{ key: 'compensation_claimed_amount', text: 'kuch bhi' }],
     });
     expect(up.status).toBe(200);
-    expect(up.body.ledger_results[0]).toMatchObject({ key: 'compensation_claimed_amount', status: 'unreadable' });
+    expect(up.body.ledger_results[0]).toMatchObject({
+      key: 'compensation_claimed_amount',
+      status: 'unreadable',
+    });
     expect(factOf(up.body.ledger, 'compensation_claimed_amount')!.display).toBe('Rs 2,00,000');
     const doc = await FactLedgerModel.findById(id).lean();
     expect(doc!.currentVersion).toBe(1);
@@ -425,7 +448,10 @@ describe('T-147b: the switch off', () => {
     expect(await FactLedgerModel.countDocuments()).toBe(0);
 
     // /update ignores a ledger id while the switch is off.
-    const up = await update({ ledger_id: 'a'.repeat(24), ledger_edits: [{ key: 'victim_name', text: 'X' }] });
+    const up = await update({
+      ledger_id: 'a'.repeat(24),
+      ledger_edits: [{ key: 'victim_name', text: 'X' }],
+    });
     expect(up.status).toBe(200);
     expect(up.body.ledger).toBeUndefined();
   });
@@ -450,7 +476,10 @@ describe('T-147b: ownership', () => {
       OTHER_USER_ID,
     );
     expect(up.status).toBe(404);
-    const again = await describe_({ ledger_id: id, intake_id: undefined, kind: 'mact_claim' }, OTHER_USER_ID);
+    const again = await describe_(
+      { ledger_id: id, intake_id: undefined, kind: 'mact_claim' },
+      OTHER_USER_ID,
+    );
     expect(again.status).toBe(404);
 
     const doc = await FactLedgerModel.findById(id).lean();
@@ -491,8 +520,17 @@ describe('T-147b AC9: the Drafter input is unchanged', () => {
       formattingRulesRef: 'bihar_district',
     });
     await AppSetting.create({ key: 'ai.drafting_model', value: 'claude-sonnet-4-5-20250929' });
-    await User.create({ _id: USER_ID, plan: 'free', planTier: 'free', inkSub: 0, inkAnnualCarry: 0, inkTopup: 4000 });
-    const ground = buildChecklist(loadRulePack('bail_regular')!).find((i) => i.key === 'grounds_for_bail')!.options[0];
+    await User.create({
+      _id: USER_ID,
+      plan: 'free',
+      planTier: 'free',
+      inkSub: 0,
+      inkAnnualCarry: 0,
+      inkTopup: 4000,
+    });
+    const ground = buildChecklist(loadRulePack('bail_regular')!).find(
+      (i) => i.key === 'grounds_for_bail',
+    )!.options[0];
     const values = [
       { key: 'applicant_name', value: 'Ram Kumar' },
       { key: 'father_name', value: 'Shri Hari Kumar' },
@@ -509,7 +547,9 @@ describe('T-147b AC9: the Drafter input is unchanged', () => {
     const court = { state: 'bihar', court_type: 'sessions', court: COURT_ID };
     const generate = async () => {
       mockMessagesStream.mockReset();
-      mockMessagesStream.mockResolvedValue(sdkAnswer('1. That the applicant is a law-abiding citizen.', 4000, 800));
+      mockMessagesStream.mockResolvedValue(
+        sdkAnswer('1. That the applicant is a law-abiding citizen.', 4000, 800),
+      );
       const res = await request(app)
         .post('/generate-from-brief')
         .set(headers())
@@ -534,7 +574,13 @@ describe('T-147b: no fact value or span in usage rows or logs', () => {
     const logs = (['info', 'error', 'warn', 'log'] as const).map((m) =>
       jest.spyOn(console, m).mockImplementation(() => undefined),
     );
-    mockDescribe(extract(FACT_AMOUNT, FACT_PS, FACT_DATE, { key: 'victim_name', span: 'Ramesh', confidence: 0.05 }));
+    mockDescribe(
+      extract(FACT_AMOUNT, FACT_PS, FACT_DATE, {
+        key: 'victim_name',
+        span: 'Ramesh',
+        confidence: 0.05,
+      }),
+    );
     const first = await describe_();
     await update({
       ledger_id: first.body.ledger.ledger_id,
@@ -545,12 +591,24 @@ describe('T-147b: no fact value or span in usage rows or logs', () => {
       ],
     });
     // A bad id and an invented span also log nothing of the text.
-    await update({ ledger_id: 'c'.repeat(24), ledger_edits: [{ key: 'victim_name', text: 'Ramesh Kumar' }] });
+    await update({
+      ledger_id: 'c'.repeat(24),
+      ledger_edits: [{ key: 'victim_name', text: 'Ramesh Kumar' }],
+    });
 
     const stored = JSON.stringify(await LlmAuxCall.find({}).lean());
     const logged = JSON.stringify(logs.flatMap((l) => l.mock.calls));
     expect(logged).toContain('ledger written');
-    for (const text of ['2 lakh', '3 lakh', 'PS Kotwali', '12/3/26', 'Ramesh', '2,00,000', '3,00,000', 'zzz unreadable']) {
+    for (const text of [
+      '2 lakh',
+      '3 lakh',
+      'PS Kotwali',
+      '12/3/26',
+      'Ramesh',
+      '2,00,000',
+      '3,00,000',
+      'zzz unreadable',
+    ]) {
       expect(stored).not.toContain(text);
       expect(logged).not.toContain(text);
     }
@@ -567,7 +625,9 @@ describe('T-147b: write failures and a change of kind', () => {
     const original = FactLedgerModel.findOne.bind(FactLedgerModel);
     jest.spyOn(FactLedgerModel, 'findOne').mockImplementationOnce(((...args: unknown[]) =>
       (async () => {
-        const doc = await (original as (...a: unknown[]) => Promise<{ _id: unknown } | null>)(...args);
+        const doc = await (original as (...a: unknown[]) => Promise<{ _id: unknown } | null>)(
+          ...args,
+        );
         await FactLedgerModel.collection.updateOne({ _id: doc!._id } as never, {
           $set: { currentVersion: 7 },
         });
@@ -590,7 +650,9 @@ describe('T-147b: write failures and a change of kind', () => {
     const logs = (['error', 'warn', 'log'] as const).map((m) =>
       jest.spyOn(console, m).mockImplementation(() => undefined),
     );
-    jest.spyOn(FactLedgerModel, 'findOneAndUpdate').mockRejectedValueOnce(new Error('db down 3 lakh'));
+    jest
+      .spyOn(FactLedgerModel, 'findOneAndUpdate')
+      .mockRejectedValueOnce(new Error('db down 3 lakh'));
 
     const up = await update({
       ledger_id: first.body.ledger.ledger_id,
@@ -620,7 +682,10 @@ describe('T-147b: write failures and a change of kind', () => {
     expect(ledger.ledger_id).not.toBe(oldId);
     expect(ledger.document_kind).toBe('bail_regular');
     // The asked fact is carried; what the new document does not have is not.
-    expect(factOf(ledger, 'police_station')).toMatchObject({ source: 'asked', raw_span: 'Gandhi Maidan' });
+    expect(factOf(ledger, 'police_station')).toMatchObject({
+      source: 'asked',
+      raw_span: 'Gandhi Maidan',
+    });
     expect(factOf(ledger, 'compensation_claimed_amount')).toBeUndefined();
     // The old ledger is left as it was.
     const old = await FactLedgerModel.findById(oldId).lean();
@@ -835,10 +900,9 @@ describe('T-147b round 2, AC7: one request writes at most one version', () => {
 
   it('with currentVersion at 100 the next write is a 422 ledger_version_limit and changes nothing', async () => {
     const id = await seeded();
-    await FactLedgerModel.collection.updateOne(
-      { _id: (await ledgerOf(id))._id } as never,
-      { $set: { currentVersion: 100 } },
-    );
+    await FactLedgerModel.collection.updateOne({ _id: (await ledgerOf(id))._id } as never, {
+      $set: { currentVersion: 100 },
+    });
     const up = await update({
       ledger_id: id,
       ledger_edits: [{ key: 'compensation_claimed_amount', text: '3 lakh' }],
@@ -856,10 +920,9 @@ describe('T-147b round 2, AC7: one request writes at most one version', () => {
 
   it('at 99 the write that makes 100 still goes through', async () => {
     const id = await seeded();
-    await FactLedgerModel.collection.updateOne(
-      { _id: (await ledgerOf(id))._id } as never,
-      { $set: { currentVersion: 99 } },
-    );
+    await FactLedgerModel.collection.updateOne({ _id: (await ledgerOf(id))._id } as never, {
+      $set: { currentVersion: 99 },
+    });
     const up = await update({
       ledger_id: id,
       ledger_edits: [{ key: 'compensation_claimed_amount', text: '3 lakh' }],
@@ -874,7 +937,9 @@ describe('T-147b round 2: an unreadable value typed into an empty field', () => 
     mockDescribe(extract(FACT_AMOUNT));
     const first = await describe_();
     const id = first.body.ledger.ledger_id;
-    expect(first.body.ledger.unresolved.find((u: LUnresolved) => u.key === 'accident_date')).toBeUndefined();
+    expect(
+      first.body.ledger.unresolved.find((u: LUnresolved) => u.key === 'accident_date'),
+    ).toBeUndefined();
 
     const up = await update({
       ledger_id: id,
@@ -882,7 +947,9 @@ describe('T-147b round 2: an unreadable value typed into an empty field', () => 
     });
     expect(up.status).toBe(200);
     expect(up.body.ledger_results[0]).toMatchObject({ key: 'accident_date', status: 'unreadable' });
-    expect(up.body.ledger.unresolved.find((u: LUnresolved) => u.key === 'accident_date')).toBeUndefined();
+    expect(
+      up.body.ledger.unresolved.find((u: LUnresolved) => u.key === 'accident_date'),
+    ).toBeUndefined();
     const doc = await FactLedgerModel.findById(id).lean();
     expect(doc!.currentVersion).toBe(1);
     expect(doc!.versions).toHaveLength(1);

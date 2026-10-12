@@ -1,14 +1,14 @@
-# Three dev leads in parallel
+# Five dev leads in parallel
 
-Read by `vishal`, `mahak` and `shashank` when a ticket starts, and by Priya when she assigns work. Founder decision, 11 Oct 2026: three leads, one coordinator (Priya), so tickets ship in parallel without colliding.
+Read by `vishal`, `mahak`, `shashank`, `kunal` and `tanvi` when a ticket starts, and by Priya when she assigns work. Founder decision, 11 Oct 2026: three leads, one coordinator (Priya), so tickets ship in parallel without colliding. Raised to five leads (`kunal`, `tanvi` added) by the founder, 12 Oct 2026.
 
 ## Who does what
 
 | Role | Does | Never does |
 |---|---|---|
 | Priya (coordinator) | Assigns tickets, writes the claim record, orders merges, sends the founder one status update | Writes code, commits, runs the crew |
-| Lead (`vishal`, `mahak`, `shashank`) | Runs one ticket through the crew, commits, merges into `develop_staging` in its slot and pushes | Takes an unassigned ticket, holds two tickets, changes files outside its claim |
-| Crew (`developer`, `tester`, `reviewer`, `doc-writer`) | Shared by all three leads. One step each, as before | Talk to the founder, commit, or look past its handoff packet. It needs no idea which lead sent it |
+| Lead (`vishal`, `mahak`, `shashank`, `kunal`, `tanvi`) | Runs one ticket through the crew, commits, merges into `develop_staging` in its slot and pushes | Takes an unassigned ticket, holds two tickets, changes files outside its claim |
+| Crew (`developer`, `tester`, `reviewer`, `doc-writer`) | Shared by all five leads. One step each, as before | Talk to the founder, commit, or look past its handoff packet. It needs no idea which lead sent it |
 
 ## The claim record
 
@@ -42,11 +42,11 @@ Each ticket file also gets one more row in its field table: `Assigned lead | <na
 
 ## The board, comments and the relay
 
-Four sessions run apart: the whole team (Priya leads), `vishal`, `mahak` and `shashank`. None can see another's conversation. The Lawie board artifact (https://claude.ai/artifact/REAV9qDo6bzJitD1TfxDXD), its comments, its relay and `leads.md` are how they talk.
+Six sessions run apart: the whole team (Priya leads), `vishal`, `mahak`, `shashank`, `kunal` and `tanvi`. None can see another's conversation. The Lawie board artifact (https://claude.ai/artifact/REAV9qDo6bzJitD1TfxDXD), its comments, its relay and `leads.md` are how they talk.
 
 **What the board holds.**
 
-- `tickets/<id>`: status (`todo`, `doing`, `review`, `blocked`, `hold`, `done`, `closed`), title, owner, assignee (`vishal`, `mahak` or `shashank`), files (claimed paths), note, deps, phase, file, updatedAt. The board flags two tickets claiming the same path, and marks hot paths: `packages/shared`, `apps/gateway`, `apps/drafting/src/config`, `docs/templates`, `ai.service.ts`, `preflight.service.ts`.
+- `tickets/<id>`: status (`todo`, `doing`, `review`, `blocked`, `hold`, `done`, `closed`), title, owner, assignee (`vishal`, `mahak`, `shashank`, `kunal` or `tanvi`), files (claimed paths), note, deps, phase, file, updatedAt. The board flags two tickets claiming the same path, and marks hot paths: `packages/shared`, `apps/gateway`, `apps/drafting/src/config`, `docs/templates`, `ai.service.ts`, `preflight.service.ts`.
 - `comments/<ticketId>`: one thread per ticket. Each item has from, body, ts.
 - `messages/<YYYY-MM-DD>_<author>`: the relay chat, one document per author per day. Each item has from, to, kind, ticket, body, ts.
 
@@ -61,7 +61,7 @@ Four sessions run apart: the whole team (Priya leads), `vishal`, `mahak` and `sh
 
 **The relay.** For messages between sessions. Kinds: `note`; `claim` (a lead asking Priya for a file or an extension); `conflict` (two tickets touching the same path); `resolution` (Priya's answer). Every session reads the relay and its own tickets' comments at start, before branching and before merging into `develop_staging`.
 
-**@mentions.** Address people with `@name` from the roster only: priya, vishal, mahak, shashank, arjun, meera, vikram, ajay, rita, madhuri, rajesh, annu, kavya, anushka, founder. Use `@founder` for anything only he decides. Tagging someone does not grant a gate: Ajay, Arjun and Rajesh sign-offs still need a reference.
+**@mentions.** Address people with `@name` from the roster only: priya, vishal, mahak, shashank, kunal, tanvi, arjun, meera, vikram, ajay, rita, madhuri, rajesh, annu, kavya, anushka, founder. Use `@founder` for anything only he decides. Tagging someone does not grant a gate: Ajay, Arjun and Rajesh sign-offs still need a reference.
 
 ## Worktrees
 
@@ -73,7 +73,7 @@ git -C /home/user/lawie worktree add --detach /home/user/lawie-wt/mahak origin/d
 cd /home/user/lawie-wt/mahak && yarn install
 ```
 
-Same for `shashank` (and `vishal`, if he moves off his current checkout). Per ticket, the lead creates its branch inside its own worktree from `origin/develop_staging`.
+Same for `shashank`, `kunal` and `tanvi` (and `vishal`, if he moves off his current checkout). Per ticket, the lead creates its branch inside its own worktree from `origin/develop_staging`.
 
 - Start each lead's session from inside its worktree. Subagents run in the session's directory, so this is what keeps each crew on its own lead's files.
 - Run `yarn install` in each worktree. Do not symlink `node_modules` from another checkout: its `@lawie/*` links resolve to that checkout's `apps/` and `packages/shared`, so a build in the worktree would test the wrong code.
@@ -83,6 +83,17 @@ Same for `shashank` (and `vishal`, if he moves off his current checkout). Per ti
 ## What stays the same
 
 Entry gate, modes, handoff packets, the review loop with its two-round cap, scope boundaries, the quality line in `.claude/docs/quality-gate.md`, and the rule that only the lead commits. Leads still cannot `Edit` or `Write`.
+
+## Speed rules (founder, 12 Oct 2026)
+
+The founder finds the chain too slow. Test enough to be safe, not more:
+
+1. **Developer:** run `tsc` and only the test files for what you changed (`yarn workspace @lawie/<name> test -- <paths>`). No full suite.
+2. **Tester:** write tests for the acceptance criteria only. Run them plus the existing tests for the touched files. Run the full workspace suite **once**, right before the merge. No extra property sweeps, mutation checks or repeat runs unless the ticket is legal content.
+3. **Reviewer:** one pass. Only must-fix findings block. Should-fix and nice-to-have go into a follow-up ticket (tell Priya), not another round.
+4. **Small-fix mode** (developer, tester, merge) for any ticket that stays in one service and touches no legal path, auth, billing or `packages/shared`, even if it is a small feature. The reviewer runs only for those four.
+5. **Doc-writer** only when a doc outside `handoff/` is made wrong. Otherwise skip it and say so in the merge body.
+6. Unchanged: Ajay's sign-off on legal diffs, golden snapshot rules, never skip or weaken a test, CI green after every push.
 
 ## Founder away: Priya decides (founder, 11 Oct 2026, night)
 

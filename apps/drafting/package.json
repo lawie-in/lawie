@@ -22,7 +22,8 @@
     "report:rule-packs": "ts-node --transpile-only scripts/rule-pack-report.ts",
     "report:averments": "ts-node --transpile-only scripts/averments-table.ts",
     "report:fact-diffs": "ts-node --transpile-only scripts/fact-diff-report.ts",
-    "golden:set": "ts-node --transpile-only ../../scripts/golden-set/run.ts"
+    "golden:set": "ts-node --transpile-only ../../scripts/golden-set/run.ts",
+    "backfill:encrypt-case-details": "ts-node --transpile-only src/scripts/encrypt-case-details.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.0",
