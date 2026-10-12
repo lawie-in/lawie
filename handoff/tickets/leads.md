@@ -36,6 +36,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 ## Merge queue
 
 - kunal: T-343 (c905e36, review round 2 passed, Ajay signed). After Mahak's T-353; check with her first.
+- mahak: T-331 (4101705, small fix tested green). After Kunal's T-343, once develop_staging CI is green again.
 
 ## Last done
 
