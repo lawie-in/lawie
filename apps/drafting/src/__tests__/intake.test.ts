@@ -23,6 +23,7 @@ import { datesInText, decideMatch, INTAKE_LIMITS } from '../services/intake.serv
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -30,7 +31,6 @@ jest.mock('@anthropic-ai/sdk', () =>
 beforeEach(() => {
   mockMessagesStream.mockReset();
 });
-
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439071';
@@ -466,7 +466,7 @@ describe('POST /intake — other outcomes', () => {
       isCourtDocument: false,
       category: 'other',
     });
-    expect(String((ev!.metadata as { label: string }).label)).not.toMatch(/\d/);
+    expect((ev!.metadata as { label?: string }).label).toBeUndefined();
   });
 
   it('a template id not on the allowlist → no match and a demand signal', async () => {

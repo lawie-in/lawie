@@ -622,7 +622,17 @@ function inOrder(normText: string, stretches: string[]): boolean {
 
 /**
  * A cue (T-200, R2a). `any`: one entry is enough. `all`: each list must be
- * met. Entries match as substrings of the normalised paragraph text.
+ * met. Entries are matched against the normalised paragraph text (T-266,
+ * Ajay, 12 Oct 2026):
+ * - a Latin entry matches only at the start of a word (no letter or digit
+ *   just before it), with no end boundary, so "ground" matches "grounds" but
+ *   not "background";
+ * - any other entry (Devanagari) matches as a substring;
+ * - an entry with `{{key}}` matches only as a whole token (Ajay, 12 Oct
+ *   2026): no letter, digit or "/" just before it (any script); no letter,
+ *   digit, "/", or "-" then a letter or digit just after it. So "12" matches
+ *   in "FIR-12" and "No.12,", but not in "12/2026", "12-A", "12A" or "112".
+ *   A FIR value or its blank is escaped and matched under the `u` flag.
  * `{{key}}` is the brief's value for that key, or its blank.
  */
 type Cue = { any: string[] } | { all: string[][] };
@@ -753,17 +763,42 @@ function briefValue(brief: Brief | undefined, key: string): string {
   return item?.placeholder ?? brief?.still_unknown.find((u) => u.key === key)?.placeholder ?? '';
 }
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * T-266: where one resolved, normalised cue entry is in a normalised paragraph.
+ * Templated entries match as a whole token, Latin entries at the start of a
+ * word, other scripts as written.
+ */
+function entryMatches(paragraph: string, wanted: string, templated: boolean): boolean {
+  if (templated) {
+    return new RegExp(
+      `(?<![\\p{L}\\p{N}\\p{M}/])${escapeRegExp(wanted)}(?![\\p{L}\\p{N}\\p{M}/]|-[\\p{L}\\p{N}])`,
+      'u',
+    ).test(paragraph);
+  }
+  if (/^[\x20-\x7e]+$/.test(wanted)) {
+    const body = escapeRegExp(wanted).replace(/ /g, ' +');
+    return new RegExp(`(?<![a-z0-9])${body}`).test(paragraph);
+  }
+  return paragraph.includes(wanted);
+}
+
 /** True when one normalised paragraph carries the cue. A cue that resolves to nothing never matches. */
 function carriesCue(cue: Cue, paragraph: string, brief: Brief | undefined): boolean {
   const has = (entry: string): boolean => {
     let blank = false;
+    let templated = false;
     const resolved = entry.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, key: string) => {
+      templated = true;
       const value = briefValue(brief, key);
       if (normalise(value) === '') blank = true;
       return value;
     });
     const wanted = normalise(resolved);
-    return !blank && wanted !== '' && paragraph.includes(wanted);
+    return !blank && wanted !== '' && entryMatches(paragraph, wanted, templated);
   };
   const lists = 'any' in cue ? [cue.any] : cue.all;
   return lists.every((list) => list.some(has));

@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Unassigned. Found by Vishal (T-263), 12 Oct 2026 |
 | Mode   | Small fix |
-| Status | To do. Unassigned |
+| Status | Building: vishal (12 Oct 2026) |
 
 `apps/drafting/src/__tests__/documents.generate.usage.test.ts` failed once under load and passed on re-run. Details are in the T-263 board comment. Root-cause it (timing or shared state); do not skip or loosen the test. Touches tests in `apps/drafting` only, so check the claim record for overlap before assigning.
 

@@ -13,15 +13,19 @@
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
-import bnsBailability from '../config/bns-bailability.json';
-import bnsOffences from '../config/bns-offences.json';
-
+import {
+  BNS_CLASSIFICATION,
+  BNS_OFFENCE_KEYS,
+  ChargedCode,
+  ChargedSection,
+  readChargedField,
+  readSectionsCharged,
+  resolveOffence,
+} from './bns-offence-resolver';
 import { getTemplateRegistry } from './template-promoter';
 
 /** Sorted list of valid BNS section numbers for system-prompt injection (SCRUM-64). */
-const BNS_VALID_SECTIONS = Object.keys(bnsOffences.offences).sort(
-  (a, b) => parseFloat(a) - parseFloat(b),
-);
+const BNS_VALID_SECTIONS = [...BNS_OFFENCE_KEYS].sort((a, b) => parseFloat(a) - parseFloat(b));
 
 // ── Types — match the JSON schema from CLO ──────────────────────────────────
 
@@ -917,6 +921,21 @@ export interface PlaceholderContext {
 export const GOVERNING_PROVISION_BLANK =
   '[To be confirmed: Section 167(2) CrPC or Section 187(3) BNSS]';
 
+/** The `source` of a form field (e.g. 'bns_mapping'), if the template defines one. */
+export function fieldSourceOf(config: TemplateConfig | null, fieldId: string): string | undefined {
+  for (const step of config?.form_schema?.steps ?? []) {
+    const field = step.fields.find((f) => f.field_id === fieldId);
+    if (field) return field.source;
+  }
+  return undefined;
+}
+
+/**
+ * ctx key holding sections_charged as read BEFORE the array is joined (Arjun,
+ * correction to step 7): JSON of readChargedField's { code, number } entries.
+ */
+export const SECTIONS_CHARGED_READ_KEY = '__sections_charged_read';
+
 /**
  * Build the full placeholder context from form data + computed fields + system values.
  */
@@ -945,6 +964,14 @@ export function buildPlaceholderContext(
     // Computed fields
     ...computed,
   };
+
+  // Arjun (step 7 correction): read sections_charged per entry, with the picker's
+  // BNS default, before the array is flattened to "303, 351" below.
+  if (formData.sections_charged !== null && formData.sections_charged !== undefined) {
+    ctx[SECTIONS_CHARGED_READ_KEY] = JSON.stringify(
+      readChargedField(formData.sections_charged, fieldSourceOf(config, 'sections_charged')),
+    );
+  }
 
   // Form data — flatten all values to strings
   for (const [key, val] of Object.entries(formData)) {
@@ -1421,41 +1448,77 @@ RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ?
       : ''
   }${
     config.category === 'criminal'
-      ? `\n\nBNS SECTION WHITELIST (MANDATORY — SCRUM-64): You MUST ONLY cite BNS sections from this verified First Schedule list: ${BNS_VALID_SECTIONS.join(', ')}. Any BNS section number NOT in this list does not exist in the Bharatiya Nyaya Sanhita — do NOT use it under any circumstances.`
+      ? `\n\nBNS SECTION WHITELIST (MANDATORY — SCRUM-64): You MUST ONLY cite BNS sections from this verified First Schedule list: ${BNS_VALID_SECTIONS.join(', ')}. Any BNS section number NOT in this list does not exist in the Bharatiya Nyaya Sanhita — do NOT use it under any circumstances.\nA sub-section of a listed section may be cited, for example 103(1) or 316(2).`
       : ''
   }`;
 }
 
+/** Ajay Q8 / round 5c: old-law codes, how the line names them, and the new code. */
+const OLD_LAW_LINE: Partial<Record<ChargedCode, { name: string; newCode: string }>> = {
+  IPC: { name: 'IPC', newCode: 'BNS' },
+  CRPC: { name: 'CrPC', newCode: 'BNSS' },
+  IEA: { name: 'IEA', newCode: 'BSA' },
+};
+
 /**
  * Classify BNS sections as bailable/non-bailable.
- * Returns a string like "BNS 303 (non-bailable), BNS 351 (bailable)"
+ * Returns a string like "BNS 303(2) (NON-BAILABLE), BNS 351(2) (BAILABLE)".
+ *
+ * T-277 (R4): generated from bns-offences.json at load time (BNS_CLASSIFICATION
+ * replaces the retired bns-bailability.json). A section resolves through the shared
+ * resolver: its own row, else its own variant, else a parent row without variants.
+ * A null or non-"yes"/"no" value goes in neither list. Only the extracted section
+ * number and table-derived labels are emitted, never the user's free text. The field
+ * is read only by readSectionsCharged (Arjun, round 4).
  */
-export function classifySectionsBailability(sectionsCharged: string): string {
-  if (!sectionsCharged) return '';
+export function classifySectionsBailability(sectionsCharged: string | ChargedSection[]): string {
+  if (!sectionsCharged || sectionsCharged.length === 0) return '';
+  // A string (brief, free text) is read with no default; a pre-read list keeps
+  // the per-entry codes from readChargedField.
+  const charged =
+    typeof sectionsCharged === 'string' ? readSectionsCharged(sectionsCharged) : sectionsCharged;
 
-  const nonBailableSet = new Set(bnsBailability.non_bailable);
-  const bailableSet = new Set(bnsBailability.bailable);
+  const nonBailableSet = new Set(BNS_CLASSIFICATION.non_bailable);
+  const bailableSet = new Set(BNS_CLASSIFICATION.bailable);
 
-  // Extract section numbers from strings like "BNS 303", "BNS 318(4)", "303"
-  const parts = sectionsCharged.split(',').map((s) => s.trim());
+  // Arjun (round 4): the one sections_charged reader; no comma split here.
   const classified: string[] = [];
+  const oldLaw: string[] = [];
 
-  for (const part of parts) {
-    // Extract the numeric portion (e.g., "303" from "BNS 303" or "318(4)" from "BNS 318(4)")
-    const match = part.match(/(\d+(?:\(\d+\))?)/);
-    if (!match) continue;
+  for (const { code, number } of charged) {
+    // Bare (code not stated): never BNS, never classified; existing wording only.
+    if (code === null) {
+      classified.push(`${number} (classification: verify from First Schedule)`);
+      continue;
+    }
+    // Ajay Q8 / round 5c: an old-law number gets its line, never a "BNS" label.
+    const old = OLD_LAW_LINE[code];
+    if (old) {
+      oldLaw.push(
+        `${old.name} ${number} is an old-law section and is not classified here. Use the section converter to find the ${old.newCode} section.`,
+      );
+      continue;
+    }
+    // BNSS / BSA / OTHER: kept by the reader, no label and no line here.
+    if (code !== 'BNS') continue;
 
-    const sectionNum = match[1];
-    if (nonBailableSet.has(sectionNum)) {
-      classified.push(`${part} (NON-BAILABLE)`);
-    } else if (bailableSet.has(sectionNum)) {
-      classified.push(`${part} (BAILABLE)`);
+    // Exact table key → the generated lists; otherwise the resolver's variant /
+    // parent-row value (same source, so a key and its list entry always agree).
+    const bailable = bailableSet.has(number)
+      ? true
+      : nonBailableSet.has(number)
+        ? false
+        : resolveOffence(number).bailable;
+    if (bailable === false) {
+      classified.push(`BNS ${number} (NON-BAILABLE)`);
+    } else if (bailable === true) {
+      classified.push(`BNS ${number} (BAILABLE)`);
     } else {
-      classified.push(`${part} (classification: verify from First Schedule)`);
+      classified.push(`BNS ${number} (classification: verify from First Schedule)`);
     }
   }
 
-  return classified.join(', ');
+  return [classified.join(', '), ...oldLaw].filter(Boolean).join('\n');
 }
 
 /**
@@ -1485,9 +1548,12 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
 
   // Inject bailability classification if sections_charged exist in context (SCRUM-52 S2)
   if (ctx.sections_charged) {
-    const classification = classifySectionsBailability(ctx.sections_charged);
+    const preRead = ctx[SECTIONS_CHARGED_READ_KEY];
+    const classification = classifySectionsBailability(
+      preRead ? (JSON.parse(preRead) as ChargedSection[]) : ctx.sections_charged,
+    );
     if (classification) {
-      prompt += `\n\nBAILABILITY CLASSIFICATION (from BNS First Schedule — use EXACTLY as given, do NOT contradict):\n${classification}`;
+      prompt += `\n\nBAILABILITY CLASSIFICATION (from BNS First Schedule — use EXACTLY as given, do NOT contradict):\n${classification}\nA section in neither list: do not say whether it is bailable or cognizable.`;
     }
   }
 

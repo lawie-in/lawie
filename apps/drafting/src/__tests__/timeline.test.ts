@@ -33,7 +33,7 @@ describe('Police custody limit', () => {
 
 describe('Judicial custody and chargesheet deadline', () => {
   it('gives 60-day limit for offences < 10 years', () => {
-    // BNS 303 (theft) — max 3 years
+    // BNS 303 (theft) — max 5 years in the signed table (exact-key row)
     const result = calculateTimeline({
       arrestDate: '2026-03-01',
       sections: ['303'],
@@ -44,7 +44,7 @@ describe('Judicial custody and chargesheet deadline', () => {
   });
 
   it('gives 90-day limit for offences >= 10 years', () => {
-    // BNS 109 (attempt to murder) — max 10 years
+    // BNS 109 (attempt to murder) — 99 (life) in the signed table; the old table said 10
     const result = calculateTimeline({
       arrestDate: '2026-03-01',
       sections: ['109'],
@@ -66,12 +66,12 @@ describe('Judicial custody and chargesheet deadline', () => {
   });
 
   it('uses most serious offence when multiple sections', () => {
-    // 303 (3 years) + 109 (10 years) → should use 90 days
+    // 303 (5 years) + 109 (99 = life, signed table) → should use 90 days
     const result = calculateTimeline({
       arrestDate: '2026-06-01',
       sections: ['303', '109'],
     });
-    expect(result.maxYears).toBe(10);
+    expect(result.maxYears).toBe(99);
     expect(result.judicialCustodyDays).toBe(90);
   });
 
@@ -132,9 +132,9 @@ describe('Staggered remand breakdown', () => {
       arrestDate: '2026-03-01',
       sections: ['303'],
     });
-    expect(result.remandBreakdown.judicialCustody.from).toBe('2026-03-17');
-    expect(result.remandBreakdown.judicialCustody.to).toBe('2026-04-30');
-    expect(result.remandBreakdown.judicialCustody.days).toBe(45);
+    expect(result.remandBreakdown.judicialCustody?.from).toBe('2026-03-17');
+    expect(result.remandBreakdown.judicialCustody?.to).toBe('2026-04-30');
+    expect(result.remandBreakdown.judicialCustody?.days).toBe(45);
   });
 
   it('judicial custody from day 16 to day 90 for >= 10 year offences', () => {
@@ -142,9 +142,9 @@ describe('Staggered remand breakdown', () => {
       arrestDate: '2026-03-01',
       sections: ['103'],
     });
-    expect(result.remandBreakdown.judicialCustody.from).toBe('2026-03-17');
-    expect(result.remandBreakdown.judicialCustody.to).toBe('2026-05-30');
-    expect(result.remandBreakdown.judicialCustody.days).toBe(75);
+    expect(result.remandBreakdown.judicialCustody?.from).toBe('2026-03-17');
+    expect(result.remandBreakdown.judicialCustody?.to).toBe('2026-05-30');
+    expect(result.remandBreakdown.judicialCustody?.days).toBe(75);
   });
 });
 
@@ -239,13 +239,19 @@ describe('Section resolution', () => {
 // ── Edge cases ──────────────────────────────────────────────────────────────
 
 describe('Edge cases', () => {
-  it('handles no valid sections (defaults to 0 years → 60 days)', () => {
+  // T-277 (R1): was "defaults to 0 years → 60 days". A section that resolves to no
+  // offence must not silently pick the shortest BNSS s.187 period; there is no period.
+  it('handles no valid sections (no period, not 0 years → 60 days)', () => {
     const result = calculateTimeline({
       arrestDate: '2026-03-01',
       sections: ['999'],
     });
-    expect(result.maxYears).toBe(0);
-    expect(result.judicialCustodyDays).toBe(60);
+    expect(result.maxYears).toBeNull();
+    expect(result.judicialCustodyDays).toBeNull();
+    expect(result.judicialCustodyEndDate).toBeNull();
+    expect(result.chargesheetDeadline).toBeNull();
+    expect(result.defaultBailDate).toBeNull();
+    expect(result.periodNote).toBe('Depends on the offence. Check BNSS section 187.');
     expect(result.sectionsNotFound).toContain('999');
   });
 
