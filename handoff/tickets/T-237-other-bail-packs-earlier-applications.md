@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (pack change, signs). Lead (build). Anushka (verdict) |
 | Mode           | Rule first (Ajay), then build, full chain. Legal content |
-| Status         | To do. Waits for Ajay's pack text. Raised by Ajay, 12 Oct 2026, during T-200 |
+| Status         | Merged into develop_staging (8f31985), 12 Oct 2026. Waiting for Anushka on develop |
 | Gate           | Before `feature.fact_ledger` for real users and before v1 go-live |
 | Depends on     | T-200 (cue map) |
 

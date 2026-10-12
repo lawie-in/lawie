@@ -60,3 +60,11 @@ The section-converter page says "500+ section mappings validated by a practising
 - Removing the sample links made two home-page lines false: L243 ("Four come with a sample PDF...") is deleted, and the L171 hero button becomes "See what you can draft" (Priya's call; a plain label, no claim). Both done on her branch.
 - The home FAQ answer at L98, "Your documents are encrypted in storage…", contradicts Ajay's signed privacy §4 (form answers and the fact list are not encrypted). A public false claim, the same kind as T-252a. Ajay gives the exact text; Mahak changes it on her branch.
 - `terms/page.tsx` still says "Last updated: 1 June 2026" and may repeat the old privacy claims (cookies, deletion). Ajay checks it; any change is a follow-up to T-235.
+
+## Added 12 Oct 2026 (Mahak, T-238)
+
+`apps/web/src/app/(marketing)/faq/page.tsx` ~L53 still says "court formatting, BNS validation" and "Free exports carry a Lawie watermark". That contradicts the pricing page after T-238 and the no-watermark policy. The in-app TopUpModal "POPULAR" badge is row 21 of Meera's table. Ajay signs the words.
+
+## Align wording (Mahak, T-238, 12 Oct 2026)
+
+`handoff/marketing/copy/pricing.md` and the T-252 lines (`faq/page.tsx` ~L53, about page) still say "Criminal drafts cite BNS, BNSS and BSA". Ajay's final wording (T-238) is "Criminal drafts use BNS, BNSS and BSA section numbers". Use it everywhere.

@@ -134,3 +134,7 @@ Cues now follow the clause's meaning, through an explicit `(pack, clauseId) → 
 - `ai.service.ts` call-site edits: Acceptable. Ajay signs that diff together with `brief-drafter.ts` before merge.
 - AC5 rewording: Approved, on one condition. Only fixture body text changes. Reported paragraph numbers, clause ids and assertions stay as they are. List each changed fixture in the merge note. If any assertion has to change, stop and send it to Ajay.
 - Risks outside this ticket: logged as T-237.
+
+## Note 12 Oct 2026 (Vishal, T-237)
+
+The `earlier_applications` cue row in this ticket's cue table is partly superseded by the cue sets EA-standard and EA-interim (T-237 signed text, `handoff/legal/T-237-pack-text-signed.md`). Read the signed T-237 file for the current cues.
