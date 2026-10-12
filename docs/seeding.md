@@ -182,15 +182,20 @@ After a successful seed the new-document form should show the full state dropdow
 - `iea-to-bsa.json` was replaced with the table Ajay (CLO) corrected and signed against the Gazette text (T-250; 117 of 185 rows were wrong). Six rows are now typed `repealed_no_equivalent`: IEA 2, 22A, 82, 88, 113 and 166.
 - `crpc-to-bnss.json` was replaced with the table Ajay corrected and signed against the Gazette text (T-255; 103 of 535 rows were wrong, and `new_provisions` was corrected).
 - The `SectionMapping` model accepts a new `mappingType`, `repealed_no_equivalent`.
-- `seed-sections.ts` now sets `validatedBy` and `validatedAt` only for the signed tables (CrPC and IEA), from each file's `meta.validated_by` and `meta.last_updated`. IPC rows get the schema default `Pending CLO review` and `validatedAt: null` until T-267 signs `ipc-to-bns.json`.
+- `ipc-to-bns.json` was replaced byte for byte with the table Ajay corrected and signed against the Gazette text (T-267; 233 of 576 rows changed). IPC 124A (sedition) and IPC 377 are repealed, and 14 rows are now "no equivalent". Four rows (IPC 236, 254, 292A and 376DA) are the new type `unverified`: no BNS section, and notes exactly `Not verified. Check the Gazette before citing a BNS section.`
+- The `SectionMapping` model accepts a further `mappingType`, `unverified`.
+- `seed-sections.ts` now sets `validatedBy` and `validatedAt` for all three tables (IPC, CrPC and IEA), from each file's `meta.validated_by` and `meta.last_updated`. IPC rows get the T-267 signature string from the file's meta and `validatedAt` 2026-10-12. `Pending CLO review` no longer applies to any table; it remains only the schema default for a table the script does not list as signed.
+- `bns-mapping.json` no longer holds a second copy of the IPC table (`ipc_to_bns`, which nothing read). `ipc-to-bns.json` is the only IPC table.
+- Bail checker: an IPC section with no BNS equivalent reports "No BNS equivalent. Check the Gazette". An explicit "NNN-IPC" that is not in the table reports "Not found in the IPC table. Check the Gazette". Neither is looked up as a BNS number. The message shows on the web page only after T-278.
+- Seven document packs now cite the BNS sections from the table. These are code and config changes, so they are live at deploy and need no reseed. Only the converter and old-to-new conversion pairs read `sectionmappings`, so those need the reseed below.
 - `notes` come from `notes`, else `note` (CrPC rows use `note`). For `repealed_no_equivalent` rows they fall back to `new_law_status`.
 - `apps/drafting/src/scripts/apply-clo-patch.ts` is deleted. It wrote wrong pairs over the seed. **Never run it.** A stale compiled copy may still sit in a local, gitignored `dist/scripts/`; do a clean build before running any compiled seed.
 
 ### Why a plain `seed:sections` is not enough
 
-Any database seeded from the old tables, or patched with `apply-clo-patch`, holds wrong pairs. Plain `seed:sections` skips every row that already exists, so it keeps them. The reseed must use `--force`.
+Any database seeded from the old tables, or patched with `apply-clo-patch`, holds wrong pairs. Plain `seed:sections` skips every row that already exists, so it keeps them. This includes the corrected IPC pairs, the `unverified` type and the new IPC `validatedBy`: they reach a database only with `--force`.
 
-Until a database is reseeded, the section converter and old-to-new conversions in drafts on that database still read the old, wrong pairs. The code and JSON changes do not fix a database by themselves.
+Until a database is reseeded, the section converter and old-to-new conversions in drafts on that database still read the old, wrong pairs, and its IPC rows still show `Pending CLO review`. The code and JSON changes do not fix a database by themselves.
 
 ### Procedure
 
@@ -209,5 +214,5 @@ Until a database is reseeded, the section converter and old-to-new conversions i
    ```
 
    Demo and dev share one cluster today (section 4), so this one run covers both.
-4. **Sample these 20 rows** on develop and compare each against Ajay's signed tables: IEA 5, 32, 45, 62, 63, 65A, 65B, 100, 113A, 166; CrPC 41, 97, 154, 167, 362, 358, 437, 439, 482, 10. Also check that `validatedBy` is Ajay's signature for CrPC and IEA rows and `Pending CLO review` for IPC rows.
+4. **Sample these 30 rows** on develop and compare each against Ajay's signed tables: IEA 5, 32, 45, 62, 63, 65A, 65B, 100, 113A, 166; CrPC 41, 97, 154, 167, 362, 358, 437, 439, 482, 10; IPC 34, 124A, 236, 302, 304B, 307, 376, 377, 420, 498A. Also check that `validatedBy` is Ajay's signature for every IPC, CrPC and IEA row (IPC `validatedAt` is 2026-10-12), and that no row still says `Pending CLO review`. IPC 236 must be type `unverified` with no BNS section and the exact note above; 124A and 377 must be repealed.
 5. **Production after that**, founder-only, and only after T-275 ships. T-275 adds the section-converter label for `repealed_no_equivalent` rows.

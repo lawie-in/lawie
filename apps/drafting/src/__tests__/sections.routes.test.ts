@@ -130,18 +130,18 @@ async function seedSections() {
       validatedBy: 'Ajay - CLO',
       effectiveDate: EFFECTIVE_DATE,
     },
-    // CLO patch: IPC 416 → BNS 319 (new row)
+    // CLO patch: IPC 416 → BNS 319(1) (new row)
     {
       oldCode: 'IPC',
       oldCodeFull: 'Indian Penal Code, 1860',
       newCode: 'BNS',
       newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
       oldSection: '416',
-      newSection: '319',
+      newSection: '319(1)',
       oldTitle: 'Cheating by personation',
       newTitle: 'Cheating by personation',
       mappingType: 'direct',
-      notes: 'IPC 416 (Cheating by personation) maps directly to BNS 319.',
+      notes: 'IPC 416 (Cheating by personation) maps directly to BNS 319(1).',
       validatedBy: 'Ajay - CLO',
       effectiveDate: EFFECTIVE_DATE,
     },
@@ -355,13 +355,13 @@ describe('Sections Routes', () => {
       expect(res.body.result.new_section).not.toBe('32');
     });
 
-    it('maps IPC 416 → BNS 319 (Cheating by personation — new row)', async () => {
+    it('maps IPC 416 → BNS 319(1) (Cheating by personation — new row)', async () => {
       const res = await request(app).get('/sections/map?old=416-IPC');
       expect(res.status).toBe(200);
       expect(res.body.result.old_code).toBe('IPC');
       expect(res.body.result.old_section).toBe('416');
       expect(res.body.result.new_code).toBe('BNS');
-      expect(res.body.result.new_section).toBe('319');
+      expect(res.body.result.new_section).toBe('319(1)');
       expect(res.body.result.old_title).toContain('personation');
     });
 
@@ -373,8 +373,8 @@ describe('Sections Routes', () => {
       expect(res.body.results[0].old_section).toBe('32');
     });
 
-    it('reverse lookup: BNS 319 → IPC 416 (cheating by personation)', async () => {
-      const res = await request(app).get('/sections/map?new=319-BNS');
+    it('reverse lookup: BNS 319(1) → IPC 416 (cheating by personation)', async () => {
+      const res = await request(app).get('/sections/map?new=319(1)-BNS');
       expect(res.status).toBe(200);
       expect(res.body.direction).toBe('new_to_old');
       expect(res.body.results[0].old_code).toBe('IPC');
