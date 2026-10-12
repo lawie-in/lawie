@@ -563,3 +563,11 @@ What a user can now do:
 - Each section number is checked against the Act it's cited under, so "Section 3 BSA" no longer passes just because the Oaths Act has a section 3.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-336 — confirm a "None" on earlier bail applications, ledger off (273b6d4, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting off: if their description says "Earlier bail applications: None" (or nil, no, koi nahi and the like), see that question asked again to confirm it.
+- Confirm it and get the draft saying it is the first application; skip it and get a blank in the draft to fill in instead.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
