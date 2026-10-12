@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web) |
 | Mode   | Small fix (web) |
-| Status | To do. After T-242. Raised by Kunal's T-242 review, 12 Oct 2026 |
+| Status | Building: kunal (12 Oct 2026) |
 
 The web `/auth/callback` clears the stored UTM tags even when Google sign-in is cancelled, so a retry loses the source.
 
