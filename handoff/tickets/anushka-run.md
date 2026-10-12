@@ -395,3 +395,14 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - A Google-only advocate trying a password gets a plain "incorrect" message pointing to Google.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-268 — terms page (f6566b4)
+
+Open /terms and check:
+
+- It calls Lawie a drafting assistant whose drafts the advocate reviews and is responsible for.
+- It says drafts are paid for with Ink: most use 2, short ones 1, nothing for a failed draft.
+- It says nothing takes away rights under law or the right to approach a Consumer Commission.
+- "Last updated: 12 October 2026". No "AI-assisted" or "formatted for Indian courts" in the page body (the footer is T-317).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

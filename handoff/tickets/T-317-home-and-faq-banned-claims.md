@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release. Before go-live |
 | Owner  | Ajay (signs replacement text). Lead (build, web). Anushka (verdict) |
 | Mode   | Small fix (web, legal text) |
-| Status | To do. Text signed by Ajay (handoff/legal/T-317-home-faq-footer-signed.md, 8bac42c). Mahak after T-268. Found by Mahak in T-268, 12 Oct 2026 |
+| Status | Building: mahak (12 Oct 2026). Text signed 8bac42c; layout.tsx line with kunal |
 
 ## What's wrong
 
