@@ -13,3 +13,7 @@
 
 1. The cause is found and fixed; the test passes 20 runs in a row under parallel load.
 2. No test is skipped or weakened.
+
+## Second case (Shashank, 12 Oct 2026)
+
+`t226-ink-holds.heartbeat.test.ts`, test "5b: … sweep releases it after the TTL", failed once (expected 1, got 0) in a full drafting run on `develop_staging`, then passed twice alone. Likely timing under parallel load (fake timers or a real interval). Root-cause it with the first case; do not skip or loosen. Mahak wrote it and knows the timers. Watch for the same failure in CI.
