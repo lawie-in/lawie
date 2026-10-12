@@ -621,3 +621,11 @@ What a user can now do:
 - The privacy page says the campaign tags are kept.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-347 — impossible section numbers flagged (a75c522, shashank, 12 Oct 2026)
+
+What a user can now do:
+- See a wrong-section warning when a draft cites a section number that cannot exist, like "BNS 1034" or "Section 4521 CrPC".
+- Years such as "2023" and ordinary numbers like amounts, pages or days are never flagged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
