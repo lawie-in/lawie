@@ -47,43 +47,47 @@ describe('T-315 gateway', () => {
     received = [];
   });
 
-  it('mounts a 4-arity error middleware that maps body-parser errors', () => {
-    const handlers = stack()
-      .map((l) => l.handle)
-      .filter((h) => h.length === 4);
-    const json = jest.fn();
-    const status = jest.fn(() => ({ json }));
-    const next = jest.fn();
-    let mapped: unknown;
-    for (const h of handlers) {
-      status.mockClear();
-      json.mockClear();
-      (h as (...a: unknown[]) => void)(
-        Object.assign(new Error('{"password":"Sup3rS3cret!"'), { type: 'entity.parse.failed' }),
-        { method: 'POST', path: '/x' },
-        { status },
-        next,
-      );
-      if (status.mock.calls.length) {
-        mapped = [status.mock.calls[0], json.mock.calls[0]];
-        break;
+  // Finds ONLY the T-315 layer: the first 4-arity layer that answers 400 to a body-parser
+  // entity.parse.failed error with a recording res and never calls next.
+  const findT315Layer = () => {
+    for (const l of stack().filter((x) => x.handle.length === 4)) {
+      const json = jest.fn();
+      const status = jest.fn(() => ({ json }));
+      const next = jest.fn();
+      try {
+        l.handle(
+          Object.assign(new Error('{"password":"Sup3rS3cret!"'), { type: 'entity.parse.failed' }),
+          { method: 'POST', path: '/x' },
+          { status },
+          next,
+        );
+      } catch {
+        continue;
+      }
+      if (status.mock.calls.length && !next.mock.calls.length) {
+        return { layer: l.handle as (...a: unknown[]) => void, status, json };
       }
     }
-    expect(mapped).toEqual([[400], [{ error: 'Bad Request' }]]);
+    return undefined;
+  };
+
+  it('mounts a 4-arity error middleware that maps body-parser errors', () => {
+    const found = findT315Layer();
+    expect(found).toBeDefined();
+    expect(found!.status.mock.calls).toEqual([[400]]);
+    expect(found!.json.mock.calls).toEqual([[{ error: 'Bad Request' }]]);
   });
 
-  it('passes an unrelated error on with next(err)', () => {
+  it('the T-315 layer alone passes an unrelated error on with next(err)', () => {
+    const found = findT315Layer();
+    expect(found).toBeDefined();
     const err = new Error('boom');
-    const nexts: unknown[] = [];
-    for (const h of stack()
-      .map((l) => l.handle)
-      .filter((h) => h.length === 4)) {
-      (h as (...a: unknown[]) => void)(err, {}, { status: jest.fn() }, (e: unknown) =>
-        nexts.push(e),
-      );
-    }
-    expect(nexts.length).toBeGreaterThan(0);
-    expect(nexts.every((e) => e === err)).toBe(true);
+    const next = jest.fn();
+    const status = jest.fn();
+    found!.layer(err, { method: 'GET', path: '/x' }, { status }, next);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledWith(err);
+    expect(status).not.toHaveBeenCalled();
   });
 
   it('a malformed JSON body to a proxied route reaches the upstream unparsed, not a gateway 400', async () => {

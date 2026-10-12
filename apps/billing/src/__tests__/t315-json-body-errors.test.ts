@@ -26,7 +26,9 @@ const ENVS = ['production', 'development'] as const;
 const LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
 
 const expectNoEcho = (text: string) => {
-  for (const s of SECRETS) expect(text).not.toContain(s);
+  // body-parser lower-cases the encoding name and upper-cases the charset, so compare case-insensitively.
+  const lower = text.toLowerCase();
+  for (const s of SECRETS) expect(lower).not.toContain(s.toLowerCase());
 };
 
 describe('T-315 billing body parser errors', () => {
