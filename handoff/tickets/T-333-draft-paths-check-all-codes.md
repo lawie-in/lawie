@@ -5,7 +5,7 @@
 | Phase  | 1 — Legal accuracy |
 | Owner  | Ajay (sees the diff). Lead (build, drafting) |
 | Mode   | Small fix (legal content) |
-| Status | Building: shashank, stacked on T-270 (12 Oct 2026). Developer done, tester running |
+| Status | Merged into develop_staging 2852e94 (12 Oct 2026). Ajay approved dec06f6. Anushka tests on develop |
 
 The template and brief draft paths in `apps/drafting/src/services/ai.service.ts` (~812, ~1404, ~1636) run only the BNS whitelist. BSA, BNSS, IPC, CrPC and IEA citations are checked only in the `validate()` path.
 
