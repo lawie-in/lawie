@@ -37,6 +37,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 1. vishal — T-241 (78a123b). Slot given to whoever of vishal/shashank has Ajay's sign first. Once Ajay signs 78a123b and records Addendum 2.
 2. shashank — T-278 (0c7638c + timeline note). Once Ajay signs. Order among 2 and 3 follows whoever has Ajay's sign first.
+3. mahak — T-268 (8e12d25). Once Ajay signs 8e12d25. Order among the three follows whoever has Ajay's sign first.
 
 ## Last done
 
