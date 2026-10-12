@@ -338,14 +338,26 @@ export interface LedgerDrafterFacts {
  * of them, the `{{MISSING: label}}` placeholder. An unresolved item is not a
  * fact. Nothing else: no description, no brief value, no span of the
  * advocate's words.
+ *
+ * T-338 (Ajay): an optional item the ledger holds as unresolved, with no fact,
+ * gets the same placeholder, so a key that went unasked past the question cap
+ * shows as a blank instead of being silently left out. `unresolvedKeys` are the
+ * current version's unresolved keys. An optional item that is merely empty, or
+ * that the advocate answered "Not known" (no fact, no longer unresolved), gets
+ * no blank (T-190, condition 4). Earlier bail applications is left to its
+ * mandatory clause, which prints its own blank (T-136 B4), so it is not doubled.
  */
 export function ledgerDrafterFacts(
   facts: readonly LedgerFact[],
   checklist: ReadonlyArray<Pick<ChecklistItem, 'key' | 'label' | 'required'>>,
   courtLine: string | null,
   courtDocument: boolean,
+  unresolvedKeys: readonly string[] = [],
 ): LedgerDrafterFacts {
   const held = factEntriesByKey(facts);
+  const unresolved = new Set(
+    unresolvedKeys.filter((k) => lastSegment(k) !== PROTECTED_QUESTION_KEY),
+  );
   return {
     court: courtDocument ? (courtLine ?? missingPlaceholder('court')) : null,
     // T-189: a list or several choices gives one fact per entry, sharing its key.
@@ -356,7 +368,7 @@ export function ledgerDrafterFacts(
       display: f.display.trim(),
     })),
     missing: checklist
-      .filter((i) => i.required && !held.has(i.key))
+      .filter((i) => (i.required || unresolved.has(i.key)) && !held.has(i.key))
       .map((i) => ({ key: i.key, label: i.label, write: missingPlaceholder(i.label) })),
   };
 }

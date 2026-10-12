@@ -32,6 +32,7 @@ import {
   LedgerView,
   ledgerView,
   loadOwnLedger,
+  overlayBrief,
   readExtraction,
   referenceYear,
 } from './fact-ledger.service';
@@ -1146,13 +1147,16 @@ async function extractCall(ctx: BriefContext, user: string): Promise<string | nu
 /**
  * Run the extraction pass and write the ledger's first version. Any failure
  * gives no ledger (a failed call gives an empty one); the brief is built as
- * before either way. Logs ids and counts only.
+ * before either way. T-335: the advocate's own values on the brief just built
+ * are laid over the reading, so the ledger matches the brief. Logs ids and
+ * counts only.
  */
 async function writeReceptionLedger(
   ctx: BriefContext,
   pack: RulePack,
   checklist: ChecklistItem[],
   req: BriefIntakeRequest,
+  brief: Brief,
 ): Promise<LedgerView | undefined> {
   try {
     const lines = extractLines(checklist);
@@ -1160,11 +1164,12 @@ async function writeReceptionLedger(
       lines.length === 0
         ? null
         : await extractCall(ctx, buildExtractUserPrompt(lines, req.description));
+    const refYear = referenceYear(req.now ?? new Date());
     const read = readExtraction(
       checklist,
       req.description,
       text === null ? null : parseModelJson(text),
-      referenceYear(req.now ?? new Date()),
+      refYear,
     );
     // T-190 AC8: a "none" read from the description for earlier bail
     // applications waits for the advocate to confirm it (Ajay, 12 Oct 2026).
@@ -1174,7 +1179,13 @@ async function writeReceptionLedger(
       firstApplicationValues(pack.id),
     );
     const earlier = ctx.ledger.earlier ? currentState(ctx.ledger.earlier) : null;
-    const state = carryOver(fresh, earlier, checklist);
+    // T-335 (Arjun, 12 Oct 2026, option B): the ledger mirrors the brief.
+    const { state, counts: overlay } = overlayBrief(
+      carryOver(fresh, earlier, checklist),
+      brief,
+      checklist,
+      refYear,
+    );
     const doc = await createLedger({
       userId: ctx.userId,
       documentKind: pack.id,
@@ -1183,7 +1194,7 @@ async function writeReceptionLedger(
     });
     const count = (r: string) => read.dropped.filter((d) => d.reason === r).length;
     console.info(
-      `[intake] ledger written (intakeId=${ctx.intakeId}, ledgerId=${String(doc.id)}, kind=${pack.id}, called=${text !== null}, facts=${state.facts.length}, unresolved=${state.unresolved.length}, droppedNotOnList=${count('not_on_list')}, droppedNoSpan=${count('no_span')}, droppedSpanNotFound=${count('span_not_found')}, droppedNoFact=${count('no_fact_answer')}, heldForConfirm=${held})`,
+      `[intake] ledger written (intakeId=${ctx.intakeId}, ledgerId=${String(doc.id)}, kind=${pack.id}, called=${text !== null}, facts=${state.facts.length}, unresolved=${state.unresolved.length}, droppedNotOnList=${count('not_on_list')}, droppedNoSpan=${count('no_span')}, droppedSpanNotFound=${count('span_not_found')}, droppedNoFact=${count('no_fact_answer')}, heldForConfirm=${held}, overlayAskedEmpty=${overlay.askedEmpty}, overlayWritten=${overlay.written}, overlayUnreadable=${overlay.unreadable})`,
     );
     return ledgerView(doc, checklist);
   } catch (err) {
@@ -1349,7 +1360,7 @@ async function briefWithPack(
   // T-147b: what the normalizer could not read is always asked, through the same
   // questions, even when the brief already holds a value for it. The value stays.
   const ledger = ctx.ledger.enabled
-    ? await writeReceptionLedger(ctx, pack, checklist, req)
+    ? await writeReceptionLedger(ctx, pack, checklist, req, brief)
     : undefined;
   const always: ReadonlySet<string> = new Set(
     ledger

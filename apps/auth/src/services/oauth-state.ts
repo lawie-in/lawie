@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 
 import { env } from '../config/env';
+import logger from '../config/logger';
+import redis from '../config/redis';
+import { sanitizeUtm, UtmTags } from '../validators/auth.validator';
 
 // T-319 (Arjun's spec at the end of T-306): PKCE-style binding for Google sign-in. The web app
 // keeps a random verifier in sessionStorage and sends only its hash (the challenge). The challenge
@@ -103,4 +106,109 @@ export function verifierMatchesChallenge(verifier: string, challenge: string): b
 export function getVerifiedOAuthState(req: unknown): OAuthState | undefined {
   const value = (req as Record<string, unknown> | null | undefined)?.[OAUTH_VERIFIED_STATE_KEY];
   return value && typeof value === 'object' ? (value as OAuthState) : undefined;
+}
+
+// ── T-242: sign-up source tags for Google sign-up (Arjun's ruling (a), Ajay condition 3) ─────────
+// The tags never travel in the state (Google can read it). GET /google stores them server-side
+// under the challenge's hash; the passport strategy takes them for a NEW account only and deletes
+// them for every other outcome. Same key shape as T-306's oauth:code:. Fail open for the tags
+// only: a Redis error drops them, never the sign-in, and the log lines carry no values.
+
+const OAUTH_UTM_PREFIX = 'oauth:utm:';
+/** Same lifetime as the signed state the tags belong to. */
+export const OAUTH_UTM_TTL_SECONDS = OAUTH_STATE_MAX_AGE_MS / 1000;
+
+/** Short keys for the stored JSON: s = utm_source, m = utm_medium, c = utm_campaign. */
+interface StoredOAuthUtm {
+  s?: string;
+  m?: string;
+  c?: string;
+}
+
+/** Longest the sign-in waits on Redis for the tags; past it, the tags are dropped (fail open). */
+export const OAUTH_UTM_REDIS_TIMEOUT_MS = 300;
+
+class OAuthUtmTimeout extends Error {}
+
+/** Rejects with OAuthUtmTimeout after `ms`; the timer never keeps the process alive. */
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new OAuthUtmTimeout()), ms);
+    timer.unref?.();
+  });
+  // A late rejection of `work` after the timeout must not become an unhandled rejection.
+  work.catch(() => undefined);
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
+/** oauth:utm:<sha256 hex of the challenge>. */
+export function oauthUtmKey(challenge: string): string {
+  return OAUTH_UTM_PREFIX + crypto.createHash('sha256').update(challenge).digest('hex');
+}
+
+/**
+ * Sanitizes the three tags (sanitizeUtm: each at most 100 characters, "@" or 7+ digit runs
+ * dropped) and stores whatever survives for OAUTH_UTM_TTL_SECONDS, SET NX (first store wins).
+ * Nothing is stored if none does. Waits at most OAUTH_UTM_REDIS_TIMEOUT_MS. Never throws.
+ */
+export async function storeOAuthUtm(
+  challenge: string,
+  raw: Parameters<typeof sanitizeUtm>[0],
+): Promise<void> {
+  const tags = sanitizeUtm(raw);
+  const stored: StoredOAuthUtm = {
+    ...(tags.utmSource ? { s: tags.utmSource } : {}),
+    ...(tags.utmMedium ? { m: tags.utmMedium } : {}),
+    ...(tags.utmCampaign ? { c: tags.utmCampaign } : {}),
+  };
+  if (Object.keys(stored).length === 0) return;
+  try {
+    // NX: the first store for a challenge wins; a replayed /google can't overwrite it.
+    await withTimeout(
+      redis.set(oauthUtmKey(challenge), JSON.stringify(stored), 'EX', OAUTH_UTM_TTL_SECONDS, 'NX'),
+      OAUTH_UTM_REDIS_TIMEOUT_MS,
+    );
+  } catch {
+    logger.warn('Sign-up source not stored for Google sign-in');
+  }
+}
+
+/**
+ * New account only: reads and deletes the tags atomically (MULTI GET+DEL, as T-306/T-299).
+ * Returns them sanitized again, or undefined when none were stored, Redis failed, or Redis took
+ * longer than OAUTH_UTM_REDIS_TIMEOUT_MS. Never throws.
+ */
+export async function takeOAuthUtm(challenge: string): Promise<UtmTags | undefined> {
+  const key = oauthUtmKey(challenge);
+  let raw: unknown;
+  try {
+    const results = await withTimeout(
+      redis.multi().get(key).del(key).exec(),
+      OAUTH_UTM_REDIS_TIMEOUT_MS,
+    );
+    const [getErr, value] = results?.[0] ?? [];
+    if (getErr) throw getErr;
+    raw = value;
+  } catch {
+    logger.warn('Sign-up source not read for Google sign-up');
+    return undefined;
+  }
+  if (typeof raw !== 'string') return undefined;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const { s, m, c } = parsed as Record<string, unknown>;
+    const tags = sanitizeUtm({ utmSource: s, utmMedium: m, utmCampaign: c });
+    return Object.keys(tags).length > 0 ? tags : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Existing account (returning or linked): delete the tags unread. Not awaited by callers. */
+export function discardOAuthUtm(challenge: string): void {
+  redis.del(oauthUtmKey(challenge)).catch(() => {
+    logger.warn('Sign-up source not deleted after Google sign-in');
+  });
 }

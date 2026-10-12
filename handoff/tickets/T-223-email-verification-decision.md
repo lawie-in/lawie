@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Arjun and Vikram (recommend), Founder (decides), then Lead (build) |
 | Mode           | Decision first |
-| Status         | Decided: option B (Priya, on the founder's delegation, 11 Oct 2026). Needs acceptance criteria and T-220 |
+| Status         | RELEASE GATE (founder, 12 Oct 2026). Free-credit hole closed first by T-351. This ticket adds the verify link and resend, after T-220. AC to write with Arjun |
 | Size           | Decision XS. Build M if yes |
 | Depends on     | T-220 |
 | Gate           | Before v1 go-live, because free drafts can be farmed with throwaway emails |
@@ -96,3 +96,7 @@ Phase 1 is Google sign-in only (founder decision, 17 May 2026), so every account
 ## Decision (Priya, 11 Oct 2026)
 
 Founder, 11 Oct 2026 (in the Priya session and on the board): email and password sign-up and sign-in ship in this release, alongside Google. This replaces the 17 May 2026 'Google only for Phase 1' decision. Option D is out. Option B, as Arjun and Vikram recommended: the first draft stays instant; the second draft, the daily login bonus and checkout need a verified email; Google sign-in counts as verified. The build needs T-220 (sending) and a verification email (Madhuri copy, Ajay check). Acceptance criteria to be written before a lead takes it.
+
+## Update (Priya, 12 Oct 2026)
+
+Founder flagged fake email sign-ups farming the 5 free Ink. T-351 (now) gives email sign-ups no free Ink until verified; Google counts as verified. This ticket then adds the signed, single-use, 24 h verify link, a resend button (rate-limited) and the "verify your email" prompt, and grants the sign-up bonus once on verification. Needs T-220 sending; builds against dry-run meanwhile (Arjun). Lead: mahak, with T-220. Release gate.

@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import logger from '../config/logger';
 import { AppError } from '../middleware/errorHandler';
 import { User, IUser, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
+import { buildSignupSource, UtmTags } from '../validators/auth.validator';
 
 import { tryGrantDailyLoginBonus, grantSignupBonus } from './credit-bonus.service';
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
@@ -23,7 +24,7 @@ const INVALID_REFRESH_MESSAGE = 'Invalid or expired refresh token';
 export const DUMMY_PASSWORD_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 12);
 
 export async function registerUser(
-  payload: RegisterPayload & { referralCode?: string },
+  payload: RegisterPayload & { referralCode?: string } & UtmTags,
   meta: SessionMeta = {},
 ): Promise<{
   user: IUser;
@@ -49,6 +50,13 @@ export async function registerUser(
     termsVersion: CURRENT_TERMS_VERSION,
     privacyVersion: CURRENT_PRIVACY_VERSION,
     acceptedVia: 'password',
+    // T-242 — campaign tags, only on account creation, with the server time. Sanitized again
+    // here so a caller that skips the validator can't store a raw value. Never logged.
+    signupSource: buildSignupSource({
+      utmSource: payload.utmSource,
+      utmMedium: payload.utmMedium,
+      utmCampaign: payload.utmCampaign,
+    }),
   });
 
   // Signup bonus — non-blocking, never fails registration
