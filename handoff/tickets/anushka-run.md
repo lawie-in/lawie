@@ -413,3 +413,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - In regular and default bail, "before this Hon'ble Court" no longer counts as covering earlier applications.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-317 — one consistent description across the site (ca2d88f)
+
+- The home page, FAQ, About and Tools pages and the site footer all describe Lawie the same way: a drafting assistant for Indian advocates, where criminal drafts use BNS, BNSS and BSA section numbers and the advocate is responsible for legal accuracy and filing.
+- FAQ answers say each document is a first draft generated with AI that the filing advocate must review.
+- An exported PDF's footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
