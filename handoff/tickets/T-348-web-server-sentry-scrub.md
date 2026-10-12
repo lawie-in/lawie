@@ -12,5 +12,6 @@
 ## Acceptance criteria
 
 1. Web server and edge Sentry scrub events and transactions the same way as auth and gateway: no query string, no query in URLs or span data (`http.url`, `http.query`), emails masked.
-2. A SENTINEL test: a request with `?utm_source=SENTINEL` produces no Sentry payload containing `SENTINEL`.
-3. Ajay sees the diff.
+2. Every query string is stripped, `?ref=` included, not only UTM tags (Ajay, 12 Oct 2026; release gate).
+3. A SENTINEL test: a request with `?utm_source=SENTINEL` and one with `?ref=SENTINEL` produce no Sentry payload containing `SENTINEL`.
+4. Ajay sees the diff.
