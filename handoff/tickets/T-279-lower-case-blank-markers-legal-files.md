@@ -43,3 +43,11 @@ Tests: one per place (lower case and Title case), plus "a lower-case blank line 
 ## Priya's call on the format hunks (12 Oct 2026, to be sent to Mahak after the usage reset)
 
 The commit hook's prettier run made `fact-verifier.ts` a 180-line diff, mostly format-only; the real change is about 10 lines. Keep the commit as is (no .prettierignore, no claim extension) and list the format-only hunks separately for Ajay, as with T-189 and T-194 (he accepted that before). He judges the substance at sign-off. Branch `fix/t-279-blank-marker-case-legal-files`, WIP head 658dac4.
+
+## Ajay's answers (12 Oct 2026, relayed by Priya; Ajay's own messages to Priya)
+
+- **Q1 (C4 framing):** accepted. A whole-line lower-case "[to be confirmed: x]" is not deleted today; it drew a false C4 warning. The test is "no C4 warning, line kept".
+- **Q2 (scoping):** OK. The `i` flag goes on the marker words only; fixed text like "[Section — verify before filing]" stays as written.
+- **Q3 (`present()`):** YES. `fact-verifier.ts` `present()` (~L1153 now; earlier ~L1051) also accepts the lower-case "{{missing:" form: a lower-case marker is still a blank. This is the fourth place; it is covered by this sign-off.
+
+Ajay still sees the diff (the 5 semantic hunks listed apart from the prettier wrapping) before merge.
