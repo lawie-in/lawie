@@ -722,14 +722,20 @@ describe('T-240 AC1-3 - every rule file has exactly one catalogue entry', () => 
     expect(catalogueCategoryFor('__proto__')).toBeUndefined();
   });
 
-  it('document-rules/ is untouched by this ticket', () => {
+  // T-334 (Ajay, 12 Oct 2026) signed edits to document-rules/_averments/*.json. T-240 does not
+  // own that directory, so it is excluded here; every other rule file and the overrides stay guarded.
+  it('document-rules/ is untouched by this ticket (signed _averments/ edits excluded)', () => {
     const { execFileSync } = jest.requireActual('child_process');
     const out = execFileSync(
       'git',
       ['-C', __dirname, 'status', '--porcelain', '--', RULES_DIR, OVERRIDES_DIR],
       { encoding: 'utf-8' },
     );
-    expect(out.trim()).toBe('');
+    const touched = out
+      .split('\n')
+      .filter((l: string) => l.trim() !== '')
+      .filter((l: string) => !/document-rules\/_averments\//.test(l));
+    expect(touched).toEqual([]);
   });
 });
 

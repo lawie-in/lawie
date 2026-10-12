@@ -21,3 +21,7 @@ Payment received (with a GST-compliant receipt or invoice link), payment failed,
 ## Out of scope
 
 - Monthly invoices, if Vikram confirms per-payment receipts are enough for v1
+
+## Note (Priya, 12 Oct 2026, from the T-220 review)
+
+The email job must carry `userId` in its data, never an email address, or the worker logs carry no user id (T-210).

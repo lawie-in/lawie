@@ -76,7 +76,7 @@ const FACTS = [
 // every clause is reported in paragraph 1 (see draft)
 // T-200: paragraph 1 carries the cue words of every clause reported there
 const CUES =
-  ' He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.';
+  ' He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and the details of any earlier bail application are as the brief gives them.';
 const BAD = [
   `1. That the applicant Ram Kumar is a law-abiding citizen.${CUES}`,
   '2. That FIR No. 124/2026 was registered at PS Kotwali.',
@@ -109,7 +109,7 @@ const ANTI_VALUES = [
 // T-237: paragraph 1 carries the undertaking and earlier-application cues, so check 1 passes
 // and the only repair that runs is the fact repair (as for the bail_regular CUES above).
 const ANTI_BAD = [
-  'That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. He is a law-abiding citizen. FIR No. 124/2026 is the case. He gives an undertaking, and no earlier bail application has been filed.',
+  'That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. He is a law-abiding citizen. FIR No. 124/2026 is the case. He gives an undertaking, and the details of any earlier bail application are as the brief gives them.',
 ]
   .map((p) => `1. ${p}`)
   .concat('2. That FIR No. 124/2026 was registered at PS Kotwali.')

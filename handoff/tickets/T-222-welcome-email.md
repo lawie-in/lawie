@@ -259,3 +259,7 @@ Ajay's change 2 needs one more line for password sign-ups: how to verify the ema
 ## Ajay approved the email copy (12 Oct 2026, `handoff/legal/emails-waitlist-panel-signed.md`)
 
 Draft in `handoff/marketing/copy/emails.md`. The Ink swap is fine, but the email must not ship before T-227 merges (T-227 is merged: 12 Oct). Hindi welcome is faithful: keep the English disclaimer first, Hindi after. The verification email (24 h, single-use) is approved as a draft: "second draft / daily bonus / buy Ink" must equal what T-223 builds; delete the daily-bonus clause if it is not live. Subject C "One step left" is rejected. The reset page must answer the same whether or not an account exists. Footer address and PIN: the founder's.
+
+## Note (Priya, 12 Oct 2026, from the T-220 review)
+
+The email job must carry `userId` in its data, never an email address, or the worker logs carry no user id (T-210).
