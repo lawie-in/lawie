@@ -329,8 +329,12 @@ describe('T-267 ruling C: bail-check with the signed table', () => {
     expect(sections[0].bnsSection).toBe('70(2)');
     expect(sections[0].ipcSection).toBe('376DB');
     expect(sections[0].bnsSection).not.toBe('376');
-    // found is false only because bns-offences has no 70(2) (T-277); not asserted here.
-    expect(sections[0].note).not.toBe('No BNS equivalent. Check the Gazette');
+    // T-277: bns-offences has no 70(2) row, so it resolves through its parent row 70
+    // (Ajay R2 step 3), which has no variants. It is found, with no note.
+    expect(sections[0].found).toBe(true);
+    expect(sections[0].offence?.resolution).toBe('parent');
+    expect(sections[0].offence?.resolvedKey).toBe('70');
+    expect(sections[0].note).toBeUndefined();
   });
 
   it('999-IPC (no row) says it is not in the IPC table', async () => {
@@ -341,12 +345,18 @@ describe('T-267 ruling C: bail-check with the signed table', () => {
   });
 
   it('302-IPC resolves to 103(1) and is found, with no note', async () => {
-    const { sections } = await checkBailEligibility(['302-IPC']);
+    const { sections, summary } = await checkBailEligibility(['302-IPC']);
     expect(sections[0].bnsSection).toBe('103(1)');
     expect(sections[0].ipcSection).toBe('302');
     expect(sections[0].convertedFromIpc).toBe(true);
     expect(sections[0].found).toBe(true);
     expect(sections[0].note).toBeUndefined();
+    // T-277 (R2 step 3, Q4): found through the parent row 103; the parent sets the
+    // court level only, never the default-bail period.
+    expect(sections[0].offence?.resolution).toBe('parent');
+    expect(sections[0].offence?.resolvedKey).toBe('103');
+    expect(summary.courtLevel).toBe('Court of Session');
+    expect(summary.maxYears).toBeNull();
   });
 
   it('a bare BNS number with no IPC involvement carries no note', async () => {

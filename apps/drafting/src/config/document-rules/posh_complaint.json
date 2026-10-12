@@ -435,7 +435,8 @@
           "number": "S.79",
           "description": "Word, gesture or act intended to insult modesty (was IPC 509)"
         },
-        { "number": "S.63", "description": "Rape (was IPC 375)" }
+        { "number": "S.63", "description": "Rape (was IPC 375)" },
+        { "number": "S.64", "description": "Punishment for rape (was IPC 376)" }
       ]
     }
   ],

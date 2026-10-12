@@ -1,7 +1,13 @@
-import bnsOffencesJson from '../config/bns-offences.json';
 import logger from '../config/logger';
 import { ISectionMapping, MappingType, SectionMapping } from '../models/SectionMapping.model';
 import { cacheHGet, cacheHSetBulk, cacheDel, cacheSet, cacheExists } from '../utils/cache';
+
+import {
+  BNS_OFFENCE_KEYS,
+  getOffenceRow,
+  ResolutionKind,
+  resolveOffence,
+} from './bns-offence-resolver';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -285,17 +291,6 @@ export async function getAllMappings(code: string): Promise<{
 
 // ── Section details (SCRUM-83 — rich result card) ──────────────────────────
 
-/**
- * Triable-by inferred from punishment severity per BNSS scheduling rules.
- * Offences with max imprisonment > 7 years go to Sessions; the rest are
- * Magistrate-triable. Sentinel `max_years === 99` (life / death) → Sessions.
- */
-function inferTriableBy(maxYears: number | undefined): 'Sessions' | 'Magistrate' | 'Tribunal' {
-  if (typeof maxYears !== 'number') return 'Magistrate';
-  if (maxYears > 7) return 'Sessions';
-  return 'Magistrate';
-}
-
 export interface SectionDetail {
   code: string;
   section: string;
@@ -305,11 +300,24 @@ export interface SectionDetail {
   bailable: boolean | null;
   cognizable: boolean | null;
   compoundable: 'yes' | 'no' | 'with_permission' | null;
-  triable_by: 'Sessions' | 'Magistrate' | 'Tribunal' | null;
+  /** T-289: court by which triable, as printed in the First Schedule; null = depends. */
+  triable_by: string | null;
   punishment: string | null;
   max_years: number | null;
   ingredients: string[];
   bare_section_text: string | null;
+  /** T-277: how a BNS section resolved in the offences table; null for non-BNS. */
+  resolution: ResolutionKind | null;
+  /** T-277: the table row or variant key used; null when not resolved. */
+  resolved_key: string | null;
+  /** T-277: "Depends. Check the First Schedule." for a null attribute. */
+  bailable_note: string | null;
+  cognizable_note: string | null;
+  compoundable_note: string | null;
+  /** T-277: "This section does not create an offence. Check the Gazette." */
+  offence_note: string | null;
+  /** T-277: the table's verify note, when present. */
+  verify: string | null;
   related: Array<{ code: string; section: string; title: string }>;
   mapping: {
     old_code: string;
@@ -323,27 +331,6 @@ export interface SectionDetail {
     mapping_type: MappingType;
     notes?: string;
   } | null;
-}
-
-interface BnsOffenceMeta {
-  title?: string;
-  punishment?: string;
-  max_years?: number;
-  bailable?: boolean;
-  cognizable?: boolean;
-  compoundable?: boolean | 'with_permission';
-  chapter?: string;
-}
-
-const BNS_OFFENCES: Record<string, BnsOffenceMeta> =
-  (bnsOffencesJson as { offences: Record<string, BnsOffenceMeta> }).offences ?? {};
-
-function compoundableLabel(
-  raw: boolean | 'with_permission' | undefined,
-): 'yes' | 'no' | 'with_permission' | null {
-  if (raw === undefined) return null;
-  if (raw === 'with_permission') return 'with_permission';
-  return raw ? 'yes' : 'no';
 }
 
 const STATUTE_LABEL: Record<string, string> = {
@@ -413,8 +400,11 @@ export async function getSectionDetail(
   // Offence metadata (only available for BNS in the current data set).
   const offenceCode = isNew ? resolved : mapping?.new_code;
   const offenceSection = isNew ? trimmedSection : mapping?.new_section;
+  // T-277: resolve through the shared resolver (exact key → variant → parent row).
+  const resolvedOffence =
+    offenceCode === 'BNS' && offenceSection ? resolveOffence(offenceSection) : undefined;
   const offence =
-    offenceCode === 'BNS' && offenceSection ? BNS_OFFENCES[offenceSection] : undefined;
+    resolvedOffence && resolvedOffence.kind !== 'not_an_offence' ? resolvedOffence : undefined;
 
   // Title — prefer the offence metadata, fall back to the mapping doc, then ''.
   const title = offence?.title ?? (isNew ? mapping?.new_title : mapping?.old_title) ?? '';
@@ -422,11 +412,12 @@ export async function getSectionDetail(
   // Related sections — derive from same BNS chapter when offence metadata
   // is available. Skipped for old codes / non-BNS for now.
   const related: SectionDetail['related'] = [];
-  if (offence?.chapter && offenceCode === 'BNS' && offenceSection) {
-    for (const [secKey, meta] of Object.entries(BNS_OFFENCES)) {
-      if (secKey === offenceSection) continue;
-      if (meta.chapter !== offence.chapter) continue;
-      related.push({ code: 'BNS', section: secKey, title: meta.title ?? '' });
+  if (offence?.chapter && offence.key) {
+    for (const secKey of BNS_OFFENCE_KEYS) {
+      if (secKey === offenceSection || secKey === offence.key) continue;
+      const meta = getOffenceRow(secKey);
+      if (!meta || meta.chapter !== offence.chapter) continue;
+      related.push({ code: 'BNS', section: secKey, title: meta.title });
       if (related.length >= 3) break;
     }
   }
@@ -439,14 +430,22 @@ export async function getSectionDetail(
     chapter: offence?.chapter ?? null,
     bailable: offence?.bailable ?? null,
     cognizable: offence?.cognizable ?? null,
-    compoundable: compoundableLabel(offence?.compoundable),
-    triable_by: offence ? inferTriableBy(offence.max_years) : null,
+    compoundable: offence?.compoundable ?? null,
+    // Ajay (T-289): only from the signed First Schedule value, never from the term.
+    triable_by: offence?.triableBy ?? null,
     punishment: offence?.punishment ?? null,
-    max_years: typeof offence?.max_years === 'number' ? offence.max_years : null,
+    max_years: offence?.maxYears ?? null,
     // Ingredients + bare section text are not yet authored in bns-offences.json.
     // Filed as CLO follow-up; UI renders empty list / null gracefully.
     ingredients: [],
     bare_section_text: null,
+    resolution: resolvedOffence?.kind ?? null,
+    resolved_key: offence?.key ?? null,
+    bailable_note: offence?.bailableNote ?? null,
+    cognizable_note: offence?.cognizableNote ?? null,
+    compoundable_note: offence?.compoundableNote ?? null,
+    offence_note: resolvedOffence?.note ?? null,
+    verify: offence?.verify ?? null,
     related,
     mapping,
   };

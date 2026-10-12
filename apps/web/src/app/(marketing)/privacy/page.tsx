@@ -168,6 +168,11 @@ export default function PrivacyPage() {
                     Technical data: IP address and browser details, kept with your sign-in session,
                     and server logs.
                   </li>
+                  <li>
+                    Waitlist details: if you join the waitlist, your name and email, the phone
+                    number, city and practice area if you give them, and the link or campaign you
+                    came from.
+                  </li>
                 </ul>
               </section>
               <section id="use">
@@ -314,6 +319,10 @@ export default function PrivacyPage() {
                   <li>
                     Everything else (account, case details, drafts): while your account exists,
                     until you ask us to erase it.
+                  </li>
+                  <li>
+                    Waitlist details: until you ask us to delete them, and in any case no more than
+                    18 months after you joined or we last wrote to you, whichever is later.
                   </li>
                   <li>Server logs: until we delete them.</li>
                   <li>

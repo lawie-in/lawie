@@ -281,3 +281,52 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The FIR number must appear exactly, not inside a date, a longer number or a different FIR like "12-A", so a missing fact gets caught.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-115e (mahak, merged to develop_staging 2355979, 12 Oct 2026)
+
+Nothing changes on screen. When Lawie has no template for what a user describes, it records only the general category, never the user's words or names.
+
+Quality: nothing to test in the UI — a privacy change in stored records.
+
+## T-277 (shashank, merged to develop_staging 0e4832a, 12 Oct 2026)
+
+- The bail checker and timeline tracker show the correct offence titles, bail and cognizance status, and maximum term from the official First Schedule.
+- A sub-section such as 103(1) or 316(2) is understood as part of its main section.
+- Where the Schedule depends on the facts, it says "Depends. Check the First Schedule." instead of guessing.
+- Bail advice names BNSS 480 or 483 based on the maximum sentence.
+- A section that creates no offence is said to be left out.
+- Drafts use the same classification.
+- A section number written without IPC or BNS gets a reminder to add the code.
+
+Note: the section tables on develop are live only after Arjun reseeds develop.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-284 (kunal, merged to develop_staging f1819ef, 12 Oct 2026)
+
+- The Privacy Policy now says what Lawie keeps if you join the waitlist (name, email, and phone, city, practice area and the link you came from if given), kept until you ask for deletion and never more than 18 months after you joined or Lawie last wrote to you.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-291 (tanvi, merged to develop_staging 38433f3, 12 Oct 2026)
+
+- On a phone, you can remove a section you added, or a file you attached, by tapping a clear button next to it, without hitting the wrong one.
+- On a computer the remove "x" sits beside each section and works from the keyboard. A screen reader reads it as "Remove" plus the name.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-292 (mahak, merged to develop_staging 613e151, 12 Oct 2026)
+
+Nothing changes on screen. Lawie no longer asks the AI to name the user's matter when it looks for a template.
+
+Test: describe a document; Lawie still finds the right template, or offers choices, as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-289 (shashank, merged to develop_staging ad6db61, 12 Oct 2026)
+
+- The bail checker names the trial court exactly as the First Schedule prints it ("Any Magistrate", "Court of Session") instead of guessing from the sentence. A 3-7 year offence triable by a Magistrate is no longer sent to Sessions.
+- With several sections, Court of Session wins if any section is triable there; otherwise the higher Magistrate is shown.
+- Where the Schedule gives no single court, the bail checker and the section finder say "Depends on the offence. Check the First Schedule."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
