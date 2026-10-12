@@ -31,3 +31,7 @@ Store server-side; nothing tag-related goes in the state.
 ## Note (Priya, 12 Oct 2026)
 
 Ajay condition 5 on T-242: deleting an account must remove the whole User document, including `signupSource` (UTM tags and time). No delete path exists today.
+
+## Decision (Priya, 12 Oct 2026, founder delegated)
+
+After review round 3: T-242 merges as it is (auth and gateway clean, Ajay signed 8ac5def). The web server and edge Sentry leak predates T-242 and is fixed in T-348, before prod.
