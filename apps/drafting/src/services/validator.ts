@@ -7,9 +7,13 @@
  * - Check mandatory clauses are present
  * - Auto-add missing mandatory sections from templates
  */
-import { readSectionsCharged, resolveBnsKey } from './bns-offence-resolver';
+import crpcToBnss from '../config/sections/crpc-to-bnss.json';
+import ieaToBsa from '../config/sections/iea-to-bsa.json';
+import ipcToBns from '../config/sections/ipc-to-bns.json';
+
+import { ChargedCode, readSectionsCharged } from './bns-offence-resolver';
 import { DocumentRuleConfig } from './prompt-assembler';
-import { readActList, readMandatoryClauses } from './rule-pack.service';
+import { readMandatoryClauses } from './rule-pack.service';
 import { lookupOldToNew } from './sections.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -117,50 +121,186 @@ function normalizeOldCode(code: string): string {
   return code;
 }
 
+// ── T-270: Act-scoped citations (Ajay's rulings Q1-Q5, 12 Oct 2026) ─────────
+
+/** The six Acts T-270 checks (Q3). Every other Act is never checked. */
+export type CheckedAct = 'BNS' | 'BNSS' | 'BSA' | 'IPC' | 'CrPC' | 'IEA';
+
+export interface ActCitation {
+  act: CheckedAct;
+  /** As read, e.g. "61(2)(a)", "103A", "120B". */
+  number: string;
+}
+
+const CHECKED_ACT: Partial<Record<ChargedCode, CheckedAct>> = {
+  BNS: 'BNS',
+  BNSS: 'BNSS',
+  BSA: 'BSA',
+  IPC: 'IPC',
+  CRPC: 'CrPC',
+  IEA: 'IEA',
+};
+
+/** Q3: the new Acts are valid by range, and have no lettered sections. */
+const NEW_ACT_LAST_SECTION: Partial<Record<CheckedAct, number>> = {
+  BNS: 358,
+  BNSS: 531,
+  BSA: 170,
+};
+
+/** Q3: an old-Act number is valid only if it is a row (a key) in Ajay's signed mapping. */
+const OLD_ACT_ROWS: Partial<Record<CheckedAct, ReadonlySet<string>>> = {
+  IPC: new Set(Object.keys((ipcToBns as { mappings: Record<string, unknown> }).mappings)),
+  CrPC: new Set(Object.keys((crpcToBnss as { mappings: Record<string, unknown> }).mappings)),
+  IEA: new Set(Object.keys((ieaToBsa as { mappings: Record<string, unknown> }).mappings)),
+};
+
+/** Q1: a range is checked number by number, up to this many numbers. Wider is unreadable. */
+const MAX_RANGE_NUMBERS = 20;
+
+// Window grammar. The six Act names mirror the T-277 reader's CODE_NAMES (not exported).
+const W_ACT = [
+  String.raw`\bb\.?n\.?s\.?s\b\.?`,
+  String.raw`\bbharatiya\s+nagarik\s+suraksha\s+sanhita\b`,
+  String.raw`\bb\.?s\.?a\b\.?`,
+  String.raw`\bbharatiya\s+sakshya\s+adhiniyam\b`,
+  String.raw`\bb\.?n\.?s\b\.?`,
+  String.raw`\bbharatiya\s+nyaya\s+sanhita\b`,
+  String.raw`\bi\.?p\.?c\b\.?`,
+  String.raw`\bindian\s+penal\s+code\b`,
+  String.raw`\bcr\.?\s?p\.?\s?c\b\.?`,
+  String.raw`\bcode\s+of\s+criminal\s+procedure\b`,
+  String.raw`\bi\.?e\.?a\b\.?`,
+  String.raw`\bindian\s+evidence\s+act\b`,
+].join('|');
+const W_CUE = String.raw`\b(?:under\s+)?(?:sections?\b|secs?\b\.?|ss\.|s\.|u\/s\b\.?)`;
+const W_NUM = String.raw`\d{1,3}[A-Z]?(?:\([0-9A-Za-z]+\))*(?![0-9A-Za-z])`;
+const W_SEP = String.raw`\s*(?:,|&|\/|-|–|—|\band\b|\bto\b|\br\/w\b|\bread\s+with\b)\s*`;
+const W_LIST = `${W_NUM}(?:${W_SEP}${W_NUM})*`;
+const W_LINK = String.raw`\s*(?:of\s+)?(?:the\s+)?`;
+/** Words after which a number is not a section ("FIR No. 85 BSA", "para 3 BNS"). */
+const W_NOT_SECTION_BEFORE = String.raw`(?<!\b(?:no|nos|fir|dated|on|para|paragraph|page|pages|annexure|clause|rule|order|article|art|item|chapter|schedule)\.?\s*)`;
+/**
+ * A citation window: (a) a section cue and its number list, with the Act straight
+ * after if there is one; (b) an Act name then a number list (an optional cue
+ * between), with a second Act straight after if there is one; (c) a number list
+ * then an Act name. Anything outside a window is never read.
+ */
+const CITATION_WINDOW = new RegExp(
+  [
+    `${W_CUE}\\s*${W_LIST}(?:${W_LINK}(?:${W_ACT}))?`,
+    `(?:${W_ACT})\\s+(?:${W_CUE}\\s*)?${W_LIST}(?:${W_LINK}(?:${W_ACT}))?`,
+    `${W_NOT_SECTION_BEFORE}(?<![0-9A-Za-z/.\\-–—(])${W_LIST}\\s+(?:of\\s+)?(?:the\\s+)?(?:${W_ACT})`,
+  ].join('|'),
+  'gi',
+);
+/** A plain-number range inside a window: "3-5", "3 – 5", "3 to 5". */
+const RANGE = /(?<![0-9A-Za-z(])(\d{1,3})\s*(?:-|–|—|\bto\b)\s*(\d{1,3})(?![0-9A-Za-z(])/gi;
+
+/**
+ * T-270: the one producer of Act-scoped citations, used by both section checks
+ * (validateSectionReferences and extractBNSSectionNumbers/validateBNSWhitelist).
+ *
+ * Each citation window (CITATION_WINDOW) is read on its own by the T-277 reader,
+ * so an Act code is never carried across the prose of a whole draft. A number the
+ * reader leaves bare is not checked (Q4). A range has its inner numbers added under
+ * the Act its two ends were read with; a range of more than 20 numbers, or a
+ * backwards one, is unreadable and none of it is checked (Q1). Deduped on
+ * (Act, number), in first-seen order.
+ */
+export function extractActCitations(text: string): ActCitation[] {
+  const out: ActCitation[] = [];
+  const seen = new Set<string>();
+  const add = (act: CheckedAct, number: string): void => {
+    const key = `${act}|${number}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ act, number });
+  };
+
+  CITATION_WINDOW.lastIndex = 0;
+  for (const w of text.matchAll(CITATION_WINDOW)) {
+    const window = w[0];
+    const read: ActCitation[] = [];
+    for (const e of readSectionsCharged(window)) {
+      const act = e.code ? CHECKED_ACT[e.code] : undefined;
+      if (act) read.push({ act, number: e.number });
+    }
+
+    const dropped = new Set<string>();
+    /** Range start (act|number) → the inner numbers, added straight after the start. */
+    const inner = new Map<string, string[]>();
+    for (const r of window.matchAll(RANGE)) {
+      const from = read.find((c) => c.number === r[1]);
+      const to = read.find((c) => c.number === r[2]);
+      if (!from || !to || from.act !== to.act) continue;
+      const a = Number(r[1]);
+      const b = Number(r[2]);
+      if (b < a || b - a + 1 > MAX_RANGE_NUMBERS) {
+        dropped.add(`${from.act}|${r[1]}`).add(`${to.act}|${r[2]}`);
+        continue;
+      }
+      const list = inner.get(`${from.act}|${r[1]}`) ?? [];
+      for (let n = a + 1; n < b; n++) list.push(String(n));
+      inner.set(`${from.act}|${r[1]}`, list);
+    }
+
+    for (const c of read) {
+      const key = `${c.act}|${c.number}`;
+      if (dropped.has(key)) continue;
+      add(c.act, c.number);
+      for (const n of inner.get(key) ?? []) add(c.act, n);
+    }
+  }
+  return out;
+}
+
+/**
+ * T-270 Q3: whether a citation is valid under its own Act (Q2). Sub-sections are
+ * checked by their parent number only: 61(2)(a) → 61.
+ * - BNS 1-358, BNSS 1-531, BSA 1-170 by range; any letter suffix is invalid.
+ * - IPC, CrPC, IEA: valid only if the parent number is a row in the signed mapping.
+ */
+export function isActCitationValid(act: CheckedAct, number: string): boolean {
+  const parent = number
+    .replace(/\(.*$/, '')
+    .trim()
+    .toUpperCase()
+    .replace(/^0+(?=\d)/, '');
+  const last = NEW_ACT_LAST_SECTION[act];
+  if (last !== undefined) {
+    if (!/^\d+$/.test(parent)) return false;
+    const n = Number(parent);
+    return n >= 1 && n <= last;
+  }
+  const rows = OLD_ACT_ROWS[act];
+  return rows ? rows.has(parent) : true;
+}
+
 // ── Validation Functions ─────────────────────────────────────────────────────
 
 /**
- * Validate section references against the document-rule's known sections.
- * Returns warnings for sections not found in the config.
+ * Validate section references, each against its own Act's signed table (T-270).
+ * Reads every form Ajay ruled on (Q1) through extractActCitations; a miss is an
+ * `invalid_section` warning, never a block (Q5).
+ *
+ * T-270: `docRule` no longer decides validity (the old check matched numbers only,
+ * against the rule's relevantActs, whatever the Act). It is kept in the signature
+ * for the existing callers.
  */
 export function validateSectionReferences(
   text: string,
-  docRule: DocumentRuleConfig | null,
+  _docRule: DocumentRuleConfig | null,
 ): ValidationWarning[] {
-  if (!docRule) return [];
-
-  // Build a set of known sections from the document rule config
-  const knownSections = new Set<string>();
-  // Rule-pack reader: snake_case rule files have string acts or no `sections` (T-182)
-  for (const act of readActList(docRule.relevantActs)) {
-    for (const s of act.sections) {
-      knownSections.add(s.number);
-    }
-  }
-
-  // If no known sections, skip validation
-  if (knownSections.size === 0) return [];
-
-  const refs = extractSectionReferences(text);
   const warnings: ValidationWarning[] = [];
-  const seen = new Set<string>();
-
-  for (const ref of refs) {
-    // Skip unqualified section refs (no act specified) — can't validate without context
-    if (!ref.code) continue;
-    const key = `${ref.code}:${ref.section}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    if (!knownSections.has(ref.section)) {
-      warnings.push({
-        type: 'invalid_section',
-        message: `Section ${ref.section} of ${ref.code} not found in the verified section mapping. Please verify this reference.`,
-        details: { section: ref.section, code: ref.code },
-      });
-    }
+  for (const c of extractActCitations(text)) {
+    if (isActCitationValid(c.act, c.number)) continue;
+    warnings.push({
+      type: 'invalid_section',
+      message: `Section ${c.number} of ${c.act} not found in the verified section mapping. Please verify this reference.`,
+      details: { section: c.number, code: c.act },
+    });
   }
-
   return warnings;
 }
 
@@ -309,43 +449,25 @@ export function buildSectionsCited(text: string): string[] {
 // ── SCRUM-64: BNS Whitelist Validator + Fact↔Section Sanity ─────────────────
 
 /**
- * T-277 R5: a BNS citation passes when it is a table key or has a parent row
- * (103(1) → 103). Same resolveBnsKey as preflight.service.ts BNS_WHITELIST.
- */
-const BNS_SECTION_WHITELIST = {
-  has: (section: string): boolean => resolveBnsKey(section) !== null,
-};
-
-/**
  * Extract BNS section numbers cited in AI-generated text.
- * Matches "BNS 103", "BNS 103(1)", "Section 103 of BNS/Bharatiya Nyaya Sanhita".
+ * T-270: the BNS citations of extractActCitations, so every form Ajay ruled on is
+ * read ("BNS 103", "103 BNS", "S. 61(2)(a) BNS", "Ss. 3-5 BNS", "Section 103 of
+ * the Bharatiya Nyaya Sanhita", ...), each window read by the T-277 reader.
  */
 export function extractBNSSectionNumbers(text: string): string[] {
-  const found = new Set<string>();
-  // T-277 (Arjun, round 4): each citation found below is read by the one
-  // readSectionsCharged grammar; only numbers it reads as BNS count. The two
-  // patterns stay, so codes never carry across the prose of a whole draft.
-  const addBns = (citation: string): void => {
-    for (const e of readSectionsCharged(citation)) if (e.code === 'BNS') found.add(e.number);
-  };
-  // "BNS 103" / "BNS 103(1)" / "BNS 61(2)(a)"
-  const shortPat = /\bBNS\s+\d+(?:[A-Z](?![A-Za-z]))?(?:\([0-9A-Za-z]+\))*/gi;
-  let m: RegExpExecArray | null;
-  while ((m = shortPat.exec(text)) !== null) addBns(m[0]);
-  // "Section 103 of BNS" / "Section 103(1) of Bharatiya Nyaya Sanhita"
-  const longPat =
-    /\bSection\s+\d+(?:[A-Z](?![A-Za-z]))?(?:\([0-9A-Za-z]+\))*\s+of\s+(?:the\s+)?(?:BNS|Bharatiya Nyaya Sanhita)\b/gi;
-  while ((m = longPat.exec(text)) !== null) addBns(m[0]);
-  return [...found];
+  return extractActCitations(text)
+    .filter((c) => c.act === 'BNS')
+    .map((c) => c.number);
 }
 
 /**
- * SCRUM-64 (b): Flag BNS sections that are not in the CLO-validated whitelist.
- * Catches hallucinated section numbers like BNS 301 that don't exist in the First Schedule.
+ * SCRUM-64 (b): Flag BNS sections that are not valid BNS sections.
+ * T-270 Q3: BNS 1-358 by range, parent number only, no letter suffix
+ * (isActCitationValid, the same rule validateSectionReferences uses).
  */
 export function validateBNSWhitelist(bnsNumbers: string[]): ValidationWarning[] {
   return bnsNumbers
-    .filter((n) => !BNS_SECTION_WHITELIST.has(n))
+    .filter((n) => !isActCitationValid('BNS', n))
     .map((n) => ({
       type: 'invalid_section' as const,
       message: `BNS Section ${n} cited but not found in the First Schedule whitelist — likely hallucinated. Please verify or replace.`,

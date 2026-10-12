@@ -357,10 +357,6 @@ export interface GenerateDocumentResult {
 }
 
 /**
- * Legacy validateBnsSections — kept for backwards compatibility.
- * The new validator.ts provides richer validation.
- */
-/**
  * Placeholders a template section left unfilled.
  *
  * T-146: only a field the user is asked for (one in the form schema) becomes a
@@ -406,24 +402,6 @@ export function leakedPlaceholderWarnings(
     }
   }
   return warnings;
-}
-
-export function validateBnsSections(docType: string, generatedText: string): string[] {
-  // bns-mapping.json now carries non-doctype keys (_meta, alias maps) that the
-  // TS type widens into the union. Narrow with a structural guard so the legacy
-  // doc-type-keyed lookup still works.
-  const mapping = bnsMapping[docType as DocTypeKey] as
-    | { sections?: { number: string; description?: string }[] }
-    | undefined;
-  if (!mapping || !Array.isArray(mapping.sections)) return [];
-
-  const knownSections = new Set(mapping.sections.map((s) => s.number));
-  const sectionPattern = /(?:section|sec\.?|u\/s)\s+(\d+[A-Z]?(?:\([a-z0-9]+\))?)/gi;
-  const matches = [...generatedText.matchAll(sectionPattern)];
-  const mentioned = matches.map((m) => m[1]);
-
-  const unmatched = mentioned.filter((s) => !knownSections.has(s));
-  return [...new Set(unmatched)];
 }
 
 /**
