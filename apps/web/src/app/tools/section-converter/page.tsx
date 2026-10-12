@@ -403,8 +403,10 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
 
       {/* Copy action */}
       <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3">
+        {/* No caption on placeholder rows: the old box already says there is no equivalent
+            (Ajay, T-326, 633aff5). The empty <p> keeps Copy right-aligned. */}
         <p className="text-xs text-slate-400">
-          {reverse ? 'Old law equivalent' : 'New law equivalent'}
+          {placeholderOld ? null : reverse ? 'Old law equivalent' : 'New law equivalent'}
         </p>
         {!hasNoSection && (
           <button
