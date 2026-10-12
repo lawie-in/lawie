@@ -24,6 +24,7 @@ import { dateKindLabel, PROTECTED_QUESTION_KEY, statedDates } from './intake-bri
 import type { Brief, BriefItem, ChecklistItem } from './intake-brief';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
 import type { RulePack, RulePackClause } from './rule-pack.service';
+import { formatIsoDraftDate } from './template-engine.service';
 import type { RenderedSection, TemplateConfig } from './template-engine.service';
 import { extractSectionReferences, ValidationWarning } from './validator';
 
@@ -112,10 +113,14 @@ function oneLine(s: string, max: number): string {
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
 }
 
-/** 2026-03-15 -> 15.03.2026, the form Indian filings use. Anything else is left as written. */
+/**
+ * T-349: 2026-03-15 -> "15 March 2026", 2026-04-04 -> "4 April 2026" (T-340's
+ * formatter). Anything else, including an ISO-shaped but impossible date
+ * (e.g. 2026-02-30), is left exactly as written: reformatting it would make it
+ * look valid (Ajay, T-349).
+ */
 function filingDate(value: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  return m ? `${m[3]}.${m[2]}.${m[1]}` : value;
+  return formatIsoDraftDate(value) ?? value;
 }
 
 function shown(item: BriefItem, converted?: Record<string, unknown>): string | string[] {

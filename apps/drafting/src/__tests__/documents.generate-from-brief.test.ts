@@ -228,7 +228,7 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     const sent = bodyOf(fetchMock, 0).messages;
     expect(sent[0].content).toBe(DRAFTER_PACK_SYSTEM_PROMPT);
     expect(sent[1].content).toContain('"date_of": "Date of FIR"');
-    expect(sent[1].content).toContain('"date": "10.03.2026"');
+    expect(sent[1].content).toContain('"date": "10 March 2026"');
     expect(sent[1].content).toContain('SYSTEM PARTS:\n- cause title');
     expect(sent[1].content).toContain('TARGET: 12');
     expect(sent[1].content).toContain('"court": "DISTRICT & SESSIONS JUDGE, PATNA"');
@@ -557,7 +557,7 @@ describe('POST /generate-from-brief — nothing the brief does not give', () => 
       message: string;
     }>;
     expect(warnings.map((w) => w.message).join(' | ')).toContain(
-      'a date that is not in your brief: 20.04.2026',
+      'a date that is not in your brief: 20 April 2026',
     );
     expect(
       warnings.some((w) => w.type === 'invalid_section' && w.message.includes('Section 309')),
@@ -813,7 +813,7 @@ describe('POST /generate-from-brief — no rule pack', () => {
     }>;
     // The date the advocate wrote with slashes is in the draft with dots. That is not a finding.
     expect(warnings.map((w) => w.type).sort()).toEqual(['fact_alteration', 'invalid_section']);
-    expect(warnings.map((w) => w.message).join(' | ')).toContain('30.06.2026');
+    expect(warnings.map((w) => w.message).join(' | ')).toContain('30 June 2026');
     expect(warnings.map((w) => w.message).join(' | ')).toContain('Section 106');
     // The findings are shown. The line under the label stays empty, as for every draft with no rule pack.
     expect(event(res.text, 'done')).toMatchObject({ startingDraft: true, labelReason: null });

@@ -22,4 +22,8 @@ Anushka's reproduce steps are in the run 3 report; use them as the test cases. A
 
 ## Ajay (13 Oct 2026)
 
-Ajay signed (51175aa, handoff/legal/): S.478 BNSS on the Tools card; the 377 note says "read down" in Navtej. Still open: whether the FAQ's "5 Ink on sign-up" needs "after you verify your email" (asked 13 Oct).
+Ajay signed (51175aa, handoff/legal/): S.478 BNSS on the Tools card; the 377 note says "read down" in Navtej.
+
+## Ajay, Addendum 1 (985f092, handoff/legal/T-366-tools-legal-lines-signed.md)
+
+This replaces the FAQ line in AC1: "5 Ink on sign-up, once your email is verified (lifetime). All document types, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers." The same qualifier goes on every other page that promises 5 Ink on sign-up (pricing, home, sign-up). The lead greps for them.

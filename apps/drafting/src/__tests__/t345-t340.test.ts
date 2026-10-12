@@ -305,12 +305,12 @@ describe('T-345 1: assertOverridesCatalogued', () => {
     expect(() => assertOverridesCatalogued(dir)).toThrow(/zz_no_id/);
   });
 
-  it('uses the file name when the JSON is invalid', () => {
+  it('T-350: lists the file name id as invalid JSON, whether or not it is catalogued', () => {
     writeFileSync(join(dir, 'zz_broken.json'), '{ not json');
-    expect(() => assertOverridesCatalogued(dir)).toThrow(/zz_broken/);
+    expect(() => assertOverridesCatalogued(dir)).toThrow(/not valid JSON: zz_broken/);
     rmSync(join(dir, 'zz_broken.json'));
     writeFileSync(join(dir, 'nda.json'), '{ not json');
-    expect(() => assertOverridesCatalogued(dir)).not.toThrow();
+    expect(() => assertOverridesCatalogued(dir)).toThrow(/not valid JSON: nda/);
   });
 
   it('ignores files that are not .json', () => {

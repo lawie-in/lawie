@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (templates) + Ajay (sign the template) |
 | Mode   | Full chain |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Unassigned. Priya, 13 Oct 2026 |
+| Status | To do. RELEASE GATE for main (Anushka FAIL). Ajay signed; ready for a lead. Unassigned. Priya, 13 Oct 2026 |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: none (found in the realistic-draft check) |
 
 ## Acceptance criteria
@@ -19,3 +19,7 @@
 7. Golden-set case from Anushka's Delhi plaint. Ajay signs.
 
 Anushka's reproduce steps are in the run 3 report; use them as the test cases. Anushka re-tests on develop after merge.
+
+## Ajay (13 Oct 2026)
+
+Ajay signed (dff323f, handoff/legal/). The advocate picks the court, never a criminal court. Limitation: Art. 19/21 for loans, 14/15 for goods, otherwise a blank. s.12A: plead mediation done, or urgent relief, or a blank plus a warning. Interest: as given, or a blank. This replaces AC3's "Art. 14/15" with his rows.

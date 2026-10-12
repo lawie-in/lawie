@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay (notice wording) |
 | Mode   | Full chain |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Unassigned. Priya, 13 Oct 2026 |
+| Status | To do. RELEASE GATE for main (Anushka FAIL). Ajay signed; ready for a lead. Unassigned. Priya, 13 Oct 2026 |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-192 |
 
 ## Acceptance criteria
@@ -17,3 +17,7 @@
 5. Golden-set cases for 1, 3 and 4.
 
 Anushka's reproduce steps are in the run 3 report; use them as the test cases. Anushka re-tests on develop after merge.
+
+## Ajay (13 Oct 2026)
+
+Ajay signed (dff323f, handoff/legal/). The only liability line: the offence is complete on non-payment within 15 days of receipt of the notice. Show his B2 warning with a "Continue with these dates" confirm. Invent nothing from the memo.

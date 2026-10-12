@@ -192,7 +192,7 @@ describe('criterion 6: the findings are Ajay’s wording', () => {
     const item = brief.items.find((i) => i.key === 'custody_since');
     expect(w.message).toBe(
       signedFinding('C1', {
-        date: '13.09.2026',
+        date: '13 September 2026',
         'what it is the date of': item?.meaning ?? item?.label ?? '',
       }),
     );
