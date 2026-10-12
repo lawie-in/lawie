@@ -18,6 +18,7 @@ import logger from '../config/logger';
 import {
   BNS_CLASSIFICATION,
   BNS_OFFENCE_KEYS,
+  ChargedCode,
   ChargedSection,
   OLD_LAW_LINE,
   readChargedField,
@@ -1665,6 +1666,22 @@ RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ?
       ? `\n\nBNS SECTION WHITELIST (MANDATORY — SCRUM-64): You MUST ONLY cite BNS sections from this verified First Schedule list: ${BNS_VALID_SECTIONS.join(', ')}. Any BNS section number NOT in this list does not exist in the Bharatiya Nyaya Sanhita — do NOT use it under any circumstances.\nA sub-section of a listed section may be cited, for example 103(1) or 316(2).`
       : ''
   }`;
+}
+
+/**
+ * T-295: Ajay's signed old-law line (handoff/legal/T-295-old-law-block-signed.md,
+ * 455559c), byte for byte. PREFLIGHT ONLY: the question of the soft old_law_section
+ * finding in preflight.service.ts. The prompt's old-law block in
+ * classifySectionsBailability keeps Ajay's T-277 line ("…is not classified here…"),
+ * which stops the model classifying IPC sections from memory; do not use this there.
+ * Code first, then the number as read ("302 IPC" -> "IPC 302"); never "BNS" in front
+ * of an old-law number. Returns null for any non-old-law code.
+ * Legal content: do not edit without Ajay's sign-off.
+ */
+export function oldLawLine(code: ChargedCode | null, number: string): string | null {
+  const old = code === null ? undefined : OLD_LAW_LINE[code];
+  if (!old) return null;
+  return `${old.name} ${number} is an old-law section. For an offence committed on or after 1 July 2024, use the section converter to find the ${old.newCode} section. For an earlier offence, the old section may still apply.`;
 }
 
 /**

@@ -5,7 +5,7 @@
 | Phase  | 1 — Legal accuracy |
 | Owner  | Arjun (spec: last section of the T-295 file, 6178529). Ajay confirms. Lead (build, drafting) |
 | Mode   | Small fix (legal content) |
-| Status | To do. Ajay confirmed with a condition (12 Oct 2026). Shashank after T-295. From the T-295 review, 12 Oct 2026 |
+| Status | Building: shashank (12 Oct 2026). Ajay confirmed with a condition |
 
 An entry like "BNS 303 (IPC 379)" gets the T-295 soft old-law warning even though the charge is under BNS. Skipping it narrows when Ajay's signed line shows.
 
