@@ -94,7 +94,8 @@ The founder finds the chain too slow. Test enough to be safe, not more:
 4. **Small-fix mode** (developer, tester, merge) for any ticket that stays in one service and touches no legal path, auth, billing or `packages/shared`, even if it is a small feature. The reviewer runs only for those four.
 5. **Doc-writer** only when a doc outside `handoff/` is made wrong. Otherwise skip it and say so in the merge body.
 6. **Merge re-runs:** after merging `origin/develop_staging` into your branch, re-run only the workspaces your own diff touches, plus builds. Workspaces changed only by others' already-merged work are covered by CI after your push.
-7. Unchanged: Ajay's sign-off on legal diffs, golden snapshot rules, never skip or weaken a test, CI green after every push.
+7. **Stacking:** while your finished ticket waits in the merge queue, you may start your next ticket on a branch cut from it, if Priya writes both in your row as "T-a then T-b". T-b merges only after T-a.
+8. Unchanged: Ajay's sign-off on legal diffs, golden snapshot rules, never skip or weaken a test, CI green after every push.
 
 ## Founder away: Priya decides (founder, 11 Oct 2026, night)
 
