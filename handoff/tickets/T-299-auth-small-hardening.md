@@ -5,7 +5,7 @@
 | Phase  | 0 — Prep |
 | Owner  | Arjun (triage; item 2 is security). Lead (build) |
 | Mode   | Small fix (auth, web, gateway test), after T-234 merges |
-| Status | Building: kunal (12 Oct 2026) |
+| Status | Merged into develop_staging (991c0f6, 12 Oct 2026). Waiting for Anushka on develop |
 
 1. Google sign-ups are stored with `authProvider: 'email'`. It should say Google.
 2. Login returns 403 for a deactivated account, which tells anyone the email exists. Arjun decides the response (likely the same 401 as a wrong password).

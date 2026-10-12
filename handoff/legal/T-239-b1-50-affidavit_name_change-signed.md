@@ -170,3 +170,7 @@ Reviewed by me after an independent review pass; the corrections are in this fil
 | A practising advocate checks the pack before it goes live | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+## Erratum (12 Oct 2026 IST)
+
+The category in the table above is `Affidavits and court forms` (plural), as in the T-239 catalogue; "Affidavit and court forms" was a typo.

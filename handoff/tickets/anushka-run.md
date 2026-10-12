@@ -496,3 +496,25 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Copy gives just the new section, e.g. "BNS 111".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-299 + T-308 + T-325 — sign-in hardening and privacy wording (991c0f6, 84d9e4c)
+
+- A clear message when Google sign-in fails; a Contact support link if the account is deactivated.
+- A wrong email or a wrong password gives the same answer either way.
+- Linking Google signs out your other sessions; signing out ends the old login everywhere in the account service.
+- The Privacy Policy says Google Analytics runs on public pages only and sets _ga cookies.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-324 — matching IPC alias on a BNS entry (cf26a25)
+
+- Enter a BNS section with its old IPC number in brackets, e.g. "BNS 303 (IPC 379)": no old-law warning when the IPC number truly corresponds to that BNS section.
+- The warning still shows when the bracketed IPC number doesn't match, or when an IPC section is entered on its own.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-327 — default bail blanks accepted as is (cd5b32b)
+
+- In a default bail where the user hasn't given the default-bail period or its expiry date, a draft that leaves the brief's own blank is accepted as is. It is no longer sent back to the AI for a rewrite that could invent them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
