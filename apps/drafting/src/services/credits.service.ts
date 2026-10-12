@@ -12,146 +12,25 @@
  * Every grant + spend writes a CreditLedger row for audit + founder dashboard.
  *
  * Price of each document (T-227, Vikram 11 + 12 Oct 2026): `TEMPLATE_PRICES`
- * below is the ONE price list. The price shown (template promoter → Template
- * collection → GET /templates) and the price charged (enforceCredits →
- * spendInk) are both read from it through `costForTemplate`. Rule files'
- * own `creditsCost` fields are ignored. There is no default price: an id with
+ * in config/catalogue (T-240) is the ONE price list. The price shown
+ * (template promoter → Template collection → GET /templates) and the price
+ * charged (enforceCredits → spendInk) are both read from it through
+ * `costForTemplate`. Rule files' own `creditsCost` fields are ignored. There is no default price: an id with
  * no entry has no price and is refused, never charged.
  */
 import mongoose, { Types } from 'mongoose';
 
+import { DOC_TYPE_ALIASES, NON_TEMPLATE_PRICES, TEMPLATE_PRICES } from '../config/catalogue';
 import { CreditBucket, CreditLedger, CreditSource } from '../models/CreditLedger.model';
 import { Generation } from '../models/Generation.model';
 import { IInkHold, User } from '../models/User.model';
 
 import { isFixtureUser } from './run-origin';
 
-/**
- * Ink price of every rule file in `config/document-rules/` (all 92, by
- * template_id). T-227, Vikram 11 Oct 2026: 2 Ink by default; 31 short
- * documents at 1 Ink. Kept as a literal so every price is visible in review.
- * A rule file with no entry here stops the service at boot
- * (`getTemplateRegistry`).
- */
-export const TEMPLATE_PRICES: Readonly<Record<string, number>> = Object.freeze({
-  affidavit_identity: 1,
-  affidavit_in_support: 1,
-  amendment_of_pleadings: 1,
-  aoa: 2,
-  bail_anticipatory: 2,
-  bail_before_magistrate: 2,
-  bail_cancellation: 2,
-  bail_regular: 2,
-  cat_oa: 2,
-  certiorari: 2,
-  condonation_of_delay: 1,
-  consumer_complaint: 2,
-  counter_affidavit: 1,
-  criminal_appeal: 2,
-  criminal_revision: 2,
-  curative_petition: 2,
-  default_bail: 2,
-  discharge_application: 2,
-  distribution_agreement: 2,
-  divorce_hma: 2,
-  divorce_mutual_consent: 1,
-  divorce_sma: 2,
-  dv_act_complaint: 2,
-  employment_agreement: 2,
-  fir_quashing: 2,
-  founders_agreement: 2,
-  franchise_agreement: 2,
-  gift_deed: 2,
-  gpa: 1,
-  guardianship_petition: 2,
-  habeas_corpus: 2,
-  ibc_application: 2,
-  interim_application: 2,
-  interim_bail: 2,
-  itat_appeal: 2,
-  joint_development_agreement: 2,
-  judicial_separation: 2,
-  lease_deed: 2,
-  legal_notice_breach_of_contract: 1,
-  legal_notice_consumer_deficiency: 1,
-  legal_notice_copyright_infringement: 1,
-  legal_notice_defamation: 1,
-  legal_notice_eviction: 1,
-  legal_notice_s138: 1,
-  legal_notice_s80: 1,
-  legal_notice_trademark_infringement: 1,
-  license_agreement: 2,
-  list_of_dates: 1,
-  loan_agreement: 2,
-  mact_claim: 2,
-  maintenance_bnss_144: 1,
-  mandamus: 2,
-  memo_of_parties: 1,
-  moa: 2,
-  mortgage_deed: 2,
-  mou: 1,
-  nda: 1,
-  partition_deed: 2,
-  pil: 2,
-  plaint_declaration: 2,
-  plaint_eviction: 2,
-  plaint_injunction: 2,
-  plaint_partition: 2,
-  plaint_recovery: 2,
-  plaint_specific_performance: 2,
-  posh_complaint: 2,
-  production_of_documents: 1,
-  quashing_528_bnss: 2,
-  quo_warranto: 2,
-  rcr_petition: 2,
-  receiver_appointment: 1,
-  rejoinder_affidavit: 1,
-  release_deed: 2,
-  rent_agreement: 1,
-  replication: 2,
-  rera_complaint: 2,
-  restoration_application: 1,
-  review_petition: 2,
-  sale_deed: 2,
-  service_agreement: 1,
-  shareholders_agreement: 2,
-  slp: 2,
-  spa: 1,
-  surrender_application: 2,
-  suspension_of_sentence: 2,
-  synopsis: 1,
-  temporary_injunction_o39: 1,
-  vakalatnama: 1,
-  will: 1,
-  writ_petition_civil: 2,
-  writ_petition_criminal: 2,
-  written_statement: 2,
-});
-
-/**
- * Ids that reach the charge path but are not rule files, priced in their own
- * right (T-227, Vikram 12 Oct 2026). `guided` is a brief with no rule pack
- * (kind `none`); the rest are legacy POST /documents/generate docTypes.
- */
-export const NON_TEMPLATE_PRICES: Readonly<Record<string, number>> = Object.freeze({
-  guided: 2,
-  affidavit: 1,
-  petition: 2,
-  plaint: 2,
-  injunction: 2,
-  reply: 2,
-});
-
-/**
- * Legacy docTypes that are another name for a rule file (T-227, Vikram
- * 12 Oct 2026). An alias has no price of its own: it is charged its target's
- * price from `TEMPLATE_PRICES`. Mirrors `DOC_TYPE_TO_RULE` in prompt-assembler.
- */
-export const PRICE_ALIASES: Readonly<Record<string, string>> = Object.freeze({
-  bail_application: 'bail_regular',
-  complaint: 'consumer_complaint',
-  legal_notice: 'legal_notice_s80',
-});
+// T-240: the price list, the non-template prices and the one alias map live in
+// config/catalogue (merged per-batch files, frozen). Re-exported here under
+// their T-227 names; they are the same objects, not copies.
+export { TEMPLATE_PRICES, NON_TEMPLATE_PRICES, DOC_TYPE_ALIASES as PRICE_ALIASES };
 
 function ownPrice(table: Readonly<Record<string, number>>, id: string): number | undefined {
   return Object.prototype.hasOwnProperty.call(table, id) ? table[id] : undefined;
@@ -166,8 +45,8 @@ export function costForTemplate(templateId: string): number | undefined {
   if (direct !== undefined) return direct;
   const own = ownPrice(NON_TEMPLATE_PRICES, templateId);
   if (own !== undefined) return own;
-  if (Object.prototype.hasOwnProperty.call(PRICE_ALIASES, templateId)) {
-    return ownPrice(TEMPLATE_PRICES, PRICE_ALIASES[templateId]);
+  if (Object.prototype.hasOwnProperty.call(DOC_TYPE_ALIASES, templateId)) {
+    return ownPrice(TEMPLATE_PRICES, DOC_TYPE_ALIASES[templateId]);
   }
   return undefined;
 }

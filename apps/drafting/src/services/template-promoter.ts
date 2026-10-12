@@ -21,6 +21,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
+import { catalogueCategoryFor } from '../config/catalogue';
 import logger from '../config/logger';
 
 import { costForTemplate } from './credits.service';
@@ -899,6 +900,11 @@ export function promoteDocRuleToTemplateConfig(
   // same one the charge reads. The rule file's own `creditsCost` is ignored.
   // An id with no price is left unpriced here; the registry build refuses it.
   config.creditsCost = costForTemplate(template_id);
+  // T-240: the library category comes from config/catalogue, never from the
+  // rule file (whose `category` stays the behaviour value above). An id with
+  // no catalogue entry is left without one here; the registry build refuses it.
+  const catalogueCategory = catalogueCategoryFor(template_id);
+  if (catalogueCategory !== undefined) config.catalogueCategory = catalogueCategory;
   config._source = {
     sourceFile,
     formSchemaShape: shape,
@@ -955,14 +961,28 @@ export function loadAllDocRules(dir: string = DOC_RULES_DIR): RegistryBuild {
   }
 
   // T-227: every template needs an explicit price. A rule file with no entry in
-  // TEMPLATE_PRICES stops the build (and the boot) instead of showing a default.
+  // TEMPLATE_PRICES (config/catalogue) stops the build (and the boot) instead of
+  // showing a default.
   const unpriced = [...configs.values()]
     .filter((c) => typeof (c as { creditsCost?: unknown }).creditsCost !== 'number')
     .map((c) => c.template_id)
     .sort();
   if (unpriced.length > 0) {
     throw new Error(
-      `Template promoter: no price in TEMPLATE_PRICES (credits.service) for: ${unpriced.join(', ')}`,
+      `Template promoter: no price in TEMPLATE_PRICES (config/catalogue) for: ${unpriced.join(', ')}`,
+    );
+  }
+
+  // T-240: every template needs exactly one library category from
+  // config/catalogue. A rule file with no entry stops the build (and the boot),
+  // as a missing price does. The rule file's own `category` does not count.
+  const uncatalogued = [...configs.values()]
+    .filter((c) => c.catalogueCategory === undefined)
+    .map((c) => c.template_id)
+    .sort();
+  if (uncatalogued.length > 0) {
+    throw new Error(
+      `Template promoter: no catalogue category in config/catalogue for: ${uncatalogued.join(', ')}`,
     );
   }
 
