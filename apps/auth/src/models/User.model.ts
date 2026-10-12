@@ -111,6 +111,10 @@ export interface IUser extends Document {
 
   passwordResetToken?: string;
   passwordResetExpires?: Date;
+  // T-223 — email verification. sha256 of the single-use token (never the token itself) and its
+  // 24 h expiry. Set by mintVerifyLink, cleared on use. Never selected by default.
+  emailVerifyTokenHash?: string;
+  emailVerifyExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 
@@ -254,6 +258,15 @@ const UserSchema = new Schema<IUser>(
       type: Date,
       select: false,
     },
+    // T-223 — no defaults: absent means no live verify link.
+    emailVerifyTokenHash: {
+      type: String,
+      select: false,
+    },
+    emailVerifyExpires: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -274,6 +287,8 @@ const UserSchema = new Schema<IUser>(
 // googleId index created by `sparse: true` on field definition
 UserSchema.index({ plan: 1 });
 UserSchema.index({ createdAt: -1 });
+// T-223 — verifyEmailToken looks a user up by the token hash. Sparse: only users with a live link.
+UserSchema.index({ emailVerifyTokenHash: 1 }, { sparse: true });
 
 // -- Pre-save: bcrypt password hashing --
 UserSchema.pre('save', async function (next) {

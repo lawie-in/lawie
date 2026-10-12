@@ -1,5 +1,6 @@
 import { requireCurrentPrivacy } from '@lawie/shared';
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 
 import {
   SUBSCRIPTION_PLANS,
@@ -11,6 +12,7 @@ import logger from '../config/logger';
 import { razorpay } from '../config/razorpay';
 import { authenticate } from '../middleware/authenticate';
 import { CouponCode } from '../models/CouponCode.model';
+import { User } from '../models/User.model';
 import {
   createSubscription,
   getSubscriptionStatus,
@@ -19,6 +21,48 @@ import {
 } from '../services/subscription.service';
 
 const router = Router();
+
+/** T-223 AC5 — error code the web app turns into the verify-your-email prompt at checkout. */
+export const EMAIL_VERIFICATION_REQUIRED = 'email_verification_required';
+
+/**
+ * T-223 AC5 (Arjun, condition 4) — refuses a user-started payment for an email user whose
+ * address is not verified. "Verified" is the T-351 rule (VERIFIED_FOR_BONUS in
+ * apps/auth/src/services/credit-bonus.service.ts): emailVerified true, OR authProvider 'google',
+ * OR a non-empty googleId. Reads the shared users collection only, never writes it.
+ * Fails closed: an unknown user gets the same 403. Mount after authenticate and
+ * requireCurrentPrivacy, only on POST /subscribe and POST /topup/order (never the webhook, so
+ * auto-renewals are untouched). Logs the userId only.
+ */
+export async function requireVerifiedEmail(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const userId = req.jwtPayload?.sub;
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    res.status(403).json({ error: EMAIL_VERIFICATION_REQUIRED });
+    return;
+  }
+  let user;
+  try {
+    user = await User.findById(userId, { emailVerified: 1, authProvider: 1, googleId: 1 }).lean();
+  } catch {
+    logger.error({ userId }, 'Email verification check failed');
+    res.status(503).json({ error: 'Service unavailable' });
+    return;
+  }
+  const verified =
+    !!user &&
+    (user.emailVerified === true ||
+      user.authProvider === 'google' ||
+      (typeof user.googleId === 'string' && user.googleId.length > 0));
+  if (!verified) {
+    res.status(403).json({ error: EMAIL_VERIFICATION_REQUIRED });
+    return;
+  }
+  next();
+}
 
 // ── GET /plans — public catalog for /pricing page ─────────────────────────────
 //
@@ -46,10 +90,12 @@ router.get('/plans', (_req: Request, res: Response) => {
 //
 // Body: { planId: 'practice_monthly' | 'practice_yearly' | 'firm_monthly' | 'firm_yearly' }
 // T-343 — user-started payment: needs the current privacy version (not the webhook).
+// T-223 — and a verified email (or Google account).
 router.post(
   '/subscribe',
   authenticate,
   requireCurrentPrivacy,
+  requireVerifiedEmail,
   async (req: Request, res: Response) => {
     try {
       const { sub: userId, email } = req.jwtPayload!;
@@ -74,10 +120,12 @@ router.post(
 // Response: { orderId, amountInr, ink, razorpayKeyId } so the frontend can
 // hand the orderId to Razorpay Checkout SDK.
 // T-343 — user-started payment: needs the current privacy version (not the webhook).
+// T-223 — and a verified email (or Google account).
 router.post(
   '/topup/order',
   authenticate,
   requireCurrentPrivacy,
+  requireVerifiedEmail,
   async (req: Request, res: Response) => {
     const { sub: userId } = req.jwtPayload!;
     const { skuId, couponCode } = req.body as { skuId?: string; couponCode?: string };
