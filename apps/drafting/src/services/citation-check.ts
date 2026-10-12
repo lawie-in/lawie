@@ -138,8 +138,10 @@ function reporterPattern(): RegExp {
  * How a case name is found (T-263, Ajay's rule AJ-2026-10-12-T263, its
  * addendum of 12 Oct 2026, c765ae7, and Addendum 2, 0e452b6).
  *
- * Rule 1: the citation is anchored on the nearest versus word ("v", "v.",
- * "vs.", "versus") before the reporter in the same sentence (Addendum 2, Q2).
+ * Rule 1: the citation is anchored on the nearest versus word before the
+ * reporter in the same sentence (Addendum 2, Q2). Versus words are decided by
+ * `isVersusAt` (Addendum 4, Q5); sentence ends by `endsSentenceAt` (rule 4,
+ * Addendum 4, Q6).
  * Rule 2: the second party is everything between the versus word and the
  * reporter: commas, line breaks, and full stops that do not end a sentence
  * under rule 4 ("Ltd.,", "Dept. (2016)"). Rule 3: the first party is found by
@@ -149,8 +151,33 @@ function reporterPattern(): RegExp {
  * the previous sentence end or ten tokens.
  */
 
-/** Rule 1: a versus word, with whitespace on both sides, so "(v)" and words containing "vs" are not anchors. */
-const VERSUS_WORD = /(?<=\s)(?:versus|vs\.?|v\.?)(?=\s)/g;
+/**
+ * Rule 1: a candidate versus word, with whitespace on both sides, so "(v)" and
+ * words containing "vs" are not anchors. Any case (Addendum 4, Q5); a capital
+ * "V" or "V." is then checked by `isVersusAt`.
+ */
+const VERSUS_CANDIDATE = /(?<=\s)(?:versus|vs\.?|v\/s|v\.?)(?=\s)/gi;
+/**
+ * Addendum 4, Q5: v, v., vs, vs., versus and v/s are versus words in any case
+ * ("Vs.", "VS", "Versus", "VERSUS", "V/s", "V/S"). A capital "V" or "V." is one
+ * too, unless the word before it is an initial or a title (`isVersusAt`).
+ */
+const VERSUS_ANY_CASE = /^(?:v|v\.|vs|vs\.|versus|v\/s)$/i;
+/** Addendum 4, Q5: after one of these titles, a capital "V" or "V." is an initial: "Dr. V. Rao". */
+const TITLES_BEFORE_INITIAL = new Set([
+  'Dr',
+  'Smt',
+  'Shri',
+  'Sri',
+  'Md',
+  'Mr',
+  'Mrs',
+  'Ms',
+  'Prof',
+  'Kum',
+]);
+/** Addendum 4, Q6: these marks end a sentence when a space or the end of the text follows. */
+const SENTENCE_END_MARKS = new Set(['?', '!', '\u0964', '\u0965']);
 /**
  * How far before the reporter the versus word may stand, in characters. With
  * the blank-line stop, approved by Ajay (Addendum 2, Q1): the search back from
@@ -159,8 +186,6 @@ const VERSUS_WORD = /(?<=\s)(?:versus|vs\.?|v\.?)(?=\s)/g;
 const VERSUS_LOOKBACK = 250;
 /** Rule 3: the first party has at most ten tokens. */
 const MAX_PARTY1_TOKENS = 10;
-/** A versus word, then only whitespace, at the end of the text before the blank. */
-const VERSUS_AT_END = /(?:^|\s)(?:versus|vs\.?|v\.?)\s*$/;
 
 /** Rule 3 name tokens. A capitalised word, an initial or a title: "Arnesh", "M.", "K.M.", "Dr.", "D'Souza", "Ltd.,". */
 const CAP_TOKEN = /^[A-Z][A-Za-z0-9'’.&-]*,?$/;
@@ -240,18 +265,45 @@ const NOT_A_SENTENCE_END_ABBREVIATIONS = new Set([
 const INITIALS = /^[A-Z]\.?[A-Z]?$/;
 /** Rule 4: after the full stop, a space and then a word starting with a capital letter. */
 const NEXT_WORD_CAPITAL = /\s+[A-Z]/y;
-/** Addendum 2, Q3: a versus word never ends a sentence. "v." and "vs." are the ones with a full stop. */
-const VERSUS_TOKENS = new Set(['v', 'v.', 'vs', 'vs.', 'versus']);
+
+/** The whitespace-separated word that ends before `at`, skipping whitespace: "" at the start of the text. */
+function wordBefore(text: string, at: number): string {
+  let i = at - 1;
+  while (i >= 0 && /\s/.test(text[i])) i -= 1;
+  const end = i + 1;
+  while (i >= 0 && !/\s/.test(text[i])) i -= 1;
+  return text.slice(i + 1, end);
+}
 
 /**
- * Rule 4 (addendum, c765ae7; Addendum 2, Q3): does the full stop at `text[i]`
- * end a sentence? Only when the word before it is not an abbreviation,
- * initials or a versus word, AND the next word starts with a capital letter
- * after a space. So a full stop followed by "(", a digit or a comma never ends
- * a sentence. Used for the first party's walk and, per Addendum 2 Q2, to keep
- * the search for the versus word inside the reporter's sentence.
+ * Addendum 4, Q5: is `word`, which starts at `text[at]`, a versus word? Any
+ * case form of v, v., vs, vs., versus or v/s is. A capital "V" or "V." is not
+ * when the word before it is an initial or a title (one or two capital
+ * letters, or Dr, Smt, Shri, Sri, Md, Mr, Mrs, Ms, Prof, Kum): "K. V. Rao" and
+ * "Dr. V. Rao" keep V as an initial, while "Ram V. Shyam" is a case name.
+ */
+function isVersusAt(text: string, at: number, word: string): boolean {
+  if (!VERSUS_ANY_CASE.test(word)) return false;
+  if (word !== 'V' && word !== 'V.') return true;
+  const before = wordBefore(text, at)
+    .replace(/^[("“‘'[]+/, '')
+    .replace(/\.$/, '');
+  return !(INITIALS.test(before) || TITLES_BEFORE_INITIAL.has(before));
+}
+
+/**
+ * Does the character at `text[i]` end a sentence?
+ * - "?", "!", "।" or "॥" (Addendum 4, Q6): yes, when a space or the end of
+ *   the text follows. Rule 4's abbreviation exceptions do not apply to them.
+ * - A full stop (rule 4, addendum c765ae7; Addendum 2, Q3): only when the
+ *   word before it is not an abbreviation, initials or a versus word, AND the
+ *   next word starts with a capital letter after a space. So a full stop
+ *   followed by "(", a digit or a comma never ends a sentence.
+ * Used for the first party's walk and, per Addendum 2 Q2, to keep the search
+ * for the versus word inside the reporter's sentence.
  */
 function endsSentenceAt(text: string, i: number): boolean {
+  if (SENTENCE_END_MARKS.has(text[i])) return i + 1 >= text.length || /\s/.test(text[i + 1]);
   if (text[i] !== '.') return false;
   NEXT_WORD_CAPITAL.lastIndex = i + 1;
   if (!NEXT_WORD_CAPITAL.test(text)) return false;
@@ -267,14 +319,13 @@ function endsSentenceAt(text: string, i: number): boolean {
     .replace(/’/g, "'");
   if (NOT_A_SENTENCE_END_ABBREVIATIONS.has(word)) return false;
   if (INITIALS.test(word)) return false;
-  if (VERSUS_TOKENS.has(word)) return false;
+  if (VERSUS_ANY_CASE.test(word)) return false;
   return true;
 }
 
-/** Where the sentence that holds `hi` begins, looking back no further than `lo` (rule 4). */
+/** Where the sentence that holds `hi` begins, looking back no further than `lo` (rule 4, Addendum 4 Q6). */
 function sentenceStart(text: string, lo: number, hi: number): number {
-  for (let i = hi - 1; i >= lo; i -= 1)
-    if (text[i] === '.' && endsSentenceAt(text, i)) return i + 1;
+  for (let i = hi - 1; i >= lo; i -= 1) if (endsSentenceAt(text, i)) return i + 1;
   return lo;
 }
 
@@ -287,7 +338,7 @@ function paragraphStart(text: string, at: number): number {
 
 /**
  * Rule 3: the hard limit for the first party, walking back from `versusStart`
- * no further than `lo`: the end of the previous sentence (rule 4), a
+ * no further than `lo`: the end of the previous sentence (rule 4, Addendum 4 Q6), a
  * semicolon, a colon, an opening quotation mark, or a line start.
  */
 function party1Limit(text: string, lo: number, versusStart: number): number {
@@ -295,7 +346,7 @@ function party1Limit(text: string, lo: number, versusStart: number): number {
     const ch = text[i];
     if (ch === ';' || ch === ':' || ch === '\n' || ch === '“' || ch === '‘') return i + 1;
     if ((ch === '"' || ch === "'") && (i === 0 || /\s/.test(text[i - 1]))) return i + 1;
-    if (ch === '.' && endsSentenceAt(text, i)) return i + 1;
+    if (endsSentenceAt(text, i)) return i + 1;
   }
   return lo;
 }
@@ -305,11 +356,15 @@ function party1Limit(text: string, lo: number, versusStart: number): number {
  * Q3): with two names and a reporter only on the second, both names go, so no
  * versus word is left standing directly before the blank.
  */
-const isNameToken = (t: string): boolean =>
-  CAP_TOKEN.test(t) || BRACKET_TOKEN.test(t) || JOIN_TOKENS.has(t) || VERSUS_TOKENS.has(t);
+interface Token {
+  t: string;
+  at: number;
+}
+const isNameToken = (text: string, { t, at }: Token): boolean =>
+  CAP_TOKEN.test(t) || BRACKET_TOKEN.test(t) || JOIN_TOKENS.has(t) || isVersusAt(text, at, t);
 /** Party 1 never starts with a joining word, a bracket or a versus word, so "and" or "(a)" before it stays in the text. */
-const isEdgeToken = (t: string): boolean =>
-  BRACKET_TOKEN.test(t) || JOIN_TOKENS.has(t) || VERSUS_TOKENS.has(t);
+const isEdgeToken = (text: string, { t, at }: Token): boolean =>
+  BRACKET_TOKEN.test(t) || JOIN_TOKENS.has(t) || isVersusAt(text, at, t);
 
 /**
  * Rules 3 and 5: where the first party begins, walking back from the versus
@@ -318,17 +373,16 @@ const isEdgeToken = (t: string): boolean =>
  */
 function party1Start(text: string, lo: number, versusStart: number): number {
   const limit = party1Limit(text, lo, versusStart);
-  const tokens = [...text.slice(limit, versusStart).matchAll(TOKEN)].map((m) => ({
+  const tokens: Token[] = [...text.slice(limit, versusStart).matchAll(TOKEN)].map((m) => ({
     t: m[0],
     at: limit + (m.index ?? 0),
   }));
-  const kept: typeof tokens = [];
+  const kept: Token[] = [];
   for (let k = tokens.length - 1; k >= 0 && kept.length < MAX_PARTY1_TOKENS; k -= 1) {
-    const { t } = tokens[k];
-    if (LEAD_TOKEN.test(t) || !isNameToken(t)) break;
+    if (LEAD_TOKEN.test(tokens[k].t) || !isNameToken(text, tokens[k])) break;
     kept.unshift(tokens[k]);
   }
-  while (kept.length > 0 && isEdgeToken(kept[0].t)) kept.shift();
+  while (kept.length > 0 && isEdgeToken(text, kept[0])) kept.shift();
   if (kept.length > 0) return kept[0].at;
   // Rule 5: no name token before the versus word, so where party 1 begins
   // cannot be told. Cut back to the nearer of the limit (the previous
@@ -338,24 +392,26 @@ function party1Start(text: string, lo: number, versusStart: number): number {
 }
 
 /**
- * Ajay's Q4 (12 Oct 2026), a general rule: whenever a versus word would stand
- * directly before the blank, the cut goes back to the start of the sentence
- * (rule 4), whatever stopped the walk for party 1 (the ten-token limit, a
- * line start or anything else). The cut stays within `lo`: the previous
- * citation's end, a blank line and VERSUS_LOOKBACK characters (Addendum 2,
- * Q1). T-148 (b) is unchanged: `trimLead` still gives back the words before a
- * name the advocate wrote.
+ * Ajay's Q4 (12 Oct 2026; Addendum 3, ac4dcae), in its general form: after
+ * any cut, no versus word may stand directly before a blank unless the
+ * advocate wrote that name. Whenever the text just before the blank ends in a
+ * versus word, whatever stopped the walk for party 1 (the ten-token limit, a
+ * line start or anything else), the cut goes back to the start of the
+ * sentence (rule 4). It is bounded only by `bound`, the previous citation's
+ * end or the paragraph start, not by VERSUS_LOOKBACK: the walk can already
+ * stand further back than that, and a wider blank is safe. T-148 (b) is
+ * unchanged: `trimLead` still gives back the words before a name the advocate
+ * wrote.
  */
-function cutBackPastVersusWord(text: string, lo: number, start: number): number {
-  if (start <= lo || !VERSUS_AT_END.test(text.slice(lo, start))) return start;
-  let from = lo;
-  // If the character limit falls inside a word, start after that word.
-  if (from > 0 && /\S/.test(text[from - 1])) {
-    const gap = text.slice(from, start).search(/\s/);
-    if (gap < 0) return start;
-    from += gap;
-  }
-  let cut = sentenceStart(text, from, start);
+function cutBackPastVersusWord(text: string, bound: number, start: number): number {
+  if (start <= bound) return start;
+  // The last word before the blank, if it lies wholly after `bound`.
+  let end = start;
+  while (end > bound && /\s/.test(text[end - 1])) end -= 1;
+  let at = end;
+  while (at > bound && !/\s/.test(text[at - 1])) at -= 1;
+  if (at === end || !isVersusAt(text, at, text.slice(at, end))) return start;
+  let cut = sentenceStart(text, bound, start);
   while (cut < start && /\s/.test(text[cut])) cut += 1;
   return cut;
 }
@@ -419,9 +475,13 @@ function findCitations(text: string): Found[] {
     // and at the end of the previous sentence under rule 4 (Addendum 2, Q2).
     const lo = Math.max(from, paragraphStart(text, reporterStart), reporterStart - VERSUS_LOOKBACK);
     let versus: { start: number; end: number } | null = null;
-    VERSUS_WORD.lastIndex = sentenceStart(text, lo, reporterStart);
-    for (let v = VERSUS_WORD.exec(text); v && v.index < reporterStart; v = VERSUS_WORD.exec(text)) {
-      if (v.index + v[0].length <= reporterStart)
+    VERSUS_CANDIDATE.lastIndex = sentenceStart(text, lo, reporterStart);
+    for (
+      let v = VERSUS_CANDIDATE.exec(text);
+      v && v.index < reporterStart;
+      v = VERSUS_CANDIDATE.exec(text)
+    ) {
+      if (v.index + v[0].length <= reporterStart && isVersusAt(text, v.index, v[0]))
         versus = { start: v.index, end: v.index + v[0].length };
     }
     // A year-volume-page form with an unknown abbreviation is a citation only after a case name.
@@ -447,12 +507,9 @@ function findCitations(text: string): Found[] {
       continue;
     }
     // Rule 3: party 1 is walked back from the versus word, no further than the previous citation.
-    const walked = party1Start(
-      text,
-      Math.max(from, paragraphStart(text, versus.start)),
-      versus.start,
-    );
-    const start = cutBackPastVersusWord(text, lo, walked);
+    const party1Bound = Math.max(from, paragraphStart(text, versus.start));
+    const walked = party1Start(text, party1Bound, versus.start);
+    const start = cutBackPastVersusWord(text, party1Bound, walked);
     const party1 = text.slice(start, versus.start).replace(/\s+$/, '');
     const party2 = text
       .slice(versus.end, reporterStart)

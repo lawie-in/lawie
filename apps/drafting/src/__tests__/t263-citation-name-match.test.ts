@@ -3,26 +3,37 @@
  * and its addendum of 12 Oct 2026). Pure checks of services/citation-check.ts.
  * Invented names only.
  *
- * Not pinned on purpose (open questions to Ajay): the 250-character and
- * blank-line search guard, a reporterless "A v. B" before a bare reporter in
- * the same sentence, and "Ram v. Shyam and Mohan Rao v. State of Kerala
- * (2019) 4 SCC 12 apply." (known open case against the property check).
+ * Also pins Ajay's Addenda 1 to 4 (c765ae7, 0e452b6, ac4dcae, d7f4f1b): the
+ * abbreviation rule for sentence ends (Addendum 1), the 250-character and
+ * blank-line search limit, the reporterless "A v. B" before a bare reporter and
+ * the two-names case (Addendum 2, Q1 to Q3), "no versus word before a blank
+ * after any cut" (Addendum 3, Q4), versus words in any case and "K. V. Rao"
+ * (Addendum 4, Q5), and the sentence ends ? ! danda and double danda (Q6).
  */
 import { AUTHORITY_BLANK, removeUngivenCitations } from '../services/citation-check';
 
+const BLANK_RE = AUTHORITY_BLANK.replace(/[[\]—]/g, '\\$&');
 const VERSUS_BEFORE_BLANK = new RegExp(
-  String.raw`(?:^|[\s(])(?:versus|vs\.?|v\.?)[\s,]*${AUTHORITY_BLANK.replace(/[[\]—]/g, '\\$&')}`,
+  String.raw`(?:^|[\s(])(versus|vs\.?|v\/s|v\.?)[\s,]*${BLANK_RE}`,
   'i',
 );
+// Addendum 4, Q5: capital V / V. after an initial or a title is an initial, not a versus word.
+const INITIAL_OR_TITLE_BEFORE =
+  /(?:^|[\s(])(?:[A-Z]{1,2}\.?|Dr\.?|Smt\.?|Shri|Sri|Md\.?|Mr\.?|Mrs\.?|Ms\.?|Prof\.?|Kum\.?)\s+$/;
 
 /**
- * Property check, applied to every output: no `v.`, `vs.` or `versus` stands
- * directly before a blank unless the advocate wrote that name (it is then in
- * `given` as a whole).
+ * Property check, applied to every output: no versus word (any case, v/s, V and
+ * V. except after an initial or title) stands directly before a blank unless
+ * the advocate wrote that name (it is then in `given` as a whole).
  */
 function expectNoVersusBeforeBlank(out: string, given: string[] = []): void {
   const hit = VERSUS_BEFORE_BLANK.exec(out);
   if (!hit) return;
+  const word = hit[1];
+  if (/^V\.?$/.test(word)) {
+    const before = out.slice(0, hit.index + hit[0].indexOf(word));
+    if (INITIAL_OR_TITLE_BEFORE.test(before)) return;
+  }
   const around = out.slice(Math.max(0, hit.index - 80), hit.index + hit[0].length);
   const wrote = given.some(
     (g) => g.length > 0 && around.includes(g.split(AUTHORITY_BLANK)[0].trim()),
@@ -165,9 +176,7 @@ describe('T-263 what the advocate gave is untouched (T-148 (b))', () => {
       'As held in Mohan Rao v. State of Bihar & Ors. (2019) 4 SCC 12 the Court agreed.',
       ['Rely on the judgment of Mohan Rao Esq.'],
     );
-    expect(res.text).not.toContain('Bihar');
-    expect(res.text).not.toContain('SCC');
-    expect(res.text).toContain(BLANK);
+    expect(res.text).toBe(`As held in Mohan Rao ${BLANK} the Court agreed.`);
   });
 
   it('reporter given, no name before it: the advocate reporter is kept as written', () => {
@@ -203,6 +212,25 @@ describe('T-263 property check', () => {
     expect(() => expectNoVersusBeforeBlank(`In Rao v. ${BLANK} held`)).toThrow();
     expect(() => expectNoVersusBeforeBlank(`In Rao vs ${BLANK} held`)).toThrow();
     expect(() => expectNoVersusBeforeBlank(`In Rao versus, ${BLANK} held`)).toThrow();
+    for (const v of [
+      'Vs',
+      'Vs.',
+      'VS',
+      'VS.',
+      'Versus',
+      'VERSUS',
+      'V/s',
+      'v/s',
+      'V/S',
+      'V',
+      'V.',
+    ]) {
+      expect(() => expectNoVersusBeforeBlank(`In Ram ${v} ${BLANK} held`)).toThrow();
+    }
+  });
+  it('the helper lets an initial or title V through', () => {
+    expect(() => expectNoVersusBeforeBlank(`In K. V. ${BLANK} held`)).not.toThrow();
+    expect(() => expectNoVersusBeforeBlank(`In Dr. V. ${BLANK} held`)).not.toThrow();
   });
   it('the helper lets through text the advocate wrote', () => {
     expect(() =>
@@ -290,5 +318,118 @@ describe('T-263 Q4: the cut extends back past a versus word', () => {
     expect(res.text).toContain('Iota Kappa');
     expect(res.text).not.toContain('SCC');
     expect(res.text).toContain(BLANK);
+  });
+});
+
+describe('T-263 Q4 round 2: party-1 walk starts before the 250-character bound', () => {
+  const P2 = 'State of Kerala '.repeat(15).slice(0, 246).trim();
+  const LONG = 'Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa';
+
+  it('reviewer example: "v." line-split, then a long party 2 with no sentence end', () => {
+    const res = run(`Ram v.\nMohan Rao v. ${P2} (2019) 4 SCC 12 apply.`);
+    expect(res.text).toBe(`${BLANK} apply.`);
+  });
+
+  it('ten tokens plus a long party 2', () => {
+    const res = run(`Ram v. ${LONG} v. ${P2} (2019) 4 SCC 12 apply.`);
+    expect(res.text).toBe(`${BLANK} apply.`);
+  });
+
+  it('an earlier sentence is kept with a long party 2', () => {
+    const res = run(`The Court held so. Ram v. ${LONG} v. ${P2} (2019) 4 SCC 12 apply.`);
+    expect(res.text).toBe(`The Court held so. ${BLANK} apply.`);
+  });
+
+  it('the previous citation is still a limit', () => {
+    const res = run(
+      `The text in Ram v. Shyam (2018) 1 SCC 1 held Ram v. ${LONG} v. ${P2} (2019) 4 SCC 12 apply.`,
+    );
+    // The cut goes back to the previous citation's end (a wide blank is safe), never into it.
+    expect(res.text).toBe(`The text in ${BLANK} ${BLANK} apply.`);
+    expect(res.removed).toBe(2);
+  });
+});
+
+describe('T-263 Q5 (Addendum 4): versus words in any case', () => {
+  const forms = ['Vs', 'Vs.', 'VS', 'VS.', 'Versus', 'VERSUS', 'V/s', 'v/s', 'V/S', 'V', 'V.'];
+  it.each(forms)('"Mohan Rao %s State of Kerala"', (v) => {
+    const res = run(`As held in Mohan Rao ${v} State of Kerala (2019) 4 SCC 12, bail.`);
+    expect(res.text).toBe(`As held in ${BLANK}, bail.`);
+    expect(res.removed).toBe(1);
+  });
+
+  it('K. V. Rao v. State of Kerala blanks in full', () => {
+    const res = run('K. V. Rao v. State of Kerala (2019) 4 SCC 12 applies.');
+    expect(res.text).toBe(`${BLANK} applies.`);
+  });
+
+  it('K. V. Rao is read as one name: given by the advocate, the name stays and the reporter is blanked', () => {
+    const res = run('As held in K. V. Rao v. State of Kerala (2019) 4 SCC 12, bail.', [
+      'Rely on K. V. Rao v. State of Kerala.',
+    ]);
+    expect(res.text).toBe(`As held in K. V. Rao v. State of Kerala ${BLANK}, bail.`);
+  });
+
+  it('K. V. Rao as the only party given: the name stays, the rest is blanked', () => {
+    const res = run('As held in K. V. Rao v. State of Kerala (2019) 4 SCC 12, bail.', [
+      'Rely on K. V. Rao.',
+    ]);
+    expect(res.text).toContain('K. V. Rao');
+    expect(res.text).not.toContain('SCC');
+    expect(res.text).toContain(BLANK);
+  });
+
+  it('Dr. V. Rao given: the name stays and the reporter is blanked', () => {
+    const res = run('As held in Dr. V. Rao v. State of Kerala (2019) 4 SCC 12, bail.', [
+      'Rely on Dr. V. Rao v. State of Kerala.',
+    ]);
+    expect(res.text).toBe(`As held in Dr. V. Rao v. State of Kerala ${BLANK}, bail.`);
+  });
+
+  it('Dr. V. Rao v. State of Kerala, not given, blanks in full', () => {
+    const res = run('Dr. V. Rao v. State of Kerala (2019) 4 SCC 12 applies.');
+    expect(res.text).toBe(`${BLANK} applies.`);
+  });
+
+  it('"Ram V. Shyam (2019) 4 SCC 12" is read as a case name', () => {
+    const res = run('Ram V. Shyam (2019) 4 SCC 12 applies.');
+    expect(res.text).toBe(`${BLANK} applies.`);
+  });
+
+  it('two names with Vs. and a reporter on the second: both go', () => {
+    const res = run('Ram Vs. Shyam and Mohan Rao Vs. State of Kerala (2019) 4 SCC 12 apply.');
+    expect(res.text).toBe(`${BLANK} apply.`);
+  });
+});
+
+describe('T-263 Q6 (Addendum 4): ? ! danda and double danda end a sentence', () => {
+  it.each(['?', '!', '\u0964', '\u0965'])(
+    '%s ends the same sentence limit (Q2) and the walk',
+    (m) => {
+      const res = run(
+        `Is Ram v. Shyam argued${m} Mohan Rao v. State of Kerala (2019) 4 SCC 12 applies.`,
+      );
+      expect(res.text).toBe(`Is Ram v. Shyam argued${m} ${BLANK} applies.`);
+    },
+  );
+
+  it.each(['?', '!', '\u0964', '\u0965'])(
+    '%s at the end of text before a bare reporter (Q2)',
+    (m) => {
+      const res = run(`Ram v. Shyam was argued${m} The Court in (2019) 4 SCC 12 held so.`);
+      expect(res.text).toBe(`Ram v. Shyam was argued${m} The Court in ${BLANK} held so.`);
+    },
+  );
+
+  it('a Hindi sentence ending in danda followed by an English case name keeps the Hindi sentence', () => {
+    const hindi =
+      '\u0905\u0926\u093e\u0932\u0924 \u0928\u0947 \u0915\u0939\u093e \u0939\u0948\u0964';
+    const res = run(`${hindi} Mohan Rao v. State of Kerala (2019) 4 SCC 12 applies.`);
+    expect(res.text).toBe(`${hindi} ${BLANK} applies.`);
+  });
+
+  it('"Shyam?(2019) 4 SCC 12" with no space: not a sentence end, blank is wide', () => {
+    const res = run('Ram v. Shyam?(2019) 4 SCC 12 applies.');
+    expect(res.text).toBe(`${BLANK} applies.`);
   });
 });
