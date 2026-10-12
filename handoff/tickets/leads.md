@@ -8,7 +8,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 |---|---|---|---|---|---|
 | shashank | T-295 | fix/t-295-* (Shashank names it) | apps/drafting/src/services/preflight.service.ts (soft severity per Arjun), the old-law block in apps/drafting/src/services/template-engine.service.ts (Ajay's 455559c wording only), the web step that shows a soft verdict and lets the draft continue (check it; change only if needed), a new t295 test, and snapshots that move (to Ajay). Small fix, legal content Also (Priya, 12 Oct, tests only): apps/drafting/src/__tests__/t277-bns-offences.test.ts (the 7 old-law line assertions) and apps/drafting/src/__tests__/t277-sections-charged-reader.test.ts (the "old-law hard block" describe, 6 tests), updated to the soft verdict and Ajay's line. | yes: Ajay signed 455559c; he signs the diff and moved snapshots | 12 Oct 2026 |
 | mahak | T-318 | fix/t-318-* (Mahak names it) | apps/drafting/src/services/pdf-export.service.ts (~150 footer), apps/drafting/src/services/annexures.service.ts (6 footers), apps/email-worker/src/templates/auth/welcome.tsx (~73), the golden snapshots that move (update only after Ajay approves), their tests. Ajay's T-317 Addendum 4 text (19f85b7) word for word. Small-fix mode | yes: Ajay signed 19f85b7 and approves moved goldens | 12 Oct 2026 |
-| vishal | T-316 | fix/t-316-* (Vishal names it) | apps/drafting/src/__tests__/t241-*.test.ts only (relabel two "ENFORCED" tests to "mock pass-through"; draft() helper reports real paragraph numbers). Tests only, small-fix mode | no | 12 Oct 2026 |
+| vishal | T-322 | fix/t-322-* (Vishal names it) | apps/drafting/src/services/brief-drafter.ts (rule R2b.5 ~863 only: an exact signed blank covers its clause) and a new t322 test. Small fix, legal content; Ajay sees the diff | yes: Ajay ruled; he sees the diff | 12 Oct 2026 |
 | kunal | T-319 then T-299 + T-308 | fix/t-299-* (Kunal names it; one branch or three, his call) | apps/auth (T-299 hardening and riders): User.model, auth.service, passport config, oauth.routes, auth.validator, auth.controller, referral.service, credit-bonus.service and their tests; NOT apps/auth/src/app.ts or apps/auth/src/config/sentry.ts (tanvi, T-315). apps/web: (auth)/login/page.tsx and auth/callback/page.tsx (T-299 messages, T-306 tokens), apps/web/src/app/layout.tsx and the GA helper (T-306: no tokens in page_location, GA only on public pages), apps/web/src/app/(marketing)/privacy/page.tsx (T-308, Ajay signed d686ce0), new t299/t306/t308 tests. Full chain (auth). T-310 follows (same files) Also (Priya, 12 Oct): bump CURRENT_TERMS_VERSION in User.model.ts to the date Mahak's T-268 terms edits merge. Also (Priya, 12 Oct, T-317 Addendum 1, Ajay 6cbe863): apps/web/src/app/layout.tsx site description, word for word. Also (Meera, 12 Oct): layout.tsx title "Lawie — Drafting Assistant for Indian Advocates" and keywords exactly: "legal drafting", "drafting assistant", "Indian advocates", "bail application", "legal notice", "affidavit", "rent agreement". Also (Priya, 12 Oct, T-306 residual): apps/web/next.config.mjs, a Referrer-Policy: no-referrer header for /auth/callback only. T-319 (T-306 merged ba54d48): same auth and web login/callback files. T-299 + T-308 stacked on the T-319 branch; they merge only after T-319. Also: apps/gateway/src/__tests__/register-role.test.ts (the stale comment only). | yes: T-308 privacy words signed d686ce0; any new account message goes to Ajay | 12 Oct 2026 |
 | tanvi | T-320 | fix/t-320-* (Tanvi names it) | the t315 tests in each service and in packages/shared (test hardening; Object.freeze on the shared map), apps/billing/src/routes/billing.routes.ts (~178, try/catch the webhook JSON.parse), .github/workflows/ci.yml (email-worker job; root config, held by tanvi alone until T-320 merges). Small-fix mode; Arjun glance | no | 12 Oct 2026 |
 
@@ -35,13 +35,13 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. vishal — T-316 (81dbe29, tests only). Slot given 12 Oct 2026.
-2. mahak — T-318 (71fd81a). Ajay signed 71fd81a.
-3. tanvi — T-320 (fdd99ab). Arjun OK'd.
-4. kunal — T-319 (a75792e). Ajay OK'd. Founder checks develop https before Google sign-in is tried there (morning report).
+1. mahak — T-318 (71fd81a). Slot given 12 Oct 2026. Ajay signed 71fd81a.
+2. tanvi — T-320 (fdd99ab). Arjun OK'd.
+3. kunal — T-319 (a75792e). Ajay OK'd. Founder checks develop https before Google sign-in is tried there (morning report).
 
 ## Last done
 
+- vishal — T-316 merged to `develop_staging` (2353146, 12 Oct 2026). t241 tests relabelled; tests only.
 - shashank — T-278 merged to `develop_staging` (92efbc3, 12 Oct 2026). Bail checker and timeline show signed notes, never a guess. Ajay approved. Waiting for Anushka on develop.
 - kunal — T-306 merged to `develop_staging` (ba54d48, 12 Oct 2026). No login token in URLs or analytics; GA only on public pages; site title, keywords and description updated. Ajay signed f718a2b. Waiting for Anushka on develop.
 - tanvi — T-315 merged to `develop_staging` (9f08095, 12 Oct 2026). Shared JSON-error handler in auth, billing, gateway, email-worker; no body in logs or Sentry. Arjun OK'd. Nothing to test in the UI.
