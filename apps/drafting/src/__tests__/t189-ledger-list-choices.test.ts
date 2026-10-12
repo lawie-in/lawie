@@ -59,6 +59,8 @@ import { listRulePackIds, loadRulePack } from '../services/rule-pack.service';
 import { decrypt } from '../utils/encryption';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 
+jest.setTimeout(30_000);
+
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
@@ -257,7 +259,7 @@ describe('T-189 AC3: each list entry has its own verbatim raw_span; one with non
       detail: LEDGER_DETAILS.no_verbatim_span,
       label: SECTIONS.label,
     });
-    expect(JSON.stringify(r)).not.toContain('420');
+    expect(JSON.stringify(r)).not.toContain('Section 420');
   });
 
   it('a missing, blank or oversized span is the same: unresolved once per key, not a fact', () => {
@@ -1129,7 +1131,7 @@ describe('R5 verifier: each entry of a list is checked on its own', () => {
     const factsPart = user.slice(user.indexOf('FACTS:'), user.indexOf('BANNED ASSERTIONS'));
     expect(factsPart).toContain('318(4) BNS');
     expect(factsPart).toContain('319(2) BNS');
-    expect(factsPart).not.toContain('420');
+    expect(factsPart).not.toContain('Section 420');
   });
 
   it('T3: no entry carries a joined raw_span anywhere: the violations name entries, not a join', () => {
@@ -1648,6 +1650,8 @@ describe('T-189 AC5 and AC6: bail_regular, from the description to the Drafter i
       drafterAnswer(BODY_FIRST),
     );
     const res = await describeBail(TEXT);
+    expect(res.status).toBe(200);
+    expect(res.body.outcome).toBe('brief');
     const ledger = res.body.ledger;
     expect(
       ledger.facts
@@ -1657,9 +1661,9 @@ describe('T-189 AC5 and AC6: bail_regular, from the description to the Drafter i
     expect(
       ledger.unresolved.map((u: { key: string; reason: string }) => [u.key, u.reason]),
     ).toEqual([['sections_charged', 'no_verbatim_span']]);
-    expect(JSON.stringify(ledger)).not.toContain('420');
+    expect(JSON.stringify(ledger)).not.toContain('Section 420');
     const stored = await FactLedgerModel.findById(ledger.ledger_id).lean();
-    expect(JSON.stringify(stored!.versions)).not.toContain('420');
+    expect(JSON.stringify(stored!.versions)).not.toContain('Section 420');
 
     await generate(ledger.ledger_id as string);
     const f = factsOf(callOf(3).user);

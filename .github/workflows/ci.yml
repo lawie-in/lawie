@@ -56,6 +56,7 @@ jobs:
               - 'apps/auth/**'
             drafting:
               - 'apps/drafting/**'
+              - 'scripts/golden-set/**'
             billing:
               - 'apps/billing/**'
             shared:
@@ -170,6 +171,9 @@ jobs:
       - name: Pre-download Mongo binary
         run: yarn workspace @lawie/drafting node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
       - run: yarn workspace @lawie/drafting test
+      # T-264: the golden-set dry run (recorded replies, in-memory DB, no secrets) on every drafting run.
+      - name: Golden set — dry run (recorded replies, no cost)
+        run: yarn workspace @lawie/drafting golden:set --dry-run
       - uses: codecov/codecov-action@v4
         if: always()
         with:
