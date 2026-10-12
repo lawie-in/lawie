@@ -299,16 +299,19 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
   const oldLabel = `Section ${mapping.old_section} ${mapping.old_code}`;
   const newLabel = `Section ${mapping.new_section} ${mapping.new_code}`;
   const copyText = reverse ? oldLabel : newLabel;
-  const unverified = mapping.mapping_type === 'unverified';
-  // Any row without a new section shows 'None' (never "Section null"), whatever its mapping_type.
-  const repealedNoSection =
-    !unverified && (mapping.new_section === null || mapping.new_section === undefined);
+  const missingNewSection = mapping.new_section === null || mapping.new_section === undefined;
+  const repealed =
+    mapping.mapping_type === 'repealed' || mapping.mapping_type === 'repealed_no_equivalent';
+  // 'None' means "no equivalent", so only repealed rows get it (Ajay, T-296 round 2).
+  const repealedNoSection = repealed && missingNewSection;
+  // Any other row without a new section is shown exactly like an 'unverified' row.
+  const displayType = missingNewSection && !repealed ? 'unverified' : mapping.mapping_type;
+  const unverified = displayType === 'unverified';
   const hasNoSection = repealedNoSection || unverified;
   // Unknown or 'direct' types get no badge; a raw mapping_type is never shown.
   const mappingTypeBadge =
-    mapping.mapping_type &&
-    Object.prototype.hasOwnProperty.call(MAPPING_TYPE_BADGES, mapping.mapping_type)
-      ? MAPPING_TYPE_BADGES[mapping.mapping_type]
+    displayType && Object.prototype.hasOwnProperty.call(MAPPING_TYPE_BADGES, displayType)
+      ? MAPPING_TYPE_BADGES[displayType]
       : undefined;
 
   const handleCopy = () => {
