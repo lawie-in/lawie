@@ -3,15 +3,15 @@
 | Field          | Value |
 | -------------- | ----- |
 | Phase          | 4 — Polish and release |
-| Owner          | Lead (build, web). Ajay signs the hint words. Rajesh if the look changes. Anushka |
+| Owner          | Lead (build, web). Rajesh words the hint, Ajay signs it. Anushka |
 | Mode           | Small fix (web) |
-| Status         | To do. Unassigned. Raised by Arjun during T-277 round 4, 12 Oct 2026. After T-277 merges |
+| Status         | To do. Unassigned. Raised by Arjun during T-277 round 4, 12 Oct 2026. Nothing blocks it; build any time (web only) |
 
-Under Arjun's T-277 rule, a bare number with no code (for example "303") is never read as a BNS section. An advocate who types an old IPC number without "IPC" gets nothing matched. The BNS section picker (in `apps/web/src/components/form/DynamicFormRenderer.tsx`, to be confirmed by the lead) should tell them to type the code.
+Under Arjun's corrected T-277 rule, a bare number with no code (for example "303") is read as BNS, because the picker stores bare numbers. An advocate who types an old IPC number without "IPC" gets the wrong section. The BNS section picker ("Sections Charged" in `apps/web/src/components/form/DynamicFormRenderer.tsx`) should tell them to type the code.
 
 ## Acceptance criteria
 
-1. Under the section picker, a short hint says to type the code with old-law numbers (for example "IPC 302"). Exact words: Ajay signs them.
+1. Under the section picker, a short hint says to type the code with old-law numbers (Arjun's draft: "type the code for old-law numbers, e.g. 302 IPC"). Rajesh words it; Ajay signs it.
 2. No change to how values are stored or read (T-277 owns that).
 3. Readable at 375 px; no layout change beyond one line of hint text.
 
