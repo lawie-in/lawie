@@ -10,7 +10,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 | mahak | T-318 | fix/t-318-* (Mahak names it) | apps/drafting/src/services/pdf-export.service.ts (~150 footer), apps/drafting/src/services/annexures.service.ts (6 footers), apps/email-worker/src/templates/auth/welcome.tsx (~73), the golden snapshots that move (update only after Ajay approves), their tests. Ajay's T-317 Addendum 4 text (19f85b7) word for word. Small-fix mode | yes: Ajay signed 19f85b7 and approves moved goldens | 12 Oct 2026 |
 | vishal | T-316 | fix/t-316-* (Vishal names it) | apps/drafting/src/__tests__/t241-*.test.ts only (relabel two "ENFORCED" tests to "mock pass-through"; draft() helper reports real paragraph numbers). Tests only, small-fix mode | no | 12 Oct 2026 |
 | kunal | T-306 then T-319 (then T-299 + T-308) | fix/t-299-* (Kunal names it; one branch or three, his call) | apps/auth (T-299 hardening and riders): User.model, auth.service, passport config, oauth.routes, auth.validator, auth.controller, referral.service, credit-bonus.service and their tests; NOT apps/auth/src/app.ts or apps/auth/src/config/sentry.ts (tanvi, T-315). apps/web: (auth)/login/page.tsx and auth/callback/page.tsx (T-299 messages, T-306 tokens), apps/web/src/app/layout.tsx and the GA helper (T-306: no tokens in page_location, GA only on public pages), apps/web/src/app/(marketing)/privacy/page.tsx (T-308, Ajay signed d686ce0), new t299/t306/t308 tests. Full chain (auth). T-310 follows (same files) Also (Priya, 12 Oct): bump CURRENT_TERMS_VERSION in User.model.ts to the date Mahak's T-268 terms edits merge. Also (Priya, 12 Oct, T-317 Addendum 1, Ajay 6cbe863): apps/web/src/app/layout.tsx site description, word for word. Also (Meera, 12 Oct): layout.tsx title "Lawie — Drafting Assistant for Indian Advocates" and keywords exactly: "legal drafting", "drafting assistant", "Indian advocates", "bail application", "legal notice", "affidavit", "rent agreement". Also (Priya, 12 Oct, T-306 residual): apps/web/next.config.mjs, a Referrer-Policy: no-referrer header for /auth/callback only. T-319 (stacked on the T-306 branch, merges only after T-306): same auth and web login/callback files. | yes: T-308 privacy words signed d686ce0; any new account message goes to Ajay | 12 Oct 2026 |
-| tanvi | T-315 | fix/t-315-* (Tanvi names it) | packages/shared (held by tanvi alone until T-315 merges): new jsonBodyErrorHandler export, its index export and tests. One line each in apps/billing/src/app.ts, apps/gateway/src/app.ts, apps/email-worker/src (only if it parses JSON), apps/auth/src/app.ts and apps/auth/src/config/sentry.ts (beforeSend scrub of the exception message) — URGENT per Arjun, do not wait for T-234 (Kunal's row does not hold these files; Priya 12 Oct), apps/drafting/src/app.ts optional switch. Per-service t315 tests. Full chain; Arjun glance | no | 12 Oct 2026 |
+| tanvi | T-320 | fix/t-320-* (Tanvi names it) | the t315 tests in each service and in packages/shared (test hardening; Object.freeze on the shared map), apps/billing/src/routes/billing.routes.ts (~178, try/catch the webhook JSON.parse), .github/workflows/ci.yml (email-worker job; root config, held by tanvi alone until T-320 merges). Small-fix mode; Arjun glance | no | 12 Oct 2026 |
 
 ## Next per lead (Priya, 11 Oct 2026). Not claims: each is assigned only when its row is free and its gate is met
 
@@ -35,14 +35,13 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. shashank — T-278 (0c7638c + timeline note). Once Ajay signs.
-2. tanvi — T-315 (0c58158). Slot given 12 Oct 2026 (first ready: Arjun OK'd).
-3. kunal — T-306 (f718a2b). Ajay signed f718a2b. Next after tanvi.
-4. vishal — T-316 (81dbe29, tests only). After kunal.
-First one ready merges first; tell Priya before you start.
+1. kunal — T-306 (f718a2b). Slot given 12 Oct 2026. Ajay signed f718a2b.
+2. shashank — T-278 (0c7638c + timeline note). Once Ajay signs; goes next if ready first.
+3. vishal — T-316 (81dbe29, tests only).
 
 ## Last done
 
+- tanvi — T-315 merged to `develop_staging` (9f08095, 12 Oct 2026). Shared JSON-error handler in auth, billing, gateway, email-worker; no body in logs or Sentry. Arjun OK'd. Nothing to test in the UI.
 - mahak — T-317 merged to `develop_staging` (ca2d88f, 12 Oct 2026). Old claim lines gone from home, FAQ, About, Tools, footers and the exported PDF. Ajay signed d3d5301. Waiting for Anushka on develop.
 - vishal — T-241 merged to `develop_staging` (6bb8f85, 12 Oct 2026). Bail packs no longer assert facts the brief doesn't hold. Ajay signed 78a123b + Addendum 2. Waiting for Anushka on develop.
 - mahak — T-268 merged to `develop_staging` (f6566b4, 12 Oct 2026). Terms page carries Ajay's nine signed edits. Waiting for Anushka on develop.

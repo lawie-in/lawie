@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (build). Arjun glance |
 | Mode   | Small fix |
-| Status | To do. Tanvi after T-315. Found in T-315 review, 12 Oct 2026 |
+| Status | Building: tanvi (12 Oct 2026) |
 
 ## Acceptance criteria
 
