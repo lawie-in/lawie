@@ -87,6 +87,8 @@ interface DynamicFormRendererProps {
   onSubmit: (formData: Record<string, unknown>) => void;
   onCancel: () => void;
   submitting?: boolean;
+  /** T-343: aria-describedby for the Generate (last-step) button, e.g. the privacy P7 box. */
+  submitDescribedBy?: string;
 }
 
 // ── Helper: evaluate show_if / depends_on expressions ──────────────────────
@@ -1191,6 +1193,7 @@ export default function DynamicFormRenderer({
   onSubmit,
   onCancel,
   submitting = false,
+  submitDescribedBy,
 }: DynamicFormRendererProps) {
   const steps = config.form_schema.steps;
   const [step, setStep] = useState(0);
@@ -1357,6 +1360,7 @@ export default function DynamicFormRenderer({
           type="button"
           disabled={!canAdvance || submitting}
           onClick={handleNext}
+          aria-describedby={isLastStep ? submitDescribedBy : undefined}
           className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
             isLastStep ? 'bg-slate-900 hover:bg-slate-700' : 'bg-amber-500 hover:bg-amber-600'
           }`}

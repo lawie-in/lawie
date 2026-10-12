@@ -89,6 +89,7 @@ import redis from '../config/redis';
 import { Session } from '../models/Session.model';
 import { User } from '../models/User.model';
 import oauthRoutes from '../routes/oauth.routes';
+import { grantSignupBonus } from '../services/credit-bonus.service';
 import { challengeForVerifier } from '../services/oauth-state';
 import { createSession, hashToken, validateSession } from '../services/session.service';
 import * as sessionService from '../services/session.service';
@@ -372,7 +373,11 @@ describe('T-299 ruling 6 — linking Google to a password account', () => {
       .post('/login')
       .send({ email: 'victim6@example.com', password: PASSWORD });
     expect(again.status).toBe(401);
-    await waitForSeed((await User.findOne({ email: 'victim6@example.com' }).lean())!._id);
+    // T-351: the register-time grant skipped (unverified). The Google link now makes the account
+    // eligible by googleId (ruling A), so a later grant call seeds it once.
+    const victim = (await User.findOne({ email: 'victim6@example.com' }).lean())!;
+    await grantSignupBonus(String(victim._id));
+    await waitForSeed(victim._id);
   });
 
   it('if the revoke throws, nothing is saved: googleId unset, password kept, no code; a retry links', async () => {

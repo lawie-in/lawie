@@ -11,6 +11,8 @@ export interface TokenPayload {
   name: string;
   role: string;
   plan: string;
+  /** T-343 — accepted privacy version from the auth-issued claim; absent = not accepted. */
+  pv?: string;
   type: 'access' | 'refresh';
 }
 

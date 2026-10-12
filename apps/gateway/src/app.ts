@@ -1,7 +1,11 @@
 import http from 'http';
 import type { Socket } from 'net';
 
-import { INTERNAL_HEADERS, createJsonBodyErrorHandler } from '@lawie/shared';
+import {
+  CURRENT_PRIVACY_VERSION,
+  INTERNAL_HEADERS,
+  createJsonBodyErrorHandler,
+} from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import compression from 'compression';
 import cors from 'cors';
@@ -61,6 +65,18 @@ const onProxyError = (err: Error, _req: express.Request, res: http.ServerRespons
   }
 };
 
+// ── T-343: accepted privacy version, from the verified `pv` claim only ───────
+// Any client-sent copy was already deleted by the strip middleware above (it is in
+// INTERNAL_HEADERS); removeHeader is a second guard so only the claim can reach a service.
+// A token without a string `pv` (issued before T-343) forwards no header: not accepted.
+function setPrivacyVersionHeader(proxyReq: http.ClientRequest, req: express.Request): void {
+  proxyReq.removeHeader(INTERNAL_HEADERS.USER_PRIVACY_VERSION);
+  const pv = req.jwtPayload?.pv;
+  if (typeof pv === 'string' && pv) {
+    proxyReq.setHeader(INTERNAL_HEADERS.USER_PRIVACY_VERSION, pv);
+  }
+}
+
 // ── Proxy with internal headers (for authenticated routes) ──────────────────
 function createAuthenticatedProxy(target: string) {
   return createProxyMiddleware({
@@ -75,6 +91,7 @@ function createAuthenticatedProxy(target: string) {
           proxyReq.setHeader(INTERNAL_HEADERS.USER_EMAIL, expressReq.jwtPayload.email);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_ROLE, expressReq.jwtPayload.role);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_PLAN, expressReq.jwtPayload.plan);
+          setPrivacyVersionHeader(proxyReq, expressReq);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_NAME, expressReq.jwtPayload.name);
         }
       },
@@ -179,6 +196,8 @@ function devBypass(req: express.Request, res: express.Response, next: express.Ne
     name: (req.headers['x-dev-user-name'] as string) ?? 'Dev User',
     role: 'Client',
     plan: (req.headers['x-dev-user-plan'] as string) ?? 'pro',
+    // T-343 (Arjun, Addendum 2.3): the dev user has accepted the current privacy version.
+    pv: CURRENT_PRIVACY_VERSION,
     type: 'access',
   };
   req.tokenHash = 'dev-bypass-no-token-hash';
@@ -237,6 +256,7 @@ app.use(
           proxyReq.setHeader(INTERNAL_HEADERS.USER_EMAIL, expressReq.jwtPayload.email);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_ROLE, expressReq.jwtPayload.role);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_PLAN, expressReq.jwtPayload.plan);
+          setPrivacyVersionHeader(proxyReq, expressReq);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_NAME, expressReq.jwtPayload.name);
         }
       },
@@ -263,6 +283,7 @@ app.use(
           proxyReq.setHeader(INTERNAL_HEADERS.USER_EMAIL, expressReq.jwtPayload.email);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_ROLE, expressReq.jwtPayload.role);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_PLAN, expressReq.jwtPayload.plan);
+          setPrivacyVersionHeader(proxyReq, expressReq);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_NAME, expressReq.jwtPayload.name);
         }
       },
