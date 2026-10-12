@@ -518,3 +518,14 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - In a default bail where the user hasn't given the default-bail period or its expiry date, a draft that leaves the brief's own blank is accepted as is. It is no longer sent back to the AI for a rewrite that could invent them.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-310 — consent before Google Analytics (af975f2)
+
+- First visit: a small card asks about analytics. Accept and Decline are equally prominent.
+- Ignore it or press Decline, and nothing about the visit goes to Google.
+- Press Accept and analytics starts at once, with no reload.
+- "Cookie settings" in the footer or on /privacy reopens the card; Decline stops analytics and clears its cookies.
+- The privacy page says the choice is kept with no IP or account link and is deleted after 12 months.
+- On a small phone or with large text, the card text scrolls and the buttons stay in view.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
