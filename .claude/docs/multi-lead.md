@@ -1,14 +1,14 @@
-# Three dev leads in parallel
+# Five dev leads in parallel
 
-Read by `vishal`, `mahak` and `shashank` when a ticket starts, and by Priya when she assigns work. Founder decision, 11 Oct 2026: three leads, one coordinator (Priya), so tickets ship in parallel without colliding.
+Read by `vishal`, `mahak`, `shashank`, `kunal` and `tanvi` when a ticket starts, and by Priya when she assigns work. Founder decision, 11 Oct 2026: three leads, one coordinator (Priya), so tickets ship in parallel without colliding. Raised to five leads (`kunal`, `tanvi` added) by the founder, 12 Oct 2026.
 
 ## Who does what
 
 | Role | Does | Never does |
 |---|---|---|
 | Priya (coordinator) | Assigns tickets, writes the claim record, orders merges, sends the founder one status update | Writes code, commits, runs the crew |
-| Lead (`vishal`, `mahak`, `shashank`) | Runs one ticket through the crew, commits, merges into `develop_staging` in its slot and pushes | Takes an unassigned ticket, holds two tickets, changes files outside its claim |
-| Crew (`developer`, `tester`, `reviewer`, `doc-writer`) | Shared by all three leads. One step each, as before | Talk to the founder, commit, or look past its handoff packet. It needs no idea which lead sent it |
+| Lead (`vishal`, `mahak`, `shashank`, `kunal`, `tanvi`) | Runs one ticket through the crew, commits, merges into `develop_staging` in its slot and pushes | Takes an unassigned ticket, holds two tickets, changes files outside its claim |
+| Crew (`developer`, `tester`, `reviewer`, `doc-writer`) | Shared by all five leads. One step each, as before | Talk to the founder, commit, or look past its handoff packet. It needs no idea which lead sent it |
 
 ## The claim record
 
@@ -42,7 +42,7 @@ Each ticket file also gets one more row in its field table: `Assigned lead | <na
 
 ## The board, comments and the relay
 
-Four sessions run apart: the whole team (Priya leads), `vishal`, `mahak` and `shashank`. None can see another's conversation. The Lawie board artifact (https://claude.ai/artifact/REAV9qDo6bzJitD1TfxDXD), its comments, its relay and `leads.md` are how they talk.
+Six sessions run apart: the whole team (Priya leads), `vishal`, `mahak`, `shashank`, `kunal` and `tanvi`. None can see another's conversation. The Lawie board artifact (https://claude.ai/artifact/REAV9qDo6bzJitD1TfxDXD), its comments, its relay and `leads.md` are how they talk.
 
 **What the board holds.**
 
