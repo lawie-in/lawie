@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { COURT_TYPES, DOC_TYPES, DocType } from '@lawie/shared';
+import { COURT_TYPES, DOC_TYPES, DocType, requireCurrentPrivacy } from '@lawie/shared';
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
@@ -728,6 +728,7 @@ router.post('/preflight', authenticate, async (req: Request, res: Response): Pro
 router.post(
   '/generate-from-template',
   authenticate,
+  requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
   enforceCredits, // SCRUM-73 / SCRUM-59 — credit gate; replaces enforceFreeLimit
   spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {
@@ -1038,6 +1039,7 @@ async function describeFirstOnly(req: Request, res: Response, next: NextFunction
 router.post(
   '/generate-from-brief',
   authenticate,
+  requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
   describeFirstOnly,
   kindAsTemplateId,
   enforceCredits,
@@ -1457,6 +1459,7 @@ router.post(
 router.post(
   '/generate',
   authenticate,
+  requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
   enforceCredits,
   spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {

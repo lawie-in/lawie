@@ -1,11 +1,22 @@
 import crypto from 'crypto';
 
-import { RegisterPayload, LoginPayload, refreshSessionKey } from '@lawie/shared';
+import {
+  RegisterPayload,
+  LoginPayload,
+  refreshSessionKey,
+  getPrivacyVersionSummary,
+} from '@lawie/shared';
 import bcrypt from 'bcryptjs';
 
 import logger from '../config/logger';
 import { AppError } from '../middleware/errorHandler';
-import { User, IUser, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
+import {
+  User,
+  IUser,
+  CURRENT_PRIVACY_VERSION,
+  CURRENT_TERMS_VERSION,
+  privacySignupAcceptance,
+} from '../models/User.model';
 import { buildSignupSource, UtmTags } from '../validators/auth.validator';
 
 import { tryGrantDailyLoginBonus, grantSignupBonus } from './credit-bonus.service';
@@ -36,6 +47,7 @@ export async function registerUser(
     throw new AppError(409, 'An account with this email already exists');
   }
 
+  const acceptedAt = new Date();
   const user = await User.create({
     email: payload.email,
     password: payload.password,
@@ -46,10 +58,12 @@ export async function registerUser(
     role: 'Lawyer',
     // T-234 — the sign-up form shows the Terms line under the submit button.
     // Server time and server version only; nothing here comes from the request.
-    termsAcceptedAt: new Date(),
+    termsAcceptedAt: acceptedAt,
     termsVersion: CURRENT_TERMS_VERSION,
-    privacyVersion: CURRENT_PRIVACY_VERSION,
     acceptedVia: 'password',
+    // T-343 (Ajay §4) — privacyVersion, privacyAcceptedAt, via 'signup' and the first history
+    // row. Sign-up never shows the re-acceptance prompt.
+    ...privacySignupAcceptance(acceptedAt),
     // T-242 — campaign tags, only on account creation, with the server time. Sanitized again
     // here so a caller that skips the validator can't store a raw value. Never logged.
     signupSource: buildSignupSource({
@@ -86,6 +100,7 @@ export async function registerUser(
     name: user.name,
     role: user.role,
     plan: user.plan,
+    pv: user.privacyVersion,
   });
 
   await createSession(
@@ -130,6 +145,7 @@ export async function loginUser(
     name: user.name,
     role: user.role,
     plan: user.plan,
+    pv: user.privacyVersion,
   });
 
   await createSession(
@@ -193,6 +209,7 @@ export async function refreshTokens(
     name: user.name,
     role: user.role,
     plan: user.plan,
+    pv: user.privacyVersion,
   });
 
   await createSession(
@@ -203,6 +220,98 @@ export async function refreshTokens(
     meta,
   );
 
+  return tokens;
+}
+
+/** T-343 — what GET /me reports about the user's privacy acceptance. */
+export interface PrivacyStatus {
+  privacyVersion: string | null;
+  currentPrivacyVersion: string;
+  needsPrivacyAcceptance: boolean;
+  /** Ajay's signed one-line summary (P2); present only when needsPrivacyAcceptance. */
+  summary?: string;
+}
+
+/**
+ * T-343 — the prompt shows when the stored privacyVersion is not equal to the current one
+ * (a missing version counts as not accepted) AND the current version has a signed summary
+ * (Ajay §3). Versions are compared with !== only, never as dates.
+ */
+export function privacyStatusFor(user: Pick<IUser, 'privacyVersion'>): PrivacyStatus {
+  const privacyVersion = user.privacyVersion ?? null;
+  const summary = getPrivacyVersionSummary(CURRENT_PRIVACY_VERSION);
+  const needsPrivacyAcceptance =
+    privacyVersion !== CURRENT_PRIVACY_VERSION && summary !== undefined;
+  return {
+    privacyVersion,
+    currentPrivacyVersion: CURRENT_PRIVACY_VERSION,
+    needsPrivacyAcceptance,
+    ...(needsPrivacyAcceptance ? { summary } : {}),
+  };
+}
+
+export async function getPrivacyStatus(userId: string): Promise<PrivacyStatus> {
+  const user = await User.findById(userId).select('privacyVersion isActive');
+  if (!user || !user.isActive) {
+    throw new AppError(401, 'User not found or inactive');
+  }
+  return privacyStatusFor(user);
+}
+
+/**
+ * T-343 — POST /me/privacy-acceptance. Records acceptance of CURRENT_PRIVACY_VERSION with
+ * server values only (version, time, via 'reaccept'); nothing comes from the request body.
+ * The update is conditional on the stored version differing, so a double submit adds one
+ * history row, not two. Then rotates the session like /refresh (Arjun's addendum): the
+ * caller's access session and its refresh key are deleted and a new pair, carrying the new
+ * `pv`, is issued with createSession. Logs only the user id, never tokens.
+ */
+export async function acceptPrivacy(
+  userId: string,
+  accessToken: string,
+  meta: SessionMeta = {},
+): Promise<{ accessToken: string; refreshToken: string }> {
+  const acceptedAt = new Date();
+  await User.updateOne(
+    { _id: userId, isActive: true, privacyVersion: { $ne: CURRENT_PRIVACY_VERSION } },
+    {
+      $set: {
+        privacyVersion: CURRENT_PRIVACY_VERSION,
+        privacyAcceptedAt: acceptedAt,
+        privacyAcceptedVia: 'reaccept',
+      },
+      $push: {
+        privacyHistory: { version: CURRENT_PRIVACY_VERSION, acceptedAt, via: 'reaccept' },
+      },
+    },
+  );
+
+  const user = await User.findById(userId);
+  if (!user || !user.isActive) {
+    throw new AppError(401, 'User not found or inactive');
+  }
+
+  // Rotate like /refresh: the old access session and its refresh key go first.
+  await deleteSession(userId, hashToken(accessToken));
+
+  const tokens = generateTokenPair({
+    sub: user._id.toString(),
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    plan: user.plan,
+    pv: user.privacyVersion,
+  });
+
+  await createSession(
+    user._id.toString(),
+    tokens.accessToken,
+    tokens.refreshToken,
+    { plan: user.plan, email: user.email, role: user.role, name: user.name },
+    meta,
+  );
+
+  logger.info({ userId: user._id.toString() }, 'Privacy version accepted');
   return tokens;
 }
 
