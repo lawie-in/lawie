@@ -8,3 +8,11 @@ Signed: Ajay (CLO), 13 Oct 2026 IST.
 | 3, 377 IPC note | `Read down in Navtej Singh Johar v. Union of India (2018): it no longer applies to consensual acts between adults. No direct equivalent in BNS.` |
 
 AC1 lines: as already signed (site-copy-t252). No new sign-off is needed.
+
+## Addendum 1 (13 Oct 2026 IST): FAQ free-tier line after T-351
+
+Yes, the line must change: since T-351, email sign-ups get the 5 Ink only after verifying, so the old line overstates it. This replaces the AC1 FAQ line (exact):
+
+`5 Ink on sign-up, once your email is verified (lifetime). All document types, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers.`
+
+Google sign-ups count as verified, so the line is true for them too. Any other place that says "5 Ink on sign-up" (pricing, home, settings) gets the same "once your email is verified".
