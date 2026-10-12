@@ -21,3 +21,7 @@
 3. The lead applies Ajay's signed diff only; no other wording.
 4. Tests: a draft in each pack without disclosure of earlier applications → the clause is reported missing.
 5. Golden snapshots: any snapshot that moves is listed for Ajay; CI green on drafting.
+
+## Follow-up noted 12 Oct 2026 (Vishal)
+
+`validator.ts`'s soft keyword check for `no_flight_risk` (abscond / flight risk / tamper) may warn on the new anticipatory undertaking wording. Not in T-237. Check after the merge and ticket it if it warns.

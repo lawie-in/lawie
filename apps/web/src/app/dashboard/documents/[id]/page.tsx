@@ -10,6 +10,7 @@ import {
   Loader2,
   Save,
   Clock,
+  X,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -75,12 +76,19 @@ export default function DocumentEditorPage() {
     format: ExportFormat;
     blanks: Blank[];
   } | null>(null);
+  // T-233: the export that failed, so the banner can offer "Try again" in the same format.
+  const [exportError, setExportError] = useState<ExportFormat | null>(null);
 
   // Track the latest HTML for export and auto-save
   const latestHtmlRef = useRef('');
   // T-152: the text the server last had, so an update that changes nothing schedules no save.
   const savedHtmlRef = useRef('');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // T-233: the export buttons, so focus has somewhere to go when the error banner closes.
+  const exportButtonRefs = useRef<Record<ExportFormat, HTMLButtonElement | null>>({
+    pdf: null,
+    docx: null,
+  });
 
   const isFree = user?.plan !== 'pro';
 
@@ -265,10 +273,16 @@ export default function DocumentEditorPage() {
     }
   };
 
+  // T-233: a failed export shows the banner instead of failing silently. The log
+  // carries the format and the error only, never the draft's content.
   const exportFile = async (format: ExportFormat) => {
     setExporting(format);
+    setExportError(null);
     try {
       await (format === 'pdf' ? exportPdfFile() : exportDocxFile());
+    } catch (err) {
+      console.error(`[export-${format}] export failed:`, err instanceof Error ? err.name : 'error');
+      setExportError(format);
     } finally {
       setExporting(null);
     }
@@ -280,6 +294,7 @@ export default function DocumentEditorPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!doc || exporting) return;
     setExporting(format);
+    setExportError(null);
     let handedOff = false;
     try {
       if (saveTimerRef.current) {
@@ -297,13 +312,38 @@ export default function DocumentEditorPage() {
       }
       handedOff = true;
       await exportFile(format);
+    } catch (err) {
+      console.error(`[export-${format}] export failed:`, err instanceof Error ? err.name : 'error');
+      setExportError(format);
     } finally {
       if (!handedOff) setExporting(null);
     }
   };
 
-  const handleExportPdf = () => handleExport('pdf');
-  const handleExportDocx = () => handleExport('docx');
+  // T-233: the export buttons stay focusable while an export runs (aria-disabled,
+  // not disabled, so focus is not dropped to <body>), so the handlers guard instead.
+  const handleExportPdf = () => {
+    if (exporting) return;
+    void handleExport('pdf');
+  };
+  const handleExportDocx = () => {
+    if (exporting) return;
+    void handleExport('docx');
+  };
+  // T-233: the banner unmounts when the error clears, so focus moves to the
+  // export button of the same format first instead of dropping to <body>. If the
+  // blank warning reopens, it takes focus itself (ExportBlanksDialog).
+  const handleExportRetry = () => {
+    if (!exportError || exporting) return;
+    const format = exportError;
+    exportButtonRefs.current[format]?.focus();
+    void handleExport(format);
+  };
+  const handleExportErrorDismiss = () => {
+    if (!exportError) return;
+    exportButtonRefs.current[exportError]?.focus();
+    setExportError(null);
+  };
 
   const handleBlanksExportAnyway = () => {
     const format = blankWarning?.format;
@@ -436,10 +476,13 @@ export default function DocumentEditorPage() {
 
             {/* Export buttons */}
             <button
+              ref={(el) => {
+                exportButtonRefs.current.pdf = el;
+              }}
               onClick={handleExportPdf}
-              disabled={exporting !== null}
+              aria-disabled={exporting !== null}
               aria-busy={exporting === 'pdf'}
-              className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 aria-disabled:cursor-default aria-disabled:opacity-40"
             >
               {exporting === 'pdf' ? (
                 <Loader2 size={13} className="animate-spin" />
@@ -449,10 +492,13 @@ export default function DocumentEditorPage() {
               PDF
             </button>
             <button
+              ref={(el) => {
+                exportButtonRefs.current.docx = el;
+              }}
               onClick={handleExportDocx}
-              disabled={exporting !== null}
+              aria-disabled={exporting !== null}
               aria-busy={exporting === 'docx'}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 aria-disabled:cursor-default aria-disabled:opacity-40"
             >
               {exporting === 'docx' ? (
                 <Loader2 size={13} className="animate-spin" />
@@ -463,6 +509,34 @@ export default function DocumentEditorPage() {
             </button>
           </div>
         </div>
+
+        {/* T-233 — a failed export, with a retry in the same format */}
+        {exportError && (
+          <div
+            role="alert"
+            className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2"
+          >
+            <AlertTriangle size={13} className="flex-shrink-0 text-red-500" />
+            <p className="flex-1 text-xs text-red-700">
+              Export failed. Please try again.{' '}
+              <button
+                onClick={handleExportRetry}
+                aria-disabled={exporting !== null}
+                className="font-semibold underline aria-disabled:cursor-default aria-disabled:opacity-40"
+              >
+                Try again
+              </button>
+            </p>
+            <button
+              onClick={handleExportErrorDismiss}
+              className="rounded p-0.5 text-red-400 hover:bg-red-100 hover:text-red-600"
+              aria-label="Dismiss export error"
+              title="Dismiss"
+            >
+              <X size={13} />
+            </button>
+          </div>
+        )}
 
         {/* T-106/T-125 — the starting-draft label. It is the service's text and cannot be dismissed. */}
         {doc.startingDraft && doc.startingDraftLabel && (

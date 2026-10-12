@@ -136,3 +136,39 @@ Needs develop's section tables reseeded first (Arjun does this on develop; the c
 - Affidavits are no longer checked against an Evidence Act section that has nothing to do with affidavits.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-233 + T-271 (mahak, merged to develop_staging 0e965e7, 12 Oct 2026)
+
+- Bold, italic and underlined text, and drafts I never edited, now export to Word and PDF with their full text. (A draft I never edited used to give an empty Word file.)
+- The PDF has the wider 1.5 inch margin on the left, where the binding goes.
+- If an export fails I see "Export failed. Please try again." with Try again and Dismiss, instead of nothing happening. After a failed "Export anyway", Try again opens the blanks dialog again (by design).
+- "[To be confirmed: ...]" blanks are found and highlighted however they are capitalised.
+- On the privacy page I can reach and scroll the table with the keyboard alone.
+
+Note for her run: the 1.5 inch margin is on the browser-fallback PDF. A real .docx opened in Word and a measured PDF page were not checked by hand: check both.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-256 + T-264 (vishal, merged to develop_staging addd9e7, 12 Oct 2026)
+
+Nothing new on screen. This makes the team's automatic checks reliable: a test that failed at random now passes on its merits, and the sample bail application used to catch invented facts is checked on every change.
+
+Quality: nothing to test in the UI — tests, a test fixture and CI only.
+
+## T-273 + T-274 (mahak, merged to develop_staging 346cde7, 12 Oct 2026)
+
+- If I write "a < b & c" or "<Name>" in a plain-text draft, I see it exactly as written in the editor, the Word file and the PDF.
+- "[To be confirmed: ...]" shows in the PDF even when a missing detail was written in lower case, and it is counted at the end of intake.
+- The editor and every export show the same paragraphs whatever line endings the draft has, and headings are found in the PDF even with extra blank lines.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-275 (mahak, merged to develop_staging 5900d7f, 12 Oct 2026)
+
+Needs develop's section tables reseeded first for the Evidence Act and CrPC rows to show it.
+
+- I look up an old section that was repealed with no replacement and see "Repealed — no equivalent" and "None", instead of a raw code and a blank "Section".
+- I see "Not verified" and "Check the Gazette" for a section Lawie has not confirmed, instead of a guessed number.
+- I am not offered a Copy button when there is no section to copy.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

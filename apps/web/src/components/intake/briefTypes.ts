@@ -376,7 +376,7 @@ export function dateInWords(iso: string): string {
 
 /** T-147c: `{{MISSING: label}}` is the blank of a draft written from the fact ledger. */
 const BLANK =
-  /\[To be confirmed: [^\]]*\]|\[Section — verify before filing\]|\[Authority — add if relied upon\]|\{\{\s*MISSING\s*:\s*[^}]*?\s*\}\}/g;
+  /\[To be confirmed: [^\]]*\]|\[Section — verify before filing\]|\[Authority — add if relied upon\]|\{\{\s*MISSING\s*:\s*[^}]*?\s*\}\}/gi;
 
 /** A run of underscores left for the user, such as "Case No. _____". */
 const UNDERSCORE_BLANK = /_{3,}/g;

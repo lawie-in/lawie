@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build) |
 | Mode           | Small fix (web) |
-| Status         | To do. Unassigned. Reviewer finding on T-235, 12 Oct 2026 |
+| Status         | Merged into develop_staging (0e965e7), waiting for Anushka on develop |
 
 On phones the scroll box around the section 5 table on `/privacy` cannot be reached with a keyboard. Add `tabIndex={0}`, `role="region"` and `aria-labelledby` (pointing at the section heading) to the scroll wrapper. No text change to the page body.
 

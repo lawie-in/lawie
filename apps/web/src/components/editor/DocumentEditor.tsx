@@ -29,10 +29,19 @@ interface DocumentEditorProps {
 /**
  * Convert plain text (from AI generation) to simple HTML for TipTap.
  * Wraps each paragraph in <p> tags, preserves double newlines as paragraph breaks.
+ * T-274: content that starts with '<' after leading whitespace is already HTML
+ * (as shared projectContent and exportUtils' isPlainContent read it). Plain
+ * text has CRLF/CR line ends made LF, then is HTML-escaped, then gets its tags,
+ * so a '<', '>' or '&' in the draft shows as written. exportUtils'
+ * plainTextToHtml mirrors this (keep the two in step).
  */
+function escapePlainText(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function textToHtml(text: string): string {
-  if (text.startsWith('<')) return text; // already HTML
-  return text
+  if (text.trimStart().startsWith('<')) return text; // already HTML
+  return escapePlainText(text.replace(/\r\n?/g, '\n'))
     .split(/\n{2,}/)
     .map((para) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
     .join('');
