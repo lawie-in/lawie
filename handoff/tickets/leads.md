@@ -37,6 +37,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 1. shashank — T-294 (ca2333e). Slot given 12 Oct 2026.
 2. mahak — T-300 (dd90fe5). After shashank. Ajay signed 12482f0 + dd90fe5.
+3. tanvi — T-296 (da43610). After mahak, once Ajay approves the diff (strings signed 6682adf).
 
 ## Last done
 
