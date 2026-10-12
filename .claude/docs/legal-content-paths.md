@@ -17,3 +17,4 @@ A ticket touching any of the following requires Ajay's sign-off reference in the
 - `apps/drafting/src/config/document-rules/_averments/` (the per-pack banned and allowed averment lists, already inside `document-rules/` above; added by T-147c). Each file is hash-signed by Ajay and its `signed_by` stays `null` on purpose, so any edit invalidates the sign-off. `yarn workspace @lawie/drafting report:averments --out <file>` prints the sign-off tables with each file's SHA-256.
 
 See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths above are covered by golden snapshot tests that the `tester` must never auto-update.
+- `apps/drafting/src/services/citation-check.ts` (removes case law the advocate did not give: T-148, rule matching of case names: T-263). Added by Priya, 12 Oct 2026. Any change comes with Ajay's signed rule.
