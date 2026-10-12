@@ -29,7 +29,16 @@ import {
   STARTING_DRAFT_FOOTER,
   STARTING_DRAFT_LABEL,
 } from '../services/brief-drafter';
-import { getCreditBalance, holdInk, releaseInk, settleInk } from '../services/credits.service';
+import {
+  extendInkHold,
+  getCreditBalance,
+  holdInk,
+  INK_HOLD_HEARTBEAT_MS,
+  INK_HOLD_MAX_HEARTBEAT_MS,
+  releaseInk,
+  settleInk,
+  wasInkSettled,
+} from '../services/credits.service';
 import {
   factDiffRunType,
   FactDiffRunType,
@@ -246,9 +255,18 @@ export interface InkHoldHandle {
    * a duplicate attempt (never charge twice). A settle DB error is logged at
    * error level and the hold is left for the sweep (the Ink is already off
    * the balance, so nothing is free).
+   *
+   * Lost hold (Arjun, round 3): if the settle finds no hold (the sweep got
+   * there first), the same cost is held once more and that hold is settled.
+   * If that is refused, the error event goes out with the 402 text, the
+   * response ends, and sendDone() then sends nothing: no unpaid `done`.
+   * Every path calls this BEFORE sendDone(), so the rule holds on all three.
    */
   finish(outcome: { saved: boolean; duplicate: boolean; reference?: string }): Promise<void>;
-  /** Write the SSE `done` event and end the response. */
+  /**
+   * Write the SSE `done` event and end the response. Sends nothing when
+   * finish() withheld the draft (lost hold, re-hold refused).
+   */
   sendDone(data: Record<string, unknown>): void;
 }
 
@@ -270,6 +288,14 @@ export interface InkHoldHandle {
  * ticket does not touch), so a client that goes away does NOT abort the model
  * call. `res.on('close')` only records that the client left before `done`;
  * finish() then decides settle or release when the run ends.
+ *
+ * Heartbeat (Arjun, round 3): while the run is alive the hold's expiry is
+ * pushed to now + TTL every INK_HOLD_HEARTBEAT_MS (extendInkHold), so the
+ * sweep never expires a running request's hold. Beats stop
+ * INK_HOLD_MAX_HEARTBEAT_MS after the hold was taken (the run is then treated
+ * as dead). The timer is unref'd, and cleared on response close, before
+ * settle or release, and in the finally. A failed beat is logged at warn
+ * level and the next beat tries again.
  *
  * Safety net: if `run` returns or throws without closing the hold, it is
  * released here.
@@ -311,11 +337,48 @@ export async function withInkHold(
   let closed = false;
   let doneWritten = false;
   let clientGone = false;
+  /** finish() lost the hold and could not re-take it: no `done` may be sent. */
+  let withheld = false;
+
+  // Heartbeat. Declared before the timer so the tick can stop itself.
+  const heldAt = Date.now();
+  let beatTimer: NodeJS.Timeout | null = null;
+  let beatInFlight: Promise<void> | null = null;
+  const stopBeats = async (): Promise<void> => {
+    if (beatTimer) {
+      clearInterval(beatTimer);
+      beatTimer = null;
+    }
+    // A beat already on its way finishes first, so a settle never races it.
+    if (beatInFlight) await beatInFlight;
+  };
+  beatTimer = setInterval(() => {
+    if (Date.now() - heldAt >= INK_HOLD_MAX_HEARTBEAT_MS) {
+      void stopBeats();
+      return;
+    }
+    if (beatInFlight) return;
+    beatInFlight = extendInkHold(userId, runId, runSequence)
+      .then(() => undefined)
+      .catch(() => {
+        // Ids only. The hold's own TTL still covers it; the next beat retries.
+        console.warn(
+          `[drafting] ink hold heartbeat failed (runId=${runId}, runSequence=${runSequence})`,
+        );
+      })
+      .finally(() => {
+        beatInFlight = null;
+      });
+  }, INK_HOLD_HEARTBEAT_MS);
+  beatTimer.unref();
+
   res.on('close', () => {
     if (!doneWritten && !res.writableFinished) clientGone = true;
+    void stopBeats();
   });
 
   const release = async (): Promise<void> => {
+    await stopBeats();
     if (closed) return;
     closed = true;
     try {
@@ -324,14 +387,38 @@ export async function withInkHold(
       // The hold stays; the sweep releases it (no completed Generation).
       console.error(
         `[drafting] releaseInk failed (runId=${runId}, runSequence=${runSequence}); left for the sweep:`,
-        err instanceof Error ? err.message : err,
+        err instanceof Error ? err.name : 'unknown',
       );
     }
+  };
+
+  /** Lost hold, re-hold refused: the 402 text as an SSE error, then end. */
+  const withholdDraft = async (): Promise<void> => {
+    withheld = true;
+    console.error(
+      `[drafting] ink hold lost before settle and could not be re-taken; draft withheld (runId=${runId}, runSequence=${runSequence})`,
+    );
+    let reason = 'Insufficient Ink';
+    try {
+      reason = insufficientInkBody(cost, await getCreditBalance(userId)).message;
+    } catch {
+      // Keep the 402's own error title.
+    }
+    res.write(
+      `event: error\ndata: ${JSON.stringify({
+        reason,
+        retryable: false,
+        code: 'insufficient_ink',
+        runId,
+      })}\n\n`,
+    );
+    res.end();
   };
 
   const handle: InkHoldHandle = {
     release,
     async finish({ saved, duplicate, reference }) {
+      await stopBeats();
       if (duplicate || (!saved && clientGone)) {
         await release();
         return;
@@ -340,19 +427,33 @@ export async function withInkHold(
       closed = true;
       try {
         const settled = await settleInk(userId, runId, runSequence, undefined, reference);
-        if (!settled.settled && settled.reason === 'no_hold') {
+        if (settled.settled || settled.reason !== 'no_hold') return;
+        // The hold is gone. If it was SETTLED (the sweep, e.g. after this
+        // request marked it delivered, or from the completed Generation), the
+        // draft is paid: re-holding would charge twice.
+        if (await wasInkSettled(userId, runId, runSequence)) return;
+        // It was released (a stall past the TTL). Do not deliver unpaid: hold
+        // the same cost once more and settle that.
+        const again = await holdInk({ userId, costCredits: cost, runId, runSequence });
+        if (!again.ok && again.reason !== 'duplicate') {
+          await withholdDraft();
+          return;
+        }
+        const retried = await settleInk(userId, runId, runSequence, undefined, reference);
+        if (!retried.settled && retried.reason === 'no_hold') {
           console.error(
-            `[drafting] settleInk found no hold (runId=${runId}, runSequence=${runSequence})`,
+            `[drafting] settleInk found no hold after a re-hold (runId=${runId}, runSequence=${runSequence})`,
           );
         }
       } catch (err) {
         console.error(
           `[drafting] settleInk failed (runId=${runId}, runSequence=${runSequence}); left for the sweep:`,
-          err instanceof Error ? err.message : err,
+          err instanceof Error ? err.name : 'unknown',
         );
       }
     },
     sendDone(data) {
+      if (withheld) return;
       doneWritten = true;
       res.write(`event: done\ndata: ${JSON.stringify(data)}\n\n`);
       res.end();
@@ -362,6 +463,7 @@ export async function withInkHold(
   try {
     await run(handle);
   } finally {
+    await stopBeats();
     await release();
   }
 }

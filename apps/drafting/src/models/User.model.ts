@@ -43,6 +43,13 @@ export interface IUserDrafting extends Document {
    * holdInk / settleInk / releaseInk / releaseExpiredHolds (credits.service).
    */
   inkHolds?: IInkHold[];
+  /**
+   * T-226 round 3: the last few settled holds' keys, pushed in the same write
+   * that pulls a settled hold. Lets a route whose hold vanished tell "settled
+   * by someone else (paid)" from "released (unpaid)". Capped at
+   * INK_SETTLED_KEEP entries.
+   */
+  inkSettled?: Array<{ runId: string; runSequence: number; settledAt: Date }>;
   /** ObjectId reference — typed permissively for cross-service shape */
   referredVia?: unknown;
   createdAt?: Date;
@@ -89,6 +96,19 @@ const UserSchema = new Schema<IUserDrafting>(
         ),
       ],
       default: [],
+    },
+    inkSettled: {
+      type: [
+        new Schema(
+          {
+            runId: { type: String, required: true },
+            runSequence: { type: Number, required: true },
+            settledAt: { type: Date, required: true },
+          },
+          { _id: false },
+        ),
+      ],
+      default: undefined,
     },
     referredVia: { type: Schema.Types.ObjectId, default: null },
   },

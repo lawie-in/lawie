@@ -506,8 +506,10 @@ export async function spendInk(input: {
 // (kept, with ledger rows) or released (refunded). Charge rule: Ink is kept
 // only when a successful run's draft reached the user.
 //
-// AC9: holdInk, settleInk, releaseInk and releaseExpiredHolds are the only
-// code that touches `inkHolds`. Billing renewal and cancel `$set` the buckets
+// AC9: holdInk, settleInk, releaseInk, releaseExpiredHolds and extendInkHold
+// are the only code that touches `inkHolds`.
+// `inkSettled` is written only by settleInk (in the pull) and read only by
+// wasInkSettled. Billing renewal and cancel `$set` the buckets
 // and must never touch it.
 
 /**
@@ -519,6 +521,19 @@ export const INK_HOLD_TTL_MS = 30 * 60 * 1000;
 
 /** How often the background sweep runs (startHoldSweep's default). */
 export const INK_HOLD_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+
+/**
+ * T-226 round 3 (Arjun): a live run keeps its own hold alive. withInkHold
+ * extends the hold's expiry every 5 minutes, so the sweep only ever sees holds
+ * whose owner has stopped.
+ */
+export const INK_HOLD_HEARTBEAT_MS = 5 * 60 * 1000;
+
+/**
+ * Beats stop this long after the hold was taken: past it the run is treated
+ * as dead, so a stuck run cannot hold Ink forever.
+ */
+export const INK_HOLD_MAX_HEARTBEAT_MS = 60 * 60 * 1000;
 
 /**
  * One open hold, as stored in `User.inkHolds`. Units are ×2 storage units;
@@ -539,7 +554,11 @@ interface UserInkFields {
   inkAnnualCarry?: number;
   inkTopup?: number;
   inkHolds?: InkHold[];
+  inkSettled?: Array<{ runId: string; runSequence: number; settledAt: Date }>;
 }
+
+/** How many settled-hold keys a user keeps (newest last). */
+export const INK_SETTLED_KEEP = 50;
 const inkUsers = () => User.collection as unknown as mongoose.mongo.Collection<UserInkFields>;
 
 /** Pipeline expression: does `$$this` (an inkHolds entry) have this key? */
@@ -650,21 +669,52 @@ export async function holdInk(input: {
 }
 
 /**
+ * Heartbeat (T-226 round 3): push a live hold's expiry to now + TTL. One
+ * write, only if the hold is still there; never re-creates a hold.
+ */
+export async function extendInkHold(
+  userId: string,
+  runId: string,
+  runSequence: number,
+): Promise<{ extended: boolean }> {
+  if (isFixtureUser(userId)) return { extended: false };
+  if (!mongoose.Types.ObjectId.isValid(userId)) return { extended: false };
+  const oid = new mongoose.Types.ObjectId(userId);
+  const r = await inkUsers().updateOne(
+    { _id: oid, inkHolds: { $elemMatch: { runId, runSequence } } },
+    { $set: { 'inkHolds.$[h].expiresAt': new Date(Date.now() + INK_HOLD_TTL_MS) } },
+    { arrayFilters: [{ 'h.runId': runId, 'h.runSequence': runSequence }] },
+  );
+  return { extended: r.matchedCount > 0 };
+}
+
+/**
  * Release a hold (AC3): one findOneAndUpdate that requires the hold, $pulls
  * it and adds each bucket back by its split. Idempotent: with no hold there
  * is nothing to match and nothing changes. No ledger row.
+ *
+ * `onlyUndelivered` (used only by releaseExpiredHolds, Arjun round 3 item 5):
+ * the same write also requires the hold not to be marked `deliver`, so a
+ * route settle that marks it between the sweep's read and this write is
+ * never refunded. `expiredBy` (also sweep-only, Arjun round 3) requires the
+ * hold to be expired at that time in the same write, so a hold a late
+ * heartbeat just extended is never released. Route releases pass neither.
  */
 export async function releaseInk(
   userId: string,
   runId: string,
   runSequence: number,
+  options: { onlyUndelivered?: boolean; expiredBy?: Date } = {},
 ): Promise<{ released: boolean }> {
   if (isFixtureUser(userId)) return { released: false };
   if (!mongoose.Types.ObjectId.isValid(userId)) return { released: false };
   const oid = new mongoose.Types.ObjectId(userId);
+  const holdMatch: Record<string, unknown> = { runId, runSequence };
+  if (options.onlyUndelivered) holdMatch.deliver = { $ne: true };
+  if (options.expiredBy) holdMatch.expiresAt = { $lte: options.expiredBy };
 
   const result = await User.collection.findOneAndUpdate(
-    { _id: oid, inkHolds: { $elemMatch: { runId, runSequence } } },
+    { _id: oid, inkHolds: { $elemMatch: holdMatch } },
     [
       {
         $set: {
@@ -781,6 +831,13 @@ export async function settleInk(
     {
       $pull: { inkHolds: { runId, runSequence } },
       $inc: { inkSub: refund.sub, inkAnnualCarry: refund.carry, inkTopup: refund.topup },
+      // Same write: a durable "this hold was settled" mark (wasInkSettled).
+      $push: {
+        inkSettled: {
+          $each: [{ runId, runSequence, settledAt: new Date() }],
+          $slice: -INK_SETTLED_KEEP,
+        },
+      },
     },
     { returnDocument: 'before' },
   );
@@ -864,9 +921,34 @@ export async function settleInk(
 }
 
 /**
+ * Was this run's hold settled (by anyone)? True when the settle that pulled
+ * it recorded its key in `inkSettled`, in the same write as the pull. A hold
+ * that is gone and not here was released. Used by withInkHold before a
+ * re-hold, so a hold the sweep (or a concurrent settle) settled is never
+ * charged a second time.
+ */
+export async function wasInkSettled(
+  userId: string,
+  runId: string,
+  runSequence: number,
+): Promise<boolean> {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return false;
+  const found = await inkUsers().findOne(
+    {
+      _id: new mongoose.Types.ObjectId(userId),
+      inkSettled: { $elemMatch: { runId, runSequence } },
+    },
+    { projection: { _id: 1 } },
+  );
+  return found !== null;
+}
+
+/**
  * Close every expired hold (for one user, or for all users): settle it when
  * settleInk already marked it `deliver` (the draft reached the user) or a
  * completed Generation exists for its (runId, runSequence); else release it.
+ * The release only matches an undelivered hold; on a miss the user is
+ * re-read and a hold now marked `deliver` is settled instead.
  * This also finishes a settle that marked the hold but failed before its
  * $pull. Running it twice changes nothing: a closed hold is gone, and
  * settle/release only act when their own write removes the hold, so the
@@ -912,8 +994,33 @@ export async function releaseExpiredHolds(
           );
           if (r.settled) counts.settled += 1;
         } else {
-          const r = await releaseInk(ownerId, hold.runId, hold.runSequence);
-          if (r.released) counts.released += 1;
+          const r = await releaseInk(ownerId, hold.runId, hold.runSequence, {
+            onlyUndelivered: true,
+            expiredBy: now,
+          });
+          if (r.released) {
+            counts.released += 1;
+          } else {
+            // Missed: re-read. Marked delivered in between (a route settle is
+            // under way) → settle it with its stored reference; the pull-first
+            // rule makes only one settle write rows. Present but undelivered
+            // (a heartbeat extended it, so it is live) → leave it. Gone →
+            // nothing to do.
+            const again = await inkUsers().findOne(
+              {
+                _id: new mongoose.Types.ObjectId(ownerId),
+                inkHolds: { $elemMatch: { runId: hold.runId, runSequence: hold.runSequence } },
+              },
+              { projection: { inkHolds: 1 } },
+            );
+            const latest = again?.inkHolds?.find(
+              (h) => h.runId === hold.runId && h.runSequence === hold.runSequence,
+            );
+            if (latest?.deliver === true) {
+              const s2 = await settleInk(ownerId, hold.runId, hold.runSequence);
+              if (s2.settled) counts.settled += 1;
+            }
+          }
         }
       } catch (err) {
         console.error(
