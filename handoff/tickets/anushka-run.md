@@ -385,3 +385,13 @@ With a profile that has an enrollment number:
 - Type another advocate's name with the enrollment field empty: the number stays blank.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-234 + T-298 — email and password sign-up and sign-in (b4d6b58)
+
+- Create an account or sign in with email and password as well as Google; a link can open straight on Create account.
+- Clear messages for bad details, an existing email (quick switch to Sign in), a wrong password or no connection.
+- The terms and privacy line shows, and Lawie records the acceptance.
+- A referral code's bonus Ink is given once, or the user is told once if it can't apply.
+- A Google-only advocate trying a password gets a plain "incorrect" message pointing to Google.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

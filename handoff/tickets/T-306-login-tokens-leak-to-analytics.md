@@ -5,7 +5,7 @@
 | Phase  | 0 — Prep |
 | Owner  | Arjun (fix design). Lead (build, web). Ajay heads-up (DPDP) |
 | Mode   | Small fix (web), security |
-| Status | To do. HIGH. Found by Kunal during T-234, 12 Oct 2026. Pre-existing (older than T-234) |
+| Status | Building: kunal (12 Oct 2026) |
 
 After Google sign-in the app lands on `/auth/callback?accessToken=…`. Google Analytics records `page_location`, so the access token is likely being sent to Google in the page URL.
 
