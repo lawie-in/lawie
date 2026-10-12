@@ -13,3 +13,7 @@ The three draft paths repeat the same three-step citation check. Move it into on
 
 1. One helper runs the check; all three draft paths call it.
 2. No change in behaviour: the T-270 and T-333 tests pass unchanged, goldens don't move.
+
+## Note (Priya, 12 Oct 2026)
+
+While in `ai.service.ts`, fix the stale comment near line 975 ("ledger.unresolved … read by the fact verifier only"); T-338 now passes unresolved keys to the Drafter too (from Mahak).

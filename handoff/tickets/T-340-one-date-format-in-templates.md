@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Ajay (format, signs). Lead (build, drafting) |
 | Mode   | Small fix (legal content) |
-| Status | To do. After T-240 merges (template-engine.service.ts is Tanvi's until then). Split from T-192 with Ajay's OK, 12 Oct 2026 |
+| Status | Building: tanvi, with T-345 (12 Oct 2026) |
 
 Ajay's third T-192 ruling: dates in drafts print as "4 April 2026". T-192 shipped without it because the template engine was claimed for T-240.
 
