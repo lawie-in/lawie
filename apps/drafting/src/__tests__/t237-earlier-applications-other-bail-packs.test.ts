@@ -121,16 +121,18 @@ describe('T-237: "before this Hon\'ble Court" is not a cue (EA-standard drops "b
     },
   );
 
-  it('bail_regular keeps its 11 Oct cue (unchanged): "before" still passes there', () => {
+  it('bail_regular (T-241 AC3, Ajay condition): "bail application before this Hon\'ble Court" with no other cue word -> clause_not_in_paragraph', () => {
     const p = pack('bail_regular');
     const out = splitDrafterOutput(
-      `1. The applicant seeks bail before this Hon'ble Court.\n\n${CLAUSES_MARKER}\nearlier_applications: 1`,
+      `1. The applicant files this bail application before this Hon'ble Court.\n\n${CLAUSES_MARKER}\nearlier_applications: 1`,
     );
     const only = {
       ...p,
       mandatoryClauses: p.mandatoryClauses.filter((c) => c.id === 'earlier_applications'),
     };
-    expect(findMissingClauses(only, out, [])).toEqual([]);
+    expect(findMissingClauses(only, out, []).map((m) => [m.id, m.reason])).toEqual([
+      ['earlier_applications', 'clause_not_in_paragraph'],
+    ]);
   });
 });
 

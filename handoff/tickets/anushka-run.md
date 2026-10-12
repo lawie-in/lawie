@@ -395,3 +395,21 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - A Google-only advocate trying a password gets a plain "incorrect" message pointing to Google.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-268 — terms page (f6566b4)
+
+Open /terms and check:
+
+- It calls Lawie a drafting assistant whose drafts the advocate reviews and is responsible for.
+- It says drafts are paid for with Ink: most use 2, short ones 1, nothing for a failed draft.
+- It says nothing takes away rights under law or the right to approach a Consumer Commission.
+- "Last updated: 12 October 2026". No "AI-assisted" or "formatted for Indian courts" in the page body (the footer is T-317).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-241 — bail drafts don't assert facts the user didn't give (6bb8f85)
+
+- Anticipatory and magistrate bail drafts no longer claim grounds, antecedents, roots or a filed charge sheet the user didn't give; a missing fact gets a blank to fill.
+- In regular and default bail, "before this Hon'ble Court" no longer counts as covering earlier applications.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

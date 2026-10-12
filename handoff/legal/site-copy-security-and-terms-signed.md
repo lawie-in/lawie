@@ -40,3 +40,8 @@ Answer: `Your drafts and briefs are encrypted in our database, and connections t
 | GST invoices | Vikram |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+## Addendum (12 Oct 2026 IST): T-268 contents entry and meta description
+
+1. "On this page" entry for §3: `3. Drafting Disclaimer` (matches the heading).
+2. Meta description: replace "an AI-assisted legal drafting tool for Indian advocates" with `a drafting assistant for Indian advocates`; the rest of the description stays.
