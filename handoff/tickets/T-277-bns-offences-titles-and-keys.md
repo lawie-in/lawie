@@ -30,3 +30,9 @@ Ajay checked `bns-offences.json`: 67 of 305 rows sit under the wrong key (for ex
 Ajay is rebuilding: re-key every row, verify bailable / cognizable / compoundable against the BNSS First Schedule, and resolve sub-section targets. Where an attribute cannot be verified from the First Schedule he sets it empty, never a guess. He signs the corrected file (like T-250/T-255); Shashank applies it byte for byte, with the usual SHA-256 and tests listed for Ajay.
 
 Until then: no build.
+
+## Arjun's conditions and Ajay's R4 (12 Oct 2026, Priya's call)
+
+Arjun (CTO) approved the preflight change with conditions: one shared `resolveBnsKey` used by preflight (incl. E1) and validator; unknown parent still hard-blocks (999(1)); a parent-resolved sub-clause does not inherit the parent's BAILABLE/NON-BAILABLE label unless the parent row says so; only table-derived labels in the "use EXACTLY" prompt block; golden tests (103(1) passes, 999(1) blocks, 103(1) classifies as 103, generated bailability equals offences[*].bailable for all 305 keys).
+
+Arjun asked for a generated `bns-bailability.json` with a script and a CI drift check. Ajay's ruling R4 is to delete `bns-bailability.json` and derive the classification from `bns-offences.json` at load time, with no second file. Decision: load-time generation meets Arjun's actual condition (never drift), more strictly than a generated file plus a CI check, because no copy exists. R4 stands; no ci.yml or script is added. The "equals offences[*].bailable for all 305 keys" test stays.
