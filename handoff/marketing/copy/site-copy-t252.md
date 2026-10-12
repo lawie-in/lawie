@@ -4,6 +4,7 @@ Owner: Madhuri (copy), Meera signs, Ajay checks every line. Build: a lead, throu
 Source: `apps/web/src`, read only, 12 Oct 2026 working tree. Every "Current" cell is quoted from the file at the line shown.
 Wording is Ajay's T-238 file (`handoff/legal/T-238-pricing-page-lines-signed.md`), which overrides older notes. Ajay's exact disclaimer: "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
 Nothing is public before T-403 and Anushka's PASS.
+Signed by Ajay, 12 Oct 2026: `handoff/legal/site-copy-t252-and-help-text-signed.md`. Conditions: F1 rupee figures go live only when T-227's prices do; F2 only if every document type is open to Free users (Priya confirms), else "All document types" goes; the converter "Free, no login required" needs Mahak's confirmation. Where this table and the signed file differ, the signed file wins.
 
 Line numbers: several are not the ones in the T-252 ticket, because T-238 and T-235 have already changed some files. The numbers below are from the files as they are today.
 
@@ -25,14 +26,12 @@ None of the "after" lines makes a court, conversion or time claim.
 | A2 | 78-79 | `Maps IPC, CrPC, and IEA references to their current BNS, BNSS, and BSA equivalents.` | `Criminal drafts use BNS, BNSS and BSA section numbers.` | Says Lawie converts sections. It does not (T-245). Ajay: blocker |
 | A3 | 117-119 (one paragraph, with A6) | `More states and court levels, more document types, and support for drafting in Hindi alongside English. The goal stays the same: get an advocate from a blank page to a first draft in minutes, on the current law, for the specific court in front of them.` | `More document types, and Hindi drafting: coming soon. The goal stays the same: get an advocate from a blank page to a first draft to review, edit and download.` | "In minutes" is a time claim; "current law" and "specific court" are claims too. "More states and court levels" implies court coverage that is not built. Ajay: blocker for the time and court parts |
 
-Same page, not on Ajay's list but the same kind of claim. Ajay to rule:
+Same page, not on Ajay's first list. Ruled by Ajay 12 Oct (`handoff/legal/site-copy-t252-and-help-text-signed.md`):
 
 | # | Line | Current (exact) | After | Why |
 | --- | --- | --- | --- | --- |
-| A4 | 99-100 | `Section mappings are built from the published IPC→BNS, CrPC→BNSS, and IEA→BSA section-wise comparison tables. Check every section before you file.` | `Criminal drafts use BNS, BNSS and BSA section numbers. Check every section before you file.` | Mapping and "built from" claims; the mapping tables are not yet checked (T-267) |
-| A5 | 103-106 | `The court-formatting rules — how a cause title reads for a District Court versus a High Court, which clauses are mandatory, where the verification sits — are encoded per state and court level. It is detailed, unglamorous work, and we are still adding it court by court.` | Delete the paragraph | Court-formatting and coverage claims (T-140 not started) |
-| A7 | 97 | `<h2>Built on the current law</h2>` | `Criminal drafts use BNS, BNSS and BSA section numbers` (or delete the heading with A4 and A5) | Otherwise it stands over a paragraph that no longer supports it. It also reads as a whole-product "updated for the new law" claim, which Ajay bars |
-| A8 | 84-85 | `Exports a finished document as PDF or DOCX, with a filing checklist.` | `Exports the draft as PDF or DOCX.` (if Priya says there is no filing checklist, or whatever it is, drop the clause) | "Finished document" reads as ready to file; "filing checklist" is not confirmed. Priya to check the product |
+| A4/A5/A7 (one block, signed) | 97-107 (heading `<h2>Built on the current law</h2>` and both paragraphs) | `Built on the current law` / `Section mappings are built from the published IPC→BNS, CrPC→BNSS, and IEA→BSA section-wise comparison tables. Check every section before you file.` / `The court-formatting rules — how a cause title reads for a District Court versus a High Court, … we are still adding it court by court.` | Heading `Section numbers`, text `Criminal drafts use BNS, BNSS and BSA section numbers. Check every section before you file.` (the court-formatting paragraph is deleted) | Ajay signed 12 Oct: A5 deleted; A7 and A4 become this one block |
+| A8 | 84-85 | `Exports a finished document as PDF or DOCX, with a filing checklist.` | `Exports the draft as PDF or DOCX.` (signed; the checklist clause stays out unless Priya shows the product has one) | "Finished document" reads as ready to file; "filing checklist" is not confirmed. Priya to check the product |
 
 ## 3. Footer (`components/marketing/SiteFooter.tsx`)
 
@@ -40,17 +39,17 @@ Same page, not on Ajay's list but the same kind of claim. Ajay to rule:
 | --- | --- | --- | --- | --- |
 | T1 | 16 (left column, `footer-disclaimer`) | `AI-assisted drafting tool — not a substitute for legal advice.` | `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` | Ajay's exact line (package B). The same sentence is at line 70, so change both |
 | T2 | 70 (bottom bar) | `AI-assisted drafting tool — not a substitute for legal advice.` | `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` | Same. Or drop one of the two, which is Rajesh's call |
-| T3 | 13-14 (`footer-tag`) | `Legal drafting for Indian advocates — built around BNS, BNSS, and BSA.` | `Drafting assistant for Indian advocates.` (Ajay to rule; or `Criminal drafts use BNS, BNSS and BSA section numbers.`) | "Built around BNS, BNSS and BSA" is the whole-product new-law claim Ajay bars. Not on his list, found in the same file |
+| T3 | 13-14 (`footer-tag`) | `Legal drafting for Indian advocates — built around BNS, BNSS, and BSA.` | `Drafting assistant for Indian advocates.` (signed) | "Built around BNS, BNSS and BSA" is the whole-product new-law claim Ajay bars. Not on his list, found in the same file |
 
 ## 4. In-app badges and benefit lines
 
 | # | Where | Current (exact) | After | Why |
 | --- | --- | --- | --- | --- |
-| M1 | `components/credits/TopUpModal.tsx:13` (type), `:229-235` (render) | `badge?: 'POPULAR' \| 'BEST_VALUE';` and `sku.badge === 'POPULAR' ? 'bg-blue-100 text-blue-700' : 'bg-amber-200 text-amber-900'` and `{sku.badge === 'BEST_VALUE' ? 'Best value' : 'Popular'}` | Remove the badge `<span>`. The POPULAR badge goes for the same reason as the pricing page (no usage data). Ajay to confirm the BEST_VALUE badge goes too: on the public page it is "not approved" (Solo has a lower price per Ink) | Package B: "Remove, same reason as rows 3 and 4" |
+| M1 | `components/credits/TopUpModal.tsx:13` (type), `:229-235` (render) | `badge?: 'POPULAR' \| 'BEST_VALUE';` and `sku.badge === 'POPULAR' ? 'bg-blue-100 text-blue-700' : 'bg-amber-200 text-amber-900'` and `{sku.badge === 'BEST_VALUE' ? 'Best value' : 'Popular'}` | Remove the badge `<span>`, both POPULAR and BEST_VALUE (signed). "Lowest price per Ink of the 3 packs" may return only on the T-238 conditions | Package B: "Remove, same reason as rows 3 and 4" |
 | M2 | `components/credits/UpgradeSuccessModal.tsx:23` (Pro list) | `'Priority support',` | Delete the line | No priority route exists (Priya). Package B: "Remove with row 15" |
 | M3 | `app/dashboard/settings/page.tsx:140` (found in the grep, not in T-252) | `<li>✓ Priority support</li>` | Delete the line | Same reason as M2 |
-| M4 | `app/dashboard/settings/page.tsx:137` and `:139` (found in the grep) | `<li>✓ Unlimited document generations</li>` and `<li>✓ BNS / IPC section auto-fill</li>` | `Unlimited` has no basis (Ink is 50 a month on Solo, 150 on Pro): delete the line. "Auto-fill" is a section-conversion claim: delete it, or `Criminal drafts use BNS, BNSS and BSA section numbers` | Priya to confirm which plan this list belongs to. Ajay to rule |
-| M5 | `components/credits/UpgradeSuccessModal.tsx:16` (found in the grep) | `'Unused Ink rolls over (up to 2× cap on yearly)',` | For Priya and Vikram: the signed FAQ says plans "refill Ink every month" and says nothing about rollover. Confirm it is true, or remove | Not in T-252. Only noted |
+| M4 | `app/dashboard/settings/page.tsx:137` and `:139` | `<li>✓ Unlimited document generations</li>` and `<li>✓ BNS / IPC section auto-fill</li>` | Delete both lines | Signed: "unlimited" is barred; "auto-fill" is a conversion claim |
+| M5 | `components/credits/UpgradeSuccessModal.tsx:16` | `'Unused Ink rolls over (up to 2× cap on yearly)',` | Delete the line, unless Vikram confirms rollover in writing and it is in the plan terms | Signed. The FAQ says plans refill Ink each month and promises no rollover |
 
 ## 5. Watermark lines (none is true: no export carries a watermark on any plan)
 
@@ -86,7 +85,7 @@ The strings below are copied from `handoff/legal/section-converter-copy-signed.m
 | # | Where | Current (exact) | Proposed | Note |
 | --- | --- | --- | --- | --- |
 | X1 | `app/(marketing)/page.tsx:299` | `Start drafting in the next five minutes.` | `Your next draft starts here.` | A time claim. Already proposed in `copy/landing.md` and the grep table in `copy/pricing.md` |
-| X2 | `app/(marketing)/terms/page.tsx:109-110` | `Lawie is an AI-assisted tool that generates draft legal documents formatted for Indian courts, built around the current criminal codes (BNS, BNSS, and BSA) and other applicable laws.` | Ajay writes the terms text. Flagged only: "formatted for Indian courts" is a court-formatting claim | T-252 says Ajay checks `terms/page.tsx` |
+| X2 | `app/(marketing)/terms/page.tsx:109-110` | `Lawie is an AI-assisted tool that generates draft legal documents formatted for Indian courts, built around the current criminal codes (BNS, BNSS, and BSA) and other applicable laws. The Service produces drafts for your review; it does not provide legal advice or representation.` | `Lawie is a drafting assistant for advocates. It creates first drafts of legal documents for the advocate to review, edit and download. Criminal drafts use BNS, BNSS and BSA section numbers. The Service does not provide legal advice or representation.` (Ajay's 11 Oct text with the T-238 wording; signed 12 Oct). "Keep your credentials secure" in §5 stays | T-252 says Ajay checks `terms/page.tsx` |
 | X3 | `app/(marketing)/page.tsx:98`, `faq/page.tsx:81`, `privacy/page.tsx:188-202` | The "encrypted" sentences | No change from me. They are Ajay's signed privacy text: drafts and briefs are encrypted; form answers and the fact list are not yet. Not a "secure" or "encrypted" product claim in ad copy | Listed so the grep below is not a surprise. Ajay confirms they stay |
 
 ## 9. Grep list (12 Oct 2026, `grep -rn -i` over `apps/web/src`)

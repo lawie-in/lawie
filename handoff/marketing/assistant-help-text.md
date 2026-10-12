@@ -1,4 +1,8 @@
-REVIEW NOTE (not part of the help text; do not load it): this file is the curated help text for the Lawie Assistant (Madhuri, under Meera; Ajay reviews; for Priya). Load only the text between the line `BEGIN HELP TEXT` and the line `END HELP TEXT`. The "Claims to check" table after it is for reviewers and is not loaded. The Ink and rupee answers (sections 3 and 4) are true only on the day the live prices match what they say; hold them until then.
+REVIEW NOTE (not part of the help text; do not load it): this file is the curated help text for the Lawie Assistant (Madhuri, under Meera; Ajay reviews; for Priya). Load only the text between the line `BEGIN HELP TEXT` and the line `END HELP TEXT`. The "Claims to check" table after it is for reviewers and is not loaded. SIGN-IN NOTE (Ajay, 12 Oct): section 10 says only "Sign in with Google." The words "Email and password: coming soon." were taken out of the loaded text until T-234 ships, because they are true only while email sign-up is off. Put them back, or replace them with the email sign-in line, on the day T-234 is decided; the help text, the sign-up page and the approved emails must agree. Priya settles it before the help text is loaded.
+
+HINDI NOTE: the approved Hindi sentence is `आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं।` (welcome email). Any Hindi help line must keep that meaning.
+
+The Ink and rupee answers (sections 3 and 4) are true only on the day the live prices match what they say; hold them until then.
 
 BEGIN HELP TEXT
 
@@ -163,7 +167,7 @@ No. Type the code in the box.
 ## 10. Signing in
 
 **How do I sign in?**
-Sign in with Google. Email and password: coming soon.
+Sign in with Google.
 
 **Do I need to enter payment details to sign up?**
 No. Sign-up never asks for payment details.
@@ -238,7 +242,7 @@ Source codes: **A** = Ajay's signed lists (`marketing-s1-claims-signed.md`, `mar
 | 21 | The review checklist, and "This list is a start, not a complete one." | 6 | A (D table) |
 | 22 | Downloads are Word and PDF | 7 | A |
 | 23 | Referral code: typed in the "Have a referral code?" box on the login page, with Google sign-in; new accounts only; an invalid code is silently ignored; no link support | 9 | P |
-| 24 | Sign in with Google; email and password: coming soon | 10 | A |
+| 24 | Sign in with Google. ("Email and password: coming soon" is out of the loaded text until T-234; see the sign-in note at the top) | 10 | A; Ajay condition 1 |
 | 25 | Sign-up never asks for payment details | 3, 10 | P; A (table B/C) |
 | 26 | Support: contact@lawie.in; data and privacy requests: privacy@lawie.in | 9, 11 | M (as on the site and in the signed welcome email) |
 | 27 | Lawie does not give legal advice and does not file anything | 12 | A (denial approved) |

@@ -83,7 +83,7 @@ Start with 5 free Ink: https://lawie.in/login?mode=signup&utm_source=linkedin&ut
 • Default bail
 • Bail cancellation
 
-ज़रूरत वाला चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर पहला ड्राफ्ट जाँचिए, बदलिए और Word या PDF में डाउनलोड कीजिए। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं।
+ज़रूरत वाला चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर पहला ड्राफ्ट जाँचिए, बदलिए और Word या PDF में डाउनलोड कीजिए। आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं।
 
 फ़ाइल करने से पहले हर section और हर तथ्य जाँचें। ड्राफ्ट से काम शुरू होता है, ख़त्म नहीं।
 
@@ -99,7 +99,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 - **Template:** T3 document-family tile (six bail tiles) (`design-notes.md` §3)
 - **Layout and hierarchy:** Headline 80 px. 2 x 3 grid of tiles, each 500 x 190, in the post's order: Regular bail, Anticipatory bail, Bail before the magistrate, Interim bail, Default bail, Cancellation of bail. Tile label 52 px. Under the grid: `Criminal drafts use BNS, BNSS and BSA section numbers.` (48 px). Footer zone with disclaimer, then lockup.
 - **Text on image, EN layer (verbatim from the post):** `Lawie has six:` / tiles / `Criminal drafts use BNS, BNSS and BSA section numbers.` / `Check every section and every fact before you file.` / CTA `Start with 5 free Ink`.
-- **Text on image, HI layer (verbatim from the HI post):** `Lawie में इसके छह ड्राफ्ट हैं:` / tiles `Regular bail` `Anticipatory bail` `Magistrate के सामने bail` `Interim bail` `Default bail` `Bail cancellation` / `Criminal drafts में BNS, BNSS और BSA cite होते हैं।` / `फ़ाइल करने से पहले हर section और हर तथ्य जाँचें।` / CTA `5 free Ink से शुरू करें`
+- **Text on image, HI layer (verbatim from the HI post):** `Lawie में इसके छह ड्राफ्ट हैं:` / tiles `Regular bail` `Anticipatory bail` `Magistrate के सामने bail` `Interim bail` `Default bail` `Bail cancellation` / `आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं।` / `फ़ाइल करने से पहले हर section और हर तथ्य जाँचें।` / CTA `5 free Ink से शुरू करें`
 - **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour.
@@ -126,12 +126,12 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-1
 ```
 
-**Copy (HI)** — 243 / 280
+**Copy (HI)** — 245 / 280
 
 ```
 Lawie में 6 तरह के bail draft।
 
-Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। 5 free Ink से शुरू करें।
+आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं। 5 free Ink से शुरू करें।
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-1
@@ -144,7 +144,7 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 - **Template:** T3 document-family tile (landscape, 3 x 2) (`design-notes.md` §3)
 - **Layout and hierarchy:** Same tile system as W1-X-2, six bail tiles, headline 96 px, BNS/BNSS/BSA line 56 px, disclaimer in the footer zone (full line).
 - **Text on image, EN layer (verbatim from the post):** `Six bail drafts in Lawie` / tiles `Regular` `Anticipatory` `Before magistrate` `Interim` `Default` `Cancellation` / `Criminal drafts use BNS, BNSS and BSA section numbers.` / `Start with 5 free Ink` / the disclaimer.
-- **Text on image, HI layer (verbatim from the HI post):** `Lawie में 6 तरह के bail draft` / tiles `Regular` `Anticipatory` `Magistrate के सामने` `Interim` `Default` `Cancellation` / `Criminal drafts में BNS, BNSS और BSA cite होते हैं।` / `5 free Ink से शुरू करें` / the disclaimer.
+- **Text on image, HI layer (verbatim from the HI post):** `Lawie में 6 तरह के bail draft` / tiles `Regular` `Anticipatory` `Magistrate के सामने` `Interim` `Default` `Cancellation` / `आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं।` / `5 free Ink से शुरू करें` / the disclaimer.
 - **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour.
@@ -169,7 +169,7 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 
 Lawie में bail application के छह ड्राफ्ट हैं: regular, anticipatory, magistrate के सामने, interim, default और cancellation.
 
-चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचकर Word या PDF में डाउनलोड कीजिए। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। Bail application में 2 Ink लगते हैं।
+चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचकर Word या PDF में डाउनलोड कीजिए। आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं। Bail application में 2 Ink लगते हैं।
 
 https://lawie.in/login?mode=signup&utm_source=whatsapp&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-wa-1
 
@@ -259,7 +259,7 @@ On-slide text:
 4. Magistrate के सामने bail.
 5. Interim bail.
 6. Default bail. Bail cancellation.
-7. Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। 5 free Ink से शुरू करें।
+7. आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं। 5 free Ink से शुरू करें।
    Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 ```
 
@@ -268,7 +268,7 @@ Caption (~410 chars):
 ```
 छह bail drafts, शुरुआत एक ही तरह: ज़रूरत वाला चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर जाँचिए, बदलिए और डाउनलोड कीजिए।
 
-Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। फ़ाइल करने से पहले हर section जाँचें।
+आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं। फ़ाइल करने से पहले हर section जाँचें।
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
@@ -284,7 +284,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 - **Template:** S1 T1 (navy). S2 to S6 T3 single large tile per slide. S7 end-card. (`design-notes.md` §3)
 - **Layout and hierarchy:** S1 headline 104 px. S2 to S5 each show one bail type as a large tile (936 x 520) with a lucide file-text icon 120 px and the name 88 px; S6 two tiles stacked (each 936 x 360). All tiles same size and position slide to slide, so the swipe feels like a flip-book. S7: BNS/BNSS/BSA line, CTA, disclaimer, lockup. Same tile style as W1-IG-3.
 - **Text on image, EN layer (verbatim from the post):** S1 `Six bail drafts in Lawie.` S2 `Regular bail.` S3 `Anticipatory bail.` S4 `Bail before the magistrate.` S5 `Interim bail.` S6 `Default bail. Cancellation of bail.` S7 `Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.` + disclaimer.
-- **Text on image, HI layer (verbatim from the HI post):** S1 `Lawie में छह bail drafts.` S2 `Regular bail.` S3 `Anticipatory bail.` S4 `Magistrate के सामने bail.` S5 `Interim bail.` S6 `Default bail. Bail cancellation.` S7 `Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।` + disclaimer.
+- **Text on image, HI layer (verbatim from the HI post):** S1 `Lawie में छह bail drafts.` S2 `Regular bail.` S3 `Anticipatory bail.` S4 `Magistrate के सामने bail.` S5 `Interim bail.` S6 `Default bail. Bail cancellation.` S7 `आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं। 5 free Ink से शुरू करें।` + disclaimer.
 - **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour. It sits on the last slide only, as in the copy.

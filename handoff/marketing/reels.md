@@ -84,7 +84,7 @@ Canvas 1080x1920. Layout bands, top to bottom (all x 80-930; Reels and Shorts pu
 | 0:09–0:15 | Screen `A few questions about what you need`: two or three questions, answered with sample values (for example custody, court, grounds) | Step 2: a few questions | जो details अभी चाहिए, Lawie वही पूछता है। जवाब दीजिए। | Lawie asks for the details it still needs. Answer them. |
 | 0:15–0:19 | Screen `Check your brief`: the brief with the sample values | Step 3: check your brief | फिर अपना brief जाँच लीजिए। | Then check your brief. |
 | 0:19–0:21 | Click "Generate", plain cut (no wait shown) | (none) | (none) | (none) |
-| 0:21–0:28 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** (and the prayer) | Criminal drafts use BNS, BNSS and BSA section numbers. | पहला ड्राफ्ट आ गया। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। | The first draft is here. Criminal drafts use BNS, BNSS and BSA section numbers. |
+| 0:21–0:28 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** (and the prayer) | Criminal drafts use BNS, BNSS and BSA section numbers. | पहला ड्राफ्ट आ गया। आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं। | The first draft is here. Criminal drafts use BNS, BNSS and BSA section numbers. |
 | 0:28–0:35 | Editor: the advocate rewrites one ground in their own words | Review and edit | अब असली काम: हर line पढ़िए, हर section जाँचिए, grounds अपने शब्दों में लिखिए। | Now the real work: read every line, check every section, put the grounds in your own words. |
 | 0:35–0:38 | Download menu, "Word" chosen; the file appears | Download: Word or PDF | फिर Word या PDF में डाउनलोड कीजिए। | Then download it in Word or PDF. |
 | 0:38–0:44 | End card: Lawie logo, CTA, disclaimer | Start with 5 free Ink · lawie.in / Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing. | ड्राफ्ट Lawie देता है, फ़ैसला आपका। 5 free Ink से शुरू कीजिए। | Lawie gives you the draft; the call is yours. Start with 5 free Ink. |
@@ -98,7 +98,7 @@ Canvas 1080x1920. Layout bands, top to bottom (all x 80-930; Reels and Shorts pu
 | 0:09-0:15 | Screen `A few questions about what you need`. Heading for 1 s, then the first two or three questions with sample answers (custody, court, grounds). Crop 400-480 px wide, one pan down at most. | Question being answered sits in the active band. Plate: Step 2. |
 | 0:15-0:19 | Screen `Check your brief`. Crop 480 px wide, slow pan from the top of the brief down to the Generate button. | Sample values visible. Generate button ends inside y 900-1100 so the click at 0:19 is on screen. Plate: Step 3. |
 | 0:19-0:21 | Click Generate, then a hard cut to the draft. No spinner, no progress frames. | Plate and subtitle band empty. |
-| 0:21-0:28 | **Ajay to check the actual frame.** First 1.5 s: top of the draft screen with the disclaimer banner above the editor in view (crop about 560 px wide). Then push to the heading `[Sample Sessions Court]` and **Section 483 BNSS** in the heading and prayer (crop 360-400 px wide, so the text is 44 px or more). Hold the 483 frame still for 2 s or more. | Plate text is `Criminal drafts cite BNS, BNSS and BSA.` and sits above the draft text, not over the section. Export the held frame as `R1_frame_483BNSS.png` for Ajay. Keep the checks panel out of frame; it is not scripted. |
+| 0:21-0:28 | **Ajay to check the actual frame.** First 1.5 s: top of the draft screen with the disclaimer banner above the editor in view (crop about 560 px wide). Then push to the heading `[Sample Sessions Court]` and **Section 483 BNSS** in the heading and prayer (crop 360-400 px wide, so the text is 44 px or more). Hold the 483 frame still for 2 s or more. | Plate text is `Criminal drafts use BNS, BNSS and BSA section numbers.` and sits above the draft text, not over the section. Export the held frame as `R1_frame_483BNSS.png` for Ajay. Keep the checks panel out of frame; it is not scripted. |
 | 0:28-0:35 | Editor: crop 400 px wide on one ground paragraph; the advocate selects and retypes it. Visible caret. | Chip stays. Plate: Review and edit. |
 | 0:35-0:38 | Crop on the editor toolbar and the Word/PDF menu, `Word` chosen. Show the file arriving as a plain file icon, with no folder path, user name or system clock. | Chip stays. |
 | 0:38-0:44 | End card, spec above. | Closing subtitle in the subtitle band. |
@@ -124,7 +124,7 @@ Start with 5 free Ink. Link in bio.
 ```
 चलिए, साथ में एक bail application ड्राफ्ट करते हैं।
 
-अपने शब्दों में मामला लिखिए, Lawie जो details पूछे उनके जवाब दीजिए, अपना brief जाँचिए, फिर ड्राफ्ट देखिए, बदलिए और डाउनलोड कीजिए। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं।
+अपने शब्दों में मामला लिखिए, Lawie जो details पूछे उनके जवाब दीजिए, अपना brief जाँचिए, फिर ड्राफ्ट देखिए, बदलिए और डाउनलोड कीजिए। आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं।
 
 Sample, fictional matter. कोई असली केस या क्लाइंट नहीं दिखाया गया है।
 
@@ -291,7 +291,7 @@ No HOLD tag: this is the path every user has today. It waits only for T-245a/b (
 | 0:02–0:06 | Cursor picks the regular bail template | Step 1: pick the document | Document list से regular bail चुनी। | I pick regular bail from the list. |
 | 0:06–0:16 | The form is filled with the sample values; label visible | Step 2: fill in the matter | अब मामले की details भरते हैं: नाम, FIR, police station, तारीख़। यहाँ सब fictional है। | Now the details of the matter: name, FIR, police station, date. All fictional here. |
 | 0:16–0:18 | Click "Generate", plain cut | (none) | (none) | (none) |
-| 0:18–0:25 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** | Criminal drafts use BNS, BNSS and BSA section numbers. | पहला ड्राफ्ट आ गया। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। | The first draft is here. Criminal drafts use BNS, BNSS and BSA section numbers. |
+| 0:18–0:25 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** | Criminal drafts use BNS, BNSS and BSA section numbers. | पहला ड्राफ्ट आ गया। आपराधिक ड्राफ्ट में BNS, BNSS और BSA की धाराओं के नंबर इस्तेमाल होते हैं। | The first draft is here. Criminal drafts use BNS, BNSS and BSA section numbers. |
 | 0:25–0:33 | Editor: the advocate rewrites one ground in their own words | Step 3: review and edit | अब असली काम: हर line पढ़िए, हर section जाँचिए, grounds अपने शब्दों में लिखिए। | Now the real work: read every line, check every section, put the grounds in your own words. |
 | 0:33–0:37 | Download menu, "Word" chosen | Download: Word or PDF | फिर Word या PDF में डाउनलोड कीजिए। | Then download it in Word or PDF. |
 | 0:37–0:42 | End card | Start with 5 free Ink · lawie.in / Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing. | ड्राफ्ट Lawie देता है, फ़ैसला आपका। 5 free Ink से शुरू कीजिए। | Lawie gives you the draft; the call is yours. Start with 5 free Ink. |
