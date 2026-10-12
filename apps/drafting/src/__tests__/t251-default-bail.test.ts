@@ -630,19 +630,17 @@ describe('AC2 (wiring): the draft built from the brief, model stubbed', () => {
     expect(out.messages.filter((m) => m === CITATION_REMOVED_MESSAGE)).toHaveLength(1);
   });
 
-  // GAP (source: services/citation-check.ts). A case name that starts with an initial is kept;
-  // only the reporter is blanked. it.failing: passes while the gap exists and breaks when it is fixed.
-  it.failing(
-    'GAP: "M. Ravindran v. Intelligence Officer, ..." with a reporter is removed by name too',
-    async () => {
-      const out = await draftWith(
-        `${BODY}\n\n3. That M. Ravindran v. Intelligence Officer, Directorate of Revenue Intelligence (2021) 2 SCC 485 applies.`,
-        FULL_GIVEN,
-      );
-      expect(out.fullText).not.toContain('M. Ravindran');
-      expect(out.fullText).not.toContain('Intelligence Officer');
-    },
-  );
+  // T-263: "M. Ravindran v. Intelligence Officer, Directorate of Revenue Intelligence (2021) 2 SCC 485"
+  // used to be kept by name with only the reporter blanked. The initial was not the cause; the comma
+  // in party 2 was (Ajay, AJ-2026-10-12-T263). Name and reporter are now both removed.
+  it('"M. Ravindran v. Intelligence Officer, ..." with a reporter is removed by name too', async () => {
+    const out = await draftWith(
+      `${BODY}\n\n3. That M. Ravindran v. Intelligence Officer, Directorate of Revenue Intelligence (2021) 2 SCC 485 applies.`,
+      FULL_GIVEN,
+    );
+    expect(out.fullText).not.toContain('M. Ravindran');
+    expect(out.fullText).not.toContain('Intelligence Officer');
+  });
 
   it('a judgment the advocate gave in the description is kept, as given', async () => {
     const given = 'Arnesh Kumar v. State of Bihar (2014) 8 SCC 273';
