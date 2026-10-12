@@ -22,8 +22,8 @@ Vikram's prices and the two-tranche marketing budget; chatbot design and caps (T
 
 ## Your to-dos (need your logins)
 1. **`feature.fact_ledger`** app setting, same value as `feature.describe_first`, before Anushka tests T-189 and T-251.
-2. **SES and DNS for T-220** (the "policy changed" email and verification mail).
-3. **The registered address** for the privacy policy and invoices.
+2. **SES and DNS for T-220** (the "policy changed" email and verification mail). Once T-223 merges, the develop email worker also needs `AUTH_SERVICE_URL` set (step 7 of the email doc, Arjun).
+3. **The registered address, with PIN code,** for the privacy policy, invoices and the footer of the verification email (T-223; no verification email goes out until it is filled).
 4. **Rotate `INTERNAL_SECRET`** after T-229 merges.
 5. **Production section reseed** (your database), only after T-250 + T-255 and T-275 are merged; develop first.
 6. The rest of the list below, when you choose.
