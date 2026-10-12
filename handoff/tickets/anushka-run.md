@@ -469,3 +469,10 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - A BNS section that doesn't exist is still blocked.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-280 — converter shows section titles (d80774f)
+
+- In the section converter, see the title of the old section and of the new section under each number, so a wrong number is easy to spot.
+- Test only after the founder has reseeded develop (seed-sections --force), Ajay's condition.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
