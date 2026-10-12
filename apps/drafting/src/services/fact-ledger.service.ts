@@ -47,7 +47,7 @@ import mongoose from 'mongoose';
 import { FactLedgerModel, IFactLedger, IFactLedgerVersion } from '../models/FactLedger.model';
 import { decrypt, encrypt } from '../utils/encryption';
 
-import { ChecklistItem, dateKindLabel } from './intake-brief';
+import { ChecklistItem, dateKindLabel, foldAnswer, isNoFactAnswer } from './intake-brief';
 import { normalise } from './intake-text';
 import type { ExtractLine } from './intake.prompts';
 
@@ -290,8 +290,11 @@ export function locateSpan(text: string, span: string): string | null {
 export interface ExtractionResult {
   facts: LedgerFact[];
   unresolved: LedgerUnresolvedFact[];
-  /** Why an entry was not kept. Reasons and counts only: no key the model wrote, no text. */
-  dropped: Array<{ reason: 'not_on_list' | 'no_span' | 'span_not_found' }>;
+  /**
+   * Why an entry was not kept. Reasons and counts only: no key the model wrote, no text.
+   * `no_fact_answer` (T-190): "Not known", or "none" where only a present fact is used.
+   */
+  dropped: Array<{ reason: 'not_on_list' | 'no_span' | 'span_not_found' | 'no_fact_answer' }>;
 }
 
 /**
@@ -342,6 +345,14 @@ export function readExtraction(
     if (span === null) {
       if (isMultiItem(entryItem)) noSpan(entryItem);
       else result.dropped.push({ reason: 'span_not_found' });
+      continue;
+    }
+    // T-190: "Not known", or "none" on a fact used only when present, writes no
+    // fact. Read before the normalizer, from the option for a choice.
+    const said =
+      factTypeFor(entryItem) === 'enum' && typeof e.option === 'string' ? e.option : span;
+    if (isNoFactAnswer(entryItem, said)) {
+      result.dropped.push({ reason: 'no_fact_answer' });
       continue;
     }
     const confidence =
@@ -507,7 +518,9 @@ export function applyEdit(
   const otherUnresolved = state.unresolved.filter((u) => u.key !== key);
   const text = edit.text.trim();
 
-  if (text === '') {
+  // T-190: "Not known", or "none" on a fact used only when present, writes no
+  // fact. It is read before the normalizer and clears the field like an empty edit.
+  if (text === '' || isNoFactAnswer(item, text)) {
     // Emptying a field is a valid edit: the fact and any doubt about it go.
     if (!existing && !wasUnresolved)
       return { next: null, reason, result: { key, status: 'saved', display: null } };
@@ -631,6 +644,34 @@ function applyMultiEdit(
     reason,
     result: { key, status: 'saved', display },
   };
+}
+
+// ── Earlier bail applications read from the description (T-190 AC8) ─────────
+
+/**
+ * Ajay's ruling (12 Oct 2026): a "none" read from the description for earlier
+ * bail applications is not a fact until the advocate confirms it. The fact is
+ * taken out here and the question is asked to confirm; if the advocate skips
+ * it, no fact is left, nothing unlocks, and the draft prints the blank.
+ *
+ * `noneValues` are the values that unlock "no other bail application has been
+ * made" (the `first_bail_application` condition in the pack's averment list).
+ * Only facts read from the description (`source: 'user'`) are held; an answer
+ * is kept.
+ */
+export function holdDescriptionNone(
+  state: LedgerState,
+  key: string,
+  noneValues: readonly string[],
+): { state: LedgerState; held: boolean } {
+  const none = new Set(noneValues.map(foldAnswer).filter((v) => v !== ''));
+  const hold = (f: LedgerFact): boolean =>
+    lastSegment(f.key) === key &&
+    f.source === 'user' &&
+    [f.value, f.display].some((v) => typeof v === 'string' && none.has(foldAnswer(v)));
+  const facts = state.facts.filter((f) => !hold(f));
+  if (facts.length === state.facts.length) return { state, held: false };
+  return { state: { facts, unresolved: state.unresolved }, held: true };
 }
 
 // ── What the API returns ────────────────────────────────────────────────────
