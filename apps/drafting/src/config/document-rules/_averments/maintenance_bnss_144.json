@@ -1,0 +1,634 @@
+{
+  "_about": "T-147c averment allowlist and banned-assertion list. Schema and rules: README.md in this folder. PROPOSED by the developer; Ajay (CLO) reviews and signs.",
+  "pack": "maintenance_bnss_144",
+  "inherits": null,
+  "key_map": {},
+  "_signed_by": "Ajay (CLO) writes his name and the date here when he signs this list. His signature is not release on its own: a practising advocate still checks the list before the pack goes live. Null means proposed, not signed.",
+  "signed_by": null,
+  "signed_on": null,
+  "banned": [
+    {
+      "id": "respondent_income",
+      "kind": "averment",
+      "what": "The respondent's income figure",
+      "phrases": [
+        "earns Rs.",
+        "per month",
+        "monthly income of",
+        "draws a salary of",
+        "annual income of",
+        "har mahine kamata hai"
+      ],
+      "unlocked_by": {
+        "key": "respondent_income_monthly",
+        "label": "Respondent's estimated monthly income",
+        "present": true
+      }
+    },
+    {
+      "id": "respondent_income_sources",
+      "kind": "averment",
+      "what": "Where the respondent's income comes from",
+      "phrases": [
+        "income from agriculture",
+        "rental income",
+        "owns a business",
+        "is a salaried employee",
+        "kheti se kamai",
+        "kiraye ki aamdani"
+      ],
+      "unlocked_by": {
+        "key": "respondent_income_sources",
+        "label": "Sources of respondent's income (salary slips, business, agricultural, rental, etc.)",
+        "present": true
+      }
+    },
+    {
+      "id": "respondent_occupation",
+      "kind": "averment",
+      "what": "The respondent's occupation",
+      "phrases": [
+        "is gainfully employed",
+        "is working as",
+        "naukri karta hai"
+      ],
+      "unlocked_by": {
+        "key": "respondent_occupation",
+        "label": "Respondent occupation",
+        "not_in": [
+          "unemployed",
+          "not employed",
+          "none",
+          "nil",
+          "no",
+          "no job",
+          "jobless",
+          "no work",
+          "berozgar",
+          "berojgar",
+          "student",
+          "homemaker",
+          "housewife",
+          "retired"
+        ]
+      }
+    },
+    {
+      "id": "respondent_employment_particulars",
+      "kind": "averment",
+      "what": "Employment particulars beyond the occupation given",
+      "phrases": [
+        "runs a shop",
+        "is in government service"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "sufficient_means",
+      "kind": "submission",
+      "what": "The respondent has sufficient means",
+      "phrases": [
+        "having sufficient means",
+        "is a man of means",
+        "is well-off",
+        "is affluent",
+        "can easily pay",
+        "paise wala hai",
+        "sakshham hai"
+      ],
+      "unlocked_by": {
+        "all_of": [
+          {
+            "key": "respondent_income_monthly",
+            "label": "Respondent's estimated monthly income",
+            "present": true
+          },
+          {
+            "key": "respondent_income_sources",
+            "label": "Sources of respondent's income (salary slips, business, agricultural, rental, etc.)",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "able_bodied",
+      "kind": "submission",
+      "what": "The respondent is able-bodied and capable of earning",
+      "phrases": [
+        "able-bodied and capable of earning",
+        "hatta-katta hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "applicant_no_income",
+      "kind": "averment",
+      "what": "The applicant has no income of their own (needs an explicit nil income)",
+      "phrases": [
+        "has no source of income",
+        "has no independent income",
+        "is not earning",
+        "is a housewife with no income",
+        "koi aamdani nahi"
+      ],
+      "unlocked_by": {
+        "key": "applicant_income_monthly",
+        "label": "Applicant's own monthly income (if any)",
+        "equals": [
+          0,
+          "0",
+          "nil",
+          "none"
+        ]
+      }
+    },
+    {
+      "id": "applicant_income",
+      "kind": "averment",
+      "what": "The applicant's own income figure",
+      "phrases": [
+        "the applicant earns only",
+        "the applicant's meagre income",
+        "applicant ki aamdani"
+      ],
+      "unlocked_by": {
+        "key": "applicant_income_monthly",
+        "label": "Applicant's own monthly income (if any)",
+        "not_in": [
+          0,
+          "0",
+          "nil",
+          "none"
+        ]
+      }
+    },
+    {
+      "id": "unable_to_maintain",
+      "kind": "averment",
+      "what": "The applicant is unable to maintain themselves",
+      "phrases": [
+        "unable to maintain herself",
+        "unable to maintain himself",
+        "has no means to support herself",
+        "is living in penury",
+        "apna kharcha nahi chala sakti"
+      ],
+      "unlocked_by": {
+        "key": "ground_unable_to_maintain",
+        "label": "Why applicant is unable to maintain self",
+        "present": true
+      }
+    },
+    {
+      "id": "neglect_or_refusal",
+      "kind": "averment",
+      "what": "The respondent neglected or refused to maintain the applicant",
+      "phrases": [
+        "neglected or refused to maintain",
+        "has neglected",
+        "refused to maintain",
+        "stopped giving money",
+        "kharcha dena band kar diya"
+      ],
+      "unlocked_by": {
+        "key": "refusal_or_neglect",
+        "label": "Particulars of respondent's refusal / neglect to maintain",
+        "present": true
+      }
+    },
+    {
+      "id": "desertion",
+      "kind": "averment",
+      "what": "The respondent deserted the applicant or turned them out",
+      "phrases": [
+        "deserted the applicant",
+        "thrown out of the matrimonial home",
+        "abandoned the applicant",
+        "ghar se nikal diya"
+      ],
+      "unlocked_by": {
+        "key": "desertion_particulars",
+        "label": "Particulars of desertion or of being turned out",
+        "present": true
+      }
+    },
+    {
+      "id": "cruelty_or_dowry",
+      "kind": "averment",
+      "what": "Cruelty or a dowry demand",
+      "phrases": [
+        "subjected to cruelty",
+        "demanded dowry",
+        "harassed for dowry",
+        "physically assaulted",
+        "mental and physical torture",
+        "dahej ke liye pareshan kiya",
+        "maar-peet"
+      ],
+      "unlocked_by": {
+        "key": "cruelty_particulars",
+        "label": "Particulars of cruelty or dowry demand",
+        "present": true
+      }
+    },
+    {
+      "id": "sufficient_reason_to_live_separately",
+      "kind": "averment",
+      "what": "The applicant has sufficient reason to live separately",
+      "phrases": [
+        "has sufficient reason to live separately",
+        "was compelled to live separately",
+        "alag rehne ki majboori"
+      ],
+      "unlocked_by": {
+        "key": "living_separately_reason",
+        "label": "Why the applicant lives separately",
+        "present": true
+      }
+    },
+    {
+      "id": "no_s144_disqualification",
+      "kind": "averment",
+      "what": "The applicant is not living in adultery and not separated by mutual consent (needs an explicit negative)",
+      "phrases": [
+        "is not living in adultery",
+        "is not living separately by mutual consent"
+      ],
+      "unlocked_by": {
+        "key": "disqualification_statement",
+        "label": "Whether the applicant lives in adultery or apart by mutual consent",
+        "equals": [
+          "no",
+          "none",
+          "neither"
+        ]
+      }
+    },
+    {
+      "id": "no_refusal_to_cohabit",
+      "kind": "averment",
+      "what": "The applicant has not refused, without sufficient reason, to live with the respondent",
+      "phrases": [
+        "has not refused to live with the respondent without sufficient reason",
+        "is ready to live with the respondent"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "not_remarried",
+      "kind": "averment",
+      "what": "The divorced wife has not remarried",
+      "phrases": [
+        "has not remarried",
+        "has remained unmarried since the divorce",
+        "dobara shaadi nahi ki"
+      ],
+      "unlocked_by": {
+        "key": "applicant_capacity",
+        "label": "Applicant capacity",
+        "equals": [
+          "divorced_wife_not_remarried"
+        ]
+      }
+    },
+    {
+      "id": "children_dependent",
+      "kind": "averment",
+      "what": "Children depend on the applicant",
+      "phrases": [
+        "the children are dependent on the applicant",
+        "minor children live with the applicant",
+        "school fees of the children",
+        "bachche saath rehte hain"
+      ],
+      "unlocked_by": {
+        "key": "children_dependent",
+        "label": "Children dependent on applicant",
+        "present": true
+      }
+    },
+    {
+      "id": "respondent_assets",
+      "kind": "averment",
+      "what": "The respondent's property",
+      "phrases": [
+        "owns a house",
+        "owns agricultural land",
+        "owns a car",
+        "has bank deposits",
+        "zameen-jaydad hai"
+      ],
+      "unlocked_by": {
+        "key": "respondent_assets",
+        "label": "Respondent's known assets (movable / immovable)",
+        "present": true
+      }
+    },
+    {
+      "id": "respondent_remarried",
+      "kind": "averment",
+      "what": "The respondent has married again or lives with another person",
+      "phrases": [
+        "has married again",
+        "is living with another woman",
+        "has a second wife",
+        "dusri shaadi kar li"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "standard_of_living",
+      "kind": "submission",
+      "what": "The standard of living of the family",
+      "phrases": [
+        "accustomed to a high standard of living",
+        "lived a comfortable life",
+        "the status of the family",
+        "achhe ghar ki hai"
+      ],
+      "unlocked_by": null
+    },
+    {
+      "id": "no_other_proceedings",
+      "kind": "averment",
+      "what": "No other maintenance order or proceeding exists (suppression risk)",
+      "phrases": [
+        "no other maintenance proceedings are pending",
+        "has not filed any other petition",
+        "no earlier order of maintenance",
+        "pehle koi case nahi kiya"
+      ],
+      "unlocked_by": {
+        "key": "previous_maintenance_orders",
+        "label": "Any earlier maintenance orders / proceedings",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi"
+        ]
+      }
+    },
+    {
+      "id": "marriage_rites",
+      "kind": "averment",
+      "what": "How the marriage was solemnised",
+      "phrases": [
+        "solemnised according to Hindu rites and ceremonies",
+        "at the Arya Samaj",
+        "nikah was performed",
+        "court marriage",
+        "pheron ke saath shaadi"
+      ],
+      "unlocked_by": null
+    }
+  ],
+  "allowed": [
+    {
+      "id": "respondent_income",
+      "kind": "averment",
+      "averment": "the respondent earns about {{respondent_income_monthly}} per month",
+      "requires": {
+        "key": "respondent_income_monthly",
+        "label": "Respondent's estimated monthly income",
+        "present": true
+      }
+    },
+    {
+      "id": "respondent_income_sources",
+      "kind": "averment",
+      "averment": "the respondent's income comes from {{respondent_income_sources}}",
+      "requires": {
+        "key": "respondent_income_sources",
+        "label": "Sources of respondent's income (salary slips, business, agricultural, rental, etc.)",
+        "present": true
+      }
+    },
+    {
+      "id": "respondent_occupation",
+      "kind": "averment",
+      "averment": "the respondent's occupation is {{respondent_occupation}}",
+      "requires": {
+        "key": "respondent_occupation",
+        "label": "Respondent occupation",
+        "not_in": [
+          "unemployed",
+          "not employed",
+          "none",
+          "nil",
+          "no",
+          "no job",
+          "jobless",
+          "no work",
+          "berozgar",
+          "berojgar",
+          "student",
+          "homemaker",
+          "housewife",
+          "retired"
+        ]
+      }
+    },
+    {
+      "id": "sufficient_means",
+      "kind": "submission",
+      "averment": "it is submitted that the respondent, earning about {{respondent_income_monthly}} per month from {{respondent_income_sources}}, has sufficient means",
+      "requires": {
+        "all_of": [
+          {
+            "key": "respondent_income_monthly",
+            "label": "Respondent's estimated monthly income",
+            "present": true
+          },
+          {
+            "key": "respondent_income_sources",
+            "label": "Sources of respondent's income (salary slips, business, agricultural, rental, etc.)",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "applicant_no_income",
+      "kind": "averment",
+      "averment": "the applicant has no independent source of income",
+      "requires": {
+        "key": "applicant_income_monthly",
+        "label": "Applicant's own monthly income (if any)",
+        "equals": [
+          0,
+          "0",
+          "nil",
+          "none"
+        ]
+      }
+    },
+    {
+      "id": "applicant_income",
+      "kind": "averment",
+      "averment": "the applicant's own income is about {{applicant_income_monthly}} per month",
+      "requires": {
+        "key": "applicant_income_monthly",
+        "label": "Applicant's own monthly income (if any)",
+        "not_in": [
+          0,
+          "0",
+          "nil",
+          "none"
+        ]
+      }
+    },
+    {
+      "id": "unable_to_maintain",
+      "kind": "averment",
+      "averment": "the applicant is unable to maintain himself or herself, because {{ground_unable_to_maintain}}",
+      "requires": {
+        "key": "ground_unable_to_maintain",
+        "label": "Why applicant is unable to maintain self",
+        "present": true
+      }
+    },
+    {
+      "id": "neglect_or_refusal",
+      "kind": "averment",
+      "averment": "the respondent has neglected or refused to maintain the applicant: {{refusal_or_neglect}}",
+      "requires": {
+        "key": "refusal_or_neglect",
+        "label": "Particulars of respondent's refusal / neglect to maintain",
+        "present": true
+      }
+    },
+    {
+      "id": "desertion",
+      "kind": "averment",
+      "averment": "{{desertion_particulars}}",
+      "requires": {
+        "key": "desertion_particulars",
+        "label": "Particulars of desertion or of being turned out",
+        "present": true
+      }
+    },
+    {
+      "id": "cruelty_or_dowry",
+      "kind": "averment",
+      "averment": "{{cruelty_particulars}}",
+      "requires": {
+        "key": "cruelty_particulars",
+        "label": "Particulars of cruelty or dowry demand",
+        "present": true
+      }
+    },
+    {
+      "id": "sufficient_reason_to_live_separately",
+      "kind": "averment",
+      "averment": "the applicant lives separately because {{living_separately_reason}}",
+      "requires": {
+        "key": "living_separately_reason",
+        "label": "Why the applicant lives separately",
+        "present": true
+      }
+    },
+    {
+      "id": "no_s144_disqualification",
+      "kind": "averment",
+      "averment": "the applicant is not living in adultery and is not living separately by mutual consent",
+      "requires": {
+        "key": "disqualification_statement",
+        "label": "Whether the applicant lives in adultery or apart by mutual consent",
+        "equals": [
+          "no",
+          "none",
+          "neither"
+        ]
+      }
+    },
+    {
+      "id": "not_remarried",
+      "kind": "averment",
+      "averment": "the applicant has not remarried",
+      "requires": {
+        "key": "applicant_capacity",
+        "label": "Applicant capacity",
+        "equals": [
+          "divorced_wife_not_remarried"
+        ]
+      }
+    },
+    {
+      "id": "children_dependent",
+      "kind": "averment",
+      "averment": "these children depend on the applicant: {{children_dependent}}",
+      "requires": {
+        "key": "children_dependent",
+        "label": "Children dependent on applicant",
+        "present": true
+      }
+    },
+    {
+      "id": "respondent_assets",
+      "kind": "averment",
+      "averment": "the respondent owns {{respondent_assets}}",
+      "requires": {
+        "key": "respondent_assets",
+        "label": "Respondent's known assets (movable / immovable)",
+        "present": true
+      }
+    },
+    {
+      "id": "no_other_proceedings",
+      "kind": "averment",
+      "averment": "no earlier maintenance order or proceeding exists between the parties",
+      "requires": {
+        "key": "previous_maintenance_orders",
+        "label": "Any earlier maintenance orders / proceedings",
+        "equals": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi"
+        ]
+      }
+    },
+    {
+      "id": "earlier_proceedings",
+      "kind": "averment",
+      "averment": "the earlier maintenance orders and proceedings are: {{previous_maintenance_orders}}",
+      "requires": {
+        "key": "previous_maintenance_orders",
+        "label": "Any earlier maintenance orders / proceedings",
+        "not_in": [
+          "none",
+          "nil",
+          "no",
+          "not any",
+          "koi nahi",
+          "kuch nahi"
+        ]
+      }
+    },
+    {
+      "id": "marriage",
+      "kind": "averment",
+      "averment": "the marriage was solemnised on {{marriage_date}} at {{marriage_place}}",
+      "requires": {
+        "all_of": [
+          {
+            "key": "marriage_date",
+            "label": "Date of marriage (if wife)",
+            "present": true
+          },
+          {
+            "key": "marriage_place",
+            "label": "Place of marriage (if wife)",
+            "present": true
+          }
+        ]
+      }
+    }
+  ]
+}

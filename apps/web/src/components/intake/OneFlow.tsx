@@ -33,6 +33,7 @@ import {
   Ledger,
   LedgerEditResult,
   NO_RULE_PACK,
+  readFactCheckBanner,
   Value,
   valuesAfter,
   withValue,
@@ -79,8 +80,20 @@ function outstandingKeys(ledger: Ledger | null | undefined): Set<string> {
 }
 
 /**
+ * T-190 (AC8): a confirm question stays open until the advocate answers it: a
+ * value they gave on the brief or the questions, an answer the ledger holds, or
+ * a "Not known".
+ */
+function confirmOpen(key: string, brief: Brief, ledger: Ledger | null | undefined): boolean {
+  const item = brief.items.find((i) => i.key === key);
+  if (!item || item.asked_empty || item.source === 'user') return false;
+  return !ledger?.facts.some((f) => f.key === key && f.source === 'asked');
+}
+
+/**
  * The questions of a round whose facts are still not given. With a ledger, a
  * key it could not read stays open even when the brief holds a value for it.
+ * T-190: a fact answered "Not known" is not open; a confirm question is.
  */
 function openQuestions(
   questions: BriefQuestion[],
@@ -89,8 +102,11 @@ function openQuestions(
   round?: 1 | 2,
 ) {
   if (!brief) return [];
-  const open = new Set(brief.items.filter((i) => isEmptyValue(i.value)).map((i) => i.key));
+  const open = new Set(
+    brief.items.filter((i) => isEmptyValue(i.value) && !i.asked_empty).map((i) => i.key),
+  );
   for (const key of outstandingKeys(ledger)) open.add(key);
+  for (const q of questions) if (q.confirm && confirmOpen(q.key, brief, ledger)) open.add(q.key);
   return questions.filter((q) => open.has(q.key) && (round === undefined || q.round === round));
 }
 
@@ -420,7 +436,8 @@ export default function OneFlow({
         };
         // A newer change is already on its way. Its answer is the one to show,
         // but this edit was saved, so its result still goes back to its row.
-        if (seq !== updateSeq.current) return { brief: data.brief, results: data.ledger_results ?? [] };
+        if (seq !== updateSeq.current)
+          return { brief: data.brief, results: data.ledger_results ?? [] };
         adopt(data.brief);
         if (data.ledger) setLedger(data.ledger);
         return { brief: data.brief, results: data.ledger_results ?? [] };
@@ -564,6 +581,10 @@ export default function OneFlow({
             ...(runId.current ? { run_id: runId.current } : {}),
             ...(intakeId.current ? { intake_id: intakeId.current } : {}),
             ...(kind !== NO_RULE_PACK && described ? { described } : {}),
+            // T-147c: with the ledger switch on, the Drafter drafts from this ledger only.
+            ...(kind !== NO_RULE_PACK && ledgerRef.current
+              ? { ledger_id: ledgerRef.current.ledger_id }
+              : {}),
           }),
         });
         const header = res.headers.get('X-Run-Id');
@@ -677,6 +698,8 @@ export default function OneFlow({
         const name = current.kind.name;
         // The draft is written. Nothing the advocate typed is kept on this page any longer.
         reset();
+        // T-147d: present only for a draft written from the fact ledger.
+        const factCheck = readFactCheckBanner(done.factCheck);
         setResult({
           docId: typeof done.docId === 'string' ? done.docId : null,
           name,
@@ -691,6 +714,10 @@ export default function OneFlow({
             .filter((f) => !(f.details?.clauseId && missingIds.has(f.details.clauseId)))
             .map((f) => ({ type: f.type, message: f.message })),
           blanks: countBlanks(assembled || streamed),
+          factCheck,
+          // T-197: sent with every finished draft. Falls back to the banner's own line.
+          disclaimer:
+            typeof done.disclaimer === 'string' ? done.disclaimer : (factCheck?.disclaimer ?? null),
         });
         setPhase('ready');
       } catch {
@@ -730,7 +757,8 @@ export default function OneFlow({
     reading === null &&
     brief !== null &&
     (phase === 'brief' ||
-      (phase === 'questions' && openQuestions(questions, brief, ledger, questionRound).length === 0));
+      (phase === 'questions' &&
+        openQuestions(questions, brief, ledger, questionRound).length === 0));
   useEffect(() => {
     if (!onBriefScreen || !fromOutstanding.current) return;
     fromOutstanding.current = false;

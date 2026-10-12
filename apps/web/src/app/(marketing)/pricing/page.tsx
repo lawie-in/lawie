@@ -24,7 +24,7 @@ const pricingFaq = [
   {
     question: 'What payment methods do you accept?',
     answer:
-      'Payments are processed securely through Razorpay, which supports UPI, debit and credit cards, net banking, and popular wallets used across India.',
+      'Payments are processed through Razorpay, which supports UPI, debit and credit cards, net banking, and popular wallets used across India.',
   },
   {
     question: 'Do you have a team plan?',
@@ -39,7 +39,7 @@ const pricingFaq = [
   {
     question: 'What is Ink?',
     answer:
-      "Ink is Lawie's credit unit. Each document you generate uses 1 Ink. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.",
+      "Ink is Lawie's credit unit. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.",
   },
 ];
 
@@ -118,10 +118,10 @@ export default function PricingPage() {
                   <Check strokeWidth={2} /> All templates
                 </li>
                 <li>
-                  <Check strokeWidth={2} /> Court formatting
+                  <Check strokeWidth={2} /> Every line of the draft is yours to change
                 </li>
                 <li>
-                  <Check strokeWidth={2} /> BNS validation
+                  <Check strokeWidth={2} /> Criminal drafts use BNS, BNSS and BSA section numbers
                 </li>
                 <li>
                   <Check strokeWidth={2} /> PDF / DOCX export
@@ -136,12 +136,6 @@ export default function PricingPage() {
             </div>
             {/* SOLO */}
             <div className="plan solo">
-              <span
-                className="badge badge--gold"
-                style={{ position: 'absolute', top: '-12px', left: '36px' }}
-              >
-                Most Popular
-              </span>
               <div className="plan-name">Solo</div>
               <div className="plan-price">
                 {soloPrice}
@@ -199,7 +193,7 @@ export default function PricingPage() {
             <Lightbulb strokeWidth={1.5} />
             <div>
               <strong>Why Ink?</strong>
-              <span>Less than ₹16 per document on Solo. Buy extra packs anytime.</span>
+              <span>Most documents use 2 Ink, short documents 1. Buy extra packs anytime.</span>
             </div>
           </div>
         </div>
@@ -221,12 +215,10 @@ export default function PricingPage() {
               <div className="topup-ink">3 Ink</div>
             </div>
             <div className="topup-card">
-              <span className="topup-badge">POPULAR</span>
               <div className="topup-price">₹199</div>
               <div className="topup-ink">10 Ink</div>
             </div>
             <div className="topup-card">
-              <span className="topup-badge">BEST VALUE</span>
               <div className="topup-price">₹499</div>
               <div className="topup-ink">28 Ink</div>
             </div>

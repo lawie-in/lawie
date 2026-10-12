@@ -69,6 +69,10 @@ All balances are whole numbers of drops, where 1 Ink = 100 drops.
 - ADR: `docs/adr/ADR-020-drops-migration.md` (draft, waiting for founder approval). Build to it once approved
 - Legal sign-off: Not needed
 
+## Before the drops migration (T-226)
+
+- Zero open Ink holds (`inkHolds`) must be confirmed before the migration runs. Run the T-226 sweep, then check none remain.
+
 ## Open questions
 
 - Founder: what happens to the older credit buckets and the bonuses? Vikram recommends leaving them out of the migration and deciding separately whether to retire them. Converting the daily login bonus (2 a day) at 100 drops each would give away up to 60 Ink a month, more than Solo's 50.

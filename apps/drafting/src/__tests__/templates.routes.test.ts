@@ -24,9 +24,11 @@ async function seedTemplates() {
       slug: 'bail-application',
       displayName: 'Bail Application',
       category: 'criminal',
+      catalogueCategory: 'criminal_bail_custody',
       description: 'Standard bail application',
       planAccess: 'free',
       sourceFile: 'bail-application.json',
+      creditsCost: 2,
       isActive: true,
     },
     {
@@ -34,9 +36,11 @@ async function seedTemplates() {
       slug: 'writ-petition',
       displayName: 'Writ Petition',
       category: 'civil',
+      catalogueCategory: 'writs_constitutional',
       description: 'Writ petition under Article 226',
       planAccess: 'pro',
       sourceFile: 'writ-petition.json',
+      creditsCost: 2,
       isActive: true,
     },
     {
@@ -44,10 +48,12 @@ async function seedTemplates() {
       slug: 'affidavit-identity',
       displayName: 'Affidavit of Identity',
       category: 'civil',
+      catalogueCategory: 'affidavits_court_forms',
       description:
         'Document-rules config for affidavit_identity — standalone affidavit of identity for KYC, bank, property, government use',
       planAccess: 'free',
       sourceFile: 'affidavit-identity.json',
+      creditsCost: 1,
       isActive: true,
     },
     {
@@ -55,9 +61,11 @@ async function seedTemplates() {
       slug: 'inactive-template',
       displayName: 'Inactive Template',
       category: 'civil',
+      catalogueCategory: 'notices_replies',
       description: 'Inactive template',
       planAccess: 'free',
       sourceFile: 'inactive-template.json',
+      creditsCost: 2,
       isActive: false,
     },
   ]);

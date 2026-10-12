@@ -1,6 +1,8 @@
 import { DocType, DOC_TYPES, COURT_TYPES } from '@lawie/shared';
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
+import { fixtureOriginPlugin, RUN_ORIGINS, RunOrigin } from '../services/run-origin';
+
 export interface IDocument extends Document {
   userId: Types.ObjectId;
   templateId?: Types.ObjectId;
@@ -10,7 +12,14 @@ export interface IDocument extends Document {
   courtType?: string;
   courtName?: string;
 
-  formInputs?: Record<string, unknown>;
+  /**
+   * T-115a — legacy, plain. Rows written before T-115a hold the case details
+   * here until the backfill encrypts them. New writes leave it unset. Read
+   * through `readFormInputs` (utils/case-details), never directly.
+   */
+  formInputs?: Record<string, unknown> | null;
+  /** T-115a — the case details, encrypt(JSON.stringify(inputs)). Read through `readFormInputs`. */
+  formInputsEnc?: string;
   generatedContent: string; // AI-generated draft (encrypted)
   finalContent?: string; // user-edited version (encrypted)
 
@@ -19,7 +28,15 @@ export interface IDocument extends Document {
 
   sectionsCited: string[]; // ["BNS 103", "BNSS 190"]
 
-  filingChecklist: string[]; // checklist items from template config
+  /**
+   * T-115a — legacy, plain. The checklist items, filled with the user's form
+   * values. Rows written before T-115a hold it here until the backfill; new
+   * writes leave it unset. Read through `readFilingChecklist`, never directly.
+   */
+  filingChecklist?: string[];
+  /** T-115a — encrypt(JSON.stringify(items)). Read through `readFilingChecklist`. */
+  filingChecklistEnc?: string;
+  // Stays plain (T-115a): booleans only, parallel to the checklist.
   checklistState: boolean[]; // per-item checked state (parallel array)
 
   version: number;
@@ -38,6 +55,11 @@ export interface IDocument extends Document {
   startingDraft?: boolean;
   /** T-106 — the confirmed brief the draft was written from (encrypted). A revision needs it. */
   brief?: string;
+  /**
+   * T-147e — 'fixture' for a golden-set run, 'user' otherwise. Rows written
+   * before T-147e have no value and count as 'user'. Filter with NOT_FIXTURE.
+   */
+  runType?: RunOrigin;
 
   createdAt: Date;
   updatedAt: Date;
@@ -78,9 +100,15 @@ const DocumentSchema = new Schema<IDocument>(
       maxlength: [200, 'courtName too long'],
     },
 
+    // T-115a — kept in the schema so legacy rows still read (strict mode would
+    // drop it), but with no default: a default would write a plain field on
+    // every new document.
     formInputs: {
       type: Schema.Types.Mixed,
-      default: null,
+    },
+    formInputsEnc: {
+      type: String,
+      default: undefined,
     },
     generatedContent: {
       type: String,
@@ -106,9 +134,16 @@ const DocumentSchema = new Schema<IDocument>(
       default: [],
     },
 
+    // T-115a — kept for legacy rows. `default: undefined` because a Mongoose
+    // array defaults to [] otherwise, which would write a plain field on every
+    // new document.
     filingChecklist: {
       type: [String],
-      default: [],
+      default: undefined,
+    },
+    filingChecklistEnc: {
+      type: String,
+      default: undefined,
     },
     checklistState: {
       type: [Boolean],
@@ -131,9 +166,12 @@ const DocumentSchema = new Schema<IDocument>(
     rulePackId: { type: String, default: undefined, maxlength: 100 },
     startingDraft: { type: Boolean, default: undefined },
     brief: { type: String, default: undefined },
+    runType: { type: String, enum: RUN_ORIGINS, default: 'user' },
   },
   { timestamps: true },
 );
+
+DocumentSchema.plugin(fixtureOriginPlugin('runType'));
 
 // -- Indexes per CTO schema design --
 DocumentSchema.index({ userId: 1, createdAt: -1 });

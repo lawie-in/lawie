@@ -3,6 +3,7 @@
 import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
+import type { Node as PmNode } from '@tiptap/pm/model';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useCallback, useEffect, useRef } from 'react';
@@ -12,6 +13,11 @@ import {
   SECTION_FINDER_OPEN_EVENT,
 } from '../sections/SectionFinderPanel';
 
+import {
+  EXPORT_BLANKS_GO_BACK_EVENT,
+  findBlanks,
+  type ExportBlanksGoBackDetail,
+} from './exportUtils';
 import Toolbar from './Toolbar';
 
 interface DocumentEditorProps {
@@ -23,13 +29,62 @@ interface DocumentEditorProps {
 /**
  * Convert plain text (from AI generation) to simple HTML for TipTap.
  * Wraps each paragraph in <p> tags, preserves double newlines as paragraph breaks.
+ * T-274: content that starts with '<' after leading whitespace is already HTML
+ * (as shared projectContent and exportUtils' isPlainContent read it). Plain
+ * text has CRLF/CR line ends made LF, then is HTML-escaped, then gets its tags,
+ * so a '<', '>' or '&' in the draft shows as written. exportUtils'
+ * plainTextToHtml mirrors this (keep the two in step).
  */
+function escapePlainText(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function textToHtml(text: string): string {
-  if (text.startsWith('<')) return text; // already HTML
-  return text
+  if (text.trimStart().startsWith('<')) return text; // already HTML
+  return escapePlainText(text.replace(/\r\n?/g, '\n'))
     .split(/\n{2,}/)
     .map((para) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
     .join('');
+}
+
+/**
+ * T-194: the editor's text exactly as the export's `blankText` reads the
+ * editor's HTML, with the document position of each character. `blankText`
+ * gives a "\n" for every opening and every closing block tag and one for a
+ * <br> or <hr>. So here each block with content gives a "\n" where it opens
+ * and one where it closes (two between paragraphs, the empty line `findBlanks`
+ * reads as a paragraph break), and a hard break or a leaf block gives one.
+ * The editor and the export then see the same paragraphs, and the same blanks.
+ */
+function textWithPositions(doc: PmNode): { text: string; positions: number[] } {
+  const chars: string[] = [];
+  const positions: number[] = [];
+  const push = (ch: string, pos: number) => {
+    chars.push(ch);
+    positions.push(pos);
+  };
+  // `contentStart` is the document position of the parent's first child.
+  const walk = (parent: PmNode, contentStart: number) => {
+    parent.forEach((child, offset) => {
+      const pos = contentStart + offset;
+      if (child.isText) {
+        const t = child.text ?? '';
+        for (let i = 0; i < t.length; i++) push(t[i], pos + i);
+      } else if (child.type.name === 'hardBreak') {
+        push('\n', pos);
+      } else if (child.isBlock && child.isLeaf) {
+        push('\n', pos);
+      } else if (child.isBlock) {
+        push('\n', pos);
+        walk(child, pos + 1);
+        push('\n', pos + child.nodeSize - 1);
+      } else {
+        walk(child, pos + 1);
+      }
+    });
+  };
+  walk(doc, 0);
+  return { text: chars.join(''), positions };
 }
 
 export default function DocumentEditor({
@@ -109,6 +164,31 @@ export default function DocumentEditor({
     }
     window.addEventListener(SECTION_FINDER_INSERT_EVENT, handler);
     return () => window.removeEventListener(SECTION_FINDER_INSERT_EVENT, handler);
+  }, [editor]);
+
+  // T-194 "Go back and fill": put the cursor at the start of the first blank in
+  // document order and scroll it to the middle of the view. The editor finds
+  // the blank in its own text with the same findBlanks the export uses, so a
+  // blank shown here as {{MISSING: label}} is found as well.
+  useEffect(() => {
+    if (!editor) return;
+    function handler(e: Event) {
+      const detail = (e as CustomEvent<ExportBlanksGoBackDetail>).detail;
+      const { text, positions } = textWithPositions(editor!.state.doc);
+      let at = findBlanks(text)[0]?.start ?? -1;
+      if (at < 0 && detail?.text) at = text.indexOf(detail.text);
+      if (at < 0 || positions[at] === undefined) {
+        editor!.commands.focus();
+        return;
+      }
+      const pos = positions[at];
+      editor!.chain().focus().setTextSelection(pos).run();
+      const { node } = editor!.view.domAtPos(pos);
+      const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as HTMLElement);
+      el?.scrollIntoView({ block: 'center' });
+    }
+    window.addEventListener(EXPORT_BLANKS_GO_BACK_EVENT, handler);
+    return () => window.removeEventListener(EXPORT_BLANKS_GO_BACK_EVENT, handler);
   }, [editor]);
 
   // SCRUM-83 polish: clicking an inserted citation pill re-opens the panel

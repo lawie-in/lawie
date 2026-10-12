@@ -1,0 +1,78 @@
+# T-252 — Public site copy says only what the product does
+
+| Field          | Value |
+| -------------- | ----- |
+| Phase          | 4 — Polish and release |
+| Owner          | Meera (copy, signs). Ajay (every claim). Lead (build). Anushka (verdict) |
+| Mode           | Small fixes, web. Copy is signed first |
+| Status         | To do. Unassigned. Raised by Meera, 12 Oct 2026. Blocks paid marketing at go-live |
+| Depends on     | T-238 (pricing page) |
+
+## Problem
+
+Meera's copy review found claims beyond T-238:
+- the FAQ's Pro price, plus "court formatting" and "BNS validation";
+- the FAQ line "rolling out template by template", which implies Hindi is partly live;
+- the about page's court-formatting, section-mapping and "in minutes" lines (check against T-141a's table);
+- the footer disclaimer, which isn't Ajay's line;
+- `components/landing/PainSolution.tsx` ("in 5 minutes"), which is unused and should be deleted;
+- rows 7–14 of `handoff/marketing/copy/pricing.md` and its grep list.
+
+## Acceptance criteria
+
+1. Each line is replaced with Meera's signed text after Ajay's ok, word for word.
+2. The footer carries Ajay's disclaimer line.
+3. `PainSolution.tsx` is deleted, and nothing imports it.
+4. A grep for "court-ready", "validated", "in minutes", "guaranteed" and "AI lawyer" on public pages finds nothing.
+
+## Added: watermark claims are false (Priya, 12 Oct 2026, code check)
+
+No export carries a watermark on any plan (policy test `document-export.test.ts:145-149`), but the copy says otherwise:
+- `dashboard/documents/[id]/page.tsx:407-411` shows "Free tier exports include a watermark."
+- `(marketing)/pricing/page.tsx:130` says "Lawie watermark on exports"; `:157` and `:184` say "No watermark on exports" (a paid-plan "benefit" that every plan has).
+- `(marketing)/faq/page.tsx:53` says "Free exports carry a Lawie watermark."
+
+Remove them all. Copy from Meera, ok from Ajay. The pricing-page lines go in with T-238 if it is still open.
+
+Also dead code: `login/page.tsx:162` writes `lawie_referral_code` to sessionStorage and nothing reads it. Remove it with T-234.
+
+## Ajay's rulings (c9ab6f8)
+
+Blockers on the about page:
+- "court" claims;
+- "maps IPC/CrPC/IEA to BNS/BNSS/BSA" (we never convert);
+- "in minutes".
+
+Also:
+- remove the in-app POPULAR badge and "Priority support";
+- delete PainSolution.tsx.
+
+No "secure" or "encrypted" claim anywhere, since form answers are not encrypted (T-235).
+
+## Added (shashank, 12 Oct 2026)
+
+The section-converter page says "500+ section mappings validated by a practising advocate" (`page.tsx:130` and the meta in `layout.tsx`). Until Ajay has signed the IPC→BNS recheck (T-267), that claim holds only for the CrPC and IEA tables, because the seed sets `validatedBy`/`validatedAt` for those two and leaves the IPC table null (Ajay's ruling). Ajay gives the replacement words. Change both places.
+
+**URGENT part, moved out and done first (Ajay, 12 Oct 2026):** the converter claim is T-252a. Remove it now, not at T-403: exact strings in `handoff/legal/section-converter-copy-signed.md`. It also drops "auto-conversion" (Lawie never converts) and "Instantly". Mahak does it on her T-235 + T-254A branch (files: `tools/section-converter/page.tsx` and `layout.tsx`). A validation claim may come back only as "Mappings checked against the Gazette text of the Acts", after T-267, and never as "validated by a practising advocate" unless one actually has.
+
+## From mahak's T-235 + T-254A work (12 Oct 2026)
+
+- Removing the sample links made two home-page lines false: L243 ("Four come with a sample PDF...") is deleted, and the L171 hero button becomes "See what you can draft" (Priya's call; a plain label, no claim). Both done on her branch.
+- The home FAQ answer at L98, "Your documents are encrypted in storage…", contradicts Ajay's signed privacy §4 (form answers and the fact list are not encrypted). A public false claim, the same kind as T-252a. Ajay gives the exact text; Mahak changes it on her branch.
+- `terms/page.tsx` still says "Last updated: 1 June 2026" and may repeat the old privacy claims (cookies, deletion). Ajay checks it; any change is a follow-up to T-235.
+
+## Added 12 Oct 2026 (Mahak, T-238)
+
+`apps/web/src/app/(marketing)/faq/page.tsx` ~L53 still says "court formatting, BNS validation" and "Free exports carry a Lawie watermark". That contradicts the pricing page after T-238 and the no-watermark policy. The in-app TopUpModal "POPULAR" badge is row 21 of Meera's table. Ajay signs the words.
+
+## Align wording (Mahak, T-238, 12 Oct 2026)
+
+`handoff/marketing/copy/pricing.md` and the T-252 lines (`faq/page.tsx` ~L53, about page) still say "Criminal drafts cite BNS, BNSS and BSA". Ajay's final wording (T-238) is "Criminal drafts use BNS, BNSS and BSA section numbers". Use it everywhere.
+
+## Marketing files to update (Ajay, T-238, 12 Oct 2026)
+
+`handoff/legal/T-238-pricing-page-lines-signed.md` (4d92265) overrides the earlier S1 row. Final: "Criminal drafts use BNS, BNSS and BSA section numbers"; "short documents" instead of "short ones". Update `handoff/marketing/calendar-week1.md` (L32 and every "cite BNS, BNSS and BSA" line) and `strategy.md` (L23) to this wording. Meera is paused; do it when she resumes, or Priya edits the wording in those Markdown files if she does not resume.
+
+## Signed (Ajay, 12 Oct 2026)
+
+`handoff/legal/site-copy-t252-and-help-text-signed.md`: site copy approved row by row (A4/A5/A7 merged into one "Section numbers" block; M4 and M5 deleted; terms section 2 still needs Ajay's 11 Oct text, now with "use … section numbers"). Build from `handoff/marketing/copy/site-copy-t252.md` as signed. Help text for T-253 approved; the "email and password: coming soon" line must not be loaded until T-234 ships.

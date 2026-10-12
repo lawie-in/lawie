@@ -1,13 +1,31 @@
 name: CI — Test
 
 on:
+  # T-249: a push or PR that changes only docs starts no run, so it cannot cancel a real code run.
+  # GitHub skips only when every changed file matches; a change with code and docs still runs.
+  # docs/ is deliberately not ignored: docs/templates holds runtime JSON (template overrides, read by t139).
   push:
-    branches: [develop]
+    branches: [develop, develop_staging]
+    paths-ignore:
+      - 'handoff/**'
+      - '.claude/**'
+      - '**/*.md'
   pull_request:
-    branches: [develop]
+    branches: [develop, develop_staging]
+    paths-ignore:
+      - 'handoff/**'
+      - '.claude/**'
+      - '**/*.md'
+  # T-147e: the golden set runs nightly against the real model (job golden-set).
+  schedule:
+    - cron: '30 20 * * *' # 02:00 IST
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # T-147e: the nightly run has its own group, so a push to develop or develop_staging cannot cancel a
+  # real golden-set run. Every other run is grouped by github.ref, so each branch (and each PR) cancels
+  # only its own older runs: a push to develop_staging never cancels a develop run, or the reverse.
+  group: ${{ github.workflow }}-${{ github.event_name == 'schedule' && 'schedule' || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -18,11 +36,14 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
+    # The nightly run is the golden set only; every other job needs this one and skips with it.
+    if: github.event_name != 'schedule'
     outputs:
       gateway: ${{ steps.filter.outputs.gateway }}
       auth: ${{ steps.filter.outputs.auth }}
       drafting: ${{ steps.filter.outputs.drafting }}
       billing: ${{ steps.filter.outputs.billing }}
+      email-worker: ${{ steps.filter.outputs.email-worker }}
       shared: ${{ steps.filter.outputs.shared }}
     steps:
       - uses: actions/checkout@v4
@@ -36,8 +57,13 @@ jobs:
               - 'apps/auth/**'
             drafting:
               - 'apps/drafting/**'
+              - 'scripts/golden-set/**'
             billing:
               - 'apps/billing/**'
+            # T-320: email-worker builds against email-client's dist; shared changes come in via the shared filter.
+            email-worker:
+              - 'apps/email-worker/**'
+              - 'packages/email-client/**'
             shared:
               - 'packages/shared/**'
               - 'package.json'
@@ -87,14 +113,27 @@ jobs:
           - 6379:6379
     env:
       NODE_ENV: test
+      # T-211: one pinned Mongo binary in one absolute dir, shared by the pre-download step and the tests.
+      MONGOMS_VERSION: '7.0.24'
+      MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-binaries
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
+      - name: Cache Mongo binary
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/mongodb-binaries
+          key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            mongoms-${{ runner.os }}-7.0.24-
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
+      # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
+      - name: Pre-download Mongo binary
+        run: yarn workspace @lawie/auth node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
       - run: yarn workspace @lawie/auth test
       - uses: codecov/codecov-action@v4
         if: always()
@@ -115,15 +154,32 @@ jobs:
           - 6379:6379
     env:
       NODE_ENV: test
+      # T-211: one pinned Mongo binary in one absolute dir, shared by the pre-download step and the tests.
+      MONGOMS_VERSION: '7.0.24'
+      MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-binaries
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
+      - name: Cache Mongo binary
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/mongodb-binaries
+          key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            mongoms-${{ runner.os }}-7.0.24-
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/drafting build
+      # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
+      - name: Pre-download Mongo binary
+        run: yarn workspace @lawie/drafting node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
       - run: yarn workspace @lawie/drafting test
+      # T-264: the golden-set dry run (recorded replies, in-memory DB, no secrets) on every drafting run.
+      - name: Golden set — dry run (recorded replies, no cost)
+        run: yarn workspace @lawie/drafting golden:set --dry-run
       - uses: codecov/codecov-action@v4
         if: always()
         with:
@@ -138,6 +194,44 @@ jobs:
     if: needs.changes.outputs.billing == 'true' || needs.changes.outputs.shared == 'true'
     env:
       NODE_ENV: test
+      # T-211: one pinned Mongo binary in one absolute dir, shared by the pre-download step and the tests.
+      MONGOMS_VERSION: '7.0.24'
+      MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-binaries
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - name: Cache Mongo binary
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/mongodb-binaries
+          key: mongoms-${{ runner.os }}-7.0.24-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            mongoms-${{ runner.os }}-7.0.24-
+      - run: yarn install --frozen-lockfile
+      - run: yarn workspace @lawie/shared build
+      # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
+      - name: Pre-download Mongo binary
+        run: yarn workspace @lawie/billing node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
+      - run: yarn workspace @lawie/billing test
+      - uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          flags: billing
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ── Test Email worker (T-320) ───────────────────────────────────────────
+  # No Redis or Mongo service: the tests use createApp() (no BullMQ workers) and
+  # src/__tests__/setupEnv.ts sets every env var they read (dry-run provider).
+  test-email-worker:
+    name: Test — Email worker
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.email-worker == 'true' || needs.changes.outputs.shared == 'true'
+    env:
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -146,9 +240,88 @@ jobs:
           cache: 'yarn'
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
-      - run: yarn workspace @lawie/billing test
+      # email-worker resolves @lawie/email-client from its dist, so build it first.
+      - run: yarn workspace @lawie/email-client build
+      - run: yarn workspace @lawie/email-worker build
+      - run: yarn workspace @lawie/email-worker test
       - uses: codecov/codecov-action@v4
         if: always()
         with:
-          flags: billing
+          flags: email-worker
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ── Golden set (T-147e) ──────────────────────────────────────────────────
+  # Pre-merge gate on PRs that change the Drafter prompt, a rule pack or the
+  # normalizer, and nightly. The dry run (recorded replies, in-memory DB) runs
+  # whenever the job runs. The real run needs two secrets, referenced by name
+  # only; without them it is skipped with a notice and the job stays green.
+  # A real run writes fixture rows (runType "fixture") to the database given
+  # by GOLDEN_SET_MONGODB_URI and costs money: see scripts/golden-set/README.md.
+  golden-set:
+    name: Golden set — Drafting (real model)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'push'
+    timeout-minutes: 45
+    env:
+      NODE_ENV: test
+    steps:
+      # Nightly runs test develop_staging (what goes into develop next); '' means the event's own ref.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          filters: |
+            golden:
+              - 'apps/drafting/src/services/drafter.prompts.ts'
+              - 'apps/drafting/src/config/document-rules/**'
+              - 'packages/shared/src/utils/normalize/**'
+              - 'scripts/golden-set/**'
+      - name: Decide whether the golden set runs
+        id: gate
+        # Only whether each secret is set ('true' / 'false'), never its value.
+        env:
+          HAS_KEY: ${{ secrets.GOLDEN_SET_ANTHROPIC_API_KEY != '' }}
+          HAS_URI: ${{ secrets.GOLDEN_SET_MONGODB_URI != '' }}
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ] || [ "${{ steps.filter.outputs.golden }}" = "true" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Golden set not needed: no change to the Drafter prompt, the rule packs or the normalizer."
+          fi
+          if [ "$HAS_KEY" = "true" ] && [ "$HAS_URI" = "true" ]; then
+            echo "secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "secrets=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - if: steps.gate.outputs.run == 'true'
+        run: yarn install --frozen-lockfile
+      - if: steps.gate.outputs.run == 'true'
+        run: yarn workspace @lawie/shared build
+      - name: Golden set — dry run (recorded replies, no cost)
+        if: steps.gate.outputs.run == 'true'
+        run: yarn workspace @lawie/drafting golden:set --dry-run
+      - name: Golden set — skipped, secrets not set
+        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets != 'true'
+        run: echo "::notice::Golden set real run skipped — GOLDEN_SET_ANTHROPIC_API_KEY and GOLDEN_SET_MONGODB_URI are not set for this repository (or this PR comes from a fork)."
+      - name: Golden set — real model
+        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true'
+        # The secrets reach this step only: not install, not the dry run.
+        env:
+          GOLDEN_SET_ANTHROPIC_API_KEY: ${{ secrets.GOLDEN_SET_ANTHROPIC_API_KEY }}
+          GOLDEN_SET_MONGODB_URI: ${{ secrets.GOLDEN_SET_MONGODB_URI }}
+        run: yarn workspace @lawie/drafting golden:set --real --calibrate --out "$RUNNER_TEMP/golden-set"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true'
+        with:
+          name: golden-set-results
+          path: ${{ runner.temp }}/golden-set
+          retention-days: 30

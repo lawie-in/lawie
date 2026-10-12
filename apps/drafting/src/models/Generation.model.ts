@@ -1,6 +1,8 @@
 import { DocType, DOC_TYPES } from '@lawie/shared';
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
+import { fixtureOriginPlugin, RUN_ORIGINS, RunOrigin } from '../services/run-origin';
+
 export interface IGenerationCall {
   sectionId: string;
   inputTokens: number;
@@ -53,6 +55,12 @@ export interface IGeneration extends Document {
   runSequence?: number;
   /** T-110 — missing on pre-T-110 rows; read it through effectiveRunType(). */
   runType?: RunType;
+  /**
+   * T-147e — 'fixture' for a golden-set run, 'user' otherwise. Named
+   * `runOrigin` here because `runType` already means initial/revision (T-110).
+   * Rows written before T-147e have no value and count as 'user'.
+   */
+  runOrigin?: RunOrigin;
   /** ADR-019 §3.7 — the intake that led to this draft, when there was one. */
   intakeId?: string;
   /** Per-section breakdown — how much of the cost is the repeated system prompt (feeds T-004). */
@@ -139,11 +147,14 @@ const GenerationSchema = new Schema<IGeneration>(
     runId: { type: String, default: undefined },
     runSequence: { type: Number, default: undefined, min: 1 },
     runType: { type: String, enum: RUN_TYPES, default: undefined },
+    runOrigin: { type: String, enum: RUN_ORIGINS, default: 'user' },
     intakeId: { type: String, default: undefined },
     calls: { type: [GenerationCallSchema], default: undefined },
   },
   { timestamps: true },
 );
+
+GenerationSchema.plugin(fixtureOriginPlugin('runOrigin'));
 
 GenerationSchema.index({ userId: 1 });
 GenerationSchema.index({ docType: 1 });

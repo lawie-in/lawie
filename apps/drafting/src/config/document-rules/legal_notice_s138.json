@@ -129,6 +129,13 @@
             "inject_into": ["body"]
           },
           {
+            "field_id": "cheque_validity_date",
+            "label": "Last date of validity printed on the cheque, if any",
+            "type": "date",
+            "required": false,
+            "inject_into": ["body"]
+          },
+          {
             "field_id": "cheque_amount",
             "label": "Cheque Amount (Rs.)",
             "type": "number",
@@ -169,6 +176,20 @@
             "type": "date",
             "required": true,
             "inject_into": ["body"]
+          },
+          {
+            "field_id": "memo_received_date",
+            "label": "Date the return memo was received",
+            "type": "date",
+            "required": false,
+            "inject_into": ["body"]
+          },
+          {
+            "field_id": "notice_sent_date",
+            "label": "Date the notice is sent",
+            "type": "date",
+            "required": false,
+            "inject_into": ["header"]
           },
           {
             "field_id": "dishonour_reason",

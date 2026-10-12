@@ -278,7 +278,7 @@
       "Para 5: Quote FIR allegations VERBATIM (with translation if vernacular) — necessary because court examines FIR taken at face value.",
       "Para 6: Petitioner's version of factual matrix — true context.",
       "Para 7: Section-by-section ingredient analysis — for each BNS section in FIR:\n     (a) Quote the section.\n     (b) List ingredients.\n     (c) Demonstrate which ingredient is absent from FIR allegations themselves (taken at face value).",
-      "Common BNS sections to analyse (ingredients): \n   - BNS 318 (Cheating, was IPC 420): dishonest inducement + deception + delivery of property OR consent OR omission causing damage.\n   - BNS 316 (Criminal breach of trust, was IPC 406): entrustment OR dominion + dishonest misappropriation OR conversion OR disposal in violation of law.\n   - BNS 85 (Cruelty, was IPC 498A): marriage subsisting + cruelty as defined in Explanation + intent or conduct linked to dowry.\n   - BNS 86 (Dowry death, was IPC 304B): death within 7 years of marriage + cruelty soon before death + cruelty in connection with dowry demand.\n   - BNS 351 (Criminal intimidation, was IPC 506): threat with intent to alarm or compel act.",
+      "Common BNS sections to analyse (ingredients): \n   - BNS 318(4) (Cheating, was IPC 420): dishonest inducement + deception + delivery of property OR consent OR omission causing damage.\n   - BNS 316(2) (Criminal breach of trust, was IPC 406): entrustment OR dominion + dishonest misappropriation OR conversion OR disposal in violation of law.\n   - BNS 85 (Cruelty, was IPC 498A): marriage subsisting + cruelty as defined in Explanation + intent or conduct linked to dowry.\n   - BNS 80 (Dowry death, was IPC 304B): death within 7 years of marriage + cruelty soon before death + cruelty in connection with dowry demand.\n   - BNS 351 (Criminal intimidation, was IPC 506): threat with intent to alarm or compel act.",
       "Para 8: Bhajan Lal verbatim quotation paragraph — quote ALL SEVEN categories. Then identify applicable category(ies).",
       "Para 9: Civil dispute given criminal colour (Bhajan Lal Cat 5 / Cat 1): demonstrate civil cause of action (recovery, partnership, contract) being dressed as cheating / breach of trust. Cite Indian Oil Corp v. NEPC India Ltd (2006) 6 SCC 736; G. Sagar Suri v. State of UP (2000) 2 SCC 636; Inder Mohan Goswami v. State of Uttaranchal (2007) 12 SCC 1.",
       "Para 10: Where matrimonial — over-implication of in-laws: Cite Preeti Gupta v. State of Jharkhand (2010) 7 SCC 667; Geeta Mehrotra v. State of UP (2012) 10 SCC 741; Kahkashan Kausar v. State of Bihar (2022) 6 SCC 599.",
@@ -321,10 +321,10 @@
       "act": "Bharatiya Nyaya Sanhita, 2023 (BNS)",
       "sections": [
         { "number": "S.85", "description": "Cruelty by husband or relative (was IPC 498A)" },
-        { "number": "S.86", "description": "Dowry death (was IPC 304B)" },
-        { "number": "S.316", "description": "Criminal breach of trust (was IPC 406)" },
-        { "number": "S.318", "description": "Cheating (was IPC 420)" },
-        { "number": "S.336", "description": "Forgery (was IPC 463)" },
+        { "number": "S.80", "description": "Dowry death (was IPC 304B)" },
+        { "number": "S.316(2)", "description": "Criminal breach of trust (was IPC 406)" },
+        { "number": "S.318(4)", "description": "Cheating (was IPC 420)" },
+        { "number": "S.336(1)", "description": "Forgery (was IPC 463)" },
         { "number": "S.351", "description": "Criminal intimidation (was IPC 506)" }
       ]
     },

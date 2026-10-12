@@ -327,6 +327,8 @@ img, svg { display: block; max-width: 100%; }
     padding: 16px; box-shadow: 0 -6px 20px rgba(13,31,60,0.16);
   }
 }
+/* T-310 (design D6): hidden while the analytics consent notice is open. */
+body[data-consent-open] .float-cta { display: none; }
 
 /* ============================================================
    Footer

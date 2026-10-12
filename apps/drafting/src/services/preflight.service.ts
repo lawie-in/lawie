@@ -25,12 +25,21 @@
 import Anthropic from '@anthropic-ai/sdk';
 import mongoose from 'mongoose';
 
-import bnsOffences from '../config/bns-offences.json';
 import { env } from '../config/env';
 import { Court } from '../models/Court.model';
 import { Event } from '../models/Event.model';
 
 import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
+import {
+  ChargedSection,
+  normaliseBnsSection,
+  parentSection,
+  readChargedField,
+  resolveBnsKey,
+  resolveOffence,
+} from './bns-offence-resolver';
+import { lookupOldToNew } from './sections.service';
+import { fieldSourceOf, loadTemplateConfig, oldLawLine } from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,13 +63,15 @@ export interface PreflightResult {
 
 // ── BNS whitelist ─────────────────────────────────────────────────────────────
 
-const BNS_WHITELIST = new Set(Object.keys((bnsOffences as { offences: Record<string, unknown> }).offences));
+// T-277 R5: a citation passes when it is a table key or has a parent row.
+// Same resolveBnsKey as validator.ts BNS_SECTION_WHITELIST, so they cannot drift.
+const BNS_WHITELIST = { has: (section: string): boolean => resolveBnsKey(section) !== null };
 
-const BNS_BAILABLE_SECTIONS = new Set(
-  Object.entries((bnsOffences as { offences: Record<string, { bailable: boolean }> }).offences)
-    .filter(([, v]) => v.bailable)
-    .map(([k]) => k),
-);
+// T-277: E1 goes through the same resolver. Only a definite "bailable" counts;
+// a null ("depends") or a non-offence never does.
+const BNS_BAILABLE_SECTIONS = {
+  has: (section: string): boolean => resolveOffence(section).bailable === true,
+};
 
 /** Valid BNSS bail sections per chapter (BNSS 478–484) */
 const BNSS_BAIL_SECTIONS = new Set(['478', '479', '480', '481', '482', '483', '484']);
@@ -103,18 +114,68 @@ function parseFirYear(firNumber: string): number | null {
   return y < 100 ? 2000 + y : y;
 }
 
-/** Normalise BNS section string: "103", "103(1)", "BNS 103" → "103" or "103(1)" */
-function normaliseBnsSection(raw: string): string {
-  return raw.replace(/^(BNS|BNSS|BSA)\s*/i, '').trim();
+/**
+ * Parse sections_charged with the one shared reader (Arjun, T-277 round 4) and his
+ * step 7 correction: picker array values of a `source: bns_mapping` field default
+ * to BNS; a plain string keeps bare numbers bare.
+ */
+function parseSectionsCharged(templateId: string, value: unknown): ChargedSection[] {
+  return readChargedField(value, fieldSourceOf(loadTemplateConfig(templateId), 'sections_charged'));
 }
 
-/** Parse sections_charged field — accepts comma-separated or array */
-function parseSectionsCharged(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map((v) => normaliseBnsSection(str(v))).filter(Boolean);
-  return str(value)
-    .split(/[,;]+/)
-    .map((s) => normaliseBnsSection(s))
-    .filter(Boolean);
+/** Display: a BNS number as before ("303"); another code named ("IPC 302"); bare as typed. */
+function sectionLabel(e: ChargedSection): string {
+  if (e.code === null || e.code === 'BNS') return e.number;
+  return `${e.code === 'CRPC' ? 'CrPC' : e.code} ${e.number}`;
+}
+
+/** True when `a` is `b` or an ancestor of `b` along the T-277 parentSection chain. */
+function isSelfOrAncestor(a: string, b: string): boolean {
+  for (let k: string | null = b; k; k = parentSection(k)) if (k === a) return true;
+  return false;
+}
+
+/**
+ * T-324 sub-section rule: the table's BNS target and the attached BNS section match
+ * when, after normaliseBnsSection, one is the other or an ancestor of it (T-277
+ * parentSection chain). "303" matches a "303(2)" target and "303(2)(a)" does too;
+ * siblings ("303(1)" vs "303(2)") and different sections never match.
+ */
+function sameBnsSection(tableTarget: string, attached: string): boolean {
+  const t = normaliseBnsSection(tableTarget);
+  const a = normaliseBnsSection(attached);
+  if (!t || !a) return false;
+  return isSelfOrAncestor(t, a) || isSelfOrAncestor(a, t);
+}
+
+/**
+ * T-324 (Arjun's alias follow-up to T-295; Ajay's condition): indices in `sections`
+ * of IPC alias entries whose old-law finding is skipped. The attached entry is the
+ * reader's `attachedTo` (recorded before dedupe). Skip only when it is an explicit
+ * BNS entry AND the signed T-267 table (via lookupOldToNew) maps the IPC number to it.
+ * CrPC / IEA aliases, a missing or non-BNS attachedTo, IPC numbers with no BNS
+ * target, and any lookup failure keep the warning.
+ */
+async function bnsMatchedAliasIndices(sections: ChargedSection[]): Promise<Set<number>> {
+  const skip = new Set<number>();
+  for (let i = 0; i < sections.length; i++) {
+    const e = sections[i];
+    const attached = e.attachedTo;
+    if (!e.alias || e.code !== 'IPC' || attached?.code !== 'BNS') continue;
+    try {
+      const row = await lookupOldToNew(e.number, 'IPC');
+      if (
+        row?.new_code === 'BNS' &&
+        row.new_section &&
+        sameBnsSection(row.new_section, attached.number)
+      ) {
+        skip.add(i);
+      }
+    } catch {
+      // Lookup unavailable: keep the warning (never skip on an unknown).
+    }
+  }
+  return skip;
 }
 
 /** Levenshtein distance ≤ 2 (used for name-match check D1) */
@@ -206,14 +267,36 @@ async function runPureRules(
     });
   }
 
-  // ── HARD BLOCK #3: BNS section not in whitelist ──────────────────────────
-  const sections = parseSectionsCharged(formData['sections_charged']);
-  for (const s of sections) {
-    if (s && !BNS_WHITELIST.has(s)) {
+  // ── BNS whitelist (hard, #3) / old-law section (soft, T-295) / no code (soft) ──
+  const sections = parseSectionsCharged(templateId, formData['sections_charged']);
+  // `sections` comes from the T-277 reader, already deduped on (code, number).
+  const matchedAliases = await bnsMatchedAliasIndices(sections);
+  for (const [i, e] of sections.entries()) {
+    // T-295 (Priya's soft decision; Arjun's ruling: the T-277 reader, not a per-part
+    // loop): an IPC / CrPC / IEA entry is a SOFT warning carrying Ajay's signed line.
+    // Never a section_whitelist finding; an old-law number never goes through the BNS
+    // whitelist. T-245 will make this date-aware.
+    // T-324: an IPC alias on a BNS entry the T-267 table maps it to gets no finding.
+    const oldLine = oldLawLine(e.code, e.number);
+    if (oldLine) {
+      if (!matchedAliases.has(i)) {
+        findings.push({ rule_id: 'old_law_section', severity: 'soft', question: oldLine });
+      }
+    } else if (e.code === null) {
+      // Arjun (step 7 correction): a bare number is a soft warning, never a block,
+      // and is never looked up in the BNS table.
+      findings.push({
+        rule_id: 'section_no_code',
+        severity: 'soft',
+        question: `Section ${e.number} has no code (BNS, IPC …). Add the code so it can be checked.`,
+      });
+    } else if (e.code === 'BNS' && !BNS_WHITELIST.has(e.number)) {
+      // Otherwise hard block only for an explicit BNS code with an unknown parent
+      // (BNS 999(1)). BNSS, BSA and other Acts no longer block (they did by accident).
       findings.push({
         rule_id: 'section_whitelist',
         severity: 'hard',
-        question: `BNS Section ${s} is not in the First Schedule (recognised BNS offences). Please verify — this may be a typo or hallucination.`,
+        question: `BNS Section ${sectionLabel(e)} is not in the First Schedule (recognised BNS offences). Please verify — this may be a typo or hallucination.`,
       });
     }
   }
@@ -234,7 +317,8 @@ async function runPureRules(
       findings.push({
         rule_id: 'F2',
         severity: 'hard',
-        question: "Bank's dishonour reason (e.g. 'insufficient funds') is required to establish s.138 ingredients. Please add.",
+        question:
+          "Bank's dishonour reason (e.g. 'insufficient funds') is required to establish s.138 ingredients. Please add.",
       });
     }
   }
@@ -245,7 +329,8 @@ async function runPureRules(
       findings.push({
         rule_id: 'F4',
         severity: 'hard',
-        question: 'Bar enrolment number is missing. Required under BCI Rules — vakalatnama will be rejected by registry without it.',
+        question:
+          'Bar enrolment number is missing. Required under BCI Rules — vakalatnama will be rejected by registry without it.',
       });
     }
   }
@@ -316,12 +401,14 @@ async function runPureRules(
 
   // ── E1: Anticipatory bail for bailable offence ───────────────────────────
   if (templateId === 'bail_anticipatory' && sections.length > 0) {
-    const allBailable = sections.every((s) => BNS_BAILABLE_SECTIONS.has(s));
+    const allBailable = sections.every(
+      (e) => e.code === 'BNS' && BNS_BAILABLE_SECTIONS.has(e.number),
+    );
     if (allBailable) {
       findings.push({
         rule_id: 'E1',
         severity: 'soft',
-        question: `All sections cited (${sections.join(', ')}) are bailable. Anticipatory bail (BNSS 482) isn't required — bail is a right under BNSS 478. Proceed?`,
+        question: `All sections cited (${sections.map(sectionLabel).join(', ')}) are bailable. Anticipatory bail (BNSS 482) isn't required — bail is a right under BNSS 478. Proceed?`,
       });
     }
   }
@@ -331,7 +418,8 @@ async function runPureRules(
     findings.push({
       rule_id: 'E2',
       severity: 'soft',
-      question: 'No arrest date provided. If the petitioner has not been arrested yet, anticipatory bail (BNSS 482) may be the correct route.',
+      question:
+        'No arrest date provided. If the petitioner has not been arrested yet, anticipatory bail (BNSS 482) may be the correct route.',
     });
   }
 
@@ -408,7 +496,7 @@ async function runLLMChecks(
     return { findings: [], ran: false };
   }
 
-  const sections = parseSectionsCharged(formData['sections_charged']);
+  const sections = parseSectionsCharged(templateId, formData['sections_charged']);
   const factsNarrative = str(formData['facts_narrative'] ?? formData['key_facts'] ?? '');
 
   // Only run LLM if there's enough text to analyse
@@ -418,7 +506,7 @@ async function runLLMChecks(
 
   const payload = {
     template_id: templateId,
-    sections_charged: sections,
+    sections_charged: sections.map(sectionLabel),
     facts_narrative: factsNarrative.slice(0, 1500), // token budget
     respondent_type: str(formData['respondent_type'] ?? ''),
   };
@@ -436,8 +524,7 @@ async function runLLMChecks(
       messages: [{ role: 'user', content: JSON.stringify(payload) }],
     });
 
-    const text =
-      response.content[0].type === 'text' ? response.content[0].text : '';
+    const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
     // Strip markdown fences if any
     const clean = text.replace(/```(?:json)?/gi, '').trim();

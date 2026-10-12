@@ -1,0 +1,70 @@
+{
+  "id": "02-bail-police-station-dropped",
+  "pack": "bail_regular",
+  "title": "Bail, Patna: the police station she named is left blank",
+  "risk": "Run 2 finding 2: 'PS Pirbahore' given, police station blank in the draft; 'He is a long-standing resident of Patna with family ties to the locality' added though no address history was given",
+  "source": "handoff/quality/2026-10-07-run-2-develop-FAIL.md scenario 9 and finding 2; apps/drafting/src/__tests__/fixtures/t147d/magistrate-bail.json (moved from bail_before_magistrate, not seeded, to bail_regular before the Sessions Judge)",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Testmohan Prasad s/o Ramashish Prasad, umar 41 saal, ki regular bail chahiye Sessions court Patna mein. FIR 77/2026 PS Pirbahore, section 115(2) BNS. 12 Sept 2026 se Beur jail mein hai. Ghar Kankarbagh Patna.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "sessions",
+    "court": "bihar_sessions_patna"
+  },
+  "expect": {
+    "present": [
+      {
+        "any_of": [
+          "Pirbahore"
+        ],
+        "why": "run 2: the police station she gave was blank"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "permanent_resident",
+        "why": "run 2: 'long-standing resident of Patna' was invented"
+      },
+      {
+        "banned_entry_id": "deep_roots_in_society",
+        "why": "run 2: 'family ties to the locality' was invented"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "long-standing resident",
+          "family ties"
+        ],
+        "why": "run 2, verbatim invented sentence"
+      }
+    ],
+    "exact": [
+      {
+        "any_of": [
+          "Testmohan Prasad"
+        ],
+        "why": "run 2: the applicant's name was blank in title, prayer and verification"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "police_station",
+        "why": "read from the description",
+        "display": "Pirbahore"
+      },
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Testmohan Prasad"
+      },
+      {
+        "key": "fir_number",
+        "why": "read from the description",
+        "display": "77/2026"
+      }
+    ]
+  }
+}

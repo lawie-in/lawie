@@ -11,6 +11,20 @@ import { useMemo, useRef, useState } from 'react';
 import { KindSummary, NO_RULE_PACK } from './briefTypes';
 import { input, secondaryButton, small, tagTeal } from './ui';
 
+/**
+ * A documents-list row with its T-240 library category. The service always
+ * sends these with GET /api/documents/template-configs; they are optional here
+ * only so the shared `KindSummary` rows still type-check.
+ */
+type CatalogueKind = KindSummary & {
+  catalogueCategory?: string;
+  catalogueCategoryName?: string;
+  catalogueCategoryOrder?: number;
+};
+
+const catalogueName = (k: CatalogueKind) => k.catalogueCategoryName ?? k.category;
+const catalogueOrder = (k: CatalogueKind) => k.catalogueCategoryOrder ?? Number.MAX_SAFE_INTEGER;
+
 export default function ChangeDocumentDialog({
   open,
   onOpenChange,
@@ -21,7 +35,7 @@ export default function ChangeDocumentDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  kinds: KindSummary[];
+  kinds: CatalogueKind[];
   /** The document in use: a rule-pack id, or null when nothing fits. */
   currentId: string | null;
   /** Ids to list first before the advocate types anything. */
@@ -41,7 +55,9 @@ export default function ChangeDocumentDialog({
         .filter((k) => !first.has(k.template_id))
         .sort(
           (a, b) =>
-            a.category.localeCompare(b.category) || a.display_name.localeCompare(b.display_name),
+            catalogueOrder(a) - catalogueOrder(b) ||
+            catalogueName(a).localeCompare(catalogueName(b)) ||
+            a.display_name.localeCompare(b.display_name),
         ),
     ];
   }, [kinds, query, currentId, suggested]);
@@ -128,9 +144,7 @@ export default function ChangeDocumentDialog({
                     {k.display_name}
                     {current && <span className={`${tagTeal} ml-2`}>Current</span>}
                   </span>
-                  <span className="text-brand-muted text-xs capitalize">
-                    {k.category.replace(/_/g, ' ')}
-                  </span>
+                  <span className="text-brand-muted text-xs">{catalogueName(k)}</span>
                 </button>
               );
             })}

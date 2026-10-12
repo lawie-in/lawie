@@ -276,7 +276,7 @@
       "Para 1: Parties — Claimant(s), Driver (R-1), Owner (R-2), Insurer (R-3). Where pillion / passenger of offending vehicle, may need to add additional respondents.",
       "Para 2: Jurisdiction — invoke S.166(2) ground.",
       "Para 3-5: Accident details — date, time, place, manner. Particulars of rashness/negligence (high speed, wrong side, signal jumping, drunk driving, overloading, inadequate brakes).",
-      "Para 6: FIR details — number, date, PS, BNS sections (S.281 BNS rash driving — was IPC 279; S.106 BNS causing death by negligence — was IPC 304A; S.125 BNS rash or negligent act endangering — was IPC 336/337/338). Annex certified copy.",
+      "Para 6: FIR details — number, date, PS, BNS sections (S.281 BNS rash driving — was IPC 279; S.106(1) BNS causing death by negligence — was IPC 304A; S.125 BNS act endangering life or personal safety of others (was IPC 336); S.125(a) BNS where hurt is caused (was IPC 337); S.125(b) BNS where grievous hurt is caused (was IPC 338)). Annex certified copy.",
       "Para 7: Driver details and license status. Lack of valid license relevant to insurer's defence under S.149 (now S.149 read with current law) — but Pay & Recover principle of insurer applies (National Insurance v. Swaran Singh (2004) 3 SCC 297).",
       "Para 8: Owner details and policy details.",
       "Para 9: Insurance — verify policy was valid on date of accident; third-party insurance is mandatory under S.146 MV Act.",
@@ -328,10 +328,18 @@
     {
       "act": "Bharatiya Nyaya Sanhita, 2023 (BNS)",
       "sections": [
-        { "number": "S.106", "description": "Causing death by negligence (was IPC 304A)" },
+        { "number": "S.106(1)", "description": "Causing death by negligence (was IPC 304A)" },
         {
           "number": "S.125",
-          "description": "Rash or negligent act endangering life (was IPC 336/337/338)"
+          "description": "Act endangering life or personal safety of others (was IPC 336)"
+        },
+        {
+          "number": "S.125(a)",
+          "description": "Act endangering life or personal safety of others, where hurt is caused (was IPC 337)"
+        },
+        {
+          "number": "S.125(b)",
+          "description": "Act endangering life or personal safety of others, where grievous hurt is caused (was IPC 338)"
         },
         { "number": "S.281", "description": "Rash driving / riding on public way (was IPC 279)" }
       ]

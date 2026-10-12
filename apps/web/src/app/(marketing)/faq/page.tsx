@@ -10,7 +10,7 @@ import SiteNav from '@/components/marketing/SiteNav';
 export const metadata: Metadata = {
   title: 'Lawie — Frequently Asked Questions',
   description:
-    'Answers to common questions about Lawie: documents, BNS/BNSS/BSA mappings, pricing, privacy, and how the AI-assisted drafting tool works.',
+    'Answers to common questions about Lawie: documents, BNS/BNSS/BSA mappings, pricing, privacy, and how Lawie drafts documents.',
 };
 
 const productFaq = [
@@ -65,7 +65,7 @@ const pricingFaq = [
   {
     question: 'What payment methods do you accept?',
     answer:
-      'Payments are processed securely through Razorpay, which supports UPI, debit and credit cards, net banking, and popular wallets.',
+      'Payments are processed through Razorpay, which supports UPI, debit and credit cards, net banking, and popular wallets.',
   },
 ];
 
@@ -73,22 +73,22 @@ const legalFaq = [
   {
     question: 'Is Lawie a substitute for a lawyer?',
     answer:
-      'No. Lawie is an AI-assisted drafting tool — not a substitute for legal advice. You remain responsible for reviewing and finalising every document before it is used or filed.',
+      'No. Lawie is a drafting assistant. You are responsible for legal accuracy, and for reviewing and finalising every document before it is used or filed.',
   },
   {
-    question: 'Are my case details private?',
+    question: 'How is my case data handled?',
     answer:
-      'Your documents are encrypted in storage and transmitted over secure connections. Case details are processed only to generate the document you requested. See the Privacy Policy for how data is handled under the DPDP Act, 2023.',
+      'Your drafts and briefs are encrypted in our database, and connections to Lawie use HTTPS. Your form answers and the list of facts Lawie builds from your matter are not yet encrypted in the same way. We do not currently keep backups, so download and keep your own copy of every document you need. Lawie uses your case details only to create your drafts. The Privacy Policy lists what we store, where, and who else receives it.',
   },
   {
     question: 'What disclaimer applies to generated documents?',
     answer:
-      'Every document is produced by an AI-assisted tool and should be reviewed by the filing advocate before use. Lawie does not certify any document as court-approved or legally valid.',
+      'Every document is a first draft generated with AI and must be reviewed by the filing advocate before use. Lawie does not certify any document as court-approved or legally valid.',
   },
   {
     question: 'Who reviews the templates?',
     answer:
-      "Templates follow Lawie's court rules for the courts in its list. Lawie is an AI-assisted tool — the filing advocate is responsible for reviewing each generated draft before use.",
+      "Templates follow Lawie's court rules for the courts in its list. Lawie is a drafting assistant: the filing advocate is responsible for reviewing each generated draft before use.",
   },
 ];
 

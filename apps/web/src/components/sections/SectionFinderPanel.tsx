@@ -47,6 +47,12 @@ const STORAGE_BOOKMARKS = 'lawie.sectionFinder.bookmarks';
 const STORAGE_RECENT = 'lawie.sectionFinder.recent';
 const INSERT_CITATION_EVENT = 'lawie:insertCitation';
 const OPEN_PANEL_EVENT = 'lawie:openSectionFinder';
+/**
+ * Ajay (CLO), T-289: shown when triable_by is null. Copy of drafting's
+ * COURT_LEVEL_DEPENDS in apps/drafting/src/services/bail-check.service.ts; the
+ * /sections/details response does not carry this text. Keep the two identical.
+ */
+const COURT_LEVEL_DEPENDS = 'Depends on the offence. Check the First Schedule.';
 
 type Mode = 'panel' | 'drawer';
 
@@ -98,7 +104,7 @@ interface SectionDetail {
   bailable: boolean | null;
   cognizable: boolean | null;
   compoundable: 'yes' | 'no' | 'with_permission' | null;
-  triable_by: 'Sessions' | 'Magistrate' | 'Tribunal' | null;
+  triable_by: string | null;
   punishment: string | null;
   max_years: number | null;
   ingredients: string[];
@@ -1096,7 +1102,7 @@ function DetailCard({
           positive={detail.cognizable === false}
           negative={detail.cognizable === true}
         />
-        <Pill label="Triable by" value={detail.triable_by ?? '—'} />
+        <Pill label="Triable by" value={detail.triable_by ?? COURT_LEVEL_DEPENDS} />
         <Pill
           label="Compoundable"
           value={

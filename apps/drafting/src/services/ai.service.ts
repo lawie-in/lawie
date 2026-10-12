@@ -13,17 +13,27 @@
  * This file orchestrates both pipelines and handles streaming.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 import { Response } from 'express';
 
 import bnsMapping from '../config/bns-mapping.json';
 import { env } from '../config/env';
 import { Court } from '../models/Court.model';
 import type { RunType } from '../models/Generation.model';
+import { startSseKeepAlive } from '../utils/sse-keepalive';
 
 import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-settings.service';
+import { AvermentLists, resolveAverments } from './averments';
 import {
   briefText,
   buildDrafterUserPrompt,
+  buildLedgerDrafterUserPrompt,
+  buildLedgerRepairUserPrompt,
+  ledgerCitationSources,
+  ledgerDrafterFacts,
+  LedgerDrafterPromptInput,
+  ledgerFactText,
+  ledgerSkeletonBrief,
   checkCourtProvisions,
   courtProvisions,
   buildGuidedDrafterUserPrompt,
@@ -43,6 +53,7 @@ import {
   needsStartingDraftLabel,
   packTexts,
   paragraphNumbers,
+  recordAgainAfterCodeEdit,
   removeRepeatedParts,
   splitDrafterOutput,
   systemParts,
@@ -54,10 +65,13 @@ import {
 import { citationWarnings, removeUngivenCitations } from './citation-check';
 import {
   DRAFTER_GUIDED_SYSTEM_PROMPT,
+  DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT,
+  DRAFTER_LEDGER_SYSTEM_PROMPT,
   DRAFTER_PACK_SYSTEM_PROMPT,
   DRAFTER_REPAIR_SYSTEM_PROMPT,
 } from './drafter.prompts';
-import { Brief, FIXED_KEYS } from './intake-brief';
+import { FactCheckOutcome, splitParagraphs, verifyAndRepair } from './fact-verifier';
+import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
   estimateOutputTokens,
   parseAnthropicStreamEvent,
@@ -94,6 +108,8 @@ import {
   buildSectionsCited,
   extractBNSSectionNumbers,
   validateBNSWhitelist,
+  validateSectionReferences,
+  dropOldLawForNotFound,
   checkFactSectionSanity,
 } from './validator';
 
@@ -343,10 +359,6 @@ export interface GenerateDocumentResult {
 }
 
 /**
- * Legacy validateBnsSections — kept for backwards compatibility.
- * The new validator.ts provides richer validation.
- */
-/**
  * Placeholders a template section left unfilled.
  *
  * T-146: only a field the user is asked for (one in the form schema) becomes a
@@ -394,24 +406,6 @@ export function leakedPlaceholderWarnings(
   return warnings;
 }
 
-export function validateBnsSections(docType: string, generatedText: string): string[] {
-  // bns-mapping.json now carries non-doctype keys (_meta, alias maps) that the
-  // TS type widens into the union. Narrow with a structural guard so the legacy
-  // doc-type-keyed lookup still works.
-  const mapping = bnsMapping[docType as DocTypeKey] as
-    | { sections?: { number: string; description?: string }[] }
-    | undefined;
-  if (!mapping || !Array.isArray(mapping.sections)) return [];
-
-  const knownSections = new Set(mapping.sections.map((s) => s.number));
-  const sectionPattern = /(?:section|sec\.?|u\/s)\s+(\d+[A-Z]?(?:\([a-z0-9]+\))?)/gi;
-  const matches = [...generatedText.matchAll(sectionPattern)];
-  const mentioned = matches.map((m) => m[1]);
-
-  const unmatched = mentioned.filter((s) => !knownSections.has(s));
-  return [...new Set(unmatched)];
-}
-
 /**
  * Stream a document generation response using the three-layer pipeline.
  *
@@ -431,128 +425,127 @@ export async function streamGenerateDocument(
 
   // Set up SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
-
-  // ── Stream AI Response ──────────────────────────────────────────────────────
-  let rawText = '';
-  const meter = new UsageMeter();
-  const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
-
+  const stopKeepAlive = startSseKeepAlive(res);
   try {
-    for await (const text of streamLLM(
-      systemPrompt,
-      userPrompt,
-      4096,
-      draft,
-    )) {
-      rawText += text;
-      res.write(`data: ${JSON.stringify({ text })}\n\n`);
-    }
-    meter.record({
-      sectionId: 'legacy',
-      inputTokens: draft.inputTokens,
-      outputTokens:
-        draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(rawText),
-      usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
-    });
-  } catch (llmErr) {
-    // Mirrors the config-driven pipeline's per-section handling below — SSE
-    // headers are already on the wire so a 5xx status isn't possible; emit a
-    // structured `event: error` instead. `draft` carries whatever was
-    // captured before the failure so the route can still record it.
-    meter.record({
-      sectionId: 'legacy',
-      inputTokens: draft.inputTokens,
-      outputTokens:
-        draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(rawText),
-      usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
-    });
-    const classified = classifyLlmError(llmErr);
-    if (process.env.NODE_ENV !== 'test') {
-      console.error(
-        `[drafting] LLM stream failed (legacy generate, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
-        llmErr instanceof Error ? llmErr.message : llmErr,
+    // ── Stream AI Response ──────────────────────────────────────────────────────
+    let rawText = '';
+    const meter = new UsageMeter();
+    const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+
+    try {
+      for await (const text of streamLLM(systemPrompt, userPrompt, 4096, draft)) {
+        rawText += text;
+        res.write(`data: ${JSON.stringify({ text })}\n\n`);
+      }
+      meter.record({
+        sectionId: 'legacy',
+        inputTokens: draft.inputTokens,
+        outputTokens:
+          draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(rawText),
+        usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
+      });
+    } catch (llmErr) {
+      // Mirrors the config-driven pipeline's per-section handling below — SSE
+      // headers are already on the wire so a 5xx status isn't possible; emit a
+      // structured `event: error` instead. `draft` carries whatever was
+      // captured before the failure so the route can still record it.
+      meter.record({
+        sectionId: 'legacy',
+        inputTokens: draft.inputTokens,
+        outputTokens:
+          draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(rawText),
+        usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
+      });
+      const classified = classifyLlmError(llmErr);
+      if (process.env.NODE_ENV !== 'test') {
+        console.error(
+          `[drafting] LLM stream failed (legacy generate, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+          llmErr instanceof Error ? llmErr.message : llmErr,
+        );
+      }
+      res.write(
+        `event: error\ndata: ${JSON.stringify({
+          reason: classified.userMessage,
+          retryable: classified.retryable,
+          code: classified.code,
+          runId: input.runId,
+        })}\n\n`,
+      );
+      // Not res.end() here — the route ends the response only after the
+      // failed Generation row is persisted, so a fast retry's resolveRun
+      // query is guaranteed to find this attempt rather than racing it.
+      throw new GenerationFailedError(
+        classified.userMessage,
+        classified.code,
+        meter.totals(),
+        draft.model,
+        draft.transport,
       );
     }
-    res.write(
-      `event: error\ndata: ${JSON.stringify({
-        reason: classified.userMessage,
-        retryable: classified.retryable,
-        code: classified.code,
-        runId: input.runId,
-      })}\n\n`,
-    );
-    // Not res.end() here — the route ends the response only after the
-    // failed Generation row is persisted, so a fast retry's resolveRun
-    // query is guaranteed to find this attempt rather than racing it.
-    throw new GenerationFailedError(
-      classified.userMessage,
-      classified.code,
-      meter.totals(),
-      draft.model,
-      draft.transport,
-    );
+
+    // ── Layer 2: Post-Processing ────────────────────────────────────────────────
+    // Detect DV/dowry cases for special prayer conditions (CLO fix #8)
+    const dvKeywords =
+      /498a|dowry|domestic violence|cruelty by husband|bns 85|bns 86|stridhan|dv act|pwdva/i;
+    const isDvCase = dvKeywords.test(input.keyFacts) || dvKeywords.test(rawText);
+
+    const { formattedText, filingChecklist, appendedSections } = postProcess({
+      rawText,
+      docRule,
+      courtRule,
+      partyDetails: input.partyDetails,
+      advocateName: input.advocateName,
+      advocateEnrollment: input.advocateEnrollment,
+      courtName: input.courtName,
+      isDvCase,
+    });
+
+    // Stream the post-processed appendages to the client
+    // (verification, advocate block, disclaimer were appended to rawText)
+    const appendedText = formattedText.slice(rawText.length);
+    if (appendedText) {
+      res.write(`data: ${JSON.stringify({ text: appendedText })}\n\n`);
+    }
+
+    // Send filing checklist as a separate event
+    if (filingChecklist.length > 0) {
+      res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
+    }
+
+    // Send appended sections info for transparency
+    if (appendedSections.length > 0) {
+      res.write(`event: postprocess\ndata: ${JSON.stringify({ appendedSections })}\n\n`);
+    }
+
+    // ── Layer 3: Validation ─────────────────────────────────────────────────────
+    const validationResult = await validate(formattedText, docRule);
+
+    // Send validation warnings
+    if (validationResult.warnings.length > 0) {
+      res.write(
+        `event: warning\ndata: ${JSON.stringify({ warnings: validationResult.warnings })}\n\n`,
+      );
+    }
+
+    // NOTE: done event and res.end() are handled by the route handler
+    // so it can include the docId after persisting to DB.
+
+    return {
+      fullText: formattedText,
+      filingChecklist,
+      sectionsCited: validationResult.sectionsCited,
+      mandatoryClausesComplete: validationResult.mandatoryClausesComplete,
+      warnings: validationResult.warnings,
+      usage: meter.totals(),
+      aiModel: draft.model,
+      transport: draft.transport,
+    };
+  } finally {
+    stopKeepAlive();
   }
-
-  // ── Layer 2: Post-Processing ────────────────────────────────────────────────
-  // Detect DV/dowry cases for special prayer conditions (CLO fix #8)
-  const dvKeywords =
-    /498a|dowry|domestic violence|cruelty by husband|bns 85|bns 86|stridhan|dv act|pwdva/i;
-  const isDvCase = dvKeywords.test(input.keyFacts) || dvKeywords.test(rawText);
-
-  const { formattedText, filingChecklist, appendedSections } = postProcess({
-    rawText,
-    docRule,
-    courtRule,
-    partyDetails: input.partyDetails,
-    advocateName: input.advocateName,
-    advocateEnrollment: input.advocateEnrollment,
-    courtName: input.courtName,
-    isDvCase,
-  });
-
-  // Stream the post-processed appendages to the client
-  // (verification, advocate block, disclaimer were appended to rawText)
-  const appendedText = formattedText.slice(rawText.length);
-  if (appendedText) {
-    res.write(`data: ${JSON.stringify({ text: appendedText })}\n\n`);
-  }
-
-  // Send filing checklist as a separate event
-  if (filingChecklist.length > 0) {
-    res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
-  }
-
-  // Send appended sections info for transparency
-  if (appendedSections.length > 0) {
-    res.write(`event: postprocess\ndata: ${JSON.stringify({ appendedSections })}\n\n`);
-  }
-
-  // ── Layer 3: Validation ─────────────────────────────────────────────────────
-  const validationResult = await validate(formattedText, docRule);
-
-  // Send validation warnings
-  if (validationResult.warnings.length > 0) {
-    res.write(
-      `event: warning\ndata: ${JSON.stringify({ warnings: validationResult.warnings })}\n\n`,
-    );
-  }
-
-  // NOTE: done event and res.end() are handled by the route handler
-  // so it can include the docId after persisting to DB.
-
-  return {
-    fullText: formattedText,
-    filingChecklist,
-    sectionsCited: validationResult.sectionsCited,
-    mandatoryClausesComplete: validationResult.mandatoryClausesComplete,
-    warnings: validationResult.warnings,
-    usage: meter.totals(),
-    aiModel: draft.model,
-    transport: draft.transport,
-  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -664,270 +657,284 @@ export async function streamGenerateFromTemplate(
 
   // ── Set up SSE headers ─────────────────────────────────────────────────────
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
+  const stopKeepAlive = startSseKeepAlive(res);
+  try {
+    // ── Render all sections ────────────────────────────────────────────────────
+    const renderedSections: RenderedSection[] = [];
+    const meter = new UsageMeter();
+    let aiModel: string | undefined;
+    let transport: 'direct' | undefined;
 
-  // ── Render all sections ────────────────────────────────────────────────────
-  const renderedSections: RenderedSection[] = [];
-  const meter = new UsageMeter();
-  let aiModel: string | undefined;
-  let transport: 'direct' | undefined;
+    for (const section of templateConfig.document_structure.sections) {
+      if (section.type === 'template') {
+        // Pure placeholder replacement — zero AI
+        const rendered = renderTemplateSection(section, ctx);
+        renderedSections.push(rendered);
+      } else if (section.type === 'ai_generated') {
+        // Stream AI generation for this section
+        const systemPrompt = buildAISystemPrompt(templateConfig, courtData?.courtRule);
+        const userPrompt = buildAIUserPrompt(section, ctx);
 
-  for (const section of templateConfig.document_structure.sections) {
-    if (section.type === 'template') {
-      // Pure placeholder replacement — zero AI
-      const rendered = renderTemplateSection(section, ctx);
-      renderedSections.push(rendered);
-    } else if (section.type === 'ai_generated') {
-      // Stream AI generation for this section
-      const systemPrompt = buildAISystemPrompt(templateConfig, courtData?.courtRule);
-      const userPrompt = buildAIUserPrompt(section, ctx);
+        let aiText = '';
+        const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
 
-      let aiText = '';
-      const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
-
-      try {
-        for await (const text of streamLLM(
-          systemPrompt,
-          userPrompt,
-          8192,
-          draft,
-        )) {
-          aiText += text;
-          res.write(`data: ${JSON.stringify({ text })}\n\n`);
-        }
-        aiModel = draft.model;
-        transport = draft.transport;
-        meter.record({
-          sectionId: section.section_id,
-          inputTokens: draft.inputTokens,
-          outputTokens:
-            draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(aiText),
-          usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
-        });
-      } catch (llmErr) {
-        // AI provider / network failure mid-stream. SSE headers are
-        // already on the wire so we CAN'T set a 5xx status — emit a structured
-        // `event: error` instead. The frontend renders this in the
-        // generation_failed pipeline state with the reason + a retry button.
-        // Count this attempt and fold in whatever tokens it captured before
-        // throwing, so the caller can still record a Generation row for it.
-        aiModel = draft.model;
-        transport = draft.transport;
-        meter.record({
-          sectionId: section.section_id,
-          inputTokens: draft.inputTokens,
-          outputTokens:
-            draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(aiText),
-          usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
-        });
-        const classified = classifyLlmError(llmErr);
-        if (process.env.NODE_ENV !== 'test') {
-          console.error(
-            `[drafting] LLM stream failed (section ${section.section_id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
-            llmErr instanceof Error ? llmErr.message : llmErr,
+        try {
+          for await (const text of streamLLM(systemPrompt, userPrompt, 8192, draft)) {
+            aiText += text;
+            res.write(`data: ${JSON.stringify({ text })}\n\n`);
+          }
+          aiModel = draft.model;
+          transport = draft.transport;
+          meter.record({
+            sectionId: section.section_id,
+            inputTokens: draft.inputTokens,
+            outputTokens:
+              draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(aiText),
+            usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
+          });
+        } catch (llmErr) {
+          // AI provider / network failure mid-stream. SSE headers are
+          // already on the wire so we CAN'T set a 5xx status — emit a structured
+          // `event: error` instead. The frontend renders this in the
+          // generation_failed pipeline state with the reason + a retry button.
+          // Count this attempt and fold in whatever tokens it captured before
+          // throwing, so the caller can still record a Generation row for it.
+          aiModel = draft.model;
+          transport = draft.transport;
+          meter.record({
+            sectionId: section.section_id,
+            inputTokens: draft.inputTokens,
+            outputTokens:
+              draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(aiText),
+            usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
+          });
+          const classified = classifyLlmError(llmErr);
+          if (process.env.NODE_ENV !== 'test') {
+            console.error(
+              `[drafting] LLM stream failed (section ${section.section_id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+              llmErr instanceof Error ? llmErr.message : llmErr,
+            );
+          }
+          res.write(
+            `event: error\ndata: ${JSON.stringify({
+              section: section.section_id,
+              reason: classified.userMessage,
+              retryable: classified.retryable,
+              code: classified.code,
+              runId: input.runId,
+            })}\n\n`,
+          );
+          // Not res.end() here — the route ends the response only after the
+          // failed Generation row is persisted, so a fast retry's resolveRun
+          // query is guaranteed to find this attempt rather than racing it.
+          throw new GenerationFailedError(
+            classified.userMessage,
+            classified.code,
+            meter.totals(),
+            aiModel,
+            transport,
           );
         }
-        res.write(
-          `event: error\ndata: ${JSON.stringify({
-            section: section.section_id,
-            reason: classified.userMessage,
-            retryable: classified.retryable,
-            code: classified.code,
-            runId: input.runId,
-          })}\n\n`,
-        );
-        // Not res.end() here — the route ends the response only after the
-        // failed Generation row is persisted, so a fast retry's resolveRun
-        // query is guaranteed to find this attempt rather than racing it.
-        throw new GenerationFailedError(
-          classified.userMessage,
-          classified.code,
-          meter.totals(),
-          aiModel,
-          transport,
-        );
+
+        // SCRUM-62: strip duplicate cause-title (A7) and disclaimer (A6) injected by AI
+        renderedSections.push({
+          section_id: section.section_id,
+          type: 'ai_generated',
+          content: sanitiseAIBody(aiText),
+          alignment: section.alignment,
+        });
       }
-
-      // SCRUM-62: strip duplicate cause-title (A7) and disclaimer (A6) injected by AI
-      renderedSections.push({
-        section_id: section.section_id,
-        type: 'ai_generated',
-        content: sanitiseAIBody(aiText),
-        alignment: section.alignment,
-      });
     }
-  }
 
-  // ── Assemble full document ─────────────────────────────────────────────────
-  const { fullText, bodyParaCount } = assembleDocument(renderedSections);
+    // ── Assemble full document ─────────────────────────────────────────────────
+    const { fullText, bodyParaCount } = assembleDocument(renderedSections);
 
-  // Update body_para_count in the context and re-render verification if needed
-  ctx.body_para_count = String(bodyParaCount);
+    // Update body_para_count in the context and re-render verification if needed
+    ctx.body_para_count = String(bodyParaCount);
 
-  // Stream the template sections (cause title, prayer, verification, etc.)
-  // These come AFTER the AI body in the SSE stream
-  const templateParts: string[] = [];
-  for (const section of renderedSections) {
-    if (section.type === 'template') {
-      // Replace any remaining {body_para_count} references
-      let content = section.content;
-      if (content.includes('{body_para_count}')) {
-        content = content.replace(/\{body_para_count\}/g, String(bodyParaCount));
+    // Stream the template sections (cause title, prayer, verification, etc.)
+    // These come AFTER the AI body in the SSE stream
+    const templateParts: string[] = [];
+    for (const section of renderedSections) {
+      if (section.type === 'template') {
+        // Replace any remaining {body_para_count} references
+        let content = section.content;
+        if (content.includes('{body_para_count}')) {
+          content = content.replace(/\{body_para_count\}/g, String(bodyParaCount));
+        }
+        templateParts.push(content);
       }
-      templateParts.push(content);
     }
-  }
 
-  // Send template sections as a structured event (frontend assembles the final doc)
-  res.write(
-    `event: template_sections\ndata: ${JSON.stringify({
-      sections: renderedSections.map((s) => ({
-        section_id: s.section_id,
-        type: s.type,
-        content:
-          s.type === 'template' && s.content.includes('{body_para_count}')
-            ? s.content.replace(/\{body_para_count\}/g, String(bodyParaCount))
-            : s.content,
-        alignment: s.alignment,
-        style: s.style,
-      })),
-    })}\n\n`,
-  );
-
-  // ── Filing checklist from config ───────────────────────────────────────────
-  const filingChecklist = templateConfig.filing_checklist.map((item) =>
-    item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
-  );
-
-  if (filingChecklist.length > 0) {
-    res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
-  }
-
-  // ── Validation ─────────────────────────────────────────────────────────────
-  const allWarnings: ValidationWarning[] = [];
-
-  // SCRUM-54 B1: Detect placeholder leakage in template sections
-  allWarnings.push(...leakedPlaceholderWarnings(templateConfig, ctx));
-
-  // Check for old-law references in AI-generated text
-  const aiSections = renderedSections.filter((s) => s.type === 'ai_generated');
-  const aiText = aiSections.map((s) => s.content).join('\n');
-
-  const oldLawWarnings = await detectOldLawReferences(aiText);
-  allWarnings.push(...oldLawWarnings);
-
-  // SCRUM-64 (b): BNS whitelist validation — flag hallucinated section numbers
-  const bnsCited = extractBNSSectionNumbers(aiText);
-  const bnsWhitelistWarnings = validateBNSWhitelist(bnsCited);
-  allWarnings.push(...bnsWhitelistWarnings);
-
-  // SCRUM-64 (c): Fact↔section sanity — BNS 103 (Murder) requires death keywords in facts
-  if (templateConfig.category === 'criminal') {
-    const factsNarrative = String(convertedFormData.facts_narrative ?? '');
-    const sanitySanityWarnings = checkFactSectionSanity(factsNarrative, bnsCited);
-    allWarnings.push(...sanitySanityWarnings);
-  }
-
-  // SCRUM-67: Grounds-vs-facts coherence — emit a warning per mismatch so the
-  // frontend can show review chips on the editor. The actual prompt-side
-  // reconciliation already happened in buildAIUserPrompt before generation.
-  const groundsValue =
-    convertedFormData.grounds_for_bail ??
-    convertedFormData.grounds_for_quashing ??
-    convertedFormData.grounds;
-  const factsForCoherence = String(
-    convertedFormData.facts_narrative ?? convertedFormData.facts ?? '',
-  );
-  if (groundsValue && factsForCoherence) {
-    const coherenceMismatches = detectCoherenceMismatches(
-      groundsValue as string | string[],
-      factsForCoherence,
+    // Send template sections as a structured event (frontend assembles the final doc)
+    res.write(
+      `event: template_sections\ndata: ${JSON.stringify({
+        sections: renderedSections.map((s) => ({
+          section_id: s.section_id,
+          type: s.type,
+          content:
+            s.type === 'template' && s.content.includes('{body_para_count}')
+              ? s.content.replace(/\{body_para_count\}/g, String(bodyParaCount))
+              : s.content,
+          alignment: s.alignment,
+          style: s.style,
+        })),
+      })}\n\n`,
     );
-    for (const m of coherenceMismatches) {
-      allWarnings.push({
-        type: 'coherence_mismatch',
-        message: m.warning_message,
-        details: { rule: m.rule_id, ground: m.ground_label },
-      });
+
+    // ── Filing checklist from config ───────────────────────────────────────────
+    const filingChecklist = templateConfig.filing_checklist.map((item) =>
+      item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
+    );
+
+    if (filingChecklist.length > 0) {
+      res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
     }
-  }
 
-  const sectionsCited = buildSectionsCited(fullText);
+    // ── Validation ─────────────────────────────────────────────────────────────
+    const allWarnings: ValidationWarning[] = [];
 
-  // Check mandatory sections from validation_rules
-  const mandatorySections = templateConfig.validation_rules.mandatory_sections;
-  const renderedIds = new Set(renderedSections.map((s) => s.section_id));
-  let mandatoryClausesComplete = true;
-  for (const required of mandatorySections) {
-    if (!renderedIds.has(required)) {
-      mandatoryClausesComplete = false;
-      allWarnings.push({
-        type: 'missing_clause',
-        message: `Required section "${required}" is missing from the document.`,
-        details: { clauseId: required },
-      });
+    // SCRUM-54 B1: Detect placeholder leakage in template sections
+    allWarnings.push(...leakedPlaceholderWarnings(templateConfig, ctx));
+
+    // Check for old-law references in AI-generated text
+    const aiSections = renderedSections.filter((s) => s.type === 'ai_generated');
+    const aiText = aiSections.map((s) => s.content).join('\n');
+
+    // T-333: the other five codes (BNSS, BSA, IPC, CrPC, IEA), as validate() checks them.
+    // BNS is left to the whitelist below, so it is not warned twice.
+    const otherCodeWarnings = validateSectionReferences(aiText, null).filter(
+      (w) => w.details?.code !== 'BNS',
+    );
+
+    // T-333 / T-270 ruling A: an old-code cite that is not found gets only invalid_section.
+    const oldLawWarnings = dropOldLawForNotFound(
+      await detectOldLawReferences(aiText),
+      otherCodeWarnings,
+    );
+    allWarnings.push(...oldLawWarnings);
+
+    // SCRUM-64 (b): BNS whitelist validation — flag hallucinated section numbers
+    const bnsCited = extractBNSSectionNumbers(aiText);
+    const bnsWhitelistWarnings = validateBNSWhitelist(bnsCited);
+    allWarnings.push(...bnsWhitelistWarnings);
+    allWarnings.push(...otherCodeWarnings);
+
+    // SCRUM-64 (c): Fact↔section sanity — BNS 103 (Murder) requires death keywords in facts
+    if (templateConfig.category === 'criminal') {
+      const factsNarrative = String(convertedFormData.facts_narrative ?? '');
+      // T-333 ruling B: explicit cites only, not numbers inside an expanded range.
+      const sanitySanityWarnings = checkFactSectionSanity(
+        factsNarrative,
+        extractBNSSectionNumbers(aiText, { includeRangeInner: false }),
+      );
+      allWarnings.push(...sanitySanityWarnings);
     }
-  }
 
-  // Check min body paragraphs
-  if (templateConfig.validation_rules.min_body_paragraphs) {
-    if (bodyParaCount < templateConfig.validation_rules.min_body_paragraphs) {
-      allWarnings.push({
-        type: 'missing_clause',
-        message: `Body has ${bodyParaCount} paragraphs (minimum: ${templateConfig.validation_rules.min_body_paragraphs}).`,
-      });
-    }
-  }
-
-  // Fact-alteration check: compare user-provided facts against AI output
-  if (templateConfig.validation_rules.fact_alteration_check) {
-    const factsField = convertedFormData.facts_narrative;
-    if (typeof factsField === 'string' && factsField.length > 0) {
-      const factAlterationWarning = checkFactAlteration(factsField, aiText);
-      if (factAlterationWarning) {
-        allWarnings.push(factAlterationWarning);
+    // SCRUM-67: Grounds-vs-facts coherence — emit a warning per mismatch so the
+    // frontend can show review chips on the editor. The actual prompt-side
+    // reconciliation already happened in buildAIUserPrompt before generation.
+    const groundsValue =
+      convertedFormData.grounds_for_bail ??
+      convertedFormData.grounds_for_quashing ??
+      convertedFormData.grounds;
+    const factsForCoherence = String(
+      convertedFormData.facts_narrative ?? convertedFormData.facts ?? '',
+    );
+    if (groundsValue && factsForCoherence) {
+      const coherenceMismatches = detectCoherenceMismatches(
+        groundsValue as string | string[],
+        factsForCoherence,
+      );
+      for (const m of coherenceMismatches) {
+        allWarnings.push({
+          type: 'coherence_mismatch',
+          message: m.warning_message,
+          details: { rule: m.rule_id, ground: m.ground_label },
+        });
       }
     }
-  }
 
-  // Identity-preservation check: applicant_name and father_name must appear in AI body
-  if (aiText.length > 0) {
-    const applicantName = String(convertedFormData.applicant_name ?? '');
-    if (applicantName && !aiText.includes(applicantName)) {
-      allWarnings.push({
-        type: 'fact_alteration',
-        message: `AI body does not contain the applicant name "${applicantName}" as provided in form data. The AI may have substituted party identity.`,
-        details: { field: 'applicant_name', expected: applicantName },
-      });
+    const sectionsCited = buildSectionsCited(fullText);
+
+    // Check mandatory sections from validation_rules
+    const mandatorySections = templateConfig.validation_rules.mandatory_sections;
+    const renderedIds = new Set(renderedSections.map((s) => s.section_id));
+    let mandatoryClausesComplete = true;
+    for (const required of mandatorySections) {
+      if (!renderedIds.has(required)) {
+        mandatoryClausesComplete = false;
+        allWarnings.push({
+          type: 'missing_clause',
+          message: `Required section "${required}" is missing from the document.`,
+          details: { clauseId: required },
+        });
+      }
     }
-    const fatherName = String(convertedFormData.father_name ?? '');
-    if (fatherName && !aiText.includes(fatherName)) {
-      allWarnings.push({
-        type: 'fact_alteration',
-        message: `AI body does not contain the father name "${fatherName}" as provided in form data. The AI may have invented a different parentage.`,
-        details: { field: 'father_name', expected: fatherName },
-      });
+
+    // Check min body paragraphs
+    if (templateConfig.validation_rules.min_body_paragraphs) {
+      if (bodyParaCount < templateConfig.validation_rules.min_body_paragraphs) {
+        allWarnings.push({
+          type: 'missing_clause',
+          message: `Body has ${bodyParaCount} paragraphs (minimum: ${templateConfig.validation_rules.min_body_paragraphs}).`,
+        });
+      }
     }
-  }
 
-  if (allWarnings.length > 0) {
-    res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
-  }
+    // Fact-alteration check: compare user-provided facts against AI output
+    if (templateConfig.validation_rules.fact_alteration_check) {
+      const factsField = convertedFormData.facts_narrative;
+      if (typeof factsField === 'string' && factsField.length > 0) {
+        const factAlterationWarning = checkFactAlteration(factsField, aiText);
+        if (factAlterationWarning) {
+          allWarnings.push(factAlterationWarning);
+        }
+      }
+    }
 
-  return {
-    fullText,
-    sections: renderedSections,
-    filingChecklist,
-    sectionsCited,
-    mandatoryClausesComplete,
-    warnings: allWarnings,
-    usage: meter.totals(),
-    aiModel,
-    transport,
-    bodyParaCount,
-  };
+    // Identity-preservation check: applicant_name and father_name must appear in AI body
+    if (aiText.length > 0) {
+      const applicantName = String(convertedFormData.applicant_name ?? '');
+      if (applicantName && !aiText.includes(applicantName)) {
+        allWarnings.push({
+          type: 'fact_alteration',
+          message: `AI body does not contain the applicant name "${applicantName}" as provided in form data. The AI may have substituted party identity.`,
+          details: { field: 'applicant_name', expected: applicantName },
+        });
+      }
+      const fatherName = String(convertedFormData.father_name ?? '');
+      if (fatherName && !aiText.includes(fatherName)) {
+        allWarnings.push({
+          type: 'fact_alteration',
+          message: `AI body does not contain the father name "${fatherName}" as provided in form data. The AI may have invented a different parentage.`,
+          details: { field: 'father_name', expected: fatherName },
+        });
+      }
+    }
+
+    if (allWarnings.length > 0) {
+      res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
+    }
+
+    return {
+      fullText,
+      sections: renderedSections,
+      filingChecklist,
+      sectionsCited,
+      mandatoryClausesComplete,
+      warnings: allWarnings,
+      usage: meter.totals(),
+      aiModel,
+      transport,
+      bodyParaCount,
+    };
+  } finally {
+    stopKeepAlive();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -949,6 +956,25 @@ export interface BriefGenerateInput {
    * Drafter under "described" and is read by the checks. It is never logged.
    */
   described?: string | null;
+  /**
+   * T-147c: present only when `feature.fact_ledger` is on and the request
+   * carried a ledger of this user's, for this document. The Drafter is then
+   * given the ledger's facts and the pack's skeleton, and nothing else: no
+   * brief value, no description. The parts the system adds (cause title,
+   * prayer, verification) are rendered by the unchanged template code
+   * (ADR-021) from `ledgerSkeletonBrief`: ledger displays for the items the
+   * ledger holds, `{{MISSING: label}}` for every item it does not, and the
+   * brief's other notes dropped. The checks read the same brief. Absent: the
+   * Drafter and the system parts work exactly as before T-147c.
+   */
+  ledger?: {
+    /** The current version's facts. */
+    facts: LedgerFact[];
+    /** The pack's averment lists (`loadAvermentLists`). */
+    lists: AvermentLists;
+    /** T-147d: the current version's unresolved items, read by the fact verifier only. */
+    unresolved?: LedgerUnresolvedFact[];
+  };
   language: 'en' | 'hi' | 'bilingual';
   /** The number of numbered paragraphs wanted in the body. */
   targetParagraphs: number;
@@ -971,6 +997,8 @@ export interface BriefGenerateResult extends TemplateGenerateResult {
   startingDraft: boolean;
   /** The line shown with a labelled draft (T-127, section 7.3). */
   labelReason: string | null;
+  /** T-147d: the fact verifier's outcome. Present only on the ledger path. */
+  factCheck?: FactCheckOutcome;
 }
 
 /**
@@ -995,7 +1023,10 @@ export async function streamGenerateFromBrief(
   input: BriefGenerateInput,
   res: Response,
 ): Promise<BriefGenerateResult> {
-  const { pack, templateConfig, brief, courtData } = input;
+  const { pack, templateConfig, courtData } = input;
+  // T-147c: with the ledger, everything the system writes and every check reads
+  // the ledger's displays; without it, the brief exactly as before.
+  const brief = input.ledger ? ledgerSkeletonBrief(input.brief, input.ledger.facts) : input.brief;
 
   // ── The brief as form values, for the parts the system adds ───────────────
   const formData = formDataFromBrief(brief, templateConfig, input.language);
@@ -1021,338 +1052,502 @@ export async function streamGenerateFromBrief(
   );
 
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
-
-  // ── The parts the system adds, in the template's order ────────────────────
-  // They are written first, so that the Drafter is shown what stands above its
-  // text and what follows it (T-136). The number of the last paragraph is
-  // filled in once the body is known.
-  const renderedSections: RenderedSection[] = [];
-  let bodyAt = -1;
-  for (const section of templateConfig.document_structure.sections) {
-    if (section.type === 'template') {
-      renderedSections.push(renderTemplateSection(section, ctx));
-    } else if (bodyAt < 0) {
-      // One body, where the template's first AI section sits. Any further AI
-      // section of the old form pipeline has no place here.
-      bodyAt = renderedSections.length;
-      renderedSections.push({
-        section_id: 'body',
-        type: 'ai_generated',
-        content: '',
-        alignment: section.alignment,
-      });
-    }
-  }
-  if (bodyAt < 0) {
-    bodyAt = renderedSections.length;
-    renderedSections.push({ section_id: 'body', type: 'ai_generated', content: '' });
-  }
-  const systemText = systemTextAround(renderedSections);
-
-  // ── What the Drafter is given ─────────────────────────────────────────────
-  const parts = systemParts(templateConfig);
-  const courtRule = courtData?.courtRule;
-  // The provision that follows the court chosen (T-135).
-  const provisions = courtProvisions(templateConfig, ctx);
-  const promptInput: DrafterPromptInput = {
-    pack,
-    brief: drafterBrief(
-      brief,
-      ctx.court_designation || courtData?.designation || null,
-      converted,
-      input.described,
-    ),
-    statedInstructions: provisions.map((p) => p.instruction).filter((i): i is string => i !== null),
-    systemParts: parts,
-    systemText,
-    courtRules: [
-      ...(courtRule?.localRules ?? []),
-      // T-149 / T-158: the same labels as buildAISystemPrompt's PARTY
-      // DESIGNATIONS block: matter-type labels, no "not applicable" state,
-      // and the C2 rule when a label is a "[To be confirmed: ...]" blank.
-      ...drafterPartyDesignationLines(courtRule, templateConfig.template_id),
-    ],
-    target: input.targetParagraphs,
-    language: input.language,
-  };
-  /**
-   * The Drafter's text as it goes into the document: no disclaimer, no word
-   * SYSTEM in brackets, and no repeat of a part the system has written, where
-   * the repeat says nothing that part does not (Ajay's condition 4).
-   */
-  const cleaned = (text: string): string =>
-    removeRepeatedParts(withoutDisclaimerText(text), systemText).body;
-
-  const meter = new UsageMeter();
-  let aiModel: string | undefined;
-  let transport: 'direct' | undefined;
-
-  // ── The body: one Drafter call (decision D6) ──────────────────────────────
-  let raw = '';
-  const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
-  const filter = new TrailerFilter();
-  const recordCall = (sectionId: string, d: CallUsageDraft, text: string): void => {
-    aiModel = d.model ?? aiModel;
-    transport = d.transport ?? transport;
-    meter.record({
-      sectionId,
-      inputTokens: d.inputTokens,
-      outputTokens: d.usageSource === 'provider' ? d.outputTokens : estimateOutputTokens(text),
-      usageSource: d.usageSource === 'provider' ? 'provider' : 'estimated',
-    });
-  };
+  const stopKeepAlive = startSseKeepAlive(res);
   try {
-    for await (const text of streamLLM(
-      DRAFTER_PACK_SYSTEM_PROMPT,
-      buildDrafterUserPrompt(promptInput),
-      8192,
-      draft,
-    )) {
-      raw += text;
-      // The clause report after the document is for the server, never for the user.
-      const visible = filter.push(text);
-      if (visible) res.write(`data: ${JSON.stringify({ text: visible })}\n\n`);
+    // ── The parts the system adds, in the template's order ────────────────────
+    // They are written first, so that the Drafter is shown what stands above its
+    // text and what follows it (T-136). The number of the last paragraph is
+    // filled in once the body is known.
+    const renderedSections: RenderedSection[] = [];
+    let bodyAt = -1;
+    for (const section of templateConfig.document_structure.sections) {
+      if (section.type === 'template') {
+        renderedSections.push(renderTemplateSection(section, ctx));
+      } else if (bodyAt < 0) {
+        // One body, where the template's first AI section sits. Any further AI
+        // section of the old form pipeline has no place here.
+        bodyAt = renderedSections.length;
+        renderedSections.push({
+          section_id: 'body',
+          type: 'ai_generated',
+          content: '',
+          alignment: section.alignment,
+        });
+      }
     }
-    const tail = filter.end();
-    if (tail) res.write(`data: ${JSON.stringify({ text: tail })}\n\n`);
-    recordCall('body', draft, raw);
-  } catch (llmErr) {
-    recordCall('body', draft, raw);
-    const classified = classifyLlmError(llmErr);
-    if (process.env.NODE_ENV !== 'test') {
-      console.error(
-        `[drafting] Drafter stream failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
-        llmErr instanceof Error ? llmErr.name : 'unknown',
-      );
+    if (bodyAt < 0) {
+      bodyAt = renderedSections.length;
+      renderedSections.push({ section_id: 'body', type: 'ai_generated', content: '' });
     }
-    res.write(
-      `event: error\ndata: ${JSON.stringify({
-        section: 'body',
-        reason: classified.userMessage,
-        retryable: classified.retryable,
-        code: classified.code,
-        runId: input.runId,
-      })}\n\n`,
-    );
-    // The route ends the response after the failed Generation row is saved.
-    throw new GenerationFailedError(
-      classified.userMessage,
-      classified.code,
-      meter.totals(),
-      aiModel,
-      transport,
-    );
-  }
+    const systemText = systemTextAround(renderedSections);
 
-  let output = splitDrafterOutput(raw);
-  output = { ...output, body: cleaned(output.body) };
-  let missing = findMissingClauses(pack, output, parts);
-  let repaired = false;
+    // ── What the Drafter is given ─────────────────────────────────────────────
+    const parts = systemParts(templateConfig);
+    const courtRule = courtData?.courtRule;
+    // The provision that follows the court chosen (T-135).
+    const provisions = courtProvisions(templateConfig, ctx);
+    const promptInput: DrafterPromptInput = {
+      pack,
+      brief: drafterBrief(
+        brief,
+        ctx.court_designation || courtData?.designation || null,
+        converted,
+        input.described,
+      ),
+      statedInstructions: provisions
+        .map((p) => p.instruction)
+        .filter((i): i is string => i !== null),
+      systemParts: parts,
+      systemText,
+      courtRules: [
+        ...(courtRule?.localRules ?? []),
+        // T-149 / T-158: the same labels as buildAISystemPrompt's PARTY
+        // DESIGNATIONS block: matter-type labels, no "not applicable" state,
+        // and the C2 rule when a label is a "[To be confirmed: ...]" blank.
+        ...drafterPartyDesignationLines(courtRule, templateConfig.template_id),
+      ],
+      target: input.targetParagraphs,
+      language: input.language,
+    };
+    // T-147c: with the ledger, the Drafter's facts come from it alone. The
+    // description is not given to the Drafter and is not read by the checks.
+    const ledgerInput: LedgerDrafterPromptInput | null = input.ledger
+      ? {
+          pack: promptInput.pack,
+          statedInstructions: promptInput.statedInstructions,
+          systemParts: promptInput.systemParts,
+          systemText: promptInput.systemText,
+          courtRules: promptInput.courtRules,
+          target: promptInput.target,
+          language: promptInput.language,
+          facts: ledgerDrafterFacts(
+            input.ledger.facts,
+            buildChecklist(pack),
+            ctx.court_designation || courtData?.designation || null,
+            brief.kind.court_document,
+            // T-338: an unresolved optional key with no fact is a visible blank.
+            (input.ledger.unresolved ?? []).map((u) => u.key),
+          ),
+          averments: resolveAverments(input.ledger.lists, input.ledger.facts),
+        }
+      : null;
+    const described = ledgerInput ? null : input.described;
+    /**
+     * The Drafter's text as it goes into the document: no disclaimer, no word
+     * SYSTEM in brackets, and no repeat of a part the system has written, where
+     * the repeat says nothing that part does not (Ajay's condition 4).
+     */
+    const cleaned = (text: string): string =>
+      removeRepeatedParts(withoutDisclaimerText(text), systemText).body;
 
-  // ── One repair pass, at our cost (decision D3) ────────────────────────────
-  if (missing.length > 0 && output.body.length > 0) {
-    res.write(`event: repair\ndata: ${JSON.stringify({ missing: missing.length })}\n\n`);
-    let repairRaw = '';
-    const repairDraft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+    const meter = new UsageMeter();
+    let aiModel: string | undefined;
+    let transport: 'direct' | undefined;
+
+    // ── The body: one Drafter call (decision D6) ──────────────────────────────
+    let raw = '';
+    const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+    const filter = new TrailerFilter();
+    const recordCall = (sectionId: string, d: CallUsageDraft, text: string): void => {
+      aiModel = d.model ?? aiModel;
+      transport = d.transport ?? transport;
+      meter.record({
+        sectionId,
+        inputTokens: d.inputTokens,
+        outputTokens: d.usageSource === 'provider' ? d.outputTokens : estimateOutputTokens(text),
+        usageSource: d.usageSource === 'provider' ? 'provider' : 'estimated',
+      });
+    };
     try {
       for await (const text of streamLLM(
-        DRAFTER_REPAIR_SYSTEM_PROMPT,
-        buildRepairUserPrompt(
-          promptInput,
-          output.body,
-          missing.map((m) => m.id),
-        ),
+        ledgerInput ? DRAFTER_LEDGER_SYSTEM_PROMPT : DRAFTER_PACK_SYSTEM_PROMPT,
+        ledgerInput
+          ? buildLedgerDrafterUserPrompt(ledgerInput)
+          : buildDrafterUserPrompt(promptInput),
         8192,
-        repairDraft,
+        draft,
       )) {
-        repairRaw += text;
+        raw += text;
+        // The clause report after the document is for the server, never for the user.
+        const visible = filter.push(text);
+        // T-147d: on the ledger path nothing of the body reaches the advocate
+        // before the fact verifier has read it; the checked body is sent with
+        // the system's parts below.
+        if (visible && !ledgerInput) res.write(`data: ${JSON.stringify({ text: visible })}\n\n`);
       }
-      recordCall('repair', repairDraft, repairRaw);
-      const second = splitDrafterOutput(repairRaw);
-      const secondBody = cleaned(second.body);
-      // The repair may add clauses and nothing else. If it dropped or rewrote
-      // a paragraph, the first draft is kept and the clauses stay missing.
-      if (secondBody.length > 0 && keepsEveryParagraph(output.body, secondBody)) {
-        const candidate = { body: secondBody, report: second.report };
-        const stillMissing = findMissingClauses(pack, candidate, parts);
-        if (stillMissing.length < missing.length) {
-          output = candidate;
-          missing = stillMissing;
-          repaired = true;
-        }
-      }
-    } catch (repairErr) {
-      // A failed repair never fails the draft. Its tokens are still counted.
-      recordCall('repair', repairDraft, repairRaw);
+      const tail = filter.end();
+      if (tail && !ledgerInput) res.write(`data: ${JSON.stringify({ text: tail })}\n\n`);
+      recordCall('body', draft, raw);
+    } catch (llmErr) {
+      recordCall('body', draft, raw);
+      const classified = classifyLlmError(llmErr);
       if (process.env.NODE_ENV !== 'test') {
         console.error(
-          `[drafting] Repair pass failed (kind=${pack.id}, runId=${input.runId}):`,
-          repairErr instanceof Error ? repairErr.name : 'unknown',
+          `[drafting] Drafter stream failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+          llmErr instanceof Error ? llmErr.name : 'unknown',
         );
       }
+      res.write(
+        `event: error\ndata: ${JSON.stringify({
+          section: 'body',
+          reason: classified.userMessage,
+          retryable: classified.retryable,
+          code: classified.code,
+          runId: input.runId,
+        })}\n\n`,
+      );
+      // The route ends the response after the failed Generation row is saved.
+      throw new GenerationFailedError(
+        classified.userMessage,
+        classified.code,
+        meter.totals(),
+        aiModel,
+        transport,
+      );
     }
-  }
 
-  // ── No case law on its own (T-148) ─────────────────────────────────────────
-  // A case citation the advocate did not give, in the brief or in their own
-  // words, is replaced by the blank. Rule-pack text is never a source.
-  const citations = removeUngivenCitations(output.body, [briefText(brief), input.described ?? '']);
-  output = { ...output, body: citations.text };
+    let output = splitDrafterOutput(raw);
+    output = { ...output, body: cleaned(output.body) };
+    // T-200: the brief for cues, the language for fixed wording, and the text
+    // recorded for each clause without cues (R2b), kept for every later check.
+    let recorded = new Map<string, string>();
+    const notChecked = new Map<string, string>();
+    const clauseCheck = { brief, language: input.language, notChecked };
+    let missing = findMissingClauses(pack, output, parts, { ...clauseCheck, recorded });
+    let repaired = false;
 
-  // ── The body takes its place among the parts the system wrote ─────────────
-  renderedSections[bodyAt] = { ...renderedSections[bodyAt], content: output.body };
+    // ── One repair pass, at our cost (decision D3) ────────────────────────────
+    if (missing.length > 0 && output.body.length > 0) {
+      res.write(`event: repair\ndata: ${JSON.stringify({ missing: missing.length })}\n\n`);
+      let repairRaw = '';
+      const repairDraft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+      try {
+        const missingIds = missing.map((m) => m.id);
+        for await (const text of streamLLM(
+          ledgerInput ? DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT : DRAFTER_REPAIR_SYSTEM_PROMPT,
+          ledgerInput
+            ? buildLedgerRepairUserPrompt(ledgerInput, output.body, missingIds)
+            : buildRepairUserPrompt(promptInput, output.body, missingIds),
+          8192,
+          repairDraft,
+        )) {
+          repairRaw += text;
+        }
+        recordCall('repair', repairDraft, repairRaw);
+        const second = splitDrafterOutput(repairRaw);
+        const secondBody = cleaned(second.body);
+        // The repair may add clauses and nothing else. If it dropped or rewrote
+        // a paragraph, the first draft is kept and the clauses stay missing.
+        if (secondBody.length > 0 && keepsEveryParagraph(output.body, secondBody)) {
+          const candidate = { body: secondBody, report: second.report };
+          // Checked against the texts recorded so far (R2b). A clause the repair
+          // adds is recorded from the repair's own report.
+          const candidateRecorded = new Map(recorded);
+          const stillMissing = findMissingClauses(pack, candidate, parts, {
+            ...clauseCheck,
+            recorded: candidateRecorded,
+          });
+          if (stillMissing.length < missing.length) {
+            output = candidate;
+            missing = stillMissing;
+            recorded = candidateRecorded;
+            repaired = true;
+          }
+        }
+      } catch (repairErr) {
+        // A failed repair never fails the draft. Its tokens are still counted.
+        recordCall('repair', repairDraft, repairRaw);
+        if (process.env.NODE_ENV !== 'test') {
+          console.error(
+            `[drafting] Repair pass failed (kind=${pack.id}, runId=${input.runId}):`,
+            repairErr instanceof Error ? repairErr.name : 'unknown',
+          );
+        }
+      }
+    }
 
-  const { fullText, bodyParaCount } = assembleDocument(renderedSections);
-  ctx.body_para_count = String(bodyParaCount);
-  /** Each part as it prints: the number of the last paragraph filled in. */
-  const printed = renderedSections.map((s) =>
-    s.type === 'template' && s.content.includes('{body_para_count}')
-      ? s.content.replace(/\{body_para_count\}/g, String(bodyParaCount))
-      : s.content,
-  );
+    // ── No case law on its own (T-148) ─────────────────────────────────────────
+    // A case citation the advocate did not give, in the brief or in their own
+    // words, is replaced by the blank. Rule-pack text is never a source.
+    // With the ledger (T-147c), only the ledger's facts are a source.
+    const citations = removeUngivenCitations(
+      output.body,
+      ledgerInput
+        ? ledgerCitationSources(ledgerInput.facts)
+        : [briefText(brief), input.described ?? ''],
+    );
+    // T-200, R2b.1: a code edit records the changed paragraphs again.
+    recordAgainAfterCodeEdit(output.report, output.body, citations.text, recorded, missing);
+    output = { ...output, body: citations.text };
 
-  res.write(
-    `event: template_sections\ndata: ${JSON.stringify({
-      sections: renderedSections.map((s, i) => ({
-        section_id: s.section_id,
-        type: s.type,
-        content: printed[i],
-        alignment: s.alignment,
-        style: s.style,
-      })),
-    })}\n\n`,
-  );
+    // ── The fact verifier (T-147d): the ledger path only ──────────────────────
+    // Every ledger draft is checked against the ledger in code. On failure one
+    // targeted repair of the offending paragraphs runs, on the same model,
+    // token cap and usage meter as the repair above; anything still wrong
+    // becomes {{MISSING: label}}. A draft that passes is unchanged. Nothing
+    // here is logged but ids and counts.
+    let factCheck: FactCheckOutcome | undefined;
+    if (ledgerInput && input.ledger) {
+      const ledger = input.ledger;
+      factCheck = await verifyAndRepair(
+        {
+          body: output.body,
+          facts: ledger.facts,
+          unresolved: ledger.unresolved ?? [],
+          lists: ledger.lists,
+          skeleton: [
+            systemText.before,
+            systemText.after,
+            ...(ledgerInput.facts.court ? [ledgerInput.facts.court] : []),
+            ...(promptInput.statedInstructions ?? []),
+          ],
+          packText: packTexts(pack),
+        },
+        async (system, user) => {
+          res.write(`event: repair\ndata: ${JSON.stringify({ facts: true })}\n\n`);
+          let factRaw = '';
+          const factDraft: CallUsageDraft = {
+            inputTokens: 0,
+            outputTokens: 0,
+            usageSource: 'none',
+          };
+          try {
+            for await (const text of streamLLM(system, user, 8192, factDraft)) factRaw += text;
+            recordCall('fact_repair', factDraft, factRaw);
+            return factRaw;
+          } catch (factErr) {
+            // A failed repair never fails the draft: the placeholders follow. Its tokens are counted.
+            recordCall('fact_repair', factDraft, factRaw);
+            if (process.env.NODE_ENV !== 'test') {
+              console.error(
+                `[drafting] Fact repair pass failed (kind=${pack.id}, runId=${input.runId}):`,
+                factErr instanceof Error ? factErr.name : 'unknown',
+              );
+            }
+            return null;
+          }
+        },
+      );
+      // T-200: the fact check's edits record the changed paragraphs again. With
+      // no model repair applied (afterRepair null) only code edited the body
+      // (R2b.1). With one, a paragraph counts only when its change stays inside
+      // a sentence the fact check flagged (R2b.4). Spans are in the body it read.
+      const factParas = splitParagraphs(output.body);
+      const flagged =
+        factCheck.afterRepair === null
+          ? undefined
+          : factCheck.initial
+              .filter((v) => v.check !== 'dropped' && factParas[v.paragraphIndex] !== undefined)
+              .map((v) => {
+                const from = factParas[v.paragraphIndex].start + v.charOffset;
+                return { from, to: from + v.length };
+              });
+      recordAgainAfterCodeEdit(
+        output.report,
+        output.body,
+        factCheck.body,
+        recorded,
+        missing,
+        flagged,
+      );
+      // A citation the repair may have added goes the same way as above (T-148).
+      const checkedBody = removeUngivenCitations(
+        factCheck.body,
+        ledgerCitationSources(ledgerInput.facts),
+      ).text;
+      // T-200, R2b.1: a code edit records the changed paragraphs again.
+      recordAgainAfterCodeEdit(output.report, factCheck.body, checkedBody, recorded, missing);
+      output = { ...output, body: checkedBody };
+      // T-147e (T-147d review follow-up): the verifier may strip a sentence or
+      // replace a paragraph, so the mandatory clauses are checked again on the
+      // body as it will be delivered. Re-signed by Ajay (CLO) for T-147e.
+      if (!factCheck.passed) {
+        missing = findMissingClauses(pack, output, parts, { ...clauseCheck, recorded });
+      }
+    }
 
-  const checklistSource =
-    templateConfig.filing_checklist.length > 0
-      ? templateConfig.filing_checklist
-      : pack.filingChecklist;
-  const filingChecklist = checklistSource.map((item) =>
-    item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
-  );
-  if (filingChecklist.length > 0) {
-    res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
-  }
+    // ── The body takes its place among the parts the system wrote ─────────────
+    renderedSections[bodyAt] = { ...renderedSections[bodyAt], content: output.body };
 
-  // ── Checks: the ones the template pipeline runs, then the brief's own ─────
-  const allWarnings: ValidationWarning[] = [];
-  const body = output.body;
-  const given = new Map<string, string>();
-  for (const item of brief.items) {
-    if (typeof item.value === 'string' && item.value.length > 0) given.set(item.key, item.value);
-  }
+    const { fullText, bodyParaCount } = assembleDocument(renderedSections);
+    ctx.body_para_count = String(bodyParaCount);
+    /** Each part as it prints: the number of the last paragraph filled in. */
+    const printed = renderedSections.map((s) =>
+      s.type === 'template' && s.content.includes('{body_para_count}')
+        ? s.content.replace(/\{body_para_count\}/g, String(bodyParaCount))
+        : s.content,
+    );
 
-  allWarnings.push(...leakedPlaceholderWarnings(templateConfig, ctx));
+    res.write(
+      `event: template_sections\ndata: ${JSON.stringify({
+        sections: renderedSections.map((s, i) => ({
+          section_id: s.section_id,
+          type: s.type,
+          content: printed[i],
+          alignment: s.alignment,
+          style: s.style,
+        })),
+      })}\n\n`,
+    );
 
-  allWarnings.push(...(await detectOldLawReferences(body)));
+    const checklistSource =
+      templateConfig.filing_checklist.length > 0
+        ? templateConfig.filing_checklist
+        : pack.filingChecklist;
+    const filingChecklist = checklistSource.map((item) =>
+      item.replace(/\{(\w+)\}/g, (_m, key: string) => ctx[key] ?? '_____'),
+    );
+    if (filingChecklist.length > 0) {
+      res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
+    }
 
-  const bnsCited = extractBNSSectionNumbers(body);
-  allWarnings.push(...validateBNSWhitelist(bnsCited));
+    // ── Checks: the ones the template pipeline runs, then the brief's own ─────
+    const allWarnings: ValidationWarning[] = [];
+    const body = output.body;
+    const given = new Map<string, string>();
+    for (const item of brief.items) {
+      if (typeof item.value === 'string' && item.value.length > 0) given.set(item.key, item.value);
+    }
 
-  const facts =
-    given.get('facts_narrative') ?? given.get('facts') ?? given.get('fixed.facts') ?? '';
-  if (templateConfig.category === 'criminal' && facts) {
-    allWarnings.push(...checkFactSectionSanity(facts, bnsCited));
-  }
+    allWarnings.push(...leakedPlaceholderWarnings(templateConfig, ctx));
 
-  const grounds = formData.grounds_for_bail ?? formData.grounds_for_quashing ?? formData.grounds;
-  const groundsGiven = brief.items.some(
-    (i) =>
-      ['grounds_for_bail', 'grounds_for_quashing', 'grounds'].includes(i.key) && i.value !== null,
-  );
-  if (groundsGiven && grounds && facts) {
-    for (const m of detectCoherenceMismatches(grounds as string | string[], facts)) {
+    // T-333: the other five codes, as validate() checks them; BNS is the whitelist's.
+    const otherCodeWarnings = validateSectionReferences(body, null).filter(
+      (w) => w.details?.code !== 'BNS',
+    );
+    // T-333 / T-270 ruling A: an old-code cite that is not found gets only invalid_section.
+    allWarnings.push(
+      ...dropOldLawForNotFound(await detectOldLawReferences(body), otherCodeWarnings),
+    );
+
+    const bnsCited = extractBNSSectionNumbers(body);
+    allWarnings.push(...validateBNSWhitelist(bnsCited));
+    allWarnings.push(...otherCodeWarnings);
+
+    const facts =
+      given.get('facts_narrative') ?? given.get('facts') ?? given.get('fixed.facts') ?? '';
+    if (templateConfig.category === 'criminal' && facts) {
+      // T-333 ruling B: explicit cites only, not numbers inside an expanded range.
+      allWarnings.push(
+        ...checkFactSectionSanity(
+          facts,
+          extractBNSSectionNumbers(body, { includeRangeInner: false }),
+        ),
+      );
+    }
+
+    const grounds = formData.grounds_for_bail ?? formData.grounds_for_quashing ?? formData.grounds;
+    const groundsGiven = brief.items.some(
+      (i) =>
+        ['grounds_for_bail', 'grounds_for_quashing', 'grounds'].includes(i.key) && i.value !== null,
+    );
+    if (groundsGiven && grounds && facts) {
+      for (const m of detectCoherenceMismatches(grounds as string | string[], facts)) {
+        allWarnings.push({
+          type: 'coherence_mismatch',
+          message: m.warning_message,
+          details: { rule: m.rule_id, ground: m.ground_label },
+        });
+      }
+    }
+
+    if (templateConfig.validation_rules.fact_alteration_check && facts) {
+      const altered = checkFactAlteration(facts, body);
+      if (altered) allWarnings.push(altered);
+    }
+
+    for (const [key, what] of [
+      ['applicant_name', 'applicant name'],
+      ['father_name', 'father name'],
+    ]) {
+      const value = given.get(key);
+      if (value && body.length > 0 && !body.includes(value)) {
+        allWarnings.push({
+          type: 'fact_alteration',
+          message: `The body does not contain the ${what} "${value}" as given in the brief. Check that the party is named correctly.`,
+          details: { field: key, expected: value },
+        });
+      }
+    }
+
+    // Nothing in the body that the brief and the pack do not give (ADR-021, rule 2).
+    allWarnings.push(...checkAgainstBrief(body, brief, pack));
+
+    // The provision the application is made under follows the court (T-135).
+    allWarnings.push(...checkCourtProvisions(body, provisions));
+
+    // One document, with what the advocate gave (T-136; the wording is Ajay's).
+    // A part that may not belong:
+    allWarnings.push(...checkOneDocument(body, systemText, pack.name));
+    // A date, a name, a number or a fact of the brief that the document does not
+    // hold, read against the whole document as it prints, not the body alone:
+    allWarnings.push(...checkBriefIsUsed(printed.join('\n\n'), brief, described));
+    // A length of time that nothing the Drafter was given states:
+    allWarnings.push(
+      ...checkPeriods(
+        body,
+        [
+          briefText(brief),
+          described ?? '',
+          ...(ledgerInput ? [ledgerFactText(ledgerInput.facts)] : []),
+          ...packTexts(pack),
+          ...(promptInput.statedInstructions ?? []),
+          ...promptInput.courtRules,
+          systemText.before,
+          systemText.after,
+        ],
+        brief,
+      ),
+    );
+
+    // A case citation the advocate did not give was removed (T-148):
+    allWarnings.push(...citationWarnings(citations.removed));
+
+    // Every mandatory clause of the pack (ADR-021, rule 1).
+    for (const clause of missing) {
       allWarnings.push({
-        type: 'coherence_mismatch',
-        message: m.warning_message,
-        details: { rule: m.rule_id, ground: m.ground_label },
+        type: 'missing_clause',
+        message: `This draft does not cover "${clause.title}". Add it before use.`,
+        details: { clauseId: clause.id },
       });
     }
-  }
-
-  if (templateConfig.validation_rules.fact_alteration_check && facts) {
-    const altered = checkFactAlteration(facts, body);
-    if (altered) allWarnings.push(altered);
-  }
-
-  for (const [key, what] of [
-    ['applicant_name', 'applicant name'],
-    ['father_name', 'father name'],
-  ]) {
-    const value = given.get(key);
-    if (value && body.length > 0 && !body.includes(value)) {
+    // T-200, R1.7: fixed wording is English, so on another language it is not checked.
+    for (const [clauseId, title] of notChecked) {
       allWarnings.push({
-        type: 'fact_alteration',
-        message: `The body does not contain the ${what} "${value}" as given in the brief. Check that the party is named correctly.`,
-        details: { field: key, expected: value },
+        type: 'missing_clause',
+        message: `Fixed wording of ${title} not checked: the draft is not in English.`,
+        details: { clauseId },
       });
     }
+
+    if (allWarnings.length > 0) {
+      res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
+    }
+
+    return {
+      fullText,
+      sections: renderedSections,
+      filingChecklist,
+      sectionsCited: buildSectionsCited(fullText),
+      mandatoryClausesComplete: missing.length === 0,
+      warnings: allWarnings,
+      usage: meter.totals(),
+      aiModel,
+      transport,
+      bodyParaCount,
+      missingClauses: missing,
+      repaired,
+      // T-147d: a draft the fact verifier had to change is never delivered as clean.
+      startingDraft: needsStartingDraftLabel(missing, allWarnings) || Boolean(factCheck?.banner),
+      labelReason: labelReason(missing, allWarnings),
+      ...(factCheck ? { factCheck } : {}),
+    };
+  } finally {
+    stopKeepAlive();
   }
-
-  // Nothing in the body that the brief and the pack do not give (ADR-021, rule 2).
-  allWarnings.push(...checkAgainstBrief(body, brief, pack));
-
-  // The provision the application is made under follows the court (T-135).
-  allWarnings.push(...checkCourtProvisions(body, provisions));
-
-  // One document, with what the advocate gave (T-136; the wording is Ajay's).
-  // A part that may not belong:
-  allWarnings.push(...checkOneDocument(body, systemText, pack.name));
-  // A date, a name, a number or a fact of the brief that the document does not
-  // hold, read against the whole document as it prints, not the body alone:
-  allWarnings.push(...checkBriefIsUsed(printed.join('\n\n'), brief, input.described));
-  // A length of time that nothing the Drafter was given states:
-  allWarnings.push(
-    ...checkPeriods(
-      body,
-      [
-        briefText(brief),
-        input.described ?? '',
-        ...packTexts(pack),
-        ...(promptInput.statedInstructions ?? []),
-        ...promptInput.courtRules,
-        systemText.before,
-        systemText.after,
-      ],
-      brief,
-    ),
-  );
-
-  // A case citation the advocate did not give was removed (T-148):
-  allWarnings.push(...citationWarnings(citations.removed));
-
-  // Every mandatory clause of the pack (ADR-021, rule 1).
-  for (const clause of missing) {
-    allWarnings.push({
-      type: 'missing_clause',
-      message: `This draft does not cover "${clause.title}". Add it before use.`,
-      details: { clauseId: clause.id },
-    });
-  }
-
-  if (allWarnings.length > 0) {
-    res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
-  }
-
-  return {
-    fullText,
-    sections: renderedSections,
-    filingChecklist,
-    sectionsCited: buildSectionsCited(fullText),
-    mandatoryClausesComplete: missing.length === 0,
-    warnings: allWarnings,
-    usage: meter.totals(),
-    aiModel,
-    transport,
-    bodyParaCount,
-    missingClauses: missing,
-    repaired,
-    startingDraft: needsStartingDraftLabel(missing, allWarnings),
-    labelReason: labelReason(missing, allWarnings),
-  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1386,142 +1581,149 @@ export async function streamGenerateGuided(
   const { brief, courtData } = input;
 
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
-
-  const userPrompt = buildGuidedDrafterUserPrompt({
-    brief: guidedDrafterBrief(brief, courtData?.designation ?? null),
-    target: input.targetParagraphs,
-    language: input.language,
-  });
-
-  const meter = new UsageMeter();
-  let aiModel: string | undefined;
-  let transport: 'direct' | undefined;
-  let raw = '';
-  const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
-  const recordCall = (): void => {
-    aiModel = draft.model ?? aiModel;
-    transport = draft.transport ?? transport;
-    meter.record({
-      sectionId: 'body',
-      inputTokens: draft.inputTokens,
-      outputTokens:
-        draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(raw),
-      usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
-    });
-  };
+  const stopKeepAlive = startSseKeepAlive(res);
   try {
-    for await (const text of streamLLM(
-      DRAFTER_GUIDED_SYSTEM_PROMPT,
-      userPrompt,
-      8192,
-      draft,
-    )) {
-      raw += text;
-      res.write(`data: ${JSON.stringify({ text })}\n\n`);
-    }
-    recordCall();
-  } catch (llmErr) {
-    recordCall();
-    const classified = classifyLlmError(llmErr);
-    if (process.env.NODE_ENV !== 'test') {
-      console.error(
-        `[drafting] Drafter stream failed (kind=none, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
-        llmErr instanceof Error ? llmErr.name : 'unknown',
+    const userPrompt = buildGuidedDrafterUserPrompt({
+      brief: guidedDrafterBrief(brief, courtData?.designation ?? null),
+      target: input.targetParagraphs,
+      language: input.language,
+    });
+
+    const meter = new UsageMeter();
+    let aiModel: string | undefined;
+    let transport: 'direct' | undefined;
+    let raw = '';
+    const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+    const recordCall = (): void => {
+      aiModel = draft.model ?? aiModel;
+      transport = draft.transport ?? transport;
+      meter.record({
+        sectionId: 'body',
+        inputTokens: draft.inputTokens,
+        outputTokens:
+          draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(raw),
+        usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
+      });
+    };
+    try {
+      for await (const text of streamLLM(DRAFTER_GUIDED_SYSTEM_PROMPT, userPrompt, 8192, draft)) {
+        raw += text;
+        res.write(`data: ${JSON.stringify({ text })}\n\n`);
+      }
+      recordCall();
+    } catch (llmErr) {
+      recordCall();
+      const classified = classifyLlmError(llmErr);
+      if (process.env.NODE_ENV !== 'test') {
+        console.error(
+          `[drafting] Drafter stream failed (kind=none, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+          llmErr instanceof Error ? llmErr.name : 'unknown',
+        );
+      }
+      res.write(
+        `event: error\ndata: ${JSON.stringify({
+          section: 'body',
+          reason: classified.userMessage,
+          retryable: classified.retryable,
+          code: classified.code,
+          runId: input.runId,
+        })}\n\n`,
+      );
+      // The route ends the response after the failed Generation row is saved.
+      throw new GenerationFailedError(
+        classified.userMessage,
+        classified.code,
+        meter.totals(),
+        aiModel,
+        transport,
       );
     }
+
+    // The whole document is the Drafter's. Only a disclaimer it was told not to write is taken out,
+    // and a case citation the advocate did not give (T-148).
+    const citations = removeUngivenCitations(withoutDisclaimers(raw), [briefText(brief)]);
+    const fullText = citations.text;
+    const renderedSections: RenderedSection[] = [
+      { section_id: 'body', type: 'ai_generated', content: fullText },
+    ];
     res.write(
-      `event: error\ndata: ${JSON.stringify({
-        section: 'body',
-        reason: classified.userMessage,
-        retryable: classified.retryable,
-        code: classified.code,
-        runId: input.runId,
+      `event: template_sections\ndata: ${JSON.stringify({
+        sections: renderedSections.map((s) => ({
+          section_id: s.section_id,
+          type: s.type,
+          content: s.content,
+        })),
       })}\n\n`,
     );
-    // The route ends the response after the failed Generation row is saved.
-    throw new GenerationFailedError(
-      classified.userMessage,
-      classified.code,
-      meter.totals(),
+
+    // ── The free checks (T-107, section 9, condition 3): always run, always shown ──
+    const allWarnings: ValidationWarning[] = [];
+    // T-333: the other five codes, as validate() checks them; BNS is the whitelist's.
+    const otherCodeWarnings = validateSectionReferences(fullText, null).filter(
+      (w) => w.details?.code !== 'BNS',
+    );
+    // T-333 / T-270 ruling A: an old-code cite that is not found gets only invalid_section.
+    allWarnings.push(
+      ...dropOldLawForNotFound(await detectOldLawReferences(fullText), otherCodeWarnings),
+    );
+    allWarnings.push(...validateBNSWhitelist(extractBNSSectionNumbers(fullText)));
+    allWarnings.push(...otherCodeWarnings);
+
+    const given = briefText(brief);
+    if (given) {
+      const altered = checkFactAlteration(given, fullText);
+      if (altered) allWarnings.push(altered);
+    }
+
+    for (const [key, what] of [
+      [FIXED_KEYS.firstParty, 'person the document is for'],
+      [FIXED_KEYS.otherParty, 'person or authority it is addressed to'],
+    ]) {
+      const value = brief.items.find((i) => i.key === key)?.value;
+      if (typeof value !== 'string' || value.length === 0 || fullText.length === 0) continue;
+      if (value.trim().split(/\s+/).length > NAME_WORDS_MAX) continue;
+      if (!fullText.includes(value)) {
+        allWarnings.push({
+          type: 'fact_alteration',
+          message: `The draft does not contain the ${what} as given in the brief: "${value}". Check that the name is written correctly.`,
+          details: { field: key, expected: value },
+        });
+      }
+    }
+
+    // Nothing in the draft that the brief does not give (T-107, section 6, rules 1 and 3).
+    allWarnings.push(...checkAgainstBrief(fullText, brief, null));
+    // A case citation the advocate did not give was removed (T-148).
+    allWarnings.push(...citationWarnings(citations.removed));
+
+    if (allWarnings.length > 0) {
+      res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
+    }
+
+    return {
+      fullText,
+      sections: renderedSections,
+      filingChecklist: [],
+      sectionsCited: buildSectionsCited(fullText),
+      // There is no rule pack, so there are no mandatory clauses to be complete or missing.
+      mandatoryClausesComplete: false,
+      warnings: allWarnings,
+      usage: meter.totals(),
       aiModel,
       transport,
-    );
+      bodyParaCount: paragraphNumbers(fullText).size,
+      missingClauses: [],
+      repaired: false,
+      // T-127, section 7.3: with no rule pack the label is always on, with no line under it.
+      startingDraft: true,
+      labelReason: null,
+    };
+  } finally {
+    stopKeepAlive();
   }
-
-  // The whole document is the Drafter's. Only a disclaimer it was told not to write is taken out,
-  // and a case citation the advocate did not give (T-148).
-  const citations = removeUngivenCitations(withoutDisclaimers(raw), [briefText(brief)]);
-  const fullText = citations.text;
-  const renderedSections: RenderedSection[] = [
-    { section_id: 'body', type: 'ai_generated', content: fullText },
-  ];
-  res.write(
-    `event: template_sections\ndata: ${JSON.stringify({
-      sections: renderedSections.map((s) => ({
-        section_id: s.section_id,
-        type: s.type,
-        content: s.content,
-      })),
-    })}\n\n`,
-  );
-
-  // ── The free checks (T-107, section 9, condition 3): always run, always shown ──
-  const allWarnings: ValidationWarning[] = [];
-  allWarnings.push(...(await detectOldLawReferences(fullText)));
-  allWarnings.push(...validateBNSWhitelist(extractBNSSectionNumbers(fullText)));
-
-  const given = briefText(brief);
-  if (given) {
-    const altered = checkFactAlteration(given, fullText);
-    if (altered) allWarnings.push(altered);
-  }
-
-  for (const [key, what] of [
-    [FIXED_KEYS.firstParty, 'person the document is for'],
-    [FIXED_KEYS.otherParty, 'person or authority it is addressed to'],
-  ]) {
-    const value = brief.items.find((i) => i.key === key)?.value;
-    if (typeof value !== 'string' || value.length === 0 || fullText.length === 0) continue;
-    if (value.trim().split(/\s+/).length > NAME_WORDS_MAX) continue;
-    if (!fullText.includes(value)) {
-      allWarnings.push({
-        type: 'fact_alteration',
-        message: `The draft does not contain the ${what} as given in the brief: "${value}". Check that the name is written correctly.`,
-        details: { field: key, expected: value },
-      });
-    }
-  }
-
-  // Nothing in the draft that the brief does not give (T-107, section 6, rules 1 and 3).
-  allWarnings.push(...checkAgainstBrief(fullText, brief, null));
-  // A case citation the advocate did not give was removed (T-148).
-  allWarnings.push(...citationWarnings(citations.removed));
-
-  if (allWarnings.length > 0) {
-    res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
-  }
-
-  return {
-    fullText,
-    sections: renderedSections,
-    filingChecklist: [],
-    sectionsCited: buildSectionsCited(fullText),
-    // There is no rule pack, so there are no mandatory clauses to be complete or missing.
-    mandatoryClausesComplete: false,
-    warnings: allWarnings,
-    usage: meter.totals(),
-    aiModel,
-    transport,
-    bodyParaCount: paragraphNumbers(fullText).size,
-    missingClauses: [],
-    repaired: false,
-    // T-127, section 7.3: with no rule pack the label is always on, with no line under it.
-    startingDraft: true,
-    labelReason: null,
-  };
 }
 
 /**

@@ -34,10 +34,12 @@ import {
 } from '../services/drafter.prompts';
 import { buildChecklist } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
+import { readFormInputs } from '../utils/case-details';
 import { decrypt } from '../utils/encryption';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -45,7 +47,6 @@ jest.mock('@anthropic-ai/sdk', () =>
 beforeEach(() => {
   mockMessagesStream.mockReset();
 });
-
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439091';
@@ -96,7 +97,7 @@ const VALUES = [
 ];
 
 const BODY = [
-  '1. That the applicant Ram Kumar, son of Shri Hari Kumar, is a law-abiding citizen.',
+  '1. That the applicant Ram Kumar, son of Shri Hari Kumar, is a law-abiding citizen. He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.',
   '2. That FIR No. 124/2026 dated 10.03.2026 was registered at PS Kotwali under Section 318 of BNS.',
   '3. That the applicant is in judicial custody. He was wrongly named in the FIR and falsely implicated due to a family land dispute.',
   '4. That the applicant has deep roots in society and will not flee from justice.',
@@ -334,7 +335,8 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     });
     expect(doc!.title).toContain('DISTRICT & SESSIONS JUDGE, PATNA');
     // Case details are not in the unencrypted field. The brief is stored encrypted.
-    expect(doc!.formInputs).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    expect(readFormInputs(doc!)).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    expect(doc!).not.toHaveProperty('formInputs');
     expect(doc!.brief).not.toContain('Ram Kumar');
     const savedBrief = JSON.parse(decrypt(doc!.brief!)) as { kind: string; values: unknown[] };
     expect(savedBrief.kind).toBe('bail_regular');
@@ -606,9 +608,9 @@ describe('POST /generate-from-brief — what stops a draft before any model call
     await expectNothingHappened(fetchMock);
   });
 
-  it('a kind that is not a rule pack: 404', async () => {
+  it('a kind that is not a rule pack: 400 from enforceCredits (no price, T-227)', async () => {
     const fetchMock = mockModel();
-    expect((await post({ kind: 'not_a_pack', values: [] })).status).toBe(404);
+    expect((await post({ kind: 'not_a_pack', values: [] })).status).toBe(400);
     await expectNothingHappened(fetchMock);
   });
 
@@ -641,8 +643,7 @@ describe('POST /generate-from-brief — what stops a draft before any model call
 
 describe('POST /generate-from-brief — a failed run', () => {
   it('is recorded as failed, saves no document, charges nothing, and a retry keeps the run', async () => {
-    const failing = mockMessagesStream
-      .mockRejectedValue(new Error('503 service unavailable'));
+    const failing = mockMessagesStream.mockRejectedValue(new Error('503 service unavailable'));
     global.fetch = failing as unknown as typeof fetch;
     const first = await post({ kind: 'bail_regular', values: VALUES, court });
     expect(first.status).toBe(200);
@@ -750,7 +751,8 @@ describe('POST /generate-from-brief — no rule pack', () => {
       runSequence: 1,
     });
     expect(doc!.rulePackId).toBeUndefined();
-    expect(doc!.formInputs).toEqual({ template_id: 'guided', source: 'brief' });
+    expect(readFormInputs(doc!)).toEqual({ template_id: 'guided', source: 'brief' });
+    expect(doc!).not.toHaveProperty('formInputs');
     expect(doc!.brief).not.toContain('Sunita');
     expect(JSON.parse(decrypt(doc!.brief!))).toMatchObject({
       kind: 'none',
@@ -768,8 +770,8 @@ describe('POST /generate-from-brief — no rule pack', () => {
       llmCalls: 1,
       paragraphCount: 2,
     });
-    // One Ink, which is two units in the store.
-    expect((await User.findById(USER_ID).lean())!.inkTopup).toBe(1998);
+    // `guided` is 2 Ink (T-227, Vikram), which is four units in the store.
+    expect((await User.findById(USER_ID).lean())!.inkTopup).toBe(1996);
 
     // The demand signal says a draft with no rule pack was made. It holds none of the user's words.
     const signals = await Event.find({ type: 'demand.guided_draft' }).lean();
@@ -954,7 +956,8 @@ describe('POST /generate-from-brief — T-136 — described', () => {
     expect(doc!.brief).not.toContain(MARKER);
     const savedBrief = JSON.parse(decrypt(doc!.brief!)) as { described?: string };
     expect(savedBrief.described).toBe(DESCRIBED);
-    expect(doc!.formInputs).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    expect(readFormInputs(doc!)).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    expect(doc!).not.toHaveProperty('formInputs');
     expect(JSON.stringify({ ...doc, brief: undefined, generatedContent: undefined })).not.toContain(
       MARKER,
     );

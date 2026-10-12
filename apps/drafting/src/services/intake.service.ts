@@ -8,6 +8,7 @@
  */
 import crypto from 'crypto';
 
+import { env } from '../config/env';
 import redis from '../config/redis';
 import { Event } from '../models/Event.model';
 import type { IFactLedger } from '../models/FactLedger.model';
@@ -16,7 +17,25 @@ import { presentDescription } from '../utils/presentDescription';
 
 import { AppSettingMissingError, APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import { AuxCallError, AuxCallUsage, callAuxModel } from './aux-llm';
+import { loadAvermentLists } from './averments';
 import { applyBailGuard } from './bail-guard';
+import {
+  applyEdits,
+  carryOver,
+  createLedger,
+  currentState,
+  extractLines,
+  FACT_LEDGER_SETTING,
+  holdDescriptionNone,
+  LedgerEdit,
+  LedgerEditResult,
+  LedgerView,
+  ledgerView,
+  loadOwnLedger,
+  overlayBrief,
+  readExtraction,
+  referenceYear,
+} from './fact-ledger.service';
 import {
   Brief,
   BriefCourt,
@@ -34,27 +53,13 @@ import {
   hasCourtSignal,
   isCourtDocument,
   namesSupremeCourt,
+  PROTECTED_QUESTION_KEY,
   QUESTION_LIMITS as BRIEF_QUESTION_LIMITS,
   readGuidedBrief,
   statedDates,
   valuesAfterEditedDescription,
   wordedQuestions,
 } from './intake-brief';
-import {
-  applyEdits,
-  carryOver,
-  createLedger,
-  currentState,
-  extractLines,
-  FACT_LEDGER_SETTING,
-  LedgerEdit,
-  LedgerEditResult,
-  LedgerView,
-  ledgerView,
-  loadOwnLedger,
-  readExtraction,
-  referenceYear,
-} from './fact-ledger.service';
 import { readIntakeCache, writeIntakeCache } from './intake-cache';
 import {
   datesInText,
@@ -81,6 +86,7 @@ import {
 } from './intake.prompts';
 import { getModelRates, priceUsage } from './llm-usage';
 import { loadRulePack, RulePack } from './rule-pack.service';
+import { isFixtureUser } from './run-origin';
 import {
   evaluateShowIf,
   FormField,
@@ -97,9 +103,11 @@ export { datesInText, normalise, parseModelJson } from './intake-text';
 export const DESCRIBE_FIRST_SETTING = 'feature.describe_first';
 
 /**
- * `feature.describe_first`: "on" for everyone, "off" or unset for no one, or a
+ * `feature.describe_first`: "on" for everyone, "off" for no one, or a
  * comma-separated list of user ids (the founder's account first, per §3.11).
- * Never throws: any problem reading it means off, so the gallery shows.
+ * Unset (no AppSetting doc): falls back to FEATURE_DEFAULT_DESCRIBE_FIRST
+ * (default off). Never throws: any other problem reading it means off, so the
+ * gallery shows.
  */
 export async function isDescribeFirstEnabled(userId: string): Promise<boolean> {
   return isSwitchOn(DESCRIBE_FIRST_SETTING, userId);
@@ -107,14 +115,18 @@ export async function isDescribeFirstEnabled(userId: string): Promise<boolean> {
 
 /**
  * T-147b: `feature.fact_ledger`, read the same way as `feature.describe_first`.
- * Off or unset: the brief works exactly as before, with no extraction call
- * and no ledger. On: the extraction pass runs and the ledger is written.
+ * Unset (no AppSetting doc): falls back to FEATURE_DEFAULT_FACT_LEDGER
+ * (default off). Off: the brief works exactly as before, with no extraction
+ * call and no ledger. On: the extraction pass runs and the ledger is written.
  */
 export async function isFactLedgerEnabled(userId: string): Promise<boolean> {
   return isSwitchOn(FACT_LEDGER_SETTING, userId);
 }
 
 async function isSwitchOn(setting: string, userId: string): Promise<boolean> {
+  // T-147e: the golden set runs the describe-first ledger path whatever the
+  // switches say for users. Only the reserved fixture user; see run-origin.ts.
+  if (isFixtureUser(userId)) return true;
   try {
     const raw = (await getAppSetting(setting)).trim();
     if (raw === 'on') return true;
@@ -123,9 +135,23 @@ async function isSwitchOn(setting: string, userId: string): Promise<boolean> {
       .split(',')
       .map((s) => s.trim())
       .includes(userId);
-  } catch {
+  } catch (err) {
+    // T-283: no AppSetting doc at all → the env default for this switch. Any
+    // other read error (Mongo down, etc.) stays off: fail closed.
+    if (err instanceof AppSettingMissingError) return envDefaultFor(setting);
     return false;
   }
+}
+
+/**
+ * T-283: the env fallback for a switch whose AppSetting doc is missing. Read
+ * from `env` at call time (not captured at import) so tests can replace it.
+ * 'on' means on for everyone; env has no user-id list form.
+ */
+function envDefaultFor(setting: string): boolean {
+  if (setting === DESCRIBE_FIRST_SETTING) return env.FEATURE_DEFAULT_DESCRIBE_FIRST === 'on';
+  if (setting === FACT_LEDGER_SETTING) return env.FEATURE_DEFAULT_FACT_LEDGER === 'on';
+  return false;
 }
 
 // ── Limits and caps (ADR-019 §3.8, founder D6) ──────────────────────────────
@@ -260,9 +286,35 @@ export interface MatchDecision {
   choices?: string[];
   /** Why no_match, for the demand signal: not legal drafting, or the model named an unknown id / was malformed. */
   noMatchReason?: 'not_legal_drafting' | 'unknown_template' | 'malformed';
-  label: string;
+  // T-115e (Ajay, 12 Oct 2026): the model's matter label is not kept. It can
+  // carry party names, and a demand signal holds no personal data.
   category: string;
   isCourtDocument: boolean;
+}
+
+/**
+ * T-115e (Ajay, 12 Oct 2026): the demand-signal category is a fixed value from
+ * this list, never model or user text. The list is the one the match prompt
+ * names (intake.prompts.ts); anything else is stored as 'other'.
+ */
+export const DEMAND_CATEGORIES = [
+  'criminal',
+  'civil',
+  'family',
+  'property',
+  'consumer',
+  'corporate',
+  'labour',
+  'notice',
+  'affidavit',
+  'agreement',
+  'other',
+] as const;
+export type DemandCategory = (typeof DEMAND_CATEGORIES)[number];
+
+function demandCategory(raw: unknown): DemandCategory {
+  const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+  return (DEMAND_CATEGORIES as readonly string[]).includes(v) ? (v as DemandCategory) : 'other';
 }
 
 function cleanLabel(raw: unknown): string {
@@ -279,16 +331,13 @@ export function decideMatch(
     return {
       kind: 'no_match',
       noMatchReason: 'malformed',
-      label: '',
       category: '',
       isCourtDocument: false,
     };
   }
-  const label = cleanLabel(parsed.label);
-  const category =
-    typeof parsed.category === 'string' ? cleanLabel(parsed.category).slice(0, 30) : '';
+  const category = demandCategory(parsed.category);
   const isCourtDocument = parsed.is_court_document === true;
-  const base = { label, category, isCourtDocument };
+  const base = { category, isCourtDocument };
 
   if (parsed.is_legal_drafting === false) {
     return { kind: 'no_match', noMatchReason: 'not_legal_drafting', ...base };
@@ -778,7 +827,6 @@ async function recordDemand(
       type,
       metadata: {
         intakeId,
-        label: d.label || null,
         category: d.category || null,
         isCourtDocument: d.isCourtDocument,
         ...(reason ? { reason } : {}),
@@ -1099,26 +1147,45 @@ async function extractCall(ctx: BriefContext, user: string): Promise<string | nu
 /**
  * Run the extraction pass and write the ledger's first version. Any failure
  * gives no ledger (a failed call gives an empty one); the brief is built as
- * before either way. Logs ids and counts only.
+ * before either way. T-335: the advocate's own values on the brief just built
+ * are laid over the reading, so the ledger matches the brief. Logs ids and
+ * counts only.
  */
 async function writeReceptionLedger(
   ctx: BriefContext,
   pack: RulePack,
   checklist: ChecklistItem[],
   req: BriefIntakeRequest,
+  brief: Brief,
 ): Promise<LedgerView | undefined> {
   try {
     const lines = extractLines(checklist);
     const text =
-      lines.length === 0 ? null : await extractCall(ctx, buildExtractUserPrompt(lines, req.description));
+      lines.length === 0
+        ? null
+        : await extractCall(ctx, buildExtractUserPrompt(lines, req.description));
+    const refYear = referenceYear(req.now ?? new Date());
     const read = readExtraction(
       checklist,
       req.description,
       text === null ? null : parseModelJson(text),
-      referenceYear(req.now ?? new Date()),
+      refYear,
+    );
+    // T-190 AC8: a "none" read from the description for earlier bail
+    // applications waits for the advocate to confirm it (Ajay, 12 Oct 2026).
+    const { state: fresh, held } = holdDescriptionNone(
+      { facts: read.facts, unresolved: read.unresolved },
+      PROTECTED_QUESTION_KEY,
+      firstApplicationValues(pack.id),
     );
     const earlier = ctx.ledger.earlier ? currentState(ctx.ledger.earlier) : null;
-    const state = carryOver({ facts: read.facts, unresolved: read.unresolved }, earlier, checklist);
+    // T-335 (Arjun, 12 Oct 2026, option B): the ledger mirrors the brief.
+    const { state, counts: overlay } = overlayBrief(
+      carryOver(fresh, earlier, checklist),
+      brief,
+      checklist,
+      refYear,
+    );
     const doc = await createLedger({
       userId: ctx.userId,
       documentKind: pack.id,
@@ -1127,7 +1194,7 @@ async function writeReceptionLedger(
     });
     const count = (r: string) => read.dropped.filter((d) => d.reason === r).length;
     console.info(
-      `[intake] ledger written (intakeId=${ctx.intakeId}, ledgerId=${String(doc.id)}, kind=${pack.id}, called=${text !== null}, facts=${state.facts.length}, unresolved=${state.unresolved.length}, droppedNotOnList=${count('not_on_list')}, droppedNoSpan=${count('no_span')}, droppedSpanNotFound=${count('span_not_found')})`,
+      `[intake] ledger written (intakeId=${ctx.intakeId}, ledgerId=${String(doc.id)}, kind=${pack.id}, called=${text !== null}, facts=${state.facts.length}, unresolved=${state.unresolved.length}, droppedNotOnList=${count('not_on_list')}, droppedNoSpan=${count('no_span')}, droppedSpanNotFound=${count('span_not_found')}, droppedNoFact=${count('no_fact_answer')}, heldForConfirm=${held}, overlayAskedEmpty=${overlay.askedEmpty}, overlayWritten=${overlay.written}, overlayUnreadable=${overlay.unreadable})`,
     );
     return ledgerView(doc, checklist);
   } catch (err) {
@@ -1137,6 +1204,55 @@ async function writeReceptionLedger(
     );
     return undefined;
   }
+}
+
+/**
+ * T-190 AC8: the values that unlock "no other bail application has been made"
+ * in this pack's averment list (`first_bail_application`). Empty when the pack
+ * has no such entry, or its list cannot be read.
+ */
+function firstApplicationValues(packId: string): string[] {
+  try {
+    const entry = loadAvermentLists(packId).allowed.find((a) => a.id === 'first_bail_application');
+    const c = entry?.requires;
+    if (!c || 'all_of' in c || c.key !== PROTECTED_QUESTION_KEY || c.equals === undefined) {
+      return [];
+    }
+    return (Array.isArray(c.equals) ? c.equals : [c.equals]).map(String);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * T-190 AC8: earlier bail applications is asked to confirm when the brief shows
+ * a value for it but the ledger holds no fact (a "none" read from the
+ * description is held until confirmed). T-336: with the ledger off, it is asked
+ * to confirm while the brief marks that value `unconfirmed`.
+ */
+function confirmKeys(
+  brief: Brief,
+  checklist: ChecklistItem[],
+  ledger: LedgerView | undefined,
+): Set<string> {
+  const out = new Set<string>();
+  for (const item of checklist) {
+    if (!item.askWhenEmpty || item.key.split('.').pop() !== PROTECTED_QUESTION_KEY) continue;
+    if (!ledger) {
+      if (brief.items.some((i) => i.key === item.key && i.unconfirmed === true)) out.add(item.key);
+      continue;
+    }
+    if (ledger.facts.some((f) => f.key === item.key)) continue;
+    const shown = brief.items.find((i) => i.key === item.key);
+    const value = shown?.value;
+    const empty =
+      value === null ||
+      value === undefined ||
+      value === '' ||
+      (Array.isArray(value) && value.length === 0);
+    if (shown && !empty) out.add(item.key);
+  }
+  return out;
 }
 
 /** After the first request of an intake, later ones are capped per intake, not per user. */
@@ -1236,6 +1352,7 @@ async function briefWithPack(
     court: req.court,
     description: req.description,
     reask: [...alsoAsk],
+    holdNone: firstApplicationValues(pack.id),
   });
   console.info(
     `[intake] brief built (intakeId=${ctx.intakeId}, kind=${pack.id}, read=${read.values.size}, byCode=${byCode.size}, dropped=${read.dropped.length}, unknown=${brief.still_unknown.length}${edit})`,
@@ -1243,17 +1360,24 @@ async function briefWithPack(
   // T-147b: what the normalizer could not read is always asked, through the same
   // questions, even when the brief already holds a value for it. The value stays.
   const ledger = ctx.ledger.enabled
-    ? await writeReceptionLedger(ctx, pack, checklist, req)
+    ? await writeReceptionLedger(ctx, pack, checklist, req, brief)
     : undefined;
   const always: ReadonlySet<string> = new Set(
-    ledger ? ledger.unresolved.filter((u) => !ledger.facts.some((f) => f.key === u.key)).map((u) => u.key) : [],
+    ledger
+      ? ledger.unresolved
+          .filter((u) => !ledger.facts.some((f) => f.key === u.key))
+          .map((u) => u.key)
+      : [],
   );
   const config = loadTemplateConfig(pack.id);
   return {
     intake_id: ctx.intakeId,
     outcome: 'brief',
     brief,
-    questions: buildBriefQuestions(brief, wordedQuestions(parsed), alsoAsk, always),
+    questions: buildBriefQuestions(brief, wordedQuestions(parsed), alsoAsk, always, {
+      checklist,
+      confirm: confirmKeys(brief, checklist, ledger),
+    }),
     ...(config?.plan_access === 'pro' && req.plan !== 'pro' ? { needs_upgrade: true } : {}),
     ...(ledger ? { ledger } : {}),
   };
@@ -1541,6 +1665,7 @@ export function updateBrief(req: BriefUpdateRequest): Brief | null {
     values: req.values,
     court: req.court,
     description: req.description,
+    holdNone: firstApplicationValues(pack.id),
   });
 }
 

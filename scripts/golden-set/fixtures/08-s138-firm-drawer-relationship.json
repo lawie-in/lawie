@@ -1,0 +1,68 @@
+{
+  "id": "08-s138-firm-drawer-relationship",
+  "pack": "legal_notice_s138",
+  "title": "s.138 notice: a firm as drawer, no relationship invented",
+  "risk": "Run 2: 'Demo Traders' gone; risk that a relationship ('known to each other for years') or assurances ('repeatedly assured') are added to a notice",
+  "source": "handoff/quality/2026-10-07-run-2-develop-FAIL.md scenario 5 ('Demo Traders ke malik'); dev-written matter",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Mere client Kumar Steel Works hai. Gupta Electricals ke proprietor Anil Gupta ne 85,000 ka cheque diya tha, no. 556201, date 10 Sept 2026, State Bank of India, Chandni Chowk. 25 Sept 2026 ko present kiya, 27 Sept 2026 ko return, funds insufficient. Supply ka paisa tha. Delhi.",
+  "court": null,
+  "expect": {
+    "exact": [
+      {
+        "any_of": [
+          "Gupta Electricals"
+        ],
+        "why": "the drawer firm must be named"
+      },
+      {
+        "any_of": [
+          "Chandni Chowk"
+        ],
+        "why": "drawee branch"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "relationship",
+        "why": "no relationship was given"
+      },
+      {
+        "banned_entry_id": "drawer_assurances",
+        "why": "no assurance was given"
+      },
+      {
+        "banned_entry_id": "dishonest_intention",
+        "why": "never given, banned outright"
+      }
+    ],
+    "present": [
+      {
+        "any_of": [
+          "85,000",
+          "85000"
+        ],
+        "why": "the amount"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "respondent_name",
+        "why": "read from the description",
+        "display": "Anil Gupta"
+      },
+      {
+        "key": "cheque_amount",
+        "why": "read from the description",
+        "display": "Rs 85,000"
+      },
+      {
+        "key": "drawee_branch",
+        "why": "read from the description",
+        "display": "Chandni Chowk"
+      }
+    ]
+  }
+}

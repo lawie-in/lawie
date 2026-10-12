@@ -1,0 +1,52 @@
+{
+  "id": "06-s138-relative-memo-date",
+  "pack": "legal_notice_s138",
+  "title": "s.138 notice: 'return memo pichle hafte aaya' (her exact words)",
+  "risk": "Run 2 finding 2: a relative memo date became 'in the week following the presentation'; limitation runs from the memo, so it must stay a blank to fill",
+  "source": "handoff/quality/2026-10-07-run-2-develop-FAIL.md scenario 5, her words verbatim; apps/drafting/src/__tests__/fixtures/t147d/s138-notice.json",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Demo Traders ke malik ne mere client Suresh Gupta ko 3 lakh ka cheque diya, date 1 sept 2026, HDFC Bank Karol Bagh. 15 sept 2026 ko lagaya, bounce ho gaya. return memo pichle hafte aaya. Notice chahiye.",
+  "court": null,
+  "expect": {
+    "absent": [
+      {
+        "any_of": [
+          "in the week following",
+          "last week",
+          "pichle hafte"
+        ],
+        "why": "run 2: the relative date was paraphrased into the notice"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "return_memo_received_on",
+        "why": "no memo date was given"
+      }
+    ],
+    "present": [
+      {
+        "any_of": [
+          "3,00,000",
+          "3 lakh",
+          "300000"
+        ],
+        "why": "run 2: the amount was blank five times"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "dishonour_date",
+        "why": "'pichle hafte' is not a date",
+        "unresolved": true
+      },
+      {
+        "key": "cheque_amount",
+        "why": "read from the description",
+        "display": "Rs 3,00,000"
+      }
+    ]
+  }
+}

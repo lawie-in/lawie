@@ -56,6 +56,188 @@
             "required": true,
             "default": "no",
             "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "earlier_bail_applications",
+            "label": "Earlier bail applications in this matter",
+            "type": "textarea",
+            "required": false,
+            "question": "Has any bail application (regular, anticipatory or interim) been made for the applicant in this case before, in any court, including the High Court? If yes, give for each: the court, the date of the order and the result (rejected, dismissed as withdrawn, granted and cancelled, or still pending). If none, write \"None\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "antecedents",
+            "label": "Criminal antecedents",
+            "type": "textarea",
+            "required": false,
+            "question": "Is any other criminal case (FIR, charge sheet or conviction) pending or past against the applicant? If yes, give each case number, police station or court, sections and its status. If none, write \"None\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "investigation_status",
+            "label": "Investigation status",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "under_investigation",
+                "label": "Under investigation"
+              },
+              {
+                "id": "charge_sheet_filed",
+                "label": "Charge sheet filed"
+              },
+              {
+                "id": "cognizance_taken",
+                "label": "Cognizance taken"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "What is the stage of the investigation?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "applicant_sex",
+            "label": "Sex of the applicant",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "male",
+                "label": "Male"
+              },
+              {
+                "id": "female",
+                "label": "Female"
+              },
+              {
+                "id": "transgender",
+                "label": "Transgender"
+              },
+              {
+                "id": "not_given",
+                "label": "Not given"
+              }
+            ],
+            "required": false,
+            "question": "Sex of the applicant.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "medical_condition",
+            "label": "Medical condition of the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "Does the applicant suffer from any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "named_in_fir",
+            "label": "Whether the applicant is named in the FIR",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Is the applicant named in the FIR?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "cooperated_with_investigation",
+            "label": "Whether the applicant has cooperated with the investigation",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Has the applicant so far joined or cooperated with the investigation (for example, appeared when called or gave a statement)?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "applicant_occupation",
+            "label": "Applicant occupation",
+            "type": "text",
+            "required": false,
+            "question": "What does the applicant do for a living (for example: daily-wage labourer, farmer, driver, shopkeeper)? If nothing, write \"Unemployed\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "sole_earning_member",
+            "label": "Whether the applicant is the only earning member of the family",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Is the applicant the only earning member of the family?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "dependants",
+            "label": "Who depends on the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "Who in the family depends on the applicant's income (for example: aged mother, wife, two minor children)? If not known, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "local_ties",
+            "label": "Family and local ties of the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "What family or local ties does the applicant have at the address given (for example: lives there with parents, wife and children; owns the house; has lived there since birth)? If not known, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "co_accused_bail_court",
+            "label": "Court that granted bail to the co-accused",
+            "type": "text",
+            "required": false,
+            "question": "Has any co-accused in this case been granted bail? If yes, which court granted it? If not, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "co_accused_bail_date",
+            "label": "Date of the co-accused's bail order",
+            "type": "date",
+            "required": false,
+            "question": "Date of that bail order.",
+            "ask_when_empty": true
           }
         ]
       },
@@ -125,6 +307,12 @@
             "options_from": "supported_languages",
             "default": "en",
             "required": true
+          },
+          {
+            "field_id": "advocate_enrollment",
+            "label": "Bar Council Enrollment No.",
+            "type": "text",
+            "required": false
           }
         ]
       },
@@ -233,13 +421,19 @@
       "id": "false_implication",
       "name": "False Implication / Malafide",
       "required": false,
-      "description": "Allegation of false implication or malafide intention of complainant if applicable"
+      "description": "Only if the brief states that the applicant is falsely implicated, and only as the brief puts it."
     },
     {
       "id": "no_flight_risk",
-      "name": "No Flight Risk",
+      "name": "Undertakings",
       "required": true,
-      "description": "Assertion that applicant will cooperate with investigation"
+      "description": "Undertakings by the applicant for the future, if granted anticipatory bail: to make himself or herself available for interrogation by the police as and when required, not to make any inducement, threat or promise to any witness or other person acquainted with the facts of the case, not to leave India without the Court's permission, and to abide by the conditions imposed. Never a statement of fact."
+    },
+    {
+      "id": "earlier_applications",
+      "name": "Earlier Bail Applications",
+      "required": true,
+      "description": "Every earlier application for anticipatory bail or bail in this matter, with the court, the date of the order and the result, or that it is pending; or the blank where the brief does not say."
     },
     {
       "id": "prayer",
@@ -288,12 +482,13 @@
   ],
   "promptInstructions": [
     "Draft an Anticipatory Bail Application under Section 482 BNSS, 2023.",
-    "Begin with facts establishing the applicant's apprehension of arrest — threat of FIR, complaint filed, summons received.",
-    "State grounds for anticipatory bail: no prima facie case, false implication, malafide intention of complainant, clean antecedents, cooperation with investigation.",
+    "Begin with the facts that give the applicant reason to believe that the applicant may be arrested (for example a complaint, an FIR, a notice or summons received, or a threat), only as the BRIEF gives them. Do not add a fact the BRIEF does not give; where the BRIEF does not say what the apprehension rests on, write [To be confirmed: the facts on which the applicant apprehends arrest].",
+    "Set out the grounds for anticipatory bail that the BRIEF gives, and no others. Do not assert a ground (for example no prima facie case, false implication, malafide intention of the complainant, no criminal antecedents, cooperation with the investigation, roots in the community) unless the BRIEF states it. State each ground as the BRIEF puts it: do not add a reason or a detail to it. A submission on the law or the facts is written as \"It is submitted that ...\", among the grounds, never among the facts.",
     "Address the nature and gravity of the accusation, the applicant's role, and the likelihood of the applicant fleeing from justice, as reasoning on the facts in the brief. Do not name any judgment; where an authority would normally be cited, write [Authority — add if relied upon].",
     "Reference Bharatiya Nyaya Sanhita (BNS) section numbers — NEVER use old IPC section numbers.",
-    "Include standard conditions the applicant is willing to comply with: joining investigation, not leaving jurisdiction, surrendering passport.",
+    "Give the undertakings as undertakings by the applicant for the future, never as facts and never as undertakings by the advocate: the applicant undertakes that, if granted anticipatory bail, the applicant will make himself or herself available for interrogation by the police as and when required, will not make any inducement, threat or promise to any witness or other person acquainted with the facts of the case, will not leave India without this Hon'ble Court's permission, and will abide by every condition this Hon'ble Court imposes.",
     "Use formal, respectful legal language appropriate for Indian courts.",
+    "State every earlier application for anticipatory bail or bail in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier application for anticipatory bail or bail was made in this matter, to which court, and with what result].",
     "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
   ]
 }

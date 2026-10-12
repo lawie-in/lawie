@@ -41,13 +41,81 @@ const SUPP = String.raw`(?:\(?Supp\.?\)?\s*)`;
  */
 const KNOWN_OTHER_REPORTERS = new Set(
   [
-    'Mad LJ', 'MLJ', 'All LJ', 'ALJ', 'ALR', 'AWC', 'BLJR', 'PLJR', 'PLJ', 'DLT', 'DRJ', 'AD',
-    'Bom LR', 'Bom CR', 'BCR', 'Mh LJ', 'Cal LJ', 'CLJ', 'CHN', 'Cal WN', 'CWN', 'Ker LT', 'KLT',
-    'KLJ', 'Kar LJ', 'Guj LR', 'GLR', 'GLH', 'RLW', 'RLR', 'Raj LW', 'Ori LR', 'OLR', 'MPLJ',
-    'MPJR', 'MPHT', 'ALT', 'ALD', 'APLJ', 'CTC', 'LW', 'PLR', 'RCR', 'Cr LJ', 'CrLJ', 'Crimes',
-    'Gau LT', 'GLT', 'JLJ', 'JCR', 'HLR', 'SLR', 'SLJ', 'LLJ', 'FLR', 'Lab IC', 'LIC', 'ACJ',
-    'TAC', 'ACC', 'CCR', 'JT', 'SCALE', 'Scale', 'SCJ', 'ITR', 'Taxman', 'Comp Cas', 'CompCas',
-    'ELT', 'STC', 'CTR', 'Arb LR', 'MAC', 'UJ',
+    'Mad LJ',
+    'MLJ',
+    'All LJ',
+    'ALJ',
+    'ALR',
+    'AWC',
+    'BLJR',
+    'PLJR',
+    'PLJ',
+    'DLT',
+    'DRJ',
+    'AD',
+    'Bom LR',
+    'Bom CR',
+    'BCR',
+    'Mh LJ',
+    'Cal LJ',
+    'CLJ',
+    'CHN',
+    'Cal WN',
+    'CWN',
+    'Ker LT',
+    'KLT',
+    'KLJ',
+    'Kar LJ',
+    'Guj LR',
+    'GLR',
+    'GLH',
+    'RLW',
+    'RLR',
+    'Raj LW',
+    'Ori LR',
+    'OLR',
+    'MPLJ',
+    'MPJR',
+    'MPHT',
+    'ALT',
+    'ALD',
+    'APLJ',
+    'CTC',
+    'LW',
+    'PLR',
+    'RCR',
+    'Cr LJ',
+    'CrLJ',
+    'Crimes',
+    'Gau LT',
+    'GLT',
+    'JLJ',
+    'JCR',
+    'HLR',
+    'SLR',
+    'SLJ',
+    'LLJ',
+    'FLR',
+    'Lab IC',
+    'LIC',
+    'ACJ',
+    'TAC',
+    'ACC',
+    'CCR',
+    'JT',
+    'SCALE',
+    'Scale',
+    'SCJ',
+    'ITR',
+    'Taxman',
+    'Comp Cas',
+    'CompCas',
+    'ELT',
+    'STC',
+    'CTR',
+    'Arb LR',
+    'MAC',
+    'UJ',
   ].map((r) => r.toLowerCase().replace(/[.\s]+/g, '')),
 );
 
@@ -66,22 +134,359 @@ function reporterPattern(): RegExp {
   return new RegExp(REPORTER_SOURCE, 'g');
 }
 
-/** A capitalised word or an initial: "Arnesh", "M.", "D'Souza". */
-const CAP_WORD = String.raw`[A-Z][A-Za-z0-9'’.&-]*`;
-/** One word of a party's name after its first: a capitalised word, or a bracket such as "(NCT of Delhi)". */
-const NAME_WORD = String.raw`(?:${CAP_WORD}|\([^()\n]{1,40}\))`;
-const NAME_JOIN = String.raw`(?:of|and|the|for|through|de|da|del|von|van|bin|binti)`;
+/*
+ * How a case name is found (T-263, Ajay's rule AJ-2026-10-12-T263, its
+ * addendum of 12 Oct 2026, c765ae7, and Addendum 2, 0e452b6).
+ *
+ * Rule 1: the citation is anchored on the nearest versus word before the
+ * reporter in the same sentence (Addendum 2, Q2). Versus words are decided by
+ * `isVersusAt` (Addendum 4, Q5); sentence ends by `endsSentenceAt` (rule 4,
+ * Addendum 4, Q6).
+ * Rule 2: the second party is everything between the versus word and the
+ * reporter: commas, line breaks, and full stops that do not end a sentence
+ * under rule 4 ("Ltd.,", "Dept. (2016)"). Rule 3: the first party is found by
+ * walking back from the versus word over name tokens. Rule 4: sentence ends,
+ * which stop that walk, are decided by `endsSentenceAt`. Rule 5: if no name
+ * token stands before the versus word, the blank is cut back to the nearer of
+ * the previous sentence end or ten tokens.
+ */
+
+/**
+ * Rule 1: a candidate versus word, with whitespace on both sides, so "(v)" and
+ * words containing "vs" are not anchors. Any case (Addendum 4, Q5); a capital
+ * "V" or "V." is then checked by `isVersusAt`.
+ */
+const VERSUS_CANDIDATE = /(?<=\s)(?:versus|vs\.?|v\/s|v\.?)(?=\s)/gi;
+/**
+ * Addendum 4, Q5: v, v., vs, vs., versus and v/s are versus words in any case
+ * ("Vs.", "VS", "Versus", "VERSUS", "V/s", "V/S"). A capital "V" or "V." is one
+ * too, unless the word before it is an initial or a title (`isVersusAt`).
+ */
+const VERSUS_ANY_CASE = /^(?:v|v\.|vs|vs\.|versus|v\/s)$/i;
+/** Addendum 4, Q5: after one of these titles, a capital "V" or "V." is an initial: "Dr. V. Rao". */
+const TITLES_BEFORE_INITIAL = new Set([
+  'Dr',
+  'Smt',
+  'Shri',
+  'Sri',
+  'Md',
+  'Mr',
+  'Mrs',
+  'Ms',
+  'Prof',
+  'Kum',
+]);
+/** Addendum 4, Q6: these marks end a sentence when a space or the end of the text follows. */
+const SENTENCE_END_MARKS = new Set(['?', '!', '\u0964', '\u0965']);
+/**
+ * How far before the reporter the versus word may stand, in characters. With
+ * the blank-line stop, approved by Ajay (Addendum 2, Q1): the search back from
+ * a reporter for the versus word stops at a blank line or 250 characters.
+ */
+const VERSUS_LOOKBACK = 250;
+/** Rule 3: the first party has at most ten tokens. */
+const MAX_PARTY1_TOKENS = 10;
+
+/** Rule 3 name tokens. A capitalised word, an initial or a title: "Arnesh", "M.", "K.M.", "Dr.", "D'Souza", "Ltd.,". */
+const CAP_TOKEN = /^[A-Z][A-Za-z0-9'’.&-]*,?$/;
+/** Rule 3 name tokens. A bracket such as "(I)" or "(NCT of Delhi)". */
+const BRACKET_TOKEN = /^\([^()\n]{1,40}\),?$/;
+/**
+ * Rule 3 joining words. The last seven ("de" to "binti") are kept from T-148's
+ * name matching; they only ever widen a name, never narrow it.
+ */
+const JOIN_TOKENS = new Set([
+  'of',
+  'and',
+  'the',
+  'for',
+  'through',
+  'alias',
+  '@',
+  '&',
+  'Anr.',
+  'Ors.',
+  'de',
+  'da',
+  'del',
+  'von',
+  'van',
+  'bin',
+  'binti',
+]);
+/**
+ * Addendum 6, Q8b (amended, b5eeb0c): name words the walk back for the first
+ * party continues through, in any case (M/S, S/O, D/O, s/o, H/o and so on),
+ * with or without a final full stop: M/s, s/o, d/o, w/o, r/o, h/o. A full stop
+ * after one of them does not end a sentence, or the walk could not go through
+ * "M/s." (see `endsSentenceAt`). Addendum 7 (485d836): the word may carry a
+ * trailing full stop or comma ("S/O,"), and the walk continues past it.
+ */
+const SLASH_NAME_WORD = /^(?:m\/s|s\/o|d\/o|w\/o|r\/o|h\/o)[.,]?$/i;
+/** One token of the text before the versus word: a bracket group, or a run of non-space characters. */
+const TOKEN = /\([^()\n]{1,40}\),?|\S+/g;
+
 /** Words that open a sentence before a case name and are not part of it: "See", "In", "Accordingly". */
 const LEAD_WORD = String.raw`(?:See|In|Also|Cf|Per|As|Vide|Following|Applying|Relying|Reliance|Relied|Further|Similarly|Thus|Hence|Likewise|The|Hon'ble|Hon’ble|Accordingly|Therefore|Moreover|However|Furthermore|Additionally|Consequently|Notably|Indeed|Again|Here|Since|Where|Whereas|While|Under|By|Then|Finally|Lastly|Thereafter|This|That|Learned|Ld)\b`;
+/** A whole token that is a lead word, case as written: "The" is a lead word, "the" is a joining word. */
+const LEAD_TOKEN = new RegExp(String.raw`^${LEAD_WORD},?$`);
+
 /**
- * A party's name. Its first word is a capitalised word, never a bracket, so a
- * sub-point marker such as "(a)" stays out of the name (review T-148 round 1).
+ * Rule 4 (addendum, c765ae7): words after which a full stop never ends a
+ * sentence. Ajay's list, case as written. "Hon’ble" with a curly apostrophe
+ * is read as "Hon'ble" (see `endsSentenceAt`).
  */
-const PARTY = String.raw`(?<![A-Za-z0-9'’.&-])(?!${LEAD_WORD})${CAP_WORD}(?:\s+(?:${NAME_WORD}|${NAME_JOIN}))*?`;
-/** The case name that ends where the reporter begins, with an optional comma between. */
-const CASE_NAME_BEFORE = new RegExp(
-  String.raw`(${PARTY})\s+(?:v\.?|vs\.?|versus)\s+(${PARTY})[\s,]*$`,
-);
+const NOT_A_SENTENCE_END_ABBREVIATIONS = new Set([
+  'Ltd',
+  'Pvt',
+  'Ors',
+  'Anr',
+  'Dept',
+  'Govt',
+  'Co',
+  'Corp',
+  'Corpn',
+  'Inc',
+  'Bros',
+  'Assn',
+  'Secy',
+  'Comm',
+  'Commr',
+  'Addl',
+  'Dy',
+  'Dist',
+  "Hon'ble",
+  'No',
+  'Nos',
+  'Smt',
+  'Shri',
+  'Sri',
+  'Dr',
+  'Mr',
+  'Mrs',
+  'Ms',
+  'Md',
+  'Prof',
+  'Kum',
+  'etc',
+]);
+/** Rule 4: single or double capital letters, with or without full stops: "M", "K.M", "KM", "A.K". */
+const INITIALS = /^[A-Z]\.?[A-Z]?$/;
+/** Rule 4: after the full stop, a space and then a word starting with a capital letter. */
+const NEXT_WORD_CAPITAL = /\s+[A-Z]/y;
+
+/** The whitespace-separated word that ends before `at`, skipping whitespace: "" at the start of the text. */
+function wordBefore(text: string, at: number): string {
+  let i = at - 1;
+  while (i >= 0 && /\s/.test(text[i])) i -= 1;
+  const end = i + 1;
+  while (i >= 0 && !/\s/.test(text[i])) i -= 1;
+  return text.slice(i + 1, end);
+}
+
+/**
+ * Addendum 4, Q5: is `word`, which starts at `text[at]`, a versus word? Any
+ * case form of v, v., vs, vs., versus or v/s is. A capital "V" or "V." is not
+ * when the word before it is an initial or a title (one or two capital
+ * letters, or Dr, Smt, Shri, Sri, Md, Mr, Mrs, Ms, Prof, Kum): "K. V. Rao" and
+ * "Dr. V. Rao" keep V as an initial, while "Ram V. Shyam" is a case name.
+ */
+function isVersusAt(text: string, at: number, word: string): boolean {
+  if (!VERSUS_ANY_CASE.test(word)) return false;
+  if (word !== 'V' && word !== 'V.') return true;
+  const before = wordBefore(text, at)
+    .replace(/^[("“‘'[]+/, '')
+    .replace(/\.$/, '');
+  return !(INITIALS.test(before) || TITLES_BEFORE_INITIAL.has(before));
+}
+
+/**
+ * Does the character at `text[i]` end a sentence?
+ * - "?", "!", "।" or "॥" (Addendum 4, Q6): yes, when a space or the end of
+ *   the text follows. Rule 4's abbreviation exceptions do not apply to them.
+ * - A full stop (rule 4, addendum c765ae7; Addendum 2, Q3): only when the
+ *   word before it is not an abbreviation, initials or a versus word, AND the
+ *   next word starts with a capital letter after a space. So a full stop
+ *   followed by "(", a digit or a comma never ends a sentence.
+ * Used for the first party's walk and, per Addendum 2 Q2, to keep the search
+ * for the versus word inside the reporter's sentence.
+ */
+function endsSentenceAt(text: string, i: number): boolean {
+  if (SENTENCE_END_MARKS.has(text[i])) return i + 1 >= text.length || /\s/.test(text[i + 1]);
+  if (text[i] !== '.') return false;
+  NEXT_WORD_CAPITAL.lastIndex = i + 1;
+  if (!NEXT_WORD_CAPITAL.test(text)) return false;
+  const wordStart =
+    Math.max(
+      text.lastIndexOf(' ', i - 1),
+      text.lastIndexOf('\n', i - 1),
+      text.lastIndexOf('\t', i - 1),
+    ) + 1;
+  const word = text
+    .slice(wordStart, i)
+    .replace(/^[("“‘'[]+/, '')
+    .replace(/’/g, "'");
+  if (NOT_A_SENTENCE_END_ABBREVIATIONS.has(word)) return false;
+  if (INITIALS.test(word)) return false;
+  if (VERSUS_ANY_CASE.test(word)) return false;
+  if (SLASH_NAME_WORD.test(word)) return false;
+  return true;
+}
+
+/** Where the sentence that holds `hi` begins, looking back no further than `lo` (rule 4, Addendum 4 Q6). */
+function sentenceStart(text: string, lo: number, hi: number): number {
+  for (let i = hi - 1; i >= lo; i -= 1) if (endsSentenceAt(text, i)) return i + 1;
+  return lo;
+}
+
+/** Where the paragraph that holds `at` begins: after the last blank line before it. */
+function paragraphStart(text: string, at: number): number {
+  let start = 0;
+  for (const m of text.slice(0, at).matchAll(/\n[ \t]*\n/g)) start = (m.index ?? 0) + m[0].length;
+  return start;
+}
+
+/**
+ * Addendum 5, Q7: "?", "!", ",", ";" or ":" glued between two words with no
+ * space ("Shyam?Mohan") is a word break inside one whitespace-separated word.
+ */
+const GLUED_MARK = /(?<=[\p{L}\p{N}])[?!,;:](?=[\p{L}\p{N}])/gu;
+const isGluedAt = (text: string, i: number): boolean =>
+  i > 0 &&
+  i + 1 < text.length &&
+  /[\p{L}\p{N}]/u.test(text[i - 1]) &&
+  /[\p{L}\p{N}]/u.test(text[i + 1]);
+
+/**
+ * Rule 3: the hard limit for the first party, walking back from `versusStart`
+ * no further than `lo`: the end of the previous sentence (rule 4, Addendum 4 Q6), a
+ * semicolon, a colon, an opening quotation mark, or a line start. A semicolon
+ * or colon glued between two words is a word break, not a limit (Addendum 5, Q7).
+ * An opening "(" or "[" with no closing mark before the versus word is a
+ * limit too, like an opening quotation mark (Addendum 6, Q8a): "(Arnesh Kumar
+ * v. State of Bihar, (2014) 8 SCC 273)" becomes "([blank])". A bracket that
+ * closes before the versus word, such as "(NCT of Delhi)", is walked over as
+ * before. A straight quote right after such a bracket opens a quotation too:
+ * '("Arnesh Kumar v. ...'.
+ */
+function party1Limit(text: string, lo: number, versusStart: number): number {
+  let closed = 0;
+  for (let i = versusStart - 1; i >= lo; i -= 1) {
+    const ch = text[i];
+    if ((ch === ';' || ch === ':') && !isGluedAt(text, i)) return i + 1;
+    if (ch === '\n' || ch === '“' || ch === '‘') return i + 1;
+    if ((ch === '"' || ch === "'") && (i === 0 || /[\s([]/.test(text[i - 1]))) return i + 1;
+    if (ch === ')' || ch === ']') closed += 1;
+    if (ch === '(' || ch === '[') {
+      if (closed === 0) return i + 1;
+      closed -= 1;
+    }
+    if (endsSentenceAt(text, i)) return i + 1;
+  }
+  return lo;
+}
+
+/**
+ * A token the first party's walk goes over. A versus word is one (Addendum 2,
+ * Q3): with two names and a reporter only on the second, both names go, so no
+ * versus word is left standing directly before the blank.
+ */
+interface Token {
+  t: string;
+  at: number;
+  /** Where the whitespace-separated word holding this token starts. */
+  wordAt: number;
+  /** True if a glued mark joins this token to the next one (Addendum 5, Q7). */
+  glued: boolean;
+}
+
+/** The tokens of `text[from, to)`, with each glued word split at its glued marks (Addendum 5, Q7). */
+function tokensOf(text: string, from: number, to: number): Token[] {
+  const out: Token[] = [];
+  for (const m of text.slice(from, to).matchAll(TOKEN)) {
+    const wordAt = from + (m.index ?? 0);
+    const word = m[0];
+    let partAt = 0;
+    // A bracket group such as "(NCT of Delhi)" is one token, glued marks and all.
+    for (const g of BRACKET_TOKEN.test(word) ? [] : word.matchAll(GLUED_MARK)) {
+      const gi = g.index ?? 0;
+      out.push({ t: word.slice(partAt, gi), at: wordAt + partAt, wordAt, glued: true });
+      partAt = gi + 1;
+    }
+    out.push({ t: word.slice(partAt), at: wordAt + partAt, wordAt, glued: false });
+  }
+  return out;
+}
+const isNameToken = (text: string, { t, at }: Token): boolean =>
+  CAP_TOKEN.test(t) ||
+  BRACKET_TOKEN.test(t) ||
+  JOIN_TOKENS.has(t) ||
+  SLASH_NAME_WORD.test(t) ||
+  isVersusAt(text, at, t);
+/** Party 1 never starts with a joining word, a bracket or a versus word, so "and" or "(a)" before it stays in the text. */
+const isEdgeToken = (text: string, { t, at }: Token): boolean =>
+  BRACKET_TOKEN.test(t) || JOIN_TOKENS.has(t) || isVersusAt(text, at, t);
+
+/**
+ * Rules 3 and 5: where the first party begins, walking back from the versus
+ * word. Returns the start offset in `text`; equal to `versusStart` only if
+ * nothing at all stands before the versus word within the limit.
+ *
+ * Addendum 5, Q7: no part of a name may stand beside a blank. If the walk
+ * would stop inside a glued word ("shyam?Mohan Rao v. ..."), where party 1
+ * begins cannot be told, and rule 5's cut-back applies. A glued edge token is
+ * not trimmed off, for the same reason.
+ */
+function party1Start(text: string, lo: number, versusStart: number): number {
+  const limit = party1Limit(text, lo, versusStart);
+  const tokens = tokensOf(text, limit, versusStart);
+  const kept: Token[] = [];
+  let splitsWord = false;
+  for (let k = tokens.length - 1; k >= 0; k -= 1) {
+    const stop =
+      kept.length >= MAX_PARTY1_TOKENS ||
+      LEAD_TOKEN.test(tokens[k].t) ||
+      !isNameToken(text, tokens[k]);
+    if (stop) {
+      splitsWord = tokens[k].glued;
+      break;
+    }
+    kept.unshift(tokens[k]);
+  }
+  while (kept.length > 0 && !kept[0].glued && isEdgeToken(text, kept[0])) kept.shift();
+  if (kept.length > 0 && !splitsWord) return kept[0].at;
+  // Rule 5: no name token before the versus word, or the walk stopped inside
+  // a glued word (Addendum 5, Q7), so where party 1 begins cannot be told.
+  // Cut back to the nearer of the limit (the previous sentence end) or ten
+  // tokens, always at the start of a whole word.
+  const back = tokens.slice(-MAX_PARTY1_TOKENS);
+  return back.length > 0 ? back[0].wordAt : versusStart;
+}
+
+/**
+ * Ajay's Q4 (12 Oct 2026; Addendum 3, ac4dcae), in its general form: after
+ * any cut, no versus word may stand directly before a blank unless the
+ * advocate wrote that name. Whenever the text just before the blank ends in a
+ * versus word, whatever stopped the walk for party 1 (the ten-token limit, a
+ * line start or anything else), the cut goes back to the start of the
+ * sentence (rule 4). It is bounded only by `bound`, the previous citation's
+ * end or the paragraph start, not by VERSUS_LOOKBACK: the walk can already
+ * stand further back than that, and a wider blank is safe. T-148 (b) is
+ * unchanged: `trimLead` still gives back the words before a name the advocate
+ * wrote.
+ */
+function cutBackPastVersusWord(text: string, bound: number, start: number): number {
+  if (start <= bound) return start;
+  // The last word before the blank, if it lies wholly after `bound`.
+  let end = start;
+  while (end > bound && /\s/.test(text[end - 1])) end -= 1;
+  let at = end;
+  while (at > bound && !/\s/.test(text[at - 1])) at -= 1;
+  if (at === end || !isVersusAt(text, at, text.slice(at, end))) return start;
+  let cut = sentenceStart(text, bound, start);
+  while (cut < start && /\s/.test(text[cut])) cut += 1;
+  return cut;
+}
 
 /** Public parties that appear in many briefs; on their own they do not show the advocate named the case. */
 const GENERIC_PARTY =
@@ -136,22 +541,57 @@ function findCitations(text: string): Found[] {
   for (const m of text.matchAll(reporterPattern())) {
     const reporterStart = m.index ?? 0;
     const other = m.groups?.other;
-    // Look back no further than the line, the previous citation, or 250 characters.
-    const lineStart = text.lastIndexOf('\n', reporterStart - 1) + 1;
-    const lookFrom = Math.max(from, lineStart, reporterStart - 250);
-    const before = text.slice(lookFrom, reporterStart);
-    const named = CASE_NAME_BEFORE.exec(before);
+    // Rules 1 and 2: the nearest versus word before the reporter. A comma or
+    // a line break does not end the name. The search stops at the previous
+    // citation, a blank line or VERSUS_LOOKBACK characters (Addendum 2, Q1),
+    // and at the end of the previous sentence under rule 4 (Addendum 2, Q2).
+    const lo = Math.max(from, paragraphStart(text, reporterStart), reporterStart - VERSUS_LOOKBACK);
+    let versus: { start: number; end: number } | null = null;
+    // Searched in a bounded slice (one character early, so the whitespace
+    // look-behind sees the same character as on the whole text).
+    const searchStart = sentenceStart(text, lo, reporterStart);
+    const sliceFrom = Math.max(0, searchStart - 1);
+    for (const v of text.slice(sliceFrom, reporterStart).matchAll(VERSUS_CANDIDATE)) {
+      const at = sliceFrom + (v.index ?? 0);
+      if (at >= searchStart && isVersusAt(text, at, v[0]))
+        versus = { start: at, end: at + v[0].length };
+    }
     // A year-volume-page form with an unknown abbreviation is a citation only after a case name.
-    if (other !== undefined && !named && !KNOWN_OTHER_REPORTERS.has(other.toLowerCase().replace(/[.\s]+/g, ''))) {
+    if (
+      other !== undefined &&
+      !versus &&
+      !KNOWN_OTHER_REPORTERS.has(other.toLowerCase().replace(/[.\s]+/g, ''))
+    ) {
       continue;
     }
-    const start = named ? lookFrom + (named.index ?? 0) : reporterStart;
     const end = reporterStart + m[0].length;
+    if (!versus) {
+      // Rule 7: no versus word, reporter present, unchanged: the reporter alone.
+      out.push({
+        start: reporterStart,
+        end,
+        name: null,
+        parties: [],
+        reporter: m[0],
+        reporterStart,
+      });
+      from = end;
+      continue;
+    }
+    // Rule 3: party 1 is walked back from the versus word, no further than the previous citation.
+    const party1Bound = Math.max(from, paragraphStart(text, versus.start));
+    const walked = party1Start(text, party1Bound, versus.start);
+    const start = cutBackPastVersusWord(text, party1Bound, walked);
+    const party1 = text.slice(start, versus.start).replace(/\s+$/, '');
+    const party2 = text
+      .slice(versus.end, reporterStart)
+      .replace(/^\s+/, '')
+      .replace(/[\s,]+$/, '');
     out.push({
       start,
       end,
-      name: named ? before.slice(named.index ?? 0).replace(/[\s,]+$/, '') : null,
-      parties: named ? [named[1], named[2]] : [],
+      name: text.slice(start, reporterStart).replace(/[\s,]+$/, ''),
+      parties: [party1, party2],
       reporter: m[0],
       reporterStart,
     });

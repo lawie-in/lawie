@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 
+import { catalogueCategory } from '../config/catalogue';
 import { authenticate } from '../middleware/authenticate';
 import { Template } from '../models/Template.model';
 import { presentDescription } from '../utils/presentDescription';
@@ -26,10 +27,19 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
 
   const templates = await Template.find(filter)
     .select(
-      'templateId slug displayName category courtLevels description planAccess creditsCost icon supportedLanguages',
+      'templateId slug displayName category catalogueCategory courtLevels description planAccess creditsCost icon supportedLanguages',
     )
-    .sort({ category: 1, displayName: 1 })
     .lean();
+
+  // T-240: catalogue (T-239) order, then title. A row with no catalogue
+  // category yet sorts last.
+  const order = (id: unknown) =>
+    (typeof id === 'string' && catalogueCategory(id)?.order) || Number.MAX_SAFE_INTEGER;
+  templates.sort(
+    (a, b) =>
+      order(a.catalogueCategory) - order(b.catalogueCategory) ||
+      a.displayName.localeCompare(b.displayName),
+  );
 
   res.json({
     templates: templates.map((template) => ({

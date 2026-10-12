@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "description": "Document-rules config for discharge_application — Application for discharge u/S.250 BNSS (Sessions) / S.262 BNSS (warrant case before Magistrate) / S.272 BNSS (summons case)",
+    "description": "Document-rules config for discharge_application — Application for discharge u/S.250 BNSS (Sessions) / S.262 BNSS (warrant case before Magistrate on a police report) / S.268 BNSS (warrant case before Magistrate on a complaint)",
     "owner": "Ajay (CLO)",
     "validated_by": "Ajay (CLO) — Batch 5 criminal petitions pass 2026-05-12",
     "last_updated": "2026-05-12",
@@ -9,7 +9,7 @@
   "template_id": "discharge_application",
   "docType": "discharge_application",
   "title": "Application for Discharge under BNSS",
-  "displayName": "Discharge Application (S.250 / S.262 / S.272 BNSS)",
+  "displayName": "Discharge Application",
   "category": "criminal_petition",
   "creditsCost": 2,
   "court_levels": [
@@ -52,7 +52,7 @@
         "options": [
           "sessions_trial_s250",
           "warrant_case_by_magistrate_s262",
-          "summons_case_by_magistrate_s272",
+          "warrant_case_by_magistrate_complaint_s268",
           "special_court_session_level",
           "special_court_magistrate_level"
         ]
@@ -65,7 +65,7 @@
         "options": [
           "s_250_bnss_sessions",
           "s_262_bnss_warrant_magistrate",
-          "s_272_bnss_summons_magistrate"
+          "s_268_bnss_warrant_magistrate_complaint"
         ]
       },
       {
@@ -165,7 +165,7 @@
       "id": "applicable_section_paragraph",
       "name": "Applicable Provision",
       "required": true,
-      "description": "S.250 / S.262 / S.272 BNSS"
+      "description": "S.250 / S.262 / S.268 BNSS"
     },
     {
       "id": "ingredient_analysis_paragraph",
@@ -221,7 +221,7 @@
   "prompt_context": {
     "promptInstructions": [
       "Draft an application for discharge under the appropriate BNSS provision based on court forum.",
-      "PROVISION MAPPING: (a) Sessions Trial — S.250 BNSS (was S.227 CrPC); (b) Warrant Case Trial by Magistrate on police report — S.262 BNSS (was S.239 CrPC); (c) Summons Case by Magistrate — S.272 BNSS (was S.245 CrPC for warrant case on complaint, and notional discharge in summons case).",
+      "PROVISION MAPPING: (a) Sessions Trial — S.250 BNSS (was S.227 CrPC); (b) Warrant Case Trial by Magistrate on police report — S.262 BNSS (was S.239 CrPC); (c) Warrant Case by Magistrate on a complaint — S.268 BNSS (was S.245 CrPC).",
       "S.250 BNSS — 'If, upon consideration of the record of the case and the documents submitted therewith, and after hearing the submissions of the accused and the prosecution in this behalf, the Judge considers that there is no sufficient ground for proceeding against the accused, he shall discharge the accused and record his reasons for so doing.'",
       "Standard — 'no sufficient ground for proceeding'. NOT a mini-trial; judge must sift and weigh evidence to see if prima facie case exists.",
       "Cite Union of India v. Prafulla Kumar Samal (1979) 3 SCC 4 — judge's role at framing/discharge stage: (i) judge to sift and weigh material; (ii) where evidence raises grave suspicion not properly explained, charge to be framed; (iii) where evidence does not show offence committed, discharge; (iv) judge has power to sift and weigh, not to act as mere post office.",
@@ -232,7 +232,7 @@
       "Cite Soma Chakravarty v. State (2007) 5 SCC 403 — material against accused must be examined; broad probabilities to be considered.",
       "Para 1: Accused description, case number, charges.",
       "Para 2: FIR and chargesheet history — dates, sections.",
-      "Para 3: Stage — pre-charge; reference S.250/S.262/S.272 BNSS as applicable.",
+      "Para 3: Stage — pre-charge; reference S.250/S.262/S.268 BNSS as applicable.",
       "Para 4: BRIEF prosecution case summary.",
       "Para 5: Section-wise ingredient analysis — for each BNS section charged, list ingredients with statutory text, then demonstrate how chargesheet material taken at face value fails to make out one or more ingredients.",
       "Para 6: Contradictions in chargesheet material — between FIR and S.180/181 statements, between different witnesses, between statements and documents, between documents inter se. Pin-point page numbers in chargesheet.",
@@ -241,7 +241,7 @@
       "Para 9: Corporate cases — for accused officers without specific role: cite Pepsi Foods Ltd v. Special Judicial Magistrate (1998) 5 SCC 749; Maksud Saiyed v. State of Gujarat (2008) 5 SCC 668; Sunil Bharti Mittal v. CBI (2015) 4 SCC 609 — vicarious liability under criminal law requires specific statutory provision.",
       "Para 10: NI Act S.138 prosecutions of company directors — Cite S.M.S. Pharmaceuticals v. Neeta Bhalla (2005) 8 SCC 89 — director must be 'in charge of and responsible to' company at time of offence.",
       "Para 11: Where civil dispute given criminal colour — cite Indian Oil Corp v. NEPC India (2006) 6 SCC 736 — caution against criminalising contractual disputes.",
-      "Para 12: Statutory ingredients of common offences — applicant must know these (cited for reference): BNS 318 (cheating) requires inducement, deception, delivery; BNS 316 (criminal breach of trust) requires entrustment + dishonest misappropriation; BNS 85 (cruelty) requires marriage + harassment + cruelty as defined; BNS 86 (dowry death) requires death within 7 years of marriage + cruelty soon before death.",
+      "Para 12: Statutory ingredients of common offences — applicant must know these (cited for reference): BNS 318 (cheating) requires inducement, deception, delivery; BNS 316 (criminal breach of trust) requires entrustment + dishonest misappropriation; BNS 85 (cruelty) requires marriage + harassment + cruelty as defined; BNS 80 (dowry death) requires death within 7 years of marriage + cruelty soon before death.",
       "Para 13: Discharge under S.250 distinct from acquittal — discharge does NOT bar fresh trial if new evidence emerges (S.300 CrPC not attracted).",
       "Para 14: List of chargesheet documents relied on with index references.",
       "Burden — at discharge stage, defence cannot adduce evidence; only chargesheet material is examined. Accused may produce documents only if material in chargesheet itself supports defence (per State of Orissa v. Debendra Nath Padhi (2005) 1 SCC 568).",
@@ -268,8 +268,8 @@
         },
         { "number": "S.263", "description": "Framing of charge — warrant case" },
         {
-          "number": "S.272",
-          "description": "Procedure in summons cases — release / discharge (replaces S.245 CrPC for warrant on complaint)"
+          "number": "S.268",
+          "description": "Discharge in a warrant case instituted on a complaint (replaces S.245 CrPC)"
         },
         { "number": "S.438", "description": "Revisional powers of HC" },
         { "number": "S.442", "description": "Revisional powers of Court of Session" }
@@ -282,12 +282,12 @@
           "number": "S.85",
           "description": "Cruelty by husband or relative (was IPC 498A) — strict ingredients"
         },
-        { "number": "S.86", "description": "Dowry death (was IPC 304B) — strict ingredients" },
+        { "number": "S.80", "description": "Dowry death (was IPC 304B) — strict ingredients" },
         {
-          "number": "S.316",
+          "number": "S.316(2)",
           "description": "Criminal breach of trust (was IPC 406) — entrustment requirement"
         },
-        { "number": "S.318", "description": "Cheating (was IPC 420) — deception requirement" }
+        { "number": "S.318(4)", "description": "Cheating (was IPC 420) — deception requirement" }
       ]
     },
     {
@@ -310,7 +310,7 @@
     "Disclaimer slip — Lawie drafting assistance acknowledged"
   ],
   "validation_rules": [
-    "applicable_section must match case_type (s_250 with sessions; s_262 with warrant magistrate; s_272 with summons magistrate)",
+    "applicable_section must match case_type (s_250 with sessions; s_262 with warrant magistrate; s_268 with warrant magistrate on complaint)",
     "offences_charged must use BNS sections (warn if IPC sections detected)",
     "chargesheet_date must be valid date in past",
     "stage_of_case must be pre-charge (charges not yet framed)",

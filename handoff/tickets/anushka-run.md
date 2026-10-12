@@ -1,0 +1,646 @@
+# For Anushka's next run on develop
+
+Priya collects each lead's "What a user can now do" text here after a merge into `develop_staging`. Anushka gets only this text, the address, the account state and the draft allowance (`.claude/docs/quality-gate.md`). It reaches `develop` when the founder merges `develop_staging`.
+
+## Setup before the run (Priya, 12 Oct 2026)
+
+- `feature.describe_first`: on for the signed-in account (founder checked, 12 Oct).
+- `feature.fact_ledger`: set by the founder, 12 Oct 2026, with the same value as `feature.describe_first` (no id is written here). The rest of this paragraph is the original instruction, kept for the record. Originally: not set in the database, so it was off. Before Anushka tests T-189, once T-189 is on `develop`, the founder adds the app setting `feature.fact_ledger` with the same value as `feature.describe_first` (his user id, or the comma-separated list of ids). Never `on`: that would switch it on for every user, and it stays off for real users until T-187, T-188, T-190 and T-194 are done.
+
+- For default bail (T-251): `feature.fact_ledger` must also be ON for her test account, or the default bail template isn't offered.
+
+- Build note for anyone building the web app: the lead shells set NODE_ENV=development, which makes `next build` fail at prerender. Use NODE_ENV=production.
+
+- Until Ajay has signed the IPC→BNS table recheck (T-267): in the Tier A criminal samples, check each BNS section number the draft cites against the bare act.
+
+## T-208 (shashank, merged to develop_staging d305233, 11 Oct 2026)
+
+- When I sign up with a mistyped email, a short or weak password, or leave my name, email or password out, I see what is wrong instead of "Internal Server Error".
+- When I sign in without a password or with a bad email, I am told what is missing.
+- If several things are wrong, I see all of them at once.
+- Signing up and signing in with correct details works exactly as before.
+
+## T-209 (shashank, merged to develop_staging d35ecee, 11 Oct 2026)
+
+- I can sign up and be signed in straight away, or tap "Sign in" twice, without an error.
+- I can be signed in on two tabs or devices at once; logging out of one leaves the other signed in.
+- I am not signed out by this release; my existing session keeps working.
+
+## T-197 (mahak, merged to develop_staging d74d063, 11 Oct 2026)
+
+- When my draft is ready, I always see "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.", whether or not the checks flagged anything.
+- When the checks flag something and the warning box shows, I see that line once, not twice.
+- When I reopen a saved document, I see the same line above the text.
+- It reads the same on my phone and on a desktop.
+- The Word and PDF files I download have the same footers as before.
+
+## T-210 (shashank, merged to develop_staging 37a1d32, 11 Oct 2026)
+
+- I sign up and sign in exactly as before; nothing looks or works differently.
+- My email, name, phone number and password are no longer kept in Lawie's server logs or in error reports, even when something goes wrong while I sign up or sign in.
+
+
+## T-189 (vishal, merged to develop_staging 8bab9f7, 12 Oct 2026)
+
+Needs the `feature.fact_ledger` setup above, or she sees the old path.
+
+- I am a district-court advocate drafting a bail application, regular or anticipatory. I give the sections I am charged under and my grounds for bail in my own words. Before, the draft marked both as missing even though I had given them. Now every section and every ground I gave appears in the draft.
+- If I gave neither, the draft still shows both as missing.
+- If I gave three grounds and one cannot be found in what I wrote, I still get the other two, and I am told the system could not find that detail in what I wrote.
+- If I repeat the same section twice in my list, it appears once.
+- I can add, remove or change entries in my list and the draft follows.
+- If a draft leaves out one of my sections or grounds, or rewords a ground, I am told to check it instead of it quietly disappearing.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-194 (mahak, merged to develop_staging 324416e, 12 Oct 2026)
+
+Before her run, someone checks by hand: a real PDF render, the em dash in the fallback PDF, the DOCX opened in Word, and "Export DOCX anyway" in a browser.
+
+- The bold, italic and underlined text from my draft now shows in the Word file.
+- Before I export, I get a warning with the number of items still to be confirmed.
+- I can go back and fill them in. That puts me on the first blank.
+- Or I can export anyway.
+- Each blank prints bold and highlighted in yellow, in both Word and PDF.
+- "DRAFT — N items to be confirmed" prints at the top of every page.
+- If nothing is blank, there is no warning and no header, as before.
+- The registry case number in the title, the signing date in the verification and the signature line are not flagged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-227 (shashank, merged to develop_staging efa610b, 12 Oct 2026)
+
+- The Ink a document shows is the Ink taken.
+- Bail (regular and anticipatory) and consumer complaint now show 2 Ink, which is what they were always charged.
+- Most long documents now cost the 2 Ink they already showed.
+- A document type the app does not recognise is refused with a clear message, and no Ink is taken.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-248 (shashank, merged to develop_staging 4787900, 12 Oct 2026)
+
+- A review petition cites the criminal review bar under S.403 BNSS, with no mention of a proviso that does not exist.
+- A habeas corpus petition cites S.100 BNSS for the search of a wrongfully confined person.
+- The discharge form offers the right third option, a warrant case before a Magistrate on a complaint under S.268 BNSS, in place of a summons case that never had discharge.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-251 (mahak, merged to develop_staging 871f7c6, 12 Oct 2026)
+
+Needs `feature.fact_ledger` ON for her test account, or the default bail template isn't offered.
+
+- A default bail draft no longer cites any judgment you did not give, and it never counts days.
+- You choose the period (60 days, 90 days, or a period under a special Act) and the date it expired. Lawie does not decide which one applies.
+- An offence with a 10-year maximum is no longer forced into 90 days.
+- Missing details show as "[To be confirmed: ...]" blanks, and the export warning counts them.
+- Until the old/new law choice arrives, the prayer names the provision as a blank for you to confirm (CrPC 167(2) or BNSS 187(3)).
+- The undertaking to furnish bail bonds appears only when you tick it. If it is unticked or answered "No", you get a blank, never "will not furnish".
+- Earlier bail applications are stated as you give them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-200 (vishal, merged to develop_staging 89afcef, 12 Oct 2026)
+
+- When I draft a bail application and Lawie says every required clause (FIR details, custody, grounds, undertaking, earlier bail applications) is in the draft, it really is.
+- A clause whose paragraph was rewritten, renumbered or emptied is now flagged, instead of passing because its old paragraph number still exists.
+- Fixed wording in an English draft must actually appear. In Hindi drafts the cue words count. If the draft is not in English, Lawie tells me the fixed wording was not checked.
+- When Lawie cannot confirm a clause, the draft is marked "starting draft".
+- Some bail drafts that passed before can now carry the "starting draft" label when a required part's paragraph holds only a blank such as "[To be confirmed: …]" (for example interim bail urgency or duration with no detail given). That is intended.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-252a (mahak, merged to develop_staging 5355604, 12 Oct 2026)
+
+- The section converter page no longer says its mappings are validated or that it converts instantly.
+- The page heading and the Tools card say you can look up old and new section numbers side by side, free and without logging in.
+- The link at the bottom of the converter now reads "Lawie's drafting assistant".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-235 + T-254A (mahak, merged to develop_staging 77a06ec, 12 Oct 2026)
+
+- I can read a privacy policy that says what Lawie stores, where it is kept, which details are encrypted and which are not, who else receives them, and how to ask for my data to be erased.
+- When I ask "How is my case data handled?" on the home page or the FAQ, I get a plain answer that does not promise more than is true, including that there are no backups yet.
+- When I press "See what you can draft" on the home page I go straight to the list of documents; no sample files are offered.
+- The payment lines say payments go via Razorpay, with no "secure" claim and no promise of a GST invoice.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-250 + T-255 (shashank, merged to develop_staging ee76d8e, 12 Oct 2026)
+
+Needs develop's section tables reseeded first (Arjun does this on develop; the converter items below show nothing new before that).
+
+- In the section converter and in drafts that convert old sections, I get the corrected new section for Evidence Act and CrPC sections (for example CrPC 358 and 362).
+- A production-of-documents draft lists the right privilege sections of the Bharatiya Sakshya Adhiniyam.
+- The Chief Judicial Magistrate court note cites the right BNSS section.
+- Affidavits are no longer checked against an Evidence Act section that has nothing to do with affidavits.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-233 + T-271 (mahak, merged to develop_staging 0e965e7, 12 Oct 2026)
+
+- Bold, italic and underlined text, and drafts I never edited, now export to Word and PDF with their full text. (A draft I never edited used to give an empty Word file.)
+- The PDF has the wider 1.5 inch margin on the left, where the binding goes.
+- If an export fails I see "Export failed. Please try again." with Try again and Dismiss, instead of nothing happening. After a failed "Export anyway", Try again opens the blanks dialog again (by design).
+- "[To be confirmed: ...]" blanks are found and highlighted however they are capitalised.
+- On the privacy page I can reach and scroll the table with the keyboard alone.
+
+Note for her run: the 1.5 inch margin is on the browser-fallback PDF. A real .docx opened in Word and a measured PDF page were not checked by hand: check both.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-256 + T-264 (vishal, merged to develop_staging addd9e7, 12 Oct 2026)
+
+Nothing new on screen. This makes the team's automatic checks reliable: a test that failed at random now passes on its merits, and the sample bail application used to catch invented facts is checked on every change.
+
+Quality: nothing to test in the UI — tests, a test fixture and CI only.
+
+## T-273 + T-274 (mahak, merged to develop_staging 346cde7, 12 Oct 2026)
+
+- If I write "a < b & c" or "<Name>" in a plain-text draft, I see it exactly as written in the editor, the Word file and the PDF.
+- "[To be confirmed: ...]" shows in the PDF even when a missing detail was written in lower case, and it is counted at the end of intake.
+- The editor and every export show the same paragraphs whatever line endings the draft has, and headings are found in the PDF even with extra blank lines.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-275 (mahak, merged to develop_staging 5900d7f, 12 Oct 2026)
+
+Needs develop's section tables reseeded first for the Evidence Act and CrPC rows to show it.
+
+- I look up an old section that was repealed with no replacement and see "Repealed — no equivalent" and "None", instead of a raw code and a blank "Section".
+- I see "Not verified" and "Check the Gazette" for a section Lawie has not confirmed, instead of a guessed number.
+- I am not offered a Copy button when there is no section to copy.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-281 (mahak, merged to develop_staging 089eb8c, 12 Oct 2026)
+
+- On a phone, the section converter page no longer slides sideways: the search box and the Look up button sit one above the other, and the old and new sections are shown one above the other with an arrow between them.
+- "Check the Gazette" reads on one line on most phones.
+
+This is NOT a "works on mobile" claim (T-138 and the T-141a ban stand).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-237 (vishal, merged to develop_staging 8f31985, 12 Oct 2026)
+
+- When I draft an anticipatory bail, an interim bail or a bail application before a magistrate, the draft has its own part on earlier bail applications: each one I mentioned, with the court, the date of the order and the result.
+- If I did not say whether there was an earlier application, the draft gives me a marked blank to confirm. It never claims on its own that this is the first application.
+- If a draft leaves earlier applications out, it is flagged as missing that part. In an interim bail draft, the usual line that the main application is pending does not count as that disclosure.
+- In an anticipatory bail draft, the "Undertakings" part sets out what the applicant undertakes to do if granted bail, never as facts about the applicant.
+- In an interim bail draft, "Roots of the Applicant" appears only when my brief gives those facts; otherwise it is left out and nothing is invented.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-267 (shashank, merged to develop_staging ee93984, 12 Oct 2026)
+
+The first item works without a reseed; the second and third need develop's section tables reseeded first (Arjun does it on develop).
+
+- Several drafts cite the right BNS sections: dowry death BNS 80, false evidence BNS 227, 228 and 229, defamation 356(1) and 356(2), and the sub-sections for cheating 318(4) and criminal breach of trust 316(2).
+- The section converter and old-to-new conversions in drafts use IPC to BNS pairs rechecked against the Gazette text. A few old sections are marked "not verified" and show no BNS section.
+- The bail checker no longer reports an old IPC section that has no new equivalent as if it were a different BNS offence. (The bail checker page does not yet show the "No BNS equivalent" note: T-278.)
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-238 (mahak, merged to develop_staging 59e4ac8, 12 Oct 2026)
+
+- On the pricing page I read that most documents use 2 Ink and short documents 1, and that a failed draft is not charged, instead of "each document uses 1 Ink".
+- The Free plan reads "Every line of the draft is yours to change" and "Criminal drafts use BNS, BNSS and BSA section numbers", with no court-formatting or validation claims.
+- The plans and packs carry no "Most Popular", "POPULAR" or "BEST VALUE" labels.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-282 (vishal, merged to develop_staging 4958b96, 12 Oct 2026)
+
+Nothing new on screen. Tests only: the signed wording of the bail packs' earlier-applications and undertakings parts can no longer change by accident without a test failing.
+
+Quality: nothing to test in the UI — tests only.
+
+## T-279 (mahak, merged to develop_staging d0a51bf, 12 Oct 2026)
+
+- A "to be confirmed" blank still counts as a blank when it comes back in lower case, and no longer draws a false "may not belong" warning.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-263 (vishal, merged to develop_staging 4a51d23, 12 Oct 2026)
+
+- When a draft would name a case you did not give, the whole case name is now removed, not only the reporter. Both sides and the versus word go, so no half-name is left beside the blank.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-283 (vishal, merged to develop_staging 797cefd, 12 Oct 2026)
+
+Nothing new on screen. With the develop environment default on, a tester no longer needs the two feature switches set by hand for each account.
+
+Quality: nothing to test in the UI — a server setting only.
+
+## T-226 (mahak, merged to develop_staging 4087d6f, 12 Oct 2026)
+
+- Ink is set aside when a draft starts, so drafts running at the same time cannot overspend.
+- Ink comes back if a draft fails, or the user leaves before anything is saved.
+- A second click or a second tab gets "Draft already in progress" and no extra charge.
+- "Not enough Ink" shows before the draft starts.
+
+Test: open the same draft in two tabs at once and confirm you get one draft and one refusal.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-285 (vishal, merged to develop_staging 50720bd, 12 Oct 2026)
+
+- A long draft no longer stops partway when the server is quiet for a minute. The page stays connected until the draft finishes.
+
+Test: generate one long draft (many sections) and confirm it completes without the page dropping or showing an error.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-288 (mahak, merged to develop_staging 66753fc, 12 Oct 2026)
+
+- In the rare case that a finished draft's Ink cannot be taken because of a system fault, the user sees "not enough Ink" instead of getting the draft free, and is never charged for a draft they were not given.
+
+Nothing to test in a browser: the case cannot be reproduced there.
+
+Quality: nothing to test in the UI — a rare fault path that no user can trigger on demand.
+
+## T-269 (vishal, merged to develop_staging 9ddda55, 12 Oct 2026)
+
+Nothing new on screen. The build now stops on a code error instead of hiding it, and CI checks it on every push.
+
+Quality: nothing to test in the UI — build and CI only.
+
+## T-115a (mahak, merged to develop_staging 7c697a2, 12 Oct 2026)
+
+- Nothing changes on screen: saved case details are now stored encrypted.
+
+Test: open an old draft and a new one. Both still show their details, checklist and annexures as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-266 (vishal, merged to develop_staging 633aa29, 12 Oct 2026)
+
+- When Lawie checks a draft for required facts, a word that only contains a cue word ("background" for "ground") no longer counts.
+- The FIR number must appear exactly, not inside a date, a longer number or a different FIR like "12-A", so a missing fact gets caught.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-115e (mahak, merged to develop_staging 2355979, 12 Oct 2026)
+
+Nothing changes on screen. When Lawie has no template for what a user describes, it records only the general category, never the user's words or names.
+
+Quality: nothing to test in the UI — a privacy change in stored records.
+
+## T-277 (shashank, merged to develop_staging 0e4832a, 12 Oct 2026)
+
+- The bail checker and timeline tracker show the correct offence titles, bail and cognizance status, and maximum term from the official First Schedule.
+- A sub-section such as 103(1) or 316(2) is understood as part of its main section.
+- Where the Schedule depends on the facts, it says "Depends. Check the First Schedule." instead of guessing.
+- Bail advice names BNSS 480 or 483 based on the maximum sentence.
+- A section that creates no offence is said to be left out.
+- Drafts use the same classification.
+- A section number written without IPC or BNS gets a reminder to add the code.
+
+Note: the section tables on develop are live only after Arjun reseeds develop.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-284 (kunal, merged to develop_staging f1819ef, 12 Oct 2026)
+
+- The Privacy Policy now says what Lawie keeps if you join the waitlist (name, email, and phone, city, practice area and the link you came from if given), kept until you ask for deletion and never more than 18 months after you joined or Lawie last wrote to you.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-291 (tanvi, merged to develop_staging 38433f3, 12 Oct 2026)
+
+- On a phone, you can remove a section you added, or a file you attached, by tapping a clear button next to it, without hitting the wrong one.
+- On a computer the remove "x" sits beside each section and works from the keyboard. A screen reader reads it as "Remove" plus the name.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-292 (mahak, merged to develop_staging 613e151, 12 Oct 2026)
+
+Nothing changes on screen. Lawie no longer asks the AI to name the user's matter when it looks for a template.
+
+Test: describe a document; Lawie still finds the right template, or offers choices, as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-289 (shashank, merged to develop_staging ad6db61, 12 Oct 2026)
+
+- The bail checker names the trial court exactly as the First Schedule prints it ("Any Magistrate", "Court of Session") instead of guessing from the sentence. A 3-7 year offence triable by a Magistrate is no longer sent to Sessions.
+- With several sections, Court of Session wins if any section is triable there; otherwise the higher Magistrate is shown.
+- Where the Schedule gives no single court, the bail checker and the section finder say "Depends on the offence. Check the First Schedule."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-293 — bail draft reads the sections charged safely (cf05202)
+
+- Nothing changes on screen. A bail draft's bailable / non-bailable lines still match the sections charged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-290 — section picker shows what each section was read as (83a5c07)
+
+- Under Sections Charged, a reminder that a bare number is read as a BNS section.
+- Under each section added, what Lawie read it as before drafting ("Read as BNS 303: Theft", "Read as IPC 302").
+- "Checking this section" shows while it checks; a red warning appears if the check fails or the entry isn't a section.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-309 — section picker hardening (ed989ee)
+
+- If one section can't be checked, only that one shows the warning; the others still show what they were read as. A failed check is retried once by itself.
+- Entries go up to 100 characters, up to 30 sections; at 30 the box stops taking more.
+- On a phone, a long section name wraps inside the box and its remove button stays visible.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-297 — court notes defer to the First Schedule (9b4468b)
+
+- Court notes no longer say which court tries a case from the length of the sentence. They say the First Schedule to BNSS decides, which matches the court the bail checker shows.
+- The Magistrate (JMFC) note no longer says it only tries offences up to 3 years.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-300 — server-only values in drafts (048a632)
+
+- Nothing changes on screen.
+- The advocate name typed on the form, or a "to be confirmed" placeholder, appears on both the draft and the annexures; with the field empty, the profile name.
+- A default bail draft's jail line says "to be confirmed".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-296 — section converter on a phone (32fc50b)
+
+- On a phone, convert a long passage in the section converter without results running off the screen.
+- Sections merged or split in the new law show a plain label (verify scope / check which new section applies).
+- "None" appears only for repealed sections; an unknown new section says Not verified and to check the Gazette.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-311 — enrollment number from the profile (0bff26f)
+
+With a profile that has an enrollment number:
+
+- Leave the enrollment field empty: the profile number prints in the draft, the Vakalatnama and the Memo of Parties.
+- Type a number, or "to be confirmed": that prints.
+- Type another advocate's name with the enrollment field empty: the number stays blank.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-234 + T-298 — email and password sign-up and sign-in (b4d6b58)
+
+- Create an account or sign in with email and password as well as Google; a link can open straight on Create account.
+- Clear messages for bad details, an existing email (quick switch to Sign in), a wrong password or no connection.
+- The terms and privacy line shows, and Lawie records the acceptance.
+- A referral code's bonus Ink is given once, or the user is told once if it can't apply.
+- A Google-only advocate trying a password gets a plain "incorrect" message pointing to Google.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-268 — terms page (f6566b4)
+
+Open /terms and check:
+
+- It calls Lawie a drafting assistant whose drafts the advocate reviews and is responsible for.
+- It says drafts are paid for with Ink: most use 2, short ones 1, nothing for a failed draft.
+- It says nothing takes away rights under law or the right to approach a Consumer Commission.
+- "Last updated: 12 October 2026". No "AI-assisted" or "formatted for Indian courts" in the page body (the footer is T-317).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-241 — bail drafts don't assert facts the user didn't give (6bb8f85)
+
+- Anticipatory and magistrate bail drafts no longer claim grounds, antecedents, roots or a filed charge sheet the user didn't give; a missing fact gets a blank to fill.
+- In regular and default bail, "before this Hon'ble Court" no longer counts as covering earlier applications.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-317 — one consistent description across the site (ca2d88f)
+
+- The home page, FAQ, About and Tools pages and the site footer all describe Lawie the same way: a drafting assistant for Indian advocates, where criminal drafts use BNS, BNSS and BSA section numbers and the advocate is responsible for legal accuracy and filing.
+- FAQ answers say each document is a first draft generated with AI that the filing advocate must review.
+- An exported PDF's footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-306 — login stays out of the address bar and analytics (ba54d48)
+
+- Sign in with Google as before. The sign-in no longer puts the login in the page address, browser history or analytics.
+- The dashboard, drafts and login pages are no longer tracked; only public pages are counted, without query details.
+- The browser tab title reads "Lawie — Drafting Assistant for Indian Advocates".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-278 — bail checker and timeline show signed notes (92efbc3)
+
+- In the bail checker, an old IPC section with no new equivalent, or one not in the table, shows a clear note to check the Gazette, instead of a blank or a guessed section.
+- In the timeline tracker, every section left out of the period says why: it's an old-law section (with a pointer to the section converter), it doesn't create an offence, or it wasn't found in the BNS offences table.
+- Typing "BNS 103" or "103-BNS" in the timeline works like typing 103.
+- Unknown values show "Depends…", never "Non-Bailable" or a guessed court.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-318 — footers on server PDFs, annexures and the welcome email (f5e7edb)
+
+- Export a draft as PDF from the server; the footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+- Open the annexures (Vakalatnama, Memo of Parties and the others); the footer reads "Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice."
+- The welcome email says "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-319 — Google sign-in can't be hijacked (2b02eae)
+
+- Sign in with Google as before.
+- A sign-in link someone else started can no longer log you into another person's account; you see "We couldn't finish signing you in. Please try again." and start again.
+- Needs develop on https (founder's check).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-313 — optional enrollment number on three documents (a6b2162)
+
+- When drafting a regular bail, anticipatory bail or consumer complaint, type a Bar Council enrollment number (or a "to be confirmed" note) in the new optional "Bar Council Enrollment No." field under Court & Parties. It prints in the advocate block, the Vakalatnama and the Memo of Parties.
+- Leave it empty and still get the draft: the profile number is used if the advocate is you, otherwise a blank to fill in.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-295 — old-law sections warn instead of block (2e06933)
+
+- Enter an old IPC, CrPC or IEA section (e.g. "302 IPC"): a warning says it's an old-law section and points to the section converter for offences on or after 1 July 2024. You can continue with "generate anyway" instead of being blocked.
+- The warning never shows a mixed label like "BNS Section 302 IPC".
+- A BNS section that doesn't exist is still blocked.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-280 — converter shows section titles (d80774f)
+
+- In the section converter, see the title of the old section and of the new section under each number, so a wrong number is easy to spot.
+- Test only after the founder has reseeded develop (seed-sections --force), Ajay's condition.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-322 — a signed blank is accepted as is (e4523df)
+
+- An anticipatory, magistrate or default bail draft that leaves the prescribed "To be confirmed" blank for a missing fact is accepted as is. It is no longer sent back to the AI for a rewrite that could invent the fact.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-321 — one AI footer per exported draft (36ea45e)
+
+- Export a starting draft as PDF (in the app or from the server): one footer only, "Starting draft prepared with AI assistance from the details you gave. Not checked against court rules. Review every line before use. Lawie does not provide legal advice."
+- Export any other draft: one footer, "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-326 — new BNS sections in the converter (d51311e)
+
+- Look up a new BNS, BNSS or BSA section that has no old equivalent: it shows "No equivalent in the IPC" (or CrPC, IEA) instead of a made-up number.
+- Copy gives just the new section, e.g. "BNS 111".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-299 + T-308 + T-325 — sign-in hardening and privacy wording (991c0f6, 84d9e4c)
+
+- A clear message when Google sign-in fails; a Contact support link if the account is deactivated.
+- A wrong email or a wrong password gives the same answer either way.
+- Linking Google signs out your other sessions; signing out ends the old login everywhere in the account service.
+- The Privacy Policy says Google Analytics runs on public pages only and sets _ga cookies.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-324 — matching IPC alias on a BNS entry (cf26a25)
+
+- Enter a BNS section with its old IPC number in brackets, e.g. "BNS 303 (IPC 379)": no old-law warning when the IPC number truly corresponds to that BNS section.
+- The warning still shows when the bracketed IPC number doesn't match, or when an IPC section is entered on its own.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-327 — default bail blanks accepted as is (cd5b32b)
+
+- In a default bail where the user hasn't given the default-bail period or its expiry date, a draft that leaves the brief's own blank is accepted as is. It is no longer sent back to the AI for a rewrite that could invent them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-310 — consent before Google Analytics (af975f2)
+
+- First visit: a small card asks about analytics. Accept and Decline are equally prominent.
+- Ignore it or press Decline, and nothing about the visit goes to Google.
+- Press Accept and analytics starts at once, with no reload.
+- "Cookie settings" in the footer or on /privacy reopens the card; Decline stops analytics and clears its cookies.
+- The privacy page says the choice is kept with no IP or account link and is deleted after 12 months.
+- On a small phone or with large text, the card text scrolls and the buttons stay in view.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-190 + T-199 — bail packs ask for the facts behind their averments (65d8707, mahak, 12 Oct 2026)
+
+What a user can now do:
+- When drafting a regular, interim, anticipatory or Magistrate bail application, be asked (after the required details, up to 10 questions) about earlier bail applications, criminal history, arrest date, investigation stage, health, whether the applicant is named in the FIR, recovery, cooperation, work, whether the applicant is the only earning member, who depends on them, local ties, the Section 35 notice and a co-accused's bail, using buttons for yes/no and stage answers.
+- Answer "Not known" or "None" and get no claim about it in the draft; leave any of them blank and still get the draft.
+- If the description says no earlier bail application was made, be asked to confirm it once; skip it and the draft leaves that line blank for them to fill.
+- Test with the fact-ledger setting both on and off; the questions appear either way.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-328 + T-332 — cookie card focus, splash, no browser error reporting (5482b37, kunal, 12 Oct 2026)
+
+What a user can now do:
+- After answering the cookie card, keyboard and screen-reader users land on the page content with no stray focus stop left behind.
+- The logo splash always finishes and the cookie card still appears, even when the browser blocks storage (private mode).
+- Nothing about a visitor's browser goes to an error service, same as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-339 — splash with blocked storage (5adf962, kunal, 12 Oct 2026)
+
+What a user can now do:
+- With browser storage blocked (private mode, site data off), the opening logo animation plays and finishes normally with no error.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-270 — wrong-section warnings for code-first citations (e43420d, shashank, 12 Oct 2026)
+
+What a user can now do:
+- After a draft is generated, get a warning for a wrong section in any of the six codes, written any common way ("BSA 85", "85 BSA", "S. 85 of the BSA", "Ss. 3-5 BSA"). There's never a false warning for a real old IPC, CrPC or IEA section.
+- Each section number is checked against the Act it's cited under, so "Section 3 BSA" no longer passes just because the Oaths Act has a section 3.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-336 — confirm a "None" on earlier bail applications, ledger off (273b6d4, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting off: if their description says "Earlier bail applications: None" (or nil, no, koi nahi and the like), see that question asked again to confirm it.
+- Confirm it and get the draft saying it is the first application; skip it and get a blank in the draft to fill in instead.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-333 — every draft path checks sections in all codes (2852e94, shashank, 12 Oct 2026)
+
+What a user can now do:
+- Drafts made from a template, a brief or the guided flow get the same section warnings as any other draft. A wrong BSA, BNSS, IPC, CrPC or IEA section is flagged, not only BNS.
+- Cite a range like "Ss. 100-105 BNS" without a murder warning when the facts don't mention a death. An explicit "BNS 103" still gets it.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-341 — warning when "first bail application" wasn't confirmed (08103ec, mahak, 12 Oct 2026)
+
+What a user can now do:
+- If a bail draft says no earlier bail application was made but they never confirmed that, see a warning asking them to check it before filing.
+- If they said an earlier bail application was made and the draft still says it is the first, see a warning to correct the draft.
+- Confirm "None" (or say it is the first application) and see no such warning.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-240 — templates grouped under plain-language categories (6a6cd2a, tanvi, 12 Oct 2026)
+
+What a user can now do:
+- Browse templates grouped under the 26 plain-language categories, in a fixed order, when starting a new document, changing the document type, or in the templates library.
+- Admins see and filter by each document's category.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-338 — blanks for half-read or unasked bail details (10faf08, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting on: when a bail detail was only half-read from their description or was never asked, see a clear blank for it in the draft to fill in, instead of the point being left out.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-192 — cheque-bounce notice date checks (5dd6388, vishal, 12 Oct 2026)
+
+What a user can now do:
+- In a cheque-bounce notice, enter the cheque validity, return-memo-received and notice-sent dates. Lawie checks presentation in time and notice within 30 days, and only then lets the notice say so.
+- A missing date leaves a named blank. The notice is dated with the sending date, or today.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-242 — sign-up source and referral links (6b37ed6, kunal, 12 Oct 2026)
+
+What a user can now do:
+- Arrive from a campaign link with utm_ tags and sign up by email or Google; the account records the campaign. The tags vanish from the address bar and aren't shared with GA or anyone else.
+- /login?ref=CODE opens Create account with the referral box filled in.
+- Admins can see how many sign-ups came from each source.
+- The privacy page says the campaign tags are kept.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-347 — impossible section numbers flagged (a75c522, shashank, 12 Oct 2026)
+
+What a user can now do:
+- See a wrong-section warning when a draft cites a section number that cannot exist, like "BNS 1034" or "Section 4521 CrPC".
+- Years such as "2023" and ordinary numbers like amounts, pages or days are never flagged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-335 — answers survive a description edit (fcc74a5, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting on: answer "Not known" to a question, then edit the description, and the answer stays "Not known" instead of the old reading coming back.
+- Type or answer a detail, then edit the description, and the draft still uses what they typed.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-344 — campaign source kept through a cancelled Google sign-in (c16b5db, kunal, 12 Oct 2026)
+
+What a user can now do:
+- Arrive from a campaign link, start a Google sign-in, cancel, then try again in the same tab. The account still records which campaign brought them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

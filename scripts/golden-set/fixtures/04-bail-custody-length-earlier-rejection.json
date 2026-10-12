@@ -1,0 +1,76 @@
+{
+  "id": "04-bail-custody-length-earlier-rejection",
+  "pack": "bail_regular",
+  "title": "Bail, Dhanbad: custody length computed, earlier rejection dropped",
+  "risk": "Run 1 blocker: 'has now been in custody for approximately three days' on a draft weeks later; the JMFC's rejection of 22 September 2026 left out while the verification says nothing was concealed",
+  "source": "handoff/quality/2026-10-06-baseline-run-FAIL.md scenario 3, blocker 2",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Regular bail for Testram Oraon s/o Budhu Oraon, 29 saal, Sessions Judge Dhanbad. FIR 145/2026 dated 10 Sept 2026, Saraidhela PS, sections 303(2) and 317(2) BNS. 12 September 2026 ko arrest hua, 13 September 2026 se judicial custody. Bail was rejected by the Judicial Magistrate First Class, Dhanbad on 22 September 2026. Ghar ka akela kamane wala hai.",
+  "court": {
+    "state": "Jharkhand",
+    "court_type": "sessions",
+    "court": "jharkhand_sessions_dhanbad"
+  },
+  "expect": {
+    "exact": [
+      {
+        "any_of": [
+          "22 September 2026"
+        ],
+        "why": "run 1: the earlier rejection was dropped"
+      },
+      {
+        "any_of": [
+          "13 September 2026"
+        ],
+        "why": "run 1: custody was misdated"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "three days",
+          "approximately"
+        ],
+        "why": "run 1: a custody length nobody gave"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "days_in_custody",
+        "why": "the model must not compute days in custody"
+      },
+      {
+        "banned_entry_id": "prolonged_custody",
+        "why": "not given"
+      }
+    ],
+    "present": [
+      {
+        "any_of": [
+          "Saraidhela"
+        ],
+        "why": "run 1: the police station was asked again"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "custody_since",
+        "why": "read from the description",
+        "display": "13 September 2026"
+      },
+      {
+        "key": "fir_date",
+        "why": "read from the description",
+        "display": "10 September 2026"
+      },
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Testram Oraon"
+      }
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "id": "10-ab-lucknow-first-application",
+  "pack": "bail_anticipatory",
+  "title": "Anticipatory bail, Lucknow: no 'first application' claim",
+  "risk": "Run 1 scenario 4 and run 2 'Can wait' (no place for earlier bail applications): the draft must not say this is the first application when nothing was said either way; PS Kaiserbagh was asked again",
+  "source": "handoff/quality/2026-10-06-baseline-run-FAIL.md scenario 4; handoff/quality/2026-10-07-run-2-develop-FAIL.md Can wait list",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Anticipatory bail for Deepak Verma s/o Suresh Verma, 38 saal, Lucknow. FIR 99/2026 dated 1 Oct 2026, PS Kaiserbagh, section 351(2) BNS. Client ko abhi arrest nahi kiya gaya. Sessions Court Lucknow.",
+  "court": {
+    "state": "Uttar Pradesh",
+    "court_type": "sessions",
+    "court": "up_sessions_lucknow"
+  },
+  "expect": {
+    "not_written": [
+      {
+        "banned_entry_id": "first_bail_application",
+        "why": "nothing was said about earlier applications"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "first anticipatory bail application",
+          "this is the first"
+        ],
+        "why": "an unstated claim about earlier applications"
+      }
+    ],
+    "present": [
+      {
+        "any_of": [
+          "Kaiserbagh"
+        ],
+        "why": "run 1: asked again though given"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "police_station",
+        "why": "read from the description",
+        "display": "Kaiserbagh"
+      },
+      {
+        "key": "fir_number",
+        "why": "read from the description",
+        "display": "99/2026"
+      },
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Deepak Verma"
+      }
+    ]
+  }
+}

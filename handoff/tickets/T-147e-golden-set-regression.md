@@ -4,8 +4,9 @@
 | -------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Phase          | 1 — Describe and draft                                                                                              |
 | Owner          | Vishal (harness), Anushka (fixtures, jointly)                                                                       |
+| Assigned lead  | vishal                                                                                                              |
 | Mode           | Build, full chain. Merge to develop                                                                                 |
-| Status         | Blocked on T-147d                                                                                                   |
+| Status         | Merged to develop_staging (11 Oct). Open: the repository secrets `GOLDEN_SET_ANTHROPIC_API_KEY` and `GOLDEN_SET_MONGODB_URI` are not set, so CI runs the dry run only; Anushka has not yet reviewed the fixtures (`scripts/golden-set/README.md`)                                          |
 | Size           | S (half a day for the harness; fixtures run alongside)                                                              |
 | Depends on     | T-147d (the verifier is the assertion)                                                                              |
 | Branch         | feat/t-147e-golden-set                                                                                              |

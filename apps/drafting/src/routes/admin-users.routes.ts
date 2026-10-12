@@ -13,6 +13,7 @@ import mongoose from 'mongoose';
 import { authenticate } from '../middleware/authenticate';
 import { LawieDocument } from '../models/Document.model';
 import { User } from '../models/User.model';
+import { NOT_FIXTURE } from '../services/run-origin';
 
 const router = Router();
 
@@ -104,7 +105,7 @@ router.get(
 
     const [user, draftCount, recentInkLedger] = await Promise.all([
       User.findById(userId).lean(),
-      LawieDocument.countDocuments({ userId, isDeleted: { $ne: true } }),
+      LawieDocument.countDocuments({ userId, isDeleted: { $ne: true }, ...NOT_FIXTURE }),
       mongoose.connection.db
         ? mongoose.connection.db
             .collection('inkledger')

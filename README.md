@@ -14,7 +14,7 @@
 | Backend        | Express.js microservices (4 services), TypeScript      |
 | Database       | MongoDB 7.0 (Mongoose)                                 |
 | Cache          | Redis 7.4 (ioredis)                                    |
-| Auth           | Google OAuth + JWT (access + refresh) + Redis sessions |
+| Auth           | Email+password/Google OAuth, JWT access+refresh, Redis |
 | AI             | Anthropic Claude (Sonnet 4)                            |
 | Payments       | Razorpay subscriptions + webhooks                      |
 | Infrastructure | Docker Compose (dev + demo), EC2 + Nginx (prod)        |
@@ -30,7 +30,7 @@
 lawie/
 ├── apps/
 │   ├── gateway/        # API Gateway — routing, JWT validation, rate limiting  (port 4000)
-│   ├── auth/           # Auth Service — Google OAuth, sessions, user model     (port 4001)
+│   ├── auth/           # Auth Service — email+password, Google, user model     (port 4001)
 │   ├── drafting/       # Drafting Service — AI engine, templates, sections     (port 4002)
 │   ├── billing/        # Billing Service — Razorpay subscriptions              (port 4003)
 │   └── web/            # Next.js frontend                                      (port 3000)
@@ -55,6 +55,8 @@ lawie/
 | `/api/templates/*` | `drafting:4002` | Drafting Service                  |
 | `/api/sections/*`  | `drafting:4002` | Drafting Service (public, no JWT) |
 | `/api/billing/*`   | `billing:4003`  | Billing Service                   |
+
+**Analytics consent.** Google Analytics (GA4) loads in the browser only after a visitor presses Accept on a public page; with no answer or Decline there is no Google script and no `_ga` cookie. The choice is kept in the browser (`localStorage`, key `lawie.consent.analytics`) and can be changed from the footer ("Cookie settings") or the privacy page. Each choice is also recorded by the auth service via the public, unauthenticated `POST /api/auth/consent` (body: random id, `granted`/`denied`, text version; 1 KB limit; returns 204). The record holds no IP, user agent or account link, is deleted after 12 months, and the visitor is asked again then. If the store write fails, auth logs the fixed message `consent_store_failed` with the error name and code only. Browser-side Sentry is off (server and edge Sentry are on); turning it on needs a new ticket. Web tests: `yarn workspace @lawie/web test`.
 
 ---
 

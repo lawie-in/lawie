@@ -107,41 +107,41 @@ async function seedSections() {
       newCode: 'BSA',
       newCodeFull: 'Bharatiya Sakshya Adhiniyam, 2023',
       oldSection: '45',
-      newSection: '44',
+      newSection: '39(1)',
       oldTitle: 'Opinions of experts',
       newTitle: 'Opinions of experts',
       mappingType: 'direct',
       effectiveDate: EFFECTIVE_DATE,
     },
-    // CLO patch: IEA 32 → BSA 32 (was incorrectly BSA 26)
+    // CLO patch: IEA 32 → BSA 26 (signed table, T-250)
     {
       oldCode: 'IEA',
       oldCodeFull: 'Indian Evidence Act, 1872',
       newCode: 'BSA',
       newCodeFull: 'Bharatiya Sakshya Adhiniyam, 2023',
       oldSection: '32',
-      newSection: '32',
+      newSection: '26',
       oldTitle:
         'Cases in which statement of relevant fact by person who is dead or cannot be found etc. is relevant (Dying declaration)',
       newTitle:
         'Cases in which statement of relevant fact by person who is dead or cannot be found etc. is relevant',
       mappingType: 'partial',
-      notes: 'CLO fix: was incorrectly mapped to BSA 26. Corrected to BSA 32.',
+      notes: 'CLO fix: IEA 32 is BSA 26 per the signed T-250 table.',
       validatedBy: 'Ajay - CLO',
       effectiveDate: EFFECTIVE_DATE,
     },
-    // CLO patch: IPC 416 → BNS 319 (new row)
+    // CLO patch: IPC 416 → BNS 319(1) (new row)
     {
       oldCode: 'IPC',
       oldCodeFull: 'Indian Penal Code, 1860',
       newCode: 'BNS',
       newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
       oldSection: '416',
-      newSection: '319',
+      newSection: '319(1)',
       oldTitle: 'Cheating by personation',
       newTitle: 'Cheating by personation',
       mappingType: 'direct',
-      notes: 'IPC 416 (Cheating by personation) maps directly to BNS 319.',
+      notes: 'IPC 416 (Cheating by personation) maps directly to BNS 319(1).',
       validatedBy: 'Ajay - CLO',
       effectiveDate: EFFECTIVE_DATE,
     },
@@ -222,12 +222,12 @@ describe('Sections Routes', () => {
         expect(res.body.result.new_section).toBe('482');
       });
 
-      it('maps IEA 45 → BSA 44 (Opinions of experts)', async () => {
+      it('maps IEA 45 → BSA 39(1) (Opinions of experts)', async () => {
         const res = await request(app).get('/sections/map?old=45-IEA');
         expect(res.status).toBe(200);
         expect(res.body.result.old_code).toBe('IEA');
         expect(res.body.result.new_code).toBe('BSA');
-        expect(res.body.result.new_section).toBe('44');
+        expect(res.body.result.new_section).toBe('39(1)');
       });
 
       it('flags repealed sections (IPC 377)', async () => {
@@ -274,8 +274,8 @@ describe('Sections Routes', () => {
         expect(res.body.results[0].old_section).toBe('154');
       });
 
-      it('maps BSA 44 → IEA 45 (Opinions of experts)', async () => {
-        const res = await request(app).get('/sections/map?new=44-BSA');
+      it('maps BSA 39(1) → IEA 45 (Opinions of experts)', async () => {
+        const res = await request(app).get('/sections/map?new=39(1)-BSA');
         expect(res.status).toBe(200);
         expect(res.body.results[0].old_code).toBe('IEA');
         expect(res.body.results[0].old_section).toBe('45');
@@ -344,37 +344,37 @@ describe('Sections Routes', () => {
   });
 
   describe('CLO patch validation (SCRUM-27)', () => {
-    it('maps IEA 32 → BSA 32 (NOT BSA 26 — CLO fix)', async () => {
+    it('maps IEA 32 → BSA 26 (NOT BSA 32 — signed T-250 table)', async () => {
       const res = await request(app).get('/sections/map?old=32-IEA');
       expect(res.status).toBe(200);
       expect(res.body.result.old_code).toBe('IEA');
       expect(res.body.result.old_section).toBe('32');
       expect(res.body.result.new_code).toBe('BSA');
-      expect(res.body.result.new_section).toBe('32');
-      // Must NOT be 26 — that was the incorrect mapping
-      expect(res.body.result.new_section).not.toBe('26');
+      expect(res.body.result.new_section).toBe('26');
+      // Must NOT be 32 — that was the incorrect mapping
+      expect(res.body.result.new_section).not.toBe('32');
     });
 
-    it('maps IPC 416 → BNS 319 (Cheating by personation — new row)', async () => {
+    it('maps IPC 416 → BNS 319(1) (Cheating by personation — new row)', async () => {
       const res = await request(app).get('/sections/map?old=416-IPC');
       expect(res.status).toBe(200);
       expect(res.body.result.old_code).toBe('IPC');
       expect(res.body.result.old_section).toBe('416');
       expect(res.body.result.new_code).toBe('BNS');
-      expect(res.body.result.new_section).toBe('319');
+      expect(res.body.result.new_section).toBe('319(1)');
       expect(res.body.result.old_title).toContain('personation');
     });
 
-    it('reverse lookup: BSA 32 → IEA 32 (dying declaration)', async () => {
-      const res = await request(app).get('/sections/map?new=32-BSA');
+    it('reverse lookup: BSA 26 → IEA 32 (dying declaration)', async () => {
+      const res = await request(app).get('/sections/map?new=26-BSA');
       expect(res.status).toBe(200);
       expect(res.body.direction).toBe('new_to_old');
       expect(res.body.results[0].old_code).toBe('IEA');
       expect(res.body.results[0].old_section).toBe('32');
     });
 
-    it('reverse lookup: BNS 319 → IPC 416 (cheating by personation)', async () => {
-      const res = await request(app).get('/sections/map?new=319-BNS');
+    it('reverse lookup: BNS 319(1) → IPC 416 (cheating by personation)', async () => {
+      const res = await request(app).get('/sections/map?new=319(1)-BNS');
       expect(res.status).toBe(200);
       expect(res.body.direction).toBe('new_to_old');
       expect(res.body.results[0].old_code).toBe('IPC');
@@ -494,9 +494,11 @@ describe('Sections Routes', () => {
       expect(typeof res.body.punishment).toBe('string');
     });
 
-    it('infers triable_by from max_years (>7 → Sessions, else Magistrate)', async () => {
+    it('returns triable_by from the signed file (T-289), as printed', async () => {
       const res = await request(app).get('/sections/details?section=103&code=BNS');
-      expect(['Sessions', 'Magistrate']).toContain(res.body.triable_by);
+      expect(res.body.triable_by).toBe('Court of Session');
+      const res2 = await request(app).get('/sections/details?section=74&code=BNS');
+      expect(res2.body.triable_by).toBe('Any Magistrate');
     });
 
     it('returns a placeholder envelope for unknown sections (no 404)', async () => {

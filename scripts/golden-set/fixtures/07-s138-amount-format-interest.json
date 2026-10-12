@@ -1,0 +1,64 @@
+{
+  "id": "07-s138-amount-format-interest",
+  "pack": "legal_notice_s138",
+  "title": "s.138 notice: Rs 2,40,000 kept as written, no interest added",
+  "risk": "Run 1 minors: 'Rs. 240000/-' where she wrote Rs 2,40,000, amount in words left blank three times, and 'together with interest, if any' added to the demand",
+  "source": "handoff/quality/2026-10-06-baseline-run-FAIL.md scenario 6 and the minor findings on the notice",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Cheque dishonour notice, Delhi. Client Neha Arora, drawer Vikas Malhotra. Rs 2,40,000 ka cheque no. 118833 dated 2 August 2026, Punjab National Bank, Lajpat Nagar branch. Presented 20 August 2026, came back unpaid on 22 August 2026, account closed. Udhaar diya tha business ke liye.",
+  "court": null,
+  "expect": {
+    "exact": [
+      {
+        "any_of": [
+          "2,40,000"
+        ],
+        "why": "the amount as she wrote it"
+      },
+      {
+        "any_of": [
+          "Lajpat Nagar"
+        ],
+        "why": "drawee branch"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "together with interest",
+          "interest at the rate"
+        ],
+        "why": "run 1: interest nobody claimed"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "interest_and_costs",
+        "why": "no interest or costs were claimed"
+      },
+      {
+        "banned_entry_id": "demands_made",
+        "why": "no earlier demands were given"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "cheque_amount",
+        "why": "read from the description",
+        "display": "Rs 2,40,000"
+      },
+      {
+        "key": "drawee_branch",
+        "why": "read from the description",
+        "display": "Lajpat Nagar"
+      },
+      {
+        "key": "dishonour_date",
+        "why": "read from the description",
+        "display": "22 August 2026"
+      }
+    ]
+  }
+}

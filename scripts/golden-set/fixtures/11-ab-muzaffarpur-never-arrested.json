@@ -1,0 +1,58 @@
+{
+  "id": "11-ab-muzaffarpur-never-arrested",
+  "pack": "bail_anticipatory",
+  "title": "Anticipatory bail, Muzaffarpur: a client never arrested",
+  "risk": "Run 1 scenario 2: 'When was Testsunita Kumari arrested?' though she never was; the draft must not state an arrest or custody",
+  "source": "handoff/quality/2026-10-06-baseline-run-FAIL.md scenario 2 (her words 'bail application chahiye client Testsunita Kumari ke liye, Muzaffarpur', with facts added)",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "bail application chahiye client Testsunita Kumari ke liye, Muzaffarpur. Pati ka naam Rakesh Kumar, umar 31 saal. FIR 61/2026 dated 25 Sept 2026, PS Kanti, section 85 BNS. Police ne abhi tak giraftar nahi kiya, dar hai ki karegi. Sessions court Muzaffarpur.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "sessions",
+    "court": "bihar_sessions_muzaffarpur"
+  },
+  "expect": {
+    "not_written": [
+      {
+        "banned_entry_id": "arrested_on",
+        "why": "she was never arrested"
+      },
+      {
+        "banned_entry_id": "in_custody_since",
+        "why": "she is not in custody"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "was arrested on",
+          "in judicial custody",
+          "behind bars"
+        ],
+        "why": "an arrest nobody stated"
+      }
+    ],
+    "exact": [
+      {
+        "any_of": [
+          "Testsunita Kumari"
+        ],
+        "why": "the applicant's name"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Testsunita Kumari"
+      },
+      {
+        "key": "police_station",
+        "why": "read from the description",
+        "display": "Kanti"
+      }
+    ]
+  }
+}

@@ -46,7 +46,7 @@ export type FactLedgerRunType = 'user' | 'fixture';
  * answer to a question or as an edit on the brief. Whether a ledger is real
  * traffic or a fixture is `FactLedgerRunType`, on the ledger itself.
  */
-export type FactSource = 'user' | 'asked';
+export type FactSource = 'user' | 'asked' | 'computed';
 
 /** A statute section, normalised: `S.483 BNSS` and `Section 483 of the BNSS, 2023` are both `{ act: 'BNSS', section: '483' }`. */
 export interface SectionRef {
@@ -175,7 +175,9 @@ export type UnresolvedReason =
   /** T-147b: the advocate's words give two different values for one fact. */
   | 'conflicting_values'
   /** T-147b: a choice that is not one of the allowed values. */
-  | 'not_an_option';
+  | 'not_an_option'
+  /** T-189: one entry of a list or of several choices with no span that stands verbatim in the advocate's words. */
+  | 'no_verbatim_span';
 
 /** A fact the advocate gave that Reception must ask about rather than guess. */
 export interface UnresolvedFact {

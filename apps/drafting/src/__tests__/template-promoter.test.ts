@@ -8,6 +8,7 @@
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
+import { costForTemplate } from '../services/credits.service';
 import {
   clearTemplateRegistryCache,
   getTemplateRegistry,
@@ -289,14 +290,34 @@ describe('template-promoter', () => {
       expect(config.filing_checklist).toEqual(['a', 'b']);
     });
 
-    it('carries creditsCost forward (default 1)', () => {
-      const a = promoteDocRuleToTemplateConfig(
-        { template_id: 't', category: 'c', creditsCost: 2 },
-        't.json',
+    it('sets creditsCost from the one price list, ignoring the rule file (T-227)', () => {
+      // A rule file claiming 2 for a 1-Ink id, and 1 for a 2-Ink id.
+      const short = promoteDocRuleToTemplateConfig(
+        { template_id: 'nda', category: 'c', creditsCost: 2 },
+        'nda.json',
       );
-      const b = promoteDocRuleToTemplateConfig({ template_id: 't', category: 'c' }, 't.json');
-      expect((a.config as unknown as { creditsCost: number }).creditsCost).toBe(2);
-      expect((b.config as unknown as { creditsCost: number }).creditsCost).toBe(1);
+      const long = promoteDocRuleToTemplateConfig(
+        { template_id: 'bail_regular', category: 'c', creditsCost: 1 },
+        'bail_regular.json',
+      );
+      const none = promoteDocRuleToTemplateConfig(
+        { template_id: 'bail_anticipatory', category: 'c' },
+        'bail_anticipatory.json',
+      );
+      const cost = (r: { config: unknown }) => (r.config as { creditsCost?: number }).creditsCost;
+      expect(cost(short)).toBe(costForTemplate('nda'));
+      expect(cost(short)).toBe(1);
+      expect(cost(long)).toBe(costForTemplate('bail_regular'));
+      expect(cost(long)).toBe(2);
+      expect(cost(none)).toBe(2);
+    });
+
+    it('leaves creditsCost unset for an id with no price (no default of 1)', () => {
+      const r = promoteDocRuleToTemplateConfig(
+        { template_id: 'not_a_template', category: 'c', creditsCost: 2 },
+        'x.json',
+      );
+      expect((r.config as unknown as { creditsCost?: number }).creditsCost).toBeUndefined();
     });
   });
 

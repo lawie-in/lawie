@@ -8,7 +8,13 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-import { readActList, readDraftingInstructionList, readMandatoryClauses } from './rule-pack.service';
+import { DOC_TYPE_ALIASES } from '../config/catalogue';
+
+import {
+  readActList,
+  readDraftingInstructionList,
+  readMandatoryClauses,
+} from './rule-pack.service';
 import { convertOldReferencesInText } from './sections.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -82,16 +88,6 @@ const COURT_RULES_DIR = join(CONFIG_DIR, 'court-rules');
 const docRuleCache = new Map<string, DocumentRuleConfig>();
 const courtRuleCache = new Map<string, CourtRuleConfig>();
 
-/**
- * Map existing docType values to their most specific document-rule config.
- * Falls back to the exact docType name if no mapping exists.
- */
-const DOC_TYPE_TO_RULE: Record<string, string> = {
-  bail_application: 'bail_regular',
-  legal_notice: 'legal_notice_s80',
-  complaint: 'consumer_complaint',
-};
-
 function loadDocRule(ruleKey: string): DocumentRuleConfig | null {
   if (docRuleCache.has(ruleKey)) return docRuleCache.get(ruleKey)!;
 
@@ -127,9 +123,11 @@ export function resolveDocRule(docType: string): DocumentRuleConfig | null {
   const exact = loadDocRule(docType);
   if (exact) return exact;
 
-  // Try mapped alias (e.g., "bail_application" → "bail_regular")
-  const mapped = DOC_TYPE_TO_RULE[docType];
-  if (mapped) return loadDocRule(mapped);
+  // Try mapped alias (e.g., "bail_application" → "bail_regular"). The one alias
+  // map lives in config/catalogue (T-240); credits.service prices from it too.
+  if (Object.prototype.hasOwnProperty.call(DOC_TYPE_ALIASES, docType)) {
+    return loadDocRule(DOC_TYPE_ALIASES[docType]);
+  }
 
   return null;
 }
@@ -202,7 +200,11 @@ interface HighCourtIndexHit {
 
 let highCourtIndex: Map<string, HighCourtIndexHit[]> | null = null;
 
-function addHit(index: Map<string, HighCourtIndexHit[]>, key: string, hit: HighCourtIndexHit): void {
+function addHit(
+  index: Map<string, HighCourtIndexHit[]>,
+  key: string,
+  hit: HighCourtIndexHit,
+): void {
   if (!index.has(key)) index.set(key, []);
   index.get(key)!.push(hit);
 }
@@ -231,7 +233,8 @@ function loadHighCourtIndex(): Map<string, HighCourtIndexHit[]> {
       // ("Jharkhand High Court, Ranchi" -> "Jharkhand High Court").
       if (court.courtType === 'high_court' && court.name) {
         const key = courtNameKey(withoutSeat(court.name));
-        if (key && key !== BARE_HIGH_COURT_KEY) addHit(index, key, { ref, designation, seatless: true });
+        if (key && key !== BARE_HIGH_COURT_KEY)
+          addHit(index, key, { ref, designation, seatless: true });
       }
     }
   } catch {

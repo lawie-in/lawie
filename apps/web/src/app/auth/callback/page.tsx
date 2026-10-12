@@ -1,39 +1,176 @@
 'use client';
 
+import { AlertTriangle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
+import { clearSignupSource } from '@/lib/signup-source';
+
+// T-234 — one-time notices when a referral code sent with Google added no Ink.
+// not_applied: Ajay Addendum 1. existing_account: Ajay Addendum 2.
+// Both signed in handoff/legal/T-234-login-copy-signed.md.
+// not_applied has two wordings: Addendum 1 if R5/R6 showed for the code, Addendum 3 if it was
+// never applied. The login page records which in sessionStorage (REFERRAL_SHOWN_KEY) before the
+// Google redirect; missing or unreadable means "not valid", which makes no claim the code ever was.
+const REFERRAL_NOT_APPLIED_MESSAGE =
+  'Your referral code was no longer valid, so no bonus Ink was added.';
+const REFERRAL_NOT_VALID_MESSAGE = 'Your referral code was not valid, so no bonus Ink was added.';
+const REFERRAL_EXISTING_ACCOUNT_MESSAGE =
+  'Referral bonuses are for new accounts only, so no bonus Ink was added.';
+const REFERRAL_SHOWN_KEY = 'lawie_referral_shown';
+
+// Reads and clears the marker, so it applies to this sign-in only.
+function takeReferralShown(): boolean {
+  try {
+    const shown = sessionStorage.getItem(REFERRAL_SHOWN_KEY) === '1';
+    sessionStorage.removeItem(REFERRAL_SHOWN_KEY);
+    return shown;
+  } catch {
+    return false;
+  }
+}
+
+function referralNoticeFor(value: string | null, shown: boolean): string | null {
+  if (value === 'existing_account') return REFERRAL_EXISTING_ACCOUNT_MESSAGE;
+  if (value === 'not_applied') {
+    return shown ? REFERRAL_NOT_APPLIED_MESSAGE : REFERRAL_NOT_VALID_MESSAGE;
+  }
+  return null;
+}
+
+// T-319: the verifier the login page stored before the Google redirect. Must match the key in
+// app/(auth)/login/page.tsx. 32 random bytes in base64url are exactly 43 characters.
+const OAUTH_VERIFIER_KEY = 'lawie.oauth.verifier';
+const VERIFIER_RE = /^[A-Za-z0-9_-]{43}$/;
+
+// Reads and deletes the verifier, so it serves this one return only. Null if absent or unreadable.
+function takeOAuthVerifier(): string | null {
+  try {
+    const verifier = sessionStorage.getItem(OAUTH_VERIFIER_KEY);
+    sessionStorage.removeItem(OAUTH_VERIFIER_KEY);
+    return verifier && VERIFIER_RE.test(verifier) ? verifier : null;
+  } catch {
+    return null;
+  }
+}
+
+// T-306: the only error values the callback forwards to /login. Anything else is oauth_failed.
+// T-319: sign_in_incomplete = no verifier in this tab (another tab, or a link not started here).
+const KNOWN_OAUTH_ERRORS = [
+  'oauth_failed',
+  'missing_tokens',
+  'invalid_code',
+  'sign_in_incomplete',
+] as const;
+type KnownOAuthError = (typeof KNOWN_OAUTH_ERRORS)[number];
+
+function toKnownOAuthError(value: string): KnownOAuthError {
+  return (KNOWN_OAUTH_ERRORS as readonly string[]).includes(value)
+    ? (value as KnownOAuthError)
+    : 'oauth_failed';
+}
 
 function CallbackHandler() {
   const router = useRouter();
   const params = useSearchParams();
   const { login } = useAuth();
   const handled = useRef(false);
+  // T-234: the auth service adds referral=not_applied (new account, code no longer valid) or
+  // referral=existing_account (account already existed). Show the notice once, then continue.
+  const [referralNotice, setReferralNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (handled.current) return;
     handled.current = true;
+    // Take (and clear) the marker first, so it never outlives this return, even on an error.
+    const referralShown = takeReferralShown();
 
-    const accessToken = params.get('accessToken');
-    const refreshToken = params.get('refreshToken');
+    // T-306: read what we need, then drop the query string before anything else runs, so the
+    // one-time code never sits in the address bar, history or an analytics page view.
+    const code = params.get('code');
     const error = params.get('error');
+    const referral = params.get('referral');
+    window.history.replaceState(null, '', '/auth/callback');
+    // T-319: take (and delete) the verifier on every return, so it never outlives this one.
+    const verifier = takeOAuthVerifier();
 
     if (error) {
-      router.replace('/login?error=' + error);
+      // T-299/T-306: fixed set only, never echo the query value.
+      router.replace('/login?error=' + toKnownOAuthError(error));
       return;
     }
 
-    if (!accessToken || !refreshToken) {
+    if (!code) {
       router.replace('/login?error=missing_tokens');
       return;
     }
 
-    login(accessToken, refreshToken);
-    router.replace('/dashboard');
+    // T-319: no verifier means this tab did not start the sign-in. No exchange, never a retry.
+    if (!verifier) {
+      router.replace('/login?error=sign_in_incomplete');
+      return;
+    }
+
+    void (async () => {
+      let pair: { accessToken: string; refreshToken: string } | null = null;
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/oauth/exchange`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, verifier }),
+          cache: 'no-store',
+        });
+        if (res.status === 200) {
+          const body = (await res.json()) as { accessToken?: unknown; refreshToken?: unknown };
+          if (typeof body.accessToken === 'string' && typeof body.refreshToken === 'string') {
+            pair = { accessToken: body.accessToken, refreshToken: body.refreshToken };
+          }
+        }
+      } catch {
+        pair = null;
+      }
+
+      if (!pair) {
+        router.replace('/login?error=invalid_code');
+        return;
+      }
+
+      login(pair.accessToken, pair.refreshToken);
+      // T-242/T-344: signed in, so the tags are now with the account (new) or not needed
+      // (existing). Cleared only here; every error return above keeps them for the next try.
+      clearSignupSource();
+      const notice = referralNoticeFor(referral, referralShown);
+      if (notice) {
+        setReferralNotice(notice);
+        return;
+      }
+      router.replace('/dashboard');
+    })();
   }, [params, login, router]);
 
-  return null;
+  if (!referralNotice) return null;
+
+  // Same look as the email-path notice on the login page.
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-[#F8FAFC] px-4">
+      <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-8">
+        <div role="status">
+          <p className="flex items-start gap-2 text-base text-slate-900">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+            <span>{referralNotice}</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => router.replace('/dashboard')}
+            className="bg-lawie-600 hover:bg-lawie-700 mt-5 h-12 w-full rounded-xl text-base font-semibold text-white"
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function AuthCallbackPage() {
@@ -43,6 +180,9 @@ export default function AuthCallbackPage() {
   // ~150ms and a transient label reads as a context switch.
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC]">
+      {/* T-306: the first load's URL carries ?code=; keep it out of Referer headers. React 19
+          hoists this into <head>. It only covers requests started after the parser reaches it. */}
+      <meta name="referrer" content="no-referrer" />
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
       <Suspense>
         <CallbackHandler />

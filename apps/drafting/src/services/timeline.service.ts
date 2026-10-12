@@ -9,7 +9,13 @@
  *   - Staggered remand breakdown (first 15 days police, remainder judicial)
  *   - Key milestone dates as a visual timeline
  */
-import offencesData from '../config/bns-offences.json';
+import {
+  DEPENDS_BNSS_187,
+  OLD_LAW_LINE,
+  readSectionsCharged,
+  resolveBnsKey,
+  resolveOffence,
+} from './bns-offence-resolver';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -30,22 +36,29 @@ export interface TimelineMilestone {
 
 export interface TimelineResult {
   arrestDate: string;
-  maxYears: number;
+  /** null when no period can be given (T-277, R1) */
+  maxYears: number | null;
   isLifeOrDeath: boolean;
 
   /** Police custody limit — 15 days from arrest (BNSS 187) */
   policeCustodyEndDate: string;
   policeCustodyDays: 15;
 
-  /** Judicial custody limit — 60 or 90 days from arrest */
-  judicialCustodyEndDate: string;
-  judicialCustodyDays: 60 | 90;
+  /**
+   * Judicial custody limit — 60 or 90 days from arrest. null (with the date
+   * fields below) when no period can be given: see `periodNote`.
+   */
+  judicialCustodyEndDate: string | null;
+  judicialCustodyDays: 60 | 90 | null;
 
   /** Chargesheet filing deadline — same as judicial custody end */
-  chargesheetDeadline: string;
+  chargesheetDeadline: string | null;
 
   /** Default bail eligibility — day after chargesheet deadline */
-  defaultBailDate: string;
+  defaultBailDate: string | null;
+
+  /** DEPENDS_BNSS_187 when no period can be given, else null (T-277, R1) */
+  periodNote: string | null;
 
   /** BNSS section governing custody limits */
   bnssSection: string;
@@ -54,27 +67,31 @@ export interface TimelineResult {
   /** Staggered remand breakdown */
   remandBreakdown: {
     policeCustody: { from: string; to: string; days: number };
-    judicialCustody: { from: string; to: string; days: number };
+    /** null when no period can be given */
+    judicialCustody: { from: string; to: string; days: number } | null;
   };
 
   /** Ordered milestones for timeline visualization */
   milestones: TimelineMilestone[];
 
-  /** Whether default bail is available */
-  defaultBailAvailable: boolean;
+  /** Whether default bail is available; null when no period can be given */
+  defaultBailAvailable: boolean | null;
   defaultBailExplanation: string;
 
-  /** Sections used for calculation */
+  /** Sections used for calculation (exact-key rows with a max term) */
   sectionsUsed: string[];
+  /** Sections that resolve to no offence; left out of the period */
   sectionsNotFound: string[];
+  /**
+   * Sections that resolve to an offence but cannot drive a period: resolved
+   * through a variant or a parent row, or the row's max_years is null (R1).
+   */
+  sectionsWithoutPeriod: string[];
+  /** Per-section notes: leftOutOfPeriodNote(n), or "Section {n}: " + DEPENDS_BNSS_187 */
+  sectionNotes: Record<string, string>;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-const offences = offencesData.offences as Record<
-  string,
-  { max_years: number; title: string; punishment: string }
->;
 
 function addDays(date: Date, days: number): Date {
   const result = new Date(date);
@@ -95,29 +112,105 @@ function parseDate(input: string | Date): Date {
   return d;
 }
 
+/** Ajay (CLO), T-277 Q6: a non-offence is left out of the period, and the result says so. */
+export function leftOutOfPeriodNote(section: string): string {
+  return `Section ${section} does not create an offence, so it was left out of this period.`;
+}
+
+/** Ajay (CLO), T-278 (signed f4244ec): an IPC / CrPC / IEA input is left out. */
+export function oldLawLeftOutNote(code: string, section: string, newCode: string): string {
+  return `${code} ${section} is an old-law section, so it was left out of this period. Use the section converter to find the ${newCode} section.`;
+}
+
+/** New-law codes named first in the not-found line (T-295 casing). */
+const NAMED_NEW_CODES = new Set(['BNS', 'BNSS', 'BSA']);
+
+/**
+ * Ajay (CLO), T-278 (signed f4244ec, Addendum 1 9f11633): no BNS row or parent row,
+ * or not a BNS input. Display tweak (Ajay, after 7e34982): a token whose single
+ * entry carries BNS, BNSS or BSA is named "{Code} {n}" with no "Section"; a bare
+ * number, text, or any other code keeps "Section {token}".
+ */
+export function notInBnsTableNote(token: string): string {
+  const entries = readSectionsCharged(token);
+  const e = entries.length === 1 ? entries[0] : undefined;
+  const label =
+    e?.code && NAMED_NEW_CODES.has(e.code) ? `${e.code} ${e.number}` : `Section ${token}`;
+  return `${label} was not found in the BNS offences table, so it was left out of this period. Check the Gazette.`;
+}
+
+type TimelineEntry = { kind: 'bns'; section: string } | { kind: 'left_out'; note: string };
+
+/**
+ * T-278 (Ajay): read one input token with the shared T-277 reader, so "103-BNS",
+ * "BNS 103" and "103" all read as BNS 103 (a bare number is BNS in this tool).
+ * Left-out lines in Ajay's order: old-law code; else a single BNS entry is resolved
+ * by the caller; else "not found in the BNS table" for the token as typed.
+ */
+function readTimelineEntry(token: string): TimelineEntry {
+  const entries = readSectionsCharged(token, 'BNS');
+  for (const e of entries) {
+    const old = e.code ? OLD_LAW_LINE[e.code] : undefined;
+    if (old) return { kind: 'left_out', note: oldLawLeftOutNote(old.name, e.number, old.newCode) };
+  }
+  if (entries.length === 1 && entries[0].code === 'BNS') {
+    return { kind: 'bns', section: entries[0].number };
+  }
+  return { kind: 'left_out', note: notInBnsTableNote(token) };
+}
+
 // ── Main Calculation ───────────────────────────────────────────────────────────
 
 export function calculateTimeline(input: TimelineInput): TimelineResult {
   const arrestDate = parseDate(input.arrestDate);
   const arrestDateStr = toISODate(arrestDate);
 
-  // Resolve max punishment from sections
+  // Resolve max punishment from sections. T-277 R1: only an exact-key row's
+  // max_years may drive a period; a null max_years is never 0.
   let maxYears = 0;
   const sectionsUsed: string[] = [];
   const sectionsNotFound: string[] = [];
+  const sectionsWithoutPeriod: string[] = [];
+  const sectionNotes: Record<string, string> = {};
 
   for (const section of input.sections) {
     const s = section.trim();
     if (!s) continue;
-    const offence = offences[s];
-    if (offence) {
-      sectionsUsed.push(s);
-      if (offence.max_years > maxYears) {
-        maxYears = offence.max_years;
-      }
-    } else {
+    // Keys stay the trimmed token as typed, so the web matches them (T-278).
+    const entry = readTimelineEntry(s);
+    if (entry.kind === 'left_out') {
       sectionsNotFound.push(s);
+      sectionNotes[s] = entry.note;
+      continue;
     }
+    const r = resolveOffence(entry.section);
+    if (r.kind === 'not_an_offence') {
+      sectionsNotFound.push(s);
+      // A row or parent row exists → not an offence; no row at all → not in the table.
+      sectionNotes[s] =
+        resolveBnsKey(entry.section) !== null
+          ? leftOutOfPeriodNote(entry.section)
+          : notInBnsTableNote(s);
+    } else if (r.kind === 'exact' && r.maxYears !== null) {
+      sectionsUsed.push(s);
+      if (r.maxYears > maxYears) maxYears = r.maxYears;
+    } else {
+      sectionsWithoutPeriod.push(s);
+      sectionNotes[s] = `Section ${entry.section}: ${DEPENDS_BNSS_187}`;
+    }
+  }
+
+  // Ajay Q10: an exact-key term of 10+ years fixes 90 days whatever the other
+  // sections are (each section without an exact term keeps its R1 note). Otherwise
+  // a section without an exact term means no period; no exact term at all, likewise.
+  const exactGives90 = sectionsUsed.length > 0 && maxYears >= 10;
+  if (sectionsUsed.length === 0 || (sectionsWithoutPeriod.length > 0 && !exactGives90)) {
+    return noPeriodResult(arrestDate, {
+      sectionsUsed,
+      sectionsNotFound,
+      sectionsWithoutPeriod,
+      sectionNotes,
+    });
   }
 
   const isLifeOrDeath = maxYears >= 99;
@@ -214,7 +307,69 @@ export function calculateTimeline(input: TimelineInput): TimelineResult {
     milestones,
     defaultBailAvailable: true,
     defaultBailExplanation,
+    periodNote: null,
     sectionsUsed,
     sectionsNotFound,
+    sectionsWithoutPeriod,
+    sectionNotes,
+  };
+}
+
+/**
+ * T-277 R1: no 60/90-day period. Police custody (15 days, BNSS 187(2)) still
+ * applies; judicial custody, chargesheet and default-bail dates are null.
+ */
+function noPeriodResult(
+  arrestDate: Date,
+  sections: Pick<
+    TimelineResult,
+    'sectionsUsed' | 'sectionsNotFound' | 'sectionsWithoutPeriod' | 'sectionNotes'
+  >,
+): TimelineResult {
+  const arrestDateStr = toISODate(arrestDate);
+  const policeCustodyDays = 15 as const;
+  const policeCustodyEnd = addDays(arrestDate, policeCustodyDays);
+  return {
+    arrestDate: arrestDateStr,
+    maxYears: null,
+    isLifeOrDeath: false,
+    policeCustodyEndDate: toISODate(policeCustodyEnd),
+    policeCustodyDays,
+    judicialCustodyEndDate: null,
+    judicialCustodyDays: null,
+    chargesheetDeadline: null,
+    defaultBailDate: null,
+    periodNote: DEPENDS_BNSS_187,
+    bnssSection: '187',
+    bnssSectionTitle: DEPENDS_BNSS_187,
+    remandBreakdown: {
+      policeCustody: {
+        from: arrestDateStr,
+        to: toISODate(policeCustodyEnd),
+        days: policeCustodyDays,
+      },
+      judicialCustody: null,
+    },
+    milestones: [
+      {
+        date: arrestDateStr,
+        label: 'Arrest / FIR Date',
+        description:
+          'Date of arrest or FIR registration. All custody periods begin from this date.',
+        type: 'start',
+        critical: false,
+      },
+      {
+        date: toISODate(policeCustodyEnd),
+        label: 'Police Custody Limit (Day 15)',
+        description:
+          'Maximum period of police/physical custody under BNSS Section 187(2). No further police remand can be granted after this date.',
+        type: 'police_custody',
+        critical: true,
+      },
+    ],
+    defaultBailAvailable: null,
+    defaultBailExplanation: DEPENDS_BNSS_187,
+    ...sections,
   };
 }

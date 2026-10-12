@@ -1,0 +1,26 @@
+{
+  "_header": "RECONSTRUCTED from Anushka's quality report handoff/quality/2026-10-07-run-2-develop-FAIL.md (scenario 3, finding 2). Her run-2 drafts were never saved. Sentences in quotes in her report are used verbatim; the rest of the text, and every ledger value she did not state, is reconstructed for the test and is not her output. T-147d, AC2.",
+  "pack": "bail_regular",
+  "ledger": {
+    "facts": [
+      { "id": "f1", "key": "applicant_name", "label": "Applicant / Accused Full Name", "type": "person_name", "value": "testpalyadav", "display": "Testpal Yadav", "raw_span": "Testpal Yadav", "source": "user", "confidence": 0.99, "required_in_draft": true },
+      { "id": "f2", "key": "fir_number", "label": "FIR Number", "type": "case_number", "value": "901 2026", "display": "901/2026", "raw_span": "FIR 901/2026", "source": "user", "confidence": 0.99, "required_in_draft": true },
+      { "id": "f3", "key": "police_station", "label": "Police Station", "type": "police_station", "value": "hazratganj", "display": "Hazratganj", "raw_span": "PS Hazratganj", "source": "user", "confidence": 0.99, "required_in_draft": true },
+      { "id": "f4", "key": "sections_charged", "label": "Sections Charged in FIR", "type": "section_ref", "value": { "act": "BNS", "section": "318(4)" }, "display": "Section 318(4) BNS", "raw_span": "section 318(4) BNS", "source": "user", "confidence": 0.99, "required_in_draft": true },
+      { "id": "f5", "key": "custody_since", "label": "In custody since (date)", "type": "date", "value": "2026-09-13", "display": "13 September 2026", "raw_span": "since 13 Sept", "source": "user", "confidence": 0.95, "required_in_draft": true },
+      { "id": "f6", "key": "earlier_order_date", "label": "Date the CJM rejected bail", "type": "date", "value": "2026-09-22", "display": "22 September 2026", "raw_span": "CJM rejected bail 22 Sept", "source": "user", "confidence": 0.95, "required_in_draft": false }
+    ],
+    "unresolved": []
+  },
+  "skeleton": [
+    "IN THE COURT OF THE SESSIONS JUDGE, LUCKNOW\n\nBail Application No. _____ of 2026\n\nIN THE MATTER OF:\nTestpal Yadav ... Applicant\nVERSUS\nState of U.P. ... Opposite Party\n\nFIR No. 901/2026, P.S. Hazratganj, Lucknow\nUnder Section 318(4) BNS\n\nAPPLICATION UNDER SECTION 483 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023 FOR GRANT OF REGULAR BAIL",
+    "PRAYER\n\nIt is therefore most respectfully prayed that this Hon'ble Court may be pleased to grant regular bail to the applicant, Testpal Yadav, in FIR No. 901/2026, P.S. Hazratganj, and pass such other order as this Hon'ble Court deems fit."
+  ],
+  "body": "1. That the applicant Testpal Yadav has been in judicial custody since 13 September 2026 in connection with FIR No. 901/2026 registered at Police Station Hazratganj, Lucknow under Section 318(4) of the Bharatiya Nyaya Sanhita, 2023.\n\n2. That the bail application of the applicant was rejected by the learned Chief Judicial Magistrate, Lucknow on 22 September 2026.\n\n3. That the applicant has no criminal antecedents. He is gainfully employed. He has cooperated with the police during investigation.\n\n4. That the applicant has family and social connections in Lucknow.",
+  "expected": [
+    { "check": "banned", "bannedEntryId": "no_criminal_antecedents", "from_report": "has no criminal antecedents" },
+    { "check": "banned", "bannedEntryId": "gainfully_employed", "from_report": "He is gainfully employed" },
+    { "check": "banned", "bannedEntryId": "cooperated_with_investigation", "from_report": "He has cooperated with the police during investigation", "needs": "Ajay's phrase additions of 11 Oct 2026 (now in bail_regular.json)" },
+    { "check": "banned", "bannedEntryId": "deep_roots_in_society", "from_report": "has family and social connections in Lucknow", "needs": "Ajay's phrase additions of 11 Oct 2026 (now in bail_regular.json)" }
+  ]
+}

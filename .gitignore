@@ -54,7 +54,6 @@ package-lock.json
 
 # ── Local documents ───────────────────────────────────────────────────────────
 *.docx
-docs/
 *.pdf
 followUp.md
 test-templates/

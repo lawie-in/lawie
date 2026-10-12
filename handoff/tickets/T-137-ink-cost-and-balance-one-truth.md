@@ -5,7 +5,7 @@
 | Phase      | 2 — Ink                                                                                                       |
 | Owner      | Vikram (what is true), Priya (scope), Vishal (build), Anushka (verdict)                                       |
 | Mode       | Full chain, then the quality gate                                                                             |
-| Status     | Needs scoping. Not started. Cause not traced yet                                                              |
+| Status     | ON HOLD (founder, 11 Oct 2026) until drafting is complete and Vikram's payment calculations are done. Needs scoping. Not started. Cause not traced yet                                                              |
 | Depends on | None                                                                                                          |
 | Branch     | fix/t-137-ink-cost-and-balance-one-truth                                                                      |
 | Created    | 2026-10-06                                                                                                    |

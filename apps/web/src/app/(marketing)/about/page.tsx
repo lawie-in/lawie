@@ -9,7 +9,7 @@ import SiteNav from '@/components/marketing/SiteNav';
 export const metadata: Metadata = {
   title: 'Lawie — About',
   description:
-    'Why we built Lawie: a drafting tool for young Indian advocates, built around the current BNS, BNSS, and BSA criminal codes.',
+    'Why we built Lawie: a drafting assistant for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers.',
 };
 
 export default function AboutPage() {

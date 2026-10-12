@@ -13,6 +13,8 @@ import {
 import Link from 'next/link';
 import { useState, useCallback } from 'react';
 
+import CookieSettingsButton from '@/components/CookieSettingsButton';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -27,25 +29,31 @@ interface TimelineMilestone {
 
 interface TimelineResult {
   arrestDate: string;
-  maxYears: number;
+  /** null when no default-bail period can be given (T-277) */
+  maxYears: number | null;
   isLifeOrDeath: boolean;
   policeCustodyEndDate: string;
   policeCustodyDays: number;
-  judicialCustodyEndDate: string;
-  judicialCustodyDays: number;
-  chargesheetDeadline: string;
-  defaultBailDate: string;
+  judicialCustodyEndDate: string | null;
+  judicialCustodyDays: number | null;
+  chargesheetDeadline: string | null;
+  defaultBailDate: string | null;
+  /** "Depends on the offence. Check BNSS section 187." when there is no period */
+  periodNote?: string | null;
   bnssSection: string;
   bnssSectionTitle: string;
   remandBreakdown: {
     policeCustody: { from: string; to: string; days: number };
-    judicialCustody: { from: string; to: string; days: number };
+    judicialCustody: { from: string; to: string; days: number } | null;
   };
   milestones: TimelineMilestone[];
-  defaultBailAvailable: boolean;
+  defaultBailAvailable: boolean | null;
   defaultBailExplanation: string;
   sectionsUsed: string[];
   sectionsNotFound: string[];
+  sectionsWithoutPeriod?: string[];
+  /** Per-section notes from the API (Ajay's texts) */
+  sectionNotes?: Record<string, string>;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -130,6 +138,22 @@ export default function TimelineTrackerPage() {
       setLoading(false);
     }
   }, [arrestDate, sections]);
+
+  // T-277: the 60/90-day parts render only when the API gives a period.
+  const period =
+    result &&
+    result.judicialCustodyDays !== null &&
+    result.chargesheetDeadline !== null &&
+    result.defaultBailDate !== null &&
+    result.remandBreakdown.judicialCustody !== null
+      ? {
+          days: result.judicialCustodyDays,
+          chargesheetDeadline: result.chargesheetDeadline,
+          defaultBailDate: result.defaultBailDate,
+          judicialCustody: result.remandBreakdown.judicialCustody,
+        }
+      : null;
+  const sectionNoteList = result?.sectionNotes ? Object.values(result.sectionNotes) : [];
 
   const handleExample = () => {
     const today = new Date();
@@ -245,47 +269,62 @@ export default function TimelineTrackerPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-red-600">
-                  Chargesheet Deadline
-                </div>
-                <div className="text-lg font-bold text-red-900">
-                  {formatDate(result.chargesheetDeadline)}
-                </div>
-                <div className="mt-1 text-xs text-red-700">
-                  {result.judicialCustodyDays} days —{' '}
-                  {(() => {
-                    const d = daysFromNow(result.chargesheetDeadline);
-                    if (d < 0) return `${Math.abs(d)} days overdue`;
-                    if (d === 0) return 'due today';
-                    return `${d} days remaining`;
-                  })()}
-                </div>
-              </div>
+              {period && (
+                <>
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                    <div className="mb-1 text-xs font-medium uppercase tracking-wide text-red-600">
+                      Chargesheet Deadline
+                    </div>
+                    <div className="text-lg font-bold text-red-900">
+                      {formatDate(period.chargesheetDeadline)}
+                    </div>
+                    <div className="mt-1 text-xs text-red-700">
+                      {period.days} days —{' '}
+                      {(() => {
+                        const d = daysFromNow(period.chargesheetDeadline);
+                        if (d < 0) return `${Math.abs(d)} days overdue`;
+                        if (d === 0) return 'due today';
+                        return `${d} days remaining`;
+                      })()}
+                    </div>
+                  </div>
 
-              <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-green-600">
-                  Default Bail Date
-                </div>
-                <div className="text-lg font-bold text-green-900">
-                  {formatDate(result.defaultBailDate)}
-                </div>
-                <div className="mt-1 text-xs text-green-700">
-                  Day {result.judicialCustodyDays + 1} — BNSS 187(3)
-                </div>
-              </div>
+                  <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                    <div className="mb-1 text-xs font-medium uppercase tracking-wide text-green-600">
+                      Default Bail Date
+                    </div>
+                    <div className="text-lg font-bold text-green-900">
+                      {formatDate(period.defaultBailDate)}
+                    </div>
+                    <div className="mt-1 text-xs text-green-700">
+                      Day {period.days + 1} — BNSS 187(3)
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Sections Not Found Warning */}
-            {result.sectionsNotFound.length > 0 && (
+            {/* No period (T-277): the API's note replaces the 60/90-day parts */}
+            {!period && result.periodNote && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
                 <div className="flex items-center gap-2 text-sm text-amber-700">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
-                  Sections not found in BNS database: {result.sectionsNotFound.join(', ')}. Timeline
-                  calculated using remaining sections only.
+                  {result.periodNote}
                 </div>
               </div>
             )}
+
+            {/* Per-section notes from the API (T-277). T-278: a not-found section's
+                note also comes from here; the page adds no text of its own. */}
+            {sectionNoteList.length > 0 &&
+              sectionNoteList.map((note, i) => (
+                <div key={i} className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex items-center gap-2 text-sm text-amber-700">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    {note}
+                  </div>
+                </div>
+              ))}
 
             {/* Visual Timeline */}
             <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -363,53 +402,63 @@ export default function TimelineTrackerPage() {
                     </div>
                   </div>
                 </div>
-                {/* Progress bar */}
-                <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-                  <div className="flex h-full">
-                    <div
-                      className="bg-amber-400"
-                      style={{
-                        width: `${(result.remandBreakdown.policeCustody.days / result.judicialCustodyDays) * 100}%`,
-                      }}
-                    />
-                    <div
-                      className="bg-blue-400"
-                      style={{
-                        width: `${(result.remandBreakdown.judicialCustody.days / result.judicialCustodyDays) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-3 w-3 rounded-full bg-blue-500" />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-slate-700">Judicial Custody</span>
-                      <span className="text-sm text-slate-500">
-                        {result.remandBreakdown.judicialCustody.days} days
-                      </span>
+                {period && (
+                  <>
+                    {/* Progress bar */}
+                    <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+                      <div className="flex h-full">
+                        <div
+                          className="bg-amber-400"
+                          style={{
+                            width: `${(result.remandBreakdown.policeCustody.days / period.days) * 100}%`,
+                          }}
+                        />
+                        <div
+                          className="bg-blue-400"
+                          style={{
+                            width: `${(period.judicialCustody.days / period.days) * 100}%`,
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="text-xs text-slate-500">
-                      {formatDate(result.remandBreakdown.judicialCustody.from)} —{' '}
-                      {formatDate(result.remandBreakdown.judicialCustody.to)}
+                    <div className="flex items-center gap-3">
+                      <div className="h-3 w-3 rounded-full bg-blue-500" />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-slate-700">
+                            Judicial Custody
+                          </span>
+                          <span className="text-sm text-slate-500">
+                            {period.judicialCustody.days} days
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {formatDate(period.judicialCustody.from)} —{' '}
+                          {formatDate(period.judicialCustody.to)}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  </>
+                )}
               </div>
             </div>
 
             {/* Default Bail Box */}
-            <div className="rounded-xl border-2 border-green-200 bg-green-50 p-6">
-              <div className="mb-2 flex items-center gap-2">
-                <Shield className="h-5 w-5 text-green-600" />
-                <h3 className="font-semibold text-green-900">Default Bail — BNSS Section 187(3)</h3>
+            {period && (
+              <div className="rounded-xl border-2 border-green-200 bg-green-50 p-6">
+                <div className="mb-2 flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-green-600" />
+                  <h3 className="font-semibold text-green-900">
+                    Default Bail — BNSS Section 187(3)
+                  </h3>
+                </div>
+                <p className="text-sm text-green-800">{result.defaultBailExplanation}</p>
+                <div className="mt-3 rounded-lg bg-white/60 p-3 text-sm">
+                  <span className="font-medium">Applicable BNSS provision:</span>{' '}
+                  {result.bnssSectionTitle}
+                </div>
               </div>
-              <p className="text-sm text-green-800">{result.defaultBailExplanation}</p>
-              <div className="mt-3 rounded-lg bg-white/60 p-3 text-sm">
-                <span className="font-medium">Applicable BNSS provision:</span>{' '}
-                {result.bnssSectionTitle}
-              </div>
-            </div>
+            )}
 
             {/* BNSS Reference */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -460,6 +509,11 @@ export default function TimelineTrackerPage() {
             </p>
           </div>
         )}
+
+        {/* T-310: reopens the analytics consent notice (S9). */}
+        <div className="mt-8 text-center">
+          <CookieSettingsButton variant="tool" />
+        </div>
       </div>
     </div>
   );

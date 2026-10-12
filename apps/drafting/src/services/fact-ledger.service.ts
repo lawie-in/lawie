@@ -11,6 +11,8 @@
  * - anything the normalizer cannot read without guessing, anything below the
  *   type's confidence floor, and two values for one fact go to `unresolved`
  *   with a reason, never into `facts`;
+ * - a list or several choices (T-189) holds one fact per entry, each with its
+ *   own span; an entry with no verbatim span goes to `unresolved`;
  * - an answer or an edit writes a new version; earlier versions are never
  *   changed.
  *
@@ -43,8 +45,15 @@ import {
 import mongoose from 'mongoose';
 
 import { FactLedgerModel, IFactLedger, IFactLedgerVersion } from '../models/FactLedger.model';
+import { decrypt, encrypt } from '../utils/encryption';
 
-import { ChecklistItem, dateKindLabel } from './intake-brief';
+import {
+  BriefItem,
+  ChecklistItem,
+  dateKindLabel,
+  foldAnswer,
+  isNoFactAnswer,
+} from './intake-brief';
 import { normalise } from './intake-text';
 import type { ExtractLine } from './intake.prompts';
 
@@ -63,11 +72,31 @@ function lastSegment(key: string): string {
 }
 
 /**
- * True for a brief item the ledger holds. Lists and multiple choices hold
- * several values and are left out of this first pass.
+ * True for a brief item the ledger holds: every kind (T-189 added lists and
+ * multiple choices).
  */
 export function isLedgerItem(item: ChecklistItem): boolean {
-  return item.kind !== 'list' && item.kind !== 'choices';
+  return LEDGER_KINDS.has(item.kind);
+}
+
+const LEDGER_KINDS: ReadonlySet<ChecklistItem['kind']> = new Set<ChecklistItem['kind']>([
+  'text',
+  'narrative',
+  'date',
+  'number',
+  'amount',
+  'choice',
+  'choices',
+  'list',
+]);
+
+/**
+ * True for an item that holds several values (T-189): a list or multiple
+ * choices. Each value is its own ledger fact with its own span, all sharing
+ * the item's key.
+ */
+export function isMultiItem(item: Pick<ChecklistItem, 'kind'>): boolean {
+  return item.kind === 'list' || item.kind === 'choices';
 }
 
 /** A number fact that is a sum of money by its name, as `partOf` in intake-brief.ts reads names. */
@@ -83,6 +112,7 @@ export function factTypeFor(item: ChecklistItem): FactType {
     case 'amount':
       return 'amount';
     case 'choice':
+    case 'choices':
       return 'enum';
     case 'number':
       return MONEY_NAME.test(name) ? 'amount' : 'text';
@@ -124,7 +154,7 @@ export function extractLines(checklist: ChecklistItem[]): ExtractLine[] {
       key: i.key,
       what: (i.kind === 'date' && i.dateKind ? dateKindLabel(i.dateKind) : null) ?? i.label,
       kind: KIND_WORDS[factTypeFor(i)],
-      options: i.kind === 'choice' ? i.options : [],
+      options: i.kind === 'choice' || i.kind === 'choices' ? i.options : [],
     }));
 }
 
@@ -135,6 +165,8 @@ export const LEDGER_DETAILS = {
   low_confidence: 'We are not sure these words give this detail.',
   conflicting_values: 'You gave two different values for this.',
   not_an_option: 'This is not one of the choices for this detail.',
+  /** T-189: signed by Ajay on 11 Oct 2026. Do not reword. */
+  no_verbatim_span: 'We could not find this detail in what you wrote.',
 } as const;
 
 function unresolvedOf(reason: UnresolvedReason, detail: string): Normalized<never> {
@@ -247,7 +279,10 @@ export function locateSpan(text: string, span: string): string | null {
   const s = span.trim();
   if (s === '' || s.length > SPAN_MAX) return null;
   if (text.includes(s)) return s;
-  const words = s.normalize('NFC').split(/\s+/).filter((w) => w !== '');
+  const words = s
+    .normalize('NFC')
+    .split(/\s+/)
+    .filter((w) => w !== '');
   if (words.length === 0) return null;
   const re = new RegExp(words.map(escapeRegExp).join('\\s+'), 'u');
   const m = re.exec(text.normalize('NFC'));
@@ -261,8 +296,11 @@ export function locateSpan(text: string, span: string): string | null {
 export interface ExtractionResult {
   facts: LedgerFact[];
   unresolved: LedgerUnresolvedFact[];
-  /** Why an entry was not kept. Reasons and counts only: no key the model wrote, no text. */
-  dropped: Array<{ reason: 'not_on_list' | 'no_span' | 'span_not_found' }>;
+  /**
+   * Why an entry was not kept. Reasons and counts only: no key the model wrote, no text.
+   * `no_fact_answer` (T-190): "Not known", or "none" where only a present fact is used.
+   */
+  dropped: Array<{ reason: 'not_on_list' | 'no_span' | 'span_not_found' | 'no_fact_answer' }>;
 }
 
 /**
@@ -283,19 +321,44 @@ export function readExtraction(
 
   // Each key's located entries, in order.
   const byKey = new Map<string, Array<{ span: string; option?: string; confidence: number }>>();
+  // T-189: an entry of a list or of several choices with no verbatim span is
+  // not a fact; it goes to `unresolved`, once per key, with no words stored.
+  const noSpan = (item: ChecklistItem): void => {
+    if (result.unresolved.some((u) => u.key === item.key && u.reason === 'no_verbatim_span'))
+      return;
+    result.unresolved.push(
+      makeUnresolved(item, '', 'user', 'no_verbatim_span', LEDGER_DETAILS.no_verbatim_span),
+    );
+  };
   for (const entry of raw) {
-    const e = (entry ?? {}) as { key?: unknown; span?: unknown; option?: unknown; confidence?: unknown };
+    const e = (entry ?? {}) as {
+      key?: unknown;
+      span?: unknown;
+      option?: unknown;
+      confidence?: unknown;
+    };
     if (typeof e.key !== 'string' || !allowed.has(e.key)) {
       result.dropped.push({ reason: 'not_on_list' });
       continue;
     }
+    const entryItem = allowed.get(e.key) as ChecklistItem;
     if (typeof e.span !== 'string' || e.span.trim() === '' || e.span.length > SPAN_MAX) {
-      result.dropped.push({ reason: 'no_span' });
+      if (isMultiItem(entryItem)) noSpan(entryItem);
+      else result.dropped.push({ reason: 'no_span' });
       continue;
     }
     const span = locateSpan(text, e.span);
     if (span === null) {
-      result.dropped.push({ reason: 'span_not_found' });
+      if (isMultiItem(entryItem)) noSpan(entryItem);
+      else result.dropped.push({ reason: 'span_not_found' });
+      continue;
+    }
+    // T-190: "Not known", or "none" on a fact used only when present, writes no
+    // fact. Read before the normalizer, from the option for a choice.
+    const said =
+      factTypeFor(entryItem) === 'enum' && typeof e.option === 'string' ? e.option : span;
+    if (isNoFactAnswer(entryItem, said)) {
+      result.dropped.push({ reason: 'no_fact_answer' });
       continue;
     }
     const confidence =
@@ -314,12 +377,24 @@ export function readExtraction(
       en,
       n: normalizeForItem(item, type === 'enum' ? (en.option ?? en.span) : en.span, refYear),
     }));
+    if (isMultiItem(item)) {
+      readMultiEntries(item, read, result);
+      continue;
+    }
     const first = read[0];
     // Two entries that read to different values: neither is kept (ADR-019 rule 4.1.5).
-    const values = new Set(read.filter((r) => r.n.ok).map((r) => JSON.stringify((r.n as { value: unknown }).value)));
+    const values = new Set(
+      read.filter((r) => r.n.ok).map((r) => JSON.stringify((r.n as { value: unknown }).value)),
+    );
     if (values.size > 1) {
       result.unresolved.push(
-        makeUnresolved(item, first.en.span, 'user', 'conflicting_values', LEDGER_DETAILS.conflicting_values),
+        makeUnresolved(
+          item,
+          first.en.span,
+          'user',
+          'conflicting_values',
+          LEDGER_DETAILS.conflicting_values,
+        ),
       );
       continue;
     }
@@ -342,12 +417,69 @@ export function readExtraction(
   return result;
 }
 
+/**
+ * T-189: the entries of a list or of several choices. Each entry is its own
+ * fact with its own verbatim span; several values are expected, so they are
+ * not a conflict. An entry the normalizer cannot read (for a choice, one that
+ * is not an allowed option) or read below the floor goes to `unresolved`. The
+ * same value given twice is kept once.
+ */
+function readMultiEntries(
+  item: ChecklistItem,
+  read: Array<{ en: { span: string; confidence: number }; n: Normalized<LedgerValue> }>,
+  result: ExtractionResult,
+): void {
+  const type = factTypeFor(item);
+  const unresolvedOnce = (span: string, reason: UnresolvedReason, detail: string): void => {
+    if (
+      result.unresolved.some(
+        (u) => u.key === item.key && u.raw_span === span && u.reason === reason,
+      )
+    )
+      return;
+    result.unresolved.push(makeUnresolved(item, span, 'user', reason, detail));
+  };
+  // Each value once, with the entry read at the highest confidence (the first, on a tie).
+  const byValue = new Map<
+    string,
+    { span: string; confidence: number; value: LedgerValue; display: string }
+  >();
+  for (const { en, n } of read) {
+    if (!n.ok) {
+      unresolvedOnce(en.span, n.reason, n.detail);
+      continue;
+    }
+    const valueKey = JSON.stringify(n.value);
+    const held = byValue.get(valueKey);
+    if (!held || en.confidence > held.confidence) {
+      byValue.set(valueKey, {
+        span: en.span,
+        confidence: en.confidence,
+        value: n.value,
+        display: n.display,
+      });
+    }
+  }
+  for (const v of byValue.values()) {
+    if (v.confidence < CONFIDENCE_FLOORS[type]) {
+      unresolvedOnce(v.span, 'low_confidence', LEDGER_DETAILS.low_confidence);
+      continue;
+    }
+    result.facts.push(makeFact(item, v.value, v.display, v.span, 'user', v.confidence));
+  }
+}
+
 // ── Answers and edits ───────────────────────────────────────────────────────
 
 export interface LedgerEdit {
   key: string;
-  /** What the advocate typed or picked, exactly. Empty clears the fact. */
-  text: string;
+  /**
+   * What the advocate typed or picked, exactly. Empty clears the fact. For a
+   * list or several choices (T-189), every entry: they replace all the key's
+   * entries, and an empty array clears them. An array for any other item is
+   * skipped.
+   */
+  text: string | string[];
   /** True when the value was given on the questions step. */
   fromQuestion?: boolean;
 }
@@ -380,6 +512,10 @@ export function applyEdit(
   if (!item || !isLedgerItem(item)) {
     return { next: null, reason: 'edit', result: { key, status: 'skipped' } };
   }
+  if (isMultiItem(item)) return applyMultiEdit(state, item, edit, refYear);
+  if (typeof edit.text !== 'string') {
+    return { next: null, reason: 'edit', result: { key, status: 'skipped' } };
+  }
   const existing = state.facts.find((f) => f.key === key);
   const wasUnresolved = state.unresolved.some((u) => u.key === key);
   const reason: FactLedgerVersionReason =
@@ -388,9 +524,12 @@ export function applyEdit(
   const otherUnresolved = state.unresolved.filter((u) => u.key !== key);
   const text = edit.text.trim();
 
-  if (text === '') {
+  // T-190: "Not known", or "none" on a fact used only when present, writes no
+  // fact. It is read before the normalizer and clears the field like an empty edit.
+  if (text === '' || isNoFactAnswer(item, text)) {
     // Emptying a field is a valid edit: the fact and any doubt about it go.
-    if (!existing && !wasUnresolved) return { next: null, reason, result: { key, status: 'saved', display: null } };
+    if (!existing && !wasUnresolved)
+      return { next: null, reason, result: { key, status: 'saved', display: null } };
     return {
       next: { facts: otherFacts, unresolved: otherUnresolved },
       reason,
@@ -400,11 +539,17 @@ export function applyEdit(
 
   const n = normalizeForItem(item, text, refYear);
   if (!n.ok) {
-    const result: LedgerEditResult = { key, status: 'unreadable', reason: n.reason, detail: n.detail };
+    const result: LedgerEditResult = {
+      key,
+      status: 'unreadable',
+      reason: n.reason,
+      detail: n.detail,
+    };
     // An existing fact keeps its value. An answer that cannot be read is still
     // outstanding (it has a question, so it stays asked). A value typed into an
     // empty field on the brief that cannot be read writes nothing: the row shows why.
-    if (existing || (!wasUnresolved && edit.fromQuestion !== true)) return { next: null, reason, result };
+    if (existing || (!wasUnresolved && edit.fromQuestion !== true))
+      return { next: null, reason, result };
     return {
       next: {
         facts: otherFacts,
@@ -425,6 +570,186 @@ export function applyEdit(
   };
 }
 
+/**
+ * T-189: an answer or edit for a list or several choices. The entries given
+ * replace every entry the key holds, under the same rules as one value: if
+ * any entry cannot be read (for a choice, one that is not an allowed option),
+ * nothing is saved and the result says why. The same value given twice is
+ * kept once. `display` in the result is the entries' displays, comma-joined.
+ */
+function applyMultiEdit(
+  state: LedgerState,
+  item: ChecklistItem,
+  edit: LedgerEdit,
+  refYear: number,
+): { next: LedgerState | null; reason: FactLedgerVersionReason; result: LedgerEditResult } {
+  const key = edit.key;
+  const existing = state.facts.filter((f) => f.key === key);
+  const wasUnresolved = state.unresolved.some((u) => u.key === key);
+  const reason: FactLedgerVersionReason =
+    wasUnresolved || edit.fromQuestion === true || existing.length === 0 ? 'answer' : 'edit';
+  const otherFacts = state.facts.filter((f) => f.key !== key);
+  const otherUnresolved = state.unresolved.filter((u) => u.key !== key);
+  const texts = [
+    ...new Set((Array.isArray(edit.text) ? edit.text : [edit.text]).map((t) => t.trim())),
+  ].filter((t) => t !== '');
+
+  if (texts.length === 0) {
+    if (existing.length === 0 && !wasUnresolved) {
+      return { next: null, reason, result: { key, status: 'saved', display: null } };
+    }
+    return {
+      next: { facts: otherFacts, unresolved: otherUnresolved },
+      reason,
+      result: { key, status: 'saved', display: null },
+    };
+  }
+
+  const read = texts.map((t) => ({ t, n: normalizeForItem(item, t, refYear) }));
+  const bad = read.find((r) => !r.n.ok);
+  if (bad) {
+    const n = bad.n as { ok: false; reason: UnresolvedReason; detail: string };
+    const result: LedgerEditResult = {
+      key,
+      status: 'unreadable',
+      reason: n.reason,
+      detail: n.detail,
+    };
+    // As for one value: existing entries keep their values; an answer that
+    // cannot be read stays outstanding; an edit into an empty field writes nothing.
+    if (existing.length > 0 || (!wasUnresolved && edit.fromQuestion !== true)) {
+      return { next: null, reason, result };
+    }
+    return {
+      next: {
+        facts: otherFacts,
+        unresolved: [...otherUnresolved, makeUnresolved(item, bad.t, 'asked', n.reason, n.detail)],
+      },
+      reason,
+      result,
+    };
+  }
+
+  const seen = new Set<string>();
+  const facts: LedgerFact[] = [];
+  for (const { t, n } of read) {
+    const ok = n as { ok: true; value: LedgerValue; display: string };
+    const valueKey = JSON.stringify(ok.value);
+    if (seen.has(valueKey)) continue;
+    seen.add(valueKey);
+    facts.push(makeFact(item, ok.value, ok.display, t, 'asked', 1));
+  }
+  const display = facts.map((f) => f.display).join(', ');
+  const unchanged =
+    !wasUnresolved &&
+    existing.length === facts.length &&
+    existing.every((f, i) => f.source === 'asked' && f.raw_span === facts[i].raw_span);
+  if (unchanged) return { next: null, reason, result: { key, status: 'saved', display } };
+  return {
+    next: { facts: [...otherFacts, ...facts], unresolved: otherUnresolved },
+    reason,
+    result: { key, status: 'saved', display },
+  };
+}
+
+// ── Earlier bail applications read from the description (T-190 AC8) ─────────
+
+/**
+ * Ajay's ruling (12 Oct 2026): a "none" read from the description for earlier
+ * bail applications is not a fact until the advocate confirms it. The fact is
+ * taken out here and the question is asked to confirm; if the advocate skips
+ * it, no fact is left, nothing unlocks, and the draft prints the blank.
+ *
+ * `noneValues` are the values that unlock "no other bail application has been
+ * made" (the `first_bail_application` condition in the pack's averment list).
+ * Only facts read from the description (`source: 'user'`) are held; an answer
+ * is kept.
+ */
+export function holdDescriptionNone(
+  state: LedgerState,
+  key: string,
+  noneValues: readonly string[],
+): { state: LedgerState; held: boolean } {
+  const none = new Set(noneValues.map(foldAnswer).filter((v) => v !== ''));
+  const hold = (f: LedgerFact): boolean =>
+    lastSegment(f.key) === key &&
+    f.source === 'user' &&
+    [f.value, f.display].some((v) => typeof v === 'string' && none.has(foldAnswer(v)));
+  const facts = state.facts.filter((f) => !hold(f));
+  if (facts.length === state.facts.length) return { state, held: false };
+  return { state: { facts, unresolved: state.unresolved }, held: true };
+}
+
+// ── The brief laid over a new reading (T-335) ───────────────────────────────
+
+/** What `overlayBrief` did, by count. Ids and counts only: never a value. */
+export interface OverlayCounts {
+  /** Keys the advocate answered "Not known" (or a "none" that writes no fact): fact and doubt taken out. */
+  askedEmpty: number;
+  /** Keys whose advocate value was written as an `asked` fact. */
+  written: number;
+  /** Keys whose advocate value the normalizer could not read: nothing written. */
+  unreadable: number;
+}
+
+/**
+ * Arjun (12 Oct 2026), option B: the ledger mirrors the brief that was just
+ * built. Called after `holdDescriptionNone` and `carryOver`, so the ledger
+ * matches the brief by construction.
+ *
+ * Only the advocate's own values are laid over; anything the brief got from
+ * the model (`source: 'description'`) is never written as an advocate fact.
+ *
+ * - `asked_empty` ("Not known", or "none" on a fact used only when present):
+ *   the key's facts and unresolved entries go, so it shows no blank and is
+ *   not asked again.
+ * - `source: 'user'` with one value: written as an `asked` fact, as an edit
+ *   on the brief is. A value the normalizer cannot read writes nothing (the
+ *   reading stays, and the brief shows "Please check" as before).
+ * - A list or several choices: skipped, as before.
+ */
+export function overlayBrief(
+  state: LedgerState,
+  brief: { items: ReadonlyArray<Pick<BriefItem, 'key' | 'value' | 'source' | 'asked_empty'>> },
+  checklist: ChecklistItem[],
+  refYear: number,
+): { state: LedgerState; counts: OverlayCounts } {
+  const byKey = new Map(checklist.filter(isLedgerItem).map((i) => [i.key, i]));
+  const counts: OverlayCounts = { askedEmpty: 0, written: 0, unreadable: 0 };
+  let current = state;
+  for (const shown of brief.items) {
+    const item = byKey.get(shown.key);
+    if (!item) continue;
+    if (shown.asked_empty === true) {
+      current = {
+        facts: current.facts.filter((f) => f.key !== item.key),
+        unresolved: current.unresolved.filter((u) => u.key !== item.key),
+      };
+      counts.askedEmpty += 1;
+      continue;
+    }
+    if (shown.source !== 'user' || isMultiItem(item) || typeof shown.value !== 'string') continue;
+    const text = shown.value.trim();
+    if (text === '') continue;
+    // An advocate fact that already holds the same value keeps its own words.
+    const existing = current.facts.find((f) => f.key === item.key);
+    if (existing && existing.source === 'asked') {
+      const n = normalizeForItem(item, text, refYear);
+      if (n.ok && JSON.stringify(n.value) === JSON.stringify(existing.value)) continue;
+    }
+    const { next, result } = applyEdit(current, item, { key: item.key, text }, refYear);
+    if (result.status === 'unreadable') {
+      // Arjun's ruling 4: no write, not even an unresolved entry.
+      counts.unreadable += 1;
+      continue;
+    }
+    if (result.status !== 'saved') continue;
+    if (next) current = next;
+    counts.written += 1;
+  }
+  return { state: current, counts };
+}
+
 // ── What the API returns ────────────────────────────────────────────────────
 
 export interface LedgerView {
@@ -443,9 +768,19 @@ function sameFact(a: LedgerFact | undefined, b: LedgerFact | undefined): boolean
   return a.raw_span === b.raw_span && a.display === b.display && a.source === b.source;
 }
 
+/** Every entry of one key, in order. One for most items; several for a list or several choices (T-189). */
+function entriesOf(facts: readonly LedgerFact[], key: string): LedgerFact[] {
+  return facts.filter((f) => f.key === key);
+}
+
+function sameEntries(a: LedgerFact[], b: LedgerFact[]): boolean {
+  return a.length === b.length && a.every((f, i) => sameFact(f, b[i]));
+}
+
 /**
  * The current version, with `previous_display` on a fact whose last change was
- * an edit of an earlier value.
+ * an edit of an earlier value. For a key with several entries (T-189) every
+ * entry carries the earlier entries' displays, comma-joined.
  */
 export function ledgerView(
   doc: Pick<IFactLedger, 'id' | 'runType' | 'documentKind' | 'versions'>,
@@ -453,13 +788,16 @@ export function ledgerView(
 ): LedgerView {
   const versions = doc.versions;
   const current = versions[versions.length - 1];
-  const facts = (current?.facts ?? []).map((fact) => {
+  // T-115a: every version is opened once, encrypted or legacy plain alike.
+  const opened = versions.map((v) => openVersion(v));
+  const currentOpen = opened[opened.length - 1] ?? { facts: [], unresolved: [] };
+  const facts = currentOpen.facts.map((fact) => {
     for (let i = versions.length - 1; i > 0; i -= 1) {
-      const now = versions[i].facts.find((f) => f.key === fact.key);
-      const before = versions[i - 1].facts.find((f) => f.key === fact.key);
-      if (sameFact(now, before)) continue;
-      if (versions[i].reason === 'edit' && before && now) {
-        return { ...fact, previous_display: before.display };
+      const now = entriesOf(opened[i].facts, fact.key);
+      const before = entriesOf(opened[i - 1].facts, fact.key);
+      if (sameEntries(now, before)) continue;
+      if (versions[i].reason === 'edit' && before.length > 0 && now.length > 0) {
+        return { ...fact, previous_display: before.map((f) => f.display).join(', ') };
       }
       break;
     }
@@ -471,10 +809,8 @@ export function ledgerView(
     run_type: doc.runType,
     document_kind: doc.documentKind,
     facts,
-    unresolved: [...(current?.unresolved ?? [])],
-    fields: Object.fromEntries(
-      checklist.filter(isLedgerItem).map((i) => [i.key, factTypeFor(i)]),
-    ),
+    unresolved: currentOpen.unresolved,
+    fields: Object.fromEntries(checklist.filter(isLedgerItem).map((i) => [i.key, factTypeFor(i)])),
   };
 }
 
@@ -487,8 +823,69 @@ export class LedgerConflictError extends Error {
   }
 }
 
-function version(n: number, state: LedgerState, reason: FactLedgerVersionReason): IFactLedgerVersion {
-  return { version: n, facts: state.facts, unresolved: state.unresolved, createdAt: new Date(), reason };
+// ── Encryption at rest (T-115a) ─────────────────────────────────────────────
+//
+// A version's facts and unresolved items are stored as one encrypted value,
+// `factsEnc`. Only this file seals or opens a version; nothing else reads
+// `facts`, `unresolved` or `factsEnc` on a stored version.
+
+/** The stored fields `openVersion` reads. A hydrated subdocument and a `.lean()` one both fit. */
+export interface StoredLedgerVersion {
+  facts?: readonly LedgerFact[] | null;
+  unresolved?: readonly LedgerUnresolvedFact[] | null;
+  factsEnc?: string | null;
+}
+
+/** The plaintext sealed into `factsEnc`. The backfill compares against it. */
+export function sealedPlaintext(state: LedgerState): string {
+  return JSON.stringify({ facts: state.facts, unresolved: state.unresolved });
+}
+
+/**
+ * A version as stored: `factsEnc` set, no plain `facts` or `unresolved`.
+ * `createdAt` is kept as given, so the backfill can seal an old version
+ * without changing when it was written.
+ */
+export function sealVersion(
+  v: { version: number; createdAt: Date; reason: FactLedgerVersionReason } & LedgerState,
+): IFactLedgerVersion {
+  return {
+    version: v.version,
+    factsEnc: encrypt(sealedPlaintext(v)),
+    createdAt: v.createdAt,
+    reason: v.reason,
+  };
+}
+
+/**
+ * A stored version's facts and unresolved items: `factsEnc` decrypted when
+ * set, else the legacy plain fields (missing ones read as empty). Throws when
+ * `factsEnc` cannot be decrypted (wrong key, tampered) or does not hold both
+ * lists; never returns a partial or garbled state. Returns fresh arrays.
+ */
+export function openVersion(v: StoredLedgerVersion | null | undefined): LedgerState {
+  if (!v) return { facts: [], unresolved: [] };
+  const enc = v.factsEnc;
+  if (typeof enc === 'string' && enc.length > 0) {
+    const parsed: unknown = JSON.parse(decrypt(enc));
+    const ok =
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      Array.isArray((parsed as LedgerState).facts) &&
+      Array.isArray((parsed as LedgerState).unresolved);
+    if (!ok) throw new Error('factsEnc does not hold a ledger state');
+    const state = parsed as LedgerState;
+    return { facts: [...state.facts], unresolved: [...state.unresolved] };
+  }
+  return { facts: [...(v.facts ?? [])], unresolved: [...(v.unresolved ?? [])] };
+}
+
+function version(
+  n: number,
+  state: LedgerState,
+  reason: FactLedgerVersionReason,
+): IFactLedgerVersion {
+  return sealVersion({ version: n, createdAt: new Date(), reason, ...state });
 }
 
 export async function createLedger(args: {
@@ -514,9 +911,9 @@ export async function loadOwnLedger(ledgerId: string, userId: string): Promise<I
   return FactLedgerModel.findOne({ _id: ledgerId, userId });
 }
 
-export function currentState(doc: IFactLedger): LedgerState {
-  const v = doc.versions[doc.versions.length - 1];
-  return { facts: [...(v?.facts ?? [])], unresolved: [...(v?.unresolved ?? [])] };
+/** The last version's facts and unresolved items. Takes a hydrated ledger or a `.lean()` one. */
+export function currentState(doc: { versions: readonly StoredLedgerVersion[] }): LedgerState {
+  return openVersion(doc.versions[doc.versions.length - 1]);
 }
 
 /**

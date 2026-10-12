@@ -1,3 +1,4 @@
+import { createJsonBodyErrorHandler } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import cors from 'cors';
 import express from 'express';
@@ -15,6 +16,7 @@ import intakeRoutes from './routes/intake.routes';
 import internalRoutes from './routes/internal.routes';
 import reviewRoutes from './routes/review.routes';
 import sampleAssetsRoutes from './routes/sample-assets.routes';
+import sectionsReadRoutes from './routes/sections-read.routes';
 import sectionsRoutes from './routes/sections.routes';
 import templatesRoutes from './routes/templates.routes';
 import usersRoutes from './routes/users.routes';
@@ -30,6 +32,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/templates', templatesRoutes);
+app.use('/sections', sectionsReadRoutes); // T-290 — POST /sections/read
 app.use('/sections', sectionsRoutes);
 app.use('/courts', courtsRoutes);
 app.use('/users', usersRoutes);
@@ -43,6 +46,9 @@ app.use('/', reviewRoutes);
 app.use('/', intakeRoutes); // ADR-019 — /documents/intake through the gateway
 app.use('/', documentsRoutes);
 app.use('/sample-assets', sampleAssetsRoutes);
+
+// T-307 / T-315 — rejected bodies get a plain JSON 4xx that echoes nothing (shared handler).
+app.use(createJsonBodyErrorHandler({ logger }));
 
 Sentry.setupExpressErrorHandler(app);
 

@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 
 import { BonusCredit } from '../models/BonusCredit.model';
 import { Generation } from '../models/Generation.model';
+import { NOT_FIXTURE_GENERATION } from '../services/run-origin';
 
 // Free tier: 5 document generations per calendar month (Ajay/CLO — SCRUM-10)
 export const FREE_TIER_MONTHLY_LIMIT = 5;
@@ -50,6 +51,7 @@ export async function enforceFreeLimit(
     userId: payload.sub,
     createdAt: { $gte: startOfMonth },
     status: { $ne: 'failed' },
+    ...NOT_FIXTURE_GENERATION,
   });
 
   if (count >= FREE_TIER_MONTHLY_LIMIT) {

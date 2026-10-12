@@ -1,0 +1,63 @@
+{
+  "id": "14-maint-marriage-rites",
+  "pack": "maintenance_bnss_144",
+  "title": "Maintenance, Lucknow family court: marriage date given, rites not",
+  "risk": "Risk: 'solemnised according to Hindu rites and ceremonies' added to a marriage whose date and place alone were given; the children she named must stay",
+  "source": "handoff/quality/2026-10-07-run-2-develop-FAIL.md finding 2 (invented facts); dev-written matter",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Maintenance s.144 BNSS, family court Lucknow. Client Anjali Srivastava, 34 saal, pati Manoj Srivastava, 38 saal, private company mein manager. Shaadi 12 May 2015 ko Lucknow mein hui. Do bachche hain, 6 aur 9 saal ke, Anjali ke saath rehte hain. 25,000 mahina chahiye.",
+  "court": {
+    "state": "Uttar Pradesh",
+    "court_type": "tribunal",
+    "court": "family_court_lucknow"
+  },
+  "expect": {
+    "exact": [
+      {
+        "any_of": [
+          "12 May 2015"
+        ],
+        "why": "marriage date, as the ledger displays it"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "marriage_rites",
+        "why": "the rites were not given"
+      }
+    ],
+    "absent": [
+      {
+        "any_of": [
+          "Hindu rites",
+          "Arya Samaj"
+        ],
+        "why": "rites nobody gave"
+      }
+    ],
+    "present": [
+      {
+        "any_of": [
+          "6 aur 9",
+          "6 and 9",
+          "six and nine"
+        ],
+        "why": "the children's ages she gave"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "marriage_date",
+        "why": "read from the description",
+        "display": "12 May 2015"
+      },
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Anjali Srivastava"
+      }
+    ]
+  }
+}

@@ -42,6 +42,11 @@ export interface BriefItem {
   /** The blank the draft shows while this is not given. */
   placeholder: string;
   party_name: boolean;
+  /**
+   * T-190: answered "Not known", or "none" where only a present fact is used.
+   * No value and no fact, but it counts as asked: its question is not open again.
+   */
+  asked_empty?: boolean;
 }
 
 export interface BriefCourt {
@@ -75,6 +80,13 @@ export interface BriefQuestion {
   label: string;
   kind: ValueKind;
   options: string[];
+  /** T-190: the pack's own signed question, printed as sent. */
+  source?: 'pack';
+  /**
+   * T-190 (AC8): asked to confirm a value the brief already shows. It stays open
+   * until the advocate answers it, even though the brief holds a value.
+   */
+  confirm?: boolean;
 }
 
 /** One thing the user gave, as the API takes it. */
@@ -248,6 +260,45 @@ export interface DraftResult {
   missingClauses: Array<{ id: string; title: string }>;
   findings: Finding[];
   blanks: number;
+  /**
+   * T-147d: what the fact verifier needs the advocate to check before filing,
+   * as the service sent it. Null when nothing does, or the draft was not
+   * written from the fact ledger.
+   */
+  factCheck?: FactCheckBanner | null;
+  /**
+   * T-197: the signed disclaimer, as the service sent it with every finished
+   * draft. Shown once: inside the banner when there is one, else as a note.
+   * Null when the service sent none; the web app keeps no copy of the text.
+   */
+  disclaimer?: string | null;
+}
+
+/** T-147d: the fact verifier's banner, printed as the service sent it. */
+export interface FactCheckBanner {
+  text: string;
+  items: Array<{ check: string; label: string; note: string }>;
+  disclaimer: string;
+}
+
+/** T-147d: the banner from the done event, or null when it is absent or not in shape. */
+export function readFactCheckBanner(raw: unknown): FactCheckBanner | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const banner = (raw as { banner?: unknown }).banner;
+  if (typeof banner !== 'object' || banner === null) return null;
+  const b = banner as Record<string, unknown>;
+  if (typeof b.text !== 'string' || typeof b.disclaimer !== 'string' || !Array.isArray(b.items)) {
+    return null;
+  }
+  const items = b.items.filter(
+    (i): i is { check: string; label: string; note: string } =>
+      typeof i === 'object' &&
+      i !== null &&
+      typeof (i as Record<string, unknown>).check === 'string' &&
+      typeof (i as Record<string, unknown>).label === 'string' &&
+      typeof (i as Record<string, unknown>).note === 'string',
+  );
+  return { text: b.text, items, disclaimer: b.disclaimer };
 }
 
 /** The id the API uses for a document with no rule pack. */
@@ -292,11 +343,14 @@ export function valuesAfter(brief: Brief, previous: GivenValue[]): GivenValue[] 
       ...(item.source === 'user' && item.please_check && !item.note ? { please_check: true } : {}),
     });
   }
+  // T-190: a "Not known" answer places no value but is kept, so it stays asked.
+  const askedEmpty = new Set(brief.items.filter((i) => i.asked_empty).map((i) => i.key));
   const kept = previous.filter(
     (v) =>
       !isEmptyValue(v.value) &&
-      (!itemKeys.has(v.key) || emptyKeys.has(v.key)) &&
-      brief.unplaced.some((u) => sameValue(u.value, v.value)),
+      (askedEmpty.has(v.key) ||
+        ((!itemKeys.has(v.key) || emptyKeys.has(v.key)) &&
+          brief.unplaced.some((u) => sameValue(u.value, v.value)))),
   );
   return [...placed, ...kept];
 }
@@ -335,8 +389,9 @@ export function dateInWords(iso: string): string {
   return month ? `${Number(m[3])} ${month} ${m[1]}` : iso;
 }
 
+/** T-147c: `{{MISSING: label}}` is the blank of a draft written from the fact ledger. */
 const BLANK =
-  /\[To be confirmed: [^\]]*\]|\[Section — verify before filing\]|\[Authority — add if relied upon\]/g;
+  /\[To be confirmed: [^\]]*\]|\[Section — verify before filing\]|\[Authority — add if relied upon\]|\{\{\s*MISSING\s*:\s*[^}]*?\s*\}\}/gi;
 
 /** A run of underscores left for the user, such as "Case No. _____". */
 const UNDERSCORE_BLANK = /_{3,}/g;
@@ -356,8 +411,7 @@ export function countBlanks(text: string): number {
   const marked = (text.match(BLANK) ?? []).length;
   const rest = text.replace(SIGNATURE_LINE, '');
   const signingDates = (rest.match(SIGNING_DATE_BLANK) ?? []).length;
-  const underscores = (rest.replace(SIGNING_DATE_BLANK, ' ').match(UNDERSCORE_BLANK) ?? [])
-    .length;
+  const underscores = (rest.replace(SIGNING_DATE_BLANK, ' ').match(UNDERSCORE_BLANK) ?? []).length;
   return marked + signingDates + underscores;
 }
 

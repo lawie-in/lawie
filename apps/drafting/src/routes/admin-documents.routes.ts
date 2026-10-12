@@ -8,12 +8,14 @@
  */
 import { Router, Request, Response } from 'express';
 
+import { catalogueCategoryDisplay, isCatalogueCategoryId } from '../config/catalogue';
 import { authenticate } from '../middleware/authenticate';
 import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
 import { Template } from '../models/Template.model';
 import { User } from '../models/User.model';
 import { getUsdInrRate } from '../services/llm-usage';
+import { NOT_FIXTURE, NOT_FIXTURE_GENERATION } from '../services/run-origin';
 
 const router = Router();
 
@@ -45,25 +47,27 @@ router.get(
       aiCostAgg,
       usdInrRate,
     ] = await Promise.all([
-      LawieDocument.countDocuments({ isDeleted: { $ne: true } }),
+      LawieDocument.countDocuments({ isDeleted: { $ne: true }, ...NOT_FIXTURE }),
       LawieDocument.countDocuments({
         createdAt: { $gte: startOfMonth },
         isDeleted: { $ne: true },
+        ...NOT_FIXTURE,
       }),
       LawieDocument.countDocuments({
         status: { $in: ['finalised', 'exported'] },
         isDeleted: { $ne: true },
+        ...NOT_FIXTURE,
       }),
       // DocType breakdown
       LawieDocument.aggregate([
-        { $match: { isDeleted: { $ne: true } } },
+        { $match: { isDeleted: { $ne: true }, ...NOT_FIXTURE } },
         { $group: { _id: '$docType', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
       ]),
       // Template usage — group by templateId
       LawieDocument.aggregate([
-        { $match: { isDeleted: { $ne: true }, templateId: { $ne: null } } },
+        { $match: { isDeleted: { $ne: true }, templateId: { $ne: null }, ...NOT_FIXTURE } },
         {
           $group: {
             _id: '$templateId',
@@ -79,7 +83,7 @@ router.get(
       // AI cost this month — cost sum includes failed rows (we paid for
       // them); the generation count excludes them (T-003 §3.7).
       Generation.aggregate([
-        { $match: { createdAt: { $gte: startOfMonth } } },
+        { $match: { createdAt: { $gte: startOfMonth }, ...NOT_FIXTURE_GENERATION } },
         {
           $group: {
             _id: null,
@@ -95,7 +99,7 @@ router.get(
     // Fetch template metadata for the top templates
     const templateIds = templateAgg.map((t: { _id: string }) => t._id).filter(Boolean);
     const templates = await Template.find({ templateId: { $in: templateIds } })
-      .select('templateId displayName category planAccess creditsCost')
+      .select('templateId displayName category catalogueCategory planAccess')
       .lean();
     const tmplMap = new Map(templates.map((t) => [t.templateId, t]));
 
@@ -130,6 +134,12 @@ router.get(
             templateId: t._id,
             displayName: meta?.displayName ?? t._id,
             category: meta?.category ?? '—',
+            // T-240: the library category and its name. Absent on a row the
+            // seed has not rewritten yet; the page then shows `category`.
+            catalogueCategory: meta?.catalogueCategory,
+            catalogueCategoryName: isCatalogueCategoryId(meta?.catalogueCategory)
+              ? catalogueCategoryDisplay(meta.catalogueCategory).name
+              : undefined,
             planAccess: meta?.planAccess ?? 'free',
             count: t.count,
             finalisedRate: t.count > 0 ? Math.round((t.finalised / t.count) * 100) : 0,
@@ -152,6 +162,7 @@ router.get(
     const docs = await LawieDocument.find({
       status: 'exported',
       isDeleted: { $ne: true },
+      ...NOT_FIXTURE,
     })
       .sort({ updatedAt: -1 })
       .limit(limit)
@@ -204,7 +215,7 @@ router.get(
 
     const [agg, usdInrRate] = await Promise.all([
       Generation.aggregate([
-        { $match: { createdAt: { $gte: start, $lt: end } } },
+        { $match: { createdAt: { $gte: start, $lt: end }, ...NOT_FIXTURE_GENERATION } },
         {
           $group: {
             _id: null,

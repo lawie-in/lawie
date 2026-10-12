@@ -140,7 +140,7 @@ export function PaywallModal({ documentLabel, cost, balance, onClose }: PaywallM
         </section>
 
         <p className="border-t border-slate-100 px-6 py-3 text-center text-[11px] text-slate-400">
-          Secure payments via Razorpay · GST invoice provided
+          Payments via Razorpay
         </p>
       </div>
     </div>

@@ -4,6 +4,23 @@ This file is for humans only. No agent reads it automatically — only root `CLA
 
 See `DEV_TEAM_SPEC.md` in this same directory for the full founder/CTO-approved spec this was built from, including the open decisions in its section 9 that are not resolved by this implementation.
 
+## Leads and crew (roster)
+
+Three leads, same strategy, run in parallel (founder, 11 Oct 2026). Priya coordinates them; rules in `docs/multi-lead.md`.
+
+| Agent | File | Runs as | Worktree |
+|---|---|---|---|
+| `vishal` | `agents/vishal.md` | main session (default, `"agent": "vishal"` in `settings.json`) | his own |
+| `mahak` | `agents/mahak.md` | main session, `claude --agent mahak` | `/home/user/lawie-wt/mahak` |
+| `shashank` | `agents/shashank.md` | main session, `claude --agent shashank` | `/home/user/lawie-wt/shashank` |
+| `developer`, `tester`, `reviewer`, `doc-writer` | `agents/dev/*.md` | subagents, shared by all three leads | the lead's |
+
+How to start a lead: `cd /home/user/lawie-wt/<lead> && claude --agent <lead>`. `--agent` overrides the `agent` setting for that session only. A plain `claude` still starts as `vishal`. Starting inside the lead's own worktree is not optional: subagents work in the session's directory.
+
+Why the crew is shared, not copied per lead: a crew agent starts with no memory, gets everything from the handoff packet, and runs in the directory of the session that dispatched it. Nothing about it is lead-specific, so three copies would only add drift between them (a hook fixed in one copy and not the others). Each dispatch is a fresh instance, so two leads using `developer` at the same time do not share state. The "resume the same developer" step in the review loop resumes that lead's own instance.
+
+When the leads' shared rules change, change all three lead files the same way. Only the name, identity line and worktree path differ between them (`diff agents/mahak.md agents/shashank.md` shows exactly that).
+
 ## Why the files are split the way they are
 
 `CLAUDE.md` is loaded in full into every single agent's context, every run — lead and all four crew. Anything in it is a standing cost multiplied by every dispatch in a ticket's chain. So it holds only what's universally needed (layout, stack, commands, branch convention, the crew protocol rules). Everything else — coverage thresholds, test gaps, golden-snapshot mechanics, the legal-content path list — lives under `.claude/docs/` and is only pulled into context when an agent actually `Read`s it, because its task calls for it. `CLAUDE.md` points at these files as plain paths, never with Claude Code's `@path` import syntax — that syntax eagerly inlines the target file's content at session start, which would defeat the point.
@@ -26,31 +43,8 @@ The spec flagged "`Read` deny doesn't reliably stop `cat .env` through Bash" as 
 
 ## Division of git responsibility
 
-Only the lead (`vishal`) runs `git commit`/`git push`/`gh pr create`, after collecting all four crew reports. Crew agents only modify the working tree. This isn't enforced by a hook — it's structural (none of the four crew prompts mention committing, and the flow is strictly sequential in one checkout per the spec's own worktree correction in section 1) plus the `permissions.ask` gate on `git push`/`gh pr merge`/`gh workflow run`, which only the lead's main session can actually answer since subagents can't use `AskUserQuestion`.
+Only the lead (`vishal`, `mahak` or `shashank`, each in its own worktree) runs `git commit`/`git merge --no-ff`/`git push`, after collecting all four crew reports. There are no pull requests: the lead merges into `develop_staging`, and only the founder merges on to `develop` and releases to `main` (T-403). Crew agents only modify the working tree. This isn't enforced by a hook — it's structural (none of the four crew prompts mention committing, and the flow is strictly sequential in one checkout per the spec's own worktree correction in section 1) plus the `permissions.ask` gate on `git push`/`gh pr merge`/`gh workflow run`, which only the lead's main session can actually answer since subagents can't use `AskUserQuestion`.
 
 ## Adding a sixth crew agent later
 
-Drop a new file under `.claude/agents/dev/`, give it a `name`/`description`, scope its `tools`/hooks the same way the existing four do (allowlist what it needs, hook-restrict any destructive surface Bash gives it that the allowlist alone can't stop), and update the flow description in `.claude/docs/dev-lead-protocol.md` — not in any one lead's file, since all three leads share that document. Restart the session afterward — new files under `.claude/agents/` need a restart to be picked up.
-
-## Why the leads are pointer files
-
-`vishal.md`, `mahak.md` and `shashank.md` are ~800 bytes each and say almost nothing: they name the
-agent, point at `.claude/docs/dev-lead-protocol.md`, and point at the board. The protocol holds the
-entire job. Three full copies of a 7KB briefing would drift within a sprint — one lead would get a
-fix the others didn't — and adding a fourth lead would mean a fourth copy. The cost of the
-indirection is that a lead has to actually read the protocol on its first turn; that instruction is
-the first thing in its prompt, so it does, but if a lead is ever seen skipping a gate, a failed read
-of that document is the first thing to check. `priya.md` works the same way against
-`.claude/docs/pm-protocol.md`.
-
-## Why tickets are not in this repo
-
-They are on the Lawie Ticket Board, an artifact with a shared database. Four sessions now run in
-parallel in separate cloud containers; each has its own clone, so nothing written to a file in one
-is visible to the others, and git only syncs on push. The board is the only surface all four can
-read and write live. It is also the reason the crew agents are explicitly told to stay off it: the
-board is shared by link and anyone on the team can post to it, so it is untrusted input, and the one
-path from it into a ticket's chain should be through the lead, who has scope boundaries.
-
-Nothing is pushed into a running session, so the board is polled, not pushed. The protocol names the
-four points at which a lead must read it rather than leaving that to judgment.
+Drop a new file under `.claude/agents/dev/`, give it a `name`/`description`, scope its `tools`/hooks the same way the existing four do (allowlist what it needs, hook-restrict any destructive surface Bash gives it that the allowlist alone can't stop), and update the flow description in all three lead prompts (`vishal.md`, `mahak.md`, `shashank.md`). Restart the session afterward — new files under `.claude/agents/` need a restart to be picked up.

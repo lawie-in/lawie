@@ -1,0 +1,61 @@
+{
+  "id": "03-bail-hinglish-relative-dates-ipc",
+  "pack": "bail_regular",
+  "title": "Bail, Gaya: relative dates and an IPC section on a 2026 FIR",
+  "risk": "Run 1 scenario 5: 'parso utha liya' and 'FIR pichle hafte ki' are not dates and must not become dates; '379 IPC' must not be converted to a BNS section by the model",
+  "source": "handoff/quality/2026-10-06-baseline-run-FAIL.md scenario 5 (her words, verbatim, with a father's name and age added so the brief can be confirmed)",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "mere client Testpintu Rajak s/o Bhola Rajak, 26 saal, ko police ne parso utha liya, 379 IPC lagaya hai, FIR 318/2026 pichle hafte ki hai Civil Lines thana Gaya. bail karwani hai jaldi, Sessions court Gaya.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "sessions",
+    "court": "bihar_sessions_gaya"
+  },
+  "expect": {
+    "absent": [
+      {
+        "any_of": [
+          "303(2)"
+        ],
+        "why": "the model must not convert IPC 379 to BNS 303(2) on its own"
+      }
+    ],
+    "present": [
+      {
+        "any_of": [
+          "Civil Lines"
+        ],
+        "why": "run 1: the police station was asked again"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "arrested_on",
+        "why": "'parso' is not a date of arrest"
+      },
+      {
+        "banned_entry_id": "in_custody_since",
+        "why": "no custody date was given"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "fir_date",
+        "why": "'pichle hafte' is not a date",
+        "unresolved": true
+      },
+      {
+        "key": "police_station",
+        "why": "read from the description",
+        "display": "Civil Lines"
+      },
+      {
+        "key": "applicant_name",
+        "why": "read from the description",
+        "display": "Testpintu Rajak"
+      }
+    ]
+  }
+}

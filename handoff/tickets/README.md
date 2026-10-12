@@ -9,9 +9,15 @@ Local ticket files, one per ticket. Founder decision on 3 Oct 2026: no Jira or N
 - These files still hold the full detail of each ticket.
 - Founder rule, 8 Oct 2026: Priya owns the Status line in every `T-*.md`. Each time a ticket's state changes (building, PR open, merged, done), Priya updates that line, and only that line, in the branch the ticket lives on. The dev lead commits and pushes.
 
+## Branch flow (founder, 11 Oct 2026)
+
+- Cut every ticket branch from `develop_staging`. Merge finished work back into `develop_staging`.
+- Nobody on the team opens a PR to `develop` or merges into it. The founder merges `develop_staging` into `develop`, normally at night.
+- `main` is still production. "Merged to develop" in a Status line below, from before 11 Oct, is history; new work reads "Merged to develop_staging".
+
 ## How to use
 
-- One ticket at a time goes to the dev lead.
+- One ticket per lead, assigned by Priya. The claim record is `leads.md`; rules in `.claude/docs/multi-lead.md`.
 - The ticket file is the source of truth. Change its Status line as work moves.
 - Do not rename a ticket file once work has started.
 - Design, legal and research tickets do not go through the dev lead. Their owner writes the result into the file.
@@ -88,7 +94,7 @@ Checked on `develop` after PR #29 and PR #30.
 | T-135 | The draft cites the right provision for the court | 1 | Ajay (the law), then Vishal (apply), Anushka (verdict) | Needs scoping. Not started. Cause not traced yet |
 | T-136 | The draft is one document and keeps the facts as given (`T-136-draft-faithfulness.md`) | 1 | Vishal (build), Ajay (signed the rules), Anushka (tests on develop before GTM) | In progress. Part built on the branch, not wired in and not tested |
 | T-136 | The draft is one document and keeps the facts as given (`T-136-draft-is-one-document-and-keeps-the-facts.md`) | 1 | Vishal (cause and fix), Ajay (the rule on facts), Anushka (verdict) | Needs scoping. Not started. Cause not traced yet |
-| T-137 | Ink: the cost before I spend, and one true balance | 2 | Vikram (what is true), Priya (scope), Vishal (build), Anushka (verdict) | Needs scoping. Not started. Cause not traced yet |
+| T-137 | Ink: the cost before I spend, and one true balance | 2 | Vikram (what is true), Priya (scope), Vishal (build), Anushka (verdict) | ON HOLD (founder, 11 Oct) until drafting is complete and Vikram's payment calculations are done. Needs scoping. Not started |
 | T-138 | I can read my draft on a phone | 1 | Vishal (build), Anushka (tests on develop before GTM) | Ready for Vishal |
 | T-139 | Do not ask again for what I already gave | 1 | Priya (scope), Ajay (the questions + sign-off), Vishal (build), Anushka (tests develop after the batch) | Merged to develop (PR #66), 8 Oct. Anushka tests on develop. |
 | T-140 | I can choose my court, and only courts that can hear the matter | 1 | Priya (scope), Ajay (which courts for which document), Vishal (build), Anushka (verdict) | Needs scoping. Not started. Cause not traced yet |
@@ -124,19 +130,45 @@ Checked on `develop` after PR #29 and PR #30.
 | T-186 | Legacy /generate path: 54 doc types leave template blanks such as `{petitioner_name}` unfilled; the post-processor fills only about 9 placeholder names (found in T-182) | 1 | Vishal | To scope |
 | T-187 | Retention and deletion rule for the Fact Ledger and `intake_extract` rows, before `feature.fact_ledger` is on for real users (Ajay's DPDP condition) | 1 | Arjun (mechanism), Ajay (rule, DPDP sign-off), Vishal (build) | To do. Gates `feature.fact_ledger` for real users |
 | T-188 | Unresolved ledger items past the 10-question cap are asked in a later round or marked "[verify: unread in source]", never guessed (Ajay's T-147b condition) | 1 | Arjun and Ajay (choose the option), Vishal (build) | To do. Waits for Arjun and Ajay to choose. Gates `feature.fact_ledger` for real users |
-| T-189 | The Fact Ledger covers list and choice fields: `bail_regular`'s `sections_charged` and `grounds_for_bail` stop rendering as missing (T-147c follow-up) | 1 | Vishal (build), Ajay (signs any prompt change), Anushka (verdict) | Proposed, founder to confirm. Gates `feature.fact_ledger` for real users |
+| T-189 | The Fact Ledger covers list and choice fields: `bail_regular`'s `sections_charged` and `grounds_for_bail` stop rendering as missing (T-147c follow-up) | 1 | Vishal (build), Ajay (signs any prompt change), Anushka (verdict) | Assigned to vishal, 11 Oct. Founder confirmed option A, 11 Oct (AC1 done). Gates `feature.fact_ledger` for real users |
 | T-190 | Bail packs ask for the facts that unlock their averments, in Ajay's order (legal content) | 1 | Ajay (questions, signs), Vishal (apply), Anushka (verdict) | To do. Proposed gate: before `feature.fact_ledger` for real users (Arjun to confirm) |
 | T-191 | Code computes the default-bail threshold under BNSS s.187(3); the advocate sees the inputs | 1 | Vishal (build), Ajay (signs the logic), Anushka (verdict) | To do. `statutory_period_expired` stays banned until done |
 | T-192 | Code computes the s.138 date checks, provisos (a) and (b); the advocate sees the inputs | 1 | Vishal (build), Ajay (signs the logic), Anushka (verdict) | To do. Both entries stay banned until done |
 | T-193 | Bail packs warn when the applicant is under 18: the forum is the JJ Board (JJ Act 2015 s.12) | 1 | Ajay (text, signs), Vishal (apply), Anushka (verdict) | To do. Proposed gate: before v1 go-live (Ajay to confirm) |
 | T-194 | Exports show every blank still to be confirmed: bold and highlighted, a warning with the count, "DRAFT — N items to be confirmed" in the header | 1 | Rajesh (design), Vishal (build), Ajay (signs), Anushka (verdict) | To do. Needs Rajesh's design. Go-live blocker (Ajay) |
 | T-195 | Allowed texts for banned entries that have no allowed partner (legal content) | 1 | Ajay (decides, signs), Vishal (apply), Anushka (verdict) | Backlog. Low priority |
+| T-196 | Registration can never create an Admin account (security) | 0 | Vishal (build), Arjun (security heads-up), Anushka (verdict) | Merged to develop_staging (11 Oct). Founder's ops check done, 11 Oct: no unexpected Admin account |
+| T-197 | The disclaimer shows on every draft, not only with the fact-check banner | 1 | Lead (build), Anushka (verdict) | Assigned to mahak, 11 Oct. Before go-live |
+| T-198 | Rent agreement asks for and keeps both fathers' names (legal content) | 1 | Ajay (field, signs), lead (apply), Anushka | To do. Waits for Ajay |
+| T-199 | `bail_regular` asks `sole_earning_member`, so "sole breadwinner" can unlock (legal content; Ajay: high) | 1 | Ajay (question, signs), lead (apply), Anushka | To do. Waits for Ajay. Runs with T-190 |
+| T-200 | The missing-clause check looks at the clause, not only its paragraph number | 1 | Ajay (rule), lead (build), Anushka | To do. Waits for Ajay's rule |
 | T-201 | Ledger moves from Ink units to drops                                  | 2     | Vishal                                        | Ready. ADR-020 approved on 4 Oct 2026                                                                                                    |
 | T-202 | Charge by paragraphs: 50 drops + 2 per paragraph                      | 2     | Vishal                                        | Blocked: T-201 and T-003 done. Go-live waits for T-004                                                                                   |
 | T-203 | Web: length picker, estimate and drops balance                        | 2     | Vishal                                        | Blocked: T-202 and T-109                                                                                                                 |
 | T-204 | Pricing copy and terms for drops                                      | 2     | Madhuri (copy), Ajay (terms), Meera approves  | Blocked: T-004 and T-108 sign-off                                                                                                        |
 | T-205 | Revise a draft: paid, same run                                        | 2     | Vishal                                        | Blocked: T-110, T-202 and T-109. Go-live waits for T-108                                                                                 |
 | T-206 | Default and minimum paragraphs for each document type                 | 2     | Ajay, with Priya                              | Delivered by Ajay on 4 Oct 2026. Limits for 86 templates wait for a check against T-004 data                                             |
+| T-207 | A `none_contain` test for averment unlock conditions | 1 | Vishal (problem), Ajay (entries), lead (build) | Needs scoping. Gates `feature.fact_ledger` (Vishal's list) |
+| T-208 | Auth: a validation error returns 422 with its message, not 500 | 0 | Lead (build), Anushka | Assigned to shashank, 11 Oct |
+| T-209 | Auth: register then login in the same second no longer returns 500 (JWT collision) | 0 | Lead (build), Arjun (heads-up) | Ready |
+| T-210 | Auth logs carry no email address (PII, `passport.ts:60`) | 0 | Lead (build), Ajay (heads-up) | Ready |
+| T-211 | The ReferralCode uniqueness test is not flaky | 0 | Lead (build) | Ready |
+| T-220 | Emails actually reach users: provider, sending domain (SPF/DKIM/DMARC), worker deployed | 0 | Arjun (call), founder (DNS, AWS), lead (build), Anushka | Needs scoping. Waits for Arjun. Before go-live |
+| T-221 | Forgot password works end to end | 0 | Rajesh (design done), Madhuri (copy), lead (build) | To do. Back from hold: password sign-up ships in v1 (founder, 11 Oct). Before go-live |
+| T-222 | A new user gets a welcome email | 0 | Madhuri (copy), Ajay (claims), lead (build), Anushka | To do. Needs copy |
+| T-223 | Verify a new user's email (option B) | 0 | Lead (build), Madhuri (copy) | Decided B (11 Oct). Needs criteria and T-220 |
+| T-224 | Payment and balance emails | 2 | Vikram, Madhuri, Ajay, lead | Blocked: drops pricing (T-201 to T-205) and T-220 |
+| T-225 | What our emails may and may not contain (DPDP, confidentiality, footer) | 0 | Ajay (rules, signs) | To do. Waits for Ajay. Gates all email copy |
+| T-226 | A user cannot draft past their balance (parallel requests; failed charge still delivers) | 0 | Arjun (mechanism), lead (build), Anushka | To do. Waits for Arjun. After T-197 merges. Before go-live |
+| T-227 | The price a user sees is the price charged (58 templates show 2, most are charged 1) | 0 | Vikram (prices), lead (build), Anushka | Ready. Vikram's prices in (2 Ink, 31 short documents at 1). Before go-live |
+| T-228 | The verifier and the averments read every entry of a list field (T-189 follow-up) | 1 | Ajay (signs), Vishal (build), Anushka | Folded into T-189 (11 Oct) |
+| T-229 | No credentials or personal data reach Sentry from any service (internal secret, user headers) | 0 | Arjun (approach), lead (build) | To do. P1. After T-210; needs packages/shared in turn |
+| T-230 | The sign-in token carries no email or name | 0 | Arjun (payload, /me route), lead (build) | Needs scoping. After T-229 |
+| T-231 | The verifier recognises sections cited together ("Sections 318(4) and 319(2) BNS") | 1 | Ajay (rule), lead (build), Anushka | To do. Waits for Ajay. After T-189 |
+| T-232 | Logging and Sentry follow-ups from T-210 (spans, e2e test, req.ip, console.warn, breadcrumbs, double capture) | 0 | Arjun (triage), lead | Needs triage |
+| T-233 | Exported files: empty DOCX for an unedited draft, PDF margin on the wrong side | 1 | Lead, Anushka | To do. After T-194. Before go-live |
+| T-234 | Email and password sign-up and sign-in in the web app | 0 | Rajesh (check), Madhuri, lead, Anushka | To do. Needs Rajesh's check. Before go-live |
+| T-235 | Privacy policy covers Google sign-in data and where data is stored | 0 | Ajay (text), Arjun (facts), lead | To do. Before go-live |
 | T-301 | Attach images as matter context                                       | 3     | Vishal                                        | Blocked: the brief screen (T-125)                                                                                                        |
 | T-302 | Consent line and retention rule for uploads                           | 3     | Ajay                                          | Delivered by Ajay on 4 Oct 2026. Policy wording to be read by a practising lawyer before it is published                                 |
 | T-303 | Spike: can we read Hindi and handwritten FIRs?                        | 3     | Vishal, Ajay reviews the result               | Ready. T-302 is delivered                                                                                                                |

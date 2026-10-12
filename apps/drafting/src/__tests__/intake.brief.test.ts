@@ -19,10 +19,11 @@ import { AppSetting } from '../models/AppSetting.model';
 import { Event } from '../models/Event.model';
 import { LlmAuxCall } from '../models/LlmAuxCall.model';
 import { _clearAppSettingsCache } from '../services/app-settings.service';
-import { INTAKE_LIMITS } from '../services/intake.service';
+import { DEMAND_CATEGORIES, INTAKE_LIMITS } from '../services/intake.service';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -30,7 +31,6 @@ jest.mock('@anthropic-ai/sdk', () =>
 beforeEach(() => {
   mockMessagesStream.mockReset();
 });
-
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439081';
@@ -164,9 +164,13 @@ describe('POST /intake/brief — a request with a rule pack', () => {
     expect(itemOf(brief, 'fir_number')?.value).toBe('124/2026');
     // The date of arrest is not the date of the FIR.
     expect(itemOf(brief, 'fir_date')?.value).toBeNull();
-    expect(brief.loose_dates).toEqual([
-      { value: '2026-03-15', kind: 'arrest', meaning: 'Date of arrest' },
-    ]);
+    // T-190: bail_regular now has an arrest_date fact, so the stated arrest date
+    // lands on it (it was a loose date before the pack had a place for it).
+    expect(itemOf(brief, 'arrest_date')).toMatchObject({
+      value: '2026-03-15',
+      source: 'description',
+    });
+    expect(brief.loose_dates).toEqual([]);
     // Words the user did not write are dropped.
     expect(itemOf(brief, 'father_name')?.value).toBeNull();
     // The court never comes from the model. The police station does, when the advocate wrote it (T-139).
@@ -451,10 +455,11 @@ describe('POST /intake/brief — a request with no rule pack', () => {
 
     const events = await Event.find({ type: 'demand.no_template' }).lean();
     expect(events).toHaveLength(1);
-    expect(events[0].metadata).toMatchObject({
-      intakeId: INTAKE_ID,
-      label: 'consent letter for premises',
-    });
+    expect(events[0].metadata).toMatchObject({ intakeId: INTAKE_ID });
+    expect(events[0].metadata).not.toHaveProperty('label');
+    expect(DEMAND_CATEGORIES as readonly string[]).toContain(
+      (events[0].metadata as { category: string }).category,
+    );
     expect(JSON.stringify(events)).not.toContain('Suresh');
     const rows = await LlmAuxCall.find({ intakeId: INTAKE_ID }).lean();
     expect(rows.map((r) => r.purpose).sort()).toEqual([

@@ -13,15 +13,27 @@
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
-import bnsBailability from '../config/bns-bailability.json';
-import bnsOffences from '../config/bns-offences.json';
+import {
+  catalogueCategoryDisplay,
+  requireCatalogueCategory,
+  type CatalogueCategoryId,
+} from '../config/catalogue';
+import logger from '../config/logger';
 
+import {
+  BNS_CLASSIFICATION,
+  BNS_OFFENCE_KEYS,
+  ChargedCode,
+  ChargedSection,
+  OLD_LAW_LINE,
+  readChargedField,
+  readSectionsCharged,
+  resolveOffence,
+} from './bns-offence-resolver';
 import { getTemplateRegistry } from './template-promoter';
 
 /** Sorted list of valid BNS section numbers for system-prompt injection (SCRUM-64). */
-const BNS_VALID_SECTIONS = Object.keys(bnsOffences.offences).sort(
-  (a, b) => parseFloat(a) - parseFloat(b),
-);
+const BNS_VALID_SECTIONS = [...BNS_OFFENCE_KEYS].sort((a, b) => parseFloat(a) - parseFloat(b));
 
 // ── Types — match the JSON schema from CLO ──────────────────────────────────
 
@@ -117,7 +129,19 @@ export interface TemplateMetadata {
 export interface TemplateConfig {
   template_id: string;
   display_name: string;
+  /**
+   * The behaviour value, from the rule file (or the docs/templates override).
+   * Gates what is drafted (civil contract rule, CATEGORY prompt line, BNS
+   * whitelist). NOT the library category: see `catalogueCategory`.
+   */
   category: string;
+  /**
+   * The library category (T-240): one of T-239's 26, from config/catalogue,
+   * never from the rule file. Drives the library, filters, seed and web only.
+   * Always set on configs from the registry and the overrides (a template
+   * without one fails at load); optional in the type for hand-built configs.
+   */
+  catalogueCategory?: CatalogueCategoryId;
   description: string;
   icon: string;
   plan_access: 'free' | 'pro';
@@ -145,6 +169,10 @@ export interface TemplateSummary {
   template_id: string;
   display_name: string;
   category: string;
+  /** T-240: library category id, its display name and its T-239 order. */
+  catalogueCategory: CatalogueCategoryId;
+  catalogueCategoryName: string;
+  catalogueCategoryOrder: number;
   description: string;
   icon: string;
   plan_access: 'free' | 'pro';
@@ -171,13 +199,23 @@ export function loadTemplateConfig(templateId: string): TemplateConfig | null {
   if (cached !== undefined) return cached;
 
   // Try the override path first — hand-tuned configs trump anything synthesised.
+  let override: TemplateConfig | null = null;
   try {
     const raw = readFileSync(join(TEMPLATES_DIR, `${templateId}.json`), 'utf-8');
-    const config: TemplateConfig = JSON.parse(raw);
-    configCache.set(templateId, config);
-    return config;
+    override = JSON.parse(raw) as TemplateConfig;
   } catch {
     // No override on disk — fall through to the promoter registry.
+  }
+  if (override) {
+    // T-240: the library category comes from config/catalogue, never from the
+    // override file; an override with no catalogue entry is refused (throws).
+    // `category` (the behaviour value) is the override's own, unchanged.
+    const config: TemplateConfig = {
+      ...override,
+      catalogueCategory: requireCatalogueCategory(override.template_id ?? templateId),
+    };
+    configCache.set(templateId, config);
+    return config;
   }
 
   const fromRegistry = getTemplateRegistry().configs.get(templateId);
@@ -202,16 +240,24 @@ export function loadTemplateConfig(templateId: string): TemplateConfig | null {
 export function listTemplateConfigs(): TemplateSummary[] {
   const byId = new Map<string, TemplateSummary>();
 
-  const toSummary = (config: TemplateConfig): TemplateSummary => ({
-    template_id: config.template_id,
-    display_name: config.display_name,
-    category: config.category,
-    description: config.description,
-    icon: config.icon,
-    plan_access: config.plan_access,
-    supported_languages: config.supported_languages,
-    metadata: config.metadata,
-  });
+  const toSummary = (config: TemplateConfig): TemplateSummary => {
+    const catalogueCategory =
+      config.catalogueCategory ?? requireCatalogueCategory(config.template_id);
+    const { name, order } = catalogueCategoryDisplay(catalogueCategory);
+    return {
+      template_id: config.template_id,
+      display_name: config.display_name,
+      category: config.category,
+      catalogueCategory,
+      catalogueCategoryName: name,
+      catalogueCategoryOrder: order,
+      description: config.description,
+      icon: config.icon,
+      plan_access: config.plan_access,
+      supported_languages: config.supported_languages,
+      metadata: config.metadata,
+    };
+  };
 
   // 1. Overrides win.
   try {
@@ -687,11 +733,7 @@ function courtHeading(courtData: CourtLookupData): { designation: string; header
     // a seat or bench. The cached rule is read, never changed.
     rawDesignation = own;
     fromRule = false;
-  } else if (
-    courtData.formattingRulesRef === 'family_court' &&
-    own &&
-    !isGenericDesignation(own)
-  ) {
+  } else if (courtData.formattingRulesRef === 'family_court' && own && !isGenericDesignation(own)) {
     // T-176 (AJ-2026-10-08-T174, FU-1): a family court names its seat. The
     // courts-list entry's own designation ("IN THE FAMILY COURT AT TIS HAZARI,
     // DELHI") prints as stored, over the rule's bare "IN THE FAMILY COURT"
@@ -917,16 +959,229 @@ export interface PlaceholderContext {
   [key: string]: string;
 }
 
+/** T-251: what {governing_provision} prints while no procedure code is given. */
+export const GOVERNING_PROVISION_BLANK =
+  '[To be confirmed: Section 167(2) CrPC or Section 187(3) BNSS]';
+
+/** The `source` of a form field (e.g. 'bns_mapping'), if the template defines one. */
+export function fieldSourceOf(config: TemplateConfig | null, fieldId: string): string | undefined {
+  for (const step of config?.form_schema?.steps ?? []) {
+    const field = step.fields.find((f) => f.field_id === fieldId);
+    if (field) return field.source;
+  }
+  return undefined;
+}
+
+/**
+ * ctx key holding sections_charged as read BEFORE the array is joined (Arjun,
+ * correction to step 7): JSON of readChargedField's { code, number } entries.
+ */
+export const SECTIONS_CHARGED_READ_KEY = '__sections_charged_read';
+
+/**
+ * T-300 list A (Arjun, 12 Oct 2026): context keys the server sets and no client
+ * value may set, even if a template declares the field. Also never client-set:
+ * every `__*` key, every `party_label_*` key and the camelCase aliases in
+ * `PLACEHOLDER_ALIASES` (see `isServerOnlyKey`).
+ */
+const SERVER_ONLY_KEYS: ReadonlySet<string> = new Set([
+  'current_date',
+  'current_year',
+  'enrollment_number',
+  'governing_provision',
+  'custody_clause',
+  'state_respondent',
+  'case_nomenclature',
+  'prayer_opening',
+  'prayer_closing',
+  'verification_text',
+  'body_para_count',
+  'lastParagraph',
+]);
+
+/**
+ * T-300 list B: set by the server unless THIS template's form declares the
+ * field, in which case the value is what the user typed. Every computed-field
+ * id of the template is in this list too (see `clientFormData`).
+ */
+const SERVER_UNLESS_DECLARED_KEYS: readonly string[] = [
+  'advocate_name',
+  'court_designation',
+  'court_header',
+  'court_city',
+  'jail',
+];
+
+/** T-300 list A: true for a key no client value may set. */
+function isServerOnlyKey(key: string): boolean {
+  return (
+    key.startsWith('__') ||
+    key.startsWith('party_label_') ||
+    SERVER_ONLY_KEYS.has(key) ||
+    PLACEHOLDER_ALIASES.some(([alias]) => alias === key)
+  );
+}
+
+/** The field ids this template's form declares (`form_schema.steps[].fields[].field_id`). */
+export function declaredFieldIds(config: TemplateConfig | null | undefined): Set<string> {
+  const ids = new Set<string>();
+  for (const step of config?.form_schema?.steps ?? []) {
+    for (const field of step.fields ?? []) ids.add(field.field_id);
+  }
+  return ids;
+}
+
+/**
+ * T-300: the client's formData without the keys it may not set (lists A and
+ * B), and the names of the keys dropped. A key whose value is null or
+ * undefined never reaches the context, so it is left out and not counted.
+ */
+export function clientFormData(
+  config: TemplateConfig,
+  formData: Record<string, unknown>,
+): { kept: Record<string, unknown>; dropped: string[] } {
+  const declared = declaredFieldIds(config);
+  const serverUnlessDeclared = new Set([
+    ...SERVER_UNLESS_DECLARED_KEYS,
+    ...Object.keys(config.computed_fields ?? {}),
+  ]);
+  // A jail alias (JAIL_SOURCES) feeds {jail} and custody_clause, so it is list B
+  // too: kept only where this template declares `jail` or the alias itself.
+  if (!declared.has('jail')) for (const alias of JAIL_SOURCES) serverUnlessDeclared.add(alias);
+  const kept: Record<string, unknown> = {};
+  const dropped: string[] = [];
+  for (const [key, val] of Object.entries(formData)) {
+    if (val === null || val === undefined) continue;
+    if (isServerOnlyKey(key) || (serverUnlessDeclared.has(key) && !declared.has(key))) {
+      dropped.push(key);
+      continue;
+    }
+    kept[key] = val;
+  }
+  return { kept, dropped };
+}
+
+/**
+ * T-311: a resolved advocate name and whether it is the profile's name. Only
+ * a name from the profile may be paired with the profile's enrolment number.
+ */
+export interface ResolvedAdvocate {
+  name: string | undefined;
+  fromProfile: boolean;
+}
+
+/**
+ * T-300 (Ajay, 12 Oct 2026): the advocate name the draft and the annexures
+ * print. A value typed in a field this template declares wins when it is not
+ * empty (missing, null or whitespace only); otherwise the profile name.
+ * `name` is undefined when neither is there, so each caller keeps its own blank.
+ */
+export function resolveAdvocate(
+  formData: Record<string, unknown>,
+  profile: { name?: string | null },
+  config: TemplateConfig | null | undefined,
+): ResolvedAdvocate {
+  const declared = declaredFieldIds(config).has('advocate_name');
+  return typedOrProfile(declared ? formData.advocate_name : undefined, profile.name);
+}
+
+/** The name `resolveAdvocate` returns. */
+export function resolveAdvocateName(
+  formData: Record<string, unknown>,
+  profile: { name?: string | null },
+  config: TemplateConfig | null | undefined,
+): string | undefined {
+  return resolveAdvocate(formData, profile, config).name;
+}
+
+/**
+ * T-300 (Arjun): the legacy /generate body's `advocateName` is the typed name
+ * only if, after trim, it is 1 to 100 characters with no `{`, `}` or line
+ * break; otherwise the profile name. A failing value never refuses a request.
+ */
+export function resolveLegacyAdvocate(
+  bodyName: string | undefined,
+  profile: { name?: string | null },
+): ResolvedAdvocate {
+  const typed = bodyName?.trim() ?? '';
+  const ok = typed.length >= 1 && typed.length <= 100 && !/[{}\r\n\u2028\u2029]/.test(typed);
+  return typedOrProfile(ok ? typed : undefined, profile.name);
+}
+
+/** The name `resolveLegacyAdvocate` returns. */
+export function resolveLegacyAdvocateName(
+  bodyName: string | undefined,
+  profile: { name?: string | null },
+): string | undefined {
+  return resolveLegacyAdvocate(bodyName, profile).name;
+}
+
+/**
+ * T-311 (Ajay, 12 Oct 2026): the enrolment number a document prints.
+ * - A typed value always prints (the advocate on the document may not be the
+ *   account holder), a "[To be confirmed: …]" placeholder included.
+ * - Otherwise the profile number, only when the field is truly empty (missing,
+ *   null or whitespace only) AND the advocate name the same document prints
+ *   came from the profile. A typed name is another advocate: no profile number
+ *   is paired with it.
+ * - Otherwise undefined, so each caller keeps its own blank.
+ */
+export function resolveEnrollmentNumber(
+  typed: unknown,
+  profileNumber: string | null | undefined,
+  nameFromProfile: boolean,
+): string | undefined {
+  return typedOrProfile(typed, nameFromProfile ? profileNumber : undefined).name;
+}
+
+/**
+ * The typed value when it is not empty (a "[To be confirmed: …]" blank counts
+ * as typed and stays, AJ 12 Oct 2026), else the profile value, with which of
+ * the two it was. `fromProfile` is false when neither is there.
+ */
+function typedOrProfile(typed: unknown, profileValue: string | null | undefined): ResolvedAdvocate {
+  if (typeof typed === 'string' || typeof typed === 'number') {
+    const value = String(typed);
+    if (value.trim() !== '') return { name: value, fromProfile: false };
+  }
+  return profileValue?.trim()
+    ? { name: profileValue, fromProfile: true }
+    : { name: undefined, fromProfile: false };
+}
+
 /**
  * Build the full placeholder context from form data + computed fields + system values.
+ *
+ * T-300: the formData keys a client may not set are dropped before anything
+ * reads them (see `clientFormData`); one warn per request names them, never
+ * their values. `extra.governingProvision` is the server's own
+ * `{governing_provision}` (T-245a will compute it). `extra.enrollmentNumber`
+ * is the profile's number, used only when no number was typed and the name is
+ * the profile's (T-311).
  */
 export function buildPlaceholderContext(
   config: TemplateConfig,
-  formData: Record<string, unknown>,
-  extra?: { advocateName?: string; enrollmentNumber?: string },
+  rawFormData: Record<string, unknown>,
+  extra?: { advocateName?: string; enrollmentNumber?: string; governingProvision?: string },
   courtData?: CourtLookupData,
 ): PlaceholderContext {
+  const { kept: formData, dropped } = clientFormData(config, rawFormData);
+  if (dropped.length > 0) {
+    logger.warn(
+      { templateId: config.template_id, droppedKeys: dropped },
+      'T-300: client formData keys the server sets were dropped',
+    );
+  }
+
   const computed = resolveComputedFields(config, formData, courtData);
+
+  const advocate = resolveAdvocate(formData, { name: extra?.advocateName }, config);
+  const declaresEnrollment = declaredFieldIds(config).has('advocate_enrollment');
+  const enrollment = resolveEnrollmentNumber(
+    declaresEnrollment ? formData.advocate_enrollment : undefined,
+    extra?.enrollmentNumber,
+    advocate.fromProfile,
+  );
 
   const now = new Date();
   const ctx: PlaceholderContext = {
@@ -938,17 +1193,35 @@ export function buildPlaceholderContext(
     }),
     current_year: String(now.getFullYear()),
 
-    // Advocate details from user profile
-    advocate_name: extra?.advocateName ?? '____________________',
-    enrollment_number: extra?.enrollmentNumber ?? '____________________',
+    // Advocate details: the declared, typed name, else the user profile (T-300)
+    advocate_name: advocate.name ?? '____________________',
+    // T-311: the declared, typed advocate_enrollment, else the profile number
+    // when the name is the profile's (extra.enrollmentNumber). A client
+    // `enrollment_number` is list A (T-300).
+    enrollment_number: enrollment ?? '____________________',
 
     // Computed fields
     ...computed,
   };
 
+  // Arjun (step 7 correction): read sections_charged per entry, with the picker's
+  // BNS default, before the array is flattened to "303, 351" below.
+  // T-293: this key is server-only. Clear anything already there so a missing
+  // server read means "no pre-read", never a value from elsewhere.
+  delete ctx[SECTIONS_CHARGED_READ_KEY];
+  if (formData.sections_charged !== null && formData.sections_charged !== undefined) {
+    ctx[SECTIONS_CHARGED_READ_KEY] = JSON.stringify(
+      readChargedField(formData.sections_charged, fieldSourceOf(config, 'sections_charged')),
+    );
+  }
+
   // Form data — flatten all values to strings
   for (const [key, val] of Object.entries(formData)) {
     if (val === null || val === undefined) continue;
+    // T-293: a client-sent value must never overwrite the server's pre-read.
+    if (key === SECTIONS_CHARGED_READ_KEY) continue;
+    // T-300: advocate_name is set above, by resolveAdvocateName.
+    if (key === 'advocate_name') continue;
 
     if (Array.isArray(val)) {
       // checkbox_group / multi_select → join labels
@@ -967,6 +1240,11 @@ export function buildPlaceholderContext(
       ctx[key] = String(val);
     }
   }
+
+  // T-311: a template that declares advocate_enrollment prints
+  // {advocate_enrollment} itself (legal_notice_s138, _s80). Same number as
+  // {enrollment_number}; with none, the flattened value (or nothing) stays.
+  if (declaresEnrollment && enrollment !== undefined) ctx.advocate_enrollment = enrollment;
 
   // SCRUM-54 B2: Capitalise state name (form sends lowercase stateId like "bihar")
   if (ctx.state) {
@@ -1071,6 +1349,17 @@ export function buildPlaceholderContext(
     ctx.verification_text = `I, ${ctx.applicant_name ?? '_____'}, the ${ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${ctx.court_city ?? '_____'} on this _____ day of _________, ${ctx.current_year}.`;
   }
 
+  // T-251 (Ajay's interim rule, 12 Oct 2026): until T-245a supplies the
+  // provision, {governing_provision} prints the both-forms blank. The server's
+  // value (extra.governingProvision, T-300) wins; a client value never reaches
+  // here. The pair is default_bail's own, so only that pack gets it; other
+  // packs will carry their own pair.
+  if (extra?.governingProvision?.trim()) {
+    ctx.governing_provision = extra.governingProvision;
+  } else if (config.template_id === 'default_bail') {
+    ctx.governing_provision = GOVERNING_PROVISION_BLANK;
+  }
+
   // T-146: aliases are set after the SCRUM-50 court-rule block, so an alias
   // such as {caseNomenclature} reads the same value as {case_nomenclature}.
   applyPlaceholderAliases(ctx);
@@ -1109,10 +1398,12 @@ export function buildPlaceholderContext(
 
 /**
  * T-146: the camelCase tokens the document rules use, and the context key each
- * one reads. An alias is set only when the rule's own key is not in the context,
- * so a value the form gave under the camelCase name is kept.
+ * one reads. An alias is set only when it is not already in the context. A
+ * client value under a camelCase name is dropped before the flatten (T-300).
  */
-export const PLACEHOLDER_ALIASES: ReadonlyArray<readonly [alias: string, sources: readonly string[]]> = [
+export const PLACEHOLDER_ALIASES: ReadonlyArray<
+  readonly [alias: string, sources: readonly string[]]
+> = [
   ['courtDesignation', ['court_designation']],
   ['courtHeader', ['court_header']],
   ['courtPlace', ['court_city']],
@@ -1182,7 +1473,6 @@ function applyCourtAndAliases(
   if (courtData?.caseNomenclature && !ctx.case_nomenclature) {
     ctx.case_nomenclature = courtData.caseNomenclature.replace(/\{year\}/g, ctx.current_year);
   }
-
 
   if (ctx.lastParagraph === undefined) ctx.lastParagraph = '{body_para_count}';
 
@@ -1393,7 +1683,7 @@ CRITICAL RULES:
 6. Generate ONLY the numbered body paragraphs as instructed. Do NOT include:
    - Any court header or cause-title block ("IN THE COURT OF..." / "IN THE HIGH COURT OF...") — the cause title is already rendered above by the template engine; a second copy corrupts the document (A7)
    - The prayer clause, verification clause, or advocate block
-   - The AI disclaimer text ("AI-assisted draft" / "Lawie does not provide legal advice") — it is auto-appended to the export footer and must NOT appear in the body (A6)
+   - The footer disclaimer ("First draft generated with AI" / "Lawie does not provide legal advice") — it is added to the export footer automatically and must NOT appear in the body (A6)
 7. Use today's date format (DD/MM/YYYY) where needed.${contractRule}
 
 ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
@@ -1412,41 +1702,109 @@ RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ?
       : ''
   }${
     config.category === 'criminal'
-      ? `\n\nBNS SECTION WHITELIST (MANDATORY — SCRUM-64): You MUST ONLY cite BNS sections from this verified First Schedule list: ${BNS_VALID_SECTIONS.join(', ')}. Any BNS section number NOT in this list does not exist in the Bharatiya Nyaya Sanhita — do NOT use it under any circumstances.`
+      ? `\n\nBNS SECTION WHITELIST (MANDATORY — SCRUM-64): You MUST ONLY cite BNS sections from this verified First Schedule list: ${BNS_VALID_SECTIONS.join(', ')}. Any BNS section number NOT in this list does not exist in the Bharatiya Nyaya Sanhita — do NOT use it under any circumstances.\nA sub-section of a listed section may be cited, for example 103(1) or 316(2).`
       : ''
   }`;
 }
 
 /**
- * Classify BNS sections as bailable/non-bailable.
- * Returns a string like "BNS 303 (non-bailable), BNS 351 (bailable)"
+ * T-295: Ajay's signed old-law line (handoff/legal/T-295-old-law-block-signed.md,
+ * 455559c), byte for byte. PREFLIGHT ONLY: the question of the soft old_law_section
+ * finding in preflight.service.ts. The prompt's old-law block in
+ * classifySectionsBailability keeps Ajay's T-277 line ("…is not classified here…"),
+ * which stops the model classifying IPC sections from memory; do not use this there.
+ * Code first, then the number as read ("302 IPC" -> "IPC 302"); never "BNS" in front
+ * of an old-law number. Returns null for any non-old-law code.
+ * Legal content: do not edit without Ajay's sign-off.
  */
-export function classifySectionsBailability(sectionsCharged: string): string {
-  if (!sectionsCharged) return '';
+export function oldLawLine(code: ChargedCode | null, number: string): string | null {
+  const old = code === null ? undefined : OLD_LAW_LINE[code];
+  if (!old) return null;
+  return `${old.name} ${number} is an old-law section. For an offence committed on or after 1 July 2024, use the section converter to find the ${old.newCode} section. For an earlier offence, the old section may still apply.`;
+}
 
-  const nonBailableSet = new Set(bnsBailability.non_bailable);
-  const bailableSet = new Set(bnsBailability.bailable);
+/**
+ * Classify BNS sections as bailable/non-bailable.
+ * Returns a string like "BNS 303(2) (NON-BAILABLE), BNS 351(2) (BAILABLE)".
+ *
+ * T-277 (R4): generated from bns-offences.json at load time (BNS_CLASSIFICATION
+ * replaces the retired bns-bailability.json). A section resolves through the shared
+ * resolver: its own row, else its own variant, else a parent row without variants.
+ * A null or non-"yes"/"no" value goes in neither list. Only the extracted section
+ * number and table-derived labels are emitted, never the user's free text. The field
+ * is read only by readSectionsCharged (Arjun, round 4).
+ */
+export function classifySectionsBailability(sectionsCharged: string | ChargedSection[]): string {
+  if (!sectionsCharged || sectionsCharged.length === 0) return '';
+  // A string (brief, free text) is read with no default; a pre-read list keeps
+  // the per-entry codes from readChargedField.
+  const charged =
+    typeof sectionsCharged === 'string' ? readSectionsCharged(sectionsCharged) : sectionsCharged;
 
-  // Extract section numbers from strings like "BNS 303", "BNS 318(4)", "303"
-  const parts = sectionsCharged.split(',').map((s) => s.trim());
+  const nonBailableSet = new Set(BNS_CLASSIFICATION.non_bailable);
+  const bailableSet = new Set(BNS_CLASSIFICATION.bailable);
+
+  // Arjun (round 4): the one sections_charged reader; no comma split here.
   const classified: string[] = [];
+  const oldLaw: string[] = [];
 
-  for (const part of parts) {
-    // Extract the numeric portion (e.g., "303" from "BNS 303" or "318(4)" from "BNS 318(4)")
-    const match = part.match(/(\d+(?:\(\d+\))?)/);
-    if (!match) continue;
+  for (const { code, number } of charged) {
+    // Bare (code not stated): never BNS, never classified; existing wording only.
+    if (code === null) {
+      classified.push(`${number} (classification: verify from First Schedule)`);
+      continue;
+    }
+    // Ajay Q8 / round 5c: an old-law number gets its line, never a "BNS" label.
+    const old = OLD_LAW_LINE[code];
+    if (old) {
+      oldLaw.push(
+        `${old.name} ${number} is an old-law section and is not classified here. Use the section converter to find the ${old.newCode} section.`,
+      );
+      continue;
+    }
+    // BNSS / BSA / OTHER: kept by the reader, no label and no line here.
+    if (code !== 'BNS') continue;
 
-    const sectionNum = match[1];
-    if (nonBailableSet.has(sectionNum)) {
-      classified.push(`${part} (NON-BAILABLE)`);
-    } else if (bailableSet.has(sectionNum)) {
-      classified.push(`${part} (BAILABLE)`);
+    // Exact table key → the generated lists; otherwise the resolver's variant /
+    // parent-row value (same source, so a key and its list entry always agree).
+    const bailable = bailableSet.has(number)
+      ? true
+      : nonBailableSet.has(number)
+        ? false
+        : resolveOffence(number).bailable;
+    if (bailable === false) {
+      classified.push(`BNS ${number} (NON-BAILABLE)`);
+    } else if (bailable === true) {
+      classified.push(`BNS ${number} (BAILABLE)`);
     } else {
-      classified.push(`${part} (classification: verify from First Schedule)`);
+      classified.push(`BNS ${number} (classification: verify from First Schedule)`);
     }
   }
 
-  return classified.join(', ');
+  return [classified.join(', '), ...oldLaw].filter(Boolean).join('\n');
+}
+
+/**
+ * T-293: parse the server's sections_charged pre-read. Bad JSON (or anything
+ * that is not an array) returns undefined so the caller falls back to the
+ * normal read. Logs ids only, never the value.
+ */
+function parseSectionsChargedRead(
+  raw: string | undefined,
+  sectionId: string,
+): ChargedSection[] | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as ChargedSection[];
+  } catch {
+    // fall through to the warn below
+  }
+  logger.warn(
+    { key: SECTIONS_CHARGED_READ_KEY, sectionId },
+    'sections_charged pre-read unparseable; using normal read',
+  );
+  return undefined;
 }
 
 /**
@@ -1476,9 +1834,10 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
 
   // Inject bailability classification if sections_charged exist in context (SCRUM-52 S2)
   if (ctx.sections_charged) {
-    const classification = classifySectionsBailability(ctx.sections_charged);
+    const preRead = parseSectionsChargedRead(ctx[SECTIONS_CHARGED_READ_KEY], section.section_id);
+    const classification = classifySectionsBailability(preRead ?? ctx.sections_charged);
     if (classification) {
-      prompt += `\n\nBAILABILITY CLASSIFICATION (from BNS First Schedule — use EXACTLY as given, do NOT contradict):\n${classification}`;
+      prompt += `\n\nBAILABILITY CLASSIFICATION (from BNS First Schedule — use EXACTLY as given, do NOT contradict):\n${classification}\nA section in neither list: do not say whether it is bailable or cognizable.`;
     }
   }
 
