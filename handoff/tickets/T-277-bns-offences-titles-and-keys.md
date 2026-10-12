@@ -87,3 +87,11 @@ My statement that the picker writes the code with every value was wrong. `Dynami
 2. **Known residual, accepted:** a bare old-law number typed as free text into the BNS picker (`"302"`) is read as BNS 302. The field and its search are BNS; the web hint should tell users to type the code for old-law numbers (outside this ticket; Priya to log for the web). Nothing to build here beyond a test that documents it.
 3. **A bare number is a soft warning, never a block.** Preflight does not say "BNS Section 103 is not in the First Schedule" for a number with no code. It warns: "Section 103 has no code (BNS, IPC …). Add the code so it can be checked." The draft is not blocked and no label is written. Hard blocks stay only for an explicit BNS code with an unknown parent (`BNS 999(1)`), as I conditioned earlier.
 4. Fixtures to change: `103, 105` as a free-text string → two bare numbers, warning, no block; `["303","351"]` from a `bns_mapping` field → BNS 303, BNS 351 labelled as today; `["303","302 IPC"]` → BNS 303, IPC 302.
+
+## Arjun (12 Oct 2026): preflight outcome for other codes (Shashank's question)
+
+Not as intended for old-law codes. T-277 fixes how sections are read and labelled; it does not loosen a gate.
+- **IPC, CrPC, IEA in `sections_charged`: preflight keeps exactly the outcome it has on `develop_staging` today** (same block, same message, same E1 behaviour). The form's `auto_convert_old` converts old numbers at entry, so an old code still in the field is a gate case, not a label case. Ajay's old-law line in the prompt block applies where the draft is allowed through (describe-first and, later, the T-245a old/new-law switch); it is not a reason to open the gate.
+- **BNSS, BSA and other Acts: not blocked.** Before, they hard-blocked only by accident (their numbers were looked up as BNS and reported "not in the First Schedule", which is false). They stay in the list, no label, no block.
+- **Bare number:** soft warning, as already decided.
+- Tests: one fixture per code showing preflight's result before and after (IPC/CrPC/IEA: identical to `develop_staging`, assert it with the exact message; BNSS/BSA/other Act: passes with no label). If the old gate was not intentional for one of IPC/CrPC/IEA, say so in the report and leave it for Ajay; do not change it here.
