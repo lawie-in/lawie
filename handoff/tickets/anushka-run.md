@@ -322,3 +322,11 @@ Nothing changes on screen. Lawie no longer asks the AI to name the user's matter
 Test: describe a document; Lawie still finds the right template, or offers choices, as before.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-289 (shashank, merged to develop_staging ad6db61, 12 Oct 2026)
+
+- The bail checker names the trial court exactly as the First Schedule prints it ("Any Magistrate", "Court of Session") instead of guessing from the sentence. A 3-7 year offence triable by a Magistrate is no longer sent to Sessions.
+- With several sections, Court of Session wins if any section is triable there; otherwise the higher Magistrate is shown.
+- Where the Schedule gives no single court, the bail checker and the section finder say "Depends on the offence. Check the First Schedule."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
