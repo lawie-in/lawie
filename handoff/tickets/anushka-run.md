@@ -679,3 +679,10 @@ What a user can now do:
 - Please also check the notice with a screen reader and with reduced motion switched on (not yet checked).
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-331 — admin template usage (d1b4372, mahak, 12 Oct 2026)
+
+What a user can now do:
+- An admin opening document analytics sees which templates are used, by name, with counts and how many were finalised, instead of an empty table.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
