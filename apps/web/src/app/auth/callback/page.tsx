@@ -30,8 +30,7 @@ function takeReferralShown(): boolean {
   }
 }
 
-function referralNoticeFor(value: string | null): string | null {
-  const shown = takeReferralShown();
+function referralNoticeFor(value: string | null, shown: boolean): string | null {
   if (value === 'existing_account') return REFERRAL_EXISTING_ACCOUNT_MESSAGE;
   if (value === 'not_applied') {
     return shown ? REFERRAL_NOT_APPLIED_MESSAGE : REFERRAL_NOT_VALID_MESSAGE;
@@ -51,6 +50,8 @@ function CallbackHandler() {
   useEffect(() => {
     if (handled.current) return;
     handled.current = true;
+    // Take (and clear) the marker first, so it never outlives this return, even on an error.
+    const referralShown = takeReferralShown();
 
     const accessToken = params.get('accessToken');
     const refreshToken = params.get('refreshToken');
@@ -67,7 +68,7 @@ function CallbackHandler() {
     }
 
     login(accessToken, refreshToken);
-    const notice = referralNoticeFor(params.get('referral'));
+    const notice = referralNoticeFor(params.get('referral'), referralShown);
     if (notice) {
       // Drop the tokens from the address bar while the notice is on screen.
       window.history.replaceState(null, '', '/auth/callback');
