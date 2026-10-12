@@ -242,7 +242,12 @@ const LOWER_SUFFIX = /(?<![0-9A-Za-z])(\d{1,3})([a-z])(?![0-9A-Za-z])/g;
  * backwards one, is unreadable and none of it is checked (Q1). Deduped on
  * (Act, number), in first-seen order.
  */
-export function extractActCitations(text: string): ActCitation[] {
+export function extractActCitations(
+  text: string,
+  opts: { includeRangeInner?: boolean } = {},
+): ActCitation[] {
+  /** T-333 ruling B: false = only numbers written out, not a range's inner numbers. */
+  const includeRangeInner = opts.includeRangeInner ?? true;
   const out: ActCitation[] = [];
   const seen = new Set<string>();
   const add = (act: CheckedAct, number: string): void => {
@@ -300,7 +305,7 @@ export function extractActCitations(text: string): ActCitation[] {
       const key = `${c.act}|${c.number}`;
       if (dropped.has(key)) continue;
       add(c.act, c.number);
-      for (const n of inner.get(key) ?? []) add(c.act, n);
+      if (includeRangeInner) for (const n of inner.get(key) ?? []) add(c.act, n);
     }
   }
   return out;
@@ -507,8 +512,11 @@ export function buildSectionsCited(text: string): string[] {
  * read ("BNS 103", "103 BNS", "S. 61(2)(a) BNS", "Ss. 3-5 BNS", "Section 103 of
  * the Bharatiya Nyaya Sanhita", ...), each window read by the T-277 reader.
  */
-export function extractBNSSectionNumbers(text: string): string[] {
-  return extractActCitations(text)
+export function extractBNSSectionNumbers(
+  text: string,
+  opts: { includeRangeInner?: boolean } = {},
+): string[] {
+  return extractActCitations(text, opts)
     .filter((c) => c.act === 'BNS')
     .map((c) => c.number);
 }

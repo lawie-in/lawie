@@ -819,7 +819,11 @@ export async function streamGenerateFromTemplate(
     // SCRUM-64 (c): Fact↔section sanity — BNS 103 (Murder) requires death keywords in facts
     if (templateConfig.category === 'criminal') {
       const factsNarrative = String(convertedFormData.facts_narrative ?? '');
-      const sanitySanityWarnings = checkFactSectionSanity(factsNarrative, bnsCited);
+      // T-333 ruling B: explicit cites only, not numbers inside an expanded range.
+      const sanitySanityWarnings = checkFactSectionSanity(
+        factsNarrative,
+        extractBNSSectionNumbers(aiText, { includeRangeInner: false }),
+      );
       allWarnings.push(...sanitySanityWarnings);
     }
 
@@ -1413,7 +1417,13 @@ export async function streamGenerateFromBrief(
     const facts =
       given.get('facts_narrative') ?? given.get('facts') ?? given.get('fixed.facts') ?? '';
     if (templateConfig.category === 'criminal' && facts) {
-      allWarnings.push(...checkFactSectionSanity(facts, bnsCited));
+      // T-333 ruling B: explicit cites only, not numbers inside an expanded range.
+      allWarnings.push(
+        ...checkFactSectionSanity(
+          facts,
+          extractBNSSectionNumbers(body, { includeRangeInner: false }),
+        ),
+      );
     }
 
     const grounds = formData.grounds_for_bail ?? formData.grounds_for_quashing ?? formData.grounds;
