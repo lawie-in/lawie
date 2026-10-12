@@ -62,3 +62,14 @@ Ajay's rule: a minimal record of each choice, so Lawie can show consent was give
 **Note for Ajay (not a blocker):** the platform keeps ordinary access logs (nginx, hosting) with IP addresses regardless; the record above is the only place Lawie links a decision to an id. The privacy page should not claim that no IP address is processed when the page is served.
 
 **Files:** `apps/auth/src/routes/consent.routes.ts`, `apps/auth/src/models/Consent.model.ts`, `apps/auth/src/app.ts` (one line), tests; the web component and its tests. Same lead as T-306/T-299 (auth `app.ts`, web root layout). Size M.
+
+## Arjun (12 Oct 2026): LogoSplash and Google Fonts (Priya and Ajay's question)
+
+**Decision: self-host Fraunces. Do not accept the request.** `LogoSplash.tsx` (l.17-22) appends a `<link>` to `https://fonts.googleapis.com/css2?family=Fraunces…` in the visitor's browser, so every first visit to a public page sends the visitor's IP and user agent to Google before any consent, and it is outside the GA gate. The site already self-hosts Inter and Lora with `next/font/google` (that package downloads the font files at build time and serves them from our own domain, so the browser never contacts Google). Fraunces gets the same treatment.
+
+**Build (inside T-310, web only):**
+1. In the marketing layout add `const fraunces = Fraunces({ subsets: ['latin'], weight: '500', axes: ['opsz'], display: 'swap', variable: '--font-fraunces' })` (the same pattern as `Inter` and `Lora` there) and put `fraunces.variable` on the wrapper.
+2. In `LogoSplash.tsx` delete the `createElement('link')` block. The SVG text uses the family through the variable: set `font-family` as an inline style, `var(--font-fraunces), 'Times New Roman', Georgia, serif`, not the bare name `Fraunces` (next/font renames the family, so the name `Fraunces` would no longer match). The wait before the animation uses the same name: `document.fonts.load('500 360px var(--font-fraunces)')` does not resolve a variable, so pass the real family string from the font object (`fraunces.style.fontFamily`) into the component as a prop and use it in both places.
+3. Check the look against the current splash (Rajesh, one screenshot at 375 and 1280 px in the report).
+
+**Acceptance criterion added to T-310 (AC6): no request to any host other than our own before consent.** A recorded browser check on a fresh profile (no storage), on `/`, `/pricing`, `/terms` and `/privacy`, with the Network panel filtered to third-party hosts: zero requests until Accept is pressed, and after Decline still zero. The lead lists any other host found (images, scripts, embeds, fonts) and either removes or self-hosts it, or tells Priya and Ajay if it cannot be removed. The code read finds no other `<link>` or third-party script in `apps/web/src` besides this one and GA; the browser check is the proof.
