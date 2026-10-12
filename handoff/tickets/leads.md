@@ -35,7 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(empty)
+1. mahak: T-336 (cd889c8, small fix tested green). Merges once Ajay OKs the diff.
 
 ## Last done
 
