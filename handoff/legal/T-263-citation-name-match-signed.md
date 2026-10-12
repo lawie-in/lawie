@@ -70,3 +70,10 @@ Vishal is right: rule 4 as I wrote it ("a full stop after a word of three or mor
 - **Q4:** when the ten-token limit on the first party would leave a versus word as the last word before the blank, the cut goes back to the previous sentence end. General form: after any cut, no versus word may stand directly before a blank unless the advocate wrote that name. Wider is safe. Example: "Ram v. Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa v. State of Kerala (2019) 4 SCC 12 apply." becomes "[Authority — add if relied upon] apply."
 - The test pinned as expected-to-fail becomes a plain test.
 - Commit 7f843fa is approved with this change. Sign-off reference for the `citation-check.ts` change: this file with Addenda 1 to 3.
+
+## Addendum 4, 12 Oct 2026 (reviewer round 1: Q5, Q6)
+
+- **Q5, capital versus words.** `Vs`, `Vs.`, `VS`, `VS.`, `Versus`, `VERSUS`, `V/s`, `v/s`, `V/S` are versus words in any case, same as `vs` today. `V` and `V.` (capital) are a versus word too, **except** when the word before it is an initial or a title (one or two capital letters, or Dr, Smt, Shri, Sri, Md, Mr, Mrs, Ms, Prof, Kum): "K. V. Rao" and "Dr. V. Rao" keep V as an initial. "Ram V. Shyam (2019) 4 SCC 12" is read as a case name; blanking a person's name in that rare case is the safe failure.
+- **Q6, sentence ends.** A sentence also ends at `?`, `!`, the danda `।` and the double danda `॥`, when a space or the end of the text follows. This applies to the same-sentence limit (Addendum 2, Q2) and to the walk back for the first party. Rule 4's abbreviation exceptions do not apply to these marks.
+- Tests: each Q5 form with a full name on both sides; "K. V. Rao v. State of Kerala (2019) 4 SCC 12" blanks in full and "K. V. Rao" is read as one name; a Hindi sentence ending in `।` followed by an English case name keeps the Hindi sentence.
+- Sign-off reference: this file, Addenda 1 to 4.
