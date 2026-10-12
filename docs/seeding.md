@@ -38,7 +38,7 @@ What lives in JSON files in the codebase but is **not** seeded — these are rea
 
 - `apps/drafting/src/config/court-rules/*.json` — 15 court-specific formatting rule files (fonts, margins, cause-title format)
 - `apps/drafting/src/config/document-rules/*.json` — 5 document-type rule files (bail, S138, etc.)
-- `apps/drafting/src/config/bns-bailability.json` and `bns-offences.json` — bail-checker reference
+- `apps/drafting/src/config/bns-offences.json` and `bns-triable-by.json` — bail-checker reference (bailability is derived from `bns-offences.json` at load time by `services/bns-offence-resolver.ts`)
 - `apps/billing/src/config/credit-skus.ts` — plan tiers + top-up SKUs powering `/api/billing/plans`
 
 If you change any of these, redeploy the drafting (or billing) service — no DB step needed.

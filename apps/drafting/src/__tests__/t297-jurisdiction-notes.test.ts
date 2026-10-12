@@ -75,14 +75,16 @@ describe('T-297 AC1: no court-by-term rule in any jurisdictionNote', () => {
 
   // Court-by-term phrasing in any form. Money limits ("up to Rs 20 lakh") are not matched:
   // the patterns need "imprisonment" before the limit or a number/word followed by "years".
-  const TERM_IMPRISONMENT =
-    /punishable with imprisonment\s+(up\s*to|upto|exceeding|not exceeding)/i;
-  const TERM_YEARS =
-    /(up\s*to|upto|exceeding|not exceeding)\s+(\d+|seven|three|ten|one|two|five)\s+years?/i;
+  const LIMIT = 'up\\s*to|upto|exceeding|not exceeding|more than|less than|below|above';
+  const NUM = '\\d+|one|two|three|four|five|six|seven|eight|nine|ten|fourteen';
+  const TERM_IMPRISONMENT = new RegExp(`punishable with imprisonment\\s+(${LIMIT})`, 'i');
+  const TERM_YEARS = new RegExp(`(${LIMIT})\\s+(${NUM})\\s+years?`, 'i');
+  const TERM_YEARS_OR = new RegExp(`(${NUM})\\s+years?\\s+or\\s+(more|less)`, 'i');
 
   it.each(NAMES.filter((n) => n !== 'cjm_generic'))('%s states no court by maximum term', (n) => {
     expect(notes[n]).not.toMatch(TERM_IMPRISONMENT);
     expect(notes[n]).not.toMatch(TERM_YEARS);
+    expect(notes[n]).not.toMatch(TERM_YEARS_OR);
   });
 
   it('the term patterns flag the old phrasings and ignore money limits', () => {
@@ -96,6 +98,34 @@ describe('T-297 AC1: no court-by-term rule in any jurisdictionNote', () => {
     );
   });
 
+  it.each([
+    'Tries offences with a term of more than 7 years.',
+    'Tries offences with a term of less than three years.',
+    'Tries offences with a term below 7 years.',
+    'Tries offences with a term above ten years.',
+    'Tries offences of seven years or more.',
+    'Tries offences of 3 years or less.',
+  ])('the term patterns flag new wording: %s', (s) => {
+    expect(TERM_YEARS.test(s) || TERM_YEARS_OR.test(s)).toBe(true);
+  });
+
+  it('the term patterns flag "punishable with imprisonment" plus the new limit words', () => {
+    for (const w of ['more than', 'less than', 'below', 'above']) {
+      expect(`Offences punishable with imprisonment ${w} 7 years.`).toMatch(TERM_IMPRISONMENT);
+    }
+  });
+
+  it.each([
+    'Claims up to Rs 50 lakh.',
+    'Claims above Rs 2 crore go to NCDRC.',
+    'Claims below Rs 1 crore; more than Rs 20 lakh.',
+    'Claims of Rs 5 lakh or more are heard here.',
+  ])('the term patterns ignore money phrasing: %s', (s) => {
+    expect(s).not.toMatch(TERM_IMPRISONMENT);
+    expect(s).not.toMatch(TERM_YEARS);
+    expect(s).not.toMatch(TERM_YEARS_OR);
+  });
+
   it('cjm_generic keeps only its S.23 sentencing line', () => {
     expect(notes.cjm_generic).toContain('exceeding seven years (S.23 BNSS)');
     expect(notes.cjm_generic).toBe(
@@ -105,7 +135,6 @@ describe('T-297 AC1: no court-by-term rule in any jurisdictionNote', () => {
 
   it.each(NAMES)('%s does not contain the old A sentence or a court-by-term phrase', (n) => {
     expect(notes[n]).not.toContain(OLD_A);
-    expect(notes[n]).not.toMatch(/Sessions courts? try offences punishable/i);
     expect(notes[n]).not.toMatch(/triable by (the )?Sessions Court/i);
   });
 });
