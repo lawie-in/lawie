@@ -6,7 +6,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 | Lead | Ticket | Branch | Files and folders claimed | Legal paths | Since |
 |---|---|---|---|---|---|
-| shashank | T-277 | fix/t-277-bns-offences-table | apps/drafting/src/config/bns-offences.json (replace byte for byte with Ajay's signed file: handoff/legal/T-277-bns-offences-corrected-signed.md, 29f4872, SHA-256 in that file); apps/drafting/src/services/timeline.service.ts (null max_years); apps/drafting/src/services/bail-check.service.ts (null bailable/cognizable, parent-row resolution); their tests; a grep of the packs and prompts for BNS bailability or offence titles outside the table (ask me before changing any other file; list moved tests and snapshots for Ajay) | yes: bns-offences.json is Ajay's signed table; the bail-check and timeline diffs go to him before merge | go given by the founder, 12 Oct 2026 |
+| shashank | T-277 | fix/t-277-bns-offences-table | apps/drafting/src/config/bns-offences.json (replace byte for byte with Ajay's signed file: handoff/legal/T-277-bns-offences-corrected-signed.md, 29f4872, SHA-256 in that file); apps/drafting/src/services/timeline.service.ts (null max_years); apps/drafting/src/services/bail-check.service.ts (null bailable/cognizable, parent-row resolution); their tests; also (extended by Priya 12 Oct, option a: the table plus everything that reads it): apps/drafting/src/config/bns-bailability.json (the stale copy injected into drafting prompts as 'use EXACTLY as given': retire it and generate from bns-offences.json; Ajay signs the result), apps/drafting/src/services/template-engine.service.ts (classifySectionsBailability, BNS_VALID_SECTIONS), sections.service.ts (null compoundable and null max_years must not become 'no' or 'Magistrate'; sub-section lookup), preflight.service.ts and validator.ts ('103(1)' resolves to its parent, never blocked), the routes and tests for these; apps/drafting/src/config/bns-mapping.json (only the two unused title copies bns_offences "141" and "318", Ajay's item 6; added by Priya 12 Oct); posh_complaint.json:438, fir_quashing.json:327 and golden fixtures 15/16/18 only with Ajay's signed lines; and a grep of the packs and prompts for BNS bailability or offence titles outside the table (ask me before changing any other file; list moved tests and snapshots for Ajay) | yes: bns-offences.json is Ajay's signed table; the bail-check and timeline diffs go to him before merge | go given by the founder, 12 Oct 2026 |
 | mahak | T-279 | fix/t-279-blank-marker-case-legal-files | apps/drafting/src/services/fact-verifier.ts (BLANK_RE ~L209 and countMissingPlaceholders ~L1511: the `i` flag on the marker words only); apps/drafting/src/services/brief-drafter.ts (BLANK_LINE ~L1407: same, and a lower-case blank line must survive the note stripper); new apps/drafting/src/__tests__/t279-*.test.ts (one per place, lower and Title case, plus the note-stripper test); _averments/README.md untouched | yes: Ajay's decision in the T-279 ticket; he sees the diff before merge. Vishal's T-241 follows on brief-drafter.ts | 12 Oct |
 | vishal | T-263 | fix/t-263-citation-name-match | apps/drafting/src/services/citation-check.ts and its tests (t148-no-case-law.test.ts etc.); new apps/drafting/src/__tests__/t263-*.test.ts; apps/drafting/src/__tests__/t251-default-bail.test.ts L633-645 only (the `it.failing` GAP test for M. Ravindran becomes a plain `it`, comment corrected); rule: handoff/legal/T-263-citation-name-match-signed.md (108a57a), word for word; Ajay's answer on rule 4 abbreviations is pending (T-263 ticket) | yes: citation-check.ts is Ajay's rule; moved goldens and the diff go to him | 12 Oct 07:16 UTC |
 
@@ -20,9 +20,18 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 | unassigned (template builds, after T-240 merges; assign by who is free) | T-258, T-259, T-260 (batch 1 civil, family/consumer, notices/deeds; need T-240 only), T-257 (batch 1 criminal; also needs T-245a), T-265 (batch 2 criminal, first 11; after T-257 and T-255) |  |
 | unassigned | T-191, T-192 (Ajay signs the logic), T-223 (criteria to write), T-232 (Arjun triage), T-235 (Ajay text), T-129, T-193, T-198, T-188, T-207 | As listed |
 
+## Ready to build, no gate (Priya, 12 Oct 2026)
+
+- T-226 (no overspend; mahak is next after T-279 (asked 12 Oct); Arjun's `inkHolds` design is in the ticket, T-197 merged): next for the first lead who is free; builds before T-115 (both edit `documents.routes.ts`).
+- T-220 (emails): the AC6 log leak in `ses.ts` is fixed first; then one founder session for SES and DNS is the remaining gate (morning report).
+- T-115: after T-226. Gates: Atlas tier and prod migration (founder), 30-day wording (Ajay), screens (Rajesh).
+
+- T-283 (env default for the two switches; small, drafting only, scoped by Arjun): next for vishal after T-263.
+- T-253a+c (assistant): after T-226 and the v1 blockers (Priya's call, 12 Oct). Overlaps: documents.routes.ts (T-226, then T-115a); drafting config/env.ts and app.ts (T-253a, T-283); web layout.tsx and Sidebar.tsx (T-253d, T-234, T-281).
+
 ## Merge queue
 
-(queue empty; founder's stop on 12 Oct, work resumes after the usage reset at 12:40 IST)
+1. mahak — T-279 (6bd2586; Ajay approved; the slot is hers now).
 
 ## Last done
 

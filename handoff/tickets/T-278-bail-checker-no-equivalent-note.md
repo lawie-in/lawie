@@ -24,3 +24,7 @@ All already signed; the page adds none, and shows them instead of "not found in 
 - Explicit "NNN-IPC" with no table row: "Not found in the IPC table. Check the Gazette".
 - After T-277: null bailable or cognizable: "Depends. Check the First Schedule."
 - A section with no offence row: "This section does not create an offence. Check the Gazette."
+
+## Added 12 Oct 2026 (Shashank, T-277 Explore; Priya's call)
+
+`bail-checker/page.tsx` and `timeline-tracker/page.tsx` show a null as "Non-Bailable" and divide by the bail period. Both are folded into T-278: render the API's "Depends. Check the First Schedule." and "Check BNSS section 187." (Ajay's signed words, no new words, no design change). Build after T-277 merges.
