@@ -1,3 +1,4 @@
+import { createJsonBodyErrorHandler } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import cors from 'cors';
 import express from 'express';
@@ -27,6 +28,9 @@ app.get('/health', (_req, res) => {
 app.use('/', billingRoutes);
 app.use('/', adminBillingRoutes);
 app.use('/', couponRoutes);
+
+// T-315 — rejected bodies (json and the webhook's raw parser) get a plain JSON 4xx that echoes nothing.
+app.use(createJsonBodyErrorHandler({ logger }));
 
 Sentry.setupExpressErrorHandler(app);
 
