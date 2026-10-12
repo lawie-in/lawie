@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release. Before go-live |
 | Owner  | Ajay (signs text, approves the moved goldens). Lead (build, drafting + email-worker) |
 | Mode   | Small fix (legal content; golden snapshots move) |
-| Status | To do. Waits on Ajay's signed text. Mahak after T-317. Found by Mahak's tester in T-317, 12 Oct 2026 |
+| Status | To do. Text signed by Ajay (T-317 Addendum 4, 19f85b7). Mahak after T-317. Found by Mahak's tester in T-317, 12 Oct 2026 |
 
 Three places still use the old "AI-assisted" wording:
 
