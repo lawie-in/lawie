@@ -78,3 +78,5 @@ T-285 (long repairs drop the stream) needs no founder task: Arjun's fix is a kee
 From Vishal, 12 Oct (when convenient, 1 minute): delete the leftover branch `throwaway/t269-ci-probe` on GitHub (Branches page). It holds a deliberate type error used to prove T-269 and never merges; sessions cannot delete remote branches.
 
 From Arjun, 12 Oct (after T-306 is on develop): flush all login sessions on develop (Redis keys `session:*` and `session:refresh:*`, and the sessions collection), because login tokens may have reached Google Analytics. Question for you: has any real (non-test) user signed in with Google on a public host? If yes, Arjun needs to know.
+
+From Arjun, 12 Oct (10 minutes, in Google Analytics Admin; details in T-308): turn Google signals off; set data retention to 2 months; turn all data sharing off; in enhanced measurement turn off site search and form interactions; check there are no Ads, BigQuery or Search Console links; confirm which Google account owns the property.
