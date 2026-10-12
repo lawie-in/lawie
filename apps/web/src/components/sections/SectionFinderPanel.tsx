@@ -98,7 +98,7 @@ interface SectionDetail {
   bailable: boolean | null;
   cognizable: boolean | null;
   compoundable: 'yes' | 'no' | 'with_permission' | null;
-  triable_by: 'Sessions' | 'Magistrate' | 'Tribunal' | null;
+  triable_by: string | null;
   punishment: string | null;
   max_years: number | null;
   ingredients: string[];
@@ -1096,7 +1096,10 @@ function DetailCard({
           positive={detail.cognizable === false}
           negative={detail.cognizable === true}
         />
-        <Pill label="Triable by" value={detail.triable_by ?? '—'} />
+        <Pill
+          label="Triable by"
+          value={detail.triable_by ?? 'Depends on the offence. Check the First Schedule.'}
+        />
         <Pill
           label="Compoundable"
           value={
