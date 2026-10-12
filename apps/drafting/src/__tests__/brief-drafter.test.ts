@@ -186,7 +186,9 @@ describe('what the Drafter is given', () => {
     expect(brief.document).toBe(BAIL.name);
     expect(brief.court).toBe('SESSIONS JUDGE, PATNA');
     expect(brief.parties.map((p) => p.key)).toEqual(['applicant_name', 'father_name']);
-    expect(brief.dates).toEqual([{ key: 'fir_date', date_of: 'Date of FIR', date: '10.03.2026' }]);
+    expect(brief.dates).toEqual([
+      { key: 'fir_date', date_of: 'Date of FIR', date: '10 March 2026' },
+    ]);
     expect(brief.numbers.map((n) => n.key)).toEqual(['fir_number', 'sections_charged']);
     expect(brief.facts.map((f) => f.key)).toEqual(['currently_in_custody', 'facts_narrative']);
   });
@@ -482,8 +484,9 @@ describe('nothing in the body that the brief and the pack do not give', () => {
     expect(w).toEqual([
       {
         type: 'fact_alteration',
-        message: 'The draft has a date that is not in your brief: 20.04.2026. Check it before use.',
-        details: { field: 'date', expected: '20.04.2026' },
+        message:
+          'The draft has a date that is not in your brief: 20 April 2026. Check it before use.',
+        details: { field: 'date', expected: '20 April 2026' },
       },
     ]);
   });
@@ -763,7 +766,7 @@ describe('no rule pack: what the Drafter is given', () => {
     );
     const given = guidedDrafterBrief(b, null);
     expect(given.dates).toEqual([
-      { key: 'date.arrest', date_of: 'Date of arrest', date: '15.03.2026' },
+      { key: 'date.arrest', date_of: 'Date of arrest', date: '15 March 2026' },
     ]);
     expect(given.unknown.map((u) => u.blank)).toContain(
       '[To be confirmed: what happened, in order]',

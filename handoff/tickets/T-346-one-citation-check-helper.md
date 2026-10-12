@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Lead (drafting) |
 | Mode   | Small fix |
-| Status | To do. Shashank after T-347, and after Mahak's T-338 frees ai.service.ts (12 Oct 2026) |
+| Status | Merged into develop_staging 4389cf1 (shashank, 12 Oct 2026). Internal refactor; nothing for Anushka |
 
 The three draft paths repeat the same three-step citation check. Move it into one helper so the paths can't drift apart.
 

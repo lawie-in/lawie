@@ -118,3 +118,25 @@ Notes:
 | 3 | Daily login bonus: in or out at v1 | Priya, Vikram |
 | 4 | Footer address and PIN | founder |
 | 5 | Meera's sign-off | Meera |
+
+
+## Additions for Ajay (13 Oct)
+
+Mahak built T-223 and found three missing strings. The signed strings above are unchanged. The two extra rows (`_retry`, `_cta`) are the button labels that go with strings 2 and 3.
+
+| Key | Where | Copy | Chars | Ajay to check |
+| --- | --- | --- | --- | --- |
+| `verify.limit_ready` | Screen-reader live region, announced when the resend wait ends and the Resend button is back | You can resend the email now. | 29 | Ajay to check |
+| `verify.landing_error` | Landing page, server or network failure (not an expired link): message | We couldn't verify your email just now. Please try again. | 57 | Ajay to check |
+| `verify.landing_error_retry` | Landing page, same state: retry button label | Try again | 9 | Ajay to check |
+| `verify.landing_expired_signed_out` | Landing page, expired link, signed-out user: line | This link has expired. Sign in to send a new one. | 49 | Ajay to check |
+| `verify.landing_expired_signed_out_cta` | Landing page, same state: button label | Sign in | 7 | Ajay to check |
+
+Notes:
+- `verify.landing_error` says "just now" and "try again" and does not say "expired" or "link", so it cannot be read as an expired link. It makes no time or security claim.
+- `verify.landing_expired_signed_out`: resending needs sign-in, so the button goes to sign-in. After sign-in the signed "Resend email" prompt applies.
+
+Meera's decisions, recorded (13 Oct):
+1. The close button's aria-label stays "Close".
+2. The countdown shows rounded-up minutes ("Try again in {X} minutes", and "Try again in 1 minute."). The signed copy wins over the spec's mm:ss.
+3. No extra Continue button: the success and already-verified states close with the close button.

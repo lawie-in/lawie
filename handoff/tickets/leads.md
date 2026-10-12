@@ -6,11 +6,11 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 | Lead | Ticket | Branch | Files and folders claimed | Legal paths | Since |
 |---|---|---|---|---|---|
-| shashank | T-346 (T-351 merged eae46a9) | fix/t-346-* (parked e3e77dc) | apps/drafting/src/services/validator.ts plus apps/drafting/src/services/ai.service.ts call sites (and the stale comment near line 975), now free (Tanvi's T-345 + T-340 merged 0d90ed7). Tests t270/t333/t347 unchanged, new t346 | no | 12 Oct 2026 |
-| mahak | T-223 | feature/t-223-* (Mahak names it) | T-223 (full chain). auth: models/User.model.ts, services/auth.service.ts*, controllers/auth.controller.ts*, routes/auth.routes.ts*, new routes/internal-verify.routes.ts, app.ts, config/passport.ts, config/logger.ts, config/env.ts, a new rate-limit helper in services/, apps/auth/package.json. Root yarn.lock (workspace link line only; mahak holds root yarn.lock until T-223 merges). packages/email-client/src/index.ts + its test. email-worker: src/worker.ts, src/templates/index.ts, new templates/auth/verifyEmail.tsx, src/config/env.ts. billing: src/routes/billing.routes.ts, src/models/User.model.ts. web: app/dashboard/layout.tsx, new components/VerifyEmailPrompt.tsx, new app/verify-email/page.tsx, components/intake/OneFlow.tsx, app/dashboard/new/page.tsx, components/credits/TopUpModal.tsx, app/dashboard/settings/page.tsx, app/(auth)/login/page.tsx. New t223 tests in each. *Kunal holds these three until T-354 merges: build them after. AUTH_SERVICE_URL waits on Arjun | no | 12 Oct 2026 |
+| shashank | T-356 part 1 | fix/t-356-* (Shashank names it) | apps/drafting/src/config/env.ts (FEATURE_DEFAULT_DESCRIBE_FIRST default on; FACT_LEDGER stays off) + the feature-flag reader in apps/drafting/src/services/intake.service.ts (Arjun: list form retired, on/off only) + root .env.example (line 54, FEATURE_DEFAULT_DESCRIBE_FIRST=on; root config, shashank holds it until T-356 part 1 merges) + tests. Anything else after Explore: ask Priya | no | 12 Oct 2026 |
+| mahak | T-223 (+ CI fix fix/t-220-retry-test-race) | feature/t-223-* (Mahak names it) | CI fix: apps/email-worker/src/__tests__/t220-ac4-retry-replay.test.ts only (test race; second worktree /home/user/lawie-wt/mahak-fix, removed after merge). T-223 (full chain). auth: models/User.model.ts, services/auth.service.ts*, controllers/auth.controller.ts*, routes/auth.routes.ts*, new routes/internal-verify.routes.ts, app.ts, config/passport.ts, config/logger.ts, config/env.ts, a new rate-limit helper in services/, apps/auth/package.json. Root yarn.lock (workspace link line only; mahak holds root yarn.lock until T-223 merges). packages/email-client/src/index.ts + its test. email-worker: src/worker.ts, src/templates/index.ts, new templates/auth/verifyEmail.tsx, src/config/env.ts. billing: src/routes/billing.routes.ts, src/models/User.model.ts. web: app/dashboard/layout.tsx, new components/VerifyEmailPrompt.tsx, new app/verify-email/page.tsx, components/intake/OneFlow.tsx, app/dashboard/new/page.tsx, components/credits/TopUpModal.tsx, app/dashboard/settings/page.tsx, app/(auth)/login/page.tsx. New t223 tests in each. *Kunal holds these three until T-354 merges: build them after. gateway: apps/gateway/src/app.ts (404 for any /internal/ path ahead of every proxy; Arjun 5863d7d) + a new gateway test; new auth verify service and route files. Test fixtures: apps/email-worker/src/__tests__/setupEnv.ts, t220-ac8-env-failfast.test.ts, apps/billing/src/__tests__/billing.routes.test.ts, t343-privacy-reaccept.test.ts. Arjun approved AUTH_SERVICE_URL | no | 12 Oct 2026 |
 | vishal | T-342 | fix/t-342-* (Vishal names it) | apps/drafting/src/config/intake/date-meanings.json (legal: Ajay's Option B, new date kinds with his labels); then apps/drafting/src/services/intake-brief.ts (per-field labels, kind check scoped to the pack, longest-cue precedence) ONLY after Mahak's T-335 merges; apps/drafting/src/config/document-rules/legal_notice_s138.json and its docs/templates twin (legal: ask_when_empty on L4 and L5 with Ajay's labels); new t342 test running T-192's checks end to end from a description. Anything else after Explore: ask Priya | yes: Ajay signs the JSON diff | 12 Oct 2026 |
 | kunal | FIX develop_staging red (golden privacy header), then T-354 | fix/t-354-* (Kunal names it) | Fix first: scripts/golden-set/lib/pipeline.ts (send the privacy version header, ~line 165). Then T-354: apps/auth/src/routes/auth.routes.ts, controllers/auth.controller.ts, services/auth.service.ts (the privacy accept route: test + comment; reorder only if Arjun says), their tests; web PrivacyUpdatePrompt.tsx only if the a11y check needs a fix. packages/shared released | no | 12 Oct 2026 |
-| tanvi | T-349 + T-350 then T-357 | fix/t-349-* (Tanvi names it) | apps/drafting/src/services/brief-drafter.ts (filingDate), annexures.service.ts, template-engine.service.ts (the AI prompt date line, Ajay's wording; loadTemplateConfig invalid-override handling for T-350), tests. Moved goldens go to Ajay. T-357 stacks on the same branch: apps/drafting/src/routes/documents.routes.ts (try/catch at ~665/747 → 500) and template-engine.service.ts (null override JSON; non-plain override filenames fail the boot check). Anything else after Explore: ask Priya | yes: prompt line wording (Ajay) | 12 Oct 2026 |
+| tanvi | T-357 (T-349 + T-350 merged 6be8b14) | fix/t-349-* (Tanvi names it) | apps/drafting/src/services/brief-drafter.ts (filingDate), annexures.service.ts, template-engine.service.ts (the AI prompt date line, Ajay's wording; loadTemplateConfig invalid-override handling for T-350), tests. Moved goldens go to Ajay. T-357 stacks on the same branch: apps/drafting/src/routes/documents.routes.ts (try/catch at ~665/747 → 500) and template-engine.service.ts (null override JSON; non-plain override filenames fail the boot check). Anything else after Explore: ask Priya | yes: prompt line wording (Ajay) | 12 Oct 2026 |
 
 ## Next per lead (Priya, 11 Oct 2026). Not claims: each is assigned only when its row is free and its gate is met
 
@@ -33,16 +33,28 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 - T-285 (SSE keep-alive on the four drafting streams; small, drafting only; touches ai.service.ts, so after T-241 and T-245a or when no lead holds it): ready.
 
+## Next ticket for each lead (Priya, 13 Oct 2026; Anushka run 3 FAIL fixes)
+
+Each lead takes this after the current row is merged and released. Files are claimed then, as usual.
+- vishal: T-342, then T-359 (invented facts; check the overlap with T-187/T-188 first), then T-187 + T-188.
+- tanvi: T-357 (c741f59, small fix tested green). After vishal; check with the slot holder first.
+- shashank: T-356 part 1, then T-360 (converter numbers).
+- kunal: T-354, then T-364 (Ink and plan display).
+- tanvi: T-349 + T-350, T-357, then T-363 (s.138).
+- mahak: T-223, then T-365 (brief and template picker).
+- Next free lead, in this order: T-369 (web production build fails; a deploy blocker, goes first), T-362, T-361, T-367, T-366, T-368.
+
 ## Merge queue
 
-- **HOLD (12 Oct, 23:10): develop_staging CI red since T-343 (runs #482, #483). The golden-set dry run gets 403 privacy_reaccept_required. Only the fix merges: kunal, fix/t-343-golden-privacy, scope scripts/golden-set/** (plus the harness user seed). Everyone else waits for a green run on the fix commit.**
-- shashank: T-346 (2fff2d0, small fix tested green). Holds the slot once CI on d1b4372 is green.
-- tanvi: T-349 + T-350 (b52bc40, review passed, Ajay signed fe8113d). After mahak and shashank; check with the slot holder first. T-357 merges separately after, on the same branch.
+- mahak: CI fix fix/t-220-retry-test-race (test only). Next, once CI on 6be8b14 is green.
 - kunal: T-354 (tests green, small fix, Arjun ruled option A). After tanvi; check with the slot holder first.
-- vishal: T-342 (round 2 review passed, tests green). Merges once Ajay signs 59eff64 and the _meta.signed line is in. After kunal T-354; check with the slot holder first.
+- vishal: T-342 (round 2 review passed, tests green, Ajay signed 59eff64 at 54951db). Merges once the _meta.signed line is in. After kunal T-354; check with the slot holder first.
 
 ## Last done
 
+- tanvi: T-349 + T-350 merged 6be8b14 (12 Oct 2026); Ajay signed fe8113d.
+- shashank: T-346 merged 4389cf1 (12 Oct 2026). Internal refactor of section warnings.
+- kunal: CI fix merged 31a182c (12 Oct 2026). The golden-set dry run sends the privacy version; this fixes the red from T-343.
 - mahak: T-331 merged d1b4372 (12 Oct 2026). Admin template usage from Generation.
 - kunal: T-343 merged 3cbcd78 (12 Oct 2026); Ajay signed. packages/shared released.
 - shashank: T-351 merged eae46a9 (12 Oct 2026). Release gate cleared.
