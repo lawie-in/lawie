@@ -51,3 +51,11 @@ A sweep of `apps/web/src` for "built around", "AI-assisted", "current criminal c
 | `apps/email-worker/src/templates/auth/welcome.tsx` ~73 | `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` |
 
 Annexures (vakalatnama, memo of parties and the like) are filled from a template, not written by the model, so they must not say "generated with AI". If any annexure section is model-written, tell me and it takes the first line instead. Golden snapshots that move come to me. The welcome email is also covered by the emails sign-off: this line replaces its disclaimer only.
+
+## Addendum 5 (12 Oct 2026 IST): model instruction and starting-draft footer (follow-up ticket)
+
+1. `apps/drafting/src/services/template-engine.service.ts` ~1646, prompt instruction, exact replacement:
+   `- The footer disclaimer ("First draft generated with AI" / "Lawie does not provide legal advice") — it is added to the export footer automatically and must NOT appear in the body (A6)`
+2. When a PDF prints `STARTING_DRAFT_FOOTER` (brief-drafter.ts), it does not also print the generic export footer. The starting-draft line is the more specific one.
+
+T-318 golden move approved: 78 lines in court-rules-golden.test.ts.snap, each the Addendum 4 annexure footer swap and nothing else.
