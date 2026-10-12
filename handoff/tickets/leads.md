@@ -24,6 +24,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 1. mahak — T-235 + T-254A (chain complete, Ajay approved d2d0885; the slot is hers now, 12 Oct).
 2. shashank — T-250 + T-255 (tester running; takes the slot when his chain is done).
+3. vishal — T-256 + T-264 (after his tester, reviewer and doc-writer; Ajay approved fixture 1a).
 
 ## Last done
 
