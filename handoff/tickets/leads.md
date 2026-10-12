@@ -8,7 +8,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 |---|---|---|---|---|---|
 | shashank | T-277 | fix/t-277-bns-offences-table | apps/drafting/src/config/bns-offences.json (replace byte for byte with Ajay's signed file: handoff/legal/T-277-bns-offences-corrected-signed.md, 29f4872, SHA-256 in that file); apps/drafting/src/services/timeline.service.ts (null max_years); apps/drafting/src/services/bail-check.service.ts (null bailable/cognizable, parent-row resolution); their tests; also (extended by Priya 12 Oct, option a: the table plus everything that reads it): apps/drafting/src/config/bns-bailability.json (the stale copy injected into drafting prompts as 'use EXACTLY as given': retire it and generate from bns-offences.json; Ajay signs the result), apps/drafting/src/services/template-engine.service.ts (classifySectionsBailability, BNS_VALID_SECTIONS), sections.service.ts (null compoundable and null max_years must not become 'no' or 'Magistrate'; sub-section lookup), preflight.service.ts and validator.ts ('103(1)' resolves to its parent, never blocked), the routes and tests for these; apps/drafting/src/config/bns-mapping.json (only the two unused title copies bns_offences "141" and "318", Ajay's item 6; added by Priya 12 Oct); posh_complaint.json:438, fir_quashing.json:327 and golden fixtures 15/16/18 only with Ajay's signed lines; and a grep of the packs and prompts for BNS bailability or offence titles outside the table (ask me before changing any other file; list moved tests and snapshots for Ajay); also (Priya, 12 Oct): apps/drafting/src/services/bns-offence-resolver.ts (new), apps/drafting/src/__tests__/t267-ipc-bns-table.test.ts, and minimal null guards only in apps/web timeline-tracker/page.tsx and bail-checker/page.tsx (show the API's Ajay text, no layout change; T-278 web part follows) | yes: bns-offences.json is Ajay's signed table; the bail-check and timeline diffs go to him before merge | go given by the founder, 12 Oct 2026 |
 | mahak | T-288 | fix/t-288-rehold-fault | apps/drafting: services/credits.service.ts, the withInkHold wrapper in routes/documents.routes.ts, their tests; AC9 grep test; the err.message logs (T-288 ticket). Not touched: apps/billing, packages/shared, gateway, web. documents.routes.ts is yours until you release; T-115a follows | no | 12 Oct 2026 |
-| vishal | T-285 | fix/t-285-sse-keep-alive | apps/drafting/src/services/ai.service.ts (start/stop the keep-alive on the four streaming functions only), new apps/drafting/src/utils/sse-keepalive.ts, their tests. Arjun's design is in the T-285 ticket. Not touched: documents.routes.ts, credits.service.ts (mahak's T-226 may use the helper later) | no | 12 Oct 2026 |
+| vishal | T-285 | fix/t-285-sse-keep-alive | apps/drafting/src/services/ai.service.ts (start/stop the keep-alive on the four streaming functions only), new apps/drafting/src/utils/sse-keepalive.ts, their tests. Arjun's design is in the T-285 ticket. Not touched: documents.routes.ts, credits.service.ts (mahak's T-226 may use the helper later); also (Priya, 12 Oct): apps/drafting/src/__tests__/t226-ink-holds.heartbeat.test.ts, one jest.mock line at the top only (mock sse-keepalive so the setInterval stub still sees one timer) | no | 12 Oct 2026 |
 
 ## Next per lead (Priya, 11 Oct 2026). Not claims: each is assigned only when its row is free and its gate is met
 
@@ -33,7 +33,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(queue empty)
+1. vishal — T-285 (683e3bb). Slot given 12 Oct 2026.
+2. mahak — T-288 (af85261). Next after vishal.
 
 ## Last done
 
