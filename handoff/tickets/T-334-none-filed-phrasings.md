@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Ajay (signs the phrasings, as an _averments addendum). Lead (build) |
 | Mode   | Small fix (legal content) |
-| Status | Building: mahak (12 Oct 2026). Ajay signed the phrasings 26b66c4 |
+| Status | Merged into develop_staging 828d55e (12 Oct 2026). Ajay signed 9b484ee. Anushka tests on develop |
 
 The `first_bail_application` equals list in `_averments/bail_regular.json` misses common "none filed" phrasings, for example "koi bail nahi". Such an answer stays a fact, and the draft prints "the earlier bail applications are: koi bail nahi".
 

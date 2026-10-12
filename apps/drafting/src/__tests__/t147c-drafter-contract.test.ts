@@ -114,7 +114,7 @@ const VALUES = [
 ];
 
 const BODY = [
-  "1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail. He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.",
+  "1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail. He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and the details of any earlier bail application are as the brief gives them.",
   '2. That FIR No. 124/2026 was registered at PS Kotwali.',
   '3. That the applicant is in judicial custody.',
 ].join('\n\n');

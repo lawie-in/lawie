@@ -329,7 +329,8 @@ const answer = (body: string) => `${body}\n\n${CLAUSES_MARKER}\n${reportOf()}`;
 const P2 = '2. That FIR No. 124/2026 was registered at PS Kotwali.';
 // T-237: the cue sentences of the two cued clauses reported at paragraph 1 (no_flight_risk: the
 // undertaking cue; earlier_applications: EA-standard), so they stay present unless a test is about them
-const CUES = 'He undertakes to join the investigation. No earlier bail application has been filed.';
+const CUES =
+  'He undertakes to join the investigation. Details of any earlier bail application are as the brief gives them.';
 // paragraph 1 holds the uncued clause (apprehension), the two cues and the banned phrase
 const BAD = [
   `1. That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. He is a law-abiding citizen. ${CUES}`,

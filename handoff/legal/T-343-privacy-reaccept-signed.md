@@ -59,3 +59,7 @@ We now explain how Google Analytics works on our public pages, and that we keep 
 ```
 
 Accounts with a privacyVersion but no acceptance record (linked Google accounts, returning users who never accepted): write no history row for them and invent no acceptance. They see the prompt like anyone else, and their acceptance is recorded with `via: 'reaccept'`.
+
+## Addendum 2 (12 Oct 2026 IST): Google sign-in stamp
+
+A Google sign-in made after the T-234 consent line on the login page is an acceptance. When the T-234 stamp sets `privacyVersion`, it also sets `privacyAcceptedAt` and adds a history row with `via: 'signin'` (a third allowed value). Those users see no prompt. "See the prompt" (Addendum 1) applies only to accounts that reach a signed-in page with no acceptance event at all. No backfill of past rows.

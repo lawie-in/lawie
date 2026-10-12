@@ -23,3 +23,9 @@ Decision (Priya, on the founder's delegation, 12 Oct 2026): tighter than T-223's
 
 - Sending the verification email and the verify link (T-223, needs T-220).
 - What the web app shows a zero-balance unverified user (T-223 adds the "verify your email" prompt).
+
+## Ruling (Priya, 12 Oct 2026)
+
+- Option A: a user with `googleId` set also counts as verified (older Google users stored as 'email' before T-299, and email accounts that linked Google). Google proved the address; an attacker still needs a real Google account per account.
+- The existing auth tests that assume an unverified email user gets the bonus or seed (signup-bonus, t298, t234, t299, t234-helpers) move to verified users. Test files only, inside this ticket.
+- Follow-up: the unused `tryGrantDailyLoginBonus` in `apps/drafting/src/services/credits.service.ts` has no check; delete it in a later drafting ticket (nothing calls it today).

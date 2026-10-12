@@ -1389,7 +1389,7 @@ const VALUES = [
 
 // T-200: paragraph 1, where every clause is reported, carries each clause's cue words
 const CUES =
-  ' He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.';
+  ' He is in custody in FIR No. 124/2026, the grounds are submitted below, he gives an undertaking, and the details of any earlier bail application are as the brief gives them.';
 const CLEAN = [
   `1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail.${CUES}`,
   '2. That FIR No. 124/2026 was registered at PS Kotwali.',
