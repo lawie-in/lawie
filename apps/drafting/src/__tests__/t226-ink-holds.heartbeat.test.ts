@@ -485,12 +485,53 @@ describe('5d: the hold is removed while the run is alive', () => {
     expect(await rows()).toHaveLength(0);
   });
 
-  it('PIN: holdInk throws during the re-hold: logged by class name only, nothing charged, and `done` is STILL sent (unpaid draft)', async () => {
+  /** The single SSE error event a withheld draft writes. */
+  const withheldEvent = (res: FakeRes) => {
+    expect(res.writes).toHaveLength(1);
+    return JSON.parse(res.writes[0].replace(/^event: error\ndata: /, '').trim());
+  };
+
+  it('T-288: holdInk throws during the re-hold: handled like a refused re-hold (402 text error event, no done), logged by class name only, nothing charged', async () => {
     await seed(20);
     const logs = captureLogs();
     const real = credits.holdInk;
     jest
       .spyOn(credits, 'holdInk')
+      .mockImplementationOnce(real)
+      .mockRejectedValueOnce(new Error('secret-driver-text test@test.com Test Advocate'));
+    const res = makeRes();
+    await drive(res, async (ink) => {
+      await releaseInk(USER_ID, 'run-1', 1);
+      await ink.finish({ saved: true, duplicate: false });
+      ink.sendDone({ title: 'secret-driver-text' }); // must write nothing
+    });
+    expect(hasEvent(res, 'done')).toBe(false);
+    expect(res.writes.join('')).not.toContain('secret-driver-text');
+    const expected = insufficientInkBody(COST, await getCreditBalance(USER_ID)).message;
+    expect(withheldEvent(res)).toEqual({
+      reason: expected,
+      retryable: false,
+      code: 'insufficient_ink',
+      runId: 'run-1',
+    });
+    expect(res.end).toHaveBeenCalledTimes(1);
+    const err = text(logs.error);
+    expect(err).toContain('re-hold failed');
+    expect(err).toContain('runId=run-1');
+    expect(err).toContain('Error');
+    for (const pii of PII) expect(err).not.toContain(pii);
+    const u = await rawUser();
+    expect(u.inkTopup).toBe(20); // not charged
+    expect(u.inkHolds).toEqual([]);
+    expect(await rows()).toHaveLength(0);
+  });
+
+  it('T-288: the re-hold succeeds but the retried settleInk throws: the new hold is released, the draft is withheld, no done', async () => {
+    await seed(20);
+    const logs = captureLogs();
+    const real = credits.settleInk;
+    jest
+      .spyOn(credits, 'settleInk')
       .mockImplementationOnce(real)
       .mockRejectedValueOnce(new Error('secret-driver-text test@test.com'));
     const res = makeRes();
@@ -499,13 +540,93 @@ describe('5d: the hold is removed while the run is alive', () => {
       await ink.finish({ saved: true, duplicate: false });
       ink.sendDone({});
     });
-    expect(hasEvent(res, 'done')).toBe(true);
+    expect(hasEvent(res, 'done')).toBe(false);
+    const evt = withheldEvent(res);
+    expect(evt).toMatchObject({ code: 'insufficient_ink', retryable: false, runId: 'run-1' });
     const err = text(logs.error);
+    expect(err).toContain('re-hold failed');
+    expect(err).toContain('runId=run-1');
+    for (const pii of PII) expect(err).not.toContain(pii);
+    const u = await rawUser();
+    expect(u.inkTopup).toBe(20); // balance back
+    expect(u.inkHolds).toEqual([]); // the new hold is gone
+    expect(await rows()).toHaveLength(0);
+  });
+
+  it('T-288: ...and the release also fails: error log with the ids and the class name, the draft is still withheld', async () => {
+    await seed(20);
+    const logs = captureLogs();
+    const real = credits.settleInk;
+    jest
+      .spyOn(credits, 'settleInk')
+      .mockImplementationOnce(real)
+      .mockRejectedValueOnce(new Error('secret-driver-text'));
+    const res = makeRes();
+    await drive(res, async (ink) => {
+      await releaseInk(USER_ID, 'run-1', 1); // real, before the spy is armed
+      jest
+        .spyOn(credits, 'releaseInk')
+        .mockRejectedValueOnce(new TypeError('secret-driver-text test@test.com'));
+      await ink.finish({ saved: true, duplicate: false });
+      ink.sendDone({});
+    });
+    expect(hasEvent(res, 'done')).toBe(false);
+    expect(withheldEvent(res)).toMatchObject({ code: 'insufficient_ink', runId: 'run-1' });
+    const err = text(logs.error);
+    expect(err).toContain('releaseInk failed after a failed re-hold');
+    expect(err).toContain('runId=run-1');
+    expect(err).toContain('runSequence=1');
+    expect(err).toContain('TypeError');
+    for (const pii of PII) expect(err).not.toContain(pii);
+    expect(await rows()).toHaveLength(0); // never charged; the sweep owns the leftover hold
+  });
+
+  it('T-288: the re-hold throws AND the balance read for the 402 text fails: reason falls back to "Insufficient Ink", still no done', async () => {
+    await seed(20);
+    captureLogs();
+    const real = credits.holdInk;
+    jest
+      .spyOn(credits, 'holdInk')
+      .mockImplementationOnce(real)
+      .mockRejectedValueOnce(new Error('secret-driver-text'));
+    jest.spyOn(credits, 'getCreditBalance').mockRejectedValue(new Error('secret-driver-text'));
+    const res = makeRes();
+    await drive(res, async (ink) => {
+      await releaseInk(USER_ID, 'run-1', 1);
+      await ink.finish({ saved: true, duplicate: false });
+      ink.sendDone({});
+    });
+    expect(hasEvent(res, 'done')).toBe(false);
+    expect(withheldEvent(res)).toEqual({
+      reason: 'Insufficient Ink',
+      retryable: false,
+      code: 'insufficient_ink',
+      runId: 'run-1',
+    });
+    expect(res.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('PIN (T-288 scope): wasInkSettled throws: paid-or-not is unknown, so the draft IS delivered and the "could not check" error is logged', async () => {
+    await seed(20);
+    const logs = captureLogs();
+    jest
+      .spyOn(credits, 'wasInkSettled')
+      .mockRejectedValueOnce(new Error('secret-driver-text test@test.com'));
+    const holdSpy = jest.spyOn(credits, 'holdInk');
+    const res = makeRes();
+    await drive(res, async (ink) => {
+      await releaseInk(USER_ID, 'run-1', 1);
+      await ink.finish({ saved: true, duplicate: false });
+      ink.sendDone({});
+    });
+    expect(holdSpy).toHaveBeenCalledTimes(1); // no re-hold attempted
+    expect(hasEvent(res, 'done')).toBe(true);
+    expect(hasEvent(res, 'error')).toBe(false);
+    const err = text(logs.error);
+    expect(err).toContain('could not check whether it was settled');
     expect(err).toContain('runId=run-1');
     expect(err).toContain('Error');
     for (const pii of PII) expect(err).not.toContain(pii);
-    expect((await rawUser()).inkTopup).toBe(20); // not charged
-    expect(await rows()).toHaveLength(0);
   });
 });
 
