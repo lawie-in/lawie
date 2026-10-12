@@ -6,6 +6,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 
+import logger from '../config/logger';
 import { authenticate } from '../middleware/authenticate';
 import { chargedCost, enforceCredits, insufficientInkBody } from '../middleware/enforceCredits';
 import { FREE_TIER_MONTHLY_LIMIT } from '../middleware/enforceFreeLimit';
@@ -14,6 +15,7 @@ import { Court } from '../models/Court.model';
 import { LawieDocument } from '../models/Document.model';
 import { Event } from '../models/Event.model';
 import { effectiveRunType, Generation, RunType } from '../models/Generation.model';
+import { User } from '../models/User.model';
 import {
   GenerationFailedError,
   streamGenerateDocument,
@@ -70,7 +72,8 @@ import {
   loadCourtRule,
   loadTemplateConfig,
   listTemplateConfigs,
-  resolveLegacyAdvocateName,
+  resolveEnrollmentNumber,
+  resolveLegacyAdvocate,
   validateFormData,
 } from '../services/template-engine.service';
 import {
@@ -108,6 +111,26 @@ function validateObjectId(req: Request, _res: Response, next: NextFunction): voi
 }
 
 const router = Router();
+
+/**
+ * T-311 (Arjun, 12 Oct 2026): the user's enrolment number from the profile, by
+ * the JWT `sub`, read once per request that builds a draft. Read only. A
+ * failed read counts as an empty profile: a warn with the user id only (never
+ * the number), and the draft goes on.
+ */
+async function profileEnrollmentNumber(userId: string): Promise<string | undefined> {
+  try {
+    const user = await User.findById(userId).select('enrollmentNumber').maxTimeMS(5000).lean();
+    const n = typeof user?.enrollmentNumber === 'string' ? user.enrollmentNumber.trim() : '';
+    return n || undefined;
+  } catch (err) {
+    logger.warn(
+      { userId, error: err instanceof Error ? err.name : 'UnknownError' },
+      'T-311: profile enrolment number lookup failed; treated as empty',
+    );
+    return undefined;
+  }
+}
 
 /**
  * Price a generation's usage. getModelRates never throws — a missing/
@@ -752,7 +775,7 @@ router.post(
             templateConfig,
             formData: form_data,
             advocateName: payload.name || undefined,
-            enrollmentNumber: undefined,
+            enrollmentNumber: await profileEnrollmentNumber(payload.sub),
             userId: payload.sub,
             runId,
             runSequence,
@@ -1194,7 +1217,7 @@ router.post(
                       }
                     : {}),
                   advocateName: payload.name || undefined,
-                  enrollmentNumber: undefined,
+                  enrollmentNumber: await profileEnrollmentNumber(payload.sub),
                 },
                 res,
               )
@@ -1428,7 +1451,15 @@ router.post(
 
     // T-300: the body's advocateName is used only if it passes the check in
     // resolveLegacyAdvocateName; otherwise the profile name. Never a refusal.
-    input.advocateName = resolveLegacyAdvocateName(input.advocateName, { name: payload.name });
+    const advocate = resolveLegacyAdvocate(input.advocateName, { name: payload.name });
+    input.advocateName = advocate.name;
+    // T-311: a typed advocateEnrollment always prints; the profile number fills
+    // an empty one only when the name is the profile's. Never a refusal.
+    input.advocateEnrollment = resolveEnrollmentNumber(
+      input.advocateEnrollment,
+      await profileEnrollmentNumber(payload.sub),
+      advocate.fromProfile,
+    );
 
     // Inject bail-specific fields into partyDetails so post-processor can use them (CLO fixes)
     if (input.fatherName) {
@@ -1944,6 +1975,7 @@ router.post(
         formData,
         bodyParaCount,
         advocateName: payload.name || undefined,
+        enrollmentNumber: await profileEnrollmentNumber(payload.sub),
         courtData,
       });
     } catch (err) {

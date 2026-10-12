@@ -26,9 +26,11 @@ import {
   chosenCourtHeading,
   CourtLookupData,
   CourtRuleData,
+  declaredFieldIds,
   loadTemplateConfig,
   MatterTypeOverride,
-  resolveAdvocateName,
+  resolveAdvocate,
+  resolveEnrollmentNumber,
   ruleForMatter,
   signedPartyLabels,
 } from './template-engine.service';
@@ -248,7 +250,7 @@ function annexureMemoOfParties(
   <div class="sig-block">
     <p>Through Advocate:</p>
     <p><strong>${advocateName !== '___________' ? advocateName : '[Advocate Name]'}</strong></p>
-    <p>Bar Enrolment No.: ${safeEsc(formData.enrollment_number ?? formData.advocate_enrollment)}</p>
+    <p>Bar Enrolment No.: ${safeEsc(formData.enrollment_number)}</p>
   </div>
 </div>`;
 }
@@ -384,7 +386,7 @@ function annexureVakalatnama(formData: Record<string, unknown>, rules: CourtRule
   );
   const applicantAddr = safeEsc(formData.applicant_address ?? formData.address);
   const advocateName = safeEsc(formData.advocate_name);
-  const enrollmentNo = safeEsc(formData.enrollment_number ?? formData.advocate_enrollment);
+  const enrollmentNo = safeEsc(formData.enrollment_number);
   const courtDesig = esc(rules.designation);
 
   return `
@@ -555,6 +557,11 @@ export interface AnnexuresInput {
   /** Advocate name from JWT profile (fallback when the template's own field is empty or not declared) */
   advocateName?: string;
   /**
+   * T-311: enrolment number from the user's profile. Printed only when none was
+   * typed and the advocate name printed is the profile's.
+   */
+  enrollmentNumber?: string;
+  /**
    * T-156: the chosen court from the courts list, looked up the same way the
    * draft path does. When set, every annexure heading prints the draft's
    * `court_header` for it instead of the court-rules designation line.
@@ -568,16 +575,28 @@ export interface AnnexuresInput {
  * Court rules are resolved automatically from formData.court_id / court_type + state.
  */
 export async function buildAnnexuresPack(input: AnnexuresInput): Promise<Buffer> {
-  const { formData, bodyParaCount = 10, advocateName, courtData } = input;
+  const { formData, bodyParaCount = 10, advocateName, enrollmentNumber, courtData } = input;
 
   // T-300: the same advocate name as the draft (resolveAdvocateName): the typed
   // name where this template declares the field, else the profile name.
   const templateId = typeof formData.template_id === 'string' ? formData.template_id.trim() : '';
   const config = templateId ? loadTemplateConfig(templateId) : null;
-  const name = resolveAdvocateName(formData, { name: advocateName }, config);
+  const advocate = resolveAdvocate(formData, { name: advocateName }, config);
   const enrichedForm: Record<string, unknown> = { ...formData };
-  if (name !== undefined) enrichedForm.advocate_name = name;
+  if (advocate.name !== undefined) enrichedForm.advocate_name = advocate.name;
   else delete enrichedForm.advocate_name;
+
+  // T-311: the same number as the draft. The typed source is this template's
+  // declared advocate_enrollment only (a client enrollment_number is never
+  // read; list A); else the profile number when the name is the profile's;
+  // else the blank. The annexures read `enrollment_number` only.
+  const enrollment = resolveEnrollmentNumber(
+    declaredFieldIds(config).has('advocate_enrollment') ? formData.advocate_enrollment : undefined,
+    enrollmentNumber,
+    advocate.fromProfile,
+  );
+  if (enrollment !== undefined) enrichedForm.enrollment_number = enrollment;
+  else delete enrichedForm.enrollment_number;
 
   // T-158: labels and verification follow the document's matter type.
   const resolved = ruleForMatter(

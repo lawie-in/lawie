@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (mechanism decided). Ajay signs the drafting diff and decides on a typed fallback. Lead (build, drafting) |
 | Mode   | Full chain (drafting, legal content) |
-| Status | Building: mahak (12 Oct 2026) |
+| Status | Merged into develop_staging (0bff26f, 12 Oct 2026). Waiting for Anushka on develop |
 
 Only auth's `User.enrollmentNumber` holds the enrollment number. Drafting's JWT carries `{sub, email, name, role, plan}`, so drafting can't read it. T-300 therefore left the typed `advocate_enrollment` input (52 packs) and the legacy `advocateEnrollment` body field printing as typed (Ajay agreed; Arjun cc'd).
 
