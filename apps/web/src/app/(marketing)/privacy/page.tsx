@@ -8,7 +8,7 @@ import SiteNav from '@/components/marketing/SiteNav';
 export const metadata: Metadata = {
   title: 'Lawie — Privacy Policy',
   description:
-    'How Lawie collects, uses, and protects your data under the Digital Personal Data Protection Act, 2023.',
+    'What Lawie collects, why, who receives it, and your rights under the Digital Personal Data Protection Act, 2023.',
 };
 
 // Text signed by Ajay (CLO): handoff/legal/T-235-privacy-policy-signed.md, including the
@@ -205,11 +205,17 @@ export default function PrivacyPage() {
                 </p>
               </section>
               <section id="third-party">
-                <h3>5. Who Else Receives Data</h3>
+                <h3 id="third-party-heading">5. Who Else Receives Data</h3>
                 <p>
                   We share data only with these service providers, and only for the purpose shown:
                 </p>
-                <div className="overflow-x-auto" style={{ marginBottom: '16px' }}>
+                <div
+                  className="overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                  style={{ marginBottom: '16px' }}
+                  tabIndex={0}
+                  role="region"
+                  aria-labelledby="third-party-heading"
+                >
                   <table
                     className="w-full text-left"
                     style={{ minWidth: '560px', fontSize: '15px', borderCollapse: 'collapse' }}

@@ -10,6 +10,7 @@ import {
   Loader2,
   Save,
   Clock,
+  X,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -75,6 +76,8 @@ export default function DocumentEditorPage() {
     format: ExportFormat;
     blanks: Blank[];
   } | null>(null);
+  // T-233: the export that failed, so the banner can offer "Try again" in the same format.
+  const [exportError, setExportError] = useState<ExportFormat | null>(null);
 
   // Track the latest HTML for export and auto-save
   const latestHtmlRef = useRef('');
@@ -265,10 +268,16 @@ export default function DocumentEditorPage() {
     }
   };
 
+  // T-233: a failed export shows the banner instead of failing silently. The log
+  // carries the format and the error only, never the draft's content.
   const exportFile = async (format: ExportFormat) => {
     setExporting(format);
+    setExportError(null);
     try {
       await (format === 'pdf' ? exportPdfFile() : exportDocxFile());
+    } catch (err) {
+      console.error(`[export-${format}] export failed:`, err instanceof Error ? err.name : 'error');
+      setExportError(format);
     } finally {
       setExporting(null);
     }
@@ -280,6 +289,7 @@ export default function DocumentEditorPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!doc || exporting) return;
     setExporting(format);
+    setExportError(null);
     let handedOff = false;
     try {
       if (saveTimerRef.current) {
@@ -297,6 +307,9 @@ export default function DocumentEditorPage() {
       }
       handedOff = true;
       await exportFile(format);
+    } catch (err) {
+      console.error(`[export-${format}] export failed:`, err instanceof Error ? err.name : 'error');
+      setExportError(format);
     } finally {
       if (!handedOff) setExporting(null);
     }
@@ -304,6 +317,9 @@ export default function DocumentEditorPage() {
 
   const handleExportPdf = () => handleExport('pdf');
   const handleExportDocx = () => handleExport('docx');
+  const handleExportRetry = () => {
+    if (exportError) void handleExport(exportError);
+  };
 
   const handleBlanksExportAnyway = () => {
     const format = blankWarning?.format;
@@ -463,6 +479,34 @@ export default function DocumentEditorPage() {
             </button>
           </div>
         </div>
+
+        {/* T-233 — a failed export, with a retry in the same format */}
+        {exportError && (
+          <div
+            role="alert"
+            className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2"
+          >
+            <AlertTriangle size={13} className="flex-shrink-0 text-red-500" />
+            <p className="flex-1 text-xs text-red-700">
+              Export failed. Please try again.{' '}
+              <button
+                onClick={handleExportRetry}
+                disabled={exporting !== null}
+                className="font-semibold underline disabled:opacity-40"
+              >
+                Try again
+              </button>
+            </p>
+            <button
+              onClick={() => setExportError(null)}
+              className="rounded p-0.5 text-red-400 hover:bg-red-100 hover:text-red-600"
+              aria-label="Dismiss"
+              title="Dismiss"
+            >
+              <X size={13} />
+            </button>
+          </div>
+        )}
 
         {/* T-106/T-125 — the starting-draft label. It is the service's text and cannot be dismissed. */}
         {doc.startingDraft && doc.startingDraftLabel && (
