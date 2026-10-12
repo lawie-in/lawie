@@ -5,7 +5,7 @@
 | Phase  | 1 — Legal accuracy |
 | Owner  | Arjun (scope: which keys are server-only). Ajay (signs). Mahak (build, same file as T-293) |
 | Mode   | Small fix, legal content (template-engine) |
-| Status | To do. Found by Mahak in T-293, 12 Oct 2026. After T-293 merges |
+| Status | Merged into develop_staging (048a632, 12 Oct 2026). Waiting for Anushka on develop |
 
 In `apps/drafting/src/services/template-engine.service.ts`, `buildPlaceholderContext` flattens the client's formData into the context after the server's own values, so any client key can overwrite a server-computed value (for example `advocate_name`, `current_date`, computed field ids). Same class of bug as T-293, wider.
 
