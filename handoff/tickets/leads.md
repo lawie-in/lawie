@@ -37,6 +37,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 7. shashank: T-347 (1c2fbf4, small fix tested green). Slot given 12 Oct after Kunal's T-242.
 8. mahak: T-335 (f0f9d22, tested green, Arjun has the diff). Next free turn; confirm with the slot holder first. Then ping Vishal (intake-brief.ts).
+9. kunal: T-348 (e7c7849, small fix tested green). Merges once Ajay OKs; first signed goes first, confirm with the slot holder.
 
 ## Last done
 
