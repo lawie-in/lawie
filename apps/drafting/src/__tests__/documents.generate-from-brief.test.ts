@@ -218,7 +218,7 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     ]);
     expect(sections.cause_title).toContain('DISTRICT & SESSIONS JUDGE, PATNA');
     expect(sections.cause_title).toContain('Ram Kumar');
-    expect(sections.prayer).toContain('FIR No. 124/2026 dated 10.03.2026');
+    expect(sections.prayer).toContain('FIR No. 124/2026 dated 10 March 2026');
     expect(sections.body).toBe(BODY);
     expect(sections.verification).toContain('I, Ram Kumar, the Applicant');
     expect(sections.verification).toContain('Verified at Patna');

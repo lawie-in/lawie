@@ -896,8 +896,9 @@ export function promoteDocRuleToTemplateConfig(
 
   // Preserve fields the engine doesn't model yet but downstream consumers (SCRUM-80
   // / SCRUM-81 golden-PDF compare / billing credit math) need to read.
-  // T-227: the shown price comes from the one price list (credits.service), the
-  // same one the charge reads. The rule file's own `creditsCost` is ignored.
+  // T-227: the shown price comes from the one price list, TEMPLATE_PRICES in
+  // config/catalogue (T-240), read through credits.service#costForTemplate,
+  // the same one the charge reads. The rule file's own `creditsCost` is ignored.
   // An id with no price is left unpriced here; the registry build refuses it.
   config.creditsCost = costForTemplate(template_id);
   // T-240: the library category comes from config/catalogue, never from the
@@ -967,11 +968,6 @@ export function loadAllDocRules(dir: string = DOC_RULES_DIR): RegistryBuild {
     .filter((c) => typeof (c as { creditsCost?: unknown }).creditsCost !== 'number')
     .map((c) => c.template_id)
     .sort();
-  if (unpriced.length > 0) {
-    throw new Error(
-      `Template promoter: no price in TEMPLATE_PRICES (config/catalogue) for: ${unpriced.join(', ')}`,
-    );
-  }
 
   // T-240: every template needs exactly one library category from
   // config/catalogue. A rule file with no entry stops the build (and the boot),
@@ -980,10 +976,18 @@ export function loadAllDocRules(dir: string = DOC_RULES_DIR): RegistryBuild {
     .filter((c) => c.catalogueCategory === undefined)
     .map((c) => c.template_id)
     .sort();
+
+  // T-345: both checks always run and one error reports both lists, so a
+  // missing catalogue entry is never hidden behind a missing price.
+  const problems: string[] = [];
+  if (unpriced.length > 0) {
+    problems.push(`no price in TEMPLATE_PRICES (config/catalogue) for: ${unpriced.join(', ')}`);
+  }
   if (uncatalogued.length > 0) {
-    throw new Error(
-      `Template promoter: no catalogue category in config/catalogue for: ${uncatalogued.join(', ')}`,
-    );
+    problems.push(`no catalogue category in config/catalogue for: ${uncatalogued.join(', ')}`);
+  }
+  if (problems.length > 0) {
+    throw new Error(`Template promoter: ${problems.join('; ')}`);
   }
 
   return { configs, mismatchReport, byFile };
