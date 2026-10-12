@@ -108,7 +108,7 @@ Tracking needs (to Priya as tickets, not built by marketing): UTM capture at sig
 | --- | --- | --- | --- | --- |
 | 1 | "Start from a first draft, not a blank page" | Go-live posts on all channels; founder LinkedIn launch post; Patna Civil Court bar demo; WhatsApp broadcast #1 to opt-ins; reel R1 (bail application, fictional matter) | Social calendar week 1 | 150 sign-ups, 5 paid |
 | 2 | Bail and BNSS | Reel R2 (legal notice, a 1-Ink document); six-bail-drafts carousel; Ranchi bar demo; law-college lab #1 (Patna) | Social calendar week 2 | 300 sign-ups, 12 paid |
-| 3 | Notices and agreements (1-Ink documents) | Reel R3 ("You stay the advocate"); legal-news sponsored slot if T2 is released (Vikram); Lucknow bar demo; lab #2 (Lucknow) | Reuse winning week 1–2 formats | 420 sign-ups, 19 paid |
+| 3 | Notices and affidavits (1-Ink documents) | Reel R3 ("You stay the advocate"); legal-news sponsored slot if T2 is released (Vikram); Lucknow bar demo; lab #2 (Lucknow) | Reuse winning week 1–2 formats | 420 sign-ups, 19 paid |
 | 4 | "You stay the advocate" + review | Founder AMA on LinkedIn/X; ambassador push; lab #3 (Ranchi) if T2; review KPIs, cut weak channels, plan days 31–90 | Phase 1 report | 500 sign-ups, 25 paid |
 
 ## 8. Budget (Vikram's decision, ₹1,00,000 at most)
@@ -135,7 +135,7 @@ Source: Vikram, vikram-gtm-decisions.md (12 Oct 2026). Cut from the ₹1,45,000 
 
 1. Ajay: sign every line in `calendar-*.md` and `copy/*.md`; confirm "more than 90 document types" and "drafts in English" as true today.
 2. Vikram: plan prices (Solo ₹799, Pro ₹1,999, top-ups ₹65/₹199/₹499) are on the live page but not in T-227. Confirm them before any ad shows a rupee figure. Okay or refuse the budget and offers above.
-3. Pricing page fixes beyond T-238: "Less than ₹16 per document on Solo" is false at 2 Ink; FAQ "Each document you generate uses 1 Ink" (same line T-238 names). Copy in `copy/pricing.md`.
+3. Pricing page fixes beyond T-238: "Less than ₹16 per document on Solo" is false at 2 Ink; FAQ "Each document you generate uses 1 Ink" (same line T-238 names). Copy in `copy/pricing.md`. Done in T-238 (41a41ff), 12 Oct 2026.
 4. Tickets for tracking: UTM + signup source; waitlist/opt-in form before go-live.
 5. When T-234 merges, swap "coming soon" for email and password sign-up; when T-227 AC3 ships, add "you see the cost before you generate".
 6. UTM/source tracking is T-242, waitlist form is T-243 (Priya). /login?mode=signup is in T-234. T-238 covers pricing rows 1-6; T-252 covers rows 7-14, FAQ, about, footer disclaimer, PainSolution.tsx.
