@@ -37,7 +37,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 1. vishal — T-316 (81dbe29, tests only). Slot given 12 Oct 2026.
 2. mahak — T-318 (71fd81a). Ajay signed 71fd81a.
-3. tanvi — T-320 (fdd99ab). Once Arjun OKs.
+3. tanvi — T-320 (fdd99ab). Arjun OK'd.
+4. kunal — T-319 (a75792e). Ajay OK'd. Founder checks develop https before Google sign-in is tried there (morning report).
 
 ## Last done
 
