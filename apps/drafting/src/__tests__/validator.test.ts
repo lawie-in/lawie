@@ -18,7 +18,7 @@ jest.mock('../services/sections.service', () => ({
     conversions: [],
   })),
   lookupOldToNew: jest.fn(async (section: string, code: string) => {
-    // Simulate IPC 302 → BNS 103 mapping
+    // Simulate IPC 302 → BNS 103(1) mapping (T-267 corrected table)
     if (section === '302' && code === 'IPC') {
       return {
         old_code: 'IPC',
@@ -27,12 +27,12 @@ jest.mock('../services/sections.service', () => ({
         old_title: 'Punishment for murder',
         new_code: 'BNS',
         new_code_full: 'Bharatiya Nyaya Sanhita',
-        new_section: '103',
+        new_section: '103(1)',
         new_title: 'Punishment for murder',
         mapping_type: 'direct',
       };
     }
-    // Simulate IPC 420 → BNS 318 mapping
+    // Simulate IPC 420 → BNS 318(4) mapping (T-267 corrected table)
     if (section === '420' && code === 'IPC') {
       return {
         old_code: 'IPC',
@@ -41,7 +41,7 @@ jest.mock('../services/sections.service', () => ({
         old_title: 'Cheating and dishonestly inducing delivery of property',
         new_code: 'BNS',
         new_code_full: 'Bharatiya Nyaya Sanhita',
-        new_section: '318',
+        new_section: '318(4)',
         new_title: 'Cheating',
         mapping_type: 'direct',
       };
@@ -165,14 +165,14 @@ describe('Layer 3 — Validator', () => {
       const warnings = await detectOldLawReferences(text);
       expect(warnings.length).toBe(1);
       expect(warnings[0].type).toBe('old_law_reference');
-      expect(warnings[0].details?.suggestedReplacement).toBe('Section 103 BNS');
+      expect(warnings[0].details?.suggestedReplacement).toBe('Section 103(1) BNS');
     });
 
     it('suggests BNS equivalent for IPC 420', async () => {
       const text = 'Section 420 of the Indian Penal Code';
       const warnings = await detectOldLawReferences(text);
       expect(warnings.length).toBe(1);
-      expect(warnings[0].details?.suggestedReplacement).toBe('Section 318 BNS');
+      expect(warnings[0].details?.suggestedReplacement).toBe('Section 318(4) BNS');
     });
 
     it('returns empty when no old-law references', async () => {
@@ -298,10 +298,10 @@ describe('Layer 3 — Validator', () => {
         PRAYER: Bail.
       `;
       const result = await validate(text, docRule);
-      // SCRUM-43 test case #2: IPC 302 → should flag with BNS 103 suggestion
+      // SCRUM-43 test case #2: IPC 302 → should flag with BNS 103(1) suggestion
       const oldLawWarnings = result.warnings.filter((w) => w.type === 'old_law_reference');
       expect(oldLawWarnings.length).toBe(1);
-      expect(oldLawWarnings[0].details?.suggestedReplacement).toBe('Section 103 BNS');
+      expect(oldLawWarnings[0].details?.suggestedReplacement).toBe('Section 103(1) BNS');
     });
   });
 

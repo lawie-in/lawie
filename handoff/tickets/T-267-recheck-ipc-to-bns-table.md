@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (rechecks every row against the Gazette, signs). Lead (applies; shashank, as with T-250 and T-255). Anushka (checks BNS sections in Tier A samples) |
 | Mode           | Rule first, then a small build. Legal content (`apps/drafting/src/config/sections/ipc-to-bns.json`) |
-| Status         | Signed by Ajay (4fed16e, `handoff/legal/T-267-ipc-to-bns-corrected-signed.md`, SHA-256 of the JSON block `c7c8d74a661b304c6fe349e2dad64f1ef6663348746747d5103ca783121dcb78`). Build next: Shashank, after T-250 + T-255. 12 Oct 2026 |
+| Status         | Merged into develop_staging (ee93984); IPC table not live until reseed with --force (develop first; production founder-only after T-275); pack corrections live at deploy; waiting for Anushka on develop |
 | Depends on     | T-250 + T-255 (same seed path and files) |
 
 ## Problem

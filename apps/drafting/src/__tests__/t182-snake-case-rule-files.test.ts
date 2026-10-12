@@ -118,28 +118,31 @@ describe('T-182 — snake_case rule files', () => {
   });
 
   describe('AC4: assemble -> postProcess -> validate with stub LLM text', () => {
-    it.each(['divorce_hma', 'nda'])('%s does not throw; checklist from filing_checklist', async (docType) => {
-      const input = minimalInput(docType);
-      const p = await assemblePrompt(input);
+    it.each(['divorce_hma', 'nda'])(
+      '%s does not throw; checklist from filing_checklist',
+      async (docType) => {
+        const input = minimalInput(docType);
+        const p = await assemblePrompt(input);
 
-      const pp = postProcess({
-        rawText: STUB_LLM_TEXT,
-        docRule: p.docRule,
-        courtRule: p.courtRule,
-        partyDetails: { petitioner: 'A Kumar', respondent: 'B Kumar' },
-        advocateName: 'X',
-        courtName: 'Family Court, Saket',
-        isDvCase: false,
-      } as unknown as Parameters<typeof postProcess>[0]);
+        const pp = postProcess({
+          rawText: STUB_LLM_TEXT,
+          docRule: p.docRule,
+          courtRule: p.courtRule,
+          partyDetails: { petitioner: 'A Kumar', respondent: 'B Kumar' },
+          advocateName: 'X',
+          courtName: 'Family Court, Saket',
+          isDvCase: false,
+        } as unknown as Parameters<typeof postProcess>[0]);
 
-      const expected = (readRule(docType).filing_checklist as string[]) ?? [];
-      expect(expected.length).toBeGreaterThan(0);
-      expect(pp.filingChecklist).toEqual(expected);
+        const expected = (readRule(docType).filing_checklist as string[]) ?? [];
+        expect(expected.length).toBeGreaterThan(0);
+        expect(pp.filingChecklist).toEqual(expected);
 
-      const v = await validate(pp.formattedText, p.docRule);
-      expect(Array.isArray(v.warnings)).toBe(true);
-      expect(typeof v.mandatoryClausesComplete).toBe('boolean');
-    });
+        const v = await validate(pp.formattedText, p.docRule);
+        expect(Array.isArray(v.warnings)).toBe(true);
+        expect(typeof v.mandatoryClausesComplete).toBe('boolean');
+      },
+    );
   });
 
   describe('AC5: camelCase prompts are unchanged (bail_regular)', () => {
@@ -167,6 +170,8 @@ describe('T-182 — snake_case rule files', () => {
 
     // Value recorded by the developer from develop (HEAD) with this exact input:
     // sha256 of `${systemPrompt}\n=====USER=====\n${userPrompt}\n` starts 08984e74, ends 912d.
+    // T-267 re-record (Ajay approved): bail_regular.json line 324 "103" -> "103(1)" is the only change;
+    // undoing that one string reproduces the old digest 08984e74...912d. New digest starts 2ff33967, ends 3156.
     // Fails if the bail_regular rule JSON or the assembler's output changes on purpose;
     // then re-record it, do not loosen it.
     it('matches the sha256 recorded from develop', async () => {
@@ -174,8 +179,8 @@ describe('T-182 — snake_case rule files', () => {
       const digest = createHash('sha256')
         .update(`${p.systemPrompt}\n=====USER=====\n${p.userPrompt}\n`)
         .digest('hex');
-      expect(digest.startsWith('08984e74')).toBe(true);
-      expect(digest.endsWith('912d')).toBe(true);
+      expect(digest.startsWith('2ff33967')).toBe(true);
+      expect(digest.endsWith('3156')).toBe(true);
     });
   });
 

@@ -229,9 +229,10 @@ describe('T-250 follow-up 4 / r1 / r5: bns-mapping.json', () => {
     expect(bns).not.toHaveProperty('iea_to_bsa');
   });
 
-  it('schema_note no longer mentions iea_to_bsa and still names the two live alias maps', () => {
+  it('schema_note no longer mentions iea_to_bsa or ipc_to_bns (T-267) and still names crpc_to_bnss', () => {
     expect(bns._meta.schema_note).not.toContain('iea_to_bsa');
-    expect(bns._meta.schema_note).toContain('ipc_to_bns');
+    expect(bns._meta.schema_note).not.toContain('ipc_to_bns');
+    expect(bns).not.toHaveProperty('ipc_to_bns');
     expect(bns._meta.schema_note).toContain('crpc_to_bnss');
   });
 

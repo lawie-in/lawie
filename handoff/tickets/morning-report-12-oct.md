@@ -64,3 +64,5 @@ Vikram's prices; marketing budget cut to at most ₹1,00,000 in two tranches; So
 Note added 12 Oct: do not reseed the production section tables until T-275 (converter label for repealed rows) is merged.
 
 Update 12 Oct: T-250 + T-255 and T-275 are both merged, so the production reseed condition is met once T-267 (IPC table) is also merged and develop has been reseeded and checked first.
+
+New risk, 12 Oct: T-277 (HIGH). The BNS offence table has 67 of 305 rows under the wrong key, so the bail checker can show the wrong bailability for a section. Ajay is rebuilding it and will sign; nothing to do from you, but treat the bail checker as unreliable until it merges.
