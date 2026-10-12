@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (decides and signs). Lead (builds) |
 | Mode           | Small fix (drafting). Legal path: `fact-verifier.ts` and `brief-drafter.ts` |
-| Status         | Ajay decided 12 Oct 2026: all three places case-insensitive. To do: mahak, after T-238 |
+| Status         | Merged into develop_staging (d0a51bf), 12 Oct 2026. Waiting for Anushka on develop |
 | Depends on     | T-273 merged |
 
 T-273 makes the blank marker case-insensitive in the export and server PDF. Three places in legal files still match upper case only:
