@@ -36,6 +36,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 ## Merge queue
 
 1. tanvi — T-307 (2a96551). Slot given 12 Oct 2026; merge once Arjun has OK'd it.
+2. kunal — T-234 + T-298 (c2fc394). After tanvi, once Ajay's byte check on c2fc394 passes.
 
 ## Last done
 

@@ -45,3 +45,9 @@ Fix the stale comment in the apps/gateway register-role test that says "role for
 ## Rides along (Priya, 12 Oct 2026, from T-307)
 
 Auth gets the T-307 JSON-error handler: malformed, oversized and bad-encoding bodies get plain JSON with no echo, in the response or the logs, in every environment. Login bodies hold passwords. Copy the approach from drafting (T-307), and add a test.
+
+## Rides along (Priya, 12 Oct 2026, from T-234 review)
+
+- Referral grant after the $inc: close the known limitation (grant and counter can diverge on failure).
+- Re-check the code's `expiresAt` at slot time, not only at first check.
+- Remove the timing difference that tells a password-less (Google-only) account apart at login.
