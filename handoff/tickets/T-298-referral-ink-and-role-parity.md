@@ -5,7 +5,7 @@
 | Phase  | 0 — Prep |
 | Owner  | Arjun (triage). Lead (build). Vikram if Ink is affected |
 | Mode   | Small fix (auth), after T-234 merges |
-| Status | To do. Found by Kunal in T-234 Explore, 12 Oct 2026. Unverified |
+| Status | Ruled by Arjun (in this file). Folded into T-234 (kunal, same auth files) so the referral offer is true when the login page ships |
 
 Two findings outside T-234:
 
