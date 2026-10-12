@@ -21,3 +21,7 @@
 ## Detail (shashank, with Ajay's agreement, 12 Oct 2026)
 
 Priority: medium. The check should also read `<ACT> <number>` and `<number> <ACT>` for BNS, BNSS, BSA, IPC, CrPC and IEA, for example "BSA 85" and "103 BNS".
+
+## Added 12 Oct 2026 (Shashank's finding)
+
+The detector matches on the section number only and ignores the act. In an affidavit, "Section 3 BSA" passes because Oaths Act 3 is known. Ajay's two test cases still hold; decide with him whether the act must match too.
