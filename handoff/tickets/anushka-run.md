@@ -661,3 +661,28 @@ What a user can now do:
 - See category names without underscores.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-351 — no free credits before an email is verified (eae46a9, shashank, 12 Oct 2026)
+
+What a user can now do:
+- Sign up with Google and get the free Ink straight away, as before.
+- Sign up with an email and password and start with no free Ink until the address is verified; the daily bonus waits for that too.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-343 — accept a changed privacy policy (3cbcd78, kunal, 12 Oct 2026)
+
+What a user can now do:
+- After a privacy change, see a short notice of what changed on the next sign-in, with a link to the policy and two choices: Accept or Not now.
+- After Not now, still view, download and export. A new draft or payment asks for acceptance right at the button, and anything typed is kept.
+- Accept and carry on without signing in again. A dismissed notice doesn't come back in the same sign-in.
+- Please also check the notice with a screen reader and with reduced motion switched on (not yet checked).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-331 — admin template usage (d1b4372, mahak, 12 Oct 2026)
+
+What a user can now do:
+- An admin opening document analytics sees which templates are used, by name, with counts and how many were finalised, instead of an empty table.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -8,4 +8,10 @@ export const INTERNAL_HEADERS = {
   USER_ROLE: 'x-user-role',
   USER_PLAN: 'x-user-plan',
   USER_NAME: 'x-user-name',
+  /**
+   * T-343 — the privacy version the user had accepted when the access token was issued (the
+   * `pv` claim). Set by the gateway from the verified token only; any client-sent copy is
+   * stripped. Absent when the token carries no `pv`, which counts as not accepted.
+   */
+  USER_PRIVACY_VERSION: 'x-user-privacy-version',
 } as const;

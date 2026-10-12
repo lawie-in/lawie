@@ -190,6 +190,8 @@ router.get(
       name: user.name,
       role: user.role,
       plan: user.plan,
+      // T-343 — accepted privacy version from the user record; absent counts as not accepted.
+      pv: user.privacyVersion,
     });
 
     // Store session in Redis + MongoDB

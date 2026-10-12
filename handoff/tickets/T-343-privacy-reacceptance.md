@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (whether it gates prod, wording). Rajesh (prompt design). Lead (auth, web) |
 | Mode   | Full chain (auth and web, legal) |
-| Status | Building: kunal (12 Oct 2026). Ajay words, Rajesh designs. Must ship before the next policy change that affects existing users |
+| Status | Merged into develop_staging (3cbcd78), 12 Oct 2026. Ajay signed. Anushka tests on develop (incl. screen reader and reduced motion) |
 
 T-242 bumps `CURRENT_PRIVACY_VERSION`. Nothing compares a user's stored `privacyVersion` with the current one, so existing users are never asked to accept the new policy.
 

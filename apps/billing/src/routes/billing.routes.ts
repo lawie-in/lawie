@@ -1,3 +1,4 @@
+import { requireCurrentPrivacy } from '@lawie/shared';
 import { Router, Request, Response } from 'express';
 
 import {
@@ -44,92 +45,108 @@ router.get('/plans', (_req: Request, res: Response) => {
 // ── POST /subscribe — create a Razorpay subscription for a specific plan ─────
 //
 // Body: { planId: 'practice_monthly' | 'practice_yearly' | 'firm_monthly' | 'firm_yearly' }
-router.post('/subscribe', authenticate, async (req: Request, res: Response) => {
-  try {
-    const { sub: userId, email } = req.jwtPayload!;
-    const { planId } = req.body as { planId?: string };
-    const result = await createSubscription(userId, email, planId);
-    res.json({ status: 'success', data: result });
-  } catch (err) {
-    logger.error(
-      { err: err instanceof Error ? err.message : err },
-      'Failed to create subscription',
-    );
-    res.status(500).json({
-      error: err instanceof Error ? err.message : 'Failed to create subscription',
-    });
-  }
-});
+// T-343 — user-started payment: needs the current privacy version (not the webhook).
+router.post(
+  '/subscribe',
+  authenticate,
+  requireCurrentPrivacy,
+  async (req: Request, res: Response) => {
+    try {
+      const { sub: userId, email } = req.jwtPayload!;
+      const { planId } = req.body as { planId?: string };
+      const result = await createSubscription(userId, email, planId);
+      res.json({ status: 'success', data: result });
+    } catch (err) {
+      logger.error(
+        { err: err instanceof Error ? err.message : err },
+        'Failed to create subscription',
+      );
+      res.status(500).json({
+        error: err instanceof Error ? err.message : 'Failed to create subscription',
+      });
+    }
+  },
+);
 
 // ── POST /topup/order — create a one-off Razorpay order for a top-up SKU ─────
 //
 // Body: { skuId: 'topup_mini' | 'topup_mid' | 'topup_max' }
 // Response: { orderId, amountInr, ink, razorpayKeyId } so the frontend can
 // hand the orderId to Razorpay Checkout SDK.
-router.post('/topup/order', authenticate, async (req: Request, res: Response) => {
-  const { sub: userId } = req.jwtPayload!;
-  const { skuId, couponCode } = req.body as { skuId?: string; couponCode?: string };
+// T-343 — user-started payment: needs the current privacy version (not the webhook).
+router.post(
+  '/topup/order',
+  authenticate,
+  requireCurrentPrivacy,
+  async (req: Request, res: Response) => {
+    const { sub: userId } = req.jwtPayload!;
+    const { skuId, couponCode } = req.body as { skuId?: string; couponCode?: string };
 
-  const sku = findTopupSku(String(skuId ?? ''));
-  if (!sku) {
-    res.status(400).json({ error: 'Unknown top-up SKU' });
-    return;
-  }
+    const sku = findTopupSku(String(skuId ?? ''));
+    if (!sku) {
+      res.status(400).json({ error: 'Unknown top-up SKU' });
+      return;
+    }
 
-  let finalPriceInr = sku.priceInr;
-  let appliedCouponCode: string | null = null;
+    let finalPriceInr = sku.priceInr;
+    let appliedCouponCode: string | null = null;
 
-  if (couponCode) {
-    const code = couponCode.trim().toUpperCase();
-    const coupon = await CouponCode.findOne({ code, isActive: true }).lean();
-    if (coupon && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
-      if (coupon.maxUses === null || coupon.maxUses === undefined || coupon.uses < coupon.maxUses) {
-        const discountInr =
-          coupon.discountType === 'percent'
-            ? Math.round((sku.priceInr * coupon.discountValue) / 100)
-            : Math.min(coupon.discountValue, sku.priceInr);
-        finalPriceInr = Math.max(1, sku.priceInr - discountInr);
-        appliedCouponCode = code;
+    if (couponCode) {
+      const code = couponCode.trim().toUpperCase();
+      const coupon = await CouponCode.findOne({ code, isActive: true }).lean();
+      if (coupon && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
+        if (
+          coupon.maxUses === null ||
+          coupon.maxUses === undefined ||
+          coupon.uses < coupon.maxUses
+        ) {
+          const discountInr =
+            coupon.discountType === 'percent'
+              ? Math.round((sku.priceInr * coupon.discountValue) / 100)
+              : Math.min(coupon.discountValue, sku.priceInr);
+          finalPriceInr = Math.max(1, sku.priceInr - discountInr);
+          appliedCouponCode = code;
+        }
       }
     }
-  }
 
-  try {
-    const notes: Record<string, string | number> = {
-      sku_id: sku.id,
-      user_id: userId,
-      ink: sku.ink,
-    };
-    if (appliedCouponCode) notes['coupon_code'] = appliedCouponCode;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const order = await (razorpay.orders.create as any)({
-      amount: finalPriceInr * 100, // paise
-      currency: 'INR',
-      receipt: `topup_${sku.id}_${userId.slice(-8)}_${Date.now().toString().slice(-8)}`,
-      notes,
-    });
-
-    res.json({
-      status: 'success',
-      data: {
-        orderId: order.id,
-        amountInr: finalPriceInr,
-        originalAmountInr: sku.priceInr,
+    try {
+      const notes: Record<string, string | number> = {
+        sku_id: sku.id,
+        user_id: userId,
         ink: sku.ink,
-        skuId: sku.id,
-        couponApplied: appliedCouponCode,
-        razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-      },
-    });
-  } catch (err) {
-    logger.error(
-      { err: err instanceof Error ? err.message : err },
-      'Failed to create top-up order',
-    );
-    res.status(500).json({ error: 'Failed to create top-up order' });
-  }
-});
+      };
+      if (appliedCouponCode) notes['coupon_code'] = appliedCouponCode;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const order = await (razorpay.orders.create as any)({
+        amount: finalPriceInr * 100, // paise
+        currency: 'INR',
+        receipt: `topup_${sku.id}_${userId.slice(-8)}_${Date.now().toString().slice(-8)}`,
+        notes,
+      });
+
+      res.json({
+        status: 'success',
+        data: {
+          orderId: order.id,
+          amountInr: finalPriceInr,
+          originalAmountInr: sku.priceInr,
+          ink: sku.ink,
+          skuId: sku.id,
+          couponApplied: appliedCouponCode,
+          razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        { err: err instanceof Error ? err.message : err },
+        'Failed to create top-up order',
+      );
+      res.status(500).json({ error: 'Failed to create top-up order' });
+    }
+  },
+);
 
 // ── GET /plan/:id — fetch one plan's details (for paywall modal) ────────────
 router.get('/plan/:id', (req: Request, res: Response) => {
