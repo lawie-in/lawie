@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build). Ajay decides whether the label is needed at all. Arjun found it |
 | Mode           | Small fix (drafting only) |
-| Status         | To do. Unassigned. Found in Arjun's T-115 audit, 12 Oct 2026 |
+| Status         | Building: mahak (12 Oct 2026) |
 | Parent         | T-115 |
 
 `Event.metadata.label`, written in `apps/drafting/src/services/intake.service.ts` (about line 798), can hold a matter label with party names. That breaks Ajay's T-302 demand-signal rule (no personal data in demand signals). Details: the audit section of `T-115-permanent-delete-and-encrypted-inputs.md`.

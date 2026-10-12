@@ -266,3 +266,11 @@ Quality: nothing to test in the UI — a rare fault path that no user can trigge
 Nothing new on screen. The build now stops on a code error instead of hiding it, and CI checks it on every push.
 
 Quality: nothing to test in the UI — build and CI only.
+
+## T-115a (mahak, merged to develop_staging 7c697a2, 12 Oct 2026)
+
+- Nothing changes on screen: saved case details are now stored encrypted.
+
+Test: open an old draft and a new one. Both still show their details, checklist and annexures as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
