@@ -12,10 +12,13 @@ import { createApp } from '../app';
 
 const FRAGMENT = '{"to": "a@b.co", "data": {"otp": "SECRETOTP-123"} oops}';
 const SECRETS = ['SECRETOTP', 'a@b.co', 'Unexpected token', 'SyntaxError', 'is not valid JSON'];
+const ENVS = ['production', 'development'] as const;
 const LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
 
 const expectNoEcho = (text: string) => {
-  for (const s of SECRETS) expect(text).not.toContain(s);
+  // body-parser lower-cases the encoding name and upper-cases the charset, so compare case-insensitively.
+  const lower = text.toLowerCase();
+  for (const s of SECRETS) expect(lower).not.toContain(s.toLowerCase());
 };
 
 describe('T-315 email-worker body parser errors', () => {
@@ -26,14 +29,13 @@ describe('T-315 email-worker body parser errors', () => {
   let stdoutSpy: jest.SpyInstance;
   let consoleSpies: jest.SpyInstance[];
 
-  beforeAll(async () => {
-    server = createApp().listen(0, '127.0.0.1');
+  const startServer = async (e: string) => {
+    const app = createApp();
+    app.set('env', e);
+    server = app.listen(0, '127.0.0.1');
     await new Promise((r) => server.once('listening', r));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  });
-  afterAll(async () => {
-    await new Promise((r) => server.close(r));
-  });
+  };
   beforeEach(() => {
     loggerSpies = LEVELS.map((l) => jest.spyOn(logger, l));
     stderrSpy = jest.spyOn(process.stderr, 'write');
@@ -54,60 +56,72 @@ describe('T-315 email-worker body parser errors', () => {
       .map((c) => c.map((a: unknown) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '))
       .join('\n');
 
-  const post = (headers: Record<string, string>, body: string) =>
-    fetch(`${base}/send`, { method: 'POST', headers, body });
+  describe.each(ENVS)('NODE_ENV=%s', (e) => {
+    beforeAll(async () => {
+      await startServer(e);
+    });
+    afterAll(async () => {
+      await new Promise((r) => server.close(r));
+    });
 
-  it('malformed JSON gets 400 {error: Bad Request}, no echo, nothing logged', async () => {
-    const res = await post({ 'Content-Type': 'application/json' }, FRAGMENT);
-    const text = await res.text();
-    expect(res.status).toBe(400);
-    expect(res.headers.get('content-type')).toMatch(/application\/json/);
-    expect(text).toBe('{"error":"Bad Request"}');
-    expectNoEcho(text);
-    expectNoEcho(loggedText());
-  });
+    const post = (headers: Record<string, string>, body: string) =>
+      fetch(`${base}/send`, { method: 'POST', headers, body });
 
-  it('over-limit body (>100kb) gets 413, no echo, nothing logged', async () => {
-    const big = JSON.stringify({ data: { otp: 'SECRETOTP-123'.repeat(10000) } });
-    const res = await post({ 'Content-Type': 'application/json' }, big);
-    const text = await res.text();
-    expect(res.status).toBe(413);
-    expect(text).toBe('{"error":"Payload Too Large"}');
-    expectNoEcho(text);
-    expectNoEcho(loggedText());
-  });
+    it('malformed JSON gets 400 {error: Bad Request}, no echo, nothing logged', async () => {
+      const res = await post({ 'Content-Type': 'application/json' }, FRAGMENT);
+      const text = await res.text();
+      expect(res.status).toBe(400);
+      expect(res.headers.get('content-type')).toMatch(/application\/json/);
+      expect(text).toBe('{"error":"Bad Request"}');
+      expectNoEcho(text);
+      expectNoEcho(loggedText());
+    });
 
-  it('unsupported Content-Encoding gets 415, no echo, nothing logged', async () => {
-    const res = await post(
-      { 'Content-Type': 'application/json', 'Content-Encoding': 'SECRETOTP-enc' },
-      FRAGMENT,
-    );
-    const text = await res.text();
-    expect(res.status).toBe(415);
-    expect(text).toBe('{"error":"Unsupported Media Type"}');
-    expectNoEcho(text);
-    expectNoEcho(loggedText());
-  });
+    it('over-limit body (>100kb) gets 413, no echo, nothing logged', async () => {
+      const big = JSON.stringify({ data: { otp: 'SECRETOTP-123'.repeat(10000) } });
+      const res = await post({ 'Content-Type': 'application/json' }, big);
+      const text = await res.text();
+      expect(res.status).toBe(413);
+      expect(text).toBe('{"error":"Payload Too Large"}');
+      expectNoEcho(text);
+      expectNoEcho(loggedText());
+    });
 
-  it('unsupported charset gets 415, no echo, nothing logged', async () => {
-    const res = await post({ 'Content-Type': 'application/json; charset=SECRETOTP-cs' }, FRAGMENT);
-    const text = await res.text();
-    expect(res.status).toBe(415);
-    expect(text).toBe('{"error":"Unsupported Media Type"}');
-    expectNoEcho(text);
-    expectNoEcho(loggedText());
-  });
+    it('unsupported Content-Encoding gets 415, no echo, nothing logged', async () => {
+      const res = await post(
+        { 'Content-Type': 'application/json', 'Content-Encoding': 'SECRETOTP-enc' },
+        FRAGMENT,
+      );
+      const text = await res.text();
+      expect(res.status).toBe(415);
+      expect(text).toBe('{"error":"Unsupported Media Type"}');
+      expectNoEcho(text);
+      expectNoEcho(loggedText());
+    });
 
-  it('valid JSON is still parsed (no secret header -> 401 from sendHandler, not 400)', async () => {
-    const res = await post({ 'Content-Type': 'application/json' }, '{"template":"x"}');
-    expect(res.status).toBe(401);
-  });
+    it('unsupported charset gets 415, no echo, nothing logged', async () => {
+      const res = await post(
+        { 'Content-Type': 'application/json; charset=SECRETOTP-cs' },
+        FRAGMENT,
+      );
+      const text = await res.text();
+      expect(res.status).toBe(415);
+      expect(text).toBe('{"error":"Unsupported Media Type"}');
+      expectNoEcho(text);
+      expectNoEcho(loggedText());
+    });
 
-  it('GET /health returns 200', async () => {
-    const res = await fetch(`${base}/health`);
-    const body = await res.json();
-    expect(res.status).toBe(200);
-    expect(body.status).toBe('ok');
-    expect(body.service).toBe('email-worker');
+    it('valid JSON is still parsed (no secret header -> 401 from sendHandler, not 400)', async () => {
+      const res = await post({ 'Content-Type': 'application/json' }, '{"template":"x"}');
+      expect(res.status).toBe(401);
+    });
+
+    it('GET /health returns 200', async () => {
+      const res = await fetch(`${base}/health`);
+      const body = await res.json();
+      expect(res.status).toBe(200);
+      expect(body.status).toBe('ok');
+      expect(body.service).toBe('email-worker');
+    });
   });
 });

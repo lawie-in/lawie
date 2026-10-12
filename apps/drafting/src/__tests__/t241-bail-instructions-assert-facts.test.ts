@@ -291,7 +291,12 @@ const MAG_GIVEN: Given = {
 
 const FLIGHT_BLANK = '[To be confirmed: facts relied on to show no risk of flight]';
 
-async function draft(packId: string, given: Given, body: string) {
+/**
+ * `at` is the paragraph of `body` that carries each clause, by clause id. A clause
+ * not named is reported at paragraph 1. A clause with a signed cue must be named
+ * where its cue is, or the checker raises the repair call (a second model call).
+ */
+async function draft(packId: string, given: Given, body: string, at: Record<string, number> = {}) {
   const pack = loadRulePack(packId) as RulePack;
   const u = (key: string, value: string | string[]): GivenValue => ({ source: 'user', key, value });
   const brief = buildBrief({
@@ -300,7 +305,9 @@ async function draft(packId: string, given: Given, body: string) {
     values: Object.entries(given).map(([k, v]) => u(k, v)),
     court: { state: 'bihar', court_type: 'cjm', court: 'bihar_cjm_patna' },
   });
-  const clauses = pack.mandatoryClauses.map((c) => `${c.id}: 1`).join('\n');
+  const unknown = Object.keys(at).filter((id) => !pack.mandatoryClauses.some((c) => c.id === id));
+  expect(unknown).toEqual([]);
+  const clauses = pack.mandatoryClauses.map((c) => `${c.id}: ${at[c.id] ?? 1}`).join('\n');
   mockMessagesStream
     .mockReset()
     .mockImplementation(async () =>
@@ -323,6 +330,8 @@ async function draft(packId: string, given: Given, body: string) {
     },
     res as unknown as Response,
   );
+  // Exactly one model call: no hidden repair call ran, so the fixtures are clean as drafted.
+  expect(mockMessagesStream).toHaveBeenCalledTimes(1);
   const first = mockMessagesStream.mock.calls[0][0] as SdkStreamParams;
   const user = first.messages[0].content;
   const between = (from: string, to: string) =>
@@ -341,15 +350,18 @@ async function draft(packId: string, given: Given, body: string) {
 }
 
 describe('T-241 AC2 (Ajay condition): anticipatory brief with no ground stated', () => {
+  // Real paragraphs of BODY: apprehension blank 2, undertaking 3, earlier application 4.
+  const ANT_AT = { apprehension: 2, no_flight_risk: 3, earlier_applications: 4 };
   const BODY = [
     '1. That an FIR bearing No. 215/2026 was registered at PS Kotwali against the applicant.',
-    '2. [To be confirmed: the facts on which the applicant apprehends arrest]',
+    // Text around the blank: a paragraph of nothing but a blank is not accepted as the clause (R2b.5), so it would raise a repair call.
+    '2. That the applicant apprehends arrest in this matter: [To be confirmed: the facts on which the applicant apprehends arrest]',
     '3. That the applicant undertakes to join the investigation.',
     '4. That no earlier application for bail: [To be confirmed: whether any earlier application for anticipatory bail or bail was made in this matter, to which court, and with what result]',
   ].join('\n\n');
 
   it('the brief the Drafter reads states none of the grounds the old instruction named', async () => {
-    const d = await draft('bail_anticipatory', ANT_GIVEN, BODY);
+    const d = await draft('bail_anticipatory', ANT_GIVEN, BODY, ANT_AT);
     for (const g of [
       'prima facie',
       'false implication',
@@ -365,7 +377,7 @@ describe('T-241 AC2 (Ajay condition): anticipatory brief with no ground stated',
   // PROMPT-ONLY: whether the model obeys is not decidable by code. What is tested
   // is that the Drafter is given the signed instructions, and the old ones are not.
   it('PROMPT-ONLY: the instructions the Drafter receives carry both signed texts and forbid asserting a ground', async () => {
-    const d = await draft('bail_anticipatory', ANT_GIVEN, BODY);
+    const d = await draft('bail_anticipatory', ANT_GIVEN, BODY, ANT_AT);
     expect(d.instructions).toContain(`- ${SIGNED_ANT_1}`);
     expect(d.instructions).toContain(`- ${SIGNED_ANT_2}`);
     expect(d.instructions).toContain('Do not assert a ground');
@@ -377,8 +389,8 @@ describe('T-241 AC2 (Ajay condition): anticipatory brief with no ground stated',
     expect(d.instructions).not.toContain('State grounds for anticipatory bail: no prima facie');
   });
 
-  it('ENFORCED: a draft that carries the blank for the apprehension and states no ground is kept as drafted (blank survives, nothing added)', async () => {
-    const d = await draft('bail_anticipatory', ANT_GIVEN, BODY);
+  it('MOCK PASS-THROUGH (mock output only, not enforced by code): a draft that carries the blank for the apprehension and states no ground is kept as drafted (blank survives, nothing added)', async () => {
+    const d = await draft('bail_anticipatory', ANT_GIVEN, BODY, ANT_AT);
     expect(d.fullText).toContain(
       '[To be confirmed: the facts on which the applicant apprehends arrest]',
     );
@@ -389,6 +401,14 @@ describe('T-241 AC2 (Ajay condition): anticipatory brief with no ground stated',
 });
 
 describe('T-241 AC2 (Ajay condition): magistrate brief with no residence or antecedents', () => {
+  // Real paragraphs of BODY: custody 2, grounds ("submitted") 3, flight 3, undertaking 6, earlier application 7.
+  const MAG_AT = {
+    custody: 2,
+    grounds: 3,
+    triple_test: 3,
+    undertakings: 6,
+    earlier_applications: 7,
+  };
   const BODY = [
     '1. That FIR No. 143/2026 was registered at PS Kotwali against Deepak Ravidas.',
     '2. That the applicant was arrested on 03.06.2026 and is in judicial custody.',
@@ -400,14 +420,14 @@ describe('T-241 AC2 (Ajay condition): magistrate brief with no residence or ante
   ].join('\n\n');
 
   it('the brief carries no antecedents and no residence beyond the address', async () => {
-    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY);
+    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY, MAG_AT);
     expect(d.briefJson).not.toMatch(/"key": "antecedents"/);
     expect(d.briefJson.toLowerCase()).not.toContain('family');
     expect(d.briefJson.toLowerCase()).not.toContain('resident of');
   });
 
   it('PROMPT-ONLY: the Drafter is given the signed triple-test instruction, the flight blank, and a context with no "clean antecedents"', async () => {
-    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY);
+    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY, MAG_AT);
     expect(d.instructions).toContain(`- ${SIGNED_MAG_4}`);
     expect(d.instructions).toContain(
       '[To be confirmed: facts relied on to show no risk of <flight / tampering with the evidence / influencing witnesses>]',
@@ -423,8 +443,8 @@ describe('T-241 AC2 (Ajay condition): magistrate brief with no residence or ante
     expect(d.user).toContain('Never a statement of fact the brief does not give.');
   });
 
-  it('ENFORCED: the flight blank is kept in the draft, and it is a recognised blank', async () => {
-    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY);
+  it('MOCK PASS-THROUGH (mock output only, not enforced by code): the flight blank is kept in the draft, and nothing states a residence, family or antecedent fact', async () => {
+    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY, MAG_AT);
     expect(d.fullText).toContain(FLIGHT_BLANK);
     // Nothing in the draft states a residence, family or antecedent fact the brief lacks.
     for (const f of [
@@ -438,7 +458,7 @@ describe('T-241 AC2 (Ajay condition): magistrate brief with no residence or ante
   });
 
   it('ENFORCED (partial): a draft that invents a dated fact the brief lacks is flagged by checkAgainstBrief; an undated fact is not', async () => {
-    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY);
+    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY, MAG_AT);
     const invented = checkAgainstBrief(
       'That the applicant was acquitted in a case on 12.03.2019.',
       d.brief,
@@ -466,20 +486,29 @@ describe('T-241 AC2 (Ajay condition): magistrate brief with no residence or ante
 });
 
 describe('T-241 AC2 (Ajay condition): magistrate brief silent on the charge sheet', () => {
+  // Real paragraphs of BODY: custody 2, grounds ("submitted") 3, flight 3, undertaking 4, earlier application 5.
+  const MAG_AT = {
+    custody: 2,
+    grounds: 3,
+    triple_test: 3,
+    undertakings: 4,
+    earlier_applications: 5,
+  };
   const BODY = [
     '1. That FIR No. 143/2026 was registered at PS Kotwali against Deepak Ravidas.',
     '2. That the applicant was arrested on 03.06.2026 and is in judicial custody; the investigation is under way.',
     '3. It is submitted that there is no risk of flight: [To be confirmed: facts relied on to show no risk of flight].',
-    '4. [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result]',
+    '4. That the applicant undertakes to attend court on every date.',
+    '5. [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result]',
   ].join('\n\n');
 
   it('the brief does not mention a charge sheet', async () => {
-    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY);
+    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY, MAG_AT);
     expect(d.briefJson.toLowerCase()).not.toMatch(/charge[ -]?sheet|police report|challan/);
   });
 
   it('PROMPT-ONLY: the Drafter is given the signed charge-sheet instruction, conditional on the BRIEF', async () => {
-    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY);
+    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY, MAG_AT);
     expect(d.instructions).toContain(`- ${SIGNED_MAG_6}`);
     expect(d.instructions).toContain(
       'Only if the BRIEF states that the charge sheet has been filed',
@@ -491,7 +520,7 @@ describe('T-241 AC2 (Ajay condition): magistrate brief silent on the charge shee
   });
 
   it('ENFORCED on the mock output only: a draft that does not say it passes through without "charge sheet filed"', async () => {
-    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY);
+    const d = await draft('bail_before_magistrate', MAG_GIVEN, BODY, MAG_AT);
     expect(d.fullText.toLowerCase()).not.toMatch(
       /charge[ -]?sheet (has been|was|is) (filed|submitted)|investigation (is|has been) complete/,
     );

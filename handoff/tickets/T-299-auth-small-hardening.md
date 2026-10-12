@@ -51,3 +51,8 @@ The auth JSON-error handler (from T-307) is now part of T-315, shared with the o
 - Referral grant after the $inc: close the known limitation (grant and counter can diverge on failure).
 - Re-check the code's `expiresAt` at slot time, not only at first check.
 - Remove the timing difference that tells a password-less (Google-only) account apart at login.
+
+## Arjun (12 Oct 2026): Kunal's two questions on item 6 and the grant
+
+1. **Revoke sessions on Google link: yes.** In the link branch of `passport.ts`, in this order: unset `password`, clear `passwordResetToken` and `passwordResetExpires`, call `deleteAllUserSessions(userId)` from `session.service.ts` (no edit to that file), then create the new Google session. The new session must be created after the revoke, never before. Test: a session made before the link fails `validateSession` after it; the Google session made by the link passes.
+2. **Grant idempotency by marker: yes.** `referralInkGrantedAt` is set in the same atomic update as the `$inc`, with the filter `referralInkGrantedAt: { $exists: false }`; `matchedCount === 0` means already granted, do nothing. The ledger row is written after, best effort, and its failure is logged (no PII), never retried into a second `$inc`. Test: two concurrent grants give one `$inc`.

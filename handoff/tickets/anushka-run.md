@@ -438,3 +438,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Unknown values show "Depends…", never "Non-Bailable" or a guessed court.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-318 — footers on server PDFs, annexures and the welcome email (f5e7edb)
+
+- Export a draft as PDF from the server; the footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+- Open the annexures (Vakalatnama, Memo of Parties and the others); the footer reads "Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice."
+- The welcome email says "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

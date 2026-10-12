@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (build). Arjun glance |
 | Mode   | Small fix |
-| Status | Building: tanvi (12 Oct 2026) |
+| Status | Merged into develop_staging (d34a5d7, 12 Oct 2026). Nothing to test in the UI |
 
 ## Acceptance criteria
 
