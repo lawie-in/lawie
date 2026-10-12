@@ -92,6 +92,8 @@ const oauthEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 // T-319: requires ?challenge= (base64url(sha256(verifier)), 43 chars) from the web app. Accepts an
 // optional ?referralCode=. Both go into an HMAC-signed OAuth state that survives the Google
 // round-trip and is verified at the callback.
+// T-242: also accepts optional ?utmSource=, ?utmMedium=, ?utmCampaign= (sign-up source). They are
+// sanitized (Ajay's caps and drops) inside createOAuthState and are never logged.
 router.get(
   '/google',
   (req: Request, res: Response, next) => {
@@ -119,7 +121,11 @@ router.get(
     return passport.authenticate('google', {
       scope: ['email', 'profile'],
       session: false,
-      state: createOAuthState(challenge, referralCode),
+      state: createOAuthState(challenge, referralCode, {
+        utmSource: req.query['utmSource'],
+        utmMedium: req.query['utmMedium'],
+        utmCampaign: req.query['utmCampaign'],
+      }),
     })(req, res, next);
   },
 );

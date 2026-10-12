@@ -9,9 +9,30 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 // CURRENT_TERMS_VERSION when /terms changes, each with Ajay's sign-off.
 // T-299: terms '2026-10-12' matches /terms "Last updated: 12 October 2026" (T-268, f6566b4).
 // T-308 changed /privacy text but not its "Last updated" (already 12 October 2026).
+// T-242 (Ajay, 12 Oct 2026): privacy '2026-10-12b' because §1 and §6 changed again on that date.
+// Versions are opaque strings: compare them for equality only, never parse them as dates.
 export const CURRENT_TERMS_VERSION = '2026-10-12';
-export const CURRENT_PRIVACY_VERSION = '2026-10-12';
+export const CURRENT_PRIVACY_VERSION = '2026-10-12b';
 export type TermsAcceptedVia = 'password' | 'google';
+
+/** T-242 — campaign tags from the landing link, already capped and filtered (sanitizeUtm). */
+export interface ISignupSource {
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  /** Server time the account was created with these tags. */
+  recordedAt: Date;
+}
+
+const SignupSourceSchema = new Schema<ISignupSource>(
+  {
+    utmSource: { type: String, maxlength: 100 },
+    utmMedium: { type: String, maxlength: 100 },
+    utmCampaign: { type: String, maxlength: 100 },
+    recordedAt: { type: Date, required: true },
+  },
+  { _id: false },
+);
 
 export interface IUser extends Document {
   email: string;
@@ -56,6 +77,10 @@ export interface IUser extends Document {
   termsVersion?: string;
   privacyVersion?: string;
   acceptedVia?: TermsAcceptedVia;
+
+  // T-242 — where the sign-up came from (Ajay, T-242 signed). Set once, only when an account is
+  // created and the landing link carried at least one tag. Deleted with the account.
+  signupSource?: ISignupSource;
 
   passwordResetToken?: string;
   passwordResetExpires?: Date;
@@ -185,6 +210,9 @@ const UserSchema = new Schema<IUser>(
     termsVersion: { type: String, trim: true },
     privacyVersion: { type: String, trim: true },
     acceptedVia: { type: String, enum: ['password', 'google'] },
+
+    // T-242 — no default: absent means no tags were present at sign-up.
+    signupSource: { type: SignupSourceSchema },
 
     passwordResetToken: {
       type: String,

@@ -13,7 +13,8 @@ type TransactionEvent = Parameters<NonNullable<Sentry.NodeOptions['beforeSendTra
 /**
  * PII scrub for every Sentry error event (T-210, DPDP Act 2023):
  *  - masks email-shaped text in exception values, the event message and breadcrumb messages
- *  - deletes request.data (register/login bodies) and request.cookies, masks emails in the URL
+ *  - deletes request.data (register/login bodies), request.cookies and request.query_string;
+ *    cuts the URL at '?' and masks emails in what is left (T-242)
  *  - keeps only allowlisted request headers (drops authorization: the JWT holds email + name)
  *  - runs extra/contexts through `scrubPii` (drops `keyValue`, masks emails)
  * Uses the same `maskEmails`/`scrubPii` helpers as the Pino logger.
@@ -28,9 +29,11 @@ export function scrubEvent<T extends Sentry.Event>(event: T): T {
   if (event.request) {
     delete event.request.data;
     delete event.request.cookies;
-    if (typeof event.request.url === 'string') event.request.url = maskEmails(event.request.url);
-    if (typeof event.request.query_string === 'string') {
-      event.request.query_string = maskEmails(event.request.query_string);
+    // T-242 (Ajay condition 3): no query string reaches Sentry, so campaign tags (and any other
+    // query value) never do. The URL keeps its path only; emails in the path are still masked.
+    delete event.request.query_string;
+    if (typeof event.request.url === 'string') {
+      event.request.url = maskEmails(event.request.url.split('?')[0] ?? '');
     }
     if (event.request.headers) {
       const kept: Record<string, string> = {};

@@ -3,9 +3,10 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 import { User, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
 import { grantSignupBonus } from '../services/credit-bonus.service';
-import { getVerifiedOAuthState } from '../services/oauth-state';
+import { getVerifiedOAuthState, utmFromOAuthState } from '../services/oauth-state';
 import { applyReferralCode } from '../services/referral.service';
 import { deleteAllUserSessions } from '../services/session.service';
+import { buildSignupSource } from '../validators/auth.validator';
 
 import { env } from './env';
 import logger from './logger';
@@ -121,6 +122,9 @@ export function initPassport(): void {
                 plan: 'free',
                 docCount: 0,
                 ...googleTermsAcceptance(),
+                // T-242 — sign-up source from the verified state, on this new-account branch only
+                // (never on link or returning sign-in). Never logged.
+                signupSource: buildSignupSource(utmFromOAuthState(getVerifiedOAuthState(req))),
               });
               logger.info({ userId: user.id }, 'New user created via Google OAuth');
               isNewUser = true;

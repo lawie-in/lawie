@@ -18,14 +18,18 @@ export const metadata: Metadata = {
 // T-310: §6 body is Ajay's "§6 text once T-310 ships" (handoff/legal/T-310-consent-notice-signed.md,
 // SHA-256 of the block plus a final newline: ecd2b0be2d751d0e194c7fe5f81cb8edc3342aa2a5f28eb39d04d5976f66a4be);
 // the §5 Google row is Addendum 1 of the T-308 file (fonts self-hosted).
+// T-242: §6 body is Ajay's "§6 v3" and the §1 "How you found us" bullet is his new §1 bullet
+// (handoff/legal/T-242-signup-source-signed.md, SHA-256 of the §6 block plus a final newline:
+// a98bbde316ff1fd6e234beef685124be3cf70a48ca0bc2a8576df14909dc81e8). It replaces the T-310 block.
 
 // T-310: set to the T-310 merge date at merge. Keep in step with CURRENT_PRIVACY_VERSION in
-// apps/auth/src/models/User.model.ts (the same date as YYYY-MM-DD).
+// apps/auth/src/models/User.model.ts (the same date as YYYY-MM-DD, plus a letter suffix when the
+// policy changes more than once on one date, e.g. '2026-10-12b' for T-242).
 const PRIVACY_LAST_UPDATED = '12 October 2026';
 
 // Byte for byte; one string so the hash can be checked.
 const SECTION_6_BODY =
-  "To keep you signed in, we store a sign-in token in your browser's local storage; it carries your name and email. We also store your referral code and small display settings in your browser. Signing out removes the sign-in token. On our public pages, the ones you can open without signing in, Google Analytics loads only if you accept it in the cookie notice; it then sets cookies whose names start with _ga so we can count visits. It does not run on the sign-in pages or anywhere inside your account. We keep a record of your choice (a random number, the choice, the version of the notice and the time, but not your name, email or IP address) for 12 months, and ask again after 12 months or when the notice changes. You can change your choice at any time with Cookie settings at the bottom of every public page. Lawie sets no other cookies. Clearing your browser's site data removes what is stored in your browser.";
+  "To keep you signed in, we store a sign-in token in your browser's local storage; it carries your name and email. We also store your referral code, the campaign tags of the link that brought you to Lawie (until you close the tab), and small display settings in your browser. Signing out removes the sign-in token. On our public pages, the ones you can open without signing in, Google Analytics loads only if you accept it in the cookie notice; it then sets cookies whose names start with _ga so we can count visits. It does not run on the sign-in pages or anywhere inside your account. We keep a record of your choice (a random number, the choice, the version of the notice and the time, but not your name, email or IP address) for 12 months, and ask again after 12 months or when the notice changes. You can change your choice at any time with Cookie settings at the bottom of every public page. Lawie sets no other cookies. Clearing your browser's site data removes what is stored in your browser.";
 
 const sections = [
   { id: 'collect', title: '1. Information We Collect' },
@@ -171,6 +175,11 @@ export default function PrivacyPage() {
                     number, state, practice areas and years of practice.
                   </li>
                   <li>Plan, Ink balance, payments and referrals.</li>
+                  <li>
+                    How you found us: if the link that brought you to Lawie carried campaign tags,
+                    the source, medium and campaign named in it, saved with your account when you
+                    sign up.
+                  </li>
                   <li>
                     Case details you enter to create a draft: your answers to the form, your
                     description of the matter, the brief, the list of facts Lawie builds from it,

@@ -3,6 +3,7 @@ import { Inter, Lora } from 'next/font/google';
 
 import AnalyticsConsent from '@/components/AnalyticsConsent';
 import { AuthProvider } from '@/context/AuthContext';
+import { SignupSourceCapture } from '@/lib/signup-source';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -32,6 +33,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} ${lora.variable}`}>
+        {/* T-242: keeps utm_source/medium/campaign of the landing link in sessionStorage until
+            sign-up. Renders nothing; first party only (Ajay, T-242 signed). */}
+        <SignupSourceCapture />
         {/* T-310: the consent notice, first in the body content (design: focus order). GA loads
             only after Accept, only on T-306's public allowlist, page views without query or hash. */}
         <AnalyticsConsent />

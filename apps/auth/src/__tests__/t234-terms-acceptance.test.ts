@@ -27,10 +27,10 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(CURRENT_TERMS_VERSION).toBe('2026-10-12');
   });
 
-  it('CURRENT_PRIVACY_VERSION is 2026-10-12 (Ajay, Addendum 3); each constant equals its own current date', () => {
+  it('CURRENT_PRIVACY_VERSION is 2026-10-12b (Ajay, Addendum 3); each constant equals its own current date', () => {
     // T-299: the Terms version moved to 2026-10-12, so the two dates now coincide. They are still
     // separate constants, each asserted against its own date.
-    expect(CURRENT_PRIVACY_VERSION).toBe('2026-10-12');
+    expect(CURRENT_PRIVACY_VERSION).toBe('2026-10-12b');
     expect(CURRENT_TERMS_VERSION).toBe('2026-10-12');
   });
 
@@ -43,7 +43,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(u!.termsAcceptedAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
     expect(u!.termsAcceptedAt!.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
     expect(u!.termsVersion).toBe('2026-10-12');
-    expect(u!.privacyVersion).toBe('2026-10-12');
+    expect(u!.privacyVersion).toBe('2026-10-12b');
     expect(u!.acceptedVia).toBe('password');
     await waitForSeed(u!._id);
   });
@@ -59,7 +59,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     const u = await User.findOne({ email: 'spoof@example.com' }).lean();
     expect(u!.termsAcceptedAt!.getFullYear()).toBeGreaterThanOrEqual(2026);
     expect(u!.termsVersion).toBe('2026-10-12');
-    expect(u!.privacyVersion).toBe('2026-10-12');
+    expect(u!.privacyVersion).toBe('2026-10-12b');
     expect(u!.acceptedVia).toBe('password');
     await waitForSeed(u!._id);
   });
@@ -76,7 +76,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     const after = await User.findOne({ email: 'dupterms@example.com' }).lean();
     expect(after!.termsAcceptedAt).toEqual(first!.termsAcceptedAt);
     expect(after!.termsVersion).toBe('2026-10-12');
-    expect(after!.privacyVersion).toBe('2026-10-12');
+    expect(after!.privacyVersion).toBe('2026-10-12b');
     expect(after!.acceptedVia).toBe('password');
     await waitForSeed(first!._id);
   });
