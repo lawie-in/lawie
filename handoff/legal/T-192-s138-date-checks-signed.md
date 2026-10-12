@@ -78,3 +78,12 @@ The complaint's own limitation (s.142) and the 15-day payment period after the n
 - `_averments/legal_notice_s138.json` SHA-256: `80905077cc412fac8e6041bf40dd97910be57aec959a2c37642cbafdd676fb9d`. Any change to that file voids this sign-off.
 - `return_memo_received_on` now unlocks from L4. Approved.
 - The date format is deferred to T-340.
+
+## T-342 sign-off (12 Oct 2026 IST): reading L2, L4 and L5 from the description
+
+Build `59eff64` (`fix/t-342-s138-date-meanings`) is approved: kinds `memo_received`, `notice_sent` and `cheque_validity`, scoped to s138 packs only.
+- Questions use the L4 and L5 labels.
+- `not_with`: dated, दिनांक, dinank, dt.
+- "received the memo" counts as L4. Approved, because in an s138 pack the memo is the return memo.
+- A bare "validity" with a cheque word counts as L2. Approved and fail-safe: L2 can only shorten the 3-month window (the computation caps it), so a misread can never pass a late presentation.
+- `date-meanings.json` `_meta.signed` may cite this section.

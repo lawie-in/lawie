@@ -933,19 +933,30 @@ describe('T-240 admin analytics: catalogueCategoryName', () => {
       creditsCost: 2,
       isActive: true,
     });
-    const doc = (templateId: string) => ({
-      userId: new Types.ObjectId(),
-      templateId, // a string slug; the schema's ObjectId cast is bypassed on purpose
-      title: 't',
-      docType: 'bail_application',
-      courtType: 'district_court',
-      courtName: 'c',
-      generatedContent: 'x',
-      status: 'draft',
-      isDeleted: false,
-      createdAt: new Date(),
-    });
-    await LawieDocument.collection.insertMany([doc('bail_regular'), doc('old_row')] as never[]);
+    // T-331: real shape. The document's own templateId stays null; the slug is
+    // on the completed Generation that produced it.
+    const { Generation } = await import('../models/Generation.model');
+    const userId = new Types.ObjectId();
+    for (const slug of ['bail_regular', 'old_row']) {
+      const created = await LawieDocument.create({
+        userId,
+        title: 't',
+        docType: 'bail_application',
+        courtType: 'district_court',
+        courtName: 'c',
+        generatedContent: 'x',
+        status: 'draft',
+      });
+      await Generation.create({
+        userId,
+        docType: 'bail_application',
+        tokensUsed: 10,
+        costUsd: 0.1,
+        status: 'completed',
+        templateId: slug,
+        documentId: created._id,
+      });
+    }
 
     const res = await request(app).get('/admin/documents/analytics').set(headers('Admin'));
     expect(res.status).toBe(200);

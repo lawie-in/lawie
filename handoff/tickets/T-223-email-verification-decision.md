@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Arjun and Vikram (recommend), Founder (decides), then Lead (build) |
 | Mode           | Decision first |
-| Status         | RELEASE GATE (founder, 12 Oct 2026). Free-credit hole closed first by T-351. This ticket adds the verify link and resend, after T-220. AC to write with Arjun |
+| Status         | Explore: mahak (12 Oct 2026). RELEASE GATE. AC below (Priya, 12 Oct 2026, from Arjun's shape). UI and email parts wait on Rajesh's spec and Madhuri's copy (asked 12 Oct) |
 | Size           | Decision XS. Build M if yes |
 | Depends on     | T-220 |
 | Gate           | Before v1 go-live, because free drafts can be farmed with throwaway emails |
@@ -103,3 +103,27 @@ Founder flagged fake email sign-ups farming the 5 free Ink. T-351 (now) gives em
 
 - When this ticket sets `emailVerified` true, it must call `grantSignupBonus` once (T-351 holds the bonus back until then). From Shashank, 12 Oct 2026.
 - An existing unverified email user who links Google becomes eligible via googleId (T-351) but passport grants the sign-up bonus only to new Google users. Decide here whether linking Google also calls grantSignupBonus once. From Shashank, 12 Oct 2026.
+
+## Acceptance criteria (Priya, 12 Oct 2026, on the founder's delegation; Arjun's shape for option B, adjusted for T-351)
+
+T-351 already gives an unverified email user no free Ink. Arjun's "first draft stays instant" therefore has nothing to spend until the address is verified. That is accepted. This ticket adds the way to verify.
+
+1. **Verify link.** Email and password sign-up queues an `auth.verifyEmail` job through `packages/email-client` (T-220). The job carries the userId, never the address. The worker looks up the address. The link is signed, single-use and expires after 24 hours. Only a hash of the token is stored.
+2. **Verify route.** Opening a valid link sets `emailVerified = true` and calls `grantSignupBonus` once. The existing `signupBonusGrantedAt` guard makes a repeat call a no-op. An expired, used or forged link changes nothing and shows "this link has expired" with a resend button. An already-verified user clicking again sees "already verified".
+3. **Resend.** A signed-in unverified user can request a new link. Each new link replaces the old one. Rate limit: 1 per minute and 5 per day per account. When over the limit, say when they can try again.
+4. **Prompt.** A signed-in unverified email user sees a "verify your email" prompt, with the address shown masked and a resend button: (a) on sign-in, (b) when a draft is refused for lack of Ink, and (c) at checkout. Wording comes from Madhuri; layout from Rajesh's spec.
+5. **Checkout.** Razorpay order creation refuses an unverified email user, with a clear error code the web app turns into the prompt in 4. Google users and verified users are unaffected.
+6. **Google link (Shashank's question, decided).** When an existing email user links Google, linking also calls `grantSignupBonus` once. They count as verified through `googleId` (T-351), and the guard keeps it at one grant.
+7. **Dry run.** Until the founder's SES session is done, the worker in dry-run mode logs that a verify email was sent, with the userId only and no address or token. Tests pass without SES.
+8. **No PII.** Logs, Sentry and the relay never carry the address, the token or the link.
+
+Out of scope: tightening sign-up rate limits at the gateway (Arjun's item 4, separate ticket), password reset, and the welcome email.
+
+## Arjun (12 Oct 2026): architecture, Mahak's (1)-(4) approved with four conditions
+
+1. **Typed, not loosened:** `EnqueueEmailInput` becomes a union; the `auth.verifyEmail` member is `{ template, userId }` with no `to`, every other template keeps `to` required. Do not make `to` optional for all.
+2. **Mint route** `POST /internal/verify-email/mint { userId }`, guarded by `INTERNAL_SECRET` (constant-time compare). It returns **409 and mints nothing** when the user is already verified or is a Google account; the worker then drops the job without sending. Newest link wins on a BullMQ retry, as proposed. The response (email, name, link) is never logged by either side.
+3. **The gateway must not reach `/internal/*`.** Auth mounts its routes at `/`, and the gateway proxies `/api/auth/*` to it, so `/api/auth/internal/verify-email/mint` reaches auth today, protected only by the secret. Add a gateway rule before every proxy: any path containing `/internal/` → 404. Test it. This also covers T-115c's `/internal/erase-user`. `apps/gateway/src/app.ts` needs to be on your claim.
+4. **Resend cap** (promised to AWS in the SES production-access case): enqueue at most 1 verify mail per user per 60 s and 5 per 24 h, counted in Redis at the enqueue site. Over the limit → 429 with a fixed message, nothing sent.
+- (3) `AUTH_SERVICE_URL` in the worker's fail-fast list: yes. Founder: add it to the server `.env.production` with the other email env (I'll add it to the email doc's step 7).
+- (4) Billing reading `emailVerified` / `authProvider` / `googleId` from the shared `users` collection: yes for v1. Read those fields only, never write; it is the same coupling billing already has.
