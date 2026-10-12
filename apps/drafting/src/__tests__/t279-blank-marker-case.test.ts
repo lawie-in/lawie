@@ -9,7 +9,7 @@
  *  2. countMissingPlaceholders counts {{MISSING: ..}} in any case, and only that.
  *  3. brief-drafter BLANK_LINE: a whole line "[to be confirmed: x]" in any case is
  *     not a C4 "part that may not belong". There is no note stripper, so "survives"
- *     means: no C4 warning, and the line is still in the draft.
+ *     means: no C4 warning (checkOneDocument never changes the body).
  *
  * Pure functions only: no model call, no database.
  */
@@ -236,9 +236,10 @@ describe('T-279 place 3: a whole-line blank is not a C4 "part that may not belon
     '[to be confirmed: x]',
     '[To Be Confirmed: x]',
     '[TO BE CONFIRMED: x]',
-  ])('"%s" raises no C4, and the line is still in the draft', (line) => {
+  ])('"%s" raises no C4', (line) => {
+    // checkOneDocument only returns warnings and never changes the body (there is no
+    // stripper), so "kept" means "no C4 warning".
     expect(warnings(line)).toEqual([]);
-    expect(bodyWith(line)).toContain(`\n\n${line}\n\n`);
   });
 
   it.each(['[Section — verify before filing]', '[Authority — add if relied upon]'])(
