@@ -505,3 +505,10 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The Privacy Policy says Google Analytics runs on public pages only and sets _ga cookies.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-324 — matching IPC alias on a BNS entry (cf26a25)
+
+- Enter a BNS section with its old IPC number in brackets, e.g. "BNS 303 (IPC 379)": no old-law warning when the IPC number truly corresponds to that BNS section.
+- The warning still shows when the bracketed IPC number doesn't match, or when an IPC section is entered on its own.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

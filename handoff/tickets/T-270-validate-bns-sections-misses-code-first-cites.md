@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (rule, signs). Lead (build). Anushka (verdict) |
 | Mode           | Rule first, then build. Legal content (`ai.service.ts`) |
-| Status         | To do. Unassigned. After T-200 (same file). Found by shashank, 12 Oct 2026 |
+| Status         | Building: shashank (12 Oct 2026). Rule first from Ajay |
 
 ## Problem
 
