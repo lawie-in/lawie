@@ -37,3 +37,28 @@ Decision (Priya, 12 Oct 2026, founder has delegated these calls): Google Analyti
 ## Ajay (12 Oct 2026): server-side consent record
 
 Keep a minimal record (DPDP puts the burden of proof on us): a random id (also in localStorage), Accept or Decline, the consent text version, and the time. No IP, no user agent, no account link. Re-ask after 12 months or when the text changes; delete records older than 12 months. Arjun adds the endpoint and TTL to the mechanism.
+
+## Arjun (12 Oct 2026): the server-side consent record (Ajay's ruling)
+
+Ajay's rule: a minimal record of each choice, so Lawie can show consent was given or refused: a random id (also kept in the visitor's `localStorage`), Accept or Decline, the text version, the time; **no IP, no user agent, no link to an account**; 12-month TTL; the visitor is asked again after 12 months.
+
+**Where it lives:** the auth service, as a small public route under the existing `/api/auth` proxy (already behind `publicRateLimiter`, so **no gateway change**). It is not tied to a user, a session or a token; it sits in auth only because auth already has the public-route and rate-limit plumbing.
+
+**Endpoint:** `POST /api/auth/consent` (auth route `POST /consent`, new file `apps/auth/src/routes/consent.routes.ts`, one mount line in `apps/auth/src/app.ts`).
+- Body, exactly this and nothing else: `{ "id": "<uuid v4>", "choice": "granted" | "denied", "version": <integer 1..1000> }`. Anything else (extra keys, wrong types, a malformed id): `400 { "error": "invalid_input" }`, no echo. Body limit 1 KB.
+- Response `204` with no body. Idempotent: the same `id` and choice again changes nothing but the time.
+- Never reads or stores `req.ip`, headers, user agent, cookies or the `Authorization` header; the handler does not log the body, the id or the request headers (Pino `redact` for the route, and a test).
+
+**Collection** `consentrecords` (new model `apps/auth/src/models/Consent.model.ts`): `consentId` (the uuid, unique index), `purpose: 'analytics'` (constant), `choice`, `textVersion` (the `version` sent), `decidedAt`, `previous` (array of the last 5 `{choice, textVersion, decidedAt}`, so a change from Accept to Decline keeps its history), and `expiresAt = decidedAt + 12 months` with a **TTL index (`expireAfterSeconds: 0` on `expiresAt`)**. A new decision for the same id upserts: the old values go into `previous`, `decidedAt` and `expiresAt` move forward. No other fields. Not exposed through any admin route in this ticket.
+
+**Web side (changes to the mechanism above):**
+- The `localStorage` value becomes `{ "v": <version>, "id": "<uuid>", "choice": …, "at": <ISO>, "synced": true|false }`. The uuid comes from `crypto.randomUUID()` the first time the visitor decides and stays the same for later changes.
+- **Re-ask rule:** a stored choice older than 12 months (`at`) counts as no answer, in addition to the version rule.
+- On every Accept or Decline the component POSTs the record with `fetch(..., { keepalive: true })`. **The choice takes effect locally at once and never waits for or depends on the call.** A failed call leaves `synced: false`, and the component retries once on the next public page load. A failure is never shown to the visitor.
+- Decline is recorded too (Ajay: both choices).
+
+**Tests:** valid body gives 204 and one row with `expiresAt` 12 months after `decidedAt` (fake clock); the same id with the other choice updates the row and puts the old one in `previous`; invalid bodies (bad uuid, extra key, `version: 0`, `choice: 'maybe'`) give 400; the stored document has no field containing an IP, user agent or user id (assert the exact keys); the TTL index exists with `expireAfterSeconds: 0` (assert the index, do not wait for the monitor); the log capture for a request holds no id and no body. Web: a failed POST leaves the choice in force and `synced: false`; the retry runs once on the next load; a choice 13 months old shows the notice again.
+
+**Note for Ajay (not a blocker):** the platform keeps ordinary access logs (nginx, hosting) with IP addresses regardless; the record above is the only place Lawie links a decision to an id. The privacy page should not claim that no IP address is processed when the page is served.
+
+**Files:** `apps/auth/src/routes/consent.routes.ts`, `apps/auth/src/models/Consent.model.ts`, `apps/auth/src/app.ts` (one line), tests; the web component and its tests. Same lead as T-306/T-299 (auth `app.ts`, web root layout). Size M.
