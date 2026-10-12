@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (whether to reorder). Lead (auth, web) |
 | Mode   | Small fix |
-| Status | To do. After T-343. From Kunal's T-343 report, 12 Oct 2026 |
+| Status | Building: kunal (12 Oct 2026) |
 
 If the database update fails after the privacy accept has taken the session, the user sees the P8 error and the next try signs them out. They are not locked out and no session leaks, but it is untested and undocumented.
 
