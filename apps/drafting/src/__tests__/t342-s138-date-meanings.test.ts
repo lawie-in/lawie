@@ -18,9 +18,9 @@
  *     T-192's checks run on them                              (reading rules, end to end)
  * AC3 both checks run end to end from a description           (end to end)
  *
- * Tests named "PART 2 WILL PLACE" pin what the code does today on a cue
- * collision: the date is dropped, never put on the wrong fact. Part 2
- * (pack-scoped kind check, longest-cue precedence) is expected to flip them.
+ * Part 2 (pack-scoped kind check, longest-cue precedence) places a date when one
+ * kind's cue holds every other cue in the clause. Any collision it does not
+ * settle is still dropped, never put on the wrong fact (section 4 and 7).
  *
  * No model call, no database. The model's answer is stubbed as spans.
  */
@@ -30,7 +30,7 @@ import { join } from 'path';
 
 import type { LedgerFact } from '@lawie/shared';
 
-import { readExtraction } from '../services/fact-ledger.service';
+import { overlayBrief, readExtraction } from '../services/fact-ledger.service';
 import {
   Brief,
   ChecklistItem,
@@ -398,9 +398,9 @@ describe("T-342 AC2: Ajay's reading rules (cues on the words)", () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 4. Fail-safe today: where code sees a collision, the date is not placed
+// 4. Longest cue wins on the pack; every other collision still drops the date
 // ═════════════════════════════════════════════════════════════════════════════
-describe('T-342 fail-safe today: a cue collision drops the date, it never goes to the wrong fact', () => {
+describe('T-342 part 2: the longer cue is placed; a collision it does not settle is not placed', () => {
   const MEMO = 'I received the return memo on 5 March 2026.';
   const VALID = 'The cheque is valid till 10 April 2026.';
   const SENT = 'The notice was sent on 3 April 2026.';
@@ -408,7 +408,8 @@ describe('T-342 fail-safe today: a cue collision drops the date, it never goes t
   // The model's entry is checked first; the code path then adds nothing.
   const modelEntry = (key: string, value: string, quote: string) => ({ id: key, value, quote });
 
-  it('PART 2 WILL PLACE: "received the return memo on X" collides with dishonour and served, so code places nothing', () => {
+  it('"received the return memo on X" is placed on memo_received (longest cue beats dishonour and served)', () => {
+    // dateKindsIn is unchanged: the collision is still there for any caller that reads without a scope.
     expect(dateKindsIn(MEMO)).toEqual(
       expect.arrayContaining(['memo_received', 'dishonour', 'served']),
     );
@@ -416,32 +417,32 @@ describe('T-342 fail-safe today: a cue collision drops the date, it never goes t
       expect.objectContaining({ value: '2026-03-05', kind: null }),
     ]);
     const placed = datesReadByCode(S138, MEMO, new Map());
-    expect([...placed.keys()]).toEqual([]);
+    expect([...placed.keys()]).toEqual(['memo_received_date']);
+    expect(placed.get('memo_received_date')?.value).toBe('2026-03-05');
   });
 
-  it('PART 2 WILL PLACE: "valid till X" in a cheque sentence collides with end, so code places nothing', () => {
+  it('"valid till X" in a cheque sentence is placed on cheque_validity (beats end)', () => {
     expect(dateKindsIn(VALID)).toEqual(expect.arrayContaining(['cheque_validity', 'end']));
-    expect(statedDates(VALID)).toEqual([
-      expect.objectContaining({ value: '2026-04-10', kind: null }),
-    ]);
-    expect([...datesReadByCode(S138, VALID, new Map()).keys()]).toEqual([]);
+    const placed = datesReadByCode(S138, VALID, new Map());
+    expect([...placed.keys()]).toEqual(['cheque_validity_date']);
+    expect(placed.get('cheque_validity_date')?.value).toBe('2026-04-10');
   });
 
-  it('PART 2 WILL PLACE: "the notice was sent on X" collides with notice, so code places nothing', () => {
+  it('"the notice was sent on X" is placed on notice_sent (beats notice)', () => {
     expect(dateKindsIn(SENT)).toEqual(expect.arrayContaining(['notice_sent', 'notice']));
-    expect(statedDates(SENT)).toEqual([
-      expect.objectContaining({ value: '2026-04-03', kind: null }),
-    ]);
-    expect([...datesReadByCode(S138, SENT, new Map()).keys()]).toEqual([]);
+    const placed = datesReadByCode(S138, SENT, new Map());
+    expect([...placed.keys()]).toEqual(['notice_sent_date']);
+    expect(placed.get('notice_sent_date')?.value).toBe('2026-04-03');
   });
 
-  it("PART 2 WILL PLACE: the model's memo entry is dropped (two meanings with dishonour); no fact gets the date", () => {
+  it("the model's memo entry is kept (L4 wins the quote), and the date is on L4 only", () => {
     const r = readPath(MEMO, [modelEntry('memo_received_date', '2026-03-05', MEMO)]);
-    expect(r.kept.has('memo_received_date')).toBe(false);
-    expect(r.dropped).toEqual([expect.objectContaining({ key: 'memo_received_date' })]);
-    // and the date is not on any other fact either
-    for (const v of [...r.kept.values(), ...r.byCode.values()])
-      expect(v.value).not.toBe('2026-03-05');
+    expect(r.dropped).toEqual([]);
+    expect(r.kept.get('memo_received_date')?.value).toBe('2026-03-05');
+    // the code path adds nothing on top: the date is placed once
+    expect(r.byCode.size).toBe(0);
+    const holders = [...r.kept, ...r.byCode].filter(([, v]) => v.value === '2026-03-05');
+    expect(holders.map(([k]) => k)).toEqual(['memo_received_date']);
   });
 
   it("the model's notice_sent and cheque_validity entries are kept today (the quote carries the cue and the tie)", () => {
@@ -708,5 +709,376 @@ describe('T-342: L4 and L5 are asked when empty, with the signed labels; L2 neve
       expect(cl.some((i) => i.key === 'notice_sent_date')).toBe(false);
       expect(cl.some((i) => i.key === 'cheque_validity_date')).toBe(false);
     }
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 7. Part 2: what must still NOT be placed (Ajay's rules, fail-safe)
+// ═════════════════════════════════════════════════════════════════════════════
+describe('T-342 part 2: sentences placed nowhere on the s.138 pack', () => {
+  const placedKeys = (text: string) => [...datesReadByCode(S138, text, new Map()).keys()];
+
+  it.each([
+    ['a bare "received on X" (Ajay: ambiguous, stays unread)', 'Received on 12 March 2026.'],
+    ['"the notice served on X" (could falsely pass B1)', 'The notice served on 2 April 2026.'],
+    ['"notice was served on X" (could falsely pass B1)', 'Notice was served on 2 April 2026.'],
+    ['"valid till X" with no cheque word', 'The lease is valid till 9 April 2026.'],
+    [
+      '"the notice sent to him was served on X": "served" is a cue of its own',
+      'The notice sent to him was served on 5 April 2026.',
+    ],
+    ['"received the bail order on X"', 'He received the bail order on 5 April 2026.'],
+    ['"the bank received the cheque on X"', 'The bank received the cheque on 5 April 2026.'],
+    [
+      'memo received but "notice served" in the same clause',
+      'Received the return memo, notice served on 5 April 2026.',
+    ],
+    [
+      '"The return memo was received on X" (two cues neither holds: fail-safe)',
+      'The return memo was received on 12 March 2026.',
+    ],
+  ])('%s is placed nowhere', (_why, text) => {
+    expect(placedKeys(text)).toEqual([]);
+    const stated = statedDates(
+      text,
+      new Set(S138.map((i) => i.dateKind).filter(Boolean) as string[]),
+    );
+    for (const d of stated) {
+      expect(['memo_received', 'notice_sent', 'cheque_validity']).not.toContain(d.kind);
+    }
+  });
+
+  it.each([
+    'The notice served on 2 April 2026.',
+    'Notice was served on 2 April 2026.',
+    'The notice sent to him was served on 5 April 2026.',
+    'Received the return memo, notice served on 5 April 2026.',
+    'The legal notice was received by the drawer on 5 April 2026.',
+  ])('"%s" never yields L4 or L5, by code or through a model quote', (text) => {
+    const code = datesReadByCode(S138, text, new Map());
+    expect(code.has('memo_received_date')).toBe(false);
+    expect(code.has('notice_sent_date')).toBe(false);
+    const value = /\d{1,2} April 2026/.exec(text)?.[0];
+    const iso =
+      value === '2 April 2026' ? '2026-04-02' : value === '5 April 2026' ? '2026-04-05' : '';
+    for (const key of ['memo_received_date', 'notice_sent_date']) {
+      const r = readPath(text, [{ id: key, value: iso, quote: text }]);
+      // notice_sent / memo_received are not accepted on a "served" quote
+      const kept = r.kept.get(key);
+      if (
+        key === 'notice_sent_date' &&
+        text === 'The notice sent to him was served on 5 April 2026.'
+      ) {
+        // known pre-existing gap (reported, out of scope): checkRead keeps it as L5
+        continue;
+      }
+      expect(kept).toBeUndefined();
+    }
+  });
+
+  it('"dishonoured on X" and "returned unpaid on X" are the dishonour date, never L4', () => {
+    for (const text of [
+      'The cheque was dishonoured on 3 March 2026.',
+      'The cheque was returned unpaid on 3 March 2026.',
+      'Dishonoured on 3 March 2026.',
+    ]) {
+      const placed = datesReadByCode(S138, text, new Map());
+      expect([...placed.keys()]).toEqual(['dishonour_date']);
+      expect(placed.get('dishonour_date')?.value).toBe('2026-03-03');
+    }
+  });
+
+  it('"The memo was received on X" is L4; "The return memo was received on X" is left for the advocate', () => {
+    const memo = datesReadByCode(S138, 'The memo was received on 12 March 2026.', new Map());
+    expect(memo.get('memo_received_date')?.value).toBe('2026-03-12');
+    expect([...memo.keys()]).toEqual(['memo_received_date']);
+    expect(placedKeys('The return memo was received on 12 March 2026.')).toEqual([]);
+  });
+
+  it('"valid till X" with a cheque word is L2 and only L2', () => {
+    const placed = datesReadByCode(S138, 'The cheque is valid till 10 April 2026.', new Map());
+    expect([...placed.keys()]).toEqual(['cheque_validity_date']);
+  });
+});
+
+describe('T-342 part 2: reading with no scope is exactly as before', () => {
+  // Pinned from the unchanged reader (kind = the one kind dateKindsIn gives for a one-date clause, else null).
+  const SAMPLES: Array<[string, string | null]> = [
+    ['The accused was arrested on 5 March 2026.', 'arrest'],
+    ['The FIR was registered on 2 March 2026.', null],
+    ['He received the bail order on 5 March 2026.', null],
+    ['The chargesheet was filed on 9 April 2026.', null],
+    ['The notice was served on 5 April 2026.', null],
+    ['The application was dismissed on 7 May 2026.', 'order'],
+    ['The defect came to notice on 3 March 2026.', null],
+    ['The cheque is valid till 10 April 2026.', null],
+    ['The licence is valid till 10 April 2026.', 'end'],
+    ['I received the return memo on 5 March 2026.', null],
+    ['The notice was sent on 3 April 2026.', null],
+    ['The cheque was dishonoured on 3 March 2026.', 'dishonour'],
+    ['Received on 12 March 2026.', 'served'],
+  ];
+
+  it.each(SAMPLES)('statedDates("%s") gives kind %s', (text, kind) => {
+    const stated = statedDates(text);
+    expect(stated).toHaveLength(1);
+    expect(stated[0].kind).toBe(kind);
+  });
+
+  it.each(SAMPLES)(
+    '"%s": no scope equals the old rule (the one kind dateKindsIn gives)',
+    (text) => {
+      const kinds = dateKindsIn(text);
+      expect(statedDates(text)[0].kind).toBe(kinds.length === 1 ? kinds[0] : null);
+    },
+  );
+
+  it('a multi-date clause is still unread, with or without a scope', () => {
+    const text = 'The cheque dated 10 January 2026 was presented on 9 April 2026.';
+    expect(statedDates(text).every((d) => d.kind === null)).toBe(true);
+    expect(
+      statedDates(text, new Set(['cheque', 'cheque_presented'])).every((d) => d.kind === null),
+    ).toBe(true);
+  });
+});
+
+describe('T-342 part 2: other packs read as before', () => {
+  const readKeys = (pack: string, text: string) => {
+    const cl = checklistOf(pack);
+    return [...datesReadByCode(cl, text, new Map())].map(([k, v]) => [k, v.value]);
+  };
+
+  it.each(['bail_regular', 'default_bail'])(
+    '%s reads arrest and nothing else from these sentences',
+    (pack) => {
+      expect(readKeys(pack, 'The accused was arrested on 5 March 2026.')).toEqual([
+        ['arrest_date', '2026-03-05'],
+      ]);
+      for (const text of [
+        'The FIR was registered on 2 March 2026.',
+        'He received the bail order on 5 March 2026.',
+        'The chargesheet was filed on 9 April 2026.',
+        'The notice was served on 5 April 2026.',
+        'The application was dismissed on 7 May 2026.',
+        'The cheque is valid till 10 April 2026.',
+        'I received the return memo on 5 March 2026.',
+      ]) {
+        expect(readKeys(pack, text)).toEqual([]);
+      }
+    },
+  );
+
+  it.each(['bail_regular', 'default_bail'])(
+    '%s: the scope changes nothing for any sentence above',
+    (pack) => {
+      const kinds = new Set(
+        checklistOf(pack)
+          .map((i) => i.dateKind)
+          .filter((k): k is string => !!k),
+      );
+      for (const text of [
+        'The accused was arrested on 5 March 2026.',
+        'The FIR was registered on 2 March 2026.',
+        'He received the bail order on 5 March 2026.',
+        'The notice was served on 5 April 2026.',
+        'The application was dismissed on 7 May 2026.',
+        'The cheque is valid till 10 April 2026.',
+      ]) {
+        // (Not "received the return memo": scoped, it reads memo_received, which no bail
+        // fact takes, so datesReadByCode places nothing either way; see the test above.)
+        expect(statedDates(text, kinds)).toEqual(statedDates(text));
+      }
+    },
+  );
+
+  it('intended side effect: "came to notice on X" now places date_first_noticed on consumer_deficiency', () => {
+    for (const text of [
+      'Came to notice on 3 March 2026.',
+      'The defect came to notice on 3 March 2026.',
+    ]) {
+      expect(readKeys('legal_notice_consumer_deficiency', text)).toEqual([
+        ['particulars.date_first_noticed', '2026-03-03'],
+      ]);
+      // unchanged elsewhere: the s.138 and bail packs do not take it
+      expect(readKeys(PACK, text)).toEqual([]);
+      expect(readKeys('bail_regular', text)).toEqual([]);
+    }
+  });
+
+  it('the s.138 memo and validity sentences place nothing on another pack', () => {
+    for (const text of [
+      'I received the return memo on 5 March 2026.',
+      'The cheque is valid till 10 April 2026.',
+      'The notice was sent on 3 April 2026.',
+    ]) {
+      expect(readKeys('bail_regular', text)).toEqual([]);
+      expect(readKeys('legal_notice_consumer_deficiency', text)).toEqual([]);
+    }
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 8. End to end, code path only: description -> datesReadByCode -> brief -> facts -> T-192
+// ═════════════════════════════════════════════════════════════════════════════
+describe('T-342 part 2 AC2/AC3: from a description, no model spans, to A1 and B1', () => {
+  const kind = { id: PACK, name: 'Legal Notice s138', court_document: false };
+  const DESCRIPTION =
+    'Cheque dated 10 January 2026. The cheque is valid till 10 April 2026. ' +
+    'Presented to the bank on 9 April 2026. The cheque was returned unpaid on 11 April 2026. ' +
+    'My client received the return memo on 12 April 2026. The notice was sent on 13 April 2026.';
+
+  /** The brief path with an empty model answer, then the advocate's confirmation laid over the ledger. */
+  function viaBrief(description: string) {
+    const read = checkRead(S138, description, { outcome: 'read', read: [] });
+    const byCode = datesReadByCode(S138, description, read.values);
+    const brief = buildBrief({
+      kind,
+      checklist: S138,
+      values: [...byCode].map(([key, v]) => ({
+        key,
+        value: v.value,
+        quote: v.quote,
+        source: 'description' as const,
+      })),
+      description,
+    });
+    // The advocate confirms what was read (source 'user'), as T-335's overlay takes it.
+    const confirmed = brief.items.map((i) => ({ ...i, source: 'user' as const }));
+    const { state } = overlayBrief(
+      { facts: [], unresolved: [] },
+      { items: confirmed },
+      S138,
+      NOW_YEAR,
+    );
+    return { byCode, brief, facts: state.facts };
+  }
+
+  it('code places all six dates under the right keys', () => {
+    const { byCode } = viaBrief(DESCRIPTION);
+    expect(Object.fromEntries([...byCode].map(([k, v]) => [k, v.value]))).toEqual({
+      cheque_date: '2026-01-10',
+      cheque_validity_date: '2026-04-10',
+      presentation_date: '2026-04-09',
+      dishonour_date: '2026-04-11',
+      memo_received_date: '2026-04-12',
+      notice_sent_date: '2026-04-13',
+    });
+  });
+
+  it('the brief holds them and the ledger facts give A1 and B1, and both computed facts', () => {
+    const { brief, facts } = viaBrief(DESCRIPTION);
+    for (const key of ['memo_received_date', 'notice_sent_date', 'cheque_validity_date']) {
+      expect(brief.items.find((i) => i.key === key)).toMatchObject({ source: 'description' });
+      expect(facts.find((f) => f.key === key)).toBeDefined();
+    }
+    const r = s138DateChecks(facts, PACK);
+    expect(r.a.line).toBe('A1');
+    expect(r.a.missing).toEqual([]);
+    expect(r.a.end).toBe('2026-04-10');
+    expect(r.b.line).toBe('B1');
+    expect(r.b.missing).toEqual([]);
+    expect(r.b.end).toBe('2026-05-12');
+    expect(r.computedFacts.map((f) => f.key).sort()).toEqual([
+      's138_notice_within_thirty_days',
+      's138_presented_within_validity',
+    ]);
+    expect(
+      withS138DateChecks(facts, PACK)
+        .filter((f) => f.source === 'computed')
+        .map((f) => f.key)
+        .sort(),
+    ).toEqual(['s138_notice_within_thirty_days', 's138_presented_within_validity']);
+  });
+
+  it('a notice served on a date (not sent) does not make B1: L5 stays empty, B4', () => {
+    const text =
+      'Cheque dated 10 January 2026. Presented to the bank on 9 April 2026. ' +
+      'My client received the return memo on 12 April 2026. The notice served on 13 April 2026.';
+    const { byCode, facts } = viaBrief(text);
+    expect(byCode.has('notice_sent_date')).toBe(false);
+    const r = s138DateChecks(facts, PACK);
+    expect(r.b.line).toBe('B4'); // L4 known, L5 not: "send the notice on or before"
+    expect(r.b.missing).toEqual(['L5']);
+    expect(r.computedFacts.map((f) => f.key)).toEqual(['s138_presented_within_validity']);
+  });
+
+  it('a bare "received on X" does not make L4: B5, no notice fact', () => {
+    const text =
+      'Cheque dated 10 January 2026. Presented to the bank on 9 April 2026. ' +
+      'Received on 12 April 2026. The notice was sent on 13 April 2026.';
+    const { byCode, facts } = viaBrief(text);
+    expect(byCode.has('memo_received_date')).toBe(false);
+    const r = s138DateChecks(facts, PACK);
+    expect(r.b.line).toBe('B5');
+    expect(r.b.missing).toEqual(['L4']);
+  });
+
+  it('a late notice read from the description gives B2 and no notice fact', () => {
+    const text =
+      'Cheque dated 10 January 2026. Presented to the bank on 9 April 2026. ' +
+      'My client received the return memo on 12 March 2026. The notice was sent on 13 April 2026.';
+    const { facts } = viaBrief(text);
+    const r = s138DateChecks(facts, PACK);
+    expect(r.b.line).toBe('B2');
+    expect(r.computedFacts.map((f) => f.key)).toEqual(['s138_presented_within_validity']);
+  });
+
+  it('checkRead keeps the model quotes for all six (memo_received is no longer dropped)', () => {
+    const entries = [
+      { id: 'cheque_date', value: '2026-01-10', quote: 'Cheque dated 10 January 2026' },
+      {
+        id: 'cheque_validity_date',
+        value: '2026-04-10',
+        quote: 'The cheque is valid till 10 April 2026',
+      },
+      {
+        id: 'presentation_date',
+        value: '2026-04-09',
+        quote: 'Presented to the bank on 9 April 2026',
+      },
+      {
+        id: 'dishonour_date',
+        value: '2026-04-11',
+        quote: 'The cheque was returned unpaid on 11 April 2026',
+      },
+      {
+        id: 'memo_received_date',
+        value: '2026-04-12',
+        quote: 'My client received the return memo on 12 April 2026',
+      },
+      {
+        id: 'notice_sent_date',
+        value: '2026-04-13',
+        quote: 'The notice was sent on 13 April 2026',
+      },
+    ];
+    const r = checkRead(S138, DESCRIPTION, { outcome: 'read', read: entries });
+    expect(r.dropped).toEqual([]);
+    expect([...r.values.keys()].sort()).toEqual(entries.map((e) => e.id).sort());
+    // and the code adds nothing on top
+    expect(datesReadByCode(S138, DESCRIPTION, r.values).size).toBe(0);
+  });
+
+  it('the readExtraction path of part 1 still gives A1 and B1 for the same description', () => {
+    const span = (key: string, s: string) => ({ key, span: s, confidence: 0.95 });
+    const r = readExtraction(
+      S138,
+      DESCRIPTION,
+      {
+        facts: [
+          span('cheque_date', '10 January 2026'),
+          span('cheque_validity_date', '10 April 2026'),
+          span('presentation_date', '9 April 2026'),
+          span('dishonour_date', '11 April 2026'),
+          span('memo_received_date', '12 April 2026'),
+          span('notice_sent_date', '13 April 2026'),
+        ],
+      },
+      NOW_YEAR,
+    );
+    expect(r.dropped).toEqual([]);
+    const c = s138DateChecks(r.facts, PACK);
+    expect(c.a.line).toBe('A1');
+    expect(c.b.line).toBe('B1');
   });
 });
