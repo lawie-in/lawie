@@ -105,7 +105,8 @@ export async function deleteSession(userId: string, accessTokenHash: string): Pr
 /** Delete all sessions for a user (e.g. password change, account compromise) */
 export async function deleteAllUserSessions(userId: string): Promise<void> {
   // Scan for all session keys belonging to this user
-  const pattern = `session:${userId}:*`;
+  // Same string as `session:${userId}:*`, built from the shared helper (T-325 rider)
+  const pattern = sessionKey(userId, '*');
   let cursor = '0';
   const keysToDelete: string[] = [];
 
@@ -120,7 +121,8 @@ export async function deleteAllUserSessions(userId: string): Promise<void> {
   }
 
   // Also scan for refresh keys
-  const refreshPattern = `session:refresh:${userId}:*`;
+  // Same string as `session:refresh:${userId}:*`
+  const refreshPattern = refreshSessionKey(userId, '*');
   cursor = '0';
   const refreshKeysToDelete: string[] = [];
 
