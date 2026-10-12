@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release. HIGH (auth: login and register bodies can hold a password) |
 | Owner  | Arjun (scope, glance). Lead (build) |
 | Mode   | Full chain (`packages/shared` plus more than one service) |
-| Status | To do. Tanvi after T-307. The auth line waits until Kunal's T-234 merges. Scope set by Arjun, 12 Oct 2026. Found by Tanvi in T-307 |
+| Status | Building: tanvi (12 Oct 2026). Auth line after T-234 merges |
 
 T-307 gave drafting a handler that answers malformed, oversized and bad-encoding bodies with plain JSON and echoes nothing. The other services still use Express's default handler. It writes body-parser's message, with a slice of the body, to pm2 stderr. In auth that slice comes from a login or register body, so it can hold part of a password.
 
