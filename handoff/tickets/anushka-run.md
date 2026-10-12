@@ -344,3 +344,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - "Checking this section" shows while it checks; a red warning appears if the check fails or the entry isn't a section.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-309 — section picker hardening (ed989ee)
+
+- If one section can't be checked, only that one shows the warning; the others still show what they were read as. A failed check is retried once by itself.
+- Entries go up to 100 characters, up to 30 sections; at 30 the box stops taking more.
+- On a phone, a long section name wraps inside the box and its remove button stays visible.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
