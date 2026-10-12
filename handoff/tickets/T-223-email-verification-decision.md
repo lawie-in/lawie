@@ -118,3 +118,12 @@ T-351 already gives an unverified email user no free Ink. Arjun's "first draft s
 8. **No PII.** Logs, Sentry and the relay never carry the address, the token or the link.
 
 Out of scope: tightening sign-up rate limits at the gateway (Arjun's item 4, separate ticket), password reset, and the welcome email.
+
+## Arjun (12 Oct 2026): architecture, Mahak's (1)-(4) approved with four conditions
+
+1. **Typed, not loosened:** `EnqueueEmailInput` becomes a union; the `auth.verifyEmail` member is `{ template, userId }` with no `to`, every other template keeps `to` required. Do not make `to` optional for all.
+2. **Mint route** `POST /internal/verify-email/mint { userId }`, guarded by `INTERNAL_SECRET` (constant-time compare). It returns **409 and mints nothing** when the user is already verified or is a Google account; the worker then drops the job without sending. Newest link wins on a BullMQ retry, as proposed. The response (email, name, link) is never logged by either side.
+3. **The gateway must not reach `/internal/*`.** Auth mounts its routes at `/`, and the gateway proxies `/api/auth/*` to it, so `/api/auth/internal/verify-email/mint` reaches auth today, protected only by the secret. Add a gateway rule before every proxy: any path containing `/internal/` → 404. Test it. This also covers T-115c's `/internal/erase-user`. `apps/gateway/src/app.ts` needs to be on your claim.
+4. **Resend cap** (promised to AWS in the SES production-access case): enqueue at most 1 verify mail per user per 60 s and 5 per 24 h, counted in Redis at the enqueue site. Over the limit → 429 with a fixed message, nothing sent.
+- (3) `AUTH_SERVICE_URL` in the worker's fail-fast list: yes. Founder: add it to the server `.env.production` with the other email env (I'll add it to the email doc's step 7).
+- (4) Billing reading `emailVerified` / `authProvider` / `googleId` from the shared `users` collection: yes for v1. Read those fields only, never write; it is the same coupling billing already has.
