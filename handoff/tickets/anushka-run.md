@@ -5,7 +5,7 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 ## Setup before the run (Priya, 12 Oct 2026)
 
 - `feature.describe_first`: on for the signed-in account (founder checked, 12 Oct).
-- `feature.fact_ledger`: not set in the database today, so it is off. Before Anushka tests T-189, once T-189 is on `develop`, the founder adds the app setting `feature.fact_ledger` with the same value as `feature.describe_first` (his user id, or the comma-separated list of ids). Never `on`: that would switch it on for every user, and it stays off for real users until T-187, T-188, T-190 and T-194 are done.
+- `feature.fact_ledger`: set by the founder, 12 Oct 2026, with the same value as `feature.describe_first` (no id is written here). The rest of this paragraph is the original instruction, kept for the record. Originally: not set in the database, so it was off. Before Anushka tests T-189, once T-189 is on `develop`, the founder adds the app setting `feature.fact_ledger` with the same value as `feature.describe_first` (his user id, or the comma-separated list of ids). Never `on`: that would switch it on for every user, and it stays off for real users until T-187, T-188, T-190 and T-194 are done.
 
 - For default bail (T-251): `feature.fact_ledger` must also be ON for her test account, or the default bail template isn't offered.
 
