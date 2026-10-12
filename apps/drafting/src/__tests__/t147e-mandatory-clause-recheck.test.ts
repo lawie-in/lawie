@@ -86,7 +86,8 @@ const BAD = [
 // T-200 (Ajay, 12 Oct 2026): the clauses of a system part are never checked in the
 // paragraphs, so the test that a lost paragraph 1 reports its clauses as missing
 // needs an ordinary clause without cues there. bail_regular has none; bail_anticipatory
-// has two (apprehension, no_flight_risk), next to the cued fir_details.
+// has one (apprehension), next to the cued fir_details, no_flight_risk (T-237: undertaking)
+// and earlier_applications (T-237: EA-standard).
 const ANTI_PACK = loadRulePack('bail_anticipatory')!;
 const ANTI_CHECKLIST = buildChecklist(ANTI_PACK);
 const ANTI_FACTS = [
@@ -105,8 +106,10 @@ const ANTI_VALUES = [
   ),
   { key: 'facts_narrative', value: 'apprehends arrest and will not flee' },
 ];
+// T-237: paragraph 1 carries the undertaking and earlier-application cues, so check 1 passes
+// and the only repair that runs is the fact repair (as for the bail_regular CUES above).
 const ANTI_BAD = [
-  'That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. He is a law-abiding citizen. FIR No. 124/2026 is the case.',
+  'That the applicant Ram Kumar, son of Shri Hari Kumar, apprehends arrest and will not flee. He is a law-abiding citizen. FIR No. 124/2026 is the case. He gives an undertaking, and no earlier bail application has been filed.',
 ]
   .map((p) => `1. ${p}`)
   .concat('2. That FIR No. 124/2026 was registered at PS Kotwali.')
@@ -194,7 +197,9 @@ describe('T-147e: mandatory clauses re-checked after the fact verifier', () => {
         .map((c) => c.id)
         .sort(),
     );
-    expect(ids).toEqual(expect.arrayContaining(['apprehension', 'no_flight_risk']));
+    expect(ids).toEqual(
+      expect.arrayContaining(['apprehension', 'no_flight_risk', 'earlier_applications']),
+    );
     for (const id of SYSTEM) expect(ids).not.toContain(id);
     expect(done.mandatoryClausesComplete).toBe(false);
   });

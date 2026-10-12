@@ -174,6 +174,12 @@
       "required": true,
       "description": "Attend court, not tamper with evidence, not leave jurisdiction without leave"
     },
+    {
+      "id": "earlier_applications",
+      "name": "Earlier Bail Applications",
+      "required": true,
+      "description": "Every earlier bail application in this matter, with the court, the date of the order and the result, or that it is pending; or the blank where the brief does not say."
+    },
     { "id": "prayer", "name": "Prayer", "required": true, "description": "Prayer for bail" },
     {
       "id": "verification",
@@ -195,6 +201,7 @@
     "If charge sheet has been filed, mention that custody is no longer required for investigation.",
     "Include undertakings: attend court on every date, not tamper with evidence, not leave jurisdiction.",
     "Use BNS section numbers for offences (never IPC).",
+    "State every earlier bail application in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier bail application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result].",
     "Do NOT generate the verification clause or advocate signature block — those are added programmatically."
   ],
   "relevantActs": [

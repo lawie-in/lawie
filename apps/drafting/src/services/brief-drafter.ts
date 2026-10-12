@@ -658,6 +658,56 @@ const EARLIER_APPLICATIONS_CUE: Cue = {
   ],
 };
 
+/** T-237 (Ajay, 12 Oct 2026): EA-standard, for bail_anticipatory and bail_before_magistrate. */
+const EARLIER_APPLICATIONS_STANDARD_CUE: Cue = {
+  all: [
+    ['bail', 'जमानत', 'ज़मानत'],
+    [
+      'earlier',
+      'previous',
+      'prior',
+      'pending',
+      'rejected',
+      'dismissed',
+      'withdrawn',
+      'to be confirmed: whether any earlier',
+      'पूर्व',
+      'पहले',
+      'लंबित',
+      'खारिज',
+      'ख़ारिज',
+      'निरस्त',
+      'अस्वीकृत',
+      'वापस',
+    ],
+  ],
+};
+/**
+ * T-237 (Ajay, 12 Oct 2026): EA-interim, for interim_bail. No `pending` or
+ * `लंबित`: every interim draft says the main application is pending.
+ */
+const EARLIER_APPLICATIONS_INTERIM_CUE: Cue = {
+  all: [
+    ['bail', 'जमानत', 'ज़मानत'],
+    [
+      'earlier',
+      'previous',
+      'prior',
+      'rejected',
+      'dismissed',
+      'withdrawn',
+      'to be confirmed: whether any earlier',
+      'पूर्व',
+      'पहले',
+      'खारिज',
+      'ख़ारिज',
+      'निरस्त',
+      'अस्वीकृत',
+      'वापस',
+    ],
+  ],
+};
+
 /**
  * The signed cues, by pack and clause id (12 Oct 2026). No fallback by id: a
  * clause not listed here is checked under R2b.
@@ -670,13 +720,21 @@ const CLAUSE_CUES: Record<string, Record<string, Cue>> = {
     no_flight_risk: UNDERTAKING_CUE,
     earlier_applications: EARLIER_APPLICATIONS_CUE,
   },
-  bail_anticipatory: { fir_details: FIR_CUE },
-  interim_bail: { undertakings: UNDERTAKING_CUE },
+  bail_anticipatory: {
+    fir_details: FIR_CUE,
+    no_flight_risk: UNDERTAKING_CUE,
+    earlier_applications: EARLIER_APPLICATIONS_STANDARD_CUE,
+  },
+  interim_bail: {
+    undertakings: UNDERTAKING_CUE,
+    earlier_applications: EARLIER_APPLICATIONS_INTERIM_CUE,
+  },
   bail_before_magistrate: {
     fir_particulars: FIR_CUE,
     custody: CUSTODY_CUE,
     grounds: GROUNDS_CUE,
     undertakings: UNDERTAKING_CUE,
+    earlier_applications: EARLIER_APPLICATIONS_STANDARD_CUE,
   },
 };
 

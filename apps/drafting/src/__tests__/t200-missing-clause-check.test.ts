@@ -351,7 +351,11 @@ describe('T-200: the (pack, clause id) → cue map, ruled by Ajay on 12 Oct 2026
   }
 
   it.each([
-    ['bail_anticipatory', 'no_flight_risk'],
+    // T-237 (Ajay, 12 Oct 2026): bail_anticipatory no_flight_risk is now cued (undertaking), see
+    // below. apprehension is the clause of that pack that is still uncued. interim_bail
+    // no_flight_risk stays "none": it is not required in the real pack, and the clause built here
+    // is a plain required clause, so there is still no fallback by id.
+    ['bail_anticipatory', 'apprehension'],
     ['interim_bail', 'no_flight_risk'],
     ['interim_bail', 'urgency'],
     ['interim_bail', 'main_application_reference'],
@@ -371,6 +375,8 @@ describe('T-200: the (pack, clause id) → cue map, ruled by Ajay on 12 Oct 2026
     ['bail_regular', 'grounds', 'The grounds are these.', 'Nothing relevant.'],
     ['bail_regular', 'no_flight_risk', 'He gives an undertaking.', 'Nothing relevant.'],
     ['bail_anticipatory', 'fir_details', 'FIR No. 124/2026 registered.', 'Nothing relevant.'],
+    // T-237: replaces the 12 Oct "none, R2b" of bail_anticipatory no_flight_risk
+    ['bail_anticipatory', 'no_flight_risk', 'He gives an undertaking.', 'Nothing relevant.'],
     ['interim_bail', 'undertakings', 'He gives an undertaking.', 'Nothing relevant.'],
     ['bail_before_magistrate', 'fir_particulars', 'FIR No. 124/2026 registered.', 'Nothing.'],
     ['bail_before_magistrate', 'custody', 'He is in custody.', 'Nothing relevant.'],
