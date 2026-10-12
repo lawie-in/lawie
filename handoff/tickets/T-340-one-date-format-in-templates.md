@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Ajay (format, signs). Lead (build, drafting) |
 | Mode   | Small fix (legal content) |
-| Status | Building: tanvi, with T-345 (12 Oct 2026) |
+| Status | Merged into develop_staging (0d90ed7), 12 Oct 2026. Anushka tests on develop |
 
 Ajay's third T-192 ruling: dates in drafts print as "4 April 2026". T-192 shipped without it because the template engine was claimed for T-240.
 

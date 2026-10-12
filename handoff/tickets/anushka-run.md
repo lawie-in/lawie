@@ -644,3 +644,28 @@ What a user can now do:
 - Arrive from a campaign link, start a Google sign-in, cancel, then try again in the same tab. The account still records which campaign brought them.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-334 — "none filed" in the advocate's own words (828d55e, mahak, 12 Oct 2026)
+
+What a user can now do:
+- Answer the earlier-bail-applications question in their own words, such as "none filed", "koi bail nahi" or "कोई नहीं", and get the draft saying no other bail application has been made, with no "earlier bail applications are: koi bail nahi" line.
+- If a draft claims no earlier bail application was filed but they never confirmed it, have that claim removed or flagged before filing.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-345 + T-340 — one date format, no false "facts changed", clean category names (0d90ed7, tanvi, 12 Oct 2026)
+
+What a user can now do:
+- See every date in a template draft written like "4 April 2026", including dates of birth and custody dates.
+- Type dates as numbers without a false "facts changed" warning; a real change is still flagged.
+- See category names without underscores.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-351 — no free credits before an email is verified (eae46a9, shashank, 12 Oct 2026)
+
+What a user can now do:
+- Sign up with Google and get the free Ink straight away, as before.
+- Sign up with an email and password and start with no free Ink until the address is verified; the daily bonus waits for that too.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

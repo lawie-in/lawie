@@ -94,3 +94,7 @@ Open the develop web app and confirm it loads on https:// with a padlock and no 
 ## Develop reseed before Anushka tests the converter (Ajay, T-280, 12 Oct)
 
 Run the section seed with --force on develop (seed-sections) after T-280 merges and before Anushka tests the section converter, so the titles shown are Ajay's signed ones. This is the same develop-first reseed as item 5, so one run covers both.
+
+## Overnight note (Priya, 12 Oct 2026)
+
+- T-220 step 1 merged (b958216). Until your SES session, the email worker on develop will refuse to start, with one line naming the missing settings (INTERNAL_SECRET and AWS_SES_*): the develop server's production environment file is still SMTP-era. Arjun wants this visible failure; the SES session (item 2 above) fixes it. Nothing else depends on the worker yet.
