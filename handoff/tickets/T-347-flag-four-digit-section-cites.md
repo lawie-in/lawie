@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Ajay (rule). Lead (drafting) |
 | Mode   | Small fix |
-| Status | Building: shashank (12 Oct 2026) |
+| Status | Merged into develop_staging (a75c522), 12 Oct 2026. Ajay approved 1c2fbf4. Anushka tests on develop |
 
 No section in the six codes has four digits, so such a cite is always wrong. The reader skips it today, so no warning appears.
 
