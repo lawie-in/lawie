@@ -5,7 +5,7 @@
 | Phase          | 1 — Pricing and credits |
 | Owner          | Mahak (same files as T-226, so after it merges). Arjun accepted the gap |
 | Mode           | Small fix |
-| Status         | To do. After T-226 merges. Found in T-226 review round 3, 12 Oct 2026 |
+| Status         | Merged to `develop_staging` (66753fc, 12 Oct 2026). Waiting for Anushka on develop |
 
 In T-226, when the hold is gone at settle time (the sweep got there first), the code takes the hold again once. If that second `holdInk` throws on a database fault (not a refusal for a spent balance), the route still sends `done` for a draft that was never paid. Worst case today is one free draft, and it needs a stall longer than 30 minutes plus a database fault in the same window. Arjun accepted it so T-226 could merge.
 
