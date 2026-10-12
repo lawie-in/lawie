@@ -83,11 +83,24 @@ export async function getSubscriptionStatus(userId: string): Promise<{
   };
 }
 
-export function verifyWebhookSignature(rawBody: Buffer, signature: string): boolean {
+const HEX_RE = /^[0-9a-fA-F]+$/;
+
+export function verifyWebhookSignature(rawBody: Buffer, signature: unknown): boolean {
   const expectedSignature = crypto
     .createHmac('sha256', env.RAZORPAY_WEBHOOK_SECRET)
     .update(rawBody)
     .digest('hex');
+  // T-323: timingSafeEqual throws a RangeError on unequal lengths, and Buffer.from(_, 'hex')
+  // silently truncates at the first non-hex character. Reject anything that is not a hex
+  // string of the digest's length first; these checks depend only on the header's shape,
+  // not on the secret, so the comparison below stays constant-time for valid-length input.
+  if (
+    typeof signature !== 'string' ||
+    signature.length !== expectedSignature.length ||
+    !HEX_RE.test(signature)
+  ) {
+    return false;
+  }
   return crypto.timingSafeEqual(
     Buffer.from(expectedSignature, 'hex'),
     Buffer.from(signature, 'hex'),

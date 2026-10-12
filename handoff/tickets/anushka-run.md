@@ -438,3 +438,41 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Unknown values show "Depends…", never "Non-Bailable" or a guessed court.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-318 — footers on server PDFs, annexures and the welcome email (f5e7edb)
+
+- Export a draft as PDF from the server; the footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+- Open the annexures (Vakalatnama, Memo of Parties and the others); the footer reads "Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice."
+- The welcome email says "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-319 — Google sign-in can't be hijacked (2b02eae)
+
+- Sign in with Google as before.
+- A sign-in link someone else started can no longer log you into another person's account; you see "We couldn't finish signing you in. Please try again." and start again.
+- Needs develop on https (founder's check).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-313 — optional enrollment number on three documents (a6b2162)
+
+- When drafting a regular bail, anticipatory bail or consumer complaint, type a Bar Council enrollment number (or a "to be confirmed" note) in the new optional "Bar Council Enrollment No." field under Court & Parties. It prints in the advocate block, the Vakalatnama and the Memo of Parties.
+- Leave it empty and still get the draft: the profile number is used if the advocate is you, otherwise a blank to fill in.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-295 — old-law sections warn instead of block (2e06933)
+
+- Enter an old IPC, CrPC or IEA section (e.g. "302 IPC"): a warning says it's an old-law section and points to the section converter for offences on or after 1 July 2024. You can continue with "generate anyway" instead of being blocked.
+- The warning never shows a mixed label like "BNS Section 302 IPC".
+- A BNS section that doesn't exist is still blocked.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-280 — converter shows section titles (d80774f)
+
+- In the section converter, see the title of the old section and of the new section under each number, so a wrong number is easy to spot.
+- Test only after the founder has reseeded develop (seed-sections --force), Ajay's condition.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

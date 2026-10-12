@@ -147,7 +147,7 @@ export function contentToHtml(
   }
 
   // AI disclaimer footer
-  body += `<div class="disclaimer">AI-assisted draft &mdash; verify with applicable law before filing. Lawie does not provide legal advice.</div>`;
+  body += `<div class="disclaimer">First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.</div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">

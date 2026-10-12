@@ -15,7 +15,8 @@ interface MappingResult {
   new_section: string | null;
   new_code: string;
   new_code_full: string;
-  title?: string;
+  old_title?: string | null;
+  new_title?: string | null;
   mapping_type?: string;
   notes?: string;
 }
@@ -308,6 +309,10 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
   const displayType = missingNewSection && !repealed ? 'unverified' : mapping.mapping_type;
   const unverified = displayType === 'unverified';
   const hasNoSection = repealedNoSection || unverified;
+  // Each title sits under its own section number; blank or missing titles render nothing.
+  const oldTitle = mapping.old_title?.trim() || null;
+  // No new-title line when the new box shows 'None' or 'Check the Gazette'.
+  const newTitle = hasNoSection ? null : mapping.new_title?.trim() || null;
   // Unknown or 'direct' types get no badge; a raw mapping_type is never shown.
   const mappingTypeBadge =
     displayType && Object.prototype.hasOwnProperty.call(MAPPING_TYPE_BADGES, displayType)
@@ -326,12 +331,13 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
         <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
           {/* Old */}
           <div
-            className={`flex-1 rounded-lg p-4 ${reverse ? 'border border-blue-200 bg-blue-50' : 'bg-slate-100'}`}
+            className={`min-w-0 flex-1 rounded-lg p-4 ${reverse ? 'border border-blue-200 bg-blue-50' : 'bg-slate-100'}`}
           >
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
               {mapping.old_code_full || mapping.old_code}
             </p>
             <p className="text-2xl font-bold text-slate-900">Section {mapping.old_section}</p>
+            {oldTitle && <p className="mt-1 break-words text-sm text-slate-600">{oldTitle}</p>}
           </div>
 
           {/* Arrow */}
@@ -339,7 +345,7 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
 
           {/* New */}
           <div
-            className={`flex-1 rounded-lg p-4 ${reverse ? 'bg-slate-100' : 'border border-blue-200 bg-blue-50'}`}
+            className={`min-w-0 flex-1 rounded-lg p-4 ${reverse ? 'bg-slate-100' : 'border border-blue-200 bg-blue-50'}`}
           >
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
               {mapping.new_code_full || mapping.new_code}
@@ -351,15 +357,9 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
                   ? 'Check the Gazette'
                   : `Section ${mapping.new_section}`}
             </p>
+            {newTitle && <p className="mt-1 break-words text-sm text-slate-600">{newTitle}</p>}
           </div>
         </div>
-
-        {/* Title */}
-        {mapping.title && (
-          <p className="mt-4 text-sm text-slate-600">
-            <span className="font-medium">Title:</span> {mapping.title}
-          </p>
-        )}
 
         {/* Mapping Type */}
         {mappingTypeBadge && (

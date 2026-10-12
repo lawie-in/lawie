@@ -5,7 +5,7 @@
 | Phase  | 1 — Legal accuracy |
 | Owner  | Ajay (writes and signs the wording). Lead (build) |
 | Mode   | Small fix, legal content |
-| Status | Building: shashank (12 Oct 2026) |
+| Status | Merged into develop_staging (2e06933, 12 Oct 2026). Waiting for Anushka on develop |
 
 The old-law block in the drafting prompt can read "BNS Section 302 IPC…", which mixes the two codes. Ajay writes the correct wording; a lead applies it.
 
@@ -52,3 +52,11 @@ Shashank asked: per-part (`legacySectionParts`) or the whole-string T-277 reader
 - `302, 34 IPC` → two findings. `IPC 302/34` → one finding (IPC 302) plus the bare-number soft warning for 34, as T-277 says.
 - A number the reader leaves bare keeps only the T-277 "no code" soft warning, never an old-law finding.
 - Add these three as fixtures. Everything else in steps 1-4 (soft, Ajay's signed line byte for byte, one finding per `(code, number)`) stays.
+
+## Arjun (12 Oct 2026): alias entries, follow-up
+
+`BNS 303 (IPC 379)`: the advocate gave the BNS section and cites the IPC one beside it, which is normal in transition-era pleadings. **Skip the old-law finding for an alias entry (`alias === true`) only when the list around it has an explicit BNS entry** it is attached to. An old-law alias under another old-law code (`IPC 302 (CrPC 154)`) or a bare one still warns. Not a reopen of T-295: Priya to log it as a follow-up; Ajay to confirm in that ticket, since it narrows when his signed line shows. Test: `BNS 303 (IPC 379)` → no old-law finding; `IPC 420 (IPC 406)` → two.
+
+## Arjun (12 Oct 2026): step 4 superseded
+
+Ajay's override stands (legal wording is his): the prompt's "use EXACTLY" block keeps his T-277 old-law line ("…is not classified here…"); the T-295 signed line is for the preflight warning only. Step 4 above ("one source constant, two uses") no longer applies: two constants, one use each.

@@ -41,15 +41,17 @@ export type JsonBodyErrorMiddleware = (
   next: JsonBodyErrorNext,
 ) => void;
 
-export const BODY_PARSER_ERRORS: Readonly<Record<string, { status: number; error: string }>> = {
-  'entity.parse.failed': { status: 400, error: 'Bad Request' },
-  'entity.too.large': { status: 413, error: 'Payload Too Large' },
-  'encoding.unsupported': { status: 415, error: 'Unsupported Media Type' },
-  'charset.unsupported': { status: 415, error: 'Unsupported Media Type' },
-  // urlencoded parser (T-315 round 1b, Arjun)
-  'parameters.too.many': { status: 413, error: 'Payload Too Large' },
-  'querystring.parse.rangeError': { status: 400, error: 'Bad Request' },
-};
+// T-320: frozen (outer map and each entry) so no importer can add, remove or edit a mapping at runtime.
+export const BODY_PARSER_ERRORS: Readonly<Record<string, { status: number; error: string }>> =
+  Object.freeze({
+    'entity.parse.failed': Object.freeze({ status: 400, error: 'Bad Request' }),
+    'entity.too.large': Object.freeze({ status: 413, error: 'Payload Too Large' }),
+    'encoding.unsupported': Object.freeze({ status: 415, error: 'Unsupported Media Type' }),
+    'charset.unsupported': Object.freeze({ status: 415, error: 'Unsupported Media Type' }),
+    // urlencoded parser (T-315 round 1b, Arjun)
+    'parameters.too.many': Object.freeze({ status: 413, error: 'Payload Too Large' }),
+    'querystring.parse.rangeError': Object.freeze({ status: 400, error: 'Bad Request' }),
+  });
 
 /**
  * Documented form: `app.use(createJsonBodyErrorHandler({ logger }))`, which logs
