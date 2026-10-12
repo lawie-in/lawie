@@ -252,3 +252,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 Test: generate one long draft (many sections) and confirm it completes without the page dropping or showing an error.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-288 (mahak, merged to develop_staging 66753fc, 12 Oct 2026)
+
+- In the rare case that a finished draft's Ink cannot be taken because of a system fault, the user sees "not enough Ink" instead of getting the draft free, and is never charged for a draft they were not given.
+
+Nothing to test in a browser: the case cannot be reproduced there.
+
+Quality: nothing to test in the UI — a rare fault path that no user can trigger on demand.
