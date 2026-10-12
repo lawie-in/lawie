@@ -37,3 +37,11 @@ The risk: an advocate types "302" meaning IPC 302 and gets BNS 302, a different 
 2. The picker must show what it read before the draft uses it, for example "Read as BNS 302: {title}" (title from the signed BNS table, so this builds after T-277).
 
 Rajesh writes the words and the small layout; Ajay signs them against these two points. Then any free lead builds it.
+
+## Rajesh (12 Oct 2026): design in handoff/design/T-290-section-picker-hint.md (f478f6b)
+
+- Hint: "A number without the Act is read as a BNS section. For IPC, type the Act, for example IPC 302."
+- Read-as line: "Read as BNS {number}: {title}"; unknown title: "Read as BNS {number}" (no guess).
+- Layout: each value in its own block, chip with its read-as line under it, stacked. Hint colour slate-500 (contrast).
+- Also in scope: the chip remove "x" gets a 44 px tap target. Titles come only from the signed T-277 table.
+- Waiting for Ajay to sign the strings, including S5 ("Read as a section of another Act (not checked)").
