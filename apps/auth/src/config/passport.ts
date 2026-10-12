@@ -3,7 +3,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 import { User, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
 import { grantSignupBonus } from '../services/credit-bonus.service';
-import { getVerifiedOAuthState, utmFromOAuthState } from '../services/oauth-state';
+import { discardOAuthUtm, getVerifiedOAuthState, takeOAuthUtm } from '../services/oauth-state';
 import { applyReferralCode } from '../services/referral.service';
 import { deleteAllUserSessions } from '../services/session.service';
 import { buildSignupSource } from '../validators/auth.validator';
@@ -65,7 +65,8 @@ export function initPassport(): void {
         try {
           // T-319: the referral code comes ONLY from the HMAC-verified state that the
           // /google/callback route checked before passport ran. The raw ?state= is never read.
-          const verifiedReferral = getVerifiedOAuthState(req)?.r;
+          const verifiedState = getVerifiedOAuthState(req);
+          const verifiedReferral = verifiedState?.r;
           const referralCode =
             typeof verifiedReferral === 'string' && verifiedReferral
               ? verifiedReferral.trim().toUpperCase()
@@ -80,6 +81,8 @@ export function initPassport(): void {
           // deactivated account is neither linked nor stamped with a Terms acceptance.
           const refuseDeactivated = (userId: string) => {
             logger.info({ userId }, 'Google sign-in refused: account deactivated');
+            // T-242: an existing account; its tags are deleted unread (not awaited).
+            if (verifiedState) discardOAuthUtm(verifiedState.c);
             return done(null, false, { reason: GOOGLE_ACCOUNT_DEACTIVATED });
           };
 
@@ -111,7 +114,10 @@ export function initPassport(): void {
               await deleteAllUserSessions(user._id.toString());
               await user.save();
             } else {
-              // 3. Brand-new user — create account
+              // 3. Brand-new user — create account.
+              // T-242 — sign-up source, taken (read + deleted) from Redis under the verified
+              // challenge; this branch only. Fails open: no tags on a Redis error. Never logged.
+              const signupTags = verifiedState ? await takeOAuthUtm(verifiedState.c) : undefined;
               user = await User.create({
                 email,
                 name: profile.displayName ?? email,
@@ -124,7 +130,7 @@ export function initPassport(): void {
                 ...googleTermsAcceptance(),
                 // T-242 — sign-up source from the verified state, on this new-account branch only
                 // (never on link or returning sign-in). Never logged.
-                signupSource: buildSignupSource(utmFromOAuthState(getVerifiedOAuthState(req))),
+                signupSource: buildSignupSource(signupTags),
               });
               logger.info({ userId: user.id }, 'New user created via Google OAuth');
               isNewUser = true;
@@ -140,6 +146,10 @@ export function initPassport(): void {
             );
             if (res.modifiedCount > 0) user.set(acceptance);
           }
+
+          // T-242 (Arjun (a) 2): an existing account (returning or linked) never gets the tags;
+          // delete them unread. Not awaited, so sign-in never waits on it.
+          if (!isNewUser && verifiedState) discardOAuthUtm(verifiedState.c);
 
           // Existing account with a code: grant nothing, but don't drop it silently (T-234 review).
           if (!isNewUser && referralCode) {

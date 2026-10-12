@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 
 import { env } from '../config/env';
+import logger from '../config/logger';
+import redis from '../config/redis';
 import { sanitizeUtm, UtmTags } from '../validators/auth.validator';
 
 // T-319 (Arjun's spec at the end of T-306): PKCE-style binding for Google sign-in. The web app
@@ -16,7 +18,7 @@ export const OAUTH_STATE_MAX_AGE_MS = 10 * 60 * 1000;
 // Small allowance for clocks that differ between auth instances.
 const OAUTH_STATE_CLOCK_SKEW_MS = 60 * 1000;
 // A real state is well under this; anything longer is refused before any HMAC work.
-export const OAUTH_STATE_MAX_LENGTH = 1024;
+const OAUTH_STATE_MAX_LENGTH = 1024;
 
 // 32 bytes in base64url (no padding) are exactly 43 characters. Used for challenge and verifier.
 const BASE64URL_43 = /^[A-Za-z0-9_-]{43}$/;
@@ -26,33 +28,8 @@ export interface OAuthState {
   c: string;
   /** Referral code, already trimmed and upper-cased by /google. */
   r?: string;
-  /** T-242: sign-up source tags (s = utm_source, m = utm_medium, c = utm_campaign), sanitized. */
-  u?: OAuthStateUtm;
   /** Issued at, ms since epoch. */
   t: number;
-}
-
-/** T-242: short keys keep the signed state well under OAUTH_STATE_MAX_LENGTH. */
-export interface OAuthStateUtm {
-  s?: string;
-  m?: string;
-  c?: string;
-}
-
-function toStateUtm(tags: Parameters<typeof sanitizeUtm>[0]): OAuthStateUtm | undefined {
-  const clean = sanitizeUtm(tags);
-  const u: OAuthStateUtm = {
-    ...(clean.utmSource ? { s: clean.utmSource } : {}),
-    ...(clean.utmMedium ? { m: clean.utmMedium } : {}),
-    ...(clean.utmCampaign ? { c: clean.utmCampaign } : {}),
-  };
-  return Object.keys(u).length > 0 ? u : undefined;
-}
-
-/** T-242: the state's tags back in the names the rest of auth uses. */
-export function utmFromOAuthState(state: OAuthState | undefined): UtmTags | undefined {
-  if (!state?.u) return undefined;
-  return { utmSource: state.u.s, utmMedium: state.u.m, utmCampaign: state.u.c };
 }
 
 export function isBase64Url43(value: unknown): value is string {
@@ -75,52 +52,15 @@ function constantTimeEqual(a: string, b: string): boolean {
   return crypto.timingSafeEqual(ab, bb);
 }
 
-function buildState(challenge: string, referralCode: string | undefined, u?: OAuthStateUtm) {
+/** state = base64url(JSON {c, r?, t}) + '.' + base64url(HMAC-SHA256(key, that base64url string)). */
+export function createOAuthState(challenge: string, referralCode?: string): string {
   const body: OAuthState = {
     c: challenge,
     ...(referralCode ? { r: referralCode } : {}),
-    ...(u ? { u } : {}),
     t: Date.now(),
   };
   const payload = Buffer.from(JSON.stringify(body), 'utf8').toString('base64url');
   return `${payload}.${sign(payload)}`;
-}
-
-/**
- * state = base64url(JSON {c, r?, u?, t}) + '.' + base64url(HMAC-SHA256(key, that base64url string)).
- * T-242: the tags are optional extras. If they would push the state past OAUTH_STATE_MAX_LENGTH
- * (possible only with long non-ASCII values), campaign, then medium, then all tags are dropped, so
- * the sign-in itself never fails because of them.
- */
-export function createOAuthState(
-  challenge: string,
-  referralCode?: string,
-  utm?: Parameters<typeof sanitizeUtm>[0],
-): string {
-  const u = utm ? toStateUtm(utm) : undefined;
-  if (u) {
-    const attempts: OAuthStateUtm[] = [u, { s: u.s, m: u.m }, { s: u.s }];
-    for (const attempt of attempts) {
-      const trimmed = toStateUtm({
-        utmSource: attempt.s,
-        utmMedium: attempt.m,
-        utmCampaign: attempt.c,
-      });
-      if (!trimmed) continue;
-      const state = buildState(challenge, referralCode, trimmed);
-      if (state.length <= OAUTH_STATE_MAX_LENGTH) return state;
-    }
-  }
-  return buildState(challenge, referralCode);
-}
-
-function parseStateUtm(raw: unknown): OAuthStateUtm | undefined | null {
-  if (raw === undefined) return undefined;
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const { s, m, c } = raw as Record<string, unknown>;
-  for (const v of [s, m, c]) if (v !== undefined && typeof v !== 'string') return null;
-  // Signed by us, so already clean; sanitized again anyway (defence in depth).
-  return toStateUtm({ utmSource: s, utmMedium: m, utmCampaign: c });
 }
 
 /** Returns the verified state, or null for a missing, malformed, tampered or expired one. */
@@ -141,17 +81,15 @@ export function verifyOAuthState(raw: unknown): OAuthState | null {
     return null;
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-  const { c, r, t, u: rawU } = parsed as Record<string, unknown>;
+  const { c, r, t } = parsed as Record<string, unknown>;
   if (!isBase64Url43(c)) return null;
   if (typeof t !== 'number' || !Number.isFinite(t)) return null;
   if (r !== undefined && (typeof r !== 'string' || !r)) return null;
-  const u = parseStateUtm(rawU);
-  if (u === null) return null;
 
   const age = Date.now() - t;
   if (age >= OAUTH_STATE_MAX_AGE_MS || age < -OAUTH_STATE_CLOCK_SKEW_MS) return null;
 
-  return { c, t, ...(typeof r === 'string' ? { r } : {}), ...(u ? { u } : {}) };
+  return { c, t, ...(typeof r === 'string' ? { r } : {}) };
 }
 
 /** base64url(sha256(verifier)), the challenge the web app sent for this verifier. */
@@ -168,4 +106,84 @@ export function verifierMatchesChallenge(verifier: string, challenge: string): b
 export function getVerifiedOAuthState(req: unknown): OAuthState | undefined {
   const value = (req as Record<string, unknown> | null | undefined)?.[OAUTH_VERIFIED_STATE_KEY];
   return value && typeof value === 'object' ? (value as OAuthState) : undefined;
+}
+
+// ── T-242: sign-up source tags for Google sign-up (Arjun's ruling (a), Ajay condition 3) ─────────
+// The tags never travel in the state (Google can read it). GET /google stores them server-side
+// under the challenge's hash; the passport strategy takes them for a NEW account only and deletes
+// them for every other outcome. Same key shape as T-306's oauth:code:. Fail open for the tags
+// only: a Redis error drops them, never the sign-in, and the log lines carry no values.
+
+const OAUTH_UTM_PREFIX = 'oauth:utm:';
+/** Same lifetime as the signed state the tags belong to. */
+export const OAUTH_UTM_TTL_SECONDS = OAUTH_STATE_MAX_AGE_MS / 1000;
+
+/** Short keys for the stored JSON: s = utm_source, m = utm_medium, c = utm_campaign. */
+interface StoredOAuthUtm {
+  s?: string;
+  m?: string;
+  c?: string;
+}
+
+/** oauth:utm:<sha256 hex of the challenge>. */
+export function oauthUtmKey(challenge: string): string {
+  return OAUTH_UTM_PREFIX + crypto.createHash('sha256').update(challenge).digest('hex');
+}
+
+/**
+ * Sanitizes the three tags (sanitizeUtm: each at most 100 characters, "@" or 7+ digit runs
+ * dropped) and stores whatever survives for OAUTH_UTM_TTL_SECONDS. Nothing is stored if none does.
+ * Never throws.
+ */
+export async function storeOAuthUtm(
+  challenge: string,
+  raw: Parameters<typeof sanitizeUtm>[0],
+): Promise<void> {
+  const tags = sanitizeUtm(raw);
+  const stored: StoredOAuthUtm = {
+    ...(tags.utmSource ? { s: tags.utmSource } : {}),
+    ...(tags.utmMedium ? { m: tags.utmMedium } : {}),
+    ...(tags.utmCampaign ? { c: tags.utmCampaign } : {}),
+  };
+  if (Object.keys(stored).length === 0) return;
+  try {
+    await redis.set(oauthUtmKey(challenge), JSON.stringify(stored), 'EX', OAUTH_UTM_TTL_SECONDS);
+  } catch {
+    logger.warn('Sign-up source not stored for Google sign-in');
+  }
+}
+
+/**
+ * New account only: reads and deletes the tags atomically (MULTI GET+DEL, as T-306/T-299).
+ * Returns them sanitized again, or undefined when none were stored or Redis failed. Never throws.
+ */
+export async function takeOAuthUtm(challenge: string): Promise<UtmTags | undefined> {
+  const key = oauthUtmKey(challenge);
+  let raw: unknown;
+  try {
+    const results = await redis.multi().get(key).del(key).exec();
+    const [getErr, value] = results?.[0] ?? [];
+    if (getErr) throw getErr;
+    raw = value;
+  } catch {
+    logger.warn('Sign-up source not read for Google sign-up');
+    return undefined;
+  }
+  if (typeof raw !== 'string') return undefined;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const { s, m, c } = parsed as Record<string, unknown>;
+    const tags = sanitizeUtm({ utmSource: s, utmMedium: m, utmCampaign: c });
+    return Object.keys(tags).length > 0 ? tags : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Existing account (returning or linked): delete the tags unread. Not awaited by callers. */
+export function discardOAuthUtm(challenge: string): void {
+  redis.del(oauthUtmKey(challenge)).catch(() => {
+    logger.warn('Sign-up source not deleted after Google sign-in');
+  });
 }

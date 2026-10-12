@@ -1,7 +1,7 @@
 /**
  * T-242 — sign-up source (UTM). Ajay's conditions 2-5 on the auth side:
  *   AC1/2  register stores signupSource {utm*, recordedAt}; bad values are dropped (no 422)
- *   AC2    OAuth state carries the tags (`u`), malformed `u` is refused, size stays under the cap
+ *   AC2    OAuth state carries no tags (Redis holds them instead); an old state with `u` is accepted, `u` dropped
  *   AC3    GET /admin/users/count-by-source is admin only and groups correctly
  *   AC4    no query string / UTM value in Sentry events or in any logger call
  */
@@ -21,12 +21,7 @@ import logger from '../config/logger';
 import { scrubEvent } from '../config/sentry';
 import { CURRENT_PRIVACY_VERSION, User } from '../models/User.model';
 import { signAccessToken, signRefreshToken } from '../services/jwt.service';
-import {
-  OAUTH_STATE_MAX_LENGTH,
-  createOAuthState,
-  utmFromOAuthState,
-  verifyOAuthState,
-} from '../services/oauth-state';
+import { createOAuthState, verifyOAuthState } from '../services/oauth-state';
 import { createSession } from '../services/session.service';
 import {
   buildSignupSource,
@@ -201,45 +196,8 @@ describe('POST /register stores signupSource', () => {
   });
 });
 
-describe('OAuth state carries the tags', () => {
-  it('round-trips u and keeps the challenge and referral', () => {
-    const state = createOAuthState(CHALLENGE, 'REF1', {
-      utmSource: 'g',
-      utmMedium: 'cpc',
-      utmCampaign: 'spring',
-    });
-    const v = verifyOAuthState(state);
-    expect(v).not.toBeNull();
-    expect(v!.c).toBe(CHALLENGE);
-    expect(v!.r).toBe('REF1');
-    expect(v!.u).toEqual({ s: 'g', m: 'cpc', c: 'spring' });
-    expect(utmFromOAuthState(v!)).toEqual({
-      utmSource: 'g',
-      utmMedium: 'cpc',
-      utmCampaign: 'spring',
-    });
-  });
-
-  it('no tags: no u in the state', () => {
-    const v = verifyOAuthState(createOAuthState(CHALLENGE, undefined, {}));
-    expect(v).not.toBeNull();
-    expect(v).not.toHaveProperty('u');
-    expect(utmFromOAuthState(v!)).toBeUndefined();
-    expect(utmFromOAuthState(undefined)).toBeUndefined();
-  });
-
-  it('bad tags are sanitized before they enter the state', () => {
-    const v = verifyOAuthState(
-      createOAuthState(CHALLENGE, undefined, {
-        utmSource: 'a@b.co',
-        utmMedium: 'x'.repeat(500),
-        utmCampaign: 9,
-      }),
-    );
-    expect(v!.u).toEqual({ m: 'x'.repeat(100) });
-  });
-
-  // Hand-sign a state with a chosen body (same scheme as oauth-state.ts) to test the `u` checks.
+describe('OAuth state carries no tags (Arjun (a), Ajay condition 3)', () => {
+  // Hand-sign a state with a chosen body (same scheme as oauth-state.ts).
   function signed(body: Record<string, unknown>): string {
     const payload = Buffer.from(JSON.stringify(body), 'utf8').toString('base64url');
     const key = crypto
@@ -248,49 +206,61 @@ describe('OAuth state carries the tags', () => {
       .digest();
     return `${payload}.${crypto.createHmac('sha256', key).update(payload).digest('base64url')}`;
   }
+  const bodyOf = (state: string): Record<string, unknown> =>
+    JSON.parse(Buffer.from(state.split('.')[0], 'base64url').toString('utf8'));
 
-  it('a correctly signed state is accepted by the helper (guards the malformed-u test)', () => {
-    expect(verifyOAuthState(signed({ c: CHALLENGE, u: { s: 'x' }, t: Date.now() }))!.u).toEqual({
-      s: 'x',
-    });
+  it('createOAuthState takes only (challenge, referralCode)', () => {
+    expect(createOAuthState.length).toBeLessThanOrEqual(2);
   });
 
-  it('a state whose u is malformed returns null (tampering without the key also null)', () => {
-    const good = createOAuthState(CHALLENGE, undefined, { utmSource: 'x' });
-    const [, sig] = good.split('.');
+  it('the state body is exactly {c, r, t}, with no u', () => {
+    const state = createOAuthState(CHALLENGE, 'REF1');
+    expect(Object.keys(bodyOf(state)).sort()).toEqual(['c', 'r', 't']);
+    const v = verifyOAuthState(state);
+    expect(v).not.toBeNull();
+    expect(v!.c).toBe(CHALLENGE);
+    expect(v!.r).toBe('REF1');
+    expect(v).not.toHaveProperty('u');
+  });
+
+  it('no referral: the body is exactly {c, t}', () => {
+    const state = createOAuthState(CHALLENGE);
+    expect(Object.keys(bodyOf(state)).sort()).toEqual(['c', 't']);
+    expect(verifyOAuthState(state)).not.toHaveProperty('u');
+  });
+
+  it('extra arguments cannot put tags into the state', () => {
+    const loose = createOAuthState as unknown as (...a: unknown[]) => string;
+    const state = loose(CHALLENGE, undefined, { utmSource: 'zzleak', utmMedium: 'zzleak' });
+    expect(Buffer.from(state.split('.')[0], 'base64url').toString('utf8')).not.toContain('zzleak');
+    expect(bodyOf(state)).not.toHaveProperty('u');
+  });
+
+  it('an old-style signed state with u is accepted and u is dropped', () => {
+    const v = verifyOAuthState(
+      signed({ c: CHALLENGE, r: 'REF2', u: { s: 'x', m: 'y' }, t: Date.now() }),
+    );
+    expect(v).not.toBeNull();
+    expect(v!.c).toBe(CHALLENGE);
+    expect(v!.r).toBe('REF2');
+    expect(v).not.toHaveProperty('u');
+  });
+
+  it('an old-style state with a malformed u is also accepted with u ignored', () => {
+    for (const u of ['str', 5, [], null, { s: 5 }]) {
+      const v = verifyOAuthState(signed({ c: CHALLENGE, u, t: Date.now() }));
+      expect(v).not.toBeNull();
+      expect(v).not.toHaveProperty('u');
+    }
+  });
+
+  it('a state tampered after signing is still refused', () => {
+    const [, sig] = createOAuthState(CHALLENGE).split('.');
     const forged = Buffer.from(
       JSON.stringify({ c: CHALLENGE, u: { s: 'evil' }, t: Date.now() }),
       'utf8',
     ).toString('base64url');
     expect(verifyOAuthState(`${forged}.${sig}`)).toBeNull();
-    for (const u of ['str', 5, [], null, { s: 5 }, { m: {} }]) {
-      expect(verifyOAuthState(signed({ c: CHALLENGE, u, t: Date.now() }))).toBeNull();
-    }
-  });
-
-  it('long non-ASCII tags: state stays under the cap and sign-in still works', () => {
-    const wide = '日'.repeat(100);
-    const state = createOAuthState(CHALLENGE, 'REFCODE12345', {
-      utmSource: wide,
-      utmMedium: wide,
-      utmCampaign: wide,
-    });
-    expect(state.length).toBeLessThanOrEqual(OAUTH_STATE_MAX_LENGTH);
-    const v = verifyOAuthState(state);
-    expect(v).not.toBeNull();
-    expect(v!.c).toBe(CHALLENGE);
-    expect(v!.r).toBe('REFCODE12345');
-  });
-
-  it('ASCII 100-char tags fit under the cap with all three kept', () => {
-    const a = 'a'.repeat(100);
-    const state = createOAuthState(CHALLENGE, 'REFCODE12345', {
-      utmSource: a,
-      utmMedium: a,
-      utmCampaign: a,
-    });
-    expect(state.length).toBeLessThanOrEqual(OAUTH_STATE_MAX_LENGTH);
-    expect(verifyOAuthState(state)!.u).toEqual({ s: a, m: a, c: a });
   });
 });
 
