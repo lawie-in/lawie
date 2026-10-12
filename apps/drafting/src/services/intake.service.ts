@@ -1216,7 +1216,8 @@ function firstApplicationValues(packId: string): string[] {
 /**
  * T-190 AC8: earlier bail applications is asked to confirm when the brief shows
  * a value for it but the ledger holds no fact (a "none" read from the
- * description is held until confirmed). Only while the ledger is on.
+ * description is held until confirmed). T-336: with the ledger off, it is asked
+ * to confirm while the brief marks that value `unconfirmed`.
  */
 function confirmKeys(
   brief: Brief,
@@ -1224,9 +1225,12 @@ function confirmKeys(
   ledger: LedgerView | undefined,
 ): Set<string> {
   const out = new Set<string>();
-  if (!ledger) return out;
   for (const item of checklist) {
     if (!item.askWhenEmpty || item.key.split('.').pop() !== PROTECTED_QUESTION_KEY) continue;
+    if (!ledger) {
+      if (brief.items.some((i) => i.key === item.key && i.unconfirmed === true)) out.add(item.key);
+      continue;
+    }
     if (ledger.facts.some((f) => f.key === item.key)) continue;
     const shown = brief.items.find((i) => i.key === item.key);
     const value = shown?.value;
@@ -1337,6 +1341,7 @@ async function briefWithPack(
     court: req.court,
     description: req.description,
     reask: [...alsoAsk],
+    holdNone: firstApplicationValues(pack.id),
   });
   console.info(
     `[intake] brief built (intakeId=${ctx.intakeId}, kind=${pack.id}, read=${read.values.size}, byCode=${byCode.size}, dropped=${read.dropped.length}, unknown=${brief.still_unknown.length}${edit})`,
@@ -1649,6 +1654,7 @@ export function updateBrief(req: BriefUpdateRequest): Brief | null {
     values: req.values,
     court: req.court,
     description: req.description,
+    holdNone: firstApplicationValues(pack.id),
   });
 }
 
