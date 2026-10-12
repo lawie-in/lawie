@@ -61,6 +61,9 @@ const NOT_AN_OFFENCE = 'This section does not create an offence. Check the Gazet
 /** Ajay Q6: note for a not-an-offence section in the timeline. */
 const LEFT_OUT = (n: string): string =>
   `Section ${n} does not create an offence, so it was left out of this period.`;
+/** Ajay T-278 (f4244ec + Addendum 1): a number with no BNS row or parent row. */
+const NOT_IN_TABLE = (n: string): string =>
+  `Section ${n} was not found in the BNS offences table, so it was left out of this period. Check the Gazette.`;
 const R4_PROMPT_LINE =
   'A section in neither list: do not say whether it is bailable or cognizable.';
 const Q3_PROMPT_LINE =
@@ -411,7 +414,7 @@ describe('R1 default-bail period (timeline)', () => {
   it('a no-row section on its own (114) gives no period and its own note', () => {
     const r = expectNoPeriod(['114']);
     expect(r.sectionsNotFound).toEqual(['114']);
-    expect(r.sectionNotes['114']).toBe(LEFT_OUT('114'));
+    expect(r.sectionNotes['114']).toBe(NOT_IN_TABLE('114'));
   });
 
   it("303 + 999: 999 is left out with Ajay's line, the period stays 60 days", () => {
@@ -419,7 +422,7 @@ describe('R1 default-bail period (timeline)', () => {
     expect(r.judicialCustodyDays).toBe(60);
     expect(r.periodNote).toBeNull();
     expect(r.sectionsNotFound).toEqual(['999']);
-    expect(r.sectionNotes['999']).toBe(LEFT_OUT('999'));
+    expect(r.sectionNotes['999']).toBe(NOT_IN_TABLE('999'));
   });
 
   it("316(1) (parent has variants, none match): no period, with Ajay's line", () => {

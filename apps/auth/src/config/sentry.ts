@@ -1,3 +1,4 @@
+import { BODY_PARSER_ERRORS } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 
 import { maskEmails, scrubPii } from './logger';
@@ -56,7 +57,40 @@ export function scrubEvent<T extends Sentry.Event>(event: T): T {
   return event;
 }
 
-export function beforeSend(event: Sentry.ErrorEvent): Sentry.ErrorEvent {
+/**
+ * T-315 — JSON.parse error messages can carry a slice of the input, e.g.
+ * `Unexpected token 'p', "{"password": p4ss"... is not valid JSON` (V8) or
+ * `Unexpected token } in JSON at position 5` (older V8). Any exception value of that
+ * shape is replaced whole, wherever the SyntaxError came from.
+ */
+const JSON_PARSE_MESSAGE = /is not valid JSON|\bin JSON\b|end of JSON input/i;
+export const JSON_PARSE_REDACTED = 'JSON parse error (message redacted)';
+
+function bodyParserType(exception: unknown): string | undefined {
+  const type = (exception as { type?: unknown } | null | undefined)?.type;
+  return typeof type === 'string' && Object.prototype.hasOwnProperty.call(BODY_PARSER_ERRORS, type)
+    ? type
+    : undefined;
+}
+
+/**
+ * T-315 defence in depth (the shared jsonBodyErrorHandler in app.ts stops these first):
+ *  - a body-parser error (any type in the shared BODY_PARSER_ERRORS map, e.g. entity.parse.failed,
+ *    entity.too.large, parameters.too.many) keeps the event but every exception value becomes
+ *    "Request body rejected (<type>)", so its message (which holds a body slice) never
+ *    leaves the process, while the event itself still shows the handler was bypassed;
+ *  - any other exception value shaped like a JSON.parse error is replaced with fixed text.
+ * Then the T-210 scrub runs unchanged.
+ */
+export function beforeSend(event: Sentry.ErrorEvent, hint?: Sentry.EventHint): Sentry.ErrorEvent {
+  const rejectedType = bodyParserType(hint?.originalException);
+  for (const ex of event.exception?.values ?? []) {
+    if (rejectedType) {
+      ex.value = `Request body rejected (${rejectedType})`;
+    } else if (typeof ex.value === 'string' && JSON_PARSE_MESSAGE.test(ex.value)) {
+      ex.value = JSON_PARSE_REDACTED;
+    }
+  }
   return scrubEvent(event);
 }
 

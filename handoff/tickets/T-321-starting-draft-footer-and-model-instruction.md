@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release. Better before go-live, not blocking |
 | Owner  | Ajay (text in T-317 Addendum 5). Lead (build, drafting) |
 | Mode   | Small fix (legal content) |
-| Status | To do. Mahak after T-318, and after Shashank's T-278 merges (template-engine.service.ts). Raised by Ajay from T-318, 12 Oct 2026 |
+| Status | Merged into develop_staging (36ea45e, 12 Oct 2026). Waiting for Anushka on develop |
 
 ## Acceptance criteria
 

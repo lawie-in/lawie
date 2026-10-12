@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (tests only) |
 | Mode   | Small fix (tests only) |
-| Status | Building: vishal (12 Oct 2026) |
+| Status | Merged into develop_staging (2353146, 12 Oct 2026). Tests only |
 
 ## Acceptance criteria
 

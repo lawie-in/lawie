@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build). Ajay (decides when titles may show) |
 | Mode           | Small fix (web) |
-| Status         | To do. Unassigned. Raised by Mahak (T-275), 12 Oct 2026 |
+| Status         | Merged into develop_staging (d80774f, 12 Oct 2026). Waiting for Anushka on develop, after the founder reseeds develop |
 | Depends on     | T-277 merged (corrected BNS titles) |
 
 `apps/web/src/app/tools/section-converter/page.tsx` reads `mapping.title`, but the API returns `old_title` and `new_title`, so the "Title:" line never shows.

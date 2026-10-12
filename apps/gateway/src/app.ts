@@ -1,7 +1,7 @@
 import http from 'http';
 import type { Socket } from 'net';
 
-import { INTERNAL_HEADERS } from '@lawie/shared';
+import { INTERNAL_HEADERS, createJsonBodyErrorHandler } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import compression from 'compression';
 import cors from 'cors';
@@ -284,6 +284,11 @@ app.use(
   planRateLimiter,
   createAuthenticatedProxy(env.DRAFTING_SERVICE_URL),
 );
+
+// ── Body-parser errors (T-315) ──────────────────────────────────────────────
+// The gateway parses no bodies today (everything is proxied); this is a defensive
+// no-op so a parser added later cannot echo a body through the default handler.
+app.use(createJsonBodyErrorHandler({ logger }));
 
 // ── Sentry error handler ────────────────────────────────────────────────────
 Sentry.setupExpressErrorHandler(app);
