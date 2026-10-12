@@ -859,12 +859,58 @@ function checkReportedParagraphs(
   const text = reported.join(' ');
   const before = context.recorded?.get(clause.id);
   if (before === undefined) {
-    // R2b.5: a first check finding nothing but blanks records nothing.
-    if (onlyBlanks(text)) return 'clause_not_in_paragraph';
+    // R2b.5: a first check finding nothing but blanks records nothing, unless
+    // one of those blanks is the exact signed blank for this clause (T-322).
+    if (onlyBlanks(text) && !holdsSignedBlank(packId, clause.id, text)) {
+      return 'clause_not_in_paragraph';
+    }
     context.recorded?.set(clause.id, text);
     return null;
   }
   return text.includes(before) ? null : 'clause_not_in_paragraph';
+}
+
+/**
+ * T-322 (Ajay, 12 Oct 2026): the exact blank the signed pack instructions
+ * prescribe for a clause without cues, by pack and clause id. "The blank
+ * should count as covered. The repair call is wrong here: it pushes the model
+ * to invent the very facts the brief lacks." A paragraph that contains one of
+ * these blanks covers the clause under R2b.5, and no repair runs. Only the
+ * exact blank counts, not any other "[To be confirmed" text. No fallback by
+ * id: a clause not listed here keeps R2b.5 as it was.
+ */
+const SIGNED_BLANKS: Record<string, Record<string, readonly string[]>> = {
+  bail_anticipatory: {
+    // T-241-bail-instructions-signed.md, bail_anticipatory entry 1.
+    apprehension: ['[To be confirmed: the facts on which the applicant apprehends arrest]'],
+  },
+  bail_before_magistrate: {
+    // T-241-bail-instructions-signed.md, bail_before_magistrate promptInstructions 4:
+    // one blank per risk, each with one of the three words.
+    triple_test: [
+      '[To be confirmed: facts relied on to show no risk of flight]',
+      '[To be confirmed: facts relied on to show no risk of tampering with the evidence]',
+      '[To be confirmed: facts relied on to show no risk of influencing witnesses]',
+    ],
+  },
+  default_bail: {
+    // T-251-default-bail-text-signed.md, instruction 5 as amended (period and expiry).
+    applicable_window: [
+      '[To be confirmed: the default-bail period that applies to this offence]',
+      '[To be confirmed: the date on which the period expired]',
+    ],
+    // T-251-default-bail-text-signed.md, instruction 6.
+    non_filing: [
+      '[To be confirmed: whether a police report had been filed when this application was made]',
+    ],
+  },
+};
+
+/** T-322: true when the normalised text contains an exact signed blank for the clause. */
+function holdsSignedBlank(packId: string, clauseId: string, text: string): boolean {
+  const own = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
+  if (!own(SIGNED_BLANKS, packId) || !own(SIGNED_BLANKS[packId], clauseId)) return false;
+  return SIGNED_BLANKS[packId][clauseId].some((blank) => text.includes(normalise(blank)));
 }
 
 /** True when a paragraph holds nothing but blanks, once punctuation and spaces are set aside. */
