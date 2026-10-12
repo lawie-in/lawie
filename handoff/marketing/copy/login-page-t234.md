@@ -127,3 +127,13 @@ E1 shows only when there are two or more items; a single message (409, 401, 403,
 
 - "Stacks with your free daily login bonus": drop it. The future of the daily bonus is still open (T-201, T-223), so the page must not promise it.
 - "No credit card required": keep. Sign-up asks for no card.
+
+## Meera sign-off (12 Oct 2026)
+
+Approved as written: all "Final" strings in sections 1-9. Conditions:
+1. Ajay checks R5, R6, R10, R12 and R14 (the offer and no-card lines) before release; they are public claims about Ink and sign-up. R11 stays deleted (Priya).
+2. The login footer follows T-252: replace "AI-assisted drafting tool — not a substitute for legal advice." with Ajay's line "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing." (approved, open item 2).
+3. F9-F12 must match the API password rules exactly; the lead checks apps/auth before build.
+4. When showing a referral line, the bonus applies to NEW accounts only; the lead confirms the code is applied on both email and Google sign-up.
+
+Alternates: keep "Email or password is incorrect." (E4) and "Creating your account…" (B4). Nothing else changes.
