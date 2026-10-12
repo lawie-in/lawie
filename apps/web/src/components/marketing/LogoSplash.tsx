@@ -2,7 +2,27 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-export function LogoSplash() {
+// T-310 (AC6): the splash events AnalyticsConsent waits for (Rajesh R4). Kept in step with
+// SPLASH_OPEN_ATTR and SPLASH_END_EVENT in components/AnalyticsConsent.tsx.
+const SPLASH_OPEN_ATTR = 'data-lawie-splash';
+const SPLASH_END_EVENT = 'lawie:splash-end';
+
+function markSplashOpen(): void {
+  document.documentElement.setAttribute(SPLASH_OPEN_ATTR, 'open');
+}
+
+function markSplashEnded(): void {
+  if (!document.documentElement.hasAttribute(SPLASH_OPEN_ATTR)) return;
+  document.documentElement.removeAttribute(SPLASH_OPEN_ATTR);
+  window.dispatchEvent(new Event(SPLASH_END_EVENT));
+}
+
+/**
+ * `fontFamily` is the self-hosted Fraunces family from next/font (`fraunces.style.fontFamily`
+ * in the marketing layout). next/font renames the family, so the bare name `Fraunces` would
+ * not match; the real string is used in the SVG and in document.fonts.load.
+ */
+export function LogoSplash({ fontFamily }: { fontFamily: string }) {
   const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -12,16 +32,20 @@ export function LogoSplash() {
 
   // Step 1 — decide whether to show
   useEffect(() => {
-    if (sessionStorage.getItem('lawie_splash_seen')) return;
+    // T-339: blocked storage (the getter or getItem throws) counts as "not seen", so the
+    // splash shows and ends normally; the setItem guard below keeps that path from throwing.
+    let seen = false;
+    try {
+      seen = Boolean(window.sessionStorage.getItem('lawie_splash_seen'));
+    } catch {
+      /* storage blocked: treat as not seen */
+    }
+    if (seen) return;
 
-    // Preload Fraunces (the serif display font used for "awie.")
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href =
-      'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&display=swap';
-    document.head.appendChild(link);
-
+    markSplashOpen();
     setVisible(true);
+    // Leaving the page mid-splash also ends it for the consent notice.
+    return () => markSplashEnded();
   }, []);
 
   // Step 2 — run animation once SVG is in the DOM
@@ -57,7 +81,7 @@ export function LogoSplash() {
 
     function buildLetters() {
       if (built) return;
-      const FONT = "Fraunces, 'Times New Roman', Georgia, serif";
+      const FONT = `${fontFamily}, 'Times New Roman', Georgia, serif`;
       const attrs: Record<string, string> = {
         'font-family': FONT,
         'font-weight': '500',
@@ -205,7 +229,13 @@ export function LogoSplash() {
         setFading(true);
         setTimeout(() => {
           setVisible(false);
-          sessionStorage.setItem('lawie_splash_seen', '1');
+          // T-332: end the splash first, so a storage throw never holds back the consent card.
+          markSplashEnded();
+          try {
+            sessionStorage.setItem('lawie_splash_seen', '1');
+          } catch {
+            /* storage full or blocked: the splash shows again next visit */
+          }
         }, 500);
       }, totalMs);
 
@@ -218,7 +248,7 @@ export function LogoSplash() {
     }
 
     if (document.fonts?.ready) {
-      Promise.all([document.fonts.load('500 360px Fraunces'), document.fonts.ready])
+      Promise.all([document.fonts.load(`500 360px ${fontFamily}`), document.fonts.ready])
         .then(start)
         .catch(start);
       // Safety fallback in case fonts API stalls
@@ -238,7 +268,7 @@ export function LogoSplash() {
         }
       });
     };
-  }, [visible]);
+  }, [visible, fontFamily]);
 
   if (!visible) return null;
 

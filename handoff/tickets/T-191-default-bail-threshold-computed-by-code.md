@@ -51,3 +51,5 @@ The advocate sees the computation and its inputs. The result becomes the fact th
 ## References
 
 - T-147c, ADR-022, BNSS s.187(3)
+
+Arjun (12 Oct 2026): the code-computed fact convention is in the T-192 file (`FactSource 'computed'`, never stored, inputs only from user/asked facts, added only on pass). Same rules here.

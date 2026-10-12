@@ -71,6 +71,226 @@
             "required": false,
             "show_if": "currently_in_custody !== no",
             "inject_into": ["ai_prompt"]
+          },
+          {
+            "field_id": "earlier_bail_applications",
+            "label": "Earlier bail applications in this matter",
+            "type": "textarea",
+            "required": false,
+            "question": "Has any bail application (regular, anticipatory or interim) been made for the applicant in this case before, in any court, including the High Court? If yes, give for each: the court, the date of the order and the result (rejected, dismissed as withdrawn, granted and cancelled, or still pending). If none, write \"None\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "antecedents",
+            "label": "Criminal antecedents",
+            "type": "textarea",
+            "required": false,
+            "question": "Is any other criminal case (FIR, charge sheet or conviction) pending or past against the applicant? If yes, give each case number, police station or court, sections and its status. If none, write \"None\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "arrest_date",
+            "label": "Date of arrest",
+            "type": "date",
+            "required": false,
+            "question": "On what date was the applicant arrested? Give the date in the arrest memo, even if custody began on another date.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "investigation_status",
+            "label": "Investigation status",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "under_investigation",
+                "label": "Under investigation"
+              },
+              {
+                "id": "charge_sheet_filed",
+                "label": "Charge sheet filed"
+              },
+              {
+                "id": "cognizance_taken",
+                "label": "Cognizance taken"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "What is the stage of the investigation?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "applicant_sex",
+            "label": "Sex of the applicant",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "male",
+                "label": "Male"
+              },
+              {
+                "id": "female",
+                "label": "Female"
+              },
+              {
+                "id": "transgender",
+                "label": "Transgender"
+              },
+              {
+                "id": "not_given",
+                "label": "Not given"
+              }
+            ],
+            "required": false,
+            "question": "Sex of the applicant.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "medical_condition",
+            "label": "Medical condition of the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "Does the applicant suffer from any illness, disability or medical condition you want placed before the court? If yes, name it as written in the medical papers. If not, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "named_in_fir",
+            "label": "Whether the applicant is named in the FIR",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Is the applicant named in the FIR?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "recovery_status",
+            "label": "Recovery or seizure from the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "Has anything been recovered or seized from the applicant, or at the applicant's instance? If yes, say what. If nothing, write \"None\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "cooperated_with_investigation",
+            "label": "Whether the applicant has cooperated with the investigation",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Has the applicant so far joined or cooperated with the investigation (for example, appeared when called or gave a statement)?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "applicant_occupation",
+            "label": "Applicant occupation",
+            "type": "text",
+            "required": false,
+            "question": "What does the applicant do for a living (for example: daily-wage labourer, farmer, driver, shopkeeper)? If nothing, write \"Unemployed\".",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "sole_earning_member",
+            "label": "Whether the applicant is the only earning member of the family",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes"
+              },
+              {
+                "id": "no",
+                "label": "No"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Is the applicant the only earning member of the family?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "dependants",
+            "label": "Who depends on the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "Who in the family depends on the applicant's income (for example: aged mother, wife, two minor children)? If not known, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "local_ties",
+            "label": "Family and local ties of the applicant",
+            "type": "textarea",
+            "required": false,
+            "question": "What family or local ties does the applicant have at the address given (for example: lives there with parents, wife and children; owns the house; has lived there since birth)? If not known, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "s35_notice_status",
+            "label": "Notice under Section 35 BNSS",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "served",
+                "label": "Served"
+              },
+              {
+                "id": "not_served",
+                "label": "Not served"
+              },
+              {
+                "id": "not_known",
+                "label": "Not known"
+              }
+            ],
+            "required": false,
+            "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS served on the applicant?",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "co_accused_bail_court",
+            "label": "Court that granted bail to the co-accused",
+            "type": "text",
+            "required": false,
+            "question": "Has any co-accused in this case been granted bail? If yes, which court granted it? If not, leave it blank.",
+            "ask_when_empty": true
+          },
+          {
+            "field_id": "co_accused_bail_date",
+            "label": "Date of the co-accused's bail order",
+            "type": "date",
+            "required": false,
+            "question": "Date of that bail order.",
+            "ask_when_empty": true
           }
         ]
       },

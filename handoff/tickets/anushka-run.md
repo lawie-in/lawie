@@ -512,3 +512,46 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The warning still shows when the bracketed IPC number doesn't match, or when an IPC section is entered on its own.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-327 — default bail blanks accepted as is (cd5b32b)
+
+- In a default bail where the user hasn't given the default-bail period or its expiry date, a draft that leaves the brief's own blank is accepted as is. It is no longer sent back to the AI for a rewrite that could invent them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-310 — consent before Google Analytics (af975f2)
+
+- First visit: a small card asks about analytics. Accept and Decline are equally prominent.
+- Ignore it or press Decline, and nothing about the visit goes to Google.
+- Press Accept and analytics starts at once, with no reload.
+- "Cookie settings" in the footer or on /privacy reopens the card; Decline stops analytics and clears its cookies.
+- The privacy page says the choice is kept with no IP or account link and is deleted after 12 months.
+- On a small phone or with large text, the card text scrolls and the buttons stay in view.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-190 + T-199 — bail packs ask for the facts behind their averments (65d8707, mahak, 12 Oct 2026)
+
+What a user can now do:
+- When drafting a regular, interim, anticipatory or Magistrate bail application, be asked (after the required details, up to 10 questions) about earlier bail applications, criminal history, arrest date, investigation stage, health, whether the applicant is named in the FIR, recovery, cooperation, work, whether the applicant is the only earning member, who depends on them, local ties, the Section 35 notice and a co-accused's bail, using buttons for yes/no and stage answers.
+- Answer "Not known" or "None" and get no claim about it in the draft; leave any of them blank and still get the draft.
+- If the description says no earlier bail application was made, be asked to confirm it once; skip it and the draft leaves that line blank for them to fill.
+- Test with the fact-ledger setting both on and off; the questions appear either way.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-328 + T-332 — cookie card focus, splash, no browser error reporting (5482b37, kunal, 12 Oct 2026)
+
+What a user can now do:
+- After answering the cookie card, keyboard and screen-reader users land on the page content with no stray focus stop left behind.
+- The logo splash always finishes and the cookie card still appears, even when the browser blocks storage (private mode).
+- Nothing about a visitor's browser goes to an error service, same as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-339 — splash with blocked storage (5adf962, kunal, 12 Oct 2026)
+
+What a user can now do:
+- With browser storage blocked (private mode, site data off), the opening logo animation plays and finishes normally with no error.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

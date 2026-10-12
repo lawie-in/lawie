@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build). Meera (the list of sources). Ajay (privacy-policy line, T-235). Anushka (verdict) |
 | Mode           | Full chain (auth and web) |
-| Status         | To do. Unassigned. Asked for by Meera for GTM phase 1, 12 Oct 2026 |
+| Status         | Building: kunal (12 Oct 2026). Ajay rules whether UTM may be kept before cookie consent; privacy line under T-235 |
 
 ## Acceptance criteria
 

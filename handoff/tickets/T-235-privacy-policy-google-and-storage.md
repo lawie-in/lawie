@@ -83,3 +83,7 @@ It must change before go-live:
 - Bump `termsVersion` and send the transactional "policy changed" email. That waits for T-220 sending. Coordinate the version constant with shashank's T-234, which records `termsVersion`.
 - The founder's 6 open items don't block this: the fallback wording is true either way.
 - For the morning report: the Grievance Officer's name for §11.
+
+## Note (Priya, 12 Oct 2026)
+
+The sign-up source line in the privacy policy (§1 bullet, §6 v3, Ajay signed 6c4f4cd) ships with T-242 (kunal), not under this ticket.
