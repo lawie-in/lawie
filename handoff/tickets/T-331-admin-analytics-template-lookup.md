@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (build, drafting admin) |
 | Mode   | Small fix |
-| Status | To do. Unassigned. After T-240 (same area). Found by Tanvi in T-240, 12 Oct 2026. Pre-existing |
+| Status | Building: mahak (12 Oct 2026), while T-223 waits on T-343 and T-351 |
 
 `/admin/documents/analytics` looks up `Template` by `Template.templateId`, which is a string slug. But `LawieDocument.templateId` is an ObjectId, so for real documents the lookup probably never matches, and the page shows ids instead of template names.
 
