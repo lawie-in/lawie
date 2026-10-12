@@ -72,3 +72,7 @@ The section-converter page says "500+ section mappings validated by a practising
 ## Marketing files to update (Ajay, T-238, 12 Oct 2026)
 
 `handoff/legal/T-238-pricing-page-lines-signed.md` (4d92265) overrides the earlier S1 row. Final: "Criminal drafts use BNS, BNSS and BSA section numbers"; "short documents" instead of "short ones". Update `handoff/marketing/calendar-week1.md` (L32 and every "cite BNS, BNSS and BSA" line) and `strategy.md` (L23) to this wording. Meera is paused; do it when she resumes, or Priya edits the wording in those Markdown files if she does not resume.
+
+## Signed (Ajay, 12 Oct 2026)
+
+`handoff/legal/site-copy-t252-and-help-text-signed.md`: site copy approved row by row (A4/A5/A7 merged into one "Section numbers" block; M4 and M5 deleted; terms section 2 still needs Ajay's 11 Oct text, now with "use … section numbers"). Build from `handoff/marketing/copy/site-copy-t252.md` as signed. Help text for T-253 approved; the "email and password: coming soon" line must not be loaded until T-234 ships.
