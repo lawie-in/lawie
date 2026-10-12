@@ -128,6 +128,18 @@ function checkedLegacyEnrollment(bodyValue: string | undefined): string | undefi
 }
 
 /**
+ * T-357 AC3: log a template-config load failure once. Only the message is
+ * logged: template-engine messages hold template ids, never file content,
+ * request body or user content.
+ */
+function logTemplateConfigError(err: unknown): void {
+  logger.error(
+    { error: err instanceof Error ? err.message : 'UnknownError' },
+    'T-357: template config could not be loaded',
+  );
+}
+
+/**
  * T-311 (Arjun, 12 Oct 2026): the user's enrolment number from the profile, by
  * the JWT `sub`, read once per request that builds a draft. Read only. A
  * failed read counts as an empty profile: a warn with the user id only (never
@@ -647,7 +659,15 @@ router.get(
   '/template-configs',
   authenticate,
   async (_req: Request, res: Response): Promise<void> => {
-    const configs = listTemplateConfigs();
+    let configs: ReturnType<typeof listTemplateConfigs>;
+    try {
+      configs = listTemplateConfigs();
+    } catch (err) {
+      // T-357 AC3: a broken override or catalogue gap throws; answer instead of hanging.
+      logTemplateConfigError(err);
+      res.status(500).json({ error: 'Template config unavailable' });
+      return;
+    }
     res.json({
       templates: configs.map((config) => ({
         ...config,
@@ -662,7 +682,15 @@ router.get(
   '/template-configs/:id',
   authenticate,
   async (req: Request, res: Response): Promise<void> => {
-    const config = loadTemplateConfig(req.params.id);
+    let config: ReturnType<typeof loadTemplateConfig>;
+    try {
+      config = loadTemplateConfig(req.params.id);
+    } catch (err) {
+      // T-357 AC3: a broken override or catalogue gap throws; answer instead of hanging.
+      logTemplateConfigError(err);
+      res.status(500).json({ error: 'Template config unavailable' });
+      return;
+    }
     if (!config) {
       res.status(404).json({ error: 'Template config not found' });
       return;
@@ -744,7 +772,15 @@ router.post(
     const { template_id, form_data, run_id, intake_id } = parsed.data;
 
     // Load template config
-    const templateConfig = loadTemplateConfig(template_id);
+    let templateConfig: ReturnType<typeof loadTemplateConfig>;
+    try {
+      templateConfig = loadTemplateConfig(template_id);
+    } catch (err) {
+      // T-357 AC3: a broken override or catalogue gap throws; answer instead of hanging.
+      logTemplateConfigError(err);
+      res.status(500).json({ error: 'Template config unavailable' });
+      return;
+    }
     if (!templateConfig) {
       res.status(404).json({ error: `Template "${template_id}" not found` });
       return;
@@ -1062,7 +1098,15 @@ router.post(
     const recordId = guided ? GUIDED_ID : kind;
 
     const pack = guided ? null : loadRulePack(kind);
-    const templateConfig = pack ? loadTemplateConfig(kind) : null;
+    let templateConfig: ReturnType<typeof loadTemplateConfig>;
+    try {
+      templateConfig = pack ? loadTemplateConfig(kind) : null;
+    } catch (err) {
+      // T-357 AC3: a broken override or catalogue gap throws; answer instead of hanging.
+      logTemplateConfigError(err);
+      res.status(500).json({ error: 'Template config unavailable' });
+      return;
+    }
     if (!guided && (!pack || !templateConfig)) {
       res.status(404).json({ error: 'Document kind not found' });
       return;
