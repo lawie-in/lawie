@@ -244,3 +244,11 @@ Quality: nothing to test in the UI — a server setting only.
 Test: open the same draft in two tabs at once and confirm you get one draft and one refusal.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-285 (vishal, merged to develop_staging 50720bd, 12 Oct 2026)
+
+- A long draft no longer stops partway when the server is quiet for a minute. The page stays connected until the draft finishes.
+
+Test: generate one long draft (many sections) and confirm it completes without the page dropping or showing an error.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
