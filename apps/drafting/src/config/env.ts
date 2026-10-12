@@ -21,6 +21,12 @@ const envSchema = z.object({
   // can change them at runtime via /admin/ai-config without redeploy.
   ANTHROPIC_API_KEY: z.string().default(''),
 
+  // T-283: the one exception to "runtime config lives in AppSetting". These are
+  // the fallback for feature.describe_first / feature.fact_ledger, used only
+  // when the AppSetting doc is missing. A value in the database always wins.
+  FEATURE_DEFAULT_DESCRIBE_FIRST: z.enum(['on', 'off']).default('off'),
+  FEATURE_DEFAULT_FACT_LEDGER: z.enum(['on', 'off']).default('off'),
+
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),
 });
