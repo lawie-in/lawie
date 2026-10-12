@@ -1,7 +1,7 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
-import { User, CURRENT_TERMS_VERSION } from '../models/User.model';
+import { User, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
 import { grantSignupBonus } from '../services/credit-bonus.service';
 import { applyReferralCode } from '../services/referral.service';
 
@@ -31,6 +31,7 @@ function googleTermsAcceptance() {
   return {
     termsAcceptedAt: new Date(),
     termsVersion: CURRENT_TERMS_VERSION,
+    privacyVersion: CURRENT_PRIVACY_VERSION,
     acceptedVia: 'google' as const,
   };
 }

@@ -9,14 +9,35 @@ import { useAuth } from '@/context/AuthContext';
 // T-234 — one-time notices when a referral code sent with Google added no Ink.
 // not_applied: Ajay Addendum 1. existing_account: Ajay Addendum 2.
 // Both signed in handoff/legal/T-234-login-copy-signed.md.
+// not_applied has two wordings: Addendum 1 if R5/R6 showed for the code, Addendum 3 if it was
+// never applied. The login page records which in sessionStorage (REFERRAL_SHOWN_KEY) before the
+// Google redirect; missing or unreadable means "not valid", which makes no claim the code ever was.
 const REFERRAL_NOT_APPLIED_MESSAGE =
   'Your referral code was no longer valid, so no bonus Ink was added.';
+const REFERRAL_NOT_VALID_MESSAGE = 'Your referral code was not valid, so no bonus Ink was added.';
 const REFERRAL_EXISTING_ACCOUNT_MESSAGE =
   'Referral bonuses are for new accounts only, so no bonus Ink was added.';
-const REFERRAL_NOTICES = new Map<string, string>([
-  ['not_applied', REFERRAL_NOT_APPLIED_MESSAGE],
-  ['existing_account', REFERRAL_EXISTING_ACCOUNT_MESSAGE],
-]);
+const REFERRAL_SHOWN_KEY = 'lawie_referral_shown';
+
+// Reads and clears the marker, so it applies to this sign-in only.
+function takeReferralShown(): boolean {
+  try {
+    const shown = sessionStorage.getItem(REFERRAL_SHOWN_KEY) === '1';
+    sessionStorage.removeItem(REFERRAL_SHOWN_KEY);
+    return shown;
+  } catch {
+    return false;
+  }
+}
+
+function referralNoticeFor(value: string | null): string | null {
+  const shown = takeReferralShown();
+  if (value === 'existing_account') return REFERRAL_EXISTING_ACCOUNT_MESSAGE;
+  if (value === 'not_applied') {
+    return shown ? REFERRAL_NOT_APPLIED_MESSAGE : REFERRAL_NOT_VALID_MESSAGE;
+  }
+  return null;
+}
 
 function CallbackHandler() {
   const router = useRouter();
@@ -46,7 +67,7 @@ function CallbackHandler() {
     }
 
     login(accessToken, refreshToken);
-    const notice = REFERRAL_NOTICES.get(params.get('referral') ?? '');
+    const notice = referralNoticeFor(params.get('referral'));
     if (notice) {
       // Drop the tokens from the address bar while the notice is on screen.
       window.history.replaceState(null, '', '/auth/callback');

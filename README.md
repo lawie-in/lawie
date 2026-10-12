@@ -8,19 +8,19 @@
 
 ## Tech Stack
 
-| Layer          | Technology                                             |
-| -------------- | ------------------------------------------------------ |
-| Frontend       | Next.js 16, React 19, TypeScript, Tailwind CSS         |
-| Backend        | Express.js microservices (4 services), TypeScript      |
-| Database       | MongoDB 7.0 (Mongoose)                                 |
-| Cache          | Redis 7.4 (ioredis)                                    |
-| Auth           | Google OAuth + JWT (access + refresh) + Redis sessions |
-| AI             | Anthropic Claude (Sonnet 4)                            |
-| Payments       | Razorpay subscriptions + webhooks                      |
-| Infrastructure | Docker Compose (dev + demo), EC2 + Nginx (prod)        |
-| CI/CD          | GitHub Actions                                         |
-| Testing        | Jest, Supertest, mongodb-memory-server, ioredis-mock   |
-| Logging        | Pino (structured JSON) + Sentry                        |
+| Layer          | Technology                                                               |
+| -------------- | ------------------------------------------------------------------------ |
+| Frontend       | Next.js 16, React 19, TypeScript, Tailwind CSS                           |
+| Backend        | Express.js microservices (4 services), TypeScript                        |
+| Database       | MongoDB 7.0 (Mongoose)                                                   |
+| Cache          | Redis 7.4 (ioredis)                                                      |
+| Auth           | Email+password and Google OAuth, JWT (access + refresh) + Redis sessions |
+| AI             | Anthropic Claude (Sonnet 4)                                              |
+| Payments       | Razorpay subscriptions + webhooks                                        |
+| Infrastructure | Docker Compose (dev + demo), EC2 + Nginx (prod)                          |
+| CI/CD          | GitHub Actions                                                           |
+| Testing        | Jest, Supertest, mongodb-memory-server, ioredis-mock                     |
+| Logging        | Pino (structured JSON) + Sentry                                          |
 
 ---
 
@@ -30,7 +30,7 @@
 lawie/
 ├── apps/
 │   ├── gateway/        # API Gateway — routing, JWT validation, rate limiting  (port 4000)
-│   ├── auth/           # Auth Service — Google OAuth, sessions, user model     (port 4001)
+│   ├── auth/           # Auth Service — email+password and Google OAuth, sessions, user model (port 4001)
 │   ├── drafting/       # Drafting Service — AI engine, templates, sections     (port 4002)
 │   ├── billing/        # Billing Service — Razorpay subscriptions              (port 4003)
 │   └── web/            # Next.js frontend                                      (port 3000)

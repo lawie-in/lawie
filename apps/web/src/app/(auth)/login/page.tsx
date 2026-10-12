@@ -38,8 +38,15 @@ const PASSWORD_RULES: { label: string; test: (p: string) => boolean }[] = [
 ];
 
 const NETWORK_MESSAGE = 'Couldn’t reach Lawie. Check your connection and try again.';
+// Ajay Addendum 1: a code that showed R5/R6 (applied) and was no longer valid at sign-up.
 const REFERRAL_NOT_APPLIED_MESSAGE =
   'Your referral code was no longer valid, so no bonus Ink was added.';
+// Ajay Addendum 3: a code typed but never applied (R5/R6 never shown) and invalid at sign-up.
+const REFERRAL_NOT_VALID_MESSAGE = 'Your referral code was not valid, so no bonus Ink was added.';
+// Tab-scoped marker read once by /auth/callback to pick between the two lines above after a
+// Google sign-up: '1' = R5/R6 showed for the code sent, '0' = never applied. Wording only; the
+// server never sees it and it grants nothing.
+const REFERRAL_SHOWN_KEY = 'lawie_referral_shown';
 
 // Which field a T-208 422 message belongs to (cheap prefix match, per design).
 // "Invalid email format" is the API's email-format message, so it maps to Email too.
@@ -118,7 +125,7 @@ function LoginContent() {
   const [serverInvalid, setServerInvalid] = useState<Set<Field>>(new Set());
   const [serverError, setServerError] = useState<ServerError | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [referralNotApplied, setReferralNotApplied] = useState(false);
+  const [referralNotice, setReferralNotice] = useState<string | null>(null);
 
   // Referral code — SCRUM-71 (Create account only)
   const [referralCode, setReferralCode] = useState('');
@@ -239,6 +246,12 @@ function LoginContent() {
   const handleGoogleLogin = () => {
     const code = referralToSend();
     if (code) sessionStorage.setItem('lawie_referral_code', code);
+    try {
+      if (code) sessionStorage.setItem(REFERRAL_SHOWN_KEY, referralValid === true ? '1' : '0');
+      else sessionStorage.removeItem(REFERRAL_SHOWN_KEY);
+    } catch {
+      // Storage unavailable: the callback falls back to the "not valid" line.
+    }
     const base = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
     window.location.href = code ? `${base}?referralCode=${encodeURIComponent(code)}` : base;
   };
@@ -320,11 +333,13 @@ function LoginContent() {
     const refreshToken = json.data?.refreshToken;
     if (res.ok && accessToken && refreshToken) {
       login(accessToken, refreshToken);
-      // Ajay Addendum 1: a code that showed R5/R6 but was no longer valid at account creation.
-      // The account exists; tell the user once before going on.
+      // The code sent was not valid at account creation. The account exists; tell the user once
+      // before going on. Addendum 1 line if R5/R6 showed for it, Addendum 3 line if never applied.
       if (isSignup && json.data?.referralApplied === false) {
         setSubmitting(false);
-        setReferralNotApplied(true);
+        setReferralNotice(
+          referralValid === true ? REFERRAL_NOT_APPLIED_MESSAGE : REFERRAL_NOT_VALID_MESSAGE,
+        );
         return;
       }
       router.replace('/dashboard');
@@ -401,14 +416,14 @@ function LoginContent() {
         {/* Card */}
         <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl shadow-slate-200/60">
           <div className="p-5 sm:p-8">
-            {referralNotApplied ? (
+            {referralNotice ? (
               <div role="status">
                 <p className="flex items-start gap-2 text-base text-slate-900">
                   <AlertTriangle
                     className="mt-0.5 h-5 w-5 shrink-0 text-amber-700"
                     aria-hidden="true"
                   />
-                  <span>{REFERRAL_NOT_APPLIED_MESSAGE}</span>
+                  <span>{referralNotice}</span>
                 </p>
                 <button
                   type="button"

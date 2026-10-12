@@ -4,7 +4,7 @@ import { RegisterPayload, LoginPayload } from '@lawie/shared';
 
 import logger from '../config/logger';
 import { AppError } from '../middleware/errorHandler';
-import { User, IUser, CURRENT_TERMS_VERSION } from '../models/User.model';
+import { User, IUser, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
 
 import { tryGrantDailyLoginBonus, grantSignupBonus } from './credit-bonus.service';
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
@@ -36,6 +36,7 @@ export async function registerUser(
     // Server time and server version only; nothing here comes from the request.
     termsAcceptedAt: new Date(),
     termsVersion: CURRENT_TERMS_VERSION,
+    privacyVersion: CURRENT_PRIVACY_VERSION,
     acceptedVia: 'password',
   });
 

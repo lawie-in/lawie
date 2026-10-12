@@ -12,7 +12,7 @@ import './setupDb';
 import supertest from 'supertest';
 
 import app from '../app';
-import { User, CURRENT_TERMS_VERSION } from '../models/User.model';
+import { User, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
 
 import { waitForSeed } from './t234-helpers';
 
@@ -27,6 +27,11 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(CURRENT_TERMS_VERSION).toBe('2026-06-01');
   });
 
+  it('CURRENT_PRIVACY_VERSION is 2026-10-12 (Ajay, Addendum 3), separate from the Terms version', () => {
+    expect(CURRENT_PRIVACY_VERSION).toBe('2026-10-12');
+    expect(CURRENT_PRIVACY_VERSION).not.toBe(CURRENT_TERMS_VERSION);
+  });
+
   it('sets termsAcceptedAt (server time), termsVersion and acceptedVia=password', async () => {
     const before = Date.now();
     const res = await reg('terms@example.com');
@@ -36,6 +41,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(u!.termsAcceptedAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
     expect(u!.termsAcceptedAt!.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
     expect(u!.termsVersion).toBe('2026-06-01');
+    expect(u!.privacyVersion).toBe('2026-10-12');
     expect(u!.acceptedVia).toBe('password');
     await waitForSeed(u!._id);
   });
@@ -44,12 +50,14 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     const res = await reg('spoof@example.com', {
       termsAcceptedAt: '2001-01-01T00:00:00.000Z',
       termsVersion: '1999-01-01',
+      privacyVersion: '1999-01-01',
       acceptedVia: 'google',
     });
     expect(res.status).toBe(201);
     const u = await User.findOne({ email: 'spoof@example.com' }).lean();
     expect(u!.termsAcceptedAt!.getFullYear()).toBeGreaterThanOrEqual(2026);
     expect(u!.termsVersion).toBe('2026-06-01');
+    expect(u!.privacyVersion).toBe('2026-10-12');
     expect(u!.acceptedVia).toBe('password');
     await waitForSeed(u!._id);
   });
@@ -57,11 +65,16 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
   it('a duplicate-email register (409) does not touch the existing acceptance', async () => {
     await reg('dupterms@example.com');
     const first = await User.findOne({ email: 'dupterms@example.com' }).lean();
-    const res = await reg('dupterms@example.com', { termsVersion: 'x', acceptedVia: 'google' });
+    const res = await reg('dupterms@example.com', {
+      termsVersion: 'x',
+      privacyVersion: 'x',
+      acceptedVia: 'google',
+    });
     expect(res.status).toBe(409);
     const after = await User.findOne({ email: 'dupterms@example.com' }).lean();
     expect(after!.termsAcceptedAt).toEqual(first!.termsAcceptedAt);
     expect(after!.termsVersion).toBe('2026-06-01');
+    expect(after!.privacyVersion).toBe('2026-10-12');
     expect(after!.acceptedVia).toBe('password');
     await waitForSeed(first!._id);
   });
@@ -71,6 +84,8 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     const raw = await User.findById(u._id).lean();
     expect(raw!.termsAcceptedAt ?? null).toBeNull();
     expect(raw!.termsVersion ?? null).toBeNull();
+    expect(raw!.privacyVersion ?? null).toBeNull();
+    expect(User.schema.path('privacyVersion').options.default).toBeUndefined();
     expect(raw!.acceptedVia ?? null).toBeNull();
   });
 
@@ -83,6 +98,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(res.status).toBe(200);
     const after = await User.findOne({ email: 'loginterms@example.com' }).lean();
     expect(after!.termsAcceptedAt).toEqual(before!.termsAcceptedAt);
+    expect(after!.privacyVersion).toBe(before!.privacyVersion);
     await waitForSeed(before!._id);
   });
 });
