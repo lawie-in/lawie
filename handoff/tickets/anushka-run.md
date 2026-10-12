@@ -644,3 +644,45 @@ What a user can now do:
 - Arrive from a campaign link, start a Google sign-in, cancel, then try again in the same tab. The account still records which campaign brought them.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-334 — "none filed" in the advocate's own words (828d55e, mahak, 12 Oct 2026)
+
+What a user can now do:
+- Answer the earlier-bail-applications question in their own words, such as "none filed", "koi bail nahi" or "कोई नहीं", and get the draft saying no other bail application has been made, with no "earlier bail applications are: koi bail nahi" line.
+- If a draft claims no earlier bail application was filed but they never confirmed it, have that claim removed or flagged before filing.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-345 + T-340 — one date format, no false "facts changed", clean category names (0d90ed7, tanvi, 12 Oct 2026)
+
+What a user can now do:
+- See every date in a template draft written like "4 April 2026", including dates of birth and custody dates.
+- Type dates as numbers without a false "facts changed" warning; a real change is still flagged.
+- See category names without underscores.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-351 — no free credits before an email is verified (eae46a9, shashank, 12 Oct 2026)
+
+What a user can now do:
+- Sign up with Google and get the free Ink straight away, as before.
+- Sign up with an email and password and start with no free Ink until the address is verified; the daily bonus waits for that too.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-343 — accept a changed privacy policy (3cbcd78, kunal, 12 Oct 2026)
+
+What a user can now do:
+- After a privacy change, see a short notice of what changed on the next sign-in, with a link to the policy and two choices: Accept or Not now.
+- After Not now, still view, download and export. A new draft or payment asks for acceptance right at the button, and anything typed is kept.
+- Accept and carry on without signing in again. A dismissed notice doesn't come back in the same sign-in.
+- Please also check the notice with a screen reader and with reduced motion switched on (not yet checked).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-331 — admin template usage (d1b4372, mahak, 12 Oct 2026)
+
+What a user can now do:
+- An admin opening document analytics sees which templates are used, by name, with counts and how many were finalised, instead of an empty table.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

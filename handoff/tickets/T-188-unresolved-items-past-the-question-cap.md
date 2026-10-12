@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                             |
 | Owner          | Arjun (which option, and the design) and Ajay (legal sign-off on the option and on any marker text). Vishal builds |
 | Mode           | Decision first (Arjun + Ajay), then build (developer + reviewer + tester)                                          |
-| Status         | To do. Waits for Arjun and Ajay to choose option A or B. Gates `feature.fact_ledger` for real users               |
+| Status         | Ajay chose and signed Option A (33af21e, 12 Oct 2026). Arjun: design. Build: vishal after T-187; Ajay checks the diff. Last gate (with T-187) for T-356 part 2 |
 | Size           | Decision S (0.5 day, Arjun + Ajay). Build: option A is S (0.5 day), option B is M (1 day)                          |
 | Depends on     | T-147b                                                                                                             |
 | Blocks         | Switching `feature.fact_ledger` on for any real user. Same gate group as T-187 and T-147c                           |
@@ -70,3 +70,14 @@ Every unresolved ledger item is either asked or visibly marked in the draft. Non
 
 From the T-189 build (Vishal, tester round 1): a list or choices key that has some resolved entries and one unresolved entry is not asked again (`apps/drafting/src/services/intake.service.ts`, around line 1253). The unresolved entry never reaches the facts (Ajay's T-189 condition), so the draft carries the other entries and silently lacks that one. Arjun and Ajay's choice of option here must cover partly resolved list keys too. Not a T-189 blocker: T-189 ships with today's behaviour.
 
+
+## Arjun (12 Oct 2026): option A, using the blank Ajay already signed — Ajay to sign
+
+**Option A (mark), not B.** Most of it is already merged: T-190 (past-cap items write no fact) and T-338 (unasked optional keys reach the Drafter as a visible blank, Ajay signed 2db8acb). B adds rounds of questions to a flow the founder wants shorter, and its fallback is A anyway.
+1. **One marker, the one Ajay signed in T-338**, for every unresolved key past the cap, **required or optional**. No second marker string; if Ajay wants different wording for required keys, he signs it here.
+2. **Partly resolved list or choice keys** (Priya's 11 Oct case): the resolved entries print; the unresolved entry adds the same blank after them, so the draft shows something is missing. It is never dropped silently.
+3. The brief lists every unresolved item as outstanding, past-cap ones included; what the brief shows and what the Drafter receives are the same set (AC7). The advocate can fill any of them in the brief before drafting, as today.
+4. Build is small: extend T-338's pass-through to required keys and to the list case, plus tests for AC4, AC5, AC7 (with 11+ unresolved), AC8 (10 or fewer: unchanged) and the list case. No prompt text change unless Ajay signs the diff.
+**Ajay:** sign option A and confirm the T-338 blank is the marker (AC1, AC2).
+
+Arjun (12 Oct 2026): Ajay signed option A at 33af21e (handoff/legal/T-188-unresolved-past-cap-signed.md). The marker is the existing `{{MISSING: label}}` blank; partly resolved lists print the resolved entries plus that blank. Matches my design above; build as written there.

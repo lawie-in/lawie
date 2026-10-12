@@ -22,8 +22,8 @@ Vikram's prices and the two-tranche marketing budget; chatbot design and caps (T
 
 ## Your to-dos (need your logins)
 1. **`feature.fact_ledger`** app setting, same value as `feature.describe_first`, before Anushka tests T-189 and T-251.
-2. **SES and DNS for T-220** (the "policy changed" email and verification mail).
-3. **The registered address** for the privacy policy and invoices.
+2. **SES and DNS for T-220** (the "policy changed" email and verification mail). Once T-223 merges, the develop email worker also needs `AUTH_SERVICE_URL` set (step 7 of the email doc, Arjun).
+3. **The registered address, with PIN code,** for the privacy policy, invoices and the footer of the verification email (T-223; no verification email goes out until it is filled).
 4. **Rotate `INTERNAL_SECRET`** after T-229 merges.
 5. **Production section reseed** (your database), only after T-250 + T-255 and T-275 are merged; develop first.
 6. The rest of the list below, when you choose.
@@ -94,3 +94,7 @@ Open the develop web app and confirm it loads on https:// with a padlock and no 
 ## Develop reseed before Anushka tests the converter (Ajay, T-280, 12 Oct)
 
 Run the section seed with --force on develop (seed-sections) after T-280 merges and before Anushka tests the section converter, so the titles shown are Ajay's signed ones. This is the same develop-first reseed as item 5, so one run covers both.
+
+## Overnight note (Priya, 12 Oct 2026)
+
+- T-220 step 1 merged (b958216). Until your SES session, the email worker on develop will refuse to start, with one line naming the missing settings (INTERNAL_SECRET and AWS_SES_*): the develop server's production environment file is still SMTP-era. Arjun wants this visible failure; the SES session (item 2 above) fixes it. Nothing else depends on the worker yet.

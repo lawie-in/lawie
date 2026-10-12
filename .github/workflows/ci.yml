@@ -223,15 +223,26 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   # ── Test Email worker (T-320) ───────────────────────────────────────────
-  # No Redis or Mongo service: the tests use createApp() (no BullMQ workers) and
-  # src/__tests__/setupEnv.ts sets every env var they read (dry-run provider).
+  # Redis service for the T-220 AC4 retry/replay test (real BullMQ queue, forced provider
+  # error, dry-run provider). No Mongo. src/__tests__/setupEnv.ts sets the other env vars.
   test-email-worker:
     name: Test — Email worker
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.email-worker == 'true' || needs.changes.outputs.shared == 'true'
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
     env:
       NODE_ENV: test
+      REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

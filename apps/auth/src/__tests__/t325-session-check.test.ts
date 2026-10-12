@@ -283,7 +283,15 @@ describe('authenticateAllowRevoked is confined to /logout', () => {
       .filter((l) => /authenticateAllowRevoked/.test(l) && /router\./.test(l));
     expect(uses).toHaveLength(1);
     expect(uses[0]).toContain("'/logout'");
-    expect(src).not.toMatch(/router\.\w+\([^)]*\bauthenticate\b[^)]*\)/);
+    // T-343 (Arjun, Addendum 1): GET /me and POST /me/privacy-acceptance deliberately use the
+    // session-checking authenticate; no other route in this file may use it (the intent of
+    // this test is unchanged: only /logout accepts a revoked token).
+    const plain = src
+      .split('\n')
+      .filter((l) => /router\.\w+\(/.test(l) && /\bauthenticate\b/.test(l))
+      .map((l) => /router\.\w+\(\s*'([^']+)'/.exec(l)?.[1])
+      .sort();
+    expect(plain).toEqual(['/me', '/me/privacy-acceptance']);
   });
 
   it('every other router that guards routes uses the session-checking authenticate', () => {
