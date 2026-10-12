@@ -350,6 +350,9 @@ function MultiSelectSearchField({
   options,
   allowFreeText = false,
   searchHandler,
+  readHandler,
+  maxValues,
+  maxValueLength,
 }: {
   field: FormField;
   value: string[];
@@ -359,10 +362,83 @@ function MultiSelectSearchField({
   /** SCRUM-85 — when provided, the dropdown is populated by debounced remote
    *  search instead of static `options`. Returns up to N matches for `query`. */
   searchHandler?: (query: string) => Promise<FieldOption[]>;
+  /** T-290 — bns_mapping picker only. Returns what the server reads from each
+   *  value (entries[i] for values[i]), or null if the check failed, timed out or
+   *  was aborted. Shows the S1 hint and a "Read as" line under each chip. */
+  readHandler?: (values: string[], signal: AbortSignal) => Promise<SectionRead[][] | null>;
+  /** T-309 — bns_mapping picker only: at most this many chips (no new text at the
+   *  cap; the input is just made read-only). */
+  maxValues?: number;
+  /** T-309 — bns_mapping picker only: never add a value longer than this. */
+  maxValueLength?: number;
 }) {
   const [search, setSearch] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [remoteResults, setRemoteResults] = useState<FieldOption[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
+  // T-290 (Arjun, Addendum 2): ONE read call for all chip values whenever the chip
+  // list changes. entries[i] belongs to chip i. A newer call aborts the older one.
+  // Every check result is tied to the exact list it was made for (`forKey`), so a
+  // result never lands on a different list of chips.
+  const valuesKey = JSON.stringify(value);
+  const [readResult, setReadResult] = useState<SectionReadResult | null>(null);
+  // T-309 — only values the server accepts are sent (Arjun's caps), so one bad
+  // stored value can't fail the whole call. sendIndex[i] is chip i's index in
+  // the sent list, or null if chip i can't be sent (it shows S8 on its own).
+  const { sendIndex } = useMemo(
+    () => pickSendableReadValues(JSON.parse(valuesKey) as string[]),
+    [valuesKey],
+  );
+
+  useEffect(() => {
+    if (!readHandler) return;
+    const { sendable } = pickSendableReadValues(JSON.parse(valuesKey) as string[]);
+    if (sendable.length === 0) return;
+    // One call per chip list. The controller is aborted when the list changes or
+    // the picker unmounts, which also cancels a pending retry (T-309: on failure,
+    // retry the same request once after ~2 s; a success replaces S8).
+    const controller = new AbortController();
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const run = (attempt: number) => {
+      void readHandler(sendable, controller.signal).then((entries) => {
+        if (controller.signal.aborted) return; // superseded or unmounted
+        const ok = entries !== null && entries.length === sendable.length;
+        setReadResult(
+          ok
+            ? { forKey: valuesKey, status: 'ok', entries }
+            : { forKey: valuesKey, status: 'failed' },
+        );
+        if (!ok && attempt === 0) {
+          retryTimer = setTimeout(() => {
+            if (!controller.signal.aborted) run(1);
+          }, SECTION_READ_RETRY_MS);
+        }
+      });
+    };
+    run(0);
+    return () => {
+      controller.abort();
+      clearTimeout(retryTimer);
+    };
+  }, [valuesKey, readHandler]);
+
+  /** S7 (undefined) until this exact chip list has been checked. A chip that
+   *  can't be sent shows S8 straight away. */
+  function readStateAt(index: number): SectionReadState | undefined {
+    const slot = sendIndex[index];
+    if (slot === null || slot === undefined) return { status: 'failed' };
+    if (!readResult || readResult.forKey !== valuesKey) return undefined;
+    if (readResult.status === 'failed') return { status: 'failed' };
+    return { status: 'ok', sections: readResult.entries[slot] ?? [] };
+  }
+
+  // T-309 — caps (bns_mapping only; undefined elsewhere means no cap).
+  const atCap = maxValues !== undefined && value.length >= maxValues;
+  function canAdd(v: string): boolean {
+    if (atCap) return false;
+    if (maxValueLength !== undefined && v.length > maxValueLength) return false;
+    return !value.includes(v);
+  }
 
   // SCRUM-85: debounced typeahead for fields with a `searchHandler`. Tracks the
   // latest request to discard stale ones (advocate types fast).
@@ -393,14 +469,18 @@ function MultiSelectSearchField({
     if (searchHandler) {
       // Remote-search mode: dropdown shows whatever the handler returned, minus
       // anything the user has already picked.
-      return remoteResults.filter((o) => !value.includes(o.id));
+      // T-309: also drop any match too long to add (bns_mapping cap).
+      return remoteResults.filter(
+        (o) =>
+          !value.includes(o.id) && (maxValueLength === undefined || o.id.length <= maxValueLength),
+      );
     }
     return search.length > 0
       ? options.filter(
           (o) => o.label.toLowerCase().includes(search.toLowerCase()) && !value.includes(o.id),
         )
       : options.filter((o) => !value.includes(o.id));
-  }, [searchHandler, options, search, value, remoteResults]);
+  }, [searchHandler, options, search, value, remoteResults, maxValueLength]);
 
   const selectedItems: FieldOption[] = value.map((id) => {
     const found = options.find((o) => o.id === id);
@@ -409,7 +489,7 @@ function MultiSelectSearchField({
 
   function addFreeText() {
     const trimmed = search.trim();
-    if (trimmed && !value.includes(trimmed)) {
+    if (trimmed && canAdd(trimmed)) {
       onChange([...value, trimmed]);
       setSearch('');
     }
@@ -418,35 +498,53 @@ function MultiSelectSearchField({
   return (
     <div>
       <FieldLabel field={field} />
-      {allowFreeText && (
+      {allowFreeText && !readHandler && (
         <p className="mt-0.5 text-xs text-slate-400">Type a section and press Enter to add</p>
       )}
       {/* Selected items as tags */}
       {selectedItems.length > 0 && (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {selectedItems.map((item) => (
-            <span
-              key={item.id}
-              className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
-            >
-              {item.label}
-              <X
-                size={12}
-                className="cursor-pointer hover:text-amber-600"
-                onClick={() => onChange(value.filter((v) => v !== item.id))}
-              />
-            </span>
+        <div className="mt-1 space-y-2 sm:space-y-1">
+          {selectedItems.map((item, index) => (
+            <div key={item.id}>
+              <div className="flex min-w-0 items-center gap-2 sm:gap-1">
+                <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 [overflow-wrap:anywhere]">
+                  {item.label}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(value.filter((v) => v !== item.id));
+                    searchInputRef.current?.focus();
+                  }}
+                  aria-label={`Remove ${item.label}`}
+                  className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 sm:h-6 sm:w-6 sm:rounded-full sm:border-0"
+                >
+                  <X size={16} className="sm:h-3 sm:w-3" aria-hidden="true" />
+                </button>
+              </div>
+              {readHandler && (
+                <div aria-live="polite">
+                  <SectionReadLines state={readStateAt(index)} />
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
       {/* Search + dropdown */}
-      <div className="relative mt-1">
+      <div className="relative mt-2 sm:mt-1">
         <div className={`${inputClasses} flex items-center gap-2`}>
           <Search size={14} className="flex-shrink-0 text-slate-400" />
           <input
+            ref={searchInputRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            maxLength={maxValueLength}
+            // T-309: at the chip cap the input stops taking text. readOnly, not
+            // disabled, so the remove button can still return focus here.
+            readOnly={atCap}
+            aria-disabled={atCap || undefined}
             onKeyDown={(e) => {
               if (allowFreeText && (e.key === 'Enter' || e.key === ',')) {
                 e.preventDefault();
@@ -454,9 +552,11 @@ function MultiSelectSearchField({
               }
             }}
             placeholder={field.placeholder || 'Search and select…'}
-            className="flex-1 bg-transparent text-sm outline-none"
+            className={`flex-1 bg-transparent text-sm outline-none ${
+              atCap ? 'cursor-not-allowed opacity-40' : ''
+            }`}
           />
-          {allowFreeText && search.trim() && (
+          {allowFreeText && !atCap && search.trim() && (
             <button
               type="button"
               onClick={addFreeText}
@@ -466,7 +566,7 @@ function MultiSelectSearchField({
             </button>
           )}
         </div>
-        {search.length > 0 && (
+        {!atCap && search.length > 0 && (
           <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
             {remoteLoading && filtered.length === 0 && (
               <div className="px-3 py-2 text-xs text-slate-400">Searching…</div>
@@ -480,6 +580,7 @@ function MultiSelectSearchField({
                 type="button"
                 className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-amber-50"
                 onClick={() => {
+                  if (!canAdd(opt.id)) return;
                   onChange([...value, opt.id]);
                   setSearch('');
                 }}
@@ -490,7 +591,64 @@ function MultiSelectSearchField({
           </div>
         )}
       </div>
+      {readHandler && (
+        <p className="mt-1 text-xs text-slate-500">
+          A number without the Act is read as a BNS section. For IPC, type the Act, for example IPC
+          302.
+        </p>
+      )}
     </div>
+  );
+}
+
+/** T-290 — S8, signed by Ajay. One constant so every S8 reads the same. */
+const SECTION_READ_FAILED_LINE =
+  'Could not check this section. Check the Act and the number before you generate.';
+
+/** T-290 — the "Read as" lines for one entered value (S2 to S8, signed by Ajay).
+ *  Never renders nothing: a missing line would read as "nothing wrong". */
+function SectionReadLines({ state }: { state: SectionReadState | undefined }) {
+  if (state === undefined) {
+    return <p className="mt-0.5 break-words text-xs text-slate-600">Checking this section</p>;
+  }
+  if (state.status === 'failed') {
+    return <p className="mt-0.5 text-xs text-red-500">{SECTION_READ_FAILED_LINE}</p>;
+  }
+  const { sections } = state;
+  if (sections.length === 0) {
+    return <p className="mt-0.5 text-xs text-red-500">Not read as a section</p>;
+  }
+  return (
+    <>
+      {sections.map((s, i) => {
+        const key = `${i}-${s.code ?? ''}-${s.number}`;
+        if (s.code === 'OTHER') {
+          return (
+            <p key={key} className="mt-0.5 break-words text-xs text-slate-600">
+              Read as a section of another Act (not checked by Lawie)
+            </p>
+          );
+        }
+        // T-309: the bns_mapping reader always gives a code, but never invent one
+        // and never show no line: a null or unknown code shows S8 for this item.
+        if (!isNamedReadCode(s.code)) {
+          return (
+            <p key={key} className="mt-0.5 text-xs text-red-500">
+              {SECTION_READ_FAILED_LINE}
+            </p>
+          );
+        }
+        return (
+          <p key={key} className="mt-0.5 break-words text-xs text-slate-600">
+            Read as{' '}
+            <span className="font-medium">
+              {displayReadAsCode(s.code)} {s.number}
+            </span>
+            {s.code === 'BNS' && s.title ? `: ${s.title}` : null}
+          </p>
+        );
+      })}
+    </>
   );
 }
 
@@ -577,6 +735,7 @@ function FileField({
   onChange: (v: UploadedFile[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const chooseButtonRef = useRef<HTMLButtonElement>(null);
   function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
     const list = e.target.files;
     if (!list) return;
@@ -593,6 +752,7 @@ function FileField({
     <div>
       <FieldLabel field={field} />
       <button
+        ref={chooseButtonRef}
         type="button"
         onClick={() => inputRef.current?.click()}
         className={`${inputClasses} flex items-center gap-2 text-left text-slate-600 hover:bg-slate-50`}
@@ -615,23 +775,26 @@ function FileField({
         onChange={handlePick}
       />
       {value.length > 0 && (
-        <ul className="mt-1 space-y-1">
+        <ul className="mt-2 space-y-2 sm:mt-1 sm:space-y-1">
           {value.map((f, i) => (
             <li
               key={`${f.name}-${i}`}
-              className="flex items-center justify-between rounded border border-slate-100 px-2 py-1 text-xs text-slate-600"
+              className="flex items-center justify-between gap-2 rounded border border-slate-100 py-0 pl-2 pr-0 text-xs text-slate-600 sm:pr-1"
             >
-              <span className="truncate">
+              <span className="min-w-0 truncate">
                 {f.name}
                 <span className="ml-2 text-slate-400">{(f.size / 1024).toFixed(0)} KB</span>
               </span>
               <button
                 type="button"
-                onClick={() => onChange(value.filter((_, j) => j !== i))}
-                className="text-slate-400 hover:text-slate-600"
-                aria-label="Remove"
+                onClick={() => {
+                  onChange(value.filter((_, j) => j !== i));
+                  chooseButtonRef.current?.focus();
+                }}
+                aria-label={`Remove ${f.name}`}
+                className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 sm:h-6 sm:w-6 sm:border-0"
               >
-                <X size={12} />
+                <X size={16} className="sm:h-3 sm:w-3" aria-hidden="true" />
               </button>
             </li>
           ))}
@@ -828,6 +991,119 @@ export async function fetchBnsMappingResults(query: string): Promise<FieldOption
   }
 }
 
+// T-290 — what the server reads from bns_mapping picker values (POST
+// /sections/read, Arjun). `title` is set only for BNS, from the signed T-277 table.
+export interface SectionRead {
+  code: 'BNS' | 'BNSS' | 'BSA' | 'IPC' | 'CRPC' | 'IEA' | 'OTHER' | null;
+  number: string;
+  title: string | null;
+}
+
+// T-290 (Ajay, on ba4b11c) — display only: the code as practitioners write it in
+// the "Read as" line ("Read as CrPC 41"). Stored values and the server response
+// keep the reader's codes unchanged.
+type NamedReadCode = Exclude<SectionRead['code'], 'OTHER' | null>;
+const READ_AS_DISPLAY_CODE: Readonly<Record<NamedReadCode, string>> = {
+  IPC: 'IPC',
+  CRPC: 'CrPC',
+  IEA: 'IEA',
+  BNS: 'BNS',
+  BNSS: 'BNSS',
+  BSA: 'BSA',
+};
+
+/** T-309 — true only for a code the picker can name in a "Read as" line. */
+export function isNamedReadCode(code: unknown): code is NamedReadCode {
+  return (
+    typeof code === 'string' && Object.prototype.hasOwnProperty.call(READ_AS_DISPLAY_CODE, code)
+  );
+}
+
+/** T-290 — the display form of a named reader code, e.g. CRPC → "CrPC". */
+export function displayReadAsCode(code: NamedReadCode): string {
+  return READ_AS_DISPLAY_CODE[code];
+}
+
+/** T-290 — the plain text of the S2/S3/S4 line for one named-code section, e.g.
+ *  "Read as CrPC 41" or "Read as BNS 303: Theft". Null for OTHER or a bare
+ *  number (those are not S2 to S4). Pure, so it can be unit-tested. */
+export function formatReadAsLine(s: SectionRead): string | null {
+  if (!isNamedReadCode(s.code)) return null;
+  const title = s.code === 'BNS' && s.title ? `: ${s.title}` : '';
+  return `Read as ${displayReadAsCode(s.code)} ${s.number}${title}`;
+}
+
+type SectionReadState = { status: 'ok'; sections: SectionRead[] } | { status: 'failed' };
+
+type SectionReadResult =
+  | { forKey: string; status: 'ok'; entries: SectionRead[][] }
+  | { forKey: string; status: 'failed' };
+
+const SECTION_READ_TIMEOUT_MS = 5000;
+// T-309 — one automatic retry of a failed read, after about 2 s.
+const SECTION_READ_RETRY_MS = 2000;
+
+// T-309 — Arjun's /sections/read caps for `values` (more is a 400 for the whole
+// call). The bns_mapping picker enforces the same caps on input.
+export const SECTION_READ_MAX_VALUES = 30;
+export const SECTION_READ_MAX_VALUE_LENGTH = 100;
+
+/** T-309 — the values that can be sent to /sections/read: strings of at most
+ *  100 characters, the first 30 of them. sendIndex[i] is values[i]'s index in
+ *  `sendable`, or null if values[i] is not sent (that chip shows S8 on its own).
+ *  Pure, so it can be unit-tested. */
+export function pickSendableReadValues(values: readonly unknown[]): {
+  sendable: string[];
+  sendIndex: Array<number | null>;
+} {
+  const sendable: string[] = [];
+  const sendIndex = values.map((v) => {
+    if (
+      typeof v !== 'string' ||
+      v.length > SECTION_READ_MAX_VALUE_LENGTH ||
+      sendable.length >= SECTION_READ_MAX_VALUES
+    ) {
+      return null;
+    }
+    sendable.push(v);
+    return sendable.length - 1;
+  });
+  return { sendable, sendIndex };
+}
+
+// T-290 — POSTs {values} to /api/sections/read (POST so FIR numbers stay out of
+// URLs) and returns entries[i].read for values[i]. Returns null on network error,
+// non-2xx, bad shape, the ~5 s timeout, or an abort from the caller, so the picker
+// shows S8 rather than a guess.
+export async function fetchSectionRead(
+  values: string[],
+  signal: AbortSignal,
+): Promise<SectionRead[][] | null> {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (signal.aborted) return null;
+  signal.addEventListener('abort', abort);
+  const timer = setTimeout(abort, SECTION_READ_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${API_URL}/api/sections/read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { entries?: Array<{ read?: SectionRead[] }> };
+    if (!Array.isArray(data.entries)) return null;
+    const entries = data.entries.map((e) => e?.read);
+    return entries.every(Array.isArray) ? (entries as SectionRead[][]) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener('abort', abort);
+  }
+}
+
 // ── One field's input, by type (shared with the describe-first follow-up, T-103) ──
 
 export function FieldInput({
@@ -877,6 +1153,11 @@ export function FieldInput({
           options={options}
           allowFreeText={field.source === 'bns_mapping'}
           searchHandler={field.source === 'bns_mapping' ? fetchBnsMappingResults : undefined}
+          readHandler={field.source === 'bns_mapping' ? fetchSectionRead : undefined}
+          maxValues={field.source === 'bns_mapping' ? SECTION_READ_MAX_VALUES : undefined}
+          maxValueLength={
+            field.source === 'bns_mapping' ? SECTION_READ_MAX_VALUE_LENGTH : undefined
+          }
         />
       )}
 

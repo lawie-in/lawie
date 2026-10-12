@@ -34,11 +34,10 @@ Rules:
 - Bail: a person who has already been arrested or is in custody needs regular bail. A person who has not been arrested and expects to be arrested needs anticipatory bail. Never choose an anticipatory bail template when the description says the person has been arrested or is in custody. Never choose a regular bail template when the description says the person has not been arrested. If the description does not say which, use confidence "medium" and list both.
 - is_legal_drafting false: the request is not for a legal document at all (for example general questions, chat, or unrelated tasks). Set template_id to null.
 - is_court_document true when the document would be filed in or addressed to a court or tribunal, or the description mentions a court, an FIR, a case number, bail, a petition, an appeal, a suit or a writ.
-- label: a short generic name for the document requested, at most 8 words. Do not include any person's name, any number, any date, any place or any organisation name.
 - category: one word guess such as criminal, civil, family, property, consumer, corporate, labour, notice, affidavit, agreement, other.
 
 Reply with JSON only, no other text, in exactly this shape:
-{"template_id": string or null, "confidence": "high" | "medium" | "low", "alternatives": [template_id, ...], "is_legal_drafting": boolean, "is_court_document": boolean, "label": string, "category": string}`;
+{"template_id": string or null, "confidence": "high" | "medium" | "low", "alternatives": [template_id, ...], "is_legal_drafting": boolean, "is_court_document": boolean, "category": string}`;
 
 export function buildMatchUserPrompt(description: string, catalogue: CatalogueEntry[]): string {
   const lines = catalogue.map(

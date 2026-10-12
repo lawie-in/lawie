@@ -148,20 +148,19 @@ describe('BNSS bail section recommendation', () => {
 // ---------------------------------------------------------------------------
 
 describe('Court jurisdiction', () => {
-  it('recommends JMFC for offences up to 3 years', async () => {
+  it('shows the signed value for 115 (Any Magistrate)', async () => {
     const result = await checkBailEligibility(['115']);
-    expect(result.summary.courtLevel).toContain('Magistrate');
+    expect(result.summary.courtLevel).toBe('Any Magistrate');
   });
 
-  it('recommends Sessions Court for 3-7 year offences', async () => {
+  it('3-7 year offence 74 shows its signed value (Any Magistrate), not Sessions', async () => {
     const result = await checkBailEligibility(['74']);
-    expect(result.summary.courtLevel).toContain('Sessions');
+    expect(result.summary.courtLevel).toBe('Any Magistrate');
   });
 
-  it('recommends Sessions/HC for death/life offences', async () => {
+  it('shows Court of Session for death/life offence 103', async () => {
     const result = await checkBailEligibility(['103']);
-    expect(result.summary.courtLevel).toContain('Sessions');
-    expect(result.summary.courtLevel).toContain('High Court');
+    expect(result.summary.courtLevel).toBe('Court of Session');
   });
 });
 

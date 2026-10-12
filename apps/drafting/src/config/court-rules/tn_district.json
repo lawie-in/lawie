@@ -11,7 +11,7 @@
   "courtId": "tn_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF PRINCIPAL DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Tamil Nadu. Sessions courts try offences punishable with imprisonment exceeding 7 years. Sessions cases are typically numbered S.C. No. and special sessions cases as Spl. Sessions C. No. Chennai operates as the City Civil & Sessions Court under the Tamil Nadu Civil Courts Act, 1873 and the Madras High Court Original Side Rules as locally adapted.",
+  "jurisdictionNote": "District-level criminal and civil courts in Tamil Nadu. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Sessions cases are typically numbered S.C. No. and special sessions cases as Spl. Sessions C. No. Chennai operates as the City Civil & Sessions Court under the Tamil Nadu Civil Courts Act, 1873 and the Madras High Court Original Side Rules as locally adapted.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",

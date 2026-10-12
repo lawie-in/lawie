@@ -11,7 +11,7 @@
   "courtId": "rj_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Rajasthan, governed by the Rajasthan Civil Courts Ordinance, 1950 and Rajasthan High Court Rules, 1952. Sessions courts try offences punishable with imprisonment exceeding 7 years. Rajasthan was reorganised in 2023, with 19 new districts notified — current count is 50 districts. Hindi is the official language of the State courts under the Rajasthan Official Language Act, 1956.",
+  "jurisdictionNote": "District-level criminal and civil courts in Rajasthan, governed by the Rajasthan Civil Courts Ordinance, 1950 and Rajasthan High Court Rules, 1952. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Rajasthan was reorganised in 2023, with 19 new districts notified — current count is 50 districts. Hindi is the official language of the State courts under the Rajasthan Official Language Act, 1956.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",

@@ -307,3 +307,81 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The Privacy Policy now says what Lawie keeps if you join the waitlist (name, email, and phone, city, practice area and the link you came from if given), kept until you ask for deletion and never more than 18 months after you joined or Lawie last wrote to you.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-291 (tanvi, merged to develop_staging 38433f3, 12 Oct 2026)
+
+- On a phone, you can remove a section you added, or a file you attached, by tapping a clear button next to it, without hitting the wrong one.
+- On a computer the remove "x" sits beside each section and works from the keyboard. A screen reader reads it as "Remove" plus the name.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-292 (mahak, merged to develop_staging 613e151, 12 Oct 2026)
+
+Nothing changes on screen. Lawie no longer asks the AI to name the user's matter when it looks for a template.
+
+Test: describe a document; Lawie still finds the right template, or offers choices, as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-289 (shashank, merged to develop_staging ad6db61, 12 Oct 2026)
+
+- The bail checker names the trial court exactly as the First Schedule prints it ("Any Magistrate", "Court of Session") instead of guessing from the sentence. A 3-7 year offence triable by a Magistrate is no longer sent to Sessions.
+- With several sections, Court of Session wins if any section is triable there; otherwise the higher Magistrate is shown.
+- Where the Schedule gives no single court, the bail checker and the section finder say "Depends on the offence. Check the First Schedule."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-293 — bail draft reads the sections charged safely (cf05202)
+
+- Nothing changes on screen. A bail draft's bailable / non-bailable lines still match the sections charged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-290 — section picker shows what each section was read as (83a5c07)
+
+- Under Sections Charged, a reminder that a bare number is read as a BNS section.
+- Under each section added, what Lawie read it as before drafting ("Read as BNS 303: Theft", "Read as IPC 302").
+- "Checking this section" shows while it checks; a red warning appears if the check fails or the entry isn't a section.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-309 — section picker hardening (ed989ee)
+
+- If one section can't be checked, only that one shows the warning; the others still show what they were read as. A failed check is retried once by itself.
+- Entries go up to 100 characters, up to 30 sections; at 30 the box stops taking more.
+- On a phone, a long section name wraps inside the box and its remove button stays visible.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-297 — court notes defer to the First Schedule (9b4468b)
+
+- Court notes no longer say which court tries a case from the length of the sentence. They say the First Schedule to BNSS decides, which matches the court the bail checker shows.
+- The Magistrate (JMFC) note no longer says it only tries offences up to 3 years.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-300 — server-only values in drafts (048a632)
+
+- Nothing changes on screen.
+- The advocate name typed on the form, or a "to be confirmed" placeholder, appears on both the draft and the annexures; with the field empty, the profile name.
+- A default bail draft's jail line says "to be confirmed".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-296 — section converter on a phone (32fc50b)
+
+- On a phone, convert a long passage in the section converter without results running off the screen.
+- Sections merged or split in the new law show a plain label (verify scope / check which new section applies).
+- "None" appears only for repealed sections; an unknown new section says Not verified and to check the Gazette.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-311 — enrollment number from the profile (0bff26f)
+
+With a profile that has an enrollment number:
+
+- Leave the enrollment field empty: the profile number prints in the draft, the Vakalatnama and the Memo of Parties.
+- Type a number, or "to be confirmed": that prints.
+- Type another advocate's name with the enrollment field empty: the number stays blank.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

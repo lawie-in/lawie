@@ -36,3 +36,8 @@ Two findings outside T-234:
 - Test: password register gives `Lawyer`; a request body carrying `role: 'Admin'` still gives `Lawyer`; Google unchanged.
 
 **Order:** after T-234 merges (same auth files). Size S. Vikram: no pricing change; heads-up only.
+
+## Arjun (12 Oct 2026): two answers for the build (Kunal)
+
+1. **`referredVia` guard:** `findOneAndUpdate({ _id, referredVia: null }, { $set: { referredVia } })` is right. The schema default is `null`, so my `$exists: false` never matches; `null` matches null and missing and still has one winner. Use it.
+2. **`maxUses` overshoot: fix it in this ticket.** Each overshoot is free Ink we did not mean to give, it is the same function, and the fix is small. Order: (a) win the user's `referredVia: null` claim; (b) take a use slot atomically: `ReferralCode.findOneAndUpdate({ _id, isActive: true, expiresAt ok, $expr: { $lt: ['$uses', '$maxUses'] } }, { $inc: { uses: 1 } })` (skip the `$expr` when `maxUses` is unset, as `validateReferralCode` does today); (c) only a winner of both grants the Ink. If (b) finds no slot, undo (a) with `{ $set: { referredVia: null } }` filtered on the same code id, and grant nothing. The pre-check in `validateReferralCode` stays as the cheap early exit but is no longer the guard. Test: a code with `maxUses: 1` and five concurrent signups grants exactly once and ends with `uses: 1`; the four losers have `referredVia: null` and no Ink.
