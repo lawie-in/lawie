@@ -337,14 +337,27 @@ function paragraphStart(text: string, at: number): number {
 }
 
 /**
+ * Addendum 5, Q7: "?", "!", ",", ";" or ":" glued between two words with no
+ * space ("Shyam?Mohan") is a word break inside one whitespace-separated word.
+ */
+const GLUED_MARK = /(?<=[\p{L}\p{N}])[?!,;:](?=[\p{L}\p{N}])/gu;
+const isGluedAt = (text: string, i: number): boolean =>
+  i > 0 &&
+  i + 1 < text.length &&
+  /[\p{L}\p{N}]/u.test(text[i - 1]) &&
+  /[\p{L}\p{N}]/u.test(text[i + 1]);
+
+/**
  * Rule 3: the hard limit for the first party, walking back from `versusStart`
  * no further than `lo`: the end of the previous sentence (rule 4, Addendum 4 Q6), a
- * semicolon, a colon, an opening quotation mark, or a line start.
+ * semicolon, a colon, an opening quotation mark, or a line start. A semicolon
+ * or colon glued between two words is a word break, not a limit (Addendum 5, Q7).
  */
 function party1Limit(text: string, lo: number, versusStart: number): number {
   for (let i = versusStart - 1; i >= lo; i -= 1) {
     const ch = text[i];
-    if (ch === ';' || ch === ':' || ch === '\n' || ch === '“' || ch === '‘') return i + 1;
+    if ((ch === ';' || ch === ':') && !isGluedAt(text, i)) return i + 1;
+    if (ch === '\n' || ch === '“' || ch === '‘') return i + 1;
     if ((ch === '"' || ch === "'") && (i === 0 || /\s/.test(text[i - 1]))) return i + 1;
     if (endsSentenceAt(text, i)) return i + 1;
   }
@@ -359,6 +372,28 @@ function party1Limit(text: string, lo: number, versusStart: number): number {
 interface Token {
   t: string;
   at: number;
+  /** Where the whitespace-separated word holding this token starts. */
+  wordAt: number;
+  /** True if a glued mark joins this token to the next one (Addendum 5, Q7). */
+  glued: boolean;
+}
+
+/** The tokens of `text[from, to)`, with each glued word split at its glued marks (Addendum 5, Q7). */
+function tokensOf(text: string, from: number, to: number): Token[] {
+  const out: Token[] = [];
+  for (const m of text.slice(from, to).matchAll(TOKEN)) {
+    const wordAt = from + (m.index ?? 0);
+    const word = m[0];
+    let partAt = 0;
+    // A bracket group such as "(NCT of Delhi)" is one token, glued marks and all.
+    for (const g of BRACKET_TOKEN.test(word) ? [] : word.matchAll(GLUED_MARK)) {
+      const gi = g.index ?? 0;
+      out.push({ t: word.slice(partAt, gi), at: wordAt + partAt, wordAt, glued: true });
+      partAt = gi + 1;
+    }
+    out.push({ t: word.slice(partAt), at: wordAt + partAt, wordAt, glued: false });
+  }
+  return out;
 }
 const isNameToken = (text: string, { t, at }: Token): boolean =>
   CAP_TOKEN.test(t) || BRACKET_TOKEN.test(t) || JOIN_TOKENS.has(t) || isVersusAt(text, at, t);
@@ -370,25 +405,36 @@ const isEdgeToken = (text: string, { t, at }: Token): boolean =>
  * Rules 3 and 5: where the first party begins, walking back from the versus
  * word. Returns the start offset in `text`; equal to `versusStart` only if
  * nothing at all stands before the versus word within the limit.
+ *
+ * Addendum 5, Q7: no part of a name may stand beside a blank. If the walk
+ * would stop inside a glued word ("shyam?Mohan Rao v. ..."), where party 1
+ * begins cannot be told, and rule 5's cut-back applies. A glued edge token is
+ * not trimmed off, for the same reason.
  */
 function party1Start(text: string, lo: number, versusStart: number): number {
   const limit = party1Limit(text, lo, versusStart);
-  const tokens: Token[] = [...text.slice(limit, versusStart).matchAll(TOKEN)].map((m) => ({
-    t: m[0],
-    at: limit + (m.index ?? 0),
-  }));
+  const tokens = tokensOf(text, limit, versusStart);
   const kept: Token[] = [];
-  for (let k = tokens.length - 1; k >= 0 && kept.length < MAX_PARTY1_TOKENS; k -= 1) {
-    if (LEAD_TOKEN.test(tokens[k].t) || !isNameToken(text, tokens[k])) break;
+  let splitsWord = false;
+  for (let k = tokens.length - 1; k >= 0; k -= 1) {
+    const stop =
+      kept.length >= MAX_PARTY1_TOKENS ||
+      LEAD_TOKEN.test(tokens[k].t) ||
+      !isNameToken(text, tokens[k]);
+    if (stop) {
+      splitsWord = tokens[k].glued;
+      break;
+    }
     kept.unshift(tokens[k]);
   }
-  while (kept.length > 0 && isEdgeToken(text, kept[0])) kept.shift();
-  if (kept.length > 0) return kept[0].at;
-  // Rule 5: no name token before the versus word, so where party 1 begins
-  // cannot be told. Cut back to the nearer of the limit (the previous
-  // sentence end) or ten tokens.
+  while (kept.length > 0 && !kept[0].glued && isEdgeToken(text, kept[0])) kept.shift();
+  if (kept.length > 0 && !splitsWord) return kept[0].at;
+  // Rule 5: no name token before the versus word, or the walk stopped inside
+  // a glued word (Addendum 5, Q7), so where party 1 begins cannot be told.
+  // Cut back to the nearer of the limit (the previous sentence end) or ten
+  // tokens, always at the start of a whole word.
   const back = tokens.slice(-MAX_PARTY1_TOKENS);
-  return back.length > 0 ? back[0].at : versusStart;
+  return back.length > 0 ? back[0].wordAt : versusStart;
 }
 
 /**

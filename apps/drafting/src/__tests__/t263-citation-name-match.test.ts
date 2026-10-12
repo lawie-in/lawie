@@ -41,9 +41,30 @@ function expectNoVersusBeforeBlank(out: string, given: string[] = []): void {
   expect({ out, wrote }).toEqual({ out, wrote: true });
 }
 
+/**
+ * Addendum 5 (Q7): no part of a name stands beside a blank. The text right
+ * before a blank must end at a word break, and the word before it must not
+ * carry a mark (? ! , ; :) glued between two letters or digits.
+ */
+function expectNoNameFragmentBesideBlank(out: string, given: string[] = []): void {
+  if (given.length > 0) return; // advocate-written text may legitimately stay
+  let from = 0;
+  for (;;) {
+    const at = out.indexOf(AUTHORITY_BLANK, from);
+    if (at < 0) return;
+    from = at + AUTHORITY_BLANK.length;
+    const before = out.slice(0, at);
+    const lastWord = before.split(/\s+/).filter(Boolean).pop() ?? '';
+    const glued = /[\p{L}\p{N}][?!,;:][\p{L}\p{N}]/u.test(lastWord);
+    const fused = before.length > 0 && !/\s$/.test(before);
+    expect({ out, glued, fused }).toEqual({ out, glued: false, fused: false });
+  }
+}
+
 function run(text: string, given: string[] = []) {
   const res = removeUngivenCitations(text, given);
   expectNoVersusBeforeBlank(res.text, given);
+  expectNoNameFragmentBesideBlank(res.text, given);
   return res;
 }
 
@@ -431,5 +452,52 @@ describe('T-263 Q6 (Addendum 4): ? ! danda and double danda end a sentence', () 
   it('"Shyam?(2019) 4 SCC 12" with no space: not a sentence end, blank is wide', () => {
     const res = run('Ram v. Shyam?(2019) 4 SCC 12 applies.');
     expect(res.text).toBe(`${BLANK} applies.`);
+  });
+});
+
+describe('T-263 Q7 (Addendum 5): marks glued between two words are a word break', () => {
+  const TAIL = 'State of Kerala (2019) 4 SCC 12 applies.';
+  const rows: Array<[string, string, string]> = [
+    ['Ajay example', `Held in Shyam?Mohan Rao v. ${TAIL}`, `Held in ${BLANK} applies.`],
+    ['? after versus party', `Ram v. Shyam?Mohan Rao v. ${TAIL}`, `${BLANK} applies.`],
+    ['!', `Held Shyam!Mohan Rao v. ${TAIL}`, `${BLANK} applies.`],
+    ['comma', `Ram v. Shyam,Mohan Rao v. ${TAIL}`, `${BLANK} applies.`],
+    ['full stop', `Held in Shyam.Mohan Rao v. ${TAIL}`, `Held in ${BLANK} applies.`],
+    ['semicolon', `Held in Shyam;Mohan Rao v. ${TAIL}`, `Held in ${BLANK} applies.`],
+    ['colon', `Held in Shyam:Mohan Rao v. ${TAIL}`, `Held in ${BLANK} applies.`],
+    ['Ram v. + semicolon', `Ram v. Shyam;Mohan Rao v. ${TAIL}`, `${BLANK} applies.`],
+    ['Ram v. + colon', `Ram v. Shyam:Mohan Rao v. ${TAIL}`, `${BLANK} applies.`],
+    ['Ram v. + !', `Ram v. Shyam!Mohan Rao v. ${TAIL}`, `${BLANK} applies.`],
+    ['lower-case word before the mark', `Held in shyam?Mohan Rao v. ${TAIL}`, `${BLANK} applies.`],
+    [
+      'with a space after the comma',
+      `Held in Shyam, Mohan Rao v. ${TAIL}`,
+      `Held in ${BLANK} applies.`,
+    ],
+    [
+      'bracket with a glued comma is not split',
+      'Mohan Rao v. State (NCT,Delhi) (2019) 4 SCC 12 applies.',
+      `${BLANK} applies.`,
+    ],
+    [
+      'lower-case word and ten tokens',
+      'held in shyam?Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa v. State (2019) 4 SCC 12 applies.',
+      `held in ${BLANK} applies.`,
+    ],
+  ];
+  it.each(rows)('%s', (_label, input, expected) => {
+    const res = run(input);
+    expect(res.text).toBe(expected);
+    expect(res.removed).toBe(1);
+  });
+
+  it('the Q7 check itself catches a fragment beside a blank', () => {
+    expect(() =>
+      expectNoNameFragmentBesideBlank(`Held in Shyam?Mohan ${BLANK} applies.`),
+    ).toThrow();
+    expect(() =>
+      expectNoNameFragmentBesideBlank(`Held in Shyam,Mohan ${BLANK} applies.`),
+    ).toThrow();
+    expect(() => expectNoNameFragmentBesideBlank(`Held in ${BLANK} applies.`)).not.toThrow();
   });
 });
