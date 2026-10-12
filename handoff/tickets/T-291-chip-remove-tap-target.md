@@ -14,3 +14,7 @@ The remove "x" on each section chip in `apps/web/src/components/form/DynamicForm
 1. The remove control has a 44 x 44 px tap area (the icon can stay small), with an accessible label naming the section it removes.
 2. No other change to the picker. Can ship with T-290 or alone.
 3. Checked at 375 px.
+
+## Scope added (Priya, 12 Oct 2026)
+
+The file-list remove "x" in the same file (about line 627) has the same 12 px problem. Fix it the same way in this ticket.
