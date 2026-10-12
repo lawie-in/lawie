@@ -1150,7 +1150,7 @@ function entityTypeOfFact(f: LedgerFact): FactEntityType {
 
 function present(src: Sources, f: LedgerFact, entities: Entity[], allFolded: string): boolean {
   const display = displayOf(f);
-  if (display === '' || /\{\{\s*MISSING/.test(display)) return true;
+  if (display === '' || /\{\{\s*MISSING/i.test(display)) return true;
   const has = (s: string): boolean => {
     const n = fold(s);
     return n !== '' && allFolded.includes(` ${n} `);
