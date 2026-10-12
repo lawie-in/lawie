@@ -37,6 +37,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 1. vishal — T-266 (f100564). Slot given 12 Oct 2026; merge once Ajay signs f100564.
 2. mahak — T-115e (e51d478). Next after vishal.
+3. shashank — T-277 (ae942b1). After mahak; merge once Ajay signs ae942b1.
 
 ## Last done
 
