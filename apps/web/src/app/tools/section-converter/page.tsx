@@ -12,7 +12,7 @@ interface MappingResult {
   old_section: string;
   old_code: string;
   old_code_full: string;
-  new_section: string;
+  new_section: string | null;
   new_code: string;
   new_code_full: string;
   title?: string;
@@ -214,7 +214,7 @@ function SearchTab() {
         <label htmlFor="section-search" className="mb-2 block text-sm font-medium text-slate-700">
           Enter a section number
         </label>
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <input
             id="section-search"
             type="text"
@@ -224,12 +224,12 @@ function SearchTab() {
               if (e.key === 'Enter') handleSearch();
             }}
             placeholder="e.g. 302 IPC, 103 BNS, 154 CrPC"
-            className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="w-full min-w-0 rounded-lg border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 sm:flex-1"
           />
           <button
             onClick={() => handleSearch()}
             disabled={loading || !query.trim()}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            className="flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
           >
             <Search className="h-4 w-4" />
             {loading ? 'Looking up...' : 'Look up'}
@@ -303,7 +303,7 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="p-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
           {/* Old */}
           <div
             className={`flex-1 rounded-lg p-4 ${reverse ? 'border border-blue-200 bg-blue-50' : 'bg-slate-100'}`}
@@ -315,7 +315,7 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
           </div>
 
           {/* Arrow */}
-          <ArrowLeftRight className="h-5 w-5 shrink-0 text-slate-400" />
+          <ArrowLeftRight className="h-5 w-5 shrink-0 rotate-90 self-center text-slate-400 sm:rotate-0" />
 
           {/* New */}
           <div
