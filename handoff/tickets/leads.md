@@ -33,6 +33,16 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 - T-285 (SSE keep-alive on the four drafting streams; small, drafting only; touches ai.service.ts, so after T-241 and T-245a or when no lead holds it): ready.
 
+## Next ticket for each lead (Priya, 13 Oct 2026; Anushka run 3 FAIL fixes)
+
+Each lead takes this after the current row is merged and released. Files are claimed then, as usual.
+- vishal: T-342, then T-359 (invented facts; check the overlap with T-187/T-188 first), then T-187 + T-188.
+- shashank: T-356 part 1, then T-360 (converter numbers).
+- kunal: T-354, then T-364 (Ink and plan display).
+- tanvi: T-349 + T-350, T-357, then T-363 (s.138).
+- mahak: T-223, then T-365 (brief and template picker).
+- Next free lead, in this order: T-362, T-361, T-367, T-366, T-368.
+
 ## Merge queue
 
 - tanvi: T-349 + T-350 (b52bc40, review passed, Ajay signed fe8113d). Next: merges once CI on 4389cf1 is green. T-357 merges separately after, on the same branch.
