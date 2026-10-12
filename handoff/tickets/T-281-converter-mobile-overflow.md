@@ -27,3 +27,7 @@ Result boxes stack at 375 px with the arrow rotated 90 degrees, centred, gap 12p
 ## Follow-up (Mahak, Priya's call 12 Oct 2026)
 
 The full placeholder "e.g. 302 IPC, 103 BNS, 154 CrPC" just fits at 375 px, but its end is cut at 360 px (common on Android). The helper text below lists all formats, so this ships as is. Rajesh may choose smaller input padding below `sm` or a shorter placeholder later (a copy change: Ajay is not needed, Meera/Madhuri if words change).
+
+## Left for later (Mahak's tester, 12 Oct 2026)
+
+The bulk "Conversions Applied" rows (~L510) are cramped at 375 px and overflow only with an unbroken token of about 110 characters. Realistic text wraps. A later fix is `min-w-0` and `break-words`. Not in this branch. Low priority.
