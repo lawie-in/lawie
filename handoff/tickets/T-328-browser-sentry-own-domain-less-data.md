@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (spec: last section of the T-310 file, c87f43a). Ajay (ruling). Lead (build, web) |
 | Mode   | Small fix (web) |
-| Status | To do. Ajay ruled (T-310 Addendum 1, 93d0fcc): allowed before consent, with conditions. Arjun's spec updated (688860f). Kunal after T-310 (same files) |
+| Status | Building: kunal, with T-332 (12 Oct 2026) |
 
 ## Acceptance criteria
 
