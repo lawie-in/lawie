@@ -35,8 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-- **HOLD (12 Oct): the CI fix is merged at 31a182c (kunal, golden-set privacy header). Shashank merges once CI on 31a182c is green.**
-- shashank: T-346 (2fff2d0, small fix tested green). Holds the slot once CI on d1b4372 is green.
+- shashank: T-346 (2fff2d0, small fix tested green). Holds the slot now (CI run 484 on 31a182c green).
 - tanvi: T-349 + T-350 (b52bc40, review passed, Ajay signed fe8113d). After mahak and shashank; check with the slot holder first. T-357 merges separately after, on the same branch.
 - kunal: T-354 (tests green, small fix, Arjun ruled option A). After tanvi; check with the slot holder first.
 - vishal: T-342 (round 2 review passed, tests green, Ajay signed 59eff64 at 54951db). Merges once the _meta.signed line is in. After kunal T-354; check with the slot holder first.
