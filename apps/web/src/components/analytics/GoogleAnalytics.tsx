@@ -52,7 +52,12 @@ function initGtag(): void {
     dataLayer.push(arguments);
   };
   window.gtag('js', new Date());
-  window.gtag('config', GA_MEASUREMENT_ID, { send_page_view: false });
+  // T-308 (Ajay condition 1): Google signals and ads personalisation off at the tag.
+  window.gtag('config', GA_MEASUREMENT_ID, {
+    send_page_view: false,
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false,
+  });
 }
 
 // T-306: GA loads only on public allowlisted pages, with the automatic page view off. Page views

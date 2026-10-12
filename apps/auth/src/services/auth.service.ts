@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 
 import { RegisterPayload, LoginPayload } from '@lawie/shared';
+import bcrypt from 'bcryptjs';
 
 import logger from '../config/logger';
 import { AppError } from '../middleware/errorHandler';
@@ -10,6 +11,16 @@ import { tryGrantDailyLoginBonus, grantSignupBonus } from './credit-bonus.servic
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
 import { applyReferralCode } from './referral.service';
 import { createSession, deleteSession, hashToken, SessionMeta } from './session.service';
+
+// T-299 (Arjun ruling 2): login must not reveal whether an account exists, by status or by
+// time. One 401 text for unknown email, wrong password and no password on the record; each of
+// those paths runs exactly one bcrypt compare at the same cost as real passwords (12, see the
+// pre-save hook in User.model.ts). The dummy hash is computed once, at module load, from random
+// bytes, so no password can ever match it.
+const INVALID_LOGIN_MESSAGE = 'Invalid email or password';
+const DEACTIVATED_MESSAGE = 'Your account has been deactivated. Contact support.';
+const INVALID_REFRESH_MESSAGE = 'Invalid or expired refresh token';
+export const DUMMY_PASSWORD_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 12);
 
 export async function registerUser(
   payload: RegisterPayload & { referralCode?: string },
@@ -86,24 +97,23 @@ export async function loginUser(
 ): Promise<{ user: IUser; tokens: { accessToken: string; refreshToken: string } }> {
   const user = await User.findOne({ email: payload.email.toLowerCase() }).select('+password');
 
-  if (!user) {
-    throw new AppError(401, 'Invalid email or password');
+  // (a) Unknown email, and (b) a record with no password (Google-only or erased): compare
+  // against the dummy hash so the response takes as long as a real wrong password, then the
+  // same 401. comparePassword is never called without a password (it would throw: 500).
+  if (!user || !user.password) {
+    await bcrypt.compare(payload.password, DUMMY_PASSWORD_HASH);
+    throw new AppError(401, INVALID_LOGIN_MESSAGE);
   }
 
-  if (!user.isActive) {
-    throw new AppError(403, 'Your account has been deactivated. Contact support.');
-  }
-
-  // T-234 — a Google-only account has no password. comparePassword would throw
-  // (500 + Sentry); answer exactly like a wrong password so the account type
-  // does not leak.
-  if (!user.password) {
-    throw new AppError(401, 'Invalid email or password');
-  }
-
+  // (b) Known email, wrong password: same 401, same text. isActive is not looked at yet.
   const isMatch = await user.comparePassword(payload.password);
   if (!isMatch) {
-    throw new AppError(401, 'Invalid email or password');
+    throw new AppError(401, INVALID_LOGIN_MESSAGE);
+  }
+
+  // (c) Only a caller who has proved the password learns the account is deactivated.
+  if (!user.isActive) {
+    throw new AppError(403, DEACTIVATED_MESSAGE);
   }
 
   const tokens = generateTokenPair({
@@ -136,7 +146,29 @@ export async function refreshTokens(
   try {
     payload = verifyRefreshToken(refreshToken);
   } catch {
-    throw new AppError(401, 'Invalid or expired refresh token');
+    throw new AppError(401, INVALID_REFRESH_MESSAGE);
+  }
+
+  // T-299 (Arjun, must-fix): a refresh needs a live session. Take the refresh key atomically
+  // (MULTI GET+DEL, not GETDEL: production's Redis version is not recorded; same as T-306's
+  // takeOAuthCode). Missing (logged out, revoked, Google link, expired, or already used by a
+  // parallel refresh): the same 401 as a bad JWT, and nothing is issued.
+  const redis = (await import('../config/redis')).default;
+  const refreshKey = `session:refresh:${payload.sub}:${hashToken(refreshToken)}`;
+  const taken = await redis.multi().get(refreshKey).del(refreshKey).exec();
+  const [getErr, oldRefreshData] = taken?.[0] ?? [];
+  if (getErr || typeof oldRefreshData !== 'string') {
+    throw new AppError(401, INVALID_REFRESH_MESSAGE);
+  }
+  let oldAccessTokenHash: unknown;
+  try {
+    oldAccessTokenHash = (JSON.parse(oldRefreshData) as { accessTokenHash?: unknown })
+      .accessTokenHash;
+  } catch {
+    oldAccessTokenHash = undefined;
+  }
+  if (typeof oldAccessTokenHash !== 'string' || !oldAccessTokenHash) {
+    throw new AppError(401, INVALID_REFRESH_MESSAGE);
   }
 
   const user = await User.findById(payload.sub);
@@ -144,15 +176,8 @@ export async function refreshTokens(
     throw new AppError(401, 'User not found or inactive');
   }
 
-  // Delete old session (rotate-on-refresh)
-  const oldRefreshHash = hashToken(refreshToken);
-  const oldRefreshData = await (
-    await import('../config/redis')
-  ).default.get(`session:refresh:${payload.sub}:${oldRefreshHash}`);
-  if (oldRefreshData) {
-    const { accessTokenHash } = JSON.parse(oldRefreshData);
-    await deleteSession(payload.sub, accessTokenHash);
-  }
+  // Delete the old access session (rotate-on-refresh). The refresh key is already gone.
+  await deleteSession(payload.sub, oldAccessTokenHash);
 
   const tokens = generateTokenPair({
     sub: user._id.toString(),
