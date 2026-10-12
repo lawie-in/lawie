@@ -47,7 +47,13 @@ import mongoose from 'mongoose';
 import { FactLedgerModel, IFactLedger, IFactLedgerVersion } from '../models/FactLedger.model';
 import { decrypt, encrypt } from '../utils/encryption';
 
-import { ChecklistItem, dateKindLabel, foldAnswer, isNoFactAnswer } from './intake-brief';
+import {
+  BriefItem,
+  ChecklistItem,
+  dateKindLabel,
+  foldAnswer,
+  isNoFactAnswer,
+} from './intake-brief';
 import { normalise } from './intake-text';
 import type { ExtractLine } from './intake.prompts';
 
@@ -672,6 +678,76 @@ export function holdDescriptionNone(
   const facts = state.facts.filter((f) => !hold(f));
   if (facts.length === state.facts.length) return { state, held: false };
   return { state: { facts, unresolved: state.unresolved }, held: true };
+}
+
+// ── The brief laid over a new reading (T-335) ───────────────────────────────
+
+/** What `overlayBrief` did, by count. Ids and counts only: never a value. */
+export interface OverlayCounts {
+  /** Keys the advocate answered "Not known" (or a "none" that writes no fact): fact and doubt taken out. */
+  askedEmpty: number;
+  /** Keys whose advocate value was written as an `asked` fact. */
+  written: number;
+  /** Keys whose advocate value the normalizer could not read: nothing written. */
+  unreadable: number;
+}
+
+/**
+ * Arjun (12 Oct 2026), option B: the ledger mirrors the brief that was just
+ * built. Called after `holdDescriptionNone` and `carryOver`, so the ledger
+ * matches the brief by construction.
+ *
+ * Only the advocate's own values are laid over; anything the brief got from
+ * the model (`source: 'description'`) is never written as an advocate fact.
+ *
+ * - `asked_empty` ("Not known", or "none" on a fact used only when present):
+ *   the key's facts and unresolved entries go, so it shows no blank and is
+ *   not asked again.
+ * - `source: 'user'` with one value: written as an `asked` fact, as an edit
+ *   on the brief is. A value the normalizer cannot read writes nothing (the
+ *   reading stays, and the brief shows "Please check" as before).
+ * - A list or several choices: skipped, as before.
+ */
+export function overlayBrief(
+  state: LedgerState,
+  brief: { items: ReadonlyArray<Pick<BriefItem, 'key' | 'value' | 'source' | 'asked_empty'>> },
+  checklist: ChecklistItem[],
+  refYear: number,
+): { state: LedgerState; counts: OverlayCounts } {
+  const byKey = new Map(checklist.filter(isLedgerItem).map((i) => [i.key, i]));
+  const counts: OverlayCounts = { askedEmpty: 0, written: 0, unreadable: 0 };
+  let current = state;
+  for (const shown of brief.items) {
+    const item = byKey.get(shown.key);
+    if (!item) continue;
+    if (shown.asked_empty === true) {
+      current = {
+        facts: current.facts.filter((f) => f.key !== item.key),
+        unresolved: current.unresolved.filter((u) => u.key !== item.key),
+      };
+      counts.askedEmpty += 1;
+      continue;
+    }
+    if (shown.source !== 'user' || isMultiItem(item) || typeof shown.value !== 'string') continue;
+    const text = shown.value.trim();
+    if (text === '') continue;
+    // An advocate fact that already holds the same value keeps its own words.
+    const existing = current.facts.find((f) => f.key === item.key);
+    if (existing && existing.source === 'asked') {
+      const n = normalizeForItem(item, text, refYear);
+      if (n.ok && JSON.stringify(n.value) === JSON.stringify(existing.value)) continue;
+    }
+    const { next, result } = applyEdit(current, item, { key: item.key, text }, refYear);
+    if (result.status === 'unreadable') {
+      // Arjun's ruling 4: no write, not even an unresolved entry.
+      counts.unreadable += 1;
+      continue;
+    }
+    if (result.status !== 'saved') continue;
+    if (next) current = next;
+    counts.written += 1;
+  }
+  return { state: current, counts };
 }
 
 // ── What the API returns ────────────────────────────────────────────────────
