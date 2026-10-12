@@ -1,10 +1,12 @@
+REVIEW NOTE (not part of the help text; do not load it): this file is the curated help text for the Lawie Assistant (Madhuri, under Meera; Ajay reviews; for Priya). Load only the text between the line `BEGIN HELP TEXT` and the line `END HELP TEXT`. The "Claims to check" table after it is for reviewers and is not loaded. The Ink and rupee answers (sections 3 and 4) are true only on the day the live prices match what they say; hold them until then.
+
+BEGIN HELP TEXT
+
 # How to use Lawie: help for advocates
 
-Public help text for the Lawie Assistant (curated by Madhuri, under Meera; for Priya). It is written for advocates, in plain language, as short questions and answers. It says only what Ajay has signed or what Priya has confirmed from the product. Where a question is about law or case strategy, the answer is the "What Lawie is not" section.
+This help is for advocates. It is written in plain language, as short questions and answers. Where a question is about the law or about your case strategy, see "What Lawie is not" (section 12).
 
-Note for whoever loads this: the Ink and rupee answers (sections 3 and 4) are true only on the day the live prices match what they say. Ajay's gate applies: hold those answers until it is met.
-
-Disclaimer line, always exact:
+The disclaimer line, always exact:
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
 ---
@@ -17,8 +19,8 @@ Lawie is a drafting assistant for Indian advocates. You pick a document or descr
 **What can I draft?**
 More than 90 document types. They include bail applications, legal notices (including notices under s.80 CPC and s.138 NI Act), affidavits, petitions, plaints, family-court matters, and agreements such as rent, NDA, MOU, service, loan and employment agreements. All of them are available on the Free plan, which starts with 5 Ink.
 
-**Which law do the drafts cite?**
-Criminal drafts cite BNS, BNSS and BSA. Whatever a draft cites, check every section yourself before you file.
+**Which law do the drafts use?**
+Criminal drafts use BNS, BNSS and BSA section numbers. Whatever section a draft uses, check it yourself against the bare act before you file.
 
 **What language are the drafts in?**
 English. Hindi drafting: coming soon.
@@ -38,11 +40,14 @@ Open Lawie after you sign in and start a new document. You may see one of two st
 
 Either way, you end up with a first draft to review, edit and download.
 
+**Will I see the "describe" screen or the document list?**
+You may see either, depending on your account. Both lead to the same place: a first draft for you to review, edit and download.
+
 **What will Lawie ask me?**
-It depends on the matter and on what you have already written. Lawie asks only for the details it still needs for that document, so the questions differ from one matter to the next. Answer what you can.
+It depends on the matter and on what you have already written. Lawie asks for the details it still needs for that document, so the questions differ from one matter to the next. Answer what you can.
 
 **What if I skip a question or don't have a detail yet?**
-The draft will show a blank where the detail belongs. See section 5, "Blanks".
+The draft may show a blank where the detail belongs. See section 5, "Blanks and [To be confirmed]".
 
 **Which document should I pick?**
 If you know the document (for example a bail application or a legal notice), choose it from "Browse document types" or name it when you describe the matter. If you are unsure, describe the matter in your own words, where that option is available on your account, or browse the list.
@@ -61,7 +66,7 @@ Ink is Lawie's credit unit. You spend Ink to generate drafts.
 5 free Ink on sign-up. The Free plan gives you 5 Ink (lifetime). No payment details are needed to sign up.
 
 **How much does a draft cost in Ink?**
-Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. A bail application uses 2 Ink. You're charged only after a draft is generated; a failed generation is not charged.
+Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. A bail application uses 2 Ink. You're charged only after a draft is generated; a failed generation is not charged.
 
 **Where can I see how much Ink I have?**
 In the Ink pill in the top bar. It is there on every page of your dashboard, including the draft screen. It shows your Ink count and your plan, and it has a Top-up button.
@@ -82,10 +87,11 @@ Yes. Top-up packs start from ₹65 for 3 Ink. A Free account can buy a top-up pa
 - Free plan: 5 Ink on sign-up (lifetime), no payment details needed.
 - Solo: ₹799/month, 50 Ink.
 - Top-ups: from ₹65 (3 Ink).
-- Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1.
+- Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1.
 - You're charged only after a draft is generated; a failed generation is not charged.
 
-If someone asks about any other plan, price, offer or discount, the answer is: "I only have the prices above. Please see the pricing page or write to contact@lawie.in."
+**Is there another plan, a discount or an offer?**
+This help covers only the prices above. For any other plan, price or offer, see the pricing page or write to contact@lawie.in.
 
 ---
 
@@ -98,7 +104,7 @@ If Lawie did not have a detail the document needs, the draft shows a blank in th
 Fill it in or remove it before you file. The advocate must fill or remove each [To be confirmed: label] before filing. Search the draft for "To be confirmed" before you download, so none is left behind.
 
 **Why are there blanks at all?**
-Lawie does not guess facts. A detail you did not give, or that the draft could not find, stays as a blank for you to decide.
+A detail you did not give, or that the draft could not find, stays as a blank for you to decide. Check every name, date and fact against your case file, whether or not the draft shows a blank.
 
 ---
 
@@ -191,8 +197,15 @@ No. You download the draft and file it yourself, the way you always have.
 **Is the draft ready to file as it is?**
 No. A draft is a first draft for you to review. Read it, check it, fill or remove every [To be confirmed: label], and edit what needs editing. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
+**Can Lawie draft in Hindi?**
+Not yet. Drafts are in English today. Hindi drafting: coming soon.
+
 **Can I ask Lawie something outside drafting and using Lawie?**
 This help covers using Lawie and what it is for. For anything else, write to contact@lawie.in.
+
+---
+
+END HELP TEXT
 
 ---
 
@@ -205,16 +218,16 @@ Source codes: **A** = Ajay's signed lists (`marketing-s1-claims-signed.md`, `mar
 | 1 | Lawie is a drafting assistant for Indian advocates; pick, answer questions, review, edit, download in Word or PDF | 1 | A |
 | 2 | More than 90 document types, all on the Free plan | 1, 10 | A |
 | 3 | Bail applications, legal notices (s.80 CPC, s.138 NI Act), affidavits, petitions, plaints, family-court matters, agreements (rent, NDA, MOU, service, loan, employment) are among them | 1 | A (families matched to rule files) |
-| 4 | "Criminal drafts cite BNS, BNSS and BSA." No statement about offences before 1 July 2024 | 1 | A (exact wording) |
+| 4 | "Criminal drafts use BNS, BNSS and BSA section numbers." No statement about offences before 1 July 2024 | 1 | A (T-238 final wording, exact) |
 | 5 | Drafts are in English; Hindi drafting: coming soon | 1 | A |
 | 6 | The disclaimer line, exact; it is a non-dismissible banner above the editor | 1, 8, 12 | A (wording); P (banner) |
-| 7 | Two starting points, "describe it" and "pick a document", depending on the account | 2 | P, M |
+| 7 | Two starting points, "describe it" and "pick a document"; "You may see either, depending on your account"; no flag names | 2 | P, M |
 | 8 | Screen names "What do you need to draft?", "Check your brief", "Browse document types" | 2 | P (real screen headings) |
-| 9 | Lawie asks only for the details it still needs; the questions differ by matter (no fixed list promised) | 2 | P |
-| 10 | A skipped or missing detail appears as a blank in the draft | 2 | P, M |
+| 9 | Lawie asks for the details it still needs; the questions differ by matter (no fixed list promised; "only" is not used) | 2 | P |
+| 10 | A skipped or missing detail may appear as a blank in the draft; no claim that blanks are highlighted | 2, 5 | P, M |
 | 11 | A failed generation is not charged; "You're charged only after a draft is generated; a failed generation is not charged." | 2, 3, 4 | A (exact) |
 | 12 | Ink is the credit unit; 5 free Ink on sign-up; the Free plan gives 5 Ink (lifetime) | 3, 4, 10 | A; signed FAQ answer |
-| 13 | Most documents 2 Ink; short ones, such as most notices and affidavits, 1; a bail application 2 Ink | 3, 4 | A (exact; "bail = 2 Ink" approved) |
+| 13 | Most documents 2 Ink; short documents, such as most notices and affidavits, 1; a bail application 2 Ink | 3, 4 | A (T-238 final wording; "bail = 2 Ink" approved) |
 | 14 | The Ink pill is in the top bar on every dashboard page, with count, plan and a Top-up button | 3 | P |
 | 15 | A Free account can buy a top-up pack; top-ups need no subscription | 3 | P; A |
 | 16 | Solo ₹799/month, 50 Ink; top-ups from ₹65 (3 Ink); a monthly plan refills Ink every month | 3, 4 | A (Ink/rupee lines gated); signed FAQ answer for the refill |
@@ -230,3 +243,9 @@ Source codes: **A** = Ajay's signed lists (`marketing-s1-claims-signed.md`, `mar
 | 26 | Support: contact@lawie.in; data and privacy requests: privacy@lawie.in | 9, 11 | M (as on the site and in the signed welcome email) |
 | 27 | Lawie does not give legal advice and does not file anything | 12 | A (denial approved) |
 | 28 | The user files the document themselves | 12 | A ("the filing ... stay with you") |
+| 29 | Notices under s.80 CPC and s.138 NI Act, and rent, NDA, MOU, service, loan and employment agreements, exist as document types | 1 | Rule file names in `apps/drafting/src/config/document-rules` (checked 12 Oct) |
+| 30 | Blanks are not described as guessed or checked: "Lawie does not guess facts" was removed; the answer says to check every name, date and fact against the case file | 5 | M (no accuracy or validation claim) |
+| 31 | Hindi drafting is not available yet: "Drafts are in English today. Hindi drafting: coming soon." | 1, 12 | A (package C) |
+| 32 | Other plans, prices, offers and discounts are not described; the reader is sent to the pricing page or contact@lawie.in. Pro and yearly prices are not stated | 4 | Vikram (Pro under review; only Solo and top-ups as rupee figures) |
+
+What is deliberately not in the help text: model, vendor, architecture, prompts, feature flag names, ticket numbers, offer amounts (+5 and +3 Ink codes), Pro and yearly prices, any security or encryption statement, any time claim.

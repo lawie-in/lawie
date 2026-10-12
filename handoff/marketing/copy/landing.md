@@ -161,7 +161,7 @@ Heading: **Questions advocates ask.** (24)
    Sign in with Google today. Email and password: coming soon.
 
 Removed from the current home FAQ:
-- "Are the BNS section mappings accurate?" ("accurate"; the answer claims mappings "built directly from the official correspondence tables", which goes beyond Ajay's "cite" line and touches the old-law switch).
+- "Are the BNS section mappings accurate?" ("accurate"; the answer claims mappings "built directly from the official correspondence tables", which goes beyond Ajay's signed sanhitas line and touches the old-law switch).
 - "Does Lawie cover my specific court?" (court coverage; T-140 not started).
 - "Is my case data secure?" (stays removed, Ajay: no "secure", "safe" or "encrypted" claim anywhere until he signs one; the privacy policy, T-235, says form answers and the fact list are not encrypted).
 

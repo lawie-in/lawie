@@ -11,7 +11,7 @@ Wording sources: Ajay, `handoff/legal/marketing-s1-claims-signed.md` (12 Oct 202
 
 **UI-screenshot posts** (W1-IG-1, W1-LI-2, both reel covers, W2-X-3) use the classic Browse document types screen. Redo the crops if describe-first is live at go-live. (W2-X-3 no longer carries an image under the X rule above; it is listed only so the crops are not forgotten if an image-only variant is ever approved.)
 
-**Reel swap rule (Meera, round 2):** the Week 1 Instagram reel (W1-IG-2) is **R4 (classic-path fallback)** if describe-first is not live for all users at go-live, otherwise **R1 (describe, bail)**. The Week 2 reel (W2-IG-2) is **R2 (describe, legal notice)** if describe-first is live, otherwise **R4 again**. Captions in this file are written for the classic flow ("pick, answer a few questions"); `reels.md` has the describe-flow caption wording for R1 and R2.
+**Reel swap rule (Meera, round 2):** Pre-switch fallback. Retire when describe_first goes on for all users. No R4 posts after go-live. The Week 1 Instagram reel (W1-IG-2) is **R4 (classic-path fallback)** if describe-first is not live for all users at go-live, otherwise **R1 (describe, bail)**. The Week 2 reel (W2-IG-2) is **R2 (describe, legal notice)** if describe-first is live, otherwise **R4 again**. Captions in this file are written for the classic flow ("pick, answer a few questions"); `reels.md` has the describe-flow caption wording for R1 and R2.
 
 ## Gates (Ajay, `handoff/legal/marketing-package-signed.md` section A; apply to every post)
 
@@ -93,7 +93,7 @@ Lawie भारतीय advocates के लिए एक drafting assistant �
 2. मामले के बारे में कुछ सवालों के जवाब दीजिए।
 3. पहला ड्राफ्ट जाँचिए, बदलिए और Word या PDF में डाउनलोड कीजिए।
 
-90 से ज़्यादा तरह के डॉक्यूमेंट बना सकते हैं: bail application, legal notice, affidavit, petition, family court के मामले, agreement और भी। Criminal drafts में BNS, BNSS और BSA cite होते हैं।
+90 से ज़्यादा तरह के डॉक्यूमेंट बना सकते हैं: bail application, legal notice, affidavit, petition, family court के मामले, agreement और भी। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं।
 
 साइन-अप पर 5 free Ink. ज़्यादातर डॉक्यूमेंट में 2 Ink लगते हैं; छोटे डॉक्यूमेंट, जैसे ज़्यादातर notice और affidavit, में 1। Ink ड्राफ्ट generate होने के बाद ही कटता है; फ़ेल हुए generation का कोई चार्ज नहीं।
 
@@ -179,7 +179,7 @@ Lawie अब लाइव है।
 
 भारतीय advocates के लिए drafting assistant। डॉक्यूमेंट चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर पहला ड्राफ्ट जाँचिए, बदलिए और Word या PDF में डाउनलोड कीजिए।
 
-90 से ज़्यादा डॉक्यूमेंट टाइप। Criminal drafts में BNS, BNSS और BSA cite होते हैं।
+90 से ज़्यादा डॉक्यूमेंट टाइप। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं।
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
@@ -386,7 +386,7 @@ Script: `reels.md` → **R4** (classic path, fallback) if describe-first is not 
 ```
 Draft a bail application with me.
 
-Pick the bail application, answer a few questions about the matter, then review the draft, edit it and download it. Criminal drafts in Lawie cite BNS, BNSS and BSA.
+Pick the bail application, answer a few questions about the matter, then review the draft, edit it and download it. Criminal drafts in Lawie use BNS, BNSS and BSA section numbers.
 
 Sample, fictional matter. No real case or client is shown.
 
@@ -402,7 +402,7 @@ Start with 5 free Ink. Link in bio.
 ```
 चलिए, साथ में एक bail application ड्राफ्ट करते हैं।
 
-Bail application चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचिए, बदलिए और डाउनलोड कीजिए। Lawie के criminal drafts में BNS, BNSS और BSA cite होते हैं।
+Bail application चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचिए, बदलिए और डाउनलोड कीजिए। Lawie के criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं।
 
 Sample, fictional matter. कोई असली केस या क्लाइंट नहीं दिखाया गया है।
 
@@ -437,21 +437,21 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 ## W1-X-2 — Day 4 — X — P2 Everyday court work
 
-**Copy (EN)** — 278 / 280
+**Copy (EN)** — 270 / 280
 
 ```
-Bail applications, notices, affidavits, petitions, agreements and more: more than 90 document types. Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.
+Bail applications, notices, agreements and more: more than 90 document types. Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-2
 ```
 
-**Copy (HI)** — 261 / 280
+**Copy (HI)** — 273 / 280
 
 ```
-Bail application, legal notice, affidavit, petition, agreement और भी: 90 से ज़्यादा डॉक्यूमेंट टाइप। Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।
+90 से ज़्यादा डॉक्यूमेंट टाइप: bail, notice, agreement और भी। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। 5 free Ink से शुरू करें।
 
-The advocate is responsible for legal accuracy and filing.
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-2
 ```
 
@@ -574,7 +574,7 @@ On-slide text:
 3. Legal notice, affidavit, petition और plaint.
 4. Family court के मामले।
 5. Agreement: rent, NDA, MOU, service, loan, employment.
-6. Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।
+6. Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। 5 free Ink से शुरू करें।
    Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 ```
 
@@ -583,7 +583,7 @@ Caption (~410 chars):
 ```
 Lawie में 90 से ज़्यादा डॉक्यूमेंट टाइप।
 
-Bail application, legal notice, affidavit, petition, family court के मामले, agreement और भी। Criminal drafts में BNS, BNSS और BSA cite होते हैं।
+Bail application, legal notice, affidavit, petition, family court के मामले, agreement और भी। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं।
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
@@ -618,20 +618,20 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 ## W1-X-3 — Day 6 — X — P4 Pay per draft, start with 5 free Ink
 
-**Copy (EN)** — 265 / 280
+**Copy (EN)** — 269 / 280
 
 ```
 How Ink works in Lawie:
 
 5 free Ink on sign-up
-Short ones, such as most notices and affidavits: 1 Ink
+Short documents, such as most notices and affidavits: 1 Ink
 Most documents, such as bail applications and plaints: 2 Ink
 Charged only after a draft is generated; a failed generation is not charged.
 
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-3
 ```
 
-**Copy (HI)** — 279 / 280
+**Copy (HI)** — 278 / 280
 
 ```
 Lawie में Ink ऐसे चलता है:

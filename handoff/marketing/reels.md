@@ -12,7 +12,7 @@ Format: 9:16, 30–45 s, captions burned in. Voice-over in Hindi, with English s
 | R1 | Draft a bail application with me | Describe-first (new flow) | **HOLD.** W1-IG-2 (Week 1, Day 3) only if describe-first is live for all users at go-live |
 | R2 | Legal notice in Lawie | Describe-first (new flow) | **HOLD.** W2-IG-2 (Week 2, Day 12) only if describe-first is live for all users |
 | R3 | You stay the advocate | Starts from a finished draft; names no intake step | Week 3 reel (calendar not yet written). Works with either flow |
-| R4 | Draft a bail application with me (classic path) | Browse document types, pick a template, fill the form | **Fallback, no HOLD.** W1-IG-2 if describe-first is not live at go-live; W2-IG-2 again (instead of R2) if it is still not live in Week 2 |
+| R4 | Draft a bail application with me (classic path) | Browse document types, pick a template, fill the form | **Pre-switch fallback. Retire when describe_first goes on for all users. No R4 posts after go-live.** No HOLD. W1-IG-2 if describe-first is not live at go-live; W2-IG-2 again (instead of R2) if it is still not live in Week 2 |
 
 **Swap rule:** Week 1 reel = R4 if describe-first is not live for all users at go-live, otherwise R1. Week 2 reel = R2 if describe-first is live, otherwise R4 again. The same rule is at the top of both calendars. YouTube Shorts gets the same cut.
 
@@ -73,7 +73,7 @@ Canvas 1080x1920. Layout bands, top to bottom (all x 80-930; Reels and Shorts pu
 **Pillars:** P2 Everyday court work, P3 You stay the advocate. **Calendar:** W1-IG-2 if describe is live at go-live (else R4).
 **Hook (0–2 s):** on-screen "Draft a bail application with me" over the describe screen "What do you need to draft?".
 
-**Sample values (all fictional, on screen):** Accused: `A. Kumar (sample)` · FIR No. `000/2026` · Police station: `Sample Nagar` · Offence date: `02/09/2026` · Court: `[Sample Sessions Court]`. The label `Sample, fictional matter` stays pinned top-left from 0:03 to 0:28.
+**Sample values (all fictional, on screen):** Accused: `A. Kumar (sample)` · FIR No. `000/2026` · Police station: `Sample Nagar` · Offence date: `02/09/2026` · Court: `[Sample Sessions Court]`. The label `Sample, fictional matter` stays pinned top-left from 0:03 until the cut to the end card at 0:38, because case details are still on screen while the advocate edits and downloads.
 
 **Sample description typed on screen** (fictional, in the user's own words): `Regular bail for A. Kumar (sample). FIR 000/2026, Sample Nagar police station, offence on 02/09/2026. In custody. Sessions court.`
 
@@ -84,7 +84,7 @@ Canvas 1080x1920. Layout bands, top to bottom (all x 80-930; Reels and Shorts pu
 | 0:09–0:15 | Screen `A few questions about what you need`: two or three questions, answered with sample values (for example custody, court, grounds) | Step 2: a few questions | जो details अभी चाहिए, Lawie वही पूछता है। जवाब दीजिए। | Lawie asks for the details it still needs. Answer them. |
 | 0:15–0:19 | Screen `Check your brief`: the brief with the sample values | Step 3: check your brief | फिर अपना brief जाँच लीजिए। | Then check your brief. |
 | 0:19–0:21 | Click "Generate", plain cut (no wait shown) | (none) | (none) | (none) |
-| 0:21–0:28 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** (and the prayer) | Criminal drafts use BNS, BNSS and BSA section numbers. | पहला ड्राफ्ट आ गया। Criminal drafts में BNS, BNSS और BSA cite होते हैं। | The first draft is here. Criminal drafts use BNS, BNSS and BSA section numbers. |
+| 0:21–0:28 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** (and the prayer) | Criminal drafts use BNS, BNSS and BSA section numbers. | पहला ड्राफ्ट आ गया। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। | The first draft is here. Criminal drafts use BNS, BNSS and BSA section numbers. |
 | 0:28–0:35 | Editor: the advocate rewrites one ground in their own words | Review and edit | अब असली काम: हर line पढ़िए, हर section जाँचिए, grounds अपने शब्दों में लिखिए। | Now the real work: read every line, check every section, put the grounds in your own words. |
 | 0:35–0:38 | Download menu, "Word" chosen; the file appears | Download: Word or PDF | फिर Word या PDF में डाउनलोड कीजिए। | Then download it in Word or PDF. |
 | 0:38–0:44 | End card: Lawie logo, CTA, disclaimer | Start with 5 free Ink · lawie.in / Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing. | ड्राफ्ट Lawie देता है, फ़ैसला आपका। 5 free Ink से शुरू कीजिए। | Lawie gives you the draft; the call is yours. Start with 5 free Ink. |
@@ -124,7 +124,7 @@ Start with 5 free Ink. Link in bio.
 ```
 चलिए, साथ में एक bail application ड्राफ्ट करते हैं।
 
-अपने शब्दों में मामला लिखिए, Lawie जो details पूछे उनके जवाब दीजिए, अपना brief जाँचिए, फिर ड्राफ्ट देखिए, बदलिए और डाउनलोड कीजिए। Criminal drafts में BNS, BNSS और BSA cite होते हैं।
+अपने शब्दों में मामला लिखिए, Lawie जो details पूछे उनके जवाब दीजिए, अपना brief जाँचिए, फिर ड्राफ्ट देखिए, बदलिए और डाउनलोड कीजिए। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं।
 
 Sample, fictional matter. कोई असली केस या क्लाइंट नहीं दिखाया गया है।
 
@@ -155,7 +155,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 **Pillars:** P2 Everyday court work, P4 Pay per draft (a 1-Ink document). **Calendar:** W2-IG-2 if describe is live (else R4).
 **Hook (0–2 s):** on-screen "A legal notice. 1 Ink." over the describe screen.
 
-**Sample values (all fictional):** Sender: `B. Sharma (sample)` · Recipient: `C. Traders (sample)` · Cheque No. `000000` · Amount: `₹00,000 (sample)` · Bank: `Sample Bank`. Dates in 2026. Label `Sample, fictional matter` pinned top-left from 0:03 to 0:30. (Zeros so no real-looking rupee figure appears.)
+**Sample values (all fictional):** Sender: `B. Sharma (sample)` · Recipient: `C. Traders (sample)` · Cheque No. `000000` · Amount: `₹00,000 (sample)` · Bank: `Sample Bank`. Dates in 2026. Label `Sample, fictional matter` pinned top-left from 0:03 until the cut to the end card at 0:35, because case details are still on screen while the advocate edits and downloads. (Zeros so no real-looking rupee figure appears.)
 
 **Sample description typed on screen** (fictional): `Notice to C. Traders (sample) for a dishonoured cheque, No. 000000, drawn on Sample Bank, from B. Sharma (sample).`
 
@@ -164,9 +164,10 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 | 0:00–0:02 | Describe screen, heading `What do you need to draft?` | A legal notice. 1 Ink. | Legal notice भेजना है? | Need to send a legal notice? |
 | 0:02–0:09 | The sample description is typed into the box | Describe the matter in your own words | अपने शब्दों में मामला लिखिए। सब fictional है। | Describe the matter in your own words. All fictional. |
 | 0:09–0:14 | Screen `A few questions about what you need`: one or two questions answered with sample values | A few questions | जो details अभी चाहिए, Lawie पूछता है। | Lawie asks for the details it still needs. |
-| 0:14–0:17 | Screen `Check your brief` | Check your brief | अपना brief जाँचिए। | Check your brief. |
+| 0:14–0:17 | Screen `Check your brief`. In the last second, the top-bar Ink pill is on screen showing **5 Ink** (a new sample account, before generating) | Check your brief. Ink: 5 | अपना brief जाँचिए। अभी Ink 5 है। | Check your brief. You have 5 Ink. |
 | 0:17–0:19 | Click "Generate", plain cut | (none) | (none) | (none) |
-| 0:19–0:25 | The notice opens. Zoom on the demand paragraph: payment **within fifteen days of receipt of this notice**. The Ink pill in the top bar (count, tier, Top-up button) drops by 1 | Most notices use 1 Ink. Charged only after a draft is generated. | ज़्यादातर notice में 1 Ink लगता है, और Ink ड्राफ्ट generate होने के बाद ही कटता है। | Most notices use 1 Ink, and you're charged only after a draft is generated. |
+| 0:19–0:22 | The notice opens. Zoom on the demand paragraph: payment **within fifteen days of receipt of this notice** | Most notices use 1 Ink. | ज़्यादातर notice में 1 Ink लगता है। | Most notices use 1 Ink. |
+| 0:22–0:25 | Cut to the top-bar Ink pill, now showing **4 Ink** (one lower than at 0:14–0:17) | Ink: 5 → 4. Charged only after a draft is generated. | Ink 5 से 4 हुआ। Ink ड्राफ्ट generate होने के बाद ही कटता है। | Ink: 5 to 4. You're charged only after a draft is generated. |
 | 0:25–0:32 | Editor: the advocate edits the demand paragraph | Review. Edit anything. | पढ़िए, जाँचिए, जो बदलना हो बदलिए। | Read it, check it, change what you need to. |
 | 0:32–0:35 | Download as PDF | Download: Word or PDF | Word या PDF में डाउनलोड। | Download in Word or PDF. |
 | 0:35–0:40 | End card | Start with 5 free Ink · lawie.in / Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing. | 5 free Ink से शुरू कीजिए। | Start with 5 free Ink. |
@@ -226,6 +227,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 4. Screen headings match the real screens; the questions named in the voice-over come from the s.138 list in production rule 10 (Priya, 12 Oct).
 5. **Demand paragraph shows payment within fifteen days of receipt of the notice. Ajay to check the actual frame.**
 6. Sample matter fictional and labelled. If a less loaded example is wanted, use `legal_notice_breach_of_contract` with the same beats.
+7. The Ink count before and after (5 then 4) is the balance of a new sample account going from 5 Ink to 4 after one 1-Ink notice. It shows the balance only, not a price. The same condition as item 3 applies: if the pill does not show the new count on production, cut the 0:22-0:25 overlay and keep the voice-over line. After T-227 only.
 
 ---
 
@@ -272,12 +274,14 @@ Uses the R1 or R4 sample draft (fictional, offence date after 1 July 2024), so n
 
 ## R4 — "Draft a bail application with me" (classic path, FALLBACK, ~42 s)
 
+> **Pre-switch fallback. Retire when describe_first goes on for all users. No R4 posts after go-live.**
+
 No HOLD tag: this is the path every user has today. It waits only for T-245a/b (criminal draft) and the general launch gate.
 
 **Pillars:** P2 Everyday court work, P3 You stay the advocate. **Calendar:** W1-IG-2 if describe-first is not live at go-live; W2-IG-2 again if it is still not live in Week 2.
 **Hook (0–2 s):** on-screen "Draft a bail application with me" over the `Browse document types` screen.
 
-**Sample values and label:** same as R1. `Sample, fictional matter` pinned top-left from 0:06 to 0:30.
+**Sample values and label:** same as R1. `Sample, fictional matter` pinned top-left from 0:06 until the cut to the end card at 0:37, because case details are still on screen while the advocate edits and downloads.
 
 **Note for Priya:** in the working tree I read (12 Oct), a card on `Browse document types` opens the describe screen, so "pick a template, fill the form" may not exist once the flag is on. R4 is only valid while the classic path is what a user gets. Priya to confirm the classic screens on the recording day. If the form has different fields, change the voice-over to what is on screen. Do not invent fields: the only facts this reel may name are FIR number and date, police station, sections, custody, court, applicant details, facts, grounds.
 
@@ -287,7 +291,7 @@ No HOLD tag: this is the path every user has today. It waits only for T-245a/b (
 | 0:02–0:06 | Cursor picks the regular bail template | Step 1: pick the document | Document list से regular bail चुनी। | I pick regular bail from the list. |
 | 0:06–0:16 | The form is filled with the sample values; label visible | Step 2: fill in the matter | अब मामले की details भरते हैं: नाम, FIR, police station, तारीख़। यहाँ सब fictional है। | Now the details of the matter: name, FIR, police station, date. All fictional here. |
 | 0:16–0:18 | Click "Generate", plain cut | (none) | (none) | (none) |
-| 0:18–0:25 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** | Criminal drafts use BNS, BNSS and BSA section numbers. | पहला ड्राफ्ट आ गया। Criminal drafts में BNS, BNSS और BSA cite होते हैं। | The first draft is here. Criminal drafts use BNS, BNSS and BSA section numbers. |
+| 0:18–0:25 | The draft opens. Zoom on the heading `[Sample Sessions Court]` and the cited **Section 483 BNSS** | Criminal drafts use BNS, BNSS and BSA section numbers. | पहला ड्राफ्ट आ गया। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। | The first draft is here. Criminal drafts use BNS, BNSS and BSA section numbers. |
 | 0:25–0:33 | Editor: the advocate rewrites one ground in their own words | Step 3: review and edit | अब असली काम: हर line पढ़िए, हर section जाँचिए, grounds अपने शब्दों में लिखिए। | Now the real work: read every line, check every section, put the grounds in your own words. |
 | 0:33–0:37 | Download menu, "Word" chosen | Download: Word or PDF | फिर Word या PDF में डाउनलोड कीजिए। | Then download it in Word or PDF. |
 | 0:37–0:42 | End card | Start with 5 free Ink · lawie.in / Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing. | ड्राफ्ट Lawie देता है, फ़ैसला आपका। 5 free Ink से शुरू कीजिए। | Lawie gives you the draft; the call is yours. Start with 5 free Ink. |

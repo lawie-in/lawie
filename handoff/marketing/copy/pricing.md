@@ -183,3 +183,7 @@ Pricing and landing copy mention no referral or demo code. If either ever does (
 | 8 | Top-ups "available on all plans", including Free (Priya confirmed from the code, 12 Oct) | 13 |
 | 9 | No badge on the ₹499 pack ("BEST VALUE" is gone). "LOWEST PRICE PER INK OF THE 3 PACKS" is optional, only if it fits at 375 px and 1280 px | 14 |
 | 10 | Proposed FAQ page lines (faq:48, faq:53, faq:40), pricing metadata, footer disclaimer | Grep table |
+
+## Final grep list (T-252)
+
+The full before-and-after table for the FAQ, about page, footer, in-app badges, watermark lines and PainSolution.tsx, and the grep list for "court-ready", "validated", "in minutes", "guaranteed", "AI lawyer", "secure" and "encrypted", is in `copy/site-copy-t252.md` (for Ajay).

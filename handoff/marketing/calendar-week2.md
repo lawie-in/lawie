@@ -26,7 +26,7 @@ All house rules from `calendar-week1.md` apply: verbatim disclaimer, Ajay's Ink 
 
 **UI-screenshot posts** (W1-IG-1, W1-LI-2, both reel covers, W2-X-3) use the classic Browse document types screen. Redo the crops if describe-first is live at go-live. (W2-X-3 no longer carries an image under the X rule above; it is listed only so the crops are not forgotten if an image-only variant is ever approved.)
 
-**Reel swap rule (Meera, round 2):** the Week 1 Instagram reel (W1-IG-2) is **R4 (classic-path fallback)** if describe-first is not live for all users at go-live, otherwise **R1 (describe, bail)**. The Week 2 reel (W2-IG-2) is **R2 (describe, legal notice)** if describe-first is live, otherwise **R4 again**. Captions in this file are written for the classic flow ("pick, answer a few questions"); `reels.md` has the describe-flow caption wording for R1 and R2.
+**Reel swap rule (Meera, round 2):** Pre-switch fallback. Retire when describe_first goes on for all users. No R4 posts after go-live. The Week 1 Instagram reel (W1-IG-2) is **R4 (classic-path fallback)** if describe-first is not live for all users at go-live, otherwise **R1 (describe, bail)**. The Week 2 reel (W2-IG-2) is **R2 (describe, legal notice)** if describe-first is live, otherwise **R4 again**. Captions in this file are written for the classic flow ("pick, answer a few questions"); `reels.md` has the describe-flow caption wording for R1 and R2.
 
 ## Week at a glance
 
@@ -83,7 +83,7 @@ Start with 5 free Ink: https://lawie.in/login?mode=signup&utm_source=linkedin&ut
 • Default bail
 • Bail cancellation
 
-ज़रूरत वाला चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर पहला ड्राफ्ट जाँचिए, बदलिए और Word या PDF में डाउनलोड कीजिए। Criminal drafts में BNS, BNSS और BSA cite होते हैं।
+ज़रूरत वाला चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर पहला ड्राफ्ट जाँचिए, बदलिए और Word या PDF में डाउनलोड कीजिए। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं।
 
 फ़ाइल करने से पहले हर section और हर तथ्य जाँचें। ड्राफ्ट से काम शुरू होता है, ख़त्म नहीं।
 
@@ -116,25 +116,24 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 ## W2-X-1 — Day 8 — X — P2
 
-**Copy (EN)** — 278 / 280
+**Copy (EN)** — 279 / 280
 
 ```
-Six bail drafts in Lawie: regular, anticipatory, before magistrate, interim, default, cancellation.
-
+Bail drafts: regular, anticipatory, before magistrate, interim, default, cancellation.
 Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-1
 ```
 
-**Copy (HI)** — 270 / 280
+**Copy (HI)** — 243 / 280
 
 ```
-Lawie में 6 तरह के bail draft: regular, anticipatory, magistrate के सामने, interim, default और cancellation.
+Lawie में 6 तरह के bail draft।
 
-Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।
+Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। 5 free Ink से शुरू करें।
 
-The advocate is responsible for legal accuracy and filing.
+Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-1
 ```
 
@@ -170,7 +169,7 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 
 Lawie में bail application के छह ड्राफ्ट हैं: regular, anticipatory, magistrate के सामने, interim, default और cancellation.
 
-चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचकर Word या PDF में डाउनलोड कीजिए। Criminal drafts में BNS, BNSS और BSA cite होते हैं। Bail application में 2 Ink लगते हैं।
+चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर ड्राफ्ट जाँचकर Word या PDF में डाउनलोड कीजिए। Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। Bail application में 2 Ink लगते हैं।
 
 https://lawie.in/login?mode=signup&utm_source=whatsapp&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-wa-1
 
@@ -260,7 +259,7 @@ On-slide text:
 4. Magistrate के सामने bail.
 5. Interim bail.
 6. Default bail. Bail cancellation.
-7. Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।
+7. Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। 5 free Ink से शुरू करें।
    Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 ```
 
@@ -269,7 +268,7 @@ Caption (~410 chars):
 ```
 छह bail drafts, शुरुआत एक ही तरह: ज़रूरत वाला चुनिए, मामले के कुछ सवालों के जवाब दीजिए, फिर जाँचिए, बदलिए और डाउनलोड कीजिए।
 
-Criminal drafts में BNS, BNSS और BSA cite होते हैं। फ़ाइल करने से पहले हर section जाँचें।
+Criminal drafts में BNS, BNSS और BSA section numbers इस्तेमाल होते हैं। फ़ाइल करने से पहले हर section जाँचें।
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
@@ -368,7 +367,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 ## W2-X-2 — Day 11 — X — P3
 
-**Copy (EN)** — 278 / 280
+**Copy (EN)** — 277 / 280
 
 ```
 Before you file a bail application drafted in Lawie, check:
@@ -382,7 +381,7 @@ This list is a start, not a complete one. The advocate is responsible for legal 
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-2
 ```
 
-**Copy (HI)** — 258 / 280
+**Copy (HI)** — 257 / 280
 
 ```
 Lawie में बनी bail application फ़ाइल करने से पहले जाँचें:
