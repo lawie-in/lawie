@@ -5,7 +5,7 @@
 | Phase  | 2 — Payments. Before go-live |
 | Owner  | Lead (build, billing). Arjun glance |
 | Mode   | Small fix (billing) |
-| Status | To do. Tanvi after T-320. Found in T-320 review, 12 Oct 2026 |
+| Status | Building: tanvi (12 Oct 2026) |
 
 ## Acceptance criteria
 
