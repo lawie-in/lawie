@@ -8,6 +8,7 @@
  */
 import { Router, Request, Response } from 'express';
 
+import { catalogueCategoryDisplay, isCatalogueCategoryId } from '../config/catalogue';
 import { authenticate } from '../middleware/authenticate';
 import { LawieDocument } from '../models/Document.model';
 import { Generation } from '../models/Generation.model';
@@ -98,7 +99,7 @@ router.get(
     // Fetch template metadata for the top templates
     const templateIds = templateAgg.map((t: { _id: string }) => t._id).filter(Boolean);
     const templates = await Template.find({ templateId: { $in: templateIds } })
-      .select('templateId displayName category planAccess')
+      .select('templateId displayName category catalogueCategory planAccess')
       .lean();
     const tmplMap = new Map(templates.map((t) => [t.templateId, t]));
 
@@ -133,6 +134,12 @@ router.get(
             templateId: t._id,
             displayName: meta?.displayName ?? t._id,
             category: meta?.category ?? '—',
+            // T-240: the library category and its name. Absent on a row the
+            // seed has not rewritten yet; the page then shows `category`.
+            catalogueCategory: meta?.catalogueCategory,
+            catalogueCategoryName: isCatalogueCategoryId(meta?.catalogueCategory)
+              ? catalogueCategoryDisplay(meta.catalogueCategory).name
+              : undefined,
             planAccess: meta?.planAccess ?? 'free',
             count: t.count,
             finalisedRate: t.count > 0 ? Math.round((t.finalised / t.count) * 100) : 0,
