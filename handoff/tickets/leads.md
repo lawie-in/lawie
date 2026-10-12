@@ -22,7 +22,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. shashank — T-250 + T-255 (chain complete; adding the .prettierignore lines, then he asks for the slot).
+1. shashank — T-250 + T-255 (83c325e; the slot is his now, 12 Oct).
 2. vishal — T-256 + T-264 (chain complete, bee7185; Ajay approved fixture 1a; goes right after shashank, pulls first).
 3. mahak — T-233 + T-271 (reviewer round 1 passed; retest and re-review running).
 
