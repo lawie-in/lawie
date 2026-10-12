@@ -11,6 +11,12 @@ export interface TokenPayload {
   name: string;
   role: UserRole;
   plan: UserPlan;
+  /**
+   * T-343 — the user's accepted privacyVersion, read from the user record when the token is
+   * issued (login, register, OAuth, refresh, privacy acceptance). Absent on tokens issued before
+   * T-343 and for users with no recorded version: both count as not accepted.
+   */
+  pv?: string;
   type: 'access' | 'refresh';
 }
 

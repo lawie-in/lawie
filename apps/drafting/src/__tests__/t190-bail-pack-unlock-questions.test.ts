@@ -974,10 +974,6 @@ describe('T-190 pack text and averment files are unchanged where they must be', 
     bail_before_magistrate: '6519fdc6a96efbe03d98f71f6f67ab55633e9634e28b6dbffe321e72c50efa56',
     bail_anticipatory: '270a841d242ef26fc74859cfa94b4bf6feb414bbf0a01ffb32f1a7ae8caa83de',
   };
-  const PRE_T334: Record<string, string> = {
-    bail_regular: '14268df27db1e5719d270f60e694fd7107a38c92ba9a981284640a4970c9e4aa',
-    bail_anticipatory: '83102358cd6e22333e023e3969c7fb0a5ecd63cfdcd46936069ab263483a81e7',
-  };
   it.each(Object.keys(PINNED))(
     'T-199 AC5: _averments/%s.json hash is the one Ajay signed (origin/develop_staging)',
     (id) => {
@@ -996,9 +992,7 @@ describe('T-190 pack text and averment files are unchanged where they must be', 
       } catch {
         upstream = null; // no such ref here (shallow clone): the pinned hash stands
       }
-      // T-334: until the signed files reach origin/develop_staging, that ref still holds the
-      // previous signed hash. Accept exactly that one value (and nothing else) for the two re-pinned packs.
-      if (upstream) expect([PINNED[id], PRE_T334[id]].filter(Boolean)).toContain(sha(upstream));
+      if (upstream) expect(sha(upstream)).toBe(PINNED[id]);
     },
   );
 });

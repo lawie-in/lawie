@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (auth). Arjun (glances) |
 | Mode   | Small fix (auth) |
-| Status | Building: shashank (12 Oct 2026). RELEASE GATE. Founder found it, 12 Oct 2026 |
+| Status | Merged into develop_staging (eae46a9), 12 Oct 2026. Release gate cleared. Anushka tests on develop |
 
 Founder, 12 Oct 2026: with email and password sign-up, nothing checks the address, so anyone can make many accounts and get 5 Ink each instantly. Verification emails need T-220 (sending), which is not ready. This closes the money hole now; T-223 adds the verification link later.
 

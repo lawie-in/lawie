@@ -4,9 +4,14 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import {
+  PrivacyBlockedNotice,
+  isPrivacyBlocked,
+  privacyFetch,
+  usePrivacyDescribedBy,
+} from '@/components/PrivacyUpdatePrompt';
 import { useAuth } from '@/context/AuthContext';
 import { useUsage } from '@/hooks/useUsage';
-import { apiFetch } from '@/lib/apiFetch';
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
@@ -14,6 +19,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const [subscribing, setSubscribing] = useState(false);
   const [subscribeError, setSubscribeError] = useState('');
+  const privacyDescribedBy = usePrivacyDescribedBy('subscribe');
 
   if (!user) return null;
 
@@ -23,7 +29,8 @@ export default function SettingsPage() {
     setSubscribing(true);
     setSubscribeError('');
     try {
-      const res = await apiFetch('/api/billing/subscribe', { method: 'POST' });
+      const res = await privacyFetch('subscribe', '/api/billing/subscribe', { method: 'POST' });
+      if (isPrivacyBlocked(res)) return; // T-343: prompt or P7 box shown; finally resets
       const data = await res.json();
       if (!res.ok) {
         setSubscribeError(data.error ?? 'Failed to start subscription. Please try again.');
@@ -125,8 +132,12 @@ export default function SettingsPage() {
         {!isPro && (
           <>
             {subscribeError && <p className="mt-3 text-xs text-red-600">{subscribeError}</p>}
+            <div className="mt-3">
+              <PrivacyBlockedNotice actionKey="subscribe" />
+            </div>
             <button
               onClick={handleSubscribe}
+              aria-describedby={privacyDescribedBy}
               disabled={subscribing}
               className="mt-4 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
             >

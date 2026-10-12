@@ -7,6 +7,8 @@ import {
   logoutUser,
   initiatePasswordReset,
   resetPassword,
+  getPrivacyStatus,
+  acceptPrivacy,
 } from '../services/auth.service';
 import { validateRegister, validateLogin } from '../validators/auth.validator';
 
@@ -126,6 +128,40 @@ export async function resetPasswordHandler(
 
     await resetPassword(token, password);
     res.status(200).json({ status: 'success', message: 'Password has been reset successfully.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** T-343 — GET /me: the caller's privacy acceptance state, read from the user record. */
+export async function getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const status = await getPrivacyStatus(req.jwtPayload!.sub);
+    res.status(200).json({ status: 'success', data: status });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-343 — POST /me/privacy-acceptance. The body is ignored: version, time and via are server
+ * values. Responds with a new token pair carrying the new `pv` (old session deleted).
+ */
+export async function acceptPrivacyHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    // authenticate already verified the Bearer header and the live session.
+    const token = req.headers.authorization!.split(' ')[1];
+    const tokens = await acceptPrivacy(req.jwtPayload!.sub, token, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    res.status(200).json({ status: 'success', data: tokens });
   } catch (err) {
     next(err);
   }

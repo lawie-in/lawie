@@ -1,19 +1,39 @@
-import { UserRole, UserPlan } from '@lawie/shared';
+import { CURRENT_PRIVACY_VERSION, UserRole, UserPlan } from '@lawie/shared';
 import bcrypt from 'bcryptjs';
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
 // T-234 — versions recorded when a user accepts the consent line. The values are set by Ajay's
 // rulings (T-234 consent ruling, 11 Oct 2026, and Addendum 3, 12 Oct 2026 in
 // handoff/legal/T-234-login-copy-signed.md); they are maintained by hand, not read from the pages.
-// Bump CURRENT_PRIVACY_VERSION when "Last updated" on /privacy changes (next: T-310), and
-// CURRENT_TERMS_VERSION when /terms changes, each with Ajay's sign-off.
+// CURRENT_TERMS_VERSION: bump when /terms changes, with Ajay's sign-off.
 // T-299: terms '2026-10-12' matches /terms "Last updated: 12 October 2026" (T-268, f6566b4).
-// T-308 changed /privacy text but not its "Last updated" (already 12 October 2026).
-// T-242 (Ajay, 12 Oct 2026): privacy '2026-10-12b' because §1 and §6 changed again on that date.
+// T-343: CURRENT_PRIVACY_VERSION now lives in @lawie/shared (constants/privacy.ts, with its
+// history and the per-version signed summaries); re-exported here so existing imports still work.
 // Versions are opaque strings: compare them for equality only, never parse them as dates.
 export const CURRENT_TERMS_VERSION = '2026-10-12';
-export const CURRENT_PRIVACY_VERSION = '2026-10-12b';
+export { CURRENT_PRIVACY_VERSION };
 export type TermsAcceptedVia = 'password' | 'google';
+/**
+ * T-343 (Ajay §4) — how the current privacyVersion was accepted. 'signin' (Ajay, round 5): the
+ * T-234 Google consent stamp on a linked or returning account set privacyVersion at sign-in.
+ */
+export type PrivacyAcceptedVia = 'signup' | 'reaccept' | 'signin';
+
+/** T-343 (Ajay §4) — one accepted privacy version. No IP address and no user agent. */
+export interface IPrivacyAcceptance {
+  version: string;
+  acceptedAt: Date;
+  via: PrivacyAcceptedVia;
+}
+
+const PrivacyAcceptanceSchema = new Schema<IPrivacyAcceptance>(
+  {
+    version: { type: String, required: true, trim: true },
+    acceptedAt: { type: Date, required: true },
+    via: { type: String, enum: ['signup', 'reaccept', 'signin'], required: true },
+  },
+  { _id: false },
+);
 
 /** T-242 — campaign tags from the landing link, already capped and filtered (sanitizeUtm). */
 export interface ISignupSource {
@@ -77,6 +97,13 @@ export interface IUser extends Document {
   termsVersion?: string;
   privacyVersion?: string;
   acceptedVia?: TermsAcceptedVia;
+
+  // T-343 — privacy acceptance (Ajay §4). Server-set only. privacyVersion above is the version
+  // accepted; these say when and how. privacyHistory is append-only ($push only, never edited
+  // or removed): one row per acceptance, so we can show which version was accepted and when.
+  privacyAcceptedAt?: Date;
+  privacyAcceptedVia?: PrivacyAcceptedVia;
+  privacyHistory?: IPrivacyAcceptance[];
 
   // T-242 — where the sign-up came from (Ajay, T-242 signed). Set once, only when an account is
   // created and the landing link carried at least one tag. Deleted with the account.
@@ -211,6 +238,11 @@ const UserSchema = new Schema<IUser>(
     privacyVersion: { type: String, trim: true },
     acceptedVia: { type: String, enum: ['password', 'google'] },
 
+    // T-343 — no defaults: absent means no acceptance recorded under T-343 rules yet.
+    privacyAcceptedAt: { type: Date },
+    privacyAcceptedVia: { type: String, enum: ['signup', 'reaccept', 'signin'] },
+    privacyHistory: { type: [PrivacyAcceptanceSchema], default: undefined },
+
     // T-242 — no default: absent means no tags were present at sign-up.
     signupSource: { type: SignupSourceSchema },
 
@@ -255,5 +287,31 @@ UserSchema.methods.comparePassword = async function (candidate: string): Promise
   if (!this.password) throw new Error('User has no password — use OAuth login');
   return bcrypt.compare(candidate, this.password);
 };
+
+/** T-343 — the privacy fields stamped on a brand-new account (email or Google sign-up). */
+export function privacySignupAcceptance(at: Date): {
+  privacyVersion: string;
+  privacyAcceptedAt: Date;
+  privacyAcceptedVia: PrivacyAcceptedVia;
+  privacyHistory?: IPrivacyAcceptance[];
+} {
+  return {
+    privacyVersion: CURRENT_PRIVACY_VERSION,
+    privacyAcceptedAt: at,
+    privacyAcceptedVia: 'signup',
+    privacyHistory: [{ version: CURRENT_PRIVACY_VERSION, acceptedAt: at, via: 'signup' }],
+  };
+}
+
+/** T-343 — one 'signin' acceptance row (the Google consent stamp set privacyVersion). */
+export function privacySigninAcceptance(at: Date): {
+  set: { privacyAcceptedAt: Date; privacyAcceptedVia: PrivacyAcceptedVia };
+  row: IPrivacyAcceptance;
+} {
+  return {
+    set: { privacyAcceptedAt: at, privacyAcceptedVia: 'signin' },
+    row: { version: CURRENT_PRIVACY_VERSION, acceptedAt: at, via: 'signin' },
+  };
+}
 
 export const User = mongoose.model<IUser>('User', UserSchema);
