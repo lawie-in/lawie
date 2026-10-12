@@ -453,7 +453,7 @@
         "memo prapt"
       ],
       "pack_only": true,
-      "not_with": ["dated"],
+      "not_with": ["dated", "दिनांक", "dinank", "dt"],
       "facts": ["memo_received_date"]
     },
     {

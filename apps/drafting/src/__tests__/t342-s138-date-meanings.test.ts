@@ -212,8 +212,8 @@ describe("T-342 AC1: the three new kinds, pinned to Ajay's signed wording", () =
     for (const old of BEFORE.kinds) expect(kindById(old.id).pack_only).toBeUndefined();
   });
 
-  it('memo_received carries not_with "dated" (Ajay: the memo\'s own date is not the date it was received)', () => {
-    expect(kindById('memo_received').not_with).toEqual(['dated']);
+  it("memo_received carries not_with dated, दिनांक, dinank, dt (Ajay: the memo's own date is not the date it was received)", () => {
+    expect(kindById('memo_received').not_with).toEqual(['dated', 'दिनांक', 'dinank', 'dt']);
     expect(kindById('notice_sent').not_with).toBeUndefined();
     expect(kindById('cheque_validity').not_with).toBeUndefined();
   });
@@ -984,6 +984,27 @@ describe("T-342 part 2: Ajay's dishonour-memo rulings on the s.138 pack", () => 
   it('"The dishonour memo dated X" is the dishonour date, as before', () => {
     expect(placed('The dishonour memo dated 7 March 2026.')).toEqual({
       dishonour_date: '2026-03-07',
+    });
+  });
+
+  it.each([
+    'We received the return memo dt. 7 March 2026',
+    'We received the return memo dt 7 March 2026',
+    'We received the return memo Dt. 7 March 2026',
+    'मेमो प्राप्त हुआ दिनांक 7 March 2026',
+    'memo dinank 7 March 2026 ko mila',
+  ])('"%s" places nothing by code and the model L4 quote is dropped', (text) => {
+    expect(placed(text)).toEqual({});
+    const r = checkRead(S138, text, {
+      outcome: 'read',
+      read: [{ id: 'memo_received_date', value: '2026-03-07', quote: text }],
+    });
+    expect(r.values.has('memo_received_date')).toBe(false);
+  });
+
+  it('"We received the return memo on 12 March 2026" still places L4', () => {
+    expect(placed('We received the return memo on 12 March 2026')).toEqual({
+      memo_received_date: '2026-03-12',
     });
   });
 
