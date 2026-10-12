@@ -77,3 +77,7 @@ Vishal is right: rule 4 as I wrote it ("a full stop after a word of three or mor
 - **Q6, sentence ends.** A sentence also ends at `?`, `!`, the danda `।` and the double danda `॥`, when a space or the end of the text follows. This applies to the same-sentence limit (Addendum 2, Q2) and to the walk back for the first party. Rule 4's abbreviation exceptions do not apply to these marks.
 - Tests: each Q5 form with a full name on both sides; "K. V. Rao v. State of Kerala (2019) 4 SCC 12" blanks in full and "K. V. Rao" is read as one name; a Hindi sentence ending in `।` followed by an English case name keeps the Hindi sentence.
 - Sign-off reference: this file, Addenda 1 to 4.
+
+## Addendum 5, 12 Oct 2026 (Vishal's Q7)
+
+- **Q7:** `?`, `!`, `,`, `;` and `:` glued between two words with no space are a word break, and the cut-back of rule 5 applies: "Held in Shyam?Mohan Rao v. State of Kerala (2019) 4 SCC 12 applies." becomes "Held in [Authority — add if relied upon] applies." Fix it in T-263, not as a follow-up: no part of a name may stand beside a blank. Sign-off reference: Addenda 1 to 5.
