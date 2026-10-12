@@ -21,6 +21,8 @@ function fakeRegistry(entries: Array<Partial<TemplateConfig> & { template_id: st
       template_id: e.template_id,
       display_name: e.display_name ?? e.template_id,
       category: e.category ?? 'criminal',
+      // T-240: the promoter sets the library category on every config.
+      catalogueCategory: e.catalogueCategory ?? 'criminal_bail_custody',
       description: e.description ?? '',
       icon: e.icon ?? 'file-text',
       plan_access: e.plan_access ?? 'free',

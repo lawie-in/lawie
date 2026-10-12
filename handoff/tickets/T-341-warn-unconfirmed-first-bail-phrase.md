@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft. Before release (Ajay) |
 | Owner  | Ajay (rule, wording). Lead (build, drafting) |
 | Mode   | Small fix (legal content) |
-| Status | Building: mahak (12 Oct 2026). Before release. Raised by Ajay via Mahak after T-336 |
+| Status | Merged into develop_staging 08103ec (12 Oct 2026). Ajay signed 479dc1d + dad223c. Anushka tests on develop |
 
 T-336 stops the brief from asserting "no earlier bail application" until the advocate confirms it. The model can still write it from a paraphrased "none" in the raw description. This adds a check after the draft is made.
 

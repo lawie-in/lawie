@@ -13,6 +13,11 @@
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
+import {
+  catalogueCategoryDisplay,
+  requireCatalogueCategory,
+  type CatalogueCategoryId,
+} from '../config/catalogue';
 import logger from '../config/logger';
 
 import {
@@ -124,7 +129,19 @@ export interface TemplateMetadata {
 export interface TemplateConfig {
   template_id: string;
   display_name: string;
+  /**
+   * The behaviour value, from the rule file (or the docs/templates override).
+   * Gates what is drafted (civil contract rule, CATEGORY prompt line, BNS
+   * whitelist). NOT the library category: see `catalogueCategory`.
+   */
   category: string;
+  /**
+   * The library category (T-240): one of T-239's 26, from config/catalogue,
+   * never from the rule file. Drives the library, filters, seed and web only.
+   * Always set on configs from the registry and the overrides (a template
+   * without one fails at load); optional in the type for hand-built configs.
+   */
+  catalogueCategory?: CatalogueCategoryId;
   description: string;
   icon: string;
   plan_access: 'free' | 'pro';
@@ -152,6 +169,10 @@ export interface TemplateSummary {
   template_id: string;
   display_name: string;
   category: string;
+  /** T-240: library category id, its display name and its T-239 order. */
+  catalogueCategory: CatalogueCategoryId;
+  catalogueCategoryName: string;
+  catalogueCategoryOrder: number;
   description: string;
   icon: string;
   plan_access: 'free' | 'pro';
@@ -178,13 +199,23 @@ export function loadTemplateConfig(templateId: string): TemplateConfig | null {
   if (cached !== undefined) return cached;
 
   // Try the override path first — hand-tuned configs trump anything synthesised.
+  let override: TemplateConfig | null = null;
   try {
     const raw = readFileSync(join(TEMPLATES_DIR, `${templateId}.json`), 'utf-8');
-    const config: TemplateConfig = JSON.parse(raw);
-    configCache.set(templateId, config);
-    return config;
+    override = JSON.parse(raw) as TemplateConfig;
   } catch {
     // No override on disk — fall through to the promoter registry.
+  }
+  if (override) {
+    // T-240: the library category comes from config/catalogue, never from the
+    // override file; an override with no catalogue entry is refused (throws).
+    // `category` (the behaviour value) is the override's own, unchanged.
+    const config: TemplateConfig = {
+      ...override,
+      catalogueCategory: requireCatalogueCategory(override.template_id ?? templateId),
+    };
+    configCache.set(templateId, config);
+    return config;
   }
 
   const fromRegistry = getTemplateRegistry().configs.get(templateId);
@@ -209,16 +240,24 @@ export function loadTemplateConfig(templateId: string): TemplateConfig | null {
 export function listTemplateConfigs(): TemplateSummary[] {
   const byId = new Map<string, TemplateSummary>();
 
-  const toSummary = (config: TemplateConfig): TemplateSummary => ({
-    template_id: config.template_id,
-    display_name: config.display_name,
-    category: config.category,
-    description: config.description,
-    icon: config.icon,
-    plan_access: config.plan_access,
-    supported_languages: config.supported_languages,
-    metadata: config.metadata,
-  });
+  const toSummary = (config: TemplateConfig): TemplateSummary => {
+    const catalogueCategory =
+      config.catalogueCategory ?? requireCatalogueCategory(config.template_id);
+    const { name, order } = catalogueCategoryDisplay(catalogueCategory);
+    return {
+      template_id: config.template_id,
+      display_name: config.display_name,
+      category: config.category,
+      catalogueCategory,
+      catalogueCategoryName: name,
+      catalogueCategoryOrder: order,
+      description: config.description,
+      icon: config.icon,
+      plan_access: config.plan_access,
+      supported_languages: config.supported_languages,
+      metadata: config.metadata,
+    };
+  };
 
   // 1. Overrides win.
   try {
