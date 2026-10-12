@@ -62,8 +62,8 @@ export default function SectionConverterPage() {
                 IPC / CrPC / IEA Section Converter
               </h1>
               <p className="text-sm text-slate-500">
-                Instantly convert between old (IPC, CrPC, IEA) and new (BNS, BNSS, BSA) section
-                numbers. Free, no login required.
+                Look up old (IPC, CrPC, IEA) and new (BNS, BNSS, BSA) section numbers side by side.
+                Free, no login required.
               </p>
             </div>
           </div>
@@ -127,10 +127,11 @@ export default function SectionConverterPage() {
               </li>
             </ul>
             <p>
-              This tool covers 500+ section mappings validated by a practising advocate. For
-              professional drafting with auto-conversion, try{' '}
+              This tool maps section numbers between the old and new criminal laws. Check the bare
+              act before you rely on a mapping: a section number alone does not tell you which law
+              applies to your case. For a first draft to review, try{' '}
               <Link href="/login" className="font-medium text-blue-600 hover:underline">
-                Lawie&apos;s AI document generator
+                Lawie&apos;s drafting assistant
               </Link>
               .
             </p>
