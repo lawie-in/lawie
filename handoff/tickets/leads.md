@@ -47,7 +47,8 @@ Each lead takes this after the current row is merged and released. Files are cla
 ## Merge queue
 
 - mahak: CI fix fix/t-220-retry-test-race (test only). Next, once CI on 6be8b14 is green.
-- kunal: T-354 (tests green, small fix, Arjun ruled option A). After tanvi; check with the slot holder first.
+- kunal: T-354 (tests green, small fix, Arjun ruled option A). After mahak's CI fix; check with the slot holder first.
+- shashank: T-356 part 1 (152df3b, small fix tested green; release gate). After kunal (T-354 unblocks Mahak's T-223), ahead of vishal and tanvi T-357.
 - vishal: T-342 (round 2 review passed, tests green, Ajay signed 59eff64 at 54951db). Merges once the _meta.signed line is in. After kunal T-354; check with the slot holder first.
 
 ## Last done
