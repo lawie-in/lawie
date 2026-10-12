@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (whether it gates prod, wording). Rajesh (prompt design). Lead (auth, web) |
 | Mode   | Full chain (auth and web, legal) |
-| Status | To do. Ajay to say whether it must ship before prod. Raised by Kunal's T-242 review, 12 Oct 2026 |
+| Status | To do. Unassigned. Ajay: does not block T-242; must ship before the next policy change that affects existing users (12 Oct 2026) |
 
 T-242 bumps `CURRENT_PRIVACY_VERSION`. Nothing compares a user's stored `privacyVersion` with the current one, so existing users are never asked to accept the new policy.
 
