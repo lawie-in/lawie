@@ -41,3 +41,13 @@ Saying that drafts are generated with AI is required transparency, not a claim; 
 | `tools/bail-checker/page.tsx` ~379 (disclaimer) | **No change.** It is a tool disclaimer, accurate and more specific than the export footer; it stays as is. |
 
 A sweep of `apps/web/src` for "built around", "AI-assisted", "current criminal codes" and "new criminal codes" after Addenda 1–3 finds nothing else.
+
+## Addendum 4 (12 Oct 2026 IST): server-side lines, for a separate ticket (drafting, email-worker)
+
+| Where | Replace with, exact |
+|---|---|
+| `apps/drafting/src/services/pdf-export.service.ts` ~150 (footer on server PDFs of generated drafts) | `First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.` (same as the client export footer) |
+| `apps/drafting/src/services/annexures.service.ts`, all 6 footers | `Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.` |
+| `apps/email-worker/src/templates/auth/welcome.tsx` ~73 | `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` |
+
+Annexures (vakalatnama, memo of parties and the like) are filled from a template, not written by the model, so they must not say "generated with AI". If any annexure section is model-written, tell me and it takes the first line instead. Golden snapshots that move come to me. The welcome email is also covered by the emails sign-off: this line replaces its disclaimer only.
