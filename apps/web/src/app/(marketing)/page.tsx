@@ -9,7 +9,6 @@ import {
   ShieldAlert,
   Megaphone,
   Users,
-  Download,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -25,9 +24,6 @@ export const metadata: Metadata = {
   description:
     'Legal drafting for Indian advocates, built around the current criminal codes — BNS, BNSS, and BSA.',
 };
-
-// The sample PDFs are served by the gateway, the same host the app calls for everything else.
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 const reasons = [
   {
@@ -62,39 +58,13 @@ const steps = [
 interface DraftItem {
   icon: LucideIcon;
   label: string;
-  sample?: { href: string; file: string };
 }
 
 const draftItems: DraftItem[] = [
-  {
-    icon: Scale,
-    label: 'Bail applications (regular and anticipatory)',
-    sample: {
-      href: `${API_URL}/api/samples/bail-application`,
-      file: 'Bail Application Sample.pdf',
-    },
-  },
-  {
-    icon: Megaphone,
-    label: 'Legal notices (S.80 CPC, S.138 NI Act)',
-    sample: {
-      href: `${API_URL}/api/samples/legal-notice-s138`,
-      file: 'Legal Notice S138 Sample.pdf',
-    },
-  },
-  {
-    icon: Home,
-    label: 'Rent agreements',
-    sample: { href: `${API_URL}/api/samples/rent-agreement`, file: 'Rent Agreement Sample.pdf' },
-  },
-  {
-    icon: ShieldAlert,
-    label: 'Consumer complaints',
-    sample: {
-      href: `${API_URL}/api/samples/consumer-complaint`,
-      file: 'Consumer Complaint Sample.pdf',
-    },
-  },
+  { icon: Scale, label: 'Bail applications (regular and anticipatory)' },
+  { icon: Megaphone, label: 'Legal notices (S.80 CPC, S.138 NI Act)' },
+  { icon: Home, label: 'Rent agreements' },
+  { icon: ShieldAlert, label: 'Consumer complaints' },
   { icon: FileSignature, label: 'Vakalatnama' },
   { icon: FileText, label: 'Affidavits' },
   { icon: Users, label: 'Maintenance petitions' },
@@ -123,9 +93,9 @@ const homeFaqItems = [
       'Lawie formats documents only for the courts in its court list. The list does not yet cover every District and High Court in Bihar, Jharkhand, UP, and Delhi. Check that your court is listed before you draft.',
   },
   {
-    question: 'Is my case data secure?',
+    question: 'How is my case data handled?',
     answer:
-      'Your documents are encrypted in storage and transmitted over secure connections. Lawie processes your case details only to generate the document you requested. See the Privacy Policy for full details on how data is handled under the DPDP Act, 2023.',
+      'Your drafts and briefs are encrypted in our database, and connections to Lawie use HTTPS. Your form answers and the list of facts Lawie builds from your matter are not yet encrypted in the same way. We do not currently keep backups, so download and keep your own copy of every document you need. Lawie uses your case details only to create your drafts. The Privacy Policy lists what we store, where, and who else receives it.',
   },
 ];
 
@@ -162,9 +132,6 @@ export default function HomePage() {
         .draft-item{display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:1px solid var(--border)}
         .draft-item>svg{width:20px;height:20px;stroke-width:1.5;color:var(--gold);flex-shrink:0}
         .draft-item span{font-size:16px;font-weight:500;color:var(--navy);flex:1}
-        .draft-sample{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--gold);text-decoration:none;white-space:nowrap;padding:8px 0}
-        .draft-sample:hover{text-decoration:underline}
-        .draft-sample svg{width:15px;height:15px}
         .plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:860px;margin:40px auto 0}
         .plan{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:26px 28px}
         .plan.highlighted{border:1.5px solid var(--gold)}
@@ -201,7 +168,7 @@ export default function HomePage() {
                 Start Drafting Free <ArrowRight strokeWidth={1.5} />
               </Link>
               <Link className="btn btn-outline-light btn-lg" href="#samples">
-                See Sample Documents <ArrowDown strokeWidth={1.5} />
+                See what you can draft <ArrowDown strokeWidth={1.5} />
               </Link>
             </div>
             <p className="hero-note">
@@ -272,20 +239,12 @@ export default function HomePage() {
         <div className="container">
           <div className="section-head">
             <h2>What you can draft today.</h2>
-            <p className="sub">
-              Four come with a sample PDF. The case details in the samples are made up.
-            </p>
           </div>
           <ul className="draft-grid">
-            {draftItems.map(({ icon: Icon, label, sample }) => (
+            {draftItems.map(({ icon: Icon, label }) => (
               <li key={label} className="draft-item">
                 <Icon strokeWidth={1.5} aria-hidden="true" />
                 <span>{label}</span>
-                {sample && (
-                  <a className="draft-sample" href={sample.href} download={sample.file}>
-                    <Download strokeWidth={1.5} aria-hidden="true" /> Sample PDF
-                  </a>
-                )}
               </li>
             ))}
           </ul>
