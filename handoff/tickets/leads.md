@@ -35,7 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(empty)
+1. shashank: T-351 (2598c2a, small fix tested green). Slot given 12 Oct.
 
 ## Last done
 
