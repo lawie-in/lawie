@@ -151,3 +151,43 @@ describe('T-274 HTML content passes through unchanged', () => {
     expect(contentToHtml(`  \r\n${h}`, false)).toContain(h);
   });
 });
+
+describe('T-274 a blank label that spans a line break: CRLF and CR equal LF', () => {
+  const opt = { findBlanks };
+  it.each([
+    ['[To be confirmed: foo\nbar]', 'tbc'],
+    ['{{missing: a\nb}}', 'missing'],
+  ])('%j (%s) gives the same html and count as LF', (lfText) => {
+    const wrap = (s: string) => `Dear ${s}, and then\n\nEnd.`;
+    const lf = wrap(lfText);
+    const variants = [lf.replace(/\n/g, '\r\n'), lf.replace(/\n/g, '\r')];
+    const lfHtml = contentToHtml(lf, false, false, opt);
+    const lfCount = blanksInContent(lf).length;
+    expect(lfCount).toBe(1);
+    for (const v of variants) {
+      expect(contentToHtml(v, false, false, opt)).toBe(lfHtml);
+      expect(contentToHtml(v, false)).toBe(contentToHtml(lf, false));
+      expect(blanksInContent(v)).toHaveLength(lfCount);
+      expect(blanksInContent(v).map((b) => b.label)).toEqual(
+        blanksInContent(lf).map((b) => b.label),
+      );
+    }
+  });
+
+  it('the header count equals the marked count (CRLF), spanning labels included', () => {
+    const lf = `A [To be confirmed: foo\nbar] b {{missing: a\nb}} c ____\n\nEnd ${TBC('x')}`;
+    const c = lf.replace(/\n/g, '\r\n');
+    const html = contentToHtml(c, false, false, opt);
+    expect(blanksInContent(c)).toHaveLength(4);
+    expect(html).toBe(contentToHtml(lf, false, false, opt));
+    expect(html).not.toContain('\r');
+    // A label that wraps a line is drawn as one span per line (same for LF), so
+    // each blank is marked at least once and every marked span belongs to a blank.
+    expect(count(html, /class="tbc"/g)).toBe(blanksInContent(c).length + 2);
+    // Non-spanning only: one span per blank, exactly the header count.
+    const flat = 'A [To be confirmed: foo] b {{missing: a}} c ____\r\n\r\nEnd ' + TBC('x');
+    expect(count(contentToHtml(flat, false, false, opt), /class="tbc"/g)).toBe(
+      blanksInContent(flat).length,
+    );
+  });
+});

@@ -38,18 +38,29 @@ function isPlainContent(content: string): boolean {
   return !content.trimStart().startsWith('<');
 }
 
+// T-274 review: CRLF/CR line ends become LF on the raw content, before
+// missingAsBlanks and markBlanks, in the count (blanksInContent) and in both
+// exports alike, so a blank whose label spans a line end is found and marked the
+// same as with LF, and the warning's count equals the header's N. In HTML a CR
+// is whitespace the parser already folds into LF, so this changes nothing there.
+function normaliseLineEnds(text: string): string {
+  return text.replace(/\r\n?/g, '\n');
+}
+
 /**
  * T-233: an unedited draft is the server's plain text, not HTML. Mirrors
  * DocumentEditor's textToHtml (keep the two in step): an empty line starts a
- * new <p>, a single line break becomes <br>. T-274: like textToHtml, CRLF/CR
- * line ends become LF and the text is HTML-escaped before the tags go in, so
- * '<', '>' and '&' print as written. The blank marks (U+E000/U+E001) from
- * markBlanks are not touched by the escaping and survive to blankMarksToTags.
+ * new <p>, a single line break becomes <br>. T-274: like textToHtml, the text
+ * is HTML-escaped before the tags go in, so '<', '>' and '&' print as written.
+ * The blank marks (U+E000/U+E001) from markBlanks are not touched by the
+ * escaping and survive to blankMarksToTags. Its only callers (exportPdf,
+ * exportDocx) pass it text already made LF by normaliseLineEnds; textToHtml
+ * makes its own input LF.
  * Content that starts with '<' (after any leading whitespace) is already HTML.
  */
 function plainTextToHtml(text: string): string {
   if (!isPlainContent(text)) return text;
-  return escapeHtml(text.replace(/\r\n?/g, '\n'))
+  return escapeHtml(text)
     .split(/\n{2,}/)
     .map((para) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
     .join('');
@@ -100,7 +111,7 @@ export interface ExportBlanksGoBackDetail {
  * come from this one call over the same content.
  */
 export function blanksInContent(content: string, find: FindBlanks = findBlanks): Blank[] {
-  return find(blankText(missingAsBlanks(content)));
+  return find(blankText(missingAsBlanks(normaliseLineEnds(content))));
 }
 
 /** Options shared by both exports (T-194). */
@@ -177,7 +188,10 @@ export async function exportPdf(
   // T-233: as in exportDocx, mark the blanks in the content as saved, then turn
   // an unedited plain-text draft into HTML so its paragraphs and line breaks print.
   const isPlainText = isPlainContent(rawHtml);
-  const { marked, blanks } = markBlanks(missingAsBlanks(rawHtml), options.findBlanks ?? findBlanks);
+  const { marked, blanks } = markBlanks(
+    missingAsBlanks(normaliseLineEnds(rawHtml)),
+    options.findBlanks ?? findBlanks,
+  );
   const markedHtml = isPlainText ? plainTextToHtml(marked) : marked;
   const html = blankMarksToTags(markedHtml, '<span class="tbc">', '</span>');
   const headerText = blanks.length > 0 ? draftHeaderText(blanks.length) : null;
@@ -406,7 +420,10 @@ export async function exportDocx(
   // The marks are single characters that never span a line break, so the
   // conversion keeps them whole; blankMarksToTags then makes them spans.
   const isPlainText = isPlainContent(html);
-  const { marked, blanks } = markBlanks(missingAsBlanks(html), options.findBlanks ?? findBlanks);
+  const { marked, blanks } = markBlanks(
+    missingAsBlanks(normaliseLineEnds(html)),
+    options.findBlanks ?? findBlanks,
+  );
   const markedHtml = isPlainText ? plainTextToHtml(marked) : marked;
   const paragraphs = htmlToDocxParagraphs(
     blankMarksToTags(markedHtml, '<span data-lawie-blank="">', '</span>'),

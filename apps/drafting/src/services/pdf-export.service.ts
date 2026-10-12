@@ -51,7 +51,18 @@ export type { Blank, FindBlanks };
  * the same blanks.
  */
 export function blanksInContent(rawContent: string, find: FindBlanks = findBlanks): Blank[] {
-  return find(blankText(missingAsBlanks(rawContent)));
+  return find(blankText(missingAsBlanks(normaliseLineEnds(rawContent))));
+}
+
+/**
+ * T-274 review: CRLF/CR line ends become LF on the raw content, before
+ * missingAsBlanks and markBlanks, in blanksInContent and contentToHtml alike,
+ * so a blank whose label spans a line end is found and marked the same as with
+ * LF and the header's N stays equal to the highlighted blanks. In HTML a CR is
+ * whitespace the parser already folds into LF, so this changes nothing there.
+ */
+function normaliseLineEnds(text: string): string {
+  return text.replace(/\r\n?/g, '\n');
 }
 
 /** T-194 options for `contentToHtml`. */
@@ -84,20 +95,20 @@ export function contentToHtml(
 ): string {
   // T-194: blanks are marked with sentinels here and become <span class="tbc">
   // once the body is built. No finder, or no blanks: the content is as before.
+  const normalised = normaliseLineEnds(rawContent);
   const { marked: content, blanks } = options.findBlanks
-    ? markBlanks(missingAsBlanks(rawContent), options.findBlanks)
-    : { marked: missingAsBlanks(rawContent), blanks: [] };
+    ? markBlanks(missingAsBlanks(normalised), options.findBlanks)
+    : { marked: missingAsBlanks(normalised), blanks: [] };
   let body = '';
 
   if (content.trimStart().startsWith('<')) {
     // Already HTML from TipTap editor — embed as-is
     body = content;
   } else {
-    // Plain text / markdown — convert to paragraphs. T-274: CRLF/CR line ends
-    // become LF first, so a CRLF draft gets the same paragraphs and headings.
-    // This runs after markBlanks, on the marked text, so the shared finder sees
-    // the same raw content here as in blanksInContent and the blanks agree.
-    const paragraphs = content.replace(/\r\n?/g, '\n').split(/\n{2,}/);
+    // Plain text / markdown — convert to paragraphs. The content is already LF
+    // (normaliseLineEnds above), so a CRLF draft gets the same paragraphs and
+    // headings as an LF one.
+    const paragraphs = content.split(/\n{2,}/);
 
     for (const para of paragraphs) {
       if (!para.trim()) continue;
