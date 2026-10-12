@@ -27,3 +27,6 @@ T-227 (shown price = charged price), T-249 (CI skips docs-only pushes), T-248 (t
 
 ## Decisions I made for you (all logged in tickets)
 Vikram's prices; marketing budget cut to at most ₹1,00,000 in two tranches; Solo ₹799 and top-ups final, Pro under review; chatbot design and caps; CI skips docs-only pushes; the section-converter claim removed now.
+
+
+Note added 12 Oct: do not reseed the production section tables until T-275 (converter label for repealed rows) is merged.
