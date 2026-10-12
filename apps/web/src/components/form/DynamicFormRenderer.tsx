@@ -350,6 +350,7 @@ function MultiSelectSearchField({
   options,
   allowFreeText = false,
   searchHandler,
+  readHandler,
 }: {
   field: FormField;
   value: string[];
@@ -359,11 +360,44 @@ function MultiSelectSearchField({
   /** SCRUM-85 — when provided, the dropdown is populated by debounced remote
    *  search instead of static `options`. Returns up to N matches for `query`. */
   searchHandler?: (query: string) => Promise<FieldOption[]>;
+  /** T-290 — bns_mapping picker only. Returns what the server reads from each
+   *  value (entries[i] for values[i]), or null if the check failed, timed out or
+   *  was aborted. Shows the S1 hint and a "Read as" line under each chip. */
+  readHandler?: (values: string[], signal: AbortSignal) => Promise<SectionRead[][] | null>;
 }) {
   const [search, setSearch] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [remoteResults, setRemoteResults] = useState<FieldOption[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
+  // T-290 (Arjun, Addendum 2): ONE read call for all chip values whenever the chip
+  // list changes. entries[i] belongs to chip i. A newer call aborts the older one.
+  // Every check result is tied to the exact list it was made for (`forKey`), so a
+  // result never lands on a different list of chips.
+  const valuesKey = JSON.stringify(value);
+  const [readResult, setReadResult] = useState<SectionReadResult | null>(null);
+
+  useEffect(() => {
+    if (!readHandler) return;
+    const values = JSON.parse(valuesKey) as string[];
+    if (values.length === 0) return;
+    const controller = new AbortController();
+    void readHandler(values, controller.signal).then((entries) => {
+      if (controller.signal.aborted) return; // superseded or unmounted
+      setReadResult(
+        entries !== null && entries.length === values.length
+          ? { forKey: valuesKey, status: 'ok', entries }
+          : { forKey: valuesKey, status: 'failed' },
+      );
+    });
+    return () => controller.abort();
+  }, [valuesKey, readHandler]);
+
+  /** S7 (undefined) until this exact chip list has been checked. */
+  function readStateAt(index: number): SectionReadState | undefined {
+    if (!readResult || readResult.forKey !== valuesKey) return undefined;
+    if (readResult.status === 'failed') return { status: 'failed' };
+    return { status: 'ok', sections: readResult.entries[index] ?? [] };
+  }
 
   // SCRUM-85: debounced typeahead for fields with a `searchHandler`. Tracks the
   // latest request to discard stale ones (advocate types fast).
@@ -419,13 +453,13 @@ function MultiSelectSearchField({
   return (
     <div>
       <FieldLabel field={field} />
-      {allowFreeText && (
+      {allowFreeText && !readHandler && (
         <p className="mt-0.5 text-xs text-slate-400">Type a section and press Enter to add</p>
       )}
       {/* Selected items as tags */}
       {selectedItems.length > 0 && (
         <div className="mt-1 space-y-2 sm:space-y-1">
-          {selectedItems.map((item) => (
+          {selectedItems.map((item, index) => (
             <div key={item.id}>
               <div className="flex items-center gap-2 sm:gap-1">
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
@@ -443,6 +477,11 @@ function MultiSelectSearchField({
                   <X size={16} className="sm:h-3 sm:w-3" aria-hidden="true" />
                 </button>
               </div>
+              {readHandler && (
+                <div aria-live="polite">
+                  <SectionReadLines state={readStateAt(index)} />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -499,7 +538,57 @@ function MultiSelectSearchField({
           </div>
         )}
       </div>
+      {readHandler && (
+        <p className="mt-1 text-xs text-slate-500">
+          A number without the Act is read as a BNS section. For IPC, type the Act, for example IPC
+          302.
+        </p>
+      )}
     </div>
+  );
+}
+
+/** T-290 — the "Read as" lines for one entered value (S2 to S8, signed by Ajay).
+ *  Never renders nothing: a missing line would read as "nothing wrong". */
+function SectionReadLines({ state }: { state: SectionReadState | undefined }) {
+  if (state === undefined) {
+    return <p className="mt-0.5 break-words text-xs text-slate-600">Checking this section</p>;
+  }
+  if (state.status === 'failed') {
+    return (
+      <p className="mt-0.5 text-xs text-red-500">
+        Could not check this section. Check the Act and the number before you generate.
+      </p>
+    );
+  }
+  const { sections } = state;
+  if (sections.length === 0) {
+    return <p className="mt-0.5 text-xs text-red-500">Not read as a section</p>;
+  }
+  return (
+    <>
+      {sections.map((s, i) => {
+        const key = `${i}-${s.code ?? ''}-${s.number}`;
+        if (s.code === 'OTHER') {
+          return (
+            <p key={key} className="mt-0.5 break-words text-xs text-slate-600">
+              Read as a section of another Act (not checked by Lawie)
+            </p>
+          );
+        }
+        // The bns_mapping reader always gives a code; never invent one.
+        if (s.code === null) return null;
+        return (
+          <p key={key} className="mt-0.5 break-words text-xs text-slate-600">
+            Read as{' '}
+            <span className="font-medium">
+              {displayReadAsCode(s.code)} {s.number}
+            </span>
+            {s.code === 'BNS' && s.title ? `: ${s.title}` : null}
+          </p>
+        );
+      })}
+    </>
   );
 }
 
@@ -842,6 +931,82 @@ export async function fetchBnsMappingResults(query: string): Promise<FieldOption
   }
 }
 
+// T-290 — what the server reads from bns_mapping picker values (POST
+// /sections/read, Arjun). `title` is set only for BNS, from the signed T-277 table.
+export interface SectionRead {
+  code: 'BNS' | 'BNSS' | 'BSA' | 'IPC' | 'CRPC' | 'IEA' | 'OTHER' | null;
+  number: string;
+  title: string | null;
+}
+
+// T-290 (Ajay, on ba4b11c) — display only: the code as practitioners write it in
+// the "Read as" line ("Read as CrPC 41"). Stored values and the server response
+// keep the reader's codes unchanged.
+type NamedReadCode = Exclude<SectionRead['code'], 'OTHER' | null>;
+const READ_AS_DISPLAY_CODE: Readonly<Record<NamedReadCode, string>> = {
+  IPC: 'IPC',
+  CRPC: 'CrPC',
+  IEA: 'IEA',
+  BNS: 'BNS',
+  BNSS: 'BNSS',
+  BSA: 'BSA',
+};
+
+/** T-290 — the display form of a named reader code, e.g. CRPC → "CrPC". */
+export function displayReadAsCode(code: NamedReadCode): string {
+  return READ_AS_DISPLAY_CODE[code];
+}
+
+/** T-290 — the plain text of the S2/S3/S4 line for one named-code section, e.g.
+ *  "Read as CrPC 41" or "Read as BNS 303: Theft". Null for OTHER or a bare
+ *  number (those are not S2 to S4). Pure, so it can be unit-tested. */
+export function formatReadAsLine(s: SectionRead): string | null {
+  if (s.code === null || s.code === 'OTHER') return null;
+  const title = s.code === 'BNS' && s.title ? `: ${s.title}` : '';
+  return `Read as ${displayReadAsCode(s.code)} ${s.number}${title}`;
+}
+
+type SectionReadState = { status: 'ok'; sections: SectionRead[] } | { status: 'failed' };
+
+type SectionReadResult =
+  | { forKey: string; status: 'ok'; entries: SectionRead[][] }
+  | { forKey: string; status: 'failed' };
+
+const SECTION_READ_TIMEOUT_MS = 5000;
+
+// T-290 — POSTs {values} to /api/sections/read (POST so FIR numbers stay out of
+// URLs) and returns entries[i].read for values[i]. Returns null on network error,
+// non-2xx, bad shape, the ~5 s timeout, or an abort from the caller, so the picker
+// shows S8 rather than a guess.
+export async function fetchSectionRead(
+  values: string[],
+  signal: AbortSignal,
+): Promise<SectionRead[][] | null> {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (signal.aborted) return null;
+  signal.addEventListener('abort', abort);
+  const timer = setTimeout(abort, SECTION_READ_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${API_URL}/api/sections/read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { entries?: Array<{ read?: SectionRead[] }> };
+    if (!Array.isArray(data.entries)) return null;
+    const entries = data.entries.map((e) => e?.read);
+    return entries.every(Array.isArray) ? (entries as SectionRead[][]) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener('abort', abort);
+  }
+}
+
 // ── One field's input, by type (shared with the describe-first follow-up, T-103) ──
 
 export function FieldInput({
@@ -891,6 +1056,7 @@ export function FieldInput({
           options={options}
           allowFreeText={field.source === 'bns_mapping'}
           searchHandler={field.source === 'bns_mapping' ? fetchBnsMappingResults : undefined}
+          readHandler={field.source === 'bns_mapping' ? fetchSectionRead : undefined}
         />
       )}
 
