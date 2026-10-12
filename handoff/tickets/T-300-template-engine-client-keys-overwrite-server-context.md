@@ -38,3 +38,9 @@ Read `buildPlaceholderContext` (`template-engine.service.ts` ≈ l.942). The con
 **Tests (a per class, AC2):** a client `current_date`, `advocate_name`, `enrollment_number`, `__sections_charged_read` (with a forged value: assert the labels come from the real sections), `party_label_petitioner` (no court rule), `governing_provision`, `caseNomenclature` and one computed id from a real template each leave the output unchanged against the same request without the key; a declared field such as `police_station` still flows; the `warn` carries the key names and no value. Moved golden snapshots: none expected; if any move, they go to Ajay as listed.
 
 **Order:** after T-293 (same file). Mahak builds, Ajay signs the diff.
+
+## Added (Priya, 12 Oct 2026, from Mahak's Explore)
+
+- `advocate_name`, `court_designation` and `jail` are declared form fields in many packs; Arjun and Ajay rule whether the form may set them.
+- `annexures.service.ts` prefers `formData.advocate_name`.
+- The legacy `/generate` route takes `advocateName` from the request body over the profile (`documents.routes.ts` about lines 549 and 1429). Same class of bug; Arjun decides if it is in T-300.
