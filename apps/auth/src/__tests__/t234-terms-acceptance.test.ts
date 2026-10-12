@@ -14,7 +14,7 @@ import supertest from 'supertest';
 import app from '../app';
 import { User, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
 
-import { waitForSeed } from './t234-helpers';
+import { verifyAndSeed } from './t234-helpers';
 
 const PASSWORD = 'Passw0rdOk';
 const reg = (email: string, extra: Record<string, unknown> = {}) =>
@@ -27,10 +27,10 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(CURRENT_TERMS_VERSION).toBe('2026-10-12');
   });
 
-  it('CURRENT_PRIVACY_VERSION is 2026-10-12 (Ajay, Addendum 3); each constant equals its own current date', () => {
+  it('CURRENT_PRIVACY_VERSION is 2026-10-12b (Ajay, Addendum 3); each constant equals its own current date', () => {
     // T-299: the Terms version moved to 2026-10-12, so the two dates now coincide. They are still
     // separate constants, each asserted against its own date.
-    expect(CURRENT_PRIVACY_VERSION).toBe('2026-10-12');
+    expect(CURRENT_PRIVACY_VERSION).toBe('2026-10-12b');
     expect(CURRENT_TERMS_VERSION).toBe('2026-10-12');
   });
 
@@ -43,9 +43,9 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(u!.termsAcceptedAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
     expect(u!.termsAcceptedAt!.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
     expect(u!.termsVersion).toBe('2026-10-12');
-    expect(u!.privacyVersion).toBe('2026-10-12');
+    expect(u!.privacyVersion).toBe('2026-10-12b');
     expect(u!.acceptedVia).toBe('password');
-    await waitForSeed(u!._id);
+    await verifyAndSeed(u!._id);
   });
 
   it('ignores terms fields sent by the client', async () => {
@@ -59,9 +59,9 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     const u = await User.findOne({ email: 'spoof@example.com' }).lean();
     expect(u!.termsAcceptedAt!.getFullYear()).toBeGreaterThanOrEqual(2026);
     expect(u!.termsVersion).toBe('2026-10-12');
-    expect(u!.privacyVersion).toBe('2026-10-12');
+    expect(u!.privacyVersion).toBe('2026-10-12b');
     expect(u!.acceptedVia).toBe('password');
-    await waitForSeed(u!._id);
+    await verifyAndSeed(u!._id);
   });
 
   it('a duplicate-email register (409) does not touch the existing acceptance', async () => {
@@ -76,9 +76,9 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     const after = await User.findOne({ email: 'dupterms@example.com' }).lean();
     expect(after!.termsAcceptedAt).toEqual(first!.termsAcceptedAt);
     expect(after!.termsVersion).toBe('2026-10-12');
-    expect(after!.privacyVersion).toBe('2026-10-12');
+    expect(after!.privacyVersion).toBe('2026-10-12b');
     expect(after!.acceptedVia).toBe('password');
-    await waitForSeed(first!._id);
+    await verifyAndSeed(first!._id);
   });
 
   it('users created without the sign-up flow have no acceptance (no schema default)', async () => {
@@ -101,7 +101,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     const after = await User.findOne({ email: 'loginterms@example.com' }).lean();
     expect(after!.termsAcceptedAt).toEqual(before!.termsAcceptedAt);
     expect(after!.privacyVersion).toBe(before!.privacyVersion);
-    await waitForSeed(before!._id);
+    await verifyAndSeed(before!._id);
   });
 });
 

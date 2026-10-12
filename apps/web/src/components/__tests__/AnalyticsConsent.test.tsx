@@ -317,6 +317,7 @@ describe('Accept', () => {
       .find((a) => a[0] === 'config') as unknown[];
     expect(cfg[1]).toBe(GA_ID);
     expect(cfg[2]).toEqual({
+      page_location: `${window.location.origin}/pricing`,
       send_page_view: false,
       allow_google_signals: false,
       allow_ad_personalization_signals: false,
@@ -324,6 +325,23 @@ describe('Accept', () => {
     expect(winRec()[`ga-disable-${GA_ID}`]).toBe(false);
     expect(status().textContent).toBe(S.S7);
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).choice).toBe('granted');
+    window.history.pushState({}, '', '/');
+  });
+
+  it('T-242: no utm_* or other query value reaches GA (config, set, events)', async () => {
+    window.history.pushState(
+      {},
+      '',
+      '/pricing?utm_source=zzsrc&utm_medium=zzmed&utm_campaign=zzcamp#h',
+    );
+    await mount('/pricing');
+    await click(btn('Accept'));
+
+    const entries = (window.dataLayer as ArrayLike<unknown>[]).map((a) => Array.from(a));
+    const text = JSON.stringify(entries);
+    expect(text).not.toMatch(/utm_|zzsrc|zzmed|zzcamp/);
+    const set = entries.find((a) => a[0] === 'set') as unknown[];
+    expect(set[1]).toEqual({ page_location: `${window.location.origin}/pricing` });
     window.history.pushState({}, '', '/');
   });
 

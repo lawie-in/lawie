@@ -23,7 +23,12 @@ type CatalogueKind = KindSummary & {
 };
 
 const catalogueId = (k: CatalogueKind) => k.catalogueCategory ?? k.category;
-const catalogueName = (k: CatalogueKind) => k.catalogueCategoryName ?? k.category;
+/** T-345: a raw category id on the fallback path, readable: "civil_suit" -> "Civil suit". */
+const readableCategory = (id: string) => {
+  const spaced = id.replace(/_/g, ' ').trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+};
+const catalogueName = (k: CatalogueKind) => k.catalogueCategoryName ?? readableCategory(k.category);
 
 export default function BrowseTypesStep({
   kinds,

@@ -1483,7 +1483,7 @@ function generate(ledgerId: string) {
       ledger_id: ledgerId,
     });
 }
-const BODY_FIRST = `1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail in FIR No. {{MISSING: ${item('fir_number').label}}}. He is in custody, the grounds are submitted below, he gives an undertaking, and no earlier bail application has been filed.`;
+const BODY_FIRST = `1. That the applicant Ram Kumar has approached this Hon'ble Court for regular bail in FIR No. {{MISSING: ${item('fir_number').label}}}. He is in custody, the grounds are submitted below, he gives an undertaking, and the details of any earlier bail application are as the brief gives them.`;
 function drafterAnswer(body: string): string {
   const ids = PACK.mandatoryClauses.map((c) => `${c.id}: 1`).join('\n');
   return `${body}\n\n${CLAUSES_MARKER}\n${ids}`;

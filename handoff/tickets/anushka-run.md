@@ -603,3 +603,61 @@ What a user can now do:
 - With the fact-ledger setting on: when a bail detail was only half-read from their description or was never asked, see a clear blank for it in the draft to fill in, instead of the point being left out.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-192 — cheque-bounce notice date checks (5dd6388, vishal, 12 Oct 2026)
+
+What a user can now do:
+- In a cheque-bounce notice, enter the cheque validity, return-memo-received and notice-sent dates. Lawie checks presentation in time and notice within 30 days, and only then lets the notice say so.
+- A missing date leaves a named blank. The notice is dated with the sending date, or today.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-242 — sign-up source and referral links (6b37ed6, kunal, 12 Oct 2026)
+
+What a user can now do:
+- Arrive from a campaign link with utm_ tags and sign up by email or Google; the account records the campaign. The tags vanish from the address bar and aren't shared with GA or anyone else.
+- /login?ref=CODE opens Create account with the referral box filled in.
+- Admins can see how many sign-ups came from each source.
+- The privacy page says the campaign tags are kept.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-347 — impossible section numbers flagged (a75c522, shashank, 12 Oct 2026)
+
+What a user can now do:
+- See a wrong-section warning when a draft cites a section number that cannot exist, like "BNS 1034" or "Section 4521 CrPC".
+- Years such as "2023" and ordinary numbers like amounts, pages or days are never flagged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-335 — answers survive a description edit (fcc74a5, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting on: answer "Not known" to a question, then edit the description, and the answer stays "Not known" instead of the old reading coming back.
+- Type or answer a detail, then edit the description, and the draft still uses what they typed.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-344 — campaign source kept through a cancelled Google sign-in (c16b5db, kunal, 12 Oct 2026)
+
+What a user can now do:
+- Arrive from a campaign link, start a Google sign-in, cancel, then try again in the same tab. The account still records which campaign brought them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-334 — "none filed" in the advocate's own words (828d55e, mahak, 12 Oct 2026)
+
+What a user can now do:
+- Answer the earlier-bail-applications question in their own words, such as "none filed", "koi bail nahi" or "कोई नहीं", and get the draft saying no other bail application has been made, with no "earlier bail applications are: koi bail nahi" line.
+- If a draft claims no earlier bail application was filed but they never confirmed it, have that claim removed or flagged before filing.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-345 + T-340 — one date format, no false "facts changed", clean category names (0d90ed7, tanvi, 12 Oct 2026)
+
+What a user can now do:
+- See every date in a template draft written like "4 April 2026", including dates of birth and custody dates.
+- Type dates as numbers without a false "facts changed" warning; a real change is still flagged.
+- See category names without underscores.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build). Meera (the list of sources). Ajay (privacy-policy line, T-235). Anushka (verdict) |
 | Mode           | Full chain (auth and web) |
-| Status         | Building: kunal (12 Oct 2026). Ajay rules whether UTM may be kept before cookie consent; privacy line under T-235 |
+| Status         | Merged into develop_staging 6b37ed6 (12 Oct 2026). Ajay signed 8ac5def. Anushka tests on develop. T-348 before prod |
 
 ## Acceptance criteria
 
