@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web) + Ajay (legal lines) + Madhuri (copy) |
 | Mode   | Small fix |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Unassigned. Priya, 13 Oct 2026 |
+| Status | To do. RELEASE GATE for main (Anushka FAIL). Ajay signed; ready for a lead. Unassigned. Priya, 13 Oct 2026 |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-317, T-306 |
 
 ## Acceptance criteria
@@ -19,3 +19,7 @@
 5. Ajay signs 2 and 3.
 
 Anushka's reproduce steps are in the run 3 report; use them as the test cases. Anushka re-tests on develop after merge.
+
+## Ajay (13 Oct 2026)
+
+Ajay signed (51175aa, handoff/legal/): S.478 BNSS on the Tools card; the 377 note says "read down" in Navtej. Still open: whether the FAQ's "5 Ink on sign-up" needs "after you verify your email" (asked 13 Oct).

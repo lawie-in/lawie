@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting tools) + Ajay (sign the rules) |
 | Mode   | Small fix |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Unassigned. Priya, 13 Oct 2026 |
+| Status | To do. RELEASE GATE for main (Anushka FAIL). Ajay signed; ready for a lead. Unassigned. Priya, 13 Oct 2026 |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-278 |
 
 ## Acceptance criteria
@@ -16,3 +16,7 @@
 4. Tests pin 1–3. Ajay signs.
 
 Anushka's reproduce steps are in the run 3 report; use them as the test cases. Anushka re-tests on develop after merge.
+
+## Ajay (13 Oct 2026)
+
+Ajay signed (51175aa, handoff/legal/): remand in parts under 187(2), the 60/90-day limit under 187(3), and the remand date counts as day 1 (Kapil Wadhawan). Use his exact lines R1–R3 and the worked example.
