@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Rajesh (words, small layout). Ajay signs. Lead (build, web). Anushka |
 | Mode           | Small fix (web) |
-| Status         | Waiting for Rajesh's words and layout, then Ajay's sign-off. Builds after T-277 (needs the signed titles) |
+| Status         | Ready to build after T-277 merges. Words signed by Ajay, design by Rajesh (12 Oct 2026) |
 
 Under Arjun's corrected T-277 rule, a bare number with no code (for example "303") is read as BNS, because the picker stores bare numbers. An advocate who types an old IPC number without "IPC" gets the wrong section. The BNS section picker ("Sections Charged" in `apps/web/src/components/form/DynamicFormRenderer.tsx`) should tell them to type the code.
 
@@ -43,5 +43,9 @@ Rajesh writes the words and the small layout; Ajay signs them against these two 
 - Hint: "A number without the Act is read as a BNS section. For IPC, type the Act, for example IPC 302."
 - Read-as line: "Read as BNS {number}: {title}"; unknown title: "Read as BNS {number}" (no guess).
 - Layout: each value in its own block, chip with its read-as line under it, stacked. Hint colour slate-500 (contrast).
-- Also in scope: the chip remove "x" gets a 44 px tap target. Titles come only from the signed T-277 table.
+- Titles come only from the signed T-277 table. (The 12 px remove "x" moved to T-291.)
 - Waiting for Ajay to sign the strings, including S5 ("Read as a section of another Act (not checked)").
+
+## Ajay SIGNED (12 Oct 2026)
+
+S1 to S6 in Rajesh's design are signed, with one change to S5: "Read as a section of another Act (not checked by Lawie)". Use the strings exactly. Titles only from the signed T-277 table; none for other codes.
