@@ -38,6 +38,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 0. shashank: T-333 (dec06f6, Ajay approved). Slot given 12 Oct; first with Ajay's sign-off. Tells Vishal and Tanvi when pushed.
 1. vishal: T-192 (11991f9, review passed, Ajay approved). Merges once Ajay closes his three small points (possible averments JSON reorder + his hash).
 2. tanvi: T-240 (5a838d3, review passed). Merges once Ajay signs the seed diff. Whichever of 1 and 2 has Ajay's sign-off first goes first; tell the other when pushed.
+4. mahak: T-341 (dad223c, small fix tested green). Merges once Ajay OKs; same rule, first signed goes first.
 
 ## Last done
 
