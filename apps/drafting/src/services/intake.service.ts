@@ -282,9 +282,35 @@ export interface MatchDecision {
   choices?: string[];
   /** Why no_match, for the demand signal: not legal drafting, or the model named an unknown id / was malformed. */
   noMatchReason?: 'not_legal_drafting' | 'unknown_template' | 'malformed';
-  label: string;
+  // T-115e (Ajay, 12 Oct 2026): the model's matter label is not kept. It can
+  // carry party names, and a demand signal holds no personal data.
   category: string;
   isCourtDocument: boolean;
+}
+
+/**
+ * T-115e (Ajay, 12 Oct 2026): the demand-signal category is a fixed value from
+ * this list, never model or user text. The list is the one the match prompt
+ * names (intake.prompts.ts); anything else is stored as 'other'.
+ */
+export const DEMAND_CATEGORIES = [
+  'criminal',
+  'civil',
+  'family',
+  'property',
+  'consumer',
+  'corporate',
+  'labour',
+  'notice',
+  'affidavit',
+  'agreement',
+  'other',
+] as const;
+export type DemandCategory = (typeof DEMAND_CATEGORIES)[number];
+
+function demandCategory(raw: unknown): DemandCategory {
+  const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+  return (DEMAND_CATEGORIES as readonly string[]).includes(v) ? (v as DemandCategory) : 'other';
 }
 
 function cleanLabel(raw: unknown): string {
@@ -301,16 +327,13 @@ export function decideMatch(
     return {
       kind: 'no_match',
       noMatchReason: 'malformed',
-      label: '',
       category: '',
       isCourtDocument: false,
     };
   }
-  const label = cleanLabel(parsed.label);
-  const category =
-    typeof parsed.category === 'string' ? cleanLabel(parsed.category).slice(0, 30) : '';
+  const category = demandCategory(parsed.category);
   const isCourtDocument = parsed.is_court_document === true;
-  const base = { label, category, isCourtDocument };
+  const base = { category, isCourtDocument };
 
   if (parsed.is_legal_drafting === false) {
     return { kind: 'no_match', noMatchReason: 'not_legal_drafting', ...base };
@@ -800,7 +823,6 @@ async function recordDemand(
       type,
       metadata: {
         intakeId,
-        label: d.label || null,
         category: d.category || null,
         isCourtDocument: d.isCourtDocument,
         ...(reason ? { reason } : {}),
