@@ -9,6 +9,8 @@
  *   EA-interim (interim_bail): the same without "pending" and "लंबित", because
  *     the main-application paragraph of every interim draft says "pending".
  */
+import * as fs from 'fs';
+import * as path from 'path';
 import { CLAUSES_MARKER, findMissingClauses, splitDrafterOutput } from '../services/brief-drafter';
 import type { Brief } from '../services/intake-brief';
 import { loadRulePack, RulePack } from '../services/rule-pack.service';
@@ -223,5 +225,109 @@ describe('T-237: no_flight_risk', () => {
         2,
       ),
     ).toEqual([]);
+  });
+});
+
+/**
+ * T-282: Ajay's signed strings, word for word.
+ *
+ * The literals below are copied character for character from
+ * handoff/legal/T-237-pack-text-signed.md (Ajay, CLO, 12 Oct 2026 IST). They are
+ * deliberately NOT read from that file: the pin must hold even if someone edits
+ * both the pack and the markdown. They are compared against the RAW pack JSON
+ * (no loader, no trimming), so a whitespace change fails too.
+ * Apostrophes are ASCII ('). Any change here needs a fresh sign-off from Ajay.
+ */
+describe("T-282: Ajay's signed strings, word for word", () => {
+  const rawPack = (id: string) =>
+    JSON.parse(
+      fs.readFileSync(path.join(__dirname, '../config/document-rules', `${id}.json`), 'utf8'),
+    ) as {
+      mandatoryClauses: Array<Record<string, unknown>>;
+      promptInstructions: string[];
+    };
+  const clause = (id: string, clauseId: string) =>
+    rawPack(id).mandatoryClauses.find((c) => c.id === clauseId);
+
+  const VERIFICATION = 'Do NOT generate the verification clause';
+
+  // AC1: earlier_applications clause objects
+  const EA_CLAUSE = {
+    bail_anticipatory: {
+      id: 'earlier_applications',
+      name: 'Earlier Bail Applications',
+      required: true,
+      description:
+        'Every earlier application for anticipatory bail or bail in this matter, with the court, the date of the order and the result, or that it is pending; or the blank where the brief does not say.',
+    },
+    interim_bail: {
+      id: 'earlier_applications',
+      name: 'Earlier Bail Applications',
+      required: true,
+      description:
+        'Every earlier application for interim bail, bail or anticipatory bail in this matter, other than the pending main application, with the court, the date of the order and the result, or that it is pending; or the blank where the brief does not say.',
+    },
+    bail_before_magistrate: {
+      id: 'earlier_applications',
+      name: 'Earlier Bail Applications',
+      required: true,
+      description:
+        'Every earlier bail application in this matter, with the court, the date of the order and the result, or that it is pending; or the blank where the brief does not say.',
+    },
+  } as const;
+
+  // AC1: drafter instruction, one new entry per pack, directly before the last entry
+  const EA_INSTRUCTION = {
+    bail_anticipatory:
+      'State every earlier application for anticipatory bail or bail in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier application for anticipatory bail or bail was made in this matter, to which court, and with what result].',
+    interim_bail:
+      'Apart from the pending main application, state every earlier application for interim bail, bail or anticipatory bail in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no such earlier application, do not say that there was none; write [To be confirmed: whether any earlier application for interim bail, bail or anticipatory bail, other than the pending main application, was made in this matter, to which court, and with what result].',
+    bail_before_magistrate:
+      'State every earlier bail application in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier bail application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result].',
+  } as const;
+
+  // AC2: no_flight_risk clause objects
+  const NFR_ANTICIPATORY = {
+    id: 'no_flight_risk',
+    name: 'Undertakings',
+    required: true,
+    description:
+      "Undertakings by the applicant for the future, if granted anticipatory bail: to make himself or herself available for interrogation by the police as and when required, not to make any inducement, threat or promise to any witness or other person acquainted with the facts of the case, not to leave India without the Court's permission, and to abide by the conditions imposed. Never a statement of fact.",
+  };
+  const NFR_INTERIM = {
+    id: 'no_flight_risk',
+    name: 'Roots of the Applicant',
+    required: false,
+    description:
+      "The applicant's residence, family, occupation and conduct, only as the brief states them. Where the brief states none, leave this out. Never a statement of fact the brief does not give.",
+  };
+
+  // AC2: bail_anticipatory promptInstructions entry 5
+  const ANTICIPATORY_ENTRY_5 =
+    "Give the undertakings as undertakings by the applicant for the future, never as facts and never as undertakings by the advocate: the applicant undertakes that, if granted anticipatory bail, the applicant will make himself or herself available for interrogation by the police as and when required, will not make any inducement, threat or promise to any witness or other person acquainted with the facts of the case, will not leave India without this Hon'ble Court's permission, and will abide by every condition this Hon'ble Court imposes.";
+
+  it.each(PACKS)('%s: earlier_applications clause object is the signed object', (id) => {
+    expect(clause(id, 'earlier_applications')).toEqual(EA_CLAUSE[id]);
+  });
+
+  it.each(PACKS)(
+    '%s: the signed earlier-application instruction is second from last, before the verification line',
+    (id) => {
+      const ins = rawPack(id).promptInstructions;
+      expect(ins[ins.length - 2]).toBe(EA_INSTRUCTION[id]);
+      expect(ins[ins.length - 1].startsWith(VERIFICATION)).toBe(true);
+    },
+  );
+
+  it('bail_anticipatory: no_flight_risk is the signed Undertakings object', () => {
+    expect(clause('bail_anticipatory', 'no_flight_risk')).toEqual(NFR_ANTICIPATORY);
+  });
+
+  it('interim_bail: no_flight_risk is the signed Roots of the Applicant object', () => {
+    expect(clause('interim_bail', 'no_flight_risk')).toEqual(NFR_INTERIM);
+  });
+
+  it('bail_anticipatory: promptInstructions[5] is the signed undertakings instruction', () => {
+    expect(rawPack('bail_anticipatory').promptInstructions[5]).toBe(ANTICIPATORY_ENTRY_5);
   });
 });
