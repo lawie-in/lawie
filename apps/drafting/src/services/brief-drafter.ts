@@ -1404,7 +1404,8 @@ const SEPARATE_DOCUMENT =
   /^(affidavit|vakalatnama|index|covering\s+letter|memo\s+of\s+appearance)\b/i;
 /** A whole line in square brackets that is not one of the blanks the Drafter is told to write. */
 const NOTE_LINE = /^\[[^\]]*\]$/;
-const BLANK_LINE = /^\[(?:To be confirmed:|Section — verify before filing\]|Authority — add if)/;
+const BLANK_LINE =
+  /^\[(?:[Tt][Oo] [Bb][Ee] [Cc][Oo][Nn][Ff][Ii][Rr][Mm][Ee][Dd]:|Section — verify before filing\]|Authority — add if)/;
 
 /** A line as it reads with the marks of emphasis around it taken off. */
 function bareLine(line: string): string {
