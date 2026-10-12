@@ -1,7 +1,8 @@
 /**
  * T-196 — Registration can never grant Admin.
  *
- * AC1: POST /register always creates role 'Client', whatever `role` the body carries.
+ * AC1 (updated by T-298, Arjun 12 Oct 2026: password sign-up is 'Lawyer', same as Google):
+ * POST /register always creates role 'Lawyer', whatever `role` the body carries.
  * AC3: existing Admin accounts keep their role through login and refresh.
  * Regression: validation errors and referralCode still pass through.
  */
@@ -40,43 +41,45 @@ describe('T-196 AC1 — POST /register ignores any client-sent role', () => {
     ['empty string', ''],
   ];
 
-  it.each(roleValues)('role=%s -> 201, stored and returned Client', async (_label, role) => {
+  it.each(roleValues)('role=%s -> 201, stored and returned Lawyer', async (_label, role) => {
     const email = `r-${Math.random().toString(36).slice(2)}@example.com`;
     const res = await supertest(app).post('/register').send(body(email, { role }));
 
     expect(res.status).toBe(201);
-    expect(res.body.data.user.role).toBe('Client');
-    expect(verifyAccessToken(res.body.data.accessToken).role).toBe('Client');
-    expect(verifyRefreshToken(res.body.data.refreshToken).role).toBe('Client');
+    expect(res.body.data.user.role).toBe('Lawyer');
+    expect(verifyAccessToken(res.body.data.accessToken).role).toBe('Lawyer');
+    expect(verifyRefreshToken(res.body.data.refreshToken).role).toBe('Lawyer');
 
     const stored = await User.findOne({ email }).lean();
-    expect(stored!.role).toBe('Client');
+    expect(stored!.role).toBe('Lawyer');
   });
 
-  it('no role in body -> Client', async () => {
+  it('no role in body -> Lawyer', async () => {
     const res = await supertest(app).post('/register').send(body('norole@example.com'));
     expect(res.status).toBe(201);
-    expect(res.body.data.user.role).toBe('Client');
+    expect(res.body.data.user.role).toBe('Lawyer');
   });
 
   it('other privilege-like fields do not leak into the user either', async () => {
     const res = await supertest(app)
       .post('/register')
-      .send(body('extras@example.com', { role: 'Admin', isActive: false, plan: 'pro', isAdmin: true }));
+      .send(
+        body('extras@example.com', { role: 'Admin', isActive: false, plan: 'pro', isAdmin: true }),
+      );
     expect(res.status).toBe(201);
     const stored = await User.findOne({ email: 'extras@example.com' }).lean();
-    expect(stored!.role).toBe('Client');
+    expect(stored!.role).toBe('Lawyer');
     expect((stored as Record<string, unknown>).isAdmin).toBeUndefined();
   });
 
-  it('service level: registerUser hard-sets Client even if a role is smuggled in', async () => {
+  it('service level: registerUser hard-sets Lawyer even if a role is smuggled in', async () => {
     const smuggled = { ...body('svc@example.com'), role: 'Admin' } as unknown as Parameters<
       typeof registerUser
     >[0];
     const { user, tokens } = await registerUser(smuggled);
-    expect(user.role).toBe('Client');
-    expect(verifyAccessToken(tokens.accessToken).role).toBe('Client');
-    expect((await User.findOne({ email: 'svc@example.com' }).lean())!.role).toBe('Client');
+    expect(user.role).toBe('Lawyer');
+    expect(verifyAccessToken(tokens.accessToken).role).toBe('Lawyer');
+    expect((await User.findOne({ email: 'svc@example.com' }).lean())!.role).toBe('Lawyer');
   });
 
   it('validator strips role from the parsed payload', () => {
@@ -116,7 +119,7 @@ describe('T-196 regression — normal register still works', () => {
       .post('/register')
       .send(body('dup@example.com', { role: 'Admin' }));
     expect(res.status).toBe(409);
-    expect((await User.findOne({ email: 'dup@example.com' }).lean())!.role).toBe('Client');
+    expect((await User.findOne({ email: 'dup@example.com' }).lean())!.role).toBe('Lawyer');
   });
 
   it('referralCode passes through the validator', () => {
@@ -124,12 +127,12 @@ describe('T-196 regression — normal register still works', () => {
     expect((parsed as unknown as Record<string, unknown>).referralCode).toBe('ABC123');
   });
 
-  it('referralCode is accepted at the route and registration succeeds as Client', async () => {
+  it('referralCode is accepted at the route and registration succeeds as Lawyer', async () => {
     const res = await supertest(app)
       .post('/register')
       .send(body('refroute@example.com', { referralCode: 'NOSUCH', role: 'Admin' }));
     expect(res.status).toBe(201);
-    expect(res.body.data.user.role).toBe('Client');
+    expect(res.body.data.user.role).toBe('Lawyer');
   });
 
   it('email is lowercased and password is not returned', async () => {

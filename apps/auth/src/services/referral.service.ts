@@ -3,12 +3,14 @@
  *
  * Generates and manages founder-issued referral codes.
  * Each code carries its own bonusInk offer and optional expiresAt window.
- * On signup: increments code.uses, grants bonusInk Ink into user.inkTopup.
+ * On signup: claims the code once per user, increments code.uses, grants bonusInk Ink into
+ * the raw users.inkTopup bucket (T-298).
  */
 import crypto from 'crypto';
 
 import mongoose from 'mongoose';
 
+import logger from '../config/logger';
 import { IReferralCode, ReferralCode } from '../models/ReferralCode.model';
 import { User } from '../models/User.model';
 
@@ -85,29 +87,100 @@ export async function disableReferralCode(code: string): Promise<IReferralCode |
 // ── Apply on signup ───────────────────────────────────────────────────────────
 
 /**
+ * Outcome of applyReferralCode (T-234 / T-298):
+ * - 'applied'         this call claimed the code for the user and granted the Ink
+ * - 'invalid'         the code is unknown, disabled, used up or expired right now
+ * - 'already_applied' the user already has a referral (another call won) — nothing granted
+ */
+export type ReferralApplyResult = 'applied' | 'invalid' | 'already_applied';
+
+/**
  * Apply a referral code to a newly created user.
- * - Atomically increments code.uses
- * - Links user.referredVia to the code
- * - Grants rc.bonusInk Ink into user.inkTopup + writes inkledger row
+ * - Re-validates the code at account creation (it may have expired since the page checked it)
+ * - Claims the referral on the user atomically: only the call that wins
+ *   findOneAndUpdate({ _id, referredVia: null }) continues (T-298 ruling d), so concurrent or
+ *   repeated calls grant at most once
+ * - Then takes a use slot on the code atomically (uses < maxUses checked in the same update as
+ *   the $inc). If refused, the claim is undone and nothing is granted ('invalid').
+ * - Only a winner of both steps grants Ink and signals drafting
+ * - If the grant credits nothing or throws, the slot and the claim are rolled back ('invalid')
+ * - Grants rc.bonusInk Ink into the raw inkTopup bucket + writes an inkledger row
  * - Signals drafting service for legacy enforceFreeLimit compat
  *
- * Non-blocking — caller should not await if they don't want to delay the response.
+ * `referredVia` is `default: null` in the auth schema, so an unreferred user stores null.
+ * `{ referredVia: null }` matches both null and a missing field; `$exists: false` alone would
+ * never match a Mongoose-created user.
  */
-export async function applyReferralCode(userId: string, code: string): Promise<void> {
+export async function applyReferralCode(
+  userId: string,
+  code: string,
+): Promise<ReferralApplyResult> {
   const rc = await validateReferralCode(code);
-  if (!rc) return; // code invalid/exhausted/expired — silently ignore
+  if (!rc) return 'invalid';
 
-  // Atomically increment uses
-  await ReferralCode.findOneAndUpdate({ _id: rc._id, isActive: true }, { $inc: { uses: 1 } });
+  // Exactly-once claim (T-298 d): only the winner grants Ink and bumps uses.
+  const claimed = await User.findOneAndUpdate(
+    { _id: new mongoose.Types.ObjectId(userId), referredVia: null },
+    { $set: { referredVia: rc._id } },
+    { new: true },
+  ).lean();
+  if (!claimed) return 'already_applied';
 
-  // Link referral on user record
-  await User.findByIdAndUpdate(userId, { $set: { referredVia: rc._id } });
+  // Take a use slot atomically (T-298, Arjun round 1b): the cap check and the $inc are one
+  // update, so concurrent sign-ups cannot overshoot maxUses. No cap condition when unset.
+  const slotFilter: Record<string, unknown> = { _id: rc._id, isActive: true };
+  if (rc.maxUses !== null && rc.maxUses !== undefined) {
+    slotFilter['$expr'] = { $lt: ['$uses', '$maxUses'] };
+  }
+  const slot = await ReferralCode.findOneAndUpdate(slotFilter, { $inc: { uses: 1 } });
 
-  // Grant Ink into inkTopup + set freeTierBonusGrant for legacy middleware
-  await grantReferralInk(userId, rc.bonusInk ?? 5, rc.code);
+  // Undo this call's own steps: give back the use slot (only if this call took it) and release
+  // the claim (only while the user still points at this code). Never throws.
+  const userOid = new mongoose.Types.ObjectId(userId);
+  const rollback = async (tookSlot: boolean): Promise<void> => {
+    try {
+      if (tookSlot) {
+        await ReferralCode.updateOne({ _id: rc._id, uses: { $gt: 0 } }, { $inc: { uses: -1 } });
+      }
+      await User.updateOne({ _id: userOid, referredVia: rc._id }, { $set: { referredVia: null } });
+    } catch {
+      logger.error({ userId, referralCodeId: String(rc._id) }, 'Referral rollback failed');
+    }
+  };
+
+  if (!slot) {
+    // Slot refused (used up or disabled since validation): grant nothing.
+    await rollback(false);
+    return 'invalid';
+  }
+
+  // Grant Ink into inkTopup + set freeTierBonusGrant for legacy middleware.
+  // 0 means nothing was credited (no DB connection, user not found). On 0 or a throw, roll back
+  // the slot and the claim so the code is not consumed for Ink the user never got (T-234 review).
+  let granted = 0;
+  try {
+    granted = await grantReferralInk(userId, rc.bonusInk ?? 5, rc.code);
+  } catch {
+    logger.error(
+      { userId, referralCodeId: String(rc._id) },
+      'Referral Ink grant threw; rolling back the referral',
+    );
+    await rollback(true);
+    return 'invalid';
+  }
+  if (granted <= 0) {
+    logger.error(
+      { userId, referralCodeId: String(rc._id) },
+      'Referral Ink grant credited nothing; rolling back the referral',
+    );
+    await rollback(true);
+    return 'invalid';
+  }
 
   // Signal drafting service to pre-load BonusCredit grants (legacy enforceFreeLimit path)
   void signalDraftingBonus(userId, (rc.bonusInk ?? 5) * 5);
+
+  return 'applied';
 }
 
 async function signalDraftingBonus(userId: string, bonus: number): Promise<void> {

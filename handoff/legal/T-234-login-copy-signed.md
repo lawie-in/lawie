@@ -34,3 +34,10 @@ Facts from Priya (`apps/auth` referral.service.ts): each code may have an expiry
 When an existing account signs in through "Continue with Google" from Create account after R5/R6 showed, show once, after sign-in, with a "Continue" button (replaces condition 2's R7 for this path only):
 
 `Referral bonuses are for new accounts only, so no bonus Ink was added.`
+
+## Addendum 3 (12 Oct 2026 IST): versions recorded at sign-up; code never applied
+
+1. The consent line covers two documents, so record both: Terms `2026-06-01` and Privacy Policy `2026-10-12`. Preferred: a separate `privacyVersion` field. If that is out of scope, `termsVersion` holds `terms:2026-06-01;privacy:2026-10-12`. Bump the privacy part whenever "Last updated" on /privacy changes (next: T-308/T-310).
+2. A code typed but never applied (R5/R6 never shown) and invalid at sign-up shows, once:
+   `Your referral code was not valid, so no bonus Ink was added.`
+   Addendum 1's "no longer valid" line stays for a code that showed R5/R6 and then expired.

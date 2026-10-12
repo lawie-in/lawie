@@ -2,6 +2,15 @@ import { UserRole, UserPlan } from '@lawie/shared';
 import bcrypt from 'bcryptjs';
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
+// T-234 — versions recorded when a user accepts the consent line. The values are set by Ajay's
+// rulings (T-234 consent ruling, 11 Oct 2026, and Addendum 3, 12 Oct 2026 in
+// handoff/legal/T-234-login-copy-signed.md); they are maintained by hand, not read from the pages.
+// Bump CURRENT_PRIVACY_VERSION when "Last updated" on /privacy changes (next: T-308/T-310), and
+// CURRENT_TERMS_VERSION when /terms changes, each with Ajay's sign-off.
+export const CURRENT_TERMS_VERSION = '2026-06-01';
+export const CURRENT_PRIVACY_VERSION = '2026-10-12';
+export type TermsAcceptedVia = 'password' | 'google';
+
 export interface IUser extends Document {
   email: string;
   password?: string;
@@ -39,6 +48,12 @@ export interface IUser extends Document {
   planRenewsAt?: Date;
   lastLoginBonusAt?: Date; // Used by daily-login-bonus dedupe
   signupBonusGrantedAt?: Date; // Idempotency guard for signup bonus (SCRUM-100)
+
+  // T-234 — proof of Terms acceptance. Server-set only; never overwritten once set.
+  termsAcceptedAt?: Date;
+  termsVersion?: string;
+  privacyVersion?: string;
+  acceptedVia?: TermsAcceptedVia;
 
   passwordResetToken?: string;
   passwordResetExpires?: Date;
@@ -162,6 +177,12 @@ const UserSchema = new Schema<IUser>(
     planRenewsAt: { type: Date, default: null },
     lastLoginBonusAt: { type: Date, default: null },
     signupBonusGrantedAt: { type: Date, default: null },
+
+    // T-234 — Terms acceptance. No defaults: an empty value means "not accepted yet".
+    termsAcceptedAt: { type: Date },
+    termsVersion: { type: String, trim: true },
+    privacyVersion: { type: String, trim: true },
+    acceptedVia: { type: String, enum: ['password', 'google'] },
 
     passwordResetToken: {
       type: String,

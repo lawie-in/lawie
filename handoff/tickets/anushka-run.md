@@ -359,3 +359,39 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The Magistrate (JMFC) note no longer says it only tries offences up to 3 years.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-300 — server-only values in drafts (048a632)
+
+- Nothing changes on screen.
+- The advocate name typed on the form, or a "to be confirmed" placeholder, appears on both the draft and the annexures; with the field empty, the profile name.
+- A default bail draft's jail line says "to be confirmed".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-296 — section converter on a phone (32fc50b)
+
+- On a phone, convert a long passage in the section converter without results running off the screen.
+- Sections merged or split in the new law show a plain label (verify scope / check which new section applies).
+- "None" appears only for repealed sections; an unknown new section says Not verified and to check the Gazette.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-311 — enrollment number from the profile (0bff26f)
+
+With a profile that has an enrollment number:
+
+- Leave the enrollment field empty: the profile number prints in the draft, the Vakalatnama and the Memo of Parties.
+- Type a number, or "to be confirmed": that prints.
+- Type another advocate's name with the enrollment field empty: the number stays blank.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-234 + T-298 — email and password sign-up and sign-in (b4d6b58)
+
+- Create an account or sign in with email and password as well as Google; a link can open straight on Create account.
+- Clear messages for bad details, an existing email (quick switch to Sign in), a wrong password or no connection.
+- The terms and privacy line shows, and Lawie records the acceptance.
+- A referral code's bonus Ink is given once, or the user is told once if it can't apply.
+- A Google-only advocate trying a password gets a plain "incorrect" message pointing to Google.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

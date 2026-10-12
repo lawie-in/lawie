@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (writes and signs the wording). Lead (build, web). Arjun (facts) |
 | Mode   | Small fix (web), legal content |
-| Status | To do. Found by Arjun during T-306, 12 Oct 2026. Follows T-235 and T-284 |
+| Status | Building: kunal (12 Oct 2026) |
 
 T-235's privacy text says "no analytics, no first-party cookies", but `apps/web/src/app/layout.tsx` loads Google Analytics 4 on every page. After T-306, analytics loads on public pages only (Arjun's design). The policy must say exactly what is true.
 
