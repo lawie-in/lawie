@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Founder (decided, 12 Oct 2026). Arjun (how). Lead (drafting) |
 | Mode   | Small fix |
-| Status | To do. RELEASE GATE. Part 1 can start now; part 2 waits for T-187 and T-188. Founder, 12 Oct 2026 |
+| Status | To do. RELEASE GATE. Part 1 (describe-first default on): shashank after T-346. Part 2 after T-187 + T-188 (Ajay signed both rules, 33af21e; vishal builds) |
 
 Founder, 12 Oct 2026: "by default these should happen for new users." Today both switches are off unless the admin setting lists a user id or says `on`. The env fallback (`FEATURE_DEFAULT_*`, T-283) defaults to `off` and is ignored once an admin setting exists.
 

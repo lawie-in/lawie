@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                             |
 | Owner          | Arjun (which option, and the design) and Ajay (legal sign-off on the option and on any marker text). Vishal builds |
 | Mode           | Decision first (Arjun + Ajay), then build (developer + reviewer + tester)                                          |
-| Status         | To do. Waits for Arjun and Ajay to choose option A or B. Gates `feature.fact_ledger` for real users               |
+| Status         | Ajay chose and signed Option A (33af21e, 12 Oct 2026). Arjun: design. Build: vishal after T-187; Ajay checks the diff. Last gate (with T-187) for T-356 part 2 |
 | Size           | Decision S (0.5 day, Arjun + Ajay). Build: option A is S (0.5 day), option B is M (1 day)                          |
 | Depends on     | T-147b                                                                                                             |
 | Blocks         | Switching `feature.fact_ledger` on for any real user. Same gate group as T-187 and T-147c                           |

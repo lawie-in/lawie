@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                                 |
 | Owner          | Arjun (deletion mechanism and design) and Ajay (the rule, DPDP sign-off). Vishal builds once the rule is written here                  |
 | Mode           | Rule first (Arjun + Ajay), then a small build (developer + reviewer + tester)                                                          |
-| Status         | To do. Gates `feature.fact_ledger` for real users                                                                                      |
+| Status         | Rule signed by Ajay (33af21e, 12 Oct 2026). Arjun: mechanism. Build: vishal after T-342; Ajay checks the diff. Last gate (with T-188) for T-356 part 2 |
 | Size           | M: rule S (0.5 day, Arjun + Ajay), build M (1 day, Vishal)                                                                             |
 | Depends on     | T-147b (adds the `FactLedger` model and the `intake_extract` purpose)                                                                   |
 | Blocks         | Switching `feature.fact_ledger` on for any real user                                                                                   |
