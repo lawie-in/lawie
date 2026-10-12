@@ -49,3 +49,12 @@ Ajay (CLO), 12 Oct 2026 IST. Rule for `apps/drafting/src/services/citation-check
 | Ticket diagnosis ("initial") | Corrected above; update the ticket |
 | Golden snapshots that move | List them for me before merge |
 | Quality | Anushka tests on develop before prod |
+
+## Addendum, 12 Oct 2026 (after Vishal's question on rule 4)
+
+Vishal is right: rule 4 as I wrote it ("a full stop after a word of three or more letters ends a sentence") contradicts my own failing rows ("Ltd.,", "Dept.,", "Home Dept. (2016)"). Corrected:
+
+- **Rule 2 governs the second party, and no full stop ends it.** Between the versus word and the reporter, nothing ends the name: not a full stop, not a comma, not a line break. Rule 4 is only about walking back for the first party.
+- **Rule 4 for the first party.** A full stop ends the sentence only when the word before it is not an abbreviation and the next word starts with a capital letter after a space. These words never end a sentence: Ltd, Pvt, Ors, Anr, Dept, Govt, Co, Corp, Corpn, Inc, Bros, Assn, Secy, Comm, Commr, Addl, Dy, Dist, Hon'ble, No, Nos, Smt, Shri, Sri, Dr, Mr, Mrs, Ms, Md, Prof, Kum, etc, and any single or double capital letters ("M.", "K.M."). Vishal's extra test is approved: inside a citation, a full stop followed by "(", a digit or a comma never ends the sentence.
+- Tests: the table rows "Ltd.,", "Dept.,", "Home Dept. (2016) 7 SCC 221" and "Tata Steel Ltd., Jamshedpur," must be blanked in full, and "The Court held so. Mohan Rao v. ..." must still keep "The Court held so."
+- `citation-check.ts` is a legal-content path (now listed in `legal-content-paths.md`): this file and its addendum are the sign-off reference.
