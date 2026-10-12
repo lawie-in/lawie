@@ -37,6 +37,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 - mahak: T-331 (4101705, small fix tested green). After Kunal's T-343, once develop_staging CI is green again.
 - shashank: T-346 (2fff2d0, small fix tested green). After Mahak's T-331; check with her first.
+- tanvi: T-349 + T-350 (b52bc40, review passed). Merges once Ajay signs; check with the slot holder first.
 
 ## Last done
 
