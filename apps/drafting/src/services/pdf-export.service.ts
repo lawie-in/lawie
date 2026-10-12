@@ -142,12 +142,13 @@ export function contentToHtml(
   }
 
   // T-106, ADR-021 rule 6 — a starting draft says so in its footer (T-107, section 4).
+  // T-321: exactly one AI disclaimer, the starting-draft line replaces the generic one.
   if (startingDraft) {
     body += `<div class="disclaimer">${STARTING_DRAFT_FOOTER}</div>`;
+  } else {
+    // AI disclaimer footer
+    body += `<div class="disclaimer">First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.</div>`;
   }
-
-  // AI disclaimer footer
-  body += `<div class="disclaimer">First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.</div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
