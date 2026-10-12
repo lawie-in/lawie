@@ -148,11 +148,20 @@ const NEW_ACT_LAST_SECTION: Partial<Record<CheckedAct, number>> = {
   BSA: 170,
 };
 
-/** Q3: an old-Act number is valid only if it is a row (a key) in Ajay's signed mapping. */
+/**
+ * Q3 (Q6 withdrawn): an old-Act number is valid if it is a row (a key) in Ajay's
+ * signed mapping, whatever its type (direct, merged, unverified, repealed,
+ * repealed_no_equivalent). In these tables "repealed" means "no equivalent in the
+ * new code"; those sections were in force until 2024. A number not in the table is
+ * flagged.
+ */
+function tableRows(table: unknown): ReadonlySet<string> {
+  return new Set(Object.keys((table as { mappings: Record<string, unknown> }).mappings));
+}
 const OLD_ACT_ROWS: Partial<Record<CheckedAct, ReadonlySet<string>>> = {
-  IPC: new Set(Object.keys((ipcToBns as { mappings: Record<string, unknown> }).mappings)),
-  CrPC: new Set(Object.keys((crpcToBnss as { mappings: Record<string, unknown> }).mappings)),
-  IEA: new Set(Object.keys((ieaToBsa as { mappings: Record<string, unknown> }).mappings)),
+  IPC: tableRows(ipcToBns),
+  CrPC: tableRows(crpcToBnss),
+  IEA: tableRows(ieaToBsa),
 };
 
 /** Q1: a range is checked number by number, up to this many numbers. Wider is unreadable. */
@@ -198,6 +207,31 @@ const CITATION_WINDOW = new RegExp(
 const RANGE = /(?<![0-9A-Za-z(])(\d{1,3})\s*(?:-|–|—|\bto\b)\s*(\d{1,3})(?![0-9A-Za-z(])/gi;
 
 /**
+ * Q8: a double-letter section ("376AB", "103AB"). The reader takes one capital
+ * letter only and would read "376AB" as 376, so before windowing each one is
+ * swapped for its number plus a stand-in bracket ("376(zqx0)"), which the window
+ * grammar and the reader carry as an ordinary sub-section, and swapped back after
+ * reading. Capitals only, so "21st" or "2nd" never become sections.
+ */
+const DOUBLE_LETTER = /(?<![0-9A-Za-z])(\d{1,3})([A-Z]{2})(?![0-9A-Za-z])/g;
+const DOUBLE_LETTER_STAND_IN = /^(\d{1,3})\(zqx(\d+)\)/;
+
+/**
+ * Round 4: a hyphenated letter suffix ("103-A", "498-a", "103-AB") is folded to the
+ * digits plus the upper-cased letters before windowing, so it is read as 103A,
+ * 498A or 103AB (a double letter, then swapped as above). Digit-to-digit ranges
+ * ("3-5") never match: a letter must follow the hyphen.
+ */
+const HYPHEN_SUFFIX = /(?<![0-9A-Za-z])(\d{1,3})-([A-Za-z]{1,2})(?![0-9A-Za-z])/g;
+
+/**
+ * Round 4: inside a window, a lower-case single letter straight after the digits
+ * ("103a", "498a") is upper-cased before the reader sees it; the reader takes
+ * capitals only and would otherwise read 103. Window-only, so prose is untouched.
+ */
+const LOWER_SUFFIX = /(?<![0-9A-Za-z])(\d{1,3})([a-z])(?![0-9A-Za-z])/g;
+
+/**
  * T-270: the one producer of Act-scoped citations, used by both section checks
  * (validateSectionReferences and extractBNSSectionNumbers/validateBNSWhitelist).
  *
@@ -218,13 +252,30 @@ export function extractActCitations(text: string): ActCitation[] {
     out.push({ act, number });
   };
 
+  // Round 4: fold "103-A" / "498-a" / "103-AB" to 103A / 498A / 103AB.
+  const folded = text.replace(
+    HYPHEN_SUFFIX,
+    (_m, digits: string, letters: string) => `${digits}${letters.toUpperCase()}`,
+  );
+  // Q8: swap double-letter sections for stand-ins; restored on each number read.
+  const doubles: string[] = [];
+  const prepared = folded.replace(DOUBLE_LETTER, (_m, digits: string, letters: string) => {
+    doubles.push(`${digits}${letters}`);
+    return `${digits}(zqx${doubles.length - 1})`;
+  });
+  const restore = (number: string): string =>
+    number.replace(DOUBLE_LETTER_STAND_IN, (m, _d: string, i: string) => doubles[Number(i)] ?? m);
+
   CITATION_WINDOW.lastIndex = 0;
-  for (const w of text.matchAll(CITATION_WINDOW)) {
-    const window = w[0];
+  for (const w of prepared.matchAll(CITATION_WINDOW)) {
+    const window = w[0].replace(
+      LOWER_SUFFIX,
+      (_m, digits: string, letter: string) => `${digits}${letter.toUpperCase()}`,
+    );
     const read: ActCitation[] = [];
     for (const e of readSectionsCharged(window)) {
       const act = e.code ? CHECKED_ACT[e.code] : undefined;
-      if (act) read.push({ act, number: e.number });
+      if (act) read.push({ act, number: restore(e.number) });
     }
 
     const dropped = new Set<string>();
@@ -259,7 +310,9 @@ export function extractActCitations(text: string): ActCitation[] {
  * T-270 Q3: whether a citation is valid under its own Act (Q2). Sub-sections are
  * checked by their parent number only: 61(2)(a) → 61.
  * - BNS 1-358, BNSS 1-531, BSA 1-170 by range; any letter suffix is invalid.
- * - IPC, CrPC, IEA: valid only if the parent number is a row in the signed mapping.
+ * - IPC, CrPC, IEA: valid only if the parent number is a row in the signed mapping,
+ *   whatever the row's type. Double letters (Q8) follow the same rules:
+ *   "376AB IPC" is a row check, "BNS 103AB" is invalid.
  */
 export function isActCitationValid(act: CheckedAct, number: string): boolean {
   const parent = number
@@ -464,6 +517,8 @@ export function extractBNSSectionNumbers(text: string): string[] {
  * SCRUM-64 (b): Flag BNS sections that are not valid BNS sections.
  * T-270 Q3: BNS 1-358 by range, parent number only, no letter suffix
  * (isActCitationValid, the same rule validateSectionReferences uses).
+ * T-270 Q7: this range supersedes T-277 R5 for the post-draft validator only.
+ * Preflight keeps R5 (the offence table via resolveBnsKey).
  */
 export function validateBNSWhitelist(bnsNumbers: string[]): ValidationWarning[] {
   return bnsNumbers
@@ -519,8 +574,18 @@ export async function validate(
 
   const sectionsCited = buildSectionsCited(text);
 
+  // T-270 ruling A (Ajay): an IPC/CrPC/IEA cite that is not a table row gets only the
+  // "not found" invalid_section warning, never also old_law_reference. Matched on
+  // details.code + details.section, which both warnings carry ('IPC'/'CrPC'/'IEA').
+  const citeKey = (w: ValidationWarning): string =>
+    `${w.details?.code ?? ''}|${(w.details?.section ?? '').toUpperCase()}`;
+  const notFound = new Set(
+    sectionWarnings.filter((w) => w.type === 'invalid_section').map(citeKey),
+  );
+  const oldLawKept = oldLawWarnings.filter((w) => !notFound.has(citeKey(w)));
+
   return {
-    warnings: [...sectionWarnings, ...oldLawWarnings, ...clauseResult.missing],
+    warnings: [...sectionWarnings, ...oldLawKept, ...clauseResult.missing],
     sectionsCited,
     mandatoryClausesComplete: clauseResult.allPresent,
   };

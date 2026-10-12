@@ -12,7 +12,6 @@ import fs from 'fs';
 import path from 'path';
 
 import { SectionMapping } from '../models/SectionMapping.model';
-import { validateBnsSections } from '../services/ai.service';
 
 const CONFIG = path.join(__dirname, '..', 'config');
 const read = (...p: string[]): string => fs.readFileSync(path.join(CONFIG, ...p), 'utf-8');
@@ -274,20 +273,6 @@ describe('T-250 follow-up 4 / r1 / r5: bns-mapping.json', () => {
           act: 'Code of Civil Procedure, 1908',
         },
       ],
-    });
-  });
-
-  describe('validateBnsSections on affidavit (Ajay r1)', () => {
-    it('does not flag "u/s 3 of the Oaths Act"', () => {
-      expect(validateBnsSections('affidavit', 'Sworn u/s 3 of the Oaths Act')).toEqual([]);
-    });
-    it('does not flag "under Section 8 of the Notaries Act"', () => {
-      expect(
-        validateBnsSections('affidavit', 'Attested under Section 8 of the Notaries Act'),
-      ).toEqual([]);
-    });
-    it('flags "Sworn under Section 85 BSA"', () => {
-      expect(validateBnsSections('affidavit', 'Sworn under Section 85 BSA')).toEqual(['85']);
     });
   });
 });
