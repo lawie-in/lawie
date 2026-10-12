@@ -266,9 +266,9 @@ describe('T-266 AC3: nothing else changes', () => {
     expect(grounds('The papers were resubmitted.')).toEqual(MISSING);
   });
 
-  it('"before" is unchanged: still an earlier-application cue when "bail" is present (T-241 drops it)', () => {
-    expect(earlier("Bail is sought before this Hon'ble Court.")).toEqual([]);
-    expect(earlier('Bail is sought. It was heard beforehand.')).toEqual([]);
+  it('T-241 dropped "before" as an earlier-application cue on the bail_regular list', () => {
+    expect(earlier("Bail is sought before this Hon'ble Court.")).toEqual(MISSING);
+    expect(earlier('Bail is sought. It was heard beforehand.')).toEqual(MISSING);
     expect(earlier('Bail is sought. It was unbefore the Court.')).toEqual(MISSING);
   });
 
