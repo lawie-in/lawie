@@ -36,8 +36,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             only after Accept, only on T-306's public allowlist, page views without query or hash. */}
         <AnalyticsConsent />
         {/* T-310: focus target after a first-time choice. A div, not <main>: the dashboard, admin,
-            login and review pages render their own <main>. */}
-        <div id="main" tabIndex={-1} className="focus:outline-none">
+            login and review pages render their own <main>. tabindex is set only at focus time
+            (AnalyticsConsent's returnFocus), so the whole app is not a focusable region. */}
+        <div id="main" className="focus:outline-none">
           <AuthProvider>{children}</AuthProvider>
         </div>
       </body>

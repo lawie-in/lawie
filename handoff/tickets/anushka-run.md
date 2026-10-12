@@ -539,3 +539,27 @@ What a user can now do:
 - Test with the fact-ledger setting both on and off; the questions appear either way.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-328 + T-332 — cookie card focus, splash, no browser error reporting (5482b37, kunal, 12 Oct 2026)
+
+What a user can now do:
+- After answering the cookie card, keyboard and screen-reader users land on the page content with no stray focus stop left behind.
+- The logo splash always finishes and the cookie card still appears, even when the browser blocks storage (private mode).
+- Nothing about a visitor's browser goes to an error service, same as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-339 — splash with blocked storage (5adf962, kunal, 12 Oct 2026)
+
+What a user can now do:
+- With browser storage blocked (private mode, site data off), the opening logo animation plays and finishes normally with no error.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-270 — wrong-section warnings for code-first citations (e43420d, shashank, 12 Oct 2026)
+
+What a user can now do:
+- After a draft is generated, get a warning for a wrong section in any of the six codes, written any common way ("BSA 85", "85 BSA", "S. 85 of the BSA", "Ss. 3-5 BSA"). There's never a false warning for a real old IPC, CrPC or IEA section.
+- Each section number is checked against the Act it's cited under, so "Section 3 BSA" no longer passes just because the Oaths Act has a section 3.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

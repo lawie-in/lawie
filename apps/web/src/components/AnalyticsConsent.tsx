@@ -433,7 +433,12 @@ export default function AnalyticsConsent() {
       opener.focus();
       return;
     }
-    document.getElementById('main')?.focus({ preventScroll: true });
+    // T-332: #main is focusable only for this move; tabindex goes again on blur.
+    const main = document.getElementById('main');
+    if (!main) return;
+    main.setAttribute('tabindex', '-1');
+    main.focus({ preventScroll: true });
+    main.addEventListener('blur', () => main.removeAttribute('tabindex'), { once: true });
   }, []);
 
   const decide = useCallback(

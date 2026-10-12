@@ -18,6 +18,7 @@
 import express, { NextFunction, Request, Response, Router } from 'express';
 import { z } from 'zod';
 
+import logger from '../config/logger';
 import {
   CONSENT_HISTORY_LIMIT,
   CONSENT_PURPOSE,
@@ -138,8 +139,13 @@ router.post(
         await recordDecision(consentId, choice, version, new Date());
       }
       res.status(204).end();
-    } catch {
-      // Not passed to next(err): the global errorHandler logs req.ip. Nothing is logged here.
+    } catch (err) {
+      // Not passed to next(err): the global errorHandler logs req.ip. A fixed message with the
+      // error's name and code only: never err itself (duplicate-key messages hold the consentId),
+      // and nothing from the request.
+      const errName = err instanceof Error ? err.name : undefined;
+      const code = (err as { code?: unknown })?.code;
+      logger.error({ errName, code }, 'consent_store_failed');
       next(new ConsentStoreError());
     }
   },

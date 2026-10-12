@@ -5,7 +5,7 @@
 | Phase  | 1 — Legal accuracy |
 | Owner  | Ajay (sees the diff). Lead (build, drafting) |
 | Mode   | Small fix (legal content) |
-| Status | To do. Shashank after T-270 (may stack). Found by Shashank in T-270, 12 Oct 2026 |
+| Status | Building: shashank, stacked on T-270 (12 Oct 2026). Developer done, tester running |
 
 The template and brief draft paths in `apps/drafting/src/services/ai.service.ts` (~812, ~1404, ~1636) run only the BNS whitelist. BSA, BNSS, IPC, CrPC and IEA citations are checked only in the `validate()` path.
 

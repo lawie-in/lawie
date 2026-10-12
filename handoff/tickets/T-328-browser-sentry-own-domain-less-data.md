@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (spec: last section of the T-310 file, c87f43a). Ajay (ruling). Lead (build, web) |
 | Mode   | Small fix (web) |
-| Status | Building: kunal, with T-332 (12 Oct 2026) |
+| Status | Merged into develop_staging 5482b37, with T-332 (12 Oct 2026). Option B: browser Sentry stays off, dead config deleted |
 
 ## Acceptance criteria
 

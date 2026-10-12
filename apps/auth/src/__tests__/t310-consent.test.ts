@@ -281,7 +281,7 @@ describe('T-310 POST /consent', () => {
       }
     });
 
-    it('logs nothing (no id, no body) on success, invalid input or store failure', async () => {
+    it('logs no id and no body on success, invalid input or store failure', async () => {
       const stderr = jest.spyOn(process.stderr, 'write');
       const stdout = jest.spyOn(process.stdout, 'write');
       const consoles = (['log', 'info', 'warn', 'error', 'debug'] as const).map((m) =>
@@ -363,8 +363,30 @@ describe('T-310 POST /consent', () => {
       const res = await post({ id: ID, choice: 'granted', version: 1 });
       expect(res.status).toBe(500);
       expect(res.body).toEqual({ error: 'server_error' });
-      expect(logger.error).not.toHaveBeenCalled();
+      // T-332: one fixed message, error name and code only.
+      expect(logger.error).toHaveBeenCalledTimes(1);
+      expect(logger.error).toHaveBeenCalledWith(
+        { errName: 'Error', code: undefined },
+        'consent_store_failed',
+      );
       expect(mockSentryCapture).not.toHaveBeenCalled();
+    });
+
+    it('the store-failure log holds no consentId, no body and no error message', async () => {
+      const err = Object.assign(new Error(`E11000 dup key { consentId: "${ID}" }`), {
+        code: 11000,
+      });
+      jest.spyOn(ConsentRecord, 'updateOne').mockRejectedValue(err);
+      const res = await post({ id: ID, choice: 'granted', version: 1 });
+      expect(res.status).toBe(500);
+      expect(logger.error).toHaveBeenCalledTimes(1);
+      const args = (logger.error as unknown as jest.Mock).mock.calls[0];
+      expect(args).toEqual([{ errName: 'Error', code: 11000 }, 'consent_store_failed']);
+      const dump = JSON.stringify(args);
+      for (const s of [ID, 'granted', 'E11000', 'dup key', 'consentId']) {
+        expect(dump).not.toContain(s);
+      }
+      for (const a of args) expect(a).not.toBe(err);
     });
 
     it('retries once on a duplicate-key race and then succeeds', async () => {

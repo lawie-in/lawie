@@ -32,7 +32,15 @@ export function LogoSplash({ fontFamily }: { fontFamily: string }) {
 
   // Step 1 — decide whether to show
   useEffect(() => {
-    if (sessionStorage.getItem('lawie_splash_seen')) return;
+    // T-339: blocked storage (the getter or getItem throws) counts as "not seen", so the
+    // splash shows and ends normally; the setItem guard below keeps that path from throwing.
+    let seen = false;
+    try {
+      seen = Boolean(window.sessionStorage.getItem('lawie_splash_seen'));
+    } catch {
+      /* storage blocked: treat as not seen */
+    }
+    if (seen) return;
 
     markSplashOpen();
     setVisible(true);
@@ -221,8 +229,13 @@ export function LogoSplash({ fontFamily }: { fontFamily: string }) {
         setFading(true);
         setTimeout(() => {
           setVisible(false);
-          sessionStorage.setItem('lawie_splash_seen', '1');
+          // T-332: end the splash first, so a storage throw never holds back the consent card.
           markSplashEnded();
+          try {
+            sessionStorage.setItem('lawie_splash_seen', '1');
+          } catch {
+            /* storage full or blocked: the splash shows again next visit */
+          }
         }, 500);
       }, totalMs);
 
