@@ -35,6 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
+1. kunal: T-344 (02c0c40, small fix tested green). Slot given 12 Oct.
 
 ## Last done
 
