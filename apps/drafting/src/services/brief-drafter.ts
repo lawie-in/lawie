@@ -2051,7 +2051,12 @@ export function checkFirstApplicationClaim(
     ];
   }
   // Every entry must be a "none" value; one that is not lists an earlier application.
-  if (values.every((v) => none.includes(valueFold(v)))) return [];
+  // An entry that itself says it is the first application, in the same words
+  // the draft is scanned for, is the advocate's own "none" (Ajay, T-341 round 2).
+  // This only stops the warning: it unlocks nothing.
+  const saysNone = (v: string): boolean =>
+    none.includes(valueFold(v)) || phrases.some((p) => hasWholePhrase(claimFold(v), p));
+  if (values.every(saysNone)) return [];
   return [{ type: 'fact_alteration', message: FIRST_APPLICATION_CONTRADICTED, details: { field } }];
 }
 

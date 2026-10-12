@@ -252,19 +252,58 @@ describe('T-341 pack specifics', () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// Documented behaviour for Ajay to decide (developer's finding)
+// Ajay's round-2 ruling: a confirmed value that itself holds a phrase says "none"
 // ═════════════════════════════════════════════════════════════════════════════
-describe('T-341 KNOWN FALSE CONTRADICTION (pinned current behaviour, for Ajay to decide)', () => {
-  it('a confirmed typed value that itself holds a phrase is not a "none" value -> text 2 today', () => {
-    // The advocate types "this is the first bail application" as the answer. That is a
-    // statement of no earlier application, yet it is not in the signed equals list, so
-    // the check reads it as an earlier application and says "details you gave list an
-    // earlier bail application". If Ajay wants this to pass quietly, this test changes.
-    const pack = 'bail_regular';
-    const L = listsOf(pack);
-    const b = brief(pack, [{ key: PROTECTED, value: L.phrases[0], source: 'user' }]);
-    expect(itemOf(b).unconfirmed).toBeUndefined();
-    expect(messages(draftWith(L.phrases[0]), b)).toEqual([TEXT_2]);
+describe.each(PACKS)('T-341 a value holding a phrase counts as "none", %s', (pack) => {
+  const L = listsOf(pack);
+  const typed = (v: string | string[]) => {
+    const b = brief(pack, [{ key: PROTECTED, value: 'None', source: 'user' }]);
+    itemOf(b).value = v;
+    return b;
+  };
+  const draft = draftWith(L.phrases[0]);
+
+  it.each([...L.phrases, L.averment])(
+    'confirmed typed %j + phrase in the draft -> no warning',
+    (v) => {
+      expect(warn(draft, typed(v))).toEqual([]);
+      expect(warn(draftWith(L.averment), typed(v))).toEqual([]);
+    },
+  );
+
+  it('the phrase inside a longer typed sentence, any case -> no warning', () => {
+    expect(warn(draft, typed(`Note: ${L.phrases[0].toUpperCase()}.`))).toEqual([]);
+  });
+
+  it('a confirmed real application is still text 2', () => {
+    expect(messages(draft, typed(REAL_APPLICATION))).toEqual([TEXT_2]);
+  });
+
+  it('a real application that only resembles a phrase (plural, glued) is still text 2', () => {
+    expect(messages(draft, typed(`${L.phrases[0]}s`))).toEqual([TEXT_2]);
+  });
+
+  it('description-read value holding a phrase -> still text 1', () => {
+    const b = brief(pack, [{ key: PROTECTED, value: L.phrases[0], source: 'description' }]);
+    expect(messages(draft, b)).toEqual([TEXT_1]);
+    const held = brief(pack, [{ key: PROTECTED, value: 'None', source: 'description' }]);
+    itemOf(held).value = L.phrases[0];
+    expect(messages(draft, held)).toEqual([TEXT_1]);
+  });
+
+  it('user-source value marked unconfirmed, holding a phrase -> still text 1', () => {
+    const b = typed(L.phrases[0]);
+    itemOf(b).unconfirmed = true;
+    expect(messages(draft, b)).toEqual([TEXT_1]);
+  });
+
+  it('list: phrase entry mixed with a real application -> text 2 (either order)', () => {
+    expect(messages(draft, typed([L.phrases[0], REAL_APPLICATION]))).toEqual([TEXT_2]);
+    expect(messages(draft, typed([REAL_APPLICATION, L.averment]))).toEqual([TEXT_2]);
+  });
+
+  it('list: phrase entries and "none" words only -> no warning', () => {
+    expect(warn(draft, typed([L.phrases[0], 'None', L.averment]))).toEqual([]);
   });
 });
 
