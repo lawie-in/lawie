@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build). Rajesh if the fix changes the look |
 | Mode           | Small fix (web, CSS only) |
-| Status         | To do. Unassigned. Raised by Mahak (T-275 tester), 12 Oct 2026 |
+| Status         | Merged into develop_staging (089eb8c), waiting for Anushka on develop |
 | Depends on     | T-275 merged (same file) |
 
 At 375 px the converter page (`apps/web/src/app/tools/section-converter/page.tsx`) scrolls sideways even before a search (scrollWidth 438). The "Look up" button in the search form overflows. Also cosmetic: "Check the Gazette" wraps to 3 lines in the narrow cell.

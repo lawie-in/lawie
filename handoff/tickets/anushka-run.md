@@ -172,3 +172,12 @@ Needs develop's section tables reseeded first for the Evidence Act and CrPC rows
 - I am not offered a Copy button when there is no section to copy.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-281 (mahak, merged to develop_staging 089eb8c, 12 Oct 2026)
+
+- On a phone, the section converter page no longer slides sideways: the search box and the Look up button sit one above the other, and the old and new sections are shown one above the other with an arrow between them.
+- "Check the Gazette" reads on one line on most phones.
+
+This is NOT a "works on mobile" claim (T-138 and the T-141a ban stand).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
