@@ -55,3 +55,7 @@ Production runs `main`, tagged v1.0.0.
 | Reviewer | Verdict               | Note                                                                                          |
 | -------- | --------------------- | --------------------------------------------------------------------------------------------- |
 | Arjun    | Approved with changes | Feasible. Added two steps: write down how production is deployed today, and prove a rollback. |
+
+## Note (Priya, 12 Oct 2026, from Arjun on T-312)
+
+Production starts fresh. If any document saved on develop before T-300 is ever carried into production, reopen T-312 first (repair on read from `doc.templateId`).

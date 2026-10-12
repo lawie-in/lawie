@@ -139,6 +139,32 @@ describe('POST /sections/read', () => {
       }
     });
 
+    it('literal titles copied from the signed table (bns-offences.json)', async () => {
+      const literal: Array<[string, string]> = [
+        ['303', 'Theft'],
+        ['351', 'Criminal intimidation'],
+        ['103', 'Punishment for murder'],
+        ['64', 'Punishment for rape'],
+        ['115', 'Voluntarily causing hurt'],
+      ];
+      const res = await request(app)
+        .post('/sections/read')
+        .send({ values: literal.map(([n]) => n) });
+      expect(res.status).toBe(200);
+      literal.forEach(([n, title], i) => {
+        const item = entriesOf(res)[i][0];
+        expect(item.number).toBe(n);
+        expect(item.title).toBe(title);
+      });
+    });
+
+    it('303(2) gives the literal 303 title', async () => {
+      const res = await request(app)
+        .post('/sections/read')
+        .send({ values: ['303(2)'] });
+      expect(entriesOf(res)[0][0].title).toBe('Theft');
+    });
+
     it('a sub-section shows its parent title (303(2) gives the 303 title)', async () => {
       const res = await request(app)
         .post('/sections/read')
