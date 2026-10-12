@@ -861,11 +861,12 @@ function checkReportedParagraphs(
   if (before === undefined) {
     // R2b.5: a first check finding nothing but blanks records nothing, unless
     // one of those blanks is the exact signed blank for this clause (T-322),
-    // or, for default_bail applicable_window only, the brief's own period blank (T-327).
+    // or, for default_bail applicable_window only, the brief's own period or
+    // expiry-date blank (T-327).
     if (
       onlyBlanks(text) &&
       !holdsSignedBlank(packId, clause.id, text) &&
-      !holdsBriefPeriodBlank(packId, clause.id, text, context.brief)
+      !holdsBriefWindowBlank(packId, clause.id, text, context.brief)
     ) {
       return 'clause_not_in_paragraph';
     }
@@ -923,8 +924,11 @@ function holdsSignedBlank(packId: string, clauseId: string, text: string): boole
   return SIGNED_BLANKS[packId][clauseId].some((blank) => text.includes(normalise(blank)));
 }
 
-/** T-327: the brief item that holds the default-bail period (default_bail.json, period_claimed). */
-const BRIEF_PERIOD_KEY = 'period_claimed';
+/**
+ * T-327: the brief items whose own blanks the Drafter copies for
+ * applicable_window (default_bail.json): the period and the date it expired.
+ */
+const BRIEF_WINDOW_KEYS = ['period_claimed', 'period_expiry_date'] as const;
 
 /** T-327: the whole value is one blank, as BLANK finds them, with words inside it. */
 const WHOLE_BLANK = new RegExp(`^(?:${BLANK.source})$`);
@@ -936,23 +940,31 @@ const WHOLE_BLANK = new RegExp(`^(?:${BLANK.source})$`);
  * text. The same logic is the reason as before: a repair can only push the
  * model to invent the period."
  *
- * T-251 instruction 5, as amended, tells the Drafter to copy the brief's own
- * period blank exactly, and that blank is not one of SIGNED_BLANKS. So, for
- * default_bail applicable_window only, the normalised text covers the clause
- * when it contains the brief's period_claimed blank. The brief is read on each
- * call, never cached. A real period (a value that is not a single blank) never
- * counts here; a paragraph restating it takes the normal R2b path.
+ * And on the expiry date (Ajay, 12 Oct 2026): "On the expiry date: yes, the
+ * same rule applies if T-251 instruction 5 tells the Drafter to copy the
+ * brief's expiry blank. Add it here if it's that small, with the same pair of
+ * tests." It does: instruction 5, as amended, tells the Drafter to write the
+ * brief's own blank exactly for the period and for the date of expiry, and
+ * neither is one of SIGNED_BLANKS.
+ *
+ * So, for default_bail applicable_window only, the normalised text covers the
+ * clause when it contains the brief's period_claimed blank or its
+ * period_expiry_date blank. The brief is read on each call, never cached. A
+ * real value (one that is not a single blank) never counts here; a paragraph
+ * restating it takes the normal R2b path.
  */
-function holdsBriefPeriodBlank(
+function holdsBriefWindowBlank(
   packId: string,
   clauseId: string,
   text: string,
   brief: Brief | undefined,
 ): boolean {
   if (packId !== 'default_bail' || clauseId !== 'applicable_window') return false;
-  const blank = briefValue(brief, BRIEF_PERIOD_KEY).trim();
-  if (!WHOLE_BLANK.test(blank) || !/[\p{L}\p{N}]/u.test(blank)) return false;
-  return text.includes(normalise(blank));
+  return BRIEF_WINDOW_KEYS.some((key) => {
+    const blank = briefValue(brief, key).trim();
+    if (!WHOLE_BLANK.test(blank) || !/[\p{L}\p{N}]/u.test(blank)) return false;
+    return text.includes(normalise(blank));
+  });
 }
 
 /** True when a paragraph holds nothing but blanks, once punctuation and spaces are set aside. */

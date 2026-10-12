@@ -93,22 +93,22 @@ function realBrief(extra: Given = {}): Brief {
 }
 
 /** A real brief whose period_claimed item reads `blank` (unanswered, so the blank is its placeholder). */
-function briefWithBlank(blank: string): Brief {
+function briefWithBlank(blank: string, key = 'period_claimed'): Brief {
   const b = realBrief();
-  const item = b.items.find((i) => i.key === 'period_claimed');
+  const item = b.items.find((i) => i.key === key);
   expect(item).toBeDefined();
   item!.placeholder = blank;
-  const unk = b.still_unknown.find((u) => u.key === 'period_claimed');
+  const unk = b.still_unknown.find((u) => u.key === key);
   if (unk) unk.placeholder = blank;
   return b;
 }
 
 /** A real brief whose period_claimed item has the user value `value`. */
-function briefWithValue(value: string): Brief {
+function briefWithValue(value: string, key = 'period_claimed'): Brief {
   const b = realBrief();
-  const item = b.items.find((i) => i.key === 'period_claimed')!;
+  const item = b.items.find((i) => i.key === key)!;
   item.value = value;
-  b.still_unknown = b.still_unknown.filter((u) => u.key !== 'period_claimed');
+  b.still_unknown = b.still_unknown.filter((u) => u.key !== key);
   return b;
 }
 
@@ -147,7 +147,7 @@ describe("T-327 AC4 (pure): the brief's own blank covers", () => {
     expect(window_(blank, b)).toEqual([]);
   });
 
-  it('the brief blank with text around it covers', () => {
+  it('control: text around the blank is recorded by the existing rule (not the new branch)', () => {
     const b = realBrief();
     expect(
       window_(`It is submitted that the period is ${SIGNED_PERIOD_BLANK} as of now.`, b),
@@ -442,5 +442,138 @@ describe('T-327 (Drafter path): the brief blank triggers no repair; a different 
       expect({ b, calls: await run(realBrief(), b) }).toEqual({ b, calls: 1 });
     }
     expect(await run(realBrief(), SIGNED_BLANKS.default_bail.non_filing[0], 'non_filing')).toBe(1);
+  });
+});
+
+// ── Round 2: the brief's period_expiry_date blank (Ajay, 12 Oct 2026) ───────
+
+const EXPIRY_BLANK = '[To be confirmed: date the period expired]';
+const OTHER_EXPIRY = '[To be confirmed: the day the period ran out]';
+
+/** period_claimed holds a real value (so only the expiry blank can cover); expiry is `blank` or a value. */
+function expiryBrief(expiry: { blank?: string; value?: string } = {}): Brief {
+  const b = briefWithValue('180 days');
+  if (expiry.value !== undefined) return withBoth(expiry.value);
+  if (expiry.blank !== undefined) {
+    const item = b.items.find((i) => i.key === 'period_expiry_date')!;
+    item.placeholder = expiry.blank;
+  }
+  return b;
+}
+function withBoth(expiryValue: string): Brief {
+  const b = briefWithValue('180 days');
+  b.items.find((i) => i.key === 'period_expiry_date')!.value = expiryValue;
+  return b;
+}
+
+describe('T-327 round 2: the brief expiry blank (pure)', () => {
+  it('the real brief carries the expected expiry placeholder, and it is not a signed blank', () => {
+    const item = realBrief().items.find((i) => i.key === 'period_expiry_date');
+    expect(item?.placeholder).toBe(EXPIRY_BLANK);
+    const all = Object.values(SIGNED_BLANKS).flatMap((c) => Object.values(c).flat());
+    expect(all).not.toContain(EXPIRY_BLANK);
+  });
+
+  it('without a brief the expiry blank does not cover', () => {
+    expect(window_(EXPIRY_BLANK)).toEqual(NOT);
+  });
+
+  it('the brief expiry blank alone covers (period holds a real value)', () => {
+    expect(window_(EXPIRY_BLANK, expiryBrief())).toEqual([]);
+  });
+
+  it('it covers on the unmodified brief too, normalised', () => {
+    expect(window_(EXPIRY_BLANK, realBrief())).toEqual([]);
+    expect(window_(EXPIRY_BLANK.toUpperCase(), expiryBrief())).toEqual([]);
+    expect(window_(`“${EXPIRY_BLANK}”`, expiryBrief())).toEqual([]);
+  });
+
+  it('a {{MISSING}} expiry blank covers', () => {
+    const blank = '{{MISSING: date the period expired}}';
+    expect(window_(blank, briefWithBlank(blank, 'period_expiry_date'))).toEqual([]);
+  });
+
+  it('the period blank still covers when expiry is a real date', () => {
+    const b = briefWithValue('2026-08-01', 'period_expiry_date');
+    expect(window_(SIGNED_PERIOD_BLANK, b)).toEqual([]);
+  });
+
+  it.each([
+    ['a near-miss: extra word', EXPIRY_BLANK.replace(/\]$/, ' soon]')],
+    ['a near-miss: truncated', EXPIRY_BLANK.slice(0, -6) + ']'],
+    ['a generic blank', '[To be confirmed: date]'],
+    ['the period blank, when period holds a real value', SIGNED_PERIOD_BLANK],
+    ['the non_filing signed blank', SIGNED_BLANKS.default_bail.non_filing[0]],
+  ])('%s does not cover', (_n, text) => {
+    expect(window_(text, expiryBrief())).toEqual(NOT);
+  });
+
+  it('a real expiry date: the blank no longer covers', () => {
+    expect(window_(EXPIRY_BLANK, withBoth('2026-08-01'))).toEqual(NOT);
+  });
+
+  it.each(['___', '[]', '[ ]', '{}', '{{}}'])('an expiry value of %j covers nothing', (v) => {
+    expect(window_(v, briefWithBlank(v, 'period_expiry_date'))).toEqual(NOT);
+    expect(window_(v, withBoth(v))).toEqual(NOT);
+  });
+
+  it('read at check time: a brief with a different expiry blank stops the first blank covering', () => {
+    expect(window_(EXPIRY_BLANK, expiryBrief())).toEqual([]);
+    expect(window_(EXPIRY_BLANK, expiryBrief({ blank: OTHER_EXPIRY }))).toEqual(NOT);
+    expect(window_(OTHER_EXPIRY, expiryBrief({ blank: OTHER_EXPIRY }))).toEqual([]);
+  });
+
+  it('read at check time: editing the same brief between two checks changes the outcome', () => {
+    const brief = expiryBrief();
+    expect(window_(EXPIRY_BLANK, brief)).toEqual([]);
+    brief.items.find((i) => i.key === 'period_expiry_date')!.placeholder = OTHER_EXPIRY;
+    expect(window_(EXPIRY_BLANK, brief)).toEqual(NOT);
+  });
+
+  it('the expiry blank in another clause or pack does not cover', () => {
+    expect(reasons('default_bail', 'non_filing', EXPIRY_BLANK, expiryBrief())).toEqual(NOT);
+    for (const other of [
+      'bail_regular',
+      'interim_bail',
+      'bail_anticipatory',
+      'bail_before_magistrate',
+    ]) {
+      const ids = pack(other)
+        .mandatoryClauses.filter((c) => c.required && c.appliesWhen === null)
+        .map((c) => c.id);
+      for (const id of ids) {
+        expect({ other, id, got: reasons(other, id, EXPIRY_BLANK, expiryBrief()) }).toEqual({
+          other,
+          id,
+          got: NOT,
+        });
+      }
+    }
+  });
+});
+
+describe('T-327 round 2: the brief expiry blank (Drafter path)', () => {
+  it('the brief expiry blank alone -> 1 call, no repair', async () => {
+    expect(await run(expiryBrief(), EXPIRY_BLANK)).toBe(1);
+  });
+
+  it.each([
+    ['near-miss', EXPIRY_BLANK.replace(/\]$/, ' soon]')],
+    ['generic blank', '[To be confirmed: date]'],
+    ['non_filing blank', SIGNED_BLANKS.default_bail.non_filing[0]],
+  ])('%s -> repair runs', async (_n, text) => {
+    expect(await run(expiryBrief(), text)).toBeGreaterThanOrEqual(2);
+  });
+
+  it('read at check time: a brief with another expiry blank -> repair runs', async () => {
+    expect(await run(expiryBrief({ blank: OTHER_EXPIRY }), EXPIRY_BLANK)).toBeGreaterThanOrEqual(2);
+  });
+
+  it('a real expiry date in the brief -> repair runs', async () => {
+    expect(await run(withBoth('2026-08-01'), EXPIRY_BLANK)).toBeGreaterThanOrEqual(2);
+  });
+
+  it('the expiry blank in non_filing -> repair runs', async () => {
+    expect(await run(expiryBrief(), EXPIRY_BLANK, 'non_filing')).toBeGreaterThanOrEqual(2);
   });
 });
