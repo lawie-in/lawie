@@ -33,11 +33,10 @@ import { APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import {
   ChargedSection,
   readChargedField,
-  readSectionsCharged,
   resolveBnsKey,
   resolveOffence,
 } from './bns-offence-resolver';
-import { fieldSourceOf, loadTemplateConfig } from './template-engine.service';
+import { fieldSourceOf, loadTemplateConfig, oldLawLine } from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -120,21 +119,6 @@ function parseFirYear(firNumber: string): number | null {
 function parseSectionsCharged(templateId: string, value: unknown): ChargedSection[] {
   return readChargedField(value, fieldSourceOf(loadTemplateConfig(templateId), 'sections_charged'));
 }
-
-/**
- * The develop_staging split of sections_charged, verbatim: array entries, or the
- * string split on "," / ";", each with a leading BNS/BNSS/BSA stripped. Used ONLY
- * to word the old-law block exactly as before (Arjun, round 7c: T-277 changes
- * reading and labels, not gates).
- */
-function legacySectionParts(value: unknown): Array<{ raw: string; shown: string }> {
-  const raws = Array.isArray(value) ? value.map((v) => str(v)) : str(value).split(/[,;]+/);
-  return raws
-    .map((raw) => ({ raw, shown: raw.replace(/^(BNS|BNSS|BSA)\s*/i, '').trim() }))
-    .filter((p) => p.shown);
-}
-
-const OLD_LAW_CODES = new Set(['IPC', 'CRPC', 'IEA']);
 
 /** Display: a BNS number as before ("303"); another code named ("IPC 302"); bare as typed. */
 function sectionLabel(e: ChargedSection): string {
@@ -233,26 +217,16 @@ async function runPureRules(
 
   // ── HARD BLOCK #3: BNS section not in whitelist ──────────────────────────
   const sections = parseSectionsCharged(templateId, formData['sections_charged']);
-  // Round 7c: an explicit IPC / CrPC / IEA entry (alias included) keeps exactly the
-  // develop_staging outcome. Such a part was never a table key, so it hard-blocked
-  // with the part, as split and shown there, in the message.
-  const pickerDefault =
-    fieldSourceOf(loadTemplateConfig(templateId), 'sections_charged') === 'bns_mapping' &&
-    Array.isArray(formData['sections_charged'])
-      ? 'BNS'
-      : undefined;
-  for (const part of legacySectionParts(formData['sections_charged'])) {
-    const read = readSectionsCharged(part.raw, pickerDefault);
-    if (read.some((e) => e.code !== null && OLD_LAW_CODES.has(e.code))) {
-      findings.push({
-        rule_id: 'section_whitelist',
-        severity: 'hard',
-        question: `BNS Section ${part.shown} is not in the First Schedule (recognised BNS offences). Please verify — this may be a typo or hallucination.`,
-      });
-    }
-  }
+  // `sections` comes from the T-277 reader, already deduped on (code, number).
   for (const e of sections) {
-    if (e.code === null) {
+    // T-295 (Priya's soft decision; Arjun's ruling: the T-277 reader, not a per-part
+    // loop): an IPC / CrPC / IEA entry (alias included) is a SOFT warning carrying
+    // Ajay's signed line. Never a section_whitelist finding; an old-law number never
+    // goes through the BNS whitelist. T-245 will make this date-aware.
+    const oldLine = oldLawLine(e.code, e.number);
+    if (oldLine) {
+      findings.push({ rule_id: 'old_law_section', severity: 'soft', question: oldLine });
+    } else if (e.code === null) {
       // Arjun (step 7 correction): a bare number is a soft warning, never a block,
       // and is never looked up in the BNS table.
       findings.push({

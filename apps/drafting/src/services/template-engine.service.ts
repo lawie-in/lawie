@@ -18,6 +18,7 @@ import logger from '../config/logger';
 import {
   BNS_CLASSIFICATION,
   BNS_OFFENCE_KEYS,
+  ChargedCode,
   ChargedSection,
   OLD_LAW_LINE,
   readChargedField,
@@ -1668,6 +1669,19 @@ RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ?
 }
 
 /**
+ * T-295: Ajay's signed old-law line (handoff/legal/T-295-old-law-block-signed.md,
+ * 455559c), byte for byte. The one source for both the preflight soft finding and
+ * the old-law block below. Code first, then the number as read ("302 IPC" -> "IPC 302");
+ * never "BNS" in front of an old-law number. Returns null for any non-old-law code.
+ * Legal content: do not edit without Ajay's sign-off.
+ */
+export function oldLawLine(code: ChargedCode | null, number: string): string | null {
+  const old = code === null ? undefined : OLD_LAW_LINE[code];
+  if (!old) return null;
+  return `${old.name} ${number} is an old-law section. For an offence committed on or after 1 July 2024, use the section converter to find the ${old.newCode} section. For an earlier offence, the old section may still apply.`;
+}
+
+/**
  * Classify BNS sections as bailable/non-bailable.
  * Returns a string like "BNS 303(2) (NON-BAILABLE), BNS 351(2) (BAILABLE)".
  *
@@ -1699,11 +1713,10 @@ export function classifySectionsBailability(sectionsCharged: string | ChargedSec
       continue;
     }
     // Ajay Q8 / round 5c: an old-law number gets its line, never a "BNS" label.
-    const old = OLD_LAW_LINE[code];
-    if (old) {
-      oldLaw.push(
-        `${old.name} ${number} is an old-law section and is not classified here. Use the section converter to find the ${old.newCode} section.`,
-      );
+    // T-295: the line is Ajay's signed text, shared with preflight.
+    const oldLine = oldLawLine(code, number);
+    if (oldLine) {
+      oldLaw.push(oldLine);
       continue;
     }
     // BNSS / BSA / OTHER: kept by the reader, no label and no line here.
