@@ -10,7 +10,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 | mahak | T-331, then T-223 | fix/t-331-* (Mahak names it) | T-331: apps/drafting/src/routes/admin-documents.routes.ts (template usage from Generation, ruling A) + a new t331 test + apps/drafting/src/__tests__/t240-catalogue-categories.test.ts (admin analytics block only, re-seeded with generations). Then T-223 (verify link, resend, prompt; dry-run) after Kunal's T-343 and Shashank's T-351 merge; send Priya the T-223 file list then | no | 12 Oct 2026 |
 | vishal | T-342 | fix/t-342-* (Vishal names it) | apps/drafting/src/config/intake/date-meanings.json (legal: Ajay's Option B, new date kinds with his labels); then apps/drafting/src/services/intake-brief.ts (per-field labels, kind check scoped to the pack, longest-cue precedence) ONLY after Mahak's T-335 merges; apps/drafting/src/config/document-rules/legal_notice_s138.json and its docs/templates twin (legal: ask_when_empty on L4 and L5 with Ajay's labels); new t342 test running T-192's checks end to end from a description. Anything else after Explore: ask Priya | yes: Ajay signs the JSON diff | 12 Oct 2026 |
 | kunal | T-354 | fix/t-354-* (Kunal names it) | apps/auth/src/routes/auth.routes.ts, controllers/auth.controller.ts, services/auth.service.ts (the privacy accept route: test + comment; reorder only if Arjun says), their tests; web PrivacyUpdatePrompt.tsx only if the a11y check needs a fix. packages/shared released | no | 12 Oct 2026 |
-| tanvi | T-349 + T-350 | fix/t-349-* (Tanvi names it) | apps/drafting/src/services/brief-drafter.ts (filingDate), annexures.service.ts, template-engine.service.ts (the AI prompt date line, Ajay's wording; loadTemplateConfig invalid-override handling for T-350), tests. Moved goldens go to Ajay. Anything else after Explore: ask Priya | yes: prompt line wording (Ajay) | 12 Oct 2026 |
+| tanvi | T-349 + T-350 then T-357 | fix/t-349-* (Tanvi names it) | apps/drafting/src/services/brief-drafter.ts (filingDate), annexures.service.ts, template-engine.service.ts (the AI prompt date line, Ajay's wording; loadTemplateConfig invalid-override handling for T-350), tests. Moved goldens go to Ajay. T-357 stacks on the same branch: apps/drafting/src/routes/documents.routes.ts (try/catch at ~665/747 → 500) and template-engine.service.ts (null override JSON; non-plain override filenames fail the boot check). Anything else after Explore: ask Priya | yes: prompt line wording (Ajay) | 12 Oct 2026 |
 
 ## Next per lead (Priya, 11 Oct 2026). Not claims: each is assigned only when its row is free and its gate is met
 
@@ -37,7 +37,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 - mahak: T-331 (4101705, small fix tested green). After Kunal's T-343, once develop_staging CI is green again.
 - shashank: T-346 (2fff2d0, small fix tested green). After Mahak's T-331; check with her first.
-- tanvi: T-349 + T-350 (b52bc40, review passed). Merges once Ajay signs; check with the slot holder first.
+- tanvi: T-349 + T-350 (b52bc40, review passed, Ajay signed fe8113d). After mahak and shashank; check with the slot holder first. T-357 merges separately after, on the same branch.
 
 ## Last done
 
