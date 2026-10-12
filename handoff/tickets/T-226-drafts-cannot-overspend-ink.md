@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Arjun (mechanism: hold before, settle after), Vikram (heads-up), Lead (build), Anushka (verdict) |
 | Mode           | Arjun's call first, then build, full chain (drafting, billing) |
-| Status         | To do. Waits for Arjun's mechanism. Build after T-197 merges (it holds documents.routes.ts) |
+| Status         | Merged to `develop_staging` (4087d6f, 12 Oct 2026). Waiting for Anushka on develop. Follow-up: T-288 |
 | Size           | M (1 day) |
 | Depends on     | T-197 (file overlap) |
 | Gate           | Before v1 go-live (T-403) and before paid launch |
