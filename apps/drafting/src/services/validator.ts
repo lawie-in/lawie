@@ -148,11 +148,24 @@ const NEW_ACT_LAST_SECTION: Partial<Record<CheckedAct, number>> = {
   BSA: 170,
 };
 
-/** Q3: an old-Act number is valid only if it is a row (a key) in Ajay's signed mapping. */
+/**
+ * Q3 + Q6: an old-Act number is valid only if it is a row (a key) in Ajay's signed
+ * mapping whose type is not a repealed one. Repealed: type "repealed", and IEA's
+ * "repealed_no_equivalent". A row with no equivalent that is not repealed (IPC's
+ * "unverified" rows with `new: null`) stays valid.
+ */
+function liveRows(table: unknown): ReadonlySet<string> {
+  const mappings = (table as { mappings: Record<string, { type?: string }> }).mappings;
+  return new Set(
+    Object.entries(mappings)
+      .filter(([, row]) => !String(row?.type ?? '').startsWith('repealed'))
+      .map(([key]) => key),
+  );
+}
 const OLD_ACT_ROWS: Partial<Record<CheckedAct, ReadonlySet<string>>> = {
-  IPC: new Set(Object.keys((ipcToBns as { mappings: Record<string, unknown> }).mappings)),
-  CrPC: new Set(Object.keys((crpcToBnss as { mappings: Record<string, unknown> }).mappings)),
-  IEA: new Set(Object.keys((ieaToBsa as { mappings: Record<string, unknown> }).mappings)),
+  IPC: liveRows(ipcToBns),
+  CrPC: liveRows(crpcToBnss),
+  IEA: liveRows(ieaToBsa),
 };
 
 /** Q1: a range is checked number by number, up to this many numbers. Wider is unreadable. */
@@ -198,6 +211,16 @@ const CITATION_WINDOW = new RegExp(
 const RANGE = /(?<![0-9A-Za-z(])(\d{1,3})\s*(?:-|–|—|\bto\b)\s*(\d{1,3})(?![0-9A-Za-z(])/gi;
 
 /**
+ * Q8: a double-letter section ("376AB", "103AB"). The reader takes one capital
+ * letter only and would read "376AB" as 376, so before windowing each one is
+ * swapped for its number plus a stand-in bracket ("376(zqx0)"), which the window
+ * grammar and the reader carry as an ordinary sub-section, and swapped back after
+ * reading. Capitals only, so "21st" or "2nd" never become sections.
+ */
+const DOUBLE_LETTER = /(?<![0-9A-Za-z])(\d{1,3})([A-Z]{2})(?![0-9A-Za-z])/g;
+const DOUBLE_LETTER_STAND_IN = /^(\d{1,3})\(zqx(\d+)\)/;
+
+/**
  * T-270: the one producer of Act-scoped citations, used by both section checks
  * (validateSectionReferences and extractBNSSectionNumbers/validateBNSWhitelist).
  *
@@ -218,13 +241,22 @@ export function extractActCitations(text: string): ActCitation[] {
     out.push({ act, number });
   };
 
+  // Q8: swap double-letter sections for stand-ins; restored on each number read.
+  const doubles: string[] = [];
+  const prepared = text.replace(DOUBLE_LETTER, (_m, digits: string, letters: string) => {
+    doubles.push(`${digits}${letters}`);
+    return `${digits}(zqx${doubles.length - 1})`;
+  });
+  const restore = (number: string): string =>
+    number.replace(DOUBLE_LETTER_STAND_IN, (m, _d: string, i: string) => doubles[Number(i)] ?? m);
+
   CITATION_WINDOW.lastIndex = 0;
-  for (const w of text.matchAll(CITATION_WINDOW)) {
+  for (const w of prepared.matchAll(CITATION_WINDOW)) {
     const window = w[0];
     const read: ActCitation[] = [];
     for (const e of readSectionsCharged(window)) {
       const act = e.code ? CHECKED_ACT[e.code] : undefined;
-      if (act) read.push({ act, number: e.number });
+      if (act) read.push({ act, number: restore(e.number) });
     }
 
     const dropped = new Set<string>();
@@ -259,7 +291,9 @@ export function extractActCitations(text: string): ActCitation[] {
  * T-270 Q3: whether a citation is valid under its own Act (Q2). Sub-sections are
  * checked by their parent number only: 61(2)(a) → 61.
  * - BNS 1-358, BNSS 1-531, BSA 1-170 by range; any letter suffix is invalid.
- * - IPC, CrPC, IEA: valid only if the parent number is a row in the signed mapping.
+ * - IPC, CrPC, IEA: valid only if the parent number is a row in the signed mapping
+ *   and the row is not repealed (Q6). Double letters (Q8) follow the same rules:
+ *   "376AB IPC" is a row check, "BNS 103AB" is invalid.
  */
 export function isActCitationValid(act: CheckedAct, number: string): boolean {
   const parent = number
@@ -464,6 +498,8 @@ export function extractBNSSectionNumbers(text: string): string[] {
  * SCRUM-64 (b): Flag BNS sections that are not valid BNS sections.
  * T-270 Q3: BNS 1-358 by range, parent number only, no letter suffix
  * (isActCitationValid, the same rule validateSectionReferences uses).
+ * T-270 Q7: this range supersedes T-277 R5 for the post-draft validator only.
+ * Preflight keeps R5 (the offence table via resolveBnsKey).
  */
 export function validateBNSWhitelist(bnsNumbers: string[]): ValidationWarning[] {
   return bnsNumbers
