@@ -6,11 +6,11 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 | Lead | Ticket | Branch | Files and folders claimed | Legal paths | Since |
 |---|---|---|---|---|---|
-| shashank | T-347 then T-346 | fix/t-347-* (Shashank names it) | T-347: apps/drafting/src/services/validator.ts only (four-digit cites in the reader), new t347 test. Then T-346: validator.ts plus apps/drafting/src/services/ai.service.ts call sites, only after Tanvi's T-345 + T-340 merges (she holds ai.service.ts getDateVariants until then). Tests t270/t333 unchanged. Anything else after Explore: ask Priya | no (T-347: Ajay sees the diff) | 12 Oct 2026 |
+| shashank | T-346 (T-347 merged a75c522) | fix/t-346-* (parked at e3e77dc) | apps/drafting/src/services/validator.ts plus apps/drafting/src/services/ai.service.ts call sites (and the stale comment near line 975), only after Tanvi's T-345 + T-340 merges (she holds ai.service.ts getDateVariants/checkFactAlteration until then). Tests t270/t333/t347 unchanged, new t346 | no | 12 Oct 2026 |
 | mahak | T-335 then T-334 | fix/t-335-* (Mahak names it) | T-335: apps/drafting/src/services/fact-ledger.service.ts (carryOver keeps "Not known"; keep values carry into the new ledger), intake-brief.ts, intake.service.ts; new t335 test. T-334 (once Ajay signs the phrasings): apps/drafting/src/config/document-rules/_averments/bail_regular.json (equals list only) + t334 test. Anything else after Explore: ask Priya | T-334: yes (Ajay signs the phrasings) | 12 Oct 2026 |
 | vishal | T-342 | fix/t-342-* (Vishal names it) | apps/drafting/src/config/intake/date-meanings.json (legal: Ajay's Option B, new date kinds with his labels); then apps/drafting/src/services/intake-brief.ts (per-field labels, kind check scoped to the pack, longest-cue precedence) ONLY after Mahak's T-335 merges; apps/drafting/src/config/document-rules/legal_notice_s138.json and its docs/templates twin (legal: ask_when_empty on L4 and L5 with Ajay's labels); new t342 test running T-192's checks end to end from a description. Anything else after Explore: ask Priya | yes: Ajay signs the JSON diff | 12 Oct 2026 |
-| kunal | T-348 | fix/t-348-* (Kunal names it) | apps/web/sentry.server.config.ts, apps/web/sentry.edge.config.ts (strip every query string, ?ref= included, from events, URLs and span data; emails masked), a new SENTINEL test. Small fix, web only. Ajay sees the diff (release gate) | no (Ajay sees the diff) | 12 Oct 2026 |
-| tanvi | T-345 + T-340 | fix/t-345-* (Tanvi names it) | apps/drafting/src/services/template-engine.service.ts (listTemplateConfigs try/catch; T-340 one date format "4 April 2026" for current_date and ISO dates, all templates), template-promoter.ts (catalogue check reachable, stale comment), apps/drafting/src/config/catalogue/ (boot validation of override ids), the intake fallback label (apps/web/src/components/intake/BrowseTypesStep.tsx and ChangeDocumentDialog.tsx, display only). Also apps/drafting/src/services/ai.service.ts (getDateVariants and its comment only: add the "D Month YYYY" variant; Ajay sees it). Tests for each. T-340: any golden that moves goes to Ajay. Anything else after Explore: ask Priya | yes: T-340 date format (Ajay ruled in T-192; moved goldens to Ajay) | 12 Oct 2026 |
+| kunal | T-348 | fix/t-348-* (Kunal names it) | apps/web/sentry.server.config.ts, apps/web/sentry.edge.config.ts, apps/web/instrumentation.ts (onRequestError, only if it needs the scrub) (strip every query string, ?ref= included, from events, URLs and span data; emails masked), a new SENTINEL test. Small fix, web only. Ajay sees the diff (release gate) | no (Ajay sees the diff) | 12 Oct 2026 |
+| tanvi | T-345 + T-340 | fix/t-345-* (Tanvi names it) | apps/drafting/src/services/template-engine.service.ts (listTemplateConfigs try/catch; T-340 one date format "4 April 2026" for current_date and ISO dates, all templates), template-promoter.ts (catalogue check reachable, stale comment), apps/drafting/src/config/catalogue/ (boot validation of override ids), the intake fallback label (apps/web/src/components/intake/BrowseTypesStep.tsx and ChangeDocumentDialog.tsx, display only). Also apps/drafting/src/services/ai.service.ts (getDateVariants and its comment, plus the one date-match line in checkFactAlteration: no digit directly before or after; Ajay sees it). Tests for each. T-340: any golden that moves goes to Ajay. Anything else after Explore: ask Priya | yes: T-340 date format (Ajay ruled in T-192; moved goldens to Ajay) | 12 Oct 2026 |
 
 ## Next per lead (Priya, 11 Oct 2026). Not claims: each is assigned only when its row is free and its gate is met
 
@@ -35,11 +35,12 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-7. shashank: T-347 (1c2fbf4, small fix tested green). Slot given 12 Oct after Kunal's T-242.
 8. mahak: T-335 (f0f9d22, tested green, Arjun has the diff). Next free turn; confirm with the slot holder first. Then ping Vishal (intake-brief.ts).
+9. kunal: T-348 (e7c7849, small fix tested green). Merges once Ajay OKs; first signed goes first, confirm with the slot holder.
 
 ## Last done
 
+- shashank: T-347 merged a75c522 (12 Oct 2026); Ajay approved 1c2fbf4.
 - kunal: T-242 merged 6b37ed6 (12 Oct 2026); Ajay signed 8ac5def; privacy page update shipped with it. Web Sentry leak fixed in T-348 before prod.
 - vishal: T-192 merged 5dd6388 (12 Oct 2026); Ajay signed 527421d + averments hash 63b9b13. Date format split to T-340, date meanings T-342.
 - mahak: T-338 merged 10faf08 (12 Oct 2026); Ajay signed 2db8acb (clears his fact_ledger gate for the T-190 gap).
