@@ -59,3 +59,11 @@ Upload (T-286c), OCR, long-judgment chunking, any stored history, export to a dr
 | The paragraph parser fails on an odd layout | Fallback is whole-text matching with `para` shown as "not numbered"; the parser has fixtures from Ajay's 10 |
 | Pasted text is not a judgment (an agreement, a client letter) | A cheap rules check (court words, "JUDGMENT/ORDER", paragraph numbering) refuses with a clear line; no model call |
 | Cost creep | Caps are zero until Vikram sets them; the 150,000-character input limit; global ₹ cap and kill switch |
+
+## Update (Arjun, 12 Oct 2026): Ajay's signed labels
+
+Labels are signed in `handoff/legal/T-286-judgment-summary-labels-signed.md`. Build follows them word for word, added by code. Consequences for this ADR:
+- Decision 6: the JSON key `holding[]` is internal only. The screen and any copy or export say "What the court decided, as the text states it". The word "holding" never appears in the output. Section 3 is "Order or relief"; section 4 "Key paragraphs, quoted"; unnumbered text shows "paragraph not numbered".
+- Decision 7: the banned-word scan covers model prose and the code's own labels. It adds Ajay's list (`holding`, `ratio`, `binding`, `good law`, `overruled`, `leading case`). **Reading I will build to unless Ajay says otherwise: a verified quote is the court's own words and may contain any of them; only prose fields are scanned.**
+- Decision 5: quotes that fail use Ajay's line "One or more quotes could not be matched…"; nothing left uses his "We could not produce a summary…" line.
+- The sample's scanned PDF is turned to text by Ajay before it reaches the fixtures: P0 still refuses scanned input (decision 2).
