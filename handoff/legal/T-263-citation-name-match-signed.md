@@ -81,3 +81,9 @@ Vishal is right: rule 4 as I wrote it ("a full stop after a word of three or mor
 ## Addendum 5, 12 Oct 2026 (Vishal's Q7)
 
 - **Q7:** `?`, `!`, `,`, `;` and `:` glued between two words with no space are a word break, and the cut-back of rule 5 applies: "Held in Shyam?Mohan Rao v. State of Kerala (2019) 4 SCC 12 applies." becomes "Held in [Authority — add if relied upon] applies." Fix it in T-263, not as a follow-up: no part of a name may stand beside a blank. Sign-off reference: Addenda 1 to 5.
+
+## Addendum 6, 12 Oct 2026 (final review: Q8a, Q8b)
+
+- **Q8a:** an opening `(` or `[` with no closing mark before the versus word is a limit for the first party, like an opening quotation mark. "(Arnesh Kumar v. State of Bihar, (2014) 8 SCC 273)" becomes "([Authority — add if relied upon])". The brackets stay; nothing of the name stays.
+- **Q8b:** these are name words for rule 3 (the walk back continues through them): `M/s`, `M/s.`, `s/o`, `d/o`, `w/o`, `r/o`, `h/o`, `S/o`, `D/o`, `W/o`, `R/o`. "M/s. Tata Steel Ltd. v. ..." blanks in full.
+- Sign-off reference: Addenda 1 to 6.
