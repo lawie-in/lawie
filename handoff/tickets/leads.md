@@ -37,6 +37,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 5. kunal: T-242 (Ajay signed 8ac5def; merges as is per Priya after round 3). Next free turn; then T-348.
 7. shashank: T-347 (1c2fbf4, small fix tested green). After Vishal's T-192, once Ajay OKs.
+8. mahak: T-335 (f0f9d22, tested green, Arjun has the diff). Next free turn; confirm with the slot holder first. Then ping Vishal (intake-brief.ts).
 
 ## Last done
 
