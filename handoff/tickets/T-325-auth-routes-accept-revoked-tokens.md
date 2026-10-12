@@ -5,7 +5,7 @@
 | Phase  | 0 — Before go-live. HIGH, security |
 | Owner  | Arjun (spec: last section of the T-299 file, ca343fa). Kunal (build) |
 | Mode   | Full chain (auth) |
-| Status | To do. Kunal right after T-299 + T-308 (same service). Found by Arjun, 12 Oct 2026 |
+| Status | Merged into develop_staging (84d9e4c, 12 Oct 2026). Waiting for Anushka on develop |
 
 The auth service's own routes (admin-users, admin-audit, referral) accept a revoked access token for up to 24 hours.
 

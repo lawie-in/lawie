@@ -164,9 +164,13 @@ describe('POST /intake/brief — a request with a rule pack', () => {
     expect(itemOf(brief, 'fir_number')?.value).toBe('124/2026');
     // The date of arrest is not the date of the FIR.
     expect(itemOf(brief, 'fir_date')?.value).toBeNull();
-    expect(brief.loose_dates).toEqual([
-      { value: '2026-03-15', kind: 'arrest', meaning: 'Date of arrest' },
-    ]);
+    // T-190: bail_regular now has an arrest_date fact, so the stated arrest date
+    // lands on it (it was a loose date before the pack had a place for it).
+    expect(itemOf(brief, 'arrest_date')).toMatchObject({
+      value: '2026-03-15',
+      source: 'description',
+    });
+    expect(brief.loose_dates).toEqual([]);
     // Words the user did not write are dropped.
     expect(itemOf(brief, 'father_name')?.value).toBeNull();
     // The court never comes from the model. The police station does, when the advocate wrote it (T-139).

@@ -80,8 +80,20 @@ function outstandingKeys(ledger: Ledger | null | undefined): Set<string> {
 }
 
 /**
+ * T-190 (AC8): a confirm question stays open until the advocate answers it: a
+ * value they gave on the brief or the questions, an answer the ledger holds, or
+ * a "Not known".
+ */
+function confirmOpen(key: string, brief: Brief, ledger: Ledger | null | undefined): boolean {
+  const item = brief.items.find((i) => i.key === key);
+  if (!item || item.asked_empty || item.source === 'user') return false;
+  return !ledger?.facts.some((f) => f.key === key && f.source === 'asked');
+}
+
+/**
  * The questions of a round whose facts are still not given. With a ledger, a
  * key it could not read stays open even when the brief holds a value for it.
+ * T-190: a fact answered "Not known" is not open; a confirm question is.
  */
 function openQuestions(
   questions: BriefQuestion[],
@@ -90,8 +102,11 @@ function openQuestions(
   round?: 1 | 2,
 ) {
   if (!brief) return [];
-  const open = new Set(brief.items.filter((i) => isEmptyValue(i.value)).map((i) => i.key));
+  const open = new Set(
+    brief.items.filter((i) => isEmptyValue(i.value) && !i.asked_empty).map((i) => i.key),
+  );
   for (const key of outstandingKeys(ledger)) open.add(key);
+  for (const q of questions) if (q.confirm && confirmOpen(q.key, brief, ledger)) open.add(q.key);
   return questions.filter((q) => open.has(q.key) && (round === undefined || q.round === round));
 }
 

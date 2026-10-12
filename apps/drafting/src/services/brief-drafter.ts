@@ -89,7 +89,8 @@ export function formDataFromBrief(
 
   const data: Record<string, unknown> = {};
   for (const item of brief.items) {
-    if (isEmpty(item.value)) {
+    // T-336: a description-read "none" not yet confirmed is not a fact. Its blank shows.
+    if (isEmpty(item.value) || item.unconfirmed === true) {
       data[item.key] = item.placeholder;
     } else if (Array.isArray(item.value)) {
       data[item.key] = item.value.map((v) => toId(item.key, v));
@@ -182,6 +183,13 @@ function briefParts(
   };
   for (const item of brief.items) {
     if (isEmpty(item.value)) continue;
+    // T-336: a description-read "none" on earlier bail applications, not yet
+    // confirmed, is not a fact. It is listed as unknown, so the Drafter writes
+    // its blank even though the advocate's description appears to give it.
+    if (item.unconfirmed === true) {
+      out.unknown.push({ what: item.label, blank: item.placeholder });
+      continue;
+    }
     const value = shown(item, converted);
     if (item.part === 'dates') {
       out.dates.push({
@@ -367,13 +375,16 @@ export function ledgerSkeletonBrief(brief: Brief, facts: readonly LedgerFact[]):
   return {
     ...brief,
     items: brief.items.map((item) => {
+      // T-336: the ledger decides what is held, so the brief's `unconfirmed` mark is dropped.
+      const rest: BriefItem = { ...item };
+      delete rest.unconfirmed;
       const entries = held.get(item.key);
-      if (!entries) return { ...item, value: null, placeholder: missingPlaceholder(item.label) };
+      if (!entries) return { ...rest, value: null, placeholder: missingPlaceholder(item.label) };
       // T-189: a list or several choices takes every entry's display.
       if (item.kind === 'list' || item.kind === 'choices') {
-        return { ...item, value: entries.map((f) => f.display.trim()) };
+        return { ...rest, value: entries.map((f) => f.display.trim()) };
       }
-      return { ...item, value: entries[entries.length - 1].display.trim() };
+      return { ...rest, value: entries[entries.length - 1].display.trim() };
     }),
     unplaced: [],
     still_unknown: brief.still_unknown.map((u) => ({
@@ -860,8 +871,14 @@ function checkReportedParagraphs(
   const before = context.recorded?.get(clause.id);
   if (before === undefined) {
     // R2b.5: a first check finding nothing but blanks records nothing, unless
-    // one of those blanks is the exact signed blank for this clause (T-322).
-    if (onlyBlanks(text) && !holdsSignedBlank(packId, clause.id, text)) {
+    // one of those blanks is the exact signed blank for this clause (T-322),
+    // or, for default_bail applicable_window only, the brief's own period or
+    // expiry-date blank (T-327).
+    if (
+      onlyBlanks(text) &&
+      !holdsSignedBlank(packId, clause.id, text) &&
+      !holdsBriefWindowBlank(packId, clause.id, text, context.brief)
+    ) {
       return 'clause_not_in_paragraph';
     }
     context.recorded?.set(clause.id, text);
@@ -869,6 +886,9 @@ function checkReportedParagraphs(
   }
   return text.includes(before) ? null : 'clause_not_in_paragraph';
 }
+
+/** T-327: pack id to clause id to signed blanks, read-only. */
+type SignedBlanks = Readonly<Record<string, Readonly<Record<string, readonly string[]>>>>;
 
 /**
  * T-322 (Ajay, 12 Oct 2026): the exact blank the signed pack instructions
@@ -878,8 +898,10 @@ function checkReportedParagraphs(
  * these blanks covers the clause under R2b.5, and no repair runs. Only the
  * exact blank counts, not any other "[To be confirmed" text. No fallback by
  * id: a clause not listed here keeps R2b.5 as it was.
+ *
+ * Exported read-only (T-327) so the T-322 pin can import it.
  */
-const SIGNED_BLANKS: Record<string, Record<string, readonly string[]>> = {
+export const SIGNED_BLANKS: SignedBlanks = {
   bail_anticipatory: {
     // T-241-bail-instructions-signed.md, bail_anticipatory entry 1.
     apprehension: ['[To be confirmed: the facts on which the applicant apprehends arrest]'],
@@ -911,6 +933,49 @@ function holdsSignedBlank(packId: string, clauseId: string, text: string): boole
   const own = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
   if (!own(SIGNED_BLANKS, packId) || !own(SIGNED_BLANKS[packId], clauseId)) return false;
   return SIGNED_BLANKS[packId][clauseId].some((blank) => text.includes(normalise(blank)));
+}
+
+/**
+ * T-327: the brief items whose own blanks the Drafter copies for
+ * applicable_window (default_bail.json): the period and the date it expired.
+ */
+const BRIEF_WINDOW_KEYS = ['period_claimed', 'period_expiry_date'] as const;
+
+/** T-327: the whole value is one blank, as BLANK finds them, with words inside it. */
+const WHOLE_BLANK = new RegExp(`^(?:${BLANK.source})$`);
+
+/**
+ * T-327 (Ajay, 12 Oct 2026): "yes, cover it, but narrowly. A paragraph covers
+ * applicable_window if it contains exactly the blank that this brief holds for
+ * the period, read from the brief at check time, not any '[To be confirmed'
+ * text. The same logic is the reason as before: a repair can only push the
+ * model to invent the period."
+ *
+ * And on the expiry date (Ajay, 12 Oct 2026): "On the expiry date: yes, the
+ * same rule applies if T-251 instruction 5 tells the Drafter to copy the
+ * brief's expiry blank. Add it here if it's that small, with the same pair of
+ * tests." It does: instruction 5, as amended, tells the Drafter to write the
+ * brief's own blank exactly for the period and for the date of expiry, and
+ * neither is one of SIGNED_BLANKS.
+ *
+ * So, for default_bail applicable_window only, the normalised text covers the
+ * clause when it contains the brief's period_claimed blank or its
+ * period_expiry_date blank. The brief is read on each call, never cached. A
+ * real value (one that is not a single blank) never counts here; a paragraph
+ * restating it takes the normal R2b path.
+ */
+function holdsBriefWindowBlank(
+  packId: string,
+  clauseId: string,
+  text: string,
+  brief: Brief | undefined,
+): boolean {
+  if (packId !== 'default_bail' || clauseId !== 'applicable_window') return false;
+  return BRIEF_WINDOW_KEYS.some((key) => {
+    const blank = briefValue(brief, key).trim();
+    if (!WHOLE_BLANK.test(blank) || !/[\p{L}\p{N}]/u.test(blank)) return false;
+    return text.includes(normalise(blank));
+  });
 }
 
 /** True when a paragraph holds nothing but blanks, once punctuation and spaces are set aside. */
@@ -1846,7 +1911,8 @@ export function checkBriefIsUsed(
     }
   };
   for (const item of brief.items) {
-    if (isEmpty(item.value)) continue;
+    // T-336: an unconfirmed value is not put in the draft, so it is not looked for.
+    if (isEmpty(item.value) || item.unconfirmed === true) continue;
     const values = Array.isArray(item.value) ? item.value : [item.value as string];
     if (item.kind === 'narrative') {
       for (const v of values) bySentence(item.label, v);

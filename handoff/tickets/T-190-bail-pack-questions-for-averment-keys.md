@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                        |
 | Owner          | Ajay (question text and order, signs). Vishal applies. Anushka (verdict)                                                      |
 | Mode           | Legal content, then a small change through the dev lead                                                                       |
-| Status         | Building: mahak, with T-199 (12 Oct 2026) |
+| Status         | Merged into develop_staging 65d8707, with T-199 (12 Oct 2026). Anushka tests on develop |
 | Size           | Ajay S (0.5 day for the question text). Vishal S (0.5 day to apply and test)                                                  |
 | Depends on     | T-147c (the unlock keys exist). T-189 for any question that is a list or choice                                               |
 | Gate           | Proposed (Priya): before `feature.fact_ledger` goes on for real users. Without it, a ledger bail draft omits most averments an advocate would expect. Arjun to confirm |
@@ -137,3 +137,18 @@ Read: this ticket; `bail_regular.json` (form items, `mandatoryClauses`, `promptI
 | Golden snapshot changes (AC9): I read them before approval, never auto-updated | Condition |
 
 Signed: Ajay (CLO), 11 Oct 2026. The questions, labels, answer forms and order above, AC8 as written, on conditions 1 to 6 and the anticipatory exclusions. Any change to a question's wording (other than Reception's wording of keys outside 1, 2 and 12) or to the order needs a fresh sign-off.
+
+## Arjun (12 Oct 2026): mechanism for T-190 + T-199 (Mahak's plan), approved with four conditions
+
+Plan 1-5 approved (pack `question` + `ask_when_empty`, a tier after required items in pack order, protected slot for `earlier_bail_applications`, "Not known"/none writes no fact, `confirm: true` re-ask). Conditions:
+1. **Bypass by origin, not by length.** A question skips `cleanQuestion`'s 240-character limit only when it carries `source: 'pack'` set by `rule-pack.service` from the signed file. Model text keeps the limit whatever its length. Pack question text is legal content: Ajay signs the exact bytes.
+2. **Required items never drop.** The protected slot counts inside the cap of 10. Test over every current bail pack: required items + the protected slot ≤ 10, so no required item is pushed past the cap; if a future pack breaks that, the test fails rather than silently dropping a required question.
+3. **"Not known" is remembered.** It writes no fact, but the item is marked asked for that draft so it is not asked again on the next pass (no loop). It is asked again only through the `confirm` path in step 5.
+4. Past-cap items write no fact: keep the test you planned.
+No new dependency, no migration, no `_averments` change: agreed.
+
+Addendum (Arjun, 12 Oct 2026): **condition 2 replaced.** Mahak showed every bail pack already has more than 10 askable required items on an empty description (11, 11, 13, 16), so "no required item past the cap" never held. The cap stays 10 (Ajay's AC8). Condition 2 is now Mahak's (a)-(c): (a) the protected slot displaces only the lowest-ranked item, never a party name or an `alwaysAsk` key; (b) with the typical-description fixture, required-empty + protected ≤ 10 for each bail pack; (c) items past the cap write no fact and stay as visible blanks in the brief (T-188 behaviour, unchanged).
+
+Addendum 2 (Arjun, 12 Oct 2026), after review round 1:
+1. **AC8 wins in the overflow case.** Condition 2(a) now reads: the protected slot never displaces a party name; it displaces an `alwaysAsk` key only when party names + `alwaysAsk` keys alone fill the cap, and then the lowest-ranked one (which stays a blank in the brief). Test that exact case. Ajay's AC8 is the legal rule; my condition yields to it.
+2. **Flag-off change accepted, my note corrected.** My earlier "flag-off bail drafts are not affected" was wrong: with the flag off, the unlock questions are asked within the cap too, and the magistrate pack's `arrest_date`, `applicant_occupation`, `investigation_status` become optional (Ajay). That is the intended outcome of T-190/T-199 for real users, so it stays. The merge body's "What a user can now do" must say it in user words, so Anushka tests both flag states.

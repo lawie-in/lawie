@@ -15,6 +15,7 @@
  */
 import mongoose from 'mongoose';
 
+import logger from '../config/logger';
 import { User } from '../models/User.model';
 
 export const DAILY_LOGIN_BONUS = 2;
@@ -74,6 +75,13 @@ export async function tryGrantDailyLoginBonus(userId: string): Promise<number> {
  * the signup seed). balanceAfter comes from the document the update returns. Do NOT add
  * inkTopup to the auth schema (a default would break $exists guards elsewhere).
  * The once-per-user guard is the referredVia claim in applyReferralCode.
+ *
+ * T-299 (from T-234): the grant is also idempotent per user on its own. The $inc only matches a
+ * user with no referralInkGrantedAt ($exists: false, Arjun), and the same update stamps referralInkGrantedAt and
+ * referralInkCode, so the marker and the Ink land together or not at all. A retry credits
+ * nothing (returns 0), and referralInkLanded() can tell, after a throw, whether this grant landed.
+ * The marker sits on the user document, not in inkledger, because the ledger insert is a second
+ * write that can fail on its own (swallowed below) after the $inc has landed.
  */
 export async function grantReferralInk(
   userId: string,
@@ -88,13 +96,19 @@ export async function grantReferralInk(
   const inkUnits = bonusInk * 2;
   const freeTierBonus = bonusInk * 5;
 
-  const updated = await conn.db
-    .collection('users')
-    .findOneAndUpdate(
-      { _id: new mongoose.Types.ObjectId(userId) },
-      { $inc: { inkTopup: inkUnits }, $set: { freeTierBonusGrant: freeTierBonus } },
-      { returnDocument: 'after' },
-    );
+  const updated = await conn.db.collection('users').findOneAndUpdate(
+    // T-299 (Arjun): no match means already granted (or no such user); credit nothing.
+    { _id: new mongoose.Types.ObjectId(userId), referralInkGrantedAt: { $exists: false } },
+    {
+      $inc: { inkTopup: inkUnits },
+      $set: {
+        freeTierBonusGrant: freeTierBonus,
+        referralInkGrantedAt: new Date(),
+        referralInkCode: referralCode,
+      },
+    },
+    { returnDocument: 'after' },
+  );
   if (!updated) return 0;
 
   try {
@@ -108,14 +122,33 @@ export async function grantReferralInk(
       metadata: { referralCode, bonusInk },
       createdAt: new Date(),
     });
-  } catch (err) {
-    console.warn(
-      '[auth] referral ink ledger insert failed:',
-      err instanceof Error ? err.message : err,
-    );
+  } catch {
+    // T-299 (Arjun): best effort, logged without PII, never retried into a second $inc.
+    // userId only: the error text can echo document values (T-210 no-PII rule).
+    logger.warn({ userId }, 'Referral Ink ledger insert failed; Ink was credited');
   }
 
   return inkUnits;
+}
+
+/**
+ * T-299 — true if grantReferralInk has credited this user for this code (the marker it sets in
+ * the same update as the $inc is present). Used after a throw to tell a lost reply from a lost
+ * write. Throws if the database cannot be read; the caller decides what that means.
+ */
+export async function referralInkLanded(userId: string, referralCode: string): Promise<boolean> {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return false;
+  const conn = mongoose.connection;
+  if (!conn.db) return false;
+  const row = await conn.db.collection('users').findOne(
+    {
+      _id: new mongoose.Types.ObjectId(userId),
+      referralInkGrantedAt: { $exists: true },
+      referralInkCode: referralCode,
+    },
+    { projection: { _id: 1 } },
+  );
+  return row !== null;
 }
 
 /**

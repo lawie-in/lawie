@@ -17,6 +17,7 @@ import { presentDescription } from '../utils/presentDescription';
 
 import { AppSettingMissingError, APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import { AuxCallError, AuxCallUsage, callAuxModel } from './aux-llm';
+import { loadAvermentLists } from './averments';
 import { applyBailGuard } from './bail-guard';
 import {
   applyEdits,
@@ -25,6 +26,7 @@ import {
   currentState,
   extractLines,
   FACT_LEDGER_SETTING,
+  holdDescriptionNone,
   LedgerEdit,
   LedgerEditResult,
   LedgerView,
@@ -50,6 +52,7 @@ import {
   hasCourtSignal,
   isCourtDocument,
   namesSupremeCourt,
+  PROTECTED_QUESTION_KEY,
   QUESTION_LIMITS as BRIEF_QUESTION_LIMITS,
   readGuidedBrief,
   statedDates,
@@ -1163,8 +1166,15 @@ async function writeReceptionLedger(
       text === null ? null : parseModelJson(text),
       referenceYear(req.now ?? new Date()),
     );
+    // T-190 AC8: a "none" read from the description for earlier bail
+    // applications waits for the advocate to confirm it (Ajay, 12 Oct 2026).
+    const { state: fresh, held } = holdDescriptionNone(
+      { facts: read.facts, unresolved: read.unresolved },
+      PROTECTED_QUESTION_KEY,
+      firstApplicationValues(pack.id),
+    );
     const earlier = ctx.ledger.earlier ? currentState(ctx.ledger.earlier) : null;
-    const state = carryOver({ facts: read.facts, unresolved: read.unresolved }, earlier, checklist);
+    const state = carryOver(fresh, earlier, checklist);
     const doc = await createLedger({
       userId: ctx.userId,
       documentKind: pack.id,
@@ -1173,7 +1183,7 @@ async function writeReceptionLedger(
     });
     const count = (r: string) => read.dropped.filter((d) => d.reason === r).length;
     console.info(
-      `[intake] ledger written (intakeId=${ctx.intakeId}, ledgerId=${String(doc.id)}, kind=${pack.id}, called=${text !== null}, facts=${state.facts.length}, unresolved=${state.unresolved.length}, droppedNotOnList=${count('not_on_list')}, droppedNoSpan=${count('no_span')}, droppedSpanNotFound=${count('span_not_found')})`,
+      `[intake] ledger written (intakeId=${ctx.intakeId}, ledgerId=${String(doc.id)}, kind=${pack.id}, called=${text !== null}, facts=${state.facts.length}, unresolved=${state.unresolved.length}, droppedNotOnList=${count('not_on_list')}, droppedNoSpan=${count('no_span')}, droppedSpanNotFound=${count('span_not_found')}, droppedNoFact=${count('no_fact_answer')}, heldForConfirm=${held})`,
     );
     return ledgerView(doc, checklist);
   } catch (err) {
@@ -1183,6 +1193,55 @@ async function writeReceptionLedger(
     );
     return undefined;
   }
+}
+
+/**
+ * T-190 AC8: the values that unlock "no other bail application has been made"
+ * in this pack's averment list (`first_bail_application`). Empty when the pack
+ * has no such entry, or its list cannot be read.
+ */
+function firstApplicationValues(packId: string): string[] {
+  try {
+    const entry = loadAvermentLists(packId).allowed.find((a) => a.id === 'first_bail_application');
+    const c = entry?.requires;
+    if (!c || 'all_of' in c || c.key !== PROTECTED_QUESTION_KEY || c.equals === undefined) {
+      return [];
+    }
+    return (Array.isArray(c.equals) ? c.equals : [c.equals]).map(String);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * T-190 AC8: earlier bail applications is asked to confirm when the brief shows
+ * a value for it but the ledger holds no fact (a "none" read from the
+ * description is held until confirmed). T-336: with the ledger off, it is asked
+ * to confirm while the brief marks that value `unconfirmed`.
+ */
+function confirmKeys(
+  brief: Brief,
+  checklist: ChecklistItem[],
+  ledger: LedgerView | undefined,
+): Set<string> {
+  const out = new Set<string>();
+  for (const item of checklist) {
+    if (!item.askWhenEmpty || item.key.split('.').pop() !== PROTECTED_QUESTION_KEY) continue;
+    if (!ledger) {
+      if (brief.items.some((i) => i.key === item.key && i.unconfirmed === true)) out.add(item.key);
+      continue;
+    }
+    if (ledger.facts.some((f) => f.key === item.key)) continue;
+    const shown = brief.items.find((i) => i.key === item.key);
+    const value = shown?.value;
+    const empty =
+      value === null ||
+      value === undefined ||
+      value === '' ||
+      (Array.isArray(value) && value.length === 0);
+    if (shown && !empty) out.add(item.key);
+  }
+  return out;
 }
 
 /** After the first request of an intake, later ones are capped per intake, not per user. */
@@ -1282,6 +1341,7 @@ async function briefWithPack(
     court: req.court,
     description: req.description,
     reask: [...alsoAsk],
+    holdNone: firstApplicationValues(pack.id),
   });
   console.info(
     `[intake] brief built (intakeId=${ctx.intakeId}, kind=${pack.id}, read=${read.values.size}, byCode=${byCode.size}, dropped=${read.dropped.length}, unknown=${brief.still_unknown.length}${edit})`,
@@ -1303,7 +1363,10 @@ async function briefWithPack(
     intake_id: ctx.intakeId,
     outcome: 'brief',
     brief,
-    questions: buildBriefQuestions(brief, wordedQuestions(parsed), alsoAsk, always),
+    questions: buildBriefQuestions(brief, wordedQuestions(parsed), alsoAsk, always, {
+      checklist,
+      confirm: confirmKeys(brief, checklist, ledger),
+    }),
     ...(config?.plan_access === 'pro' && req.plan !== 'pro' ? { needs_upgrade: true } : {}),
     ...(ledger ? { ledger } : {}),
   };
@@ -1591,6 +1654,7 @@ export function updateBrief(req: BriefUpdateRequest): Brief | null {
     values: req.values,
     court: req.court,
     description: req.description,
+    holdNone: firstApplicationValues(pack.id),
   });
 }
 

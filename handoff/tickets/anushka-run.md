@@ -496,3 +496,78 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Copy gives just the new section, e.g. "BNS 111".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-299 + T-308 + T-325 — sign-in hardening and privacy wording (991c0f6, 84d9e4c)
+
+- A clear message when Google sign-in fails; a Contact support link if the account is deactivated.
+- A wrong email or a wrong password gives the same answer either way.
+- Linking Google signs out your other sessions; signing out ends the old login everywhere in the account service.
+- The Privacy Policy says Google Analytics runs on public pages only and sets _ga cookies.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-324 — matching IPC alias on a BNS entry (cf26a25)
+
+- Enter a BNS section with its old IPC number in brackets, e.g. "BNS 303 (IPC 379)": no old-law warning when the IPC number truly corresponds to that BNS section.
+- The warning still shows when the bracketed IPC number doesn't match, or when an IPC section is entered on its own.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-327 — default bail blanks accepted as is (cd5b32b)
+
+- In a default bail where the user hasn't given the default-bail period or its expiry date, a draft that leaves the brief's own blank is accepted as is. It is no longer sent back to the AI for a rewrite that could invent them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-310 — consent before Google Analytics (af975f2)
+
+- First visit: a small card asks about analytics. Accept and Decline are equally prominent.
+- Ignore it or press Decline, and nothing about the visit goes to Google.
+- Press Accept and analytics starts at once, with no reload.
+- "Cookie settings" in the footer or on /privacy reopens the card; Decline stops analytics and clears its cookies.
+- The privacy page says the choice is kept with no IP or account link and is deleted after 12 months.
+- On a small phone or with large text, the card text scrolls and the buttons stay in view.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-190 + T-199 — bail packs ask for the facts behind their averments (65d8707, mahak, 12 Oct 2026)
+
+What a user can now do:
+- When drafting a regular, interim, anticipatory or Magistrate bail application, be asked (after the required details, up to 10 questions) about earlier bail applications, criminal history, arrest date, investigation stage, health, whether the applicant is named in the FIR, recovery, cooperation, work, whether the applicant is the only earning member, who depends on them, local ties, the Section 35 notice and a co-accused's bail, using buttons for yes/no and stage answers.
+- Answer "Not known" or "None" and get no claim about it in the draft; leave any of them blank and still get the draft.
+- If the description says no earlier bail application was made, be asked to confirm it once; skip it and the draft leaves that line blank for them to fill.
+- Test with the fact-ledger setting both on and off; the questions appear either way.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-328 + T-332 — cookie card focus, splash, no browser error reporting (5482b37, kunal, 12 Oct 2026)
+
+What a user can now do:
+- After answering the cookie card, keyboard and screen-reader users land on the page content with no stray focus stop left behind.
+- The logo splash always finishes and the cookie card still appears, even when the browser blocks storage (private mode).
+- Nothing about a visitor's browser goes to an error service, same as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-339 — splash with blocked storage (5adf962, kunal, 12 Oct 2026)
+
+What a user can now do:
+- With browser storage blocked (private mode, site data off), the opening logo animation plays and finishes normally with no error.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-270 — wrong-section warnings for code-first citations (e43420d, shashank, 12 Oct 2026)
+
+What a user can now do:
+- After a draft is generated, get a warning for a wrong section in any of the six codes, written any common way ("BSA 85", "85 BSA", "S. 85 of the BSA", "Ss. 3-5 BSA"). There's never a false warning for a real old IPC, CrPC or IEA section.
+- Each section number is checked against the Act it's cited under, so "Section 3 BSA" no longer passes just because the Oaths Act has a section 3.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-336 — confirm a "None" on earlier bail applications, ledger off (273b6d4, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting off: if their description says "Earlier bail applications: None" (or nil, no, koi nahi and the like), see that question asked again to confirm it.
+- Confirm it and get the draft saying it is the first application; skip it and get a blank in the draft to fill in instead.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

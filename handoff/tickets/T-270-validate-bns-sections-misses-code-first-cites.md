@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (rule, signs). Lead (build). Anushka (verdict) |
 | Mode           | Rule first, then build. Legal content (`ai.service.ts`) |
-| Status         | To do. Unassigned. After T-200 (same file). Found by shashank, 12 Oct 2026 |
+| Status         | Merged into develop_staging e43420d (12 Oct 2026). Ajay signed 2da00de. Anushka tests on develop |
 
 ## Problem
 
@@ -25,3 +25,7 @@ Priority: medium. The check should also read `<ACT> <number>` and `<number> <ACT
 ## Added 12 Oct 2026 (Shashank's finding)
 
 The detector matches on the section number only and ignores the act. In an affidavit, "Section 3 BSA" passes because Oaths Act 3 is known. Ajay's two test cases still hold; decide with him whether the act must match too.
+
+## Retargeted (Priya, 12 Oct 2026, from Shashank's Explore)
+
+`validateBnsSections` in ai.service.ts is dead code (only an old t250 test calls it). The live checks are in `validator.ts`: `validateSectionReferences` and `extractBNSSectionNumbers` + `validateBNSWhitelist`. They have the same gaps. T-270 fixes those two checks using the shared T-277 reader, windowed so a stray code is not picked up from bare prose numbers, and deletes the dead function and its test.

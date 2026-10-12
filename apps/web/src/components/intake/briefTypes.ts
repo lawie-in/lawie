@@ -42,6 +42,11 @@ export interface BriefItem {
   /** The blank the draft shows while this is not given. */
   placeholder: string;
   party_name: boolean;
+  /**
+   * T-190: answered "Not known", or "none" where only a present fact is used.
+   * No value and no fact, but it counts as asked: its question is not open again.
+   */
+  asked_empty?: boolean;
 }
 
 export interface BriefCourt {
@@ -75,6 +80,13 @@ export interface BriefQuestion {
   label: string;
   kind: ValueKind;
   options: string[];
+  /** T-190: the pack's own signed question, printed as sent. */
+  source?: 'pack';
+  /**
+   * T-190 (AC8): asked to confirm a value the brief already shows. It stays open
+   * until the advocate answers it, even though the brief holds a value.
+   */
+  confirm?: boolean;
 }
 
 /** One thing the user gave, as the API takes it. */
@@ -331,11 +343,14 @@ export function valuesAfter(brief: Brief, previous: GivenValue[]): GivenValue[] 
       ...(item.source === 'user' && item.please_check && !item.note ? { please_check: true } : {}),
     });
   }
+  // T-190: a "Not known" answer places no value but is kept, so it stays asked.
+  const askedEmpty = new Set(brief.items.filter((i) => i.asked_empty).map((i) => i.key));
   const kept = previous.filter(
     (v) =>
       !isEmptyValue(v.value) &&
-      (!itemKeys.has(v.key) || emptyKeys.has(v.key)) &&
-      brief.unplaced.some((u) => sameValue(u.value, v.value)),
+      (askedEmpty.has(v.key) ||
+        ((!itemKeys.has(v.key) || emptyKeys.has(v.key)) &&
+          brief.unplaced.some((u) => sameValue(u.value, v.value)))),
   );
   return [...placed, ...kept];
 }

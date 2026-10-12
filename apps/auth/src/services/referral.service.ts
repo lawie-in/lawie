@@ -14,7 +14,7 @@ import logger from '../config/logger';
 import { IReferralCode, ReferralCode } from '../models/ReferralCode.model';
 import { User } from '../models/User.model';
 
-import { grantReferralInk } from './credit-bonus.service';
+import { grantReferralInk, referralInkLanded } from './credit-bonus.service';
 
 // ── Code generation ───────────────────────────────────────────────────────────
 
@@ -103,7 +103,11 @@ export type ReferralApplyResult = 'applied' | 'invalid' | 'already_applied';
  * - Then takes a use slot on the code atomically (uses < maxUses checked in the same update as
  *   the $inc). If refused, the claim is undone and nothing is granted ('invalid').
  * - Only a winner of both steps grants Ink and signals drafting
- * - If the grant credits nothing or throws, the slot and the claim are rolled back ('invalid')
+ * - The slot filter re-checks expiresAt, so a code that expired after validation is refused
+ *   and follows the rollback path (T-299)
+ * - If the grant credits nothing or throws, and the Ink did not land, the slot and the claim
+ *   are rolled back ('invalid'). If it did land (the reply was lost), the result is 'applied'
+ *   (T-299; see grantReferralInk / referralInkLanded)
  * - Grants rc.bonusInk Ink into the raw inkTopup bucket + writes an inkledger row
  * - Signals drafting service for legacy enforceFreeLimit compat
  *
@@ -128,7 +132,13 @@ export async function applyReferralCode(
 
   // Take a use slot atomically (T-298, Arjun round 1b): the cap check and the $inc are one
   // update, so concurrent sign-ups cannot overshoot maxUses. No cap condition when unset.
-  const slotFilter: Record<string, unknown> = { _id: rc._id, isActive: true };
+  // T-299: expiresAt is checked again here, in the same update, not only in validateReferralCode.
+  const now = new Date();
+  const slotFilter: Record<string, unknown> = {
+    _id: rc._id,
+    isActive: true,
+    $or: [{ expiresAt: null }, { expiresAt: { $exists: false } }, { expiresAt: { $gt: now } }],
+  };
   if (rc.maxUses !== null && rc.maxUses !== undefined) {
     slotFilter['$expr'] = { $lt: ['$uses', '$maxUses'] };
   }
@@ -149,32 +159,45 @@ export async function applyReferralCode(
   };
 
   if (!slot) {
-    // Slot refused (used up or disabled since validation): grant nothing.
+    // Slot refused (used up, disabled or expired since validation): grant nothing.
     await rollback(false);
     return 'invalid';
   }
 
   // Grant Ink into inkTopup + set freeTierBonusGrant for legacy middleware.
-  // 0 means nothing was credited (no DB connection, user not found). On 0 or a throw, roll back
-  // the slot and the claim so the code is not consumed for Ink the user never got (T-234 review).
+  // 0 means this call credited nothing (no DB connection, user not found, already granted).
+  // On 0 or a throw, ask whether the Ink is on the user (T-299): a throw can come after the $inc
+  // landed. If it landed, keep the claim and the slot and report 'applied'. If it did not, or we
+  // cannot tell, roll back the slot and the claim so the code is not consumed for Ink the user
+  // never got (T-234 review). A later retry cannot double-credit: the grant is idempotent.
   let granted = 0;
+  let grantThrew = false;
   try {
     granted = await grantReferralInk(userId, rc.bonusInk ?? 5, rc.code);
   } catch {
-    logger.error(
-      { userId, referralCodeId: String(rc._id) },
-      'Referral Ink grant threw; rolling back the referral',
-    );
-    await rollback(true);
-    return 'invalid';
+    grantThrew = true;
   }
-  if (granted <= 0) {
-    logger.error(
+  if (grantThrew || granted <= 0) {
+    let landed = false;
+    try {
+      landed = await referralInkLanded(userId, rc.code);
+    } catch {
+      landed = false;
+    }
+    if (!landed) {
+      logger.error(
+        { userId, referralCodeId: String(rc._id) },
+        grantThrew
+          ? 'Referral Ink grant threw; rolling back the referral'
+          : 'Referral Ink grant credited nothing; rolling back the referral',
+      );
+      await rollback(true);
+      return 'invalid';
+    }
+    logger.warn(
       { userId, referralCodeId: String(rc._id) },
-      'Referral Ink grant credited nothing; rolling back the referral',
+      'Referral Ink grant reported a failure but the Ink is on the user; keeping the referral',
     );
-    await rollback(true);
-    return 'invalid';
   }
 
   // Signal drafting service to pre-load BonusCredit grants (legacy enforceFreeLimit path)
