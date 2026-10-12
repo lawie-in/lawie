@@ -46,7 +46,7 @@ export type FactLedgerRunType = 'user' | 'fixture';
  * answer to a question or as an edit on the brief. Whether a ledger is real
  * traffic or a fixture is `FactLedgerRunType`, on the ledger itself.
  */
-export type FactSource = 'user' | 'asked';
+export type FactSource = 'user' | 'asked' | 'computed';
 
 /** A statute section, normalised: `S.483 BNSS` and `Section 483 of the BNSS, 2023` are both `{ act: 'BNSS', section: '483' }`. */
 export interface SectionRef {

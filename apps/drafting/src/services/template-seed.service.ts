@@ -48,6 +48,7 @@ function hashRegistryEntry(entry: RegistryEntry): string {
     template_id: entry.template_id,
     display_name: entry.display_name,
     category: entry.category,
+    catalogueCategory: entry.catalogueCategory,
     description: entry.description,
     icon: entry.icon,
     plan_access: entry.plan_access,
@@ -72,6 +73,11 @@ function toDocument(entry: RegistryEntry): Record<string, unknown> {
   if (typeof entry.creditsCost !== 'number') {
     throw new Error(`Template seed: no price for template "${entry.template_id}"`);
   }
+  // T-240: the library category is set by the promoter from config/catalogue.
+  // A template without one is refused, never written with a default.
+  if (entry.catalogueCategory === undefined) {
+    throw new Error(`Template seed: no catalogue category for template "${entry.template_id}"`);
+  }
   const source: Record<string, unknown> = { ...(entry._source ?? {}) };
   source.contentHash = hashRegistryEntry(entry);
   return {
@@ -79,6 +85,7 @@ function toDocument(entry: RegistryEntry): Record<string, unknown> {
     slug: entry.template_id,
     displayName: entry.display_name,
     category: entry.category,
+    catalogueCategory: entry.catalogueCategory,
     description: entry.description,
     icon: entry.icon ?? 'file-text',
     planAccess: entry.plan_access ?? 'free',

@@ -1128,6 +1128,8 @@ export async function streamGenerateFromBrief(
             buildChecklist(pack),
             ctx.court_designation || courtData?.designation || null,
             brief.kind.court_document,
+            // T-338: an unresolved optional key with no fact is a visible blank.
+            (input.ledger.unresolved ?? []).map((u) => u.key),
           ),
           averments: resolveAverments(input.ledger.lists, input.ledger.facts),
         }

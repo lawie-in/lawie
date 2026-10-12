@@ -588,3 +588,26 @@ What a user can now do:
 - Confirm "None" (or say it is the first application) and see no such warning.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-240 — templates grouped under plain-language categories (6a6cd2a, tanvi, 12 Oct 2026)
+
+What a user can now do:
+- Browse templates grouped under the 26 plain-language categories, in a fixed order, when starting a new document, changing the document type, or in the templates library.
+- Admins see and filter by each document's category.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-338 — blanks for half-read or unasked bail details (10faf08, mahak, 12 Oct 2026)
+
+What a user can now do:
+- With the fact-ledger setting on: when a bail detail was only half-read from their description or was never asked, see a clear blank for it in the draft to fill in, instead of the point being left out.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-192 — cheque-bounce notice date checks (5dd6388, vishal, 12 Oct 2026)
+
+What a user can now do:
+- In a cheque-bounce notice, enter the cheque validity, return-memo-received and notice-sent dates. Lawie checks presentation in time and notice within 30 days, and only then lets the notice say so.
+- A missing date leaves a named blank. The notice is dated with the sending date, or today.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
