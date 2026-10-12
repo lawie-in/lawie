@@ -178,14 +178,30 @@ describe('T-340: actual output, every template (AC2)', () => {
       .map((s) => renderTemplateSection(s, ctx).content);
   }
 
-  it('the legal_notice_s138 override prints "Date: 4 April 2026"', () => {
+  // T-192: the s138 header prints `Date: {notice_date}`, a computed field that is
+  // '{current_date}' when notice_sent_date is blank and '{notice_sent_date}' otherwise.
+  function s138Header(data: Record<string, unknown>): string {
+    const c = config('legal_notice_s138');
+    const section = c.document_structure.sections.find(
+      (s) => s.type === 'template' && s.template?.includes('Date: {notice_date}'),
+    );
+    if (!section) throw new Error('no s138 section prints Date: {notice_date}');
+    return renderTemplateSection(section, buildPlaceholderContext(c, data)).content;
+  }
+
+  it('the legal_notice_s138 header prints "Date: 4 April 2026" when notice_sent_date is blank', () => {
     jest.useFakeTimers().setSystemTime(NOW);
-    const out = renderedWithCurrentDate(config('legal_notice_s138'));
-    expect(out.length).toBeGreaterThan(0);
-    for (const t of out) {
-      expect(t).toContain('Date: 4 April 2026');
-      expect(t).not.toMatch(/04 April/);
-    }
+    const t = s138Header({});
+    expect(t).toContain('Date: 4 April 2026');
+    expect(t).not.toMatch(/04 April/);
+  });
+
+  it('the legal_notice_s138 header prints an ISO notice_sent_date as "Date: 7 March 2026"', () => {
+    jest.useFakeTimers().setSystemTime(NOW);
+    const t = s138Header({ notice_sent_date: '2026-03-07' });
+    expect(t).toContain('Date: 7 March 2026');
+    expect(t).not.toMatch(/07 March/);
+    expect(t).not.toContain('4 April 2026');
   });
 
   it('a registry template (not an override) prints current_date in the new format', () => {
