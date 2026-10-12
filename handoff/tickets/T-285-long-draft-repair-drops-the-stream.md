@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Arjun scopes. Founder (production nginx). Lead (build) |
 | Mode           | Small fix |
-| Status         | To do. Unassigned. Found by Mahak (T-226), 12 Oct 2026 |
+| Status         | Building: vishal (12 Oct 2026). Found by Mahak (T-226) |
 
 Production nginx has `proxy_read_timeout` of 60 s. The repair pass sends nothing on the stream, so a long repair can exceed 60 s and the connection drops, even though the draft may complete. Pre-existing. Fix options for Arjun: send a keep-alive from the repair pass, and/or raise the timeout on the production host (founder task).
 
