@@ -421,3 +421,28 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - An exported PDF's footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-306 — login stays out of the address bar and analytics (ba54d48)
+
+- Sign in with Google as before. The sign-in no longer puts the login in the page address, browser history or analytics.
+- The dashboard, drafts and login pages are no longer tracked; only public pages are counted, without query details.
+- The browser tab title reads "Lawie — Drafting Assistant for Indian Advocates".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-278 — bail checker and timeline show signed notes (92efbc3)
+
+- In the bail checker, an old IPC section with no new equivalent, or one not in the table, shows a clear note to check the Gazette, instead of a blank or a guessed section.
+- In the timeline tracker, every section left out of the period says why: it's an old-law section (with a pointer to the section converter), it doesn't create an offence, or it wasn't found in the BNS offences table.
+- Typing "BNS 103" or "103-BNS" in the timeline works like typing 103.
+- Unknown values show "Depends…", never "Non-Bailable" or a guessed court.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-318 — footers on server PDFs, annexures and the welcome email (f5e7edb)
+
+- Export a draft as PDF from the server; the footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+- Open the annexures (Vakalatnama, Memo of Parties and the others); the footer reads "Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice."
+- The welcome email says "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

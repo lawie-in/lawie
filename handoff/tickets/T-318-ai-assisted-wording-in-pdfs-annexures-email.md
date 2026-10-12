@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release. Before go-live |
 | Owner  | Ajay (signs text, approves the moved goldens). Lead (build, drafting + email-worker) |
 | Mode   | Small fix (legal content; golden snapshots move) |
-| Status | Building: mahak (12 Oct 2026). Text signed 19f85b7 |
+| Status | Merged into develop_staging (f5e7edb, 12 Oct 2026). Waiting for Anushka on develop |
 
 Three places still use the old "AI-assisted" wording:
 

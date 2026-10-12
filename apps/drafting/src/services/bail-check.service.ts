@@ -326,9 +326,12 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
         note = NO_BNS_EQUIVALENT;
       } else {
         // Section is likely IPC (> 358 or in known set) but no mapping found
+        bnsSection = '';
         ipcSection = input;
         convertedFromIpc = true;
         ipcUnresolved = true;
+        // Ajay (CLO), T-278: same signed note as an explicit "NNN-IPC" with no row.
+        note = NOT_IN_IPC_TABLE;
       }
     }
 

@@ -208,6 +208,16 @@ export interface ChargedSection {
   alias?: true;
 }
 
+/**
+ * Ajay Q8 / round 5c: old-law codes, how the line names them, and the new code.
+ * Moved here from template-engine (T-278) so template-engine and timeline share one copy.
+ */
+export const OLD_LAW_LINE: Partial<Record<ChargedCode, { name: string; newCode: string }>> = {
+  IPC: { name: 'IPC', newCode: 'BNS' },
+  CRPC: { name: 'CrPC', newCode: 'BNSS' },
+  IEA: { name: 'IEA', newCode: 'BSA' },
+};
+
 /** Step 3: code names (case-insensitive; specific names before the generic "… Act"). */
 const CODE_NAMES: Array<[ChargedCode, string]> = [
   ['BNSS', String.raw`\bb\.?n\.?s\.?s\b\.?|\bbharatiya\s+nagarik\s+suraksha\s+sanhita\b`],

@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (asked; signs the field label and the diff). Lead (build, drafting packs) |
 | Mode   | Small fix (legal content, pack JSON) |
-| Status | To do. Unassigned. Not urgent: the blank is safe. T-311 and T-241 merged; Mahak after T-317. Raised by Ajay from T-311, 12 Oct 2026 |
+| Status | Building: mahak (12 Oct 2026) |
 
 `bail_regular`, `bail_anticipatory` and `consumer_complaint` have no `advocate_enrollment` field. An advocate drafting for another advocate gets a blank Bar Council number and has no way to type one.
 

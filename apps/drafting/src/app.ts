@@ -1,6 +1,7 @@
+import { createJsonBodyErrorHandler } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import cors from 'cors';
-import express, { type NextFunction, type Request, type Response } from 'express';
+import express from 'express';
 import helmet from 'helmet';
 
 import logger from './config/logger';
@@ -46,27 +47,8 @@ app.use('/', intakeRoutes); // ADR-019 — /documents/intake through the gateway
 app.use('/', documentsRoutes);
 app.use('/sample-assets', sampleAssetsRoutes);
 
-/**
- * T-307 — a body the JSON parser rejects gets a plain JSON reply that repeats
- * nothing the client sent. body-parser puts a slice of the body in err.message
- * (and the whole body in err.body), so neither is sent back or logged. This sits
- * before Sentry's handler and does not call next(), so these client errors never
- * reach Sentry or Express's default handler (which prints err.message to stderr).
- */
-const BODY_PARSER_ERRORS: Record<string, { status: number; error: string }> = {
-  'entity.parse.failed': { status: 400, error: 'Bad Request' },
-  'entity.too.large': { status: 413, error: 'Payload Too Large' },
-  'encoding.unsupported': { status: 415, error: 'Unsupported Media Type' },
-  'charset.unsupported': { status: 415, error: 'Unsupported Media Type' },
-};
-
-app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
-  const type = (err as { type?: unknown } | null)?.type;
-  const known = typeof type === 'string' ? BODY_PARSER_ERRORS[type] : undefined;
-  if (!known) return next(err);
-  logger.debug({ method: req.method, path: req.path, type }, 'Request body rejected');
-  res.status(known.status).json({ error: known.error });
-});
+// T-307 / T-315 — rejected bodies get a plain JSON 4xx that echoes nothing (shared handler).
+app.use(createJsonBodyErrorHandler({ logger }));
 
 Sentry.setupExpressErrorHandler(app);
 

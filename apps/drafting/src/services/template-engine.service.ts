@@ -18,8 +18,8 @@ import logger from '../config/logger';
 import {
   BNS_CLASSIFICATION,
   BNS_OFFENCE_KEYS,
-  ChargedCode,
   ChargedSection,
+  OLD_LAW_LINE,
   readChargedField,
   readSectionsCharged,
   resolveOffence,
@@ -1666,13 +1666,6 @@ RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ?
       : ''
   }`;
 }
-
-/** Ajay Q8 / round 5c: old-law codes, how the line names them, and the new code. */
-const OLD_LAW_LINE: Partial<Record<ChargedCode, { name: string; newCode: string }>> = {
-  IPC: { name: 'IPC', newCode: 'BNS' },
-  CRPC: { name: 'CrPC', newCode: 'BNSS' },
-  IEA: { name: 'IEA', newCode: 'BSA' },
-};
 
 /**
  * Classify BNS sections as bailable/non-bailable.

@@ -175,10 +175,21 @@ router.post('/webhook/razorpay', (req: Request, res: Response) => {
     return;
   }
 
-  const payload = JSON.parse((req.body as Buffer).toString()) as {
-    event: string;
-    payload: Record<string, unknown>;
-  };
+  // T-320: a correctly signed but malformed body must not throw. A SyntaxError here
+  // would reach Express's default handler, which prints err.message (with a body
+  // slice) to stderr. Plain 400, same shape as T-315; nothing from the body or the
+  // error is logged.
+  let payload: { event: string; payload: Record<string, unknown> };
+  try {
+    payload = JSON.parse((req.body as Buffer).toString()) as {
+      event: string;
+      payload: Record<string, unknown>;
+    };
+  } catch {
+    logger.warn('Webhook body is not valid JSON');
+    res.status(400).json({ error: 'Bad Request' });
+    return;
+  }
 
   // Acknowledge immediately — process async so Razorpay doesn't retry
   res.json({ status: 'ok' });
