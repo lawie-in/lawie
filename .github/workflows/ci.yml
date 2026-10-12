@@ -167,6 +167,7 @@ jobs:
             mongoms-${{ runner.os }}-7.0.24-
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
+      - run: yarn workspace @lawie/drafting build
       # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
       - name: Pre-download Mongo binary
         run: yarn workspace @lawie/drafting node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
