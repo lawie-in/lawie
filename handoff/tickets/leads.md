@@ -38,6 +38,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 1. shashank — T-295 (Ajay signed a6d38df). Merging now.
 2. tanvi — T-280 (9e79ae4). Ajay signed. Next after shashank.
 3. vishal — T-322 (8a132de). Ajay signed. After tanvi.
+4. mahak — T-276 (7c9d77d). After vishal.
 First signed merges first; tell Priya before you start.
 First signed merges first; tell Priya before you start.
 
