@@ -181,3 +181,13 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 This is NOT a "works on mobile" claim (T-138 and the T-141a ban stand).
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-237 (vishal, merged to develop_staging 8f31985, 12 Oct 2026)
+
+- When I draft an anticipatory bail, an interim bail or a bail application before a magistrate, the draft has its own part on earlier bail applications: each one I mentioned, with the court, the date of the order and the result.
+- If I did not say whether there was an earlier application, the draft gives me a marked blank to confirm. It never claims on its own that this is the first application.
+- If a draft leaves earlier applications out, it is flagged as missing that part. In an interim bail draft, the usual line that the main application is pending does not count as that disclosure.
+- In an anticipatory bail draft, the "Undertakings" part sets out what the applicant undertakes to do if granted bail, never as facts about the applicant.
+- In an interim bail draft, "Roots of the Applicant" appears only when my brief gives those facts; otherwise it is left out and nothing is invented.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
