@@ -19,3 +19,19 @@
 
 - A `?ref=CODE` link pre-fills the referral box on `/login` (today the code can only be typed in), so offer links work.
 - Remove the unused `sessionStorage` `lawie_referral_code` write.
+
+## Arjun (12 Oct 2026): UTM tags off the Google URL (Ajay's condition 3), option (a)
+
+Store server-side; nothing tag-related goes in the state.
+1. On `/google`: `SET oauth:utm:<sha256(challenge)> <json> EX 600` (same key shape as T-306's `oauth:code:`). Only `utm_source`, `utm_medium`, `utm_campaign` (allowlist), each trimmed to 100 characters; anything else is dropped. The state carries no `u` field at all.
+2. In the passport callback, new-user branch only: read and delete atomically (`MULTI GET+DEL`, as in T-299). Existing users: still delete the key, never read it into anything.
+3. **Fail open for tags only.** A Redis error on store or read means the sign-up goes ahead with no tags and a fixed log line (no values). Login never waits on or fails for UTM.
+4. Tests: the URL to Google contains no tag value (assert on the redirect `Location`); a new user gets the tags; an existing user's record is unchanged and the key is gone; key expires at 10 min; Redis down → sign-up succeeds, no tags.
+
+## Note (Priya, 12 Oct 2026)
+
+Ajay condition 5 on T-242: deleting an account must remove the whole User document, including `signupSource` (UTM tags and time). No delete path exists today.
+
+## Decision (Priya, 12 Oct 2026, founder delegated)
+
+After review round 3: T-242 merges as it is (auth and gateway clean, Ajay signed 8ac5def). The web server and edge Sentry leak predates T-242 and is fixed in T-348, before prod.

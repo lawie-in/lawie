@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Ajay (gate). Lead (build, drafting) |
 | Mode   | Small fix (legal content) |
-| Status | To do. GATE (Ajay): must land before `feature.fact_ledger` is turned on for ANY user. Mahak after T-190 and T-336. The ai.service.ts line goes after Shashank's T-270/T-333. Known gap in T-190, since T-147b |
+| Status | Merged into develop_staging 10faf08 (12 Oct 2026). Ajay signed 2db8acb; his fact_ledger gate for this gap is cleared. Anushka tests on develop |
 
 With `feature.fact_ledger` on, an optional unresolved key that goes unasked (past the question cap) never reaches the Drafter as a blank. Ajay wants a visible blank.
 
