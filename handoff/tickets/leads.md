@@ -35,7 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(empty)
+1. kunal: T-328 + T-332 (5bb4964, review passed). Slot given 12 Oct.
 
 ## Last done
 
