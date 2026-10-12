@@ -35,7 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(empty)
+1. mahak — T-311 (3afe965). Slot given 12 Oct 2026. Ajay signed 3afe965.
 
 ## Last done
 
