@@ -5,7 +5,7 @@
 | Phase  | 1 — Legal accuracy |
 | Owner  | Ajay (writes and signs the wording). Lead (build) |
 | Mode   | Small fix, legal content |
-| Status | Building: shashank (12 Oct 2026) |
+| Status | Merged into develop_staging (2e06933, 12 Oct 2026). Waiting for Anushka on develop |
 
 The old-law block in the drafting prompt can read "BNS Section 302 IPC…", which mixes the two codes. Ajay writes the correct wording; a lead applies it.
 

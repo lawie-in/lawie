@@ -6,7 +6,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 | Lead | Ticket | Branch | Files and folders claimed | Legal paths | Since |
 |---|---|---|---|---|---|
-| shashank | T-295 | fix/t-295-* (Shashank names it) | apps/drafting/src/services/preflight.service.ts (soft severity per Arjun), the old-law block in apps/drafting/src/services/template-engine.service.ts (Ajay's 455559c wording only), the web step that shows a soft verdict and lets the draft continue (check it; change only if needed), a new t295 test, and snapshots that move (to Ajay). Small fix, legal content Also (Priya, 12 Oct, tests only): apps/drafting/src/__tests__/t277-bns-offences.test.ts (the 7 old-law line assertions) and apps/drafting/src/__tests__/t277-sections-charged-reader.test.ts (the "old-law hard block" describe, 6 tests), updated to the soft verdict and Ajay's line. | yes: Ajay signed 455559c; he signs the diff and moved snapshots | 12 Oct 2026 |
+| shashank | T-324 | fix/t-324-* (Shashank names it) | apps/drafting/src/services/preflight.service.ts (skip the old-law warning only when the signed T-267 table maps the IPC alias to the attached BNS section) and a new t324 test (matching pair, mismatched pair, bare IPC). Small fix, legal content; Ajay sees the diff | yes: Ajay confirmed with a condition; he sees the diff | 12 Oct 2026 |
 | mahak | T-276 then T-321 | fix/t-276-* (Mahak names it) | T-276: .gitignore, .prettierignore (add docs/templates/) and the lint-staged config, plus docs/seeding.md (prettier reformat only, no wording change; Arjun 121ed9a) (root config, held by mahak alone until T-276 merges). Small fix; Arjun decides AC2. Then T-321 once Shashank's T-295 merges (template-engine.service.ts ~1646, the starting-draft footer skip, tests; Ajay sees the diff) | T-321 only: Ajay sees the diff | 12 Oct 2026 |
 | vishal | T-322 | fix/t-322-* (Vishal names it) | apps/drafting/src/services/brief-drafter.ts (rule R2b.5 ~863 only: an exact signed blank covers its clause) and a new t322 test. Small fix, legal content; Ajay sees the diff | yes: Ajay ruled; he sees the diff | 12 Oct 2026 |
 | kunal | T-299 + T-308 then T-325 | fix/t-299-* (Kunal names it; one branch or three, his call) | apps/auth (T-299 hardening and riders): User.model, auth.service, passport config, oauth.routes, auth.validator, auth.controller, referral.service, credit-bonus.service and their tests; NOT apps/auth/src/app.ts or apps/auth/src/config/sentry.ts (tanvi, T-315). apps/web: (auth)/login/page.tsx and auth/callback/page.tsx (T-299 messages, T-306 tokens), apps/web/src/app/layout.tsx and the GA helper (T-306: no tokens in page_location, GA only on public pages), apps/web/src/app/(marketing)/privacy/page.tsx (T-308, Ajay signed d686ce0), new t299/t306/t308 tests. Full chain (auth). T-310 follows (same files) Also (Priya, 12 Oct): bump CURRENT_TERMS_VERSION in User.model.ts to the date Mahak's T-268 terms edits merge. Also (Priya, 12 Oct, T-317 Addendum 1, Ajay 6cbe863): apps/web/src/app/layout.tsx site description, word for word. Also (Meera, 12 Oct): layout.tsx title "Lawie — Drafting Assistant for Indian Advocates" and keywords exactly: "legal drafting", "drafting assistant", "Indian advocates", "bail application", "legal notice", "affidavit", "rent agreement". Also (Priya, 12 Oct, T-306 residual): apps/web/next.config.mjs, a Referrer-Policy: no-referrer header for /auth/callback only. T-319 (T-306 merged ba54d48): same auth and web login/callback files. T-319 merged 2b02eae. Also: apps/gateway/src/__tests__/register-role.test.ts (the stale comment only). T-325 (HIGH, may stack, merges after T-299 + T-308): apps/auth/src/middleware/authenticate.ts and its test. Also with T-325: apps/auth/src/services/session.service.ts, deleteAllUserSessions uses the shared key helpers (no behaviour change). | yes: T-308 privacy words signed d686ce0; any new account message goes to Ajay | 12 Oct 2026 |
@@ -35,16 +35,16 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. shashank — T-295 (Ajay signed a6d38df). Merging now.
-2. tanvi — T-280 (9e79ae4). Ajay signed. Next after shashank.
-3. vishal — T-322 (8a132de). Ajay signed. After tanvi.
-4. mahak — T-276 (7c9d77d). After vishal.
-5. kunal — T-299 + T-308 (41d4c32). After mahak, once Ajay byte-checks the privacy page.
+1. tanvi — T-280 (9e79ae4). Slot given 12 Oct 2026. Ajay signed.
+2. vishal — T-322 (8a132de). Ajay signed.
+3. mahak — T-276 (7c9d77d).
+4. kunal — T-299 + T-308 (41d4c32). After mahak, once Ajay byte-checks the privacy page.
 First signed merges first; tell Priya before you start.
 First signed merges first; tell Priya before you start.
 
 ## Last done
 
+- shashank — T-295 merged to `develop_staging` (2e06933, 12 Oct 2026). Old-law sections get a soft warning in Ajay's words; draft continues. Ajay approved. Waiting for Anushka on develop.
 - mahak — T-313 merged to `develop_staging` (a6b2162, 12 Oct 2026). Optional enrollment field on bail_regular, bail_anticipatory and consumer_complaint. Ajay signed 01f451e. Waiting for Anushka on develop.
 - tanvi — T-323 merged to `develop_staging` (6869fa1, 12 Oct 2026). Webhook signature length and body shape refused cleanly; t320 flake fixed. Nothing to test in the UI.
 - kunal — T-319 merged to `develop_staging` (2b02eae, 12 Oct 2026). Google sign-in bound to the browser that started it (no login CSRF). Ajay OK'd. Waiting for Anushka on develop; needs develop on https.
