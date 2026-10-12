@@ -1005,6 +1005,9 @@ export function clientFormData(
     ...SERVER_UNLESS_DECLARED_KEYS,
     ...Object.keys(config.computed_fields ?? {}),
   ]);
+  // A jail alias (JAIL_SOURCES) feeds {jail} and custody_clause, so it is list B
+  // too: kept only where this template declares `jail` or the alias itself.
+  if (!declared.has('jail')) for (const alias of JAIL_SOURCES) serverUnlessDeclared.add(alias);
   const kept: Record<string, unknown> = {};
   const dropped: string[] = [];
   for (const [key, val] of Object.entries(formData)) {

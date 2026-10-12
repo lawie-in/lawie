@@ -847,7 +847,7 @@ router.post(
           courtType: String(form_data.court_type || '') || undefined,
           courtName: String(form_data.court_name || ''),
           // T-115a: the case details are stored encrypted only.
-          formInputsEnc: sealFormInputs({ template_id, ...form_data }),
+          formInputsEnc: sealFormInputs({ ...form_data, template_id }),
           generatedContent: encryptedContent,
           sectionsCited: result.sectionsCited,
           filingChecklistEnc: sealFilingChecklist(result.filingChecklist),

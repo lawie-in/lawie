@@ -362,6 +362,78 @@ describe('T-300 list B: dropped unless this template declares the field', () => 
   });
 });
 
+describe('T-300 round 2: jail aliases are list B (kept only where jail or the alias is declared)', () => {
+  const ALIASES = ['jail_name', 'place_of_custody', 'custody_place', 'custody_location'];
+  const JUDICIAL = 'Yes — Judicial custody';
+  const SECRET = 'ALIAS-LEAK-VALUE-5521';
+  const withCustody = { ...BASE, currently_in_custody: JUDICIAL };
+
+  describe.each(['default_bail', 'suspension_of_sentence'])('%s', (id) => {
+    const cfg = config(id);
+
+    it('does not declare jail or the aliases', () => {
+      const declared = new Set(
+        cfg.form_schema.steps.flatMap((s) => s.fields).map((f) => f.field_id),
+      );
+      for (const k of ['jail', ...ALIASES]) expect(declared.has(k)).toBe(false);
+    });
+
+    it.each(ALIASES)('a client %s leaves {jail} and custody_clause unchanged', (alias) => {
+      for (const form of [BASE, withCustody]) {
+        const { clean, attacked } = pair(cfg, { [alias]: SECRET }, form);
+        expect(attacked.jail).toBe(clean.jail);
+        expect(attacked.custody_clause).toBe(clean.custody_clause);
+        expect(attacked.jail).not.toContain(SECRET);
+        expect(attacked.custody_clause).not.toContain(SECRET);
+        expect(attacked).toEqual(clean);
+      }
+    });
+
+    it('the blank prints, with a judicial-custody answer', () => {
+      const { attacked } = pair(cfg, { place_of_custody: SECRET }, withCustody);
+      expect(attacked.jail).toBe('[To be confirmed: name of jail]');
+    });
+
+    it('the aliases are in one warn’s droppedKeys, no values', () => {
+      buildPlaceholderContext(cfg, {
+        ...withCustody,
+        ...Object.fromEntries(ALIASES.map((a) => [a, SECRET])),
+      });
+      expect(warn).toHaveBeenCalledTimes(1);
+      const [fields] = warn.mock.calls[0];
+      expect(fields.templateId).toBe(id);
+      expect([...fields.droppedKeys].sort()).toEqual([...ALIASES].sort());
+      expect(JSON.stringify(warn.mock.calls)).not.toContain(SECRET);
+    });
+  });
+
+  describe('bail_before_magistrate (declares jail): current behaviour pinned', () => {
+    const run = (extra: Record<string, unknown>) =>
+      buildPlaceholderContext(
+        magistrate,
+        { ...BASE, currently_in_custody: JUDICIAL, ...extra },
+        {},
+      );
+
+    it('a typed jail still prints', () => {
+      const ctx = run({ jail: 'Beur Jail, Patna' });
+      expect(ctx.jail).toBe('Beur Jail, Patna');
+      expect(ctx.custody_clause).toBe(', currently in judicial custody at Beur Jail, Patna');
+    });
+
+    it.each(ALIASES)('an alias %s still flows when no jail is typed', (alias) => {
+      const ctx = run({ [alias]: 'Alias Jail' });
+      expect(ctx.jail).toBe('Alias Jail');
+      expect(ctx.custody_clause).toContain('Alias Jail');
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('a typed jail wins over an alias', () => {
+      expect(run({ jail: 'Beur Jail', place_of_custody: 'Alias Jail' }).jail).toBe('Beur Jail');
+    });
+  });
+});
+
 describe('T-300 clientFormData', () => {
   it('returns the kept form and the names of the dropped keys', () => {
     const { kept, dropped } = clientFormData(regular, {
