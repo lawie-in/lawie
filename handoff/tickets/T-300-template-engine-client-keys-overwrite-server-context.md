@@ -66,3 +66,16 @@ Mahak's proposal is right and replaces my "skip every server-only key" rule. **T
 **Collision check (unchanged):** a pack that declares a list-A key is reported to Ajay, not changed. The 57 packs that declare `advocate_name` are expected and fine.
 
 **Tests:** as before (one per class), plus: `advocate_name` declared and typed → used by the draft **and** the annexures; empty → profile in both; `enrollment_number` in `formData` and in the legacy body → profile wins; legacy `advocateName` with `{x}` or a line break → profile name; `court_designation` declared with no court chosen → the typed value; with a court chosen → the court's.
+
+## Arjun (12 Oct 2026): enrolment number, Mahak's blocker (my earlier ruling assumed a profile source that drafting does not have)
+
+Correct: drafting has no enrolment number (the JWT is `{sub, email, name, role, plan}`; the routes pass `enrollmentNumber: undefined`; only auth's `User.enrollmentNumber` holds it). My "profile only" for `enrollment_number` therefore cannot be built yet. **Mahak's proposal is approved:**
+1. In T-300, `enrollment_number` stays in list A **for the placeholder context**: a client key of that name is dropped there. Nothing real changes, because the profile value is blank today and the packs print the number through the declared `advocate_enrollment` field.
+2. The annexures' `advocate_enrollment` (and the `enrollment_number ?? advocate_enrollment` read at `annexures.service.ts` l.249 and l.374) and the legacy `/generate` `advocateEnrollment` are **left as they are** in T-300, so no Vakalatnama or Memo of Parties loses its Bar Council number. The earlier line "the body's `enrollmentNumber` is ignored" is withdrawn until the follow-up below lands.
+3. The collision check also lists any pack that declares `enrollment_number` itself (report to Ajay; do not change).
+
+**Follow-up ticket (Priya to create; drafting, small): the enrolment number comes from the account.**
+- Add `enrollmentNumber` to drafting's own `User` model as a read-only field (same `users` collection) and look it up by the JWT `sub` once per request. No JWT claim: claims go stale when a profile changes and the token carries it everywhere.
+- Pass it as `extra.enrollmentNumber` to the placeholder context, the annexures and the legacy route.
+- **Profile wins** when it is present; a typed `advocate_enrollment` is used only when the profile is empty (Google sign-ups may have none). Whether even that fallback should be allowed is Ajay's call; if not, the form field becomes read-only and prefilled from the profile (a web change). Same helper for context, annexures and legacy, as `resolveAdvocateName` does for the name.
+- Tests: profile present beats a typed or body value in all three places; profile empty falls back as decided; a user with no number prints a visible blank, never another user's.
