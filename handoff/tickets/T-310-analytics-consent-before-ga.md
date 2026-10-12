@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release. Gate before v1 go-live (T-403) |
 | Owner  | Rajesh (design). Ajay (wording, signs). Arjun (mechanism). Lead (build, web) |
 | Mode   | Small feature (web) |
-| Status | To do. Decided by Priya on Ajay's advice, 12 Oct 2026. After T-306 and T-308 |
+| Status | Ready. Design 0289e14, strings signed 2288099 (Ajay), font self-host decided (Arjun). Kunal builds after T-306 + T-308 (same files) |
 
 Decision (Priya, 12 Oct 2026, founder has delegated these calls): Google Analytics loads only after the visitor agrees. No consent, no GA script and no `_ga` cookies. Recommended by Ajay for DPDP.
 
