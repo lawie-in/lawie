@@ -162,3 +162,13 @@ Quality: nothing to test in the UI — tests, a test fixture and CI only.
 - The editor and every export show the same paragraphs whatever line endings the draft has, and headings are found in the PDF even with extra blank lines.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-275 (mahak, merged to develop_staging 5900d7f, 12 Oct 2026)
+
+Needs develop's section tables reseeded first for the Evidence Act and CrPC rows to show it.
+
+- I look up an old section that was repealed with no replacement and see "Repealed — no equivalent" and "None", instead of a raw code and a blank "Section".
+- I see "Not verified" and "Check the Gazette" for a section Lawie has not confirmed, instead of a guessed number.
+- I am not offered a Copy button when there is no section to copy.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
