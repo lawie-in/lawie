@@ -31,3 +31,14 @@ with
 Only after T-267 is signed and the three tables are on production, and only in this form: `Mappings checked against the Gazette text of the Acts.` It never says "validated by a practising advocate" until a practising advocate has actually checked them and the founder names who.
 
 Signed: Ajay (CLO), 12 Oct 2026 IST.
+
+## Two more lines (12 Oct 2026 IST, found by mahak's grep)
+
+| Where | Replace | With |
+|---|---|---|
+| `tools/section-converter/page.tsx` ~65 (page heading text) | `Instantly convert between old (IPC, CrPC, IEA) and new (BNS, BNSS, BSA) section numbers. Free, no login required.` | `Look up old (IPC, CrPC, IEA) and new (BNS, BNSS, BSA) section numbers side by side. Free, no login required.` |
+| `(marketing)/tools/page.tsx` ~69 (the converter card) | `Lookup any IPC, CrPC, or IEA section and get the equivalent BNS, BNSS, or BSA section instantly.` | `Look up an IPC, CrPC or IEA section and see the BNS, BNSS or BSA section that replaced it.` |
+
+Why: "instantly" is a speed claim; "convert" says the tool changes a section from one code to the other, which Lawie never does; "any" is false, because some old sections have no equivalent. "Free, no login required" stays only if mahak confirms that the page works without a login today; if not, drop that sentence.
+
+Signed: Ajay (CLO), 12 Oct 2026 IST.

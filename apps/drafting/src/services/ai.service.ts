@@ -52,6 +52,7 @@ import {
   needsStartingDraftLabel,
   packTexts,
   paragraphNumbers,
+  recordAgainAfterCodeEdit,
   removeRepeatedParts,
   splitDrafterOutput,
   systemParts,
@@ -68,7 +69,7 @@ import {
   DRAFTER_PACK_SYSTEM_PROMPT,
   DRAFTER_REPAIR_SYSTEM_PROMPT,
 } from './drafter.prompts';
-import { FactCheckOutcome, verifyAndRepair } from './fact-verifier';
+import { FactCheckOutcome, splitParagraphs, verifyAndRepair } from './fact-verifier';
 import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
   estimateOutputTokens,
@@ -453,12 +454,7 @@ export async function streamGenerateDocument(
   const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
 
   try {
-    for await (const text of streamLLM(
-      systemPrompt,
-      userPrompt,
-      4096,
-      draft,
-    )) {
+    for await (const text of streamLLM(systemPrompt, userPrompt, 4096, draft)) {
       rawText += text;
       res.write(`data: ${JSON.stringify({ text })}\n\n`);
     }
@@ -700,12 +696,7 @@ export async function streamGenerateFromTemplate(
       const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
 
       try {
-        for await (const text of streamLLM(
-          systemPrompt,
-          userPrompt,
-          8192,
-          draft,
-        )) {
+        for await (const text of streamLLM(systemPrompt, userPrompt, 8192, draft)) {
           aiText += text;
           res.write(`data: ${JSON.stringify({ text })}\n\n`);
         }
@@ -1209,7 +1200,12 @@ export async function streamGenerateFromBrief(
 
   let output = splitDrafterOutput(raw);
   output = { ...output, body: cleaned(output.body) };
-  let missing = findMissingClauses(pack, output, parts);
+  // T-200: the brief for cues, the language for fixed wording, and the text
+  // recorded for each clause without cues (R2b), kept for every later check.
+  let recorded = new Map<string, string>();
+  const notChecked = new Map<string, string>();
+  const clauseCheck = { brief, language: input.language, notChecked };
+  let missing = findMissingClauses(pack, output, parts, { ...clauseCheck, recorded });
   let repaired = false;
 
   // ── One repair pass, at our cost (decision D3) ────────────────────────────
@@ -1236,10 +1232,17 @@ export async function streamGenerateFromBrief(
       // a paragraph, the first draft is kept and the clauses stay missing.
       if (secondBody.length > 0 && keepsEveryParagraph(output.body, secondBody)) {
         const candidate = { body: secondBody, report: second.report };
-        const stillMissing = findMissingClauses(pack, candidate, parts);
+        // Checked against the texts recorded so far (R2b). A clause the repair
+        // adds is recorded from the repair's own report.
+        const candidateRecorded = new Map(recorded);
+        const stillMissing = findMissingClauses(pack, candidate, parts, {
+          ...clauseCheck,
+          recorded: candidateRecorded,
+        });
         if (stillMissing.length < missing.length) {
           output = candidate;
           missing = stillMissing;
+          recorded = candidateRecorded;
           repaired = true;
         }
       }
@@ -1265,6 +1268,8 @@ export async function streamGenerateFromBrief(
       ? ledgerCitationSources(ledgerInput.facts)
       : [briefText(brief), input.described ?? ''],
   );
+  // T-200, R2b.1: a code edit records the changed paragraphs again.
+  recordAgainAfterCodeEdit(output.report, output.body, citations.text, recorded, missing);
   output = { ...output, body: citations.text };
 
   // ── The fact verifier (T-147d): the ledger path only ──────────────────────
@@ -1311,15 +1316,42 @@ export async function streamGenerateFromBrief(
         }
       },
     );
+    // T-200: the fact check's edits record the changed paragraphs again. With
+    // no model repair applied (afterRepair null) only code edited the body
+    // (R2b.1). With one, a paragraph counts only when its change stays inside
+    // a sentence the fact check flagged (R2b.4). Spans are in the body it read.
+    const factParas = splitParagraphs(output.body);
+    const flagged =
+      factCheck.afterRepair === null
+        ? undefined
+        : factCheck.initial
+            .filter((v) => v.check !== 'dropped' && factParas[v.paragraphIndex] !== undefined)
+            .map((v) => {
+              const from = factParas[v.paragraphIndex].start + v.charOffset;
+              return { from, to: from + v.length };
+            });
+    recordAgainAfterCodeEdit(
+      output.report,
+      output.body,
+      factCheck.body,
+      recorded,
+      missing,
+      flagged,
+    );
     // A citation the repair may have added goes the same way as above (T-148).
-    output = {
-      ...output,
-      body: removeUngivenCitations(factCheck.body, ledgerCitationSources(ledgerInput.facts)).text,
-    };
+    const checkedBody = removeUngivenCitations(
+      factCheck.body,
+      ledgerCitationSources(ledgerInput.facts),
+    ).text;
+    // T-200, R2b.1: a code edit records the changed paragraphs again.
+    recordAgainAfterCodeEdit(output.report, factCheck.body, checkedBody, recorded, missing);
+    output = { ...output, body: checkedBody };
     // T-147e (T-147d review follow-up): the verifier may strip a sentence or
     // replace a paragraph, so the mandatory clauses are checked again on the
     // body as it will be delivered. Re-signed by Ajay (CLO) for T-147e.
-    if (!factCheck.passed) missing = findMissingClauses(pack, output, parts);
+    if (!factCheck.passed) {
+      missing = findMissingClauses(pack, output, parts, { ...clauseCheck, recorded });
+    }
   }
 
   // ── The body takes its place among the parts the system wrote ─────────────
@@ -1453,6 +1485,14 @@ export async function streamGenerateFromBrief(
       details: { clauseId: clause.id },
     });
   }
+  // T-200, R1.7: fixed wording is English, so on another language it is not checked.
+  for (const [clauseId, title] of notChecked) {
+    allWarnings.push({
+      type: 'missing_clause',
+      message: `Fixed wording of ${title} not checked: the draft is not in English.`,
+      details: { clauseId },
+    });
+  }
 
   if (allWarnings.length > 0) {
     res.write(`event: warning\ndata: ${JSON.stringify({ warnings: allWarnings })}\n\n`);
@@ -1536,12 +1576,7 @@ export async function streamGenerateGuided(
     });
   };
   try {
-    for await (const text of streamLLM(
-      DRAFTER_GUIDED_SYSTEM_PROMPT,
-      userPrompt,
-      8192,
-      draft,
-    )) {
+    for await (const text of streamLLM(DRAFTER_GUIDED_SYSTEM_PROMPT, userPrompt, 8192, draft)) {
       raw += text;
       res.write(`data: ${JSON.stringify({ text })}\n\n`);
     }

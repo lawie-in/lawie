@@ -119,7 +119,7 @@ function packWith(clauses: RulePackClause[]): RulePack {
 }
 
 const BODY = [
-  '1. That the applicant is a law-abiding citizen and has been falsely implicated in the present case.',
+  '1. That the applicant is a law-abiding citizen and has been falsely implicated in the present case, and the grounds are submitted below.',
   '2. That the FIR No. 124/2026 was registered on 10.03.2026 under Section 103 of BNS.',
   '3. That the applicant undertakes to abide by every condition this Court may impose.',
 ].join('\n\n');
@@ -346,11 +346,14 @@ describe('which mandatory clauses are missing (T-127, section 4)', () => {
   const p = packWith(clauses);
   const report = (lines: string) => splitDrafterOutput(`${BODY}\n${CLAUSES_MARKER}\n${lines}`);
 
+  // T-200: the FIR cue is the brief's FIR number, so the check is given the brief (input only).
+  const withBrief = { brief: briefWith(VALUES) };
+
   it('none, when every clause has paragraphs that exist or is a part the system added', () => {
     const out = report(
       'grounds: 1\nfir_details: 2\nundertaking: 3\nprayer: SYSTEM\nverification: SYSTEM',
     );
-    expect(findMissingClauses(p, out, PARTS)).toEqual([]);
+    expect(findMissingClauses(p, out, PARTS, withBrief)).toEqual([]);
   });
 
   it.each([
@@ -360,7 +363,7 @@ describe('which mandatory clauses are missing (T-127, section 4)', () => {
     ['its line names no paragraph', 'undertaking: see above', 'paragraph_not_found'],
   ])('a clause is missing when %s', (_name, line, reason) => {
     const out = report(`grounds: 1\nfir_details: 2\nprayer: SYSTEM\nverification: SYSTEM\n${line}`);
-    expect(findMissingClauses(p, out, PARTS)).toEqual([
+    expect(findMissingClauses(p, out, PARTS, withBrief)).toEqual([
       { id: 'undertaking', title: 'Undertaking', reason },
     ]);
   });
@@ -369,12 +372,15 @@ describe('which mandatory clauses are missing (T-127, section 4)', () => {
     const out = report(
       'grounds: SYSTEM\nfir_details: 2\nundertaking: 3\nprayer: SYSTEM\nverification: SYSTEM',
     );
-    expect(findMissingClauses(p, out, PARTS)).toEqual([
+    expect(findMissingClauses(p, out, PARTS, withBrief)).toEqual([
       { id: 'grounds', title: 'Grounds for Bail', reason: 'not_a_system_part' },
     ]);
     // With no prayer part in the document, a prayer reported as SYSTEM is missing.
     const noPrayer = PARTS.filter((x) => x.sectionId !== 'prayer');
-    expect(findMissingClauses(p, out, noPrayer).map((m) => m.id)).toEqual(['grounds', 'prayer']);
+    expect(findMissingClauses(p, out, noPrayer, withBrief).map((m) => m.id)).toEqual([
+      'grounds',
+      'prayer',
+    ]);
   });
 
   it('with no report at all, only the parts the system added count as present', () => {
@@ -432,9 +438,9 @@ describe('which mandatory clauses are missing (T-127, section 4)', () => {
       const real = pack(id);
       const lines = real.mandatoryClauses.map((c) => `${c.id}: 1`).join('\n');
       const out = splitDrafterOutput(
-        `1. Everything, in one paragraph.\n${CLAUSES_MARKER}\n${lines}`,
+        `1. Everything, in one paragraph: FIR No. 124/2026, in custody, the grounds submitted, an undertaking, and no earlier bail application.\n${CLAUSES_MARKER}\n${lines}`,
       );
-      const missing = findMissingClauses(real, out, []).filter(
+      const missing = findMissingClauses(real, out, [], withBrief).filter(
         (m) => m.reason !== 'wording_not_found',
       );
       expect([id, missing]).toEqual([id, []]);

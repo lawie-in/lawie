@@ -96,3 +96,13 @@ Needs `feature.fact_ledger` ON for her test account, or the default bail templat
 - Earlier bail applications are stated as you give them.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-200 (vishal, merged to develop_staging 89afcef, 12 Oct 2026)
+
+- When I draft a bail application and Lawie says every required clause (FIR details, custody, grounds, undertaking, earlier bail applications) is in the draft, it really is.
+- A clause whose paragraph was rewritten, renumbered or emptied is now flagged, instead of passing because its old paragraph number still exists.
+- Fixed wording in an English draft must actually appear. In Hindi drafts the cue words count. If the draft is not in English, Lawie tells me the fixed wording was not checked.
+- When Lawie cannot confirm a clause, the draft is marked "starting draft".
+- Some bail drafts that passed before can now carry the "starting draft" label when a required part's paragraph holds only a blank such as "[To be confirmed: …]" (for example interim bail urgency or duration with no detail given). That is intended.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
