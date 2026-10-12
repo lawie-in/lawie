@@ -35,7 +35,10 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. shashank — T-278 (0c7638c + timeline note). Slot given 12 Oct 2026; merge once Ajay signs.
+1. shashank — T-278 (0c7638c + timeline note). Once Ajay signs.
+2. tanvi — T-315 (0c58158). Once Arjun OKs.
+3. kunal — T-306 (f718a2b). Once Ajay byte-checks the description line.
+First one ready merges first; tell Priya before you start.
 
 ## Last done
 
