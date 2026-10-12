@@ -489,3 +489,10 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Export any other draft: one footer, "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-326 — new BNS sections in the converter (d51311e)
+
+- Look up a new BNS, BNSS or BSA section that has no old equivalent: it shows "No equivalent in the IPC" (or CrPC, IEA) instead of a made-up number.
+- Copy gives just the new section, e.g. "BNS 111".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
