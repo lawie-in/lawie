@@ -26,7 +26,9 @@ import {
   chosenCourtHeading,
   CourtLookupData,
   CourtRuleData,
+  loadTemplateConfig,
   MatterTypeOverride,
+  resolveAdvocateName,
   ruleForMatter,
   signedPartyLabels,
 } from './template-engine.service';
@@ -253,11 +255,10 @@ function annexureMemoOfParties(
 
 // ── Annexure B — Synopsis ─────────────────────────────────────────────────────
 
-function annexureSynopsis(
-  formData: Record<string, unknown>,
-  rules: CourtRules,
-): string {
-  const applicant = safeEsc(formData.applicant_name ?? formData.petitioner_name ?? formData.party_name);
+function annexureSynopsis(formData: Record<string, unknown>, rules: CourtRules): string {
+  const applicant = safeEsc(
+    formData.applicant_name ?? formData.petitioner_name ?? formData.party_name,
+  );
   const courtDesig = esc(rules.designation);
   const docType = safeEsc(formData.template_id ?? formData.doc_type ?? 'Application');
   const sections = str(formData.sections_charged ?? formData.bns_sections ?? formData.sections, '');
@@ -293,7 +294,9 @@ function annexureSynopsis(
 // ── Annexure C — List of Dates ────────────────────────────────────────────────
 
 function annexureListOfDates(formData: Record<string, unknown>): string {
-  const eventDate = safeEsc(formData.event_date ?? formData.incident_date ?? formData.date_of_incident);
+  const eventDate = safeEsc(
+    formData.event_date ?? formData.incident_date ?? formData.date_of_incident,
+  );
   const firDate = safeEsc(formData.fir_date ?? formData.date_of_fir);
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
   const ps = safeEsc(formData.police_station ?? formData.ps_name);
@@ -306,7 +309,10 @@ function annexureListOfDates(formData: Record<string, unknown>): string {
 
   const rows: Array<[string, string]> = [
     [eventDate !== '___________' ? eventDate : '___________', 'Date of alleged incident/event'],
-    [firDate !== '___________' ? firDate : '___________', `FIR No. ${firNo} registered at PS ${ps}`],
+    [
+      firDate !== '___________' ? firDate : '___________',
+      `FIR No. ${firNo} registered at PS ${ps}`,
+    ],
     [arrestDate !== '___________' ? arrestDate : '___________', 'Date of arrest / apprehension'],
     [filingDate, 'Filing of the present application/petition'],
   ];
@@ -329,7 +335,9 @@ function annexureListOfDates(formData: Record<string, unknown>): string {
 
 function annexureIndexOfDocuments(formData: Record<string, unknown>): string {
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
-  const applicant = safeEsc(formData.applicant_name ?? formData.petitioner_name ?? formData.party_name);
+  const applicant = safeEsc(
+    formData.applicant_name ?? formData.petitioner_name ?? formData.party_name,
+  );
 
   const stdDocs: Array<[string, string, string]> = [
     ['1', 'Memo of Parties', 'Annexure A'],
@@ -341,10 +349,16 @@ function annexureIndexOfDocuments(formData: Record<string, unknown>): string {
     ['7', 'Affidavit of ' + applicant, 'Annexure G'],
     [
       '8',
-      firNo !== '___________' ? `Copy of FIR No. ${firNo}` : 'Copy of FIR / Complaint (if available)',
+      firNo !== '___________'
+        ? `Copy of FIR No. ${firNo}`
+        : 'Copy of FIR / Complaint (if available)',
       'Annexure H (to be annexed by advocate)',
     ],
-    ['9', 'Identity and Address Proof of Applicant/Petitioner', 'Annexure I (to be annexed by advocate)'],
+    [
+      '9',
+      'Identity and Address Proof of Applicant/Petitioner',
+      'Annexure I (to be annexed by advocate)',
+    ],
     ['10', 'Any other document relied upon', 'Annexure J onwards (as applicable)'],
   ];
 
@@ -364,11 +378,10 @@ function annexureIndexOfDocuments(formData: Record<string, unknown>): string {
 
 // ── Annexure E — Vakalatnama ──────────────────────────────────────────────────
 
-function annexureVakalatnama(
-  formData: Record<string, unknown>,
-  rules: CourtRules,
-): string {
-  const applicant = safeEsc(formData.applicant_name ?? formData.petitioner_name ?? formData.party_name);
+function annexureVakalatnama(formData: Record<string, unknown>, rules: CourtRules): string {
+  const applicant = safeEsc(
+    formData.applicant_name ?? formData.petitioner_name ?? formData.party_name,
+  );
   const applicantAddr = safeEsc(formData.applicant_address ?? formData.address);
   const advocateName = safeEsc(formData.advocate_name);
   const enrollmentNo = safeEsc(formData.enrollment_number ?? formData.advocate_enrollment);
@@ -417,10 +430,7 @@ function annexureVakalatnama(
 
 // ── Annexure F — Court Fee Statement ─────────────────────────────────────────
 
-function annexureCourtFeeStatement(
-  formData: Record<string, unknown>,
-  rules: CourtRules,
-): string {
+function annexureCourtFeeStatement(formData: Record<string, unknown>, rules: CourtRules): string {
   const courtDesig = esc(rules.designation);
   const courtType = str(formData.court_type ?? rules.courtType, 'district_court');
 
@@ -457,11 +467,15 @@ function annexureAffidavit(
   rules: CourtRules,
   bodyParaCount: number,
 ): string {
-  const deponent = safeEsc(formData.applicant_name ?? formData.petitioner_name ?? formData.party_name);
+  const deponent = safeEsc(
+    formData.applicant_name ?? formData.petitioner_name ?? formData.party_name,
+  );
   const deponentAge = safeEsc(formData.age ?? formData.applicant_age);
   const deponentFather = safeEsc(formData.father_name ?? formData.parent_name);
   const deponentAddr = safeEsc(formData.applicant_address ?? formData.address);
-  const designation = safeEsc(formData.deponent_designation ?? 'the above-named Applicant/Petitioner');
+  const designation = safeEsc(
+    formData.deponent_designation ?? 'the above-named Applicant/Petitioner',
+  );
 
   const today = new Date().toLocaleDateString('en-IN', {
     day: '2-digit',
@@ -475,8 +489,12 @@ function annexureAffidavit(
   // Build verification text from court_rules.verification_format — fill placeholders
   const verificationText = esc(
     rules.verification_format
-      .replace('{deponent_name}', () => str(formData.applicant_name ?? formData.petitioner_name ?? formData.party_name))
-      .replace('{designation}', () => str(formData.deponent_designation ?? 'the above-named Applicant/Petitioner'))
+      .replace('{deponent_name}', () =>
+        str(formData.applicant_name ?? formData.petitioner_name ?? formData.party_name),
+      )
+      .replace('{designation}', () =>
+        str(formData.deponent_designation ?? 'the above-named Applicant/Petitioner'),
+      )
       .replace('{body_para_count}', () => String(bodyParaCount))
       .replace('{place}', () => str(verifiedAt))
       .replace('{date}', () => today),
@@ -534,7 +552,7 @@ export interface AnnexuresInput {
   formData: Record<string, unknown>;
   /** Approximate paragraph count from the main draft (for verification clause) */
   bodyParaCount?: number;
-  /** Advocate name from JWT profile (fallback if not in formData) */
+  /** Advocate name from JWT profile (fallback when the template's own field is empty or not declared) */
   advocateName?: string;
   /**
    * T-156: the chosen court from the courts list, looked up the same way the
@@ -552,11 +570,14 @@ export interface AnnexuresInput {
 export async function buildAnnexuresPack(input: AnnexuresInput): Promise<Buffer> {
   const { formData, bodyParaCount = 10, advocateName, courtData } = input;
 
-  // Inject advocate name from JWT if not in form
-  const enrichedForm: Record<string, unknown> = {
-    ...formData,
-    ...(advocateName && !formData.advocate_name ? { advocate_name: advocateName } : {}),
-  };
+  // T-300: the same advocate name as the draft (resolveAdvocateName): the typed
+  // name where this template declares the field, else the profile name.
+  const templateId = typeof formData.template_id === 'string' ? formData.template_id.trim() : '';
+  const config = templateId ? loadTemplateConfig(templateId) : null;
+  const name = resolveAdvocateName(formData, { name: advocateName }, config);
+  const enrichedForm: Record<string, unknown> = { ...formData };
+  if (name !== undefined) enrichedForm.advocate_name = name;
+  else delete enrichedForm.advocate_name;
 
   // T-158: labels and verification follow the document's matter type.
   const resolved = ruleForMatter(
@@ -571,11 +592,11 @@ export async function buildAnnexuresPack(input: AnnexuresInput): Promise<Buffer>
 
   const parts: string[] = [
     annexureMemoOfParties(enrichedForm, rules, false), // A — first page, no break
-    annexureSynopsis(enrichedForm, rules),             // B
-    annexureListOfDates(enrichedForm),                 // C
-    annexureIndexOfDocuments(enrichedForm),            // D
-    annexureVakalatnama(enrichedForm, rules),           // E
-    annexureCourtFeeStatement(enrichedForm, rules),    // F
+    annexureSynopsis(enrichedForm, rules), // B
+    annexureListOfDates(enrichedForm), // C
+    annexureIndexOfDocuments(enrichedForm), // D
+    annexureVakalatnama(enrichedForm, rules), // E
+    annexureCourtFeeStatement(enrichedForm, rules), // F
     annexureAffidavit(enrichedForm, rules, bodyParaCount), // G
   ];
 

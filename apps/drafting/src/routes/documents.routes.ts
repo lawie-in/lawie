@@ -70,6 +70,7 @@ import {
   loadCourtRule,
   loadTemplateConfig,
   listTemplateConfigs,
+  resolveLegacyAdvocateName,
   validateFormData,
 } from '../services/template-engine.service';
 import {
@@ -1425,10 +1426,9 @@ router.post(
     const payload = req.jwtPayload!;
     const input = parsed.data;
 
-    // Use advocate name from user profile if not provided in request
-    if (!input.advocateName && payload.name) {
-      input.advocateName = payload.name;
-    }
+    // T-300: the body's advocateName is used only if it passes the check in
+    // resolveLegacyAdvocateName; otherwise the profile name. Never a refusal.
+    input.advocateName = resolveLegacyAdvocateName(input.advocateName, { name: payload.name });
 
     // Inject bail-specific fields into partyDetails so post-processor can use them (CLO fixes)
     if (input.fatherName) {
