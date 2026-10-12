@@ -5,7 +5,7 @@
 | Phase          | After v1 |
 | Owner          | Arjun scopes. Lead (build) |
 | Mode           | Cleanup |
-| Status         | To do. Not before v1 is stable. Raised by Priya on the founder's question, 12 Oct 2026 |
+| Status         | Building: vishal (AC3 env default only, 12 Oct 2026). Removal not before v1 is stable. Raised by Priya on the founder's question, 12 Oct 2026 |
 
 `feature.describe_first` and `feature.fact_ledger` keep the new describe-first flow and the fact ledger off for real users until the open blockers (T-187, T-188, T-190, T-194) are done. They also work as a kill switch. Once v1 is stable and every user is on the new flow, both switches and the old path are dead weight (two code paths to test, one database edit before any tester can start).
 

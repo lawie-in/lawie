@@ -72,3 +72,5 @@ From Arjun's scoping, 12 Oct: T-220 needs one founder session (SES production ac
 Arjun's founder tasks, 12 Oct (his session): (a) back up the encryption key OFFLINE before any backfill: losing it loses every draft and there are no database backups; (b) the T-220 session, in this order: SES production-access request first, then the sending identity and DNS, then the IAM keys and the production environment file, then the contact@lawie.in alias; (c) run the encrypt backfill on production (develop first); (d) the Atlas tier and region; (e) cancel paying users' Razorpay plans by hand until a cancel path exists.
 
 From Arjun, 12 Oct: add FEATURE_DEFAULT_DESCRIBE_FIRST=on and FEATURE_DEFAULT_FACT_LEDGER=on to the develop environment file (or set the two AppSettings once in admin). Chatbot (T-253): two Anthropic keys ($25 chat, $5 eval), chat key in the production environment file, eval key as a GitHub secret, seed the AppSettings, flip chat.enabled only after Anushka's PASS.
+
+T-285 (long repairs drop the stream) needs no founder task: Arjun's fix is a keep-alive in code.

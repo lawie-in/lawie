@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (writes the rule, signs). Lead (build). Anushka (verdict) |
 | Mode           | Rule first, then build. Legal content (`citation-check.ts`, T-148) |
-| Status         | Rule signed by Ajay (108a57a, `handoff/legal/T-263-citation-name-match-signed.md`), 12 Oct 2026. To do: vishal. HIGH priority per Ajay: case law reaching a draft is a legal-accuracy risk. Found by mahak during T-251, 12 Oct 2026 |
+| Status         | Merged to `develop_staging` (4a51d23, 12 Oct 2026). Waiting for Anushka on develop |
 
 ## Problem
 

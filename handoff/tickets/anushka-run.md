@@ -221,3 +221,9 @@ Quality: nothing to test in the UI — tests only.
 - A "to be confirmed" blank still counts as a blank when it comes back in lower case, and no longer draws a false "may not belong" warning.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-263 (vishal, merged to develop_staging 4a51d23, 12 Oct 2026)
+
+- When a draft would name a case you did not give, the whole case name is now removed, not only the reporter. Both sides and the versus word go, so no half-name is left beside the blank.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
