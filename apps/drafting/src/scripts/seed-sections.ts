@@ -52,13 +52,13 @@ const JSON_FILES: JsonMapping[] = [
 ];
 
 /**
- * Tables Ajay (CLO) has signed row by row (T-250, T-255), keyed by meta.old_code.
+ * Tables Ajay (CLO) has signed row by row (T-250, T-255, T-267), keyed by meta.old_code.
  * Only these carry validatedBy (meta.validated_by) and validatedAt (meta.last_updated).
  * Rows from any other table omit validatedBy, so the schema default
  * "Pending CLO review" applies, and validatedAt stays null.
  * Explicit list: do not infer a signature from the meta text.
  */
-const SIGNED_TABLES = new Set(['CrPC', 'IEA']);
+const SIGNED_TABLES = new Set(['IPC', 'CrPC', 'IEA']);
 
 function validationFor(meta: JsonMapping['meta']): {
   validatedBy?: string;
@@ -70,7 +70,14 @@ function validationFor(meta: JsonMapping['meta']): {
   return { validatedAt: null };
 }
 
+/**
+ * Ajay (CLO), T-267 ruling A: unverified rows never carry a guessed section.
+ * The row's `verify` text is internal and is never seeded.
+ */
+const UNVERIFIED_NOTE = 'Not verified. Check the Gazette before citing a BNS section.';
+
 function notesFor(mapping: JsonMapping['mappings'][string]): string {
+  if (mapping.type === 'unverified') return UNVERIFIED_NOTE;
   const notes = mapping.notes ?? mapping.note;
   if (notes !== undefined) return notes;
   // Ajay approved new_law_status as the note only for rows with no equivalent.

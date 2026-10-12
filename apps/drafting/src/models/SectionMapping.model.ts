@@ -6,7 +6,8 @@ export type MappingType =
   | 'merged'
   | 'split'
   | 'repealed'
-  | 'repealed_no_equivalent';
+  | 'repealed_no_equivalent'
+  | 'unverified';
 
 export interface ISectionMapping extends Document {
   oldCode: string; // IPC, CrPC, IEA
@@ -74,7 +75,15 @@ const SectionMappingSchema = new Schema<ISectionMapping>(
     mappingType: {
       type: String,
       required: [true, 'mappingType is required'],
-      enum: ['direct', 'partial', 'merged', 'split', 'repealed', 'repealed_no_equivalent'],
+      enum: [
+        'direct',
+        'partial',
+        'merged',
+        'split',
+        'repealed',
+        'repealed_no_equivalent',
+        'unverified',
+      ],
     },
     notes: {
       type: String,

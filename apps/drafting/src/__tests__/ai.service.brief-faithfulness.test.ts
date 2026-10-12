@@ -977,8 +977,8 @@ describe('T-136 review round 1 — old-law references in a regular bail brief (p
   beforeEach(() => {
     (convertOldReferencesInText as jest.Mock).mockClear();
     (convertOldReferencesInText as jest.Mock).mockImplementation(async (text: string) => ({
-      converted: text.replace(/379 IPC/g, 'Section 303 BNS (converted)'),
-      conversions: [{ from: '379 IPC', to: '303 BNS' }],
+      converted: text.replace(/379 IPC/g, 'Section 303(2) BNS (converted)'),
+      conversions: [{ from: '379 IPC', to: '303(2) BNS' }],
     }));
   });
   afterEach(() => {
