@@ -1,6 +1,7 @@
 import { UserRole } from '@lawie/shared';
 import { Request, Response, NextFunction } from 'express';
 
+import logger from '../config/logger';
 import { verifyAccessToken, TokenPayload } from '../services/jwt.service';
 import { hashToken, validateSession } from '../services/session.service';
 
@@ -65,7 +66,9 @@ export async function authenticate(
   let session: Awaited<ReturnType<typeof validateSession>>;
   try {
     session = await validateSession(verified.payload.sub, hashToken(verified.token));
-  } catch {
+  } catch (err) {
+    // Never log the token or its hash.
+    logger.warn({ err, userId: verified.payload.sub }, 'session lookup failed');
     req.jwtPayload = undefined;
     return next(new AppError(503, 'Session service unavailable. Please try again shortly.'));
   }
