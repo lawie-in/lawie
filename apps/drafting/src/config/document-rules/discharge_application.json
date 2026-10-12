@@ -241,7 +241,7 @@
       "Para 9: Corporate cases — for accused officers without specific role: cite Pepsi Foods Ltd v. Special Judicial Magistrate (1998) 5 SCC 749; Maksud Saiyed v. State of Gujarat (2008) 5 SCC 668; Sunil Bharti Mittal v. CBI (2015) 4 SCC 609 — vicarious liability under criminal law requires specific statutory provision.",
       "Para 10: NI Act S.138 prosecutions of company directors — Cite S.M.S. Pharmaceuticals v. Neeta Bhalla (2005) 8 SCC 89 — director must be 'in charge of and responsible to' company at time of offence.",
       "Para 11: Where civil dispute given criminal colour — cite Indian Oil Corp v. NEPC India (2006) 6 SCC 736 — caution against criminalising contractual disputes.",
-      "Para 12: Statutory ingredients of common offences — applicant must know these (cited for reference): BNS 318 (cheating) requires inducement, deception, delivery; BNS 316 (criminal breach of trust) requires entrustment + dishonest misappropriation; BNS 85 (cruelty) requires marriage + harassment + cruelty as defined; BNS 86 (dowry death) requires death within 7 years of marriage + cruelty soon before death.",
+      "Para 12: Statutory ingredients of common offences — applicant must know these (cited for reference): BNS 318 (cheating) requires inducement, deception, delivery; BNS 316 (criminal breach of trust) requires entrustment + dishonest misappropriation; BNS 85 (cruelty) requires marriage + harassment + cruelty as defined; BNS 80 (dowry death) requires death within 7 years of marriage + cruelty soon before death.",
       "Para 13: Discharge under S.250 distinct from acquittal — discharge does NOT bar fresh trial if new evidence emerges (S.300 CrPC not attracted).",
       "Para 14: List of chargesheet documents relied on with index references.",
       "Burden — at discharge stage, defence cannot adduce evidence; only chargesheet material is examined. Accused may produce documents only if material in chargesheet itself supports defence (per State of Orissa v. Debendra Nath Padhi (2005) 1 SCC 568).",
@@ -282,12 +282,12 @@
           "number": "S.85",
           "description": "Cruelty by husband or relative (was IPC 498A) — strict ingredients"
         },
-        { "number": "S.86", "description": "Dowry death (was IPC 304B) — strict ingredients" },
+        { "number": "S.80", "description": "Dowry death (was IPC 304B) — strict ingredients" },
         {
-          "number": "S.316",
+          "number": "S.316(2)",
           "description": "Criminal breach of trust (was IPC 406) — entrustment requirement"
         },
-        { "number": "S.318", "description": "Cheating (was IPC 420) — deception requirement" }
+        { "number": "S.318(4)", "description": "Cheating (was IPC 420) — deception requirement" }
       ]
     },
     {

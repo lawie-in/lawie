@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (decides and signs). Lead (builds) |
 | Mode           | Small fix (drafting). Legal path: `fact-verifier.ts` and `brief-drafter.ts` |
-| Status         | To do. Unassigned. Raised by Mahak (T-273), 12 Oct 2026 |
+| Status         | Ajay decided 12 Oct 2026: all three places case-insensitive. To do: mahak, after T-238 |
 | Depends on     | T-273 merged |
 
 T-273 makes the blank marker case-insensitive in the export and server PDF. Three places in legal files still match upper case only:
@@ -23,3 +23,13 @@ Our code and prompts always write upper case. Lower case only comes from the mod
 3. If he decides to leave them, the ticket records why and closes.
 
 Note (Mahak, T-273): `apps/drafting/src/config/document-rules/_averments/README.md` line 19 mentions `{{MISSING: label}}`. Revisit it if Ajay changes the marker.
+
+## Ajay's decision (12 Oct 2026)
+
+All three places become case-insensitive: the `i` flag on the marker words only; the fixed text after them stays as written.
+
+1. `fact-verifier.ts` BLANK_RE (~L209): a lower-case marker is a blank, never an entity or a claim.
+2. `countMissingPlaceholders` (~L1511): same, for consistency.
+3. `brief-drafter.ts` BLANK_LINE (~L1407): yes, and this matters most. Today a whole-line "[to be confirmed: x]" in lower case can be taken for a note line and deleted before saving, which silently drops a blank the advocate must fill. It must be kept.
+
+Tests: one per place (lower case and Title case), plus "a lower-case blank line survives the note stripper". The `_averments/README.md` line 19: leave it (the marker we write stays upper case). Ajay sees the diff before merge.

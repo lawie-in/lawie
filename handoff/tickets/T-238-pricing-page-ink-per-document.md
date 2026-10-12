@@ -5,7 +5,7 @@
 | Phase          | 2 — Drops pricing |
 | Owner          | Madhuri (copy), Meera signs. Ajay (consumer-protection check). Lead (build). Anushka (verdict) |
 | Mode           | Small fix after the copy is signed |
-| Status         | Copy signed: Meera wrote it, Ajay approved with changes, 12 Oct 2026. Ships only after T-227 merges. Unassigned. Was: waits for Madhuri's copy. Found by shashank during T-227, 12 Oct 2026 |
+| Status         | Merged into develop_staging (59e4ac8), 12 Oct 2026. Waiting for Anushka on develop |
 | Depends on     | T-227 (the prices) |
 
 ## Problem
@@ -36,3 +36,17 @@
 ## Scope widened (Priya, 12 Oct 2026)
 
 AC2 now covers the whole pricing page: rows 1–6 of Meera's `handoff/marketing/copy/pricing.md` before/after table. Rows 7–14 and the other pages are in T-252. Every changed line still needs Ajay's ok.
+
+## Ajay's answers on the built page (12 Oct 2026, relayed by Priya; Ajay to confirm in his signed file)
+
+Commit 41a41ff, `pricing/page.tsx`. Ajay, per line:
+
+1. FAQ "What is Ink?": his signed words, "short documents, such as most notices and affidavits, use 1" (not "short ones"). Meera's `pricing.md` follows his.
+2. Line ~196: "Most documents use 2 Ink, short documents 1. Buy extra packs anytime." (changed from "short ones" to match).
+3. Solo card: OK; a gold border and shadow is styling, not a claim. No label added.
+4. ₹199 "POPULAR" badge removed: OK.
+5. Free plan: "Every line of the draft is yours to change": OK.
+6. Free plan: **"Criminal drafts use BNS, BNSS and BSA section numbers"** (changed from "cite BNS, BNSS and BSA": "cite promises more than we can guarantee"). This reverses the earlier line in `handoff/legal/marketing-s1-claims-signed.md` L11 ("use" to "cite") and the "Never 'use'" notes in `calendar-week1.md` L32 and `strategy.md` L23. Ajay to confirm in writing that this supersedes the earlier ruling.
+7. "BEST VALUE" on the ₹499 pack: removed. His wording "Lowest price per Ink of the 3 packs" was OK only if it fits; it overhangs the card by 50 px at 1280 px, so no badge.
+
+Vikram's ok on `pricing.md` row 2 ("short documents") is also needed in writing.

@@ -117,19 +117,22 @@ describe('seed-sections.ts (real run)', () => {
   describe('validation fields (Ajay r3)', () => {
     const IEA_BY =
       'Ajay (CLO) - 2026-10-12 - corrected table (T-250); every row checked against the Gazette headings of the BSA and two comparison tables';
+    const IPC_BY =
+      'Ajay (CLO) - 2026-10-12 - corrected table (T-267); every row checked against the Gazette headings of the BNS and two comparison tables';
     const CRPC_BY =
       'Ajay (CLO) - 2026-10-12 - corrected table (T-255); every row checked against the Gazette headings of the BNSS and two comparison tables';
     const DAY = new Date('2026-10-12').getTime();
 
-    it('IPC rows (and IPC new provisions) are Pending CLO review with null validatedAt', async () => {
-      const total = await SectionMapping.countDocuments({ oldCode: 'IPC' });
-      expect(total).toBeGreaterThan(500);
-      const pending = await SectionMapping.countDocuments({
-        oldCode: 'IPC',
-        validatedBy: 'Pending CLO review',
-        validatedAt: null,
-      });
-      expect(pending).toBe(total);
+    it('every IPC row (mappings and new provisions) carries the T-267 validatedBy and 2026-10-12; none is Pending', async () => {
+      const rows = await SectionMapping.find({ oldCode: 'IPC' });
+      expect(rows.length).toBeGreaterThan(500);
+      for (const r of rows) {
+        expect(r.validatedBy).toBe(IPC_BY);
+        expect(r.validatedAt?.getTime()).toBe(DAY);
+      }
+      expect(
+        await SectionMapping.countDocuments({ oldCode: 'IPC', validatedBy: 'Pending CLO review' }),
+      ).toBe(0);
     });
 
     it('the old IPC "completed 2026-05-10" string is never seeded', async () => {

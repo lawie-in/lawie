@@ -28,8 +28,8 @@ Wording sources: Ajay, `handoff/legal/marketing-s1-claims-signed.md` (12 Oct 202
 ## House rules used in every post
 
 - **Disclaimer**, verbatim, in English in both language versions (Ajay's exact wording, so not translated): `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` Where an X post cannot fit the full line, it carries the second sentence verbatim as the pointer: `The advocate is responsible for legal accuracy and filing.`
-- **Ink line** (Ajay, exact): `5 free Ink on sign-up. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.` Never "succeeds" or "ready".
-- **Sanhitas** (Ajay, exact): `Criminal drafts cite BNS, BNSS and BSA.` Never "use", never "updated for BNS / the new criminal laws", no claim about matters under the old law.
+- **Ink line** (Ajay, exact): `5 free Ink on sign-up. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.` Never "succeeds" or "ready".
+- **Sanhitas** (Ajay, exact): `Criminal drafts use BNS, BNSS and BSA section numbers.` Final wording per Ajay, handoff/legal/T-238-pricing-page-lines-signed.md (12 Oct 2026, overrides marketing-s1-claims-signed.md). Never "updated for BNS / the new criminal laws", no claim about matters under the old law.
 - **"Free" always sits next to "5 Ink".** CTA: `Start with 5 free Ink`.
 - **Rupees** (Vikram): only `Solo ₹799/month, 50 Ink` and `Top-ups from ₹65 (3 Ink)` may appear, and only after T-227 and T-238 merge and the founder has checked the Razorpay plans. Never Pro, never a yearly price, never a per-document rupee figure, never "50 documents a month", never a discount.
 - **Offers** (+5 Ink bar-demo code, +3 Ink ambassador code) go only in bar-demo and ambassador copy (add-ons at the end), never in the 11 posts.
@@ -72,9 +72,9 @@ Lawie is a drafting assistant for Indian advocates.
 2. Answer a few questions about the matter.
 3. Review the first draft, edit it, and download it in Word or PDF.
 
-You can draft more than 90 document types, including bail applications, legal notices, affidavits, petitions, family-court matters and agreements. Criminal drafts cite BNS, BNSS and BSA.
+You can draft more than 90 document types, including bail applications, legal notices, affidavits, petitions, family-court matters and agreements. Criminal drafts use BNS, BNSS and BSA section numbers.
 
-5 free Ink on sign-up. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.
+5 free Ink on sign-up. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
@@ -121,7 +121,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 2. A drafting assistant for Indian advocates.
 3. Flow: pick a document, answer a few questions, review, edit, download in Word or PDF.
 4. More than 90 document types, including bail applications, legal notices, affidavits, petitions, family-court matters and agreements.
-5. "Criminal drafts cite BNS, BNSS and BSA." (exact)
+5. "Criminal drafts use BNS, BNSS and BSA section numbers." (exact)
 6. Ink line (exact, signed). Hindi rendering of it is new: please check.
 7. Sign in with Google.
 8. The "routine" line describes the pain; it is not a product claim.
@@ -150,7 +150,7 @@ Lawie is live.
 
 A drafting assistant for Indian advocates. Pick a document, answer a few questions about the matter, then review, edit and download your first draft in Word or PDF.
 
-More than 90 document types. Criminal drafts cite BNS, BNSS and BSA.
+More than 90 document types. Criminal drafts use BNS, BNSS and BSA section numbers.
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
@@ -206,7 +206,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 1. Lawie is live.
 2. Flow: pick, answer a few questions, review, edit, download (Word or PDF).
 3. More than 90 document types; bail application, legal notice, affidavit and agreement among them.
-4. "Criminal drafts cite BNS, BNSS and BSA."
+4. "Criminal drafts use BNS, BNSS and BSA section numbers."
 5. 5 free Ink; sign in with Google.
 
 ---
@@ -429,7 +429,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 
 **Claims to check (Ajay):**
 1. A bail application is drafted by picking it, answering questions, then review, edit, download.
-2. "Criminal drafts cite BNS, BNSS and BSA."
+2. "Criminal drafts use BNS, BNSS and BSA section numbers."
 3. The matter shown is fictional and labelled.
 4. The claims list of the reel used (R4 or R1) in `reels.md`: Section 483 BNSS with `[Sample Sessions Court]` (Ajay checks the actual frame).
 
@@ -440,7 +440,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 **Copy (EN)** — 278 / 280
 
 ```
-Bail applications, notices, affidavits, petitions, agreements and more: more than 90 document types. Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink.
+Bail applications, notices, affidavits, petitions, agreements and more: more than 90 document types. Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w1-x-2
@@ -461,12 +461,12 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 - **Format:** X image, 1600x900. One export per language version.
 - **Template:** T3 document-family tile (landscape) (`design-notes.md` §3)
 - **Layout and hierarchy:** Headline top-left 96 px. Below it, a 3 x 2 grid of tiles (each 440 x 150): Bail applications, Legal notices, Affidavits, Petitions, Agreements, 'and more' (the sixth tile is outlined, no icon). Each tile: lucide icon 56 px (file-text), label 52 px. Footer zone with the BNS/BNSS/BSA line and the disclaimer pointer.
-- **Text on image, EN layer (verbatim from the post):** `Over 90 document types` (headline) / tiles: `Bail applications` `Legal notices` `Affidavits` `Petitions` `Agreements` `and more` / `Criminal drafts cite BNS, BNSS and BSA.` / `Start with 5 free Ink` / footer `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` (full line fits at 1600 wide in 2 lines, so use the full line, not the X pointer).
+- **Text on image, EN layer (verbatim from the post):** `Over 90 document types` (headline) / tiles: `Bail applications` `Legal notices` `Affidavits` `Petitions` `Agreements` `and more` / `Criminal drafts use BNS, BNSS and BSA section numbers.` / `Start with 5 free Ink` / footer `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` (full line fits at 1600 wide in 2 lines, so use the full line, not the X pointer).
 - **Text on image, HI layer (verbatim from the HI post):** Headline `90 से ज़्यादा डॉक्यूमेंट टाइप` / tiles `Bail application` `Legal notice` `Affidavit` `Petition` `Agreement` `और भी` / `Criminal drafts में BNS, BNSS और BSA cite होते हैं।` / `5 free Ink से शुरू करें` / the disclaimer in English.
 - **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** Full line in the footer zone, English. The HI post carries only the second sentence, but the image carries the full line, which is allowed (verbatim, signed wording).
-- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles: bail applications, legal notices, affidavits, petitions, agreements and more. Over 90 document types. Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink."
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles: bail applications, legal notices, affidavits, petitions, agreements and more. Over 90 document types. Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink."
 - **Note for Madhuri/Ajay:** Tile list is the post's own list, in the post's order. 'Over 90' follows the post (the headline); the calendar elsewhere says 'more than 90'. Ajay to confirm both read the same claim.
 
 **Rajesh: update** — this X post carries the CTA link, so it uses the link card and NO image (an attached image suppresses the card). Visual brief is now: none (link card). The image brief above is superseded; keep it only if Meera later approves an image-only variant with no link in the text.
@@ -474,7 +474,7 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 **Claims to check (Ajay):**
 1. More than 90 document types.
 2. Bail applications, legal notices, affidavits, petitions and agreements among them.
-3. "Criminal drafts cite BNS, BNSS and BSA."
+3. "Criminal drafts use BNS, BNSS and BSA section numbers."
 4. 5 free Ink.
 
 ---
@@ -546,7 +546,7 @@ On-slide text (6 slides):
 3. Legal notices, affidavits, petitions and plaints.
 4. Family-court matters.
 5. Agreements: rent, NDA, MOU, service, loan, employment.
-6. Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink.
+6. Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.
    Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 ```
 
@@ -555,7 +555,7 @@ Caption (~430 chars):
 ```
 More than 90 document types in Lawie.
 
-Bail applications, legal notices, affidavits, petitions, family-court matters, agreements and more. Criminal drafts cite BNS, BNSS and BSA.
+Bail applications, legal notices, affidavits, petitions, family-court matters, agreements and more. Criminal drafts use BNS, BNSS and BSA section numbers.
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
@@ -598,12 +598,12 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 - **Format:** Instagram carousel, 6 slides, 1080x1350, JPEG q85 each under 200 KB. One carousel per language version.
 - **Template:** S1 T1 (navy). S2 to S5 T3 document-family tile. S6 end-card (§5). (`design-notes.md` §3)
 - **Layout and hierarchy:** S1 headline only. S2 to S5: slide headline 72 px at top, then 2 x 3 grid of tiles (440 x 220) for the types. S5 has six tiles; S2 has six bail tiles (see below). S6: BNS/BNSS/BSA line, CTA, disclaimer, lockup. Same grid and tile style as W2-IG-1 so the two carousels read as one family.
-- **Text on image, EN layer (verbatim from the post):** S1 `What can you draft in Lawie? More than 90 document types.` S2 `Bail applications: regular, anticipatory, before magistrate, interim, default, cancellation.` (six tiles: Regular, Anticipatory, Before magistrate, Interim, Default, Cancellation) S3 `Legal notices, affidavits, petitions and plaints.` (four tiles) S4 `Family-court matters.` (single large tile; no sub-list, since the copy lists none) S5 `Agreements: rent, NDA, MOU, service, loan, employment.` (six tiles) S6 `Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink.` + disclaimer.
+- **Text on image, EN layer (verbatim from the post):** S1 `What can you draft in Lawie? More than 90 document types.` S2 `Bail applications: regular, anticipatory, before magistrate, interim, default, cancellation.` (six tiles: Regular, Anticipatory, Before magistrate, Interim, Default, Cancellation) S3 `Legal notices, affidavits, petitions and plaints.` (four tiles) S4 `Family-court matters.` (single large tile; no sub-list, since the copy lists none) S5 `Agreements: rent, NDA, MOU, service, loan, employment.` (six tiles) S6 `Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.` + disclaimer.
 - **Text on image, HI layer (verbatim from the HI post):** S1 `Lawie में क्या-क्या ड्राफ्ट कर सकते हैं? 90 से ज़्यादा डॉक्यूमेंट टाइप।` S2 `Bail application: regular, anticipatory, magistrate के सामने, interim, default, cancellation.` S3 `Legal notice, affidavit, petition और plaint.` S4 `Family court के मामले।` S5 `Agreement: rent, NDA, MOU, service, loan, employment.` S6 `Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।` + disclaimer.
 - **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour. It sits on the last slide only, as in the copy.
-- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Slide 1 of 6: What can you draft in Lawie? More than 90 document types. Slides 2 to 5 show tiles for bail applications, legal notices and affidavits, family-court matters and agreements. Slide 6: Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Slide 1 of 6: What can you draft in Lawie? More than 90 document types. Slides 2 to 5 show tiles for bail applications, legal notices and affidavits, family-court matters and agreements. Slide 6: Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
 - **Note for Madhuri/Ajay:** Tiles name only what the slide copy names. Do not add tiles for types the copy does not list.
 
 **Claims to check (Ajay):**
@@ -612,7 +612,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 3. Legal notices, affidavits, petitions and plaints are live (`legal_notice_*`, `affidavit_*`, `writ_petition_*`, `plaint_*`).
 4. Family-court matters are live (`divorce_mutual_consent`, `divorce_hma`, `maintenance_bnss_144`, `guardianship_petition`).
 5. Agreements: rent, NDA, MOU, service, loan, employment are live.
-6. "Criminal drafts cite BNS, BNSS and BSA."
+6. "Criminal drafts use BNS, BNSS and BSA section numbers."
 
 ---
 
@@ -693,7 +693,7 @@ Hello,
 
 How Ink works in Lawie:
 • 5 free Ink on sign-up.
-• Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1.
+• Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1.
 • You're charged only after a draft is generated; a failed generation is not charged.
 • Need more? Solo ₹799/month, 50 Ink. Top-ups from ₹65 (3 Ink).
 

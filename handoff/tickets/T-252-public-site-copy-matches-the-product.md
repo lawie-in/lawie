@@ -68,3 +68,7 @@ The section-converter page says "500+ section mappings validated by a practising
 ## Align wording (Mahak, T-238, 12 Oct 2026)
 
 `handoff/marketing/copy/pricing.md` and the T-252 lines (`faq/page.tsx` ~L53, about page) still say "Criminal drafts cite BNS, BNSS and BSA". Ajay's final wording (T-238) is "Criminal drafts use BNS, BNSS and BSA section numbers". Use it everywhere.
+
+## Marketing files to update (Ajay, T-238, 12 Oct 2026)
+
+`handoff/legal/T-238-pricing-page-lines-signed.md` (4d92265) overrides the earlier S1 row. Final: "Criminal drafts use BNS, BNSS and BSA section numbers"; "short documents" instead of "short ones". Update `handoff/marketing/calendar-week1.md` (L32 and every "cite BNS, BNSS and BSA" line) and `strategy.md` (L23) to this wording. Meera is paused; do it when she resumes, or Priya edits the wording in those Markdown files if she does not resume.

@@ -5,7 +5,7 @@ Priya collects each lead's "What a user can now do" text here after a merge into
 ## Setup before the run (Priya, 12 Oct 2026)
 
 - `feature.describe_first`: on for the signed-in account (founder checked, 12 Oct).
-- `feature.fact_ledger`: not set in the database today, so it is off. Before Anushka tests T-189, once T-189 is on `develop`, the founder adds the app setting `feature.fact_ledger` with the same value as `feature.describe_first` (his user id, or the comma-separated list of ids). Never `on`: that would switch it on for every user, and it stays off for real users until T-187, T-188, T-190 and T-194 are done.
+- `feature.fact_ledger`: set by the founder, 12 Oct 2026, with the same value as `feature.describe_first` (no id is written here). The rest of this paragraph is the original instruction, kept for the record. Originally: not set in the database, so it was off. Before Anushka tests T-189, once T-189 is on `develop`, the founder adds the app setting `feature.fact_ledger` with the same value as `feature.describe_first` (his user id, or the comma-separated list of ids). Never `on`: that would switch it on for every user, and it stays off for real users until T-187, T-188, T-190 and T-194 are done.
 
 - For default bail (T-251): `feature.fact_ledger` must also be ON for her test account, or the default bail template isn't offered.
 
@@ -189,5 +189,23 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - If a draft leaves earlier applications out, it is flagged as missing that part. In an interim bail draft, the usual line that the main application is pending does not count as that disclosure.
 - In an anticipatory bail draft, the "Undertakings" part sets out what the applicant undertakes to do if granted bail, never as facts about the applicant.
 - In an interim bail draft, "Roots of the Applicant" appears only when my brief gives those facts; otherwise it is left out and nothing is invented.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-267 (shashank, merged to develop_staging ee93984, 12 Oct 2026)
+
+The first item works without a reseed; the second and third need develop's section tables reseeded first (Arjun does it on develop).
+
+- Several drafts cite the right BNS sections: dowry death BNS 80, false evidence BNS 227, 228 and 229, defamation 356(1) and 356(2), and the sub-sections for cheating 318(4) and criminal breach of trust 316(2).
+- The section converter and old-to-new conversions in drafts use IPC to BNS pairs rechecked against the Gazette text. A few old sections are marked "not verified" and show no BNS section.
+- The bail checker no longer reports an old IPC section that has no new equivalent as if it were a different BNS offence. (The bail checker page does not yet show the "No BNS equivalent" note: T-278.)
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-238 (mahak, merged to develop_staging 59e4ac8, 12 Oct 2026)
+
+- On the pricing page I read that most documents use 2 Ink and short documents 1, and that a failed draft is not charged, instead of "each document uses 1 Ink".
+- The Free plan reads "Every line of the draft is yours to change" and "Criminal drafts use BNS, BNSS and BSA section numbers", with no court-formatting or validation claims.
+- The plans and packs carry no "Most Popular", "POPULAR" or "BEST VALUE" labels.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

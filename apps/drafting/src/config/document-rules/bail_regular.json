@@ -321,7 +321,7 @@
           "description": "Cruelty by husband or relatives of husband (replaces IPC 498A)"
         },
         { "number": "80", "description": "Dowry death (replaces IPC 304B)" },
-        { "number": "103", "description": "Murder (replaces IPC 302)" }
+        { "number": "103(1)", "description": "Murder (replaces IPC 302)" }
       ]
     }
   ],

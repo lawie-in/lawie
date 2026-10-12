@@ -5,7 +5,7 @@ Status: **DRAFT, held until go-live.** Nothing here is posted until the launch g
 
 Day 1 = go-live day. Week 2 = Days 8–14.
 
-All house rules from `calendar-week1.md` apply: verbatim disclaimer, Ajay's Ink line, "Criminal drafts cite BNS, BNSS and BSA.", "free" always next to "5 Ink", Vikram's rupee lines only, one link per post with UTM.
+All house rules from `calendar-week1.md` apply: verbatim disclaimer, Ajay's Ink line, "Criminal drafts use BNS, BNSS and BSA section numbers.", "free" always next to "5 Ink", Vikram's rupee lines only, one link per post with UTM.
 
 ## Gates (Ajay, `handoff/legal/marketing-package-signed.md` section A; apply to every post below)
 
@@ -18,7 +18,7 @@ All house rules from `calendar-week1.md` apply: verbatim disclaimer, Ajay's Ink 
 - **WhatsApp broadcasts** go only to contacts who opted in to these messages, with the purpose stated, and the opt-in recorded (DPDP Act, 2023, s.6). "Reply STOP" works and is honoured.
 - **T-234** on production: swap "Email and password: coming soon" for the email sign-in line (landing page).
 
-**How this week treats BNSS (Ajay, 12 Oct 2026):** Lawie's packs do not switch between old and new law, and offences before 1 July 2024 still go by IPC/CrPC. So no post here says or implies that Lawie handles the IPC→BNS / CrPC→BNSS switch, or that old formats are wrong. No section-correspondence tables (I had drafted a CrPC→BNSS bail-section post; it is cut). The BNSS angle is limited to (a) the signed line "Criminal drafts cite BNS, BNSS and BSA.", (b) the six bail drafts, and (c) the advocate checking every section cited.
+**How this week treats BNSS (Ajay, 12 Oct 2026):** Lawie's packs do not switch between old and new law, and offences before 1 July 2024 still go by IPC/CrPC. So no post here says or implies that Lawie handles the IPC→BNS / CrPC→BNSS switch, or that old formats are wrong. No section-correspondence tables (I had drafted a CrPC→BNSS bail-section post; it is cut). The BNSS angle is limited to (a) the signed line "Criminal drafts use BNS, BNSS and BSA section numbers.", (b) the six bail drafts, and (c) the advocate checking every section cited.
 
 **Reel note:** R2 (legal notice, a 1-Ink document) is this week's reel, although the week's theme is bail (Meera, confirmed; `strategy.md` §7 updated to match: R1 Week 1, R2 Week 2, R3 Week 3).
 
@@ -62,7 +62,7 @@ Bail applications are one of the documents a district-court junior drafts most o
 • Default bail
 • Cancellation of bail
 
-Pick the one you need, answer a few questions about the matter, then review the first draft, edit it and download it in Word or PDF. Criminal drafts cite BNS, BNSS and BSA.
+Pick the one you need, answer a few questions about the matter, then review the first draft, edit it and download it in Word or PDF. Criminal drafts use BNS, BNSS and BSA section numbers.
 
 Check every section and every fact before you file. The draft is where you start, not where you stop.
 
@@ -97,20 +97,20 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 **Visual brief (Rajesh):**
 - **Format:** LinkedIn single image, 1200x1350. `_en`, `_hi`.
 - **Template:** T3 document-family tile (six bail tiles) (`design-notes.md` §3)
-- **Layout and hierarchy:** Headline 80 px. 2 x 3 grid of tiles, each 500 x 190, in the post's order: Regular bail, Anticipatory bail, Bail before the magistrate, Interim bail, Default bail, Cancellation of bail. Tile label 52 px. Under the grid: `Criminal drafts cite BNS, BNSS and BSA.` (48 px). Footer zone with disclaimer, then lockup.
-- **Text on image, EN layer (verbatim from the post):** `Lawie has six:` / tiles / `Criminal drafts cite BNS, BNSS and BSA.` / `Check every section and every fact before you file.` / CTA `Start with 5 free Ink`.
+- **Layout and hierarchy:** Headline 80 px. 2 x 3 grid of tiles, each 500 x 190, in the post's order: Regular bail, Anticipatory bail, Bail before the magistrate, Interim bail, Default bail, Cancellation of bail. Tile label 52 px. Under the grid: `Criminal drafts use BNS, BNSS and BSA section numbers.` (48 px). Footer zone with disclaimer, then lockup.
+- **Text on image, EN layer (verbatim from the post):** `Lawie has six:` / tiles / `Criminal drafts use BNS, BNSS and BSA section numbers.` / `Check every section and every fact before you file.` / CTA `Start with 5 free Ink`.
 - **Text on image, HI layer (verbatim from the HI post):** `Lawie में इसके छह ड्राफ्ट हैं:` / tiles `Regular bail` `Anticipatory bail` `Magistrate के सामने bail` `Interim bail` `Default bail` `Bail cancellation` / `Criminal drafts में BNS, BNSS और BSA cite होते हैं।` / `फ़ाइल करने से पहले हर section और हर तथ्य जाँचें।` / CTA `5 free Ink से शुरू करें`
 - **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour.
-- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles: regular bail, anticipatory bail, bail before the magistrate, interim bail, default bail, cancellation of bail. Criminal drafts cite BNS, BNSS and BSA. Check every section and every fact before you file. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles: regular bail, anticipatory bail, bail before the magistrate, interim bail, default bail, cancellation of bail. Criminal drafts use BNS, BNSS and BSA section numbers. Check every section and every fact before you file. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
 - **Note for Madhuri/Ajay:** The headline is the post's own fragment `Lawie has six:`. I left the 'drafts most' sentence off the image because Ajay flagged it as unmeasured. If that reads too bare, Madhuri can give a one-line image headline.
 
 **Claims to check (Ajay):**
 1. "Bail applications are one of the documents a district-court junior drafts most often." Ajay's softer form; not a measured figure.
 2. Six bail drafts are live: regular, anticipatory, before magistrate, interim, default, cancellation.
 3. Flow: pick, answer questions, review, edit, download (Word or PDF).
-4. "Criminal drafts cite BNS, BNSS and BSA."
+4. "Criminal drafts use BNS, BNSS and BSA section numbers."
 
 ---
 
@@ -121,7 +121,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 ```
 Six bail drafts in Lawie: regular, anticipatory, before magistrate, interim, default, cancellation.
 
-Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink.
+Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-x-1
@@ -144,19 +144,19 @@ https://lawie.in/login?mode=signup&utm_source=x&utm_medium=social&utm_campaign=l
 - **Format:** X image, 1600x900. `_en`, `_hi`.
 - **Template:** T3 document-family tile (landscape, 3 x 2) (`design-notes.md` §3)
 - **Layout and hierarchy:** Same tile system as W1-X-2, six bail tiles, headline 96 px, BNS/BNSS/BSA line 56 px, disclaimer in the footer zone (full line).
-- **Text on image, EN layer (verbatim from the post):** `Six bail drafts in Lawie` / tiles `Regular` `Anticipatory` `Before magistrate` `Interim` `Default` `Cancellation` / `Criminal drafts cite BNS, BNSS and BSA.` / `Start with 5 free Ink` / the disclaimer.
+- **Text on image, EN layer (verbatim from the post):** `Six bail drafts in Lawie` / tiles `Regular` `Anticipatory` `Before magistrate` `Interim` `Default` `Cancellation` / `Criminal drafts use BNS, BNSS and BSA section numbers.` / `Start with 5 free Ink` / the disclaimer.
 - **Text on image, HI layer (verbatim from the HI post):** `Lawie में 6 तरह के bail draft` / tiles `Regular` `Anticipatory` `Magistrate के सामने` `Interim` `Default` `Cancellation` / `Criminal drafts में BNS, BNSS और BSA cite होते हैं।` / `5 free Ink से शुरू करें` / the disclaimer.
 - **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour.
-- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles: regular, anticipatory, before magistrate, interim, default, cancellation. Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink."
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Six tiles: regular, anticipatory, before magistrate, interim, default, cancellation. Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink."
 - **Note for Madhuri/Ajay:** Same link-card caveat as W1-X-1.
 
 **Rajesh: update** — this X post carries the CTA link, so it uses the link card and NO image (an attached image suppresses the card). Visual brief is now: none (link card). The image brief above is superseded; keep it only if Meera later approves an image-only variant with no link in the text.
 
 **Claims to check (Ajay):**
 1. Six bail drafts are live.
-2. "Criminal drafts cite BNS, BNSS and BSA."
+2. "Criminal drafts use BNS, BNSS and BSA section numbers."
 3. 5 free Ink.
 
 ---
@@ -186,7 +186,7 @@ Hello,
 
 Lawie has six bail drafts: regular, anticipatory, before magistrate, interim, default and cancellation.
 
-Pick one, answer a few questions about the matter, then review the draft and download it in Word or PDF. Criminal drafts cite BNS, BNSS and BSA. A bail application uses 2 Ink.
+Pick one, answer a few questions about the matter, then review the draft and download it in Word or PDF. Criminal drafts use BNS, BNSS and BSA section numbers. A bail application uses 2 Ink.
 
 https://lawie.in/login?mode=signup&utm_source=whatsapp&utm_medium=social&utm_campaign=launch_p1&utm_content=w2-wa-1
 
@@ -213,7 +213,7 @@ Reply STOP to stop these messages.
 **Claims to check (Ajay):**
 1. Six bail drafts are live.
 2. Flow: pick, answer questions, review, download (Word or PDF).
-3. "Criminal drafts cite BNS, BNSS and BSA."
+3. "Criminal drafts use BNS, BNSS and BSA section numbers."
 4. A bail application uses 2 Ink. Resolved: Ajay approved (none of the six bail types is on the 1-Ink list; T-227).
 
 ---
@@ -231,7 +231,7 @@ On-slide text (7 slides):
 4. Bail before the magistrate.
 5. Interim bail.
 6. Default bail. Cancellation of bail.
-7. Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink.
+7. Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.
    Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 ```
 
@@ -240,7 +240,7 @@ Caption (~430 chars):
 ```
 Six bail drafts, one way to start: pick the one you need, answer a few questions about the matter, then review, edit and download.
 
-Criminal drafts cite BNS, BNSS and BSA. Check every section before you file.
+Criminal drafts use BNS, BNSS and BSA section numbers. Check every section before you file.
 
 Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.
 
@@ -284,17 +284,17 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 - **Format:** Instagram carousel, 7 slides, 1080x1350, JPEG q85 each under 200 KB. One per language version.
 - **Template:** S1 T1 (navy). S2 to S6 T3 single large tile per slide. S7 end-card. (`design-notes.md` §3)
 - **Layout and hierarchy:** S1 headline 104 px. S2 to S5 each show one bail type as a large tile (936 x 520) with a lucide file-text icon 120 px and the name 88 px; S6 two tiles stacked (each 936 x 360). All tiles same size and position slide to slide, so the swipe feels like a flip-book. S7: BNS/BNSS/BSA line, CTA, disclaimer, lockup. Same tile style as W1-IG-3.
-- **Text on image, EN layer (verbatim from the post):** S1 `Six bail drafts in Lawie.` S2 `Regular bail.` S3 `Anticipatory bail.` S4 `Bail before the magistrate.` S5 `Interim bail.` S6 `Default bail. Cancellation of bail.` S7 `Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink.` + disclaimer.
+- **Text on image, EN layer (verbatim from the post):** S1 `Six bail drafts in Lawie.` S2 `Regular bail.` S3 `Anticipatory bail.` S4 `Bail before the magistrate.` S5 `Interim bail.` S6 `Default bail. Cancellation of bail.` S7 `Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink.` + disclaimer.
 - **Text on image, HI layer (verbatim from the HI post):** S1 `Lawie में छह bail drafts.` S2 `Regular bail.` S3 `Anticipatory bail.` S4 `Magistrate के सामने bail.` S5 `Interim bail.` S6 `Default bail. Bail cancellation.` S7 `Criminal drafts में BNS, BNSS और BSA cite होते हैं। 5 free Ink से शुरू करें।` + disclaimer.
 - **Screenshot:** None. No UI screenshot, so no sample-matter label is needed.
 - **Colour and type:** Tokens and fonts as `design-notes.md` §2. No other colours.
 - **Disclaimer:** In the footer zone (`design-notes.md` §1), verbatim, English in both language exports, 2 lines max, never smaller than the minimum in the size table. Not in a pill, not 'fine print' grey: full-strength text colour. It sits on the last slide only, as in the copy.
-- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Slide 1 of 7: Six bail drafts in Lawie. Slides 2 to 6 name them: regular bail, anticipatory bail, bail before the magistrate, interim bail, default bail and cancellation of bail. Slide 7: Criminal drafts cite BNS, BNSS and BSA. Start with 5 free Ink. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
+- **Accessibility:** contrast AA (checked in Figma before export). Alt text: "Slide 1 of 7: Six bail drafts in Lawie. Slides 2 to 6 name them: regular bail, anticipatory bail, bail before the magistrate, interim bail, default bail and cancellation of bail. Slide 7: Criminal drafts use BNS, BNSS and BSA section numbers. Start with 5 free Ink. Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing."
 - **Note for Madhuri/Ajay:** No definitions or section numbers on the tiles: the copy gives none and that would be new legal content.
 
 **Claims to check (Ajay):**
 1. Six bail drafts are live, by name.
-2. "Criminal drafts cite BNS, BNSS and BSA."
+2. "Criminal drafts use BNS, BNSS and BSA section numbers."
 3. Flow: pick, answer questions, review, edit, download.
 
 ---
@@ -483,7 +483,7 @@ Lawie is a drafting assistant. The advocate is responsible for legal accuracy an
 ```
 What a bail application costs in Lawie, in Ink.
 
-5 free Ink on sign-up. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.
+5 free Ink on sign-up. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged.
 
 A bail application is a 2-Ink document. A legal notice or an affidavit is usually 1.
 
