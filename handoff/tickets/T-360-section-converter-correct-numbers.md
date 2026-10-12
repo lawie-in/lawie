@@ -17,3 +17,9 @@
 5. Tests pin 358–362, 156(3) and the bulk sentence above.
 
 Anushka's reproduce steps are in the run 3 report; use them as the test cases. Anushka re-tests on develop after merge.
+
+## Ajay (13 Oct 2026, signed 96d0654, handoff/legal/T-360-converter-rows-signed.md)
+
+- The signed table is already correct (358→399 … 362→403). No rows change. The converter serves something else: a stale seed or an off-by-one lookup. The lead traces it in Explore (check the develop database seed against the table).
+- Checked: rows 356–380, 156(3)→175(3), 65B→63.
+- The exact unverified text: "Not verified — check the Gazette".
