@@ -611,3 +611,13 @@ What a user can now do:
 - A missing date leaves a named blank. The notice is dated with the sending date, or today.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-242 — sign-up source and referral links (6b37ed6, kunal, 12 Oct 2026)
+
+What a user can now do:
+- Arrive from a campaign link with utm_ tags and sign up by email or Google; the account records the campaign. The tags vanish from the address bar and aren't shared with GA or anyone else.
+- /login?ref=CODE opens Create account with the referral box filled in.
+- Admins can see how many sign-ups came from each source.
+- The privacy page says the campaign tags are kept.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
