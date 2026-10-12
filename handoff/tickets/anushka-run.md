@@ -201,3 +201,11 @@ The first item works without a reseed; the second and third need develop's secti
 - The bail checker no longer reports an old IPC section that has no new equivalent as if it were a different BNS offence. (The bail checker page does not yet show the "No BNS equivalent" note: T-278.)
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-238 (mahak, merged to develop_staging 59e4ac8, 12 Oct 2026)
+
+- On the pricing page I read that most documents use 2 Ink and short documents 1, and that a failed draft is not charged, instead of "each document uses 1 Ink".
+- The Free plan reads "Every line of the draft is yours to change" and "Criminal drafts use BNS, BNSS and BSA section numbers", with no court-formatting or validation claims.
+- The plans and packs carry no "Most Popular", "POPULAR" or "BEST VALUE" labels.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

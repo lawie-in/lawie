@@ -5,7 +5,7 @@
 | Phase          | 2 — Drops pricing |
 | Owner          | Madhuri (copy), Meera signs. Ajay (consumer-protection check). Lead (build). Anushka (verdict) |
 | Mode           | Small fix after the copy is signed |
-| Status         | Copy signed: Meera wrote it, Ajay approved with changes, 12 Oct 2026. Ships only after T-227 merges. Unassigned. Was: waits for Madhuri's copy. Found by shashank during T-227, 12 Oct 2026 |
+| Status         | Merged into develop_staging (59e4ac8), 12 Oct 2026. Waiting for Anushka on develop |
 | Depends on     | T-227 (the prices) |
 
 ## Problem

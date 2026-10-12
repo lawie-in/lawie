@@ -7,9 +7,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 | Lead | Ticket | Branch | Files and folders claimed | Legal paths | Since |
 |---|---|---|---|---|---|
 | vishal | T-282 + T-263 | fix/t-282-pin-t237-signed-strings (T-282); fix/t-263-citation-name-match (T-263, own branch, own merge) | apps/drafting/src/__tests__/t237-*.test.ts only (assert Ajay's exact signed strings from handoff/legal/T-237-pack-text-signed.md: the new clause descriptions, the new promptInstructions entries, anticipatory entry 5; a one-character change must fail a test). No source or pack file changes for T-282. T-263 files: apps/drafting/src/services/citation-check.ts and its tests, new apps/drafting/src/__tests__/t263-*.test.ts, moved golden snapshots listed for Ajay (rule: handoff/legal/T-263-citation-name-match-signed.md, 108a57a, word for word). Small fix mode: developer and tester | no (tests only; Ajay sees the diff) | 12 Oct 04:37 UTC |
-| mahak | T-238 | fix/t-238-pricing-page-copy | apps/web/src/app/(marketing)/pricing/page.tsx only (the signed copy in the T-238 ticket: the FAQ "What is Ink?" line ~42, the line ~202 replacement, and rows 1-6 of handoff/marketing/copy/pricing.md; remove the "Most Popular" and "POPULAR" badges; reword "Court formatting" and "BNS validation" in the Free plan with Ajay's words; no other pricing words). Ask me before anything outside that file. apps/web has no test runner: list what you checked by hand at 375 and 1280 px. The leftover Subscription.model.ts comment cleanup is not in this ticket | yes: every changed line needs Ajay's ok before merge; send him the exact before/after for the badge and Free plan lines | 12 Oct 04:29 UTC |
 | shashank | T-277 | fix/t-277-bns-offences-table | apps/drafting/src/config/bns-offences.json (replace byte for byte with Ajay's signed file: handoff/legal/T-277-bns-offences-corrected-signed.md, 29f4872, SHA-256 in that file); apps/drafting/src/services/timeline.service.ts (null max_years); apps/drafting/src/services/bail-check.service.ts (null bailable/cognizable, parent-row resolution); their tests; a grep of the packs and prompts for BNS bailability or offence titles outside the table (ask me before changing any other file; list moved tests and snapshots for Ajay) | yes: bns-offences.json is Ajay's signed table; the bail-check and timeline diffs go to him before merge | go given by the founder, 12 Oct 2026 |
-| mahak (queued: starts after her T-238 merge) | T-279 | fix/t-279-blank-marker-case-legal-files | apps/drafting/src/services/fact-verifier.ts (BLANK_RE ~L209 and countMissingPlaceholders ~L1511: the `i` flag on the marker words only); apps/drafting/src/services/brief-drafter.ts (BLANK_LINE ~L1407: same, and a lower-case blank line must survive the note stripper); new apps/drafting/src/__tests__/t279-*.test.ts (one per place, lower and Title case, plus the note-stripper test); _averments/README.md untouched | yes: Ajay's decision in the T-279 ticket; he sees the diff before merge. Vishal's T-241 follows on brief-drafter.ts | 12 Oct |
+| mahak | T-279 | fix/t-279-blank-marker-case-legal-files | apps/drafting/src/services/fact-verifier.ts (BLANK_RE ~L209 and countMissingPlaceholders ~L1511: the `i` flag on the marker words only); apps/drafting/src/services/brief-drafter.ts (BLANK_LINE ~L1407: same, and a lower-case blank line must survive the note stripper); new apps/drafting/src/__tests__/t279-*.test.ts (one per place, lower and Title case, plus the note-stripper test); _averments/README.md untouched | yes: Ajay's decision in the T-279 ticket; he sees the diff before merge. Vishal's T-241 follows on brief-drafter.ts | 12 Oct |
 
 ## Next per lead (Priya, 11 Oct 2026). Not claims: each is assigned only when its row is free and its gate is met
 
@@ -23,11 +22,11 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. mahak — T-238 (7bda166; the slot is hers now, hold lifted 12 Oct).
-2. vishal — T-282 (850fff6; small, tests only; right after mahak).
+1. vishal — T-282 (850fff6; Ajay approved; the slot is his now).
 
 ## Last done
 
+- mahak — T-238 merged to `develop_staging` (59e4ac8, 12 Oct 2026). Ajay approved 41a41ff; wording signed in handoff/legal/T-238-pricing-page-lines-signed.md. Waiting for Anushka on develop.
 - shashank — T-267 merged to `develop_staging` (ee93984, 12 Oct 2026). IPC table not live until reseed with --force (develop first; production founder-only, T-275 is merged). Pack corrections live at deploy. Waiting for Anushka on develop. Merged just as the founder's hold came; nothing new started.
 - vishal — T-237 merged to `develop_staging` (8f31985, 12 Oct 2026). Ajay approved 41f23aa. Waiting for Anushka on develop.
 - mahak — T-281 merged to `develop_staging` (089eb8c, 12 Oct 2026). Rajesh's design. Waiting for Anushka on develop. Not a 'works on mobile' claim (T-138 and the T-141a ban stand).
