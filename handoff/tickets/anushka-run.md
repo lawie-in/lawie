@@ -367,3 +367,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - A default bail draft's jail line says "to be confirmed".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-296 — section converter on a phone (32fc50b)
+
+- On a phone, convert a long passage in the section converter without results running off the screen.
+- Sections merged or split in the new law show a plain label (verify scope / check which new section applies).
+- "None" appears only for repealed sections; an unknown new section says Not verified and to check the Gazette.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

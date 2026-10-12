@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (build, web). Rajesh if the look changes |
 | Mode   | Small fix (web) |
-| Status | Building: tanvi (12 Oct 2026) |
+| Status | Merged into develop_staging (32fc50b, 12 Oct 2026). Waiting for Anushka on develop |
 
 T-281 left two items in `apps/web/src/app/tools/section-converter/page.tsx`:
 
