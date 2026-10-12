@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay (sign the prompt and check changes) |
 | Mode   | Full chain |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Unassigned. Priya, 13 Oct 2026 |
+| Status | To do. RELEASE GATE for main (Anushka FAIL). Ajay signed; ready for a lead. Unassigned. Priya, 13 Oct 2026 |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-189, T-241, T-251, T-341, T-237 |
 
 ## Acceptance criteria
@@ -25,3 +25,7 @@ Anushka's reproduce steps are in the run 3 report; use them as the test cases. A
 ## Note
 
 Check overlap with T-187/T-188 (the fact-ledger rules) before Explore.
+
+## Ajay (13 Oct 2026)
+
+Ajay signed (dff323f, handoff/legal/). Antecedents and earlier applications become blanks. Roots, character, flight risk and extra grounds are left out. The relation defaults to a blank, never S/o. Use his exact BNSS 480(1) first-proviso line for women ("may"). The lead checks it against the Gazette text in the repo before merge, and flags any difference to Ajay.
