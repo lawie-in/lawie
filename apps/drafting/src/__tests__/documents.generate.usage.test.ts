@@ -18,6 +18,7 @@ import { _clearAppSettingsCache } from '../services/app-settings.service';
 import { sdkAnswer } from './sdkStream';
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 
@@ -25,7 +26,6 @@ jest.mock('@anthropic-ai/sdk', () =>
 beforeEach(() => {
   mockMessagesStream.mockReset();
 });
-
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 const USER_ID = '507f1f77bcf86cd799439099';
@@ -89,8 +89,7 @@ afterEach(() => {
 
 describe('POST /generate-from-template — Generation row fields', () => {
   it('records real usage, status completed, aiModel/transport, and costUsd on success', async () => {
-    const fetchMock = mockMessagesStream
-      .mockResolvedValue(sdkAnswer('1. Applicant seeks bail.', 1000, 200));
+    mockMessagesStream.mockResolvedValue(sdkAnswer('1. Applicant seeks bail.', 1000, 200));
 
     const res = await request(app)
       .post('/generate-from-template')
@@ -130,15 +129,13 @@ describe('POST /generate-from-template — Generation row fields', () => {
   });
 
   it('records a failed row with costStatus rate_missing when no rate is configured, and spends no Ink', async () => {
-    // A userId unique to this test — spendInk's inkledger write is
-    // fire-and-forget (pre-existing, not a T-003 change), so a previous
-    // test's write can still be landing when this one runs; sharing a user
-    // id with another test would make this assertion racy.
+    // A userId unique to this test, so no other test's Ink rows can be
+    // mistaken for this one's. (Since T-226 the ledger writes are awaited
+    // before the response, not fire-and-forget; the unique id is kept.)
     const freshUserId = '507f1f77bcf86cd799439090';
     await seedUser(freshUserId);
     await AppSetting.deleteOne({ key: 'ai.rates.claude-sonnet-4-5-20250929' });
-    const fetchMock = mockMessagesStream
-      .mockRejectedValue(new Error('503 service unavailable'));
+    mockMessagesStream.mockRejectedValue(new Error('503 service unavailable'));
 
     const res = await request(app)
       .post('/generate-from-template')
@@ -195,7 +192,7 @@ describe('POST /generate-from-template — run id / run sequence (T-003 §3.8)',
   });
 
   it('a third attempt after a completed run starts a new run at sequence 1', async () => {
-    const fetchMock = mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 500, 100));
+    mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 500, 100));
 
     const first = await request(app)
       .post('/generate-from-template')
@@ -218,7 +215,7 @@ describe('POST /generate-from-template — run id / run sequence (T-003 §3.8)',
   });
 
   it('an unknown run_id starts a new run at 1 without an error', async () => {
-    const fetchMock = mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 500, 100));
+    mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 500, 100));
 
     const res = await request(app).post('/generate-from-template').set(internalHeaders()).send({
       template_id: 'bail_regular',
@@ -258,7 +255,7 @@ describe('POST /generate-from-template — run id / run sequence (T-003 §3.8)',
   });
 
   it('the browser cannot set the sequence — run_sequence in the body is ignored', async () => {
-    const fetchMock = mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 500, 100));
+    mockMessagesStream.mockResolvedValue(sdkAnswer('1. Body.', 500, 100));
 
     const res = await request(app).post('/generate-from-template').set(internalHeaders()).send({
       template_id: 'bail_regular',

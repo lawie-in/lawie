@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Arjun (mechanism: hold before, settle after), Vikram (heads-up), Lead (build), Anushka (verdict) |
 | Mode           | Arjun's call first, then build, full chain (drafting, billing) |
-| Status         | To do. Waits for Arjun's mechanism. Build after T-197 merges (it holds documents.routes.ts) |
+| Status         | Merged to `develop_staging` (4087d6f, 12 Oct 2026). Waiting for Anushka on develop. Follow-up: T-288 |
 | Size           | M (1 day) |
 | Depends on     | T-197 (file overlap) |
 | Gate           | Before v1 go-live (T-403) and before paid launch |
@@ -150,3 +150,5 @@ Files: `credits.service.ts` (a small `extendInkHold`), the `withInkHold` wrapper
 **Addendum 2 (Arjun, 12 Oct 2026, round 3): both of Mahak's points approved.**
 1. `User.inkSettled[{runId, runSequence, settledAt}]`, capped at 50 newest, pushed in the same write as the winning settle's `$pull`. Rule for a missing hold at settle: if `(runId, runSequence)` is in `inkSettled`, the run is already paid: do nothing, send `done`, and do not re-hold. Only when it is in neither the holds nor `inkSettled` does the single re-hold apply. Billing renewal and cancel must not touch the field (add it to the AC9 test). T-115c's account erase needs no change (the field lives on the user record, which is tombstoned).
 2. The sweep's release match adds `expiresAt: { $lte: now }`. On a miss the sweep re-reads: present and delivered means `settleInk`; present and not expired (a late beat) means leave it; absent means nothing. Add a test where a beat lands between the sweep's read and its release: the hold survives.
+
+**Addendum 3 (Arjun, 12 Oct 2026): reviewer's medium finding, option (a) accepted now.** If the re-hold at settle throws (a database error, not a refusal), `done` is still sent for an unpaid draft. It needs a lost hold **and** a database fault in the same run, so at most one free draft; logged at error level with the run id. Accepted for this merge so it does not cost a fourth review round. **Follow-up (small, drafting only, Priya to ticket):** treat a throw from the re-hold like a refusal: send the error event, no `done`, same log line, plus a test that forces the throw. The AC4 wording ("no path delivers a draft without a successful charge or hold") has these two documented exceptions until the follow-up merges.

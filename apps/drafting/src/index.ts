@@ -14,6 +14,7 @@ import { connectDatabase } from './config/database';
 import { env } from './config/env';
 import logger from './config/logger';
 import { disconnectRedis } from './config/redis';
+import { startHoldSweep, stopHoldSweep } from './services/credits.service';
 import { getTemplateRegistry } from './services/template-promoter';
 import { runBootSync } from './services/template-seed.service';
 
@@ -31,6 +32,9 @@ async function bootstrap() {
       logger.info(`📝 Drafting Service running on http://localhost:${env.PORT}`);
       logger.info(`   Environment: ${env.NODE_ENV}`);
     });
+    // T-226: close expired Ink holds every 5 minutes (unref'd timer). Kept
+    // out of app.ts, which the tests import.
+    startHoldSweep();
   } catch (error) {
     logger.error({ error }, 'Failed to start drafting service');
     process.exit(1);
@@ -41,6 +45,7 @@ bootstrap();
 
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received — shutting down gracefully');
+  stopHoldSweep();
   await disconnectRedis();
   process.exit(0);
 });

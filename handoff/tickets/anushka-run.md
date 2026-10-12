@@ -233,3 +233,14 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 Nothing new on screen. With the develop environment default on, a tester no longer needs the two feature switches set by hand for each account.
 
 Quality: nothing to test in the UI — a server setting only.
+
+## T-226 (mahak, merged to develop_staging 4087d6f, 12 Oct 2026)
+
+- Ink is set aside when a draft starts, so drafts running at the same time cannot overspend.
+- Ink comes back if a draft fails, or the user leaves before anything is saved.
+- A second click or a second tab gets "Draft already in progress" and no extra charge.
+- "Not enough Ink" shows before the draft starts.
+
+Test: open the same draft in two tabs at once and confirm you get one draft and one refusal.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

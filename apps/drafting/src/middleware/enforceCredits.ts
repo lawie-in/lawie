@@ -8,13 +8,14 @@
  * skipped). The primary tier gate is `spendCredits` called from the route
  * handler itself.
  *
- * This middleware does NOT deduct — it just blocks before the AI streams if
- * the user can't afford the cost. The actual spend happens in the route AFTER
- * a successful generation. Why this order?
- *   • Pre-check stops obvious "I'm broke" cases without burning Anthropic spend
- *   • Post-deduct means a failed AI stream doesn't take credits (consistent
- *     with refund-on-failure intent — costlier streams are the AI's problem,
- *     not the user's)
+ * This middleware does NOT deduct — it is a quick early 402 that stops
+ * obvious "out of Ink" cases without burning Anthropic spend. It is not
+ * trusted for correctness (T-226): two requests can both pass it. The route
+ * then HOLDS the cost atomically (credits.service `holdInk`, via
+ * `withInkHold` in documents.routes) before any model call, and refuses with
+ * the same 402 body (`insufficientInkBody`) if the hold fails. After the run
+ * the hold is settled (kept) when the draft reached the user, and released
+ * (refunded) on every other ending, so a failed AI stream takes no Ink.
  *
  * Returns 402 Payment Required with { needsTopUp, needsUpgrade, balance, cost }
  * so the frontend can decide whether to show the paywall modal or the upgrade
@@ -27,7 +28,7 @@
 import * as Sentry from '@sentry/node';
 import { Request, Response, NextFunction } from 'express';
 
-import { costForTemplate, getCreditBalance } from '../services/credits.service';
+import { CreditBalance, costForTemplate, getCreditBalance } from '../services/credits.service';
 import { isFixtureUser } from '../services/run-origin';
 
 // Belt-and-braces ceiling for free-plan accounts. Once we trust the credit
@@ -97,16 +98,36 @@ export async function enforceCredits(
   const balance = await getCreditBalance(payload.sub);
 
   if (balance.totalInk >= cost) {
-    // Stash the cost so the route handler can pass it to spendInk without
-    // recomputing — and so the SSE done event can echo it.
+    // Stash the cost so the route handler can hold it (withInkHold → holdInk)
+    // without recomputing — and so the SSE done event can echo it.
     (req as Request & { creditCost?: number }).creditCost = cost;
     next();
     return;
   }
 
-  // Out of Ink. Tell the frontend whether to suggest top-up or upgrade.
+  res.status(402).json(insufficientInkBody(cost, balance));
+}
+
+/**
+ * The 402 body for "not enough Ink". T-226: the one body for both refusals —
+ * this middleware's early check and the route's failed hold — so the web sees
+ * the same message either way. Pass a fresh `getCreditBalance` read. Tells
+ * the frontend whether to suggest top-up or upgrade.
+ */
+export function insufficientInkBody(
+  cost: number,
+  balance: CreditBalance,
+): {
+  error: 'Insufficient Ink';
+  message: string;
+  cost: number;
+  balance: CreditBalance;
+  needsTopUp: true;
+  needsUpgrade: boolean;
+  upgradeUrl: string;
+} {
   const upgradeUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/pricing`;
-  res.status(402).json({
+  return {
     error: 'Insufficient Ink',
     message: `This draft costs ${cost} Ink — you have ${balance.totalInk}.`,
     cost,
@@ -114,7 +135,7 @@ export async function enforceCredits(
     needsTopUp: true,
     needsUpgrade: balance.planTier === 'free',
     upgradeUrl,
-  });
+  };
 }
 
 /**

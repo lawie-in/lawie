@@ -29,26 +29,26 @@ GOLDEN_SET_ANTHROPIC_API_KEY=... GOLDEN_SET_MONGODB_URI=... \
   yarn workspace @lawie/drafting golden:set --real
 ```
 
-| Option | Meaning |
-| --- | --- |
-| `--dry-run` / `--real` | One is required. The runner refuses to call the real model without `--real`. |
-| `--only 1a,06` | Run only these fixture ids (or id prefixes). |
-| `--stub <variant>` | Dry run only. Selects the recorded replies to use (default `clean`). Fixtures with no replies for that variant are skipped. |
-| `--calibrate` | Also report per-fact-type confidence distributions and suggested floors (AC7). |
-| `--max-fixtures <n>` | Refuses to start if more fixtures are selected. The default is 20; the hard cap is 40. |
-| `--max-tokens <n>` | Stops starting new fixtures once the run has used this many tokens. The default is 600000. A capped run exits 1. |
-| `--out <dir>` | Where the results JSON goes. The default is `scripts/golden-set/results/`, which is git-ignored. |
-| `--verbose` | Also prints the service's own log lines for each fixture. These are ids and counts only. |
+| Option                 | Meaning                                                                                                                     |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `--dry-run` / `--real` | One is required. The runner refuses to call the real model without `--real`.                                                |
+| `--only 1a,06`         | Run only these fixture ids (or id prefixes).                                                                                |
+| `--stub <variant>`     | Dry run only. Selects the recorded replies to use (default `clean`). Fixtures with no replies for that variant are skipped. |
+| `--calibrate`          | Also report per-fact-type confidence distributions and suggested floors (AC7).                                              |
+| `--max-fixtures <n>`   | Refuses to start if more fixtures are selected. The default is 20; the hard cap is 40.                                      |
+| `--max-tokens <n>`     | Stops starting new fixtures once the run has used this many tokens. The default is 600000. A capped run exits 1.            |
+| `--out <dir>`          | Where the results JSON goes. The default is `scripts/golden-set/results/`, which is git-ignored.                            |
+| `--verbose`            | Also prints the service's own log lines for each fixture. These are ids and counts only.                                    |
 
 Exit codes: `0` all passed; `1` a fixture failed or the token cap stopped the run; `2` refused (bad flags, missing secrets or over the caps); `3` **fixture isolation breached**; `4` harness error.
 
 ## Environment for `--real`
 
-| Variable | Required | Use |
-| --- | --- | --- |
-| `GOLDEN_SET_ANTHROPIC_API_KEY` | yes | The runner passes it to the service as `ANTHROPIC_API_KEY`. |
-| `GOLDEN_SET_MONGODB_URI` | yes | The database to run against, which is production while there is no dev DB. The runner passes it as `MONGO_URI`. |
-| `GOLDEN_SET_ENCRYPTION_KEY` | no | 64 hex characters. If unset, fixture drafts are encrypted under a random per-run key. That is fine: they are synthetic, and only the runner reads them back. |
+| Variable                       | Required | Use                                                                                                                                                          |
+| ------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GOLDEN_SET_ANTHROPIC_API_KEY` | yes      | The runner passes it to the service as `ANTHROPIC_API_KEY`.                                                                                                  |
+| `GOLDEN_SET_MONGODB_URI`       | yes      | The database to run against, which is production while there is no dev DB. The runner passes it as `MONGO_URI`.                                              |
+| `GOLDEN_SET_ENCRYPTION_KEY`    | no       | 64 hex characters. If unset, fixture drafts are encrypted under a random per-run key. That is fine: they are synthetic, and only the runner reads them back. |
 
 - No `.env` file is read.
 - Redis is always an in-memory mock, because it holds only the intake limits and the intake cache.
@@ -72,7 +72,7 @@ A golden-set run acts as the reserved user `0000000000000000000f147e` (`GOLDEN_S
 - The fixture user has no `users` row, so it has no balance and appears in no user count.
 - A schema plugin marks every `Document`, `FactLedger`, `LlmAuxCall` and `Event` row written for it as `runType: "fixture"`. `Generation` rows get `runOrigin: "fixture"`, because `Generation.runType` already means initial or revision (T-110).
 - Its `FactDiff` and `PlaceholderRate` rows are `fixture` through the ledger.
-- `enforceCredits` and `spendInk` skip the fixture user, so no Ink is checked or charged and no `inkledger` or `CreditLedger` row is written.
+- `enforceCredits` and the Ink hold functions (`holdInk`, `extendInkHold`, `settleInk`, `releaseInk`, and the expired-hold sweep) skip the fixture user, so no Ink is checked, held or charged and no `inkledger` or `CreditLedger` row is written. Since T-226 the generate route holds Ink before the run and settles it after, instead of charging with `spendInk` afterwards.
 - User-facing lists, admin stats, usage counters, the free limit and the spend cap filter out `fixture` rows.
 - The gateway's dev-bypass refuses the reserved id with a 403, so nobody can act as the fixture user through the gateway.
 
