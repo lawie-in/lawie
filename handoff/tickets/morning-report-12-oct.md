@@ -74,3 +74,5 @@ Arjun's founder tasks, 12 Oct (his session): (a) back up the encryption key OFFL
 From Arjun, 12 Oct: add FEATURE_DEFAULT_DESCRIBE_FIRST=on and FEATURE_DEFAULT_FACT_LEDGER=on to the develop environment file (or set the two AppSettings once in admin). Chatbot (T-253): two Anthropic keys ($25 chat, $5 eval), chat key in the production environment file, eval key as a GitHub secret, seed the AppSettings, flip chat.enabled only after Anushka's PASS.
 
 T-285 (long repairs drop the stream) needs no founder task: Arjun's fix is a keep-alive in code.
+
+From Vishal, 12 Oct (when convenient, 1 minute): delete the leftover branch `throwaway/t269-ci-probe` on GitHub (Branches page). It holds a deliberate type error used to prove T-269 and never merges; sessions cannot delete remote branches.
