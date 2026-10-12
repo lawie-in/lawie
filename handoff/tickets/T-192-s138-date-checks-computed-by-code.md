@@ -58,3 +58,11 @@ Each check unlocks one entry: (a) unlocks `presented_within_validity`, (b) unloc
 ## Scope note (Priya, 12 Oct 2026)
 
 AC4 is met in T-192 by showing the inputs and results in the Drafter's FACTS. Showing them in the web brief before drafting needs Mahak's T-190 files (ledgerView, intake.service.ts, the web brief), so that part moves to T-337, after T-190 merges.
+
+## Arjun (12 Oct 2026): convention for code-computed facts (applies to T-191 too)
+
+1. **Add `FactSource = 'user' | 'asked' | 'computed'`** in `packages/shared/src/types/fact-ledger.ts`. Do not reuse `'asked'`: it would record that the advocate said something they did not, and provenance is what the ledger is for. A one-member union addition; `packages/shared` must be on Vishal's claim row first (Priya), and `@lawie/shared` is rebuilt before drafting tests.
+2. **Computed facts are never stored.** Derived on every request from the stored `user`/`asked` facts, appended after `ledger.facts` is built (your ~:1126 point), by a pure module (`s138-date-checks.ts`; T-191's own module likewise). So when the advocate edits a date, the result cannot go stale. No write to the ledger collection, no encryption question.
+3. **Inputs only from `user`/`asked` facts**, never from another computed fact or model text. Appended only on pass, `required_in_draft: false`. A fail or a missing input adds nothing (the averment stays locked); whether a fail also shows a soft preflight note is the ticket's AC, not this convention.
+4. **Not shown as a user fact.** Any UI or brief listing of facts either skips `source: 'computed'` or labels it "worked out from your dates"; it is never offered for editing.
+5. Tests: the pure module (boundary dates: day 30/31, day 15/16, leap year), the route appends on pass only, nothing computed is persisted, and the union change compiles in every workspace that imports `FactSource`.
