@@ -125,3 +125,14 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The payment lines say payments go via Razorpay, with no "secure" claim and no promise of a GST invoice.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-250 + T-255 (shashank, merged to develop_staging ee76d8e, 12 Oct 2026)
+
+Needs develop's section tables reseeded first (Arjun does this on develop; the converter items below show nothing new before that).
+
+- In the section converter and in drafts that convert old sections, I get the corrected new section for Evidence Act and CrPC sections (for example CrPC 358 and 362).
+- A production-of-documents draft lists the right privilege sections of the Bharatiya Sakshya Adhiniyam.
+- The Chief Judicial Magistrate court note cites the right BNSS section.
+- Affidavits are no longer checked against an Evidence Act section that has nothing to do with affidavits.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
