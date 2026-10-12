@@ -13,6 +13,8 @@
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
+import logger from '../config/logger';
+
 import {
   BNS_CLASSIFICATION,
   BNS_OFFENCE_KEYS,
@@ -967,6 +969,9 @@ export function buildPlaceholderContext(
 
   // Arjun (step 7 correction): read sections_charged per entry, with the picker's
   // BNS default, before the array is flattened to "303, 351" below.
+  // T-293: this key is server-only. Clear anything already there so a missing
+  // server read means "no pre-read", never a value from elsewhere.
+  delete ctx[SECTIONS_CHARGED_READ_KEY];
   if (formData.sections_charged !== null && formData.sections_charged !== undefined) {
     ctx[SECTIONS_CHARGED_READ_KEY] = JSON.stringify(
       readChargedField(formData.sections_charged, fieldSourceOf(config, 'sections_charged')),
@@ -976,6 +981,8 @@ export function buildPlaceholderContext(
   // Form data — flatten all values to strings
   for (const [key, val] of Object.entries(formData)) {
     if (val === null || val === undefined) continue;
+    // T-293: a client-sent value must never overwrite the server's pre-read.
+    if (key === SECTIONS_CHARGED_READ_KEY) continue;
 
     if (Array.isArray(val)) {
       // checkbox_group / multi_select → join labels
@@ -1522,6 +1529,29 @@ export function classifySectionsBailability(sectionsCharged: string | ChargedSec
 }
 
 /**
+ * T-293: parse the server's sections_charged pre-read. Bad JSON (or anything
+ * that is not an array) returns undefined so the caller falls back to the
+ * normal read. Logs ids only, never the value.
+ */
+function parseSectionsChargedRead(
+  raw: string | undefined,
+  sectionId: string,
+): ChargedSection[] | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as ChargedSection[];
+  } catch {
+    // fall through to the warn below
+  }
+  logger.warn(
+    { key: SECTIONS_CHARGED_READ_KEY, sectionId },
+    'sections_charged pre-read unparseable; using normal read',
+  );
+  return undefined;
+}
+
+/**
  * Build the AI user prompt from an ai_generated section's prompt_context.
  */
 export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderContext): string {
@@ -1548,10 +1578,8 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
 
   // Inject bailability classification if sections_charged exist in context (SCRUM-52 S2)
   if (ctx.sections_charged) {
-    const preRead = ctx[SECTIONS_CHARGED_READ_KEY];
-    const classification = classifySectionsBailability(
-      preRead ? (JSON.parse(preRead) as ChargedSection[]) : ctx.sections_charged,
-    );
+    const preRead = parseSectionsChargedRead(ctx[SECTIONS_CHARGED_READ_KEY], section.section_id);
+    const classification = classifySectionsBailability(preRead ?? ctx.sections_charged);
     if (classification) {
       prompt += `\n\nBAILABILITY CLASSIFICATION (from BNS First Schedule — use EXACTLY as given, do NOT contradict):\n${classification}\nA section in neither list: do not say whether it is bailable or cognizable.`;
     }
