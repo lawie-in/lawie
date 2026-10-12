@@ -8,6 +8,7 @@
  */
 import crypto from 'crypto';
 
+import { env } from '../config/env';
 import redis from '../config/redis';
 import { Event } from '../models/Event.model';
 import type { IFactLedger } from '../models/FactLedger.model';
@@ -17,6 +18,21 @@ import { presentDescription } from '../utils/presentDescription';
 import { AppSettingMissingError, APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import { AuxCallError, AuxCallUsage, callAuxModel } from './aux-llm';
 import { applyBailGuard } from './bail-guard';
+import {
+  applyEdits,
+  carryOver,
+  createLedger,
+  currentState,
+  extractLines,
+  FACT_LEDGER_SETTING,
+  LedgerEdit,
+  LedgerEditResult,
+  LedgerView,
+  ledgerView,
+  loadOwnLedger,
+  readExtraction,
+  referenceYear,
+} from './fact-ledger.service';
 import {
   Brief,
   BriefCourt,
@@ -40,21 +56,6 @@ import {
   valuesAfterEditedDescription,
   wordedQuestions,
 } from './intake-brief';
-import {
-  applyEdits,
-  carryOver,
-  createLedger,
-  currentState,
-  extractLines,
-  FACT_LEDGER_SETTING,
-  LedgerEdit,
-  LedgerEditResult,
-  LedgerView,
-  ledgerView,
-  loadOwnLedger,
-  readExtraction,
-  referenceYear,
-} from './fact-ledger.service';
 import { readIntakeCache, writeIntakeCache } from './intake-cache';
 import {
   datesInText,
@@ -98,9 +99,11 @@ export { datesInText, normalise, parseModelJson } from './intake-text';
 export const DESCRIBE_FIRST_SETTING = 'feature.describe_first';
 
 /**
- * `feature.describe_first`: "on" for everyone, "off" or unset for no one, or a
+ * `feature.describe_first`: "on" for everyone, "off" for no one, or a
  * comma-separated list of user ids (the founder's account first, per §3.11).
- * Never throws: any problem reading it means off, so the gallery shows.
+ * Unset (no AppSetting doc): falls back to FEATURE_DEFAULT_DESCRIBE_FIRST
+ * (default off). Never throws: any other problem reading it means off, so the
+ * gallery shows.
  */
 export async function isDescribeFirstEnabled(userId: string): Promise<boolean> {
   return isSwitchOn(DESCRIBE_FIRST_SETTING, userId);
@@ -108,8 +111,9 @@ export async function isDescribeFirstEnabled(userId: string): Promise<boolean> {
 
 /**
  * T-147b: `feature.fact_ledger`, read the same way as `feature.describe_first`.
- * Off or unset: the brief works exactly as before, with no extraction call
- * and no ledger. On: the extraction pass runs and the ledger is written.
+ * Unset (no AppSetting doc): falls back to FEATURE_DEFAULT_FACT_LEDGER
+ * (default off). Off: the brief works exactly as before, with no extraction
+ * call and no ledger. On: the extraction pass runs and the ledger is written.
  */
 export async function isFactLedgerEnabled(userId: string): Promise<boolean> {
   return isSwitchOn(FACT_LEDGER_SETTING, userId);
@@ -127,9 +131,23 @@ async function isSwitchOn(setting: string, userId: string): Promise<boolean> {
       .split(',')
       .map((s) => s.trim())
       .includes(userId);
-  } catch {
+  } catch (err) {
+    // T-283: no AppSetting doc at all → the env default for this switch. Any
+    // other read error (Mongo down, etc.) stays off: fail closed.
+    if (err instanceof AppSettingMissingError) return envDefaultFor(setting);
     return false;
   }
+}
+
+/**
+ * T-283: the env fallback for a switch whose AppSetting doc is missing. Read
+ * from `env` at call time (not captured at import) so tests can replace it.
+ * 'on' means on for everyone; env has no user-id list form.
+ */
+function envDefaultFor(setting: string): boolean {
+  if (setting === DESCRIBE_FIRST_SETTING) return env.FEATURE_DEFAULT_DESCRIBE_FIRST === 'on';
+  if (setting === FACT_LEDGER_SETTING) return env.FEATURE_DEFAULT_FACT_LEDGER === 'on';
+  return false;
 }
 
 // ── Limits and caps (ADR-019 §3.8, founder D6) ──────────────────────────────
@@ -1114,7 +1132,9 @@ async function writeReceptionLedger(
   try {
     const lines = extractLines(checklist);
     const text =
-      lines.length === 0 ? null : await extractCall(ctx, buildExtractUserPrompt(lines, req.description));
+      lines.length === 0
+        ? null
+        : await extractCall(ctx, buildExtractUserPrompt(lines, req.description));
     const read = readExtraction(
       checklist,
       req.description,
@@ -1250,7 +1270,11 @@ async function briefWithPack(
     ? await writeReceptionLedger(ctx, pack, checklist, req)
     : undefined;
   const always: ReadonlySet<string> = new Set(
-    ledger ? ledger.unresolved.filter((u) => !ledger.facts.some((f) => f.key === u.key)).map((u) => u.key) : [],
+    ledger
+      ? ledger.unresolved
+          .filter((u) => !ledger.facts.some((f) => f.key === u.key))
+          .map((u) => u.key)
+      : [],
   );
   const config = loadTemplateConfig(pack.id);
   return {

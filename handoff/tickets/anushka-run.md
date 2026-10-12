@@ -227,3 +227,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - When a draft would name a case you did not give, the whole case name is now removed, not only the reporter. Both sides and the versus word go, so no half-name is left beside the blank.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-283 (vishal, merged to develop_staging 797cefd, 12 Oct 2026)
+
+Nothing new on screen. With the develop environment default on, a tester no longer needs the two feature switches set by hand for each account.
+
+Quality: nothing to test in the UI — a server setting only.
