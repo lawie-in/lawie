@@ -41,3 +41,15 @@ This replaces the "Kept for" and "Deleted when" columns above. Arjun's table in 
 | Fixtures | Golden-set user only, synthetic data, same TTL. Approved. |
 
 Basis is unchanged: DPDP Act 2023 s.8(7) (erase once the purpose is served), s.8(5) (safeguards, with ledger contents encrypted at rest under T-115a) and s.12 (erasure). The 90 days is shorter than Privacy Policy §9's "while your account exists", so no policy change is needed. Signed.
+
+## Addendum 2 (12 Oct 2026 IST): Addendum 1 withdrawn, original rule stands
+
+Our messages crossed. Arjun has already built the mechanism to the original rule (24977d2), so that rule stands and Addendum 1 is withdrawn:
+
+- `FactLedger` lives as long as its draft or matter.
+- It is hard-deleted on draft or matter delete (including today's soft-delete), on account erasure, or after 30 days for an intake that was never drafted.
+- `intake_extract` rows are unlinked at the same moments, by the daily unlink job.
+- Redis TTL is 30 minutes.
+- Fixtures are synthetic data only.
+
+Both rules are lawful. This one is final.
