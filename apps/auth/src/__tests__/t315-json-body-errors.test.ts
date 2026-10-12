@@ -1,3 +1,4 @@
+import { BODY_PARSER_ERRORS } from '@lawie/shared';
 import request from 'supertest';
 
 // Without this, loading ../app opens a real Redis connection that keeps Jest from exiting.
@@ -31,7 +32,9 @@ const LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
 const JSON_ROUTES = ['/login', '/register'];
 
 const expectNoEcho = (text: string) => {
-  for (const s of SECRETS) expect(text).not.toContain(s);
+  // body-parser lower-cases the encoding name and upper-cases the charset, so compare case-insensitively.
+  const lower = text.toLowerCase();
+  for (const s of SECRETS) expect(lower).not.toContain(s.toLowerCase());
 };
 
 describe('T-315 auth body parser errors', () => {
@@ -216,6 +219,48 @@ describe('T-315 auth body parser errors', () => {
     it('/health returns 200', async () => {
       const res = await request(app).get('/health');
       expect(res.status).toBe(200);
+    });
+  });
+
+  describe('T-320 BODY_PARSER_ERRORS is frozen', () => {
+    it('the map and every entry are frozen', () => {
+      expect(Object.isFrozen(BODY_PARSER_ERRORS)).toBe(true);
+      for (const entry of Object.values(BODY_PARSER_ERRORS)) {
+        expect(Object.isFrozen(entry)).toBe(true);
+      }
+    });
+
+    it('assignment, addition and deletion do not change the map', () => {
+      const before = JSON.stringify(BODY_PARSER_ERRORS);
+      const m = BODY_PARSER_ERRORS as Record<string, { status: number; error: string }>;
+      const attempts = [
+        () => {
+          m['entity.parse.failed'] = { status: 200, error: 'ok' };
+        },
+        () => {
+          m['entity.parse.failed'].status = 200;
+        },
+        () => {
+          m['x.new'] = { status: 418, error: 'teapot' };
+        },
+        () => {
+          delete m['entity.too.large'];
+        },
+      ];
+      // Strict mode throws TypeError on writes to frozen objects; sloppy mode ignores them.
+      for (const a of attempts) {
+        try {
+          a();
+        } catch (e) {
+          expect(e).toBeInstanceOf(TypeError);
+        }
+      }
+      expect(JSON.stringify(BODY_PARSER_ERRORS)).toBe(before);
+      expect(BODY_PARSER_ERRORS['entity.parse.failed']).toEqual({
+        status: 400,
+        error: 'Bad Request',
+      });
+      expect('x.new' in BODY_PARSER_ERRORS).toBe(false);
     });
   });
 });
