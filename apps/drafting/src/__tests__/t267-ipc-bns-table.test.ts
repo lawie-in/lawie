@@ -355,7 +355,7 @@ describe('T-267 ruling C: bail-check with the signed table', () => {
     // court level only, never the default-bail period.
     expect(sections[0].offence?.resolution).toBe('parent');
     expect(sections[0].offence?.resolvedKey).toBe('103');
-    expect(summary.courtLevel).toContain('Court of Sessions');
+    expect(summary.courtLevel).toBe('Court of Session');
     expect(summary.maxYears).toBeNull();
   });
 

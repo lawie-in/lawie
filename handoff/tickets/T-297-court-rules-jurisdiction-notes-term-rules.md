@@ -5,7 +5,7 @@
 | Phase  | 1 — Legal accuracy |
 | Owner  | Ajay (rewrites and signs the notes). Lead (build) |
 | Mode   | Small fix, legal content (court-rules packs) |
-| Status | Wording signed (18e51d6). Build after T-289 merges |
+| Status         | Building: shashank (12 Oct 2026). Wording signed (18e51d6) |
 
 About 29 `court-rules/*.json` files carry a `jurisdictionNote` that states term rules such as "Sessions try > 7 years". After T-289 the court comes only from the First Schedule's "triable by" column, so these notes can contradict the app.
 

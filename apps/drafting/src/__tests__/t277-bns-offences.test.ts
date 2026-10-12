@@ -706,31 +706,31 @@ describe('Q4 parent row sets the court level only', () => {
     invalidateCache();
   });
 
-  it('302-IPC -> 103(1): court is Sessions, maxYears is null (no period)', async () => {
+  it('302-IPC -> 103(1): court is Court of Session (signed value), maxYears is null (no period)', async () => {
     const { sections, summary } = await checkBailEligibility(['302-IPC']);
     expect(sections[0].bnsSection).toBe('103(1)');
     expect(sections[0].found).toBe(true);
     expect(sections[0].offence?.resolution).toBe('parent');
     expect(sections[0].offence?.maxYears).toBeNull();
     expect(sections[0].offence?.courtMaxYears).toBe(99);
-    expect(summary.courtLevel).toContain('Court of Sessions');
+    expect(summary.courtLevel).toBe('Court of Session');
     expect(summary.maxYears).toBeNull();
     expect(summary.courtMaxYears).toBe(99);
   });
 
-  it('/details 103(1): triable_by Sessions, max_years null', async () => {
+  it('/details 103(1): triable_by Court of Session (parent row), max_years null', async () => {
     const d = await getSectionDetail('103(1)', 'BNS');
     expect(d).not.toBeNull();
     expect(d?.resolution).toBe('parent');
     expect(d?.resolved_key).toBe('103');
-    expect(d?.triable_by).toBe('Sessions');
+    expect(d?.triable_by).toBe('Court of Session');
     expect(d?.max_years).toBeNull();
   });
 
   it('/details 103: exact key keeps max_years 99', async () => {
     const d = await getSectionDetail('103', 'BNS');
     expect(d?.resolution).toBe('exact');
-    expect(d?.triable_by).toBe('Sessions');
+    expect(d?.triable_by).toBe('Court of Session');
     expect(d?.max_years).toBe(99);
   });
 });
@@ -765,20 +765,20 @@ describe('sections.service null handling', () => {
     expect(d?.triable_by).not.toBe('Magistrate');
   });
 
-  it('a variant (316(2)) has no max_years and no triable_by', async () => {
+  it('a variant (316(2)) has no max_years; triable_by is the parent 316 value from the First Schedule', async () => {
     const d = await getSectionDetail('316(2)', 'BNS');
     expect(d?.resolution).toBe('variant');
     expect(d?.resolved_key).toBe('316(2)');
     expect(d?.max_years).toBeNull();
-    expect(d?.triable_by).toBeNull();
+    expect(d?.triable_by).toBe('Magistrate of the first class');
     expect(d?.bailable).toBe(false);
   });
 
-  it('known max_years: > 7 is Sessions, <= 7 is Magistrate', async () => {
+  it('triable_by is the signed First Schedule value, not a guess from max_years', async () => {
     expect(OFFENCES['81'].max_years).toBe(10);
-    expect((await getSectionDetail('81', 'BNS'))?.triable_by).toBe('Sessions');
+    expect((await getSectionDetail('81', 'BNS'))?.triable_by).toBe('Magistrate of the first class');
     expect(OFFENCES['115'].max_years).toBe(1);
-    expect((await getSectionDetail('115', 'BNS'))?.triable_by).toBe('Magistrate');
+    expect((await getSectionDetail('115', 'BNS'))?.triable_by).toBe('Any Magistrate');
   });
 
   it('a section that creates no offence carries the Gazette note and no offence data', async () => {
@@ -978,13 +978,12 @@ describe('Round 3 must-fix 1: each number takes the code adjacent to it', () => 
 });
 
 describe('Round 3 must-fix 2 and 6b: court level with an unknown term', () => {
-  const DEPENDS_COURT = 'Depends on the offence. Check the First Schedule.';
   const OLD_SENTENCE =
     'The maximum punishment of one or more charged sections is not a single term in the table.';
 
-  it('["316(2)"]: court Depends, empty explanation, no bail section', async () => {
+  it('["316(2)"]: court is the parent 316 value, empty explanation, no bail section', async () => {
     const { summary } = await checkBailEligibility(['316(2)']);
-    expect(summary.courtLevel).toBe(DEPENDS_COURT);
+    expect(summary.courtLevel).toBe('Magistrate of the first class');
     expect(summary.courtLevelExplanation).toBe('');
     expect(summary.bnssBailSection).toBeNull();
   });
@@ -997,9 +996,9 @@ describe('Round 3 must-fix 2 and 6b: court level with an unknown term', () => {
     }
   });
 
-  it('6b: ["103","316(2)"] is Sessions, courtMaxYears 99, BNSS 483 (Ajay round 7; was 480)', async () => {
+  it('6b: ["103","316(2)"] is Court of Session, courtMaxYears 99, BNSS 483 (Ajay round 7; was 480)', async () => {
     const { summary } = await checkBailEligibility(['103', '316(2)']);
-    expect(summary.courtLevel).toBe('Court of Sessions (bail from High Court if rejected)');
+    expect(summary.courtLevel).toBe('Court of Session');
     expect(summary.courtMaxYears).toBe(99);
     expect(summary.bnssBailSection).toBe('483');
   });

@@ -77,6 +77,10 @@ router.get('/map', async (req: Request, res: Response): Promise<void> => {
  * statute, chapter, 4 metadata pills (bailable/cognizable/triable_by/
  * compoundable), punishment, ingredients (when CLO authors them), related
  * sections from the same chapter.
+ *
+ * triable_by (T-289) is the court printed in the BNSS First Schedule, from the
+ * signed config/bns-triable-by.json; null means the Schedule gives no single
+ * court. It is never inferred from the maximum term.
  */
 router.get('/details', async (req: Request, res: Response): Promise<void> => {
   const { section, code } = req.query;

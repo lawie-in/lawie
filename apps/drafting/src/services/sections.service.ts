@@ -291,20 +291,6 @@ export async function getAllMappings(code: string): Promise<{
 
 // ── Section details (SCRUM-83 — rich result card) ──────────────────────────
 
-/**
- * Triable-by inferred from punishment severity per BNSS scheduling rules.
- * Offences with max imprisonment > 7 years go to Sessions; the rest are
- * Magistrate-triable. Sentinel `max_years === 99` (life / death) → Sessions.
- * T-277: an unknown max term gives null, never a guess.
- */
-function inferTriableBy(
-  maxYears: number | null | undefined,
-): 'Sessions' | 'Magistrate' | 'Tribunal' | null {
-  if (typeof maxYears !== 'number') return null;
-  if (maxYears > 7) return 'Sessions';
-  return 'Magistrate';
-}
-
 export interface SectionDetail {
   code: string;
   section: string;
@@ -314,7 +300,8 @@ export interface SectionDetail {
   bailable: boolean | null;
   cognizable: boolean | null;
   compoundable: 'yes' | 'no' | 'with_permission' | null;
-  triable_by: 'Sessions' | 'Magistrate' | 'Tribunal' | null;
+  /** T-289: court by which triable, as printed in the First Schedule; null = depends. */
+  triable_by: string | null;
   punishment: string | null;
   max_years: number | null;
   ingredients: string[];
@@ -444,8 +431,8 @@ export async function getSectionDetail(
     bailable: offence?.bailable ?? null,
     cognizable: offence?.cognizable ?? null,
     compoundable: offence?.compoundable ?? null,
-    // Ajay (T-277 Q4): triable-by is a court level, so a parent row may set it.
-    triable_by: offence ? inferTriableBy(offence.courtMaxYears) : null,
+    // Ajay (T-289): only from the signed First Schedule value, never from the term.
+    triable_by: offence?.triableBy ?? null,
     punishment: offence?.punishment ?? null,
     max_years: offence?.maxYears ?? null,
     // Ingredients + bare section text are not yet authored in bns-offences.json.

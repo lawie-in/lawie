@@ -5,7 +5,7 @@
 | Phase          | 1 — Legal accuracy |
 | Owner          | Ajay (adds the "triable by" column to the signed table, signs). Shashank (build, after T-277: same files). Anushka |
 | Mode           | Small fix, legal content |
-| Status         | Building: shashank (12 Oct 2026). Ajay signed the column (497a393) |
+| Status         | Merged to `develop_staging` (ad6db61, 12 Oct 2026). Ajay signed dc642da. Waiting for Anushka on develop |
 
 The bail check guesses the trial court from the maximum term ("3-7 years generally triable by Sessions"). That is wrong: most such offences are triable by a Magistrate. The court must come from the First Schedule's "triable by" column of BNSS, which Ajay will add to the signed BNS offence table.
 

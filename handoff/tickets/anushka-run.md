@@ -314,3 +314,33 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - On a computer the remove "x" sits beside each section and works from the keyboard. A screen reader reads it as "Remove" plus the name.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-292 (mahak, merged to develop_staging 613e151, 12 Oct 2026)
+
+Nothing changes on screen. Lawie no longer asks the AI to name the user's matter when it looks for a template.
+
+Test: describe a document; Lawie still finds the right template, or offers choices, as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-289 (shashank, merged to develop_staging ad6db61, 12 Oct 2026)
+
+- The bail checker names the trial court exactly as the First Schedule prints it ("Any Magistrate", "Court of Session") instead of guessing from the sentence. A 3-7 year offence triable by a Magistrate is no longer sent to Sessions.
+- With several sections, Court of Session wins if any section is triable there; otherwise the higher Magistrate is shown.
+- Where the Schedule gives no single court, the bail checker and the section finder say "Depends on the offence. Check the First Schedule."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-293 — bail draft reads the sections charged safely (cf05202)
+
+- Nothing changes on screen. A bail draft's bailable / non-bailable lines still match the sections charged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-290 — section picker shows what each section was read as (83a5c07)
+
+- Under Sections Charged, a reminder that a bare number is read as a BNS section.
+- Under each section added, what Lawie read it as before drafting ("Read as BNS 303: Theft", "Read as IPC 302").
+- "Checking this section" shows while it checks; a red warning appears if the check fails or the entry isn't a section.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
