@@ -242,7 +242,12 @@ const LOWER_SUFFIX = /(?<![0-9A-Za-z])(\d{1,3})([a-z])(?![0-9A-Za-z])/g;
  * backwards one, is unreadable and none of it is checked (Q1). Deduped on
  * (Act, number), in first-seen order.
  */
-export function extractActCitations(text: string): ActCitation[] {
+export function extractActCitations(
+  text: string,
+  opts: { includeRangeInner?: boolean } = {},
+): ActCitation[] {
+  /** T-333 ruling B: false = only numbers written out, not a range's inner numbers. */
+  const includeRangeInner = opts.includeRangeInner ?? true;
   const out: ActCitation[] = [];
   const seen = new Set<string>();
   const add = (act: CheckedAct, number: string): void => {
@@ -300,7 +305,7 @@ export function extractActCitations(text: string): ActCitation[] {
       const key = `${c.act}|${c.number}`;
       if (dropped.has(key)) continue;
       add(c.act, c.number);
-      for (const n of inner.get(key) ?? []) add(c.act, n);
+      if (includeRangeInner) for (const n of inner.get(key) ?? []) add(c.act, n);
     }
   }
   return out;
@@ -507,8 +512,11 @@ export function buildSectionsCited(text: string): string[] {
  * read ("BNS 103", "103 BNS", "S. 61(2)(a) BNS", "Ss. 3-5 BNS", "Section 103 of
  * the Bharatiya Nyaya Sanhita", ...), each window read by the T-277 reader.
  */
-export function extractBNSSectionNumbers(text: string): string[] {
-  return extractActCitations(text)
+export function extractBNSSectionNumbers(
+  text: string,
+  opts: { includeRangeInner?: boolean } = {},
+): string[] {
+  return extractActCitations(text, opts)
     .filter((c) => c.act === 'BNS')
     .map((c) => c.number);
 }
@@ -559,6 +567,24 @@ export function checkFactSectionSanity(
 // ── Main Validator ───────────────────────────────────────────────────────────
 
 /**
+ * T-270 ruling A (Ajay): an IPC/CrPC/IEA cite that is not a table row gets only the
+ * "not found" invalid_section warning, never also old_law_reference. Matched on
+ * details.code + details.section, which both warnings carry ('IPC'/'CrPC'/'IEA').
+ * Used by validate() and, since T-333, by the stream draft paths.
+ */
+export function dropOldLawForNotFound(
+  oldLawWarnings: ValidationWarning[],
+  sectionWarnings: ValidationWarning[],
+): ValidationWarning[] {
+  const citeKey = (w: ValidationWarning): string =>
+    `${w.details?.code ?? ''}|${(w.details?.section ?? '').toUpperCase()}`;
+  const notFound = new Set(
+    sectionWarnings.filter((w) => w.type === 'invalid_section').map(citeKey),
+  );
+  return oldLawWarnings.filter((w) => !notFound.has(citeKey(w)));
+}
+
+/**
  * Run the full validation pipeline on the generated + post-processed text.
  */
 export async function validate(
@@ -574,15 +600,7 @@ export async function validate(
 
   const sectionsCited = buildSectionsCited(text);
 
-  // T-270 ruling A (Ajay): an IPC/CrPC/IEA cite that is not a table row gets only the
-  // "not found" invalid_section warning, never also old_law_reference. Matched on
-  // details.code + details.section, which both warnings carry ('IPC'/'CrPC'/'IEA').
-  const citeKey = (w: ValidationWarning): string =>
-    `${w.details?.code ?? ''}|${(w.details?.section ?? '').toUpperCase()}`;
-  const notFound = new Set(
-    sectionWarnings.filter((w) => w.type === 'invalid_section').map(citeKey),
-  );
-  const oldLawKept = oldLawWarnings.filter((w) => !notFound.has(citeKey(w)));
+  const oldLawKept = dropOldLawForNotFound(oldLawWarnings, sectionWarnings);
 
   return {
     warnings: [...sectionWarnings, ...oldLawKept, ...clauseResult.missing],
