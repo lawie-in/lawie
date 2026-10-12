@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web) + Arjun (CI job) |
 | Mode   | Small fix |
-| Status | To do. RELEASE GATE: a web deploy fails today. First in line for the next free lead. Priya, 13 Oct 2026 |
+| Status | To do. Small fix (Arjun 616be69): the build fails only when NODE_ENV=development is set, so deploys are not broken. Pin NODE_ENV=production in the web build script and add the CI web job. First in line for the next free lead (quick). Priya, 13 Oct 2026 |
 | Source | Mahak, 13 Oct 2026, while building T-223. Reproduced with all T-223 changes stashed |
 
 ## Problem
