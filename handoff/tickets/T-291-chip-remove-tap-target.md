@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build, web). Rajesh (look). Anushka |
 | Mode           | Small fix (web) |
-| Status         | To do. Unassigned. Found by Rajesh during T-290, 12 Oct 2026 |
+| Status         | Merged into develop_staging (38433f3), waiting for Anushka on develop |
 
 The remove "x" on each section chip in `apps/web/src/components/form/DynamicFormRenderer.tsx` is 12 px, far under the 44 px tap target. On a phone it is hard to hit and easy to miss.
 

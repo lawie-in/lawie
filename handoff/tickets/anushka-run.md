@@ -307,3 +307,18 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The Privacy Policy now says what Lawie keeps if you join the waitlist (name, email, and phone, city, practice area and the link you came from if given), kept until you ask for deletion and never more than 18 months after you joined or Lawie last wrote to you.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-291 (tanvi, merged to develop_staging 38433f3, 12 Oct 2026)
+
+- On a phone, you can remove a section you added, or a file you attached, by tapping a clear button next to it, without hitting the wrong one.
+- On a computer the remove "x" sits beside each section and works from the keyboard. A screen reader reads it as "Remove" plus the name.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-292 (mahak, merged to develop_staging 613e151, 12 Oct 2026)
+
+Nothing changes on screen. Lawie no longer asks the AI to name the user's matter when it looks for a template.
+
+Test: describe a document; Lawie still finds the right template, or offers choices, as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
