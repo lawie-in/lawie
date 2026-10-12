@@ -1,3 +1,4 @@
+import { createJsonBodyErrorHandler } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import cors from 'cors';
 import express from 'express';
@@ -5,6 +6,7 @@ import helmet from 'helmet';
 import passport from 'passport';
 
 import { env } from './config/env';
+import logger from './config/logger';
 import { initPassport } from './config/passport';
 import { errorHandler } from './middleware/errorHandler';
 import adminAuditRoutes from './routes/admin-audit.routes';
@@ -44,6 +46,10 @@ app.use('/', adminAuditRoutes);
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found', service: 'auth' });
 });
+
+// T-315 — json/urlencoded parse, size and encoding errors get a plain JSON 4xx that echoes
+// nothing; they never reach Sentry or errorHandler (which would log and 500 them).
+app.use(createJsonBodyErrorHandler({ logger }));
 
 Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);

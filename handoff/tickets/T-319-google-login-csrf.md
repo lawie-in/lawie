@@ -5,7 +5,7 @@
 | Phase  | 0 — Before go-live. HIGH, security |
 | Owner  | Arjun (spec, at the end of the T-306 file). Kunal (build) |
 | Mode   | Full chain (auth + web) |
-| Status | To do. Kunal right after T-306 (same files). Size S. Found by Kunal, ruled by Arjun, 12 Oct 2026. Not a T-306 regression |
+| Status | Building: kunal (12 Oct 2026) |
 
 An attacker can log a victim into the attacker's account through Google sign-in. Anything the victim then drafts lands in the attacker's account.
 
