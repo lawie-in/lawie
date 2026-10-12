@@ -1670,9 +1670,12 @@ RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ?
 
 /**
  * T-295: Ajay's signed old-law line (handoff/legal/T-295-old-law-block-signed.md,
- * 455559c), byte for byte. The one source for both the preflight soft finding and
- * the old-law block below. Code first, then the number as read ("302 IPC" -> "IPC 302");
- * never "BNS" in front of an old-law number. Returns null for any non-old-law code.
+ * 455559c), byte for byte. PREFLIGHT ONLY: the question of the soft old_law_section
+ * finding in preflight.service.ts. The prompt's old-law block in
+ * classifySectionsBailability keeps Ajay's T-277 line ("…is not classified here…"),
+ * which stops the model classifying IPC sections from memory; do not use this there.
+ * Code first, then the number as read ("302 IPC" -> "IPC 302"); never "BNS" in front
+ * of an old-law number. Returns null for any non-old-law code.
  * Legal content: do not edit without Ajay's sign-off.
  */
 export function oldLawLine(code: ChargedCode | null, number: string): string | null {
@@ -1713,10 +1716,11 @@ export function classifySectionsBailability(sectionsCharged: string | ChargedSec
       continue;
     }
     // Ajay Q8 / round 5c: an old-law number gets its line, never a "BNS" label.
-    // T-295: the line is Ajay's signed text, shared with preflight.
-    const oldLine = oldLawLine(code, number);
-    if (oldLine) {
-      oldLaw.push(oldLine);
+    const old = OLD_LAW_LINE[code];
+    if (old) {
+      oldLaw.push(
+        `${old.name} ${number} is an old-law section and is not classified here. Use the section converter to find the ${old.newCode} section.`,
+      );
       continue;
     }
     // BNSS / BSA / OTHER: kept by the reader, no label and no line here.

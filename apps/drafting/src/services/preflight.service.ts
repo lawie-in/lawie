@@ -215,7 +215,7 @@ async function runPureRules(
     });
   }
 
-  // ── HARD BLOCK #3: BNS section not in whitelist ──────────────────────────
+  // ── BNS whitelist (hard, #3) / old-law section (soft, T-295) / no code (soft) ──
   const sections = parseSectionsCharged(templateId, formData['sections_charged']);
   // `sections` comes from the T-277 reader, already deduped on (code, number).
   for (const e of sections) {

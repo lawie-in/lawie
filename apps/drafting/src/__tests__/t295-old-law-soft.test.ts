@@ -3,7 +3,7 @@
  * (handoff/legal/T-295-old-law-block-signed.md, 455559c).
  *
  * Expected values are literals from the signed text, never built from the code under test
- * (except the one explicit "one source, two uses" check).
+ * (except the oldLawLine() equality check).
  */
 import './setupEnv';
 import './setupDb';
@@ -187,33 +187,45 @@ describe('T-295: BNS and other codes are unchanged', () => {
   });
 });
 
-describe('T-295: one source, two uses (prompt block carries the same line)', () => {
+// Ajay (T-295 change): the prompt line keeps the T-277 text; only the preflight soft
+// question uses the signed T-295 line, from oldLawLine().
+const T277_PROMPT = (code: string, n: string, newCode: string): string =>
+  `${code} ${n} is an old-law section and is not classified here. Use the section converter to find the ${newCode} section.`;
+
+describe('T-295: prompt line keeps the T-277 text, preflight uses the signed line', () => {
   it.each([
-    ['IPC 302', signed('IPC', '302', 'BNS')],
-    ['420 IPC', signed('IPC', '420', 'BNS')],
-    ['CrPC 438', signed('CrPC', '438', 'BNSS')],
-    ['IEA 65B', signed('IEA', '65B', 'BSA')],
-  ])('classifySectionsBailability("%s") is exactly the signed line', (typed, line) => {
+    ['IPC 302', T277_PROMPT('IPC', '302', 'BNS')],
+    ['420 IPC', T277_PROMPT('IPC', '420', 'BNS')],
+    ['CrPC 438', T277_PROMPT('CrPC', '438', 'BNSS')],
+    ['IEA 65B', T277_PROMPT('IEA', '65B', 'BSA')],
+  ])('classifySectionsBailability("%s") is exactly the T-277 line', (typed, line) => {
     const out = classifySectionsBailability(typed);
     expect(out).toBe(line);
+    expect(out).toContain('is not classified here');
     expect(out).not.toMatch(BNS_BEFORE_OLD);
   });
 
-  it('mixed "BNS 103, IPC 302": BNS classified, IPC line signed, no BNS 302', () => {
+  it('mixed "BNS 103, IPC 302": BNS classified, IPC line is the T-277 text, no BNS 302', () => {
     const out = classifySectionsBailability('BNS 103, IPC 302');
     expect(out).toContain('BNS 103 (NON-BAILABLE)');
-    expect(out).toContain(signed('IPC', '302', 'BNS'));
+    expect(out).toContain(T277_PROMPT('IPC', '302', 'BNS'));
     expect(out).not.toContain('BNS 302');
     expect(out).not.toMatch(BNS_BEFORE_OLD);
   });
 
-  it('classify output equals the preflight question for the same entry', async () => {
+  it('prompt line and preflight question differ; preflight equals oldLawLine()', async () => {
     const { r } = await run('IPC 302');
-    expect(classifySectionsBailability('IPC 302')).toBe(r.questions[0]);
-    expect(classifySectionsBailability('IPC 302')).toBe(oldLawLine('IPC', '302'));
+    const prompt = classifySectionsBailability('IPC 302');
+    expect(r.questions[0]).toBe(oldLawLine('IPC', '302'));
+    expect(r.questions[0]).toBe(signed('IPC', '302', 'BNS'));
+    expect(prompt).toBe(T277_PROMPT('IPC', '302', 'BNS'));
+    expect(prompt).not.toBe(r.questions[0]);
+    expect(r.questions[0]).not.toContain('is not classified here');
+    expect(r.questions[0]).not.toMatch(BNS_BEFORE_OLD);
+    expect(prompt).not.toMatch(BNS_BEFORE_OLD);
   });
 
-  it('the assembled body prompt carries the signed line and no "BNS 302"', () => {
+  it('the assembled body prompt carries the T-277 line and no "BNS 302"', () => {
     const config = loadTemplateConfig('bail_regular')!;
     const body = config.document_structure.sections.find((s) => s.section_id === 'body')!;
     const ctx = buildPlaceholderContext(
@@ -222,8 +234,9 @@ describe('T-295: one source, two uses (prompt block carries the same line)', () 
       {},
     );
     const prompt = buildAIUserPrompt(body, ctx);
-    expect(prompt).toContain(signed('IPC', '302', 'BNS'));
-    expect(prompt).not.toContain('is not classified here');
+    expect(prompt).toContain(T277_PROMPT('IPC', '302', 'BNS'));
+    expect(prompt).toContain('is not classified here');
+    expect(prompt).not.toContain('For an earlier offence');
     expect(prompt).not.toMatch(BNS_BEFORE_OLD);
     expect(prompt).not.toContain('BNS 302');
   });

@@ -853,7 +853,7 @@ describe('Q7 compoundable with the Court permission', () => {
 
 describe('Q8 classification of IPC and CrPC parts', () => {
   const IPC_302 =
-    'IPC 302 is an old-law section. For an offence committed on or after 1 July 2024, use the section converter to find the BNS section. For an earlier offence, the old section may still apply.';
+    'IPC 302 is an old-law section and is not classified here. Use the section converter to find the BNS section.';
 
   it('"IPC 302, BNS 103(1)": BNS part classified, IPC part gets the exact line, no "BNS 302"', () => {
     const out = classifySectionsBailability('IPC 302, BNS 103(1)');
@@ -877,9 +877,9 @@ describe('Q8 classification of IPC and CrPC parts', () => {
 
   it('"BNS 103, 41 CrPC, 65B IEA": CrPC and IEA parts get Ajay\'s exact lines, no label', () => {
     const CRPC_41 =
-      'CrPC 41 is an old-law section. For an offence committed on or after 1 July 2024, use the section converter to find the BNSS section. For an earlier offence, the old section may still apply.';
+      'CrPC 41 is an old-law section and is not classified here. Use the section converter to find the BNSS section.';
     const IEA_65B =
-      'IEA 65B is an old-law section. For an offence committed on or after 1 July 2024, use the section converter to find the BSA section. For an earlier offence, the old section may still apply.';
+      'IEA 65B is an old-law section and is not classified here. Use the section converter to find the BSA section.';
     const out = classifySectionsBailability('BNS 103, 41 CrPC, 65B IEA');
     expect(out).toContain('BNS 103 (NON-BAILABLE)');
     expect(out).toContain(CRPC_41);
@@ -938,7 +938,7 @@ describe('Q9 bail-check leaves a non-offence out of "all bailable"', () => {
 
 describe('Round 3 must-fix 1: each number takes the code adjacent to it', () => {
   const OLD = (code: string, n: string, target: string): string =>
-    `${code} ${n} is an old-law section. For an offence committed on or after 1 July 2024, use the section converter to find the ${target} section. For an earlier offence, the old section may still apply.`;
+    `${code} ${n} is an old-law section and is not classified here. Use the section converter to find the ${target} section.`;
 
   it('"BNS 318(4) (IPC 420)": BNS classified, IPC 420 gets the old-law line', () => {
     const out = classifySectionsBailability('BNS 318(4) (IPC 420)');
