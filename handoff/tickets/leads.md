@@ -10,7 +10,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 | mahak | T-292 | fix/t-292-intake-no-label | apps/drafting/src/services/intake.prompts.ts (remove the label ask only), the matching parse in intake.service.ts, their tests. Ajay signs the diff; moved goldens go to him | yes: intake.prompts.ts is Ajay's | 12 Oct 2026 |
 | vishal | T-287 | fix/t-287-flaky-tests | apps/drafting/src/__tests__/documents.generate.usage.test.ts and apps/drafting/src/__tests__/t226-ink-holds.heartbeat.test.ts (root-cause the two flaky tests; test files only unless the cause is in code, then ask Priya first). Small-fix mode. Never skip or loosen a test | no | 12 Oct 2026 |
 | kunal | T-234 + T-298 | feature/t-234-password-sign-up | apps/web/src/app/(auth)/login/page.tsx and components it alone uses (Rajesh's design in the T-234 ticket; Ajay's consent line; Madhuri's copy). apps/auth (Priya, 12 Oct, AC7 terms record + Google-only account login error): src/models/User.model.ts, src/services/auth.service.ts, src/config/passport.ts, src/routes/oauth.routes.ts, src/validators/auth.validator.ts, src/controllers/auth.controller.ts, new src/__tests__/t234-*.test.ts, and the register-role/oauth-role tests if they move. Not packages/shared. Full chain (auth). "Forgot password?" link stays hidden until T-221 merges Also T-298 (Arjun's ruling): referral Ink lands (auth User schema gets inkTopup, signup-seed race fixed, test first, no backfill) and password sign-up gets role Lawyer; apps/auth/src/services/referral.service.ts and credit-bonus.service.ts added. | no | 12 Oct 2026 |
-| tanvi | T-291 | fix/t-291-chip-tap-target | apps/web/src/components/form/DynamicFormRenderer.tsx (the section chip remove control and the file-list remove "x" near L627: 44 px tap area, accessible label). Small-fix mode. T-290 (same file) comes to you next | no | 12 Oct 2026 |
+| tanvi | T-290 | fix/t-290-section-picker-hint | apps/web/src/components/form/DynamicFormRenderer.tsx (the section picker hint and the per-chip "Read as" line, per handoff/design/T-290-section-picker-hint.md and Ajay's signed strings in the T-290 ticket; titles only from the signed T-277 table via the existing API). Small-fix mode; Ajay sees the strings | yes: Ajay's signed strings | 12 Oct 2026 |
 
 ## Next per lead (Priya, 11 Oct 2026). Not claims: each is assigned only when its row is free and its gate is met
 
@@ -35,13 +35,13 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. tanvi — T-291 (e1f0a43). Slot given 12 Oct 2026.
-2. mahak — T-292 (0ab2f19). After tanvi. Ajay signed 0ab2f19.
-3. shashank — T-289 (dc642da). After mahak. Ajay signed dc642da.
-4. vishal — T-287 (af86bfe). After shashank.
+1. mahak — T-292 (0ab2f19). Slot given 12 Oct 2026. Ajay signed 0ab2f19.
+2. shashank — T-289 (dc642da). After mahak. Ajay signed dc642da.
+3. vishal — T-287 (af86bfe). After shashank.
 
 ## Last done
 
+- tanvi — T-291 merged to `develop_staging` (38433f3, 12 Oct 2026). Remove buttons on section chips and files: 44 px on phones. Waiting for Anushka on develop.
 - kunal — T-284 merged to `develop_staging` (f1819ef, 12 Oct 2026). Privacy page waitlist bullets (Ajay's text). Waiting for Anushka on develop.
 - shashank — T-277 merged to `develop_staging` (0e4832a, 12 Oct 2026). Ajay's corrected BNS offence table everywhere it is read. Unblocks T-278, T-280, T-289, T-290, T-293, T-294, T-295, T-241. Waiting for Anushka on develop.
 - mahak — T-115e merged to `develop_staging` (2355979, 12 Oct 2026). Events keep a fixed category only, no matter label. Waiting for Anushka on develop.
