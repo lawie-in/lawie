@@ -35,7 +35,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. tanvi: T-345 + T-340 (a5de025, review passed round 3). Merges once Ajay signs the ai.service.ts diff; then ping Shashank.
+1. mahak: T-334 (a8e516a + c6081e2, Ajay signed 9b484ee). Slot given 12 Oct: signed first, Tanvi still waits on Ajay.
+2. tanvi: T-345 + T-340 (a5de025, review passed round 3). Merges once Ajay signs the ai.service.ts diff; then ping Shashank.
 
 ## Last done
 
