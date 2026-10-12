@@ -623,13 +623,14 @@ describe('R5 citation whitelists', () => {
     }
   });
 
-  it('the validator does not flag 103(1) or 316(2), and flags 999(1) and 114', () => {
+  it('the validator does not flag 103(1), 316(2) or 114, and flags 999(1) (T-270 Q7: range 1-358)', () => {
     expect(validateBNSWhitelist(['103', '103(1)', '316(2)'])).toEqual([]);
     expect(validateBNSWhitelist(['999(1)']).map((w) => w.details?.section)).toEqual(['999(1)']);
-    expect(validateBNSWhitelist(['114']).map((w) => w.details?.section)).toEqual(['114']);
+    // T-270 Q7: 114 is in the BNS range, so the validator no longer flags it (preflight still does).
+    expect(validateBNSWhitelist(['114'])).toEqual([]);
   });
 
-  it('preflight and validator give the same answer for every probe (one resolver)', async () => {
+  it('T-270 Q7: preflight keeps the offence table (R5), the validator uses the BNS range 1-358', async () => {
     const probes = [
       '103',
       '103(1)',
@@ -642,11 +643,22 @@ describe('R5 citation whitelists', () => {
       '330(1)',
     ];
     for (const s of probes) {
-      const flagged = validateBNSWhitelist([s]).length > 0;
+      const validatorFlags = validateBNSWhitelist([s]).length > 0;
       const { hits } = await hitsFor([s]);
-      expect(hits.includes('section_whitelist')).toBe(flagged);
-      expect(flagged).toBe(!citationResolves(s));
+      // Preflight: unchanged, the offence table via the resolver.
+      expect(hits.includes('section_whitelist')).toBe(!citationResolves(s));
+      // Validator: the range, parent number only.
+      expect(validatorFlags).toBe(s === '999(1)');
     }
+    // Where they now differ (Q7): non-offence BNS numbers that are in range.
+    for (const s of ['114', '330(1)']) {
+      expect(citationResolves(s)).toBe(false);
+      expect((await hitsFor([s])).hits).toContain('section_whitelist');
+      expect(validateBNSWhitelist([s])).toEqual([]);
+    }
+    // Where they still agree: an out-of-range number is flagged by both.
+    expect((await hitsFor(['999(1)'])).hits).toContain('section_whitelist');
+    expect(validateBNSWhitelist(['999(1)']).length).toBe(1);
     // R5 is "exact key, else parent": 316(1) has a parent row so it is cited-valid here,
     // although the resolver (R2) says it creates no offence.
     expect(citationResolves('316(1)')).toBe(true);
