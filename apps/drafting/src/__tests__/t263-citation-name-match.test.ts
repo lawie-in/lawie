@@ -529,6 +529,22 @@ describe('T-263 Q7 (Addendum 5): marks glued between two words are a word break'
     expect(() =>
       expectNoNameFragmentBesideBlank(`the principle (see ${BLANK}) applies.`),
     ).not.toThrow();
+    expect(() =>
+      expectNoNameFragmentBesideBlank(`the principle ("${BLANK}) applies.`),
+    ).not.toThrow();
+    expect(() => expectNoNameFragmentBesideBlank(`${BLANK} applies.`)).not.toThrow();
+  });
+
+  it('the check catches an opener fused to the text before it, or a quoted name part', () => {
+    expect(() => expectNoNameFragmentBesideBlank(`In Bihar(${BLANK}) applies.`)).toThrow();
+    expect(() => expectNoNameFragmentBesideBlank(`In Arnesh"${BLANK} applies.`)).toThrow();
+    expect(() => expectNoNameFragmentBesideBlank(`In "Arnesh ${BLANK} applies.`)).toThrow();
+    expect(() => expectNoNameFragmentBesideBlank(`In (“Arnesh ${BLANK} applies.`)).toThrow();
+    expect(() => expectNoNameFragmentBesideBlank(`In 'Arnesh ${BLANK} applies.`)).toThrow();
+  });
+
+  it('advocate-written text is exempt from the check', () => {
+    expect(() => expectNoNameFragmentBesideBlank(`In (The ${BLANK}`, ['In (The'])).not.toThrow();
   });
 });
 
