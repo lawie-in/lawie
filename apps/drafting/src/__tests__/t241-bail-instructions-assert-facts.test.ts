@@ -15,7 +15,6 @@
  */
 import './setupEnv';
 
-import { execFileSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -57,14 +56,14 @@ beforeEach(() => {
 // ── The signed file ─────────────────────────────────────────────────────────
 
 const REPO = join(__dirname, '..', '..', '..', '..');
-const SIGNED_PATH = 'handoff/legal/T-241-bail-instructions-signed.md';
-const SIGNED_LOCAL = readFileSync(join(REPO, SIGNED_PATH), 'utf8');
-// Ajay's Addendum 1 may not be in this branch's copy yet; fall back to origin/develop_staging.
-const SIGNED = SIGNED_LOCAL.includes('## Addendum 1')
-  ? SIGNED_LOCAL
-  : execFileSync('git', ['-C', REPO, 'show', `origin/develop_staging:${SIGNED_PATH}`], {
-      encoding: 'utf8',
-    });
+const SIGNED = readFileSync(
+  join(REPO, 'handoff', 'legal', 'T-241-bail-instructions-signed.md'),
+  'utf8',
+);
+// Fail loudly if the worktree copy lacks Ajay's Addendum 1 (no git/origin fallback: CI cannot rely on it).
+if (!SIGNED.includes('## Addendum 1')) {
+  throw new Error('signed md has no "## Addendum 1"; the Addendum 1 pins cannot run');
+}
 const RULES = join(__dirname, '..', 'config', 'document-rules');
 type RawPack = {
   promptInstructions: string[];
@@ -229,17 +228,17 @@ describe('T-241 Addendum 1: grounds and false_implication descriptions', () => {
     });
   });
 
-  // PENDING Ajay's decision: the signed addendum says to delete the legacy item, but only if
-  // that moves nothing. It moves the loader note and the rulePackVersionOf hash, so the item
-  // was left in place. If Ajay rules to delete it, update this pin to 8 items without it.
-  it('legacy mandatory_clauses still holds "clean antecedents or explanation thereof" (9 items)', () => {
+  // Ajay ruled (T-241 round 3): "delete it anyway ... no draft, clause list or test changes."
+  // The legacy item is deleted: 8 items, no "clean antecedents or explanation thereof".
+  it('legacy mandatory_clauses no longer holds "clean antecedents or explanation thereof" (8 items)', () => {
     const legacy = (
       JSON.parse(readFileSync(join(RULES, 'bail_before_magistrate.json'), 'utf8')) as {
         mandatory_clauses: string[];
       }
     ).mandatory_clauses;
-    expect(legacy).toHaveLength(9);
-    expect(legacy).toContain('clean antecedents or explanation thereof');
+    expect(legacy).toHaveLength(8);
+    expect(legacy).not.toContain('clean antecedents or explanation thereof');
+    expect(legacy.join('\n')).not.toContain('clean antecedents');
   });
 });
 
