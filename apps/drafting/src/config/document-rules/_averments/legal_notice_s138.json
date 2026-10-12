@@ -1,5 +1,6 @@
 {
   "_about": "T-147c averment allowlist and banned-assertion list. Schema and rules: README.md in this folder. PROPOSED by the developer; Ajay (CLO) reviews and signs.",
+  "_t192": "T-192: presented_within_validity and notice_within_thirty_days unlock only on the computed facts s138_presented_within_validity (line A1) and s138_notice_within_thirty_days (line B1), which src/services/s138-date-checks.ts adds per request when the check passes; they are never stored. Logic and twin texts signed by Ajay in handoff/legal/T-192-s138-date-checks-signed.md (Addendum 1). ni_complaint_s138 will inherit this file and must override both entries back to banned (unlocked_by null) until a separate ticket and sign-off extend the checks to the complaint.",
   "pack": "legal_notice_s138",
   "inherits": null,
   "key_map": {},
@@ -90,7 +91,20 @@
         "this notice is within time",
         "30 din ke andar notice"
       ],
-      "unlocked_by": null
+      "unlocked_by": {
+        "all_of": [
+          {
+            "key": "s138_notice_within_thirty_days",
+            "label": "Notice in time (worked out from your dates)",
+            "equals": true
+          },
+          {
+            "key": "memo_received_date",
+            "label": "Date the return memo was received",
+            "present": true
+          }
+        ]
+      }
     },
     {
       "id": "presented_within_validity",
@@ -102,7 +116,25 @@
         "within the period of validity",
         "cheque valid tha"
       ],
-      "unlocked_by": null
+      "unlocked_by": {
+        "all_of": [
+          {
+            "key": "s138_presented_within_validity",
+            "label": "Presented in time (worked out from your dates)",
+            "equals": true
+          },
+          {
+            "key": "cheque_date",
+            "label": "Cheque Date",
+            "present": true
+          },
+          {
+            "key": "presentation_date",
+            "label": "Date of Presentation to Bank",
+            "present": true
+          }
+        ]
+      }
     },
     {
       "id": "earlier_notice",
@@ -359,6 +391,49 @@
         "key": "relationship_particulars",
         "label": "Relationship between the parties",
         "present": true
+      }
+    },
+    {
+      "id": "notice_within_thirty_days",
+      "kind": "submission",
+      "averment": "This notice is issued within thirty days of the receipt, on {{memo_received_date}}, of the information from the bank regarding the return of the said cheque unpaid.",
+      "requires": {
+        "all_of": [
+          {
+            "key": "s138_notice_within_thirty_days",
+            "label": "Notice in time (worked out from your dates)",
+            "equals": true
+          },
+          {
+            "key": "memo_received_date",
+            "label": "Date the return memo was received",
+            "present": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "presented_within_validity",
+      "kind": "submission",
+      "averment": "The said cheque dated {{cheque_date}} was presented for payment on {{presentation_date}}, within the period of its validity.",
+      "requires": {
+        "all_of": [
+          {
+            "key": "s138_presented_within_validity",
+            "label": "Presented in time (worked out from your dates)",
+            "equals": true
+          },
+          {
+            "key": "cheque_date",
+            "label": "Cheque Date",
+            "present": true
+          },
+          {
+            "key": "presentation_date",
+            "label": "Date of Presentation to Bank",
+            "present": true
+          }
+        ]
       }
     }
   ]
