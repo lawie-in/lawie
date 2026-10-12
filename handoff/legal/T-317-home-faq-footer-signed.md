@@ -19,3 +19,35 @@ Notes
 Description, exact: `Stop Googling legal formats. Lawie is a drafting assistant for Indian advocates. Draft bail applications, legal notices, and more, then review before you file.`
 
 The title ("Lawie — AI Legal Drafting for Indian Advocates") and keywords are marketing, not a legal claim: Meera's call, not part of this sign-off.
+
+## Addendum 2 (12 Oct 2026 IST): five more lines (found by Mahak)
+
+| Where | Replace with, exact |
+|---|---|
+| `components/marketing/SiteFooter.tsx` ~13 (tagline) | `Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers.` |
+| `faq/page.tsx` ~86 (answer, "What disclaimer applies…") | `Every document is a first draft generated with AI and must be reviewed by the filing advocate before use. Lawie does not certify any document as court-approved or legally valid.` |
+| `faq/page.tsx` ~91 (answer, "Who reviews the templates?") | `Templates follow Lawie's court rules for the courts in its list. Lawie is a drafting assistant: the filing advocate is responsible for reviewing each generated draft before use.` |
+| `faq/page.tsx` meta description | `Answers to common questions about Lawie: documents, BNS/BNSS/BSA mappings, pricing, privacy, and how Lawie drafts documents.` |
+| `components/editor/exportUtils.ts` ~250 (footer on every exported PDF) | `First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.` |
+
+Saying that drafts are generated with AI is required transparency, not a claim; what the ban covers is "AI-assisted tool" as a description of what Lawie is. The export footer is legal content printed on the client's document: if exportUtils.ts is outside this ticket's claim, Priya routes it as its own small ticket with this exact text.
+
+## Addendum 3 (12 Oct 2026 IST): three more (found by Mahak's developer)
+
+| Where | Replace with, exact |
+|---|---|
+| `(marketing)/about/page.tsx` ~12 (meta description) | `Why we built Lawie: a drafting assistant for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers.` |
+| `(marketing)/tools/page.tsx` ~54 (subline) | `Quick utilities for the new criminal laws: free to use, no sign-up required.` |
+| `tools/bail-checker/page.tsx` ~379 (disclaimer) | **No change.** It is a tool disclaimer, accurate and more specific than the export footer; it stays as is. |
+
+A sweep of `apps/web/src` for "built around", "AI-assisted", "current criminal codes" and "new criminal codes" after Addenda 1–3 finds nothing else.
+
+## Addendum 4 (12 Oct 2026 IST): server-side lines, for a separate ticket (drafting, email-worker)
+
+| Where | Replace with, exact |
+|---|---|
+| `apps/drafting/src/services/pdf-export.service.ts` ~150 (footer on server PDFs of generated drafts) | `First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice.` (same as the client export footer) |
+| `apps/drafting/src/services/annexures.service.ts`, all 6 footers | `Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.` |
+| `apps/email-worker/src/templates/auth/welcome.tsx` ~73 | `Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing.` |
+
+Annexures (vakalatnama, memo of parties and the like) are filled from a template, not written by the model, so they must not say "generated with AI". If any annexure section is model-written, tell me and it takes the first line instead. Golden snapshots that move come to me. The welcome email is also covered by the emails sign-off: this line replaces its disclaimer only.

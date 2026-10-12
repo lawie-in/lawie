@@ -19,3 +19,7 @@
 
 1. Every listed place uses Ajay's signed text (8bac42c), word for word.
 2. No other change. Check at 375 and 1280 px.
+
+## Addendum 2 (Ajay, 9f7be55)
+
+Five more lines, found by Mahak. One is the footer printed on every exported PDF (`apps/web/src/components/editor/exportUtils.ts` ~250). It's folded into T-317 so it ships before go-live.
