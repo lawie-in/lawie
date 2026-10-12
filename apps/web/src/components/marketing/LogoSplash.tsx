@@ -221,8 +221,13 @@ export function LogoSplash({ fontFamily }: { fontFamily: string }) {
         setFading(true);
         setTimeout(() => {
           setVisible(false);
-          sessionStorage.setItem('lawie_splash_seen', '1');
+          // T-332: end the splash first, so a storage throw never holds back the consent card.
           markSplashEnded();
+          try {
+            sessionStorage.setItem('lawie_splash_seen', '1');
+          } catch {
+            /* storage full or blocked: the splash shows again next visit */
+          }
         }, 500);
       }, totalMs);
 

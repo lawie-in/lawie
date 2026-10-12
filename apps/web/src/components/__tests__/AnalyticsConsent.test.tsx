@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { act } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { usePathname } from 'next/navigation';
@@ -685,18 +687,35 @@ describe('reopen', () => {
     expect(card()).not.toBeNull();
   });
 
-  it('a first-time choice moves focus to #main', async () => {
-    const main = document.createElement('main');
+  it('a first-time choice moves focus to #main, which is focusable only for that move (T-332)', async () => {
+    // As in the root layout: a plain element with no tabindex.
+    const main = document.createElement('div');
     main.id = 'main';
-    main.tabIndex = -1;
     document.body.appendChild(main);
     await mount('/pricing');
+    expect(main.hasAttribute('tabindex')).toBe(false);
     await click(btn('Accept'));
     await act(async () => {
       await new Promise((r) => setTimeout(r, 10));
     });
     expect(document.activeElement).toBe(main);
+    expect(main.getAttribute('tabindex')).toBe('-1');
+
+    // Focus moving away removes the tabindex again.
+    const other = document.createElement('button');
+    document.body.appendChild(other);
+    await act(async () => other.focus());
+    expect(document.activeElement).toBe(other);
+    expect(main.hasAttribute('tabindex')).toBe(false);
+    other.remove();
     main.remove();
+  });
+
+  it('the root layout no longer sets tabIndex on #main (T-332)', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../../app/layout.tsx'), 'utf8');
+    const tag = src.match(/<div[^>]*id="main"[^>]*>/);
+    expect(tag).not.toBeNull();
+    expect(tag![0]).not.toMatch(/tabIndex/i);
   });
 
   it('the opener is optional: uses the focused element', async () => {
