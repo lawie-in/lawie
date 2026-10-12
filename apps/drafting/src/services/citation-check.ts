@@ -159,6 +159,8 @@ const VERSUS_WORD = /(?<=\s)(?:versus|vs\.?|v\.?)(?=\s)/g;
 const VERSUS_LOOKBACK = 250;
 /** Rule 3: the first party has at most ten tokens. */
 const MAX_PARTY1_TOKENS = 10;
+/** A versus word, then only whitespace, at the end of the text before the blank. */
+const VERSUS_AT_END = /(?:^|\s)(?:versus|vs\.?|v\.?)\s*$/;
 
 /** Rule 3 name tokens. A capitalised word, an initial or a title: "Arnesh", "M.", "K.M.", "Dr.", "D'Souza", "Ltd.,". */
 const CAP_TOKEN = /^[A-Z][A-Za-z0-9'’.&-]*,?$/;
@@ -335,6 +337,29 @@ function party1Start(text: string, lo: number, versusStart: number): number {
   return back.length > 0 ? back[0].at : versusStart;
 }
 
+/**
+ * Ajay's Q4 (12 Oct 2026), a general rule: whenever a versus word would stand
+ * directly before the blank, the cut goes back to the start of the sentence
+ * (rule 4), whatever stopped the walk for party 1 (the ten-token limit, a
+ * line start or anything else). The cut stays within `lo`: the previous
+ * citation's end, a blank line and VERSUS_LOOKBACK characters (Addendum 2,
+ * Q1). T-148 (b) is unchanged: `trimLead` still gives back the words before a
+ * name the advocate wrote.
+ */
+function cutBackPastVersusWord(text: string, lo: number, start: number): number {
+  if (start <= lo || !VERSUS_AT_END.test(text.slice(lo, start))) return start;
+  let from = lo;
+  // If the character limit falls inside a word, start after that word.
+  if (from > 0 && /\S/.test(text[from - 1])) {
+    const gap = text.slice(from, start).search(/\s/);
+    if (gap < 0) return start;
+    from += gap;
+  }
+  let cut = sentenceStart(text, from, start);
+  while (cut < start && /\s/.test(text[cut])) cut += 1;
+  return cut;
+}
+
 /** Public parties that appear in many briefs; on their own they do not show the advocate named the case. */
 const GENERIC_PARTY =
   /^(?:the\s+)?(?:state|union of india|govt|government|directorate|central bureau|cbi|commissioner|municipal|nct|enforcement|ed)\b/i;
@@ -422,11 +447,12 @@ function findCitations(text: string): Found[] {
       continue;
     }
     // Rule 3: party 1 is walked back from the versus word, no further than the previous citation.
-    const start = party1Start(
+    const walked = party1Start(
       text,
       Math.max(from, paragraphStart(text, versus.start)),
       versus.start,
     );
+    const start = cutBackPastVersusWord(text, lo, walked);
     const party1 = text.slice(start, versus.start).replace(/\s+$/, '');
     const party2 = text
       .slice(versus.end, reporterStart)

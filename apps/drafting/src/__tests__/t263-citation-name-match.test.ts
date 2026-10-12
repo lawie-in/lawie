@@ -252,15 +252,43 @@ describe('T-263 Addendum 2 (Ajay, Q1 to Q3)', () => {
 });
 
 describe('T-263 known edge: ten-token limit lands just after a versus word', () => {
-  // FINDING (source: services/citation-check.ts): output is "Ram v. [blank] apply.", which breaks the
-  // property check. it.failing: passes while the gap exists and breaks when it is fixed. Needs Ajay's call.
-  it.failing(
-    'a first party of ten tokens after an earlier "v." leaves no versus word before the blank',
-    () => {
-      const res = run(
-        'Ram v. Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa v. State of Kerala (2019) 4 SCC 12 apply.',
-      );
-      expect(res.text).not.toContain('SCC');
-    },
-  );
+  // Ajay's Q4, 12 Oct 2026: after any cut, no versus word may stand directly before a blank.
+  it('a first party of ten tokens after an earlier "v." leaves no versus word before the blank', () => {
+    const res = run(
+      'Ram v. Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa v. State of Kerala (2019) 4 SCC 12 apply.',
+    );
+    expect(res.text).toBe(`${BLANK} apply.`);
+  });
+});
+
+describe('T-263 Q4: the cut extends back past a versus word', () => {
+  const LONG = 'Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa';
+
+  it('the earlier sentence is kept', () => {
+    const res = run(`The Court held so. Ram v. ${LONG} v. State of Kerala (2019) 4 SCC 12 apply.`);
+    expect(res.text).toBe(`The Court held so. ${BLANK} apply.`);
+  });
+
+  it('a line start stops the walk', () => {
+    const res = run(
+      `Earlier text here.\nRam v.\nMohan Rao v. State of Kerala (2019) 4 SCC 12 apply.`,
+    );
+    expect(res.text.startsWith('Earlier text here.\n')).toBe(true);
+    expect(res.text).not.toContain('SCC');
+    expect(res.text).not.toContain('Mohan Rao');
+  });
+
+  it('a versus word split from its name by a line break is still taken in', () => {
+    const res = run('Ram v.\nMohan Rao v. State of Kerala (2019) 4 SCC 12 apply.');
+    expect(res.text).toBe(`${BLANK} apply.`);
+  });
+
+  it('T-148 (b): the advocate gave the long first party, so the name stays and only the reporter is blanked', () => {
+    const res = run(`Ram v. ${LONG} v. State of Kerala (2019) 4 SCC 12 apply.`, [
+      'Rely on Iota Kappa v. State of Kerala',
+    ]);
+    expect(res.text).toContain('Iota Kappa');
+    expect(res.text).not.toContain('SCC');
+    expect(res.text).toContain(BLANK);
+  });
 });
