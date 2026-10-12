@@ -32,3 +32,7 @@ To keep you signed in, we store a sign-in token in your browser's local storage;
 ```
 
 SHA-256 of the block above (between the fences, final newline included): `ecd2b0be2d751d0e194c7fe5f81cb8edc3342aa2a5f28eb39d04d5976f66a4be`
+
+## Addendum 1 (12 Oct 2026 IST): browser error reports before consent (Arjun's question)
+
+Allowed before consent, as necessary for running the service, on these conditions: no cookies or local identifiers set for it; no session replay or screen recording; no form values, draft text or document content in a report; sent through our own domain; the Privacy Policy keeps Sentry in the "who receives data" table (it does today). If any condition changes, it moves behind the consent notice and I re-sign.

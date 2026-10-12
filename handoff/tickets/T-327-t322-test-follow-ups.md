@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (tests; one small export) |
 | Mode   | Small fix (legal content; Ajay sees the diff) |
-| Status | To do. Vishal after T-322. Found in T-322 review, 12 Oct 2026 |
+| Status | Building: vishal (12 Oct 2026) |
 
 ## Acceptance criteria
 
