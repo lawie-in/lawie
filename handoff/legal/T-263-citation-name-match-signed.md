@@ -85,5 +85,5 @@ Vishal is right: rule 4 as I wrote it ("a full stop after a word of three or mor
 ## Addendum 6, 12 Oct 2026 (final review: Q8a, Q8b)
 
 - **Q8a:** an opening `(` or `[` with no closing mark before the versus word is a limit for the first party, like an opening quotation mark. "(Arnesh Kumar v. State of Bihar, (2014) 8 SCC 273)" becomes "([Authority — add if relied upon])". The brackets stay; nothing of the name stays.
-- **Q8b:** these are name words for rule 3 (the walk back continues through them): `M/s`, `M/s.`, `s/o`, `d/o`, `w/o`, `r/o`, `h/o`, `S/o`, `D/o`, `W/o`, `R/o`. "M/s. Tata Steel Ltd. v. ..." blanks in full.
+- **Q8b:** these are name words for rule 3 (the walk back continues through them), **in any case** (M/S, S/O, D/O, s/o, H/o and so on), with or without a final full stop: `M/s`, `s/o`, `d/o`, `w/o`, `r/o`, `h/o`. "M/s. Tata Steel Ltd. v. ..." and "Ram S/O Shyam Lal v. ..." blank in full.
 - Sign-off reference: Addenda 1 to 6.
