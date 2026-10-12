@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Rajesh (words, small layout). Ajay signs. Lead (build, web). Anushka |
 | Mode           | Small fix (web) |
-| Status         | Ready to build after T-277 merges. Words signed by Ajay, design by Rajesh (12 Oct 2026) |
+| Status         | Building: tanvi (12 Oct 2026). Words signed by Ajay, design by Rajesh |
 
 Under Arjun's corrected T-277 rule, a bare number with no code (for example "303") is read as BNS, because the picker stores bare numbers. An advocate who types an old IPC number without "IPC" gets the wrong section. The BNS section picker ("Sections Charged" in `apps/web/src/components/form/DynamicFormRenderer.tsx`) should tell them to type the code.
 
