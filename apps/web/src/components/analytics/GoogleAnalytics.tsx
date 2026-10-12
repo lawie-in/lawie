@@ -21,6 +21,26 @@ function setGaDisabled(disabled: boolean): void {
   (window as unknown as Record<string, unknown>)[GA_DISABLE_KEY] = disabled;
 }
 
+// Browser Back/Forward: on popstate the URL is already the destination, and GA's history
+// listener may fire before React re-renders (and before the component's render-time disable). This
+// listener is registered at module load, long before gtag.js can load, and in the capture
+// phase (gtag's is a bubble listener), so it runs first and sets the flag from the new URL.
+// Registered once per window, even if the module is evaluated twice.
+const POPSTATE_GUARD_KEY = '__lawieGaPopstateGuard';
+if (typeof window !== 'undefined') {
+  const w = window as unknown as Record<string, unknown>;
+  if (!w[POPSTATE_GUARD_KEY]) {
+    w[POPSTATE_GUARD_KEY] = true;
+    window.addEventListener(
+      'popstate',
+      () => {
+        setGaDisabled(!isAnalyticsRoute(window.location.pathname));
+      },
+      { capture: true },
+    );
+  }
+}
+
 // Sets up the gtag queue once. gtag.js drains window.dataLayer when it loads, so commands
 // pushed before the script arrives are kept in order (js, config, then the first page view).
 function initGtag(): void {
