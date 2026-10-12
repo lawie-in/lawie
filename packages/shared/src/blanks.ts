@@ -73,9 +73,12 @@ const CONTEXT_WORDS = 3;
 const SECTION_MARKER = '[Section — verify before filing]';
 const AUTHORITY_MARKER = '[Authority — add if relied upon]';
 
-/** The marked blanks. Group 1: a `[To be confirmed: …]` label; group 2: a `{{MISSING: …}}` label. */
+/**
+ * The marked blanks. Group 1: a `[To be confirmed: …]` label; group 2: a `{{MISSING: …}}` label.
+ * Any case (Ajay's T-194 follow-up): "[to be confirmed: …]" is the same blank.
+ */
 const MARKER =
-  /\[To be confirmed:([^\]]*)\]|\{\{\s*MISSING\s*:([^}]*?)\}\}|\[Section — verify before filing\]|\[Authority — add if relied upon\]/g;
+  /\[To be confirmed:([^\]]*)\]|\{\{\s*MISSING\s*:([^}]*?)\}\}|\[Section — verify before filing\]|\[Authority — add if relied upon\]/gi;
 
 const UNDERSCORES = /_{3,}/g;
 
@@ -226,7 +229,8 @@ export const findBlanks: FindBlanks = (text) => {
     let label: string;
     if (m[1] !== undefined) label = tidyLabel(m[1]) || EMPTY_BLANK_LABEL;
     else if (m[2] !== undefined) label = tidyLabel(m[2]) || EMPTY_BLANK_LABEL;
-    else if (m[0] === SECTION_MARKER) label = SECTION_MARKER.slice(1, -1);
+    else if (m[0].toLowerCase() === SECTION_MARKER.toLowerCase())
+      label = SECTION_MARKER.slice(1, -1);
     else label = AUTHORITY_MARKER.slice(1, -1);
     add(start, end, label);
     taken.push([start, end]);
