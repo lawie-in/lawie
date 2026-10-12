@@ -545,7 +545,7 @@ describe('T-136 — regular bail, the facts as given (criteria 6 and 9)', () => 
     );
     // The older check (T-106) reads only the brief: it still flags a date that only the description gives.
     expect(found).toEqual([
-      'The draft has a date that is not in your brief: 22.09.2026. Check it before use.',
+      'The draft has a date that is not in your brief: 22 September 2026. Check it before use.',
     ]);
     expect(bodyOf(r)).toBe(CLEAN_BAIL);
   });
@@ -639,7 +639,7 @@ describe('T-136 — Section 138 notice (criteria 7 and 9)', () => {
     }
     // The older check (T-106) reads only the brief: the memo date is only in the description.
     expect(found).toEqual([
-      'The draft has a date that is not in your brief: 10.08.2026. Check it before use.',
+      'The draft has a date that is not in your brief: 10 August 2026. Check it before use.',
     ]);
   });
 
