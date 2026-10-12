@@ -244,3 +244,33 @@ Quality: nothing to test in the UI — a server setting only.
 Test: open the same draft in two tabs at once and confirm you get one draft and one refusal.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-285 (vishal, merged to develop_staging 50720bd, 12 Oct 2026)
+
+- A long draft no longer stops partway when the server is quiet for a minute. The page stays connected until the draft finishes.
+
+Test: generate one long draft (many sections) and confirm it completes without the page dropping or showing an error.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-288 (mahak, merged to develop_staging 66753fc, 12 Oct 2026)
+
+- In the rare case that a finished draft's Ink cannot be taken because of a system fault, the user sees "not enough Ink" instead of getting the draft free, and is never charged for a draft they were not given.
+
+Nothing to test in a browser: the case cannot be reproduced there.
+
+Quality: nothing to test in the UI — a rare fault path that no user can trigger on demand.
+
+## T-269 (vishal, merged to develop_staging 9ddda55, 12 Oct 2026)
+
+Nothing new on screen. The build now stops on a code error instead of hiding it, and CI checks it on every push.
+
+Quality: nothing to test in the UI — build and CI only.
+
+## T-115a (mahak, merged to develop_staging 7c697a2, 12 Oct 2026)
+
+- Nothing changes on screen: saved case details are now stored encrypted.
+
+Test: open an old draft and a new one. Both still show their details, checklist and annexures as before.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

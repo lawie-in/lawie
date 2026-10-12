@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc && cp -r src/config/document-rules dist/config/ && cp -r src/config/court-rules dist/config/ 2>/dev/null; cp -r src/config/courts dist/config/ 2>/dev/null; cp -r src/config/sections dist/config/ 2>/dev/null; cp src/config/bns-*.json dist/config/ 2>/dev/null; true",
+    "build": "tsc && cp -r src/config/document-rules dist/config/ && cp -r src/config/court-rules dist/config/ && cp -r src/config/courts dist/config/ && cp -r src/config/sections dist/config/ && { cp src/config/bns-*.json dist/config/ 2>/dev/null || true; }",
     "start": "node dist/index.js",
     "lint": "eslint 'src/**/*.ts' --fix",
     "test": "jest --coverage --forceExit --detectOpenHandles",
@@ -22,7 +22,8 @@
     "report:rule-packs": "ts-node --transpile-only scripts/rule-pack-report.ts",
     "report:averments": "ts-node --transpile-only scripts/averments-table.ts",
     "report:fact-diffs": "ts-node --transpile-only scripts/fact-diff-report.ts",
-    "golden:set": "ts-node --transpile-only ../../scripts/golden-set/run.ts"
+    "golden:set": "ts-node --transpile-only ../../scripts/golden-set/run.ts",
+    "backfill:encrypt-case-details": "ts-node --transpile-only src/scripts/encrypt-case-details.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.0",

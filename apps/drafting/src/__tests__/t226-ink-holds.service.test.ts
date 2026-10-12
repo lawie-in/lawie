@@ -757,38 +757,70 @@ describe('AC9: a billing renewal while a hold is open', () => {
     expect(await wasInkSettled(USER_ID, 'ren-s', 1)).toBe(true);
   });
 
-  it('nothing outside credits.service and the User model writes inkHolds (billing is untouched)', () => {
+  /** Non-test .ts files under `root` that mention any of the user hold fields. */
+  function filesTouchingHoldFields(root: string): string[] {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { execFileSync } = require('child_process') as typeof import('child_process');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const path = require('path') as typeof import('path');
-    const apps = path.resolve(__dirname, '../../..');
     let out = '';
     try {
       out = execFileSync(
         'grep',
         [
-          '-rl',
-          'inkHolds',
+          '-rlE',
+          'inkHolds|inkSettled',
           '--include=*.ts',
           '--exclude-dir=node_modules',
           '--exclude-dir=dist',
           '--exclude-dir=__tests__',
-          apps,
+          root,
         ],
         { encoding: 'utf8' },
       );
     } catch {
       out = ''; // grep exits 1 for no match
     }
-    const files = out
+    return out
       .split('\n')
       .filter(Boolean)
-      .map((f) => path.relative(apps, f))
+      .map((f) => path.relative(root, f))
       .sort();
-    expect(files).toEqual([
+  }
+
+  it('nothing outside credits.service and the User model writes inkHolds or inkSettled (billing is untouched)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const path = require('path') as typeof import('path');
+    const apps = path.resolve(__dirname, '../../..');
+    expect(filesTouchingHoldFields(apps)).toEqual([
       'drafting/src/models/User.model.ts',
       'drafting/src/services/credits.service.ts',
     ]);
+  });
+
+  it('T-288: the grep can fail: a file that writes inkSettled (or inkHolds) outside the two allowed files is found', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs = require('fs') as typeof import('fs');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const os = require('os') as typeof import('os');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const path = require('path') as typeof import('path');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 't288-grep-'));
+    try {
+      fs.mkdirSync(path.join(root, 'billing'));
+      fs.writeFileSync(path.join(root, 'billing', 'clean.ts'), 'export const a = { inkSub: 0 };\n');
+      expect(filesTouchingHoldFields(root)).toEqual([]);
+
+      fs.writeFileSync(
+        path.join(root, 'billing', 'renewal.ts'),
+        'export const u = { $set: { inkSettled: [] } };\n',
+      );
+      expect(filesTouchingHoldFields(root)).toEqual(['billing/renewal.ts']);
+
+      fs.writeFileSync(path.join(root, 'billing', 'cancel.ts'), 'const x = { inkHolds: [] };\n');
+      expect(filesTouchingHoldFields(root)).toEqual(['billing/cancel.ts', 'billing/renewal.ts']);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 });

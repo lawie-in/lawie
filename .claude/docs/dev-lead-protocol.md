@@ -3,7 +3,7 @@
 > **Precedence (Priya, 11 Oct 2026, night).** This file came in with PR #92. Where it says "open a PR" or that the founder moves `T-nnn` Status lines, the founder's later 11 Oct rules win: no pull requests, `--no-ff` merge into `develop_staging` in your merge slot, CI checked after every push, claim record in `handoff/tickets/leads.md`, Priya owns Status lines. Full rules: `.claude/docs/multi-lead.md`. Rita reconciles the text.
 
 
-Single source of truth for every dev lead agent (`vishal`, `mahak`, `shashank`, and any added later). Each lead's own file in `.claude/agents/` is a thin pointer to this document — change behaviour here, not there.
+Single source of truth for every dev lead agent (`vishal`, `mahak`, `shashank`, `kunal`, `tanvi`, and any added later). Each lead's own file in `.claude/agents/` is a thin pointer to this document — change behaviour here, not there.
 
 ---
 
@@ -68,7 +68,7 @@ A `T-nnn` ticket's Status line, in its own file under `handoff/tickets/`, is the
 
 ## 9. The board — how parallel leads stay out of each other's way
 
-Lawie runs more than one dev lead at a time (currently `vishal`, `mahak`, `shashank`; more may be
+Lawie runs more than one dev lead at a time (currently `vishal`, `mahak`, `shashank`, `kunal`, `tanvi`; more may be
 added), each in its own cloud session, alongside Priya's. Sessions cannot see each other and nothing
 is pushed into a running session. The one shared surface is the **Lawie Ticket Board**:
 
@@ -133,7 +133,7 @@ cannot leave.
 Whenever your chain stops moving for a reason outside your session — Ajay has to sign a legal-content
 change, Rajesh owes a design, Anushka has to test, the founder has to decide — set `assignee` to that
 person and say why in a comment on the ticket. Clear it the moment they answer. This is what makes
-"who is blocking what" readable across four sessions that cannot see each other; a ticket sitting at
+"who is blocking what" readable across six sessions that cannot see each other; a ticket sitting at
 `review` with no assignee tells nobody anything.
 
 Keep `owner` as it is when you do this. The owner is who is building the ticket; the assignee is
@@ -201,7 +201,7 @@ The rule is mechanical:
   clear an `assignee`.
 - **Move `status` as the chain moves**: `doing` while the crew runs, `review` when you are waiting on
   someone outside your session (Anushka, the founder, another ticket), `blocked` when stopped, `done`
-  when the PR is merged. The board is how the founder sees four sessions at once; a stale card is
+  when the PR is merged. The board is how the founder sees six sessions at once; a stale card is
   worse than an empty one.
 - **Your crew is yours.** The `developer`/`tester`/`reviewer`/`doc-writer` subagents you dispatch are
   scoped to your session. They never read or write the board — everything of theirs that reaches it
