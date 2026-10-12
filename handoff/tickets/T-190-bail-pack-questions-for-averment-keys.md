@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft                                                                                                        |
 | Owner          | Ajay (question text and order, signs). Vishal applies. Anushka (verdict)                                                      |
 | Mode           | Legal content, then a small change through the dev lead                                                                       |
-| Status         | Building: mahak, with T-199 (12 Oct 2026) |
+| Status         | Merged into develop_staging 65d8707, with T-199 (12 Oct 2026). Anushka tests on develop |
 | Size           | Ajay S (0.5 day for the question text). Vishal S (0.5 day to apply and test)                                                  |
 | Depends on     | T-147c (the unlock keys exist). T-189 for any question that is a list or choice                                               |
 | Gate           | Proposed (Priya): before `feature.fact_ledger` goes on for real users. Without it, a ledger bail draft omits most averments an advocate would expect. Arjun to confirm |
