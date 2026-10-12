@@ -20,9 +20,9 @@ Source: ticket files in `handoff/tickets/` on `develop_staging`, 11 Oct 2026.
 | --- | --- |
 | Drafting assistant for Indian advocates: you get a first draft to review, edit and download (Word, PDF) | Live flow; Ajay-approved steps in T-222 |
 | More than 90 document types: bail applications (regular, anticipatory, before magistrate, interim, default, cancellation), legal notices, affidavits, petitions, family-court matters, agreements (rent, NDA, MOU, service, loan, employment) and more | 92 rule files, all on the free plan (Ajay's check, T-222) |
-| Criminal drafts cite BNS, BNSS and BSA | Ajay, marketing-s1-claims-signed.md (12 Oct 2026). Never "use", never "updated for BNS / the new criminal laws"; no claim about old-law (pre-1 July 2024) matters |
+| Criminal drafts use BNS, BNSS and BSA section numbers | Ajay, marketing-s1-claims-signed.md (12 Oct 2026). Final wording per Ajay, handoff/legal/T-238-pricing-page-lines-signed.md (12 Oct 2026, overrides marketing-s1-claims-signed.md). Never "updated for BNS / the new criminal laws"; no claim about old-law (pre-1 July 2024) matters |
 | Every draft carries: "Lawie is a drafting assistant. The advocate is responsible for legal accuracy and filing." | T-197 |
-| 5 free Ink on sign-up. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. | T-227 (Vikram); wording Ajay, marketing-s1-claims-signed.md. Never "succeeds" or "ready". **True only once T-227 merges** |
+| 5 free Ink on sign-up. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. | T-227 (Vikram); wording Ajay, marketing-s1-claims-signed.md. Never "succeeds" or "ready". **True only once T-227 merges** |
 | Sign in with Google | Live |
 | Drafts in English | FAQ; Hindi drafting is not released |
 
@@ -38,7 +38,7 @@ Source: ticket files in `handoff/tickets/` on `develop_staging`, 11 Oct 2026.
 | 500 templates | It is the aim, not today. Say "more than 90" |
 | Hindi drafts | Only as "Hindi drafting: coming soon" |
 | Accurate / guaranteed / 100% / replaces your advocate / legal advice / "get more clients" / "grow your practice" | Hard rules; BCI Rules Part VI Ch II r.36 |
-| "Less than ₹16 per document" (live pricing page) | False at 2 Ink per document. Replaced by "Most documents use 2 Ink, short ones 1. Buy extra packs anytime." (Ajay + Vikram), T-238 |
+| "Less than ₹16 per document" (live pricing page) | False at 2 Ink per document. Replaced by "Most documents use 2 Ink, short documents 1. Buy extra packs anytime." (Ajay + Vikram), T-238 |
 | "AI lawyer", "legal advice", "lawyer-verified", "checked by advocates" | Ajay: Lawie gives no legal advice; no advocate reviews each draft |
 | "Updated for BNS / the new criminal laws" as a whole-product claim | Ajay: old-law offences (before 1 July 2024) are not handled yet |
 | "Free" without "5 Ink" next to it | Ajay: the free plan is 5 Ink, lifetime. Say "Start with 5 free Ink" |
@@ -56,7 +56,7 @@ Source: ticket files in `handoff/tickets/` on `develop_staging`, 11 Oct 2026.
 
 ## 3. Positioning
 
-**For** district-court advocates in India **who** draft the same applications and notices again and again, **Lawie is** a drafting assistant **that** gives you a first draft to review, edit and download, across more than 90 document types. Criminal drafts cite BNS, BNSS and BSA. **Unlike** old files and typists, you start from a structured draft, not a blank page. **You stay in charge:** the advocate is responsible for legal accuracy and filing.
+**For** district-court advocates in India **who** draft the same applications and notices again and again, **Lawie is** a drafting assistant **that** gives you a first draft to review, edit and download, across more than 90 document types. Criminal drafts use BNS, BNSS and BSA section numbers. **Unlike** old files and typists, you start from a structured draft, not a blank page. **You stay in charge:** the advocate is responsible for legal accuracy and filing.
 
 **One line (EN):** "Start from a first draft, not a blank page."
 **One line (HI):** "खाली पन्ने से नहीं, पहले ड्राफ्ट से शुरू करें।"
@@ -66,9 +66,9 @@ Source: ticket files in `handoff/tickets/` on `develop_staging`, 11 Oct 2026.
 | # | Pillar | Message | Proof we can show | Never say |
 | --- | --- | --- | --- | --- |
 | 1 | Start from a draft, not a blank page | Pick the document, answer a few questions, review the draft | Screen recording of the live flow | "court-ready", "in minutes" |
-| 2 | Built for Indian courts' everyday work | Bail, notices, affidavits, petitions, agreements; criminal drafts cite BNS, BNSS and BSA | Document list; BNS section visible in a sample draft | "any court", "validated" |
+| 2 | Built for Indian courts' everyday work | Bail, notices, affidavits, petitions, agreements; criminal drafts use BNS, BNSS and BSA section numbers | Document list; BNS section visible in a sample draft | "any court", "validated" |
 | 3 | You stay the advocate | Every draft says the advocate is responsible; edit everything; download Word or PDF | The disclaimer on screen; the editor | "accurate", "replaces", "legal advice" |
-| 4 | Pay per draft, start with 5 free Ink | 5 free Ink on sign-up. Most documents use 2 Ink; short ones, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. | Pricing page (after T-238) | Any discount (Solo discount rejected by Vikram); "free" without "5 Ink"; "succeeds" / "ready" |
+| 4 | Pay per draft, start with 5 free Ink | 5 free Ink on sign-up. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. | Pricing page (after T-238) | Any discount (Solo discount rejected by Vikram); "free" without "5 Ink"; "succeeds" / "ready" |
 
 Tone: plain, respectful, peer-to-peer ("Advocate sahab" in Hindi only where natural). Hindi copy in Devanagari, everyday Hindi, legal terms in English where advocates use them (bail, FIR, affidavit, BNSS).
 
