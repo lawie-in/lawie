@@ -13,7 +13,7 @@
 2. `apps/web/src/app/(marketing)/faq/page.tsx`, line ~76, repeats the old §3 sentence "Lawie is an AI-assisted drafting tool — not a substitute for legal advice". The signed §3 replaces it.
 
 3. Ajay found four more lines that T-252 missed, all still saying "AI-assisted drafting tool — not a substitute…": `apps/web/src/components/landing/Footer.tsx`, `apps/web/src/components/landing/TrustBar.tsx`, `apps/web/src/components/marketing/SiteFooter.tsx` (twice). They take the T-252 line.
-4. `apps/web/src/app/layout.tsx` also carries the phrase. Kunal holds that file (T-306), so the change goes to him if Ajay wants it changed.
+4. `apps/web/src/app/layout.tsx` also carries the phrase. Ajay signed the new description (Addendum 1, 6cbe863). Kunal holds that file (T-306), so he applies it. The title and keywords are Meera's call, not legal.
 
 ## Acceptance criteria
 
