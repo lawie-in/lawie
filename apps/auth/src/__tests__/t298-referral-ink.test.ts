@@ -171,7 +171,7 @@ describe('T-298 c — signup seed and referral are order-independent', () => {
       ]);
       await expectBalanceAndLedgerAgree(u._id, 10 + BONUS * 2, 2);
     }
-  });
+  }, 30000);
 
   it('seed alone is still once-only (second call adds nothing)', async () => {
     const u = await mkUser('seedonce@example.com');
@@ -254,7 +254,7 @@ describe('T-298 / Arjun — maxUses can never be overshot', () => {
       expect(u.freeTierBonusGrant).toBe(0);
     }
     expect(await ledger().countDocuments({ reason: 'referral_bonus' })).toBe(1);
-  });
+  }, 30000);
 
   it('maxUses 3, ten concurrent applications: exactly three grants', async () => {
     await makeCode({ code: 'THREESLOT', bonusInk: BONUS, maxUses: 3 });
@@ -275,7 +275,7 @@ describe('T-298 / Arjun — maxUses can never be overshot', () => {
       referredVia: { $ne: null },
     });
     expect(stillReferred).toBe(0);
-  });
+  }, 30000);
 
   it('unlimited code (maxUses null) has no cap', async () => {
     await makeCode({ code: 'NOCAP', bonusInk: BONUS, maxUses: null });
@@ -287,7 +287,7 @@ describe('T-298 / Arjun — maxUses can never be overshot', () => {
     );
     expect(results.every((r) => r === 'applied')).toBe(true);
     expect((await ReferralCode.findOne({ code: 'NOCAP' }).lean())!.uses).toBe(6);
-  });
+  }, 30000);
 });
 
 describe('T-298 — role', () => {

@@ -3,6 +3,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 import { User, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
 import { grantSignupBonus } from '../services/credit-bonus.service';
+import { getVerifiedOAuthState } from '../services/oauth-state';
 import { applyReferralCode } from '../services/referral.service';
 
 import { env } from './env';
@@ -53,11 +54,13 @@ export function initPassport(): void {
       },
       async (req, _accessToken, _refreshToken, profile, done) => {
         try {
-          // Referral code is encoded into the OAuth state by /google route.
-          // Google echoes state back unchanged to the callback URL.
-          const stateVal = (req as { query?: Record<string, unknown> }).query?.['state'];
+          // T-319: the referral code comes ONLY from the HMAC-verified state that the
+          // /google/callback route checked before passport ran. The raw ?state= is never read.
+          const verifiedReferral = getVerifiedOAuthState(req)?.r;
           const referralCode =
-            typeof stateVal === 'string' && stateVal ? stateVal.trim().toUpperCase() : undefined;
+            typeof verifiedReferral === 'string' && verifiedReferral
+              ? verifiedReferral.trim().toUpperCase()
+              : undefined;
 
           const email = profile.emails?.[0]?.value;
           if (!email) {

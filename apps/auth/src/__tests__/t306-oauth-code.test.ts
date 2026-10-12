@@ -53,6 +53,7 @@ import supertest from 'supertest';
 import logger from '../config/logger';
 import redis from '../config/redis';
 import oauthRoutes from '../routes/oauth.routes';
+import { challengeForVerifier, createOAuthState } from '../services/oauth-state';
 
 const server = express();
 server.use(express.json());
@@ -61,23 +62,39 @@ server.use('/', oauthRoutes);
 const sha = (s: string) => crypto.createHash('sha256').update(s).digest('hex');
 const keyFor = (code: string) => `oauth:code:${sha(code)}`;
 
+// T-319: every sign-in carries a signed state holding the challenge of a fresh verifier, and the
+// exchange needs that verifier. The default verifier is shared by tests that sign in once.
+const newVerifier = () => crypto.randomBytes(32).toString('base64url');
+const VERIFIER = newVerifier();
+
 interface Signin {
   location: string;
   code: string;
+  verifier: string;
   res: supertest.Response;
 }
 
-async function signIn(user = 'user-a'): Promise<Signin> {
-  const res = await supertest(server).get('/google/callback').set('x-test-user', user).redirects(0);
+async function signIn(user = 'user-a', verifier = VERIFIER): Promise<Signin> {
+  const state = createOAuthState(challengeForVerifier(verifier));
+  const res = await supertest(server)
+    .get('/google/callback')
+    .query({ state })
+    .set('x-test-user', user)
+    .redirects(0);
   const location = res.headers.location as string;
   const code = new URL(location).searchParams.get('code') ?? '';
-  return { location, code, res };
+  return { location, code, verifier, res };
 }
 
+// By default the body carries the shared verifier; pass a body with its own `verifier` to override.
 const exchange = (body?: unknown) =>
   supertest(server)
     .post('/oauth/exchange')
-    .send(body as object);
+    .send(
+      body && typeof body === 'object' && !('verifier' in body)
+        ? { verifier: VERIFIER, ...(body as object) }
+        : (body as object),
+    );
 
 const LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
 let logSpies: jest.SpyInstance[] = [];
@@ -140,12 +157,16 @@ describe('T-306 Google callback redirect', () => {
     expect(ttl).toBeGreaterThan(0);
     expect(ttl).toBeLessThanOrEqual(60);
     const stored = JSON.parse((await redis.get(keyFor(code))) as string);
-    expect(Object.keys(stored).sort()).toEqual(['accessToken', 'refreshToken']);
+    expect(Object.keys(stored).sort()).toEqual(['accessToken', 'challenge', 'refreshToken']);
+    expect(stored.challenge).toBe(challengeForVerifier(VERIFIER));
   });
 
   it('a Redis store failure redirects to /login?error=oauth_failed with no tokens or code', async () => {
     jest.spyOn(redis, 'set').mockRejectedValueOnce(new Error('redis down'));
-    const res = await supertest(server).get('/google/callback').redirects(0);
+    const res = await supertest(server)
+      .get('/google/callback')
+      .query({ state: createOAuthState(challengeForVerifier(VERIFIER)) })
+      .redirects(0);
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe('http://localhost:3000/login?error=oauth_failed');
     expect(res.headers.location).not.toMatch(/accessToken|refreshToken|code=/);
@@ -303,7 +324,10 @@ describe('T-306 nothing sensitive is logged', () => {
     });
     await exchange({ code: live.code });
     jest.spyOn(redis, 'set').mockRejectedValueOnce(new Error('redis down'));
-    await supertest(server).get('/google/callback').redirects(0);
+    await supertest(server)
+      .get('/google/callback')
+      .query({ state: createOAuthState(challengeForVerifier(VERIFIER)) })
+      .redirects(0);
 
     const logged = everythingLogged();
     const failureLogged = logSpies.some((s) => s.mock.calls.length > 0);
