@@ -18,3 +18,8 @@
 2. The lead finds the commit that broke it (git bisect on the web build) and names it in the report.
 3. Arjun decides whether CI gets a web build job. If yes, it is part of this ticket (ci.yml is root config: one holder at a time).
 4. Web tests stay green.
+
+## Arjun (13 Oct 2026)
+
+- AC3 is yes, in this ticket. Add a CI job "web build" that builds @lawie/shared, then runs `yarn workspace @lawie/web build` plus lint and typecheck on every push to develop_staging. It's required like the other jobs. The lead claims `.github/` for it.
+- Arjun is bisecting for the breaking commit and will add it here.
