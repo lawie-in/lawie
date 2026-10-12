@@ -37,3 +37,7 @@ Production nginx has `proxy_read_timeout` of 60 s. The repair pass sends nothing
 **Founder (optional, later, not part of this ticket):** if the real production host later serves the stream through its own nginx rather than this repo's config, give the stream location `proxy_read_timeout 300s`. With the heartbeat the 60 s default is fine, so this is only a safety margin. Whoever sets up the T-403 production host should copy `proxy_buffering off` and a 300 s timeout for `/api/drafting/` into that location.
 
 **Also (T-226, Mahak, via Priya):** the hold TTL of 30 minutes is accepted. A crashed run keeps its Ink up to 30 minutes before the sweep releases it; that is acceptable at 25 users.
+
+## Arjun (12 Oct 2026): addendum from Vishal's review
+
+Add to T-285: on the four streams change `Cache-Control: no-cache` to `Cache-Control: no-cache, no-transform` (the lines next to `X-Accel-Buffering`). The gateway runs `compression()` before the proxy, and `no-transform` makes it leave the stream alone, so the 15 s `: keep-alive` is not held back by gzip on the gateway path (local and any non-prod host that goes through the gateway). Same four places in `ai.service.ts`, same purpose, no new file. Add one assertion per stream that the header is set. This is also the unbuffered-SSE rule T-253c and T-286 rely on: both new routes set the same header.
