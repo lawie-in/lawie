@@ -232,6 +232,26 @@ const HYPHEN_SUFFIX = /(?<![0-9A-Za-z])(\d{1,3})-([A-Za-z]{1,2})(?![0-9A-Za-z])/
 const LOWER_SUFFIX = /(?<![0-9A-Za-z])(\d{1,3})([a-z])(?![0-9A-Za-z])/g;
 
 /**
+ * T-347: a four-digit section number ("BNS 1034", "s. 1034 of the IPC"). No section
+ * in the six codes has four digits, so it is always wrong, but the window grammar
+ * and the reader take 1-3 digits only (the reader drops any run of 4+ digits). So,
+ * like the Q8 double letters, each one is swapped before windowing for a stand-in
+ * the reader carries as an ordinary sub-section ("1(zqf0)") and restored after
+ * reading; isActCitationValid then marks it invalid. Being an ordinary window
+ * number, it is only read with a section cue or an Act name next to it (Q2), so
+ * "Rs 1500" or "page 1034" stay unchecked. An optional capital letter (or two),
+ * or one lower-case letter, is kept with it.
+ * Q1: 1800-2099 read as years and are never swapped, so they stay unread.
+ * Not after a digit, letter, "/", "." or "," (so "1,034", "Rs.1500", "302/1034"
+ * are left alone); a range end ("ss. 10-1034") is swapped and read on its own.
+ */
+const FOUR_DIGIT = /(?<![0-9A-Za-z/.,])(\d{4})([A-Z]{1,2}|[a-z])?(?![0-9A-Za-z])/g;
+const FOUR_DIGIT_STAND_IN = /^1\(zqf(\d+)\)/;
+/** Q1: four-digit numbers in this span read as years and are never flagged. */
+const YEAR_FIRST = 1800;
+const YEAR_LAST = 2099;
+
+/**
  * T-270: the one producer of Act-scoped citations, used by both section checks
  * (validateSectionReferences and extractBNSSectionNumbers/validateBNSWhitelist).
  *
@@ -262,14 +282,24 @@ export function extractActCitations(
     HYPHEN_SUFFIX,
     (_m, digits: string, letters: string) => `${digits}${letters.toUpperCase()}`,
   );
+  // T-347: swap four-digit sections (not 1800-2099) for stand-ins; restored on read.
+  const fours: string[] = [];
+  const unfoured = folded.replace(FOUR_DIGIT, (m, digits: string, letters: string | undefined) => {
+    const n = Number(digits);
+    if (n >= YEAR_FIRST && n <= YEAR_LAST) return m;
+    fours.push(`${digits}${(letters ?? '').toUpperCase()}`);
+    return `1(zqf${fours.length - 1})`;
+  });
   // Q8: swap double-letter sections for stand-ins; restored on each number read.
   const doubles: string[] = [];
-  const prepared = folded.replace(DOUBLE_LETTER, (_m, digits: string, letters: string) => {
+  const prepared = unfoured.replace(DOUBLE_LETTER, (_m, digits: string, letters: string) => {
     doubles.push(`${digits}${letters}`);
     return `${digits}(zqx${doubles.length - 1})`;
   });
   const restore = (number: string): string =>
-    number.replace(DOUBLE_LETTER_STAND_IN, (m, _d: string, i: string) => doubles[Number(i)] ?? m);
+    number
+      .replace(DOUBLE_LETTER_STAND_IN, (m, _d: string, i: string) => doubles[Number(i)] ?? m)
+      .replace(FOUR_DIGIT_STAND_IN, (m, i: string) => fours[Number(i)] ?? m);
 
   CITATION_WINDOW.lastIndex = 0;
   for (const w of prepared.matchAll(CITATION_WINDOW)) {
