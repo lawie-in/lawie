@@ -26,9 +26,12 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 - T-220 (emails): the AC6 log leak in `ses.ts` is fixed first; then one founder session for SES and DNS is the remaining gate (morning report).
 - T-115: after T-226. Gates: Atlas tier and prod migration (founder), 30-day wording (Ajay), screens (Rajesh).
 
+- T-283 (env default for the two switches; small, drafting only, scoped by Arjun): next for vishal after T-263.
+- T-253a+c (assistant): after T-226 and the v1 blockers (Priya's call, 12 Oct). Overlaps: documents.routes.ts (T-226, then T-115a); drafting config/env.ts and app.ts (T-253a, T-283); web layout.tsx and Sidebar.tsx (T-253d, T-234, T-281).
+
 ## Merge queue
 
-(queue empty; founder's stop on 12 Oct, work resumes after the usage reset at 12:40 IST)
+1. mahak — T-279 (6bd2586; Ajay approved; the slot is hers now).
 
 ## Last done
 

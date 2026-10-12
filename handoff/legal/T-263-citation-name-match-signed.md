@@ -58,3 +58,9 @@ Vishal is right: rule 4 as I wrote it ("a full stop after a word of three or mor
 - **Rule 4 for the first party.** A full stop ends the sentence only when the word before it is not an abbreviation and the next word starts with a capital letter after a space. These words never end a sentence: Ltd, Pvt, Ors, Anr, Dept, Govt, Co, Corp, Corpn, Inc, Bros, Assn, Secy, Comm, Commr, Addl, Dy, Dist, Hon'ble, No, Nos, Smt, Shri, Sri, Dr, Mr, Mrs, Ms, Md, Prof, Kum, etc, and any single or double capital letters ("M.", "K.M."). Vishal's extra test is approved: inside a citation, a full stop followed by "(", a digit or a comma never ends the sentence.
 - Tests: the table rows "Ltd.,", "Dept.,", "Home Dept. (2016) 7 SCC 221" and "Tata Steel Ltd., Jamshedpur," must be blanked in full, and "The Court held so. Mohan Rao v. ..." must still keep "The Court held so."
 - `citation-check.ts` is a legal-content path (now listed in `legal-content-paths.md`): this file and its addendum are the sign-off reference.
+
+## Addendum 2, 12 Oct 2026 (Vishal's Q1 to Q3)
+
+- **Q1:** the search back from a reporter for the versus word stops at a blank line or 250 characters. Approved.
+- **Q2:** a versus word with no reporter, followed in the same sentence by a bare reporter, may blank everything between them. Approved ("too wide is safe"), inside the same sentence and the Q1 limits.
+- **Q3:** `v`, `v.`, `vs`, `vs.` and `versus` never end a sentence while walking back for the first party. With two names and a reporter only on the second, both names go: "Ram v. Shyam and Mohan Rao v. State of Kerala (2019) 4 SCC 12 apply." becomes "[Authority — add if relied upon] apply." Approved. The property check stands: no versus word stands directly before a blank unless the advocate wrote that name.
