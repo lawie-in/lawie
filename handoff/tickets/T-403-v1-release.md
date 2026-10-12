@@ -59,3 +59,8 @@ Production runs `main`, tagged v1.0.0.
 ## Note (Priya, 12 Oct 2026, from Arjun on T-312)
 
 Production starts fresh. If any document saved on develop before T-300 is ever carried into production, reopen T-312 first (repair on read from `doc.templateId`).
+
+## Before release (Priya, 12 Oct 2026)
+
+- T-336: a description-read "None" on earlier bail applications must be confirmed, ledger on or off (Ajay).
+- T-338: unasked optional ledger keys must print as blanks before feature.fact_ledger goes on for any user (Ajay gate).
