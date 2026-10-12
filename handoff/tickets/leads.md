@@ -37,6 +37,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 1. vishal: T-192 (11991f9, review passed, Ajay approved). Merges once Ajay closes his three small points (possible averments JSON reorder + his hash).
 5. kunal: T-242 (Ajay signed 8ac5def; merges as is per Priya after round 3). Next free turn; then T-348.
+6. mahak: T-338 (2db8acb, small fix tested green). Merges once Ajay OKs; first signed goes first, tell the others when pushed.
 
 ## Last done
 
