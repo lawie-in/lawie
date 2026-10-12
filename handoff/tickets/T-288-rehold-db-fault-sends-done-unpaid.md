@@ -13,7 +13,9 @@ In T-226, when the hold is gone at settle time (the sweep got there first), the 
 
 1. A re-hold that throws is handled like a refused re-hold: send the error event with the same 402-style text, send no `done`, and log at error level with the run id.
 2. A test: lost hold at settle, re-hold throws, no `done` is sent and the error is logged.
-3. Files: `credits.service.ts` and the `withInkHold` wrapper in `documents.routes.ts` only, plus tests. Drafting only; no Ajay, no legal path.
+3. (Mahak) The AC9 grep that checks billing renewal and cancel do not touch the user fields also covers `inkSettled`.
+4. (Mahak) Three logs in `credits.service.ts` log `err.name`; they log `err.message` instead (no personal data in the message).
+5. Files: `credits.service.ts` and the `withInkHold` wrapper in `documents.routes.ts` only, plus tests. Drafting only; no Ajay, no legal path.
 
 ## Gates
 
