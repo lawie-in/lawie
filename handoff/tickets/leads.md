@@ -35,7 +35,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(empty)
+1. tanvi — T-307 (2a96551). Slot given 12 Oct 2026; merge once Arjun has OK'd it.
 
 ## Last done
 
