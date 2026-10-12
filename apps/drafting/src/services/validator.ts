@@ -7,8 +7,7 @@
  * - Check mandatory clauses are present
  * - Auto-add missing mandatory sections from templates
  */
-import bnsOffences from '../config/bns-offences.json';
-
+import { readSectionsCharged, resolveBnsKey } from './bns-offence-resolver';
 import { DocumentRuleConfig } from './prompt-assembler';
 import { readActList, readMandatoryClauses } from './rule-pack.service';
 import { lookupOldToNew } from './sections.service';
@@ -309,8 +308,13 @@ export function buildSectionsCited(text: string): string[] {
 
 // ── SCRUM-64: BNS Whitelist Validator + Fact↔Section Sanity ─────────────────
 
-/** All valid BNS section numbers per the First Schedule (CLO-validated). */
-const BNS_SECTION_WHITELIST = new Set(Object.keys(bnsOffences.offences));
+/**
+ * T-277 R5: a BNS citation passes when it is a table key or has a parent row
+ * (103(1) → 103). Same resolveBnsKey as preflight.service.ts BNS_WHITELIST.
+ */
+const BNS_SECTION_WHITELIST = {
+  has: (section: string): boolean => resolveBnsKey(section) !== null,
+};
 
 /**
  * Extract BNS section numbers cited in AI-generated text.
@@ -318,14 +322,20 @@ const BNS_SECTION_WHITELIST = new Set(Object.keys(bnsOffences.offences));
  */
 export function extractBNSSectionNumbers(text: string): string[] {
   const found = new Set<string>();
-  // "BNS 103" / "BNS 103(1)"
-  const shortPat = /\bBNS\s+(\d+(?:\(\d+\))?)/gi;
+  // T-277 (Arjun, round 4): each citation found below is read by the one
+  // readSectionsCharged grammar; only numbers it reads as BNS count. The two
+  // patterns stay, so codes never carry across the prose of a whole draft.
+  const addBns = (citation: string): void => {
+    for (const e of readSectionsCharged(citation)) if (e.code === 'BNS') found.add(e.number);
+  };
+  // "BNS 103" / "BNS 103(1)" / "BNS 61(2)(a)"
+  const shortPat = /\bBNS\s+\d+(?:[A-Z](?![A-Za-z]))?(?:\([0-9A-Za-z]+\))*/gi;
   let m: RegExpExecArray | null;
-  while ((m = shortPat.exec(text)) !== null) found.add(m[1]);
+  while ((m = shortPat.exec(text)) !== null) addBns(m[0]);
   // "Section 103 of BNS" / "Section 103(1) of Bharatiya Nyaya Sanhita"
   const longPat =
-    /\bSection\s+(\d+(?:\(\d+\))?)\s+of\s+(?:the\s+)?(?:BNS|Bharatiya Nyaya Sanhita)/gi;
-  while ((m = longPat.exec(text)) !== null) found.add(m[1]);
+    /\bSection\s+\d+(?:[A-Z](?![A-Za-z]))?(?:\([0-9A-Za-z]+\))*\s+of\s+(?:the\s+)?(?:BNS|Bharatiya Nyaya Sanhita)\b/gi;
+  while ((m = longPat.exec(text)) !== null) addBns(m[0]);
   return [...found];
 }
 

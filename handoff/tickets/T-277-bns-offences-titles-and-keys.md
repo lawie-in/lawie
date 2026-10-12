@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (signs corrected titles). Lead (builds; shashank, after T-267) |
 | Mode           | Rule first, then a small build. Legal content (`apps/drafting/src/config/`, check against `legal-content-paths.md`) |
-| Status         | To do. HIGH (same class as T-263), per Ajay 12 Oct 2026. Ajay is rebuilding and will sign the corrected file; no build before his signed file |
+| Status         | Merged to `develop_staging` (0e4832a, 12 Oct 2026). Ajay signed ae942b1. Waiting for Anushka on develop |
 | Depends on     | T-267 merged |
 
 ## Problem

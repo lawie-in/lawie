@@ -287,3 +287,23 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 Nothing changes on screen. When Lawie has no template for what a user describes, it records only the general category, never the user's words or names.
 
 Quality: nothing to test in the UI — a privacy change in stored records.
+
+## T-277 (shashank, merged to develop_staging 0e4832a, 12 Oct 2026)
+
+- The bail checker and timeline tracker show the correct offence titles, bail and cognizance status, and maximum term from the official First Schedule.
+- A sub-section such as 103(1) or 316(2) is understood as part of its main section.
+- Where the Schedule depends on the facts, it says "Depends. Check the First Schedule." instead of guessing.
+- Bail advice names BNSS 480 or 483 based on the maximum sentence.
+- A section that creates no offence is said to be left out.
+- Drafts use the same classification.
+- A section number written without IPC or BNS gets a reminder to add the code.
+
+Note: the section tables on develop are live only after Arjun reseeds develop.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-284 (kunal, merged to develop_staging f1819ef, 12 Oct 2026)
+
+- The Privacy Policy now says what Lawie keeps if you join the waitlist (name, email, and phone, city, practice area and the link you came from if given), kept until you ask for deletion and never more than 18 months after you joined or Lawie last wrote to you.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -14,3 +14,7 @@ T-115e stops storing the matter label and maps the category to a fixed list. The
 1. The intake prompt no longer asks for a label. The category stays, from the fixed list.
 2. Nothing else in the prompt changes. Ajay signs the diff as applied; moved golden snapshots go to him.
 3. Tests still pass; one test shows no label is requested or read.
+
+## Follow-up (mahak review, 12 Oct 2026, test only, non-blocking)
+
+- In the t292 POST /intake test: assert on the system prompt itself (JSON.stringify escapes quotes, so "label" can never match), and put a label in the mocked reply to prove the route does not read it. Both are covered at unit level today.
