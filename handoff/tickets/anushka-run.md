@@ -191,3 +191,13 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - In an interim bail draft, "Roots of the Applicant" appears only when my brief gives those facts; otherwise it is left out and nothing is invented.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-267 (shashank, merged to develop_staging ee93984, 12 Oct 2026)
+
+The first item works without a reseed; the second and third need develop's section tables reseeded first (Arjun does it on develop).
+
+- Several drafts cite the right BNS sections: dowry death BNS 80, false evidence BNS 227, 228 and 229, defamation 356(1) and 356(2), and the sub-sections for cheating 318(4) and criminal breach of trust 316(2).
+- The section converter and old-to-new conversions in drafts use IPC to BNS pairs rechecked against the Gazette text. A few old sections are marked "not verified" and show no BNS section.
+- The bail checker no longer reports an old IPC section that has no new equivalent as if it were a different BNS offence. (The bail checker page does not yet show the "No BNS equivalent" note: T-278.)
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
