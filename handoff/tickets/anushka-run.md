@@ -652,3 +652,12 @@ What a user can now do:
 - If a draft claims no earlier bail application was filed but they never confirmed it, have that claim removed or flagged before filing.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-345 + T-340 — one date format, no false "facts changed", clean category names (0d90ed7, tanvi, 12 Oct 2026)
+
+What a user can now do:
+- See every date in a template draft written like "4 April 2026", including dates of birth and custody dates.
+- Type dates as numbers without a false "facts changed" warning; a real change is still flagged.
+- See category names without underscores.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
