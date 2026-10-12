@@ -5,7 +5,7 @@
 | Phase  | 1 — Legal accuracy |
 | Owner  | Ajay (writes and signs the wording). Lead (build) |
 | Mode   | Small fix, legal content |
-| Status | To do. Wording signed (455559c). Soft warning decided; Arjun to confirm mechanism. Arjun confirmed (preflight soft severity). Builds after T-277 merges (same file: preflight.service.ts); the lead checks the web lets a soft verdict continue. Date-aware version waits for T-245a |
+| Status | Building: shashank (12 Oct 2026) |
 
 The old-law block in the drafting prompt can read "BNS Section 302 IPC…", which mixes the two codes. Ajay writes the correct wording; a lead applies it.
 

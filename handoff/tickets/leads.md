@@ -6,7 +6,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 | Lead | Ticket | Branch | Files and folders claimed | Legal paths | Since |
 |---|---|---|---|---|---|
-| shashank | T-278 | fix/t-278-* (Shashank names it) | apps/web/src/app/tools/bail-checker/page.tsx, apps/web/src/app/tools/timeline-tracker/page.tsx (render the API's signed notes; no new words, no design change), and apps/web/src/components/sections/SectionFinderPanel.tsx COURT_LEVEL_DEPENDS copy (T-289 follow-up: share the signed text or read it from /details). Small-fix mode. Manual check at 375 and 1280 px Also (Priya, 12 Oct, Ajay ruled): apps/drafting/src/services/bail-check.service.ts else branch (~327) returns the signed NOT_IN_IPC_TABLE note, plus its test. Ajay signs that diff. Also (Priya, 12 Oct, Ajay condition f4244ec): apps/drafting/src/services/timeline.service.ts: the left-out-section note and how entries are read (use the shared readSectionsCharged, Ajay ruling). Also (Priya, 12 Oct): apps/drafting/src/services/bns-offence-resolver.ts (new OLD_LAW_LINE export only) and apps/drafting/src/services/template-engine.service.ts (delete the private OLD_LAW_LINE const, add the import only; no behaviour change; Ajay sees it, legal content). | words already signed; Ajay signs the bail-check.service.ts diff | 12 Oct 2026 |
+| shashank | T-295 | fix/t-295-* (Shashank names it) | apps/drafting/src/services/preflight.service.ts (soft severity per Arjun), the old-law block in apps/drafting/src/services/template-engine.service.ts (Ajay's 455559c wording only), the web step that shows a soft verdict and lets the draft continue (check it; change only if needed), a new t295 test, and snapshots that move (to Ajay). Small fix, legal content | yes: Ajay signed 455559c; he signs the diff and moved snapshots | 12 Oct 2026 |
 | mahak | T-318 | fix/t-318-* (Mahak names it) | apps/drafting/src/services/pdf-export.service.ts (~150 footer), apps/drafting/src/services/annexures.service.ts (6 footers), apps/email-worker/src/templates/auth/welcome.tsx (~73), the golden snapshots that move (update only after Ajay approves), their tests. Ajay's T-317 Addendum 4 text (19f85b7) word for word. Small-fix mode | yes: Ajay signed 19f85b7 and approves moved goldens | 12 Oct 2026 |
 | vishal | T-316 | fix/t-316-* (Vishal names it) | apps/drafting/src/__tests__/t241-*.test.ts only (relabel two "ENFORCED" tests to "mock pass-through"; draft() helper reports real paragraph numbers). Tests only, small-fix mode | no | 12 Oct 2026 |
 | kunal | T-319 (then T-299 + T-308) | fix/t-299-* (Kunal names it; one branch or three, his call) | apps/auth (T-299 hardening and riders): User.model, auth.service, passport config, oauth.routes, auth.validator, auth.controller, referral.service, credit-bonus.service and their tests; NOT apps/auth/src/app.ts or apps/auth/src/config/sentry.ts (tanvi, T-315). apps/web: (auth)/login/page.tsx and auth/callback/page.tsx (T-299 messages, T-306 tokens), apps/web/src/app/layout.tsx and the GA helper (T-306: no tokens in page_location, GA only on public pages), apps/web/src/app/(marketing)/privacy/page.tsx (T-308, Ajay signed d686ce0), new t299/t306/t308 tests. Full chain (auth). T-310 follows (same files) Also (Priya, 12 Oct): bump CURRENT_TERMS_VERSION in User.model.ts to the date Mahak's T-268 terms edits merge. Also (Priya, 12 Oct, T-317 Addendum 1, Ajay 6cbe863): apps/web/src/app/layout.tsx site description, word for word. Also (Meera, 12 Oct): layout.tsx title "Lawie — Drafting Assistant for Indian Advocates" and keywords exactly: "legal drafting", "drafting assistant", "Indian advocates", "bail application", "legal notice", "affidavit", "rent agreement". Also (Priya, 12 Oct, T-306 residual): apps/web/next.config.mjs, a Referrer-Policy: no-referrer header for /auth/callback only. T-319 (T-306 merged ba54d48): same auth and web login/callback files. | yes: T-308 privacy words signed d686ce0; any new account message goes to Ajay | 12 Oct 2026 |
@@ -35,13 +35,13 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. shashank — T-278 (0c7638c, 7e34982, 3b298e2). Slot given 12 Oct 2026. Ajay approved.
-2. vishal — T-316 (81dbe29, tests only).
-3. mahak — T-318 (71fd81a). Ajay signed 71fd81a.
-4. tanvi — T-320 (fdd99ab). Once Arjun OKs.
+1. vishal — T-316 (81dbe29, tests only). Slot given 12 Oct 2026.
+2. mahak — T-318 (71fd81a). Ajay signed 71fd81a.
+3. tanvi — T-320 (fdd99ab). Once Arjun OKs.
 
 ## Last done
 
+- shashank — T-278 merged to `develop_staging` (92efbc3, 12 Oct 2026). Bail checker and timeline show signed notes, never a guess. Ajay approved. Waiting for Anushka on develop.
 - kunal — T-306 merged to `develop_staging` (ba54d48, 12 Oct 2026). No login token in URLs or analytics; GA only on public pages; site title, keywords and description updated. Ajay signed f718a2b. Waiting for Anushka on develop.
 - tanvi — T-315 merged to `develop_staging` (9f08095, 12 Oct 2026). Shared JSON-error handler in auth, billing, gateway, email-worker; no body in logs or Sentry. Arjun OK'd. Nothing to test in the UI.
 - mahak — T-317 merged to `develop_staging` (ca2d88f, 12 Oct 2026). Old claim lines gone from home, FAQ, About, Tools, footers and the exported PDF. Ajay signed d3d5301. Waiting for Anushka on develop.

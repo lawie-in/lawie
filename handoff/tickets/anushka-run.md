@@ -429,3 +429,12 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The browser tab title reads "Lawie — Drafting Assistant for Indian Advocates".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-278 — bail checker and timeline show signed notes (92efbc3)
+
+- In the bail checker, an old IPC section with no new equivalent, or one not in the table, shows a clear note to check the Gazette, instead of a blank or a guessed section.
+- In the timeline tracker, every section left out of the period says why: it's an old-law section (with a pointer to the section converter), it doesn't create an offence, or it wasn't found in the BNS offences table.
+- Typing "BNS 103" or "103-BNS" in the timeline works like typing 103.
+- Unknown values show "Depends…", never "Non-Bailable" or a guessed court.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
