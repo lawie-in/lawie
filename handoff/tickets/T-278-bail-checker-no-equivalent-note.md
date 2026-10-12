@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build). Ajay (the words, already signed) |
 | Mode           | Small fix (web) |
-| Status         | Words signed by Ajay 12 Oct 2026. To do after T-277 merges (one build) |
+| Status         | Building: shashank (12 Oct 2026) |
 | Depends on     | T-267 merged |
 
 After T-267, the bail-check API returns a `note` for an IPC section that has no BNS equivalent ("No BNS equivalent. Check the Gazette"). `apps/web/src/app/tools/bail-checker/page.tsx` does not render the `note` field, so the user sees nothing for those sections.

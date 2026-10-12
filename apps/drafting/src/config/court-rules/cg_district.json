@@ -11,7 +11,7 @@
   "courtId": "cg_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Chhattisgarh, governed by the Madhya Pradesh Civil Courts Act, 1958 (as adopted by Chhattisgarh) and the Chhattisgarh High Court Rules. Sessions courts try offences punishable with imprisonment exceeding 7 years. Chhattisgarh, carved out of Madhya Pradesh in 2000, presently comprises 33 districts after the 2022 reorganisation. Hindi is the official language of the State subordinate courts under the Chhattisgarh Rajbhasha Adhiniyam, 2007.",
+  "jurisdictionNote": "District-level criminal and civil courts in Chhattisgarh, governed by the Madhya Pradesh Civil Courts Act, 1958 (as adopted by Chhattisgarh) and the Chhattisgarh High Court Rules. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Chhattisgarh, carved out of Madhya Pradesh in 2000, presently comprises 33 districts after the 2022 reorganisation. Hindi is the official language of the State subordinate courts under the Chhattisgarh Rajbhasha Adhiniyam, 2007.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",

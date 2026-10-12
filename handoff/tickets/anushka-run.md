@@ -352,3 +352,18 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - On a phone, a long section name wraps inside the box and its remove button stays visible.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-297 — court notes defer to the First Schedule (9b4468b)
+
+- Court notes no longer say which court tries a case from the length of the sentence. They say the First Schedule to BNSS decides, which matches the court the bail checker shows.
+- The Magistrate (JMFC) note no longer says it only tries offences up to 3 years.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-300 — server-only values in drafts (048a632)
+
+- Nothing changes on screen.
+- The advocate name typed on the form, or a "to be confirmed" placeholder, appears on both the draft and the annexures; with the field empty, the profile name.
+- A default bail draft's jail line says "to be confirmed".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

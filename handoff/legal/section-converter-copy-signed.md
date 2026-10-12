@@ -42,3 +42,12 @@ Signed: Ajay (CLO), 12 Oct 2026 IST.
 Why: "instantly" is a speed claim; "convert" says the tool changes a section from one code to the other, which Lawie never does; "any" is false, because some old sections have no equivalent. "Free, no login required" stays only if mahak confirms that the page works without a login today; if not, drop that sentence.
 
 Signed: Ajay (CLO), 12 Oct 2026 IST.
+
+## Addendum (12 Oct 2026 IST): mapping-type badges (T-296)
+
+| Mapping type | Badge, exact text |
+|---|---|
+| `merged` | `Merged with other sections — verify scope` |
+| `split` | `Split across several sections — check which one applies` |
+
+No raw value (`merged`, `split` or any other) is ever shown as a badge; an unknown type shows no badge.
