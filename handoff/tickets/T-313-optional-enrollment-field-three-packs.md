@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (asked; signs the field label and the diff). Lead (build, drafting packs) |
 | Mode   | Small fix (legal content, pack JSON) |
-| Status | Building: mahak (12 Oct 2026) |
+| Status | Merged into develop_staging (a6b2162, 12 Oct 2026). Waiting for Anushka on develop |
 
 `bail_regular`, `bail_anticipatory` and `consumer_complaint` have no `advocate_enrollment` field. An advocate drafting for another advocate gets a blank Bar Council number and has no way to type one.
 
