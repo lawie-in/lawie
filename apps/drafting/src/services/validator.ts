@@ -217,6 +217,21 @@ const DOUBLE_LETTER = /(?<![0-9A-Za-z])(\d{1,3})([A-Z]{2})(?![0-9A-Za-z])/g;
 const DOUBLE_LETTER_STAND_IN = /^(\d{1,3})\(zqx(\d+)\)/;
 
 /**
+ * Round 4: a hyphenated letter suffix ("103-A", "498-a", "103-AB") is folded to the
+ * digits plus the upper-cased letters before windowing, so it is read as 103A,
+ * 498A or 103AB (a double letter, then swapped as above). Digit-to-digit ranges
+ * ("3-5") never match: a letter must follow the hyphen.
+ */
+const HYPHEN_SUFFIX = /(?<![0-9A-Za-z])(\d{1,3})-([A-Za-z]{1,2})(?![0-9A-Za-z])/g;
+
+/**
+ * Round 4: inside a window, a lower-case single letter straight after the digits
+ * ("103a", "498a") is upper-cased before the reader sees it; the reader takes
+ * capitals only and would otherwise read 103. Window-only, so prose is untouched.
+ */
+const LOWER_SUFFIX = /(?<![0-9A-Za-z])(\d{1,3})([a-z])(?![0-9A-Za-z])/g;
+
+/**
  * T-270: the one producer of Act-scoped citations, used by both section checks
  * (validateSectionReferences and extractBNSSectionNumbers/validateBNSWhitelist).
  *
@@ -237,9 +252,14 @@ export function extractActCitations(text: string): ActCitation[] {
     out.push({ act, number });
   };
 
+  // Round 4: fold "103-A" / "498-a" / "103-AB" to 103A / 498A / 103AB.
+  const folded = text.replace(
+    HYPHEN_SUFFIX,
+    (_m, digits: string, letters: string) => `${digits}${letters.toUpperCase()}`,
+  );
   // Q8: swap double-letter sections for stand-ins; restored on each number read.
   const doubles: string[] = [];
-  const prepared = text.replace(DOUBLE_LETTER, (_m, digits: string, letters: string) => {
+  const prepared = folded.replace(DOUBLE_LETTER, (_m, digits: string, letters: string) => {
     doubles.push(`${digits}${letters}`);
     return `${digits}(zqx${doubles.length - 1})`;
   });
@@ -248,7 +268,10 @@ export function extractActCitations(text: string): ActCitation[] {
 
   CITATION_WINDOW.lastIndex = 0;
   for (const w of prepared.matchAll(CITATION_WINDOW)) {
-    const window = w[0];
+    const window = w[0].replace(
+      LOWER_SUFFIX,
+      (_m, digits: string, letter: string) => `${digits}${letter.toUpperCase()}`,
+    );
     const read: ActCitation[] = [];
     for (const e of readSectionsCharged(window)) {
       const act = e.code ? CHECKED_ACT[e.code] : undefined;
@@ -551,8 +574,18 @@ export async function validate(
 
   const sectionsCited = buildSectionsCited(text);
 
+  // T-270 ruling A (Ajay): an IPC/CrPC/IEA cite that is not a table row gets only the
+  // "not found" invalid_section warning, never also old_law_reference. Matched on
+  // details.code + details.section, which both warnings carry ('IPC'/'CrPC'/'IEA').
+  const citeKey = (w: ValidationWarning): string =>
+    `${w.details?.code ?? ''}|${(w.details?.section ?? '').toUpperCase()}`;
+  const notFound = new Set(
+    sectionWarnings.filter((w) => w.type === 'invalid_section').map(citeKey),
+  );
+  const oldLawKept = oldLawWarnings.filter((w) => !notFound.has(citeKey(w)));
+
   return {
-    warnings: [...sectionWarnings, ...oldLawWarnings, ...clauseResult.missing],
+    warnings: [...sectionWarnings, ...oldLawKept, ...clauseResult.missing],
     sectionsCited,
     mandatoryClausesComplete: clauseResult.allPresent,
   };

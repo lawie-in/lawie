@@ -16,6 +16,7 @@
 import './setupEnv';
 
 import {
+  validate,
   extractActCitations,
   extractBNSSectionNumbers,
   isActCitationValid,
@@ -23,6 +24,28 @@ import {
   validateSectionReferences,
 } from '../services/validator';
 import { resolveDocRule } from '../services/prompt-assembler';
+
+jest.mock('../services/sections.service', () => ({
+  convertOldReferencesInText: jest.fn(async (text: string) => ({
+    converted: text,
+    conversions: [],
+  })),
+  lookupOldToNew: jest.fn(async (section: string, code: string) =>
+    section === '302' && code === 'IPC'
+      ? {
+          old_code: 'IPC',
+          old_code_full: 'Indian Penal Code',
+          old_section: '302',
+          old_title: 'Punishment for murder',
+          new_code: 'BNS',
+          new_code_full: 'Bharatiya Nyaya Sanhita',
+          new_section: '103(1)',
+          new_title: 'Punishment for murder',
+          mapping_type: 'direct',
+        }
+      : null,
+  ),
+}));
 
 /** Sections flagged by validateSectionReferences, as "ACT number". */
 function flagged(text: string): string[] {
@@ -339,5 +362,63 @@ describe('T-270 Q8: double-letter sections are read', () => {
 
   it('a double-letter number that is not a row of its old Act is flagged', () => {
     expect(flagged('Section 999AB IPC')).toEqual(['IPC 999AB']);
+  });
+});
+
+describe('T-270 round 4: letter suffixes with a hyphen or lower case', () => {
+  it('"BNS 103a" and "BNS 103-A" are flagged (letter suffix on a new Act)', () => {
+    expect(flagged('BNS 103a')).toHaveLength(1);
+    expect(flagged('BNS 103a')[0]).toMatch(/^BNS 103/i);
+    expect(flagged('BNS 103-A')).toHaveLength(1);
+    expect(flagged('BNS 103-A')[0]).toMatch(/^BNS 103/i);
+  });
+
+  it('the whitelist flags 103A', () => {
+    expect(validateBNSWhitelist(['103A']).map((w) => w.details?.section)).toEqual(['103A']);
+  });
+
+  it('"BNS 103-AB" is flagged', () => {
+    expect(flagged('BNS 103-AB')).toHaveLength(1);
+    expect(flagged('BNS 103-AB')[0]).toMatch(/^BNS 103/i);
+  });
+
+  it('"Section 498-A IPC" and "IPC 498a" are valid (row 498A)', () => {
+    expect(flagged('Section 498-A IPC')).toEqual([]);
+    expect(flagged('IPC 498a')).toEqual([]);
+    expect(extractActCitations('Section 498-A IPC')).toHaveLength(1);
+    expect(extractActCitations('IPC 498a')).toHaveLength(1);
+  });
+
+  it('"IPC 304z" is flagged', () => {
+    expect(flagged('IPC 304z')).toHaveLength(1);
+    expect(flagged('IPC 304z')[0]).toMatch(/^IPC 304/i);
+  });
+
+  it('"IPC 376-ab" is valid', () => {
+    expect(flagged('IPC 376-ab')).toEqual([]);
+    expect(extractActCitations('IPC 376-ab')).toHaveLength(1);
+  });
+
+  it('"Ss. 3-5 BSA" still reads 3, 4, 5', () => {
+    expect(extractActCitations('Ss. 3-5 BSA').map((c) => c.number)).toEqual(['3', '4', '5']);
+    expect(flagged('Ss. 3-5 BSA')).toEqual([]);
+  });
+});
+
+describe('T-270 ruling A: validate() on an IPC number', () => {
+  const docRule = resolveDocRule('bail_regular');
+
+  it('"Section 999 IPC" gives only invalid_section, no old_law_reference', async () => {
+    const r = await validate('FIR under Section 999 IPC.', docRule);
+    expect(r.warnings.filter((w) => w.type === 'invalid_section')).toHaveLength(1);
+    expect(r.warnings.filter((w) => w.type === 'old_law_reference')).toEqual([]);
+  });
+
+  it('"Section 302 IPC" gives only old_law_reference, as before', async () => {
+    const r = await validate('FIR under Section 302 IPC.', docRule);
+    expect(r.warnings.filter((w) => w.type === 'invalid_section')).toEqual([]);
+    const old = r.warnings.filter((w) => w.type === 'old_law_reference');
+    expect(old).toHaveLength(1);
+    expect(old[0].details?.suggestedReplacement).toBe('Section 103(1) BNS');
   });
 });
