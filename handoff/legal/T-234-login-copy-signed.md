@@ -17,3 +17,14 @@ Conditions on the Ink lines
 1. `{n}` is the amount the server actually credits for that code, read from the same source that credits it. Never a number typed into the page.
 2. The bonus is credited for a **new** account only, on both email and Google sign-up (Meera's condition 4). If an existing account uses a code, show R7, never R5/R6.
 3. If referral Ink can expire, is capped, or is lost on any event, these lines are not complete: tell me before release and I will add the limit. Today I have nothing saying it does.
+
+## Addendum 1 (12 Oct 2026 IST): codes that expire or run out
+
+Facts from Priya (`apps/auth` referral.service.ts): each code may have an expiry date and a use cap; the Ink goes to top-up Ink, which has no expiry today; an expired or used-up code is silently ignored at sign-up. T-298: the grant may not land at all (being checked).
+
+1. **Release gate.** R5, R6, R10 and R14 promise Ink. They do not ship until T-298 shows the grant is credited on a real sign-up (email and Google). Until then, hide the referral box and modal.
+2. **No silent drop.** If a code that showed R5/R6 is no longer valid when the account is created, the account is still created and the user sees, once:
+   `Your referral code was no longer valid, so no bonus Ink was added.`
+3. Priya's line is approved as small text under the referral box (optional, Meera's call to show it):
+   `Referral codes may expire or have limited uses.`
+4. If Vikram makes top-up Ink expire, R5, R6, R10 and R14 must say so; tell me first.
