@@ -36,7 +36,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 ## Merge queue
 
 1. vishal — T-322 (8a132de). Slot given 12 Oct 2026. Ajay signed.
-2. mahak — T-276 (7c9d77d).
+2. mahak — T-276 (7c9d77d), then T-321 (ca7d6e7) in the same slot once Ajay OKs it.
 3. kunal — T-299 + T-308 (41d4c32) then T-325, in one slot. After mahak, once Ajay byte-checks the privacy page.
 First signed merges first; tell Priya before you start.
 First signed merges first; tell Priya before you start.
