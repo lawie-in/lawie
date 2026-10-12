@@ -520,7 +520,7 @@ describe('checkBriefIsUsed (C1, C2, D2)', () => {
       const doc = printed(CLEAN_BAIL.replace('13.09.2026', 'a later date'));
       expect(messagesFor(doc)).toEqual([
         signedFinding('C1', {
-          date: '13.09.2026',
+          date: '13 September 2026',
           'what it is the date of': item?.meaning ?? item?.label ?? '',
         }),
       ]);
@@ -563,7 +563,10 @@ describe('checkBriefIsUsed (C1, C2, D2)', () => {
       );
       const found = messagesFor(doc, null, withArrest);
       expect(found).toContain(
-        signedFinding('C1', { date: '12.09.2026', 'what it is the date of': 'Date of arrest' }),
+        signedFinding('C1', {
+          date: '12 September 2026',
+          'what it is the date of': 'Date of arrest',
+        }),
       );
       expect(found.some((m) => m.includes('13.09.2026'))).toBe(false);
     });
@@ -601,7 +604,9 @@ describe('checkBriefIsUsed (C1, C2, D2)', () => {
       const found = messagesFor(doc, 'In custody since 13th September 2026.');
       expect(found.some((m) => m.startsWith('Your description has a date'))).toBe(false);
       expect(
-        found.some((m) => m.startsWith('Your brief has a date the draft does not use: 13.09.2026')),
+        found.some((m) =>
+          m.startsWith('Your brief has a date the draft does not use: 13 September 2026'),
+        ),
       ).toBe(true);
     });
 
