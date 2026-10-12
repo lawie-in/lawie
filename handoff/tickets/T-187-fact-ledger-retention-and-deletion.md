@@ -72,3 +72,19 @@ Before any real user's facts go into a Fact Ledger, a written rule says how long
 
 - ADR-022 (Fact Ledger). Open question 4 there (the fact-diff log in T-147d) is a separate retention item; Ajay owns it in T-147d.
 - T-147b, T-302, T-115
+
+## Arjun (12 Oct 2026): proposed rule and mechanism — Ajay to set the period and sign (AC1-6)
+
+| Data | Kept | Deleted by | How |
+| --- | --- | --- | --- |
+| `FactLedger`, every version | **90 days from its last update** (proposed; Ajay sets the number) | the period running out; the user deleting the draft (T-115b); the user closing the account (T-115c); whichever comes first | **Hard delete**, the whole document with all versions |
+| `LlmAuxCall` `intake_extract` rows | kept for cost (T-004, T-108) | at the same moments as the ledger | **Unlinked**: `userId` and `intakeId` removed, only model, tokens, cost, timestamps stay. Not personal data after that |
+| Redis `intake_extract` cache | 30 minutes (`INTAKE_CACHE_TTL_SECONDS`, already) | expiry | `EX` on write; never longer than the ledger |
+| `runType: "fixture"` ledgers | not personal data (golden-set user only) | golden-set cleanup | same TTL applies; no special case |
+
+**Mechanism (mine):**
+1. `FactLedger` gets `expiresAt` (= `updatedAt` + period, reset on every new version) and a **TTL index** on it. The `intake_extract` unlink for TTL-expired ledgers runs from a daily job (`updateMany` where `intakeId` has no ledger left and `createdAt` < now − period), because a TTL index cannot cascade.
+2. One function in drafting, `eraseLedgerData({ userId } | { intakeIds })`: `deleteMany` on `FactLedger` + the unlink on `LlmAuxCall`. T-115b (delete a draft: intakeIds via `Generation.intakeId`) and T-115c (`/internal/erase-user`) call it. T-187 builds and tests the function; it does not wait for T-115b/c's UI.
+3. Ledger contents are already encrypted at rest (`factsEnc`, T-115a). AC10 (no `raw_span`, `value`, `display` in logs, Sentry or errors) still gets its test.
+4. Out of scope, as written: `FactDiff` (T-147d, Ajay's own item), `Generation` rows.
+**Ajay:** set the period (90 days proposed: long enough to re-draft from the same facts, short enough not to hold client details idle), confirm hard delete and unlink, cite the DPDP sections, and sign here. Then Vishal builds 7-10.
