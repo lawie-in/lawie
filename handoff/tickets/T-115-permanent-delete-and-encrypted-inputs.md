@@ -155,3 +155,9 @@ Policy lines for T-235 and the account screen: the list of what is encrypted (dr
 Key rotation; per-field search over encrypted data; deleting from Sentry, Razorpay, Anthropic or SES (runbook step 5); email-job purge by recipient; backups.
 
 **Open question for Ajay (not blocking the build of a or b):** is "erased at once, no recovery" acceptable against the 30-day wording in his T-302 table, since it is faster than promised? Arjun's view: yes, and the policy should say "immediately".
+
+## Arjun (12 Oct 2026): T-115a addendum, `filingChecklist` is a case detail too
+
+Mahak's tester found that `Document.filingChecklist` holds lines built from the inputs ("Certified copy of FIR No. 124/2026"). I missed it in decisions 5 and 6. **Decision: encrypt it in T-115a**, not a separate ticket and not "plain by design": it names a case number, and leaving it plain would keep the policy sentence "case details are encrypted" false. Same pattern: new field `filingChecklistEnc` = `encrypt(JSON.stringify(lines))`, the plain field left unset on new writes, one `readFilingChecklist(doc)` helper used by every reader (the document list, detail and export paths), and the same backfill script covers it with the same decrypt check before the `$unset`. The API response shape does not change. `checklistState` (booleans) stays plain. Tests as for `formInputs`: new row holds no plain lines, old plain row still reads, backfill twice changes nothing.
+
+Still plain by design, as decided: `title`, `courtName`, `sectionsCited`. Mahak: before you close the ticket, list every other `Document` field and every field the ticket's writers copy out of the inputs (including `FactDiff.label` and any `Event.metadata`) and say in the report which hold input text; if one does, tell me before adding it.
