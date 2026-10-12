@@ -41,13 +41,15 @@ function isPlainContent(content: string): boolean {
 /**
  * T-233: an unedited draft is the server's plain text, not HTML. Mirrors
  * DocumentEditor's textToHtml (keep the two in step): an empty line starts a
- * new <p>, a single line break becomes <br>. Like textToHtml, it does not
- * escape the text. Content that starts with '<' (after any leading
- * whitespace) is already HTML.
+ * new <p>, a single line break becomes <br>. T-274: like textToHtml, CRLF/CR
+ * line ends become LF and the text is HTML-escaped before the tags go in, so
+ * '<', '>' and '&' print as written. The blank marks (U+E000/U+E001) from
+ * markBlanks are not touched by the escaping and survive to blankMarksToTags.
+ * Content that starts with '<' (after any leading whitespace) is already HTML.
  */
 function plainTextToHtml(text: string): string {
   if (!isPlainContent(text)) return text;
-  return text
+  return escapeHtml(text.replace(/\r\n?/g, '\n'))
     .split(/\n{2,}/)
     .map((para) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
     .join('');

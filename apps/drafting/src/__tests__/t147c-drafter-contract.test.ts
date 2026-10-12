@@ -1211,14 +1211,11 @@ describe('missingAsBlanks: tolerant of spacing; other braces untouched', () => {
       '[To be confirmed: Date of FIR] / [To be confirmed: Police station]',
     );
   });
-  it('non-MISSING braces are untouched', () => {
-    for (const t of [
-      '{{other}}',
-      '{{missing: x}}'.replace('missing', 'Missing'),
-      '{MISSING: x}',
-      '{{MISSING x}}',
-      'a {b} {{c}}',
-    ]) {
+  it('MISSING in any case is a blank (T-273); non-MISSING braces are untouched', () => {
+    for (const t of ['{{missing: x}}', '{{Missing: x}}', '{{MISSING: x}}']) {
+      expect(missingAsBlanksUtil(t)).toBe(BLANK);
+    }
+    for (const t of ['{{other}}', '{{foo}}', '{MISSING: x}', '{{MISSING x}}', 'a {b} {{c}}']) {
       expect(missingAsBlanksUtil(t)).toBe(t);
     }
   });

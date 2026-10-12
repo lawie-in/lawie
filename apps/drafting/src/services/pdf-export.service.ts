@@ -93,8 +93,11 @@ export function contentToHtml(
     // Already HTML from TipTap editor — embed as-is
     body = content;
   } else {
-    // Plain text / markdown — convert to paragraphs
-    const paragraphs = content.split('\n\n');
+    // Plain text / markdown — convert to paragraphs. T-274: CRLF/CR line ends
+    // become LF first, so a CRLF draft gets the same paragraphs and headings.
+    // This runs after markBlanks, on the marked text, so the shared finder sees
+    // the same raw content here as in blanksInContent and the blanks agree.
+    const paragraphs = content.replace(/\r\n?/g, '\n').split(/\n{2,}/);
 
     for (const para of paragraphs) {
       if (!para.trim()) continue;
