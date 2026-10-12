@@ -5,7 +5,7 @@
 | Phase  | 4 — Matter context |
 | Owner  | Arjun (mechanism). Ajay (it changes what is drafted; signs). Lead (build, drafting) |
 | Mode   | Full chain (legal content) |
-| Status | To do. Unassigned. After T-240. Asked for by Arjun in T-240, 12 Oct 2026 |
+| Status | To do. Unassigned. T-240 merged 6a6cd2a, so it can start |
 
 T-240 adds `catalogueCategory` but leaves the behaviour gates on the old `category` value. These gates are the template-engine civil contract rule, the CATEGORY prompt line, the BNS whitelist on `'criminal'`, and the ai.service criminal sanity check. Each gate changes what gets drafted.
 

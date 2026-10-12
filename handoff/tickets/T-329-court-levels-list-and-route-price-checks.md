@@ -5,7 +5,7 @@
 | Phase  | 4 — Matter context |
 | Owner  | Ajay (signs the court_levels names; packs are legal content). Lead (build) |
 | Mode   | Full chain (drafting; legal content) |
-| Status | To do. Unassigned. After T-240. Split from T-240 by Priya, 12 Oct 2026 |
+| Status | To do. Unassigned. T-240 merged 6a6cd2a, so it can start |
 
 ## Acceptance criteria
 

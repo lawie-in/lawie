@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Lead (drafting) |
 | Mode   | Small fix |
-| Status | To do. After T-240 merges. Raised by Tanvi's T-240 reviewer, 12 Oct 2026 |
+| Status | Building: tanvi, with T-340 (12 Oct 2026) |
 
 ## Acceptance criteria
 
