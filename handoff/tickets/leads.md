@@ -40,6 +40,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 3. kunal — T-299 + T-308 (41d4c32). After mahak, once Ajay byte-checks the privacy page.
 First signed merges first; tell Priya before you start.
 First signed merges first; tell Priya before you start.
+4. tanvi — T-326 (633aff5). Once Ajay OKs.
 
 ## Last done
 
