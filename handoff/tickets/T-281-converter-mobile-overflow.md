@@ -19,3 +19,11 @@ At 375 px the converter page (`apps/web/src/app/tools/section-converter/page.tsx
 ## Added 12 Oct 2026 (Mahak's reviewer, T-275)
 
 Type-only: `new_section` should be typed `string | null` in the converter page. Deferred from T-275 so Ajay's signed diff stays as signed.
+
+## Design (Rajesh, 12 Oct 2026)
+
+Result boxes stack at 375 px with the arrow rotated 90 degrees, centred, gap 12px or more. Search stacks at 375 px: input, then a full-width button of 44px or more. Placeholder and helper text unchanged. 1280 px pixel-identical.
+
+## Follow-up (Mahak, Priya's call 12 Oct 2026)
+
+The full placeholder "e.g. 302 IPC, 103 BNS, 154 CrPC" just fits at 375 px, but its end is cut at 360 px (common on Android). The helper text below lists all formats, so this ships as is. Rajesh may choose smaller input padding below `sm` or a shorter placeholder later (a copy change: Ajay is not needed, Meera/Madhuri if words change).
