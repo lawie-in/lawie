@@ -53,3 +53,15 @@ Our messages crossed. Arjun has already built the mechanism to the original rule
 - Fixtures are synthetic data only.
 
 Both rules are lawful. This one is final.
+
+## Addendum 3 (12 Oct 2026 IST): FINAL, this replaces Addenda 1 and 2
+
+Our messages crossed twice. Arjun's ticket now follows the 90-day rule (0a3993a), so the final rule matches it:
+
+- `FactLedger` (all versions): hard-deleted 90 days after its last update, or earlier on draft delete (including soft-delete) or account erasure.
+- `intake_extract` rows: unlinked at the same moments.
+- Redis: 30 minutes.
+- Fixtures: synthetic data only.
+- Basis: DPDP Act s.8(7), s.8(5), s.12.
+
+No further change without a new addendum here.
