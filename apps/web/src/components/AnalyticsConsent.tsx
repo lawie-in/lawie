@@ -210,7 +210,10 @@ function initGtag(): void {
   };
   window.gtag('js', new Date());
   // T-308 (Ajay condition 1): Google signals and ads personalisation off at the tag.
+  // T-242 (Ajay condition 3): page_location without query or hash, so GA's automatic events never
+  // carry utm_* (or any other query value) from the address bar.
   window.gtag('config', GA_MEASUREMENT_ID, {
+    page_location: sanitizePageLocation(window.location.href),
     send_page_view: false,
     allow_google_signals: false,
     allow_ad_personalization_signals: false,
@@ -371,6 +374,9 @@ export default function AnalyticsConsent() {
     setGaDisabled(!on);
     if (!on) return;
     applyGranted();
+    // T-242: keep the tag's page_location on the current page (still without query) after a
+    // client navigation; the config value above is set only once per window.
+    window.gtag?.('set', { page_location: sanitizePageLocation(window.location.href) });
     window.gtag?.('event', 'page_view', {
       page_location: sanitizePageLocation(window.location.href),
       page_path: window.location.pathname,

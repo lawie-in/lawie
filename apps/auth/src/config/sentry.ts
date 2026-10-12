@@ -13,9 +13,11 @@ type TransactionEvent = Parameters<NonNullable<Sentry.NodeOptions['beforeSendTra
 /**
  * PII scrub for every Sentry error event (T-210, DPDP Act 2023):
  *  - masks email-shaped text in exception values, the event message and breadcrumb messages
- *  - deletes request.data (register/login bodies) and request.cookies, masks emails in the URL
+ *  - deletes request.data (register/login bodies), request.cookies and request.query_string;
+ *    cuts the URL at '?' and masks emails in what is left (T-242)
  *  - keeps only allowlisted request headers (drops authorization: the JWT holds email + name)
  *  - runs extra/contexts through `scrubPii` (drops `keyValue`, masks emails)
+ *  - cuts query strings out of trace, span and breadcrumb data (T-242, withoutQueryStrings)
  * Uses the same `maskEmails`/`scrubPii` helpers as the Pino logger.
  */
 export function scrubEvent<T extends Sentry.Event>(event: T): T {
@@ -28,9 +30,11 @@ export function scrubEvent<T extends Sentry.Event>(event: T): T {
   if (event.request) {
     delete event.request.data;
     delete event.request.cookies;
-    if (typeof event.request.url === 'string') event.request.url = maskEmails(event.request.url);
-    if (typeof event.request.query_string === 'string') {
-      event.request.query_string = maskEmails(event.request.query_string);
+    // T-242 (Ajay condition 3): no query string reaches Sentry, so campaign tags (and any other
+    // query value) never do. The URL keeps its path only; emails in the path are still masked.
+    delete event.request.query_string;
+    if (typeof event.request.url === 'string') {
+      event.request.url = maskEmails(event.request.url.split('?')[0] ?? '');
     }
     if (event.request.headers) {
       const kept: Record<string, string> = {};
@@ -54,6 +58,53 @@ export function scrubEvent<T extends Sentry.Event>(event: T): T {
     event.contexts = scrubPii(event.contexts) as T['contexts'];
   }
 
+  // T-242: after scrubPii, which may hand back a copy of contexts.
+  return withoutQueryStrings(event);
+}
+
+// ── T-242 (Ajay condition 3): no query string in trace, span or breadcrumb data ───────────────
+// The request scrub covers event.request only. Transactions and spans carry the same URL in their
+// data (OpenTelemetry http attributes), so campaign tags (and any other query value) would still
+// reach Sentry. Cut at '?' for URL-shaped keys; delete query-only keys.
+const QUERY_CUT_KEYS = ['http.url', 'http.target', 'url.full'] as const;
+const QUERY_DROP_KEYS = ['url.query', 'http.query'] as const;
+
+function withoutQuery(value: string): string {
+  const i = value.indexOf('?');
+  return i === -1 ? value : value.slice(0, i);
+}
+
+function scrubQueryData(data: unknown, extraCutKeys: readonly string[] = []): void {
+  if (!data || typeof data !== 'object') return;
+  const d = data as Record<string, unknown>;
+  for (const k of [...QUERY_CUT_KEYS, ...extraCutKeys]) {
+    const v = d[k];
+    if (typeof v === 'string') d[k] = withoutQuery(v);
+  }
+  for (const k of QUERY_DROP_KEYS) delete d[k];
+}
+
+interface QueryBearingEvent {
+  transaction?: unknown;
+  contexts?: { trace?: { data?: unknown } };
+  spans?: { op?: unknown; description?: unknown; data?: unknown }[];
+  breadcrumbs?: { data?: unknown }[];
+}
+
+/** Removes query strings from contexts.trace.data, spans[].data and http breadcrumbs. */
+export function withoutQueryStrings<T>(event: T): T {
+  const e = event as unknown as QueryBearingEvent;
+  if (typeof e.transaction === 'string') e.transaction = withoutQuery(e.transaction);
+  scrubQueryData(e.contexts?.trace?.data);
+  for (const span of e.spans ?? []) {
+    scrubQueryData(span.data);
+    // http.client / http.server span names are "METHOD url"; only those are cut.
+    const isHttp = typeof span.op === 'string' && span.op.startsWith('http');
+    if (isHttp && typeof span.description === 'string') {
+      span.description = withoutQuery(span.description);
+    }
+  }
+  for (const crumb of e.breadcrumbs ?? []) scrubQueryData(crumb.data, ['url']);
   return event;
 }
 
