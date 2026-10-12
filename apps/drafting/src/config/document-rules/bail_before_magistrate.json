@@ -164,9 +164,9 @@
     },
     {
       "id": "triple_test",
-      "name": "Triple Test",
+      "name": "Flight, Evidence and Witnesses",
       "required": true,
-      "description": "Flight risk, tampering with evidence, influencing witnesses — all addressed"
+      "description": "Submissions on the risk of flight, of tampering with the evidence and of influencing witnesses, each reasoned only on facts the brief gives, with a blank where it gives none. Never a statement of fact the brief does not give."
     },
     {
       "id": "undertakings",
@@ -190,15 +190,15 @@
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Release the applicant {applicant} on bail in connection with FIR No. {fir_number} dated {fir_date} of Police Station {police_station}, under Section 480 of the BNSS, 2023;\nb) Direct release on such bond and sureties as this Hon'ble Court may deem fit;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
   "verificationTemplate": "VERIFICATION\n\nI, {applicant}, S/o {parentName}, aged about {age} years{custody_clause}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
-  "prompt_context": "Draft a Bail Application before the Magistrate / CJM under Section 480 of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (corresponding to Section 437 CrPC). DISTINCTION: Section 480 BNSS deals with bail by the trial court / magistrate; Section 483 BNSS deals with special powers of High Court / Sessions Court. The Magistrate's competence is limited — it cannot grant bail in offences punishable with death or imprisonment for life, unless certain conditions are met (under-18, woman, sick/infirm, no prima facie case after the court hears the prosecution). The application must: (1) establish particulars of FIR; (2) demonstrate offence is within Magistrate's bail competence; (3) address flight risk, tampering with evidence and influencing witnesses as reasoning on the facts in the brief, naming no judgment — where an authority would normally be cited, write [Authority — add if relied upon]; (4) show clean antecedents or contextualise; (5) furnish undertakings. Cite BNS for offences (never IPC), BNSS for procedural provisions.",
+  "prompt_context": "Draft a Bail Application before the Magistrate / CJM under Section 480 of the Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023 (corresponding to Section 437 CrPC). DISTINCTION: Section 480 BNSS deals with bail by the trial court / magistrate; Section 483 BNSS deals with special powers of High Court / Sessions Court. The Magistrate's competence is limited — it cannot grant bail in offences punishable with death or imprisonment for life, unless certain conditions are met (under-18, woman, sick/infirm, no prima facie case after the court hears the prosecution). The application must: (1) establish particulars of FIR; (2) demonstrate offence is within Magistrate's bail competence; (3) address flight risk, tampering with evidence and influencing witnesses as reasoning on the facts in the brief, naming no judgment — where an authority would normally be cited, write [Authority — add if relied upon]; (4) state the applicant's antecedents only as the BRIEF gives them, with a blank where it does not; (5) furnish undertakings. Cite BNS for offences (never IPC), BNSS for procedural provisions.",
   "promptInstructions": [
     "Draft a Bail Application before the Magistrate under Section 480 BNSS, 2023 (successor to Section 437 CrPC).",
     "Confirm at outset that the offence is within the Magistrate's bail competence under BNSS 480.",
     "If offence is punishable with death / life imprisonment, the Magistrate's powers are restricted — flag whether applicant falls in special categories (woman / under-18 / sick / infirm).",
-    "Set out FIR particulars and circumstances of arrest.",
-    "Apply the triple-test: flight risk (no — give antecedents and roots), tampering with evidence (no — give reasons), influencing witnesses (no — distance from witnesses).",
+    "Set out the FIR particulars and the circumstances of arrest as the BRIEF gives them. Use a blank for any of them the BRIEF does not give.",
+    "Address the risk of flight, of tampering with the evidence and of influencing witnesses as submissions, each written as \"It is submitted that ...\" and each reasoned only on facts the BRIEF gives (for example residence, family, occupation, antecedents, the stage of investigation). Do not state any such fact the BRIEF does not give. Where the BRIEF gives no fact for one of the three, write [To be confirmed: facts relied on to show no risk of <flight / tampering with the evidence / influencing witnesses>] for that one.",
     "Do not name any judgment. Where an authority on bail would normally be cited, write [Authority — add if relied upon].",
-    "If charge sheet has been filed, mention that custody is no longer required for investigation.",
+    "Only if the BRIEF states that the charge sheet has been filed, submit that custody is no longer required for investigation. Do not say that the charge sheet has been filed, or that investigation is complete, unless the BRIEF states it.",
     "Include undertakings: attend court on every date, not tamper with evidence, not leave jurisdiction.",
     "Use BNS section numbers for offences (never IPC).",
     "State every earlier bail application in this matter that the BRIEF mentions: the court it was made to, the date of the order and the result, or that it is still pending, each as the BRIEF gives it. Use a blank for any of these the BRIEF does not give. Where the BRIEF mentions no earlier bail application, do not say that this is the first application or that none is pending; write [To be confirmed: whether any earlier bail application was made in this matter, to which court, and with what result].",
