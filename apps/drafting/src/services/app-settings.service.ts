@@ -10,6 +10,7 @@
  * config must live in the DB only (per founder instruction 2026-05-11), so
  * there is no codebase or env fallback. Callers handle the error by surfacing
  * a clear "set this key in /admin/ai-config" message to the advocate.
+ * Exception (T-283): the two feature switches fall back to FEATURE_DEFAULT_* in intake.service.ts when missing.
  */
 import { AppSetting } from '../models/AppSetting.model';
 
