@@ -35,8 +35,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-1. shashank — T-278 (0c7638c + timeline note). Slot given 12 Oct 2026; merge once Ajay signs.
-2. mahak — T-317 (d3d5301). Once Ajay OKs d3d5301. First signed goes first.
+1. mahak — T-317 (d3d5301). Slot given 12 Oct 2026 (first signed: Ajay).
+2. shashank — T-278 (0c7638c + timeline note). Once Ajay signs.
 
 ## Last done
 
