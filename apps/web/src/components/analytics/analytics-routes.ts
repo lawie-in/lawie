@@ -1,4 +1,4 @@
-// T-306: pure helpers for the GA helper (GoogleAnalytics.tsx). No React, so tests can call them.
+// T-306: pure helpers for GA (used by AnalyticsConsent.tsx since T-310). No React, so tests can call them.
 
 export const GA_MEASUREMENT_ID = 'G-ZSMN1GPPB5';
 
