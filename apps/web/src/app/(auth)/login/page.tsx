@@ -369,13 +369,13 @@ function LoginContent() {
     const params = new URLSearchParams({ challenge });
     if (code) params.set('referralCode', code);
     // T-242: the landing link's tags go to our auth service only, which keeps them only if this
-    // Google sign-in creates a new account. Cleared here: after this redirect the tab is either
-    // signed up (tags stored with the account) or signed in to an existing one (tags not used).
+    // Google sign-in creates a new account. T-344: not cleared here. A cancelled or failed Google
+    // sign-in comes back to /login?error=… with the tags still in sessionStorage for the next try;
+    // /auth/callback clears them only once the sign-in has succeeded.
     const source = readSignupSource();
     if (source?.utmSource) params.set('utmSource', source.utmSource);
     if (source?.utmMedium) params.set('utmMedium', source.utmMedium);
     if (source?.utmCampaign) params.set('utmCampaign', source.utmCampaign);
-    clearSignupSource();
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google?${params.toString()}`;
   };
 

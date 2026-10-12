@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
+import { clearSignupSource } from '@/lib/signup-source';
 
 // T-234 — one-time notices when a referral code sent with Google added no Ink.
 // not_applied: Ajay Addendum 1. existing_account: Ajay Addendum 2.
@@ -136,6 +137,9 @@ function CallbackHandler() {
       }
 
       login(pair.accessToken, pair.refreshToken);
+      // T-242/T-344: signed in, so the tags are now with the account (new) or not needed
+      // (existing). Cleared only here; every error return above keeps them for the next try.
+      clearSignupSource();
       const notice = referralNoticeFor(referral, referralShown);
       if (notice) {
         setReferralNotice(notice);
