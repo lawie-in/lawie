@@ -12,7 +12,7 @@
   "courtId": "ld_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF PRINCIPAL DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in the Union Territory of Ladakh, governed by the Jammu and Kashmir Reorganisation Act, 2019 read with the Code of Civil Procedure, 1908 and BNSS, 2023 (extended to the UT post-2019). Sessions courts try offences punishable with imprisonment exceeding 7 years. The UT of Ladakh comprises two districts — Leh and Kargil — and the subordinate judiciary is supervised by the common High Court of Jammu & Kashmir and Ladakh. English is the predominant language of pleadings; vernacular (Bhoti / Urdu / Hindi) translations are permitted.",
+  "jurisdictionNote": "District-level criminal and civil courts in the Union Territory of Ladakh, governed by the Jammu and Kashmir Reorganisation Act, 2019 read with the Code of Civil Procedure, 1908 and BNSS, 2023 (extended to the UT post-2019). Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. The UT of Ladakh comprises two districts — Leh and Kargil — and the subordinate judiciary is supervised by the common High Court of Jammu & Kashmir and Ladakh. English is the predominant language of pleadings; vernacular (Bhoti / Urdu / Hindi) translations are permitted.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",
