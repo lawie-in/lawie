@@ -15,6 +15,7 @@ describe('grantSignupBonus — SCRUM-100 idempotency + constant flip', () => {
       email: 'test@example.com',
       name: 'Test User',
       password: 'password123',
+      emailVerified: true,
     });
 
     await grantSignupBonus(user._id.toString());
@@ -29,6 +30,7 @@ describe('grantSignupBonus — SCRUM-100 idempotency + constant flip', () => {
       email: 'test2@example.com',
       name: 'Test User 2',
       password: 'password123',
+      emailVerified: true,
     });
 
     await grantSignupBonus(user._id.toString());
