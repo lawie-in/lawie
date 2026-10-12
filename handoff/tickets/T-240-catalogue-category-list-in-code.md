@@ -5,7 +5,7 @@
 | Phase          | 4 — Matter context |
 | Owner          | Lead (build). Ajay (confirms the category names). Anushka (checks the library filters) |
 | Mode           | Full chain |
-| Status         | To do. Unassigned. Needed before T-239 batch 1. Starts after T-227 merges (same pattern, nearby files) |
+| Status         | Building: tanvi (12 Oct 2026) |
 | Depends on     | T-227 |
 
 ## Problem
@@ -47,3 +47,15 @@ Every new template touches the category list and the price list (T-227), and two
 9. The category list and the price list are each split into one file per batch under `apps/drafting/src/config/catalogue/` (for example `batch1-civil.ts`), merged when loaded. The existing 92 ids go in `base.ts`.
 10. The tests from T-227 and this ticket still apply to the merged list: every rule file has exactly one category and an explicit price, and a missing entry fails CI.
 11. A lead claims only their own batch file, so builds run in parallel.
+
+## Arjun (12 Oct 2026): catalogueCategory vs behaviour gates (Tanvi's proposal), approved
+
+Add `catalogueCategory` (one of T-239's 26, from the code list) for library, filters, seed/Mongo and intake. **Do not switch the behaviour gates in this ticket** (template-engine civil contract rule, CATEGORY prompt line, BNS whitelist on `'criminal'`, ai.service criminal sanity check): they change what is drafted, which needs its own ticket and Ajay. Priya to log the follow-up (rekey gates by template id or catalogue).
+Conditions:
+1. A test pins `category` (the behaviour value) for every existing template id, before and after: no behaviour value changes.
+2. Prices: `TEMPLATE_PRICES` and the alias map move to `config/catalogue` as the single source. A test pins every current price and alias byte for byte; nothing else may keep its own copy (grep in the test or a lint rule).
+3. Every template has exactly one `catalogueCategory` from the list; an unknown value fails at load, not at request time.
+
+## Split (Priya, 12 Oct 2026)
+
+AC7 (one court_levels list) and AC8 (price check in every documents.routes.ts generate handler) move to T-329.

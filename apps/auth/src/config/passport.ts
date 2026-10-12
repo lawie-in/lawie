@@ -5,6 +5,7 @@ import { User, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/
 import { grantSignupBonus } from '../services/credit-bonus.service';
 import { getVerifiedOAuthState } from '../services/oauth-state';
 import { applyReferralCode } from '../services/referral.service';
+import { deleteAllUserSessions } from '../services/session.service';
 
 import { env } from './env';
 import logger from './logger';
@@ -21,6 +22,13 @@ export const REFERRAL_NOT_APPLIED_FLAG = 'lawieReferralNotApplied';
  * nothing is granted, and the callback tells the web app (referral=existing_account).
  */
 export const REFERRAL_EXISTING_ACCOUNT_FLAG = 'lawieReferralExistingAccount';
+
+/**
+ * T-299 (Arjun ruling 5) — the strategy refuses a deactivated account with
+ * done(null, false, { reason: GOOGLE_ACCOUNT_DEACTIVATED }). The callback route maps that reason
+ * to /login?error=account_deactivated; no user is set, so no session and no one-time code.
+ */
+export const GOOGLE_ACCOUNT_DEACTIVATED = 'account_deactivated';
 
 /**
  * T-234 — Terms acceptance for Google sign-in. The login page is the only entry to
@@ -67,17 +75,39 @@ export function initPassport(): void {
             return done(new Error('Google account has no email address'), false);
           }
 
+          // T-299 ruling 5: checked straight after each lookup, before anything is written, so a
+          // deactivated account is neither linked nor stamped with a Terms acceptance.
+          const refuseDeactivated = (userId: string) => {
+            logger.info({ userId }, 'Google sign-in refused: account deactivated');
+            return done(null, false, { reason: GOOGLE_ACCOUNT_DEACTIVATED });
+          };
+
           // 1. Find by google_id (returning user)
           let user = await User.findOne({ googleId: profile.id });
           let isNewUser = false;
+          if (user && !user.isActive) return refuseDeactivated(user.id as string);
 
           if (!user) {
             // 2. Email already registered via password — link the Google account
             user = await User.findOne({ email });
+            if (user && !user.isActive) return refuseDeactivated(user.id as string);
             if (user) {
               user.googleId = profile.id;
+              // T-299 ruling 6 and Arjun's answer 1 (until T-223 verifies email): linking makes the
+              // account Google-only. Whoever set the password may not own the address; the owner can
+              // set a new one through "forgot password". In this order: unset the password, clear
+              // any reset token, revoke every existing session, then (in the callback route, after
+              // this strategy returns) create the Google session. authProvider stays as stored
+              // ('email' for a password account, ruling 1).
+              user.set('password', undefined);
+              user.set('passwordResetToken', undefined);
+              user.set('passwordResetExpires', undefined);
               if (!user.name && profile.displayName) user.name = profile.displayName;
               if (!user.termsAcceptedAt) user.set(googleTermsAcceptance());
+              // Revoke before saving: if the revoke throws, nothing is saved and the next Google
+              // sign-in comes through this branch again and retries it. Saving first would make a
+              // failed revoke permanent (the googleId match would skip this branch).
+              await deleteAllUserSessions(user._id.toString());
               await user.save();
             } else {
               // 3. Brand-new user — create account
@@ -85,6 +115,8 @@ export function initPassport(): void {
                 email,
                 name: profile.displayName ?? email,
                 googleId: profile.id,
+                // T-299 ruling 1: accounts created here are Google accounts.
+                authProvider: 'google',
                 role: 'Lawyer',
                 plan: 'free',
                 docCount: 0,

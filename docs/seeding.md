@@ -88,12 +88,12 @@ The "states dropdown empty" bug means step 5 returned `[]`. The fix is always: r
 
 ## 3. Per-script reference
 
-| Script | npm script | Source | Collection | Idempotent? |
-|---|---|---|---|---|
-| `seed-courts.ts` | `yarn workspace @lawie/drafting seed:courts` | `config/courts/indian-courts.json` | `courts` | Yes — upsert on `courtId` |
-| `seed-sections.ts` | `yarn workspace @lawie/drafting seed:sections` | `config/sections/{ipc-to-bns, crpc-to-bnss, iea-to-bsa}.json` | `sectionmappings` | Yes — skips matches on `(oldCode, oldSection, isNewProvision)`, so it never corrects a row that already exists. Pass `--force` to delete all rows and reseed (see [section 7](#7-reseeding-sectionmappings-after-the-t-250--t-255-table-corrections)). |
-| `seed-templates.ts` | `yarn workspace @lawie/drafting seed:templates` | inline array in the script | `templates` | Yes — skip if `slug` exists |
-| `seed-app-setting.ts` | `yarn workspace @lawie/drafting seed:setting <key> <value> [desc]` | CLI args | `appsettings` | Yes — no-op if (key, value) already match |
+| Script                | npm script                                                         | Source                                                        | Collection        | Idempotent?                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `seed-courts.ts`      | `yarn workspace @lawie/drafting seed:courts`                       | `config/courts/indian-courts.json`                            | `courts`          | Yes — upsert on `courtId`                                                                                                                                                                                                                              |
+| `seed-sections.ts`    | `yarn workspace @lawie/drafting seed:sections`                     | `config/sections/{ipc-to-bns, crpc-to-bnss, iea-to-bsa}.json` | `sectionmappings` | Yes — skips matches on `(oldCode, oldSection, isNewProvision)`, so it never corrects a row that already exists. Pass `--force` to delete all rows and reseed (see [section 7](#7-reseeding-sectionmappings-after-the-t-250--t-255-table-corrections)). |
+| `seed-templates.ts`   | `yarn workspace @lawie/drafting seed:templates`                    | inline array in the script                                    | `templates`       | Yes — skip if `slug` exists                                                                                                                                                                                                                            |
+| `seed-app-setting.ts` | `yarn workspace @lawie/drafting seed:setting <key> <value> [desc]` | CLI args                                                      | `appsettings`     | Yes — no-op if (key, value) already match                                                                                                                                                                                                              |
 
 One-shot bootstrap of a fresh DB:
 
@@ -137,16 +137,16 @@ docker exec -i lawie_drafting sh -c \
 
 ## 5. When to re-run each seed
 
-| Source change | Re-run |
-|---|---|
-| Adding rows to `indian-courts.json` | `seed:courts` |
-| Editing existing court name / formattingRulesRef in JSON | `seed:courts` (upsert overwrites) |
-| Deleting a court from JSON | `seed:courts` does **not** delete — handle manually in Mongo |
-| Adding a new IPC↔BNS row | `seed:sections` |
-| Changing existing section mapping | `seed:sections --force` (deletes all rows, reseeds). Plain `seed:sections` keeps the old row. Check for admin-edited rows first: [section 7](#7-reseeding-sectionmappings-after-the-t-250--t-255-table-corrections) |
-| Adding a starter template | `seed:templates` |
-| Editing an existing template | Update the doc in Mongo directly, or delete + reseed |
-| AI model swap (Anthropic releases new model) | `seed:setting ai.drafting_model <new-id>` |
+| Source change                                            | Re-run                                                                                                                                                                                                              |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Adding rows to `indian-courts.json`                      | `seed:courts`                                                                                                                                                                                                       |
+| Editing existing court name / formattingRulesRef in JSON | `seed:courts` (upsert overwrites)                                                                                                                                                                                   |
+| Deleting a court from JSON                               | `seed:courts` does **not** delete — handle manually in Mongo                                                                                                                                                        |
+| Adding a new IPC↔BNS row                                 | `seed:sections`                                                                                                                                                                                                     |
+| Changing existing section mapping                        | `seed:sections --force` (deletes all rows, reseeds). Plain `seed:sections` keeps the old row. Check for admin-edited rows first: [section 7](#7-reseeding-sectionmappings-after-the-t-250--t-255-table-corrections) |
+| Adding a starter template                                | `seed:templates`                                                                                                                                                                                                    |
+| Editing an existing template                             | Update the doc in Mongo directly, or delete + reseed                                                                                                                                                                |
+| AI model swap (Anthropic releases new model)             | `seed:setting ai.drafting_model <new-id>`                                                                                                                                                                           |
 
 ---
 
@@ -214,5 +214,6 @@ Until a database is reseeded, the section converter and old-to-new conversions i
    ```
 
    Demo and dev share one cluster today (section 4), so this one run covers both.
+
 4. **Sample these 30 rows** on develop and compare each against Ajay's signed tables: IEA 5, 32, 45, 62, 63, 65A, 65B, 100, 113A, 166; CrPC 41, 97, 154, 167, 362, 358, 437, 439, 482, 10; IPC 34, 124A, 236, 302, 304B, 307, 376, 377, 420, 498A. Also check that `validatedBy` is Ajay's signature for every IPC, CrPC and IEA row (IPC `validatedAt` is 2026-10-12), and that no row still says `Pending CLO review`. IPC 236 must be type `unverified` with no BNS section and the exact note above; 124A and 377 must be repealed.
 5. **Production after that**, founder-only, and only after T-275 ships. T-275 adds the section-converter label for `repealed_no_equivalent` rows.

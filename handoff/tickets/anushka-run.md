@@ -469,3 +469,39 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - A BNS section that doesn't exist is still blocked.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-280 — converter shows section titles (d80774f)
+
+- In the section converter, see the title of the old section and of the new section under each number, so a wrong number is easy to spot.
+- Test only after the founder has reseeded develop (seed-sections --force), Ajay's condition.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-322 — a signed blank is accepted as is (e4523df)
+
+- An anticipatory, magistrate or default bail draft that leaves the prescribed "To be confirmed" blank for a missing fact is accepted as is. It is no longer sent back to the AI for a rewrite that could invent the fact.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-321 — one AI footer per exported draft (36ea45e)
+
+- Export a starting draft as PDF (in the app or from the server): one footer only, "Starting draft prepared with AI assistance from the details you gave. Not checked against court rules. Review every line before use. Lawie does not provide legal advice."
+- Export any other draft: one footer, "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-326 — new BNS sections in the converter (d51311e)
+
+- Look up a new BNS, BNSS or BSA section that has no old equivalent: it shows "No equivalent in the IPC" (or CrPC, IEA) instead of a made-up number.
+- Copy gives just the new section, e.g. "BNS 111".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-299 + T-308 + T-325 — sign-in hardening and privacy wording (991c0f6, 84d9e4c)
+
+- A clear message when Google sign-in fails; a Contact support link if the account is deactivated.
+- A wrong email or a wrong password gives the same answer either way.
+- Linking Google signs out your other sessions; signing out ends the old login everywhere in the account service.
+- The Privacy Policy says Google Analytics runs on public pages only and sets _ga cookies.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Rajesh (how it looks), Ajay (the words). Lead (build, web) |
 | Mode   | Small fix (web) |
-| Status | To do. Tanvi after T-280. Ajay ruled (12 Oct): a NEW placeholder never reads as IPC; Copy gives the new section only, nothing for the old side; no IPC heading over it. No new design: Rajesh glances at the 375/1280 screenshots. Found by Tanvi in T-280 |
+| Status | Merged into develop_staging (d51311e, 12 Oct 2026). Waiting for Anushka on develop |
 
 In the section converter, reverse lookups for provisions that are new in BNS (no IPC equivalent) show "Section NEW-1" under the INDIAN PENAL CODE heading. Copy gives "Section NEW-1 IPC". Both look like a real IPC section.
 

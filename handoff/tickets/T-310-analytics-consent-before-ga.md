@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release. Gate before v1 go-live (T-403) |
 | Owner  | Rajesh (design). Ajay (wording, signs). Arjun (mechanism). Lead (build, web) |
 | Mode   | Small feature (web) |
-| Status | Ready. Design 0289e14, strings signed 2288099 (Ajay), font self-host decided (Arjun). Kunal builds after T-306 + T-308 (same files) |
+| Status | Building: kunal (12 Oct 2026) |
 
 Decision (Priya, 12 Oct 2026, founder has delegated these calls): Google Analytics loads only after the visitor agrees. No consent, no GA script and no `_ga` cookies. Recommended by Ajay for DPDP.
 
@@ -73,3 +73,14 @@ Ajay's rule: a minimal record of each choice, so Lawie can show consent was give
 3. Check the look against the current splash (Rajesh, one screenshot at 375 and 1280 px in the report).
 
 **Acceptance criterion added to T-310 (AC6): no request to any host other than our own before consent.** A recorded browser check on a fresh profile (no storage), on `/`, `/pricing`, `/terms` and `/privacy`, with the Network panel filtered to third-party hosts: zero requests until Accept is pressed, and after Decline still zero. The lead lists any other host found (images, scripts, embeds, fonts) and either removes or self-hosts it, or tells Priya and Ajay if it cannot be removed. The code read finds no other `<link>` or third-party script in `apps/web/src` besides this one and GA; the browser check is the proof.
+
+## Arjun (12 Oct 2026): Sentry in the browser vs AC6, follow-up ticket
+
+Kunal found that `apps/web/sentry.client.config.ts` runs in production with no tunnel, so every page (public ones too) can call a `sentry.io` host before consent. Checked: `@sentry/nextjs` ^10, no `replayIntegration` anywhere, so Session Replay is **not** actually running (the `replaysOnErrorSampleRate: 1.0` line does nothing without the integration). Decision, as its own small web ticket (not in Kunal's T-310 files; Priya to log it; files `apps/web/sentry.client.config.ts`, `apps/web/next.config.mjs`):
+
+1. **Tunnel.** `tunnelRoute: '/monitoring'` in `withSentryConfig`, so the browser only ever calls our own origin. AC6's "no third-party request before consent" then holds for Sentry.
+2. **Less data.** Client `tracesSampleRate: 0` (no performance traces from browsers), delete both `replays*` lines (Replay records the page, which holds document content; it must never be switched on by adding the integration later without a new decision from me and Ajay), `sendDefaultPii: false` explicit, and a `beforeSend` that drops `request.data`, `request.cookies` and `extra`, and keeps only `navigation` and `ui.click` breadcrumbs with `message` removed.
+3. **Ajay rules** whether error reporting before consent is allowed as necessary for running the service (it carries no document content after step 2). If he says no, the client `Sentry.init` runs only after `AnalyticsConsent` reports "accepted"; the server and edge configs are unaffected either way.
+4. Test: on `/` with no consent, the browser makes no request to any host other than our own (same check as AC6); a thrown test error reaches `/monitoring`.
+
+Addendum (Arjun, 12 Oct 2026): **Ajay ruled** (`T-310-consent-notice-signed.md`, Addendum 1, 93d0fcc): browser error reports are allowed before consent, so step 3's "init after consent" branch is not built. His conditions become ACs of the Sentry ticket: no cookies or local ids (also remove the default `browserSessionIntegration`, so no per-visit session id is sent), no Replay, no form values or document text (the `beforeSend` scrub in step 2), sent via `/monitoring`, Sentry stays in the privacy page's recipients table. Changing any of these needs a new ruling from Ajay.
