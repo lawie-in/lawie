@@ -56,3 +56,7 @@ Shashank asked: per-part (`legacySectionParts`) or the whole-string T-277 reader
 ## Arjun (12 Oct 2026): alias entries, follow-up
 
 `BNS 303 (IPC 379)`: the advocate gave the BNS section and cites the IPC one beside it, which is normal in transition-era pleadings. **Skip the old-law finding for an alias entry (`alias === true`) only when the list around it has an explicit BNS entry** it is attached to. An old-law alias under another old-law code (`IPC 302 (CrPC 154)`) or a bare one still warns. Not a reopen of T-295: Priya to log it as a follow-up; Ajay to confirm in that ticket, since it narrows when his signed line shows. Test: `BNS 303 (IPC 379)` → no old-law finding; `IPC 420 (IPC 406)` → two.
+
+## Arjun (12 Oct 2026): step 4 superseded
+
+Ajay's override stands (legal wording is his): the prompt's "use EXACTLY" block keeps his T-277 old-law line ("…is not classified here…"); the T-295 signed line is for the preflight warning only. Step 4 above ("one source constant, two uses") no longer applies: two constants, one use each.
