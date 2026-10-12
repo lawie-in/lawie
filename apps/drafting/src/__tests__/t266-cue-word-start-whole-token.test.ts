@@ -141,6 +141,63 @@ describe('T-266 AC2: a FIR number matches as a whole token', () => {
     expect(fir('124/2026', 'FIR No. 5/124/2026 was registered.')).toEqual(MISSING);
   });
 
+  // Round 2 (Ajay): "FIR-12-A" is a different FIR from "12".
+  it('FIR "12" does not match when a letter or "-letter/digit" is next to it (Ajay)', () => {
+    expect(fir('12', 'FIR No. 12-A was registered.')).toEqual(MISSING);
+    expect(fir('12', 'FIR No. 12-a was registered.')).toEqual(MISSING);
+    expect(fir('12', 'FIR No. 12A was registered.')).toEqual(MISSING);
+    expect(fir('12', 'FIR No. 112 was registered.')).toEqual(MISSING);
+    expect(fir('12', 'FIR No. 12-B dated 3 March.')).toEqual(MISSING);
+    expect(fir('12', 'FIR No. A12 was registered.')).toEqual(MISSING);
+    expect(fir('12', 'FIR No. 12-3 was registered.')).toEqual(MISSING);
+  });
+
+  it('FIR "12" still matches in "FIR-12", "No.12,", and before a hyphen not followed by letter/digit', () => {
+    expect(fir('12', 'registered as FIR-12 at the station')).toEqual([]);
+    expect(fir('12', 'FIR No.12, registered.')).toEqual([]);
+    expect(fir('12', 'registered as FIR No. 12-')).toEqual([]);
+    expect(fir('12', 'FIR No. 12- registered.')).toEqual([]);
+    expect(fir('12', 'FIR No. 12 - registered.')).toEqual([]);
+    expect(fir('12', 'FIR No. 12 – registered.')).toEqual([]);
+  });
+
+  it('FIR "12" is still not matched in "12/2026"', () => {
+    expect(fir('12', 'FIR No. 12/2026 was registered.')).toEqual(MISSING);
+  });
+
+  it('FIR "124/2026": "124/2026-A" does not match, "124/2026." does', () => {
+    expect(fir('124/2026', 'FIR No. 124/2026-A was registered.')).toEqual(MISSING);
+    expect(fir('124/2026', 'FIR No. 124/2026A was registered.')).toEqual(MISSING);
+    expect(fir('124/2026', 'FIR No. 124/2026.')).toEqual([]);
+    expect(fir('124/2026', 'FIR No. 124/2026-')).toEqual([]);
+  });
+
+  it('Devanagari FIR "१२" does not match inside "११२" or "१२३", and matches "एफ़आईआर १२,"', () => {
+    expect(fir('१२', 'एफ़आईआर ११२ दर्ज हुई।')).toEqual(MISSING);
+    expect(fir('१२', 'एफ़आईआर १२३ दर्ज हुई।')).toEqual(MISSING);
+    expect(fir('१२', 'एफ़आईआर १२, दर्ज हुई।')).toEqual([]);
+    expect(fir('१२', 'एफ़आईआर १२')).toEqual([]);
+  });
+
+  it('a Devanagari letter or matra right next to the number blocks the match', () => {
+    expect(fir('१२', 'एफ़आईआर क१२ दर्ज हुई।')).toEqual(MISSING);
+    expect(fir('१२', 'एफ़आईआर १२क दर्ज हुई।')).toEqual(MISSING);
+    expect(fir('१२', 'एफ़आईआर १२ा दर्ज हुई।')).toEqual(MISSING);
+    expect(fir('१२', 'एफ़आईआर ा१२ दर्ज हुई।')).toEqual(MISSING);
+    expect(fir('१२', 'एफ़आईआर १२-क दर्ज हुई।')).toEqual(MISSING);
+  });
+
+  it('a Latin FIR value next to Devanagari letters is blocked too', () => {
+    expect(fir('12', 'एफआईआर12 दर्ज हुई।')).toEqual(MISSING);
+    expect(fir('12', 'एफआईआर 12 दर्ज हुई।')).toEqual([]);
+  });
+
+  it('the FIR placeholder still matches itself: "FIR No. [FIR number]."', () => {
+    const b = briefWithFir('', '[FIR number]');
+    expect(reasons('fir_details', 'FIR No. [FIR number].', b)).toEqual([]);
+    expect(reasons('fir_details', 'FIR No. [FIR number]-A.', b)).toEqual(MISSING);
+  });
+
   it('a clean match elsewhere in the paragraph is enough', () => {
     expect(fir('12', 'On 12/03/2026 FIR No. 12 was registered.')).toEqual([]);
   });

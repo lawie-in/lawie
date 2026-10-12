@@ -628,8 +628,11 @@ function inOrder(normText: string, stretches: string[]): boolean {
  *   just before it), with no end boundary, so "ground" matches "grounds" but
  *   not "background";
  * - any other entry (Devanagari) matches as a substring;
- * - an entry with `{{key}}` matches only as a whole token: no digit or "/"
- *   just before or after it, so a FIR number "12" does not match a date.
+ * - an entry with `{{key}}` matches only as a whole token (Ajay, 12 Oct
+ *   2026): no letter, digit or "/" just before it (any script); no letter,
+ *   digit, "/", or "-" then a letter or digit just after it. So "12" matches
+ *   in "FIR-12" and "No.12,", but not in "12/2026", "12-A", "12A" or "112".
+ *   A FIR value or its blank is escaped and matched under the `u` flag.
  * `{{key}}` is the brief's value for that key, or its blank.
  */
 type Cue = { any: string[] } | { all: string[][] };
@@ -771,7 +774,10 @@ function escapeRegExp(s: string): string {
  */
 function entryMatches(paragraph: string, wanted: string, templated: boolean): boolean {
   if (templated) {
-    return new RegExp(`(?<![0-9/])${escapeRegExp(wanted)}(?![0-9/])`).test(paragraph);
+    return new RegExp(
+      `(?<![\\p{L}\\p{N}\\p{M}/])${escapeRegExp(wanted)}(?![\\p{L}\\p{N}\\p{M}/]|-[\\p{L}\\p{N}])`,
+      'u',
+    ).test(paragraph);
   }
   if (/^[\x20-\x7e]+$/.test(wanted)) {
     const body = escapeRegExp(wanted).replace(/ /g, ' +');
