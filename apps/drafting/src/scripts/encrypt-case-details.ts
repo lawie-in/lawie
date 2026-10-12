@@ -363,13 +363,19 @@ async function main(): Promise<void> {
   await mongoose.connect(env.MONGO_URI, { serverSelectionTimeoutMS: 5000, autoIndex: false });
   try {
     const key = await checkKey();
-    if (dry) {
-      await dryRun(key);
-      return;
-    }
     const pending =
       (await LawieDocument.collection.countDocuments(DOC_HAS_ANY_PLAIN)) +
       (await FactLedgerModel.collection.countDocuments(LEDGER_TO_ENCRYPT));
+    if (dry) {
+      await dryRun(key);
+      // A dry run that a real run would refuse must not exit 0: the founder
+      // reads 0 as "safe to run". Nothing to encrypt stays 0.
+      if (key !== 'ok' && pending > 0) {
+        console.error('Key check not ok: a real run would write nothing and exit 1.');
+        process.exitCode = 1;
+      }
+      return;
+    }
     if (pending === 0) {
       console.log(`Key check: ${key}`);
       console.log('Nothing to encrypt.');

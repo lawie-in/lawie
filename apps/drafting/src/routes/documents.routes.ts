@@ -1064,7 +1064,20 @@ router.post(
         res.status(503).json({ error: 'averments_unavailable' });
         return;
       }
-      const state = currentState(doc);
+      // T-115a: the ledger is encrypted; a wrong key or a damaged factsEnc
+      // throws. Answer before any Ink is held (withInkHold is further down).
+      let state: ReturnType<typeof currentState>;
+      try {
+        state = currentState(doc);
+      } catch (err) {
+        // Ids only: never a fact value.
+        console.error(
+          `[drafting] ledger unreadable (ledgerId=${String(doc.id)}):`,
+          err instanceof Error ? err.name : 'unknown',
+        );
+        if (!res.headersSent) res.status(503).json({ error: 'ledger_unavailable' });
+        return;
+      }
       ledger = {
         id: String(doc.id),
         version: doc.currentVersion,

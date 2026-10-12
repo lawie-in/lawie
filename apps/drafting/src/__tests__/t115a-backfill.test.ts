@@ -376,8 +376,36 @@ describe('T-115a AC3 F: backfill script (spawned)', () => {
     await seed();
     const before = await snapshot();
     const r = runScript(['--dry-run'], { ENCRYPTION_KEY: WRONG_KEY });
+    expect(r.status).toBe(1);
     expect(r.out).toContain('Key check: failed');
+    expect(r.out).toContain('Key check not ok: a real run would write nothing and exit 1.');
     expect(await snapshot()).toBe(before);
+  });
+
+  it('--dry-run with no sample to check against and pending rows exits 1', async () => {
+    await seed({ legacyDocs: 2, sample: false });
+    const before = await snapshot();
+    const r = runScript(['--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.out).toContain('Key check not ok: a real run would write nothing and exit 1.');
+    expect(await snapshot()).toBe(before);
+  });
+
+  it('--dry-run with a wrong key and nothing pending exits 0', async () => {
+    await docs().insertOne(baseDoc({ formInputsEnc: encrypt('{"a":1}') }));
+    const before = await snapshot();
+    const r = runScript(['--dry-run'], { ENCRYPTION_KEY: WRONG_KEY });
+    expect(r.status).toBe(0);
+    expect(r.out).not.toContain('Key check not ok');
+    expect(await snapshot()).toBe(before);
+  });
+
+  it('--dry-run with the right key and pending rows exits 0, with no key warning', async () => {
+    await seed();
+    const r = runScript(['--dry-run']);
+    expect(r.status).toBe(0);
+    expect(r.out).toContain('Key check: ok');
+    expect(r.out).not.toContain('Key check not ok');
   });
 
   it('no stored encrypted value to check the key against exits 1 and writes nothing', async () => {

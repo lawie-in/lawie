@@ -1060,3 +1060,71 @@ describe('T-115a GET /:id: filingChecklist and unreadable values', () => {
     });
   });
 });
+
+// ── /generate-from-brief with an unreadable ledger ──────────────────────────
+
+describe('T-115a /generate-from-brief: an unreadable ledger answers 503 before any Ink is held', () => {
+  let errSpy: jest.SpyInstance;
+  beforeEach(async () => {
+    await AppSetting.create({ key: 'feature.fact_ledger', value: 'on' });
+    errSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
+  afterEach(() => errSpy.mockRestore());
+
+  const GOOD = { facts: [fact('court', 'Zorbaxx Court', 'Zorbaxx court')], unresolved: [] };
+  const CASES: Array<[string, () => string]> = [
+    ['made with another key', () => encryptWith(OTHER_KEY, JSON.stringify(GOOD))],
+    ['tampered', () => tamper(encrypt(JSON.stringify(GOOD)))],
+    ['not a ledger state', () => encrypt('[1]')],
+  ];
+
+  it.each(CASES)('factsEnc %s', async (_name, make) => {
+    const ledgerId = (
+      await rawLedgers().insertOne({
+        userId: new mongoose.Types.ObjectId(USER_ID),
+        documentKind: 'bail_regular',
+        runType: 'user',
+        currentVersion: 1,
+        versions: [{ version: 1, factsEnc: make(), createdAt: new Date(), reason: 'extract' }],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    ).insertedId;
+    const userBefore = await User.findById(USER_ID).lean();
+    const ledgersBefore = JSON.stringify(await rawLedgers().find({}).toArray());
+
+    const res = await request(app)
+      .post('/generate-from-brief')
+      .set(headers())
+      .send({
+        kind: 'bail_regular',
+        values: BRIEF_VALUES,
+        court: { state: 'bihar', court_type: 'sessions', court: COURT_ID },
+        ledger_id: String(ledgerId),
+      });
+
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({ error: 'ledger_unavailable' });
+    // No model call, no draft, no Ink held or charged.
+    expect(mockMessagesStream).not.toHaveBeenCalled();
+    expect(await rawDocs().countDocuments({})).toBe(0);
+    const userAfter = await User.findById(USER_ID).lean();
+    expect(userAfter!.inkTopup).toBe(userBefore!.inkTopup);
+    expect(userAfter!.inkHolds ?? []).toEqual([]);
+    expect(await mongoose.connection.db!.collection('inkledger').countDocuments({})).toBe(0);
+    // The ledger is not written to.
+    expect(JSON.stringify(await rawLedgers().find({}).toArray())).toBe(ledgersBefore);
+
+    // The log has the ledger id and the error name, never a value.
+    const log = errSpy.mock.calls.map((c) => c.map(String).join(' ')).join('\n');
+    // Only the id and one name word. Under jest an error thrown by node:crypto is from another
+    // realm, so `instanceof Error` is false and the name logged is 'unknown'; in production it is 'Error'.
+    expect(log).toMatch(
+      new RegExp(`ledger unreadable \\(ledgerId=${String(ledgerId)}\\): (Error|unknown)\\s*$`),
+    );
+    for (const leak of ['Zorbaxx', 'Unsupported state', 'authenticate', 'raw_span']) {
+      expect(log).not.toContain(leak);
+    }
+    expect(res.text).not.toContain('Zorbaxx');
+  });
+});
