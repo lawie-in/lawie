@@ -22,7 +22,8 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 ## Merge queue
 
-(queue empty: shashank's T-267 asks for the slot after its tester, reviewer and doc-writer)
+1. mahak — T-273 + T-274 (4946dba; the slot is hers now, 12 Oct).
+2. shashank — T-267 (asks for the slot after its tester, reviewer and doc-writer).
 
 ## Last done
 

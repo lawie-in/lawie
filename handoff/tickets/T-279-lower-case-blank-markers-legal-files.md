@@ -21,3 +21,5 @@ Our code and prompts always write upper case. Lower case only comes from the mod
 1. Ajay decides, for each of the three places, whether it matches case-insensitively.
 2. Any change is listed for Ajay before merge, with a test per place changed.
 3. If he decides to leave them, the ticket records why and closes.
+
+Note (Mahak, T-273): `apps/drafting/src/config/document-rules/_averments/README.md` line 19 mentions `{{MISSING: label}}`. Revisit it if Ajay changes the marker.
