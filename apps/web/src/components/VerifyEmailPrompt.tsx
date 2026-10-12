@@ -25,6 +25,7 @@
  */
 import * as Dialog from '@radix-ui/react-dialog';
 import { AlertCircle, CheckCircle2, Clock, Loader2, Mail, X } from 'lucide-react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
@@ -52,6 +53,12 @@ export const VERIFY_STRINGS = {
   modalBody: (masked: string) =>
     `Verify your email to receive your 5 sign-up Ink. We sent a link to ${masked}.`,
   checkoutTitle: 'Verify your email before you buy',
+  // "Additions for Ajay" (13 Oct): Meera approved, Ajay checking in parallel.
+  limitReady: 'You can resend the email now.',
+  landingError: "We couldn't verify your email just now. Please try again.",
+  landingErrorRetry: 'Try again',
+  landingExpiredSignedOut: 'This link has expired. Sign in to send a new one.',
+  landingExpiredSignedOutCta: 'Sign in',
   checkoutBody: (masked: string) =>
     `We sent a link to ${masked}. Verify your email, then come back to buy Ink.`,
 } as const;
@@ -288,19 +295,25 @@ function VerifyCoreControls({ place, masked, expired }: CoreProps) {
   const [alerted, setAlerted] = useState('');
   const mine = s.origin === place;
   const statusId = `verify-status-${place}`;
+  /** Previous resend phase, to catch the end of a limit (limited -> idle). */
+  const prevResend = useRef<ResendPhase>(s.resend);
 
   useEffect(() => {
+    const limitEnded = prevResend.current === 'limited' && s.resend === 'idle';
+    prevResend.current = s.resend;
     let polite = '';
     let alert = '';
-    if (mine && s.resend === 'sent') polite = VERIFY_STRINGS.sent(masked);
+    // verify.limit_ready: once, when the wait ends and the button is back.
+    if (mine && limitEnded) polite = VERIFY_STRINGS.limitReady;
+    else if (mine && s.resend === 'sent') polite = VERIFY_STRINGS.sent(masked);
     else if (mine && s.resend === 'already') polite = VERIFY_STRINGS.already;
     else if (mine && s.resend === 'error') alert = VERIFY_STRINGS.networkError;
     else if (mine && s.resend === 'limited') {
-      // Once, when the limit starts (spec §4). No "you can resend now" string exists yet.
+      // Once, when the limit starts (spec §4); limit_ready says when it ends.
       alert = VERIFY_STRINGS.limitWait(
         Math.max(1, Math.ceil((state.limitUntil - Date.now()) / 60_000)),
       );
-    } else if (expired && s.resend === 'idle') alert = VERIFY_STRINGS.expired;
+    } else if (expired && s.resend === 'idle' && !limitEnded) alert = VERIFY_STRINGS.expired;
     setAnnounced(polite);
     setAlerted(alert);
   }, [mine, s.resend, masked, expired]);
@@ -549,6 +562,9 @@ export function VerifyEmailLanding() {
   const params = useSearchParams();
   const [result, setResult] = useState<LandingResult | null>(null);
   const [token] = useState(() => params.get('token'));
+  /** Bumped by "Try again" after a server or network failure: submits the token again. */
+  const [attempt, setAttempt] = useState(0);
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
   // Take the token out of the address bar and history straight away (nothing else reads it).
   useEffect(() => {
@@ -587,7 +603,15 @@ export function VerifyEmailLanding() {
     return () => {
       cancelled = true;
     };
-  }, [isLoading, user, token]);
+  }, [isLoading, user, token, attempt]);
+
+  const retry = useCallback(() => {
+    if (token) submitted.delete(token);
+    setResult(null);
+    setAttempt((a) => a + 1);
+    // The retry button goes away while the call runs: keep focus on the page, not <body>.
+    titleRef.current?.focus();
+  }, [token]);
 
   const masked = maskEmail(user?.email);
   const done = result === 'verified' || result === 'already';
@@ -602,7 +626,12 @@ export function VerifyEmailLanding() {
       >
         <div className="flex items-start gap-3">
           <Mail size={24} aria-hidden="true" className="text-brand-navy shrink-0" />
-          <h1 id="verify-landing-title" className="font-heading text-xl font-semibold leading-7">
+          <h1
+            ref={titleRef}
+            tabIndex={-1}
+            id="verify-landing-title"
+            className="font-heading text-xl font-semibold leading-7 focus:outline-none"
+          >
             {VERIFY_STRINGS.title}
           </h1>
         </div>
@@ -619,17 +648,34 @@ export function VerifyEmailLanding() {
             {result === 'verified' ? VERIFY_STRINGS.verified : VERIFY_STRINGS.already}
           </p>
         )}
-        {/* Expired, used, forged (one state, T-223 AC2). A failed call shows the same state:
-            there is no signed "could not verify" line yet, and a new link is the way forward. */}
-        {(result === 'expired' || result === 'error') &&
+        {/* Expired, used, forged (one state, T-223 AC2). Signed in: resend in place. Signed out:
+            resending needs sign-in, so the button goes to the login page. */}
+        {result === 'expired' &&
           (user ? (
             <VerifyCoreControls place="landing" masked={masked} expired />
           ) : (
+            <div className="flex flex-col gap-2">
+              <p className={errRow} role="alert">
+                <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+                {VERIFY_STRINGS.landingExpiredSignedOut}
+              </p>
+              <Link href="/login" className={`${primaryButton} w-full sm:w-auto`}>
+                {VERIFY_STRINGS.landingExpiredSignedOutCta}
+              </Link>
+            </div>
+          ))}
+        {/* Server (5xx) or network failure: not an expired link. Retry submits the token again. */}
+        {result === 'error' && (
+          <div className="flex flex-col gap-2">
             <p className={errRow} role="alert">
               <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-              {VERIFY_STRINGS.expired}
+              {VERIFY_STRINGS.landingError}
             </p>
-          ))}
+            <button type="button" className={`${primaryButton} w-full sm:w-auto`} onClick={retry}>
+              {VERIFY_STRINGS.landingErrorRetry}
+            </button>
+          </div>
+        )}
         {/* Done: the polite announcement of the result. */}
         <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
           {done ? (result === 'verified' ? VERIFY_STRINGS.verified : VERIFY_STRINGS.already) : ''}
