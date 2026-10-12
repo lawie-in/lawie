@@ -5,7 +5,7 @@
 | Phase          | 1 — Describe and draft |
 | Owner          | Ajay (writes and signs the text). Lead (build). Anushka (verdict) |
 | Mode           | Rule first (Ajay), then build, full chain. Legal content |
-| Status         | Building: vishal (12 Oct 2026). Ajay signed fedb7ad |
+| Status | Merged into develop_staging (6bb8f85, 12 Oct 2026). Waiting for Anushka on develop |
 | Gate           | Blocker for `feature.fact_ledger` with real users |
 | Depends on     | T-237 (same pack files) |
 

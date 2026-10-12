@@ -395,3 +395,29 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - A Google-only advocate trying a password gets a plain "incorrect" message pointing to Google.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-268 — terms page (f6566b4)
+
+Open /terms and check:
+
+- It calls Lawie a drafting assistant whose drafts the advocate reviews and is responsible for.
+- It says drafts are paid for with Ink: most use 2, short ones 1, nothing for a failed draft.
+- It says nothing takes away rights under law or the right to approach a Consumer Commission.
+- "Last updated: 12 October 2026". No "AI-assisted" or "formatted for Indian courts" in the page body (the footer is T-317).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-241 — bail drafts don't assert facts the user didn't give (6bb8f85)
+
+- Anticipatory and magistrate bail drafts no longer claim grounds, antecedents, roots or a filed charge sheet the user didn't give; a missing fact gets a blank to fill.
+- In regular and default bail, "before this Hon'ble Court" no longer counts as covering earlier applications.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-317 — one consistent description across the site (ca2d88f)
+
+- The home page, FAQ, About and Tools pages and the site footer all describe Lawie the same way: a drafting assistant for Indian advocates, where criminal drafts use BNS, BNSS and BSA section numbers and the advocate is responsible for legal accuracy and filing.
+- FAQ answers say each document is a first draft generated with AI that the filing advocate must review.
+- An exported PDF's footer reads "First draft generated with AI. Check it against the applicable law before filing. Lawie does not provide legal advice."
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (tests only) |
 | Mode   | Small fix (tests only) |
-| Status | To do. Vishal after T-241. Found in T-241 review, 12 Oct 2026 |
+| Status | Building: vishal (12 Oct 2026) |
 
 ## Acceptance criteria
 

@@ -643,32 +643,11 @@ const CUSTODY_CUE: Cue = {
 };
 const GROUNDS_CUE: Cue = { any: ['ground', 'submitted', 'आधार', 'निवेदन'] };
 const UNDERTAKING_CUE: Cue = { any: ['undertak', 'वचन', 'आश्वासन'] };
-const EARLIER_APPLICATIONS_CUE: Cue = {
-  all: [
-    ['bail', 'जमानत', 'ज़मानत'],
-    [
-      'earlier',
-      'previous',
-      'prior',
-      'before',
-      'pending',
-      'rejected',
-      'dismissed',
-      'withdrawn',
-      'to be confirmed: whether any earlier bail application',
-      'पूर्व',
-      'पहले',
-      'लंबित',
-      'खारिज',
-      'ख़ारिज',
-      'निरस्त',
-      'अस्वीकृत',
-      'वापस',
-    ],
-  ],
-};
-
-/** T-237 (Ajay, 12 Oct 2026): EA-standard, for bail_anticipatory and bail_before_magistrate. */
+/**
+ * T-237 (Ajay, 12 Oct 2026): EA-standard, for bail_anticipatory and
+ * bail_before_magistrate; T-241 (Ajay, 12 Oct 2026) adds bail_regular, and
+ * T-251 (Ajay) adds default_bail.
+ */
 const EARLIER_APPLICATIONS_STANDARD_CUE: Cue = {
   all: [
     ['bail', 'जमानत', 'ज़मानत'],
@@ -728,7 +707,7 @@ const CLAUSE_CUES: Record<string, Record<string, Cue>> = {
     custody_status: CUSTODY_CUE,
     grounds: GROUNDS_CUE,
     no_flight_risk: UNDERTAKING_CUE,
-    earlier_applications: EARLIER_APPLICATIONS_CUE,
+    earlier_applications: EARLIER_APPLICATIONS_STANDARD_CUE,
   },
   bail_anticipatory: {
     fir_details: FIR_CUE,
@@ -744,6 +723,9 @@ const CLAUSE_CUES: Record<string, Record<string, Cue>> = {
     custody: CUSTODY_CUE,
     grounds: GROUNDS_CUE,
     undertakings: UNDERTAKING_CUE,
+    earlier_applications: EARLIER_APPLICATIONS_STANDARD_CUE,
+  },
+  default_bail: {
     earlier_applications: EARLIER_APPLICATIONS_STANDARD_CUE,
   },
 };
