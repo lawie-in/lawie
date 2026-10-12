@@ -122,9 +122,21 @@ export function oldLawLeftOutNote(code: string, section: string, newCode: string
   return `${code} ${section} is an old-law section, so it was left out of this period. Use the section converter to find the ${newCode} section.`;
 }
 
-/** Ajay (CLO), T-278 (signed f4244ec, Addendum 1 9f11633): no BNS row or parent row, or not a BNS input. */
-export function notInBnsTableNote(section: string): string {
-  return `Section ${section} was not found in the BNS offences table, so it was left out of this period. Check the Gazette.`;
+/** New-law codes named first in the not-found line (T-295 casing). */
+const NAMED_NEW_CODES = new Set(['BNS', 'BNSS', 'BSA']);
+
+/**
+ * Ajay (CLO), T-278 (signed f4244ec, Addendum 1 9f11633): no BNS row or parent row,
+ * or not a BNS input. Display tweak (Ajay, after 7e34982): a token whose single
+ * entry carries BNS, BNSS or BSA is named "{Code} {n}" with no "Section"; a bare
+ * number, text, or any other code keeps "Section {token}".
+ */
+export function notInBnsTableNote(token: string): string {
+  const entries = readSectionsCharged(token);
+  const e = entries.length === 1 ? entries[0] : undefined;
+  const label =
+    e?.code && NAMED_NEW_CODES.has(e.code) ? `${e.code} ${e.number}` : `Section ${token}`;
+  return `${label} was not found in the BNS offences table, so it was left out of this period. Check the Gazette.`;
 }
 
 type TimelineEntry = { kind: 'bns'; section: string } | { kind: 'left_out'; note: string };

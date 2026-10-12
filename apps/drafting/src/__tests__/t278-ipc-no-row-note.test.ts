@@ -113,7 +113,7 @@ describe('T-278: every timeline sectionsNotFound entry carries a signed note', (
   const NOT_OFFENCE =
     /^Section .+ does not create an offence, so it was left out of this period\.$/;
   const NOT_FOUND =
-    /^Section .+ was not found in the BNS offences table, so it was left out of this period\. Check the Gazette\.$/;
+    /^(Section .+|BNS \S+|BNSS \S+|BSA \S+) was not found in the BNS offences table, so it was left out of this period\. Check the Gazette\.$/;
 
   const assertNotes = (r: ReturnType<typeof calculateTimeline>) => {
     for (const n of r.sectionsNotFound) {
@@ -249,8 +249,40 @@ describe('T-278: the three signed left-out lines, one input per row', () => {
     expect(r.sectionsNotFound).toEqual(['BNSS 187']);
     const note = r.sectionNotes['BNSS 187'];
     expect(note).toBe(notInBnsTableNote('BNSS 187'));
+    expect(note.startsWith('BNSS 187 was not found')).toBe(true);
     expect(note).toMatch(/was not found in the BNS offences table/);
     expect(note).not.toContain(OLD_LAW_STEM);
+  });
+
+  it.each([
+    [
+      'BNSS 187',
+      'BNSS 187 was not found in the BNS offences table, so it was left out of this period. Check the Gazette.',
+    ],
+    [
+      '187-BNSS',
+      'BNSS 187 was not found in the BNS offences table, so it was left out of this period. Check the Gazette.',
+    ],
+    [
+      'BSA 63',
+      'BSA 63 was not found in the BNS offences table, so it was left out of this period. Check the Gazette.',
+    ],
+    [
+      '999',
+      'Section 999 was not found in the BNS offences table, so it was left out of this period. Check the Gazette.',
+    ],
+    [
+      'abc',
+      'Section abc was not found in the BNS offences table, so it was left out of this period. Check the Gazette.',
+    ],
+    [
+      'NDPS Act 20',
+      'Section NDPS Act 20 was not found in the BNS offences table, so it was left out of this period. Check the Gazette.',
+    ],
+  ])('line 3 literal wording for %j', (token, line) => {
+    const r = run([token]);
+    expect(r.sectionsNotFound).toEqual([token]);
+    expect(r.sectionNotes[token]).toBe(line);
   });
 
   it('line 3: text ("abc") and a sub-section with no row ("2(1)")', () => {
@@ -291,7 +323,7 @@ describe('T-278: the three signed left-out lines, one input per row', () => {
     const lines = [
       /is an old-law section, so it was left out of this period\. Use the section converter to find the (BNS|BNSS|BSA) section\.$/,
       /^Section .+ does not create an offence, so it was left out of this period\.$/,
-      /^Section .+ was not found in the BNS offences table, so it was left out of this period\. Check the Gazette\.$/,
+      /^(Section .+|BNS \S+|BNSS \S+|BSA \S+) was not found in the BNS offences table, so it was left out of this period\. Check the Gazette\.$/,
     ];
     for (const n of r.sectionsNotFound) {
       expect(lines.filter((re) => re.test(r.sectionNotes[n]))).toHaveLength(1);
