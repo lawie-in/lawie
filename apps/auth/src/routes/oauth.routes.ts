@@ -19,6 +19,7 @@ import {
   createOAuthState,
   getVerifiedOAuthState,
   isBase64Url43,
+  storeOAuthUtm,
   verifierMatchesChallenge,
   verifyOAuthState,
 } from '../services/oauth-state';
@@ -92,6 +93,9 @@ const oauthEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 // T-319: requires ?challenge= (base64url(sha256(verifier)), 43 chars) from the web app. Accepts an
 // optional ?referralCode=. Both go into an HMAC-signed OAuth state that survives the Google
 // round-trip and is verified at the callback.
+// T-242: also accepts optional ?utmSource=, ?utmMedium=, ?utmCampaign= (sign-up source). They are
+// sanitized and stored server-side under the challenge's hash (storeOAuthUtm), never put in the
+// state or the URL to Google (Arjun's ruling (a), Ajay condition 3), and never logged.
 router.get(
   '/google',
   (req: Request, res: Response, next) => {
@@ -102,7 +106,7 @@ router.get(
     }
     return next();
   },
-  (req: Request, res: Response, next) => {
+  async (req: Request, res: Response, next) => {
     const challenge: unknown = req.query['challenge'];
     if (!isBase64Url43(challenge)) {
       return res.status(400).json({ error: 'invalid_challenge' });
@@ -116,6 +120,12 @@ router.get(
       trimmedReferral && trimmedReferral.length <= REFERRAL_CODE_MAX_LENGTH
         ? trimmedReferral
         : undefined;
+    // Never throws: a Redis error drops the tags, not the sign-in.
+    await storeOAuthUtm(challenge, {
+      utmSource: req.query['utmSource'],
+      utmMedium: req.query['utmMedium'],
+      utmCampaign: req.query['utmCampaign'],
+    });
     return passport.authenticate('google', {
       scope: ['email', 'profile'],
       session: false,
