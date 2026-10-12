@@ -143,7 +143,7 @@ describe('buildAnnexuresPack — Bihar district', () => {
       formData: BIHAR_FORM,
       bodyParaCount: 8,
       advocateName: 'Adv. Ravi Shankar',
-      // T-311: bail_anticipatory declares no advocate_enrollment; the profile number pairs with the profile name
+      // T-311/T-313: no advocate_enrollment typed in BIHAR_FORM, so the profile number pairs with the profile name
       enrollmentNumber: 'BAR/2018/1234',
     });
   });
