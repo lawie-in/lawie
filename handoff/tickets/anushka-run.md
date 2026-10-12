@@ -375,3 +375,13 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - "None" appears only for repealed sections; an unknown new section says Not verified and to check the Gazette.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-311 — enrollment number from the profile (0bff26f)
+
+With a profile that has an enrollment number:
+
+- Leave the enrollment field empty: the profile number prints in the draft, the Vakalatnama and the Memo of Parties.
+- Type a number, or "to be confirmed": that prints.
+- Type another advocate's name with the enrollment field empty: the number stays blank.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

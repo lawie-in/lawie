@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (build, drafting). Ajay sees the diff (prompt input) |
 | Mode   | Small fix (drafting) |
-| Status | To do. Mahak after T-311. Found by Mahak in T-311, 12 Oct 2026 |
+| Status | Building: mahak (12 Oct 2026) |
 
 The legacy request body field `advocateEnrollment` reaches the prompt (`prompt-assembler.ts` ~572) with no length or brace check. The advocate name already has these checks.
 
