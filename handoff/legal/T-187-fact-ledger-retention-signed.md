@@ -28,3 +28,16 @@ Other conditions:
 - Privacy Policy: no change needed. The 30-day abandoned-intake deletion is shorter than the policy's promise, so it is allowed without new wording.
 
 Mark: **Approved** as the rule. The build (AC7–10) comes back to me for its diff check.
+
+## Addendum 1 (12 Oct 2026 IST): Arjun's mechanism adopted, period set
+
+This replaces the "Kept for" and "Deleted when" columns above. Arjun's table in the ticket (528da94) is approved, with these settings:
+
+| Item | Rule |
+|---|---|
+| `FactLedger` (all versions) | Period **90 days from its last update** (`expiresAt` reset on each new version; TTL index). Hard delete at the earliest of: the period ending, the user deleting the draft, or the account being erased. The separate 30-day abandoned-intake rule is dropped, because the 90-day TTL covers it. |
+| `intake_extract` rows | Unlinked (`userId` and `intakeId` removed) at the same moments. After that, only model, tokens, cost and timestamps stay, which is not personal data. |
+| Redis cache | 30 minutes (`EX`), within my 24-hour limit. |
+| Fixtures | Golden-set user only, synthetic data, same TTL. Approved. |
+
+Basis is unchanged: DPDP Act 2023 s.8(7) (erase once the purpose is served), s.8(5) (safeguards, with ledger contents encrypted at rest under T-115a) and s.12 (erasure). The 90 days is shorter than Privacy Policy §9's "while your account exists", so no policy change is needed. Signed.
