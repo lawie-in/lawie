@@ -10,7 +10,7 @@
   "courtId": "bihar_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Bihar. Sessions courts try offences punishable with imprisonment exceeding 7 years. District courts handle civil suits, execution proceedings, and appeals from subordinate courts.",
+  "jurisdictionNote": "District-level criminal and civil courts in Bihar. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. District courts handle civil suits, execution proceedings, and appeals from subordinate courts.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT\n\nVERSUS\n\n{respondent} ... OPPOSITE PARTY",
   "party_designation": {
     "petitioner": "Applicant",
@@ -41,10 +41,7 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": [
-    "en",
-    "hi"
-  ],
+  "supported_languages": ["en", "hi"],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",

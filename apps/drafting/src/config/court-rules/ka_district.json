@@ -11,7 +11,7 @@
   "courtId": "ka_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Karnataka. Sessions courts try offences punishable with imprisonment exceeding 7 years. Magistrate-level criminal cases are commonly numbered as C.C. (Calendar Case) in Karnataka. Bengaluru Urban operates as the City Civil & Sessions Court under the Karnataka Civil Courts Act, 1964 and allied Karnataka High Court rules.",
+  "jurisdictionNote": "District-level criminal and civil courts in Karnataka. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Magistrate-level criminal cases are commonly numbered as C.C. (Calendar Case) in Karnataka. Bengaluru Urban operates as the City Civil & Sessions Court under the Karnataka Civil Courts Act, 1964 and allied Karnataka High Court rules.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",
