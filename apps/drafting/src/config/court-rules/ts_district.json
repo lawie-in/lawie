@@ -11,7 +11,7 @@
   "courtId": "ts_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Telangana. Sessions courts try offences punishable with imprisonment exceeding 7 years. Telangana retains the A.P. Civil Courts Act, 1972 and A.P. Civil Rules of Practice & Circular Orders, 1980 as adapted post-bifurcation. Sessions cases are commonly numbered as 'S.C.' and special cases as 'Spl. S.C.'",
+  "jurisdictionNote": "District-level criminal and civil courts in Telangana. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Telangana retains the A.P. Civil Courts Act, 1972 and A.P. Civil Rules of Practice & Circular Orders, 1980 as adapted post-bifurcation. Sessions cases are commonly numbered as 'S.C.' and special cases as 'Spl. S.C.'",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",

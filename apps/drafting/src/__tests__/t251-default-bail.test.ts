@@ -974,13 +974,13 @@ describe('buildPlaceholderContext: {governing_provision}', () => {
     expect(buildPlaceholderContext(cfg, {}).governing_provision).toBe(GP_BLANK);
   });
 
-  it.each(['', '   ', '\n'])('empty %j: the blank', (v) => {
+  it.each(['', '   ', '\n'])('a client value %j (empty) is dropped: the blank', (v) => {
     expect(buildPlaceholderContext(cfg, { governing_provision: v }).governing_provision).toBe(
       GP_BLANK,
     );
   });
 
-  it('null or undefined: the blank', () => {
+  it('a client null or undefined is dropped: the blank', () => {
     expect(buildPlaceholderContext(cfg, { governing_provision: null }).governing_provision).toBe(
       GP_BLANK,
     );
@@ -989,18 +989,21 @@ describe('buildPlaceholderContext: {governing_provision}', () => {
     ).toBe(GP_BLANK);
   });
 
-  it('a real value is kept', () => {
+  it('a real value from the server (extra.governingProvision) is kept', () => {
     const v = 'Section 187(3) of the Bharatiya Nagarik Suraksha Sanhita, 2023';
-    expect(buildPlaceholderContext(cfg, { governing_provision: v }).governing_provision).toBe(v);
+    expect(buildPlaceholderContext(cfg, {}, { governingProvision: v }).governing_provision).toBe(v);
   });
 
   it('a real value reaches the rendered prayer in place of the blank', async () => {
     const { renderTemplateSection } = await import('../services/template-engine.service');
-    const ctx = buildPlaceholderContext(cfg, {
-      applicant_name: 'Deepak Ravidas',
-      fir_number: '143/2026',
-      governing_provision: 'Section 187(3) of the BNSS',
-    });
+    const ctx = buildPlaceholderContext(
+      cfg,
+      {
+        applicant_name: 'Deepak Ravidas',
+        fir_number: '143/2026',
+      },
+      { governingProvision: 'Section 187(3) of the BNSS' },
+    );
     const prayer = renderTemplateSection(
       cfg.document_structure.sections.find((s) => s.section_id === 'prayer')!,
       ctx,
@@ -1028,11 +1031,13 @@ describe('buildPlaceholderContext: {governing_provision}', () => {
       const ctx = buildPlaceholderContext(loadTemplateConfig(id)!, { applicant_name: 'X' });
       expect(ctx.governing_provision).toBeUndefined();
     }
-    // A value given to another pack is still kept as given.
+    // A value the server gives to another pack is still kept as given.
     expect(
-      buildPlaceholderContext(loadTemplateConfig('bail_regular')!, {
-        governing_provision: 'S. 480 BNSS',
-      }).governing_provision,
+      buildPlaceholderContext(
+        loadTemplateConfig('bail_regular')!,
+        {},
+        { governingProvision: 'S. 480 BNSS' },
+      ).governing_provision,
     ).toBe('S. 480 BNSS');
   });
 

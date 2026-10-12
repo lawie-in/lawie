@@ -29,3 +29,14 @@ Rules
 1. No court-by-term sentence may remain in any `jurisdictionNote` (test: none contains "exceeding 7 years" except the CJM sentencing line).
 2. BNSS 480/483 bail advice in bail-check is unchanged (T-277 rule).
 3. Moved golden snapshots come to me with the diff.
+
+## Addendum 1 (12 Oct 2026 IST): `jmfc_generic.json` (the 29th file)
+
+Find, exact: `Tries offences punishable with imprisonment up to 3 years.`
+Replace with the block below. The rest of the note ("For bail, handles … under S.480 BNSS.") stays byte for byte.
+
+```text
+Tries the offences that the First Schedule to BNSS makes triable by a Magistrate of the first class or by any Magistrate.
+```
+
+SHA-256 (between the fences, final newline included): `c9ac5754d725c886bc10d8ecda1b5bbe6e2e157dbb37768df00c0986b620d431`

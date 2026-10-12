@@ -11,7 +11,7 @@
   "courtId": "hp_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Himachal Pradesh, governed by the Himachal Pradesh Courts Act, 1976 read with the Himachal Pradesh High Court Rules, 1952. Sessions courts try offences punishable with imprisonment exceeding 7 years. Himachal Pradesh presently comprises 12 revenue districts and the subordinate judiciary is supervised by the Himachal Pradesh High Court at Shimla. Hindi is the official language of the State subordinate courts under the Himachal Pradesh Official Language Act, 1975.",
+  "jurisdictionNote": "District-level criminal and civil courts in Himachal Pradesh, governed by the Himachal Pradesh Courts Act, 1976 read with the Himachal Pradesh High Court Rules, 1952. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. Himachal Pradesh presently comprises 12 revenue districts and the subordinate judiciary is supervised by the Himachal Pradesh High Court at Shimla. Hindi is the official language of the State subordinate courts under the Himachal Pradesh Official Language Act, 1975.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... PETITIONER\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",

@@ -13,6 +13,8 @@
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
+import logger from '../config/logger';
+
 import {
   BNS_CLASSIFICATION,
   BNS_OFFENCE_KEYS,
@@ -937,14 +939,151 @@ export function fieldSourceOf(config: TemplateConfig | null, fieldId: string): s
 export const SECTIONS_CHARGED_READ_KEY = '__sections_charged_read';
 
 /**
+ * T-300 list A (Arjun, 12 Oct 2026): context keys the server sets and no client
+ * value may set, even if a template declares the field. Also never client-set:
+ * every `__*` key, every `party_label_*` key and the camelCase aliases in
+ * `PLACEHOLDER_ALIASES` (see `isServerOnlyKey`).
+ */
+const SERVER_ONLY_KEYS: ReadonlySet<string> = new Set([
+  'current_date',
+  'current_year',
+  'enrollment_number',
+  'governing_provision',
+  'custody_clause',
+  'state_respondent',
+  'case_nomenclature',
+  'prayer_opening',
+  'prayer_closing',
+  'verification_text',
+  'body_para_count',
+  'lastParagraph',
+]);
+
+/**
+ * T-300 list B: set by the server unless THIS template's form declares the
+ * field, in which case the value is what the user typed. Every computed-field
+ * id of the template is in this list too (see `clientFormData`).
+ */
+const SERVER_UNLESS_DECLARED_KEYS: readonly string[] = [
+  'advocate_name',
+  'court_designation',
+  'court_header',
+  'court_city',
+  'jail',
+];
+
+/** T-300 list A: true for a key no client value may set. */
+function isServerOnlyKey(key: string): boolean {
+  return (
+    key.startsWith('__') ||
+    key.startsWith('party_label_') ||
+    SERVER_ONLY_KEYS.has(key) ||
+    PLACEHOLDER_ALIASES.some(([alias]) => alias === key)
+  );
+}
+
+/** The field ids this template's form declares (`form_schema.steps[].fields[].field_id`). */
+export function declaredFieldIds(config: TemplateConfig | null | undefined): Set<string> {
+  const ids = new Set<string>();
+  for (const step of config?.form_schema?.steps ?? []) {
+    for (const field of step.fields ?? []) ids.add(field.field_id);
+  }
+  return ids;
+}
+
+/**
+ * T-300: the client's formData without the keys it may not set (lists A and
+ * B), and the names of the keys dropped. A key whose value is null or
+ * undefined never reaches the context, so it is left out and not counted.
+ */
+export function clientFormData(
+  config: TemplateConfig,
+  formData: Record<string, unknown>,
+): { kept: Record<string, unknown>; dropped: string[] } {
+  const declared = declaredFieldIds(config);
+  const serverUnlessDeclared = new Set([
+    ...SERVER_UNLESS_DECLARED_KEYS,
+    ...Object.keys(config.computed_fields ?? {}),
+  ]);
+  // A jail alias (JAIL_SOURCES) feeds {jail} and custody_clause, so it is list B
+  // too: kept only where this template declares `jail` or the alias itself.
+  if (!declared.has('jail')) for (const alias of JAIL_SOURCES) serverUnlessDeclared.add(alias);
+  const kept: Record<string, unknown> = {};
+  const dropped: string[] = [];
+  for (const [key, val] of Object.entries(formData)) {
+    if (val === null || val === undefined) continue;
+    if (isServerOnlyKey(key) || (serverUnlessDeclared.has(key) && !declared.has(key))) {
+      dropped.push(key);
+      continue;
+    }
+    kept[key] = val;
+  }
+  return { kept, dropped };
+}
+
+/**
+ * T-300 (Ajay, 12 Oct 2026): the advocate name the draft and the annexures
+ * print. A value typed in a field this template declares wins when it is not
+ * empty (missing, null or whitespace only); otherwise the profile name.
+ * Undefined when neither is there, so each caller keeps its own blank.
+ */
+export function resolveAdvocateName(
+  formData: Record<string, unknown>,
+  profile: { name?: string | null },
+  config: TemplateConfig | null | undefined,
+): string | undefined {
+  const declared = declaredFieldIds(config).has('advocate_name');
+  return typedOrProfileName(declared ? formData.advocate_name : undefined, profile);
+}
+
+/**
+ * T-300 (Arjun): the legacy /generate body's `advocateName` is the typed name
+ * only if, after trim, it is 1 to 100 characters with no `{`, `}` or line
+ * break; otherwise the profile name. A failing value never refuses a request.
+ */
+export function resolveLegacyAdvocateName(
+  bodyName: string | undefined,
+  profile: { name?: string | null },
+): string | undefined {
+  const typed = bodyName?.trim() ?? '';
+  const ok = typed.length >= 1 && typed.length <= 100 && !/[{}\r\n\u2028\u2029]/.test(typed);
+  return typedOrProfileName(ok ? typed : undefined, profile);
+}
+
+/**
+ * The typed name when it is not empty (a "[To be confirmed: …]" blank counts as
+ * typed and stays, AJ 12 Oct 2026), else the profile name.
+ */
+function typedOrProfileName(typed: unknown, profile: { name?: string | null }): string | undefined {
+  if (typeof typed === 'string' || typeof typed === 'number') {
+    const value = String(typed);
+    if (value.trim() !== '') return value;
+  }
+  return profile.name?.trim() ? profile.name : undefined;
+}
+
+/**
  * Build the full placeholder context from form data + computed fields + system values.
+ *
+ * T-300: the formData keys a client may not set are dropped before anything
+ * reads them (see `clientFormData`); one warn per request names them, never
+ * their values. `extra.governingProvision` is the server's own
+ * `{governing_provision}` (T-245a will compute it).
  */
 export function buildPlaceholderContext(
   config: TemplateConfig,
-  formData: Record<string, unknown>,
-  extra?: { advocateName?: string; enrollmentNumber?: string },
+  rawFormData: Record<string, unknown>,
+  extra?: { advocateName?: string; enrollmentNumber?: string; governingProvision?: string },
   courtData?: CourtLookupData,
 ): PlaceholderContext {
+  const { kept: formData, dropped } = clientFormData(config, rawFormData);
+  if (dropped.length > 0) {
+    logger.warn(
+      { templateId: config.template_id, droppedKeys: dropped },
+      'T-300: client formData keys the server sets were dropped',
+    );
+  }
+
   const computed = resolveComputedFields(config, formData, courtData);
 
   const now = new Date();
@@ -957,8 +1096,10 @@ export function buildPlaceholderContext(
     }),
     current_year: String(now.getFullYear()),
 
-    // Advocate details from user profile
-    advocate_name: extra?.advocateName ?? '____________________',
+    // Advocate details: the declared, typed name, else the user profile (T-300)
+    advocate_name:
+      resolveAdvocateName(formData, { name: extra?.advocateName }, config) ??
+      '____________________',
     enrollment_number: extra?.enrollmentNumber ?? '____________________',
 
     // Computed fields
@@ -967,6 +1108,9 @@ export function buildPlaceholderContext(
 
   // Arjun (step 7 correction): read sections_charged per entry, with the picker's
   // BNS default, before the array is flattened to "303, 351" below.
+  // T-293: this key is server-only. Clear anything already there so a missing
+  // server read means "no pre-read", never a value from elsewhere.
+  delete ctx[SECTIONS_CHARGED_READ_KEY];
   if (formData.sections_charged !== null && formData.sections_charged !== undefined) {
     ctx[SECTIONS_CHARGED_READ_KEY] = JSON.stringify(
       readChargedField(formData.sections_charged, fieldSourceOf(config, 'sections_charged')),
@@ -976,6 +1120,10 @@ export function buildPlaceholderContext(
   // Form data — flatten all values to strings
   for (const [key, val] of Object.entries(formData)) {
     if (val === null || val === undefined) continue;
+    // T-293: a client-sent value must never overwrite the server's pre-read.
+    if (key === SECTIONS_CHARGED_READ_KEY) continue;
+    // T-300: advocate_name is set above, by resolveAdvocateName.
+    if (key === 'advocate_name') continue;
 
     if (Array.isArray(val)) {
       // checkbox_group / multi_select → join labels
@@ -1099,10 +1247,13 @@ export function buildPlaceholderContext(
   }
 
   // T-251 (Ajay's interim rule, 12 Oct 2026): until T-245a supplies the
-  // provision, {governing_provision} prints the both-forms blank. A value
-  // already in the context wins. The pair is default_bail's own, so only that
-  // pack gets it; other packs will carry their own pair.
-  if (config.template_id === 'default_bail' && !ctx.governing_provision?.trim()) {
+  // provision, {governing_provision} prints the both-forms blank. The server's
+  // value (extra.governingProvision, T-300) wins; a client value never reaches
+  // here. The pair is default_bail's own, so only that pack gets it; other
+  // packs will carry their own pair.
+  if (extra?.governingProvision?.trim()) {
+    ctx.governing_provision = extra.governingProvision;
+  } else if (config.template_id === 'default_bail') {
     ctx.governing_provision = GOVERNING_PROVISION_BLANK;
   }
 
@@ -1144,8 +1295,8 @@ export function buildPlaceholderContext(
 
 /**
  * T-146: the camelCase tokens the document rules use, and the context key each
- * one reads. An alias is set only when the rule's own key is not in the context,
- * so a value the form gave under the camelCase name is kept.
+ * one reads. An alias is set only when it is not already in the context. A
+ * client value under a camelCase name is dropped before the flatten (T-300).
  */
 export const PLACEHOLDER_ALIASES: ReadonlyArray<
   readonly [alias: string, sources: readonly string[]]
@@ -1522,6 +1673,29 @@ export function classifySectionsBailability(sectionsCharged: string | ChargedSec
 }
 
 /**
+ * T-293: parse the server's sections_charged pre-read. Bad JSON (or anything
+ * that is not an array) returns undefined so the caller falls back to the
+ * normal read. Logs ids only, never the value.
+ */
+function parseSectionsChargedRead(
+  raw: string | undefined,
+  sectionId: string,
+): ChargedSection[] | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as ChargedSection[];
+  } catch {
+    // fall through to the warn below
+  }
+  logger.warn(
+    { key: SECTIONS_CHARGED_READ_KEY, sectionId },
+    'sections_charged pre-read unparseable; using normal read',
+  );
+  return undefined;
+}
+
+/**
  * Build the AI user prompt from an ai_generated section's prompt_context.
  */
 export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderContext): string {
@@ -1548,10 +1722,8 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
 
   // Inject bailability classification if sections_charged exist in context (SCRUM-52 S2)
   if (ctx.sections_charged) {
-    const preRead = ctx[SECTIONS_CHARGED_READ_KEY];
-    const classification = classifySectionsBailability(
-      preRead ? (JSON.parse(preRead) as ChargedSection[]) : ctx.sections_charged,
-    );
+    const preRead = parseSectionsChargedRead(ctx[SECTIONS_CHARGED_READ_KEY], section.section_id);
+    const classification = classifySectionsBailability(preRead ?? ctx.sections_charged);
     if (classification) {
       prompt += `\n\nBAILABILITY CLASSIFICATION (from BNS First Schedule — use EXACTLY as given, do NOT contradict):\n${classification}\nA section in neither list: do not say whether it is bailable or cognizable.`;
     }

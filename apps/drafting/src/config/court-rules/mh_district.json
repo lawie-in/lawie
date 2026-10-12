@@ -11,7 +11,7 @@
   "courtId": "mh_district",
   "courtType": "district_court",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
-  "jurisdictionNote": "District-level criminal and civil courts in Maharashtra. Sessions courts try offences punishable with imprisonment exceeding 7 years. District courts handle civil suits, execution proceedings, and appeals from subordinate courts. Mumbai City Civil & Sessions Court and Mumbai Suburban (Dindoshi) operate under the Bombay City Civil Court Act, 1948 and the Code of Civil Procedure as locally adapted.",
+  "jurisdictionNote": "District-level criminal and civil courts in Maharashtra. Which court tries an offence is set by the First Schedule to BNSS, not by the length of the sentence. District courts handle civil suits, execution proceedings, and appeals from subordinate courts. Mumbai City Civil & Sessions Court and Mumbai Suburban (Dindoshi) operate under the Bombay City Civil Court Act, 1948 and the Code of Civil Procedure as locally adapted.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT\n\nVERSUS\n\n{respondent} ... RESPONDENT",
   "party_designation": {
     "petitioner": "Petitioner",

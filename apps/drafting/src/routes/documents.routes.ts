@@ -70,6 +70,7 @@ import {
   loadCourtRule,
   loadTemplateConfig,
   listTemplateConfigs,
+  resolveLegacyAdvocateName,
   validateFormData,
 } from '../services/template-engine.service';
 import {
@@ -846,7 +847,7 @@ router.post(
           courtType: String(form_data.court_type || '') || undefined,
           courtName: String(form_data.court_name || ''),
           // T-115a: the case details are stored encrypted only.
-          formInputsEnc: sealFormInputs({ template_id, ...form_data }),
+          formInputsEnc: sealFormInputs({ ...form_data, template_id }),
           generatedContent: encryptedContent,
           sectionsCited: result.sectionsCited,
           filingChecklistEnc: sealFilingChecklist(result.filingChecklist),
@@ -1425,10 +1426,9 @@ router.post(
     const payload = req.jwtPayload!;
     const input = parsed.data;
 
-    // Use advocate name from user profile if not provided in request
-    if (!input.advocateName && payload.name) {
-      input.advocateName = payload.name;
-    }
+    // T-300: the body's advocateName is used only if it passes the check in
+    // resolveLegacyAdvocateName; otherwise the profile name. Never a refusal.
+    input.advocateName = resolveLegacyAdvocateName(input.advocateName, { name: payload.name });
 
     // Inject bail-specific fields into partyDetails so post-processor can use them (CLO fixes)
     if (input.fatherName) {

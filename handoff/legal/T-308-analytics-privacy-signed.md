@@ -25,3 +25,12 @@ SHA-256 of the §2 block (between the fences, final newline included): `587f9794
 1. Arjun confirms before merge: GA4 "Google signals" and ads personalisation are off for the property, and no user id or email is ever sent to GA. If either is on, these lines are incomplete: tell me.
 2. Recommendation, not part of the signed text (Priya / Arjun / founder decide): load GA only after the visitor agrees, by a short consent line on the public pages. Counting visits is not needed to run the service, and under the DPDP Act consent is the safer basis. If a consent step is built, I will sign its words and adjust §6.
 3. If GA is ever added to a signed-in page, §6 and the provider row must change first.
+
+## Addendum 1 (12 Oct 2026 IST): fonts self-hosted (T-310 AC6)
+
+Arjun: all fonts are self-hosted once T-310 lands; no page calls Google Fonts. When that ships, the §5 Google row becomes:
+
+- receives: `Your name, email and Google account ID (if you use Google sign-in); on our public pages only, and only if you accept analytics, your IP address, browser details and the address of the page you visit (Google Analytics)`
+- why: `Sign-in; counting visits to public pages`
+
+Until T-310 ships, keep the row in §3 above (fonts still load from Google then).

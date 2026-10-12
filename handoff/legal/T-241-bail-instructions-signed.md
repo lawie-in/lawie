@@ -43,3 +43,15 @@ Ruling: **tighten now, in this ticket.** Replace the 11 Oct cue set for (`bail_r
 | `triple_test` display name change may move snapshots | Acceptable |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Text above, on the conditions above. Any other wording comes back to me.
+
+## Addendum 1 (12 Oct 2026 IST): three descriptions outside the table (found by Vishal)
+
+Fix in this ticket, same rule. Exact text:
+
+| Where | Replace the description with |
+|---|---|
+| `bail_before_magistrate.json`, clause `grounds` | `The grounds for bail that the brief gives, and no others, each stated as the brief puts it. Never a ground the brief does not state.` |
+| `bail_anticipatory.json`, clause `false_implication` | `Only if the brief states that the applicant is falsely implicated, and only as the brief puts it.` |
+| `bail_before_magistrate.json`, legacy `mandatory_clauses` item "clean antecedents or explanation thereof" | Delete the item (dead text). If deleting it moves anything, leave it and tell me instead |
+
+Moved snapshots come to me with the diff.

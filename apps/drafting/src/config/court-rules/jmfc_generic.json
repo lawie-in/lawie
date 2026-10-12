@@ -10,7 +10,7 @@
   "courtId": "jmfc_generic",
   "courtType": "jmfc",
   "designation": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS",
-  "jurisdictionNote": "Tries offences punishable with imprisonment up to 3 years. For bail, handles bailable offences and first-instance non-bailable bail applications under S.480 BNSS.",
+  "jurisdictionNote": "Tries the offences that the First Schedule to BNSS makes triable by a Magistrate of the first class or by any Magistrate. For bail, handles bailable offences and first-instance non-bailable bail applications under S.480 BNSS.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{petitioner} ... APPLICANT/ACCUSED\n\nVERSUS\n\n{respondent} ... COMPLAINANT/STATE",
   "party_designation": {
     "petitioner": "Applicant",
@@ -40,10 +40,7 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": [
-    "en",
-    "hi"
-  ],
+  "supported_languages": ["en", "hi"],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",

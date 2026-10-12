@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (build, web). Rajesh if the look changes |
 | Mode   | Small fix (web) |
-| Status | To do. Unassigned. From T-281's "Left for later", 12 Oct 2026. After T-280 if both touch the same page |
+| Status | Merged into develop_staging (32fc50b, 12 Oct 2026). Waiting for Anushka on develop |
 
 T-281 left two items in `apps/web/src/app/tools/section-converter/page.tsx`:
 
