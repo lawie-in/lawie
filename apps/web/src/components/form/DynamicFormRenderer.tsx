@@ -351,6 +351,8 @@ function MultiSelectSearchField({
   allowFreeText = false,
   searchHandler,
   readHandler,
+  maxValues,
+  maxValueLength,
 }: {
   field: FormField;
   value: string[];
@@ -364,6 +366,11 @@ function MultiSelectSearchField({
    *  value (entries[i] for values[i]), or null if the check failed, timed out or
    *  was aborted. Shows the S1 hint and a "Read as" line under each chip. */
   readHandler?: (values: string[], signal: AbortSignal) => Promise<SectionRead[][] | null>;
+  /** T-309 — bns_mapping picker only: at most this many chips (no new text at the
+   *  cap; the input is just made read-only). */
+  maxValues?: number;
+  /** T-309 — bns_mapping picker only: never add a value longer than this. */
+  maxValueLength?: number;
 }) {
   const [search, setSearch] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -375,28 +382,62 @@ function MultiSelectSearchField({
   // result never lands on a different list of chips.
   const valuesKey = JSON.stringify(value);
   const [readResult, setReadResult] = useState<SectionReadResult | null>(null);
+  // T-309 — only values the server accepts are sent (Arjun's caps), so one bad
+  // stored value can't fail the whole call. sendIndex[i] is chip i's index in
+  // the sent list, or null if chip i can't be sent (it shows S8 on its own).
+  const { sendIndex } = useMemo(
+    () => pickSendableReadValues(JSON.parse(valuesKey) as string[]),
+    [valuesKey],
+  );
 
   useEffect(() => {
     if (!readHandler) return;
-    const values = JSON.parse(valuesKey) as string[];
-    if (values.length === 0) return;
+    const { sendable } = pickSendableReadValues(JSON.parse(valuesKey) as string[]);
+    if (sendable.length === 0) return;
+    // One call per chip list. The controller is aborted when the list changes or
+    // the picker unmounts, which also cancels a pending retry (T-309: on failure,
+    // retry the same request once after ~2 s; a success replaces S8).
     const controller = new AbortController();
-    void readHandler(values, controller.signal).then((entries) => {
-      if (controller.signal.aborted) return; // superseded or unmounted
-      setReadResult(
-        entries !== null && entries.length === values.length
-          ? { forKey: valuesKey, status: 'ok', entries }
-          : { forKey: valuesKey, status: 'failed' },
-      );
-    });
-    return () => controller.abort();
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const run = (attempt: number) => {
+      void readHandler(sendable, controller.signal).then((entries) => {
+        if (controller.signal.aborted) return; // superseded or unmounted
+        const ok = entries !== null && entries.length === sendable.length;
+        setReadResult(
+          ok
+            ? { forKey: valuesKey, status: 'ok', entries }
+            : { forKey: valuesKey, status: 'failed' },
+        );
+        if (!ok && attempt === 0) {
+          retryTimer = setTimeout(() => {
+            if (!controller.signal.aborted) run(1);
+          }, SECTION_READ_RETRY_MS);
+        }
+      });
+    };
+    run(0);
+    return () => {
+      controller.abort();
+      clearTimeout(retryTimer);
+    };
   }, [valuesKey, readHandler]);
 
-  /** S7 (undefined) until this exact chip list has been checked. */
+  /** S7 (undefined) until this exact chip list has been checked. A chip that
+   *  can't be sent shows S8 straight away. */
   function readStateAt(index: number): SectionReadState | undefined {
+    const slot = sendIndex[index];
+    if (slot === null || slot === undefined) return { status: 'failed' };
     if (!readResult || readResult.forKey !== valuesKey) return undefined;
     if (readResult.status === 'failed') return { status: 'failed' };
-    return { status: 'ok', sections: readResult.entries[index] ?? [] };
+    return { status: 'ok', sections: readResult.entries[slot] ?? [] };
+  }
+
+  // T-309 — caps (bns_mapping only; undefined elsewhere means no cap).
+  const atCap = maxValues !== undefined && value.length >= maxValues;
+  function canAdd(v: string): boolean {
+    if (atCap) return false;
+    if (maxValueLength !== undefined && v.length > maxValueLength) return false;
+    return !value.includes(v);
   }
 
   // SCRUM-85: debounced typeahead for fields with a `searchHandler`. Tracks the
@@ -428,14 +469,18 @@ function MultiSelectSearchField({
     if (searchHandler) {
       // Remote-search mode: dropdown shows whatever the handler returned, minus
       // anything the user has already picked.
-      return remoteResults.filter((o) => !value.includes(o.id));
+      // T-309: also drop any match too long to add (bns_mapping cap).
+      return remoteResults.filter(
+        (o) =>
+          !value.includes(o.id) && (maxValueLength === undefined || o.id.length <= maxValueLength),
+      );
     }
     return search.length > 0
       ? options.filter(
           (o) => o.label.toLowerCase().includes(search.toLowerCase()) && !value.includes(o.id),
         )
       : options.filter((o) => !value.includes(o.id));
-  }, [searchHandler, options, search, value, remoteResults]);
+  }, [searchHandler, options, search, value, remoteResults, maxValueLength]);
 
   const selectedItems: FieldOption[] = value.map((id) => {
     const found = options.find((o) => o.id === id);
@@ -444,7 +489,7 @@ function MultiSelectSearchField({
 
   function addFreeText() {
     const trimmed = search.trim();
-    if (trimmed && !value.includes(trimmed)) {
+    if (trimmed && canAdd(trimmed)) {
       onChange([...value, trimmed]);
       setSearch('');
     }
@@ -461,8 +506,8 @@ function MultiSelectSearchField({
         <div className="mt-1 space-y-2 sm:space-y-1">
           {selectedItems.map((item, index) => (
             <div key={item.id}>
-              <div className="flex items-center gap-2 sm:gap-1">
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-1">
+                <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 [overflow-wrap:anywhere]">
                   {item.label}
                 </span>
                 <button
@@ -495,6 +540,11 @@ function MultiSelectSearchField({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            maxLength={maxValueLength}
+            // T-309: at the chip cap the input stops taking text. readOnly, not
+            // disabled, so the remove button can still return focus here.
+            readOnly={atCap}
+            aria-disabled={atCap || undefined}
             onKeyDown={(e) => {
               if (allowFreeText && (e.key === 'Enter' || e.key === ',')) {
                 e.preventDefault();
@@ -502,9 +552,11 @@ function MultiSelectSearchField({
               }
             }}
             placeholder={field.placeholder || 'Search and select…'}
-            className="flex-1 bg-transparent text-sm outline-none"
+            className={`flex-1 bg-transparent text-sm outline-none ${
+              atCap ? 'cursor-not-allowed opacity-40' : ''
+            }`}
           />
-          {allowFreeText && search.trim() && (
+          {allowFreeText && !atCap && search.trim() && (
             <button
               type="button"
               onClick={addFreeText}
@@ -514,7 +566,7 @@ function MultiSelectSearchField({
             </button>
           )}
         </div>
-        {search.length > 0 && (
+        {!atCap && search.length > 0 && (
           <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
             {remoteLoading && filtered.length === 0 && (
               <div className="px-3 py-2 text-xs text-slate-400">Searching…</div>
@@ -528,6 +580,7 @@ function MultiSelectSearchField({
                 type="button"
                 className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-amber-50"
                 onClick={() => {
+                  if (!canAdd(opt.id)) return;
                   onChange([...value, opt.id]);
                   setSearch('');
                 }}
@@ -548,6 +601,10 @@ function MultiSelectSearchField({
   );
 }
 
+/** T-290 — S8, signed by Ajay. One constant so every S8 reads the same. */
+const SECTION_READ_FAILED_LINE =
+  'Could not check this section. Check the Act and the number before you generate.';
+
 /** T-290 — the "Read as" lines for one entered value (S2 to S8, signed by Ajay).
  *  Never renders nothing: a missing line would read as "nothing wrong". */
 function SectionReadLines({ state }: { state: SectionReadState | undefined }) {
@@ -555,11 +612,7 @@ function SectionReadLines({ state }: { state: SectionReadState | undefined }) {
     return <p className="mt-0.5 break-words text-xs text-slate-600">Checking this section</p>;
   }
   if (state.status === 'failed') {
-    return (
-      <p className="mt-0.5 text-xs text-red-500">
-        Could not check this section. Check the Act and the number before you generate.
-      </p>
-    );
+    return <p className="mt-0.5 text-xs text-red-500">{SECTION_READ_FAILED_LINE}</p>;
   }
   const { sections } = state;
   if (sections.length === 0) {
@@ -576,8 +629,15 @@ function SectionReadLines({ state }: { state: SectionReadState | undefined }) {
             </p>
           );
         }
-        // The bns_mapping reader always gives a code; never invent one.
-        if (s.code === null) return null;
+        // T-309: the bns_mapping reader always gives a code, but never invent one
+        // and never show no line: a null or unknown code shows S8 for this item.
+        if (!isNamedReadCode(s.code)) {
+          return (
+            <p key={key} className="mt-0.5 text-xs text-red-500">
+              {SECTION_READ_FAILED_LINE}
+            </p>
+          );
+        }
         return (
           <p key={key} className="mt-0.5 break-words text-xs text-slate-600">
             Read as{' '}
@@ -952,6 +1012,13 @@ const READ_AS_DISPLAY_CODE: Readonly<Record<NamedReadCode, string>> = {
   BSA: 'BSA',
 };
 
+/** T-309 — true only for a code the picker can name in a "Read as" line. */
+export function isNamedReadCode(code: unknown): code is NamedReadCode {
+  return (
+    typeof code === 'string' && Object.prototype.hasOwnProperty.call(READ_AS_DISPLAY_CODE, code)
+  );
+}
+
 /** T-290 — the display form of a named reader code, e.g. CRPC → "CrPC". */
 export function displayReadAsCode(code: NamedReadCode): string {
   return READ_AS_DISPLAY_CODE[code];
@@ -961,7 +1028,7 @@ export function displayReadAsCode(code: NamedReadCode): string {
  *  "Read as CrPC 41" or "Read as BNS 303: Theft". Null for OTHER or a bare
  *  number (those are not S2 to S4). Pure, so it can be unit-tested. */
 export function formatReadAsLine(s: SectionRead): string | null {
-  if (s.code === null || s.code === 'OTHER') return null;
+  if (!isNamedReadCode(s.code)) return null;
   const title = s.code === 'BNS' && s.title ? `: ${s.title}` : '';
   return `Read as ${displayReadAsCode(s.code)} ${s.number}${title}`;
 }
@@ -973,6 +1040,36 @@ type SectionReadResult =
   | { forKey: string; status: 'failed' };
 
 const SECTION_READ_TIMEOUT_MS = 5000;
+// T-309 — one automatic retry of a failed read, after about 2 s.
+const SECTION_READ_RETRY_MS = 2000;
+
+// T-309 — Arjun's /sections/read caps for `values` (more is a 400 for the whole
+// call). The bns_mapping picker enforces the same caps on input.
+export const SECTION_READ_MAX_VALUES = 30;
+export const SECTION_READ_MAX_VALUE_LENGTH = 100;
+
+/** T-309 — the values that can be sent to /sections/read: strings of at most
+ *  100 characters, the first 30 of them. sendIndex[i] is values[i]'s index in
+ *  `sendable`, or null if values[i] is not sent (that chip shows S8 on its own).
+ *  Pure, so it can be unit-tested. */
+export function pickSendableReadValues(values: readonly unknown[]): {
+  sendable: string[];
+  sendIndex: Array<number | null>;
+} {
+  const sendable: string[] = [];
+  const sendIndex = values.map((v) => {
+    if (
+      typeof v !== 'string' ||
+      v.length > SECTION_READ_MAX_VALUE_LENGTH ||
+      sendable.length >= SECTION_READ_MAX_VALUES
+    ) {
+      return null;
+    }
+    sendable.push(v);
+    return sendable.length - 1;
+  });
+  return { sendable, sendIndex };
+}
 
 // T-290 — POSTs {values} to /api/sections/read (POST so FIR numbers stay out of
 // URLs) and returns entries[i].read for values[i]. Returns null on network error,
@@ -1057,6 +1154,10 @@ export function FieldInput({
           allowFreeText={field.source === 'bns_mapping'}
           searchHandler={field.source === 'bns_mapping' ? fetchBnsMappingResults : undefined}
           readHandler={field.source === 'bns_mapping' ? fetchSectionRead : undefined}
+          maxValues={field.source === 'bns_mapping' ? SECTION_READ_MAX_VALUES : undefined}
+          maxValueLength={
+            field.source === 'bns_mapping' ? SECTION_READ_MAX_VALUE_LENGTH : undefined
+          }
         />
       )}
 
