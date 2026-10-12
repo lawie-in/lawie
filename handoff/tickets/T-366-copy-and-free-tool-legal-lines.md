@@ -10,7 +10,9 @@
 
 ## Acceptance criteria
 
-1. FAQ free tier drops "court formatting, BNS validation". The About page drops "Exports a finished document" (Madhuri's replacement lines).
+1. Use the lines already signed (handoff/marketing/copy/site-copy-t252.md rows F2 and A8; Ajay's sign-off in handoff/legal/site-copy-t252-and-help-text-signed.md):
+   - FAQ free tier (faq/page.tsx ~L53): "5 Ink on sign-up (lifetime). All document types, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers."
+   - About (~L84-85): "Exports the draft as PDF or DOCX."
 2. Tools card: bailable offence → S.478 BNSS, not S.480.
 3. 377 IPC note: "read down" in Navtej, not "struck down" (Ajay's line).
 4. Home page tab title matches the signed-in pages' pattern.
