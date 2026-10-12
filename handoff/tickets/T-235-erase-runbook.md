@@ -105,3 +105,7 @@ This belongs to T-115 and doesn't block go-live:
 | Sentry | Erased by hand. §7 now says so. §7 and §9 disclose tax-record retention; the lead applies that text with the rest of T-235 |
 
 - Compliance register (Ajay): batch 1 #16 bail_juvenile_jj_12 handles a child's data (DPDP s.9). Lawie acts as the advocate's processor. The policy and the register should note it.
+
+## Note (Priya, 12 Oct 2026)
+
+Ajay condition 5 on T-242: deleting an account must remove the whole User document, including `signupSource` (UTM tags and time). No delete path exists today.

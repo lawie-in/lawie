@@ -108,6 +108,8 @@ import {
   buildSectionsCited,
   extractBNSSectionNumbers,
   validateBNSWhitelist,
+  validateSectionReferences,
+  dropOldLawForNotFound,
   checkFactSectionSanity,
 } from './validator';
 
@@ -802,18 +804,33 @@ export async function streamGenerateFromTemplate(
     const aiSections = renderedSections.filter((s) => s.type === 'ai_generated');
     const aiText = aiSections.map((s) => s.content).join('\n');
 
-    const oldLawWarnings = await detectOldLawReferences(aiText);
+    // T-333: the other five codes (BNSS, BSA, IPC, CrPC, IEA), as validate() checks them.
+    // BNS is left to the whitelist below, so it is not warned twice.
+    const otherCodeWarnings = validateSectionReferences(aiText, null).filter(
+      (w) => w.details?.code !== 'BNS',
+    );
+
+    // T-333 / T-270 ruling A: an old-code cite that is not found gets only invalid_section.
+    const oldLawWarnings = dropOldLawForNotFound(
+      await detectOldLawReferences(aiText),
+      otherCodeWarnings,
+    );
     allWarnings.push(...oldLawWarnings);
 
     // SCRUM-64 (b): BNS whitelist validation — flag hallucinated section numbers
     const bnsCited = extractBNSSectionNumbers(aiText);
     const bnsWhitelistWarnings = validateBNSWhitelist(bnsCited);
     allWarnings.push(...bnsWhitelistWarnings);
+    allWarnings.push(...otherCodeWarnings);
 
     // SCRUM-64 (c): Fact↔section sanity — BNS 103 (Murder) requires death keywords in facts
     if (templateConfig.category === 'criminal') {
       const factsNarrative = String(convertedFormData.facts_narrative ?? '');
-      const sanitySanityWarnings = checkFactSectionSanity(factsNarrative, bnsCited);
+      // T-333 ruling B: explicit cites only, not numbers inside an expanded range.
+      const sanitySanityWarnings = checkFactSectionSanity(
+        factsNarrative,
+        extractBNSSectionNumbers(aiText, { includeRangeInner: false }),
+      );
       allWarnings.push(...sanitySanityWarnings);
     }
 
@@ -1395,15 +1412,29 @@ export async function streamGenerateFromBrief(
 
     allWarnings.push(...leakedPlaceholderWarnings(templateConfig, ctx));
 
-    allWarnings.push(...(await detectOldLawReferences(body)));
+    // T-333: the other five codes, as validate() checks them; BNS is the whitelist's.
+    const otherCodeWarnings = validateSectionReferences(body, null).filter(
+      (w) => w.details?.code !== 'BNS',
+    );
+    // T-333 / T-270 ruling A: an old-code cite that is not found gets only invalid_section.
+    allWarnings.push(
+      ...dropOldLawForNotFound(await detectOldLawReferences(body), otherCodeWarnings),
+    );
 
     const bnsCited = extractBNSSectionNumbers(body);
     allWarnings.push(...validateBNSWhitelist(bnsCited));
+    allWarnings.push(...otherCodeWarnings);
 
     const facts =
       given.get('facts_narrative') ?? given.get('facts') ?? given.get('fixed.facts') ?? '';
     if (templateConfig.category === 'criminal' && facts) {
-      allWarnings.push(...checkFactSectionSanity(facts, bnsCited));
+      // T-333 ruling B: explicit cites only, not numbers inside an expanded range.
+      allWarnings.push(
+        ...checkFactSectionSanity(
+          facts,
+          extractBNSSectionNumbers(body, { includeRangeInner: false }),
+        ),
+      );
     }
 
     const grounds = formData.grounds_for_bail ?? formData.grounds_for_quashing ?? formData.grounds;
@@ -1628,8 +1659,16 @@ export async function streamGenerateGuided(
 
     // ── The free checks (T-107, section 9, condition 3): always run, always shown ──
     const allWarnings: ValidationWarning[] = [];
-    allWarnings.push(...(await detectOldLawReferences(fullText)));
+    // T-333: the other five codes, as validate() checks them; BNS is the whitelist's.
+    const otherCodeWarnings = validateSectionReferences(fullText, null).filter(
+      (w) => w.details?.code !== 'BNS',
+    );
+    // T-333 / T-270 ruling A: an old-code cite that is not found gets only invalid_section.
+    allWarnings.push(
+      ...dropOldLawForNotFound(await detectOldLawReferences(fullText), otherCodeWarnings),
+    );
     allWarnings.push(...validateBNSWhitelist(extractBNSSectionNumbers(fullText)));
+    allWarnings.push(...otherCodeWarnings);
 
     const given = briefText(brief);
     if (given) {

@@ -571,3 +571,11 @@ What a user can now do:
 - Confirm it and get the draft saying it is the first application; skip it and get a blank in the draft to fill in instead.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-333 — every draft path checks sections in all codes (2852e94, shashank, 12 Oct 2026)
+
+What a user can now do:
+- Drafts made from a template, a brief or the guided flow get the same section warnings as any other draft. A wrong BSA, BNSS, IPC, CrPC or IEA section is flagged, not only BNS.
+- Cite a range like "Ss. 100-105 BNS" without a murder warning when the facts don't mention a death. An explicit "BNS 103" still gets it.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
