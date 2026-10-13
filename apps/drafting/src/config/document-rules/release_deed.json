@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Distinguish release vs gift vs sale vs partition — substance determines stamp duty + tax. Concessional rates for release to family co-sharer in many states."
   },
   "template_id": "release_deed",
+  "card_description": "A deed by which a co-owner or heir gives up their share in a property.",
   "docType": "release_deed",
   "title": "Release / Relinquishment Deed",
   "displayName": "Release Deed (Relinquishment)",

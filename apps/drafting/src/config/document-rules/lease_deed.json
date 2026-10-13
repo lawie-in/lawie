@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. If user data shows tenure <= 11 months without renewal — auto-route to rent_agreement template."
   },
   "template_id": "lease_deed",
+  "card_description": "A long-term lease deed for immovable property under the Transfer of Property Act, 1882.",
   "docType": "lease_deed",
   "title": "Lease Deed (Long-term — Transfer of Property Act, 1882, S.105-117)",
   "displayName": "Lease Deed (Registered)",

@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Must avoid lease-like terms (exclusive possession, transferable, long fixed term) that could cause re-characterisation as lease."
   },
   "template_id": "license_agreement",
+  "card_description": "A leave and licence agreement allowing use of immovable property without a lease.",
   "docType": "license_agreement",
   "title": "License Agreement (Easements Act, 1882 — S.52)",
   "displayName": "License Agreement",

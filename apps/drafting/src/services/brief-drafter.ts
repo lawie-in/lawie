@@ -23,6 +23,7 @@ import type { AvermentCondition, ResolvedAverments } from './averments';
 import { dateKindLabel, PROTECTED_QUESTION_KEY, statedDates } from './intake-brief';
 import type { Brief, BriefItem, ChecklistItem } from './intake-brief';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
+import { applyFieldAliases } from './rule-pack.service';
 import type { RulePack, RulePackClause } from './rule-pack.service';
 import { formatIsoDraftDate } from './template-engine.service';
 import type { RenderedSection, TemplateConfig } from './template-engine.service';
@@ -92,6 +93,9 @@ export function formDataFromBrief(
   for (const item of brief.items) {
     // T-336: a description-read "none" not yet confirmed is not a fact. Its blank shows.
     if (isEmpty(item.value) || item.unconfirmed === true) {
+      // T-365 (Ajay, 13 Oct 2026): the advocate's blank is not a typed name, so
+      // it is left out and the profile name (T-300) prints instead.
+      if (item.key === 'advocate_name') continue;
       data[item.key] = item.placeholder;
     } else if (Array.isArray(item.value)) {
       data[item.key] = item.value.map((v) => toId(item.key, v));
@@ -103,7 +107,8 @@ export function formDataFromBrief(
   if (brief.court.court_type) data.court_type = brief.court.court_type;
   if (brief.court.court) data.court_name = brief.court.court;
   data.language = language;
-  return data;
+  // T-382: a brief item keyed by the old pack key also fills the new one.
+  return applyFieldAliases(data);
 }
 
 // ── What the Drafter is given ───────────────────────────────────────────────

@@ -1,0 +1,20 @@
+# T-394 — Rule-pack fields keep their `source`, so section search works on v1 packs
+
+| Field  | Value |
+| ------ | ----- |
+| Phase  | 4 — Polish and release |
+| Owner  | Lead (drafting) |
+| Mode   | Small fix |
+| Status | To do. Mahak, after T-385 and before T-380 (Arjun, 13 Oct 2026). Found in T-385's Explore |
+| Source | Arjun, from Mahak's T-385 Explore |
+
+## Problem
+
+The rule-pack promoter (`template-promoter.ts`) never copies a field's `source` (`courts_db.*`, `bns_mapping`) into the config the renderer receives. So packs that declare `bns_mapping`, such as bail_anticipatory, show no section search in the form. Only the 6 docs/templates overrides send it.
+
+## Acceptance criteria
+
+1. The promoter copies field-level `source` into the promoted config for every pack field that declares one.
+2. bail_anticipatory and the other v1 packs with `bns_mapping` show section search in the form.
+3. A test pins 1 for at least one courts_db field and one bns_mapping field.
+4. Drafting only: the promoter and a test.

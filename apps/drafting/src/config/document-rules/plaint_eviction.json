@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Rent control vs TPA distinction is non-negotiable — wrong forum is fatal."
   },
   "template_id": "plaint_eviction",
+  "card_description": "A plaint in a suit to evict a tenant from premises.",
   "docType": "plaint_eviction",
   "title": "Plaint — Suit for Ejectment / Eviction (TPA-based, Non-Rent-Controlled)",
   "displayName": "Plaint for Ejectment (TPA S.106/111)",

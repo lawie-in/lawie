@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Bhajan Lal seven categories must be quoted VERBATIM in prompt and template."
   },
   "template_id": "fir_quashing",
+  "card_description": "A petition to the High Court under Section 528 BNSS to quash an FIR.",
   "docType": "fir_quashing",
   "title": "Petition for Quashing of FIR (Section 528 BNSS — citing Bhajan Lal categories)",
   "displayName": "FIR Quashing Petition (S.528 BNSS)",

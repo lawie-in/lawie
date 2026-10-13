@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
   },
   "template_id": "bail_before_magistrate",
+  "card_description": "A regular bail application before a Magistrate.",
   "docType": "bail_before_magistrate",
   "parentDocType": "bail_application",
   "title": "Bail Application before Magistrate",
@@ -220,6 +221,15 @@
       "ask_when_empty": true
     },
     {
+      "name": "facts_narrative",
+      "label": "Brief Facts of the Case (3-5 lines)",
+      "type": "textarea",
+      "required": true,
+      "min_length": 50,
+      "max_length": 1500,
+      "placeholder": "Describe what happened from the applicant's perspective..."
+    },
+    {
       "name": "grounds_for_bail",
       "label": "Grounds for Bail",
       "type": "textarea",
@@ -234,7 +244,7 @@
     },
     { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
     {
-      "name": "advocate_enrolment",
+      "name": "advocate_enrollment",
       "label": "Bar Council Enrolment No.",
       "type": "text",
       "required": true

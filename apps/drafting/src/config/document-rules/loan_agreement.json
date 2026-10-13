@@ -7,6 +7,7 @@
     "notes": "Loan Agreement between private parties or NBFC/Bank. Interest Act 1978 governs interest. Each state has Money-Lenders Act regulating private lending - registration may be required for habitual lenders. SARFAESI Act applies to secured creditors (banks/NBFCs registered). Stamp duty significant on loan agreements (often 0.1-0.5% of loan value)."
   },
   "template_id": "loan_agreement",
+  "card_description": "An agreement recording a loan and its repayment terms.",
   "title": "Loan Agreement",
   "category": "corporate",
   "creditsCost": 2,

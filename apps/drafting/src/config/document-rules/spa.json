@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. SPA MUST identify the specific transaction with precision — no open-ended powers."
   },
   "template_id": "spa",
+  "card_description": "A Special Power of Attorney for a specific act or transaction.",
   "docType": "spa",
   "title": "Special Power of Attorney (Powers of Attorney Act, 1882)",
   "displayName": "Special Power of Attorney (SPA)",

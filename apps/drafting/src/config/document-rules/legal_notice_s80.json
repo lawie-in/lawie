@@ -1,4 +1,5 @@
 {
+  "card_description": "A notice to the Government or a public officer under Section 80 CPC before filing a suit.",
   "_meta": {
     "description": "Document-rules config for legal_notice_s80 — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",

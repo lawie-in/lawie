@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Readiness and willingness pleading is non-negotiable. Post-2018 SRA amendment treats SP as general rule."
   },
   "template_id": "plaint_specific_performance",
+  "card_description": "A plaint in a suit for specific performance of a contract.",
   "docType": "plaint_specific_performance",
   "title": "Plaint — Suit for Specific Performance of Contract",
   "displayName": "Plaint for Specific Performance (S.10-14 SRA)",

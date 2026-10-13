@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. 'Sufficient cause' is jurisdictional fact; day-by-day explanation post-30 days mandatory."
   },
   "template_id": "condonation_of_delay",
+  "card_description": "An application under Section 5 of the Limitation Act, 1963 to condone delay in filing.",
   "docType": "condonation_of_delay",
   "title": "Application for Condonation of Delay (Section 5 Limitation Act, 1963)",
   "displayName": "Condonation of Delay Application (S.5 Limitation Act)",

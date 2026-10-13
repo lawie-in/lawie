@@ -28,3 +28,11 @@ Do not add the 15-day computation or any date difference to the notice (T-192).
 4. **Layout.** OK: header lines end with commas, the demand and liability sentences form one paragraph, and the payee's address goes under the payee's name in "From,".
 
 **16d3b44: approved, 13 Oct 2026.** The averments are re-signed at `f85eb9a1…64bd` (see the T-192 file). The header is option (c). The demand and liability sentences are byte-exact, with nothing after them. The paragraph limits are 4 to 6 (min_paragraphs 4, max_paragraphs 6, min_body_paragraphs 4). Dropping "for a Section 138 NI Act cheque bounce notice" from the instruction is OK, because the template already states the section. The memo placeholder is "Quote only as the memo gives it". Approved to merge once the tester is green.
+
+## Addendum 3, 13 Oct 2026
+
+1. With the model-written Para 4 removed: `Generate 3 to 5 numbered paragraphs.`, with `min_paragraphs` 3, `max_paragraphs` 5 and `min_body_paragraphs` 3. This replaces the 4-to-6 line in Addendum 2. The "Do not state or suggest…" line stays.
+2. Filing checklist (advocate-facing, not printed in the notice), exactly:
+   - `Send the notice within 30 days of receiving the bank's return memo (Section 138, proviso (b)).`
+   - `If payment is not made within 15 days of receipt of the notice, file the complaint within one month after those 15 days end (Section 142(1)(b)).`
+   "Within next 30 days" goes: the Act says one month.

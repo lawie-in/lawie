@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (auth + email-worker) |
 | Mode   | Small fix |
-| Status | Building. Kunal. Item 2 must land before live sends (the founder's SES session). Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging b3d01a7 (kunal, 13 Oct 2026). Nothing to test in the UI. Priya |
 | Source | T-223 review round 2 should-fixes (Mahak, 13 Oct 2026) |
 
 ## Acceptance criteria

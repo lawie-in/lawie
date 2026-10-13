@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. PWDV definitions (aggrieved person, domestic relationship, shared household) are non-negotiable."
   },
   "template_id": "dv_act_complaint",
+  "card_description": "An application under the Protection of Women from Domestic Violence Act, 2005.",
   "docType": "dv_act_complaint",
   "title": "Application under Protection of Women from Domestic Violence Act, 2005",
   "displayName": "Domestic Violence Act Application (s.12 PWDV)",

@@ -640,7 +640,7 @@ describe('T-300/T-311 annexures: a client enrollment number is never read', () =
   it('enrollment_number from the form does not print on a pack that does not declare it', async () => {
     const html = await annexuresHtml(
       {
-        template_id: 'default_bail',
+        template_id: 'mandamus',
         applicant_name: 'Ramesh Kumar',
         enrollment_number: 'BAR/2018/1234',
         advocate_enrollment: 'LEG/77',
