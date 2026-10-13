@@ -36,3 +36,47 @@ Retrieval corpus, LLM-as-judge, second model vendor, intake rewrite (ADR-022's r
 ## Founder actions (morning list)
 
 GitHub secrets `GOLDEN_SET_ANTHROPIC_API_KEY`, `GOLDEN_SET_MONGODB_URI`; Atlas continuous backup; ADR-019–022 texts from his machine; read-only access tokens (separate list).
+
+## Build spec for D1 (Arjun, 13 Oct 2026) — the two tickets Priya raises point here
+
+### Skeleton file (Ajay signs; one per pack, `handoff/legal/skeleton-<pack>-signed.md` + the JSON it generates under `config/document-rules/_skeletons/<pack>.json`)
+```json
+{ "pack": "bail_regular", "version": 1,
+  "clauses": [
+    { "id": "custody", "order": 30, "required": true,
+      "text": "The applicant has been in judicial custody since {custody_since} in connection with {fir_number}, {police_station}.",
+      "slots": ["custody_since", "fir_number", "police_station"], "source": "fixed" },
+    { "id": "grounds", "order": 60, "required": true, "source": "advocate", "list": true,
+      "slot": "grounds", "intro": "The applicant seeks bail on the following grounds:" },
+    { "id": "antecedents", "order": 70, "required": false, "source": "fixed",
+      "text": "{antecedents_statement}", "slots": ["antecedents_statement"] }
+  ] }
+```
+- `source: fixed`: the clause text is the signed wording; the model may only fill slots from ledger facts. `source: advocate`: the text comes from the advocate's own words (ledger `raw_span` of the named key); the model may fix grammar and connectives only. No third kind.
+- A clause whose required slot has no ledger fact renders as its `{{MISSING: label}}` form (Ajay's T-359 ruling: antecedents and earlier applications become blanks; roots, character, flight risk, extra grounds have no clause and so cannot render).
+
+### Drafter contract (tool use, one tool `draft_paragraphs`, `tool_choice` forced)
+```json
+{ "paragraphs": [ { "clauseId": "custody", "factRefs": ["custody_since","fir_number","police_station"], "text": "…" },
+                  { "clauseId": "grounds", "items": [ { "factRef": "grounds[0]", "text": "…" } ] } ] }
+```
+- Input: the ledger facts (key, label, type, display, raw_span for advocate-source keys) and the skeleton. No pack prose, no "instructions" free text beyond the signed system prompt (Ajay re-signs it; it shrinks).
+- Schema: `clauseId` enum = the skeleton's ids; `factRefs` enum = ledger keys present. The API rejects anything else before our code runs.
+
+### Renderer (`apps/drafting/src/services/draft-renderer.ts`, pure, no model)
+1. Order by skeleton `order`; a skeleton clause the model omitted and `required: true` → rendered as its MISSING form.
+2. `source: fixed`: ignore the model's `text`; render the signed text with slots filled from the referenced facts' `display`. (The model's job here is only to say which facts fill which slot; a missing slot → `{{MISSING: label}}`.)
+3. `source: advocate`: keep the model's `text` only if it passes the existing `fact-verifier` entity check against the referenced fact's `raw_span`/`value` (no new numbers, dates, names, places); otherwise fall back to the `raw_span` verbatim.
+4. Sections: dedupe on `(code, number)` via `readSectionsCharged` before rendering.
+5. Output: the paragraphs plus `rendered: [{clauseId, status: 'ok'|'missing'|'fallback'}]`. The checks panel is built from this list only; `findMissingClauses`, `nameIsIn`, `checkPeriods` are deleted for packs on D1.
+6. Code-assembled sections (title, prayer, verification, advocate block) unchanged (ADR-021). The verification relation (S/o, W/o, D/o) comes from a ledger key or renders blank (T-359 AC6).
+
+### Tests
+- Unit: renderer with (a) a paragraph carrying an unknown `clauseId` → dropped; (b) a fixed clause with a missing slot → MISSING; (c) an advocate clause with an added date → fallback to raw_span; (d) duplicate sections → one; (e) all T-359 ACs 1–7 as fixtures from Anushka's run-3 steps.
+- Golden set: new assertion for D1 packs: every rendered paragraph has a `clauseId`; `rendered[]` has no `fallback` for the six run-3 drafts' expected clauses.
+- Snapshot: court-rules goldens unchanged (they cover code-assembled sections only).
+
+### Split (two leads, no shared files)
+- Lead A (T-373): `draft-renderer.ts` (new), `ai.service.ts` ledger path → structured call, `drafter.prompts.ts` (Ajay gate), `brief-drafter.ts` checks → `rendered[]`, web checks panel component, tests, golden-set assertion. 
+- Lead B (T-374): `_skeletons/` loader + validation in `rule-pack.service.ts`, the four `bail_*.json` packs pointing at their skeleton (Ajay gate), skeleton JSON generated from Ajay's signed markdown with a hash test like T-255's, fixtures.
+- Interface between them, fixed now: `loadSkeleton(packId): Skeleton | null` from `rule-pack.service.ts`; a pack with no skeleton stays on today's path. Lead A codes against a hand-written `bail_regular` skeleton fixture until Lead B's loader lands.
