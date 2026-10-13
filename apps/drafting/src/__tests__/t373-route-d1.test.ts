@@ -238,7 +238,8 @@ describe.each(PACKS)('$id: a valid structured reply on the real skeleton', (p) =
       .map((c) => c.clauseId);
     expect((r.done.missingClauses as Array<{ id: string }>).map((m) => m.id)).toEqual(missing);
     // D1 sends no repair banner: the old verifier is a read-only log on this path.
-    expect(r.done.factCheck?.banner ?? null).toBeNull();
+    // Arjun B (8d72fb6): the done event has no factCheck key at all on D1 (was: banner null).
+    expect(r.done).not.toHaveProperty('factCheck');
     expect(r.done.repaired).toBe(false);
     expect(mockParse).toHaveBeenCalledTimes(1); // no repair call
   });

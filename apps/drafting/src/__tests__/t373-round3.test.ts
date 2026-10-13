@@ -223,33 +223,29 @@ describe('round 3: the stop list holds no causal, temporal or negating word', ()
   });
 });
 
-// ── Magistrate facts clause (pending T-365) ────────────────────────────────
+// ── Magistrate facts clause (T-365 landed) ────────────────────────────────
 
 describe('round 3: the Magistrate facts clause', () => {
-  // Arjun option a: the withFactsNarrative copy was removed. Mahak adds a facts_narrative field to the
-  // Magistrate pack in T-365; until then the checklist has no such item and the D1 facts clause prints
-  // MISSING. This test flips to a pass when T-365 lands (then change it.failing to it).
-  it.failing(
-    'real bail_before_magistrate checklist has facts_narrative and the rendered facts clause is not blank',
-    () => {
-      const checklist = buildChecklist(loadRulePack('bail_before_magistrate')!);
-      const hasItem = checklist.some((i) => i.key === 'facts_narrative');
-      expect(hasItem).toBe(true);
-      const facts = [
-        ...magistrateBase().filter((f) => f.key !== 'facts_narrative'),
-        ...(hasItem
-          ? [
-              fact('facts_narrative', 'She was at home all day.', {
-                raw_span: 'she was at home all day',
-              }),
-            ]
-          : []),
-      ];
-      const { status, text } = render('bail_before_magistrate', facts);
-      expect(status('facts')).not.toBe('missing');
-      expect(text('facts')).not.toContain('{{MISSING');
-    },
-  );
+  // Arjun option a: the withFactsNarrative copy was removed. Mahak's T-365 added a facts_narrative field to
+  // the Magistrate pack (merged at b95b1bd), so the checklist has the item and the D1 facts clause prints.
+  it('real bail_before_magistrate checklist has facts_narrative and the rendered facts clause is not blank', () => {
+    const checklist = buildChecklist(loadRulePack('bail_before_magistrate')!);
+    const hasItem = checklist.some((i) => i.key === 'facts_narrative');
+    expect(hasItem).toBe(true);
+    const facts = [
+      ...magistrateBase().filter((f) => f.key !== 'facts_narrative'),
+      ...(hasItem
+        ? [
+            fact('facts_narrative', 'She was at home all day.', {
+              raw_span: 'she was at home all day',
+            }),
+          ]
+        : []),
+    ];
+    const { status, text } = render('bail_before_magistrate', facts);
+    expect(status('facts')).not.toBe('missing');
+    expect(text('facts')).not.toContain('{{MISSING');
+  });
 });
 
 // ── Top-level list names ────────────────────────────────────────────────────
