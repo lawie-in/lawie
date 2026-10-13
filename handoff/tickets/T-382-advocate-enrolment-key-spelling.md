@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting config) + Ajay (pack JSON is legal content) |
 | Mode   | Small fix |
-| Status | To do. Unassigned. From T-365 Explore (Mahak, 13 Oct 2026) |
+| Status | Mahak, together with T-365 AC6: one claim on the pack files, after Tanvi's T-374 releases the bail packs (Arjun, b8099fb). Rename in 7 packs, a read-side alias for saved drafts, and preflight reads the new key |
 | Source | default_bail, bail_before_magistrate and interim_bail spell `advocate_enrolment`; the code reads `advocate_enrollment` |
 
 ## Acceptance criteria

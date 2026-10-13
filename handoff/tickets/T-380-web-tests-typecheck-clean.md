@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web) |
 | Mode   | Small fix |
-| Status | Low priority. After T-369. Arjun, 13 Oct 2026 |
+| Status | Mahak, after T-365. Known errors (Mahak, 13 Oct): VerifyEmailPrompt.test.tsx 32 and verify-email/__tests__/page.test.tsx 13 (T-223), PrivacyUpdatePrompt.test.tsx 18 (T-343), signup-source.test.tsx 1. VerifyEmailPrompt.test.tsx is on Kunal's T-370 row until it merges |
 | Source | T-369 (Arjun): the CI web typecheck excludes `__tests__` through apps/web/tsconfig.typecheck.json |
 
 ## Acceptance criteria
