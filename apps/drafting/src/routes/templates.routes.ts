@@ -3,7 +3,7 @@ import { Router, Request, Response } from 'express';
 import { catalogueCategory } from '../config/catalogue';
 import { authenticate } from '../middleware/authenticate';
 import { Template } from '../models/Template.model';
-import { cardDescriptionFor } from '../utils/cardDescription';
+import { publicTemplateRow } from '../utils/publicTemplateConfig';
 
 const router = Router();
 
@@ -27,7 +27,7 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
 
   const templates = await Template.find(filter)
     .select(
-      'templateId slug displayName category catalogueCategory courtLevels planAccess creditsCost icon supportedLanguages',
+      'templateId slug displayName category catalogueCategory planAccess creditsCost icon supportedLanguages',
     )
     .lean();
 
@@ -41,45 +41,8 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
       a.displayName.localeCompare(b.displayName),
   );
 
-  res.json({
-    templates: templates.map((template) => ({
-      ...template,
-      // T-365 AC6: the signed card line only; '' when the pack has none.
-      description: cardDescriptionFor(template.templateId),
-    })),
-    plan,
-  });
-});
-
-/**
- * GET /templates/:slug
- * Returns a single template if accessible to the caller's plan.
- * Slug is the doc-rule template_id (also the JSON filename without .json).
- */
-router.get('/:slug', authenticate, async (req: Request, res: Response): Promise<void> => {
-  const plan = req.jwtPayload!.plan;
-  const { slug } = req.params;
-
-  const template = await Template.findOne({ slug, isActive: true }).lean();
-
-  if (!template) {
-    res.status(404).json({ error: 'Template not found' });
-    return;
-  }
-
-  if (template.planAccess === 'pro' && plan !== 'pro') {
-    res.status(403).json({
-      error: 'This template requires a Pro plan',
-      upgradeUrl: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/settings/billing`,
-    });
-    return;
-  }
-
-  // T-365 AC6: drop the stored (internal) description before the spread, then
-  // set the signed card line, so the old text cannot come back through the spread.
-  const { description: _internalDescription, ...rest } = template;
-  void _internalDescription;
-  res.json({ template: { ...rest, description: cardDescriptionFor(template.templateId) } });
+  // T-385: card keys only, through the shared allowlist projection.
+  res.json({ templates: templates.map(publicTemplateRow), plan });
 });
 
 export default router;
