@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web + drafting) |
 | Mode   | Full chain |
-| Status | To do. Unassigned. From T-365 AC7 (Mahak, 13 Oct 2026). Unblocks Anushka's T-313 and T-318 |
+| Status | Building. Mahak (Explore first; documents.routes.ts after T-373 merges; button design from Rajesh). Priya, 13 Oct 2026 |
 | Source | Anushka run 3: no Vakalatnama or Memo of Parties was produced |
 
 ## Acceptance criteria
