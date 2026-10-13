@@ -50,3 +50,7 @@ Ruling, cancel-at-cycle-end for every plan: a cancel means no renewal; the paid 
 
 Signed refund-page sentence (Ajay): "If you cancel an annual plan, you keep your monthly Ink until the end of the year you paid for."
 The drip stops when the plan expires or after the 12th grant, not on cancel. Kunal waits for Arjun's amended mechanism before he starts.
+
+## Arjun (13 Oct 2026): cancel at cycle end, for every plan
+
+Today `cancelSubscriptionInk` zeroes the balance immediately on cancel. That is a bug for monthly plans too. Fixed in this ticket: a cancelled plan keeps its balance and drip until `paidThrough` (from the webhook), and is zeroed only after that. A refund path exists only if Ajay's refund policy allows refunds. If it does, that's a separate ticket.
