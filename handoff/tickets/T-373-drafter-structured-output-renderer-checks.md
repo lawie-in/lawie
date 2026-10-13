@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead A (drafting) + Ajay (sign) + Arjun (contract) |
 | Mode   | Full chain |
-| Status | To do; ready to start (spec ebea19e). Ordered by Arjun (NEXT 2, ADR-025 D1, lead A). Priya, 13 Oct 2026 |
+| Status | Building. Vishal, round 3 pushed 91a179b. Merges after Mahak's T-365. Priya, 13 Oct 2026 |
 | Source | ADR-025 (Arjun, 13 Oct 2026, handoff/tickets/ADR-025-structured-drafting-and-signed-data.md) |
 
 ## Acceptance criteria
