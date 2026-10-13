@@ -26,11 +26,12 @@ Not in the PDF/DOCX group. Those are 30 px high text-xs chips (red and blue, off
 | Loading | Same card; button shows spinner (`Loader2`, aria-hidden) and `annex.loading` | `aria-busy="true"`, `aria-disabled="true"`, stays focusable |
 | Success | Teal-light row with check icon and `annex.success_title`, then four downloads grouped per document: Vakalatnama (`annex.link_vakalatnama`) with PDF and DOCX, Memo of Parties (`annex.link_memo`) with PDF and DOCX. At 375 px the two groups stack, each group a heading plus two full-width 44 px buttons side by side (or stacked if the label wraps). At 1280 px the groups sit side by side, a 2 x 2 set. Format names (PDF, DOCX) are part of each link's accessible name. The generate button becomes the already-exists state below | Enabled |
 | Already exists (a pack was made before) | Card opens with the same four download buttons as success, no spinner, plus a secondary button `annex.regenerate` and a one-line `annex.regenerate_note` under it saying it replaces the old pack (Madhuri's words). Regenerate runs the loading, success, missing-details and error states above; the old links stay until the new pack succeeds | Regenerate: secondary, enabled |
-| Success with blanks | As success or already exists, plus a gold-light note `annex.blanks_note` (same look as the starting-draft note on this page, `brand-gold-light`/`brand-gold-dark`). If the pack reports blanks, Ajay decides whether the T-194 warning dialog must run before download; until he says, show the note only | Enabled |
+| Success with blanks | As success or already exists, plus a gold-light note `annex.blanks_note` (same look as the starting-draft note, `brand-gold-light`/`brand-gold-dark`), shown when the pack reports `[To be confirmed: …]` blanks. The T-194 dialog still runs on every download (next section) | Enabled |
 | Party details missing | Gold-light box, title `annex.missing_title`, then a list of the missing items, one per row, from the API response (party names and roles per AC 2), each with its label key `annex.missing_item.<field>`. Then the fix action `annex.missing_fix` | Button stays visible; it re-runs the check |
 | Error | Error-light row with `role="alert"`, `annex.error`, and a `annex.retry` link-button in the same row (as the page's export error banner, T-233) | Enabled |
 
 - **Fixing missing details:** the fix button takes the user to where the parties are entered for this draft (the "Check your brief" screen with the parties fields focused). This route is confirmed (Priya, 13 Oct). After the user returns, the card re-checks on its own and returns to idle (or already exists, if a pack was made before).
+- **Download flow, T-194 applies (Ajay, 13 Oct):** every download of either annexure, PDF or DOCX, goes through the same blanks check as any other export. Tap a download, then the check runs on that file. No blanks: the file downloads. Blanks: `ExportBlanksDialog` opens (dialog at 1280 px, bottom sheet at 375 px) and nothing downloads until "Export anyway"; "Go back and fill" returns to the card (the fix is the missing-details route). The file then carries the header `DRAFT — N items to be confirmed` and the highlighted blanks, exactly as the main draft's export. Reuse the dialog and the page's blank-warning state as they are; do not build a second one. The dialog's focus return is to the download button that opened it. Signed blanks the pack can carry: the opposite party (T-404 vakalatnama row) and the advocate's enrolment number (T-404 Addendum 3).
 - Success does not auto-download. The user taps a link; nothing is saved to the device before that.
 - A second press while loading is ignored (as the export buttons do).
 
@@ -51,21 +52,24 @@ Navy on white 15:1 or more; white on navy 15:1; gold-dark on gold-light about 6;
 
 - `intake/ui.ts`: `primaryButton`, `secondaryButton`, `linkButton`, `card`, `tagGold`, `tagTeal`, `tagError`, `small`.
 - Page patterns: the T-233 export error banner (role alert, "Try again"), the `aria-disabled`/`aria-busy` pattern on the export buttons, the starting-draft gold note, the disclaimer note styling.
-- `ExportBlanksDialog` (T-194): the "blanks" pattern only if Ajay asks for it on the pack; do not build a second dialog.
+- `ExportBlanksDialog` (T-194): used as is on every annexure download (Ajay signed that it applies).
 - Verify-prompt (T-223): the single live region plus alert node, and the loading, success and error rows.
 - Tokens: `brand-navy`, `brand-page`, `brand-line`, `brand-gold-light`/`brand-gold-dark`, `brand-teal-light`/`brand-teal-dark`, `brand-error`/`brand-error-light`, `brand-muted`. Icons: lucide `file-text`, `check`, `alert-triangle`, `loader-2`. No new colours; do not copy the red/blue chip colours.
 
 ## 6. String keys needed
 
-`annex.region_label`, `annex.hint`, `annex.button`, `annex.regenerate`, `annex.regenerate_note`, `annex.loading`, `annex.success_title`, `annex.link_vakalatnama`, `annex.link_memo`, `annex.blanks_note`, `annex.missing_title`, `annex.missing_item.<field>` (one per field the API can list), `annex.missing_fix`, `annex.error`, `annex.retry`, `annex.sr_loading`, `annex.sr_success`, `annex.sr_missing` (screen-reader lines for the live region). Names for the Vakalatnama and the Memo of Parties are legal naming: Ajay to sign. Whether the disclaimer line must sit beside the download links is Ajay's call; the page already shows it above the editor.
+`annex.region_label`, `annex.hint`, `annex.button`, `annex.regenerate`, `annex.regenerate_note`, `annex.loading`, `annex.success_title`, `annex.link_vakalatnama`, `annex.link_memo`, `annex.blanks_note`, `annex.missing_title`, `annex.missing_item.<field>` (one per field the API can list), `annex.missing_fix`, `annex.error`, `annex.retry`, `annex.sr_loading`, `annex.sr_success`, `annex.sr_missing` (screen-reader lines for the live region). Signed by Ajay, 13 Oct (`handoff/legal/T-381-annexures-button-signed.md`): button `Create Vakalatnama and Memo of Parties`, success title `Vakalatnama and Memo of Parties created`. His file also names `annex.button_help`, `annex.success_note`, `annex.download_vakalatnama`, `annex.download_memo`; map my `annex.hint` to `annex.button_help` and `annex.link_*` to `annex.download_*`, and use his names where they differ.
+
+**Disclaimer:** no banner or line by the card or the buttons (Ajay). Each downloaded file carries the annexure footer (T-317 Addendum 4); nothing to design on the page. Do not label the files or the card "generated with AI".
 
 ## 7. Screenshots Mahak must take for the report
 
 Fictional matter only (`Sample, fictional matter`, no real names). Each at 375 px and 1280 px.
 
-1. Idle: the card between the disclaimer and the editor.
+1. Idle: the card between the disclaimer and the editor. (The disclaimer there is the draft's own banner, not part of the card.)
 2. Loading: spinner state (button `aria-busy`).
 3. Success: all four downloads visible (PDF and DOCX for each document), and one downloaded Vakalatnama and Memo of Parties open, showing the sample party names.
+3a. An annexure with a `[To be confirmed: …]` blank: the T-194 dialog on download (375 px bottom sheet, 1280 px dialog), then the downloaded file showing the `DRAFT — N items to be confirmed` header, the highlighted blank and the annexure footer.
 3b. Already exists: reopening the draft after a pack was made, with the downloads and the Regenerate button and its note.
 4. Party details missing: the list of missing items and the fix action, then "Check your brief" opened with the parties fields focused.
 5. Error: the alert row with the retry.
