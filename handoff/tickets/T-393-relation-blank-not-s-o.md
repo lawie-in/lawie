@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay |
 | Mode   | Small fix (legal content) |
-| Status | Building. Kunal, after T-379. RELEASE GATE (Anushka run 3, T-359 AC6). Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging 3b0fdf2 (kunal, 13 Oct 2026). Ajay signed dff323f5, 17845087, 7c2f1d24. Waiting for Anushka on develop. Memo of parties and affidavit are T-396. Priya |
 | Source | T-359 AC6, Ajay signed dff323f: "the relation defaults to a blank, never S/o" |
 
 ## Problem
