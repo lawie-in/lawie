@@ -80,6 +80,7 @@ import {
   renderDraft,
   skeletonTexts,
   skeletonValueLists,
+  statedByValueIn,
 } from './draft-renderer';
 import {
   DRAFTER_D1_SYSTEM_PROMPT,
@@ -1932,6 +1933,17 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
   const body = citations.text;
 
   // ── The fact verifier, read-only (Arjun, D1 call shape 3) ─────────────────
+  // An `unsupported` date or amount stated by value in a held own-words fact's
+  // raw_span is the advocate's own statement, not a finding (the renderer's rule).
+  const ownWordsKeys = new Set(
+    skeleton.clauses
+      .filter((cl) => cl.source === 'advocate')
+      .map((cl) => cl.slot ?? cl.from)
+      .filter((k): k is string => typeof k === 'string'),
+  );
+  const statedByAdvocate = statedByValueIn(
+    ledger.facts.filter((f) => ownWordsKeys.has(f.key)).map((f) => f.raw_span ?? ''),
+  );
   const factCheck = d1FactCheck(
     body,
     verifyDraft({
@@ -1945,7 +1957,7 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
         ...(promptInput.statedInstructions ?? []),
         ...skeletonTexts(skeleton),
       ],
-    }),
+    }).filter((v) => !statedByAdvocate(v)),
   );
 
   // ── The body takes its place among the parts the system wrote ─────────────

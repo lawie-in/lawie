@@ -62,7 +62,7 @@ import type { AvermentCondition, AvermentLists } from './averments';
 import { factEntriesByKey } from './averments';
 import { readSectionsCharged } from './bns-offence-resolver';
 import { missingPlaceholder } from './brief-drafter';
-import { verifyDraft, VerifierInput } from './fact-verifier';
+import { FactViolation, verifyDraft, VerifierInput } from './fact-verifier';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
 import type { RulePackFact } from './rule-pack.service';
 
@@ -584,6 +584,102 @@ export function ownWordsAddedWord(text: string, rawSpan: string): boolean {
   );
 }
 
+/**
+ * Ajay (T-334 Addendum 2): the prefixes one of which is stripped from the
+ * front of a `police_station` value before it fills a slot, because the
+ * signed text already says "Police Station {police_station}". Matching data
+ * only, never printed. The ledger keeps the advocate's words.
+ */
+export const POLICE_STATION_PREFIXES: ReadonlyArray<readonly string[]> = [
+  ['police', 'station'],
+  ['p', 's'],
+  ['ps'],
+  ['thana'],
+];
+
+/**
+ * One leading police-station prefix removed (case-insensitive), then trimmed:
+ * "PS Kadamkuan", "P.S. Kadamkuan", "Police Station Kadamkuan" and
+ * "Thana-Kotwali" lose it; "Psalm Nagar" does not (whole words only).
+ */
+export function stripPoliceStationPrefix(value: string): string {
+  const v = value.trim();
+  for (const words of POLICE_STATION_PREFIXES) {
+    let rest = v;
+    let matched = true;
+    for (const w of words) {
+      const m = rest.match(/^(\p{L}+)[\s.:,-]*/u);
+      if (!m || m[1].toLowerCase() !== w) {
+        matched = false;
+        break;
+      }
+      rest = rest.slice(m[0].length);
+    }
+    // A prefix glued to the name ("PSKadamkuan") is not a prefix.
+    if (matched && rest.trim() !== '' && rest.length < v.length) {
+      const consumed = v.slice(0, v.length - rest.length);
+      if (/[\s.:,-]$/.test(consumed)) return rest.trim();
+    }
+  }
+  return v;
+}
+
+/**
+ * The sums of money a text states, by value: "Rs 8,00,000", "Rs. 800000" and
+ * "₹8,00,000" are all 800000 (Indian or international digit grouping). Only
+ * figures written with a currency marker count, as the verifier reads them.
+ */
+export function amountsInText(text: string): number[] {
+  const out: number[] = [];
+  for (const m of text.matchAll(/(?:₹|\b(?:rs|inr)\b\.?)\s*(\d[\d,]*(?:\.\d+)?)/giu)) {
+    const n = Number(m[1].replace(/,/g, ''));
+    if (Number.isFinite(n)) out.push(n);
+  }
+  return out;
+}
+
+/**
+ * The model's text is the advocate's own `raw_span`, after folding case,
+ * whitespace and punctuation: it is printed as given, status `ok`.
+ */
+export function sameAsRawSpan(text: string, rawSpan: string): boolean {
+  const f = (t: string) =>
+    t
+      .normalize('NFKC')
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim();
+  return f(text) !== '' && f(text) === f(rawSpan);
+}
+
+/**
+ * The one rule (T-373) for a verifier `unsupported` date or amount finding
+ * inside the advocate's own words: the verifier does not read dates or
+ * amounts inside a narrative fact, so a finding whose every date or amount
+ * the given raw_spans state, by value ("2 Mar 2025" is "2 March 2025",
+ * "Rs 8,00,000" is "Rs 800000"), is the advocate's own statement, not an
+ * invented value. A changed value is not in the raw_span and still counts.
+ * Used by the renderer (rule 3) and by the read-only D1 fact check.
+ */
+export function statedByValueIn(
+  rawSpans: readonly string[],
+): (v: Pick<FactViolation, 'check' | 'entityType' | 'draftValue'>) => boolean {
+  const dates = new Set(rawSpans.flatMap((r) => datesInText(r)));
+  const amounts = new Set(rawSpans.flatMap((r) => amountsInText(r)));
+  return (v) => {
+    if (v.check !== 'unsupported' || !v.draftValue) return false;
+    if (v.entityType === 'date') {
+      const said = datesInText(v.draftValue);
+      return said.length > 0 && said.every((d) => dates.has(d));
+    }
+    if (v.entityType === 'amount') {
+      const said = amountsInText(v.draftValue);
+      return said.length > 0 && said.every((a) => amounts.has(a));
+    }
+    return false;
+  };
+}
+
 // ── The renderer ────────────────────────────────────────────────────────────
 
 export type ClauseStatus = 'ok' | 'missing' | 'fallback';
@@ -767,7 +863,8 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
       ? entries.flatMap((f) => f.display.split(/[,;]/))
       : entries.map((f) => f.display);
     for (const raw of segments) {
-      const s = raw.trim();
+      // Ajay (T-334 Addendum 2): "Police Station {police_station}" never prints "Police Station PS ...".
+      const s = key === 'police_station' ? stripPoliceStationPrefix(raw) : raw.trim();
       if (s === '') continue;
       const keys = SECTION_KEYS.has(key) ? sectionKeys(s) : [];
       const ids = keys.length > 0 ? keys : [folded(s)];
@@ -847,17 +944,12 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
   /** Rule 3: the model's own-words text passes the verifier against the referenced fact alone. */
   const keepsToFact = (text: string, entries: readonly LedgerFact[]): boolean => {
     const spans = entries.map((f) => folded(f.raw_span ?? ''));
-    const spanDates = new Set(entries.flatMap((f) => datesInText(f.raw_span ?? '')));
+    const statedInSpans = statedByValueIn(entries.map((f) => f.raw_span ?? ''));
     const violations = verifyDraft({ ...input.verifier, body: text, facts: entries });
     return !violations.some((v) => {
       if (!REJECTING_CHECKS.has(v.check)) return false;
-      // A date the advocate's raw_span states, by value ("2 March 2025" for "2 Mar
-      // 2025"): ruling 1 has already compared every date of the text with the
-      // raw_span, and the verifier does not read dates inside a narrative fact.
-      if (v.check === 'unsupported' && v.entityType === 'date' && v.draftValue) {
-        const said = datesInText(v.draftValue);
-        if (said.length > 0 && said.every((d) => spanDates.has(d))) return false;
-      }
+      // A date or amount the advocate's raw_span states, by value (one shared rule).
+      if (statedInSpans(v)) return false;
       // A banned phrase the advocate wrote is the advocate's own words, stated as that fact.
       if (
         v.check === 'banned' &&
@@ -910,6 +1002,8 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
   ): { words: string; reason?: FallbackReason } => {
     const text = (own ?? '').trim();
     const raw = (entry.raw_span ?? '').trim() || entry.display.trim();
+    // The advocate's own words, as given (folding case, spacing and punctuation): never a fallback.
+    if (sameAsRawSpan(text, raw)) return { words: text };
     if (
       text !== '' &&
       !ownWordsAlteredEntity(text, raw) &&
