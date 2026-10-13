@@ -17,3 +17,8 @@ Found during Kunal's T-399 build and confirmed by Arjun. This bug was already th
 
 ## Files
 apps/billing/src/routes/billing.routes.ts, plus a new test.
+
+## Arjun (13 Oct 2026)
+
+(a) In T-413: on a handler error, `Sentry.captureException` with `fingerprint: [event, x-razorpay-event-id]` so the retries of one event collapse into one alert; Pino alone reaches nobody.
+(b) Blocks T-413, because returning 5xx creates the retries that widen it. Top-up grants must be idempotent before the `$inc`: claim the Razorpay `payment_id` first (CAS, the same shape as T-399's `paid_count`: `findOneAndUpdate` on a `processedPaymentIds`/`lastGrantedPaymentId` field, or an inkledger row with a unique key written before the `$inc`), then grant; a retry that finds the claim taken is a no-op 200. Ledger write errors are not swallowed: a failed ledger write after a successful `$inc` logs at error level and still acks (the grant stood). Test: the same `payment.captured` delivered twice → one grant.
