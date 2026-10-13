@@ -1091,6 +1091,90 @@ export interface PlaceholderContext {
 export const GOVERNING_PROVISION_BLANK =
   '[To be confirmed: Section 167(2) CrPC or Section 187(3) BNSS]';
 
+/**
+ * T-393 (Ajay, T-359 AC6, signed dff323f): what the relation prints when
+ * neither the relation nor the name of the parent or spouse is given.
+ */
+export const RELATION_BLANK = '[To be confirmed: relation and name of parent or spouse]';
+
+/** T-393 (Ajay, T-359 AC6 Addendum 2): the relation part, when only the name is given. */
+export const RELATION_ONLY_BLANK = '[To be confirmed: relation]';
+
+/** T-393 (Ajay, T-359 AC6 Addendum 2): the name part, when only the relation is given. */
+export const PARENT_NAME_BLANK = '[To be confirmed: name of parent or spouse]';
+
+/** T-393: the relations Ajay allows (AC6 Addendum 3), as they print. */
+export type PartyRelation = 'S/o' | 'D/o' | 'W/o' | 'H/o';
+
+/**
+ * T-393: the context keys the applicant's relation may be given under. Nothing
+ * asks for it yet (Ajay's question comes later, in the rule files).
+ */
+export const RELATION_SOURCES = ['applicant_relation', 'relation_type', 'relation'];
+
+/** T-393: the context keys the name of the applicant's parent or spouse may be given under. */
+export const PARENT_NAME_SOURCES = [
+  'father_name',
+  'applicant_parentage',
+  'applicant_father_name',
+  'parentName',
+];
+
+const RELATION_WORDS: Record<string, PartyRelation> = {
+  so: 'S/o',
+  sonof: 'S/o',
+  sonofso: 'S/o',
+  do: 'D/o',
+  daughterof: 'D/o',
+  daughterofdo: 'D/o',
+  wo: 'W/o',
+  wifeof: 'W/o',
+  wifeofwo: 'W/o',
+  ho: 'H/o',
+  husbandof: 'H/o',
+  husbandofho: 'H/o',
+};
+
+/**
+ * T-393: the relation as given, normalised to `S/o`, `D/o`, `W/o` or `H/o`
+ * ("s/o", "Son of", "Son of (S/o)" and "son_of" are all `S/o`). Anything else,
+ * including a blank, is not a relation and gives undefined. The relation is
+ * never inferred from the applicant's sex or from anything else.
+ */
+export function normaliseRelation(value: unknown): PartyRelation | undefined {
+  if (typeof value !== 'string') return undefined;
+  return RELATION_WORDS[value.toLowerCase().replace(/[^a-z]/g, '')];
+}
+
+/** T-393: true for a name that is given (not empty, not a `[To be confirmed: …]` blank). */
+function isGivenName(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '' && !IS_BLANK.test(value.trim());
+}
+
+/**
+ * T-393 (Ajay, T-359 AC6 and its Addendum): what prints for the relation and
+ * the name of the parent or spouse. Never a default `S/o`.
+ * - both given: `S/o Suresh Kumar`
+ * - name only: `[To be confirmed: relation] Suresh Kumar`
+ * - relation only: `S/o [To be confirmed: name of parent or spouse]`
+ * - neither: `[To be confirmed: relation and name of parent or spouse]`
+ */
+export function relationLine(relation: unknown, parentName: unknown): string {
+  const rel = normaliseRelation(relation);
+  const name = isGivenName(parentName) ? parentName.trim() : undefined;
+  if (rel && name) return `${rel} ${name}`;
+  if (name) return `${RELATION_ONLY_BLANK} ${name}`;
+  if (rel) return `${rel} ${PARENT_NAME_BLANK}`;
+  return RELATION_BLANK;
+}
+
+/** T-393: `relationLine` from a context, each part from the first source that has it. */
+export function relationLineFor(ctx: Record<string, unknown>): string {
+  const relKey = RELATION_SOURCES.find((k) => normaliseRelation(ctx[k]) !== undefined);
+  const nameKey = PARENT_NAME_SOURCES.find((k) => isGivenName(ctx[k]));
+  return relationLine(relKey && ctx[relKey], nameKey && ctx[nameKey]);
+}
+
 /** The `source` of a form field (e.g. 'bns_mapping'), if the template defines one. */
 export function fieldSourceOf(config: TemplateConfig | null, fieldId: string): string | undefined {
   for (const step of config?.form_schema?.steps ?? []) {
@@ -1544,6 +1628,11 @@ export function buildPlaceholderContext(
     ctx.governing_provision = GOVERNING_PROVISION_BLANK;
   }
 
+  // T-393 (Ajay, T-359 AC6): {parent_relation} / {parentRelation} is the
+  // relation and the name of the parent or spouse, or the signed blanks. Always
+  // the server's value; never a default `S/o`.
+  ctx.parent_relation = relationLineFor(ctx);
+
   // T-146: aliases are set after the SCRUM-50 court-rule block, so an alias
   // such as {caseNomenclature} reads the same value as {case_nomenclature}.
   applyPlaceholderAliases(ctx);
@@ -1595,6 +1684,7 @@ export const PLACEHOLDER_ALIASES: ReadonlyArray<
   ['caseNomenclature', ['case_nomenclature']],
   ['applicant', ['applicant_name']],
   ['parentName', ['applicant_parentage', 'applicant_father_name']],
+  ['parentRelation', ['parent_relation']],
   ['age', ['applicant_age']],
   ['applicantAddress', ['applicant_address']],
   ['respondentAddress', ['respondent_address']],
@@ -2007,10 +2097,9 @@ export function buildAIUserPrompt(section: DocumentSection, ctx: PlaceholderCont
   // Inject applicant identity guardrail — prevent AI from inventing party details
   if (ctx.applicant_name) {
     const identityParts = [`Name: ${ctx.applicant_name}`];
-    if (ctx.father_name) {
-      const rel = (ctx.relation_type as string | undefined) ?? 'S/o / D/o / W/o';
-      identityParts.push(`${rel}: ${ctx.father_name}`);
-    }
+    // T-393: the relation as given, or the signed blank; never a presumed one.
+    const parentage = relationLineFor(ctx);
+    if (parentage !== RELATION_BLANK) identityParts.push(`Parentage: ${parentage}`);
     if (ctx.applicant_age) identityParts.push(`Age: ${ctx.applicant_age} years`);
     if (ctx.address) identityParts.push(`Address: ${ctx.address}`);
     prompt += `\n\nIMMUTABLE APPLICANT IDENTITY (use EXACTLY as given — do NOT change name, parentage, age, or address):\n${identityParts.join('\n')}`;

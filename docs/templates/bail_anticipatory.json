@@ -474,7 +474,7 @@
         "section_id": "cause_title",
         "type": "template",
         "alignment": "center",
-        "template": "{court_header}\n\n{case_nomenclature}\n\nIN THE MATTER OF:\n\n{applicant_name}\nS/o {father_name}\nAge: {applicant_age} years\nR/o {address}\n                                              ... {party_label_petitioner}\n\nVersus\n\n{state_respondent}\n                                              ... {party_label_respondent}"
+        "template": "{court_header}\n\n{case_nomenclature}\n\nIN THE MATTER OF:\n\n{applicant_name}\n{parent_relation}\nAge: {applicant_age} years\nR/o {address}\n                                              ... {party_label_petitioner}\n\nVersus\n\n{state_respondent}\n                                              ... {party_label_respondent}"
       },
       {
         "section_id": "application_heading",
