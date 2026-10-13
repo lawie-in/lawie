@@ -10,7 +10,7 @@
  * No model call and no database.
  */
 import { createHash } from 'crypto';
-import { readFileSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import {
@@ -21,12 +21,20 @@ import {
   type GivenValue,
 } from '../services/intake-brief';
 import { normalizeDate } from '@lawie/shared';
+import type { LedgerFact } from '@lawie/shared';
 import { datesAsWritten, datesInText } from '../services/intake-text';
-import { loadRulePack } from '../services/rule-pack.service';
+import type { DocumentRuleConfig } from '../services/prompt-assembler';
+import { generateFilingChecklist } from '../services/post-processor';
+import { loadRulePack, readFilingChecklist } from '../services/rule-pack.service';
 import {
+  S138_COMPUTED_DISPLAYS,
+  S138_COMPUTED_KEYS,
+  S138_INPUT_KEYS,
   S138_LINE_TEXTS,
   s138BriefDateCheck,
+  s138DateChecks,
   s138FactsFromBrief,
+  withS138DateChecks,
 } from '../services/s138-date-checks';
 import {
   buildPlaceholderContext,
@@ -465,10 +473,11 @@ const RULES = JSON.parse(RULES_RAW) as {
 const packFields = RULES.form_schema.steps.flatMap((s) => s.fields);
 
 describe('T-363 pack: demand and warning wording', () => {
-  it("prayerTemplate is Ajay's two sentences, byte-exact, in two paragraphs", () => {
+  it("prayerTemplate is Ajay's two sentences, byte-exact, in one paragraph (single space)", () => {
     expect(RULES.prayerTemplate).toBe(
-      `${DEMAND_SENTENCE.replace('{cheque_amount}', '{amount}')}\n\n${AC3_LINE}`,
+      `${DEMAND_SENTENCE.replace('{cheque_amount}', '{amount}')} ${AC3_LINE}`,
     );
+    expect(RULES.prayerTemplate).not.toContain('\n');
   });
 
   it('the old civil / criminal complaint / amount-in-words demand text is gone', () => {
@@ -527,6 +536,277 @@ describe('T-363 pack: demand and warning wording', () => {
       /insufficient funds|funds insufficient|account closed|account does not exist|account did not exist/i;
     const hits = RULES_RAW.split('\n').filter((l) => examples.test(l));
     expect(hits).toEqual([]);
+  });
+});
+
+describe("T-363 pack: filingChecklist holds Ajay's Addendum 3 lines", () => {
+  const LINE_30 =
+    "Send the notice within 30 days of receiving the bank's return memo (Section 138, proviso (b)).";
+  const LINE_142 =
+    'If payment is not made within 15 days of receipt of the notice, file the complaint within one month after those 15 days end (Section 142(1)(b)).';
+  const list = (RULES as unknown as { filingChecklist: string[] }).filingChecklist;
+
+  it('holds both lines byte-exact, once each', () => {
+    expect(list.filter((l) => l === LINE_30)).toHaveLength(1);
+    expect(list.filter((l) => l === LINE_142)).toHaveLength(1);
+  });
+
+  it('has no struck "within 30 days after expiry" or "within next 30 days" line', () => {
+    expect(list.join('\n')).not.toMatch(/within 30 days after expiry/i);
+    expect(list.join('\n')).not.toMatch(/within next 30 days/i);
+    expect(RULES_RAW).not.toMatch(/within 30 days after expiry|within next 30 days/i);
+  });
+
+  it('keeps the 15-day wait step', () => {
+    expect(list).toContain('Wait 15 days from receipt of notice before filing complaint');
+  });
+
+  it('what the advocate receives (generateFilingChecklist / readFilingChecklist) is the same list', () => {
+    const rule = RULES as unknown as DocumentRuleConfig;
+    expect(generateFilingChecklist(rule)).toEqual(list);
+    expect(readFilingChecklist(RULES)).toEqual(list);
+    const out = generateFilingChecklist(rule);
+    expect(out).toContain(LINE_30);
+    expect(out).toContain(LINE_142);
+    expect(out.join('\n')).not.toMatch(/within 30 days after expiry|within next 30 days/i);
+  });
+
+  it('the loaded rule pack carries the same checklist', () => {
+    const p = loadRulePack(PACK) as unknown as { filingChecklist?: string[] } | null;
+    expect(p).not.toBeNull();
+    expect(readFilingChecklist(p)).toEqual(list);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ajay (13 Oct, after round 1): a date read from the description is acceptable
+// for the B2 warning only. A1/B1 and their twin texts need the advocate's date.
+// In the ledger, source 'user' = read from the description; 'asked' = the
+// advocate typed or confirmed it.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('T-363: a description-read date unlocks the B2 warning only, never A1/B1', () => {
+  const MEMO = '2026-09-15';
+  const IN_TIME = '2026-10-01';
+  const OUT = '2026-10-30';
+
+  function dateFact(key: string, iso: string, source: 'user' | 'asked'): LedgerFact {
+    return {
+      id: `f_${key}`,
+      key,
+      label: key,
+      type: 'date',
+      value: iso,
+      display: iso,
+      raw_span: iso,
+      source,
+      confidence: 0.99,
+      required_in_draft: true,
+    } as LedgerFact;
+  }
+  const ledgerOf = (
+    source: 'user' | 'asked',
+    d: { L1?: string; L3?: string; L4?: string; L5?: string },
+  ) =>
+    (Object.entries(d) as Array<['L1' | 'L3' | 'L4' | 'L5', string]>).map(([k, v]) =>
+      dateFact(S138_INPUT_KEYS[k], v, source),
+    );
+  const computedKeys = (fs: LedgerFact[]) =>
+    fs.filter((f) => f.source === 'computed').map((f) => f.key);
+  const BOTH = { L1: '2026-08-01', L3: '2026-08-20', L4: MEMO, L5: IN_TIME };
+
+  it('brief: description-read dates (GivenValue source description) give the B2 warning', () => {
+    const b = buildBrief({
+      kind,
+      checklist: checklist(),
+      values: [
+        { key: 'memo_received_date', value: MEMO, source: 'description' },
+        { key: 'notice_sent_date', value: OUT, source: 'description' },
+      ],
+    });
+    expect(b.date_check?.line).toBe('B2');
+    expect(b.items.find((i) => i.key === 'notice_sent_date')?.source).toBe('description');
+  });
+
+  it('brief: description-read dates in time give no B1 line and no computed fact', () => {
+    const b = buildBrief({
+      kind,
+      checklist: checklist(),
+      values: [
+        { key: 'memo_received_date', value: MEMO, source: 'description' },
+        { key: 'notice_sent_date', value: IN_TIME, source: 'description' },
+      ],
+    });
+    expect(b.date_check).toBeUndefined();
+    const text = JSON.stringify(b);
+    expect(text).not.toContain(S138_COMPUTED_DISPLAYS.b);
+    expect(text).not.toContain(S138_COMPUTED_KEYS.b);
+    expect(text).not.toMatch(/within 30 days \(last day/);
+  });
+
+  it('brief check adds no fact: s138BriefDateCheck returns only a B2 line, never B1', () => {
+    const items = [
+      { key: 'memo_received_date', kind: 'date', value: MEMO },
+      { key: 'notice_sent_date', kind: 'date', value: IN_TIME },
+    ];
+    expect(s138BriefDateCheck(PACK, items)).toBeNull();
+  });
+
+  it("control: the advocate's confirmed (asked) dates unlock A1 and B1 and the twin texts", () => {
+    const out = withS138DateChecks(ledgerOf('asked', BOTH), PACK);
+    expect(computedKeys(out)).toEqual([S138_COMPUTED_KEYS.a, S138_COMPUTED_KEYS.b]);
+    expect(out.find((f) => f.key === S138_COMPUTED_KEYS.a)?.display).toBe(S138_COMPUTED_DISPLAYS.a);
+    expect(out.find((f) => f.key === S138_COMPUTED_KEYS.b)?.display).toBe(S138_COMPUTED_DISPLAYS.b);
+  });
+
+  // Ajay (ruling b): a date read from the description, shown on the brief and
+  // confirmed by the advocate counts as the advocate's confirmed date (T-192's
+  // user/asked rule stays). The limit is timing and provenance, pinned below.
+
+  describe('(1) no A1/B1 unlock before Confirm', () => {
+    const SRC = join(__dirname, '..');
+    function sourceFiles(dir: string): string[] {
+      return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+        const full = join(dir, e.name);
+        if (e.isDirectory()) return e.name === '__tests__' ? [] : sourceFiles(full);
+        return /\.tsx?$/.test(e.name) ? [full] : [];
+      });
+    }
+    const files = sourceFiles(SRC);
+    const using = (name: string) =>
+      files
+        .filter((f) => !f.endsWith('s138-date-checks.ts'))
+        .filter((f) => new RegExp(`\\b${name}\\b`).test(readFileSync(f, 'utf8')))
+        .map((f) => f.slice(SRC.length + 1))
+        .sort();
+
+    it('only the generate-from-brief route calls withS138DateChecks (documents.routes.ts, after Confirm)', () => {
+      expect(using('withS138DateChecks')).toEqual(['routes/documents.routes.ts']);
+      const routes = readFileSync(join(SRC, 'routes/documents.routes.ts'), 'utf8');
+      const at = routes.indexOf('withS138DateChecks(');
+      const route = routes.lastIndexOf("router.post(\n  '/", at);
+      expect(routes.slice(route, route + 80)).toContain("'/generate-from-brief'");
+    });
+
+    it('nothing else computes A1/B1: s138DateChecks and the computed keys are used by no other source file', () => {
+      expect(using('s138DateChecks')).toEqual([]);
+      expect(using('S138_COMPUTED_KEYS')).toEqual([]);
+      expect(using('S138_COMPUTED_DISPLAYS')).toEqual([]);
+      expect(using('computedFact')).toEqual([]);
+    });
+
+    it('the pre-Confirm brief reads only s138BriefDateCheck (B2 only), in intake-brief.ts', () => {
+      expect(using('s138BriefDateCheck')).toEqual(['services/intake-brief.ts']);
+      expect(using('s138FactsFromBrief')).toEqual([]);
+    });
+
+    it('the intake routes do not touch the s.138 checks at all', () => {
+      const intake = readFileSync(join(SRC, 'routes/intake.routes.ts'), 'utf8');
+      expect(intake).not.toMatch(/s138|S138/);
+    });
+
+    it.each([
+      ['in time', IN_TIME],
+      ['out of time', OUT],
+      ['no notice date', undefined],
+    ])(
+      'the brief (dates read from the description, %s) carries no computed fact and no A1/B1 text',
+      (_n, sent) => {
+        const values: GivenValue[] = [
+          { key: 'cheque_date', value: '2026-08-01', source: 'description' },
+          { key: 'presentation_date', value: '2026-08-20', source: 'description' },
+          { key: 'memo_received_date', value: MEMO, source: 'description' },
+        ];
+        if (sent) values.push({ key: 'notice_sent_date', value: sent, source: 'description' });
+        const b = buildBrief({ kind, checklist: checklist(), values });
+        const json = JSON.stringify(b);
+        for (const gone of [
+          S138_COMPUTED_KEYS.a,
+          S138_COMPUTED_KEYS.b,
+          S138_COMPUTED_DISPLAYS.a,
+          S138_COMPUTED_DISPLAYS.b,
+          'checked by Lawie',
+          'Notice in time',
+          'Presented in time',
+          'within 30 days (last day',
+        ]) {
+          expect(json).not.toContain(gone);
+        }
+        if (b.date_check) expect(b.date_check.line).toBe('B2');
+        expect(
+          b.items.every((i) => i.source === null || ['description', 'user'].includes(i.source)),
+        ).toBe(true);
+      },
+    );
+  });
+
+  describe('(2) A1/B1 use only a date the brief shows', () => {
+    it('all five inputs are brief items of the pack, as dates', () => {
+      const byKey = new Map(checklist().map((i) => [i.key, i]));
+      for (const key of Object.values(S138_INPUT_KEYS)) {
+        expect(byKey.get(key)?.kind).toBe('date');
+      }
+    });
+
+    it('a date fact with source computed never unlocks A1/B1', () => {
+      const fs = [
+        ...ledgerOf('asked', { L1: '2026-08-01', L3: '2026-08-20' }),
+        dateFact(S138_INPUT_KEYS.L4, MEMO, 'asked'),
+        { ...dateFact(S138_INPUT_KEYS.L5, IN_TIME, 'asked'), source: 'computed' } as LedgerFact,
+      ];
+      const out = withS138DateChecks(fs, PACK);
+      expect(computedKeys(out)).toEqual([S138_COMPUTED_KEYS.a]);
+      const allComputed = fs.map((f) => ({ ...f, source: 'computed' }) as LedgerFact);
+      expect(s138DateChecks(allComputed, PACK).computedFacts).toEqual([]);
+    });
+
+    it('a date under a key that is not a brief item (other key, prefixed key) never unlocks', () => {
+      for (const [m, n] of [
+        ['dishonour_date', 'presentation_date'],
+        ['dates.memo_received_date', 'dates.notice_sent_date'],
+        ['memo_date', 'notice_date'],
+      ]) {
+        const fs = [dateFact(m, MEMO, 'asked'), dateFact(n, IN_TIME, 'asked')];
+        expect(computedKeys(withS138DateChecks(fs, PACK))).toEqual([]);
+        expect(s138DateChecks(fs, PACK).b.line).toBe('B5');
+      }
+    });
+
+    it('a non-date or unreadable value under an input key never unlocks', () => {
+      const text = { ...dateFact(S138_INPUT_KEYS.L4, MEMO, 'asked'), type: 'text' } as LedgerFact;
+      const bad = dateFact(S138_INPUT_KEYS.L5, 'last week', 'asked');
+      expect(computedKeys(withS138DateChecks([text, bad], PACK))).toEqual([]);
+    });
+
+    it('two different dates for one input (a derived or stale second entry) fail closed', () => {
+      const fs = [
+        dateFact(S138_INPUT_KEYS.L4, MEMO, 'asked'),
+        dateFact(S138_INPUT_KEYS.L4, '2026-09-16', 'user'),
+        dateFact(S138_INPUT_KEYS.L5, IN_TIME, 'asked'),
+      ];
+      expect(computedKeys(withS138DateChecks(fs, PACK))).toEqual([]);
+    });
+
+    it('an input the ledger holds as unresolved counts as missing', () => {
+      const fs = ledgerOf('asked', { L4: MEMO, L5: IN_TIME });
+      expect(computedKeys(withS138DateChecks(fs, PACK, ['notice_sent_date']))).toEqual([]);
+    });
+
+    it('a stored fact under a computed key is stripped and never trusted', () => {
+      const fake = {
+        ...dateFact(S138_COMPUTED_KEYS.b, IN_TIME, 'asked'),
+        type: 'boolean',
+        value: true,
+      } as unknown as LedgerFact;
+      expect(computedKeys(withS138DateChecks([fake], PACK))).toEqual([]);
+      expect(withS138DateChecks([fake], PACK).some((f) => f.key === S138_COMPUTED_KEYS.b)).toBe(
+        false,
+      );
+    });
+
+    it('other packs get no computed fact whatever the dates', () => {
+      expect(withS138DateChecks(ledgerOf('asked', BOTH), 'ni_complaint_s138')).toHaveLength(4);
+      expect(withS138DateChecks(ledgerOf('asked', BOTH), 'nda')).toHaveLength(4);
+    });
   });
 });
 
