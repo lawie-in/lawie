@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- tanvi: T-366 merged 78318a3; holds the slot until CI on it is green. Then Shashank's T-363 regression fix (proprietor placeholder), then Kunal T-395, Mahak T-385 and Vishal T-373, whichever is ready first (T-373: Ajay's own-words-check conditions being built, then a delta reviewer). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
+- kunal: T-395 holds the slot (T-366 CI green, run 509). Then Shashank's T-363 proprietor fix (once its reviewer and Ajay's OK are in), Mahak T-385 and Vishal T-373, whichever is ready first (T-373: Ajay's own-words-check conditions being built, then a delta reviewer). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
 
 ## Last done
 
+- tanvi: T-366 CI green (run 509, 13 Oct 2026).
 - tanvi: T-366 merged 78318a3 (13 Oct 2026). Signed copy and free-tool legal lines; "once your email is verified" on every free-Ink line. (marketing) pages released.
 - shashank: T-363 CI green (run 508, 13 Oct 2026).
 - shashank: T-363 merged 7f99f96 (13 Oct 2026). s.138 late-notice warning, word dates, signed notice wording. packages/shared date normaliser, BriefStep, briefTypes date_check (Vishal merges it in), s.138 files released; fixtures 19-21 follow T-373.
