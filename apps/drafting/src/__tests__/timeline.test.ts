@@ -1,7 +1,7 @@
 /**
  * SCRUM-48 — BNSS Investigation Timeline Tracker tests.
  * Tests custody limit calculations, chargesheet deadlines, default bail dates,
- * staggered remand breakdown, and edge cases.
+ * and edge cases. T-367: day-1 counting; the remand breakdown is removed.
  */
 import './setupEnv';
 
@@ -10,22 +10,22 @@ import { calculateTimeline } from '../services/timeline.service';
 // ── Police custody limit (15 days) ──────────────────────────────────────────
 
 describe('Police custody limit', () => {
-  it('ends 15 days after arrest', () => {
+  it('window ends on day 40 for a 60-day offence (first remand + 39)', () => {
     const result = calculateTimeline({
       arrestDate: '2026-03-01',
       sections: ['303'],
     });
     expect(result.policeCustodyDays).toBe(15);
-    expect(result.policeCustodyEndDate).toBe('2026-03-16');
+    expect(result.policeCustodyEndDate).toBe('2026-04-09');
   });
 
-  it('is always 15 days regardless of offence severity', () => {
+  it('window ends on day 60 for a 90-day offence (first remand + 59)', () => {
     const result = calculateTimeline({
       arrestDate: '2026-01-10',
       sections: ['103'], // murder — death/life
     });
     expect(result.policeCustodyDays).toBe(15);
-    expect(result.policeCustodyEndDate).toBe('2026-01-25');
+    expect(result.policeCustodyEndDate).toBe('2026-03-10');
   });
 });
 
@@ -39,8 +39,8 @@ describe('Judicial custody and chargesheet deadline', () => {
       sections: ['303'],
     });
     expect(result.judicialCustodyDays).toBe(60);
-    expect(result.judicialCustodyEndDate).toBe('2026-04-30');
-    expect(result.chargesheetDeadline).toBe('2026-04-30');
+    expect(result.judicialCustodyEndDate).toBe('2026-04-29');
+    expect(result.chargesheetDeadline).toBe('2026-04-29');
   });
 
   it('gives 90-day limit for offences >= 10 years', () => {
@@ -50,8 +50,8 @@ describe('Judicial custody and chargesheet deadline', () => {
       sections: ['109'],
     });
     expect(result.judicialCustodyDays).toBe(90);
-    expect(result.judicialCustodyEndDate).toBe('2026-05-30');
-    expect(result.chargesheetDeadline).toBe('2026-05-30');
+    expect(result.judicialCustodyEndDate).toBe('2026-05-29');
+    expect(result.chargesheetDeadline).toBe('2026-05-29');
   });
 
   it('gives 90-day limit for death/life offences', () => {
@@ -62,7 +62,7 @@ describe('Judicial custody and chargesheet deadline', () => {
     });
     expect(result.judicialCustodyDays).toBe(90);
     expect(result.isLifeOrDeath).toBe(true);
-    expect(result.judicialCustodyEndDate).toBe('2026-04-01');
+    expect(result.judicialCustodyEndDate).toBe('2026-03-31');
   });
 
   it('uses most serious offence when multiple sections', () => {
@@ -89,20 +89,20 @@ describe('Judicial custody and chargesheet deadline', () => {
 // ── Default bail date ───────────────────────────────────────────────────────
 
 describe('Default bail date', () => {
-  it('is day 61 for 60-day limit cases', () => {
+  it('is first remand + 60 (day 61) for 60-day limit cases', () => {
     const result = calculateTimeline({
       arrestDate: '2026-03-01',
       sections: ['303'],
     });
-    expect(result.defaultBailDate).toBe('2026-05-01');
+    expect(result.defaultBailDate).toBe('2026-04-30');
   });
 
-  it('is day 91 for 90-day limit cases', () => {
+  it('is first remand + 90 (day 91) for 90-day limit cases', () => {
     const result = calculateTimeline({
       arrestDate: '2026-03-01',
       sections: ['103'],
     });
-    expect(result.defaultBailDate).toBe('2026-05-31');
+    expect(result.defaultBailDate).toBe('2026-05-30');
   });
 
   it('is always available', () => {
@@ -111,40 +111,6 @@ describe('Default bail date', () => {
       sections: ['103'],
     });
     expect(result.defaultBailAvailable).toBe(true);
-  });
-});
-
-// ── Staggered remand breakdown ──────────────────────────────────────────────
-
-describe('Staggered remand breakdown', () => {
-  it('police custody from arrest to day 15', () => {
-    const result = calculateTimeline({
-      arrestDate: '2026-03-01',
-      sections: ['303'],
-    });
-    expect(result.remandBreakdown.policeCustody.from).toBe('2026-03-01');
-    expect(result.remandBreakdown.policeCustody.to).toBe('2026-03-16');
-    expect(result.remandBreakdown.policeCustody.days).toBe(15);
-  });
-
-  it('judicial custody from day 16 to day 60 for < 10 year offences', () => {
-    const result = calculateTimeline({
-      arrestDate: '2026-03-01',
-      sections: ['303'],
-    });
-    expect(result.remandBreakdown.judicialCustody?.from).toBe('2026-03-17');
-    expect(result.remandBreakdown.judicialCustody?.to).toBe('2026-04-30');
-    expect(result.remandBreakdown.judicialCustody?.days).toBe(45);
-  });
-
-  it('judicial custody from day 16 to day 90 for >= 10 year offences', () => {
-    const result = calculateTimeline({
-      arrestDate: '2026-03-01',
-      sections: ['103'],
-    });
-    expect(result.remandBreakdown.judicialCustody?.from).toBe('2026-03-17');
-    expect(result.remandBreakdown.judicialCustody?.to).toBe('2026-05-30');
-    expect(result.remandBreakdown.judicialCustody?.days).toBe(75);
   });
 });
 
@@ -179,10 +145,10 @@ describe('Timeline milestones', () => {
       arrestDate: '2026-06-15',
       sections: ['115'], // 1 year → 60-day limit
     });
-    expect(result.milestones[0].date).toBe('2026-06-15'); // arrest
-    expect(result.milestones[1].date).toBe('2026-06-30'); // police custody end (day 15)
-    expect(result.milestones[2].date).toBe('2026-08-14'); // chargesheet (day 60)
-    expect(result.milestones[3].date).toBe('2026-08-15'); // default bail (day 61)
+    expect(result.milestones[0].date).toBe('2026-06-15'); // first remand (day 1)
+    expect(result.milestones[1].date).toBe('2026-07-24'); // police window last day (day 40)
+    expect(result.milestones[2].date).toBe('2026-08-13'); // chargesheet last day (day 60)
+    expect(result.milestones[3].date).toBe('2026-08-14'); // default bail (day 61)
   });
 });
 
@@ -197,20 +163,20 @@ describe('BNSS section reference', () => {
     expect(result.bnssSection).toBe('187');
   });
 
-  it('mentions 60-day limit in title for < 10 year offences', () => {
+  it('uses the single signed title for a 60-day offence', () => {
     const result = calculateTimeline({
       arrestDate: '2026-03-01',
       sections: ['303'],
     });
-    expect(result.bnssSectionTitle).toContain('60-day');
+    expect(result.bnssSectionTitle).toBe('BNSS 187(3): detention limit before the charge sheet');
   });
 
-  it('mentions 90-day limit in title for >= 10 year offences', () => {
+  it('uses the single signed title for a 90-day offence', () => {
     const result = calculateTimeline({
       arrestDate: '2026-03-01',
       sections: ['103'],
     });
-    expect(result.bnssSectionTitle).toContain('90-day');
+    expect(result.bnssSectionTitle).toBe('BNSS 187(3): detention limit before the charge sheet');
   });
 });
 
@@ -260,9 +226,9 @@ describe('Edge cases', () => {
       arrestDate: '2026-12-01',
       sections: ['103'], // 90 days
     });
-    // Dec 1 + 90 = March 1, 2027
-    expect(result.judicialCustodyEndDate).toBe('2027-03-01');
-    expect(result.defaultBailDate).toBe('2027-03-02');
+    // Day 1 = Dec 1; day 90 = 28 Feb 2027; default bail from 1 Mar 2027
+    expect(result.judicialCustodyEndDate).toBe('2027-02-28');
+    expect(result.defaultBailDate).toBe('2027-03-01');
   });
 
   it('handles leap year boundary', () => {
@@ -271,8 +237,8 @@ describe('Edge cases', () => {
       arrestDate: '2028-02-01',
       sections: ['303'], // 60 days
     });
-    // Feb 1 + 60 = April 1 (Feb has 29 days in 2028)
-    expect(result.judicialCustodyEndDate).toBe('2028-04-01');
+    // Day 1 = 1 Feb; day 60 = 31 Mar 2028 (Feb has 29 days in 2028)
+    expect(result.judicialCustodyEndDate).toBe('2028-03-31');
   });
 
   it('throws on invalid date', () => {
