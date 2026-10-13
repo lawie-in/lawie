@@ -49,3 +49,17 @@ Signed as drafted, with one change:
 - **"Required"** means always asked and never guessed. "Not known" is allowed and prints the signed blank. Agreed with Priya.
 
 Still to word (next brief): `governing_act`, `primary_statute`, `route`, `state`, `rera_office_location`.
+
+## Addendum 2 (13 Oct 2026): Shashank's gap list after Explore
+
+| # | Question | Ruling |
+|---|---|---|
+| 1 | s138 "From," block: add the payee's proprietor? | No. "From," keeps `applicant_name`. The subject line already names the proprietor (T-363), and printing it twice adds nothing. |
+| 2 | "Not known" wording | `applicant`: `[To be confirmed: name of the client]`. `respondent`: `[To be confirmed: name of the addressee]`. `respondentAddress`: `[To be confirmed: address of the addressee]`. `respondents_list` (PIL, habeas): `[To be confirmed: respondents, with names and addresses]`. Never the label-derived text. |
+| 3 | Six notices: drop the group facts sender.name, recipient.name and recipient.address? | Yes. Each fact is asked once. Old briefs: an existing group answer fills the new key (A), never the reverse. Other group facts stay. |
+| 4 | vakalatnama: counterpart of Respondent | Blank, `[To be confirmed: role of the opposite party]`. A Respondent's opposite party could be a petitioner, appellant, plaintiff or complainant, so it is never guessed. The other pairs in the table are one-to-one, so they keep the counterpart. |
+| 5 | slp `hc_name` doubling | Change the template line, not the label. Official names don't share one prefix ("High Court of Delhi", "High Court of Judicature at Bombay"), so the line prints `{hc_name}` as given, with no "HIGH COURT OF" prefix. Label: `High Court that passed the impugned order (full name, e.g. High Court of Delhi)`. Send me the before and after of the line for a byte check before merge. |
+| 6 | respondents_list numbering | Yes: `1.`, `2.`, … one respondent per line, in the order given. |
+| 7 | rera `state` from the court picker; more respondents | Ask. Don't fill it from the picker: the Authority is not a court, and the ruling is "never inferred". Also add an optional question, `Other respondents (names, addresses)`, one per line, numbered after the promoter. If unanswered, it prints nothing. |
+| 8 | Advocate address with no profile field | Enough for now: the form answer, else `[To be confirmed: advocate's address]`. The "A from profile" part waits until the profile has an address field. |
+| 9 | Golden snapshot: s138 shows a bail case nomenclature under HC courts | A notice is not filed in court, so no case nomenclature may print on any `legal_notice_*`. Out of T-404 scope: raise it with Priya as its own ticket. The snapshot changes when the fix lands, under the golden-snapshot rules. |
