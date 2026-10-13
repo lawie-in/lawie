@@ -35,7 +35,7 @@ type Kind = Parameters<typeof BrowseTypesStep>[0]['kinds'][number];
 const LINE = 'A signed card line for the lease.';
 const base = {
   category: 'raw',
-  plan_access: 'free',
+  plan_access: 'free' as const,
   catalogueCategory: 'c1',
   catalogueCategoryName: 'Cat One',
   catalogueCategoryOrder: 1,
