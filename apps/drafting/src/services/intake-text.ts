@@ -56,6 +56,47 @@ const HINDI_MONTHS: Record<string, number> = Object.fromEntries(
   Object.entries(dateMeanings.hindi_months).map(([name, n]) => [name.normalize('NFC'), n]),
 );
 
+/** T-363 AC2: the day of the month written as an ordinal word ("fifteenth"). */
+const ORDINAL_DAYS: Record<string, number> = {
+  first: 1,
+  second: 2,
+  third: 3,
+  fourth: 4,
+  fifth: 5,
+  sixth: 6,
+  seventh: 7,
+  eighth: 8,
+  ninth: 9,
+  tenth: 10,
+  eleventh: 11,
+  twelfth: 12,
+  thirteenth: 13,
+  fourteenth: 14,
+  fifteenth: 15,
+  sixteenth: 16,
+  seventeenth: 17,
+  eighteenth: 18,
+  nineteenth: 19,
+  twentieth: 20,
+  thirtieth: 30,
+};
+
+const ORDINAL_DAY_WORDS = Object.keys(ORDINAL_DAYS).join('|');
+
+/**
+ * "fifteenth", "twenty-first", "twenty first", "thirty-first": the day, or
+ * null when the words are not a day of a month ("thirty-second").
+ */
+function ordinalDay(tens: string | undefined, unit: string): number | null {
+  const n = ORDINAL_DAYS[unit];
+  if (n === undefined) return null;
+  if (tens === undefined) return n;
+  if (n > 9) return null;
+  if (tens === 'twenty') return 20 + n;
+  if (tens === 'thirty' && n === 1) return 31;
+  return null;
+}
+
 export function iso(y: number, m: number, d: number): string | null {
   if (y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
   const dt = new Date(Date.UTC(y, m - 1, d));
@@ -66,7 +107,9 @@ export function iso(y: number, m: number, d: number): string | null {
 /**
  * Dates a piece of text states, read by code (not by the model), in the
  * formats Indian users write: 15/03/2026, 15-03-2026, 15.03.2026 (day first),
- * 2026-03-15, 15 March 2026, 15th March, 2026, March 15, 2026.
+ * 2026-03-15, 15 March 2026, 15th March, 2026, March 15, 2026, and the day in
+ * words (T-363): fifteenth September 2026, the thirty-first of January 2026.
+ * A date with no year is not read.
  */
 export function datesInText(text: string): string[] {
   return [...new Set(datesAsWritten(text).map((d) => d.value))];
@@ -99,6 +142,19 @@ export function datesAsWritten(text: string): Array<{ value: string; words: stri
   for (const m of t.matchAll(/\b([a-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th)?[,]?\s+(\d{4})\b/g)) {
     const mon = MONTHS[m[1]];
     if (mon) add(iso(+m[3], mon, +m[2]), m);
+  }
+  // T-363 AC2 (Ajay): the day as an ordinal word, with the year: "fifteenth
+  // September 2026", "the thirty-first of January 2026", "fifteenth of Sept
+  // 2026". A leading "the" is not part of the words. With no year, nothing.
+  for (const m of t.matchAll(
+    new RegExp(
+      `\\b(?:(twenty|thirty)[\\s-]?)?(${ORDINAL_DAY_WORDS})\\s+(?:of\\s+)?([a-z]{3,9})\\.?[,]?\\s+(\\d{4})\\b`,
+      'g',
+    ),
+  )) {
+    const day = ordinalDay(m[1], m[2]);
+    const mon = MONTHS[m[3]];
+    if (day !== null && mon) add(iso(+m[4], mon, day), m);
   }
   // Hindi month names (T-127, section 6.6): 15 मार्च 2026. `\b` does not see
   // Devanagari letters as word characters, so digits are bounded by lookarounds.
