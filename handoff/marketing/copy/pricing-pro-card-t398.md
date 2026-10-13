@@ -70,7 +70,7 @@ Madhuri, 13 Oct. Re-words the two Free-card lines Meera named. Current lines quo
 | --- | --- | --- | --- | --- |
 | 118 | `All templates` | Every document type on Lawie | 28 | Ajay to sign |
 | 115 | `5 Ink — forever` | 5 Ink on sign-up, once your email is verified (lifetime) | 56 | Ajay to sign |
-| 113 | `₹0<small>/lifetime</small>` | No change: `₹0` `/lifetime`. The 5 Ink are a one-time grant, so "lifetime" is true. Ajay to confirm it can stay next to "once your email is verified" | n/a | Ajay to sign |
+| 113 | `₹0<small>/lifetime</small>` | `₹0` (drop `<small>/lifetime</small>`; the "(lifetime)" stays in the 5 Ink line) | n/a | Ajay's rule; Ajay to sign |
 
 Where the wording comes from:
 - "Every document type on Lawie" is Ajay's exact phrase in `handoff/legal/T-366-tools-legal-lines-signed.md`, Addendum 2, item 2 (the FAQ free-tier line). It is not in `site-copy-t252-and-help-text-signed.md`; there F2 only says "All document types" goes if Free is gated by type. The condition carries over: it holds only if Free is not gated by type (Tanvi checks); if it is gated, the line goes.
