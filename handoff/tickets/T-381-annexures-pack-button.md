@@ -26,3 +26,11 @@ Ajay signs the naming, the button, help, success and download strings. He also s
 
 ## Explore (Mahak, 13 Oct)
 Brief drafts keep their parties only in the encrypted doc.brief.values, so the pack printed blanks. A new mapper seals the party keys at create time. The pack route falls back to decrypting the brief for older drafts. Wider role keys (plaintiff/defendant/complainant/accused) in annexures.service.ts go to Kunal's T-396, not here. Ajay confirms the party-role mapping.
+
+## Scope calls after the web build (Priya, 13 Oct, from Mahak's questions)
+- Q1: one "Download annexures" button for the whole 7-annexure PDF. There's no per-annexure route. Ajay supplies the new strings.
+- Q2: the blanks check for the pack (T-194) is deferred to a follow-up, if Ajay agrees for v1.
+- Q3: there's no "Check your brief" link in v1. The missing-parties state just names what's missing.
+- Q4: yes. The route answers 422 {missing:[…]} instead of printing blank names.
+- Visibility: yes. GET /documents/:id adds courtDocument and hasParty.
+- Annexure A (Memo of Parties) lacks the T-317 footer that the other six have. That goes to Kunal's T-396, the same file.
