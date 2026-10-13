@@ -41,3 +41,9 @@ Open (Arjun + Ajay): "cancel stops the drip" on a prepaid year is a refund-polic
 ## Ajay (13 Oct 2026): cancel rule
 
 Cancelling a yearly plan stops the renewal. The monthly drip keeps running to the end of the paid year. This replaces "cancel stops it" in AC/design; update the test to match. A refund-page sentence (signed in handoff/legal/T-399-yearly-cancel-signed.md) ships with T-399. Ajay releases the held T-398 yearly lines as written once T-399 is merged and tested.
+
+## Arjun (13 Oct 2026): cancel semantics (Vikram's flag, handoff/finance/T-399-T-398-vikram.md)
+
+Vikram is right and the code is wrong today for both cycles. Facts: billing never calls a Razorpay cancel API; a cancel only arrives as the `subscription.cancelled` / `subscription.expired` webhook (Razorpay dashboard or support). On `cancelled`, `cancelSubscriptionInk` zeroes `inkSub` and `inkAnnualCarry` at once (`ink-ledger.service.ts:413`), which takes paid-for Ink away.
+
+Ruling, cancel-at-cycle-end for every plan: a cancel means no renewal; the paid period runs to its end (`current_end` in the webhook payload, stored on the Subscription as `paidThrough`). Until `paidThrough`: the balance is kept and, for yearly, the monthly drip continues (`settleYearlyDrip` checks `paidThrough`, not `status`). At `paidThrough` (the `subscription.expired` webhook, or the lazy settle noticing `now > paidThrough`): zero `inkSub` and the carry as today. Immediate stop happens only on a refund of unused months, through a separate refund path that does not exist yet and is written only if Ajay's refund policy allows a refund (T-399 does not build it). Monthly plans follow the same rule, so a monthly buyer who cancels on day 2 keeps the month. Tests: yearly cancel in month 4 → drips through month 12, nothing in month 13; monthly cancel mid-period → balance kept until `paidThrough`, zeroed after.
