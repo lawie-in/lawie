@@ -1,18 +1,18 @@
 # T-223 — Do we verify a new user's email?
 
-| Field          | Value                                                                                                                                                                     |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase          | 0 — Prep                                                                                                                                                                  |
-| Owner          | Arjun and Vikram (recommend), Founder (decides), then Lead (build)                                                                                                        |
-| Mode           | Decision first                                                                                                                                                            |
-| Status         | Explore: mahak (12 Oct 2026). RELEASE GATE. AC below (Priya, 12 Oct 2026, from Arjun's shape). UI and email parts wait on Rajesh's spec and Madhuri's copy (asked 12 Oct) |
-| Size           | Decision XS. Build M if yes                                                                                                                                               |
-| Depends on     | T-220                                                                                                                                                                     |
-| Gate           | Before v1 go-live, because free drafts can be farmed with throwaway emails                                                                                                |
-| Branch         | feature/t-223-email-verification                                                                                                                                          |
-| Legal sign-off | Not needed                                                                                                                                                                |
-| Created        | 2026-10-11                                                                                                                                                                |
-| Source         | Founder asked for email scope, 11 Oct 2026. Priya's survey of `apps/email-worker` and `packages/email-client`                                                             |
+| Field          | Value |
+| -------------- | ----- |
+| Phase          | 0 — Prep |
+| Owner          | Arjun and Vikram (recommend), Founder (decides), then Lead (build) |
+| Mode           | Decision first |
+| Status         | Merged into develop_staging 9ae7d51 (mahak, 13 Oct 2026). Dry run until the founder's SES session and the footer address and PIN; T-379 before live sends. Waiting for Anushka on develop |
+| Size           | Decision XS. Build M if yes |
+| Depends on     | T-220 |
+| Gate           | Before v1 go-live, because free drafts can be farmed with throwaway emails |
+| Branch         | feature/t-223-email-verification |
+| Legal sign-off | Not needed |
+| Created        | 2026-10-11 |
+| Source         | Founder asked for email scope, 11 Oct 2026. Priya's survey of `apps/email-worker` and `packages/email-client` |
 
 ## Question
 
@@ -30,23 +30,23 @@ Cost side only. Nothing below is measured at scale: T-004 has not run, so every 
 
 **What one free draft costs us (model spend, ₹96.5 per dollar)**
 
-| Assumption                        | Value                                                                                                     | Source                                                                                            | Sensitivity                                                           |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Free allowance per new account    | 5 Ink, one-time (`inkTopup: 10` units)                                                                    | `apps/auth/src/services/credit-bonus.service.ts` `grantSignupBonus`                               | Most drafts cost 2 Ink, so 2 to 5 drafts per account                  |
-| Ink per draft                     | 2 for most documents, 1 for 31 short ones (Vikram, T-227); each template is priced explicitly in one list | `apps/drafting/src/services/credits.service.ts` (price list, T-227)                               | Not yet the drops formula (T-004). Updated by Priya, 12 Oct 2026      |
-| Cost of one draft, measured floor | ₹1.2 to ₹1.8                                                                                              | T-004 dev point: 1,599 in / 907 out tokens, 10 paragraphs, at Sonnet 5.5 ($2/$10) or 4.5 ($3/$15) | One short draft; proves nothing alone                                 |
-| Cost of one draft, planning value | ₹6 (₹4 to ₹7 for 5 to 18 paragraphs)                                                                      | T-004 estimate: 10 para ₹5.5, 25 para ₹8.7 at $3/$15                                              | About a third lower on Sonnet 5.5 rates                               |
-| Cost of one draft, worst case     | ₹14                                                                                                       | T-004 estimate, 50 paragraphs                                                                     | Guided drafts (T-108) about ₹5.5 at 25 paragraphs; page reading extra |
-| Failed attempts                   | Cost us, not charged to the user                                                                          | `enforceCredits` header: spend happens after success                                              | Retries add to our cost, unmeasured                                   |
-| Verification email                | About ₹0.01 each                                                                                          | SES (`apps/email-worker/src/providers/ses.ts`), about $0.10 per 1,000                             | Negligible                                                            |
+| Assumption | Value | Source | Sensitivity |
+| --- | --- | --- | --- |
+| Free allowance per new account | 5 Ink, one-time (`inkTopup: 10` units) | `apps/auth/src/services/credit-bonus.service.ts` `grantSignupBonus` | Most drafts cost 2 Ink, so 2 to 5 drafts per account |
+| Ink per draft | 2 for most documents, 1 for 31 short ones (Vikram, T-227); each template is priced explicitly in one list | `apps/drafting/src/services/credits.service.ts` (price list, T-227) | Not yet the drops formula (T-004). Updated by Priya, 12 Oct 2026 |
+| Cost of one draft, measured floor | ₹1.2 to ₹1.8 | T-004 dev point: 1,599 in / 907 out tokens, 10 paragraphs, at Sonnet 5.5 ($2/$10) or 4.5 ($3/$15) | One short draft; proves nothing alone |
+| Cost of one draft, planning value | ₹6 (₹4 to ₹7 for 5 to 18 paragraphs) | T-004 estimate: 10 para ₹5.5, 25 para ₹8.7 at $3/$15 | About a third lower on Sonnet 5.5 rates |
+| Cost of one draft, worst case | ₹14 | T-004 estimate, 50 paragraphs | Guided drafts (T-108) about ₹5.5 at 25 paragraphs; page reading extra |
+| Failed attempts | Cost us, not charged to the user | `enforceCredits` header: spend happens after success | Retries add to our cost, unmeasured |
+| Verification email | About ₹0.01 each | SES (`apps/email-worker/src/providers/ses.ts`), about $0.10 per 1,000 | Negligible |
 
 **Cost per farmed account and at scale**
 
 | Throwaway accounts per month | Planning (₹30 per account: 5 drafts × ₹6) | Worst (₹71: 5 × ₹14.2) | Against Phase 1 MRR (₹19,975; about ₹19,500 net of Razorpay 2% + GST) |
-| ---------------------------- | ----------------------------------------- | ---------------------- | --------------------------------------------------------------------- |
-| 100                          | ₹3,000                                    | ₹7,100                 | 15% to 36%                                                            |
-| 1,000                        | ₹30,000                                   | ₹71,000                | 1.5× to 3.6×                                                          |
-| 10,000 (scripted)            | ₹3,00,000                                 | ₹7,10,000              | Not survivable                                                        |
+| --- | --- | --- | --- |
+| 100 | ₹3,000 | ₹7,100 | 15% to 36% |
+| 1,000 | ₹30,000 | ₹71,000 | 1.5× to 3.6× |
+| 10,000 (scripted) | ₹3,00,000 | ₹7,10,000 | Not survivable |
 
 - The per-user rate limit (`apps/gateway/src/middleware/rateLimiter.ts`, 60 req/min free) is keyed on the account, so it does nothing against many accounts. Sign-up only has the IP limit of 200 requests per 15 minutes on `/api/auth`.
 - Under option B, an unverified account can cost us 1 draft: ₹6 planning, ₹14 worst. 1,000 throwaway accounts would cost ₹6,000 to ₹14,000, down from ₹30,000 to ₹71,000.
@@ -56,7 +56,6 @@ Cost side only. Nothing below is measured at scale: T-004 has not run, so every 
 **Biggest assumption risk, and it is bigger than this ticket:** one account is not capped at 5 Ink. `enforceCredits` only checks the balance before the stream. `spendInk` runs after generation. When it fails for lack of Ink, `apps/drafting/src/routes/documents.routes.ts` (around lines 596, 1060, 1264) only logs the error and still delivers the draft. Parallel requests from one funded account all pass the pre-check, so each extra one is a free draft at our cost. Email verification does not close this. It needs its own fix ticket (Priya to raise, Arjun to size) before v1 go-live.
 
 **My pick: B, verify before the second free draft**, with Google sign-in counted as verified.
-
 - Unverified exposure falls from about ₹30 to about ₹6 per throwaway account. Verification costs about ₹0.01.
 - The first draft stays free of friction. For 25 paying users, conversion is worth more than the ₹6 we save by choosing A.
 - A saves only about ₹6 more per farmed account, and it puts a step in front of the first draft.
@@ -126,7 +125,6 @@ Out of scope: tightening sign-up rate limits at the gateway (Arjun's item 4, sep
 2. **Mint route** `POST /internal/verify-email/mint { userId }`, guarded by `INTERNAL_SECRET` (constant-time compare). It returns **409 and mints nothing** when the user is already verified or is a Google account; the worker then drops the job without sending. Newest link wins on a BullMQ retry, as proposed. The response (email, name, link) is never logged by either side.
 3. **The gateway must not reach `/internal/*`.** Auth mounts its routes at `/`, and the gateway proxies `/api/auth/*` to it, so `/api/auth/internal/verify-email/mint` reaches auth today, protected only by the secret. Add a gateway rule before every proxy: any path containing `/internal/` → 404. Test it. This also covers T-115c's `/internal/erase-user`. `apps/gateway/src/app.ts` needs to be on your claim.
 4. **Resend cap** (promised to AWS in the SES production-access case): enqueue at most 1 verify mail per user per 60 s and 5 per 24 h, counted in Redis at the enqueue site. Over the limit → 429 with a fixed message, nothing sent.
-
 - (3) `AUTH_SERVICE_URL` in the worker's fail-fast list: yes. Founder: add it to the server `.env.production` with the other email env (I'll add it to the email doc's step 7).
 - (4) Billing reading `emailVerified` / `authProvider` / `googleId` from the shared `users` collection: yes for v1. Read those fields only, never write; it is the same coupling billing already has.
 

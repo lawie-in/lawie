@@ -1,12 +1,12 @@
 # T-377 — The verify-email link never leaks through the referrer or access logs
 
-| Field  | Value                                                                                             |
-| ------ | ------------------------------------------------------------------------------------------------- |
-| Phase  | 4 — Polish and release                                                                            |
-| Owner  | Lead (web) + Arjun (ops, nginx)                                                                   |
-| Mode   | Small fix                                                                                         |
+| Field  | Value |
+| ------ | ----- |
+| Phase  | 4 — Polish and release |
+| Owner  | Lead (web) + Arjun (ops, nginx) |
+| Mode   | Small fix |
 | Status | To do. Follow-up from T-223 review (Mahak, 13 Oct 2026). Next free lead after T-223 merges. Priya |
-| Source | T-223 AC8 (no token or link in logs), at the infra level                                          |
+| Source | T-223 AC8 (no token or link in logs), at the infra level |
 
 ## Acceptance criteria
 

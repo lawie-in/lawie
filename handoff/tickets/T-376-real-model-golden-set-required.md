@@ -1,12 +1,12 @@
 # T-376 — Real-model golden set: a required check, with Anushka's six drafts
 
-| Field  | Value                                                                                                                                                           |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase  | 4 — Polish and release                                                                                                                                          |
-| Owner  | Lead (CI + drafting tests)                                                                                                                                      |
-| Mode   | Small fix                                                                                                                                                       |
+| Field  | Value |
+| ------ | ----- |
+| Phase  | 4 — Polish and release |
+| Owner  | Lead (CI + drafting tests) |
+| Mode   | Small fix |
 | Status | To do. Arjun (ADR-025 D4, 13 Oct 2026). Next free lead. It goes green only after the founder adds the two secrets; build and dry-run it now. Priya, 13 Oct 2026 |
-| Source | Anushka run 3 FAIL; ADR-025 D4                                                                                                                                  |
+| Source | Anushka run 3 FAIL; ADR-025 D4 |
 
 ## Acceptance criteria
 

@@ -1,12 +1,12 @@
 # T-379 — T-223 follow-ups: auth dev dependency and the email placeholder guard
 
-| Field  | Value                                                                                                         |
-| ------ | ------------------------------------------------------------------------------------------------------------- |
-| Phase  | 4 — Polish and release                                                                                        |
-| Owner  | Lead (auth + email-worker)                                                                                    |
-| Mode   | Small fix                                                                                                     |
+| Field  | Value |
+| ------ | ----- |
+| Phase  | 4 — Polish and release |
+| Owner  | Lead (auth + email-worker) |
+| Mode   | Small fix |
 | Status | To do. After T-223 merges. Item 2 must land before live sends (the founder's SES session). Priya, 13 Oct 2026 |
-| Source | T-223 review round 2 should-fixes (Mahak, 13 Oct 2026)                                                        |
+| Source | T-223 review round 2 should-fixes (Mahak, 13 Oct 2026) |
 
 ## Acceptance criteria
 

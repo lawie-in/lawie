@@ -1,11 +1,11 @@
 # T-378 — Husky's prepare script doesn't break Docker builds
 
-| Field  | Value                                                                                                                                      |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Phase  | 5 — After v1                                                                                                                               |
-| Owner  | Lead (root config)                                                                                                                         |
-| Mode   | Small fix                                                                                                                                  |
-| Status | To do. Low priority, after v1. Sequence it with ADR-025 D5 (deploys move to the workflows). Arjun, 13 Oct 2026                             |
+| Field  | Value |
+| ------ | ----- |
+| Phase  | 5 — After v1 |
+| Owner  | Lead (root config) |
+| Mode   | Small fix |
+| Status | To do. Low priority, after v1. Sequence it with ADR-025 D5 (deploys move to the workflows). Arjun, 13 Oct 2026 |
 | Source | Mahak, during T-223 review. Not a release risk: today's deploy is pm2 on the host (deploy.sh), and the Dockerfiles aren't on the live path |
 
 ## Acceptance criteria
