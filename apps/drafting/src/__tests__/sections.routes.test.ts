@@ -3,176 +3,11 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
-import { SectionMapping } from '../models/SectionMapping.model';
-import { invalidateCache } from '../services/sections.service';
+import { NOT_VERIFIED } from '../services/sections.service';
 
-// Seed a representative subset of mappings into the in-memory MongoDB
-async function seedSections() {
-  const EFFECTIVE_DATE = new Date('2024-07-01');
-
-  await SectionMapping.insertMany([
-    // IPC → BNS
-    {
-      oldCode: 'IPC',
-      oldCodeFull: 'Indian Penal Code, 1860',
-      newCode: 'BNS',
-      newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-      oldSection: '302',
-      newSection: '103(1)',
-      oldTitle: 'Punishment for murder',
-      newTitle: 'Punishment for murder',
-      mappingType: 'direct',
-      effectiveDate: EFFECTIVE_DATE,
-    },
-    {
-      oldCode: 'IPC',
-      oldCodeFull: 'Indian Penal Code, 1860',
-      newCode: 'BNS',
-      newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-      oldSection: '420',
-      newSection: '318(4)',
-      oldTitle: 'Cheating and dishonestly inducing delivery of property',
-      newTitle: 'Cheating and dishonestly inducing delivery of property',
-      mappingType: 'merged',
-      effectiveDate: EFFECTIVE_DATE,
-    },
-    {
-      oldCode: 'IPC',
-      oldCodeFull: 'Indian Penal Code, 1860',
-      newCode: 'BNS',
-      newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-      oldSection: '498A',
-      newSection: '85',
-      oldTitle: 'Husband or relative of husband of a woman subjecting her to cruelty',
-      newTitle: 'Cruelty by husband or relatives of husband',
-      mappingType: 'direct',
-      effectiveDate: EFFECTIVE_DATE,
-    },
-    {
-      oldCode: 'IPC',
-      oldCodeFull: 'Indian Penal Code, 1860',
-      newCode: 'BNS',
-      newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-      oldSection: '377',
-      newSection: null,
-      oldTitle: 'Unnatural offences',
-      newTitle: null,
-      mappingType: 'repealed',
-      notes:
-        'Struck down by Supreme Court in Navtej Singh Johar v. Union of India (2018). Not included in BNS',
-      effectiveDate: EFFECTIVE_DATE,
-    },
-    {
-      oldCode: 'IPC',
-      oldCodeFull: 'Indian Penal Code, 1860',
-      newCode: 'BNS',
-      newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-      oldSection: '309',
-      newSection: null,
-      oldTitle: 'Attempt to commit suicide',
-      newTitle: null,
-      mappingType: 'repealed',
-      notes: 'Decriminalized — attempt to suicide no longer an offence under BNS',
-      effectiveDate: EFFECTIVE_DATE,
-    },
-    // CrPC → BNSS
-    {
-      oldCode: 'CrPC',
-      oldCodeFull: 'Code of Criminal Procedure, 1973',
-      newCode: 'BNSS',
-      newCodeFull: 'Bharatiya Nagarik Suraksha Sanhita, 2023',
-      oldSection: '154',
-      newSection: '173',
-      oldTitle: 'Information in cases of cognizable offences (FIR)',
-      newTitle: 'Information in cognizable cases (FIR)',
-      mappingType: 'direct',
-      effectiveDate: EFFECTIVE_DATE,
-    },
-    {
-      oldCode: 'CrPC',
-      oldCodeFull: 'Code of Criminal Procedure, 1973',
-      newCode: 'BNSS',
-      newCodeFull: 'Bharatiya Nagarik Suraksha Sanhita, 2023',
-      oldSection: '438',
-      newSection: '482',
-      oldTitle: 'Direction for grant of bail to person apprehending arrest (Anticipatory bail)',
-      newTitle: 'Direction for grant of bail to person apprehending arrest (Anticipatory bail)',
-      mappingType: 'direct',
-      effectiveDate: EFFECTIVE_DATE,
-    },
-    // IEA → BSA
-    {
-      oldCode: 'IEA',
-      oldCodeFull: 'Indian Evidence Act, 1872',
-      newCode: 'BSA',
-      newCodeFull: 'Bharatiya Sakshya Adhiniyam, 2023',
-      oldSection: '45',
-      newSection: '39(1)',
-      oldTitle: 'Opinions of experts',
-      newTitle: 'Opinions of experts',
-      mappingType: 'direct',
-      effectiveDate: EFFECTIVE_DATE,
-    },
-    // CLO patch: IEA 32 → BSA 26 (signed table, T-250)
-    {
-      oldCode: 'IEA',
-      oldCodeFull: 'Indian Evidence Act, 1872',
-      newCode: 'BSA',
-      newCodeFull: 'Bharatiya Sakshya Adhiniyam, 2023',
-      oldSection: '32',
-      newSection: '26',
-      oldTitle:
-        'Cases in which statement of relevant fact by person who is dead or cannot be found etc. is relevant (Dying declaration)',
-      newTitle:
-        'Cases in which statement of relevant fact by person who is dead or cannot be found etc. is relevant',
-      mappingType: 'partial',
-      notes: 'CLO fix: IEA 32 is BSA 26 per the signed T-250 table.',
-      validatedBy: 'Ajay - CLO',
-      effectiveDate: EFFECTIVE_DATE,
-    },
-    // CLO patch: IPC 416 → BNS 319(1) (new row)
-    {
-      oldCode: 'IPC',
-      oldCodeFull: 'Indian Penal Code, 1860',
-      newCode: 'BNS',
-      newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-      oldSection: '416',
-      newSection: '319(1)',
-      oldTitle: 'Cheating by personation',
-      newTitle: 'Cheating by personation',
-      mappingType: 'direct',
-      notes: 'IPC 416 (Cheating by personation) maps directly to BNS 319(1).',
-      validatedBy: 'Ajay - CLO',
-      effectiveDate: EFFECTIVE_DATE,
-    },
-    // New provision (BNS)
-    {
-      oldCode: 'IPC',
-      oldCodeFull: 'Indian Penal Code, 1860',
-      newCode: 'BNS',
-      newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-      oldSection: 'NEW-111',
-      newSection: '111',
-      oldTitle: 'No equivalent in old code',
-      newTitle: 'Organised crime',
-      mappingType: 'direct',
-      isNewProvision: true,
-      notes: 'New provision — covers organised crime syndicates, no IPC equivalent',
-      effectiveDate: EFFECTIVE_DATE,
-    },
-  ]);
-
-  // Invalidate cache so service reloads from DB
-  invalidateCache();
-}
-
-beforeEach(async () => {
-  await seedSections();
-});
-
-afterEach(() => {
-  invalidateCache();
-});
+// T-371 (ADR-025 D2): the tables are served from the signed files in memory. The
+// SectionMapping collection stays EMPTY in this suite, so every answer below proves
+// the read path no longer touches Mongo.
 
 describe('Sections Routes', () => {
   describe('GET /sections/map', () => {
@@ -235,7 +70,10 @@ describe('Sections Routes', () => {
         expect(res.status).toBe(200);
         expect(res.body.result.mapping_type).toBe('repealed');
         expect(res.body.result.new_section).toBeNull();
-        expect(res.body.result.notes).toContain('Navtej Singh Johar');
+        // The signed T-267 row's own note (the old seed's Navtej Singh Johar text was
+        // test data, not in the signed file).
+        expect(res.body.result.notes).toContain('deleted from the Bill');
+        expect(res.body.result.notes).not.toContain('Navtej');
       });
 
       it('flags repealed sections (IPC 309 — attempt to suicide)', async () => {
@@ -245,10 +83,14 @@ describe('Sections Routes', () => {
         expect(res.body.result.new_section).toBeNull();
       });
 
-      it('returns 404 for unknown section', async () => {
+      // T-371 / T-360: an unknown section is not a 404 any more. 200, not found, with
+      // Ajay's label and no guessed new section. An unknown code is still 404.
+      it('answers 200 with Not verified for an unknown section', async () => {
         const res = await request(app).get('/sections/map?old=9999-IPC');
-        expect(res.status).toBe(404);
-        expect(res.body.error).toBe('Section mapping not found');
+        expect(res.status).toBe(200);
+        expect(res.body.result.found).toBe(false);
+        expect(res.body.result.label).toBe(NOT_VERIFIED);
+        expect(res.body.result.new_section).toBeNull();
       });
 
       it('returns 404 for unknown code', async () => {
@@ -281,8 +123,16 @@ describe('Sections Routes', () => {
         expect(res.body.results[0].old_section).toBe('45');
       });
 
-      it('returns 404 for unknown new section', async () => {
+      it('answers 200 with Not verified for an unknown new section', async () => {
         const res = await request(app).get('/sections/map?new=9999-BNS');
+        expect(res.status).toBe(200);
+        expect(res.body.results).toHaveLength(1);
+        expect(res.body.results[0].found).toBe(false);
+        expect(res.body.results[0].label).toBe(NOT_VERIFIED);
+      });
+
+      it('returns 404 for an unknown new code', async () => {
+        const res = await request(app).get('/sections/map?new=103-XYZ');
         expect(res.status).toBe(404);
       });
     });

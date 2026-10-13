@@ -11,12 +11,21 @@
  */
 import {
   ANY_MAGISTRATE,
+  attributeNotes,
   COURT_OF_SESSION,
   DEPENDS_FIRST_SCHEDULE,
   MAGISTRATE_FIRST_CLASS,
+  MOST_SERIOUS_CANNOT_BE_DETERMINED,
   NOT_AN_OFFENCE,
+  NOT_VERIFIED,
+  outsideBnsRange,
+  readToolSections,
   ResolutionKind,
+  resolveBnsKey,
   resolveOffence,
+  showsVerifyCaveat,
+  TABLE_CODE,
+  VERIFY_CAVEAT,
 } from './bns-offence-resolver';
 import { lookupOldToNew } from './sections.service';
 
@@ -44,12 +53,12 @@ export interface OffenceInfo {
   cognizable: boolean | null;
   /** 'with_permission' = "Compoundable with the Court's permission" (Ajay, Q7) */
   compoundable: boolean | 'with_permission' | null;
-  /** DEPENDS_FIRST_SCHEDULE when the matching attribute is null; Q7 text for with_permission */
+  /** ATTRIBUTE_DEPENDS when the matching attribute is null (T-361 Addendum 1); Q7 text for with_permission */
   bailableNote: string | null;
   cognizableNote: string | null;
   compoundableNote: string | null;
-  /** The table's verify note, when present */
-  verify?: string;
+  /** T-371: VERIFY_CAVEAT for a verify-flagged row. The raw verify text is never served. */
+  caveat?: string;
   chapter: string;
 }
 
@@ -67,8 +76,9 @@ export interface SectionResult {
   /** True if the section resolved to an offence in our table */
   found: boolean;
   /**
-   * Set when an IPC input has no BNS target, or no row in the IPC table, or the
-   * BNS section does not create an offence (NOT_AN_OFFENCE).
+   * Set when an IPC input has no BNS target (NO_BNS_EQUIVALENT), the section or its
+   * mapping row is missing / unverified (NOT_VERIFIED, T-371), or the BNS section
+   * does not create an offence (NOT_AN_OFFENCE).
    */
   note?: string;
 }
@@ -81,14 +91,19 @@ export interface BailCheckResult {
      * section resolved and is bailable; null otherwise ("depends").
      */
     overallBailable: boolean | null;
-    /** DEPENDS_FIRST_SCHEDULE when overallBailable is null */
+    /** When overallBailable is null: DEPENDS_FIRST_SCHEDULE, or NOT_VERIFIED when every unknown section is missing / not verified (1363d68) */
     overallBailableNote: string | null;
     /** Charged sections whose bailability is not known (null or unresolved IPC input) */
     undeterminedSections: string[];
-    /** Most serious offence section */
-    mostSeriousSection: string;
-    /** Maximum punishment across all sections */
+    /**
+     * Most serious offence section, by maximum term only (T-361 AC3). A section with no
+     * known maximum is left out (T-361 Addendum 1); null when none has one.
+     */
+    mostSeriousSection: string | null;
+    /** Punishment of the most serious section; MOST_SERIOUS_CANNOT_BE_DETERMINED or 'N/A' otherwise */
     maxPunishment: string;
+    /** MOST_SERIOUS_CANNOT_BE_DETERMINED when sections resolved but none has a known maximum */
+    mostSeriousNote: string | null;
     /** null when any resolved section has no single max term */
     maxYears: number | null;
     /** Term behind the BNSS 480/483 choice only; may come from a parent row (never the period or the court) */
@@ -132,10 +147,8 @@ function lookupOffence(bnsSection: string): OffenceInfo | null {
     bailable: r.bailable,
     cognizable: r.cognizable,
     compoundable,
-    bailableNote: r.bailableNote,
-    cognizableNote: r.cognizableNote,
-    compoundableNote: r.compoundableNote,
-    ...(r.verify ? { verify: r.verify } : {}),
+    ...attributeNotes(r),
+    ...(showsVerifyCaveat(r) ? { caveat: VERIFY_CAVEAT } : {}),
     chapter: r.chapter ?? '',
   };
 }
@@ -264,8 +277,26 @@ function determineBnssBailSection(
 
 /** Ajay (CLO), T-267 ruling C: a null BNS target is reported, never looked up as BNS. */
 export const NO_BNS_EQUIVALENT = 'No BNS equivalent. Check the Gazette';
-/** Ajay (CLO), T-267: an explicit "NNN-IPC" with no row is never looked up as BNS. */
-export const NOT_IN_IPC_TABLE = 'Not found in the IPC table. Check the Gazette';
+
+/** "21 of another Act": an Act the signed tables do not cover. Shown to the user as is. */
+const OTHER_ACT_TOKEN = /^(\S+) of another Act$/;
+
+/**
+ * T-371: the bail checker's input, read with the tools' reader (T-277), so
+ * "BNS 318(4), BNS 316(2)" and "318(4), 316(2)" give the same sections. Each entry
+ * becomes a checker token: a bare number → "318(4)" (the IPC guess below still
+ * applies), a table code → "318(4)-BNS", "420-IPC", "154-CrPC" and so on, and an Act
+ * the tables do not cover → "21 of another Act" (as the timeline route words it; no
+ * internal code is ever shown).
+ */
+export function readBailInputs(text: string): string[] {
+  return readToolSections(text).map((e) => {
+    if (e.code === null) return e.number;
+    // An explicit BNS keeps its code, so "BNS 400" is never guessed as IPC 400.
+    const code = TABLE_CODE[e.code];
+    return code ? `${e.number}-${code}` : `${e.number} of another Act`;
+  });
+}
 
 /** How a charged section is named in "Section {n}: …" lines: "420-IPC" → "IPC 420". */
 function displaySection(input: string, ipcSection: string | undefined, bnsSection: string): string {
@@ -277,6 +308,13 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
   const results: SectionResult[] = [];
   /** Charged sections whose bailability is unknown (T-277). */
   const undeterminedSections: string[] = [];
+  /**
+   * Ajay (CLO), T-371 build sign-off (1363d68): the summary line for each entry in
+   * undeterminedSections uses the same text as its row: the row's note (NOT_VERIFIED,
+   * NO_BNS_EQUIVALENT) for a missing or unresolved section, DEPENDS_FIRST_SCHEDULE for
+   * a signed row whose bailable is null. Same index as undeterminedSections.
+   */
+  const undeterminedNotes: string[] = [];
 
   for (const raw of sectionInputs) {
     const input = raw.trim();
@@ -291,10 +329,21 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
     /** An IPC input that did not reach a BNS target. */
     let ipcUnresolved = false;
 
-    if (dashMatch) {
+    if (OTHER_ACT_TOKEN.test(input)) {
+      // T-371: an Act the signed tables do not cover; never looked up as BNS.
+      bnsSection = '';
+      ipcUnresolved = true;
+      note = NOT_VERIFIED;
+    } else if (dashMatch) {
       const [, num, code] = dashMatch;
       const codeUpper = code.toUpperCase();
-      if (codeUpper === 'IPC') {
+      if (codeUpper !== 'IPC' && codeUpper !== 'BNS') {
+        // T-371: CrPC, IEA, BNSS, BSA or another Act: not in the BNS offences table.
+        // Before T-371 these were looked up as BNS numbers.
+        bnsSection = '';
+        ipcUnresolved = true;
+        note = NOT_VERIFIED;
+      } else if (codeUpper === 'IPC') {
         // Explicit IPC — convert via lookupOldToNew
         const mapping = await lookupOldToNew(num, 'IPC');
         if (mapping && mapping.new_section) {
@@ -306,7 +355,10 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
           ipcSection = num;
           convertedFromIpc = true;
           ipcUnresolved = true;
-          note = mapping ? NO_BNS_EQUIVALENT : NOT_IN_IPC_TABLE;
+          // T-371 (T-361 Addendum 1): missing or unverified row → NOT_VERIFIED; a
+          // repealed row keeps Ajay's T-267 "No BNS equivalent" note.
+          note =
+            mapping && mapping.mapping_type !== 'unverified' ? NO_BNS_EQUIVALENT : NOT_VERIFIED;
         }
       } else {
         bnsSection = num;
@@ -318,27 +370,39 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
         ipcSection = input;
         bnsSection = mapping.new_section;
         convertedFromIpc = true;
-      } else if (mapping) {
+      } else if (mapping && mapping.mapping_type !== 'unverified') {
         bnsSection = '';
         ipcSection = input;
         convertedFromIpc = true;
         ipcUnresolved = true;
         note = NO_BNS_EQUIVALENT;
       } else {
-        // Section is likely IPC (> 358 or in known set) but no mapping found
+        // Likely IPC (> 358 or in known set) but no row, or an unverified row.
         bnsSection = '';
         ipcSection = input;
         convertedFromIpc = true;
         ipcUnresolved = true;
-        // Ajay (CLO), T-278: same signed note as an explicit "NNN-IPC" with no row.
-        note = NOT_IN_IPC_TABLE;
+        // T-371 (T-361 Addendum 1): same as an explicit "NNN-IPC" with no row.
+        note = NOT_VERIFIED;
       }
     }
 
     const offence = note ? null : lookupOffence(bnsSection);
-    // An IPC input with no BNS target is unknown, not "not an offence".
-    if (!offence && !note && !ipcUnresolved) note = NOT_AN_OFFENCE;
-    if (!offence && ipcUnresolved) undeterminedSections.push(displaySection(input, ipcSection, ''));
+    if (!offence && !note && !ipcUnresolved) {
+      if (resolveBnsKey(bnsSection) === null && outsideBnsRange(bnsSection)) {
+        // T-371 Addendum 1 point 1: a number outside the BNS (above 358) is unknown.
+        note = NOT_VERIFIED;
+        ipcUnresolved = true;
+      } else {
+        // T-277 rule 3 (kept by T-371 Addendum 1 point 1): a BNS number from 1 to 358
+        // with no row, or a sub-section that creates no offence.
+        note = NOT_AN_OFFENCE;
+      }
+    }
+    if (!offence && ipcUnresolved) {
+      undeterminedSections.push(displaySection(input, ipcSection, bnsSection));
+      undeterminedNotes.push(note ?? NOT_VERIFIED);
+    }
 
     results.push({
       input,
@@ -356,21 +420,24 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
   for (const r of foundResults) {
     if (r.offence && r.offence.bailable === null) {
       undeterminedSections.push(displaySection(r.input, r.ipcSection, r.bnsSection));
+      undeterminedNotes.push(DEPENDS_FIRST_SCHEDULE);
     }
   }
 
-  // Seriousness: non-bailable > depends > bailable; then an unknown max term
-  // ranks above any known term, then the higher known term.
-  const bailRank = (b: boolean | null): number => (b === false ? 2 : b === null ? 1 : 0);
-  const yearsRank = (y: number | null): number => (y === null ? Infinity : y);
-  const mostSerious = foundResults.reduce<SectionResult | null>((worst, curr) => {
-    if (!worst) return curr;
-    if (!curr.offence || !worst.offence) return worst;
-    const cb = bailRank(curr.offence.bailable);
-    const wb = bailRank(worst.offence.bailable);
-    if (cb !== wb) return cb > wb ? curr : worst;
-    return yearsRank(curr.offence.maxYears) > yearsRank(worst.offence.maxYears) ? curr : worst;
-  }, null);
+  // T-361 AC3 + Addendum 1 (Ajay), T-371 (Arjun): "most serious" ranks by the
+  // maximum term only. A section with no known maximum (max_years null, or a variant
+  // with no term of its own) is left out entirely, never ranked as infinite or lowest.
+  // The first section wins a tie.
+  const ranked = foundResults.filter(
+    (r): r is SectionResult & { offence: OffenceInfo & { courtMaxYears: number } } =>
+      typeof r.offence?.courtMaxYears === 'number',
+  );
+  const mostSerious = ranked.reduce<(typeof ranked)[number] | null>(
+    (worst, curr) =>
+      !worst || curr.offence.courtMaxYears > worst.offence.courtMaxYears ? curr : worst,
+    null,
+  );
+  const mostSeriousUndetermined = foundResults.length > 0 && mostSerious === null;
 
   let overallBailable: boolean | null;
   if (foundResults.some((r) => r.offence?.bailable === false)) overallBailable = false;
@@ -404,12 +471,24 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
   );
   // Ajay (round 6): a non-bailable charge with an unknown term names no bail
   // provision, unless a known term (exact, or a parent's court term) is death or life.
-  const bnssBail =
+  // Ajay (1363d68): the overall "unknown" text follows its rows. Any signed row with a
+  // null bailable (or nothing to go on) keeps DEPENDS_FIRST_SCHEDULE; otherwise the
+  // rows are all missing / unresolved, and NOT_VERIFIED (or their one shared note) applies.
+  const overallUnknownNote =
+    undeterminedNotes.length === 0 || undeterminedNotes.includes(DEPENDS_FIRST_SCHEDULE)
+      ? DEPENDS_FIRST_SCHEDULE
+      : undeterminedNotes.includes(NOT_VERIFIED)
+        ? NOT_VERIFIED
+        : undeterminedNotes[0];
+  const bnssBailBase =
     overallBailable === false && anyUnknownTerm && !anyKnownLife
       ? { section: null, title: BAIL_PROVISION_DEPENDS }
       : determineBnssBailSection(overallBailable, courtMaxYears);
-  // Ajay (round 6): one line per section whose bailability is unknown.
-  const dependsLines = undeterminedSections.map((n) => `Section ${n}: ${DEPENDS_FIRST_SCHEDULE}`);
+  const bnssBail =
+    overallBailable === null ? { ...bnssBailBase, title: overallUnknownNote } : bnssBailBase;
+  // Ajay (round 6, 1363d68): one line per section whose bailability is unknown, in the
+  // same text as its row.
+  const dependsLines = undeterminedSections.map((n, i) => `Section ${n}: ${undeterminedNotes[i]}`);
 
   let recommendation: string;
   if (overallBailable === true) {
@@ -442,10 +521,15 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
     sections: results,
     summary: {
       overallBailable,
-      overallBailableNote: overallBailable === null ? DEPENDS_FIRST_SCHEDULE : null,
+      overallBailableNote: overallBailable === null ? overallUnknownNote : null,
       undeterminedSections,
-      mostSeriousSection: mostSerious?.bnsSection ?? '',
-      maxPunishment: mostSerious?.offence?.punishment ?? 'N/A',
+      mostSeriousSection: mostSerious?.bnsSection ?? null,
+      maxPunishment: mostSerious
+        ? mostSerious.offence.punishment
+        : mostSeriousUndetermined
+          ? MOST_SERIOUS_CANNOT_BE_DETERMINED
+          : 'N/A',
+      mostSeriousNote: mostSeriousUndetermined ? MOST_SERIOUS_CANNOT_BE_DETERMINED : null,
       maxYears,
       courtMaxYears,
       bnssBailSection: bnssBail.section,

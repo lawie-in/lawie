@@ -741,3 +741,17 @@ What a user can now do:
 - An unverified email user still sees the verify card instead of the button.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-371 — section converter and bail checker read the signed tables (ac0eb57, shashank, 13 Oct 2026)
+
+Re-tests run 3 failures T-250, T-275, T-296 and T-277.
+
+What a user can now do:
+- Convert an old IPC, CrPC or Evidence Act section and get the right new section, such as CrPC 362 to BNSS 403, without anyone reloading data.
+- Paste a list like "Sections 420, 406 and 120B IPC" into the bulk converter and get every one converted, each with its own label.
+- Look up a sub-section such as CrPC 156(3) and get BNSS 175(3).
+- See "Not verified — check the Gazette" when a section cannot be confirmed, instead of "No mapping found".
+- In the bail checker, type "BNS 318(4)" or "318(4)" and get the same answer. Offences whose classification is not one simple line show a short note to check the First Schedule. A section with no known maximum no longer counts as the most serious.
+- Known gap: BNS 61(2) (the target of 120B) is fixed in T-383, and the 303(2) row in T-361.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

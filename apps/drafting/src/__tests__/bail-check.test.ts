@@ -6,6 +6,7 @@ import './setupEnv';
 import './setupDb';
 
 import { checkBailEligibility } from '../services/bail-check.service';
+import { ATTRIBUTE_DEPENDS } from '../services/bns-offence-resolver';
 
 // ---------------------------------------------------------------------------
 // Basic bail classification
@@ -19,7 +20,8 @@ describe('Bail classification — single section', () => {
     expect(result.sections).toHaveLength(1);
     expect(result.sections[0].found).toBe(true);
     expect(result.sections[0].offence?.bailable).toBeNull();
-    expect(result.sections[0].offence?.bailableNote).toBe('Depends. Check the First Schedule.');
+    // T-371 (Ajay, T-361 Addendum 1): ATTRIBUTE_DEPENDS replaces the old R3 line.
+    expect(result.sections[0].offence?.bailableNote).toBe(ATTRIBUTE_DEPENDS);
     expect(result.sections[0].offence?.title).toMatch(/theft/i);
   });
 

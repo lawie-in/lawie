@@ -15,11 +15,16 @@ import { env } from './config/env';
 import logger from './config/logger';
 import { disconnectRedis } from './config/redis';
 import { startHoldSweep, stopHoldSweep } from './services/credits.service';
+import { loadSignedTables } from './services/signed-tables';
 import { getTemplateRegistry } from './services/template-promoter';
 import { runBootSync } from './services/template-seed.service';
 
 async function bootstrap() {
   try {
+    // T-371 (ADR-025 D2): the signed legal tables are served from memory. A missing or
+    // unreadable file stops the boot here, before the service listens.
+    const tables = loadSignedTables();
+    logger.info({ signedTables: tables.sha256 }, 'Signed legal tables loaded');
     await connectDatabase();
     // SCRUM-78: build the doc-rules → TemplateConfig registry once at boot. Triggers
     // the disk walk, fills the in-memory map, writes mismatch report if any gaps exist.

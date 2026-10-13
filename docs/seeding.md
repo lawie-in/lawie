@@ -2,6 +2,8 @@
 
 Reference for every collection that gets populated from a static source file at the repo level. Run these on first boot of a new database (Atlas cluster, EC2 instance, fresh local Mongo) and again any time you change one of the source files in `apps/drafting/src/config/`.
 
+> **T-371 (ADR-025 D2, 13 Oct 2026): the section tables need no reseed.** The drafting service now serves `config/sections/{ipc-to-bns,crpc-to-bnss,iea-to-bsa}.json`, `config/bns-offences.json` and `config/bns-triable-by.json` from memory, loaded at boot (`apps/drafting/src/services/signed-tables.ts`). It no longer reads the `sectionmappings` collection or the Redis `sections:*` cache. A table change ships with the deploy; check the SHA-256 of each file under `signedTables` in drafting `GET /health`. `seed:sections` and the `SectionMapping` model are deprecated and kept only until the collection is removed. The `seed:sections` rows and section 7 below are history.
+
 The drafting service reads these collections at runtime — if they are empty, the new-document form has nothing to render and `/api/courts/states` returns `[]`. That is exactly the bug we hit on the demo box on 2026-05-11.
 
 ---
@@ -137,16 +139,16 @@ docker exec -i lawie_drafting sh -c \
 
 ## 5. When to re-run each seed
 
-| Source change                                            | Re-run                                                                                                                                                                                                              |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Adding rows to `indian-courts.json`                      | `seed:courts`                                                                                                                                                                                                       |
-| Editing existing court name / formattingRulesRef in JSON | `seed:courts` (upsert overwrites)                                                                                                                                                                                   |
-| Deleting a court from JSON                               | `seed:courts` does **not** delete — handle manually in Mongo                                                                                                                                                        |
-| Adding a new IPC↔BNS row                                 | `seed:sections`                                                                                                                                                                                                     |
-| Changing existing section mapping                        | `seed:sections --force` (deletes all rows, reseeds). Plain `seed:sections` keeps the old row. Check for admin-edited rows first: [section 7](#7-reseeding-sectionmappings-after-the-t-250--t-255-table-corrections) |
-| Adding a starter template                                | `seed:templates`                                                                                                                                                                                                    |
-| Editing an existing template                             | Update the doc in Mongo directly, or delete + reseed                                                                                                                                                                |
-| AI model swap (Anthropic releases new model)             | `seed:setting ai.drafting_model <new-id>`                                                                                                                                                                           |
+| Source change                                            | Re-run                                                                                                         |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Adding rows to `indian-courts.json`                      | `seed:courts`                                                                                                  |
+| Editing existing court name / formattingRulesRef in JSON | `seed:courts` (upsert overwrites)                                                                              |
+| Deleting a court from JSON                               | `seed:courts` does **not** delete — handle manually in Mongo                                                   |
+| Adding a new IPC↔BNS row                                 | Nothing since T-371: deploy the file; check its SHA-256 in drafting `GET /health`                              |
+| Changing existing section mapping                        | Nothing since T-371: deploy the file; check its SHA-256 in drafting `GET /health`. Ajay signs the change first |
+| Adding a starter template                                | `seed:templates`                                                                                               |
+| Editing an existing template                             | Update the doc in Mongo directly, or delete + reseed                                                           |
+| AI model swap (Anthropic releases new model)             | `seed:setting ai.drafting_model <new-id>`                                                                      |
 
 ---
 
@@ -174,6 +176,8 @@ After a successful seed the new-document form should show the full state dropdow
 ---
 
 ## 7. Reseeding `sectionmappings` after the T-250 / T-255 table corrections
+
+> **Superseded by T-371.** The service no longer reads `sectionmappings`, so this reseed is not needed for the read path. Kept as a record.
 
 **Owner:** Arjun runs the reseed. Ajay (CLO) and Arjun agree the dates through Priya. Production is founder-only.
 

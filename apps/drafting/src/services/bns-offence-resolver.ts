@@ -17,8 +17,9 @@
  * `config/bns-triable-by.json` (BNSS First Schedule, column 6, as printed). It is
  * never derived from the term.
  */
-import offencesData from '../config/bns-offences.json';
-import triableByData from '../config/bns-triable-by.json';
+// T-371: read through the shared signed-table loader, so the bytes hashed in /health
+// are the bytes served here.
+import { getSignedTables } from './signed-tables';
 
 // ── Ajay's texts (exact strings, T-277) ──────────────────────────────────────
 
@@ -54,7 +55,7 @@ export interface BnsOffenceRow {
 }
 
 const OFFENCES: Readonly<Record<string, BnsOffenceRow>> = (
-  offencesData as unknown as { offences: Record<string, BnsOffenceRow> }
+  getSignedTables().raw.bnsOffences as unknown as { offences: Record<string, BnsOffenceRow> }
 ).offences;
 
 /** Every row key in the table, in file order. */
@@ -165,7 +166,7 @@ export interface BnsTriableByRow {
 }
 
 const TRIABLE_BY: Readonly<Record<string, BnsTriableByRow>> = (
-  triableByData as unknown as { offences: Record<string, BnsTriableByRow> }
+  getSignedTables().raw.bnsTriableBy as unknown as { offences: Record<string, BnsTriableByRow> }
 ).offences;
 
 function getTriableByRow(key: string): BnsTriableByRow | undefined {
@@ -626,3 +627,115 @@ function buildClassification(): BnsClassification {
 }
 
 export const BNS_CLASSIFICATION: Readonly<BnsClassification> = buildClassification();
+
+// ── T-371: Ajay's texts for the free tools, and the tools' reader ────────────
+// Signed: T-360, T-361 Addendum 1 (e3df5a0), and
+// handoff/legal/T-371-verify-caveat-signed.md (6526597), which wins where they differ.
+
+/**
+ * T-360 / T-371 Addendum 1: a converter mapping miss (missing, unverified or
+ * null-target row) and, in the bail checker, a BNS number outside the Act (above 358).
+ * A BNS number from 1 to 358 with no row keeps NOT_AN_OFFENCE (T-277 rule 3).
+ * Never used for a signed offence row.
+ */
+export const NOT_VERIFIED = 'Not verified — check the Gazette';
+
+/**
+ * T-371 (6526597): shown once per section, with its normal result, for every
+ * bns-offences.json row that carries a `verify` note (84 rows, including the 44 with a
+ * null max_years). The raw `verify` text is never served.
+ */
+export const VERIFY_CAVEAT =
+  'The BNSS First Schedule does not classify this section in one simple line. Check it for your case before relying on this result.';
+
+/** T-361 Addendum 1: a null bailable / cognizable / compoundable, in place of the value. */
+export const ATTRIBUTE_DEPENDS =
+  'Depends on the sub-section or the offence — see the BNSS First Schedule.';
+
+/** Ajay (CLO), T-371 Addendum 1 point 4: no entered section has a known maximum. */
+export const MOST_SERIOUS_CANNOT_BE_DETERMINED =
+  'The most serious offence cannot be worked out from these sections. Check the BNSS First Schedule.';
+
+/** The BNS has 358 sections; a higher number is outside the Act (T-371 Addendum 1 point 1). */
+export const BNS_LAST_SECTION = 358;
+
+/** True when the section's number is above BNS_LAST_SECTION ("400", "512(1)"). */
+export function outsideBnsRange(raw: string): boolean {
+  const n = parseInt(normaliseBnsSection(raw), 10);
+  return Number.isFinite(n) && n > BNS_LAST_SECTION;
+}
+
+/**
+ * Which resolved offence rows get VERIFY_CAVEAT. Ajay's signed file (6526597): every
+ * row with a `verify` note (exact, parent or variant resolution). One-line flip here.
+ */
+export function showsVerifyCaveat(r: ResolvedOffence): boolean {
+  return r.kind !== 'not_an_offence' && r.verify !== undefined;
+}
+
+/** VERIFY_CAVEAT for a BNS section whose row carries a verify note, else undefined. */
+export function caveatForBnsSection(section: string): string | undefined {
+  const r = resolveOffence(section);
+  return showsVerifyCaveat(r) ? VERIFY_CAVEAT : undefined;
+}
+
+/**
+ * T-361 Addendum 1: notes for null attributes. 'with_permission' keeps Ajay's Q7 text
+ * (T-277); a known value has no note.
+ */
+export function attributeNotes(
+  r: Pick<ResolvedOffence, 'bailable' | 'cognizable' | 'compoundable'>,
+): { bailableNote: string | null; cognizableNote: string | null; compoundableNote: string | null } {
+  return {
+    bailableNote: r.bailable === null ? ATTRIBUTE_DEPENDS : null,
+    cognizableNote: r.cognizable === null ? ATTRIBUTE_DEPENDS : null,
+    compoundableNote:
+      r.compoundable === null
+        ? ATTRIBUTE_DEPENDS
+        : r.compoundable === 'with_permission'
+          ? WITH_COURT_PERMISSION
+          : null,
+  };
+}
+
+/** Code as the tables spell it, from the T-277 reader's code. */
+export const TABLE_CODE: Partial<Record<ChargedCode, string>> = {
+  BNS: 'BNS',
+  BNSS: 'BNSS',
+  BSA: 'BSA',
+  IPC: 'IPC',
+  CRPC: 'CrPC',
+  IEA: 'IEA',
+};
+
+/** "376DA": two capital letters (IPC 153AA, 376AB, 376DA, 376DB). */
+const TWO_LETTER_SECTION = /(?<![0-9A-Za-z])(\d{1,3})([A-Z]{2})(?![A-Za-z])/g;
+const TWO_LETTER_MARK = /\(qq([a-z]{2})qq\)/;
+/** "Evidence Act" alone is the Indian Evidence Act (T-360 bulk bug). */
+const BARE_EVIDENCE_ACT = /(?<!\bindian\s{1,5})\bevidence\s+act\b/gi;
+
+function unmark(number: string): string {
+  return number.replace(TWO_LETTER_MARK, (_m, l: string) => l.toUpperCase());
+}
+
+/**
+ * T-371: the tools' reader. readSectionsCharged (T-277), unchanged, with two inputs
+ * made readable first: "Evidence Act" is read as the Indian Evidence Act, and a
+ * two-letter IPC suffix (376DA) is kept, where the T-277 reader would read "376".
+ */
+export function readToolSections(
+  text: string | null | undefined,
+  defaultCode?: ChargedCode,
+): ChargedSection[] {
+  if (!text) return [];
+  const prepared = text
+    .replace(BARE_EVIDENCE_ACT, 'Indian Evidence Act')
+    .replace(TWO_LETTER_SECTION, (_m, n: string, l: string) => `${n}(qq${l.toLowerCase()}qq)`);
+  return readSectionsCharged(prepared, defaultCode).map((e) => ({
+    ...e,
+    number: unmark(e.number),
+    ...(e.attachedTo
+      ? { attachedTo: { ...e.attachedTo, number: unmark(e.attachedTo.number) } }
+      : {}),
+  }));
+}

@@ -12,7 +12,7 @@ import path from 'path';
 
 import { checkBailEligibility, COURT_LEVEL_DEPENDS } from '../services/bail-check.service';
 import { resolveOffence, resolveTriableBy } from '../services/bns-offence-resolver';
-import { getSectionDetail, invalidateCache } from '../services/sections.service';
+import { getSectionDetail } from '../services/sections.service';
 
 const SERVICES = path.join(__dirname, '..', 'services');
 const CONFIG = path.join(__dirname, '..', 'config');
@@ -24,8 +24,6 @@ const ANY = 'Any Magistrate';
 const REF = 'Court by which offence abetted is triable';
 
 const court = async (inputs: string[]) => (await checkBailEligibility(inputs)).summary.courtLevel;
-
-afterEach(() => invalidateCache());
 
 describe('T-289 signed files are untouched', () => {
   it('bns-triable-by.json matches the signed SHA-256 (Addendum 1)', () => {
