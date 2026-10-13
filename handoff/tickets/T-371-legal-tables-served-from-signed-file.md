@@ -1,0 +1,21 @@
+# T-371 — Legal tables served from the signed files
+
+| Field  | Value |
+| ------ | ----- |
+| Phase  | 4 — Polish and release |
+| Owner  | Lead (drafting) + Ajay (legal-content-paths) |
+| Mode   | Small fix |
+| Status | To do. Ordered by Arjun (NOW 1(c), ADR-025 D2). Priya, 13 Oct 2026 |
+| Source | ADR-025 (Arjun, 13 Oct 2026, handoff/tickets/ADR-025-structured-drafting-and-signed-data.md) |
+
+## Acceptance criteria
+
+1. The four signed files (`config/sections/*.json` and `bns-offences.json`) load at boot and are served from memory. Their SHA-256 shows in `/health`.
+2. `SectionMapping` in Mongo and its Redis cache are retired from the read path. No reseed is needed for a table change.
+3. Every tool (bail checker, converter, bulk converter, timeline, preflight) parses with `readSectionsCharged` (T-277). "BNS 318(4)" and "318(4)" give the same result.
+4. An unknown maximum sentence never ranks as infinite.
+5. Unknown, `verify`-flagged or missing rows show "Not verified — check the Gazette" (Ajay's text, T-360).
+6. `bns-offences.json`, `bns-mapping.json`, `bns-triable-by.json`, the resolver, `timeline.service.ts` and the four free-tool pages are added to `.claude/docs/legal-content-paths.md`.
+7. Tests: CrPC 362→403, "BNS 318(4), BNS 316(2)" are offences, an unknown row shows "Not verified", and the /health SHA matches the file.
+
+This replaces the reseed in T-360 and the parser half of T-361.

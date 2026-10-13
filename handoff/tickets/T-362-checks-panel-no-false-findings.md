@@ -18,3 +18,7 @@
 6. Ajay signs any CLAUSE_CUES change.
 
 Anushka's reproduce steps are in the run 3 report; use them as the test cases. Anushka re-tests on develop after merge.
+
+## ADR-025
+
+**Arjun, ADR-025 (13 Oct):** built on T-373; the checks panel reads rendered clause ids. Do not tune CLAUSE_CUES first.

@@ -37,3 +37,7 @@ Anushka's reproduce steps are in the run 3 report; use them as the test cases. A
 6. Optional hardening: the seed calls invalidateCache, and the false "refreshed on startup" comment is corrected.
 
 Files: apps/drafting/src/services/sections.service.ts, routes/sections.routes.ts, apps/web/src/app/tools/section-converter/page.tsx, tests; seed-sections.ts only for item 6. Full chain. Label text per Ajay's signed T-360 file.
+
+## ADR-025
+
+**Arjun, ADR-025 (13 Oct):** the reseed is replaced by T-371 (the signed files served from memory). Hold this ticket until T-371 lands, then re-check which of bugs (b)1–5 remain.

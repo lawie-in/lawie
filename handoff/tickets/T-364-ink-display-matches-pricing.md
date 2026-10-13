@@ -16,3 +16,7 @@
 4. Tests for 2 and 3.
 
 Anushka's reproduce steps are in the run 3 report; use them as the test cases. Anushka re-tests on develop after merge.
+
+## ADR-025
+
+**Arjun, ADR-025 (13 Oct):** the display half (counter, Confirm cost, balance) moves to T-372; the settings plan fix moves to T-370. Hold the rest until T-371/T-372 land (ADR-025 D3 later).
