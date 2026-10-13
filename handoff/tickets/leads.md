@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- shashank: T-363 merged 7f99f96; holds the slot until CI on it is green. Then Tanvi T-366 (review passed), then Shashank's T-363 regression fix (proprietor placeholder; ahead of the others so Anushka doesn't hit it), then Kunal T-395, then Mahak T-385. Earlier plan: Tanvi T-375 (review passed; unblocks T-385 and T-373), then Mahak T-380 (ready). Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
+- tanvi: T-366 has the slot (T-363 CI run 508 green). Then then Shashank's T-363 regression fix (proprietor placeholder; ahead of the others so Anushka doesn't hit it), then Kunal T-395, then Mahak T-385. Earlier plan: Tanvi T-375 (review passed; unblocks T-385 and T-373), then Mahak T-380 (ready). Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
 
 ## Last done
 
+- shashank: T-363 CI green (run 508, 13 Oct 2026).
 - shashank: T-363 merged 7f99f96 (13 Oct 2026). s.138 late-notice warning, word dates, signed notice wording. packages/shared date normaliser, BriefStep, briefTypes date_check (Vishal merges it in), s.138 files released; fixtures 19-21 follow T-373.
 - mahak: T-380 CI green (run 507, 13 Oct 2026).
 - mahak: T-380 merged 9349b6a (13 Oct 2026). Web test files now typechecked in CI (export {} needed in any web test with no import or export). Released the 5 test files and tsconfig.typecheck.json.
