@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+// Makes this file a module so its top-level names do not clash with other test files under tsc.
+export {};
 // T-343 — privacy re-acceptance prompt. Mounted with react-dom/client (no @testing-library/dom).
 // The component keeps module-level state (so privacyFetch can open it), so every test loads a
 // fresh copy of React and the component with jest.resetModules().
