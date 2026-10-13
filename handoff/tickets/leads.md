@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- tanvi: T-374 merged 1c9da98; holds the slot until CI on it is green. Then: Mahak T-365, then Vishal T-373 (imports loadSkeleton from T-374; must merge after Mahak's T-365 pack pass, which adds facts_narrative to bail_before_magistrate.json for T-373's Magistrate test, Arjun 13 Oct) as each is ready. T-361 data copy waits on the founder.
+- Slot free (T-374 CI run 500 green). Next ready takes it, in this order: Mahak T-365; Kunal T-379 (may go first if ready first; no shared files); Mahak T-365, then Vishal T-373 (imports loadSkeleton from T-374; must merge after Mahak's T-365 pack pass, which adds facts_narrative to bail_before_magistrate.json for T-373's Magistrate test, Arjun 13 Oct) as each is ready. T-361 data copy waits on the founder.
 
 ## Last done
 
+- tanvi: T-374 CI green (run 500, 13 Oct 2026).
 - tanvi: T-374 merged 1c9da98 (13 Oct 2026). Signed skeleton loader (loadSkeleton); nothing on screen until T-373. rule-pack.service.ts, _skeletons/, .prettierignore released.
 - kunal: T-372 CI green (run 499, 13 Oct 2026).
 - kunal: T-372 merged 587ce69 (13 Oct 2026). Ink cost on Confirm, balance on done, no documents counter; T-365 AC2. documents.routes.ts, OneFlow.tsx, new/page.tsx, settings, briefTypes released (Mahak next, then Vishal).
