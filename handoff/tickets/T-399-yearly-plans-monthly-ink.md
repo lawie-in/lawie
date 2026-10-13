@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (billing); Arjun confirms the design, Vikram the numbers |
 | Mode   | Full chain (billing) |
-| Status | Confirmed by Arjun; numbers signed by Vikram (handoff/finance/T-399-T-398-vikram.md, bd8c8b9). Kunal, after T-395. Open: what cancel does on a prepaid year (Arjun + Ajay). Founder: how many yearly subs sold (morning report 0g). Yearly toggle off until merged |
+| Status | Confirmed by Arjun; numbers signed by Vikram (bd8c8b9); cancel ruled by Ajay (handoff/legal/T-399-yearly-cancel-signed.md). Kunal, after T-395. Founder: how many yearly subs sold (morning report 0g). Yearly toggle off until merged |
 | Source | Ajay, T-398 sign-off (handoff/legal/T-398-pro-card-signed.md) |
 
 ## Problem
@@ -37,3 +37,7 @@ Billing lead (Kunal holds billing): Priya assigns and claims `subscription.servi
 The numbers don't change, only the timing: solo_yearly ₹7,990 gives 50 Ink/month (600 a year), pro_yearly ₹19,990 gives 150 Ink/month (1,800 a year). Drips follow the monthly reset rule. The capped annual carry stays, but is never advertised. "Save 2 months" is true once the drip ships.
 
 Open (Arjun + Ajay): "cancel stops the drip" on a prepaid year is a refund-policy question. Finance's position: cancel means no renewal, and the drip runs to the end of the paid period, unless the unused months are refunded.
+
+## Ajay (13 Oct 2026): cancel rule
+
+Cancelling a yearly plan stops the renewal. The monthly drip keeps running to the end of the paid year. This replaces "cancel stops it" in AC/design; update the test to match. A refund-page sentence (signed in handoff/legal/T-399-yearly-cancel-signed.md) ships with T-399. Ajay releases the held T-398 yearly lines as written once T-399 is merged and tested.
