@@ -58,6 +58,8 @@ Where each lead stopped:
 
 ## Last done
 
+- vishal: T-397 merged 7e23038 (13 Oct 2026). Legacy prompts: no invented S/o or relative, no 'offence complete' claims, dates kept as entered. Ajay 05c7e44.
+- kunal: T-399 gitleaks:allow fix CI green (run 521).
 - kunal: T-399 gitleaks:allow fix merged 28177b7 (13 Oct 2026), after run 520 went green. Comment-only; commit hooks pass on T-399's lines.
 - tanvi: T-410 CI test fix CI green (run 520).
 - tanvi: T-410 CI test fix merged 37f9736 (13 Oct 2026): baseline pinned as a literal. Waiting for CI run 520. Next: Kunal's gitleaks:allow fix.

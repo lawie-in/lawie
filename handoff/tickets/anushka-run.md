@@ -953,3 +953,11 @@ Quality: nothing to test in the UI — internal refactor, output pinned unchange
 - See the document called "Consumer Complaint", citing the 2021 Jurisdiction Rules.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-397 — Older drafting paths stop inventing relatives and conclusions (7e23038, vishal, 13 Oct 2026)
+
+- In a cheque-bounce notice, a Hindi bail draft or any document not yet on the signed-clause path, see no "S/o" or parent's or spouse's name you didn't give; a clearly marked blank shows instead.
+- See no claim that an offence is complete on its own.
+- See dates kept in the format you entered.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
