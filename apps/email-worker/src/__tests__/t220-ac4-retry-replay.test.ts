@@ -3,7 +3,7 @@
  * (with the client's real backoff), be kept as failed with a clean failedReason,
  * and scripts/replay.ts re-queues it so a dry-run send completes it.
  *
- * Needs Redis: REDIS_URL if loopback and reachable, else a redis-server it
+ * Needs Redis: REDIS_TEST_URL if set (loopback), else a redis-server it
  * starts itself. With neither, beforeAll throws and the suite FAILS (no skip).
  * No mail is sent: the failing send is a stub and the replay send is dry-run.
  *

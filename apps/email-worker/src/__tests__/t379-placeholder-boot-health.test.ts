@@ -25,6 +25,7 @@ import {
   resetSink,
   withEnv,
 } from './helpers/t220-capture';
+import { renderReal } from './helpers/t223-real-render';
 
 jest.mock('../config/logger', () =>
   jest.requireActual('./helpers/t220-capture').makeCapturingLogger(),
@@ -115,6 +116,37 @@ describe('static footer check', () => {
       expect(ph.anyTemplateUnfilled()).toBe(true);
     });
   });
+});
+
+describe('tripwire: every registered template vs TEMPLATE_FOOTERS', () => {
+  // Fixed sentinel data with no placeholder text. A template with a [registered address] / [PIN]
+  // footer that is missing from TEMPLATE_FOOTERS would render a placeholder while
+  // templateHasUnfilledFooter(id) is false, and fail here.
+  const SENTINEL = {
+    name: 'Sentinel Name',
+    userId: USER_ID,
+    verifyUrl: 'https://app.lawie.in/verify-email?token=sentinel',
+    loginUrl: 'https://app.lawie.in/login',
+    link: 'https://app.lawie.in/x',
+    url: 'https://app.lawie.in/x',
+  };
+  const ids: string[] = jest.requireActual('../templates').listTemplates();
+
+  it('registers at least the two known templates', () => {
+    expect(ids).toEqual(expect.arrayContaining(['auth.verifyEmail', 'auth.welcome']));
+  });
+
+  it.each(ids)(
+    '%s renders a placeholder exactly when templateHasUnfilledFooter says so',
+    async (id) => {
+      const rendered = renderReal(id, SENTINEL);
+      const hasPlaceholder = [rendered.html, rendered.text].some(
+        (part) => part.includes('[registered address]') || part.includes('[PIN]'),
+      );
+      const flagged = await inEnv(DRY, async ({ ph }) => ph.templateHasUnfilledFooter(id as never));
+      expect(hasPlaceholder).toBe(flagged);
+    },
+  );
 });
 
 describe('startWorkers', () => {
