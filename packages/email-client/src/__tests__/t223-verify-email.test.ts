@@ -11,7 +11,7 @@ jest.mock('bullmq', () => ({
     add: jest.fn(
       async (name: string, data: Record<string, unknown>, opts: Record<string, unknown>) => {
         calls.push({ name, data, opts });
-        return { id: `auto-${calls.length}`, name };
+        return { id: opts.jobId ?? `auto-${calls.length}`, name };
       },
     ),
     close: jest.fn(async () => undefined),
@@ -55,12 +55,13 @@ describe('T-223 AC1 enqueue shape for auth.verifyEmail', () => {
     expect(JSON.stringify(calls[0].data)).not.toMatch(/@/);
   });
 
-  it('every resend is its own job: no jobId (no idempotency key)', async () => {
+  it('every resend gets its own random verify-<uuid> jobId (T-390: dedup is by deduplication id)', async () => {
     await enqueueEmail({ template: 'auth.verifyEmail', userId: USER_ID });
     await enqueueEmail({ template: 'auth.verifyEmail', userId: USER_ID });
     expect(calls).toHaveLength(2);
-    expect(calls[0].opts.jobId).toBeUndefined();
-    expect(calls[1].opts.jobId).toBeUndefined();
+    expect(calls[0].opts.jobId).toMatch(/^verify-[0-9a-f-]{36}$/);
+    expect(calls[1].opts.jobId).toMatch(/^verify-[0-9a-f-]{36}$/);
+    expect(calls[0].opts.jobId).not.toBe(calls[1].opts.jobId);
   });
 
   it('retries like a high-tier job (5 attempts, exponential backoff)', async () => {
