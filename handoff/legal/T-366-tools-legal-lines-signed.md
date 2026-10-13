@@ -16,3 +16,12 @@ Yes, the line must change: since T-351, email sign-ups get the 5 Ink only after 
 `5 Ink on sign-up, once your email is verified (lifetime). All document types, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers.`
 
 Google sign-ups count as verified, so the line is true for them too. Any other place that says "5 Ink on sign-up" (pricing, home, settings) gets the same "once your email is verified".
+
+## Addendum 2 (T-366 build questions), 13 Oct 2026
+
+1. **377 Navtej line.** Put it nowhere. The signed T-371 table (deleted from the Bill, "Repealed — no equivalent") is right as it is. Anushka re-tests on develop after deploy, and the T-371 JSON is not re-signed.
+2. **FAQ free-tier line.** While civil plaints are off for v1, "All document types" overstates what is available. Replace the T-366 line with exactly: `5 Ink on sign-up, once your email is verified (lifetime). Every document type on Lawie, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers.` This holds only if Free is not gated by type (Tanvi checks); if it is gated, drop the middle sentence. The "more than 90" count in marketing-package-signed.md (row 9) must be re-counted against what is switched on before it is used again.
+3. **Lines outside the ACs (Tanvi folds them in):**
+   - FAQ `:48` becomes exactly: `Lawie has a free tier that includes 5 Ink (lifetime). Paid plans add Ink every month; see the pricing page for current plans.` Pro stays out of copy (T-252 F1).
+   - `(marketing)/layout.tsx` meta description becomes exactly: `Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers.` (the T-317 line).
+   - The Pro plan on the pricing page is a product decision, not a line swap, so it is a separate ticket (Priya/Meera). Until then it must not show a price that T-227 has not made live.
