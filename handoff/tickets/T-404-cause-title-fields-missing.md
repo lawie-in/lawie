@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (what each title needs), Rajesh/Meera (questions), then a drafting lead |
 | Mode   | Full chain |
-| Status | Labels signed by Ajay (13 Oct 2026; keys applicant_name, respondent_name, respondent_address; habeas label same as PIL). Shashank after T-363 (he holds legal_notice_s138). s.138 cause title first |
+| Status | Building. Shashank, after T-363. Labels signed by Ajay. Priya, 13 Oct 2026 |
 | Source | T-395 developer report |
 
 ## Problem

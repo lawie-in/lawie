@@ -858,3 +858,15 @@ What a user can now do:
 - Nothing changes on screen. This is test files and typecheck config only.
 
 Quality: nothing to test in the UI — test files and typecheck config only
+
+## T-363 — s.138 notice (7f99f96, shashank, 13 Oct 2026)
+
+Re-tests run 3's s.138 failures (T-192).
+
+What a user can now do:
+- See a warning on the brief when the notice date is more than 30 days after the return memo, and choose to continue with those dates or change them.
+- Describe dates in words, such as "fifteenth September 2026", and have them filled in. Write the year with word dates, or the brief asks for it.
+- Get a notice that states the real position: the offence arises if the amount isn't paid within 15 days of receiving the notice, not when the cheque is issued.
+- Get a notice that keeps the proprietor and the payee's address when given, and states the return reason only as the memo gives it.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
