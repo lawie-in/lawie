@@ -25,3 +25,21 @@ draft-renderer.ts carries no legal wording. Its only fixed string is the signed 
 ## Arjun (13 Oct 2026): facts_narrative for bail_before_magistrate
 
 Ajay's v2 Magistrate skeleton (b61aaf9) renders its facts clause from the ledger key `facts_narrative`. Populating the ledger is the T-373 ledger path (brief-drafter.ts, after T-357), not T-374: the brief puts the facts narrative into the ledger for bail_before_magistrate exactly as it does for bail_regular, source `user`. A test: a Magistrate brief with facts produces a ledger with `facts_narrative`, and the rendered facts clause is not blank.
+
+## Arjun (13 Oct 2026): phase 1 answers (ae56036)
+
+1. JSON-schema format with `transform: false`: accepted. The API supports `enum` in structured output, so the raw schema is the stronger choice; keep the zod v3 parse client-side. One test asserts the schema sent carries the per-request `clauseId` and `factRefs` enum arrays.
+2. The ADR wins: `source: advocate` falls back to `raw_span` verbatim when the entity check fails; `source: fixed` slots render from ledger display values, and a missing fact is the `{{MISSING}}` blank. The ticket line meant the fixed case.
+3. Renderer formatting allowed: whitespace, paragraph numbers, (a)/(b) letters, ", " between one fact's entries. Never a word. A test strips those and expects exactly the paragraph texts and signed wording.
+4. Checks off on D1 packs: checkPeriods, checkBriefIsUsed, party name, checkAgainstBrief, checkOneDocument, factAlteration. Kept: citations, court provisions, coherence, section sanity. The panel is built from `rendered[]` only. Findings from read-only verifyDraft go to the fact-diff log, no banner. Non-D1 packs and today's path unchanged. A test: a D1 draft's panel comes only from `rendered[]`.
+5. English only on D1 for now. A Hindi draft of a D1 pack stays on today's path and carries the "starting draft" label like a non-D1 pack. Priya logs a follow-up: Hindi skeletons signed by Ajay, or Hindi out of v1 for the five packs.
+
+## Folded in from T-365 AC1 (Priya, 13 Oct 2026)
+
+Ajay's add-on to T-365 AC1: when the advocate's profile has a name, don't tell the model the advocate name is unknown. Drop advocate_name from the unknown, still_unknown and missing lists at these three places in ai.service.ts: drafterBrief's call (~:1079-1084), guidedDrafterBrief's call (~:1565), and the ledger path's ledgerDrafterFacts ({{MISSING}}). With no profile name, keep the blank. Test both cases. Mahak's brief-drafter.ts fix (37807a2) already prints the profile name in the advocate block.
+
+## Arjun (13 Oct 2026): advocate-clause check (bcdf5b7)
+
+1. Yes, and wider than dates: any date, number, name or place in the model text that is not in the `raw_span` → fallback to `raw_span` verbatim. The banned-phrase exemption never rescues an altered entity.
+2. Option (b), advocate clauses only: a content word not in the `raw_span` (after a stop list of connectives, articles, auxiliaries and grammar words) → fallback. Fallback is the advocate's own words, so a false positive costs nothing legal. Log the fallback rate per pack so we can see if Hinglish inflection makes it fire too often; tune the stop list then, not the rule.
+3. On D1 packs, `factCheck.passed` is not computed from the legacy verifier: omit it (null). The read-only findings still go to the fact-diff log, tagged `path: d1`, so Ajay's weekly review can filter them. The panel and any pass/fail shown to the advocate come from `rendered[]` only.

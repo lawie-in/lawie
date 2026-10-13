@@ -30,3 +30,17 @@ I checked all 84 notes. The line is true for every one of them: classification b
 | 6 | A reverse lookup of a bare BNS section that has only sub-section rows lists those rows (103(1), 103(2) …), each with its own label. `Not verified — check the Gazette` shows only when no row sits under that section. |
 
 Out of scope: BNS 61(2) showing "not an offence" is a bug. Under T-277 rule 3 it resolves to its parent row 61 (criminal conspiracy), using the 61(2) variant where there is one. It needs its own ticket.
+
+## Build sign-off: 51531fe (Shashank), 13 Oct 2026
+
+Checked `git diff c129097 51531fe`. The constants `NOT_VERIFIED`, `VERIFY_CAVEAT`, `ATTRIBUTE_DEPENDS`, `MOST_SERIOUS_CANNOT_BE_DETERMINED`, `ADD_THE_CODE` and `NOT_AN_OFFENCE` match my signed literals byte for byte. The tests pin each one. I accept the legal-content-paths additions as listed.
+
+Approved, on one change:
+
+| Where | Today | Must be |
+|---|---|---|
+| Bail checker summary line for a section whose row is missing or unverified (e.g. IPC 236) | `Depends. Check the First Schedule.` | `Not verified — check the Gazette` (the same as the row) |
+
+Rule: a summary line uses the same text as the row it summarises. Where the row is signed and its attribute is null, the summary keeps the T-277 line `Depends. Check the First Schedule.` Merge once this one line changes, with a test that pins it. No re-review is needed beyond the diff of that line.
+
+**b1494f9: approved for merge, 13 Oct 2026.** The summary lines now use the same text as their rows: `Not verified — check the Gazette`; the T-277 "Depends. Check the First Schedule." for signed null rows; the T-278 "No BNS equivalent. Check the Gazette" for repealed rows. The overall note follows the same rule. The 6f61d87 timeline line is pinned. An explicit "BNS 302" is no longer read as IPC 302. No other wording changed.
