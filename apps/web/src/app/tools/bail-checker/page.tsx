@@ -25,6 +25,8 @@ interface OffenceInfo {
   section: string;
   title: string;
   punishment: string;
+  /** T-361 AC2: the row's signed note from the API, shown under the punishment line as is. */
+  note?: string;
   maxYears: number | null;
   /** null = unknown: never shown as "Non-…" (T-277) */
   bailable: boolean | null;
@@ -62,6 +64,8 @@ interface SectionResult {
   note?: string;
   /** T-383: not-found rows only: the section as the API names it ("400", "IPC 236"). */
   display?: string;
+  /** T-361 AC4: Ajay's signed reminder for a bare number with no code, shown as is. */
+  codeReminder?: string;
 }
 
 interface BailCheckResult {
@@ -336,6 +340,10 @@ export default function BailCheckerPage() {
                           <div>
                             <span className="font-medium text-slate-600">Punishment:</span>{' '}
                             {s.offence.punishment}
+                            {/* T-361 AC2: Ajay's signed row note, under the punishment line, as is. */}
+                            {s.offence.note && (
+                              <span className="mt-1 block text-slate-500">{s.offence.note}</span>
+                            )}
                           </div>
                           <div className="flex items-center gap-1">
                             {s.offence.cognizable === true ? (
@@ -373,14 +381,24 @@ export default function BailCheckerPage() {
                         {s.offence.caveat && (
                           <p className="mt-2 text-xs text-amber-800">{s.offence.caveat}</p>
                         )}
+                        {/* T-361 AC4: Ajay's reminder for a bare number, from the API as is. */}
+                        {s.codeReminder && (
+                          <p className="mt-2 text-xs text-slate-500">{s.codeReminder}</p>
+                        )}
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-                        {/* T-383: the API's display form, never the raw token ("400-BNS"). */}
-                        Section {s.display ?? s.input}
-                        {/* T-278: only the API's signed note; the page adds no text of its own. */}
-                        {s.note && <> — {s.note}</>}
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+                          {/* T-383: the API's display form, never the raw token ("400-BNS"). */}
+                          Section {s.display ?? s.input}
+                          {/* T-278: only the API's signed note; the page adds no text of its own. */}
+                          {s.note && <> — {s.note}</>}
+                        </div>
+                        {/* T-361 AC4: Ajay's reminder for a bare number, from the API as is. */}
+                        {s.codeReminder && (
+                          <p className="mt-1 text-xs text-slate-500">{s.codeReminder}</p>
+                        )}
                       </div>
                     )}
                   </div>
