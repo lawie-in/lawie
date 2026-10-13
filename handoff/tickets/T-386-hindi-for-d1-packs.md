@@ -17,3 +17,8 @@
 
 - A Hindi draft of these packs is labelled "starting draft", as other non-D1 packs are.
 - Meera knows that Hindi v1 drafts carry the "starting draft" label (GTM copy must not promise more).
+
+## Closed for v1 (13 Oct 2026)
+
+- Ajay signed the existing T-107 label and footer for Hindi v1 drafts with no change ("Review every line before use" covers the facts check). No code change. The T-359 checks stay on. He writes Hindi skeletons after v1.
+- Meera: all public copy already says "Drafts are in English today. Hindi drafting: coming soon." No Hindi-draft claim goes into outreach until Ajay signs it.
