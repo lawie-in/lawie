@@ -49,7 +49,7 @@ function usableRedis(url: string): boolean {
   return res.status === 0;
 }
 
-function hasRedisServer(): boolean {
+export function hasRedisServer(): boolean {
   return spawnSync('redis-server', ['--version'], { stdio: 'ignore' }).status === 0;
 }
 
