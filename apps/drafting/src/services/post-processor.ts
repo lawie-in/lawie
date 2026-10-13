@@ -122,7 +122,7 @@ const COURT_NUMBER_TOKEN =
 function hasCourtNumberToken(part: string): boolean {
   return part
     .split(/[\s\-–]+/)
-    .map((t) => t.replace(/^[(\[]+|[)\].,:;]+$/g, ''))
+    .map((t) => t.replace(/^[([]+|[)\].,:;]+$/g, ''))
     .some((t) => t !== '' && COURT_NUMBER_TOKEN.test(t));
 }
 
