@@ -306,8 +306,17 @@
     "payment_deadline_days": {
       "logic": "'15'"
     },
+    "ni_act_sections_ref_unless_form_blank": {
+      "logic": "if respondent_type === '' then '138 read with Section 142' else '138 read with Sections 141 and 142'"
+    },
+    "ni_act_sections_ref_unless_ledger_blank": {
+      "logic": "if respondent_type === '{{MISSING: Drawer Type}}' then '138 read with Section 142' else '{ni_act_sections_ref_unless_form_blank}'"
+    },
+    "ni_act_sections_ref_unless_brief_blank": {
+      "logic": "if respondent_type === '[To be confirmed: drawer type]' then '138 read with Section 142' else '{ni_act_sections_ref_unless_ledger_blank}'"
+    },
     "ni_act_sections_ref": {
-      "logic": "if respondent_type === 'individual' then '138 read with Section 142' else '138 read with Sections 141 and 142'"
+      "logic": "if respondent_type === 'individual' then '138 read with Section 142' else '{ni_act_sections_ref_unless_brief_blank}'"
     },
     "drawer_addressee_unless_form_blank": {
       "logic": "if drawer_proprietor === '' then '{respondent_name}' else '{drawer_proprietor},\nProprietor,\n{respondent_name},'"
