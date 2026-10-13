@@ -21,3 +21,7 @@ Anushka's reproduce steps are in the run 3 report; use them as the test cases. A
 ## Ajay (13 Oct 2026)
 
 Ajay signed (dff323f, handoff/legal/). The only liability line: the offence is complete on non-payment within 15 days of receipt of the notice. Show his B2 warning with a "Continue with these dates" confirm. Invent nothing from the memo.
+
+## Arjun (13 Oct 2026)
+
+Build this now, on today's path. The date checks and the 30-day warning are code and stay. Ajay's notice wording goes into the pack now, and becomes the s.138 skeleton text when that pack moves to D1.

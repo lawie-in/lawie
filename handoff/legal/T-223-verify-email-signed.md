@@ -41,3 +41,12 @@ All other part-B rows are approved as drafted: title, body, button, every state,
 ## Flag for Priya (not blocking this copy)
 
 A password sign-up made with someone else's address leaves an unverified account holding that person's email. Recommend a ticket to delete unverified email accounts after 30 days.
+
+## Addendum 1 (13 Oct 2026 IST): three added in-app strings
+
+Approved exactly as written in the copy file ("Additions for Ajay (13 Oct)"):
+- `You can resend the email now.`
+- `We couldn't verify your email just now. Please try again.` with button `Try again`
+- `This link has expired. Sign in to send a new one.` with button `Sign in`
+
+They make no time, security or outcome claims.

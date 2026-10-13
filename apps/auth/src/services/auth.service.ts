@@ -268,6 +268,23 @@ export async function getPrivacyStatus(userId: string): Promise<PrivacyStatus> {
  * stored version differs, so a double submit adds one history row, not two); (3) a new pair,
  * carrying the new `pv`, via createSession (rotation as /refresh, Arjun's addendum). Logs only
  * the user id, never tokens.
+ *
+ * T-354 — why this order is kept (Arjun, 12 Oct 2026, option A). Full order: take the access
+ * session (MULTI GET+DEL; 401 if gone) → delete its refresh key and Session row → conditional
+ * updateOne (version + history) → isActive check → createSession. The acceptance is a consent
+ * record, so it is written only by a request whose session we have just proved live and
+ * consumed. Updating first (option B) would let a revoked session record consent in a race.
+ * Do not reorder without a new ruling.
+ *
+ * Failure mode (accepted): if anything after the take throws unexpectedly (a Mongo or Redis
+ * error in the update, the user read or createSession), the request returns 500 and the web
+ * shows P8. The old session is already gone, so the user's next action signs them out
+ * (apiFetch 401 → /refresh 401, its refresh key was deleted → /login). No session leaks (the
+ * old pair is dead, no new pair was issued) and the user is never locked out (logging in
+ * again works and shows the prompt again if the update did not land). This is the same
+ * trade-off as /refresh after its take: a rare sign-out after a DB failure is safe. (If the
+ * refresh-key delete itself is what fails, that key may survive and /refresh can still
+ * rotate it: the user stays signed in and sees the prompt again; still no extra pair.)
  */
 export async function acceptPrivacy(
   userId: string,
