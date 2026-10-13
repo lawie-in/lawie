@@ -4,7 +4,7 @@
 |---|---|
 | Status | Todo. Kunal, right after T-399. Priya, 13 Oct 2026 |
 | Owner | Kunal (build), Arjun (call) |
-| Mode | Small fix (billing only) |
+| Mode | Full chain (billing grant logic; Arjun, 13 Oct) |
 
 ## Why
 Found during Kunal's T-399 build and confirmed by Arjun. This bug was already there before T-399, and it doesn't block it. The Razorpay webhook route returns 200 before the handler runs. So when an Ink grant fails, Razorpay never retries it, and the user paid but got nothing.
