@@ -820,3 +820,41 @@ T-387, what a user can now do:
 - Pass the vakalatnama pre-filing check using the enrolment number saved in the profile, without typing it again.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-394 — Promoter keeps field source (5708bf3, mahak, 13 Oct 2026)
+
+What a user can now do:
+- Nothing new on screen. Section search and court pickers already work on the bail, consumer and notice forms. This keeps them working if those forms are later served from the rule packs.
+
+Quality: nothing to test in the UI — latent: overrides already send source
+
+## T-393 — Relation in bail drafts (3b0fdf2, kunal, 13 Oct 2026)
+
+Re-tests run 3's "S/o for a woman" failure (T-359 AC6).
+
+What a user can now do:
+- In a bail draft, see the applicant written as son, daughter, wife or husband of exactly as given, in the verification and the cause title. A woman is never written as "S/o".
+- If the relation or the name isn't known, see a clear "[To be confirmed: …]" note instead of a guess.
+- Answer the new optional question "Relation to the person named below" on bail forms. The name field now reads "Name of father, mother or spouse".
+
+Not yet: the memo of parties and the affidavit (T-396).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-375 — v1 scope switches (bb8fd47, tanvi, 13 Oct 2026)
+
+What a user can now do:
+- Civil plaints are gone from the templates list, the brief picker and "describe your matter". They can't be opened or generated until switched on.
+- The bail checker and timeline tracker are hidden from the Tools page, and their pages show "not found" until switched on.
+- Existing drafts are untouched.
+
+For this run, the founder turns on `feature.tool_timeline` (`yarn workspace @lawie/drafting seed:setting feature.tool_timeline on`; it shows within about 2 minutes), because T-367 is merged. `feature.tool_bail_checker` stays off until T-361 merges, and `feature.template_civil_plaint` stays off for v1.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-380 — Web tests typecheck (9349b6a, mahak, 13 Oct 2026)
+
+What a user can now do:
+- Nothing changes on screen. This is test files and typecheck config only.
+
+Quality: nothing to test in the UI — test files and typecheck config only

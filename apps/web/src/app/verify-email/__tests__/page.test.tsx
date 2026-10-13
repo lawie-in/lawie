@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+// Makes this file a module so its top-level names do not clash with other test files under tsc.
+export {};
 // T-223 AC4 (web) — the /verify-email landing page the emailed link opens.
 // Mounted with react-dom/client; module state (the one-POST-per-token map) is reset per test.
 

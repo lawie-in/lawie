@@ -25,12 +25,12 @@ Status 12 Oct: rows 1–6 are already built on the page (commit 41a41ff, T-238; 
 | 4 | 224, top-up badge on ₹199 | `POPULAR` | *(remove the badge element)* | Meera, T-238. Same reason |
 | 5 | 121, Free plan list | `Court formatting` | `Every line of the draft is yours to change` | New, Ajay to check. No court-format claim (T-140 not started; "formatted to your court" banned) |
 | 6 | 124, Free plan list | `BNS validation` | `Criminal drafts use BNS, BNSS and BSA section numbers` | Ajay's signed line. "Validation" is banned |
-| 7 | 99, hero subline | `Ink credits — start free, buy more when you need it.` | `Start with 5 free Ink. Buy more when you need it.` | Ajay rule: "free" next to "5 Ink" |
-| 8 | 115, Free plan sub-price line | `5 Ink — forever` | `5 Ink on sign-up · No card required` | "Forever" can read as a monthly or renewing allowance. It is a one-time grant (`SIGNUP_BONUS_CREDITS`) |
-| 9 | 118, Free plan list | `All templates` | `All document types (more than 90)` | Ajay signed "more than 90". Optional: "All templates" is true too |
+| 7 | 99, hero subline | `Ink credits — start free, buy more when you need it.` | `Start with 5 free Ink once your email is verified. Buy more when you need it.` | **Signed by Ajay** (T-398 file, 13 Oct). The condition must stand next to the offer. The Free button `Start with 5 free Ink` stays |
+| 8 | 115, Free plan sub-price line | `5 Ink — forever` | `5 Ink on sign-up, once your email is verified (lifetime)` | **Signed by Ajay** (T-398 file). Replaces "No card required". 375 px alternates, in order: `5 Ink once your email is verified (lifetime)` · `5 Ink, once your email is verified` |
+| 9 | 118, Free plan list | `All templates` | `Every document type on Lawie` | **Signed by Ajay** (T-398 file). Replaces "All document types (more than 90)"; the "more than 90" count must be re-counted before reuse |
 | 10 | 134, Free plan button | `Start Free` | `Start with 5 free Ink` | Ajay rule: "free" next to "5 Ink" |
 | 11 | 161, Solo plan button | `Start Drafting Free` | `Sign up to choose Solo` | Ajay: never "free" on the Solo card. The button now goes to `/login` (sign-up), so the label is "Sign up to choose Solo". If it is wired to the Solo upgrade or checkout, use `Choose Solo` |
-| 12 | 113, Free plan price suffix | `/lifetime` | `/lifetime` *(no change)* | Listed for completeness; true (one-time 5 Ink) |
+| 12 | 113, Free plan price suffix | `₹0<small>/lifetime</small>` | `₹0` (drop `/lifetime`) | **Signed by Ajay** (T-398 file). The Ink line already says lifetime |
 | 13 | 209, top-up section sub | `Buy one-time packs — no subscription required. Available on all plans.` | *(no change)* | Condition met: Priya confirmed from the code (12 Oct) that a Free account can buy a top-up pack. "Available on all plans" stays. |
 | 14 | (no line: the ₹499 top-up card on the pricing page now has no badge) | `BEST VALUE` (was on the ₹499 card; gone in 41a41ff) | *(no badge. Nothing to add.)* Optional only: `LOWEST PRICE PER INK OF THE 3 PACKS` | **"BEST VALUE" not approved (Ajay).** Solo is ₹799 for 50 Ink (about ₹16.0 per Ink) against ₹499 for 28 Ink (about ₹17.8), so "best value" and "lowest price per Ink" are false if read across the page. The long label is allowed only if it fits the badge; otherwise drop the badge |
 | 15 | 154, 181, Solo and Pro lists | `Priority email support` | *(drop the row)* | **Not approved (Ajay).** Priya: priority support does not exist, so the row is gone. A label with nothing behind it is a misleading advertisement (CPA 2019). Same for in-app `UpgradeSuccessModal.tsx:23` `Priority support` (row 20) |
@@ -58,15 +58,15 @@ The "[under review, Vikram]" tags are notes in this file only. They are **not** 
 **Hero**
 - Eyebrow: Pricing
 - Heading: Simple, transparent pricing.
-- Subline: Start with 5 free Ink. Buy more when you need it. (47)
+- Subline: Start with 5 free Ink once your email is verified. Buy more when you need it. (77) (signed)
 
 **Toggle:** Monthly / Yearly (unchanged)
 
 **Free**
 - Name: Free
-- Price: ₹0 /lifetime
-- Line: 5 Ink on sign-up · No card required
-- List: All document types (more than 90) · Every line of the draft is yours to change · Criminal drafts use BNS, BNSS and BSA section numbers · Download in Word or PDF
+- Price: ₹0 (signed)
+- Line: 5 Ink on sign-up, once your email is verified (lifetime) (signed)
+- List: Every document type on Lawie (signed) · Every line of the draft is yours to change · Criminal drafts use BNS, BNSS and BSA section numbers · Download in Word or PDF
 - Button: Start with 5 free Ink
 
 **Solo** *(no badge)*
@@ -177,9 +177,9 @@ Pricing and landing copy mention no referral or demo code. If either ever does (
 | 2 | "Most documents use 2 Ink, short documents 1. Buy extra packs anytime." | 2 (signed) |
 | 3 | "Every line of the draft is yours to change" | 5 (Ajay approved) |
 | 4 | "Criminal drafts use BNS, BNSS and BSA section numbers" in the Free plan list | 6 (signed wording) |
-| 5 | "Start with 5 free Ink. Buy more when you need it." | 7 |
-| 6 | "5 Ink on sign-up" in place of "5 Ink — forever" | 8 |
-| 7 | "All document types (more than 90)" | 9 |
+| 5 | "Start with 5 free Ink once your email is verified. Buy more when you need it." (signed) | 7 |
+| 6 | "5 Ink on sign-up, once your email is verified (lifetime)" in place of "5 Ink — forever" (signed) | 8 |
+| 7 | "Every document type on Lawie" (signed) | 9 |
 | 8 | Top-ups "available on all plans", including Free (Priya confirmed from the code, 12 Oct) | 13 |
 | 9 | No badge on the ₹499 pack ("BEST VALUE" is gone). "LOWEST PRICE PER INK OF THE 3 PACKS" is optional, only if it fits at 375 px and 1280 px | 14 |
 | 10 | Proposed FAQ page lines (faq:48, faq:53, faq:40), pricing metadata, footer disclaimer | Grep table |

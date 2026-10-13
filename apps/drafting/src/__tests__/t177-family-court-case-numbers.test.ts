@@ -143,26 +143,36 @@ describe('T-177 family court case numbers', () => {
       },
     );
 
-    it.each(FAMILY_TEMPLATES)('%s line is unchanged when the user is in Tamil Nadu (AC 6)', (id) => {
-      const base = renderCauseTitle(id, patna, familyRule);
-      const tn = renderCauseTitle(id, patna, familyRule, {
-        formData: { state: 'Tamil Nadu' },
-        profile: { state: 'Tamil Nadu' },
-      });
-      const line = (t: string) => t.split('\n').find((l) => /No\. _____/.test(l));
-      expect(line(tn)).toBeDefined();
-      expect(line(tn)).toBe(line(base));
-      expect(line(tn)).toContain(`[To be confirmed: case type] No. _____ of ${year}`);
-    });
+    it.each(FAMILY_TEMPLATES)(
+      '%s line is unchanged when the user is in Tamil Nadu (AC 6)',
+      (id) => {
+        const base = renderCauseTitle(id, patna, familyRule);
+        const tn = renderCauseTitle(id, patna, familyRule, {
+          formData: { state: 'Tamil Nadu' },
+          profile: { state: 'Tamil Nadu' },
+        });
+        const line = (t: string) => t.split('\n').find((l) => /No\. _____/.test(l));
+        expect(line(tn)).toBeDefined();
+        expect(line(tn)).toBe(line(base));
+        expect(line(tn)).toContain(`[To be confirmed: case type] No. _____ of ${year}`);
+      },
+    );
 
     it('a non-family court (sessions, bail_regular) still renders its old case number', () => {
       const sessions = courts.find((c) => c.courtId === 'bihar_sessions_patna')!;
       const rule = JSON.parse(
-        readFileSync(join(SRC, 'config/court-rules', `${sessions.formattingRulesRef}.json`), 'utf-8'),
+        readFileSync(
+          join(SRC, 'config/court-rules', `${sessions.formattingRulesRef}.json`),
+          'utf-8',
+        ),
       );
       const txt = renderCauseTitle('bail_regular', sessions, rule);
       expect(txt).toContain(`Criminal Miscellaneous Case No. _____ of ${year}`);
-      expect(txt).not.toContain('[To be confirmed');
+      // T-393 (Ajay, T-359 AC6): with no relation and no name given, the cause
+      // title carries that one signed blank. The case number carries no placeholder.
+      const relationBlank = '[To be confirmed: relation and name of parent or spouse]';
+      expect(txt).toContain(relationBlank);
+      expect(txt.replace(relationBlank, '')).not.toContain('[To be confirmed');
     });
   });
 

@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) |
 | Mode   | Small fix |
-| Status | To do. Mahak, after T-385 and before T-380 (Arjun, 13 Oct 2026). Found in T-385's Explore |
+| Status | Merged into develop_staging 5708bf3 (mahak, 13 Oct 2026). Latent fix; nothing to test in the UI. Priya |
 | Source | Arjun, from Mahak's T-385 Explore |
 
 ## Problem
@@ -18,3 +18,7 @@ The rule-pack promoter (`template-promoter.ts`) never copies a field's `source` 
 2. bail_anticipatory and the other v1 packs with `bns_mapping` show section search in the form.
 3. A test pins 1 for at least one courts_db field and one bns_mapping field.
 4. Drafting only: the promoter and a test.
+
+## Mahak (13 Oct 2026)
+
+This is a latent fix. AC2 already holds on develop_staging: the form reads /template-configs/:id, which serves the docs/templates override first, and all 6 packs with a field source (14 fields) have an override that already sends it. The fix matters once an override is retired, or a new pack with a source lands without one. The test pins promoted == override for each pack. Nothing to test in the UI.

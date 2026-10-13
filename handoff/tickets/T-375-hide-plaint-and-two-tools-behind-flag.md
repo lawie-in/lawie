@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web + drafting) |
 | Mode   | Small fix |
-| Status | Building. Tanvi, after T-374. Arjun's ruling on the v1 scope (13 Oct 2026). Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging bb8fd47 (tanvi, 13 Oct 2026). Switches default off: feature.template_civil_plaint, feature.tool_bail_checker, feature.tool_timeline. Waiting for Anushka on develop. Priya |
 | Source | Anushka run 3 FAIL; Arjun's ruling: v1 = bail (4 packs), s.138 notice, converter |
 
 ## Acceptance criteria
@@ -26,3 +26,5 @@ Off/on through T-356's reader; anything but `on` is off.
 
 1. Not fail-closed on a Mongo outage: that would make the tools die with Mongo, which is what T-371 AC2 exists to prevent. Rule: `toolGuard` keeps the last successfully read value in memory and refreshes it every 60 s; if the refresh fails it keeps serving the last value and logs once. Only with no successful read since boot (cold start, Mongo down) is the switch off (404). The per-request path still touches no Mongo or Redis.
 2. Close them too. `applyAnswers` and `updateBrief` reject a hidden kind with the same 404 through the exported guard, so no brief can be started or continued for a hidden kind and dead-end at generate. Priya extends the claim with `intake.routes.ts` for those two handlers only.
+
+**Arjun (13 Oct):** the fixture account sees every switch as on, generation included — T-356's rule, no special case for the template switch. Its drafts are `runType: fixture` and filtered everywhere, and the golden set needs the plaint fixtures to keep running.

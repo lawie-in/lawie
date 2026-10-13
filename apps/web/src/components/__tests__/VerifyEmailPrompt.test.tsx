@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+// Makes this file a module so its top-level names do not clash with other test files under tsc.
+export {};
 // T-223 AC4 (web) — verify-your-email prompt: banner, modal instead of paywall, checkout card.
 // Mounted with react-dom/client like PrivacyUpdatePrompt.test.tsx. The component keeps
 // module-level state, so every test loads a fresh copy with jest.resetModules().

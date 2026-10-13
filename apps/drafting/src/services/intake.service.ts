@@ -8,8 +8,6 @@
  */
 import crypto from 'crypto';
 
-import { env } from '../config/env';
-import logger from '../config/logger';
 import redis from '../config/redis';
 import { Event } from '../models/Event.model';
 import type { IFactLedger } from '../models/FactLedger.model';
@@ -37,6 +35,7 @@ import {
   readExtraction,
   referenceYear,
 } from './fact-ledger.service';
+import { DESCRIBE_FIRST_SETTING, hiddenTemplateIds, isSwitchOn } from './feature-switches';
 import {
   Brief,
   BriefCourt,
@@ -87,7 +86,6 @@ import {
 } from './intake.prompts';
 import { getModelRates, priceUsage } from './llm-usage';
 import { loadRulePack, RulePack } from './rule-pack.service';
-import { isFixtureUser } from './run-origin';
 import {
   evaluateShowIf,
   FormField,
@@ -101,7 +99,8 @@ export { datesInText, normalise, parseModelJson } from './intake-text';
 
 // ── Switch (ADR-019 §3.11) ──────────────────────────────────────────────────
 
-export const DESCRIBE_FIRST_SETTING = 'feature.describe_first';
+// T-375: the reader and DESCRIBE_FIRST_SETTING live in feature-switches.ts.
+export { DESCRIBE_FIRST_SETTING };
 
 /**
  * `feature.describe_first`: the admin setting is "on" (everyone) or "off" (no
@@ -123,44 +122,6 @@ export async function isDescribeFirstEnabled(userId: string): Promise<boolean> {
  */
 export async function isFactLedgerEnabled(userId: string): Promise<boolean> {
   return isSwitchOn(FACT_LEDGER_SETTING, userId);
-}
-
-/**
- * T-356 (Arjun's rule): a switch's admin setting is 'on' or 'off', nothing
- * else. Missing doc → the env default. Any other value is treated as missing
- * and logs one warning naming the setting, never the value (a legacy value may
- * hold user ids). `userId` only matters for the fixture-user rule.
- */
-async function isSwitchOn(setting: string, userId: string): Promise<boolean> {
-  // T-147e: the golden set runs the describe-first ledger path whatever the
-  // switches say for users. Only the reserved fixture user; see run-origin.ts.
-  if (isFixtureUser(userId)) return true;
-  try {
-    const raw = (await getAppSetting(setting)).trim();
-    if (raw === 'on') return true;
-    if (raw === 'off') return false;
-    logger.warn(
-      { setting },
-      "T-356: feature switch setting is not 'on' or 'off'; using the code default",
-    );
-    return envDefaultFor(setting);
-  } catch (err) {
-    // T-283: no AppSetting doc at all → the env default for this switch. Any
-    // other read error (Mongo down, etc.) stays off: fail closed.
-    if (err instanceof AppSettingMissingError) return envDefaultFor(setting);
-    return false;
-  }
-}
-
-/**
- * T-283: the env fallback for a switch whose AppSetting doc is missing, or
- * (T-356) holds a value other than 'on'/'off'. Read from `env` at call time
- * (not captured at import) so tests can replace it. 'on' means on for everyone.
- */
-function envDefaultFor(setting: string): boolean {
-  if (setting === DESCRIBE_FIRST_SETTING) return env.FEATURE_DEFAULT_DESCRIBE_FIRST === 'on';
-  if (setting === FACT_LEDGER_SETTING) return env.FEATURE_DEFAULT_FACT_LEDGER === 'on';
-  return false;
 }
 
 // ── Limits and caps (ADR-019 §3.8, founder D6) ──────────────────────────────
@@ -266,6 +227,17 @@ export function getCatalogue(): CatalogueEntry[] {
       description: presentDescription(t.description),
     }))
     .sort((a, b) => a.template_id.localeCompare(b.template_id));
+}
+
+/**
+ * T-375: the catalogue less every template a feature switch hides (the civil
+ * plaints while `feature.template_civil_plaint` is off), so describe-first
+ * never offers one. The fixture user sees them all (T-356 reader).
+ */
+export async function getEnabledCatalogue(userId: string): Promise<CatalogueEntry[]> {
+  const hidden = await hiddenTemplateIds(userId);
+  const all = getCatalogue();
+  return hidden.size === 0 ? all : all.filter((c) => !hidden.has(c.template_id));
 }
 
 // ── Fields the model may never fill (ADR §3.5, §4.1.2) ───────────────────────
@@ -985,7 +957,7 @@ export async function runIntake(req: IntakeRequest): Promise<IntakeResponse> {
   }
 
   const ctx = { userId: req.userId, intakeId, model };
-  const catalogue = getCatalogue();
+  const catalogue = await getEnabledCatalogue(req.userId);
   const allowed = new Set(catalogue.map((c) => c.template_id));
 
   // The user picked one of the needs_choice options.
@@ -1543,7 +1515,7 @@ export async function runBriefIntake(req: BriefIntakeRequest): Promise<BriefInta
       }
     }
 
-    const catalogue = getCatalogue();
+    const catalogue = await getEnabledCatalogue(req.userId);
     const allowed = new Set(catalogue.map((c) => c.template_id));
 
     // The user picked the kind, or changed it.
@@ -1697,7 +1669,7 @@ export async function updateLedger(
 ): Promise<{ ledger: LedgerView; results: LedgerEditResult[] }> {
   const doc = await loadOwnLedger(req.ledgerId, req.userId);
   if (!doc || doc.documentKind !== req.kind) throw new LedgerNotFoundError();
-  const allowed = new Set(getCatalogue().map((c) => c.template_id));
+  const allowed = new Set((await getEnabledCatalogue(req.userId)).map((c) => c.template_id));
   const pack = allowed.has(req.kind) ? loadRulePack(req.kind) : null;
   if (!pack) throw new LedgerNotFoundError();
   const checklist = buildChecklist(pack);

@@ -381,8 +381,36 @@
             ]
           },
           {
+            "field_id": "applicant_relation",
+            "label": "Relation to the person named below",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "son_of",
+                "label": "Son of (S/o)"
+              },
+              {
+                "id": "daughter_of",
+                "label": "Daughter of (D/o)"
+              },
+              {
+                "id": "wife_of",
+                "label": "Wife of (W/o)"
+              },
+              {
+                "id": "husband_of",
+                "label": "Husband of (H/o)"
+              }
+            ],
+            "required": false,
+            "inject_into": [
+              "cause_title",
+              "verification"
+            ]
+          },
+          {
             "field_id": "father_name",
-            "label": "Father's / Husband's Name",
+            "label": "Name of father, mother or spouse",
             "type": "text",
             "required": true,
             "inject_into": [
@@ -542,7 +570,7 @@
         "section_id": "cause_title",
         "type": "template",
         "alignment": "center",
-        "template": "{court_header}\n\n{case_nomenclature}\n\nIN THE MATTER OF:\n\n{applicant_name}\nS/o {father_name}\nAge: {applicant_age} years\nR/o {address}\n                                              ... {party_label_petitioner}\n\nVersus\n\n{state_respondent}\n                                              ... {party_label_respondent}"
+        "template": "{court_header}\n\n{case_nomenclature}\n\nIN THE MATTER OF:\n\n{applicant_name}\n{parent_relation}\nAge: {applicant_age} years\nR/o {address}\n                                              ... {party_label_petitioner}\n\nVersus\n\n{state_respondent}\n                                              ... {party_label_respondent}"
       },
       {
         "section_id": "application_heading",

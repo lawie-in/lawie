@@ -50,6 +50,7 @@ import {
 } from '../services/fact-diff-log';
 import { currentState, loadOwnLedger } from '../services/fact-ledger.service';
 import { FACT_CHECK_DISCLAIMER } from '../services/fact-verifier';
+import { bodyField, hiddenTemplateIds, templateGuard } from '../services/feature-switches';
 import { namesSupremeCourt, buildChecklist } from '../services/intake-brief';
 import {
   INTAKE_LIMITS,
@@ -700,7 +701,7 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
 router.get(
   '/template-configs',
   authenticate,
-  async (_req: Request, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     let configs: ReturnType<typeof listTemplateConfigs>;
     try {
       configs = listTemplateConfigs();
@@ -710,6 +711,9 @@ router.get(
       res.status(500).json({ error: 'Template config unavailable' });
       return;
     }
+    // T-375: a template hidden by its feature switch is not listed (this also covers search).
+    const hidden = await hiddenTemplateIds(req.jwtPayload!.sub);
+    configs = configs.filter((c) => !hidden.has(c.template_id));
     const guidedCost = costForTemplate(GUIDED_ID);
     res.json({
       templates: configs.map((config) => {
@@ -732,6 +736,7 @@ router.get(
 router.get(
   '/template-configs/:id',
   authenticate,
+  templateGuard((req) => req.params.id), // T-375
   async (req: Request, res: Response): Promise<void> => {
     let config: ReturnType<typeof loadTemplateConfig>;
     try {
@@ -774,45 +779,53 @@ const templateGenerateSchema = z.object({
 // POST /documents/preflight — pre-generation verification layer (SCRUM-69)
 // Runs before /generate to catch input errors cheaply (~50ms rules + ~1.5s Haiku).
 // FAIL-OPEN: if the verifier itself fails, returns { verdict: "pass" } so drafting is never blocked.
-router.post('/preflight', authenticate, async (req: Request, res: Response): Promise<void> => {
-  const { template_id, form_data } = req.body as {
-    template_id?: string;
-    form_data?: Record<string, unknown>;
-  };
+router.post(
+  '/preflight',
+  authenticate,
+  templateGuard(bodyField('template_id')), // T-375
+  async (req: Request, res: Response): Promise<void> => {
+    const { template_id, form_data } = req.body as {
+      template_id?: string;
+      form_data?: Record<string, unknown>;
+    };
 
-  if (!template_id || typeof template_id !== 'string') {
-    res.status(400).json({ error: 'template_id is required' });
-    return;
-  }
-  if (!form_data || typeof form_data !== 'object') {
-    res.status(400).json({ error: 'form_data is required' });
-    return;
-  }
+    if (!template_id || typeof template_id !== 'string') {
+      res.status(400).json({ error: 'template_id is required' });
+      return;
+    }
+    if (!form_data || typeof form_data !== 'object') {
+      res.status(400).json({ error: 'form_data is required' });
+      return;
+    }
 
-  try {
-    const userId = req.jwtPayload?.sub;
-    const result = await preflightCheck(template_id, form_data, userId, {
-      advocateName: req.jwtPayload?.name || undefined,
-      enrollmentNumber:
-        userId && template_id === 'vakalatnama' ? await profileEnrollmentNumber(userId) : undefined,
-    });
+    try {
+      const userId = req.jwtPayload?.sub;
+      const result = await preflightCheck(template_id, form_data, userId, {
+        advocateName: req.jwtPayload?.name || undefined,
+        enrollmentNumber:
+          userId && template_id === 'vakalatnama'
+            ? await profileEnrollmentNumber(userId)
+            : undefined,
+      });
 
-    // Strip internal meta before sending to client
-    const { _meta, ...clientResult } = result;
-    void _meta; // suppress unused var warning
+      // Strip internal meta before sending to client
+      const { _meta, ...clientResult } = result;
+      void _meta; // suppress unused var warning
 
-    res.json(clientResult);
-  } catch {
-    // FAIL-OPEN: verifier error never blocks generation
-    res.json({ verdict: 'pass', questions: [] });
-  }
-});
+      res.json(clientResult);
+    } catch {
+      // FAIL-OPEN: verifier error never blocks generation
+      res.json({ verdict: 'pass', questions: [] });
+    }
+  },
+);
 
 // POST /documents/generate-from-template — config-driven generation (SCRUM-43)
 router.post(
   '/generate-from-template',
   authenticate,
   requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
+  templateGuard(bodyField('template_id')), // T-375
   enforceCredits, // SCRUM-73 / SCRUM-59 — credit gate; replaces enforceFreeLimit
   spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {
@@ -1133,6 +1146,7 @@ router.post(
   authenticate,
   requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
   describeFirstOnly,
+  templateGuard(bodyField('kind')), // T-375
   kindAsTemplateId,
   enforceCredits,
   spendCapCheck,
@@ -1560,6 +1574,7 @@ router.post(
   '/generate',
   authenticate,
   requireCurrentPrivacy, // T-343 — new drafts need the current privacy version
+  templateGuard(bodyField('docType')), // T-375: 'plaint' too
   enforceCredits,
   spendCapCheck,
   async (req: Request, res: Response): Promise<void> => {

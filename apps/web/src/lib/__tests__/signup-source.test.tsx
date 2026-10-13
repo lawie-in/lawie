@@ -115,7 +115,9 @@ describe('captureSignupSource', () => {
     const lsSet = jest.spyOn(Storage.prototype, 'setItem');
     captureSignupSource('?utm_source=x&utm_medium=y&utm_campaign=z');
     // Every setItem went to sessionStorage (this === window.sessionStorage).
-    expect(lsSet.mock.instances.every((i) => i === window.sessionStorage)).toBe(true);
+    // @types/jest types mock.instances as the return type (void); at runtime they are the `this` Storage.
+    const instances = lsSet.mock.instances as unknown as Storage[];
+    expect(instances.every((i) => i === window.sessionStorage)).toBe(true);
     expect(window.localStorage.length).toBe(0);
     expect(document.cookie).toBe('');
   });
