@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- tanvi: T-406 holds the slot (T-385 CI green, run 512). Then Kunal T-399 (all four reports in, 09:04, 47742e3), then Vishal T-373 (delta reviewer passed 09:14; pull in T-395 and T-406 first), then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), then Mahak T-390 (reviewer and doc-writer first: it touches auth and a shared package). T-361 data copy waits on the founder.
+- tanvi: T-406 holds the slot (T-385 CI green, run 512). Then Kunal T-399 (all four reports in, 09:04, 47742e3), then Vishal T-373 (delta reviewer passed 09:14; pull in T-395 and T-406 first), then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), then Mahak T-390 (all four reports in, 09:57). T-361 data copy waits on the founder.
 
 ## Last done
 
