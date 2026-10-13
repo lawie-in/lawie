@@ -775,3 +775,10 @@ What a user can now do:
 - On the brief, press "Not known" or "None" and see it stay selected.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-374 — signed skeleton loader (1c9da98, tanvi, 13 Oct 2026)
+
+What a user can now do:
+- Nothing on screen yet. Bail drafts use the signed skeletons once T-373 lands.
+
+Quality: nothing to test in the UI — loader only, not used until T-373

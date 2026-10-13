@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web + drafting) |
 | Mode   | Small fix |
-| Status | To do. Arjun's ruling on the v1 scope (13 Oct 2026, founder delegated). Next free lead. Priya, 13 Oct 2026 |
+| Status | Building. Tanvi, after T-374. Arjun's ruling on the v1 scope (13 Oct 2026). Priya, 13 Oct 2026 |
 | Source | Anushka run 3 FAIL; Arjun's ruling: v1 = bail (4 packs), s.138 notice, converter |
 
 ## Acceptance criteria

@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead B (drafting config) + Ajay (writes the skeletons) |
 | Mode   | Full chain |
-| Status | To do; ready to start (spec ebea19e). Ordered by Arjun (NEXT 2, ADR-025 D1, lead B). Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging 1c9da98 (tanvi, 13 Oct 2026). Ajay signed 63707f7. Priya, 13 Oct 2026 |
 | Source | ADR-025 (Arjun, 13 Oct 2026, handoff/tickets/ADR-025-structured-drafting-and-signed-data.md) |
 
 ## Acceptance criteria
