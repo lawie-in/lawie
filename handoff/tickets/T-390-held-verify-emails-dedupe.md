@@ -1,12 +1,12 @@
 # T-390 — Held verification emails: send one, and refund the resend cap
 
-| Field  | Value                                                                            |
-| ------ | -------------------------------------------------------------------------------- |
-| Phase  | 4 — Polish and release                                                           |
-| Owner  | Lead (auth)                                                                      |
-| Mode   | Small fix                                                                        |
-| Status | Building. Mahak, 13 Oct 2026 (before live sends). Found by Kunal in T-379. Priya |
-| Source | T-379 review                                                                     |
+| Field  | Value                                                                                           |
+| ------ | ----------------------------------------------------------------------------------------------- |
+| Phase  | 4 — Polish and release                                                                          |
+| Owner  | Lead (auth)                                                                                     |
+| Mode   | Small fix                                                                                       |
+| Status | Merged into develop_staging ed2e18a (Mahak, 13 Oct 2026). Waiting for Anushka on develop. Priya |
+| Source | T-379 review                                                                                    |
 
 ## Background
 

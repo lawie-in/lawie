@@ -2811,11 +2811,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) allahabad_hc consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Misc. Bail Application No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "high_court",
   "court_city": "Prayagraj",
-  "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
-  "court_header": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD",
   "paraNumbering": {
     "format": "1.",
@@ -2824,21 +2824,21 @@ exports[`court-rules-golden — placeholder context per (court × template) alla
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
   "party_label_respondent": "Opposite Party",
-  "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
-  "prayer_opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may graciously be pleased to:",
-  "state_respondent": "State of U.P. through Principal Secretary, Home Department, Lucknow",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby solemnly affirm and declare that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to my knowledge and belief. No part of it is false and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Prayagraj on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 
@@ -3009,11 +3009,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) bihar_district consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "district_court",
   "court_city": "Patna",
-  "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
-  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, PATNA",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3022,21 +3022,21 @@ exports[`court-rules-golden — placeholder context per (court × template) biha
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
   "party_label_respondent": "Opposite Party",
-  "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
-  "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of Bihar",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Patna on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 
@@ -3207,11 +3207,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) cjm_generic consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "cjm",
   "court_city": "Patna",
-  "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
-  "court_header": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, PATNA",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE COURT OF CHIEF JUDICIAL MAGISTRATE",
   "paraNumbering": {
     "format": "1.",
@@ -3220,21 +3220,21 @@ exports[`court-rules-golden — placeholder context per (court × template) cjm_
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Complainant",
-  "prayer_closing": "And for this act of kindness, the applicant/accused shall ever pray.",
-  "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the S.H.O., P.S. {policeStation}",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
+  "party_label_respondent": "Opposite Party",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Patna on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 
@@ -3603,11 +3603,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_district consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Application No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "district_court",
   "court_city": "New Delhi",
-  "court_designation": "ADDITIONAL SESSIONS JUDGE, NEW DELHI",
-  "court_header": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE, NEW DELHI",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE COURT OF ADDITIONAL SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -3616,21 +3616,21 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
-  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
-  "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
-  "prayer_opening": "In view of the facts and circumstances mentioned above, it is most respectfully prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State (NCT of Delhi) through S.H.O., P.S. {policeStation}",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
+  "party_label_respondent": "Opposite Party",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at New Delhi on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 
@@ -3801,11 +3801,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_hc consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Appln. No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "high_court",
   "court_city": "New Delhi",
-  "court_designation": "HIGH COURT OF DELHI AT NEW DELHI",
-  "court_header": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE HIGH COURT OF DELHI AT NEW DELHI",
   "paraNumbering": {
     "format": "1.",
@@ -3814,21 +3814,21 @@ exports[`court-rules-golden — placeholder context per (court × template) delh
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Petitioner",
-  "party_label_respondent": "Respondent",
-  "prayer_closing": "And for this act of kindness, the petitioner/applicant shall ever pray.",
-  "prayer_opening": "In the light of the facts and circumstances mentioned above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:",
-  "state_respondent": "State (NCT of Delhi) through Standing Counsel (Criminal)",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
+  "party_label_respondent": "Opposite Party",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Petitioner herein above named, do hereby verify that the contents of the above petition are true and correct to my knowledge. No part of it is false and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at New Delhi on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 
@@ -3999,11 +3999,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Civil Suit No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "district_court",
   "court_city": "Patna",
-  "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
-  "court_header": "IN THE COURT OF CIVIL JUDGE (SENIOR DIVISION), PATNA",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE COURT OF [To be confirmed: court designation]",
   "paraNumbering": {
     "format": "1.",
@@ -4012,21 +4012,21 @@ exports[`court-rules-golden — placeholder context per (court × template) dist
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Plaintiff",
-  "party_label_respondent": "Defendant",
-  "prayer_closing": "And any other relief which this Hon'ble Court may deem fit and proper in the facts and circumstances of the case may also be granted in favour of the plaintiff.",
-  "prayer_opening": "It is, therefore, most respectfully prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of Bihar",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
+  "party_label_respondent": "Opposite Party",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff herein above named, do hereby verify that the contents of the above plaint/application are true and correct to my knowledge. The documents annexed herewith are true copies of their respective originals.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Patna on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 
@@ -4197,11 +4197,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_district consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "district_court",
   "court_city": "Ranchi",
-  "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
-  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, RANCHI",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -4210,21 +4210,21 @@ exports[`court-rules-golden — placeholder context per (court × template) jhar
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
   "party_label_respondent": "Opposite Party",
-  "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
-  "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of Jharkhand",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 
@@ -4395,11 +4395,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_hc consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "high_court",
   "court_city": "Ranchi",
-  "court_designation": "HIGH COURT OF JHARKHAND AT RANCHI",
-  "court_header": "IN THE HIGH COURT OF JHARKHAND AT RANCHI",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE HIGH COURT OF JHARKHAND AT RANCHI",
   "paraNumbering": {
     "format": "1.",
@@ -4408,21 +4408,21 @@ exports[`court-rules-golden — placeholder context per (court × template) jhar
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Petitioner",
-  "party_label_respondent": "Respondent",
-  "prayer_closing": "And for this act of kindness, the petitioner shall ever pray.",
-  "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may graciously be pleased to:",
-  "state_respondent": "State of Jharkhand through the Principal Secretary, Home Department, Government of Jharkhand, Ranchi",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
+  "party_label_respondent": "Opposite Party",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Petitioner herein above named, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Ranchi on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 
@@ -4593,11 +4593,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jmfc_generic consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "jmfc",
   "court_city": "Patna",
-  "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
-  "court_header": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE COURT OF JUDICIAL MAGISTRATE FIRST CLASS",
   "paraNumbering": {
     "format": "1.",
@@ -4606,21 +4606,21 @@ exports[`court-rules-golden — placeholder context per (court × template) jmfc
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
-  "party_label_respondent": "Complainant",
-  "prayer_closing": "And for this act of kindness, the applicant/accused shall ever pray.",
-  "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State through the S.H.O., P.S. {policeStation}",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
+  "party_label_respondent": "Opposite Party",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to my knowledge and belief.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Patna on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 
@@ -4791,11 +4791,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) patna_hc consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "high_court",
   "court_city": "Patna",
-  "court_designation": "HIGH COURT OF JUDICATURE AT PATNA",
-  "court_header": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE HIGH COURT OF JUDICATURE AT PATNA",
   "paraNumbering": {
     "format": "1.",
@@ -4804,21 +4804,21 @@ exports[`court-rules-golden — placeholder context per (court × template) patn
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Petitioner",
-  "party_label_respondent": "Respondent",
-  "prayer_closing": "And for this act of kindness, the petitioner shall ever pray.",
-  "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may graciously be pleased to:",
-  "state_respondent": "State of Bihar through the Principal Secretary, Home Department, Government of Bihar, Patna",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
+  "party_label_respondent": "Opposite Party",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Petitioner herein above named, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Patna on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 
@@ -4989,11 +4989,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) sessions_generic consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Application No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "sessions",
   "court_city": "Mumbai",
-  "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
-  "court_header": "IN THE COURT OF SESSIONS FOR GREATER BOMBAY AT MUMBAI",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE COURT OF SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5002,21 +5002,21 @@ exports[`court-rules-golden — placeholder context per (court × template) sess
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Applicant",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
   "party_label_respondent": "Opposite Party",
-  "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
-  "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of Maharashtra",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Applicant herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Mumbai on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 
@@ -5187,11 +5187,11 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) up_district consumer_complaint resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: Consumer Commission]",
   "courtType": "district_court",
   "court_city": "Agra",
-  "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",
-  "court_header": "IN THE COURT OF DISTRICT & SESSIONS JUDGE, AGRA",
+  "court_designation": "[To be confirmed: Consumer Commission]",
+  "court_header": "[To be confirmed: Consumer Commission]",
   "designation": "IN THE COURT OF DISTRICT & SESSIONS JUDGE",
   "paraNumbering": {
     "format": "1.",
@@ -5200,21 +5200,21 @@ exports[`court-rules-golden — placeholder context per (court × template) up_d
     "style": "numeric",
   },
   "party_label_accused": "Accused",
-  "party_label_applicant": "Applicant",
-  "party_label_petitioner": "Plaintiff (civil) / Applicant (criminal)",
-  "party_label_respondent": "Defendant (civil) / Opposite Party (criminal)",
-  "prayer_closing": "And for this act of kindness, the applicant shall ever pray.",
-  "prayer_opening": "It is, therefore, most humbly prayed that this Hon'ble Court may be pleased to:",
-  "state_respondent": "State of Uttar Pradesh",
+  "party_label_applicant": "Complainant",
+  "party_label_petitioner": "Complainant",
+  "party_label_respondent": "Opposite Party",
+  "prayer_closing": "Any other relief which this Honourable Commission deems fit and proper may also be granted in favour of the Complainant.",
+  "prayer_opening": "In view of the facts and circumstances stated hereinabove, it is most respectfully prayed that this Honourable Commission may be pleased to:",
+  "state_respondent": undefined,
   "supportedLanguages": [
     "en",
     "hi",
   ],
-  "verification_text": "I, GOLDEN_APPLICANT, the Plaintiff (civil) / Applicant (criminal) herein above named, do hereby verify that the contents of the above application are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.
+  "verification_text": "I, GOLDEN_APPLICANT, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
 
-Verified at Agra on this _____ day of _________, 2026.
+Verified at [To be confirmed: place] on this _____ day of _________, 2026.
 
-DEPONENT",
+COMPLAINANT",
 }
 `;
 

@@ -12,6 +12,7 @@ import {
   TemplateConfig,
   TemplateSummary,
 } from '../services/template-engine.service';
+import { allFields, buildQuestions } from '../services/intake.service';
 import { cardDescriptionFor } from '../utils/cardDescription';
 import {
   PUBLIC_FIELD_OPTION_KEYS,
@@ -449,14 +450,9 @@ describe('T-385 (Arjun test b, fallback): the projection keeps every key the for
     }
   });
 
-  it('for 3 templates, every renderer-read key present on a source field survives with the same value', () => {
-    const promoted = CONFIGS.filter((c) => !OVERRIDE_IDS.includes(c.template_id));
-    const picks = [
-      loadTemplateConfig('bail_regular')!,
-      loadTemplateConfig('rent_agreement')!,
-      promoted[0],
-    ];
-    for (const config of picks) {
+  it('for every config (T-405), every renderer-read key present on a source field survives with the same value', () => {
+    expect(CONFIGS.length).toBeGreaterThanOrEqual(92);
+    for (const config of CONFIGS) {
       const projected = publicTemplateConfig(config);
       expect(projected.template_id).toBe(config.template_id);
       expect(projected.display_name).toBe(config.display_name);
@@ -503,5 +499,147 @@ describe('T-385 (Arjun test b, fallback): the projection keeps every key the for
       }
     }
     for (const k of ['source', 'options', 'required', 'type']) expect(keys.has(k)).toBe(true);
+  });
+});
+
+// T-405 AC2: buildQuestions projects through the shared public-field helper; its output
+// (values, key order, options shape) is pinned against the original in-function allowlist.
+describe('T-405 AC2: buildQuestions output is unchanged', () => {
+  type Q = Record<string, unknown>;
+
+  /** The original buildQuestions per-field logic (develop_staging), kept as the reference. */
+  function legacyQuestion(f: Obj): Q {
+    const options = f.options as Array<{ id: unknown; label: unknown }> | undefined;
+    return {
+      field_id: f.field_id,
+      question: f.label,
+      type: f.type,
+      ...(options && options.length > 0
+        ? { options: options.map((o) => ({ id: o.id, label: o.label })) }
+        : {}),
+      ...(f.options_from ? { options_from: f.options_from } : {}),
+      ...(f.source ? { source: f.source } : {}),
+      ...(f.filtered_by ? { filtered_by: f.filtered_by } : {}),
+      ...(f.placeholder ? { placeholder: f.placeholder } : {}),
+      ...(f.help ? { help: f.help } : {}),
+      ...(f.min_select ? { min_select: f.min_select } : {}),
+    };
+  }
+
+  const WIDER_KEYS = PUBLIC_FORM_FIELD_KEYS.filter(
+    (k) =>
+      ![
+        'options',
+        'options_from',
+        'source',
+        'filtered_by',
+        'placeholder',
+        'help',
+        'min_select',
+        'field_id',
+        'label',
+        'type',
+      ].includes(k),
+  );
+
+  it('the pin is not vacuous: the configs carry every intake key and wider keys', () => {
+    const seen = new Set<string>();
+    for (const c of CONFIGS) {
+      for (const f of allFields(c)) {
+        for (const k of Object.keys(f)) seen.add(k);
+      }
+    }
+    for (const k of [
+      'options',
+      'options_from',
+      'source',
+      'filtered_by',
+      'placeholder',
+      'help',
+      'min_select',
+    ]) {
+      expect(seen.has(k)).toBe(true);
+    }
+    expect(WIDER_KEYS.length).toBeGreaterThan(0);
+    expect(WIDER_KEYS.some((k) => seen.has(k))).toBe(true);
+  });
+
+  it('for every config and every field: same JSON (key order included) as the legacy logic', () => {
+    let checked = 0;
+    for (const config of CONFIGS) {
+      const fields = allFields(config);
+      for (const f of fields) {
+        const got = JSON.stringify(buildQuestions(config, [f.field_id]));
+        const want = JSON.stringify(f.type === 'file' ? [] : [legacyQuestion(f as unknown as Obj)]);
+        if (got !== want)
+          expect({ id: config.template_id, field: f.field_id, got }).toEqual({
+            id: config.template_id,
+            field: f.field_id,
+            got: want,
+          });
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(1900);
+  });
+
+  it('for every config: one all-fields call matches the legacy projection of the same selection', () => {
+    for (const config of CONFIGS) {
+      const all = allFields(config).map((f) => f.field_id);
+      const got = buildQuestions(config, all);
+      const byId = new Map(allFields(config).map((f) => [f.field_id, f]));
+      // same ids in the same order, each question equal to the legacy form of its field
+      expect(got.length).toBeLessThanOrEqual(all.length);
+      for (const q of got) {
+        expect(JSON.stringify(q)).toBe(
+          JSON.stringify(legacyQuestion(byId.get(q.field_id) as unknown as Obj)),
+        );
+      }
+    }
+  });
+
+  it('never sends a wider shared key (default, show_if, depends_on, cascades_to, validation_pattern ...)', () => {
+    const allowed = new Set([
+      'field_id',
+      'question',
+      'type',
+      'options',
+      'options_from',
+      'source',
+      'filtered_by',
+      'placeholder',
+      'help',
+      'min_select',
+    ]);
+    for (const config of CONFIGS) {
+      for (const f of allFields(config)) {
+        for (const q of buildQuestions(config, [f.field_id])) {
+          for (const k of Object.keys(q))
+            expect({ id: config.template_id, k, ok: allowed.has(k) }).toEqual({
+              id: config.template_id,
+              k,
+              ok: true,
+            });
+        }
+      }
+    }
+    for (const k of ['default', 'show_if', 'depends_on', 'cascades_to', 'validation_pattern']) {
+      expect(allowed.has(k)).toBe(false);
+    }
+  });
+
+  it('every intake question key beyond field_id/question/type is a PUBLIC_FORM_FIELD_KEYS key', () => {
+    // INTAKE_QUESTION_FIELD_KEYS is module-private; checked by behaviour (and by its
+    // compile-time `satisfies` against PublicFormFieldKey in intake.service.ts).
+    for (const config of CONFIGS) {
+      for (const f of allFields(config)) {
+        for (const q of buildQuestions(config, [f.field_id])) {
+          for (const k of Object.keys(q)) {
+            if (['field_id', 'question', 'type'].includes(k)) continue;
+            expect(PUBLIC_FORM_FIELD_KEYS as readonly string[]).toContain(k);
+          }
+        }
+      }
+    }
   });
 });

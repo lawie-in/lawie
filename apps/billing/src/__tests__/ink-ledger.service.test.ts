@@ -291,7 +291,7 @@ describe('deductInk — concurrency safety', () => {
   });
 });
 
-// ── Test 5 — Cancellation zeroes sub + carry, leaves topup intact ──────────
+// ── Test 5 — Expiry (end of the paid period) zeroes sub + carry, leaves topup intact ──────────
 
 describe('cancelSubscriptionInk', () => {
   it('zeroes inkSub and inkAnnualCarry but leaves inkTopup intact', async () => {

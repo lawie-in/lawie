@@ -49,3 +49,90 @@ Tests:
 - A complaint pack with both names gives the complainant as the client.
 - A written statement gives the defendant as the client.
 - With no role and no table entry, the blanks print.
+
+## Addendum 2 (13 Oct 2026): single PDF of 7 annexures
+
+These replace the six signed rows above. The Vakalatnama and Memo of Parties strings drop.
+
+| Key                   | String                                                          | Ruling             |
+| --------------------- | --------------------------------------------------------------- | ------------------ |
+| `annex.button`        | Create annexures                                                | Signed             |
+| `annex.button_help`   | Prepared from the details you entered.                          | Signed (unchanged) |
+| `annex.success_title` | Annexures created                                               | Signed             |
+| `annex.success_note`  | Check each annexure and fill in every blank line before filing. | Signed             |
+| `annex.download`      | Download annexures (PDF)                                        | Signed             |
+
+No string names the seven annexures or says they are complete.
+
+**Blanks check: v1 may ship without the T-194 preflight**, on three conditions:
+
+1. The route refuses to print when the client's name or the opposite party's name is missing, and the card shows the signed `annex.missing_*` state. A party name never prints as `___________`.
+2. Underscore lines remain only for what is filled by hand: signatures, dates, the registry number, and details the brief does not hold. The success note above tells the advocate to fill them in.
+3. Priya logs a follow-up ticket for the server-side blanks check, so the pack gets the T-194 header and dialog.
+
+**Annexure A footer.** Agreed: it goes in T-396 (Kunal) as the T-317 Addendum 4 footer, word for word, and I sign it there.
+
+## Addendum 3 (13 Oct 2026): per-pack client-role table, signed
+
+Mahak's table: 60 court packs. Rule 1 always wins: an answered `client_role` overrides this table. Client details come only from the matching `<role>_address`, `_age` and `_father_name` or `_parentage`. The generic `address` and `father_name` fill the client only in bail_regular, bail_anticipatory and consumer_complaint.
+
+| Packs                                                                                                                             | Client field                          | Counterpart                                                                   |
+| --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------- |
+| bail_regular, bail_anticipatory, bail_before_magistrate, default_bail, interim_bail, surrender_application, discharge_application | applicant_name (the accused)          | State (Addendum 1 State rule)                                                 |
+| suspension_of_sentence                                                                                                            | appellant_name (convict)              | State                                                                         |
+| amendment_of_pleadings, condonation_of_delay, production_of_documents, receiver_appointment, maintenance_bnss_144                 | applicant_name                        | respondent_name                                                               |
+| interim_application                                                                                                               | applicant_name                        | non_applicant_name                                                            |
+| cat_oa                                                                                                                            | applicant_name                        | blank                                                                         |
+| ibc_application                                                                                                                   | applicant_name                        | corporate_debtor_name                                                         |
+| dv_act_complaint                                                                                                                  | aggrieved_name                        | respondent_name                                                               |
+| divorce_hma, divorce_sma, judicial_separation, rcr_petition, guardianship_petition, curative_petition, criminal_revision          | petitioner_name                       | respondent_name                                                               |
+| certiorari, mandamus                                                                                                              | petitioner_name                       | respondent_authority                                                          |
+| writ_petition_civil, writ_petition_criminal, review_petition, slp, habeas_corpus, pil, quo_warranto                               | petitioner_name                       | blank                                                                         |
+| fir_quashing, quashing_528_bnss                                                                                                   | petitioner_name (the accused)         | complainant_name, and State                                                   |
+| bail_cancellation                                                                                                                 | petitioner_name                       | respondent_name. **Flip** ("Accused (for variation of conditions)") → blanks. |
+| criminal_appeal, itat_appeal                                                                                                      | appellant_name                        | respondent_name                                                               |
+| consumer_complaint                                                                                                                | applicant_name (Complainant)          | respondent_name (Opposite Party)                                              |
+| posh_complaint                                                                                                                    | complainant_name                      | respondent_name                                                               |
+| rera_complaint                                                                                                                    | complainant_name                      | promoter_name. **Flip** (promoter_against_allottee) → blanks.                 |
+| mact_claim                                                                                                                        | victim_name (claimant)                | owner_name / insurer_name. **Death claim** (claimants_list) → blanks.         |
+| plaint_declaration, plaint_eviction, plaint_injunction, plaint_recovery, plaint_specific_performance, temporary_injunction_o39    | plaintiff_name                        | defendant_name                                                                |
+| plaint_partition, replication                                                                                                     | plaintiff_name                        | blank                                                                         |
+| restoration_application                                                                                                           | parties.plaintiff_name                | parties.defendant_name                                                        |
+| written_statement                                                                                                                 | defendant_name                        | blank                                                                         |
+| counter_affidavit                                                                                                                 | parties.respondent_name               | parties.petitioner_name                                                       |
+| rejoinder_affidavit                                                                                                               | parties.petitioner_name               | parties.respondent_name                                                       |
+| vakalatnama                                                                                                                       | client_name, role from client_role    | blank                                                                         |
+| affidavit_in_support, divorce_mutual_consent, list_of_dates, synopsis, memo_of_parties                                            | blanks unless client_role is answered | blanks                                                                        |
+
+**The three caveat rows: signed as Mahak proposed.** When the flip option or a death claim is chosen, print blanks. Never swap the sides automatically.
+
+A pack added later has no row until I sign one, so it prints blanks.
+
+Tests:
+
+- One pack per row group.
+- Each flip or caveat gives blanks.
+- An answered client_role overrides the table.
+
+**Remaining card strings: signed** (13 Oct 2026). Two edits for consistency:
+
+- title `Annexures`
+- loading `Preparing your annexures…` (edited)
+- error `We couldn't create the annexures. Please try again.` (edited, as Mahak suggested)
+- retry `Try again`
+- missing title `Party details are missing`
+- missing body `Add the names and roles of the parties to this draft, then try again.`
+- missing named `Add {what} to this draft, then try again.`, where `{what}` is `the client's name` or `the opposite party's name`, or both joined with `and`
+
+No cost, "free" or disclaimer wording, as Mahak listed.
+
+## Addendum 4 (13 Oct 2026): Mahak's two calls after the server build
+
+1. **"State of {state}, through the concerned authority" under every respondent: (a) now, (b) as a ticket.** For now, brief drafts store `court_type` only. `state` is stored only for the State rows (bail and criminal), so today's output does not change. In T-396 (Kunal), the memo prints the State line only when the counterpart is the State, never under a private respondent. The same applies to form drafts that already set `state`; that is an existing bug.
+2. **Refusing ambiguous, caveat and no-row cases: accepted for v1.** A refusal is safer than a guessed client. The message must not say a name is missing when only the side is unknown. For these cases, `{what}` is `the client's role`, which gives "Add the client's role to this draft, then try again." Priya: please log a follow-up to offer the client_role question on such drafts.
+
+**Extra detail rows, signed:**
+
+- cat_oa: client address ← `applicant_office_address`
+- mact_claim: client age ← `victim_age_at_accident`
+- counter_affidavit and rejoinder_affidavit: client age and address ← `deponent_age` and `deponent_address` (the deponent is the client in both)

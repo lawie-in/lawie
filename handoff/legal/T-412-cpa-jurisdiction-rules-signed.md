@@ -14,6 +14,7 @@ T-410 may merge with this change. A test checks that the prompt holds no "21 Dec
 Still verify (from T-410 Addendum 1, unchanged): the NCDRC original-complaint registration line, and the section a complaint before the State or National Commission is filed under. The generic text prints until each is verified.
 
 Sources consulted (not cited in product text):
+
 - https://www.thc.nic.in/Central%20Governmental%20Rules/Consumer%20Protection%20(Jurisdiction%20of%20the%20District%20Commission,%20the%20State%20Commission%20and%20the%20National%20Commission)%20Rules,%202021.pdf
 - https://www.scconline.com/blog/?p=259447
 - https://www.livelaw.in/amp/news-updates/central-govt-notifies-consumer-protection-rules-2021-revising-pecuniary-jurisdiction-district-state-national-commissions-188575
@@ -23,11 +24,18 @@ Sources consulted (not cited in product text):
 Both lines change. Only the citation in brackets changes; the rest stays byte-identical.
 
 :13 `jurisdictionNote`:
+
 - old: `(per CPA Jurisdiction Notification dated 21 December 2021)`
 - new: `(per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021)`
 
 :56:
+
 - old: `(per Notification dated 21 December 2021)`
 - new: `(per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021)`
 
 Test: no file under `apps/drafting/src/config` or `docs/templates` contains "21 December 2021". If the court-rules golden snapshot carries these strings, that diff is exactly these two citations. Send it to me and I sign it as part of this addendum.
+
+## Addendum 2 (13 Oct 2026): two strings before the T-410 merge
+
+1. **related_acts: signed byte for byte as Tanvi wrote it:** `Consumer Protection Act 2019 — Sections 2, 34, 35, 38, 39, 69 (Pecuniary per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021: District Commission up to Rs.50 Lakh, State Commission Rs.50L-2Cr, National Commission above Rs.2Cr)`. The section list is unchanged from before. Adding the State and National jurisdiction sections is a **verify** item for the open T-410 heading work, and stays out of the text until it is verified.
+2. **Para 9 note:** change `superseded by this notification` to `superseded by these Rules`, to match the citation. Nothing else changes.

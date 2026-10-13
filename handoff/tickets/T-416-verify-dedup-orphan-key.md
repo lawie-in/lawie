@@ -1,10 +1,10 @@
 # T-416: verify-email dedup survives an orphaned key
 
-| Field  | Value                                        |
-| ------ | -------------------------------------------- |
-| Status | Todo. Mahak, after T-390. Priya, 13 Oct 2026 |
-| Owner  | Mahak (build), Arjun (Redis call)            |
-| Mode   | Small fix (packages/email-client)            |
+| Field  | Value                                                                                           |
+| ------ | ----------------------------------------------------------------------------------------------- |
+| Status | Merged into develop_staging ed2e18a (Mahak, 13 Oct 2026). Waiting for Anushka on develop. Priya |
+| Owner  | Mahak (build), Arjun (Redis call)                                                               |
+| Mode   | Small fix (packages/email-client)                                                               |
 
 ## Why
 
