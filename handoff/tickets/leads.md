@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- kunal: T-395 holds the slot (T-366 CI green, run 509). Then Shashank's T-363 proprietor fix (reviewer passed, Ajay OK 2c620e3), then Mahak T-385 (ready since 07:57), then Tanvi T-406 (reviewer passed, Ajay signed golden a9672b2; doc-writer report first) and Vishal T-373, whichever is ready first (T-373: Ajay's own-words-check conditions being built, then a delta reviewer). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
+- kunal: T-395 merged a242a7f; holds the slot until CI on it is green. Then Shashank's T-363 proprietor fix (reviewer passed, Ajay OK 2c620e3), then Mahak T-385 (ready since 07:57), then Tanvi T-406 (reviewer passed, Ajay signed golden a9672b2; doc-writer report first) and Vishal T-373, whichever is ready first (T-373: Ajay's own-words-check conditions being built, then a delta reviewer). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
 
 ## Last done
 
+- kunal: T-395 merged a242a7f (13 Oct 2026). Suspension-of-sentence verification and appeal cause titles carry the appellant's name; Ajay d17e509. template-engine.service.ts released to Tanvi (T-406) and Shashank (T-404 part 1) in turn.
 - tanvi: T-366 CI green (run 509, 13 Oct 2026).
 - tanvi: T-366 merged 78318a3 (13 Oct 2026). Signed copy and free-tool legal lines; "once your email is verified" on every free-Ink line. (marketing) pages released.
 - shashank: T-363 CI green (run 508, 13 Oct 2026).

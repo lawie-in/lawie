@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay |
 | Mode   | Small fix (legal content) |
-| Status | Building. Kunal, after T-393. Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging a242a7f (Kunal, 13 Oct 2026). Waiting for Anushka on develop. Priya |
 | Source | T-393 |
 
 ## Problem

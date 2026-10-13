@@ -882,3 +882,10 @@ What a user can now do:
 - See "once your email is verified" wherever 5 free Ink is offered.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-395 (Kunal, a242a7f, 13 Oct 2026)
+
+- In an application for suspension of sentence, see the verification read "I, <appellant's name>, …, aged about <age> years" instead of blanks.
+- In a criminal or income-tax appeal, see the appellant's name in the cause title.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
