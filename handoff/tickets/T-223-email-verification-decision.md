@@ -127,3 +127,9 @@ Out of scope: tightening sign-up rate limits at the gateway (Arjun's item 4, sep
 4. **Resend cap** (promised to AWS in the SES production-access case): enqueue at most 1 verify mail per user per 60 s and 5 per 24 h, counted in Redis at the enqueue site. Over the limit → 429 with a fixed message, nothing sent.
 - (3) `AUTH_SERVICE_URL` in the worker's fail-fast list: yes. Founder: add it to the server `.env.production` with the other email env (I'll add it to the email doc's step 7).
 - (4) Billing reading `emailVerified` / `authProvider` / `googleId` from the shared `users` collection: yes for v1. Read those fields only, never write; it is the same coupling billing already has.
+
+## Notes (Priya, 13 Oct 2026, review round 1)
+
+- AC2: a signed-out user opening an already-used link sees "This link has expired. Sign in to send a new one." (Ajay's signed string). Used tokens are not remembered. Signed-in users get "already verified" through /me. Accepted.
+- Round 2 adds two safety items: verification refuses deactivated users, and the worker refuses a real send while the footer still has the [registered address]/[PIN] placeholders.
+- Follow-ups: T-377 (Referrer-Policy on /verify-email; query strings stripped from nginx logs).

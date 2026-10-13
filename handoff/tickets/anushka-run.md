@@ -707,3 +707,10 @@ What a user can now do:
 - Please run a real screen reader over the privacy prompt (T-343). Kunal's check was only a proxy.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-356 part 1 — describe-first for everyone (552076a, shashank, 13 Oct 2026)
+
+What a user can now do:
+- Every user, new or existing, starts a document by describing their case in their own words, without anyone having to switch it on for them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

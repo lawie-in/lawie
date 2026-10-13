@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web + billing) |
 | Mode   | Small fix |
-| Status | To do. Ordered by Arjun (NOW 1(a): today). Priya, 13 Oct 2026 |
+| Status | Built, waiting to merge after T-223 (kunal, a804570, tester green). Priya, 13 Oct 2026 |
 | Source | ADR-025 (Arjun, 13 Oct 2026, handoff/tickets/ADR-025-structured-drafting-and-signed-data.md) |
 
 ## Acceptance criteria
