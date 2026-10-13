@@ -196,15 +196,17 @@ describe('T-413 manual-grant Sentry signals', () => {
       ).not.toContain('ZZSECRET');
     });
 
-    it('topup-ledger-balance-update-failed: WARNING level, grant stands, route 200', async () => {
+    it('topup-mark-granted-failed: error level, grant stands, route 200', async () => {
       const user = await mkUser();
       jest
         .spyOn(mongoose.mongo.Collection.prototype, 'updateOne')
-        .mockRejectedValueOnce(new Error('ZZSECRET'));
+        .mockRejectedValueOnce(new Error('ZZSECRET'))
+        .mockRejectedValueOnce(new Error('ZZSECRET'))
+        .mockRejectedValueOnce(new Error('ZZSECRET')); // MARK_GRANTED_ATTEMPTS = 3
       const res = await post(paymentCaptured(user._id));
       expect(res.status).toBe(200);
       expect((await User.findById(user._id).lean())!.inkTopup).toBe(6);
-      expectSignal('topup-ledger-balance-update-failed', 'warning', { razorpayOrderId: ORDER });
+      expectSignal('topup-mark-granted-failed', 'error', { razorpayOrderId: ORDER });
       expect(JSON.stringify(capturedCalls())).not.toContain('ZZSECRET');
       expect(Sentry.captureException).not.toHaveBeenCalled();
     });

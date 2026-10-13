@@ -14,6 +14,7 @@ import { razorpay } from '../config/razorpay';
 import { authenticate } from '../middleware/authenticate';
 import { CouponCode } from '../models/CouponCode.model';
 import { User } from '../models/User.model';
+import { GrantClaimBusyError } from '../services/ink-ledger.service';
 import {
   createSubscription,
   getSubscriptionStatus,
@@ -283,6 +284,16 @@ router.post('/webhook/razorpay', async (req: Request, res: Response) => {
   } catch (err: unknown) {
     // T-323: no err.message or stack (a duplicate-key message carries the duplicate value).
     const e = err as { name?: unknown; code?: unknown } | null | undefined;
+    // T-415: another attempt holds a fresh grant claim (normal for the order.paid +
+    // payment.captured pair). 500 so Razorpay retries, but it is not an alert.
+    if (err instanceof GrantClaimBusyError || e?.name === 'GrantClaimBusyError') {
+      logger.warn(
+        { event: payload.event, errorName: e?.name, errorCode: e?.code },
+        'Webhook grant claim pending in another attempt; asking Razorpay to retry',
+      );
+      res.status(500).json({ error: 'Internal Server Error' });
+      return;
+    }
     logger.error(
       { event: payload.event, errorName: e?.name, errorCode: e?.code },
       'Webhook handler error',
