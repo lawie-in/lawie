@@ -493,6 +493,7 @@ export function generateVerificationClause(
 
   const verification = docRule.verificationTemplate
     .replace(/{applicant}/g, deponentName)
+    .replace(/{appellant}/g, partyDetails.appellant || partyDetails.appellant_name || deponentName)
     // T-393 (Ajay, T-359 AC6): the relation and parent or spouse, or the signed blanks.
     .replace(
       /{parentRelation}/g,
