@@ -1,0 +1,53 @@
+{
+  "id": "20-t363-s138-no-offence-at-issue",
+  "pack": "legal_notice_s138",
+  "title": "s.138 notice: never says the offence is complete when the cheque is issued (T-363 AC3)",
+  "risk": "Run 3 s.138 FAIL: para 8 said the offence was committed by issuing the cheque. It is complete only on non-payment within 15 days of receiving the notice (Ajay's sentence)",
+  "source": "handoff/quality/2026-10-13-run-3-develop-FAIL.md (T-192 and s.138 notice entries); handoff/legal/T-363-s138-notice-wording-signed.md",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": "Asserts Ajay's signed AC3 sentence and the 15-day demand sentence (handoff/legal/T-363-s138-notice-wording-signed.md, Addendum 1); he confirms the wording.",
+  "language": "en",
+  "description": "Mere client Suresh Gupta ko Demo Traders ke malik ne 3 lakh ka cheque diya, cheque no. 004512, date 1 sept 2026, HDFC Bank Karol Bagh. 15 sept 2026 ko lagaya, 18 sept 2026 ko return ho gaya. Udhaar ka paisa tha. Notice chahiye.",
+  "court": null,
+  "expect": {
+    "absent": [
+      {
+        "any_of": [
+          "offence is complete",
+          "offence has been committed",
+          "offence was committed",
+          "committed an offence",
+          "constitutes a criminal offence",
+          "constitutes an offence",
+          "offence under section 138 is complete",
+          "offence is made out",
+          "by issuing the cheque",
+          "on the issue of the cheque",
+          "on dishonour of the cheque, an offence"
+        ],
+        "why": "AC3: no offence complete on issue, presentation or dishonour"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["3,00,000", "3 lakh", "300000"],
+        "why": "the amount"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "cheque_amount",
+        "why": "read from the description",
+        "display": "Rs 3,00,000"
+      }
+    ],
+    "allow_violations": []
+  },
+  "recorded": {
+    "clean": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"applicant_name\", \"value\": \"Suresh Gupta\", \"quote\": \"Suresh Gupta\"}, {\"id\": \"respondent_name\", \"value\": \"Demo Traders\", \"quote\": \"Demo Traders ke malik\"}, {\"id\": \"cheque_amount\", \"value\": \"300000\", \"quote\": \"3 lakh ka cheque\"}, {\"id\": \"drawee_bank\", \"value\": \"HDFC Bank\", \"quote\": \"HDFC Bank\"}, {\"id\": \"drawee_branch\", \"value\": \"Karol Bagh\", \"quote\": \"HDFC Bank Karol Bagh\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"span\": \"Suresh Gupta\", \"confidence\": 0.97}, {\"key\": \"respondent_name\", \"span\": \"Demo Traders\", \"confidence\": 0.9}, {\"key\": \"cheque_amount\", \"span\": \"3 lakh\", \"confidence\": 0.97}, {\"key\": \"cheque_date\", \"span\": \"1 sept 2026\", \"confidence\": 0.95}, {\"key\": \"presentation_date\", \"span\": \"15 sept 2026\", \"confidence\": 0.92}, {\"key\": \"dishonour_date\", \"span\": \"18 sept 2026\", \"confidence\": 0.91}, {\"key\": \"drawee_bank\", \"span\": \"HDFC Bank\", \"confidence\": 0.95}, {\"key\": \"drawee_branch\", \"span\": \"Karol Bagh\", \"confidence\": 0.94}]}",
+      "drafter": "1. That you, Demo Traders, issued to my client Suresh Gupta a cheque dated 1 September 2026 for Rs 3,00,000 drawn on HDFC Bank, Karol Bagh.\n\n2. That my client presented the said cheque on 15 September 2026, and the return memo is dated 18 September 2026.\n\n3. That the amount of Rs 3,00,000 remains unpaid.\n\n4. That my client therefore calls upon you to pay the said amount within fifteen days of receipt of this notice.\n"
+    }
+  }
+}

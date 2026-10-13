@@ -1158,14 +1158,23 @@ function advocateAddressOrBlank(value: string | undefined): string {
  * {caseNomenclature} print the signed blank, never `_____`. Only the camelCase
  * tokens: `court_designation` stays as it was, since the Drafter is told the
  * court from it. Runs after `applyPlaceholderAliases`, so a value wins.
+ * T-406: a document not filed in court (`allowNomenclature` false) gets no
+ * case-line blank; its {caseNomenclature} stays empty.
  */
-function applyCourtBlanks(ctx: PlaceholderContext, courtData?: CourtLookupData): void {
+function applyCourtBlanks(
+  ctx: PlaceholderContext,
+  courtData?: CourtLookupData,
+  allowNomenclature = true,
+): void {
   if (chosenCourtHeading(courtData)) {
     // T-404 Addendum 3 #5: a court with no case line of its own.
-    if (!ctx.caseNomenclature?.trim()) ctx.caseNomenclature = CASE_TYPE_BLANK;
+    if (allowNomenclature && !ctx.caseNomenclature?.trim()) {
+      ctx.caseNomenclature = CASE_TYPE_BLANK;
+    }
     return;
   }
   for (const alias of ['courtHeader', 'courtDesignation', 'caseNomenclature']) {
+    if (alias === 'caseNomenclature' && !allowNomenclature) continue;
     if (!ctx[alias]?.trim()) ctx[alias] = COURT_BLANK;
   }
   // T-404 (2957f50, c): "Place:" / "Verified at" with no court and no city.
@@ -1760,7 +1769,7 @@ export function buildPlaceholderContext(
   // T-146: aliases are set after the SCRUM-50 court-rule block, so an alias
   // such as {caseNomenclature} reads the same value as {case_nomenclature}.
   applyPlaceholderAliases(ctx);
-  applyCourtBlanks(ctx, courtData);
+  applyCourtBlanks(ctx, courtData, nomenclatureAllowed(config.template_id));
 
   // Recursive placeholder pass — resolve {token} references that may exist inside
   // ctx values themselves (e.g. caseNomenclature from courts DB contains "{current_year}"
