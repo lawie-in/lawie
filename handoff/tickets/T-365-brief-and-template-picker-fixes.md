@@ -30,3 +30,9 @@ Anushka's reproduce steps are in the run 3 report; use them as the test cases. A
 - AC6: the regex fix now. The 11 empty descriptions and lease_deed's text: Ajay and Arjun choose between pack JSON edits and a code-side description map.
 - AC7: moved to T-381 (button plus stored party data).
 - Side bug: T-382 (advocate_enrolment vs advocate_enrollment).
+
+## Ajay (13 Oct 2026)
+
+- AC1 approved: the auto-blank isn't a "typed" value.
+- AC3 stays dropped.
+- AC6: descriptions live in the pack JSON, not a code map. Add a new user-facing `card_description` field, and stop showing `_meta` and `description` on cards: presentDescription shows unvetted case cites and legal notes today. Ajay signs all 92 lines in handoff/legal/T-365-card-descriptions-signed.md. The pack JSON edits are legal content; the lead claims the pack files then, coordinating with T-374 (bail packs) and T-382.
