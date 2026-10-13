@@ -1,11 +1,11 @@
 # ADR-025 — The model fills a signed skeleton; legal data is the signed file; one entitlement model
 
-| Field      | Value                                                                                                                                                                                                      |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status     | **Decided.** Arjun, 13 Oct 2026, under the founder's standing delegation of all technical decisions (founder, 13 Oct 2026: "you have the full approvals"). D1–D5 are in force; Priya sequences the tickets |
-| Review doc | https://claude.ai/artifact/6yYqbJXug8ay5uubA5oNHD (same content, with diagrams)                                                                                                                            |
-| Basis      | Anushka's runs of 6, 7 and 13 Oct (all FAIL on the same finding); three read-only code surveys on `develop_staging` 3ec5907                                                                                |
-| Supersedes | Nothing. Completes ADR-021 (code assembles title, prayer, verification) and ADR-022 (fact ledger) by extending them to the body                                                                            |
+| Field | Value |
+| --- | --- |
+| Status | **Decided.** Arjun, 13 Oct 2026, under the founder's standing delegation of all technical decisions (founder, 13 Oct 2026: "you have the full approvals"). D1–D5 are in force; Priya sequences the tickets |
+| Review doc | https://claude.ai/artifact/6yYqbJXug8ay5uubA5oNHD (same content, with diagrams) |
+| Basis | Anushka's runs of 6, 7 and 13 Oct (all FAIL on the same finding); three read-only code surveys on `develop_staging` 3ec5907 |
+| Supersedes | Nothing. Completes ADR-021 (code assembles title, prayer, verification) and ADR-022 (fact ledger) by extending them to the body |
 
 ## Problem
 
@@ -40,64 +40,30 @@ GitHub secrets `GOLDEN_SET_ANTHROPIC_API_KEY`, `GOLDEN_SET_MONGODB_URI`; Atlas c
 ## Build spec for D1 (Arjun, 13 Oct 2026) — the two tickets Priya raises point here
 
 ### Skeleton file (Ajay signs; one per pack, `handoff/legal/skeleton-<pack>-signed.md` + the JSON it generates under `config/document-rules/_skeletons/<pack>.json`)
-
 ```json
-{
-  "pack": "bail_regular",
-  "version": 1,
+{ "pack": "bail_regular", "version": 1,
   "clauses": [
-    {
-      "id": "custody",
-      "order": 30,
-      "required": true,
+    { "id": "custody", "order": 30, "required": true,
       "text": "The applicant has been in judicial custody since {custody_since} in connection with {fir_number}, {police_station}.",
-      "slots": ["custody_since", "fir_number", "police_station"],
-      "source": "fixed"
-    },
-    {
-      "id": "grounds",
-      "order": 60,
-      "required": true,
-      "source": "advocate",
-      "list": true,
-      "slot": "grounds",
-      "intro": "The applicant seeks bail on the following grounds:"
-    },
-    {
-      "id": "antecedents",
-      "order": 70,
-      "required": false,
-      "source": "fixed",
-      "text": "{antecedents_statement}",
-      "slots": ["antecedents_statement"]
-    }
-  ]
-}
+      "slots": ["custody_since", "fir_number", "police_station"], "source": "fixed" },
+    { "id": "grounds", "order": 60, "required": true, "source": "advocate", "list": true,
+      "slot": "grounds", "intro": "The applicant seeks bail on the following grounds:" },
+    { "id": "antecedents", "order": 70, "required": false, "source": "fixed",
+      "text": "{antecedents_statement}", "slots": ["antecedents_statement"] }
+  ] }
 ```
-
 - `source: fixed`: the clause text is the signed wording; the model may only fill slots from ledger facts. `source: advocate`: the text comes from the advocate's own words (ledger `raw_span` of the named key); the model may fix grammar and connectives only. No third kind.
 - A clause whose required slot has no ledger fact renders as its `{{MISSING: label}}` form (Ajay's T-359 ruling: antecedents and earlier applications become blanks; roots, character, flight risk, extra grounds have no clause and so cannot render).
 
 ### Drafter contract (tool use, one tool `draft_paragraphs`, `tool_choice` forced)
-
 ```json
-{
-  "paragraphs": [
-    {
-      "clauseId": "custody",
-      "factRefs": ["custody_since", "fir_number", "police_station"],
-      "text": "…"
-    },
-    { "clauseId": "grounds", "items": [{ "factRef": "grounds[0]", "text": "…" }] }
-  ]
-}
+{ "paragraphs": [ { "clauseId": "custody", "factRefs": ["custody_since","fir_number","police_station"], "text": "…" },
+                  { "clauseId": "grounds", "items": [ { "factRef": "grounds[0]", "text": "…" } ] } ] }
 ```
-
 - Input: the ledger facts (key, label, type, display, raw_span for advocate-source keys) and the skeleton. No pack prose, no "instructions" free text beyond the signed system prompt (Ajay re-signs it; it shrinks).
 - Schema: `clauseId` enum = the skeleton's ids; `factRefs` enum = ledger keys present. The API rejects anything else before our code runs.
 
 ### Renderer (`apps/drafting/src/services/draft-renderer.ts`, pure, no model)
-
 1. Order by skeleton `order`; a skeleton clause the model omitted and `required: true` → rendered as its MISSING form.
 2. `source: fixed`: ignore the model's `text`; render the signed text with slots filled from the referenced facts' `display`. (The model's job here is only to say which facts fill which slot; a missing slot → `{{MISSING: label}}`.)
 3. `source: advocate`: keep the model's `text` only if it passes the existing `fact-verifier` entity check against the referenced fact's `raw_span`/`value` (no new numbers, dates, names, places); otherwise fall back to the `raw_span` verbatim.
@@ -106,14 +72,12 @@ GitHub secrets `GOLDEN_SET_ANTHROPIC_API_KEY`, `GOLDEN_SET_MONGODB_URI`; Atlas c
 6. Code-assembled sections (title, prayer, verification, advocate block) unchanged (ADR-021). The verification relation (S/o, W/o, D/o) comes from a ledger key or renders blank (T-359 AC6).
 
 ### Tests
-
 - Unit: renderer with (a) a paragraph carrying an unknown `clauseId` → dropped; (b) a fixed clause with a missing slot → MISSING; (c) an advocate clause with an added date → fallback to raw_span; (d) duplicate sections → one; (e) all T-359 ACs 1–7 as fixtures from Anushka's run-3 steps.
 - Golden set: new assertion for D1 packs: every rendered paragraph has a `clauseId`; `rendered[]` has no `fallback` for the six run-3 drafts' expected clauses.
 - Snapshot: court-rules goldens unchanged (they cover code-assembled sections only).
 
 ### Split (two leads, no shared files)
-
-- Lead A (T-373): `draft-renderer.ts` (new), `ai.service.ts` ledger path → structured call, `drafter.prompts.ts` (Ajay gate), `brief-drafter.ts` checks → `rendered[]`, web checks panel component, tests, golden-set assertion.
+- Lead A (T-373): `draft-renderer.ts` (new), `ai.service.ts` ledger path → structured call, `drafter.prompts.ts` (Ajay gate), `brief-drafter.ts` checks → `rendered[]`, web checks panel component, tests, golden-set assertion. 
 - Lead B (T-374): `_skeletons/` loader + validation in `rule-pack.service.ts`, the four `bail_*.json` packs pointing at their skeleton (Ajay gate), skeleton JSON generated from Ajay's signed markdown with a hash test like T-255's, fixtures.
 - Interface between them, fixed now: `loadSkeleton(packId): Skeleton | null` from `rule-pack.service.ts`; a pack with no skeleton stays on today's path. Lead A codes against a hand-written `bail_regular` skeleton fixture until Lead B's loader lands.
 
@@ -121,15 +85,14 @@ GitHub secrets `GOLDEN_SET_ANTHROPIC_API_KEY`, `GOLDEN_SET_MONGODB_URI`; Atlas c
 
 Slot names are the packs' existing field ids (ledger keys), read from `config/document-rules/<pack>.json` today. `*` = required in the pack. Clause ids are the packs' existing `mandatoryClauses` ids, so the checks panel and filing checklist keep lining up.
 
-| Pack                     | Clause ids (skeleton must cover each `*`)                                                                                                 | Slots available                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bail_regular`           | grounds* fir_details* custody_status* no_flight_risk* earlier_applications\* (prayer, verification, advocate_details stay code-assembled) | fir_number* fir_date* police_station* sections_charged* currently_in_custody* custody_since arrest_date earlier_bail_applications antecedents investigation_status applicant_sex medical_condition named_in_fir recovery_status cooperated_with_investigation applicant_occupation sole_earning_member dependants local_ties s35_notice_status co_accused_bail_court co_accused_bail_date applicant_name* father_name* applicant_age* address* facts_narrative* grounds_for_bail* additional_context state* court_type* court_name*                                                                  |
-| `bail_anticipatory`      | apprehension* fir_details* false_implication no_flight_risk* earlier_applications*                                                        | as bail_regular minus custody_since, arrest_date, recovery_status, s35_notice_status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `default_bail`           | statutory_provision* custody_dates* applicable_window* non_filing* indefeasible_right* willingness* earlier_applications\*                | applicant_name* applicant_parentage* applicant_age* applicant_address* court_designation* state* fir_number* fir_date* police_station* offences_alleged* arrest_date* remand_date* period_claimed* period_expiry_date special_act_period charge_sheet_status* application_date* willingness_to_furnish_bond* earlier_bail_applications advocate_name* advocate_enrolment*                                                                                                                                                                                                                            |
-| `bail_before_magistrate` | fir_particulars* custody* offence_classification* grounds* triple_test* undertakings* earlier_applications\*                              | applicant_name* applicant_parentage* applicant_age* applicant_address* court_designation* state* fir_number* fir_date* police_station* offences_alleged* offence_classification* days_in_custody* currently_in_custody* jail* earlier_bail_applications antecedents arrest_date investigation_status applicant_sex medical_condition named_in_fir recovery_status cooperated_with_investigation applicant_occupation sole_earning_member dependants local_ties s35_notice_status co_accused_bail_court co_accused_bail_date grounds_for_bail* sureties_available* advocate_name* advocate_enrolment* |
+| Pack | Clause ids (skeleton must cover each `*`) | Slots available |
+| --- | --- | --- |
+| `bail_regular` | grounds* fir_details* custody_status* no_flight_risk* earlier_applications* (prayer, verification, advocate_details stay code-assembled) | fir_number* fir_date* police_station* sections_charged* currently_in_custody* custody_since arrest_date earlier_bail_applications antecedents investigation_status applicant_sex medical_condition named_in_fir recovery_status cooperated_with_investigation applicant_occupation sole_earning_member dependants local_ties s35_notice_status co_accused_bail_court co_accused_bail_date applicant_name* father_name* applicant_age* address* facts_narrative* grounds_for_bail* additional_context state* court_type* court_name* |
+| `bail_anticipatory` | apprehension* fir_details* false_implication no_flight_risk* earlier_applications* | as bail_regular minus custody_since, arrest_date, recovery_status, s35_notice_status |
+| `default_bail` | statutory_provision* custody_dates* applicable_window* non_filing* indefeasible_right* willingness* earlier_applications* | applicant_name* applicant_parentage* applicant_age* applicant_address* court_designation* state* fir_number* fir_date* police_station* offences_alleged* arrest_date* remand_date* period_claimed* period_expiry_date special_act_period charge_sheet_status* application_date* willingness_to_furnish_bond* earlier_bail_applications advocate_name* advocate_enrolment* |
+| `bail_before_magistrate` | fir_particulars* custody* offence_classification* grounds* triple_test* undertakings* earlier_applications* | applicant_name* applicant_parentage* applicant_age* applicant_address* court_designation* state* fir_number* fir_date* police_station* offences_alleged* offence_classification* days_in_custody* currently_in_custody* jail* earlier_bail_applications antecedents arrest_date investigation_status applicant_sex medical_condition named_in_fir recovery_status cooperated_with_investigation applicant_occupation sole_earning_member dependants local_ties s35_notice_status co_accused_bail_court co_accused_bail_date grounds_for_bail* sureties_available* advocate_name* advocate_enrolment* |
 
 Rules for the skeleton text:
-
 1. **`no_flight_risk` and `triple_test` are not averments to invent.** Under Ajay's T-359 ruling they render only from facts the advocate gave (local_ties, applicant_occupation, cooperated_with_investigation, sole_earning_member, dependants); with none given, the clause is omitted (Ajay: roots, character, flight risk are left out, not blanked).
 2. **`antecedents` and `earlier_applications`:** fixed wording with a slot; missing → `{{MISSING: label}}` (Ajay: these become blanks).
 3. **`grounds` (regular, Magistrate) and `false_implication`/`apprehension` (anticipatory):** `source: advocate`, list form, one item per ledger ground (`grounds_for_bail[i]` plus `facts_narrative` for the narrative). No ground renders without a ref.
@@ -139,7 +102,6 @@ Rules for the skeleton text:
 7. Lead B normalises the four naming variants with an alias map in the loader (`father_name`↔`applicant_parentage`, `address`↔`applicant_address`, `advocate_enrollment`↔`advocate_enrolment`, `sections_charged`↔`offences_alleged`), so Ajay writes each skeleton in its own pack's names and the renderer still resolves them.
 
 ### D1 call shape (Arjun, 13 Oct 2026, answering Vishal's T-373 questions)
-
 1. **Structured output, not forced tool use.** `tool_choice: any/tool` returns 400 on the current Opus/Sonnet 5.5 generation, and `ai.drafting_model` is an AppSetting that will move. Use the Messages API structured output: `client.messages.parse({ ..., output_config: { format: zodOutputFormat(DraftSchema) } })` with the clause ids and ledger keys baked into the zod schema as enums per request. If the installed `@anthropic-ai/sdk` (^0.91 in drafting) lacks `output_config`, bump it in this ticket (yarn.lock is root config: Priya adds it to the claim). Fallback only if the bump is blocked: one `strict: true` tool, `tool_choice: auto`, the prompt naming the tool, and a zod validation of `tool.input`.
 2. **Non-streaming.** One `parse` call, `max_tokens: 16000`; the client-facing SSE keep-alive (T-285) covers the wait as it does today on the ledger path. No `input_json_delta` parsing. `parsed_output === null` or a zod failure → one retry; a second failure → the draft fails with a clear error event, never a silent blank document.
 3. **After the renderer:** `removeUngivenCitations` stays. `verifyDraft` runs read-only on the rendered text and writes the fact-diff log (Ajay's weekly-review condition from ADR-022 stands); its model repair pass and the clause repair pass are removed on D1 packs, because the renderer already falls back to `raw_span` or `{{MISSING}}`.

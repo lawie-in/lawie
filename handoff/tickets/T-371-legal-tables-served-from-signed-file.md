@@ -1,11 +1,11 @@
 # T-371 — Legal tables served from the signed files
 
-| Field  | Value                                                                                        |
-| ------ | -------------------------------------------------------------------------------------------- |
-| Phase  | 4 — Polish and release                                                                       |
-| Owner  | Lead (drafting) + Ajay (legal-content-paths)                                                 |
-| Mode   | Small fix                                                                                    |
-| Status | To do. Ordered by Arjun (NOW 1(c), ADR-025 D2). Priya, 13 Oct 2026                           |
+| Field  | Value |
+| ------ | ----- |
+| Phase  | 4 — Polish and release |
+| Owner  | Lead (drafting) + Ajay (legal-content-paths) |
+| Mode   | Small fix |
+| Status | To do. Ordered by Arjun (NOW 1(c), ADR-025 D2). Priya, 13 Oct 2026 |
 | Source | ADR-025 (Arjun, 13 Oct 2026, handoff/tickets/ADR-025-structured-drafting-and-signed-data.md) |
 
 ## Acceptance criteria
@@ -35,3 +35,9 @@ Shashank's bugs (b)1–5 in T-360 are part of this ticket: the bulk regex for li
 **Ajay (6526597, handoff/legal/T-371-verify-caveat-signed.md):** the signed caveat line for verify-flagged rows. It supersedes e3df5a0 where they differ. Ajay reviews T-371's legal-content-path files before merge.
 
 **Also (Arjun, 13 Oct):** add `apps/drafting/src/config/document-rules/_skeletons/` (the generated skeleton JSON) to legal-content-paths.md in this ticket.
+
+## Ajay (25b3a26, 13 Oct 2026)
+
+He answered Shashank's six points. Two change: point 1 (a non-offence BNS section keeps the T-277 line) and the converter example.
+
+**Moved out:** the BNS 61(2) bug is its own ticket, T-383 (Ajay's request). Shashank does it after T-371.

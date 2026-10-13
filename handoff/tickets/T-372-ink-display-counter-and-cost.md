@@ -1,11 +1,11 @@
 # T-372 — Hide the documents counter; show Ink cost and balance
 
-| Field  | Value                                                                                        |
-| ------ | -------------------------------------------------------------------------------------------- |
-| Phase  | 4 — Polish and release                                                                       |
-| Owner  | Lead (web + drafting)                                                                        |
-| Mode   | Small fix                                                                                    |
-| Status | To do. Ordered by Arjun (NOW 1(d), the display half of T-364). Priya, 13 Oct 2026            |
+| Field  | Value |
+| ------ | ----- |
+| Phase  | 4 — Polish and release |
+| Owner  | Lead (web + drafting) |
+| Mode   | Small fix |
+| Status | To do. Ordered by Arjun (NOW 1(d), the display half of T-364). Priya, 13 Oct 2026 |
 | Source | ADR-025 (Arjun, 13 Oct 2026, handoff/tickets/ADR-025-structured-drafting-and-signed-data.md) |
 
 ## Acceptance criteria
