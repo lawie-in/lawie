@@ -36,3 +36,5 @@ Do not add the 15-day computation or any date difference to the notice (T-192).
    - `Send the notice within 30 days of receiving the bank's return memo (Section 138, proviso (b)).`
    - `If payment is not made within 15 days of receipt of the notice, file the complaint within one month after those 15 days end (Section 142(1)(b)).`
    "Within next 30 days" goes: the Act says one month.
+
+**Pack diff faeaafa: approved, 13 Oct 2026.** prayerTemplate is byte-exact: the demand line, then the AC3 line, with nothing after it. The memo-reason instruction and the no-offence line are in. The two proprietor fields are optional. The placeholder is "Quote only as the memo gives it". Also approved, to land with it: mandatoryClauses > dishonour_details description `Date of dishonour, reason for dishonour as the return memo gives it, bank memo reference`. No example reason may appear anywhere in this pack.
