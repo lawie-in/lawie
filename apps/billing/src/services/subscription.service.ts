@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 
+import { addOneMonth } from '@lawie/shared';
+
 import { findPlanByRazorpayId, findSubscriptionPlan, findTopupSku } from '../config/credit-skus';
 import { env } from '../config/env';
 import logger from '../config/logger';
@@ -186,10 +188,15 @@ export async function handleWebhookEvent(
     case 'subscription.activated':
     case 'subscription.charged': {
       const chargeAt = subPayload?.charge_at as number | undefined;
+      // T-399: current_end is the end of the paid period (paidThrough); Ink and
+      // the yearly drip last until then.
+      const currentStart = subPayload?.current_start as number | undefined;
+      const currentEnd = subPayload?.current_end as number | undefined;
+      const paidCount = subPayload?.paid_count as number | undefined;
       sub.status = 'active';
       sub.currentPeriodStart = new Date();
       if (chargeAt) sub.currentPeriodEnd = new Date(chargeAt * 1000);
-      await sub.save();
+      if (currentEnd) sub.paidThrough = new Date(currentEnd * 1000);
 
       // Resolve plan SKU from Razorpay plan id → grant subscription ink
       const razorpayPlanId =
@@ -205,6 +212,49 @@ export async function handleWebhookEvent(
           );
 
       if (planSku) {
+        sub.planId = planSku.id;
+        sub.billingCycle = planSku.cycle;
+      }
+      await sub.save();
+
+      // T-399 (Arjun): activated and charged both fire on the first payment, and
+      // activated may carry no payment entity. Grant once per paid cycle: only
+      // the call whose conditional update raises lastGrantedPaidCount (Razorpay
+      // paid_count) grants; without paid_count, current_start against
+      // lastGrantedPeriodStart. Absent fields match `$not: { $gte }`, so the
+      // first cycle grants. With neither field, grant as before and warn.
+      let isNewCycle = true;
+      if (typeof paidCount === 'number') {
+        const claimed = await Subscription.findOneAndUpdate(
+          { _id: sub._id, lastGrantedPaidCount: { $not: { $gte: paidCount } } },
+          {
+            $set: {
+              lastGrantedPaidCount: paidCount,
+              ...(currentStart ? { lastGrantedPeriodStart: new Date(currentStart * 1000) } : {}),
+            },
+          },
+        );
+        isNewCycle = paidCount > 0 && claimed !== null;
+      } else if (currentStart) {
+        const periodStart = new Date(currentStart * 1000);
+        const claimed = await Subscription.findOneAndUpdate(
+          { _id: sub._id, lastGrantedPeriodStart: { $not: { $gte: periodStart } } },
+          { $set: { lastGrantedPeriodStart: periodStart } },
+        );
+        isNewCycle = claimed !== null;
+      } else {
+        logger.warn(
+          { subId, event },
+          'subscription webhook has no paid_count or current_start; grant not deduplicated',
+        );
+      }
+
+      if (planSku && !isNewCycle) {
+        logger.info(
+          { subId, event, paidCount },
+          'subscription cycle already granted, no second grant',
+        );
+      } else if (planSku) {
         await grantSubscriptionInk({
           userId: sub.userId.toString(),
           inkUnits: planSku.inkPerCycle * 2, // 1 Ink = 2 ledger units
@@ -214,6 +264,14 @@ export async function handleWebhookEvent(
           razorpaySubscriptionId: subId,
           amountInr: planSku.priceInr,
         });
+        if (planSku.cycle === 'yearly') {
+          // Month 1 is the grant above; settleYearlyDrip grants months 2–12.
+          const chargedAt = currentStart ? new Date(currentStart * 1000) : new Date();
+          await Subscription.updateOne(
+            { _id: sub._id },
+            { $set: { inkDripNextAt: addOneMonth(chargedAt), inkDripCount: 0 } },
+          );
+        }
       } else {
         // Legacy fallback: no plan mapping — set plan=pro without ink grant
         await User.findByIdAndUpdate(sub.userId, { plan: 'pro' });
@@ -225,9 +283,21 @@ export async function handleWebhookEvent(
       break;
     }
 
-    case 'subscription.cancelled':
+    // T-399 (Arjun, Ajay): cancel stops the renewal only. The plan, its Ink and
+    // the yearly drip stay until paidThrough; then the expired webhook (or the
+    // lazy settleYearlyDrip) downgrades and zeroes. Billing makes no Razorpay
+    // cancel call today. Any future cancel button MUST use
+    // `cancel_at_cycle_end: 1`, never an immediate cancel.
+    case 'subscription.cancelled': {
+      sub.status = 'cancelled';
+      sub.cancelledAt = new Date();
+      await sub.save();
+      logger.info({ userId: sub.userId, event }, 'Subscription cancelled; kept until paidThrough');
+      break;
+    }
+
     case 'subscription.expired': {
-      sub.status = event === 'subscription.cancelled' ? 'cancelled' : 'expired';
+      sub.status = 'expired';
       sub.cancelledAt = new Date();
       await sub.save();
       const otherActive = await Subscription.findOne({

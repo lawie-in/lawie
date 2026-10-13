@@ -32,6 +32,17 @@ export interface ISubscription extends Document {
 
   paymentHistory: IPaymentRecord[];
 
+  // T-399: plan SKU id (e.g. 'solo_yearly'), cycle, end of the paid period
+  // (Razorpay current_end), yearly drip state, and the last granted cycle
+  // (Razorpay paid_count, or current_start when paid_count is absent).
+  planId?: string;
+  billingCycle?: 'monthly' | 'yearly';
+  paidThrough?: Date;
+  inkDripNextAt?: Date;
+  inkDripCount?: number;
+  lastGrantedPaidCount?: number;
+  lastGrantedPeriodStart?: Date;
+
   cancelledAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -88,6 +99,14 @@ const SubscriptionSchema = new Schema<ISubscription>(
       type: [PaymentRecordSchema],
       default: [],
     },
+
+    planId: String,
+    billingCycle: { type: String, enum: ['monthly', 'yearly'] },
+    paidThrough: Date,
+    inkDripNextAt: Date,
+    inkDripCount: Number,
+    lastGrantedPaidCount: Number,
+    lastGrantedPeriodStart: Date,
 
     cancelledAt: Date,
   },
