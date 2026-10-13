@@ -142,7 +142,7 @@ Verified at {place} on {date}.
 | security_sought | Security the applicant asks the Court to require (as you state it) | text | no | security clause |
 | undertaking_offered | Undertaking offered by the applicant, if any | textarea | no | undertaking clause; averment unlock |
 | earlier_proceedings | Earlier and other proceedings on the same point (court, date, result) | textarea | no | disclosure clause; averment unlock |
-| advocate_name / advocate_enrolment | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -204,3 +204,5 @@ Reviewed by me after an independent review pass; the corrections are in this fil
 | A practising advocate checks the pack before it goes live | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

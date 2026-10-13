@@ -170,7 +170,7 @@ Complainant
 | earlier_proceedings | Earlier proceedings on the same facts ("none" or particulars) | textarea | no | Disclosure clause; "none" unlocks default allowed entry |
 | accused_public_servant | Is any accused a public servant, and does the complaint concern acts done in the discharge of official duty? | select (no, yes, not sure) | yes | Yes / not sure: sanction blank in the draft and checklist cue (Ajay ruling) |
 | advocate_name | Advocate name | text | yes | Signature block |
-| advocate_enrolment | Bar Council enrolment no. | text | yes | Signature block |
+| advocate_enrollment | Bar Council enrolment no. | text | yes | Signature block |
 
 ## _averments
 
@@ -278,3 +278,5 @@ The "Notes" and "Verify" sections are the drafter's reasoning, kept for the reco
 | A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

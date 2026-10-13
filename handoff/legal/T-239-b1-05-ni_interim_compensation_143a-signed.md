@@ -132,7 +132,7 @@ Complainant
 | grounds | Grounds for interim compensation | textarea | no | Grounds clause |
 | delay_particulars | Adjournments sought by the accused (dates, as on order sheet) | textarea | no | Unlocks `accused_delay` |
 | earlier_proceedings | Earlier 143A application or deposit order ("none" or particulars) | textarea | no | Disclosure clause |
-| advocate_name / advocate_enrolment | Advocate | text | yes | Signature block |
+| advocate_name / advocate_enrollment | Advocate | text | yes | Signature block |
 
 Validation (code, not Drafter): warn if `compensation_sought` > 20% of `cheque_amount`. The warning is to the advocate; nothing is written into the draft.
 
@@ -232,3 +232,5 @@ The "Notes" and "Verify" sections are the drafter's reasoning, kept for the reco
 | A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).
