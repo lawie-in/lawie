@@ -45,12 +45,12 @@ const pricingFaq = [
   {
     question: 'How much does Lawie cost?',
     answer:
-      'Lawie has a free tier that includes 5 Ink (lifetime). Solo is ₹799/month (50 Ink/month). Pro is ₹1,999/month (150 Ink/month).',
+      'Lawie has a free tier that includes 5 Ink (lifetime). Paid plans add Ink every month; see the pricing page for current plans.',
   },
   {
     question: "What's included in the free tier?",
     answer:
-      'Five Ink lifetime for free users. All templates, court formatting, BNS validation, PDF/DOCX export. Free exports carry a Lawie watermark.',
+      '5 Ink on sign-up, once your email is verified (lifetime). Every document type on Lawie, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers.',
   },
   {
     question: 'Can I cancel anytime?',
