@@ -17,3 +17,7 @@
 1. `/dashboard/new?type=<id>` opens the new-draft flow with that template already chosen. An unknown id, or one hidden by a T-375 switch, falls back to the plain page.
 2. Every in-app link that passes `?type=` lands on its template. A test covers each link.
 3. After this merges, T-367's CTA can switch to `default_bail` with Ajay's original question. Ajay's alternative wording stays until then.
+
+## Note (Priya, 13 Oct 2026)
+
+Mahak's T-365 AC5 adds a OneFlow preset through `?kind=` on new/page.tsx. Check what it already covers before building this. T-391 may only need the old `?type=` links mapped onto it.
