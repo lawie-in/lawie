@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) |
 | Mode   | Small fix |
-| Status | To do. Mahak, after T-385 and before T-380 (Arjun, 13 Oct 2026). Found in T-385's Explore |
+| Status | Merged into develop_staging 5708bf3 (mahak, 13 Oct 2026). Latent fix; nothing to test in the UI. Priya |
 | Source | Arjun, from Mahak's T-385 Explore |
 
 ## Problem

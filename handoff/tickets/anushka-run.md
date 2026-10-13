@@ -820,3 +820,10 @@ T-387, what a user can now do:
 - Pass the vakalatnama pre-filing check using the enrolment number saved in the profile, without typing it again.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-394 — Promoter keeps field source (5708bf3, mahak, 13 Oct 2026)
+
+What a user can now do:
+- Nothing new on screen. Section search and court pickers already work on the bail, consumer and notice forms. This keeps them working if those forms are later served from the rule packs.
+
+Quality: nothing to test in the UI — latent: overrides already send source

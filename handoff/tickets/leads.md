@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- mahak: T-394 has the slot (ready first). Kunal T-393 next. Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
+- mahak: T-394 merged 5708bf3; holds the slot until CI on it is green. Kunal T-393 next. Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
 
 ## Last done
 
+- mahak: T-394 merged 5708bf3 (13 Oct 2026). Promoter copies field-level source (latent). template-promoter.ts released.
 - mahak: T-365 + T-382 + T-387 CI green (run 503, 13 Oct 2026).
 - mahak: T-365 + T-382 + T-387 merged 492426a (13 Oct 2026). Brief picker fixes, enrolment rename in 7 packs, preflight uses the profile enrolment. Released: documents.routes.ts (to Tanvi T-375, then Vishal), OneFlow.tsx, new/page.tsx, brief-drafter.ts (Vishal), preflight.service.ts, the pack JSONs (Kunal T-393, Shashank T-363), t190/t251 (Vishal).
 - kunal: T-379 CI green (run 502, 13 Oct 2026).
