@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- kunal: T-399 merged 4fe03d7; holds the slot until CI on it is green. Then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), then Mahak T-390 + T-416 as one merge (38316a5; all reports in, T-416 delta reviewer passed 10:10), then Mahak T-405 (small fix, tester green, 10:38), then Shashank T-404 part 1 (reviewer passed, Ajay approved, 10:44; doc-writer and one drift test finishing). T-361 data copy waits on the founder.
+- kunal: T-399 merged 4fe03d7; holds the slot until CI on it is green. Then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), then Mahak T-390 + T-416 as one merge (38316a5; all reports in, T-416 delta reviewer passed 10:10), then Mahak T-405 (small fix, tester green, 10:38), then Tanvi T-410 with T-412, T-417 and T-418 (all four reports, Ajay cleared 2df4d04, 11:20), then Shashank T-404 part 1 (fresh tester and reviewer running after merging in T-406). T-361 data copy waits on the founder.
 
 ## Last done
 
