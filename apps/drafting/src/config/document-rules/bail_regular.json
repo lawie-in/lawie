@@ -338,10 +338,10 @@
             "label": "Relation to the person named below",
             "type": "dropdown",
             "options": [
-              { "value": "S/o", "label": "Son of (S/o)" },
-              { "value": "D/o", "label": "Daughter of (D/o)" },
-              { "value": "W/o", "label": "Wife of (W/o)" },
-              { "value": "H/o", "label": "Husband of (H/o)" }
+              { "id": "son_of", "label": "Son of (S/o)" },
+              { "id": "daughter_of", "label": "Daughter of (D/o)" },
+              { "id": "wife_of", "label": "Wife of (W/o)" },
+              { "id": "husband_of", "label": "Husband of (H/o)" }
             ],
             "required": false,
             "inject_into": ["cause_title", "verification"]
