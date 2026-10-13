@@ -1112,11 +1112,15 @@ export type PartyRelation = 'S/o' | 'D/o' | 'W/o' | 'H/o';
  */
 export const RELATION_SOURCES = ['applicant_relation', 'relation_type', 'relation'];
 
-/** T-393: the context keys the name of the applicant's parent or spouse may be given under. */
+/**
+ * T-393: the context keys the name of the applicant's (or, in
+ * suspension_of_sentence, the appellant's) parent or spouse may be given under.
+ */
 export const PARENT_NAME_SOURCES = [
   'father_name',
   'applicant_parentage',
   'applicant_father_name',
+  'appellant_parentage',
   'parentName',
 ];
 

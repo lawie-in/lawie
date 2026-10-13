@@ -334,8 +334,21 @@
             "inject_into": ["cause_title", "verification", "prayer"]
           },
           {
+            "field_id": "applicant_relation",
+            "label": "Relation to the person named below",
+            "type": "dropdown",
+            "options": [
+              { "value": "S/o", "label": "Son of (S/o)" },
+              { "value": "D/o", "label": "Daughter of (D/o)" },
+              { "value": "W/o", "label": "Wife of (W/o)" },
+              { "value": "H/o", "label": "Husband of (H/o)" }
+            ],
+            "required": false,
+            "inject_into": ["cause_title", "verification"]
+          },
+          {
             "field_id": "father_name",
-            "label": "Father's / Husband's Name",
+            "label": "Name of father, mother or spouse",
             "type": "text",
             "required": true,
             "inject_into": ["cause_title"]
@@ -512,7 +525,7 @@
   "specialPrayerAdditions": {
     "dv_dowry": "d) Direct the applicant to furnish an undertaking not to contact the complainant or her family members directly or indirectly;\ne) Direct the applicant to provide an undertaking regarding the return/safekeeping of stridhan and dowry articles as per the inventory;"
   },
-  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {relation} of {parentName}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {parentRelation}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
   "filingChecklist": [
     "Application (original + 2 copies)",
     "Vakalatnama / Memo of Appearance",
