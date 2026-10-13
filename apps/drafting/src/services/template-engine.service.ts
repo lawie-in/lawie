@@ -1189,6 +1189,29 @@ export const CASE_TYPE_BLANK = '[To be confirmed: case type and number]';
 /** T-404 (2957f50, c): {place} and the default verification's place with no court and no city. */
 export const PLACE_BLANK = '[To be confirmed: place]';
 
+/**
+ * T-404 (Ajay, 49b5fd2): the place fields a not-court pack may declare for its
+ * place of execution. Of the 32 `not_court_documents`, only rent_agreement
+ * declares one (`execution_place`).
+ */
+const NOT_COURT_PLACE_FIELDS = ['execution_place'];
+
+/**
+ * T-404 (Ajay, 49b5fd2): the place a not-court document (T-406 list) prints
+ * for {place} / {courtPlace} and its verification. Only a place field this
+ * pack declares and the advocate filled; never a court city. Empty, or a
+ * `[To be confirmed: …]` / `{{MISSING: …}}` blank, is the signed blank.
+ */
+function notCourtPlace(config: TemplateConfig, ctx: PlaceholderContext): string {
+  const declared = declaredFieldIds(config);
+  for (const field of NOT_COURT_PLACE_FIELDS) {
+    if (!declared.has(field)) continue;
+    const v = ctx[field]?.trim() ?? '';
+    if (v !== '' && !IS_BLANK.test(v) && !LEDGER_BLANK.test(v)) return ctx[field];
+  }
+  return PLACE_BLANK;
+}
+
 /** T-404 Addendum 3 #2b: no enrolment number after the T-311 resolver. */
 export const ENROLMENT_BLANK = "[To be confirmed: advocate's enrolment number]";
 
@@ -1637,6 +1660,16 @@ export function buildPlaceholderContext(
   // T-404 rule 3, Addendum 2 #8: the form answer, else the signed blank.
   ctx.advocate_address = advocateAddressOrBlank(ctx.advocate_address);
 
+  // T-404 (Ajay, 49b5fd2): a not-court document's place never comes from a
+  // court city. Set before the aliases, so they leave it alone.
+  const notCourtPlaceValue = nomenclatureAllowed(config.template_id)
+    ? undefined
+    : notCourtPlace(config, ctx);
+  if (notCourtPlaceValue !== undefined) {
+    ctx.place = notCourtPlaceValue;
+    ctx.courtPlace = notCourtPlaceValue;
+  }
+
   // SCRUM-54 B2: Capitalise state name (form sends lowercase stateId like "bihar")
   if (ctx.state) {
     ctx.state = ctx.state
@@ -1722,7 +1755,7 @@ export function buildPlaceholderContext(
           /\{designation\}/g,
           `the ${ctx.party_label_petitioner ?? 'Petitioner'} herein above named`,
         )
-        .replace(/\{place\}/g, ctx.court_city ?? courtData.city)
+        .replace(/\{place\}/g, notCourtPlaceValue ?? ctx.court_city ?? courtData.city)
         .replace(/\{date\}/g, '_____ day of _________, ' + ctx.current_year)
         .replace(/\{body_para_count\}/g, '{body_para_count}');
     }
@@ -1743,10 +1776,12 @@ export function buildPlaceholderContext(
     ctx.prayer_closing = 'And for this act of kindness, the petitioner shall ever pray.';
   if (!ctx.verification_text) {
     // T-404 (2957f50, c): no court and no city prints the place blank.
+    // T-404 (49b5fd2): a not-court document takes its own place, never the court's.
     const verifiedAt =
-      !chosenCourtHeading(courtData) && !ctx.court_city?.trim()
+      notCourtPlaceValue ??
+      (!chosenCourtHeading(courtData) && !ctx.court_city?.trim()
         ? PLACE_BLANK
-        : (ctx.court_city ?? '_____');
+        : (ctx.court_city ?? '_____'));
     ctx.verification_text = `I, ${ctx.applicant_name ?? '_____'}, the ${ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${verifiedAt} on this _____ day of _________, ${ctx.current_year}.`;
   }
 
