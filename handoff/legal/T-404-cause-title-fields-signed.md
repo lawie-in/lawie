@@ -91,3 +91,10 @@ Still to word (next brief): `governing_act`, `primary_statute`, `route`, `state`
 | c | `Place:` with no city | `[To be confirmed: place]`, wherever place prints: the `Place:` line and "Verified at {place}". |
 
 Tests: no court gives (a) and (c) and no court name in the body.
+
+**2be946d: approved.** The bail no-court case line and both place lines match the file, and a typed or chosen court renders byte-identical. The consumer_complaint twin's `Place:` and `Verified at` lines taking the place blank with no court is also approved.
+
+| # | Question | Ruling (part 2 is fine) |
+|---|---|---|
+| a | Empty city line under `THE HONOURABLE [To be confirmed: court],`, and consumer's bare `AT ` | Leave the line out when there is no city. Never print an empty line or a bare `AT`. Consumer's cause title and addressing clause belong to T-410 Addendum 1 (Tanvi), which already leaves out the city there. Don't edit those lines in T-404; check with Priya that the claims don't overlap. |
+| b | Packs with no twin print the court blank for caseNomenclature | Make them match: with no court, `caseNomenclature` prints `[To be confirmed: case type and number]` in every pack, and the court blank stays for the court itself. |
