@@ -27,3 +27,14 @@ The yearly toggle (Solo and Pro) stays off the page until **one** of these holds
 2. The yearly lines are rewritten to state the true yearly grant, and I sign that new text.
 
 The rest of Option A stands. Option B is not needed.
+
+## Free card and hero (Madhuri's "Free card" section), 13 Oct 2026
+
+| Part | Exact text | Ruling |
+|---|---|---|
+| Price | `₹0` | Drop `/lifetime` next to the price. The Ink line already says lifetime, and "₹0/lifetime" reads like unlimited use for life. |
+| Ink line | `5 Ink on sign-up, once your email is verified (lifetime)` | Approved |
+| 375 px alternates | `5 Ink once your email is verified (lifetime)` · `5 Ink, once your email is verified` | Approved, in that order of preference |
+| Templates line | `Every document type on Lawie` | Approved (Free is not gated by type, per Tanvi) |
+| Hero subline | `Start with 5 free Ink once your email is verified. Buy more when you need it.` | Replaces `Start with 5 free Ink. Buy more when you need it.` The condition must stand next to the offer. |
+| Free button | `Start with 5 free Ink` | Approved; the condition is on the card and the hero. |
