@@ -4,12 +4,11 @@
  * minted address. The job as stored in Redis holds the userId only, and neither the stored job
  * data nor failedReason nor any log carries the address, the name, the token or the link.
  *
- * Runs against an existing Redis if it accepts writes (CI service), else a private redis-server. If neither exists it FAILS.
+ * Runs against REDIS_TEST_URL if set (loopback), else a private redis-server. If neither exists it FAILS.
  * No mail is sent: send is a stub.
  */
 import { disconnectEmailClient, enqueueEmail } from '@lawie/email-client';
 import { Queue } from 'bullmq';
-import Redis from 'ioredis';
 
 import { LEAK_ADDRESS, LEAK_NAME, allLogText, dump } from './helpers/t220-capture';
 import { type TestRedis, acquireRedis, purgePrefix } from './helpers/t220-redis';
@@ -37,50 +36,13 @@ const LINK = `https://app.lawie.in/verify-email?token=${TOKEN}`;
 
 jest.setTimeout(60_000);
 
-/**
- * Existing Redis first (REDIS_URL, else 127.0.0.1:6379; CI service container): it must answer PING
- * and accept a write (a probe key with a short TTL; a Redis in MISCONF answers PING but refuses
- * writes). Otherwise a private redis-server through the shared helper. If neither exists this
- * throws, so the suite FAILS rather than skips. Everything the test writes lives under its own
- * unique queue prefix, and only that prefix is purged.
- */
-async function acquireUsableRedis(): Promise<TestRedis> {
-  const candidate = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-  const probe = new Redis(candidate, {
-    lazyConnect: true,
-    maxRetriesPerRequest: 0,
-    retryStrategy: () => null,
-    connectTimeout: 1500,
-  });
-  probe.on('error', () => undefined);
-  try {
-    await probe.connect();
-    const key = `${PREFIX}:probe`;
-    await probe.set(key, '1', 'EX', 5);
-    await probe.del(key);
-    return { url: candidate, source: 'REDIS_URL', stop: async () => undefined };
-  } catch {
-    // not usable: fall through to a private server
-  } finally {
-    probe.disconnect();
-  }
-  process.env.REDIS_URL = 'redis://127.0.0.1:1'; // unreachable, so the helper spawns its own
-  try {
-    return await acquireRedis();
-  } catch (e) {
-    throw new Error(
-      `The T-223 real Redis test needs a Redis: none is usable at ${candidate} (no PING, or writes refused, e.g. MISCONF) and redis-server could not be started (${(e as Error).message}). This test fails rather than skips.`,
-    );
-  }
-}
-
 let redis: TestRedis;
 let connection: { host: string; port: number; maxRetriesPerRequest: null };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 beforeAll(async () => {
-  redis = await acquireUsableRedis();
+  redis = await acquireRedis();
   process.env.REDIS_URL = redis.url;
   process.env.EMAIL_QUEUE_PREFIX = PREFIX;
   const u = new URL(redis.url);
