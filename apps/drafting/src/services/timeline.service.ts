@@ -2,12 +2,14 @@
  * BNSS Investigation Timeline Tracker — SCRUM-48
  *
  * Given an FIR/arrest date and BNS sections, computes:
- *   - Police custody limit (15 days max, BNSS 187)
- *   - Judicial custody limit (60 or 90 days, BNSS 187)
- *   - Chargesheet filing deadline
- *   - Default bail eligibility date (BNSS 187(3))
- *   - Staggered remand breakdown (first 15 days police, remainder judicial)
+ *   - Police custody window (15 days in total, in one go or in parts, within the
+ *     first 40 / 60 days, BNSS 187(2))
+ *   - Detention limit before charge sheet (60 or 90 days, BNSS 187(3))
+ *   - Last day for the charge sheet and the default bail date
  *   - Key milestone dates as a visual timeline
+ *
+ * T-367 (Ajay, signed 51175aa): the date of the first remand is day 1 (ED v. Kapil
+ * Wadhawan). Last day = day 1 + 59 / + 89; default bail from day 1 + 60 / + 90.
  */
 import {
   DEPENDS_BNSS_187,
@@ -40,22 +42,33 @@ export interface TimelineResult {
   maxYears: number | null;
   isLifeOrDeath: boolean;
 
-  /** Police custody limit — 15 days from arrest (BNSS 187) */
-  policeCustodyEndDate: string;
+  /**
+   * T-367 R1: last day of the window in which police custody may be taken (day 40
+   * or day 60, day 1 being the first remand date). null when no period can be given.
+   */
+  policeCustodyEndDate: string | null;
+  /** Police custody in total, in one go or in parts (BNSS 187(2)) */
   policeCustodyDays: 15;
+  /** T-367 R1 line, or DEPENDS_BNSS_187 when no period can be given */
+  policeCustodyNote: string;
 
   /**
-   * Judicial custody limit — 60 or 90 days from arrest. null (with the date
-   * fields below) when no period can be given: see `periodNote`.
+   * Last day of the 60/90-day period (first remand date + 59 / + 89). null (with
+   * the date fields below) when no period can be given: see `periodNote`.
    */
   judicialCustodyEndDate: string | null;
   judicialCustodyDays: 60 | 90 | null;
 
-  /** Chargesheet filing deadline — same as judicial custody end */
+  /** Last day for the charge sheet — same as judicial custody end */
   chargesheetDeadline: string | null;
 
-  /** Default bail eligibility — day after chargesheet deadline */
+  /** Default bail available from — day after the last day (first remand + 60 / + 90) */
   defaultBailDate: string | null;
+
+  /** T-367 R2 line; null when no period can be given */
+  detentionLimitNote: string | null;
+  /** T-367 R3 line; null when no period can be given */
+  chargesheetNote: string | null;
 
   /** DEPENDS_BNSS_187 when no period can be given, else null (T-277, R1) */
   periodNote: string | null;
@@ -64,12 +77,7 @@ export interface TimelineResult {
   bnssSection: string;
   bnssSectionTitle: string;
 
-  /** Staggered remand breakdown */
-  remandBreakdown: {
-    policeCustody: { from: string; to: string; days: number };
-    /** null when no period can be given */
-    judicialCustody: { from: string; to: string; days: number } | null;
-  };
+  // T-367 Addendum 1 (5): the staggered remand breakdown is removed.
 
   /** Ordered milestones for timeline visualization */
   milestones: TimelineMilestone[];
@@ -93,14 +101,78 @@ export interface TimelineResult {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+/** Calendar-day maths in UTC, so no local time zone or DST shift moves the date. */
 function addDays(date: Date, days: number): Date {
   const result = new Date(date);
-  result.setDate(result.getDate() + days);
+  result.setUTCDate(result.getUTCDate() + days);
   return result;
 }
 
 function toISODate(date: Date): string {
   return date.toISOString().split('T')[0];
+}
+
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/** T-367: dates in Ajay's lines print as "4 April 2026". */
+export function formatLegalDate(date: Date): string {
+  return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+}
+
+/** Ajay (CLO), T-367 Addendum 1 (1, signed 3431cce): start milestone label. */
+export const START_LABEL = 'Day 1: first remand';
+
+/**
+ * Ajay's help text for the input (Addendum 1, item 1), reused as the start
+ * milestone's description; the old "All custody periods begin…" line is removed.
+ */
+export const START_DESCRIPTION =
+  'The date the Magistrate first ordered the accused into custody. This is day 1.';
+
+/** Ajay (CLO), T-367 Addendum 1 (4, signed 3431cce): police milestone and card label. */
+export function policeCustodyLabel(windowDays: 40 | 60): string {
+  return `Last day for police custody (day ${windowDays})`;
+}
+
+/** Ajay (CLO), T-367 Addendum 2 (3a): charge sheet milestone label. */
+export function chargesheetLabel(periodDays: 60 | 90): string {
+  return `Last day for the charge sheet (day ${periodDays})`;
+}
+
+/** Ajay (CLO), T-367 Addendum 2 (3b): default bail milestone label. */
+export function defaultBailLabel(periodDays: 60 | 90): string {
+  return `Default bail available from (day ${periodDays + 1})`;
+}
+
+/** Ajay (CLO), T-367 Addendum 2 (3e). */
+export const BNSS_SECTION_TITLE = 'BNSS 187(3): detention limit before the charge sheet';
+
+/** Ajay (CLO), T-367 R1 (signed 51175aa). */
+export function policeCustodyLine(windowDays: 40 | 60): string {
+  return `Police custody: up to 15 days in total, in one go or in parts, within the first ${windowDays} days of detention (BNSS 187(2)).`;
+}
+
+/** Ajay (CLO), T-367 R2 (signed 51175aa). */
+export function detentionLimitLine(periodDays: 60 | 90): string {
+  return `Detention limit before charge sheet: ${periodDays} days (BNSS 187(3)), counting the date of the first remand as day 1.`;
+}
+
+/** Ajay (CLO), T-367 R3 (signed 51175aa). */
+export function chargesheetLine(lastDay: Date, defaultBailFrom: Date): string {
+  return `Last day for the charge sheet: ${formatLegalDate(lastDay)}. If none is filed by then, default bail is available from ${formatLegalDate(defaultBailFrom)}.`;
 }
 
 function parseDate(input: string | Date): Date {
@@ -215,52 +287,52 @@ export function calculateTimeline(input: TimelineInput): TimelineResult {
 
   const isLifeOrDeath = maxYears >= 99;
 
-  // BNSS 187: custody limits based on punishment quantum
-  // >= 10 years or death/life → 90 days judicial custody
-  // < 10 years → 60 days judicial custody
+  // BNSS 187(3): >= 10 years or death/life → 90 days; otherwise 60 days.
   const judicialCustodyDays: 60 | 90 = maxYears >= 10 ? 90 : 60;
 
-  // Police custody: always 15 days max (BNSS 187(2))
+  // BNSS 187(2): 15 days of police custody in total, in one go or in parts,
+  // within the first 40 days (60-day period) or 60 days (90-day period).
   const policeCustodyDays = 15 as const;
+  const policeWindowDays: 40 | 60 = judicialCustodyDays === 90 ? 60 : 40;
 
-  // Calculate dates
-  const policeCustodyEnd = addDays(arrestDate, policeCustodyDays);
-  const judicialCustodyEnd = addDays(arrestDate, judicialCustodyDays);
+  // T-367 R3 (Kapil Wadhawan): the input date (first remand) is day 1, so day N
+  // is input + (N - 1). Last day = + 59 / + 89; default bail from + 60 / + 90.
+  const policeCustodyEnd = addDays(arrestDate, policeWindowDays - 1);
+  const judicialCustodyEnd = addDays(arrestDate, judicialCustodyDays - 1);
   const chargesheetDeadline = judicialCustodyEnd; // same date
-  const defaultBailDate = addDays(arrestDate, judicialCustodyDays + 1);
+  const defaultBailDate = addDays(arrestDate, judicialCustodyDays);
 
-  // Staggered remand: first 15 days police, remaining judicial
-  const judicialRemandStart = addDays(arrestDate, policeCustodyDays + 1);
-  const remainingJudicialDays = judicialCustodyDays - policeCustodyDays;
+  const policeCustodyNote = policeCustodyLine(policeWindowDays);
+  const detentionLimitNote = detentionLimitLine(judicialCustodyDays);
+  const chargesheetNote = chargesheetLine(chargesheetDeadline, defaultBailDate);
 
   // Build milestones
   const milestones: TimelineMilestone[] = [
     {
       date: arrestDateStr,
-      label: 'Arrest / FIR Date',
-      description: 'Date of arrest or FIR registration. All custody periods begin from this date.',
+      label: START_LABEL,
+      description: START_DESCRIPTION,
       type: 'start',
       critical: false,
     },
     {
       date: toISODate(policeCustodyEnd),
-      label: 'Police Custody Limit (Day 15)',
-      description:
-        'Maximum period of police/physical custody under BNSS Section 187(2). No further police remand can be granted after this date.',
+      label: policeCustodyLabel(policeWindowDays),
+      description: policeCustodyNote,
       type: 'police_custody',
       critical: true,
     },
     {
       date: toISODate(judicialCustodyEnd),
-      label: `Chargesheet Deadline (Day ${judicialCustodyDays})`,
-      description: `Investigation must be completed and chargesheet filed within ${judicialCustodyDays} days under BNSS Section 187. Failure to file chargesheet entitles accused to default bail.`,
+      label: chargesheetLabel(judicialCustodyDays),
+      description: detentionLimitNote,
       type: 'chargesheet',
       critical: true,
     },
     {
       date: toISODate(defaultBailDate),
-      label: `Default Bail Eligibility (Day ${judicialCustodyDays + 1})`,
-      description: `If chargesheet is not filed by Day ${judicialCustodyDays}, the accused becomes entitled to default bail under BNSS Section 187(3). This right is indefeasible once it accrues.`,
+      label: defaultBailLabel(judicialCustodyDays),
+      description: chargesheetNote,
       type: 'default_bail',
       critical: true,
     },
@@ -268,17 +340,11 @@ export function calculateTimeline(input: TimelineInput): TimelineResult {
 
   // BNSS section reference
   const bnssSection = '187';
-  const bnssSectionTitle =
-    judicialCustodyDays === 90
-      ? 'BNSS Section 187 — 90-day limit (offence punishable with death, life imprisonment, or imprisonment ≥ 10 years)'
-      : 'BNSS Section 187 — 60-day limit (offence punishable with imprisonment < 10 years)';
+  // T-367 Addendum 2 (3e): one title for both periods.
+  const bnssSectionTitle = BNSS_SECTION_TITLE;
 
-  // Default bail explanation
-  const defaultBailExplanation = isLifeOrDeath
-    ? `Since the offence is punishable with death or imprisonment for life, the chargesheet must be filed within 90 days. If not filed, the accused is entitled to default bail under BNSS Section 187(3). However, for offences of this gravity, courts may impose stringent conditions.`
-    : maxYears >= 10
-      ? `Since the maximum punishment is ${maxYears} years (≥ 10 years), the chargesheet must be filed within 90 days. Default bail accrues on Day 91 under BNSS Section 187(3).`
-      : `Since the maximum punishment is ${maxYears} year(s) (< 10 years), the chargesheet must be filed within 60 days. Default bail accrues on Day 61 under BNSS Section 187(3). This is an indefeasible right.`;
+  // T-367 Addendum 2 (2): every variant is R2 followed by R3.
+  const defaultBailExplanation = `${detentionLimitNote} ${chargesheetNote}`;
 
   return {
     arrestDate: arrestDateStr,
@@ -286,24 +352,15 @@ export function calculateTimeline(input: TimelineInput): TimelineResult {
     isLifeOrDeath,
     policeCustodyEndDate: toISODate(policeCustodyEnd),
     policeCustodyDays,
+    policeCustodyNote,
     judicialCustodyEndDate: toISODate(judicialCustodyEnd),
     judicialCustodyDays,
     chargesheetDeadline: toISODate(chargesheetDeadline),
     defaultBailDate: toISODate(defaultBailDate),
+    detentionLimitNote,
+    chargesheetNote,
     bnssSection,
     bnssSectionTitle,
-    remandBreakdown: {
-      policeCustody: {
-        from: arrestDateStr,
-        to: toISODate(policeCustodyEnd),
-        days: policeCustodyDays,
-      },
-      judicialCustody: {
-        from: toISODate(judicialRemandStart),
-        to: toISODate(judicialCustodyEnd),
-        days: remainingJudicialDays,
-      },
-    },
     milestones,
     defaultBailAvailable: true,
     defaultBailExplanation,
@@ -318,6 +375,8 @@ export function calculateTimeline(input: TimelineInput): TimelineResult {
 /**
  * T-277 R1: no 60/90-day period. Police custody (15 days, BNSS 187(2)) still
  * applies; judicial custody, chargesheet and default-bail dates are null.
+ * T-367: the police-custody window (40 or 60 days) depends on the period, so
+ * there is no window date and the police line is DEPENDS_BNSS_187.
  */
 function noPeriodResult(
   arrestDate: Date,
@@ -328,44 +387,29 @@ function noPeriodResult(
 ): TimelineResult {
   const arrestDateStr = toISODate(arrestDate);
   const policeCustodyDays = 15 as const;
-  const policeCustodyEnd = addDays(arrestDate, policeCustodyDays);
   return {
     arrestDate: arrestDateStr,
     maxYears: null,
     isLifeOrDeath: false,
-    policeCustodyEndDate: toISODate(policeCustodyEnd),
+    policeCustodyEndDate: null,
     policeCustodyDays,
+    policeCustodyNote: DEPENDS_BNSS_187,
     judicialCustodyEndDate: null,
     judicialCustodyDays: null,
     chargesheetDeadline: null,
     defaultBailDate: null,
+    detentionLimitNote: null,
+    chargesheetNote: null,
     periodNote: DEPENDS_BNSS_187,
     bnssSection: '187',
     bnssSectionTitle: DEPENDS_BNSS_187,
-    remandBreakdown: {
-      policeCustody: {
-        from: arrestDateStr,
-        to: toISODate(policeCustodyEnd),
-        days: policeCustodyDays,
-      },
-      judicialCustody: null,
-    },
     milestones: [
       {
         date: arrestDateStr,
-        label: 'Arrest / FIR Date',
-        description:
-          'Date of arrest or FIR registration. All custody periods begin from this date.',
+        label: START_LABEL,
+        description: START_DESCRIPTION,
         type: 'start',
         critical: false,
-      },
-      {
-        date: toISODate(policeCustodyEnd),
-        label: 'Police Custody Limit (Day 15)',
-        description:
-          'Maximum period of police/physical custody under BNSS Section 187(2). No further police remand can be granted after this date.',
-        type: 'police_custody',
-        critical: true,
       },
     ],
     defaultBailAvailable: null,
