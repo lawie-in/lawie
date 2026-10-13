@@ -699,3 +699,11 @@ What a user can now do:
 - A malformed document link gives "not found".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-354 — privacy acceptance fails safely (8e38f59, kunal, 13 Oct 2026)
+
+What a user can now do:
+- Nothing new is visible. If saving the privacy acceptance fails, the user sees the retry message and is asked to sign in again on the next action.
+- Please run a real screen reader over the privacy prompt (T-343). Kunal's check was only a proxy.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
