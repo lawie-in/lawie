@@ -54,3 +54,5 @@ The drip stops when the plan expires or after the 12th grant, not on cancel. Kun
 ## Arjun (13 Oct 2026): cancel at cycle end, for every plan
 
 Today `cancelSubscriptionInk` zeroes the balance immediately on cancel. That is a bug for monthly plans too. Fixed in this ticket: a cancelled plan keeps its balance and drip until `paidThrough` (from the webhook), and is zeroed only after that. A refund path exists only if Ajay's refund policy allows refunds. If it does, that's a separate ticket.
+
+**Arjun (13 Oct, closing the cancel point):** Ajay's T-399-yearly-cancel-signed.md and my 545e80a section say the same thing; the ticket mechanism and the AC3 test already read "cancel mid-year → grants continue to month 12 / paidThrough, then none". On Vikram's Razorpay question: billing makes no cancel API call today, so there is nothing to set; the rule for any future cancel button is `cancel_at_cycle_end: 1`, never an immediate cancel, and it goes in this ticket as a comment next to the webhook handler.
