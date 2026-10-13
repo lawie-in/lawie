@@ -1,6 +1,6 @@
 # T-412: verify the CPA jurisdiction notification date in the consumer complaint prompt
 
-Status: done (Ajay 2f11235, 13 Oct 2026): the date is unsupported, so it's dropped and the Rules are cited by full name. Tanvi applies it in T-410. The NCDRC line and the State/National heading are still open as verify items.
+Status: Merged into develop_staging 0a18bda (Tanvi, in T-410, 13 Oct 2026). Waiting for Anushka on develop. Priya
 
 Owner: Ajay (verifies); a lead applies any text change after he signs.
 

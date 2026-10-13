@@ -106,3 +106,11 @@ Tests: no court gives (a) and (c) and no court name in the body.
 2. The 12 deeds and agreements print `[To be confirmed: place]` for the place of execution when no place is given. Approved. A deed's place of execution is where the parties sign, so it may come only from a place or execution field the advocate filled. It never comes from a court's city, even if one is somehow chosen.
 
 Test: a deed with no place field gives the blank, and no court city appears.
+
+**Golden batch (court-rules-golden), signed 13 Oct 2026.** 36 entries move: legal_notice_s138, legal_notice_s80 and rent_agreement, across the 12 courts. One line changes in each, `verification_text`, from `Verified at <court city> on this …` to `Verified at [To be confirmed: place] on this …`. No court document's entry moves. Condition: exactly 36 lines change, and no other byte.
+
+**Place of execution question for the 11 deeds (part 2): yes.** Add an optional question to affidavit_identity, gift_deed, joint_development_agreement, lease_deed, license_agreement, mortgage_deed, mou, partition_deed, release_deed, sale_deed and will.
+- Label: `Place of execution`
+- Help: `City or town where the document will be signed.`
+
+`{place}` prints the answer, and with no answer, the blank.

@@ -27,3 +27,13 @@ with
 - Replace the three "PROPOSED" comments with `Signed: Ajay (CLO), 13 Oct 2026, handoff/legal/T-397-ledger-prompts-signed.md`.
 - The pack prompts (DRAFTER_PACK, DRAFTER_REPAIR, DRAFTER_GUIDED) are outside this review.
 - Any later edit to these prompts needs a fresh sign-off.
+
+**e366b39: approved. I byte-checked it against changes A, B and C above.**
+- A sits at the end of LEDGER rule 1, joined with one space.
+- B is in LEDGER rule 9 and LEDGER_REPAIR rule 6.
+- C is in LEDGER_REPAIR rule 2, after "exactly."
+- FACTS_REPAIR is unchanged.
+- The "PROPOSED" comments are replaced with this file's citation.
+- No other prompt text moved.
+
+The same B wording for PACK, REPAIR and GUIDED is T-422, with its own sign-off.

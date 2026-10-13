@@ -204,7 +204,7 @@ describe('subscription.service', () => {
       expect(updatedUser!.plan).toBe('pro');
     });
 
-    it('downgrades user to free on subscription.cancelled', async () => {
+    it('keeps the user on the plan on subscription.cancelled (downgrade happens on expired, T-399)', async () => {
       await User.findByIdAndUpdate(userId, { plan: 'pro' });
       await Subscription.create({
         userId,
@@ -218,7 +218,7 @@ describe('subscription.service', () => {
       const updatedUser = await User.findById(userId);
       expect(updatedSub!.status).toBe('cancelled');
       expect(updatedSub!.cancelledAt).toBeDefined();
-      expect(updatedUser!.plan).toBe('free');
+      expect(updatedUser!.plan).toBe('pro'); // T-399: cancel at cycle end, not at once
     });
 
     it('keeps user as pro on cancellation if another active sub exists', async () => {
