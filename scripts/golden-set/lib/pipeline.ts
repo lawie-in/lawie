@@ -266,6 +266,14 @@ export async function runFixture(
     ev.documentId = done.data.docId ?? null;
     ev.runId = done.data.runId ?? ev.runId;
     ev.missingClauses = (done.data.missingClauses ?? []).map((m: { id: string }) => m.id);
+    // T-373: the renderer's clause statuses; present only on a D1 draft.
+    if (Array.isArray(done.data.rendered)) {
+      ev.rendered = done.data.rendered.map((r: any) => ({
+        clauseId: typeof r?.clauseId === 'string' ? r.clauseId : '',
+        status: r?.status,
+        ...(typeof r?.reason === 'string' ? { reason: r.reason } : {}),
+      }));
+    }
     ev.banner = Boolean(done.data.factCheck?.banner);
     if (!ev.documentId) throw new Stop('generate: the draft was not saved');
   } catch (e) {

@@ -31,8 +31,21 @@ export default function DraftReadyStep({
   // banner's last line; without it, a neutral note in the same slot. The text is the
   // service's; there is no copy of it in the web app.
   const disclaimer = result.disclaimer ?? null;
+  // T-373 (ADR-025 D1): on a D1 pack the missing parts are read off the clauses the
+  // renderer printed. The title is the service's own for that clause, else the clause's
+  // blank labels. Fallback clauses are not shown (no design for them yet).
+  const missingParts: Array<{ id: string; title: string }> = result.rendered
+    ? result.rendered
+        .filter((r) => r.status === 'missing')
+        .map((r) => ({
+          id: r.clauseId,
+          title:
+            result.missingClauses.find((m) => m.id === r.clauseId)?.title ??
+            (r.missing && r.missing.length > 0 ? r.missing.join(', ') : r.clauseId),
+        }))
+    : result.missingClauses;
   const nothingFound =
-    result.missingClauses.length === 0 && result.findings.length === 0 && factCheck === null;
+    missingParts.length === 0 && result.findings.length === 0 && factCheck === null;
 
   return (
     <div className="mx-auto w-full max-w-[720px] space-y-4">
@@ -109,7 +122,7 @@ export default function DraftReadyStep({
           </p>
         ) : (
           <ul className="mt-3 space-y-2.5">
-            {result.missingClauses.map((c) => (
+            {missingParts.map((c) => (
               <li key={c.id} className="text-brand-navy flex items-start gap-2.5 text-sm">
                 <span className="bg-brand-error mt-1.5 h-2 w-2 flex-none rounded-full" />
                 <span>
