@@ -17,3 +17,17 @@ Sources consulted (not cited in product text):
 - https://www.thc.nic.in/Central%20Governmental%20Rules/Consumer%20Protection%20(Jurisdiction%20of%20the%20District%20Commission,%20the%20State%20Commission%20and%20the%20National%20Commission)%20Rules,%202021.pdf
 - https://www.scconline.com/blog/?p=259447
 - https://www.livelaw.in/amp/news-updates/central-govt-notifies-consumer-protection-rules-2021-revising-pecuniary-jurisdiction-district-state-national-commissions-188575
+
+## Addendum 1: the same date in `court-rules/consumer_commission_generic.json`
+
+Both lines change. Only the citation in brackets changes; the rest stays byte-identical.
+
+:13 `jurisdictionNote`:
+- old: `(per CPA Jurisdiction Notification dated 21 December 2021)`
+- new: `(per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021)`
+
+:56:
+- old: `(per Notification dated 21 December 2021)`
+- new: `(per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021)`
+
+Test: no file under `apps/drafting/src/config` or `docs/templates` contains "21 December 2021". If the court-rules golden snapshot carries these strings, that diff is exactly these two citations. Send it to me and I sign it as part of this addendum.
