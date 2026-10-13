@@ -921,6 +921,88 @@ function courtHeading(courtData: CourtLookupData): { designation: string; header
 }
 
 /**
+ * T-410 (Ajay, T-406-T-410 ruling and Addendum 1; c894ab9): consumer_complaint
+ * is filed before a Consumer Commission only.
+ */
+const CONSUMER_COMPLAINT_ID = 'consumer_complaint';
+
+/** T-410: the consumer rule, for party labels, prayer and verification. */
+const CONSUMER_RULE_ID = 'consumer_commission_generic';
+
+/** T-410: printed for the court, the case line and the designation at a court that is not a Commission. */
+export const CONSUMER_COMMISSION_BLANK = '[To be confirmed: Consumer Commission]';
+
+/**
+ * T-410 (Ajay 2957f50, T-404 item c): `{place}` with no Commission. Same value
+ * as T-404's PLACE_BLANK; local, so the two never clash.
+ */
+const CONSUMER_PLACE_BLANK = '[To be confirmed: place]';
+
+/** T-410 Addendum 1, items 2 and 3: the complaint's case line at a State Commission and at NCDRC. */
+const CONSUMER_COMPLAINT_LINE = 'Consumer Complaint No. _____ of {current_year}';
+
+/** T-410 Addendum 1: the s.35 heading prints at a District Commission only. */
+const COMPLAINT_HEADING_DISTRICT =
+  'CONSUMER COMPLAINT UNDER SECTION 35 OF THE CONSUMER PROTECTION ACT, 2019';
+
+/** T-410 Addendum 1: the heading at a State or National Commission. */
+const COMPLAINT_HEADING_ACT = 'CONSUMER COMPLAINT UNDER THE CONSUMER PROTECTION ACT, 2019';
+
+/**
+ * T-410: which Consumer Commission the chosen court is, or null when it is not
+ * one. National is the ncdrc rule. District and State share courtType
+ * `consumer_commission` and are told apart by the courts-list designation;
+ * a Commission court whose designation names neither is null (never guessed).
+ */
+export function consumerForum(
+  courtData?: CourtLookupData,
+): 'district' | 'state' | 'national' | null {
+  if (!courtData) return null;
+  if (courtData.formattingRulesRef === 'ncdrc') return 'national';
+  if (courtData.courtType !== 'consumer_commission') return null;
+  const own = courtData.designation ?? '';
+  if (/\bDISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION\b/i.test(own)) return 'district';
+  if (/\bSTATE CONSUMER DISPUTES REDRESSAL COMMISSION\b/i.test(own)) return 'state';
+  return null;
+}
+
+/**
+ * T-410: the court lines of a consumer_complaint. At a court that is not a
+ * Commission, the header, designation and case line are the signed blank and
+ * the city line is dropped (see `sectionTemplate`), and no "State of ..."
+ * respondent is set (Addendum 1, item 4). `{place}` and `{courtPlace}` are the
+ * Commission's city, or CONSUMER_PLACE_BLANK. At a State Commission the
+ * State Commission's own designation from the courts list prints, never the
+ * District rule's, and never the list's appeal line. Values may hold
+ * `{current_year}`, filled in by the recursive pass.
+ */
+function consumerComplaintCourt(
+  courtData: CourtLookupData | undefined,
+  ctx: PlaceholderContext,
+): void {
+  const forum = consumerForum(courtData);
+  // Ajay 2957f50 (c): "Place:" and "Verified at" print the Commission's city, else the blank.
+  ctx.place = (forum !== null && ctx.court_city?.trim()) || CONSUMER_PLACE_BLANK;
+  ctx.courtPlace = ctx.place;
+  if (forum === null) {
+    ctx.court_header = CONSUMER_COMMISSION_BLANK;
+    ctx.court_designation = CONSUMER_COMMISSION_BLANK;
+    ctx.case_nomenclature = CONSUMER_COMMISSION_BLANK;
+    ctx.complaint_heading_text = COMPLAINT_HEADING_ACT;
+    delete ctx.state_respondent;
+    return;
+  }
+  if (forum === 'state' && courtData) {
+    const designation = courtData.designation.trim().replace(/^BEFORE THE\s*/i, '');
+    ctx.court_designation = designation;
+    ctx.court_header = `BEFORE THE ${designation}`;
+  }
+  if (forum !== 'district') ctx.case_nomenclature = CONSUMER_COMPLAINT_LINE;
+  ctx.complaint_heading_text =
+    forum === 'district' ? COMPLAINT_HEADING_DISTRICT : COMPLAINT_HEADING_ACT;
+}
+
+/**
  * Resolve computed fields from the template config using form data.
  *
  * Supports:
@@ -1554,10 +1636,18 @@ export function buildPlaceholderContext(
 
   applyCourtAndAliases(ctx, computed, courtData, nomenclatureAllowed(config.template_id));
 
+  // T-410 (Addendum 1, item 4): a consumer_complaint at a court that is not a
+  // Commission takes the consumer rule, never the court's.
+  const isConsumerComplaint = config.template_id === CONSUMER_COMPLAINT_ID;
+  const consumerNotCommission = isConsumerComplaint && consumerForum(courtData) === null;
+  const courtRule = consumerNotCommission
+    ? (loadCourtRule(CONSUMER_RULE_ID) ?? undefined)
+    : courtData?.courtRule;
+
   // ── SCRUM-50: Inject court-rule-driven placeholders ───────────────────────
-  if (courtData?.courtRule) {
+  if (courtData && courtRule) {
     // T-158: labels and verification follow the document's matter type.
-    const rule = ruleForMatter(courtData.courtRule, config.template_id);
+    const rule = ruleForMatter(courtRule, config.template_id);
 
     // Party labels from court rule
     // T-149: labels follow the document's side where Ajay signed them.
@@ -1619,7 +1709,11 @@ export function buildPlaceholderContext(
           /\{designation\}/g,
           `the ${ctx.party_label_petitioner ?? 'Petitioner'} herein above named`,
         )
-        .replace(/\{place\}/g, ctx.court_city ?? courtData.city)
+        // T-410 (Ajay 2957f50, c): no Commission, no city in "Verified at".
+        .replace(
+          /\{place\}/g,
+          consumerNotCommission ? CONSUMER_PLACE_BLANK : (ctx.court_city ?? courtData.city),
+        )
         .replace(/\{date\}/g, '_____ day of _________, ' + ctx.current_year)
         .replace(/\{body_para_count\}/g, '{body_para_count}');
     }
@@ -1641,6 +1735,10 @@ export function buildPlaceholderContext(
   if (!ctx.verification_text) {
     ctx.verification_text = `I, ${ctx.applicant_name ?? '_____'}, the ${ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${ctx.court_city ?? '_____'} on this _____ day of _________, ${ctx.current_year}.`;
   }
+
+  // T-410: after the court-rule block, the computed fields and the defaults,
+  // before the aliases.
+  if (isConsumerComplaint) consumerComplaintCourt(courtData, ctx);
 
   // T-251 (Ajay's interim rule, 12 Oct 2026): until T-245a supplies the
   // provision, {governing_provision} prints the both-forms blank. The server's
@@ -1906,9 +2004,15 @@ const CITY_LINE_AFTER_DESIGNATION = /\{court_designation\},?[ \t]*\n[ \t]*\{cour
  * the city (designations from the courts list do), the city line that follows
  * it is dropped, so the addressing clause names the city once. Other mentions
  * of `{court_city}` ("Place:", "Verified at") are untouched.
+ * T-410 (Addendum 1, item 1): with the Consumer Commission blank as the
+ * designation, the city line is left out too.
  */
 export function sectionTemplate(template: string, ctx: PlaceholderContext): string {
-  if (!designationNamesCity(ctx.court_designation, ctx.court_city)) return template;
+  if (
+    ctx.court_designation !== CONSUMER_COMMISSION_BLANK &&
+    !designationNamesCity(ctx.court_designation, ctx.court_city)
+  )
+    return template;
   return template.replace(CITY_LINE_AFTER_DESIGNATION, '{court_designation}');
 }
 
@@ -1956,12 +2060,66 @@ export function sanitiseAIBody(text: string): string {
 }
 
 /**
+ * T-410 (Ajay 2a8b722, ruling 4 covers the prompt): the rule a consumer_complaint
+ * prompt reads. A Commission's own rule, else the consumer rule; never a court
+ * that is not a Commission. Its party designations are Complainant / Opposite
+ * Party only: the `state` party is left out.
+ *
+ * localRules (Ajay 4e42ef8 item 3, amended (a) 27fcccd): the generic rule's
+ * District lines at a District Commission, the ncdrc rule's lines at NCDRC,
+ * none at a State Commission, a court that is not a Commission, or no court.
+ * State and District share one rule, so District lines need `courtData` to
+ * name a District Commission; without it the generic rule's lines are left out.
+ */
+function consumerPromptRule(
+  courtRule?: CourtRuleData | null,
+  courtData?: CourtLookupData,
+): CourtRuleData | null {
+  const base =
+    courtRule?.courtType === 'consumer_commission' ? courtRule : loadCourtRule(CONSUMER_RULE_ID);
+  if (!base) return base;
+  const forum = courtData
+    ? consumerForum(courtData)
+    : courtRule?.courtId === 'ncdrc'
+      ? 'national'
+      : null;
+  const parties =
+    base.party_designation &&
+    Object.fromEntries(Object.entries(base.party_designation).filter(([role]) => role !== 'state'));
+  return {
+    ...base,
+    ...(parties && { party_designation: parties }),
+    localRules: forum === 'district' || forum === 'national' ? base.localRules : undefined,
+  };
+}
+
+/**
+ * T-410 (Ajay 2a8b722): the rule the Drafter prompt reads, chosen as
+ * buildAISystemPrompt chooses it. consumer_complaint takes consumerPromptRule;
+ * every other template takes the chosen court's rule unchanged.
+ */
+export function drafterPromptCourtRule(
+  templateId: string,
+  courtData?: CourtLookupData,
+): CourtRuleData | undefined {
+  if (templateId !== CONSUMER_COMPLAINT_ID) return courtData?.courtRule;
+  return consumerPromptRule(courtData?.courtRule, courtData) ?? undefined;
+}
+
+/**
  * Build the AI system prompt for config-driven generation.
+ * T-410: `courtData` (optional) tells a District from a State Commission for
+ * consumer_complaint's localRules.
  */
 export function buildAISystemPrompt(
   config: TemplateConfig,
-  courtRule?: CourtRuleData | null,
+  chosenCourtRule?: CourtRuleData | null,
+  courtData?: CourtLookupData,
 ): string {
+  const courtRule =
+    config.template_id === CONSUMER_COMPLAINT_ID
+      ? consumerPromptRule(chosenCourtRule, courtData)
+      : chosenCourtRule;
   const isContract =
     config.category === 'civil' && ['rent_agreement', 'nda', 'mou'].includes(config.template_id);
 
