@@ -17,3 +17,4 @@ T-379 holds verify-email jobs in the queue while the email footer is unfilled. W
 1. The auth producer dedupes verify jobs per user, so only the newest one is queued and the older ones are dropped. A user gets at most one email, and its link works.
 2. A resend that is held, not sent, doesn't use up the user's resend cap. Or Arjun rules the cap stays as it is, and this item is dropped.
 3. Tests cover both.
+4. Fix the header comment at line 2 of `apps/auth/src/__tests__/t223-resend-cap-real-redis.test.ts`; it still describes the old Redis order (Kunal, T-379).
