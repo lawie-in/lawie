@@ -35,7 +35,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { PaywallModal } from '@/components/credits/PaywallModal';
@@ -137,6 +137,8 @@ function CategoryChip({
 
 function NewDocumentContent() {
   const router = useRouter();
+  // T-365 AC5: "Use template →" in the library links here with ?kind=<template_id>.
+  const initialKind = useSearchParams().get('kind') ?? undefined;
   const { user } = useAuth();
   const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
 
@@ -553,7 +555,12 @@ function NewDocumentContent() {
   }
   if (phase === 'one_flow') {
     return (
-      <OneFlow kinds={templates} loadingKinds={loadingTemplates} guidedInkCost={guidedInkCost} />
+      <OneFlow
+        kinds={templates}
+        loadingKinds={loadingTemplates}
+        guidedInkCost={guidedInkCost}
+        initialKind={initialKind}
+      />
     );
   }
 

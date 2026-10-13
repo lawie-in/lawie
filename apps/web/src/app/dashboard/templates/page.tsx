@@ -130,7 +130,8 @@ export default function TemplatesPage() {
                     return (
                       <Link
                         key={t.template_id}
-                        href="/dashboard/new"
+                        // T-365 AC5: open the one flow with this document already chosen.
+                        href={`/dashboard/new?kind=${encodeURIComponent(t.template_id)}`}
                         className={`group rounded-xl border border-t-[3px] border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md ${colors.border}`}
                       >
                         <div className="flex items-start justify-between">
