@@ -58,3 +58,7 @@ Option (a). `bail_before_magistrate.json` gets a `facts_narrative` textarea, the
 1. An invalid skeleton file fails loudly, no legacy fallback. Also validate every `_skeletons/*.json` at boot (shape + clause ids against the pack) so an invalid file fails the service start and /health, not the advocate's first draft. Missing file → `null` → legacy path, unchanged.
 2. Legacy suites: mock the loader to `null` in setup only, and each such suite asserts once that it ran the legacy path, so the mock is never silently load-bearing. New route-level D1 tests on the four real skeletons, including the T-359 AC fixtures.
 3. The enrolment pair is intentionally not in `SLOT_ALIASES`: it is a stored-key rewrite in `FIELD_ALIASES` (T-382), and after T-382 every pack spells `advocate_enrollment`, so skeleton slots resolve directly.
+
+## Arjun (13 Oct 2026): review round 1
+
+Two-way own-words check, yes: fall back when any `raw_span` content word (stemmed, not on the stop list) is missing from the text, or any `raw_span` number or date (by value) is missing. Dropped words are the worse direction — "not named" → "named" is a reversal. Stop list: remove "as" and the modals (may, might, could, should, must), and never list negations (not, no, never, without, nor, neither) or quantifiers (all, any, only, every): those are content. Keep the two gap tests plus one for the reversal.

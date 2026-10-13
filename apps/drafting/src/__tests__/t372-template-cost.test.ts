@@ -6,6 +6,7 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
+import * as appSettings from '../services/app-settings.service';
 import * as credits from '../services/credits.service';
 const { costForTemplate } = credits;
 import * as engine from '../services/template-engine.service';
@@ -75,6 +76,18 @@ describe('GET /template-configs credits_cost', () => {
 });
 
 describe('GET /template-configs guided_credits_cost', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  // T-375: the plaint switch is off in code; turn it on so the whole catalogue is listed.
+  beforeEach(() => {
+    const real = appSettings.getAppSetting;
+    jest
+      .spyOn(appSettings, 'getAppSetting')
+      .mockImplementation((key: string) =>
+        key === 'feature.template_civil_plaint' ? Promise.resolve('on') : real(key),
+      );
+  });
+
   it('equals the guided price the charge uses, and templates are unchanged', async () => {
     const res = await request(app).get('/template-configs').set(headers);
     expect(res.status).toBe(200);
