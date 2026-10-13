@@ -21,3 +21,7 @@ Conditions:
 5. Any golden snapshot that moves comes to me before it is updated. No prompt text changes without my diff sign-off (AC9).
 
 Mark: **Approved** (Option A). Arjun owns the design.
+
+## Addendum 1 (12 Oct 2026 IST)
+
+Arjun's design (528da94) is approved: Option A, with the T-338 `{{MISSING: label}}` blank as the one marker for required keys, optional keys and partly filled lists. Signed.

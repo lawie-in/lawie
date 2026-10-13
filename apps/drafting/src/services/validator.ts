@@ -615,6 +615,27 @@ export function dropOldLawForNotFound(
 }
 
 /**
+ * T-346: the post-draft citation check, shared by the three stream draft paths
+ * (template, brief, guided) so they cannot drift apart. Returns, in this order:
+ *   1. old-law references, minus any cite that is "not found" (T-270 ruling A);
+ *   2. BNS whitelist warnings (SCRUM-64 b);
+ *   3. the other five codes (BNSS, BSA, IPC, CrPC, IEA) as validate() checks them (T-333).
+ * BNS is left to the whitelist, so it is not warned twice. The fact-section sanity
+ * check (T-333 ruling B) is not part of this; the callers run it themselves.
+ */
+export async function checkDraftCitations(text: string): Promise<ValidationWarning[]> {
+  const otherCodeWarnings = validateSectionReferences(text, null).filter(
+    (w) => w.details?.code !== 'BNS',
+  );
+  const oldLawWarnings = dropOldLawForNotFound(
+    await detectOldLawReferences(text),
+    otherCodeWarnings,
+  );
+  const bnsWhitelistWarnings = validateBNSWhitelist(extractBNSSectionNumbers(text));
+  return [...oldLawWarnings, ...bnsWhitelistWarnings, ...otherCodeWarnings];
+}
+
+/**
  * Run the full validation pipeline on the generated + post-processed text.
  */
 export async function validate(

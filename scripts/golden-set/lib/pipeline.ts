@@ -49,6 +49,7 @@ export interface Drafting {
     NOT_FIXTURE_GENERATION: Record<string, unknown>;
   };
   INTERNAL_HEADERS: Record<string, string>;
+  CURRENT_PRIVACY_VERSION: string;
   internalSecret: string;
   parseModelJson: (t: string) => any;
 }
@@ -72,6 +73,7 @@ export function loadDrafting(internalSecret: string): Drafting {
     },
     origin: r<any>('services/run-origin'),
     INTERNAL_HEADERS: requireFromDrafting<any>('@lawie/shared').INTERNAL_HEADERS,
+    CURRENT_PRIVACY_VERSION: requireFromDrafting<any>('@lawie/shared').CURRENT_PRIVACY_VERSION,
     internalSecret,
     parseModelJson: r<any>('services/intake-text').parseModelJson,
   };
@@ -166,6 +168,7 @@ export async function runFixture(
       .set(H.USER_ROLE, 'Advocate')
       .set(H.USER_NAME, '')
       .set(H.USER_EMAIL, '')
+      .set(H.USER_PRIVACY_VERSION, d.CURRENT_PRIVACY_VERSION)
       .buffer(true)
       .parse((res: any, cb: (e: null, b: string) => void) => {
         let s = '';
