@@ -456,7 +456,7 @@ describe('T-147b: the switch off', () => {
     expect(up.body.ledger).toBeUndefined();
   });
 
-  it('a list of user ids turns it on for those users only', async () => {
+  it('a list of user ids is treated as the default (ledger off), not as a per-user switch', async () => {
     await AppSetting.updateOne({ key: 'feature.fact_ledger' }, { value: OTHER_USER_ID });
     _clearAppSettingsCache();
     mockModel(MATCH_MACT, EMPTY_READ);

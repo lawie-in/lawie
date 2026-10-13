@@ -13,6 +13,13 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - Title, prayer, verification and the advocate block stay code-assembled (ADR-021). The verification relation comes from a ledger key, or a blank (T-359 AC6).
 - Any change to this JSON needs a fresh sign-off. The loader's hash test pins the SHA below.
 
+## Re-sign, 13 Oct 2026 (supersedes 07706c2)
+
+- Clause ids renamed to this pack's ids in ADR-025's mandatoryClauses list (40a4e6e). Wording, order, slots and conditions unchanged. Old SHA `99eda4f26f7ac146d463b8e096c122a6be24924151d96378b412799ac1ac93b7`.
+- The undertakings clause takes the pack's flight-risk / undertakings id: it is a future undertaking, not a fact, so it stays `source: fixed`.
+- Grounds render as the fixed signed sentence per ticked option. This is stricter than renderer rule 3 and stays so.
+- `when`, `variants` and `none_values` extend the ADR format. The loader must read them; it must not drop them.
+
 ## Skeleton JSON
 
 ```json
@@ -22,7 +29,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
   "none_values": "first_bail_application.equals (T-334)",
   "clauses": [
     {
-      "id": "opening",
+      "id": "offence_classification",
       "order": 10,
       "required": true,
       "source": "fixed",
@@ -59,7 +66,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "missing_label": "Offence Classification"
     },
     {
-      "id": "fir",
+      "id": "fir_particulars",
       "order": 20,
       "required": true,
       "source": "fixed",
@@ -377,7 +384,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       ]
     },
     {
-      "id": "roots",
+      "id": "triple_test",
       "order": 89,
       "required": false,
       "source": "fixed",
@@ -423,4 +430,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `99eda4f26f7ac146d463b8e096c122a6be24924151d96378b412799ac1ac93b7`
+SHA-256 of the JSON block (between the fences, final newline included): `728374339fa5a0f3f8354608cab5a226979bc9ba4b9e8cc33123571652ad320e`

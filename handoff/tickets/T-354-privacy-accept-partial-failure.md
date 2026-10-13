@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Arjun (whether to reorder). Lead (auth, web) |
 | Mode   | Small fix |
-| Status | Building: kunal (12 Oct 2026) |
+| Status | Merged into develop_staging 8e38f59 (kunal, 13 Oct 2026). Waiting for Anushka on develop (screen-reader run) |
 
 If the database update fails after the privacy accept has taken the session, the user sees the P8 error and the next try signs them out. They are not locked out and no session leaks, but it is untested and undocumented.
 

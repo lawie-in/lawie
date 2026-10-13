@@ -2,9 +2,10 @@
   "_meta": {
     "description": "What a date is the date of. A date read from the description is placed under a fact only when its quote carries a cue for the kind of that fact (T-105).",
     "owner": "Ajay (CLO)",
-    "signed": "T-127, 6 Oct 2026, section 6",
-    "last_updated": "2026-10-06",
-    "change_protocol": "Legal content. All edits require CLO sign-off."
+    "signed": "T-127, 6 Oct 2026, section 6. T-342 (kinds memo_received, notice_sent, cheque_validity; Ajay's Option B, labels L4, L5, L2 from T-192): signed by Ajay, 12 Oct 2026, handoff/legal/T-192-s138-date-checks-signed.md (T-342 sign-off, 54951db)",
+    "last_updated": "2026-10-12",
+    "change_protocol": "Legal content. All edits require CLO sign-off.",
+    "keys": "pack_only: the kind is read only for a pack that has a fact of it; elsewhere it is as if absent. not_with: words that stop a clause being this kind of date."
   },
   "hindi_months": {
     "जनवरी": 1,
@@ -428,6 +429,78 @@
         "bounce"
       ],
       "facts": ["dishonour_date"]
+    },
+    {
+      "id": "memo_received",
+      "label": "Date the return memo was received",
+      "subject": [
+        "received the return memo",
+        "received the cheque return memo",
+        "received the dishonour memo",
+        "received the memo",
+        "memo received",
+        "memo was received",
+        "memo is received",
+        "return memo was received",
+        "return memo is received",
+        "return memo received",
+        "receipt of the return memo",
+        "receipt of return memo",
+        "receipt of the memo",
+        "मेमो प्राप्त",
+        "मेमो मिला",
+        "memo mila",
+        "memo prapt"
+      ],
+      "pack_only": true,
+      "not_with": ["dated", "दिनांक", "dinank", "dt"],
+      "facts": ["memo_received_date"]
+    },
+    {
+      "id": "notice_sent",
+      "label": "Date the notice is sent",
+      "subject": [
+        "notice sent",
+        "notice was sent",
+        "notice is sent",
+        "notice is being sent",
+        "notice will be sent",
+        "notice to be sent",
+        "notice dispatched",
+        "notice was dispatched",
+        "notice is dispatched",
+        "sent the notice",
+        "sent the legal notice",
+        "sent a notice",
+        "sent notice",
+        "send the notice",
+        "dispatched the notice",
+        "नोटिस भेज",
+        "notice bheja",
+        "notice bheji",
+        "notice bhejna",
+        "notice bhejenge",
+        "notice bhej diya",
+        "notis bheja"
+      ],
+      "pack_only": true,
+      "facts": ["notice_sent_date"]
+    },
+    {
+      "id": "cheque_validity",
+      "label": "Last date of validity printed on the cheque, if any",
+      "subject": [
+        "valid till",
+        "valid until",
+        "valid up to",
+        "valid upto",
+        "validity",
+        "वैधता",
+        "vaidhta"
+      ],
+      "tie": ["cheque", "चेक", "chek"],
+      "pack_only": true,
+      "facts": ["cheque_validity_date"]
     },
     {
       "id": "hearing",

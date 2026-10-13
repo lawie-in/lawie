@@ -699,3 +699,25 @@ What a user can now do:
 - A malformed document link gives "not found".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-354 — privacy acceptance fails safely (8e38f59, kunal, 13 Oct 2026)
+
+What a user can now do:
+- Nothing new is visible. If saving the privacy acceptance fails, the user sees the retry message and is asked to sign in again on the next action.
+- Please run a real screen reader over the privacy prompt (T-343). Kunal's check was only a proxy.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-356 part 1 — describe-first for everyone (552076a, shashank, 13 Oct 2026)
+
+What a user can now do:
+- Every user, new or existing, starts a document by describing their case in their own words, without anyone having to switch it on for them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-342 — cheque-bounce notice reads the key dates (cb8d9e5, vishal, 13 Oct 2026)
+
+What a user can now do:
+- In a cheque-bounce notice, Lawie picks up the cheque's validity date, the date the return memo was received and the date the notice is sent from the description. If the last two are missing, it asks for them, so it can check the deadlines. Nothing changes for other documents.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

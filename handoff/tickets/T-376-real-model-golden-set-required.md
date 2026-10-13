@@ -15,3 +15,5 @@
 3. The four verifier checks run on each fixture now. The clause-id/fact-ref assertion is added later inside T-373.
 4. A baseline results run is committed once the secrets exist. Until then the job is built and dry-run, and the PR says it waits on the founder's secrets.
 5. No secret is printed and no document content goes to logs. The lead never runs `--real` locally; only CI runs it with the founder's secrets.
+
+**Sequencing (Priya, 13 Oct):** Vishal's T-373 holds the golden-set harness files (scripts/golden-set/lib, README, harness test, run-3 fixtures). T-376 starts after T-373 merges, or takes over the fixtures by agreement with Vishal.

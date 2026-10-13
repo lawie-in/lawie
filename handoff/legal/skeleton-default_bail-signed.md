@@ -13,6 +13,13 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - Title, prayer, verification and the advocate block stay code-assembled (ADR-021). The verification relation comes from a ledger key, or a blank (T-359 AC6).
 - Any change to this JSON needs a fresh sign-off. The loader's hash test pins the SHA below.
 
+## Re-sign, 13 Oct 2026 (supersedes 07706c2)
+
+- Clause ids renamed to this pack's ids in ADR-025's mandatoryClauses list (40a4e6e). Order, slots and conditions unchanged. One wording change: the arrest and first-remand lines merge into the single `custody_dates` clause ("The applicant was arrested on {arrest_date} and was first remanded to custody on {remand_date}."), and both dates stay required. Old SHA `b4ce897d3bdef32f30478e38dd781c85d44eb169e1e1df1a0bc0b9785eb1da43`.
+- The undertakings clause takes the pack's flight-risk / undertakings id: it is a future undertaking, not a fact, so it stays `source: fixed`.
+- Grounds render as the fixed signed sentence per ticked option. This is stricter than renderer rule 3 and stays so.
+- `when`, `variants` and `none_values` extend the ADR format. The loader must read them; it must not drop them.
+
 ## Skeleton JSON
 
 ```json
@@ -22,7 +29,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
   "none_values": "first_bail_application.equals (T-334)",
   "clauses": [
     {
-      "id": "opening",
+      "id": "statutory_provision",
       "order": 10,
       "required": true,
       "source": "fixed",
@@ -46,22 +53,13 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       ]
     },
     {
-      "id": "arrested_on",
+      "id": "custody_dates",
       "order": 30,
-      "required": false,
-      "source": "fixed",
-      "text": "The applicant was arrested on {arrest_date}.",
-      "slots": [
-        "arrest_date"
-      ]
-    },
-    {
-      "id": "remanded_on",
-      "order": 31,
       "required": true,
       "source": "fixed",
-      "text": "The applicant was first remanded to custody on {remand_date}.",
+      "text": "The applicant was arrested on {arrest_date} and was first remanded to custody on {remand_date}.",
       "slots": [
+        "arrest_date",
         "remand_date"
       ]
     },
@@ -221,4 +219,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `b4ce897d3bdef32f30478e38dd781c85d44eb169e1e1df1a0bc0b9785eb1da43`
+SHA-256 of the JSON block (between the fences, final newline included): `1f0384f6c8f2feffa289622b63c9bb8c1b9c698cb5744c9159fc079032349720`
