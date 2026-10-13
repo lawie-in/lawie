@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Todo. Waiting for Ajay's wording; Tanvi applies it (in T-410 if it arrives in time). Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging 0a18bda (Tanvi, in T-410, 13 Oct 2026). Waiting for Anushka on develop. Priya |
 | Owner | Ajay (wording), Tanvi (apply) |
 | Mode | Small fix (legal content) |
 

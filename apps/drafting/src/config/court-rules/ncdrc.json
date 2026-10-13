@@ -10,7 +10,7 @@
   "courtId": "ncdrc",
   "courtType": "consumer_commission",
   "designation": "BEFORE THE NATIONAL CONSUMER DISPUTES REDRESSAL COMMISSION, NEW DELHI",
-  "jurisdictionNote": "National Consumer Disputes Redressal Commission constituted under Section 53 of the Consumer Protection Act, 2019. Pecuniary jurisdiction: value of goods/services paid as consideration exceeding Rs. 10 Crore. Also hears appeals from State Commissions. Located in New Delhi.",
+  "jurisdictionNote": "National Consumer Disputes Redressal Commission constituted under Section 53 of the Consumer Protection Act, 2019. Pecuniary jurisdiction: value of goods/services paid as consideration exceeding Rs. 2 Crore (per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021). Also hears appeals from State Commissions. Located in New Delhi.",
   "cause_title_format": "{courtDesignation}, {city}\n{caseNomenclature}\n\n{complainant} ... COMPLAINANT\n\nVERSUS\n\n{opposite_party} ... OPPOSITE PARTY",
   "party_designation": {
     "petitioner": "Complainant",
@@ -49,7 +49,7 @@
   "localRules": [
     "Consumer complaint must be accompanied by an affidavit in support (Section 35(2) CPA 2019).",
     "Original or certified copies of all documents relied upon must be filed.",
-    "Pecuniary jurisdiction: NCDRC hears complaints where value exceeds Rs. 10 Crore.",
+    "Pecuniary jurisdiction: NCDRC hears complaints where value exceeds Rs. 2 Crore (per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021).",
     "Complaint must be filed within 2 years from the date of cause of action (Section 69 CPA 2019).",
     "Filing fees as per NCDRC Fee Rules.",
     "Appeals from State Commissions must be filed within 30 days of the impugned order."

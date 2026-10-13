@@ -60,6 +60,9 @@ export const PUBLIC_FORM_FIELD_KEYS = [
   'help',
 ] as const;
 
+/** One key of PUBLIC_FORM_FIELD_KEYS. */
+export type PublicFormFieldKey = (typeof PUBLIC_FORM_FIELD_KEYS)[number];
+
 /** Keys of each `fields[].options[]` entry. */
 export const PUBLIC_FIELD_OPTION_KEYS = ['id', 'label'] as const;
 
@@ -121,6 +124,16 @@ function pickOption(option: unknown): { id: unknown; label: unknown } | undefine
   if (!option || typeof option !== 'object') return undefined;
   const { id, label } = option as Record<string, unknown>;
   return { id: plainValue(id), label: plainValue(label) };
+}
+
+/**
+ * T-405: one form field reduced to PUBLIC_FORM_FIELD_KEYS, options to
+ * PUBLIC_FIELD_OPTION_KEYS. Every caller that sends a field to the browser
+ * (the template-config route and intake's buildQuestions) projects through
+ * this, so there is one field allowlist. A new object; the input is untouched.
+ */
+export function publicFormField(field: unknown): Partial<Record<PublicFormFieldKey, unknown>> {
+  return pickField(field);
 }
 
 function pickField(field: unknown): Record<string, unknown> {

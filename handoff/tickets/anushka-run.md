@@ -926,3 +926,30 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - See the refund page say so, in Ajay's sentence.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-413 — Payments always credit Ink, never twice (9cf199e, kunal, 13 Oct 2026)
+
+- If a top-up or plan payment goes through but the Ink isn't credited straight away, it's retried until the Ink lands, and it's never credited twice. If it still can't be credited, the team is alerted to add the Ink by hand.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-390 + T-416 — One verify email after held resends (ed2e18a, mahak, 13 Oct 2026)
+
+- Press "resend verification email" several times before emails start going out, and get one email whose link works.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-405 — Shared public-field helper (ac78327, mahak, 13 Oct 2026)
+
+- Nothing changes on screen (internal refactor).
+
+Quality: nothing to test in the UI — internal refactor, output pinned unchanged
+
+## T-410 (+ T-412, T-417, T-418) — Consumer complaint goes to a Consumer Commission (0a18bda, tanvi, 13 Oct 2026)
+
+- In a consumer complaint, see the Commission you chose named (District, State or National).
+- At a State or National Commission, see "Consumer Complaint No. _____ of <year>".
+- Open an older draft that named a non-Commission court and see "[To be confirmed: Consumer Commission]" and "[To be confirmed: place]", not a wrong court or a criminal case line.
+- See the document called "Consumer Complaint", citing the 2021 Jurisdiction Rules.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
