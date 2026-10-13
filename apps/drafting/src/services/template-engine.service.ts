@@ -1708,9 +1708,11 @@ export const PLACEHOLDER_ALIASES: ReadonlyArray<
   ['place', ['court_city']],
   ['caseNomenclature', ['case_nomenclature']],
   ['applicant', ['applicant_name']],
+  // T-395: suspension_of_sentence's verification and cause title name the appellant.
+  ['appellant', ['appellant_name']],
   ['parentName', ['applicant_parentage', 'applicant_father_name']],
   ['parentRelation', ['parent_relation']],
-  ['age', ['applicant_age']],
+  ['age', ['applicant_age', 'appellant_age']],
   ['applicantAddress', ['applicant_address']],
   ['respondentAddress', ['respondent_address']],
   ['advocateName', ['advocate_name']],

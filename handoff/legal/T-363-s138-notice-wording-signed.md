@@ -54,3 +54,12 @@ Condition: the test must take the blank string from the same generator the brief
 | 1 | HUF keeps s.141? | No, not until it is verified. Whether an HUF counts as an "association of individuals" under the s.141 Explanation is **verify**. Until then, HUF prints `138 read with Section 142`. Leaving s.141 out of a notice does no harm; citing it wrongly is the risk. s.141 stays only for company and partnership firm. |
 | 2 | s.141 in related_acts and relevantActs for every drawer type | Take it out unless the drawer is a company or partnership firm. Without that, the model may write vicarious-liability averments against an individual. Make it conditional on the same test as the guard. Test: individual, HUF and unknown prompts carry no "141". |
 | 3 | respondent_type `"default": "individual"` | Remove the default. Drawer type is required and never guessed. "Not known" prints the blank and goes through the guard. A default silently picks the answer for the advocate. |
+
+**Twin diff 273b703...7b8b13f: approved.**
+- s.141 is cited only for the option ids `company` ("Company / LLP"; an LLP is a body corporate) and `partnership`. Individual, HUF, unknown and placeholder values print `138 read with Section 142`.
+- A sole proprietorship has no option of its own and goes under Individual, which is correct: the proprietor is the drawer, and s.141 does not apply.
+- The twin's "individual" default is removed.
+- The proprietor blanks match Addendum 4, and the tests take the blanks from the generators.
+- No signed wording changed.
+
+Still open: the pack's default (with the founder) and the prompt-side s.141 (T-407).

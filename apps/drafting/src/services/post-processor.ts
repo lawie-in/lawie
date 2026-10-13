@@ -122,7 +122,7 @@ const COURT_NUMBER_TOKEN =
 function hasCourtNumberToken(part: string): boolean {
   return part
     .split(/[\s\-–]+/)
-    .map((t) => t.replace(/^[(\[]+|[)\].,:;]+$/g, ''))
+    .map((t) => t.replace(/^[([]+|[)\].,:;]+$/g, ''))
     .some((t) => t !== '' && COURT_NUMBER_TOKEN.test(t));
 }
 
@@ -493,6 +493,10 @@ export function generateVerificationClause(
 
   const verification = docRule.verificationTemplate
     .replace(/{applicant}/g, deponentName)
+    .replace(
+      /{appellant}/g,
+      partyDetails.appellant || partyDetails.appellant_name || '[DEPONENT NAME]',
+    )
     // T-393 (Ajay, T-359 AC6): the relation and parent or spouse, or the signed blanks.
     .replace(
       /{parentRelation}/g,

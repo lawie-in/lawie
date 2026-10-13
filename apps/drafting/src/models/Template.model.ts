@@ -54,8 +54,10 @@ const TemplateSchema = new Schema<ITemplate>(
       trim: true,
       lowercase: true,
     },
-    // Kept as a duplicate of templateId for backwards-compat with the existing
-    // `/templates/:slug` route; sync service writes both to the same value.
+    // A duplicate of templateId (the catalogue template_id); the sync service
+    // writes both to the same value. Kept because pre-SCRUM-80 rows may have
+    // only slug: the sync service and GET /templates' hidden-template filter
+    // (T-385) match on either. No route reads it by slug (T-385 removed /:slug).
     slug: {
       type: String,
       required: true,

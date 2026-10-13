@@ -198,7 +198,7 @@ describe('T-365 AC6: promoter', () => {
   });
 });
 
-describe('T-365 AC6: GET /templates list and detail', () => {
+describe('T-365 AC6: GET /templates list (detail route removed in T-385)', () => {
   const OLD = 'Document-rules config for affidavit_identity — standalone INTERNAL text';
 
   beforeEach(async () => {
@@ -244,16 +244,10 @@ describe('T-365 AC6: GET /templates list and detail', () => {
     expect(body).not.toContain('Ghost stored description');
   });
 
-  it('detail returns the card line and never the stored description', async () => {
+  it('the detail route is gone (T-385): /templates/:slug is 404 and carries no description', async () => {
     const res = await request(app).get('/templates/affidavit-identity').set(headers());
-    expect(res.status).toBe(200);
-    expect(res.body.template.description).toBe(LINE);
+    expect(res.status).toBe(404);
     expect(JSON.stringify(res.body)).not.toContain('INTERNAL');
-
-    const ghost = await request(app).get('/templates/ghost-pack').set(headers());
-    expect(ghost.status).toBe(200);
-    expect(ghost.body.template.description).toBe('');
-    expect(JSON.stringify(ghost.body)).not.toContain('Ghost stored description');
   });
 });
 

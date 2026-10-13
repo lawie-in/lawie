@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay |
 | Mode   | Small fix (moves goldens) |
-| Status | To do. Not assigned. Waiting for Ajay's rule. Found by Tanvi in T-406's Explore, 13 Oct 2026 |
+| Status | To do. Ajay ruled (handoff/legal/T-406-T-410-case-line-signed.md, f794a72): Consumer Commission only; the picker offers District, State and National Commission only; an old draft with another court gets "[To be confirmed: Consumer Commission]", never a criminal or bail line; generation not blocked; tests in his file. Tanvi, after T-406 (same template-engine area) |
 | Source | T-406 Explore (template-engine.service.ts ~:1751 fallback) |
 
 ## Acceptance criteria

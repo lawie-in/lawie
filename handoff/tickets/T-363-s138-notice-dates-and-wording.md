@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay (notice wording) |
 | Mode   | Full chain |
-| Status | Merged into develop_staging 7f99f96 (shashank, 13 Oct 2026). Ajay approved. Waiting for Anushka on develop. Fixtures 19-21 follow T-373. Priya |
+| Status | Merged into develop_staging 7f99f96, proprietor regression fix d9a354c (shashank, 13 Oct 2026). Ajay approved (2c620e3). Waiting for Anushka on develop. Fixtures 19-21 follow T-373. Priya |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-192 |
 
 ## Acceptance criteria
