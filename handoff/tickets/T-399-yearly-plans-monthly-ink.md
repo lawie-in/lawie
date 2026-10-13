@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (billing); Arjun confirms the design, Vikram the numbers |
 | Mode   | Full chain (billing) |
-| Status | Confirmed by Arjun (13 Oct 2026). Kunal, after T-395, full chain. Yearly toggle off until merged. Founder: were any yearly plans sold? (morning report 0g) |
+| Status | Confirmed by Arjun; numbers signed by Vikram (handoff/finance/T-399-T-398-vikram.md, bd8c8b9). Kunal, after T-395. Open: what cancel does on a prepaid year (Arjun + Ajay). Founder: how many yearly subs sold (morning report 0g). Yearly toggle off until merged |
 | Source | Ajay, T-398 sign-off (handoff/legal/T-398-pro-card-signed.md) |
 
 ## Problem
@@ -31,3 +31,9 @@
 **AC4:** a one-off script `apps/billing/scripts/backfill-yearly-drip.ts` that lists yearly subscriptions and grants the months elapsed since purchase through the same `settleYearlyDrip`. The lead runs it once with the founder's count; dry-run mode prints, `--apply` writes.
 
 Billing lead (Kunal holds billing): Priya assigns and claims `subscription.service.ts`, `ink-ledger.service.ts`, `Subscription.model.ts`, `enforceCredits` (shared), the new script and tests.
+
+## Vikram (13 Oct 2026)
+
+The numbers don't change, only the timing: solo_yearly ₹7,990 gives 50 Ink/month (600 a year), pro_yearly ₹19,990 gives 150 Ink/month (1,800 a year). Drips follow the monthly reset rule. The capped annual carry stays, but is never advertised. "Save 2 months" is true once the drip ships.
+
+Open (Arjun + Ajay): "cancel stops the drip" on a prepaid year is a refund-policy question. Finance's position: cancel means no renewal, and the drip runs to the end of the paid period, unless the unused months are refunded.
