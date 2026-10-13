@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express';
 import { catalogueCategory } from '../config/catalogue';
 import { authenticate } from '../middleware/authenticate';
 import { Template } from '../models/Template.model';
+import { hiddenTemplateIds } from '../services/feature-switches';
 import { publicTemplateRow } from '../utils/publicTemplateConfig';
 
 const router = Router();
@@ -25,11 +26,18 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
     filter.planAccess = 'free';
   }
 
-  const templates = await Template.find(filter)
+  const rows = await Template.find(filter)
     .select(
       'templateId slug displayName category catalogueCategory planAccess creditsCost icon supportedLanguages',
     )
     .lean();
+
+  // T-385 (from T-375): a template hidden by its feature switch is not listed,
+  // the same filter as GET /documents/template-configs. templateId and slug both
+  // hold the catalogue template_id (template-seed.service); a pre-SCRUM-80 row
+  // may have only slug, so either one matching hides the row.
+  const hidden = await hiddenTemplateIds(req.jwtPayload!.sub);
+  const templates = rows.filter((t) => !hidden.has(t.templateId) && !hidden.has(t.slug));
 
   // T-240: catalogue (T-239) order, then title. A row with no catalogue
   // category yet sorts last.

@@ -214,6 +214,9 @@ describe('AC2 - one source of truth', () => {
     }
 
     await seedUser();
+    // T-385: GET /templates hides the six plaint rows while the T-375 switch is off; turn it on.
+    await AppSetting.create({ key: 'feature.template_civil_plaint', value: 'on' });
+    _clearAppSettingsCache();
     const res = await request(app).get('/templates').set(headers('pro'));
     expect(res.status).toBe(200);
     const listed = res.body.templates as Array<{ templateId: string; creditsCost: number }>;

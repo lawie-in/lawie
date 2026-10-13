@@ -3,7 +3,12 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 
 import app from '../app';
+import { TEMPLATE_CATALOGUE } from '../config/catalogue';
+import { AppSetting } from '../models/AppSetting.model';
 import { Template } from '../models/Template.model';
+import { _clearAppSettingsCache } from '../services/app-settings.service';
+import { CIVIL_PLAINT_CATEGORY, TEMPLATE_CIVIL_PLAINT_SETTING } from '../services/feature-switches';
+import { PUBLIC_TEMPLATE_ROW_KEYS } from '../utils/publicTemplateConfig';
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET!;
 
@@ -150,6 +155,75 @@ describe('Templates Routes', () => {
       expect(body).not.toContain('Document-rules config for');
       expect(body).not.toContain('Standard bail application');
       expect(body).not.toContain('Writ petition under Article 226');
+    });
+  });
+
+  describe('GET /templates hides plaint rows while feature.template_civil_plaint is off (T-385)', () => {
+    const PLAINT_ID = Object.keys(TEMPLATE_CATALOGUE).filter(
+      (id) => TEMPLATE_CATALOGUE[id].category === CIVIL_PLAINT_CATEGORY,
+    )[0];
+    const LEGACY_SLUG_ONLY = Object.keys(TEMPLATE_CATALOGUE).filter(
+      (id) => TEMPLATE_CATALOGUE[id].category === CIVIL_PLAINT_CATEGORY,
+    )[1];
+
+    const plaintRow = (templateId: string, slug: string) => ({
+      templateId,
+      slug,
+      displayName: `Plaint ${templateId}`,
+      category: 'civil',
+      catalogueCategory: CIVIL_PLAINT_CATEGORY,
+      planAccess: 'free',
+      sourceFile: `${templateId}.json`,
+      creditsCost: 2,
+      isActive: true,
+    });
+
+    beforeEach(async () => {
+      _clearAppSettingsCache();
+      await Template.insertMany([
+        plaintRow(PLAINT_ID, PLAINT_ID),
+        // a row from before SCRUM-80: its templateId differs, only the slug is the catalogue id
+        plaintRow('legacy-plaint-row', LEGACY_SLUG_ONLY),
+      ]);
+    });
+
+    afterEach(() => {
+      _clearAppSettingsCache();
+    });
+
+    const slugs = (body: { templates: Array<{ slug: string }> }) =>
+      body.templates.map((t) => t.slug);
+
+    it('off (no AppSetting doc): rows matching by templateId or by slug are hidden, others stay', async () => {
+      const res = await request(app).get('/templates').set(internalHeaders('pro'));
+      expect(res.status).toBe(200);
+      expect(slugs(res.body)).not.toContain(PLAINT_ID);
+      expect(slugs(res.body)).not.toContain(LEGACY_SLUG_ONLY);
+      expect(slugs(res.body)).toEqual(
+        expect.arrayContaining(['bail-application', 'writ-petition', 'affidavit-identity']),
+      );
+      expect(res.body.templates).toHaveLength(3);
+    });
+
+    it('off explicitly: same', async () => {
+      await AppSetting.create({ key: TEMPLATE_CIVIL_PLAINT_SETTING, value: 'off' });
+      const res = await request(app).get('/templates').set(internalHeaders('pro'));
+      expect(slugs(res.body)).not.toContain(PLAINT_ID);
+      expect(res.body.templates).toHaveLength(3);
+    });
+
+    it('on: both plaint rows are listed again, projected through publicTemplateRow', async () => {
+      await AppSetting.create({ key: TEMPLATE_CIVIL_PLAINT_SETTING, value: 'on' });
+      const res = await request(app).get('/templates').set(internalHeaders('pro'));
+      expect(res.status).toBe(200);
+      expect(slugs(res.body)).toEqual(expect.arrayContaining([PLAINT_ID, LEGACY_SLUG_ONLY]));
+      expect(res.body.templates).toHaveLength(5);
+      for (const row of res.body.templates) {
+        for (const k of Object.keys(row)) {
+          expect(PUBLIC_TEMPLATE_ROW_KEYS as readonly string[]).toContain(k);
+        }
+        expect(row).not.toHaveProperty('_id');
+      }
     });
   });
 
