@@ -19,7 +19,7 @@ Sequencing: documents.routes.ts goes Tanvi T-357, then Kunal T-372, then Vishal 
 Spec: handoff/marketing/annexures-button-spec-t381.md. Strings: handoff/marketing/copy/annexures-button-t381.md.
 1. **Which drafts show the card:** court documents only, meaning not one of the 32 not_court_documents (T-406 list). The card shows once the draft has at least one party, from the brief or from the form inputs.
 2. **Missing party details:** as Rajesh assumed. "Check your brief" opens the brief with the parties fields focused.
-3. **Ink:** the pack is free in v1, because it's derived from a draft already paid for. Vikram can override this. A failed pack is never charged.
+3. **Ink:** the pack costs no Ink in v1 (Vikram agreed, 13 Oct). It's a template fill from a paid draft. Conditions: it stays a template fill, so any model call added later goes back to Vikram for a price before merge. The page never calls it "free"; it's just part of the draft. A failed pack is never charged.
 4. **Format:** one PDF for v1, as the route returns today (revised after Mahak's Explore). DOCX can come later.
 5. **Already exists:** not in v1. Nothing is stored, and each click generates a fresh PDF. Stored packs and DOCX are a follow-up, only if Anushka or users ask.
 Ajay signs the naming, the button, help, success and download strings. He also says whether the T-194 blanks dialog or the disclaimer line applies to the pack.
