@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Proposed by Arjun, 13 Oct 2026. Founder delegated handling to Arjun (13 Oct, night); building starts on the order below. Founder reviews the HTML version in the morning |
+| Status | **Decided.** Arjun, 13 Oct 2026, under the founder's standing delegation of all technical decisions (founder, 13 Oct 2026: "you have the full approvals"). D1–D5 are in force; Priya sequences the tickets |
 | Review doc | https://claude.ai/artifact/6yYqbJXug8ay5uubA5oNHD (same content, with diagrams) |
 | Basis | Anushka's runs of 6, 7 and 13 Oct (all FAIL on the same finding); three read-only code surveys on `develop_staging` 3ec5907 |
 | Supersedes | Nothing. Completes ADR-021 (code assembles title, prayer, verification) and ADR-022 (fact ledger) by extending them to the body |
