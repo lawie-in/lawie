@@ -50,3 +50,14 @@ The worked example stands: first remand on 1 January 2026 gives a last day of 1 
 | 3f | Page disclaimer | `This tracker counts dates from the date you enter. It is not legal advice. Check the remand orders and the BNSS before relying on it.` |
 
 "Chargesheet" is spelt `charge sheet` everywhere on this page.
+
+## Addendum 3: last page strings (1087793), 13 Oct 2026
+
+| Where | Ruling |
+|---|---|
+| "Applicable BNSS provision:" | Keep. |
+| h1 "BNSS Investigation Timeline Tracker", subtitle "Calculate custody limits, charge sheet deadlines, and default bail dates" | Keep. |
+| Charge-sheet card line | Replace with exactly `{N}-day period · {d} days left`, `{N}-day period · Today is the last day`, or `{N}-day period · The last day was {d} days ago`. Use "day" when d is 1. "Overdue" goes: the tracker cannot know whether a charge sheet was filed. |
+| CTA "Need to file a default bail application?" | Keep, provided the button opens the **default_bail** pack. Today it links to `type=bail_application`; point it at default bail, or change the question to `Need to draft a bail application?`. |
+
+With these, 1087793 is approved for merge.
