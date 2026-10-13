@@ -60,6 +60,19 @@ import ValueInput from './ValueInput';
 const DESCRIPTION_IS_USED =
   'Your description is used in full, together with this brief. If anything in it is wrong, or should not be in the draft, change the description before you generate.';
 
+/**
+ * T-372: the line under Confirm saying what the draft costs. Wording final
+ * (Meera, design): "Uses 1 Ink" / "Uses N Ink"; Ink takes no s. Null when
+ * there is no positive cost to show.
+ */
+export function formatInkCost(n: number | undefined): string | null {
+  if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) return null;
+  return `Uses ${n} Ink`;
+}
+
+/** T-372: id of the Ink cost line, which describes the confirm button. */
+export const INK_COST_ID = 'brief-confirm-ink-cost';
+
 /** Long text and rows of choices take the full width of the card. */
 const WIDE = new Set(['narrative', 'list', 'choice', 'choices']);
 
@@ -411,6 +424,7 @@ export default function BriefStep({
   onCancel,
   onConfirm,
   confirmDescribedBy,
+  inkCost,
 }: {
   brief: Brief;
   /** T-147b: the fact ledger, when the service sent one. Rows render from it. */
@@ -440,6 +454,8 @@ export default function BriefStep({
   onConfirm: () => void;
   /** T-343: aria-describedby for the confirm (generate) button, e.g. the privacy P7 box. */
   confirmDescribedBy?: string;
+  /** T-372: the template's Ink cost, shown under the confirm button when positive. */
+  inkCost?: number;
 }) {
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [name, setName] = useState(brief.kind.name);
@@ -458,6 +474,11 @@ export default function BriefStep({
   const otherFacts = ledger ? ledger.facts.filter((f) => !itemKeys.has(f.key)) : [];
   const outstanding = ledger ? ledger.unresolved.filter((u) => !ledger.facts.some((f) => f.key === u.key)) : [];
   const nothingRead = ledger !== null && ledgerFacts.length === 0 && outstanding.length === 0;
+  // T-372: the Ink cost line, when there is a cost, also describes the confirm button.
+  const inkCostLine = formatInkCost(inkCost);
+  const confirmDescribedByIds =
+    [confirmDescribedBy, inkCostLine ? INK_COST_ID : undefined].filter(Boolean).join(' ') ||
+    undefined;
 
   // T-147b, section 9: coming back from the questions opened here, focus the block's
   // heading. When the last item was answered the block is gone, and focus stays put.
@@ -803,19 +824,26 @@ export default function BriefStep({
             Cancel
           </button>
         </div>
-        <button
-          type="button"
-          onClick={brief.can_confirm ? onConfirm : focusFirstBlocker}
-          aria-disabled={!brief.can_confirm || busy || confirming}
-          aria-describedby={confirmDescribedBy}
-          disabled={busy || confirming}
-          className={`${primaryButton} ${brief.can_confirm ? '' : 'opacity-40'}`}
-        >
-          {(busy || confirming) && (
-            <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+        <div className="flex flex-col items-stretch gap-1 sm:items-end">
+          <button
+            type="button"
+            onClick={brief.can_confirm ? onConfirm : focusFirstBlocker}
+            aria-disabled={!brief.can_confirm || busy || confirming}
+            aria-describedby={confirmDescribedByIds}
+            disabled={busy || confirming}
+            className={`${primaryButton} ${brief.can_confirm ? '' : 'opacity-40'}`}
+          >
+            {(busy || confirming) && (
+              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+            )}
+            Confirm brief and continue
+          </button>
+          {inkCostLine && (
+            <p id={INK_COST_ID} className="text-sm text-slate-600">
+              {inkCostLine}
+            </p>
           )}
-          Confirm brief and continue
-        </button>
+        </div>
       </div>
     </div>
   );
