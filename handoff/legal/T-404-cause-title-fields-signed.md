@@ -100,3 +100,9 @@ Tests: no court gives (a) and (c) and no court name in the body.
 | b | Packs with no twin print the court blank for caseNomenclature | Make them match: with no court, `caseNomenclature` prints `[To be confirmed: case type and number]` in every pack, and the court blank stays for the court itself. |
 
 **Bail twins' own case-line defaults (existing behaviour; T-404 part 2).** Yes. bail_regular and bail_anticipatory take the chosen court's case line for that pack when the court record has one. When it has none, they print `[To be confirmed: case type and number]`. The twin defaults go: "Criminal Case No." is wrong for a bail application at most courts, and a generic "Anticipatory Bail Application" line is a guess at the court's practice. Part 1 may merge as is, because this is not a regression. Send me the part 2 golden diff: only `case_nomenclature` on the bail twins should move.
+
+**After the T-406 merge (f4603d0): approved.**
+1. A pack on the not-court list prints no case line and no case-type blank. T-406 wins.
+2. The 12 deeds and agreements print `[To be confirmed: place]` for the place of execution when no place is given. Approved. A deed's place of execution is where the parties sign, so it may come only from a place or execution field the advocate filled. It never comes from a court's city, even if one is somehow chosen.
+
+Test: a deed with no place field gives the blank, and no court city appears.
