@@ -40,7 +40,7 @@ function run(args: string[], mongoUri: string) {
 const hostPart = () =>
   `${mongoose.connection.host}:${mongoose.connection.port}/${mongoose.connection.name}`;
 const uri = () =>
-  `mongodb://${mongoose.connection.host}:${mongoose.connection.port}/${mongoose.connection.name}`;
+  `mongodb://${mongoose.connection.host}:${mongoose.connection.port}/${mongoose.connection.name}`; // gitleaks:allow
 
 async function seed() {
   const userId = new mongoose.Types.ObjectId();
@@ -81,7 +81,7 @@ describe('backfill-yearly-drip script', () => {
     expect(r.out).toContain('sub_backfill');
     expect(r.out).toContain('owed now 1');
     expect(r.out).toContain('Dry run: nothing written');
-    expect(r.out).toContain(`Target (dry run, read-only): mongodb://${hostPart()}`);
+    expect(r.out).toContain(`Target (dry run, read-only): mongodb://${hostPart()}`); // gitleaks:allow
     expect(r.out).not.toContain('backfill-pii');
     expect(await db().collection('inkledger').countDocuments({})).toBe(0);
     expect((await db().collection('users').findOne({ _id: userId }))!.inkSub).toBe(10);
