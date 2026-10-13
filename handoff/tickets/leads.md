@@ -46,8 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- kunal: T-370 merged 280dd3a; holds the slot until CI on it is green (run 492 on 88cbb48 was green).
-- tanvi: T-357 (c741f59, small fix tested green). Next, once CI on 280dd3a is green.
+- tanvi: T-357 (c741f59, small fix tested green). Holds the slot now (CI run 493 on 280dd3a green).
 - tanvi: T-369 (0d6bf6e, small fix tested green). Straight after her T-357.
 
 ## Last done
