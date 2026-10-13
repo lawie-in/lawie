@@ -33,6 +33,16 @@ import {
   STARTING_DRAFT_LABEL,
 } from '../services/brief-drafter';
 import {
+  applyPartyFields,
+  flattenPartyValues,
+  hasPartyInputs,
+  mapPartyFields,
+  PartyFieldsResult,
+  pickPartyInputs,
+  readStoredBrief,
+  storesState,
+} from '../services/brief-party-fields';
+import {
   costForTemplate,
   extendInkHold,
   getCreditBalance,
@@ -52,7 +62,7 @@ import {
 import { currentState, loadOwnLedger } from '../services/fact-ledger.service';
 import { FACT_CHECK_DISCLAIMER } from '../services/fact-verifier';
 import { bodyField, hiddenTemplateIds, templateGuard } from '../services/feature-switches';
-import { namesSupremeCourt, buildChecklist } from '../services/intake-brief';
+import { isCourtDocument, namesSupremeCourt, buildChecklist } from '../services/intake-brief';
 import {
   INTAKE_LIMITS,
   isDescribeFirstEnabled,
@@ -1431,8 +1441,17 @@ router.post(
             ? courtType
             : undefined,
           courtName: brief.court.court ?? '',
-          // No case details here, but sealed like every other write (T-115a). The brief is encrypted below.
-          formInputsEnc: sealFormInputs({ template_id: recordId, source: 'brief' }),
+          // T-381: the party inputs the annexures pack needs (the pack's own role
+          // fields, by last segment) and the court labels from brief.court:
+          // court_type always, state only on a State row (Ajay, Addendum 4). Case
+          // details, so sealed like every other write (T-115a). The brief is encrypted below.
+          formInputsEnc: sealFormInputs({
+            ...pickPartyInputs(recordId, values),
+            ...(brief.court.court_type ? { court_type: brief.court.court_type } : {}),
+            ...(brief.court.state && storesState(recordId) ? { state: brief.court.state } : {}),
+            template_id: recordId,
+            source: 'brief',
+          }),
           generatedContent: encrypt(result.fullText),
           sectionsCited: result.sectionsCited,
           filingChecklistEnc: sealFilingChecklist(result.filingChecklist),
@@ -1831,6 +1850,29 @@ router.get(
       return;
     }
 
+    // T-381: whether the page offers the annexures pack. A court document (not
+    // one of the not_court_documents) with a client or opposite-party name by
+    // the signed mapping. An unreadable value only hides the card; only the id
+    // and the error name are logged.
+    let courtDocument = false;
+    let hasParty = false;
+    try {
+      const { packId, mapped, briefCourtDocument } = partyMappingOf(
+        doc,
+        readFormInputs(doc) ?? {},
+      );
+      courtDocument =
+        packId === GUIDED_ID
+          ? briefCourtDocument === true
+          : packId !== '' && isCourtDocument(packId);
+      hasParty = mapped.clientName !== '' || mapped.counterpartName !== '';
+    } catch (err) {
+      console.error(
+        `[drafting] Get document: could not read the parties of document ${String(doc._id)}:`,
+        err instanceof Error ? err.name : 'UnknownError',
+      );
+    }
+
     res.json({
       _id: doc._id,
       title: doc.title,
@@ -1852,6 +1894,9 @@ router.get(
       startingDraftFooter: doc.startingDraft === true ? STARTING_DRAFT_FOOTER : null,
       // T-197: the signed disclaimer the document page shows on every draft.
       disclaimer: FACT_CHECK_DISCLAIMER,
+      // T-381: the annexures card shows when both are true.
+      courtDocument,
+      hasParty,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });
@@ -2059,6 +2104,34 @@ router.post(
   },
 );
 
+/**
+ * T-381: a document's pack id and its party mapping (brief-party-fields.ts).
+ * The pack id is the brief's rule pack, else the form's template_id. A brief
+ * draft made before T-381 sealed no party inputs, so its encrypted brief is
+ * read instead; a guided brief is read for whether it is a court document.
+ * Throws when the stored brief cannot be decrypted or parsed. Logs nothing.
+ */
+function partyMappingOf(
+  doc: { rulePackId?: string | null; brief?: string | null },
+  formData: Record<string, unknown>,
+): { packId: string; mapped: PartyFieldsResult; briefCourtDocument?: boolean } {
+  const packId =
+    doc.rulePackId ||
+    (typeof formData.template_id === 'string' ? formData.template_id.trim() : '');
+  const fromBrief =
+    formData.source === 'brief' && typeof doc.brief === 'string' && doc.brief !== '';
+  const sealed = hasPartyInputs(packId, formData);
+  if (fromBrief && (packId === GUIDED_ID || !sealed)) {
+    const stored = readStoredBrief(decrypt(doc.brief as string));
+    return {
+      packId,
+      mapped: mapPartyFields(packId, sealed ? formData : flattenPartyValues(stored.values)),
+      ...(stored.courtDocument !== undefined ? { briefCourtDocument: stored.courtDocument } : {}),
+    };
+  }
+  return { packId, mapped: mapPartyFields(packId, formData) };
+}
+
 // POST /documents/:id/annexures-pack — SCRUM-65: generate 7 mandatory annexures as a multi-page PDF
 // Court-rule aware: designation, verification language, party labels from court_rules JSON.
 // Returns: application/pdf — single PDF with each annexure on a fresh page.
@@ -2085,10 +2158,14 @@ router.post(
     // Only the id and the error name are logged, never a message or content.
     let bodyParaCount: number;
     let formData: Record<string, unknown>;
+    let party: PartyFieldsResult;
     try {
       const content = doc.finalContent ? decrypt(doc.finalContent) : decrypt(doc.generatedContent);
       bodyParaCount = estimateBodyParaCount(content);
       formData = readFormInputs(doc) ?? {};
+      // T-381: the client and the opposite party by Ajay's signed rule. An
+      // older brief draft is mapped from its encrypted brief.
+      party = partyMappingOf(doc, formData).mapped;
     } catch (err) {
       console.error(
         `[drafting] Annexures pack: could not read document ${String(doc._id)}:`,
@@ -2098,9 +2175,18 @@ router.post(
       return;
     }
 
+    // T-381 (Ajay, Addendum 2): a party name never prints as a blank line. A
+    // missing client or opposite-party name is refused before anything is
+    // rendered, recorded or charged.
+    if (party.missing.length > 0) {
+      res.status(422).json({ error: 'party_details_missing', missing: party.missing });
+      return;
+    }
+    formData = applyPartyFields(formData, party);
+
     // T-156: the chosen court, looked up the same way the draft paths do. The
-    // brief path saves its court id only in doc.courtName (formInputs holds no
-    // case details); the template path saves it in both. No court found means
+    // brief path saves its court id only in doc.courtName (its formInputs hold
+    // only the party inputs and court labels, T-381); the template path saves it in both. No court found means
     // no courtData, and the pack keeps its court-rules designation.
     let courtData: CourtLookupData | undefined;
     const courtId = String(doc.courtName || formData.court_name || '').trim();
