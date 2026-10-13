@@ -20,6 +20,9 @@ Spec: handoff/marketing/annexures-button-spec-t381.md. Strings: handoff/marketin
 1. **Which drafts show the card:** court documents only, meaning not one of the 32 not_court_documents (T-406 list). The card shows once the brief has at least one party.
 2. **Missing party details:** as Rajesh assumed. "Check your brief" opens the brief with the parties fields focused.
 3. **Ink:** the pack is free in v1, because it's derived from a draft already paid for. Vikram can override this. A failed pack is never charged.
-4. **Format:** PDF and DOCX, the same as the draft.
+4. **Format:** one PDF for v1, as the route returns today (revised after Mahak's Explore). DOCX can come later.
 5. **Already exists:** show the download buttons, plus "Generate again", which replaces the old pack.
 Ajay signs the naming, the button, help, success and download strings. He also says whether the T-194 blanks dialog or the disclaimer line applies to the pack.
+
+## Explore (Mahak, 13 Oct)
+Brief drafts keep their parties only in the encrypted doc.brief.values, so the pack printed blanks. A new mapper seals the party keys at create time. The pack route falls back to decrypting the brief for older drafts. Wider role keys (plaintiff/defendant/complainant/accused) in annexures.service.ts go to Kunal's T-396, not here. Ajay confirms the party-role mapping.
