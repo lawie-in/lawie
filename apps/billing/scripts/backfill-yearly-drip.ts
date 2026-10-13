@@ -58,7 +58,7 @@ function dripsOwed(anchor: Date | null, nextAt: Date, count: number, now: Date):
 /**
  * Scheme, host(s) and database of a Mongo URI, never the credentials or the
  * query string: `mongodb+srv://user:pw@cluster.x.net/lawie?w=1` prints as
- * `mongodb+srv://cluster.x.net/lawie`.
+ * `mongodb+srv://cluster.x.net/lawie`. gitleaks:allow
  */
 function redactMongoUri(uri: string): string {
   const scheme = /^[a-z+]+:\/\//i.exec(uri)?.[0];
