@@ -33,3 +33,7 @@ There are 7 packs, not 3: bail_before_magistrate, bail_cancellation, default_bai
 - (a) `GET /templates` card_description: request-time registry lookup by template_id. No new model field, no seed: seeds go stale (see T-360). Same for `GET /templates/:id`.
 - (b) One alias map, exported from `services/rule-pack.service.ts` (where I put it for Tanvi, T-374). Whoever lands first creates it; the other imports. No second copy, no new config file.
 - (c) The alias is applied wherever stored data enters the pipeline through the same helper: `readFormInputs` for drafts, and the brief path only if it loads a stored intake's form data from before the deploy through another function (Mahak checks). Same helper, never a second map. No write-side alias.
+
+## Arjun (13 Oct 2026)
+
+"(after the alias)" was loose wording. The alias is for stored drafts, not request bodies. Preflight F4 reads a fresh request body, which after the rename only ever carries `advocate_enrollment`, so T-387 AC2 is right.

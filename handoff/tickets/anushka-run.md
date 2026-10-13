@@ -763,3 +763,41 @@ What a user can now do:
 - In the bail checker, see a section that isn't found named plainly ("Section 400"), not as the raw code "400-BNS".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-372 — Ink cost and balance (587ce69, kunal, 13 Oct 2026)
+
+Re-tests run 3 failures T-227 and T-190 ("Not known").
+
+What a user can now do:
+- See the Ink balance on the dashboard and settings instead of a "documents used" counter or a monthly allowance.
+- See "Uses N Ink" under "Confirm brief and continue" before drafting, for every document type and for a draft with no type.
+- See the header Ink balance drop as soon as a draft finishes.
+- On the brief, press "Not known" or "None" and see it stay selected.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-374 — signed skeleton loader (1c9da98, tanvi, 13 Oct 2026)
+
+What a user can now do:
+- Nothing on screen yet. Bail drafts use the signed skeletons once T-373 lands.
+
+Quality: nothing to test in the UI — loader only, not used until T-373
+
+## T-367 — Timeline tracker deadlines (1706a41, shashank, 13 Oct 2026)
+
+Re-tests run 3's timeline failures. Once T-375 merges the tracker is hidden by default, so for this run the founder switches `feature.tool_timeline` on.
+
+What a user can now do:
+- Enter the date of the first remand and see the right deadlines. For a first remand on 1 January 2026 under a 60-day offence: police custody up to 9 February, the last day for the charge sheet 1 March, and default bail from 2 March.
+- See police custody explained as up to 15 days, in one go or in parts, within the first 40 or 60 days, with BNSS 187(2) and 187(3) cited.
+- See every date written out, like "1 March 2026", and a countdown such as "60-day period · 12 days left".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-379 — Email worker guard (b3d01a7, kunal, 13 Oct 2026)
+
+What a user can now do:
+- Nothing changes on screen. Before real emails are switched on, an unfinished email footer can no longer cause a verification email to go out or invalidate a link the user already has. Their email is held and sent once the footer is filled in.
+- A user whose name or address contains text like "[PIN]" still gets their emails.
+
+Quality: nothing to test in the UI — email-worker start-up and health guard

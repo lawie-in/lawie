@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 import { env } from '../config/env';
 import { logger } from '../config/logger';
-import { hasUnfilledPlaceholder, isLiveSend } from '../placeholders';
+import { isLiveSend, templateHasUnfilledFooter } from '../placeholders';
 import { sendEmail } from '../providers';
 import { safeErrorFields, userIdFromData } from '../providers/safe-log';
 import { renderTemplate } from '../templates';
@@ -38,13 +38,14 @@ export async function sendHandler(req: Request, res: Response): Promise<void> {
   const userId = userIdFromData(data);
 
   try {
-    const rendered = await renderTemplate(template, data);
-    // T-223 review: no live send while the footer still has [registered address] or [PIN].
-    if (isLiveSend() && hasUnfilledPlaceholder(rendered)) {
+    // T-223 review, T-379: no live send while the template's own footer still has
+    // [registered address] or [PIN]. Static check, before rendering, never on user data.
+    if (isLiveSend() && templateHasUnfilledFooter(template)) {
       logger.error({ template, userId }, 'Email not sent via /send: unfilled footer placeholders');
       res.status(422).json({ error: 'unfilled_placeholders' });
       return;
     }
+    const rendered = await renderTemplate(template, data);
     const result = await sendEmail({
       to: toArray,
       from,
