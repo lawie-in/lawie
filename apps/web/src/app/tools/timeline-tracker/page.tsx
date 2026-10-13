@@ -89,6 +89,15 @@ function daysFromNow(iso: string): number {
   return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+/** Ajay (CLO), T-367 Addendum 3: the charge sheet card line. No lateness wording: the
+ * tracker cannot know whether a charge sheet was filed. "day" when d is 1. */
+function chargesheetCountdown(periodDays: number, d: number): string {
+  const days = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`;
+  if (d > 0) return `${periodDays}-day period · ${days(d)} left`;
+  if (d === 0) return `${periodDays}-day period · Today is the last day`;
+  return `${periodDays}-day period · The last day was ${days(-d)} ago`;
+}
+
 // ── Milestone Colors ─────────────────────────────────────────────────────────
 
 const MILESTONE_STYLES: Record<string, { bg: string; border: string; dot: string; text: string }> =
@@ -308,13 +317,7 @@ export default function TimelineTrackerPage() {
                       {formatDate(period.chargesheetDeadline)}
                     </div>
                     <div className="mt-1 text-xs text-red-700">
-                      {period.days} days —{' '}
-                      {(() => {
-                        const d = daysFromNow(period.chargesheetDeadline);
-                        if (d < 0) return `${Math.abs(d)} days overdue`;
-                        if (d === 0) return 'due today';
-                        return `${d} days remaining`;
-                      })()}
+                      {chargesheetCountdown(period.days, daysFromNow(period.chargesheetDeadline))}
                     </div>
                   </div>
 
@@ -433,8 +436,9 @@ export default function TimelineTrackerPage() {
                   <h3 className="font-semibold text-slate-900">Legal Reference</h3>
                   <ul className="mt-2 space-y-1.5 text-sm text-slate-600">
                     {/* T-367: Ajay's R1 and R2 lines replace the old 187(2) and 187(4) items. */}
-                    {result.policeCustodyNote && <li>{result.policeCustodyNote}</li>}
-                    {result.detentionLimitNote && <li>{result.detentionLimitNote}</li>}
+                    {/* With no period the Depends line shows once, outside this list. */}
+                    {period && result.policeCustodyNote && <li>{result.policeCustodyNote}</li>}
+                    {period && result.detentionLimitNote && <li>{result.detentionLimitNote}</li>}
                     {/* T-367 Addendum 1 (7): Ajay's signed 187(3) line, exactly. */}
                     <li>
                       BNSS 187(3): if the investigation is not completed within 60 or 90 days, the
@@ -449,7 +453,9 @@ export default function TimelineTrackerPage() {
             {/* CTA */}
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-6 text-center">
               <p className="mb-3 text-sm text-slate-700">
-                Need to file a default bail application?
+                {/* T-367 Addendum 3: /dashboard/new ignores ?type=, so the link cannot open
+                    the default_bail pack; Ajay's alternative question applies. */}
+                Need to draft a bail application?
               </p>
               <Link
                 href="/dashboard/new?type=bail_application"

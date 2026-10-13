@@ -189,3 +189,89 @@ describe('T-367 timeline tracker page', () => {
     expect(text).not.toContain('Default Bail Date');
   });
 });
+
+// ── Addendum 3: countdown, CTA, Legal Reference ──────────────────────────────
+
+/** ISO date n days from the local today, matching the page's local-midnight maths. */
+function isoFromToday(n: number): string {
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() + n);
+  const pad = (x: number) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function withLastDay(offset: number) {
+  const last = isoFromToday(offset);
+  return { ...API_60, chargesheetDeadline: last, judicialCustodyEndDate: last };
+}
+
+describe('T-367 Addendum 3: charge sheet countdown', () => {
+  it.each([
+    [5, '60-day period · 5 days left'],
+    [1, '60-day period · 1 day left'],
+    [0, '60-day period · Today is the last day'],
+    [-1, '60-day period · The last day was 1 day ago'],
+    [-7, '60-day period · The last day was 7 days ago'],
+  ])('last day %i days from today', async (offset, expected) => {
+    await calculate(withLastDay(offset));
+    const text = container.textContent ?? '';
+    expect(text).toContain(expected);
+    expect(text).not.toMatch(/overdue/i);
+    expect(text).not.toContain('1 days');
+  });
+
+  it('uses the period in the countdown (90-day)', async () => {
+    await calculate({ ...withLastDay(3), judicialCustodyDays: 90 });
+    expect(container.textContent).toContain('90-day period · 3 days left');
+  });
+});
+
+describe('T-367 Addendum 3: CTA', () => {
+  it('asks "Need to draft a bail application?" and links to the bail application', async () => {
+    await calculate(API_60);
+    const text = container.textContent ?? '';
+    expect(text).toContain('Need to draft a bail application?');
+    expect(text).not.toContain('Need to file a default bail application?');
+    const link = Array.from(container.querySelectorAll('a')).find((a) =>
+      /Draft with Lawie/.test(a.textContent ?? ''),
+    );
+    expect(link?.getAttribute('href')).toBe('/dashboard/new?type=bail_application');
+  });
+});
+
+describe('T-367 Addendum 3: Legal Reference', () => {
+  function legalItems(): string[] {
+    const h = Array.from(container.querySelectorAll('h3')).find(
+      (x) => x.textContent === 'Legal Reference',
+    );
+    const ul = h?.parentElement?.querySelector('ul');
+    return Array.from(ul?.querySelectorAll('li') ?? []).map((li) => li.textContent ?? '');
+  }
+
+  it('with a period: R1, R2, then the signed 187(3) line', async () => {
+    await calculate(API_60);
+    expect(legalItems()).toEqual([R1, R2, LEGAL_REF]);
+  });
+
+  it('with no period: only the signed 187(3) line, and the Depends line shows once outside the list', async () => {
+    const depends = 'Depends on the offence. Check BNSS section 187.';
+    await calculate({
+      ...API_60,
+      maxYears: null,
+      policeCustodyEndDate: null,
+      policeCustodyNote: depends,
+      judicialCustodyEndDate: null,
+      judicialCustodyDays: null,
+      chargesheetDeadline: null,
+      defaultBailDate: null,
+      detentionLimitNote: null,
+      chargesheetNote: null,
+      periodNote: depends,
+      milestones: [API_60.milestones[0]],
+      defaultBailAvailable: null,
+    });
+    expect(legalItems()).toEqual([LEGAL_REF]);
+    expect((container.textContent ?? '').split(depends).length - 1).toBe(1);
+  });
+});
