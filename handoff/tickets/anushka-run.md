@@ -763,3 +763,22 @@ What a user can now do:
 - In the bail checker, see a section that isn't found named plainly ("Section 400"), not as the raw code "400-BNS".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-372 — Ink cost and balance (587ce69, kunal, 13 Oct 2026)
+
+Re-tests run 3 failures T-227 and T-190 ("Not known").
+
+What a user can now do:
+- See the Ink balance on the dashboard and settings instead of a "documents used" counter or a monthly allowance.
+- See "Uses N Ink" under "Confirm brief and continue" before drafting, for every document type and for a draft with no type.
+- See the header Ink balance drop as soon as a draft finishes.
+- On the brief, press "Not known" or "None" and see it stay selected.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-374 — signed skeleton loader (1c9da98, tanvi, 13 Oct 2026)
+
+What a user can now do:
+- Nothing on screen yet. Bail drafts use the signed skeletons once T-373 lands.
+
+Quality: nothing to test in the UI — loader only, not used until T-373

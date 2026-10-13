@@ -35,3 +35,31 @@ Dates are printed as `4 April 2026`. Tests pin R1 to R3 and the worked example, 
 | 7 | Replace the Legal Reference item with exactly: `BNSS 187(3): if the investigation is not completed within 60 or 90 days, the accused is to be released on bail if prepared to and does furnish bail (default bail).` |
 
 The worked example stands: first remand on 1 January 2026 gives a last day of 1 March 2026 (police window: 9 February 2026, the 40th day), and default bail from 2 March 2026.
+
+## Addendum 2: remaining labels, 13 Oct 2026
+
+| # | Where | Exact text |
+|---|---|---|
+| 1 | Start milestone description | `The date the Magistrate first ordered the accused into custody. This is day 1.` (the same as the input help text) |
+| 2 | defaultBailExplanation | Replace every variant with R2 followed by R3. Drop the unsigned sentences, including "indefeasible right" and the "&lt; 10 years" wording. |
+| 3a | Milestone | `Last day for the charge sheet (day {60/90})` |
+| 3b | Milestone | `Default bail available from (day {61/91})` |
+| 3c | Page day label | `Day {61/91}: default bail (BNSS 187(3))` |
+| 3d | Section heading | `Default bail (BNSS 187(3))` |
+| 3e | bnssSectionTitle | `BNSS 187(3): detention limit before the charge sheet` |
+| 3f | Page disclaimer | `This tracker counts dates from the date you enter. It is not legal advice. Check the remand orders and the BNSS before relying on it.` |
+
+"Chargesheet" is spelt `charge sheet` everywhere on this page.
+
+## Addendum 3: last page strings (1087793), 13 Oct 2026
+
+| Where | Ruling |
+|---|---|
+| "Applicable BNSS provision:" | Keep. |
+| h1 "BNSS Investigation Timeline Tracker", subtitle "Calculate custody limits, charge sheet deadlines, and default bail dates" | Keep. |
+| Charge-sheet card line | Replace with exactly `{N}-day period · {d} days left`, `{N}-day period · Today is the last day`, or `{N}-day period · The last day was {d} days ago`. Use "day" when d is 1. "Overdue" goes: the tracker cannot know whether a charge sheet was filed. |
+| CTA "Need to file a default bail application?" | Keep, provided the button opens the **default_bail** pack. Today it links to `type=bail_application`; point it at default bail, or change the question to `Need to draft a bail application?`. |
+
+With these, 1087793 is approved for merge.
+
+**6f00e62: approved for merge, 13 Oct 2026.** The card lines match Addendum 3 exactly, with "day" singular for 1 and no "overdue". The CTA uses the alternative `Need to draft a bail application?` until /dashboard/new honours `?type=`; then it switches to default_bail with the original question. Legal Reference shows R1, R2 and then the 187(3) line, and the Depends line once.
