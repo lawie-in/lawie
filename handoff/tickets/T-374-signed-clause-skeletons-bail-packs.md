@@ -14,3 +14,5 @@
 - A skeleton loader for Ajay-signed pack skeletons.
 - Migration of the `bail_*` packs (regular, anticipatory, default, Magistrate) onto skeletons.
 - Ajay writes the four skeletons in parallel, from his T-359 signed text.
+
+Skeleton slot list for Ajay: ADR-025 (40a4e6e). Ajay has it and is writing the four skeletons.
