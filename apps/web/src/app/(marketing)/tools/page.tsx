@@ -105,7 +105,7 @@ export default async function ToolsPage() {
                     <Check
                       style={{ width: 12, height: 12, display: 'inline', verticalAlign: '-2px' }}
                     />{' '}
-                    Bailable · S.480 BNSS
+                    Bailable · S.478 BNSS
                   </span>
                 </div>
                 <Link className="btn btn-secondary" href="/tools/bail-checker">

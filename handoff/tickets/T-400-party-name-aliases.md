@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay (checks the printed text) |
 | Mode   | Small fix, with a reviewer (legal content output) |
-| Status | To do. Not assigned. Found by Kunal's T-395 scan, 13 Oct 2026. v1 packs first |
+| Status | Folded into T-404 (Shashank), because both edit the same PLACEHOLDER_ALIASES. Priya, 13 Oct 2026 |
 | Source | T-395 developer report (the full table is there) |
 
 ## Problem

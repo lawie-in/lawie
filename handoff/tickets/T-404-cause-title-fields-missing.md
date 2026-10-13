@@ -29,3 +29,10 @@ Some cause-title tokens have no source in the form at all, so they always print 
 - "Required" means always asked and never guessed. "Not known" is allowed and prints Ajay's signed blank. It doesn't block Continue (Priya; Ajay can overrule).
 - respondents_list is sent as a list. Order: client, addressee, address; respondents; opposite party last (after case_title for vakalatnama).
 - Not v1: the eviction, defamation and RERA questions.
+
+## Plan (Priya, 13 Oct 2026)
+
+- Part 1: the s.138 slice and Ajay's signed advocate and court blanks. template-engine.service.ts waits for Kunal's T-395 to merge.
+- Part 2: the other packs, the web question screen, and T-400's party-name aliases (folded in). briefTypes.ts goes after Vishal's T-373, and ValueInput.tsx before Kunal's T-384.
+- Mahak's T-385 allowlist (publicTemplateConfig) must keep `help` and `placeholder` on form fields.
+- Shashank sends his open questions straight to Ajay.
