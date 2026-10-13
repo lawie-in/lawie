@@ -331,9 +331,7 @@ describe.each(PACKS)('T-393 engine: $file, a woman applicant', (p) => {
     it('(a) no relation, no name: the full blank, no S/o', () => {
       const t = verifyHas(SIGNED_NEITHER);
       expect(t).not.toContain('S/o');
-      // suspension_of_sentence prints "I, _____," for the name: {appellant} has no
-      // alias to appellant_name (not T-393; reported to the lead as a finding).
-      if (p.file !== 'suspension_of_sentence') expect(t).toContain(WOMAN);
+      expect(t).toContain(WOMAN);
     });
 
     it('(b) name only: "[To be confirmed: relation] {name}", no S/o', () => {
