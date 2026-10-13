@@ -1,8 +1,8 @@
 /**
  * T-373 fixtures. The four skeleton JSON files in this folder are the JSON
  * blocks of Ajay's signed handoff/legal/skeleton-<pack>-signed.md (re-signed at d87355a: regular v2, anticipatory v3, Magistrate v4, default_bail unchanged),
- * cut out byte for byte (the test in t373-draft-renderer.test.ts pins their
- * SHA-256 to the one printed in each signed file). The ledgers are Anushka's
+ * copies of the JSON in the signed file (prettier in the commit hook reformats them, so
+ * they are pinned by value, not by bytes; the tests load the skeleton from the signed md block itself). The ledgers are Anushka's
  * run-3 reproduce steps (handoff/quality/2026-10-13-run-3-develop-FAIL.md).
  */
 import { readFileSync } from 'fs';
@@ -28,8 +28,42 @@ export function skeletonFile(pack: PackId): string {
   return readFileSync(join(__dirname, `skeleton-${pack}.json`), 'utf8');
 }
 
+/** Ajay's signed file. The JSON in it is the one source of truth for the skeleton. */
+export function signedMarkdown(pack: PackId): string {
+  return readFileSync(
+    join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      '..',
+      '..',
+      '..',
+      'handoff',
+      'legal',
+      `skeleton-${pack}-signed.md`,
+    ),
+    'utf8',
+  );
+}
+
+/** The JSON block between the fences, final newline included: what Ajay's SHA-256 covers. */
+export function signedJsonBlock(pack: PackId): string {
+  const m = /```json\n([\s\S]*?\n)```/.exec(signedMarkdown(pack));
+  if (!m) throw new Error(`no json block in the signed file for ${pack}`);
+  return m[1];
+}
+
+/** The SHA-256 the signed file prints under the block. */
+export function signedPrintedSha(pack: PackId): string {
+  const m = /SHA-256 of the JSON block[^`]*`([0-9a-f]{64})`/.exec(signedMarkdown(pack));
+  if (!m) throw new Error(`no printed SHA in the signed file for ${pack}`);
+  return m[1];
+}
+
+/** The skeleton the tests use: parsed from the signed md block, not from a file the commit hook may reformat. */
 export function loadFixtureSkeleton(pack: PackId): Skeleton {
-  return JSON.parse(skeletonFile(pack)) as Skeleton;
+  return JSON.parse(signedJsonBlock(pack)) as Skeleton;
 }
 
 export interface FactOpts {

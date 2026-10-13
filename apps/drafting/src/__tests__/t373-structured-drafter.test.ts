@@ -415,8 +415,10 @@ describe('missing clauses and warnings come from rendered[]', () => {
     out.paragraphs.find((p) => p.clauseId === 'facts')!.text = '';
     mockParse.mockResolvedValue(sdkParseResponse(out));
     const { result } = await run({ facts });
-    const fc = result!.factCheck!;
+    const fc = result!.factDiff!.outcome;
     expect(result!.fullText).toContain(raw);
+    expect(result!.factCheck).toBeUndefined();
+    expect(result!.factDiff!.path).toBe('d1');
     expect(fc.banner).toBeNull();
     expect(fc.repairRan).toBe(false);
     expect(fc.afterRepair).toBeNull();
@@ -433,16 +435,18 @@ describe('missing clauses and warnings come from rendered[]', () => {
   it('a clean draft has no findings and no banner', async () => {
     mockParse.mockResolvedValue(sdkParseResponse(goodOutput(cleanFacts())));
     const { result } = await run({ facts: cleanFacts() });
-    expect(result!.factCheck!.banner).toBeNull();
+    expect(result!.factDiff!.outcome.banner).toBeNull();
+    expect(result!.factCheck).toBeUndefined();
+    expect(result!.factDiff!.path).toBe('d1');
     // The read-only verifier still reports `dropped` for signed paraphrases (e.g. "None" -> "no criminal
     // antecedents"); those are logged as flagged, never repaired. It finds no invented value.
     expect(
-      result!.factCheck!.initial.filter((v) =>
+      result!.factDiff!.outcome.initial.filter((v) =>
         ['unsupported', 'mutation', 'banned'].includes(v.check),
       ),
     ).toEqual([]);
-    expect(result!.factCheck!.records.every((r) => r.resolution === 'flagged')).toBe(true);
-    expect(result!.factCheck!.repairRan).toBe(false);
+    expect(result!.factDiff!.outcome.records.every((r) => r.resolution === 'flagged')).toBe(true);
+    expect(result!.factDiff!.outcome.repairRan).toBe(false);
   });
 });
 
@@ -614,6 +618,9 @@ describe('which requests take the D1 path', () => {
     expect(call.system).toBe(DRAFTER_LEDGER_SYSTEM_PROMPT);
     expect(call.max_tokens).toBe(8192);
     expect(result!.rendered).toBeUndefined();
+    // Non-D1: the old verifier result is still returned as factCheck, and there is no factDiff.
+    expect(result!.factCheck).toBeDefined();
+    expect(result!.factDiff).toBeUndefined();
   });
 
   it('no loadSkeleton at all is the same as null', async () => {
