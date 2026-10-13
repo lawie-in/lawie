@@ -526,6 +526,21 @@ describe('T-404 case line and place when a court is chosen or typed', () => {
     expect(chosen.place).toBe('Patna');
     expect(chosen.courtPlace).toBe('Patna');
   });
+
+  // Regression guard for 49b5fd2: the not-court place rule must not touch court packs.
+  it.each(['bail_before_magistrate', 'affidavit_in_support'])(
+    '%s (court pack) with a chosen court: {place}, {courtPlace} and Verified at print the court city',
+    (id) => {
+      clearConfigCache();
+      const cfg = (
+        id === 'bail_before_magistrate' ? bail : loadTemplateConfig(id)
+      ) as TemplateConfig;
+      const ctx = buildPlaceholderContext(cfg, form, { advocateName: 'A' }, court('X'));
+      expect(replacePlaceholders('{place} / {courtPlace}', ctx)).toBe('Patna / Patna');
+      expect(ctx.verification_text).toContain('Verified at Patna on this');
+      expect(ctx.verification_text).not.toContain(PLACE_BLANK);
+    },
+  );
 });
 
 describe('T-404 / Ajay 49b5fd2: a deed place of execution never comes from a court city', () => {
