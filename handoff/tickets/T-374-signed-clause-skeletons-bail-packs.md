@@ -29,3 +29,5 @@ All four are signed and sent to Tanvi. The rules: each clause uses fixed signed 
 2. Hash test: pin the SHA of the signed md as the other legal tests do, and deep-equal the parsed fenced block against the parsed `_skeletons/*.json` (not raw bytes, so a formatter run cannot fail it).
 3. Alias map lives in `rule-pack.service.ts`, exported: T-382 reuses it for `advocate_enrolment`.
 4. Grounds mismatch: skeleton item ids must equal the pack's `grounds_for_bail` option ids, never a parallel list; Ajay fixes the skeleton side, not the pack. Where the pack takes grounds as free text (Magistrate), the skeleton's grounds clause is `source: advocate`, `list: true`, one item per ledger ground, no fixed options.
+
+**Update (Ajay, b61aaf9):** the anticipatory and Magistrate skeletons are at v2, because Tanvi found their grounds didn't match the packs. bail_regular and default_bail are unchanged (0204a7e). Dependency (Arjun or Tanvi to settle with Vishal's T-373): the brief must write facts_narrative into the ledger for the Magistrate pack, or its facts clause always renders blank.
