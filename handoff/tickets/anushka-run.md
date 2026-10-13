@@ -721,3 +721,14 @@ What a user can now do:
 - In a cheque-bounce notice, Lawie picks up the cheque's validity date, the date the return memo was received and the date the notice is sent from the description. If the last two are missing, it asks for them, so it can check the deadlines. Nothing changes for other documents.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-223 — verify a new email account (9ae7d51, mahak, 13 Oct 2026)
+
+What a user can now do:
+- Sign up with an email and password, get a "verify your email" link, and receive the 5 free sign-up Ink once they open it.
+- Ask for a new link from the banner if it didn't arrive or has expired, with a clear wait time if they ask too often.
+- When they run out of Ink or try to buy Ink before verifying, see a prompt to verify instead of the payment screen.
+- Sign in with Google and never see any of these prompts.
+- Note for Anushka: develop runs in dry run, so no email arrives and the link can't be opened from an inbox until the founder's SES session. Test the banner, resend limit, prompts and the Google path.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
