@@ -926,3 +926,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - See the refund page say so, in Ajay's sentence.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-413 — Payments always credit Ink, never twice (9cf199e, kunal, 13 Oct 2026)
+
+- If a top-up or plan payment goes through but the Ink isn't credited straight away, it's retried until the Ink lands, and it's never credited twice. If it still can't be credited, the team is alerted to add the Ink by hand.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

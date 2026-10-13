@@ -256,7 +256,7 @@ describe('Billing Routes', () => {
       expect(res.body.error).toBe('Invalid signature');
     });
 
-    it('returns 200 even when async handler rejects', async () => {
+    it('returns 500 when the handler rejects, so Razorpay retries', async () => {
       jest
         .spyOn(subscriptionService, 'handleWebhookEvent')
         .mockRejectedValueOnce(new Error('handler boom'));
@@ -270,10 +270,8 @@ describe('Billing Routes', () => {
         .set('x-razorpay-signature', signature)
         .send(body);
 
-      expect(res.status).toBe(200);
-      expect(res.body.status).toBe('ok');
-      // give the async catch a tick to execute
-      await new Promise((r) => setTimeout(r, 20));
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Internal Server Error' });
     });
 
     it('returns 200 and processes valid webhook event', async () => {

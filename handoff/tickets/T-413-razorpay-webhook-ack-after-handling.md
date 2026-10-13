@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Built, all four reports in (8a91b5b). Waiting for the merge slot, after Vishal's T-373. Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging 9cf199e (Kunal, 13 Oct 2026). Waiting for Anushka on develop. Priya |
 | Owner | Kunal (build), Arjun (call) |
 | Mode | Full chain (billing grant logic; Arjun, 13 Oct) |
 
