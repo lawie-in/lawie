@@ -120,7 +120,7 @@ Status: PROPOSED. Not signed. Nothing here is in the repo.
 | respondent_failed_to_respond | Respondent has not responded to an earlier request | select (No; Yes — give date below) | no | unlock |
 | earlier_request_date | Date of the earlier request | date | no | unlock |
 | earlier_proceedings | Earlier notices and proceedings on this dispute | textarea | no | disclosure |
-| advocate_name / advocate_enrolment / advocate_address | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment / advocate_address | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -175,3 +175,5 @@ Reviewed by me after an independent review pass; the corrections are in this fil
 | A practising advocate checks the pack before it goes live | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

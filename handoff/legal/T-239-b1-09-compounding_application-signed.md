@@ -147,7 +147,7 @@ Applicant No. 1                                   Applicant No. 2
 | settlement_voluntary | Both parties confirm free consent? | select (Yes — both confirm; Not confirmed) | yes | averment unlock |
 | co_accused_not_party | Co-accused not party to this application | textarea | no | body |
 | earlier_applications | Earlier compounding applications (date, result) | textarea | no | disclosure |
-| advocate_name / advocate_enrolment | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -201,3 +201,5 @@ The "Notes" section is the drafter's reasoning, kept for the record; it is not t
 | Option value with an em dash ("Yes — both confirm") | Condition: the averment condition matches an option id, not the label text |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. S = 1 Ink. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

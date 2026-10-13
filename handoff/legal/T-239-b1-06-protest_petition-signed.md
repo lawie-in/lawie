@@ -160,7 +160,7 @@ Petitioner
 | witnesses / documents | Petitioner's witnesses and documents | repeater | no | Witnesses clause |
 | relief_sought | Relief (cognizance, further investigation, treat as complaint, copies) | multi-select | yes | `{reliefLines}` |
 | earlier_proceedings | Earlier proceedings on this FIR ("none" or particulars) | textarea | no | Disclosure clause |
-| advocate_name / advocate_enrolment | Advocate | text | yes | Signature block |
+| advocate_name / advocate_enrollment | Advocate | text | yes | Signature block |
 
 T-245 Group A. `GOVERNING PROVISION` pairs, by `procedure_code`: CrPC 173 → BNSS 193; CrPC 190 → BNSS 210.
 
@@ -252,3 +252,5 @@ The "Notes" and "Verify" sections are the drafter's reasoning, kept for the reco
 | A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).
