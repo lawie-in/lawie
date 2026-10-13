@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-**WORK HOUR 16:42–17:42 UTC, 13 Oct (founder). Paused again at 17:42.** Merge order: first-ready, after the T-410 CI test fix turns develop_staging green.
+**WORK HOUR 16:42–17:42 UTC, 13 Oct (founder). Paused again at 17:42.** Merge order after Kunal's gitleaks fix (28177b7) CI: Vishal T-397, then Mahak T-381, then Kunal T-415 (doc-writers finishing), then Shashank T-404 part 1.
 Where each lead stopped:
 - vishal: T-397 on fix/t-397-legacy-prompt-signoffs e366b39. Developer done; Ajay's byte check and the tester are next.
 - mahak: T-390+T-416 (fix/t-416-verify-dedup-orphan) and T-405 (fix/t-405-public-field-helper) are ready to merge. T-381 on feature/t-381-annexures-card 6cd04ae: built, tester stopped midway, no review yet.
@@ -58,6 +58,8 @@ Where each lead stopped:
 
 ## Last done
 
+- kunal: T-399 gitleaks:allow fix merged 28177b7 (13 Oct 2026), after run 520 went green. Comment-only; commit hooks pass on T-399's lines.
+- tanvi: T-410 CI test fix CI green (run 520).
 - tanvi: T-410 CI test fix merged 37f9736 (13 Oct 2026): baseline pinned as a literal. Waiting for CI run 520. Next: Kunal's gitleaks:allow fix.
 - tanvi: T-410 CI RED (run 519): t410 test :447 reads its baseline from origin via git show, so it broke once merged. Test-only fix on fix/t-410-ci-test-baseline, allowed during the pause (red develop_staging comes first).
 - tanvi: T-410 merged 0a18bda with T-412, T-417, T-418 (13 Oct 2026). Consumer complaint names the chosen Commission; State/National case line; non-Commission courts get signed blanks; 2021 Jurisdiction Rules; NCDRC limit fixed. ai.service.ts back to Vishal.
