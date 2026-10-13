@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (billing); Arjun confirms the design, Vikram the numbers |
 | Mode   | Full chain (billing) |
-| Status | Confirmed by Arjun; numbers signed by Vikram (bd8c8b9); cancel ruled by Ajay (handoff/legal/T-399-yearly-cancel-signed.md). Kunal, after T-395. Founder: how many yearly subs sold (morning report 0g). Yearly toggle off until merged |
+| Status | Settled (Arjun 545e80a, Vikram bd8c8b9, Ajay's cancel and refund rulings). Kunal, after T-395. Ajay's refund-page sentence ships in the same merge. No subscriptions sold yet, so the backfill is dry-run only. Yearly toggle off until merged |
 | Source | Ajay, T-398 sign-off (handoff/legal/T-398-pro-card-signed.md) |
 
 ## Problem
@@ -17,7 +17,7 @@
 1. Arjun confirms the current behaviour, with a test that shows it.
 2. Yearly plans grant `inkPerCycle` every month for 12 months, with the same expiry and refill rules as monthly plans. Arjun picks the mechanism: a scheduled job or a grant schedule set at purchase.
 3. Tests cover a yearly purchase across 12 months, cancel mid-year, and a renewal.
-4. If any yearly plan has already been sold, the founder learns how many, and those users get the missing Ink.
+4. No subscriptions have been sold yet (founder, via Vikram, 13 Oct 2026). Ship the backfill script in dry-run only, as a safety net; there's nothing to apply.
 5. Ajay releases the HELD yearly lines once the fix is merged and tested.
 
 ## Arjun (13 Oct 2026): confirmed, and the mechanism
@@ -50,3 +50,13 @@ Ruling, cancel-at-cycle-end for every plan: a cancel means no renewal; the paid 
 
 Signed refund-page sentence (Ajay): "If you cancel an annual plan, you keep your monthly Ink until the end of the year you paid for."
 The drip stops when the plan expires or after the 12th grant, not on cancel. Kunal waits for Arjun's amended mechanism before he starts.
+
+## Arjun (13 Oct 2026): cancel at cycle end, for every plan
+
+Today `cancelSubscriptionInk` zeroes the balance immediately on cancel. That is a bug for monthly plans too. Fixed in this ticket: a cancelled plan keeps its balance and drip until `paidThrough` (from the webhook), and is zeroed only after that. A refund path exists only if Ajay's refund policy allows refunds. If it does, that's a separate ticket.
+
+**Arjun (13 Oct, closing the cancel point):** Ajay's T-399-yearly-cancel-signed.md and my 545e80a section say the same thing; the ticket mechanism and the AC3 test already read "cancel mid-year → grants continue to month 12 / paidThrough, then none". On Vikram's Razorpay question: billing makes no cancel API call today, so there is nothing to set; the rule for any future cancel button is `cancel_at_cycle_end: 1`, never an immediate cancel, and it goes in this ticket as a comment next to the webhook handler.
+
+## Ajay (13 Oct 2026): refunds
+
+The refund policy allows no refunds, full or partial, on any plan. Every cancel, monthly or yearly, keeps the Ink until the paid period ends, and today's immediate zeroing is a defect fixed here. No refund ticket. Statutory exceptions (failed service, double charge) are handled case by case through contact@lawie.in, not in code.

@@ -353,3 +353,65 @@ export function withS138DateChecks(
   const stored = facts.filter((f) => f.source !== 'computed' && !COMPUTED_KEY_SET.has(f.key));
   return [...stored, ...s138DateChecks(stored, packId, unresolvedKeys).computedFacts];
 }
+
+// ── The brief's own dates (T-363 AC1) ───────────────────────────────────────
+
+/** The part of a brief item the brief check reads. */
+export interface S138BriefDateItem {
+  key: string;
+  kind: string;
+  value: string | string[] | null;
+}
+
+/** The brief's warning when the notice is sent after the 30 days (T-363 AC1). */
+export interface S138BriefDateCheck {
+  line: 'B2';
+  text: string;
+}
+
+const S138_INPUT_KEY_SET: ReadonlySet<string> = new Set(Object.values(S138_INPUT_KEYS));
+
+/**
+ * T-363 AC1: the brief's date items for the five inputs as ledger-like facts,
+ * with source `user`, so the brief runs the same signed checks as the draft.
+ * A key is matched on its last segment (`<group>.<name>` or `<name>`). A value
+ * that is not one ISO date is passed as it is and the check reads it as
+ * unusable (missing), so nothing is guessed.
+ */
+export function s138FactsFromBrief(items: readonly S138BriefDateItem[]): LedgerFact[] {
+  const facts: LedgerFact[] = [];
+  for (const item of items) {
+    const at = item.key.lastIndexOf('.');
+    const key = at < 0 ? item.key : item.key.slice(at + 1);
+    if (!S138_INPUT_KEY_SET.has(key) || item.kind !== 'date') continue;
+    if (typeof item.value !== 'string' || item.value.trim() === '') continue;
+    const value = item.value.trim();
+    facts.push({
+      id: `brief:${key}`,
+      key,
+      label: key,
+      type: 'date',
+      value,
+      display: value,
+      raw_span: '',
+      source: 'user',
+      confidence: 1,
+      required_in_draft: false,
+    });
+  }
+  return facts;
+}
+
+/**
+ * T-363 AC1 (Ajay, Addendum 1, item 4): the B2 line for the brief of a
+ * `legal_notice_s138`, or null for any other pack or any other result. The
+ * entry stays banned either way (T-192): this adds no fact.
+ */
+export function s138BriefDateCheck(
+  packId: string | null,
+  items: readonly S138BriefDateItem[],
+): S138BriefDateCheck | null {
+  if (packId !== S138_PACK_ID) return null;
+  const { b } = s138DateChecks(s138FactsFromBrief(items), packId);
+  return b.line === 'B2' ? { line: 'B2', text: b.text } : null;
+}
