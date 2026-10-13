@@ -30,7 +30,8 @@
  *    a content word the `raw_span` does not hold (Arjun, bcdf5b7; stop list
  *    `OWN_WORDS_STOP_LIST`). It also falls back when a word of
  *    `OWN_WORDS_KEPT` is added or dropped, or the content words are not in
- *    the `raw_span`'s order (Ajay's renderer review, 13 Oct 2026). MISSING
+ *    the `raw_span`'s order, dates and amounts kept in that order by value
+ *    (Ajay's renderer review, 13 Oct 2026). MISSING
  *    only when the ledger does not hold it.
  *    A key with several entries prints one lettered item per entry.
  *
@@ -719,24 +720,54 @@ export function ownWordsKeptWordChanged(text: string, rawSpan: string): boolean 
   return false;
 }
 
+/** A placeholder for the n-th date or amount of a text: letters and digits only, so `wordsOf` keeps it whole. */
+const VALUE_MARK = (n: number): string => [' ', 'xlawievalue', String(n), 'x', ' '].join('');
+const VALUE_MARK_RE = /^xlawievalue(\d+)x$/;
+
 /**
  * The content words of a text in the order written: every word not on
- * `OWN_WORDS_STOP_LIST`, as its stem, numbers without digit grouping. Dates
- * and currency amounts are left out, as in the add and drop checks (they are
- * compared by value there).
+ * `OWN_WORDS_STOP_LIST`, as its stem, numbers without digit grouping. Ajay's
+ * ruling on the order check: each date and each currency amount stays in the
+ * sequence at the place it is written, as its value ("date_2025-03-02",
+ * "amount_800000"), so "2 Mar 2025" is "2 March 2025" and "Rs 8,00,000" is
+ * "₹800000", but two swapped dates or amounts change the sequence.
  */
 function contentWordSequence(text: string): string[] {
-  return wordsOf(withoutDates(withoutAmounts(text)).replace(/(?<=\d),(?=\d)/g, () => ''))
-    .filter((w) => !STOP_WORDS.has(w))
-    .map(ownWordsStem);
+  const values: string[] = [];
+  const mark = (value: string): string => {
+    values.push(value);
+    return VALUE_MARK(values.length - 1);
+  };
+  // Amounts first, by value (the same reading as `amountsInText`).
+  let marked = normalise(text).replace(AMOUNT_RE, (whole) => {
+    const [n] = amountsInText(whole);
+    return n === undefined ? ' ' : mark('amount_' + String(n));
+  });
+  // Then dates, by value (the same reading as `datesInText`), every place each is written.
+  for (const d of datesAsWritten(marked)) {
+    const words = normalise(d.words);
+    if (words === '') continue;
+    const parts = marked.split(words);
+    marked = parts.reduce(
+      (acc, part, i) => (i === 0 ? part : acc + mark('date_' + d.value) + part),
+      '',
+    );
+  }
+  return wordsOf(marked.replace(/(?<=\d),(?=\d)/g, () => '')).flatMap((w) => {
+    const v = VALUE_MARK_RE.exec(w);
+    if (v) return [values[Number(v[1])]];
+    return STOP_WORDS.has(w) ? [] : [ownWordsStem(w)];
+  });
 }
 
 /**
  * Change 1 of Ajay's renderer review: the content words of the model's text
  * (compared on stems) are not the `raw_span`'s content words in the same
  * order. A rephrase that moves, adds or drops only stop-list words keeps the
- * sequence and passes; one that swaps who did what to whom, or a passive
- * rewrite, changes it and falls back.
+ * sequence and passes; one that swaps who did what to whom, a passive
+ * rewrite, or one that swaps two dates or amounts or moves one past a
+ * content word, changes it and falls back. A date or amount written another
+ * way at the same place ("2 Mar 2025" for "2 March 2025") passes.
  */
 export function ownWordsReordered(text: string, rawSpan: string): boolean {
   const a = contentWordSequence(text);
