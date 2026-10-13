@@ -36,3 +36,6 @@ Some cause-title tokens have no source in the form at all, so they always print 
 - Part 2: the other packs, the web question screen, and T-400's party-name aliases (folded in). briefTypes.ts goes after Vishal's T-373, and ValueInput.tsx before Kunal's T-384.
 - Mahak's T-385 allowlist (publicTemplateConfig) must keep `help` and `placeholder` on form fields.
 - Shashank sends his open questions straight to Ajay.
+
+## For part 2 (T-404 part 1 reviewer, 13 Oct)
+With no court, the ledger path hands the Drafter "[To be confirmed: court]" instead of its own "{{MISSING: court}}". The fix is in apps/drafting/src/services/ai.service.ts :1081/:1114. That's legal content, so Ajay signs it. ai.service.ts goes Vishal (T-373), then Tanvi (T-410), then whoever takes this. Priya sequences it.

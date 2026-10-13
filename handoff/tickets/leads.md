@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- vishal: T-373 holds the slot (Kunal swapped, 10:43: his drafting run needed ~11 more minutes). Then Kunal T-399 (re-merges on top of T-373), then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), then Mahak T-390 + T-416 as one merge (38316a5; all reports in, T-416 delta reviewer passed 10:10), then Mahak T-405 (small fix, tester green, 10:38). T-361 data copy waits on the founder.
+- vishal: T-373 holds the slot (Kunal swapped, 10:43: his drafting run needed ~11 more minutes). Then Kunal T-399 (re-merges on top of T-373), then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), then Mahak T-390 + T-416 as one merge (38316a5; all reports in, T-416 delta reviewer passed 10:10), then Mahak T-405 (small fix, tester green, 10:38), then Shashank T-404 part 1 (reviewer passed, Ajay approved, 10:44; doc-writer and one drift test finishing). T-361 data copy waits on the founder.
 
 ## Last done
 
