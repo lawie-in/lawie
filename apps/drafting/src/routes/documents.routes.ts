@@ -710,6 +710,7 @@ router.get(
       res.status(500).json({ error: 'Template config unavailable' });
       return;
     }
+    const guidedCost = costForTemplate(GUIDED_ID);
     res.json({
       templates: configs.map((config) => {
         // T-372: the price the charge uses (single source, T-227); omitted when unpriced.
@@ -720,6 +721,8 @@ router.get(
           ...(creditsCost !== undefined ? { credits_cost: creditsCost } : {}),
         };
       }),
+      // T-372: a brief with no rule pack is charged as the guided draft.
+      ...(guidedCost !== undefined ? { guided_credits_cost: guidedCost } : {}),
     });
   },
 );

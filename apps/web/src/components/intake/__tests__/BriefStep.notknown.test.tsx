@@ -162,6 +162,35 @@ describe('askedEmptyValue', () => {
   });
 });
 
+describe('askedEmptyValue with both Not known and Not given', () => {
+  const both = item({
+    asked_empty: true,
+    options: ['Yes', 'Not known', 'Not given'],
+  });
+
+  it('guesses nothing when there is no recorded answer', () => {
+    expect(askedEmptyValue(both)).toBeUndefined();
+    expect(askedEmptyValue(both, 'something else')).toBeUndefined();
+  });
+
+  it('a recorded answer still wins', () => {
+    expect(askedEmptyValue(both, 'Not given')).toBe('Not given');
+    expect(askedEmptyValue(both, 'not known')).toBe('Not known');
+  });
+
+  it('choices: nothing without an answer, wrapped with one', () => {
+    const many = { ...both, kind: 'choices' as const };
+    expect(askedEmptyValue(many)).toBeUndefined();
+    expect(askedEmptyValue(many, ['Not given'])).toEqual(['Not given']);
+  });
+
+  it('a single not-known chip still falls back', () => {
+    expect(askedEmptyValue(item({ asked_empty: true, options: ['Yes', 'Not given'] }))).toBe(
+      'Not given',
+    );
+  });
+});
+
 describe('BriefStep rows answered "Not known"', () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -296,5 +325,20 @@ describe('BriefStep rows answered "Not known"', () => {
     expect(input.value).toBe('Not known');
     expect(input.placeholder).not.toBe('Not given');
     expect(container.textContent).not.toContain('To be asked');
+  });
+
+  describe('a row with both Not known and Not given chips', () => {
+    const both = item({ asked_empty: true, options: ['Yes', 'Not known', 'Not given'] });
+
+    it('shows nothing pressed when no answer is recorded', () => {
+      mount([both], ledgerWithUnresolved([both.key]));
+      expect(container.querySelectorAll('button[aria-pressed="true"]').length).toBe(0);
+    });
+
+    it('presses Not given when that was the recorded answer', () => {
+      mount([both], ledgerWithUnresolved([both.key]), jest.fn(), { [both.key]: 'Not given' });
+      expect(chip('Not given').getAttribute('aria-pressed')).toBe('true');
+      expect(chip('Not known').getAttribute('aria-pressed')).toBe('false');
+    });
   });
 });

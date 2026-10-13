@@ -8,7 +8,7 @@
  * succeeds without prop-drilling.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiFetch } from '@/lib/apiFetch';
 
@@ -56,12 +56,17 @@ export function useCredits(): {
   const [balance, setBalance] = useState<CreditBalance>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
+  /** T-372: bumped when an event's balance is applied, so an older fetch cannot undo it. */
+  const appliedSeq = useRef(0);
 
   const refresh = useCallback(async () => {
+    const startedAt = appliedSeq.current;
     try {
       const res = await apiFetch('/api/credits/balance');
       if (res.ok) {
         const data = (await res.json()) as CreditBalance;
+        // Started before a newer balance was applied from an event: drop it.
+        if (appliedSeq.current !== startedAt) return;
         setBalance(data);
         setLoaded(true);
       }
@@ -82,6 +87,7 @@ export function useCredits(): {
     const onCreditsChanged = (event: Event) => {
       const totalInk = (event as CustomEvent<CreditsChangedDetail | undefined>).detail?.totalInk;
       if (typeof totalInk === 'number' && Number.isFinite(totalInk)) {
+        appliedSeq.current += 1;
         setBalance((prev) => ({ ...prev, totalInk }));
         setLoaded(true);
       } else {

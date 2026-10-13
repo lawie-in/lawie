@@ -93,6 +93,7 @@ function sse(chunks: string[]) {
 }
 const ev = (name: string, data: unknown) => `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`;
 
+let currentBrief: Brief = brief;
 let container: HTMLDivElement;
 let root: Root;
 
@@ -105,9 +106,9 @@ const buttonWith = (t: string) =>
     (b.textContent ?? '').includes(t),
   ) as HTMLButtonElement | undefined;
 
-async function toBrief(cost?: number) {
+async function toBrief(cost?: number, opts: { guided?: number } = {}) {
   await act(async () => {
-    root.render(<OneFlow kinds={kinds(cost)} loadingKinds={false} />);
+    root.render(<OneFlow kinds={kinds(cost)} loadingKinds={false} guidedInkCost={opts.guided} />);
   });
   const ta = container.querySelector('textarea') as HTMLTextAreaElement;
   await act(async () => {
@@ -129,10 +130,11 @@ async function confirm(stream: ReturnType<typeof sse>) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  currentBrief = brief;
   mockApiFetch.mockResolvedValue({
     ok: true,
     status: 200,
-    json: async () => ({ outcome: 'brief', brief, questions: [] }),
+    json: async () => ({ outcome: 'brief', brief: currentBrief, questions: [] }),
   });
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -153,6 +155,30 @@ describe('OneFlow Ink cost on the brief', () => {
 
   it('shows no cost line when the kind has no credits_cost', async () => {
     await toBrief(undefined);
+    expect(container.textContent).not.toMatch(/Uses \d+ Ink/);
+  });
+});
+
+describe('OneFlow Ink cost for a brief with no rule pack', () => {
+  const noPack: Brief = {
+    ...brief,
+    kind: { id: null, name: 'Custom draft', court_document: false },
+  };
+
+  it('shows the guided cost', async () => {
+    currentBrief = noPack;
+    await toBrief(2, { guided: 2 });
+    expect(container.textContent).toContain('Uses 2 Ink');
+  });
+
+  it('shows no line when the guided cost is unknown', async () => {
+    currentBrief = noPack;
+    await toBrief(2, {});
+    expect(container.textContent).not.toMatch(/Uses \d+ Ink/);
+  });
+
+  it('does not use the guided cost for a brief that has a rule pack', async () => {
+    await toBrief(undefined, { guided: 2 });
     expect(container.textContent).not.toMatch(/Uses \d+ Ink/);
   });
 });

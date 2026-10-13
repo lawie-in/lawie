@@ -11,7 +11,11 @@ const mockApiFetch = jest.fn();
 jest.mock('@/lib/apiFetch', () => ({ apiFetch: (...a: unknown[]) => mockApiFetch(...a) }));
 
 const serverBalance = { totalInk: 10, planTier: 'free' };
-let latest: { balance: CreditBalance; loaded: boolean } | null = null;
+let latest: {
+  balance: CreditBalance;
+  loaded: boolean;
+  refresh: () => Promise<void>;
+} | null = null;
 let container: HTMLDivElement;
 let root: Root;
 
@@ -80,6 +84,38 @@ describe('useCredits loaded', () => {
     await act(async () => notifyCreditsChanged());
     await flush();
     expect(latest?.loaded).toBe(true);
+  });
+});
+
+describe('useCredits stale refresh', () => {
+  it('drops a response whose request started before an event-applied balance', async () => {
+    let resolveOld: (v: unknown) => void = () => undefined;
+    mockApiFetch.mockImplementationOnce(() => new Promise((r) => (resolveOld = r)));
+    let pending: Promise<void> = Promise.resolve();
+    await act(async () => {
+      pending = latest?.refresh() ?? Promise.resolve();
+    });
+    await act(async () => notifyCreditsChanged({ totalInk: 5 }));
+    expect(latest?.balance.totalInk).toBe(5);
+    await act(async () => {
+      resolveOld({ ok: true, status: 200, json: async () => ({ ...serverBalance, totalInk: 9 }) });
+      await pending;
+    });
+    await flush();
+    expect(latest?.balance.totalInk).toBe(5);
+  });
+
+  it('a refresh started after the event still applies', async () => {
+    await act(async () => notifyCreditsChanged({ totalInk: 5 }));
+    mockApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ ...serverBalance, totalInk: 9 }),
+    });
+    await act(async () => {
+      await latest?.refresh();
+    });
+    expect(latest?.balance.totalInk).toBe(9);
   });
 });
 

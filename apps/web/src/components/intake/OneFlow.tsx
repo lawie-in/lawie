@@ -123,9 +123,12 @@ function openQuestions(
 export default function OneFlow({
   kinds,
   loadingKinds,
+  guidedInkCost,
 }: {
   kinds: KindSummary[];
   loadingKinds: boolean;
+  /** T-372: the Ink cost of a draft with no rule pack (the guided draft). */
+  guidedInkCost?: number;
 }) {
   const router = useRouter();
   const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
@@ -961,7 +964,11 @@ export default function OneFlow({
           onCancel={cancel}
           onConfirm={() => void generate(false)}
           confirmDescribedBy={privacyDescribedBy}
-          inkCost={kinds.find((k) => k.template_id === brief.kind.id)?.credits_cost}
+          inkCost={
+            (brief.kind.id ?? NO_RULE_PACK) === NO_RULE_PACK
+              ? guidedInkCost
+              : kinds.find((k) => k.template_id === brief.kind.id)?.credits_cost
+          }
           askedAnswers={askedAnswers}
         />
         <ChangeDocumentDialog

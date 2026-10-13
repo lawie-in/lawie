@@ -6,7 +6,8 @@ import './setupDb';
 import request from 'supertest';
 
 import app from '../app';
-import { costForTemplate } from '../services/credits.service';
+import * as credits from '../services/credits.service';
+const { costForTemplate } = credits;
 import * as engine from '../services/template-engine.service';
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET ?? '';
@@ -70,5 +71,28 @@ describe('GET /template-configs credits_cost', () => {
     expect(Object.prototype.hasOwnProperty.call(proto, 'credits_cost')).toBe(false);
     expect(priced.credits_cost).toBe(1);
     expect(JSON.stringify(res.body.templates[0])).not.toContain('credits_cost');
+  });
+});
+
+describe('GET /template-configs guided_credits_cost', () => {
+  it('equals the guided price the charge uses, and templates are unchanged', async () => {
+    const res = await request(app).get('/template-configs').set(headers);
+    expect(res.status).toBe(200);
+    expect(res.body.guided_credits_cost).toBe(costForTemplate('guided'));
+    expect(typeof res.body.guided_credits_cost).toBe('number');
+    const items = res.body.templates as Item[];
+    expect(items.length).toBe(engine.listTemplateConfigs().length);
+    for (const t of items) expect(t.credits_cost).toBe(costForTemplate(t.template_id));
+  });
+
+  it('is absent when guided has no price', async () => {
+    const real = credits.costForTemplate;
+    jest
+      .spyOn(credits, 'costForTemplate')
+      .mockImplementation((id: string) => (id === 'guided' ? undefined : real(id)));
+    const res = await request(app).get('/template-configs').set(headers);
+    expect(res.status).toBe(200);
+    expect('guided_credits_cost' in res.body).toBe(false);
+    expect((res.body.templates as Item[]).some((t) => t.credits_cost !== undefined)).toBe(true);
   });
 });
