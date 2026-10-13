@@ -65,3 +65,26 @@ Use a fictional account; no real matter. Each at 375 px and 1280 px.
 2. National Commission chosen: the NCDRC option visible in full, and the same screen after it is picked.
 3. District Commission chosen: State and Court selects, with the "Needed to continue" error state on one.
 4. Another template (for example a bail application) with its picker unchanged, to show AC 4.
+
+
+## Strings (Madhuri)
+
+13 Oct 2026. English only, plain, no legal advice and no time or accuracy claim. The legal names (level names and the NCDRC label) are Ajay's to sign; the live-region lines carry no legal name.
+
+| Key | String | Chars | Where | Status |
+| --- | --- | --- | --- | --- |
+| `level.group_label` | Which Commission? | 17 | Visible group label (Rajesh's proposal, kept) | Ajay to sign (names the forum) |
+| `level.district` | District Commission | 19 | Level chip | Ajay to sign |
+| `level.state` | State Commission | 16 | Level chip | Ajay to sign |
+| `level.national` | National Commission (NCDRC) | 27 | Level chip | Ajay to sign |
+| `court.ncdrc_option` | National Consumer Disputes Redressal Commission (NCDRC), New Delhi | 66 | The single National option; also its accessible name | Ajay to sign |
+| `court.no_match` | No Commission is listed for this state yet. | 43 | Consumer mode, District or State level. The existing line for other templates stays as it is | Wording is Madhuri's; Ajay to sign for the legal naming |
+| `live.state_shown` | State select shown. | 19 | Polite live region, after District or State is chosen | No legal name; no sign-off needed |
+| `live.court_shown` | Commission select shown. | 24 | Polite live region, when the Commission select appears or changes | No legal name; no sign-off needed |
+| `live.national_shown` | No state needed. Commission select shown. | 41 | Polite live region, after National is chosen | No legal name; no sign-off needed |
+| `live.cleared` | State and Commission cleared. | 29 | Polite live region, when changing the level clears the choices below it | No legal name; no sign-off needed |
+
+Notes:
+- The three level names and the NCDRC label are exactly Rajesh's proposals, unchanged. "Commission" is used on its own in the select and live-region lines, so a short string never has to repeat the full name.
+- Live regions are polite, one short sentence each, and name only the control that appeared. None says anything about the result or the court being right.
+- The spec says "State select shown" for the first announcement; the others follow the same pattern. The spec lists no announcement for a selection being made; none is added, because the native select already announces its chosen option.
