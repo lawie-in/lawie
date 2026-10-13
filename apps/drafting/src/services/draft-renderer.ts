@@ -28,7 +28,10 @@
  *    reason the caller logs). Before the verifier, the text also falls back
  *    when it alters a date, number, name or place of the `raw_span`, or adds
  *    a content word the `raw_span` does not hold (Arjun, bcdf5b7; stop list
- *    `OWN_WORDS_STOP_LIST`). MISSING only when the ledger does not hold it.
+ *    `OWN_WORDS_STOP_LIST`). It also falls back when a word of
+ *    `OWN_WORDS_KEPT` is added or dropped, or the content words are not in
+ *    the `raw_span`'s order (Ajay's renderer review, 13 Oct 2026). MISSING
+ *    only when the ledger does not hold it.
  *    A key with several entries prints one lettered item per entry.
  *
  * Ajay's rulings for T-373: never MISSING when the fact exists; a ground with
@@ -368,7 +371,10 @@ export function skeletonValueLists(
  * "so", "hence", "thus", "if"), no temporal word ("after", "before", "since",
  * "until", "till", "during", "while", "when", "then", "yet") and no negating
  * one ("not", "no", "nor", "neither", "without", "against"), so adding one
- * falls back. Data, not
+ * falls back. Ajay's renderer review (13 Oct 2026): no modal ("will",
+ * "would", "shall", "can"), which turns a fact into an undertaking or a
+ * hypothesis, and none of `OWN_WORDS_KEPT` (third-person pronouns, "or",
+ * "either"), which are kept as written. Data, not
  * wording: nothing here is ever printed. Any other word in the model's text
  * that is not in the advocate's `raw_span` (compared on simple stems) sends
  * the clause back to the advocate's words. Arjun: tune this list if the
@@ -388,7 +394,6 @@ export const OWN_WORDS_STOP_LIST: readonly string[] = [
   'such',
   // connectives
   'and',
-  'or',
   'but',
   'although',
   'though',
@@ -402,7 +407,6 @@ export const OWN_WORDS_STOP_LIST: readonly string[] = [
   'whether',
   'than',
   'both',
-  'either',
   'further',
   'furthermore',
   'moreover',
@@ -422,10 +426,6 @@ export const OWN_WORDS_STOP_LIST: readonly string[] = [
   'do',
   'does',
   'did',
-  'will',
-  'would',
-  'shall',
-  'can',
   // pronouns
   'i',
   'me',
@@ -438,22 +438,10 @@ export const OWN_WORDS_STOP_LIST: readonly string[] = [
   'you',
   'your',
   'yours',
-  'he',
-  'him',
-  'his',
-  'she',
-  'her',
-  'hers',
   'it',
   'its',
-  'they',
-  'them',
-  'their',
   'theirs',
-  'himself',
-  'herself',
   'itself',
-  'themselves',
   'there',
   'here',
   // prepositions
@@ -690,6 +678,71 @@ export const OWN_WORDS_NEGATORS: readonly string[] = [
   'nahi',
   'nahin',
 ];
+
+/**
+ * Ajay's renderer review (13 Oct 2026), change 3: words kept as written, like
+ * the negators. Third-person pronouns, which say who did what, and "or" /
+ * "either", which turn a stated fact into an alternative. Matching data only,
+ * never printed: one in the model's text that the `raw_span` lacks, or one in
+ * the `raw_span` that the text lacks, falls back. None is on
+ * `OWN_WORDS_STOP_LIST`.
+ */
+export const OWN_WORDS_KEPT: readonly string[] = [
+  'he',
+  'him',
+  'his',
+  'himself',
+  'she',
+  'her',
+  'hers',
+  'herself',
+  'they',
+  'them',
+  'their',
+  'themselves',
+  'or',
+  'either',
+];
+
+/**
+ * Change 3 of Ajay's renderer review: a word of `OWN_WORDS_KEPT` in the
+ * model's text that the advocate's `raw_span` does not hold as written, or
+ * one in the `raw_span` the text does not hold, in either direction.
+ */
+export function ownWordsKeptWordChanged(text: string, rawSpan: string): boolean {
+  const kept = (t: string) =>
+    new Set(wordsOf(withoutDates(t)).filter((w) => OWN_WORDS_KEPT.includes(w)));
+  const inText = kept(text);
+  const inRaw = kept(rawSpan);
+  for (const w of inText) if (!inRaw.has(w)) return true;
+  for (const w of inRaw) if (!inText.has(w)) return true;
+  return false;
+}
+
+/**
+ * The content words of a text in the order written: every word not on
+ * `OWN_WORDS_STOP_LIST`, as its stem, numbers without digit grouping. Dates
+ * and currency amounts are left out, as in the add and drop checks (they are
+ * compared by value there).
+ */
+function contentWordSequence(text: string): string[] {
+  return wordsOf(withoutDates(withoutAmounts(text)).replace(/(?<=\d),(?=\d)/g, () => ''))
+    .filter((w) => !STOP_WORDS.has(w))
+    .map(ownWordsStem);
+}
+
+/**
+ * Change 1 of Ajay's renderer review: the content words of the model's text
+ * (compared on stems) are not the `raw_span`'s content words in the same
+ * order. A rephrase that moves, adds or drops only stop-list words keeps the
+ * sequence and passes; one that swaps who did what to whom, or a passive
+ * rewrite, changes it and falls back.
+ */
+export function ownWordsReordered(text: string, rawSpan: string): boolean {
+  const a = contentWordSequence(text);
+  const b = contentWordSequence(rawSpan);
+  return a.length !== b.length || a.some((w, i) => w !== b[i]);
+}
 
 /** The text with every currency amount ("Rs 8,00,000", "₹800000") blanked out. */
 function withoutAmounts(text: string): string {
@@ -1065,6 +1118,8 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
       !ownWordsAlteredEntity(text, raw) &&
       !ownWordsAddedWord(text, raw) &&
       !ownWordsDroppedWord(text, raw) &&
+      !ownWordsKeptWordChanged(text, raw) &&
+      !ownWordsReordered(text, raw) &&
       keepsToFact(text, [entry])
     ) {
       return { words: text };
