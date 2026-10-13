@@ -16,3 +16,7 @@
 - Ajay writes the four skeletons in parallel, from his T-359 signed text.
 
 Skeleton slot list for Ajay: ADR-025 (40a4e6e). Ajay has it and is writing the four skeletons.
+
+## Ajay's skeletons signed (07706c2, handoff/legal/skeleton-*-signed.md)
+
+All four are signed and sent to Tanvi. The rules: each clause uses fixed signed text or the advocate's own words. Antecedents and earlier applications are blanks when missing. Roots, character, flight risk and custody length get no clause unless the advocate gave the fact. Magistrate bail uses 478 or 480 depending on the bailability selected, and carries the woman proviso. Default bail uses 187(3) and the T-251 lines.
