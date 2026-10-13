@@ -37,3 +37,5 @@ All four are signed and sent to Tanvi. The rules: each clause uses fixed signed 
 Option (b). They do different jobs. `FIELD_ALIASES` (T-382) rewrites a stored key on read, one direction only: `advocate_enrolment → advocate_enrollment`. `SLOT_ALIASES` (ADR L102, the three pairs) is a lookup the loader/renderer uses to resolve a skeleton slot against the pack's own key — try the slot name, then its alias, in either direction — and never writes or adds a key to form data. Both exported from `rule-pack.service.ts`. `readFormInputs` applies `FIELD_ALIASES` only. A test: resolving a default_bail or Magistrate draft adds no `father_name`, `address` or `sections_charged` key.
 
 **Update (Ajay, eaf715c):** the Magistrate skeleton is re-signed as v3, fixing Tanvi's loader error. All four skeletons should now validate.
+
+**Update (Ajay, d87355a):** skeletons re-signed; antecedents now has its own "none" list. Tanvi is re-validating.

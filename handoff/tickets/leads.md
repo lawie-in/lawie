@@ -47,6 +47,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 ## Merge queue
 
 - tanvi: T-369 merged becba5a; holds the slot until CI on it is green. Then her FIELD_ALIASES export (small, for Mahak), then T-374.
+- shashank: T-371 (b1494f9; Ajay signed 7421624). After Tanvi's small FIELD_ALIASES export; check with the slot holder first.
 
 ## Last done
 
