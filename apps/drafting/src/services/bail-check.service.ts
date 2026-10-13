@@ -81,6 +81,11 @@ export interface SectionResult {
    * does not create an offence (NOT_AN_OFFENCE).
    */
   note?: string;
+  /**
+   * T-383: on a not-found row only, the section as the summary lines name it
+   * (displaySection): "400", "IPC 236", "21 of another Act". Never the raw token.
+   */
+  display?: string;
 }
 
 export interface BailCheckResult {
@@ -412,6 +417,7 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
       offence,
       found: offence !== null,
       ...(note ? { note } : {}),
+      ...(offence ? {} : { display: displaySection(input, ipcSection, bnsSection) }),
     });
   }
 

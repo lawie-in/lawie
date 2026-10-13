@@ -4056,3 +4056,7 @@ Of 305 rows, **74 were under the wrong key or named a different offence**: abetm
   }
 }
 ```
+
+## T-383 (Shashank, b1f6be7), 13 Oct 2026: approved
+
+BNS 61(2), and IPC 120B mapped to it, resolve to row 61 (criminal conspiracy) under rule 3. A target that splits into variants is the punishing sub-section, not a definition. The attributes stay null, so they show the T-371 "Depends on the sub-section…" line and the caveat. In the timeline it gives "Depends on the offence. Check BNSS section 187." (rule 2): conspiracy takes the punishment of its object offence, so no fixed period applies. The 1888-lookup sweep changed only 61(2).

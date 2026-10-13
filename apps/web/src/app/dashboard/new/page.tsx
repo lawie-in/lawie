@@ -148,6 +148,7 @@ function NewDocumentContent() {
   // Template list + selected config
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [guidedInkCost, setGuidedInkCost] = useState<number | undefined>(); // T-372
   const [selectedConfig, setSelectedConfig] = useState<TemplateConfig | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
 
@@ -225,6 +226,7 @@ function NewDocumentContent() {
         if (res.ok) {
           const data = await res.json();
           setTemplates(data.templates ?? []);
+          setGuidedInkCost(data.guided_credits_cost);
         } else if (res.status === 503) {
           setError('Service temporarily unavailable. Please try again in a moment.');
         } else {
@@ -550,7 +552,9 @@ function NewDocumentContent() {
     );
   }
   if (phase === 'one_flow') {
-    return <OneFlow kinds={templates} loadingKinds={loadingTemplates} />;
+    return (
+      <OneFlow kinds={templates} loadingKinds={loadingTemplates} guidedInkCost={guidedInkCost} />
+    );
   }
 
   // ── Render: Generation phase ──────────────────────────────────────────────
