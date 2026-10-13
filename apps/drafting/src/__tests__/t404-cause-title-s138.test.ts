@@ -586,6 +586,11 @@ describe('T-404 / Ajay 49b5fd2: a deed place of execution never comes from a cou
       chosen,
     );
     expect(replacePlaceholders('at {execution_place}', ctx)).toBe('at Jaipur');
+    const out = replacePlaceholders('{place} / {courtPlace}', ctx);
+    expect(out).toBe('Jaipur / Jaipur');
+    expect(out).not.toContain('Patna');
+    expect(ctx.verification_text).toContain('Verified at Jaipur on this');
+    expect(ctx.verification_text).not.toContain('Patna');
   });
 });
 
