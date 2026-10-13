@@ -40,4 +40,4 @@ Shashank's bugs (b)1–5 in T-360 are part of this ticket: the bulk regex for li
 
 He answered Shashank's six points. Two change: point 1 (a non-offence BNS section keeps the T-277 line) and the converter example.
 
-**Folded in (Priya):** BNS 61(2), the target of IPC 120B, shows "not an offence" in the T-277 resolver. It should resolve to row 61 (criminal conspiracy). Shashank holds bns-offence-resolver.ts, so the fix and a test go in this ticket.
+**Moved out:** the BNS 61(2) bug is its own ticket, T-383 (Ajay's request). Shashank does it after T-371.

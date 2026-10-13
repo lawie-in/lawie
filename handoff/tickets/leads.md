@@ -37,7 +37,7 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint, timeline tracker and bail checker are hidden behind flags (T-375). Golden set on (founder secrets).
 - vishal: T-342, then T-373 (D1 lead A; T-359's ACs become its tests).
-- shashank: T-356 part 1, then T-371 (folds in his 5 bulk and not-found bugs from T-360; no reseed).
+- shashank: T-356 part 1, then T-371, then T-383 (BNS 61(2)) (folds in his 5 bulk and not-found bugs from T-360; no reseed).
 - kunal: T-354, then T-370 (today), then T-372.
 - tanvi: T-357, then T-369 (ci.yml after Mahak's T-223 merges), then T-374 (D1 lead B).
 - mahak: T-223, then T-365.
