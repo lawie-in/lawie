@@ -5,14 +5,19 @@ import Link from 'next/link';
 import FloatCta from '@/components/marketing/FloatCta';
 import SiteFooter from '@/components/marketing/SiteFooter';
 import SiteNav from '@/components/marketing/SiteNav';
+import { getToolFeatures } from '@/lib/features';
 
 export const metadata: Metadata = {
   title: 'Lawie — Free Legal Tools for Indian Advocates',
   description:
-    'Free legal tools: IPC to BNS converter, bail eligibility checker, and BNSS investigation timeline. Built around the new Indian criminal codes.',
+    // T-375: names no tool, so a tool hidden by its switch is never mentioned.
+    'Free legal tools. Built around the new Indian criminal codes.',
 };
 
-export default function ToolsPage() {
+export default async function ToolsPage() {
+  // T-375: the bail checker and timeline cards show only while their switch is on.
+  const features = await getToolFeatures();
+  const cardCount = 1 + Number(features.tool_bail_checker) + Number(features.tool_timeline);
   return (
     <>
       <style>{`
@@ -39,7 +44,9 @@ export default function ToolsPage() {
         .tools-cta>div{min-width:0;flex:1 1 320px}
         .tools-cta h3{color:#fff;font-size:26px;margin-bottom:6px}
         .tools-cta p{color:var(--on-dark-2);font-size:16px}
-        @media(max-width:768px){.tools-grid{grid-template-columns:1fr}}
+        .tools-grid--2{grid-template-columns:repeat(2,1fr)}
+        .tools-grid--1{grid-template-columns:minmax(0,560px)}
+        @media(max-width:768px){.tools-grid,.tools-grid--2,.tools-grid--1{grid-template-columns:1fr}}
       `}</style>
 
       <SiteNav activePage="tools" />
@@ -58,7 +65,7 @@ export default function ToolsPage() {
 
       <section className="section bg-cream">
         <div className="container">
-          <div className="tools-grid">
+          <div className={cardCount === 3 ? 'tools-grid' : `tools-grid tools-grid--${cardCount}`}>
             <article className="card card--hover tool-card">
               <div className="icon-tile icon-tile--gold">
                 <ArrowLeftRight strokeWidth={1.5} />
@@ -79,62 +86,66 @@ export default function ToolsPage() {
                 Open Converter <ArrowRight strokeWidth={1.5} />
               </Link>
             </article>
-            <article className="card card--hover tool-card">
-              <div className="icon-tile icon-tile--teal">
-                <Scale strokeWidth={1.5} />
-              </div>
-              <h3>Bail Eligibility Checker</h3>
-              <p>
-                Enter the BNS sections charged in an FIR and find out if bail is possible, which
-                court has jurisdiction, and which BNSS section to cite.
-              </p>
-              <div className="tool-viz" aria-hidden="true">
-                <span className="viz-chip">S.115(2) BNS</span>
-                <span className="viz-arrow">
-                  <ArrowRight strokeWidth={2} />
-                </span>
-                <span className="viz-chip teal">
-                  <Check
-                    style={{ width: 12, height: 12, display: 'inline', verticalAlign: '-2px' }}
-                  />{' '}
-                  Bailable · S.480 BNSS
-                </span>
-              </div>
-              <Link className="btn btn-secondary" href="/tools/bail-checker">
-                Open Checker <ArrowRight strokeWidth={1.5} />
-              </Link>
-            </article>
-            <article className="card card--hover tool-card">
-              <div className="icon-tile">
-                <CalendarClock strokeWidth={1.5} />
-              </div>
-              <h3>BNSS Investigation Timeline</h3>
-              <p>
-                Enter the FIR date and sections to see custody limits, chargesheet deadlines, and
-                default bail eligibility dates under BNSS.
-              </p>
-              <div className="tool-viz" aria-hidden="true">
-                <div className="viz-line">
-                  <div className="viz-dot">
-                    <span className="d" />
-                    <small>FIR</small>
-                  </div>
-                  <div className="viz-track" />
-                  <div className="viz-dot muted">
-                    <span className="d" />
-                    <small>60 days</small>
-                  </div>
-                  <div className="viz-track" />
-                  <div className="viz-dot muted">
-                    <span className="d" />
-                    <small>90 days</small>
+            {features.tool_bail_checker && (
+              <article className="card card--hover tool-card">
+                <div className="icon-tile icon-tile--teal">
+                  <Scale strokeWidth={1.5} />
+                </div>
+                <h3>Bail Eligibility Checker</h3>
+                <p>
+                  Enter the BNS sections charged in an FIR and find out if bail is possible, which
+                  court has jurisdiction, and which BNSS section to cite.
+                </p>
+                <div className="tool-viz" aria-hidden="true">
+                  <span className="viz-chip">S.115(2) BNS</span>
+                  <span className="viz-arrow">
+                    <ArrowRight strokeWidth={2} />
+                  </span>
+                  <span className="viz-chip teal">
+                    <Check
+                      style={{ width: 12, height: 12, display: 'inline', verticalAlign: '-2px' }}
+                    />{' '}
+                    Bailable · S.480 BNSS
+                  </span>
+                </div>
+                <Link className="btn btn-secondary" href="/tools/bail-checker">
+                  Open Checker <ArrowRight strokeWidth={1.5} />
+                </Link>
+              </article>
+            )}
+            {features.tool_timeline && (
+              <article className="card card--hover tool-card">
+                <div className="icon-tile">
+                  <CalendarClock strokeWidth={1.5} />
+                </div>
+                <h3>BNSS Investigation Timeline</h3>
+                <p>
+                  Enter the FIR date and sections to see custody limits, chargesheet deadlines, and
+                  default bail eligibility dates under BNSS.
+                </p>
+                <div className="tool-viz" aria-hidden="true">
+                  <div className="viz-line">
+                    <div className="viz-dot">
+                      <span className="d" />
+                      <small>FIR</small>
+                    </div>
+                    <div className="viz-track" />
+                    <div className="viz-dot muted">
+                      <span className="d" />
+                      <small>60 days</small>
+                    </div>
+                    <div className="viz-track" />
+                    <div className="viz-dot muted">
+                      <span className="d" />
+                      <small>90 days</small>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <Link className="btn btn-secondary" href="/tools/timeline-tracker">
-                Open Tracker <ArrowRight strokeWidth={1.5} />
-              </Link>
-            </article>
+                <Link className="btn btn-secondary" href="/tools/timeline-tracker">
+                  Open Tracker <ArrowRight strokeWidth={1.5} />
+                </Link>
+              </article>
+            )}
           </div>
           <div className="tools-cta">
             <div>

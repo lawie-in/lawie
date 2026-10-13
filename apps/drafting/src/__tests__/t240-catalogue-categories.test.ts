@@ -36,6 +36,7 @@ import {
 } from '../config/catalogue';
 import type { CatalogueBatch } from '../config/catalogue';
 import { Template } from '../models/Template.model';
+import * as appSettings from '../services/app-settings.service';
 import * as credits from '../services/credits.service';
 import { resolveDocRule } from '../services/prompt-assembler';
 import { clearConfigCache, loadTemplateConfig } from '../services/template-engine.service';
@@ -441,9 +442,22 @@ function priceOrAliasLiterals(source: string): string[] {
   return why;
 }
 
+// T-375: the plaint switch is off in code, so these tests turn it on for their own describe block.
+function plaintSwitchOn(): void {
+  const real = appSettings.getAppSetting;
+  jest
+    .spyOn(appSettings, 'getAppSetting')
+    .mockImplementation((key: string) =>
+      key === 'feature.template_civil_plaint' ? Promise.resolve('on') : real(key),
+    );
+}
+
 // ── Condition 1: the behaviour value is pinned ───────────────────────────
 
 describe('T-240 cond 1 - behaviour `category` does not change', () => {
+  // T-375: plaintSwitchOn() spies on getAppSetting; do not let it leak past this block.
+  afterEach(() => jest.restoreAllMocks());
+
   const registry = loadAllDocRules();
 
   it('pins 92 literal ids, one per rule file', () => {
@@ -476,6 +490,7 @@ describe('T-240 cond 1 - behaviour `category` does not change', () => {
   });
 
   it('GET /template-configs still returns the behaviour value in `category`', async () => {
+    plaintSwitchOn();
     clearConfigCache();
     const res = await request(app).get('/template-configs').set(headers());
     const byId = new Map(
@@ -799,7 +814,11 @@ describe('T-240 catalogue mapping (Ajay, 12 Oct 2026)', () => {
 // ── API and seed ─────────────────────────────────────────────────────────
 
 describe('T-240 API: GET /template-configs', () => {
-  beforeEach(() => clearConfigCache());
+  beforeEach(() => {
+    clearConfigCache();
+    plaintSwitchOn();
+  });
+  afterEach(() => jest.restoreAllMocks());
 
   it('returns catalogueCategory, name and order for all configs, including the 6 overrides', async () => {
     const res = await request(app).get('/template-configs').set(headers());
