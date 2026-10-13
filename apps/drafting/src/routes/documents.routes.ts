@@ -32,6 +32,7 @@ import {
   STARTING_DRAFT_LABEL,
 } from '../services/brief-drafter';
 import {
+  costForTemplate,
   extendInkHold,
   getCreditBalance,
   holdInk,
@@ -357,6 +358,9 @@ export interface InkHoldHandle {
  * Safety net: if `run` returns or throws without closing the hold, it is
  * released here.
  */
+/** T-372: the longest `done` waits for the balance read before it goes without it. */
+const DONE_BALANCE_TIMEOUT_MS = 1000;
+
 export async function withInkHold(
   req: Request,
   res: Response,
@@ -396,6 +400,35 @@ export async function withInkHold(
   let clientGone = false;
   /** finish() lost the hold and could not re-take it: no `done` may be sent. */
   let withheld = false;
+  /** T-372: the Ink balance after the settle, for `done`. Unset if the read failed. */
+  let doneBalance: { totalInk: number } | undefined;
+
+  /**
+   * T-372: read the balance once the draft is paid, for the web's balance.
+   * Best effort and capped, so `done` is never held up. Ids only in the log.
+   */
+  const readDoneBalance = async (): Promise<void> => {
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      const balance = await Promise.race([
+        getCreditBalance(userId),
+        new Promise<undefined>((resolve) => {
+          timer = setTimeout(() => resolve(undefined), DONE_BALANCE_TIMEOUT_MS);
+          timer.unref();
+        }),
+      ]);
+      if (balance && typeof balance.totalInk === 'number' && Number.isFinite(balance.totalInk)) {
+        doneBalance = { totalInk: balance.totalInk };
+      }
+    } catch (err) {
+      console.warn(
+        `[drafting] balance read for done failed (runId=${runId}, runSequence=${runSequence}):`,
+        err instanceof Error ? err.name : 'unknown',
+      );
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
 
   // Heartbeat. Declared before the timer so the tick can stop itself.
   const heldAt = Date.now();
@@ -494,13 +527,20 @@ export async function withInkHold(
         );
         return;
       }
-      if (settled.settled || settled.reason !== 'no_hold') return;
+      if (settled.settled) {
+        await readDoneBalance();
+        return;
+      }
+      if (settled.reason !== 'no_hold') return;
 
       // The hold is gone. If it was SETTLED (the sweep, e.g. after this
       // request marked it delivered, or from the completed Generation), the
       // draft is paid: re-holding would charge twice.
       try {
-        if (await wasInkSettled(userId, runId, runSequence)) return;
+        if (await wasInkSettled(userId, runId, runSequence)) {
+          await readDoneBalance();
+          return;
+        }
       } catch (err) {
         // Paid or not is unknown, and there is no hold left for the sweep.
         // The draft is delivered (T-288 scopes the withheld path to a run
@@ -525,6 +565,7 @@ export async function withInkHold(
         }
         reheld = again.ok;
         const retried = await settleInk(userId, runId, runSequence, undefined, reference);
+        if (retried.settled) await readDoneBalance();
         if (!retried.settled && retried.reason === 'no_hold') {
           console.error(
             `[drafting] settleInk found no hold after a re-hold (runId=${runId}, runSequence=${runSequence})`,
@@ -554,7 +595,8 @@ export async function withInkHold(
     sendDone(data) {
       if (withheld) return;
       doneWritten = true;
-      res.write(`event: done\ndata: ${JSON.stringify(data)}\n\n`);
+      const payload = doneBalance ? { ...data, balance: doneBalance } : data;
+      res.write(`event: done\ndata: ${JSON.stringify(payload)}\n\n`);
       res.end();
     },
   };
@@ -668,11 +710,19 @@ router.get(
       res.status(500).json({ error: 'Template config unavailable' });
       return;
     }
+    const guidedCost = costForTemplate(GUIDED_ID);
     res.json({
-      templates: configs.map((config) => ({
-        ...config,
-        description: presentDescription(config.description),
-      })),
+      templates: configs.map((config) => {
+        // T-372: the price the charge uses (single source, T-227); omitted when unpriced.
+        const creditsCost = costForTemplate(config.template_id);
+        return {
+          ...config,
+          description: presentDescription(config.description),
+          ...(creditsCost !== undefined ? { credits_cost: creditsCost } : {}),
+        };
+      }),
+      // T-372: a brief with no rule pack is charged as the guided draft.
+      ...(guidedCost !== undefined ? { guided_credits_cost: guidedCost } : {}),
     });
   },
 );
