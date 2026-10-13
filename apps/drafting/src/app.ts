@@ -20,6 +20,7 @@ import sectionsReadRoutes from './routes/sections-read.routes';
 import sectionsRoutes from './routes/sections.routes';
 import templatesRoutes from './routes/templates.routes';
 import usersRoutes from './routes/users.routes';
+import { signedTableHashes } from './services/signed-tables';
 
 const app = express();
 
@@ -28,7 +29,13 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'drafting', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    service: 'drafting',
+    timestamp: new Date().toISOString(),
+    // T-371 (ADR-025 D2): SHA-256 of the raw bytes of each signed table served.
+    signedTables: signedTableHashes(),
+  });
 });
 
 app.use('/templates', templatesRoutes);

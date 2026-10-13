@@ -23,3 +23,7 @@ The `verify` notes in `bns-offences.json` are my working notes on the signed T-2
 | Raw `verify` text | Never shown to a user. |
 
 The "most serious" ranking (AC 3) uses `max_years` only. If a charged section has `max_years: null`, the ranking leaves it out and shows nothing in its place. It is not ranked as the lowest.
+
+## Addendum 2: AC2 moved to the T-277 table, 13 Oct 2026
+
+The 303(2) punishment line, the ranking value (3) and the community-service note move into the T-277 signed table (rows 303 and 303(2)), so every tool reads one source. Until they land, they wait in `T-361-303-rows-pending-signed.md`, and the T-277 table and the JSON change together in one commit. The note now reads exactly as in that table. Do not override it in code.
