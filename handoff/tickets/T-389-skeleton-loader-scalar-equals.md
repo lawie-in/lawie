@@ -15,3 +15,7 @@
 3. No skeleton under `_skeletons/` changes. The ticket is loader code only, so Ajay's sign-off isn't needed.
 
 Not hit today. Do it only when a signed skeleton needs it.
+
+## Also, any time after T-373 merges (Tanvi, 13 Oct 2026)
+
+4. rule-pack.service.ts imports the skeleton types from Vishal's `src/types/skeleton.ts` instead of its own inline copies. Type-only, about 10 minutes. Whoever holds rule-pack.service.ts then (Tanvi or Vishal) does it; it doesn't wait for items 1–3.

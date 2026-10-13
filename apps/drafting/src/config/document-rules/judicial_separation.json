@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off."
   },
   "template_id": "judicial_separation",
+  "card_description": "A petition for judicial separation.",
   "docType": "judicial_separation",
   "title": "Petition for Judicial Separation",
   "displayName": "Judicial Separation Petition (s.10 HMA / s.23 SMA)",

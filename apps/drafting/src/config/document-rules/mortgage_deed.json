@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Type of mortgage determines registration mandate and stamp duty — must be precisely classified. Equitable mortgage by deposit of title deeds is restricted to notified towns."
   },
   "template_id": "mortgage_deed",
+  "card_description": "A mortgage deed of immovable property under the Transfer of Property Act, 1882.",
   "docType": "mortgage_deed",
   "title": "Mortgage Deed (Transfer of Property Act, 1882 — S.58-104)",
   "displayName": "Mortgage Deed",

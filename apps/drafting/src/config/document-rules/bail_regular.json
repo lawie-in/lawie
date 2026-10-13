@@ -1,4 +1,5 @@
 {
+  "card_description": "A regular bail application for an accused person in custody.",
   "_meta": {
     "description": "Document-rules config for bail_regular — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",

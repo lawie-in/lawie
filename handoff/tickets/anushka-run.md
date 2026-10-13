@@ -782,3 +782,41 @@ What a user can now do:
 - Nothing on screen yet. Bail drafts use the signed skeletons once T-373 lands.
 
 Quality: nothing to test in the UI — loader only, not used until T-373
+
+## T-367 — Timeline tracker deadlines (1706a41, shashank, 13 Oct 2026)
+
+Re-tests run 3's timeline failures. Once T-375 merges the tracker is hidden by default, so for this run the founder switches `feature.tool_timeline` on.
+
+What a user can now do:
+- Enter the date of the first remand and see the right deadlines. For a first remand on 1 January 2026 under a 60-day offence: police custody up to 9 February, the last day for the charge sheet 1 March, and default bail from 2 March.
+- See police custody explained as up to 15 days, in one go or in parts, within the first 40 or 60 days, with BNSS 187(2) and 187(3) cited.
+- See every date written out, like "1 March 2026", and a countdown such as "60-day period · 12 days left".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-379 — Email worker guard (b3d01a7, kunal, 13 Oct 2026)
+
+What a user can now do:
+- Nothing changes on screen. Before real emails are switched on, an unfinished email footer can no longer cause a verification email to go out or invalidate a link the user already has. Their email is held and sent once the footer is filled in.
+- A user whose name or address contains text like "[PIN]" still gets their emails.
+
+Quality: nothing to test in the UI — email-worker start-up and health guard
+
+## T-365 + T-382 + T-387 — Brief picker, enrolment, pre-filing check (492426a, mahak, 13 Oct 2026)
+
+Re-tests run 3 failures on the brief, enrolment and pre-filing check.
+
+T-365, what a user can now do:
+- Leave the advocate name empty and see their own profile name on the draft.
+- Browse document types grouped by category, the same way as the templates library.
+- Press "Use template" and start describing with that document already chosen.
+- See a short, plain description on every document card, with no internal notes.
+- On a bail application before a Magistrate, give the brief facts of the case, as in regular bail.
+
+T-382, what a user can now do:
+- Type a Bar Council enrolment number on a bail, surrender, suspension or vakalatnama form and see it printed on the draft.
+
+T-387, what a user can now do:
+- Pass the vakalatnama pre-filing check using the enrolment number saved in the profile, without typing it again.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

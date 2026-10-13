@@ -79,6 +79,7 @@ import {
   resolveLegacyAdvocate,
   validateFormData,
 } from '../services/template-engine.service';
+import { cardDescriptionFor } from '../utils/cardDescription';
 import {
   readFilingChecklist,
   readFormInputs,
@@ -86,7 +87,6 @@ import {
   sealFormInputs,
 } from '../utils/case-details';
 import { decrypt, encrypt } from '../utils/encryption';
-import { presentDescription } from '../utils/presentDescription';
 
 /**
  * Map template_id → valid DOC_TYPE for DB persistence.
@@ -718,7 +718,8 @@ router.get(
         const creditsCost = costForTemplate(config.template_id);
         return {
           ...config,
-          description: presentDescription(config.description),
+          // T-365 AC6: cards show only the signed card_description (Ajay); never the internal description.
+          description: cardDescriptionFor(config.template_id),
           ...(creditsCost !== undefined ? { credits_cost: creditsCost } : {}),
         };
       }),
@@ -756,7 +757,8 @@ router.get(
       return;
     }
 
-    res.json({ config: { ...config, description: presentDescription(config.description) } });
+    // T-365 AC6: description is set after the spread so the internal one cannot come back.
+    res.json({ config: { ...config, description: cardDescriptionFor(config.template_id) } });
   },
 );
 
@@ -790,7 +792,11 @@ router.post('/preflight', authenticate, async (req: Request, res: Response): Pro
 
   try {
     const userId = req.jwtPayload?.sub;
-    const result = await preflightCheck(template_id, form_data, userId);
+    const result = await preflightCheck(template_id, form_data, userId, {
+      advocateName: req.jwtPayload?.name || undefined,
+      enrollmentNumber:
+        userId && template_id === 'vakalatnama' ? await profileEnrollmentNumber(userId) : undefined,
+    });
 
     // Strip internal meta before sending to client
     const { _meta, ...clientResult } = result;

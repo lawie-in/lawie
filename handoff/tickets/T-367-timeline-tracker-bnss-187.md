@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting tools) + Ajay (sign the rules) |
 | Mode   | Small fix |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Ajay signed; ready for a lead. Unassigned. Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging 1706a41 (shashank, 13 Oct 2026). Ajay approved 6f00e62. Waiting for Anushka on develop; the tracker is hidden by T-375's switch, so feature.tool_timeline must be on for her run. Priya, 13 Oct 2026 |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-278 |
 
 ## Acceptance criteria

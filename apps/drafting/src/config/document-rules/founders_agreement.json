@@ -7,6 +7,7 @@
     "notes": "Founders Agreement governs co-founder relationship pre/post incorporation. Often executed before incorporation and superseded/supplemented by SHA at fundraise. Vesting, IP assignment, equity split, exit are core. S.27 Contract Act limits post-exit non-compete; valid as shareholder restriction."
   },
   "template_id": "founders_agreement",
+  "card_description": "An agreement between the co-founders of a business.",
   "title": "Co-Founders Agreement",
   "category": "corporate",
   "creditsCost": 2,

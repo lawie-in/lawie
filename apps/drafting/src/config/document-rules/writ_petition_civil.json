@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Maneka Gandhi, Whirlpool, Bandhua Mukti Morcha cites mandatory."
   },
   "template_id": "writ_petition_civil",
+  "card_description": "A civil writ petition before the High Court under Article 226 of the Constitution.",
   "docType": "writ_petition_civil",
   "title": "Writ Petition (Civil) under Article 226 of the Constitution of India",
   "displayName": "Writ Petition (Civil) — WP(C)",

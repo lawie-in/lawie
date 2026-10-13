@@ -345,7 +345,7 @@ describe('R1 default-bail period (timeline)', () => {
     expect(r.defaultBailDate).toBeNull();
     expect(r.maxYears).toBeNull();
     expect(r.periodNote).toBe(DEPENDS_187);
-    expect(r.remandBreakdown.judicialCustody).toBeNull();
+    expect(r).not.toHaveProperty('remandBreakdown');
     return r;
   }
 
@@ -433,10 +433,11 @@ describe('R1 default-bail period (timeline)', () => {
     expect(r.sectionNotes['316(1)']).toBe(LEFT_OUT('316(1)'));
   });
 
-  it('police custody (15 days) still applies when there is no period', () => {
+  it('police custody (15 days) still applies, but with no period there is no window date (T-367)', () => {
     const r = expectNoPeriod(['316(2)']);
     expect(r.policeCustodyDays).toBe(15);
-    expect(r.policeCustodyEndDate).toBe('2026-03-16');
+    expect(r.policeCustodyEndDate).toBeNull();
+    expect(r.policeCustodyNote).toBe(DEPENDS_187);
   });
 
   it('every exact key: max_years >= 10 -> 90, otherwise 60, null -> no period', () => {

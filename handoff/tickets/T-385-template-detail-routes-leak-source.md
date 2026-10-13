@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Arjun |
 | Mode   | Small fix |
-| Status | Mahak, stacked after T-365 on the same routes. Arjun: strip pack-level _source, prompt_context and clause notes; the field-level `source` in form_schema stays (the web uses it) |
+| Status | Building. Mahak, after T-365. Priya, 13 Oct 2026 |
 | Source | The detail routes return `_source`/`source` (prompt_context, clause notes) to the client |
 
 ## Acceptance criteria

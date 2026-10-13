@@ -45,7 +45,7 @@ import Redis from 'ioredis';
 
 import { env } from './config/env';
 import { logger } from './config/logger';
-import { hasUnfilledPlaceholder, isLiveSend } from './placeholders';
+import { anyTemplateUnfilled, isLiveSend, templateHasUnfilledFooter } from './placeholders';
 import { sendEmail, type SendEmailFn } from './providers';
 import { safeErrorFields, toSentrySafeError, userIdFromData } from './providers/safe-log';
 import { renderTemplate } from './templates';
@@ -132,10 +132,6 @@ export const mintVerifyLinkViaAuth: MintVerifyLinkFn = async (userId) => {
   };
 };
 
-function isDryRun(): boolean {
-  return env.EMAIL_DRY_RUN || env.EMAIL_PROVIDER === 'dry-run';
-}
-
 const UNFILLED_PLACEHOLDER_MESSAGE = 'email has unfilled footer placeholders; not sent';
 /** Errors raised by the placeholder guard: rethrown as-is, without the Sentry/log path. */
 const placeholderRefusals = new WeakSet<object>();
@@ -164,6 +160,17 @@ export function createProcessor(
     });
 
     try {
+      // T-223 review / Ajay, T-379: no live send while the template's own footer still has
+      // [registered address] or [PIN]. Checked on the static footer, before auth's mint, so a
+      // refused job never rotates the user's verify token. Dry run is unaffected. Fixed message,
+      // ids only, no Sentry, no retry.
+      if (isLiveSend() && templateHasUnfilledFooter(template)) {
+        logger.error({ userId, jobId }, 'Email not sent: unfilled footer placeholders');
+        const refusal = new UnrecoverableError(UNFILLED_PLACEHOLDER_MESSAGE);
+        placeholderRefusals.add(refusal);
+        throw refusal;
+      }
+
       let to = job.data.to;
       let renderData = data;
       if (isVerify) {
@@ -182,14 +189,6 @@ export function createProcessor(
       }
 
       const rendered = await renderTemplate(template, renderData);
-      // T-223 review / Ajay: no live send while the footer still has [registered address] or
-      // [PIN] (any template). Dry run is unaffected. Fixed message, ids only, no Sentry.
-      if (isLiveSend() && hasUnfilledPlaceholder(rendered)) {
-        logger.error({ userId, jobId }, 'Email not sent: unfilled footer placeholders');
-        const refusal = new UnrecoverableError(UNFILLED_PLACEHOLDER_MESSAGE);
-        placeholderRefusals.add(refusal);
-        throw refusal;
-      }
       const result = await send({
         to,
         cc: isVerify ? [] : cc,
@@ -210,7 +209,7 @@ export function createProcessor(
         'Email sent',
       );
       // T-223 AC7: in dry run, one line with the userId only (no address, token or link).
-      if (isVerify && isDryRun()) logger.info({ userId }, 'verify email sent');
+      if (isVerify && !isLiveSend()) logger.info({ userId }, 'verify email sent');
       return { messageId: result.messageId };
     } catch (err) {
       // Already logged (ids only) where it was raised; no Sentry event, no retry.
@@ -267,6 +266,15 @@ export interface StartWorkersOptions {
 }
 
 export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
+  // T-379: in live mode, start no processors while any template's footer still has the
+  // founder's placeholders. The process stays up (no pm2 crash loop) and /health reports
+  // unhealthy; jobs stay queued and go out once the footer is filled and the worker restarts.
+  if (isLiveSend() && anyTemplateUnfilled()) {
+    logger.warn(
+      'Workers not started (live mode): email footer placeholders are not filled in yet; jobs stay queued until the footer is filled and the worker restarts',
+    );
+    return [];
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const connection = options.connection ?? (defaultConnection() as any);
   const processor = createProcessor(options.send, options.mint);
