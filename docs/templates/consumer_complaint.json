@@ -291,13 +291,13 @@
         "section_id": "verification",
         "type": "template",
         "alignment": "left",
-        "template": "VERIFICATION\n\nI, {applicant_name}, the Complainant herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at {court_city} on this _____ day of _________, {current_year}.\n\n\n_________________________\n{applicant_name}\n(Complainant)"
+        "template": "VERIFICATION\n\nI, {applicant_name}, the Complainant herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at {place} on this _____ day of _________, {current_year}.\n\n\n_________________________\n{applicant_name}\n(Complainant)"
       },
       {
         "section_id": "advocate_block",
         "type": "template",
         "alignment": "right",
-        "template": "THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {court_city}\nDate: {current_date}"
+        "template": "THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {place}\nDate: {current_date}"
       }
     ]
   },

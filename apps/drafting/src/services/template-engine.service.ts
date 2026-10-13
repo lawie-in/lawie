@@ -1010,8 +1010,9 @@ export function resolveComputedFields(
         prop === 'case_nomenclature' &&
         !String(formData[courtField] ?? '').trim()
       ) {
-        // T-404 Addendum 3 #4: no court, so no case line from the template's default.
-        computed[fieldId] = COURT_BLANK;
+        // T-404 Addendum 3 #4, 2957f50 (a): no court, so no case line from the
+        // template's default; the case-type blank instead.
+        computed[fieldId] = CASE_TYPE_BLANK;
       } else {
         computed[fieldId] = defaultVal;
       }
@@ -1149,10 +1150,17 @@ function applyCourtBlanks(ctx: PlaceholderContext, courtData?: CourtLookupData):
   for (const alias of ['courtHeader', 'courtDesignation', 'caseNomenclature']) {
     if (!ctx[alias]?.trim()) ctx[alias] = COURT_BLANK;
   }
+  // T-404 (2957f50, c): "Place:" / "Verified at" with no court and no city.
+  for (const alias of ['place', 'courtPlace']) {
+    if (!ctx[alias]?.trim()) ctx[alias] = PLACE_BLANK;
+  }
 }
 
 /** T-404 Addendum 3 #5: {caseNomenclature} when the court chosen has no case line. */
 export const CASE_TYPE_BLANK = '[To be confirmed: case type and number]';
+
+/** T-404 (2957f50, c): {place} and the default verification's place with no court and no city. */
+export const PLACE_BLANK = '[To be confirmed: place]';
 
 /** T-404 Addendum 3 #2b: no enrolment number after the T-311 resolver. */
 export const ENROLMENT_BLANK = "[To be confirmed: advocate's enrolment number]";
@@ -1704,7 +1712,12 @@ export function buildPlaceholderContext(
   if (!ctx.prayer_closing)
     ctx.prayer_closing = 'And for this act of kindness, the petitioner shall ever pray.';
   if (!ctx.verification_text) {
-    ctx.verification_text = `I, ${ctx.applicant_name ?? '_____'}, the ${ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${ctx.court_city ?? '_____'} on this _____ day of _________, ${ctx.current_year}.`;
+    // T-404 (2957f50, c): no court and no city prints the place blank.
+    const verifiedAt =
+      !chosenCourtHeading(courtData) && !ctx.court_city?.trim()
+        ? PLACE_BLANK
+        : (ctx.court_city ?? '_____');
+    ctx.verification_text = `I, ${ctx.applicant_name ?? '_____'}, the ${ctx.party_label_petitioner} herein above named, do hereby verify that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at ${verifiedAt} on this _____ day of _________, ${ctx.current_year}.`;
   }
 
   // T-251 (Ajay's interim rule, 12 Oct 2026): until T-245a supplies the
