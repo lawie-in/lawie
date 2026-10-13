@@ -46,3 +46,11 @@ Do not add the 15-day computation or any date difference to the notice (T-192).
 Condition: the test must take the blank string from the same generator the brief and ledger paths use, not a literal copy. If a label changes, the test must go red and must not pass silently.
 
 **ni_act_sections_ref guard: required.** Section 141 (offences by companies, including firms) applies only when the drawer is a company or firm. If respondent_type is empty or a placeholder, print `138 read with Section 142`. Never cite s.141 without knowing the drawer type. Leaving s.141 out of the notice does no harm, but citing it against an individual is wrong. Test: drawer type left as its placeholder gives no "141".
+
+**Guard 7c441cc: approved.** An empty or placeholder drawer type prints `138 read with Section 142`.
+
+| # | Question | Ruling |
+|---|---|---|
+| 1 | HUF keeps s.141? | No, not until it is verified. Whether an HUF counts as an "association of individuals" under the s.141 Explanation is **verify**. Until then, HUF prints `138 read with Section 142`. Leaving s.141 out of a notice does no harm; citing it wrongly is the risk. s.141 stays only for company and partnership firm. |
+| 2 | s.141 in related_acts and relevantActs for every drawer type | Take it out unless the drawer is a company or partnership firm. Without that, the model may write vicarious-liability averments against an individual. Make it conditional on the same test as the guard. Test: individual, HUF and unknown prompts carry no "141". |
+| 3 | respondent_type `"default": "individual"` | Remove the default. Drawer type is required and never guessed. "Not known" prints the blank and goes through the guard. A default silently picks the answer for the advocate. |
