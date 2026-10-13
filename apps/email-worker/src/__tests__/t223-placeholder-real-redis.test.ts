@@ -1,13 +1,11 @@
 /**
- * T-223 review round 2, real Redis and a real BullMQ worker in LIVE mode (EMAIL_PROVIDER=ses,
- * EMAIL_DRY_RUN=false, dummy keys; the provider send is a stub, nothing is sent). A job whose
- * rendered body (REAL renderer output, real footer) still has [registered address] / [PIN]:
- *  - fails on the first attempt and is NOT retried (attemptsMade 1 although the producer allows
- *    several attempts), state "failed";
- *  - failedReason is the fixed message; the send stub is never called;
- *  - no Sentry captureException even though BullMQ ran it as the first of several attempts;
- *  - stored job data, failedReason, stacktrace and logs hold no address, name, link or footer text.
- * A clean body in the same live mode completes.
+ * T-223 review round 2 / T-379, real Redis and a real BullMQ worker in LIVE mode (EMAIL_PROVIDER=ses,
+ * EMAIL_DRY_RUN=false, dummy keys; the provider send is a stub, nothing is sent).
+ * While the static footer of auth.verifyEmail still has [registered address] / [PIN]:
+ *  - startWorkers starts nothing (returns []), so the job stays queued ("waiting"), not failed;
+ *  - mint is never called (the user's verify token is not rotated), send is never called;
+ *  - no Sentry event, and the stored job and the logs hold no address, name, link or footer text.
+ * With the footer check stubbed to "filled", the same live mode completes a job and sends once.
  *
  * Runs against an existing Redis if it accepts writes (CI service), else a private redis-server.
  */
@@ -28,6 +26,16 @@ jest.mock('@sentry/node', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),
 }));
+let mockFooterFilled = false;
+jest.mock('../placeholders', () => {
+  const actual = jest.requireActual('../placeholders');
+  return {
+    ...actual,
+    anyTemplateUnfilled: () => (mockFooterFilled ? false : actual.anyTemplateUnfilled()),
+    templateHasUnfilledFooter: (id: string) =>
+      mockFooterFilled ? false : actual.templateHasUnfilledFooter(id),
+  };
+});
 const mockRender = jest.fn();
 jest.mock('../templates', () => ({
   renderTemplate: (...a: unknown[]) => mockRender(...a),
@@ -37,7 +45,6 @@ const PREFIX = `lawie-t223p-${process.pid}-${Date.now()}`;
 const USER_ID = '64b7f0c2a1b2c3d4e5f60718';
 const TOKEN = 'ef'.repeat(32);
 const LINK = `https://app.lawie.in/verify-email?token=${TOKEN}`;
-const FIXED_MESSAGE = 'email has unfilled footer placeholders; not sent';
 
 jest.setTimeout(60_000);
 
@@ -117,7 +124,7 @@ afterAll(async () => {
   }
 });
 
-async function waitFor(q: Queue, jobId: string, state: 'failed' | 'completed') {
+async function waitFor(q: Queue, jobId: string, state: 'failed' | 'completed' | 'waiting') {
   const deadline = Date.now() + 30_000;
   for (;;) {
     const j = await q.getJob(jobId);
@@ -133,34 +140,34 @@ describe('T-223 placeholder guard through real Redis, live mode', () => {
     expect(isLiveSend()).toBe(true);
   });
 
-  it('unfilled footer: failed after ONE attempt (no retry), fixed failedReason, no send, no Sentry, no PII', async () => {
-    const { startWorkers, stopWorkers } = await import('../worker');
+  it('unfilled footer: startWorkers starts nothing, the job stays waiting, mint/send never called, no Sentry, no PII', async () => {
+    const { startWorkers, stopWorkers, workers } = await import('../worker');
     const send = jest.fn(async () => ({ messageId: 'never' }));
     const mint = jest.fn(async () => ({ email: LEAK_ADDRESS, name: LEAK_NAME, link: LINK }));
     mockRender.mockResolvedValue(real);
+    mockFooterFilled = false;
 
     const { jobId, queue } = await enqueueEmail({ template: 'auth.verifyEmail', userId: USER_ID });
     const q = new Queue(queue, { connection, prefix: `{${PREFIX}}` });
     try {
-      const queued = (await q.getJob(jobId))!;
-      expect(queued.opts.attempts).toBeGreaterThan(1); // the producer WOULD retry an ordinary error
-
-      startWorkers({ connection, send, mint });
-      const failed = await waitFor(q, jobId, 'failed');
-      // Leave time for a (wrongly) scheduled retry to show up.
+      const started = startWorkers({ connection, send, mint });
+      expect(started).toEqual([]);
+      expect(workers).toHaveLength(0);
+      // Leave time for a (wrongly) started worker to pick the job up.
       await sleep(1500);
       const after = (await q.getJob(jobId))!;
 
-      expect(await after.getState()).toBe('failed');
-      expect(after.attemptsMade).toBe(1);
-      expect(failed.failedReason).toBe(FIXED_MESSAGE);
+      expect(await after.getState()).toBe('waiting');
+      expect(after.attemptsMade).toBe(0);
+      expect(after.failedReason).toBeFalsy();
+      expect(mint).toHaveBeenCalledTimes(0);
       expect(send).not.toHaveBeenCalled();
-      expect(mint).toHaveBeenCalledTimes(1);
       expect(Sentry.captureException as jest.Mock).not.toHaveBeenCalled();
       expect(Sentry.captureMessage as jest.Mock).not.toHaveBeenCalled();
 
       const stored = dump([after.data, after.failedReason, after.stacktrace, after.returnvalue]);
       const logs = allLogText();
+      expect(logs).toContain('Workers not started');
       for (const s of [
         LEAK_ADDRESS,
         'leak@',
@@ -176,17 +183,19 @@ describe('T-223 placeholder guard through real Redis, live mode', () => {
         expect(logs).not.toContain(s);
         expect(dump((Sentry.addBreadcrumb as jest.Mock).mock.calls)).not.toContain(s);
       }
+      await after.remove(); // keep it away from the next test's worker
     } finally {
       await stopWorkers();
       await q.close();
     }
   });
 
-  it('a clean body in the same live mode completes and is sent once', async () => {
+  it('with the footer check stubbed to filled, the same live mode completes and sends once', async () => {
     const { startWorkers, stopWorkers } = await import('../worker');
     const send = jest.fn(async () => ({ messageId: 'live-ok' }));
     const mint = jest.fn(async () => ({ email: LEAK_ADDRESS, name: LEAK_NAME, link: LINK }));
     mockRender.mockResolvedValue({ subject: 'Verify', html: '<p>filled</p>', text: 'filled' });
+    mockFooterFilled = true;
 
     const { jobId, queue } = await enqueueEmail({
       template: 'auth.verifyEmail',
@@ -197,8 +206,10 @@ describe('T-223 placeholder guard through real Redis, live mode', () => {
       startWorkers({ connection, send, mint });
       const done = await waitFor(q, jobId, 'completed');
       expect(send).toHaveBeenCalledTimes(1);
+      expect(mint).toHaveBeenCalledTimes(1);
       expect(done.returnvalue).toEqual({ messageId: 'live-ok' });
     } finally {
+      mockFooterFilled = false;
       await stopWorkers();
       await q.close();
     }
