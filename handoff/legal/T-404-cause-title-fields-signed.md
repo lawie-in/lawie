@@ -38,3 +38,14 @@ A notice cannot go without an addressee, so these Qs are required.
 | vakalatnama | `opposingRole` | A: the counterpart of `client_role` (petitioner ↔ respondent, plaintiff ↔ defendant, complainant ↔ accused, appellant ↔ respondent). If there is no counterpart: B `[To be confirmed: role of the opposite party]` |
 
 Any token the scan finds that is not listed here follows rules 1 and 2. I sign each new question label when it is worded.
+
+## Question labels (Madhuri's `cause-title-questions-t404.md`), 13 Oct 2026
+
+Signed as drafted, with one change:
+- **Six notices:** the keys are `applicant_name`, `respondent_name` and `respondent_address`, the same as s138 and s80. The labels, help text and placeholders are approved, including "Client (sender of the notice)".
+- **PIL:** approved as drafted.
+- **Habeas corpus (change):** the label is `Respondents (names, addresses)`, the same as PIL. Who the respondents are is the advocate's call, so the label must not name them. Keep the help text as drafted: `Put each respondent on its own line: name, then address. Lawie does not fill this in for you.` Do not copy `detaining_authority` into this list.
+- **Vakalatnama:** approved as drafted, including the help text with the signed blank. Keep it a separate optional question; never split `case_title` to fill it.
+- **"Required"** means always asked and never guessed. "Not known" is allowed and prints the signed blank. Agreed with Priya.
+
+Still to word (next brief): `governing_act`, `primary_statute`, `route`, `state`, `rera_office_location`.
