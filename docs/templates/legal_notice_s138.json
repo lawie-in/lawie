@@ -333,10 +333,10 @@
       {
         "section_id": "body",
         "type": "ai_generated",
-        "prompt_context": "Generate 4 to 6 numbered paragraphs. Do not state or suggest that any offence is complete when the cheque is issued, presented or dishonoured. On liability, use only the sentence given. This is a STATUTORY DEMAND NOTICE — tone must be firm and legal. Structure:\nPara 1: State the underlying liability — {underlying_liability}.\nPara 2: State that towards discharge of said liability, the noticee ({respondent_name}) issued Cheque No. {cheque_number} dated {cheque_date} for Rs. {cheque_amount}/- ({amount_in_words}) drawn on {drawee_bank}, {drawee_branch}.\nPara 3: State that the cheque was presented to the payee's bank on {presentation_date} and was returned dishonoured vide bank's return memo dated {dishonour_date} with the endorsement '{dishonour_reason}'.\nPara 4: State that as per proviso (b) to Section 138, the payee is required to make a demand within 30 days of receiving information of dishonour.\nDo NOT generate the demand clause or closing — those are template-handled.",
+        "prompt_context": "Generate 3 to 5 numbered paragraphs. Do not state or suggest that any offence is complete when the cheque is issued, presented or dishonoured. On liability, use only the sentence given. This is a STATUTORY DEMAND NOTICE — tone must be firm and legal. Structure:\nPara 1: State the underlying liability — {underlying_liability}.\nPara 2: State that towards discharge of said liability, the noticee ({respondent_name}) issued Cheque No. {cheque_number} dated {cheque_date} for Rs. {cheque_amount}/- ({amount_in_words}) drawn on {drawee_bank}, {drawee_branch}.\nPara 3: State that the cheque was presented to the payee's bank on {presentation_date} and was returned dishonoured vide bank's return memo dated {dishonour_date} with the endorsement '{dishonour_reason}'.\nDo NOT generate the demand clause or closing — those are template-handled.",
         "numbering": "numeric",
-        "min_paragraphs": 4,
-        "max_paragraphs": 6
+        "min_paragraphs": 3,
+        "max_paragraphs": 5
       },
       {
         "section_id": "demand_clause",
@@ -358,13 +358,13 @@
   ],
   "special_prayer_additions": [],
   "filing_checklist": [
-    "Send within 30 days of receiving dishonour information (bank memo date)",
+    "Send the notice within 30 days of receiving the bank's return memo (Section 138, proviso (b)).",
     "Send via Registered Post AD — retain postal receipt",
     "Send additional copy via Speed Post / UPC for safety",
     "Retain original dishonoured cheque safely (primary evidence)",
     "Retain bank return memo / dishonour slip",
     "Wait 15 days from date of receipt by noticee",
-    "If no payment within 15 days — file complaint within next 30 days (S.142(1)(b))",
+    "If payment is not made within 15 days of receipt of the notice, file the complaint within one month after those 15 days end (Section 142(1)(b)).",
     "Keep AD card as proof of service",
     "Verify noticee's correct residential / business address"
   ],
@@ -384,7 +384,7 @@
       "closing"
     ],
     "fact_alteration_check": true,
-    "min_body_paragraphs": 4
+    "min_body_paragraphs": 3
   },
   "metadata": {
     "version": "1.0",
