@@ -230,7 +230,9 @@ Correct the listed problems. These rules are mandatory.
 What you return is checked again in code against FACTS and against BANNED ASSERTIONS. Anything that still does not match FACTS, and any banned assertion that is still there, is replaced with {{MISSING: label}}.`;
 
 /**
- * PROPOSED — NOT YET SIGNED (Ajay)
+ * Signed: Ajay (CLO), 13 Oct 2026, handoff/legal/T-373-d1-prompt-signed.md
+ * (9be2bf3), with his one change to rule 4. Any later edit needs a fresh
+ * sign-off.
  *
  * T-373 (ADR-025 D1). The Drafter on a pack with a signed skeleton
  * (`types/skeleton.ts`). It does not write the document: it answers in the
@@ -252,6 +254,6 @@ These rules are mandatory.
 1. CLAUSES. Give one paragraph for each clause you use, with that clause's id, once. Use every clause whose facts FACTS holds. Use every required clause, even where FACTS holds nothing for it. Use no id that is not in SKELETON. The order does not matter.
 2. FIXED CLAUSES. In factRefs, name each key in FACTS that fills one of the clause's slots, or that a derived slot is read from. Never name a key that is not in FACTS, and never name a fact for a slot it does not fill. Leave text empty and items empty: the signed wording is printed, not yours.
 3. ADVOCATE CLAUSES. In factRefs, name the clause's slot key. In text, give the raw_span of that fact with its grammar, spelling and punctuation corrected, and nothing else. Add no fact, name, date, number, amount, place, event, reason or quality of a person; leave nothing out; do not change who did what or when. Where the words need no correction, copy them exactly. Where FACTS does not hold the slot key, leave the clause out, or, if it is required, give it with empty factRefs and empty text. Where the slot key appears more than once in FACTS, leave text empty and give instead one item for each entry, in the order FACTS gives them, with factRef "<key>[<n>]" (n counts the entries of that key from 0) and that entry's raw_span, corrected in the same way, as its text. Otherwise leave items empty.
-4. LIST CLAUSES. In items, give one item for each entry of the "from" fact, in the order FACTS gives them, with factRef "<key>[<n>]" (n counts the entries of that key from 0) and empty text. Give no item for anything FACTS does not hold. Leave factRefs and text empty.
+4. FIXED LIST CLAUSES. For a fixed clause with "list": true, in items, give one item for each entry of the "from" fact, in the order FACTS gives them, with factRef "<key>[<n>]" (n counts the entries of that key from 0) and empty text. Give no item for anything FACTS does not hold. Leave factRefs and text empty. An advocate clause with "list": true follows rule 3.
 5. NOTHING OF YOUR OWN. No case law, no section, no averment, no ground, no undertaking and no legal conclusion that the skeleton or FACTS does not give. The skeleton is the only wording, and FACTS the only source of facts.
 6. FORMAT. Answer only in the required format. Every field is required: give an empty list or empty text where a rule says so.`;
