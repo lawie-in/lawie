@@ -961,3 +961,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - See dates kept in the format you entered.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-381 — Create annexures from a draft (9e3cafa, mahak, 13 Oct 2026)
+
+- On a court document that names the parties, press "Create annexures" and download one PDF with the Vakalatnama, Memo of Parties and the other annexures, with the client's and the opposite party's names filled in.
+- If a name or the client's side is missing, see the card say what to add, never a blank printed.
+- This is the check for your T-313 and T-318.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

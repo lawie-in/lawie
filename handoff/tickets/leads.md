@@ -58,6 +58,8 @@ Where each lead stopped:
 
 ## Last done
 
+- mahak: T-381 merged 9e3cafa (13 Oct 2026). Create annexures: one PDF with Vakalatnama, Memo of Parties and the rest, party names filled; missing names are named, never blank. Ajay Addenda 1-4. Unblocks Anushka T-313, T-318.
+- vishal: T-397 CI green (run 522).
 - vishal: T-397 merged 7e23038 (13 Oct 2026). Legacy prompts: no invented S/o or relative, no 'offence complete' claims, dates kept as entered. Ajay 05c7e44.
 - kunal: T-399 gitleaks:allow fix CI green (run 521).
 - kunal: T-399 gitleaks:allow fix merged 28177b7 (13 Oct 2026), after run 520 went green. Comment-only; commit hooks pass on T-399's lines.
