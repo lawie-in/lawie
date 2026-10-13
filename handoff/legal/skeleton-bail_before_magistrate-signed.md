@@ -30,13 +30,39 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - `grounds` gets `list: true` (Arjun's ruling 4). Each ground the ledger holds renders as its own item in the advocate's words, with grammar fixes only, under the signed intro.
 - `medical` loses `skip_if_rendered`, because free-text grounds have no `medical_grounds` item to point at. If the advocate gives a medical condition, it prints once in the `medical` clause.
 
+## Version 4, 13 Oct 2026 (supersedes SHA `683616eb289f1bc08b9a6ee533d447871d5f6940e9899d5262fcf00d930206fe`)
+
+- The `antecedents` none variant now matches its own list, `antecedents_none_values`, instead of the T-334 earlier-application list. That list was for earlier bail applications, so "first bail application" would have counted as no antecedents, and "No criminal record" did not match. Matching is on the whole answer, after the T-334 folding (case, spaces and punctuation). Any other answer prints in the "are: {antecedents}" variant.
+- Left out on purpose: "no other case" and "no case pending", because they speak to pending cases, not past record.
+- The loader resolves a `when.in` string by looking up the top-level key it names.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_before_magistrate",
-  "version": 3,
+  "version": 4,
   "none_values": "first_bail_application.equals (T-334)",
+  "antecedents_none_values": [
+    "none",
+    "nil",
+    "no",
+    "not applicable",
+    "no criminal record",
+    "no criminal antecedents",
+    "no antecedents",
+    "no previous record",
+    "no past record",
+    "no prior record",
+    "no previous criminal record",
+    "no criminal history",
+    "clean record",
+    "koi record nahi",
+    "koi criminal record nahi",
+    "koi aapradhik record nahi",
+    "कोई नहीं",
+    "कोई आपराधिक रिकॉर्ड नहीं"
+  ],
   "clauses": [
     {
       "id": "offence_classification",
@@ -148,7 +174,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
         {
           "when": {
             "key": "antecedents",
-            "in": "none_values"
+            "in": "antecedents_none_values"
           },
           "text": "The applicant has no criminal antecedents."
         },
@@ -391,4 +417,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `683616eb289f1bc08b9a6ee533d447871d5f6940e9899d5262fcf00d930206fe`
+SHA-256 of the JSON block (between the fences, final newline included): `0404960987deb50cc19d24ef70535298185aa0c882db8ddc0afa39fbe9794f23`
