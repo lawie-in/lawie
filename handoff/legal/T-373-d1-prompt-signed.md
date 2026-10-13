@@ -11,3 +11,33 @@ Rules 1, 2, 3, 5 and 6 are approved as written, including rule 3's one-item-per-
 **f8d2102: final.** Rule 4 is byte-equal to the line above, "PROPOSED" is removed, and the comment cites this file. Nothing else changed. Signed.
 
 Note: the legacy LEDGER, LEDGER_REPAIR and FACT_REPAIR prompts still carry old "PROPOSED" comments. "Untouched" above means unchanged, not signed. Their status is a separate review, to be logged with Priya.
+
+## Renderer review: `draft-renderer.ts` at 4b59ec7 (Ajay, 13 Oct 2026)
+
+| Area | Ruling |
+|---|---|
+| Fixed clauses: signed text, slots from the ledger, MISSING only when the fact is absent, variants, optional clauses left out | Approved |
+| Grounds list: one signed sentence per ticked option, MISSING form for an unsigned or `requires`-failed option, `use_clause` printed once | Approved |
+| Police-station prefix strip (whole words only), section dedupe on (code, number) | Approved |
+| A condition on an unheld key fails closed; an unknown list name fails closed | Approved |
+| No literal sentences (test-enforced); fallback log carries ids and reasons, never text | Approved |
+| Own-words check (advocate clauses) | **Blocker, 3 changes**, below |
+
+### Own-words check: changes before merge
+
+The add and drop checks compare **sets** of words. A rephrase that keeps every word but changes who did what to whom passes today. The advocate's words verbatim are always safe, so each case below must fall back.
+
+1. **Order.** The content words of the model's text (not on the stop list, compared on stems) must appear in the same order as in the raw_span. A passive-voice rewrite will fall back, which is accepted.
+2. **Modals out of the stop list.** Remove `will`, `would`, `shall` and `can`. Adding one turns a fact into an undertaking or a hypothesis.
+3. **Words kept as written, like the negators.** Third-person pronouns (`he`, `him`, `his`, `himself`, `she`, `her`, `hers`, `herself`, `they`, `them`, `their`, `themselves`) and `or` / `either`. One in the text that the raw_span lacks, or one in the raw_span that the text lacks, means fallback.
+
+Tests (each must fall back; use fictitious names):
+- `Ramesh assaulted Suresh` → `Suresh assaulted Ramesh`
+- `the amount was paid by the applicant to the complainant` → `the amount was paid by the complainant to the applicant`
+- `she was at home` → `he was at home`
+- `the applicant cooperates with the investigation` → `the applicant will cooperate with the investigation`
+- `the applicant and his brother were present` → `the applicant or his brother was present`
+
+Control (must stay `ok`): a tense or article fix with the same word order, e.g. `applicant arrested on 2 March 2025` → `The applicant was arrested on 2 March 2025.`
+
+With these three changes and the tests in place, the renderer is approved with no further review. I byte-check only the stop-list and kept-words diff.
