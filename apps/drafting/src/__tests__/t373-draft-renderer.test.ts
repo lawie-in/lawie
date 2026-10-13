@@ -23,9 +23,11 @@ import {
   DraftParagraph,
   DraftParagraphsOutput,
   draftFactRefs,
+  OWN_WORDS_NEGATORS,
   OWN_WORDS_STOP_LIST,
   ownWordsAddedWord,
   ownWordsAlteredEntity,
+  ownWordsDroppedWord,
   ownWordsStem,
   packOptionIds,
   renderDraft,
@@ -49,7 +51,9 @@ import {
   PackId,
   REG_GROUND,
   regularBase,
+  REGULAR_NARRATIVE_ABSOLUTE_RAW,
   REGULAR_NARRATIVE_RAW,
+  regularBaseWithNarrative,
   sections,
   signedJsonBlock,
   signedPrintedSha,
@@ -122,7 +126,9 @@ function render(
   return { result, skeleton, text, status, ids: result.rendered.map((r) => r.clauseId) };
 }
 
-const KEPT_REPHRASE = 'He is accused in a civil dispute from a failed land-sale agreement.';
+// A grammar-only rephrase of REGULAR_NARRATIVE_ABSOLUTE_RAW: every content word, number and date kept ("2 Mar" written "2 March").
+const KEPT_REPHRASE =
+  'He is accused in a civil dispute from a failed land-sale agreement of 2 March 2025, and was arrested.';
 
 const count = (haystack: string, needle: string): number => haystack.split(needle).length - 1;
 
@@ -262,7 +268,12 @@ describe('ADR unit cases', () => {
 
   it('(c) a pure rephrase (same date and facts, grammar only) is kept, status ok', () => {
     const rephrase = KEPT_REPHRASE;
-    const { text, status } = render('bail_regular', regularBase(), undefined, { facts: rephrase });
+    const { text, status } = render(
+      'bail_regular',
+      regularBaseWithNarrative(REGULAR_NARRATIVE_ABSOLUTE_RAW),
+      undefined,
+      { facts: rephrase },
+    );
     expect(status('facts')).toBe('ok');
     expect(text('facts')).toBe(`The brief facts of the case are as follows: ${rephrase}`);
   });
@@ -458,9 +469,14 @@ describe('own-words fallbacks: reasons and the list the caller logs', () => {
   });
 
   it('a kept rephrase and a fixed clause are not fallbacks; rendered[] has no reason for them', () => {
-    const { result } = render('bail_regular', regularBase(), undefined, {
-      facts: KEPT_REPHRASE,
-    });
+    const { result } = render(
+      'bail_regular',
+      regularBaseWithNarrative(REGULAR_NARRATIVE_ABSOLUTE_RAW),
+      undefined,
+      {
+        facts: KEPT_REPHRASE,
+      },
+    );
     expect(result.fallbacks).toEqual([]);
     expect(result.rendered.every((r) => r.reason === undefined)).toBe(true);
   });
@@ -1414,8 +1430,13 @@ describe('ruling 1: a changed date, number, name or place falls back, even with 
 
 describe('ruling 2: a content word the raw_span does not hold falls back', () => {
   it('a kept rephrase uses raw_span words and stop words only', () => {
-    expect(ownWordsAddedWord(KEPT_REPHRASE, REGULAR_NARRATIVE_RAW)).toBe(false);
-    const { status } = render('bail_regular', regularBase(), undefined, { facts: KEPT_REPHRASE });
+    expect(ownWordsAddedWord(KEPT_REPHRASE, REGULAR_NARRATIVE_ABSOLUTE_RAW)).toBe(false);
+    const { status } = render(
+      'bail_regular',
+      regularBaseWithNarrative(REGULAR_NARRATIVE_ABSOLUTE_RAW),
+      undefined,
+      { facts: KEPT_REPHRASE },
+    );
     expect(status('facts')).toBe('ok');
   });
 
@@ -1608,5 +1629,283 @@ describe('a named list that neither the skeleton nor the pack holds fails closed
     const inline = JSON.parse(JSON.stringify(sk)) as Skeleton;
     (inline as unknown as Record<string, unknown>).none_values = ['zilch'];
     expect(skeletonValueLists(inline, { banned: [], allowed: [] }).none_values).toEqual(['zilch']);
+  });
+});
+
+// ── The own-words check runs both ways (T-373 review round 2, Arjun's ruling) ──
+
+describe('ruling 2, other direction: something the raw_span states that the text drops falls back', () => {
+  const PREFIX = 'The brief facts of the case are as follows: ';
+  const fallsBack = (raw: string, rephrase: string) => {
+    const { text, status, result } = render('bail_regular', withNarrative(raw), undefined, {
+      facts: rephrase,
+    });
+    expect(status('facts')).toBe('fallback');
+    expect(result.fallbacks).toEqual([{ clauseId: 'facts', reason: 'unverified' }]);
+    expect(text('facts')).toBe(`${PREFIX}${raw}`);
+  };
+  const kept = (raw: string, rephrase: string) => {
+    const { text, status } = render('bail_regular', withNarrative(raw), undefined, {
+      facts: rephrase,
+    });
+    expect(status('facts')).toBe('ok');
+    expect(text('facts')).toBe(`${PREFIX}${rephrase}`);
+  };
+
+  it('the reversal: "not named in the FIR" rendered as "named in the FIR" falls back (round 1 failure)', () => {
+    const raw = 'The applicant was not named in the FIR.';
+    expect(ownWordsDroppedWord('The applicant was named in the FIR.', raw)).toBe(true);
+    expect(ownWordsAddedWord('The applicant was named in the FIR.', raw)).toBe(false);
+    fallsBack(raw, 'The applicant was named in the FIR.');
+  });
+
+  it('a faithful rephrase that keeps the negation is kept', () => {
+    kept('The applicant was not named in the FIR.', 'In the FIR, the applicant was not named.');
+  });
+
+  it('a dropped date falls back', () => {
+    const raw = 'He was arrested on 5 May 2026 over a land-sale quarrel.';
+    expect(ownWordsDroppedWord('He was arrested over a land-sale quarrel.', raw)).toBe(true);
+    fallsBack(raw, 'He was arrested over a land-sale quarrel.');
+  });
+
+  it('a dropped number falls back', () => {
+    const raw = 'He was held for 3 weeks over a land-sale quarrel.';
+    expect(ownWordsDroppedWord('He was held for weeks over a land-sale quarrel.', raw)).toBe(true);
+    fallsBack(raw, 'He was held for weeks over a land-sale quarrel.');
+  });
+
+  it('a dropped amount falls back; the same amount with other grouping or marker is kept', () => {
+    const raw = 'He owes the seller Rs 8,00,000 for the land.';
+    expect(ownWordsDroppedWord('He owes the seller for the land.', raw)).toBe(true);
+    fallsBack(raw, 'He owes the seller for the land.');
+    for (const amt of ['Rs 800000', '₹8,00,000', 'Rs. 800000', 'INR 8,00,000']) {
+      expect(ownWordsDroppedWord(`For the land, he owes the seller ${amt}.`, raw)).toBe(false);
+    }
+    kept(raw, 'For the land he owes the seller Rs 8,00,000.');
+  });
+
+  // FINDING (T-373 round 2, older than the two-way check): ownWordsAlteredEntity / ownWordsAddedWord read
+  // "Rs 8,00,000" as the numbers 8, 00, 000, so the same amount regrouped ("Rs 800000") falls back end to end
+  // although ownWordsDroppedWord and the verifier both accept it by value. Safe direction, over-fires.
+  it.failing('an amount regrouped ("Rs 800000" for "Rs 8,00,000") is kept end to end', () => {
+    kept(
+      'He owes the seller Rs 8,00,000 for the land.',
+      'For the land he owes the seller Rs 800000.',
+    );
+  });
+
+  it('a changed amount is caught as a dropped one too (value, not text)', () => {
+    expect(
+      ownWordsDroppedWord(
+        'He owes the seller Rs 9,00,000 for the land.',
+        'He owes the seller Rs 8,00,000 for the land.',
+      ),
+    ).toBe(true);
+  });
+
+  it('a dropped content word falls back', () => {
+    const raw = 'He was arrested over a land-sale quarrel with the neighbour.';
+    expect(ownWordsDroppedWord('He was arrested over a land-sale quarrel.', raw)).toBe(true);
+    fallsBack(raw, 'He was arrested over a land-sale quarrel.');
+  });
+
+  it('a content word dropped on a different stem inflection is still found, an inflection is not a drop', () => {
+    expect(ownWordsDroppedWord('He was arresting', 'He was arrested')).toBe(false);
+    expect(ownWordsDroppedWord('He was', 'He was arrested')).toBe(true);
+  });
+
+  it('a dropped Hinglish "nahi" falls back, a kept one is ok', () => {
+    const raw = 'Usne paisa nahi liya, the deal was a land sale.';
+    expect(ownWordsDroppedWord('Usne paisa liya, the deal was a land sale.', raw)).toBe(true);
+    fallsBack(raw, 'Usne paisa liya, the deal was a land sale.');
+    kept(raw, 'The deal was a land sale, usne paisa nahi liya.');
+    expect(ownWordsDroppedWord('Usne paisa liya', 'Usne paisa nahin liya')).toBe(true);
+  });
+
+  it.each(['not', 'no', 'nor', 'never', 'neither', 'without', 'nahi', 'nahin'])(
+    'negator "%s" dropped from the text falls back, kept does not',
+    (n) => {
+      expect(OWN_WORDS_NEGATORS).toContain(n);
+      expect(ownWordsDroppedWord('He went home', `He ${n} went home`)).toBe(true);
+      expect(ownWordsDroppedWord(`He ${n} went home`, `He ${n} went home`)).toBe(false);
+    },
+  );
+
+  it('negators and quantifiers are never on the stop list', () => {
+    for (const w of [
+      'not',
+      'no',
+      'never',
+      'without',
+      'nor',
+      'neither',
+      'all',
+      'any',
+      'only',
+      'every',
+    ]) {
+      expect(OWN_WORDS_STOP_LIST).not.toContain(w);
+    }
+    for (const w of OWN_WORDS_NEGATORS) expect(OWN_WORDS_STOP_LIST).not.toContain(w);
+  });
+
+  it.each(['all', 'any', 'only', 'every'])('quantifier "%s" counts both ways', (w) => {
+    expect(ownWordsAddedWord(`He sold ${w} land`, 'He sold land')).toBe(true);
+    expect(ownWordsDroppedWord('He sold land', `He sold ${w} land`)).toBe(true);
+  });
+
+  it.each(['as', 'may', 'might', 'could', 'should', 'must', 'any', 'every'])(
+    'removed stop word "%s": added is caught and dropped is caught',
+    (w) => {
+      expect(OWN_WORDS_STOP_LIST).not.toContain(w);
+      expect(ownWordsAddedWord(`He ${w} go home`, 'He go home')).toBe(true);
+      expect(ownWordsDroppedWord('He go home', `He ${w} go home`)).toBe(true);
+      expect(ownWordsDroppedWord(`He ${w} go home`, `He ${w} go home`)).toBe(false);
+      fallsBack(
+        'He was arrested over a land-sale quarrel.',
+        `He ${w} was arrested over a land-sale quarrel.`,
+      );
+    },
+  );
+
+  it('a stop word (article, auxiliary, preposition) dropped or added alone is grammar and is kept', () => {
+    expect(
+      ownWordsDroppedWord('He arrested land quarrel', 'He was arrested over a land quarrel'),
+    ).toBe(false);
+    expect(
+      ownWordsDroppedWord('He was arrested over the land quarrel', 'He arrested land quarrel'),
+    ).toBe(false);
+  });
+
+  it('dates regroup by value: "2 March 2025" keeps "2 Mar 2025" and back', () => {
+    expect(
+      ownWordsDroppedWord('The deal of 2 March 2025 failed.', 'deal of 2 Mar 2025 failed'),
+    ).toBe(false);
+    expect(
+      ownWordsDroppedWord('The deal of 2 Mar 2025 failed.', 'deal of 2 March 2025 failed'),
+    ).toBe(false);
+    expect(
+      ownWordsDroppedWord('The deal of 3 March 2025 failed.', 'deal of 2 Mar 2025 failed'),
+    ).toBe(true);
+  });
+
+  it('amount grouping is ignored for a bare figure too ("800000" keeps "8,00,000")', () => {
+    expect(ownWordsDroppedWord('Paid 800000 in cash', 'Paid 8,00,000 in cash')).toBe(false);
+    expect(ownWordsDroppedWord('Paid in cash', 'Paid 8,00,000 in cash')).toBe(true);
+  });
+
+  it("the advocate's own text verbatim is still ok before any check (sameAsRawSpan first)", () => {
+    const raw = 'The applicant was not named in the FIR.';
+    kept(raw, raw);
+  });
+
+  describe('a grammar-only rephrase of each fixture narrative is kept', () => {
+    it('regular: facts_narrative', () => {
+      const raw = REGULAR_NARRATIVE_ABSOLUTE_RAW;
+      expect(ownWordsDroppedWord(KEPT_REPHRASE, raw)).toBe(false);
+      expect(ownWordsAddedWord(KEPT_REPHRASE, raw)).toBe(false);
+      expect(ownWordsAlteredEntity(KEPT_REPHRASE, raw)).toBe(false);
+      const base = regularBaseWithNarrative(raw);
+      expect(
+        render('bail_regular', base, undefined, { facts: KEPT_REPHRASE }).status('facts'),
+      ).toBe('ok');
+    });
+    it('regular: the rephrase with the date, "civil", "failed" or "arrested" left out falls back', () => {
+      const base = regularBaseWithNarrative(REGULAR_NARRATIVE_ABSOLUTE_RAW);
+      for (const t of [
+        'He is accused in a civil dispute from a failed land-sale agreement, and was arrested.',
+        'He is accused in a dispute from a failed land-sale agreement of 2 March 2025, and was arrested.',
+        'He is accused in a civil dispute from a land-sale agreement of 2 March 2025, and was arrested.',
+        'He is accused in a civil dispute from a failed land-sale agreement of 2 March 2025.',
+      ]) {
+        expect(ownWordsDroppedWord(t, REGULAR_NARRATIVE_ABSOLUTE_RAW)).toBe(true);
+        expect(render('bail_regular', base, undefined, { facts: t }).status('facts')).toBe(
+          'fallback',
+        );
+      }
+    });
+    // FINDING (T-373 round 2): the fact verifier reads "three weeks ago" as a date it cannot match, so a
+    // faithful rephrase of the REGULAR_NARRATIVE_RAW that keeps it falls back although every word is kept.
+    // Safe direction (the advocate's words print), but it over-fires. Pinned as failing until the lead decides.
+    it.failing(
+      'regular: a grammar-only rephrase keeping "three weeks ago" is kept (verifier reads it as a date)',
+      () => {
+        const t =
+          'He is accused in a civil dispute from a failed land-sale agreement of 2 March 2025, and was arrested three weeks ago.';
+        expect(ownWordsDroppedWord(t, REGULAR_NARRATIVE_RAW)).toBe(false);
+        expect(render('bail_regular', regularBase(), undefined, { facts: t }).status('facts')).toBe(
+          'ok',
+        );
+      },
+    );
+    it('anticipatory: apprehension', () => {
+      const { status } = render('bail_anticipatory', anticipatoryBase(), undefined, {
+        apprehension: 'It was a boundary quarrel with the neighbour, and he fears arrest.',
+      });
+      expect(status('apprehension')).toBe('ok');
+      const dropped = render('bail_anticipatory', anticipatoryBase(), undefined, {
+        apprehension: 'It was a boundary quarrel with the neighbour.',
+      });
+      expect(dropped.status('apprehension')).toBe('fallback');
+    });
+    it('magistrate: facts and the single grounds entry', () => {
+      const { status } = render('bail_before_magistrate', magistrateBase(), undefined, {
+        facts: 'The complaint is about a deal in which she had no part.',
+        grounds: 'She was not at the spot, and has two kids.',
+      });
+      expect(status('facts')).toBe('ok');
+      expect(status('grounds')).toBe('ok');
+      const dropped = render('bail_before_magistrate', magistrateBase(), undefined, {
+        facts: 'The complaint is about a deal in which she had a part.',
+        grounds: 'She was at the spot, and has two kids.',
+      });
+      expect(dropped.status('facts')).toBe('fallback');
+      expect(dropped.status('grounds')).toBe('fallback');
+    });
+  });
+
+  describe('Magistrate grounds items: a dropped word falls back that item alone', () => {
+    const two = (): LedgerFact[] => [
+      ...withoutKey(magistrateBase(), 'grounds_for_bail'),
+      fact('grounds_for_bail', 'She has two kids.', { raw_span: 'she has two kids' }),
+      fact('grounds_for_bail', 'She was not at the spot.', { raw_span: 'she was not at the spot' }),
+    ];
+    const outputWith = (items: Array<[string, string]>): DraftParagraphsOutput => {
+      const o = goodOutput(loadFixtureSkeleton('bail_before_magistrate'), two());
+      const g = o.paragraphs.find((p) => p.clauseId === 'grounds')!;
+      g.text = '';
+      g.items = items.map(([factRef, text]) => ({ factRef, text }));
+      return o;
+    };
+
+    it('item (b) with "not" dropped prints its raw_span; item (a) keeps the model rephrase', () => {
+      const { text, status, result } = render(
+        'bail_before_magistrate',
+        two(),
+        outputWith([
+          ['grounds_for_bail[0]', 'Two kids are hers.'],
+          ['grounds_for_bail[1]', 'She was at the spot.'],
+        ]),
+      );
+      expect(text('grounds')).toContain('(a) Two kids are hers.');
+      expect(text('grounds')).toContain('(b) she was not at the spot');
+      expect(text('grounds')).not.toContain('She was at the spot.');
+      expect(status('grounds')).toBe('fallback');
+      expect(result.fallbacks).toEqual([{ clauseId: 'grounds', reason: 'unverified' }]);
+    });
+
+    it('item (a) with a content word dropped falls back alone, (b) kept as a rephrase', () => {
+      const { text } = render(
+        'bail_before_magistrate',
+        two(),
+        outputWith([
+          ['grounds_for_bail[0]', 'She has kids.'],
+          ['grounds_for_bail[1]', 'At the spot she was not.'],
+        ]),
+      );
+      expect(text('grounds')).toContain('(a) she has two kids');
+      expect(text('grounds')).toContain('(b) At the spot she was not.');
+    });
   });
 });

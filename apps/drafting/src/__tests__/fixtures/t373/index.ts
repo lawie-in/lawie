@@ -165,6 +165,19 @@ export function regularBase(): LedgerFact[] {
   ];
 }
 
+/**
+ * The same narrative without "three weeks ago": the fact verifier reads a relative time ("three weeks ago")
+ * as a date it cannot match, so a rephrase keeping it falls back (T-373 round 2 finding). A grammar-only
+ * rephrase that must be kept is tested on this one.
+ */
+export const REGULAR_NARRATIVE_ABSOLUTE_RAW =
+  'He is accused in a dispute that is civil, from a failed land-sale agreement of 2 Mar 2025, and was arrested.';
+
+/** regularBase() with the facts_narrative raw_span replaced. */
+export function regularBaseWithNarrative(raw: string): LedgerFact[] {
+  return regularBase().map((f) => (f.key === 'facts_narrative' ? { ...f, raw_span: raw } : f));
+}
+
 // ── bail_anticipatory: Anushka T-241 (nothing about roots, character, flight; "boundary quarrel") ──
 
 export function anticipatoryBase(): LedgerFact[] {

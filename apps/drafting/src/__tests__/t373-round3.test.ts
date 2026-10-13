@@ -30,7 +30,9 @@ import {
   magistrateBase,
   PackId,
   regularBase,
+  REGULAR_NARRATIVE_ABSOLUTE_RAW,
   REGULAR_NARRATIVE_RAW,
+  regularBaseWithNarrative,
 } from './fixtures/t373';
 
 function render(
@@ -216,9 +218,14 @@ describe('round 3: the stop list holds no causal, temporal or negating word', ()
   });
 
   it('end to end: a contrast word in the rephrase is kept', () => {
-    const { status } = render('bail_regular', regularBase(), {
-      facts: 'He is accused in a civil dispute, but from a failed land-sale agreement.',
-    });
+    const { status } = render(
+      'bail_regular',
+      regularBaseWithNarrative(REGULAR_NARRATIVE_ABSOLUTE_RAW),
+      {
+        facts:
+          'He is accused in a civil dispute, but from a failed land-sale agreement of 2 March 2025, and was arrested.',
+      },
+    );
     expect(status('facts')).toBe('ok');
   });
 });

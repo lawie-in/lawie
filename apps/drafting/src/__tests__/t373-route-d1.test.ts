@@ -27,7 +27,9 @@ import {
   magistrateBase,
   PackId,
   regularBase,
+  REGULAR_NARRATIVE_ABSOLUTE_RAW,
   REGULAR_NARRATIVE_RAW,
+  regularBaseWithNarrative,
   sections,
 } from './fixtures/t373';
 import { sdkAnswer, sdkParseResponse } from './sdkStream';
@@ -254,17 +256,17 @@ describe.each(PACKS)('$id: a valid structured reply on the real skeleton', (p) =
 
 // ── Magistrate: the facts clause today ──────────────────────────────────────
 
-describe('bail_before_magistrate: the facts clause until T-365', () => {
-  it('prints MISSING for the facts clause because the pack has no facts_narrative field yet (Arjun option a)', async () => {
+describe('bail_before_magistrate: the facts clause with no facts_narrative field', () => {
+  it('prints MISSING for the facts clause when the ledger has no facts_narrative (Arjun option a)', async () => {
     const r = await generate('bail_before_magistrate', magistrateToday());
     expect(r.status).toBe(200);
     expect(statusOf(r, 'facts')).toBe('missing');
     expect(r.body).toContain('{{MISSING');
     expect((r.done.missingClauses as Array<{ id: string }>).map((m) => m.id)).toContain('facts');
-    // When T-365 lands this flips; the it.failing in t373-round3.test.ts is the pin.
+    // T-365 added the field to the Magistrate pack; the round 3 test pins the real checklist.
   });
 
-  it('with a facts_narrative fact the clause prints the advocate words (what T-365 will give)', async () => {
+  it('with a facts_narrative fact the clause prints the advocate words (the pack field T-365 added)', async () => {
     const r = await generate('bail_before_magistrate', magistrateBase());
     expect(statusOf(r, 'facts')).not.toBe('missing');
     expect(r.body).toContain('The complaint is about a deal she had no part in.');
@@ -290,12 +292,16 @@ describe('T-359 through the route (Anushka run 3)', () => {
   });
 
   it('AC1 a faithful rephrase of the advocate words is kept (ok), not replaced', async () => {
-    const r = await generate('bail_regular', regularBase(), (o) => {
-      o.paragraphs.find((x) => x.clauseId === 'facts')!.text =
-        'He is accused in a civil dispute from a failed land-sale agreement of 2 March 2025.';
-    });
+    const r = await generate(
+      'bail_regular',
+      regularBaseWithNarrative(REGULAR_NARRATIVE_ABSOLUTE_RAW),
+      (o) => {
+        o.paragraphs.find((x) => x.clauseId === 'facts')!.text =
+          'He is accused in a civil dispute from a failed land-sale agreement of 2 March 2025, and was arrested.';
+      },
+    );
     expect(statusOf(r, 'facts')).toBe('ok');
-    expect(r.body).toContain('a failed land-sale agreement of 2 March 2025');
+    expect(r.body).toContain('a failed land-sale agreement of 2 March 2025, and was arrested');
   });
 
   it('AC1 anticipatory: roots, character and flight text the model adds in an advocate clause cannot print', async () => {
