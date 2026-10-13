@@ -28,6 +28,7 @@ import {
 } from './bail-guard';
 import { datesInText, iso, isOwnWords, normalise } from './intake-text';
 import type { RulePack, RulePackFact } from './rule-pack.service';
+import { s138BriefDateCheck } from './s138-date-checks';
 import { evaluateShowIf } from './template-engine.service';
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
@@ -140,6 +141,12 @@ export interface Brief {
   confirm_blockers: Array<'court' | 'parties'>;
   /** The line shown under Confirm when it is off (T-127, section 7.2). */
   confirm_message: string | null;
+  /**
+   * T-363 AC1: for a `legal_notice_s138` whose own dates give T-192's B2, the
+   * signed B2 line. The advocate confirms the dates before drafting. The
+   * entry stays banned (T-192). Absent for any other result or pack.
+   */
+  date_check?: { line: 'B2'; text: string };
 }
 
 export interface LooseDate {
@@ -1513,6 +1520,9 @@ export function buildBrief(input: BuildBriefInput): Brief {
             meaning: d.kind ? dateKindLabel(d.kind) : null,
           }));
 
+  // T-363 AC1: T-192's B2 on the brief's own dates, for the advocate to confirm.
+  const dateCheck = s138BriefDateCheck(input.kind.id, items);
+
   return {
     kind: input.kind,
     court,
@@ -1523,6 +1533,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
     can_confirm: blockers.length === 0,
     confirm_blockers: blockers,
     confirm_message,
+    ...(dateCheck ? { date_check: dateCheck } : {}),
   };
 }
 
