@@ -187,4 +187,100 @@ describe('OneFlow initialKind (T-365 AC5)', () => {
     expect(h1()).toBe(PLAIN);
     expect(replaceSpy).toHaveBeenCalledTimes(1);
   });
+
+  // Review round 1: an advocate who acts before the list arrives is never overridden.
+  describe('does not override an advocate who acted before the list loaded', () => {
+    const type = async (text: string) => {
+      const ta = container.querySelector('textarea') as HTMLTextAreaElement;
+      await act(async () => {
+        const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')
+          ?.set as (v: string) => void;
+        set.call(ta, text);
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    };
+    const loaded = { initialKind: 'bail_regular', kinds: KINDS, loadingKinds: false };
+
+    it('submitted while loading: no preset, no kind sent, flow not pulled back to describe', async () => {
+      let resolveRead: (v: unknown) => void = () => undefined;
+      mockApiFetch.mockImplementation(
+        (url: string) =>
+          new Promise((resolve) => {
+            if (url === '/api/documents/intake/brief') resolveRead = resolve;
+            else resolve({ ok: true, status: 200, json: async () => ({}) });
+          }),
+      );
+      await render({ initialKind: 'bail_regular', kinds: [], loadingKinds: true });
+      await submitDescription();
+      expect(briefCalls()).toHaveLength(1);
+      const before = container.innerHTML;
+      await render(loaded);
+      await flush();
+      expect(h1()).not.toBe('Regular Bail');
+      expect(container.textContent).not.toContain('Not this document?');
+      expect(container.querySelector('textarea')).toBeNull(); // still not back on describe
+      expect(stripIds(container.innerHTML)).toBe(stripIds(before));
+      expect(briefCalls()).toHaveLength(1);
+      expect(JSON.parse(briefCalls()[0][1].body)).not.toHaveProperty('kind');
+      expect(window.location.search).toBe('?x=1');
+      expect(replaceSpy).toHaveBeenCalledTimes(1);
+      // The read comes back "describe in more detail" (400): the advocate lands on describe.
+      // Phase stays 'describe' during the read (the loading screen hides it), so a wrongly
+      // applied preset only shows here.
+      await act(async () => resolveRead({ ok: false, status: 400, json: async () => ({}) }));
+      await flush();
+      expect(h1()).toBe(PLAIN);
+      expect(container.textContent).not.toContain('Not this document?');
+      expect(briefCalls()).toHaveLength(1);
+    });
+
+    it('typed but not submitted: no preset and the typed text is kept', async () => {
+      await render({ initialKind: 'bail_regular', kinds: [], loadingKinds: true });
+      await type('My client needs help with a lease dispute.');
+      await render(loaded);
+      await flush();
+      expect(h1()).toBe(PLAIN);
+      expect(container.textContent).not.toContain('Not this document?');
+      expect((container.querySelector('textarea') as HTMLTextAreaElement).value).toBe(
+        'My client needs help with a lease dispute.',
+      );
+      expect(window.location.search).toBe('?x=1');
+      await (async () => {
+        await act(async () => (buttonWith('Continue') as HTMLButtonElement).click());
+        await flush();
+      })();
+      expect(JSON.parse(briefCalls()[0][1].body)).not.toHaveProperty('kind');
+    });
+
+    it('whitespace-only text is not an action: the preset still applies', async () => {
+      await render({ initialKind: 'bail_regular', kinds: [], loadingKinds: true });
+      await type('   ');
+      await render(loaded);
+      await flush();
+      expect(h1()).toBe('Regular Bail');
+    });
+
+    it('picked a kind in Browse before loading finished: that pick stands', async () => {
+      await render({ initialKind: 'bail_regular', kinds: KINDS, loadingKinds: true });
+      await act(async () => (buttonWith('Browse document types') as HTMLButtonElement).click());
+      await act(async () => (buttonWith('Identity Affidavit') as HTMLButtonElement).click());
+      expect(h1()).toBe('Identity Affidavit');
+      await render(loaded);
+      await flush();
+      expect(h1()).toBe('Identity Affidavit');
+      expect(window.location.search).toBe('?x=1');
+      await submitDescription();
+      expect(JSON.parse(briefCalls()[0][1].body).kind).toBe('affidavit_identity');
+    });
+
+    it('still in Browse when the list arrives: no preset pulls them out', async () => {
+      await render({ initialKind: 'bail_regular', kinds: [], loadingKinds: true });
+      await act(async () => (buttonWith('Browse document types') as HTMLButtonElement).click());
+      await render(loaded);
+      await flush();
+      expect(h1()).not.toBe('Regular Bail');
+      expect(container.textContent).not.toContain('Not this document?');
+      expect(window.location.search).toBe('?x=1');
+    });
+  });
 });

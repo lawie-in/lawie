@@ -1,4 +1,5 @@
 import './setupDb';
+import mongoose from 'mongoose';
 import request from 'supertest';
 
 import app from '../app';
@@ -120,6 +121,27 @@ describe('Templates Routes', () => {
         (t: { slug: string }) => t.slug === 'bail-application',
       );
       expect(template.description).toBe('');
+    });
+
+    it('does not select the stored description from Mongo (T-365 review 1)', async () => {
+      const selectSpy = jest.spyOn(mongoose.Query.prototype, 'select');
+      try {
+        const res = await request(app).get('/templates').set(internalHeaders('free'));
+        expect(res.status).toBe(200);
+        const fields = selectSpy.mock.calls.map((c) => String(c[0]));
+        expect(fields.length).toBeGreaterThan(0);
+        const listSelect = fields.find((f) => f.includes('templateId'));
+        expect((listSelect ?? '').split(/\s+/)).not.toContain('description');
+        expect(listSelect).toContain('displayName');
+        const card = res.body.templates.find(
+          (t: { slug: string }) => t.slug === 'affidavit-identity',
+        );
+        expect(card.description).toBe(
+          "A sworn affidavit confirming a person's identity, for banks, offices and property work.",
+        );
+      } finally {
+        selectSpy.mockRestore();
+      }
     });
 
     it('never returns the old "Document-rules config for" text or a stored description', async () => {
