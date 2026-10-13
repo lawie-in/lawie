@@ -61,3 +61,5 @@ The worked example stands: first remand on 1 January 2026 gives a last day of 1 
 | CTA "Need to file a default bail application?" | Keep, provided the button opens the **default_bail** pack. Today it links to `type=bail_application`; point it at default bail, or change the question to `Need to draft a bail application?`. |
 
 With these, 1087793 is approved for merge.
+
+**6f00e62: approved for merge, 13 Oct 2026.** The card lines match Addendum 3 exactly, with "day" singular for 1 and no "overdue". The CTA uses the alternative `Need to draft a bail application?` until /dashboard/new honours `?type=`; then it switches to default_bail with the original question. Legal Reference shows R1, R2 and then the 187(3) line, and the Depends line once.
