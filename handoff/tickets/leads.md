@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- tanvi: T-406 merged 43dc53f; holds the slot until CI on it is green. Then Kunal T-399 (all four reports in, 09:04, 47742e3), then Vishal T-373 (delta reviewer passed 09:14; pull in T-395 and T-406 first), then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), then Mahak T-390 + T-416 as one merge (38316a5; all reports in, T-416 delta reviewer passed 10:10). T-361 data copy waits on the founder.
+- kunal: T-399 holds the slot (T-406 CI green, run 513 re-run; first attempt failed on a Google font fetch in Web build). Then Vishal T-373 (delta reviewer passed 09:14; pull in T-395 and T-406 first), then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), then Mahak T-390 + T-416 as one merge (38316a5; all reports in, T-416 delta reviewer passed 10:10). T-361 data copy waits on the founder.
 
 ## Last done
 
+- tanvi: T-406 CI green (run 513, attempt 2, 13 Oct 2026).
 - tanvi: T-406 merged 43dc53f (13 Oct 2026). Notices, deeds and agreements never print a court case-number line; Ajay signed the golden a9672b2. Golden snap and t406 released; template-engine guard released to Shashank (T-404) and Tanvi (T-410).
 - mahak: T-385 CI green (run 512, 13 Oct 2026).
 - mahak: T-385 merged 68937a7 (13 Oct 2026). Template configs are served through one public-field projection; nothing looks different to a user. Files released.
