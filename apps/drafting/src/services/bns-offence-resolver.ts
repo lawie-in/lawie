@@ -9,7 +9,9 @@
  * - R1: only an EXACT-key row's max_years may drive a BNSS s.187 default-bail period.
  * - R2: resolve a target to its exact key; else to its parent row (drop the trailing
  *   "(…)" group, repeatedly). A parent with `variants` uses the variant for the target;
- *   if none matches, the target is a definition sub-section and creates no offence.
+ *   if none matches, the target is a definition sub-section and creates no offence,
+ *   unless variants are keyed below the target itself (T-383: 61(2) has 61(2)(a) and
+ *   61(2)(b)), when the target resolves to the parent row.
  * - R3: a null attribute, or a variant string other than exactly "yes"/"no", is
  *   "Depends. Check the First Schedule." and never false.
  *
@@ -568,8 +570,17 @@ export function resolveOffence(raw: string): ResolvedOffence {
         break;
       }
     }
-    // R2: parent has variants but no stripped form matches → a definition sub-section.
-    if (!variantKey) return notAnOffence(section);
+    if (!variantKey) {
+      // T-383: the target itself splits into variants one level further down
+      // (61(2) → 61(2)(a), 61(2)(b)), so it is the punishing sub-section, not a
+      // definition: resolve to the row. Only the target is checked, never a stripped
+      // form, so 61(2)(c) stays not an offence.
+      if (Object.keys(row.variants).some((k) => k.startsWith(`${section}(`))) {
+        return fromRow(section, hit.key, row, 'parent');
+      }
+      // R2: parent has variants but no stripped form matches → a definition sub-section.
+      return notAnOffence(section);
+    }
     const variant = row.variants[variantKey];
     const bailable = yesNo(variant.bailable);
     const cognizable = yesNo(variant.cognizable);

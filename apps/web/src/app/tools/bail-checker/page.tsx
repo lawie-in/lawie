@@ -60,6 +60,8 @@ interface SectionResult {
    * create an offence. Check the Gazette." (T-267, T-278)
    */
   note?: string;
+  /** T-383: not-found rows only: the section as the API names it ("400", "IPC 236"). */
+  display?: string;
 }
 
 interface BailCheckResult {
@@ -375,7 +377,8 @@ export default function BailCheckerPage() {
                     ) : (
                       <div className="flex items-center gap-2 text-sm text-slate-500">
                         <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-                        Section &ldquo;{s.input}&rdquo;
+                        {/* T-383: the API's display form, never the raw token ("400-BNS"). */}
+                        Section {s.display ?? s.input}
                         {/* T-278: only the API's signed note; the page adds no text of its own. */}
                         {s.note && <> — {s.note}</>}
                       </div>
