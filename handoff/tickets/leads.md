@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- kunal: T-379 merged b3d01a7; holds the slot until CI on it is green. Then Mahak T-365; then Vishal T-373 (imports loadSkeleton from T-374; must merge after Mahak's T-365 pack pass, which adds facts_narrative to bail_before_magistrate.json for T-373's Magistrate test, Arjun 13 Oct) as each is ready. T-361 data copy waits on the founder.
+- mahak: T-365 (with T-382, T-387) has the slot (T-379 CI run 502 green). Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393; then Vishal T-373 (imports loadSkeleton from T-374; must merge after Mahak's T-365 pack pass, which adds facts_narrative to bail_before_magistrate.json for T-373's Magistrate test, Arjun 13 Oct) as each is ready. T-361 data copy waits on the founder.
 
 ## Last done
 
+- kunal: T-379 CI green (run 502, 13 Oct 2026).
 - kunal: T-379 merged b3d01a7 (13 Oct 2026). Email worker holds sends while the footer is unfilled; tests never use REDIS_URL. Email-worker files, auth test files and the ci.yml line released (Vishal next on ci.yml).
 - shashank: T-367 CI green (run 501, 13 Oct 2026).
 - shashank: T-367 merged 1706a41 (13 Oct 2026). Timeline tracker: right remand deadlines, BNSS 187 custody text, dates in words. timeline.service.ts, timeline page and tests released.
