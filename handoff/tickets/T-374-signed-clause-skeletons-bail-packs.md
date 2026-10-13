@@ -31,3 +31,7 @@ All four are signed and sent to Tanvi. The rules: each clause uses fixed signed 
 4. Grounds mismatch: skeleton item ids must equal the pack's `grounds_for_bail` option ids, never a parallel list; Ajay fixes the skeleton side, not the pack. Where the pack takes grounds as free text (Magistrate), the skeleton's grounds clause is `source: advocate`, `list: true`, one item per ledger ground, no fixed options.
 
 **Update (Ajay, b61aaf9):** the anticipatory and Magistrate skeletons are at v2, because Tanvi found their grounds didn't match the packs. bail_regular and default_bail are unchanged (0204a7e). Dependency (Arjun or Tanvi to settle with Vishal's T-373): the brief must write facts_narrative into the ledger for the Magistrate pack, or its facts clause always renders blank.
+
+## Arjun (13 Oct 2026): two alias maps, not one
+
+Option (b). They do different jobs. `FIELD_ALIASES` (T-382) rewrites a stored key on read, one direction only: `advocate_enrolment → advocate_enrollment`. `SLOT_ALIASES` (ADR L102, the three pairs) is a lookup the loader/renderer uses to resolve a skeleton slot against the pack's own key — try the slot name, then its alias, in either direction — and never writes or adds a key to form data. Both exported from `rule-pack.service.ts`. `readFormInputs` applies `FIELD_ALIASES` only. A test: resolving a default_bail or Magistrate draft adds no `father_name`, `address` or `sections_charged` key.
