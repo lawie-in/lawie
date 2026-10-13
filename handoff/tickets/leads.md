@@ -46,11 +46,12 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- tanvi: T-369 merged becba5a; holds the slot until CI on it is green. Then her FIELD_ALIASES export (small, for Mahak), then T-374.
-- shashank: T-371 (b1494f9; Ajay signed 7421624). After Tanvi's small FIELD_ALIASES export; check with the slot holder first.
+- tanvi: FIELD_ALIASES export merged 56cc60d (T-369 CI run 495 green, web build job ran); CI on 56cc60d pending.
+- shashank: T-371 (b1494f9; Ajay signed 7421624). Next, once CI on 56cc60d is green.
 
 ## Last done
 
+- tanvi: FIELD_ALIASES export merged 56cc60d (13 Oct 2026), for Mahak's T-382 alias.
 - tanvi: T-369 merged becba5a (13 Oct 2026). CI web build job; ci.yml released to Vishal.
 - tanvi: T-357 merged 7158fc4 (13 Oct 2026). documents.routes.ts and template-engine.service.ts released (order: Kunal T-372, Mahak T-365, Vishal T-373); brief-drafter.ts: Mahak AC1, then Vishal.
 - kunal: T-370 merged 280dd3a (13 Oct 2026). "Upgrade to Pro" buys Pro; labels from /plans.
