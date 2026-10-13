@@ -15,12 +15,14 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import AnnexuresCard, { annexuresCardVisible } from '@/components/editor/AnnexuresCard';
 import DocumentEditor from '@/components/editor/DocumentEditor';
 import ExportBlanksDialog from '@/components/editor/ExportBlanksDialog';
 import {
   EXPORT_BLANKS_GO_BACK_EVENT,
   blankListItems,
   blanksInContent,
+  downloadBlob,
   exportDocx,
   exportPdf,
   type Blank,
@@ -50,6 +52,10 @@ interface DocumentData {
   startingDraftFooter?: string | null;
   /** T-197 — the signed disclaimer, shown on every draft. The text comes from the service. */
   disclaimer?: string | null;
+  /** T-381 — not one of the 32 not_court_documents. Sent by the service; absent means no card. */
+  courtDocument?: boolean;
+  /** T-381 — the brief or the form inputs hold at least one party. Absent means no card. */
+  hasParty?: boolean;
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -243,12 +249,7 @@ export default function DocumentEditorPage() {
 
     const blob = await response.blob();
     const filename = `${doc.title.replace(/[^a-zA-Z0-9\s-]/g, '').slice(0, 60)}.pdf`;
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    window.URL.revokeObjectURL(url);
+    downloadBlob(blob, filename);
   };
 
   // Makes the DOCX as today; T-194 adds the header and blank style when the draft has blanks.
@@ -574,6 +575,9 @@ export default function DocumentEditorPage() {
             </p>
           </div>
         )}
+
+        {/* T-381 — the Annexures card: court documents with a party only */}
+        {annexuresCardVisible(doc) && <AnnexuresCard docId={doc._id} title={doc.title} />}
 
         {/* Editor */}
         <div className="lg:min-h-0 lg:flex-1">
