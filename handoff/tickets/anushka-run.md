@@ -938,3 +938,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Press "resend verification email" several times before emails start going out, and get one email whose link works.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-405 — Shared public-field helper (ac78327, mahak, 13 Oct 2026)
+
+- Nothing changes on screen (internal refactor).
+
+Quality: nothing to test in the UI — internal refactor, output pinned unchanged
