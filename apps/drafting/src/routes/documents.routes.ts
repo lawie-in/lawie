@@ -80,7 +80,6 @@ import {
   resolveLegacyAdvocate,
   validateFormData,
 } from '../services/template-engine.service';
-import { cardDescriptionFor } from '../utils/cardDescription';
 import {
   readFilingChecklist,
   readFormInputs,
@@ -88,6 +87,7 @@ import {
   sealFormInputs,
 } from '../utils/case-details';
 import { decrypt, encrypt } from '../utils/encryption';
+import { publicTemplateConfig, publicTemplateSummary } from '../utils/publicTemplateConfig';
 
 /**
  * Map template_id → valid DOC_TYPE for DB persistence.
@@ -720,12 +720,11 @@ router.get(
       templates: configs.map((config) => {
         // T-372: the price the charge uses (single source, T-227); omitted when unpriced.
         const creditsCost = costForTemplate(config.template_id);
-        return {
+        // T-385: allowlist projection; description is the signed card line (T-365 AC6), no metadata.
+        return publicTemplateSummary({
           ...config,
-          // T-365 AC6: cards show only the signed card_description (Ajay); never the internal description.
-          description: cardDescriptionFor(config.template_id),
           ...(creditsCost !== undefined ? { credits_cost: creditsCost } : {}),
-        };
+        });
       }),
       // T-372: a brief with no rule pack is charged as the guided draft.
       ...(guidedCost !== undefined ? { guided_credits_cost: guidedCost } : {}),
@@ -733,7 +732,7 @@ router.get(
   },
 );
 
-// GET /documents/template-configs/:id — get full template config (form_schema + document_structure)
+// GET /documents/template-configs/:id — the public template config (T-385 allowlist: form_schema, no document_structure)
 router.get(
   '/template-configs/:id',
   authenticate,
@@ -762,8 +761,9 @@ router.get(
       return;
     }
 
-    // T-365 AC6: description is set after the spread so the internal one cannot come back.
-    res.json({ config: { ...config, description: cardDescriptionFor(config.template_id) } });
+    // T-385: allowlist projection; no _source, document_structure, metadata etc.
+    // description is the signed card line (T-365 AC6).
+    res.json({ config: publicTemplateConfig(config) });
   },
 );
 

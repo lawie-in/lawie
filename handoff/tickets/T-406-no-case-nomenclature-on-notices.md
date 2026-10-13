@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay (signs moved goldens) |
 | Mode   | Small fix, with a reviewer (moves golden snapshots) |
-| Status | Building. Tanvi. Ajay ruled option A, all 32 not_court_documents (f794a72); he signs the 39 golden entries as one batch, and each must only remove the case line |
+| Status | Merged into develop_staging 43dc53f (Tanvi, 13 Oct 2026). Nothing to test in the UI (latent). Priya |
 | Source | court-rules-golden.test.ts.snap (~:2878): a bail case nomenclature shows on legal_notice_s138 under HC courts |
 
 ## Problem

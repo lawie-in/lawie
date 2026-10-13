@@ -111,7 +111,6 @@
               }
             ],
             "required": true,
-            "default": "individual",
             "inject_into": [
               "header"
             ]
@@ -306,14 +305,29 @@
     "payment_deadline_days": {
       "logic": "'15'"
     },
-    "ni_act_sections_ref": {
-      "logic": "if respondent_type === 'individual' then '138 read with Section 142' else '138 read with Sections 141 and 142'"
+    "ni_act_sections_ref_unless_partnership": {
+      "logic": "if respondent_type === 'partnership' then '138 read with Sections 141 and 142' else '138 read with Section 142'"
     },
-    "drawer_addressee": {
+    "ni_act_sections_ref": {
+      "logic": "if respondent_type === 'company' then '138 read with Sections 141 and 142' else '{ni_act_sections_ref_unless_partnership}'"
+    },
+    "drawer_addressee_unless_form_blank": {
       "logic": "if drawer_proprietor === '' then '{respondent_name}' else '{drawer_proprietor},\nProprietor,\n{respondent_name},'"
     },
-    "payee_client": {
+    "drawer_addressee_unless_ledger_blank": {
+      "logic": "if drawer_proprietor === '{{MISSING: Name of the proprietor (if the drawer is a proprietorship firm)}}' then '{respondent_name}' else '{drawer_addressee_unless_form_blank}'"
+    },
+    "drawer_addressee": {
+      "logic": "if drawer_proprietor === '[To be confirmed: name of the proprietor (if the drawer is a proprietorship firm)]' then '{respondent_name}' else '{drawer_addressee_unless_ledger_blank}'"
+    },
+    "payee_client_unless_form_blank": {
       "logic": "if payee_proprietor === '' then '{applicant_name}' else '{applicant_name}, through its proprietor {payee_proprietor}'"
+    },
+    "payee_client_unless_ledger_blank": {
+      "logic": "if payee_proprietor === '{{MISSING: Name of the proprietor (if your client is a proprietorship firm)}}' then '{applicant_name}' else '{payee_client_unless_form_blank}'"
+    },
+    "payee_client": {
+      "logic": "if payee_proprietor === '[To be confirmed: name of the proprietor (if your client is a proprietorship firm)]' then '{applicant_name}' else '{payee_client_unless_ledger_blank}'"
     }
   },
   "document_structure": {

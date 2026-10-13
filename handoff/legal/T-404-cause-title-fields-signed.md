@@ -63,3 +63,21 @@ Still to word (next brief): `governing_act`, `primary_statute`, `route`, `state`
 | 7 | rera `state` from the court picker; more respondents | Ask. Don't fill it from the picker: the Authority is not a court, and the ruling is "never inferred". Also add an optional question, `Other respondents (names, addresses)`, one per line, numbered after the promoter. If unanswered, it prints nothing. |
 | 8 | Advocate address with no profile field | Enough for now: the form answer, else `[To be confirmed: advocate's address]`. The "A from profile" part waits until the profile has an address field. |
 | 9 | Golden snapshot: s138 shows a bail case nomenclature under HC courts | A notice is not filed in court, so no case nomenclature may print on any `legal_notice_*`. Out of T-404 scope: raise it with Priya as its own ticket. The snapshot changes when the fix lands, under the golden-snapshot rules. |
+
+## Addendum 3 (13 Oct 2026): T-404 part 1, Shashank's ac3e651 (s138 twin and template engine)
+
+**ac3e651: approved.**
+- The s138 header prints the five signed blanks on the form, brief and ledger paths.
+- A notice with every field filled renders byte-identical to before.
+- A court pack with no court prints `[To be confirmed: court]`.
+
+| # | Question | Ruling |
+|---|---|---|
+| 1 | Subject line and "(Counsel for …)" use the client blank too | Yes. Every place the client's name prints uses the one blank, `[To be confirmed: name of the client]`. A literal `{applicant_name}` or `_____` is never acceptable. |
+| 2a | Client's address in "From," | `[To be confirmed: address of the client]` |
+| 2b | Advocate's enrolment number | `[To be confirmed: advocate's enrolment number]`. The T-311 resolver order applies first: typed number, then the profile number (only when the printed name came from the profile), then this blank. |
+| 3 | "IN THE COURT OF [To be confirmed: court]" for a pack with no court and no twin | Accepted for now. The pack keeps its own prefix. |
+| 4 | Bail twins print "THE HON'BLE COURT" when there is no court | Yes, change it to `[To be confirmed: court]`. "THE HON'BLE COURT" hides a missing court instead of flagging it. The Drafter may receive the blank but must never fill in a court name, so add a test: no court given means no court name in the body. The bail golden diff comes to me, and it must change only that line. |
+| 5 | A court is chosen but has no nomenclature | `[To be confirmed: case type and number]` |
+
+**Rule 1, clarified.** The registry's number blank inside a signed case line ("Bail Application No. _____ of 2026") is the filing convention and is allowed. Rule 1 bans `_____` only where a token or field value should print.
