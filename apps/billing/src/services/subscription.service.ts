@@ -259,7 +259,7 @@ export async function handleWebhookEvent(
       const dripFields = Object.keys(dripReset);
       let isNewCycle = true;
       // How to undo the claim if the grant fails (so a Razorpay retry grants).
-      let rollbackClaim: (() => Promise<unknown>) | null = null;
+      let rollbackClaim: (() => Promise<{ matchedCount: number }>) | null = null;
       if (typeof paidCount === 'number') {
         const claimed = await Subscription.findOneAndUpdate(
           { _id: sub._id, lastGrantedPaidCount: { $not: { $gte: paidCount } } },
@@ -328,7 +328,15 @@ export async function handleWebhookEvent(
           // grants, then fail the webhook so Razorpay retries.
           if (rollbackClaim) {
             try {
-              await rollbackClaim();
+              const restored = await rollbackClaim();
+              // No match: another event changed the claim first, so nothing was
+              // restored and this cycle may stay marked as granted.
+              if (restored.matchedCount === 0) {
+                logger.error(
+                  { subId, event, errName: err instanceof Error ? err.name : 'unknown' },
+                  'subscription grant claim rollback failed; this cycle needs a manual grant',
+                );
+              }
             } catch (rollbackErr) {
               logger.error(
                 {

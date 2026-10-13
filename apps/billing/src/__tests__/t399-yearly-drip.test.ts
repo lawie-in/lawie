@@ -870,4 +870,48 @@ describe('T-399: yearly grant fails after the claim (drip reset is part of the c
     expect(sub.inkDripNextAt).toEqual(addOneMonth(START));
     expect(sub.inkDripCount).toBe(0);
   });
+
+  it('neither paid_count nor current_start (yearly): drip anchored at about now, one grant, one warn', async () => {
+    const userId = await seedUser();
+    await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
+    const warn = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const before = Date.now();
+    await handleWebhookEvent('subscription.charged', payload({ planId: 'solo_yearly' }));
+    const after = Date.now();
+
+    const sub = await subOf();
+    expect(sub.inkDripAnchor!.getTime()).toBeGreaterThanOrEqual(before);
+    expect(sub.inkDripAnchor!.getTime()).toBeLessThanOrEqual(after);
+    expect(sub.inkDripNextAt).toEqual(addOneMonth(sub.inkDripAnchor!));
+    expect(sub.inkDripCount).toBe(0);
+    expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(1);
+    expect(warn.mock.calls.filter((c) => String(c[1]).includes('not deduplicated'))).toHaveLength(
+      1,
+    );
+  });
+
+  it('a rollback that matches nothing logs one error "needs a manual grant", no PII', async () => {
+    const userId = await seedUser({ email: 'pii-person@example.com' });
+    await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
+    const errSpy = jest.spyOn(logger, 'error').mockImplementation(() => undefined);
+    // The grant fails, but first another event moves lastGrantedPaidCount higher,
+    // so the rollback (which matches on the paid_count it claimed) finds nothing.
+    jest.spyOn(inkLedger, 'grantSubscriptionInk').mockImplementationOnce(async () => {
+      await Subscription.updateOne({ razorpaySubscriptionId: SUB_ID }, { lastGrantedPaidCount: 2 });
+      throw new Error('db down pii-person@example.com');
+    });
+
+    await expect(
+      handleWebhookEvent(
+        'subscription.charged',
+        payload({ planId: 'solo_yearly', start: START, end: months(START, 12), paidCount: 1 }),
+      ),
+    ).rejects.toThrow('db down');
+
+    const manual = errSpy.mock.calls.filter((c) => String(c[1]).includes('needs a manual grant'));
+    expect(manual).toHaveLength(1);
+    expect(manual[0][0]).toEqual(expect.objectContaining({ subId: SUB_ID }));
+    expect(JSON.stringify(errSpy.mock.calls)).not.toContain('pii-person');
+    expect((await subOf()).lastGrantedPaidCount).toBe(2); // the newer cycle is untouched
+  });
 });
