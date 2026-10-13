@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Todo. Kunal, right after T-399. Priya, 13 Oct 2026 |
+| Status | Built, all four reports in (8a91b5b). Waiting for the merge slot, after Vishal's T-373. Priya, 13 Oct 2026 |
 | Owner | Kunal (build), Arjun (call) |
 | Mode | Full chain (billing grant logic; Arjun, 13 Oct) |
 

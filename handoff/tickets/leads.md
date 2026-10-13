@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- shashank: T-363 proprietor fix merged d9a354c; holds the slot until CI on it is green. Then Mahak T-385 (ready since 07:57), then Tanvi T-406 (all four reports in, 08:37), then Kunal T-399 (all four reports in, 09:04, 47742e3), then Vishal T-373 (delta reviewer passed 09:14; pull in T-395 and T-406 first), whichever is ready first (T-373: Ajay's own-words-check conditions being built, then a delta reviewer). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
+- shashank: T-363 proprietor fix merged d9a354c; holds the slot until CI on it is green. Then Mahak T-385 (ready since 07:57), then Tanvi T-406 (all four reports in, 08:37), then Kunal T-399 (all four reports in, 09:04, 47742e3), then Vishal T-373 (delta reviewer passed 09:14; pull in T-395 and T-406 first), then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), whichever is ready first (T-373: Ajay's own-words-check conditions being built, then a delta reviewer). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
 
 ## Last done
 
