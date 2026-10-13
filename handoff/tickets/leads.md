@@ -46,8 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- tanvi: FIELD_ALIASES export merged 56cc60d (T-369 CI run 495 green, web build job ran); CI on 56cc60d pending.
-- shashank: T-371 (b1494f9; Ajay signed 7421624). Next, once CI on 56cc60d is green.
+- shashank: T-371 (b1494f9; Ajay signed 7421624). Holds the slot now (CI run 496 on 56cc60d green).
 
 ## Last done
 
