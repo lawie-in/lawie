@@ -903,3 +903,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Nothing looks different. The template list and form work as before, and civil plaint templates stay out of the list while they're switched off.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-406 — No case-number line on non-court documents (43dc53f, tanvi, 13 Oct 2026)
+
+- Nothing changes on screen. A legal notice, deed or agreement can no longer pick up a court case-number line, whichever court is chosen.
+
+Quality: nothing to test in the UI — latent; no current template printed the line
