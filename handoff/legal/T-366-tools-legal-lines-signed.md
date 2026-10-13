@@ -25,3 +25,5 @@ Google sign-ups count as verified, so the line is true for them too. Any other p
    - FAQ `:48` becomes exactly: `Lawie has a free tier that includes 5 Ink (lifetime). Paid plans add Ink every month; see the pricing page for current plans.` Pro stays out of copy (T-252 F1).
    - `(marketing)/layout.tsx` meta description becomes exactly: `Legal drafting for Indian advocates. Criminal drafts use BNS, BNSS and BSA section numbers.` (the T-317 line).
    - The Pro plan on the pricing page is a product decision, not a line swap, so it is a separate ticket (Priya/Meera). Until then it must not show a price that T-227 has not made live.
+
+**FAQ :48, revised 13 Oct 2026** (replaces the Addendum 2 text): `Lawie has a free tier that includes 5 Ink (lifetime), once your email is verified. Paid plans add more Ink; see the pricing page for current plans.` "Every month" comes out until T-399 settles yearly plans.
