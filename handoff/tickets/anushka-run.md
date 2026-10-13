@@ -782,3 +782,14 @@ What a user can now do:
 - Nothing on screen yet. Bail drafts use the signed skeletons once T-373 lands.
 
 Quality: nothing to test in the UI — loader only, not used until T-373
+
+## T-367 — Timeline tracker deadlines (1706a41, shashank, 13 Oct 2026)
+
+Re-tests run 3's timeline failures. Once T-375 merges the tracker is hidden by default, so for this run the founder switches `feature.tool_timeline` on.
+
+What a user can now do:
+- Enter the date of the first remand and see the right deadlines. For a first remand on 1 January 2026 under a 60-day offence: police custody up to 9 February, the last day for the charge sheet 1 March, and default bail from 2 March.
+- See police custody explained as up to 15 days, in one go or in parts, within the first 40 or 60 days, with BNSS 187(2) and 187(3) cited.
+- See every date written out, like "1 March 2026", and a countdown such as "60-day period · 12 days left".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
