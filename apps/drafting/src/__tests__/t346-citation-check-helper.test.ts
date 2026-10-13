@@ -100,6 +100,6 @@ describe('T-346 checkDraftCitations', () => {
     expect(src).not.toMatch(
       /\b(validateSectionReferences|validateBNSWhitelist|detectOldLawReferences)\s*\(/,
     );
-    expect(src.match(/checkDraftCitations\(/g)).toHaveLength(3);
+    expect(src.match(/checkDraftCitations\(/g)).toHaveLength(4);
   });
 });

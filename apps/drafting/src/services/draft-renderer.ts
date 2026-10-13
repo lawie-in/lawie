@@ -14,15 +14,23 @@
  *
  * Rules, in the ADR's numbering:
  * 1. Order by the skeleton's `order`. A paragraph whose clauseId is missing or
- *    not in the skeleton is dropped. A required clause the model left out
- *    renders its MISSING form.
- * 2. `source: fixed`: the model's text is ignored. The signed text (or the
- *    first variant whose `when` holds) prints, each slot filled from the
- *    display of a fact the paragraph names in `factRefs`. A slot with no
- *    named fact, or no fact, prints `{{MISSING: label}}`.
- * 3. `source: advocate`: the model's text is kept only if the fact verifier,
- *    run against the referenced fact alone, finds no value it does not back;
- *    otherwise the fact's `raw_span` prints verbatim (status `fallback`).
+ *    not in the skeleton is dropped.
+ * 2. `source: fixed`: the model's text and refs are ignored. The signed text
+ *    (or the first variant whose `when` holds) prints, each slot filled from
+ *    the ledger by slot key, whether or not the model returned the clause. An
+ *    undertaking with no slots always prints. A slot prints
+ *    `{{MISSING: label}}` only when the ledger does not hold its fact; an
+ *    optional clause with none of its slot facts is left out.
+ * 3. `source: advocate`: with the fact held the clause always prints. The
+ *    model's text is kept only if the fact verifier, run against the fact
+ *    alone, finds no value it does not back; when it fails, or the model gave
+ *    none, the fact's `raw_span` prints verbatim (status `fallback`, with a
+ *    reason the caller logs). MISSING only when the ledger does not hold it.
+ *    A key with several entries prints one lettered item per entry.
+ *
+ * Ajay's rulings for T-373: never MISSING when the fact exists; a ground with
+ * `use_clause: X` prints X once, inside the grounds list, and the standalone X
+ * is left out (with the ground not ticked, X prints standalone as usual).
  * 4. Sections: the entries of a sections slot are deduped on (code, number)
  *    via `readSectionsCharged`, so a section entered twice prints once.
  * 5. Output: the body plus `rendered[]`, one entry per printed clause. The
@@ -106,16 +114,20 @@ export function readDraftParagraphs(raw: unknown): DraftParagraphsOutput | null 
 
 // ── What the model is given and the schema it answers in ─────────────────────
 
-/** The ledger keys a list clause lists, one ref per entry: `grounds_for_bail[0]` ... */
+/** One ref per entry of a list clause's key, or of an own-words key with several entries: `grounds_for_bail[0]` ... */
 function listRefs(skeleton: Skeleton, facts: readonly LedgerFact[]): string[] {
   const held = factEntriesByKey(facts);
   const out: string[] = [];
   for (const c of skeleton.clauses) {
-    if (!c.list || !c.from) continue;
-    const entries = held.get(c.from) ?? [];
-    entries.forEach((_f, i) => out.push(`${c.from}[${i}]`));
+    // An option list, or an own-words clause whose key holds several entries.
+    const key =
+      c.list && c.from ? c.from : c.source === 'advocate' ? (c.slot ?? c.from) : undefined;
+    if (!key) continue;
+    const entries = held.get(key) ?? [];
+    if (!c.list && entries.length < 2) continue;
+    entries.forEach((_f, i) => out.push(`${key}[${i}]`));
   }
-  return out;
+  return [...new Set(out)];
 }
 
 /** Every fact ref the model may name: each held ledger key, then each list entry. */
@@ -309,11 +321,19 @@ export function skeletonValueLists(
 
 export type ClauseStatus = 'ok' | 'missing' | 'fallback';
 
+/**
+ * Why an own-words clause printed the advocate's words verbatim: the model gave
+ * no text for it, or its text failed the fact verifier.
+ */
+export type FallbackReason = 'not_returned' | 'unverified';
+
 export interface RenderedClause {
   clauseId: string;
   status: ClauseStatus;
   /** The labels of the `{{MISSING: label}}` blanks this clause printed. */
   missing?: string[];
+  /** Status `fallback` only. */
+  reason?: FallbackReason;
 }
 
 export interface RenderedParagraph {
@@ -324,6 +344,12 @@ export interface RenderedParagraph {
   status: ClauseStatus;
 }
 
+/** One own-words fallback, for the caller's log: ids and a reason, never text. */
+export interface RenderFallback {
+  clauseId: string;
+  reason: FallbackReason;
+}
+
 export interface DraftRenderResult {
   /** The body, numbered `1.`, `2.` ... and separated by blank lines. */
   body: string;
@@ -331,11 +357,13 @@ export interface DraftRenderResult {
   rendered: RenderedClause[];
   /** Model paragraphs dropped for a missing or unknown clauseId. */
   dropped: number;
+  /** Each printed own-words clause that fell back to the advocate's words. */
+  fallbacks: RenderFallback[];
 }
 
 export interface DraftRenderInput {
   skeleton: Skeleton;
-  /** The model's output; null renders every required clause as MISSING. */
+  /** The model's output. Null: every own-words clause falls back to the advocate's words. */
   output: DraftParagraphsOutput | null;
   /** The ledger's current facts. */
   facts: readonly LedgerFact[];
@@ -355,6 +383,9 @@ const SECTION_KEYS: ReadonlySet<string> = new Set(['sections_charged', 'offences
 /** The checks that make the model's own-words text unusable (rule 3). */
 const REJECTING_CHECKS: ReadonlySet<string> = new Set(['unsupported', 'mutation', 'banned']);
 
+/** `{slot}` in signed text. */
+const SLOT_RE = /\{([A-Za-z0-9_.]+)\}/g;
+
 interface ClauseOutcome {
   clause: SkeletonClause;
   index: number;
@@ -363,11 +394,15 @@ interface ClauseOutcome {
   missing: string[];
   /** `<clauseId>.<option id>` of list items printed. */
   printedItems: string[];
+  /** Clause ids a printed list item printed in place (`use_clause`). */
+  usedClauses: string[];
+  reason?: FallbackReason;
 }
 
 interface ModelClause {
-  refs: Set<string>;
   text: string;
+  /** Item text by fact ref (`<key>[<n>]`). */
+  items: Map<string, string>;
 }
 
 function conditionKeys(c: SkeletonCondition | undefined): string[] {
@@ -380,6 +415,11 @@ function sectionKeys(segment: string): string[] {
   return readSectionsCharged(segment).map((s) => `${s.code ?? ''}|${s.number}`);
 }
 
+/** Letters a list's items: `(a) ...`, `(b) ...`. */
+function lettered(lines: readonly string[]): string[] {
+  return lines.map((l, i) => `(${i < 26 ? String.fromCharCode(97 + i) : String(i + 1)}) ${l}`);
+}
+
 export function renderDraft(input: DraftRenderInput): DraftRenderResult {
   const { skeleton } = input;
   const held = factEntriesByKey(input.facts);
@@ -390,7 +430,7 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
   const known = new Set(skeleton.clauses.map((c) => c.id));
 
   // Rule 1: a paragraph with no clauseId, or one the skeleton does not hold, is dropped.
-  // Two paragraphs for one clause are read as one: refs joined, first non-empty text.
+  // Two paragraphs for one clause are read as one: first non-empty text, items joined.
   let dropped = 0;
   const byClause = new Map<string, ModelClause>();
   for (const p of input.output?.paragraphs ?? []) {
@@ -398,9 +438,13 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
       dropped += 1;
       continue;
     }
-    const seen = byClause.get(p.clauseId) ?? { refs: new Set<string>(), text: '' };
-    for (const r of p.factRefs) seen.refs.add(r);
+    const seen = byClause.get(p.clauseId) ?? { text: '', items: new Map<string, string>() };
     if (seen.text.trim() === '' && p.text.trim() !== '') seen.text = p.text;
+    for (const item of p.items) {
+      if (item.text.trim() !== '' && !seen.items.has(item.factRef)) {
+        seen.items.set(item.factRef, item.text);
+      }
+    }
     byClause.set(p.clauseId, seen);
   }
 
@@ -479,27 +523,24 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
     return null;
   };
 
+  /** The ledger key each `{slot}` of a text reads (a derived slot reads its `from`). */
+  const slotKeysOf = (text: string, derived: SkeletonClause['derived']): string[] =>
+    [...text.matchAll(SLOT_RE)].map((m) => derived?.[m[1]]?.from ?? m[1]);
+
   /**
-   * Fills `{slot}` in signed text (rule 2). With `refs`, a slot fills only from
-   * a fact the paragraph names; without, from any held fact (a grounds item).
+   * Fills `{slot}` in signed text from the ledger by slot key (rule 2, as
+   * Ajay ruled for T-373): a slot prints `{{MISSING: label}}` only when the
+   * ledger truly does not hold its fact.
    */
   const fill = (
     text: string,
     derived: SkeletonClause['derived'],
-    refs: ReadonlySet<string> | null,
   ): { text: string; missing: string[] } => {
     const missing: string[] = [];
-    const out = text.replace(/\{([A-Za-z0-9_.]+)\}/g, (_m, slot: string) => {
+    const out = text.replace(SLOT_RE, (_m, slot: string) => {
       const d = derived?.[slot];
       const source = d ? d.from : slot;
-      const named = refs === null || refs.has(source);
-      const value = !named
-        ? null
-        : d
-          ? derivedValue(d)
-          : held.has(slot)
-            ? displayOf(slot, held.get(slot)!)
-            : null;
+      const value = d ? derivedValue(d) : held.has(slot) ? displayOf(slot, held.get(slot)!) : null;
       if (value) return value;
       const label = labelOf(source);
       missing.push(label);
@@ -509,18 +550,31 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
   };
 
   const clauseLabel = (c: SkeletonClause): string =>
-    c.missing_label ?? clauseLabels[c.id] ?? (c.slot ? labelOf(c.slot) : undefined) ?? c.id;
+    c.missing_label ??
+    clauseLabels[c.id] ??
+    (c.slot ? labelOf(c.slot) : c.from ? labelOf(c.from) : undefined) ??
+    c.id;
+
+  const outcome = (
+    c: SkeletonClause,
+    index: number,
+    o: Partial<ClauseOutcome> & Pick<ClauseOutcome, 'text' | 'status'>,
+  ): ClauseOutcome => ({
+    clause: c,
+    index,
+    missing: [],
+    printedItems: [],
+    usedClauses: [],
+    ...o,
+  });
 
   const missingForm = (c: SkeletonClause, index: number): ClauseOutcome => {
     const label = clauseLabel(c);
-    return {
-      clause: c,
-      index,
+    return outcome(c, index, {
       text: missingPlaceholder(label),
       status: 'missing',
       missing: [label],
-      printedItems: [],
-    };
+    });
   };
 
   /** Rule 3: the model's own-words text passes the verifier against the referenced fact alone. */
@@ -541,11 +595,13 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
     });
   };
 
-  const renderFixed = (
-    c: SkeletonClause,
-    index: number,
-    model: ModelClause | undefined,
-  ): ClauseOutcome | null => {
+  /**
+   * `source: fixed` (rule 2): the signed text with its slots filled from the
+   * ledger, whether or not the model returned a paragraph for it. A clause
+   * with no slots (an undertaking) always prints. An optional clause none of
+   * whose slot facts the ledger holds is left out.
+   */
+  const renderFixed = (c: SkeletonClause, index: number): ClauseOutcome | null => {
     let text = c.text;
     if (c.variants && c.variants.length > 0) {
       const v = c.variants.find((x) => holds(x.when));
@@ -555,46 +611,76 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
     if (c.render_if_any_slot && !held.has(c.render_if_any_slot)) {
       return c.required ? missingForm(c, index) : null;
     }
-    if (!model) return c.required ? missingForm(c, index) : null;
     if (text === undefined) return c.required ? missingForm(c, index) : null;
-    const filled = fill(text, c.derived, model.refs);
-    return {
-      clause: c,
-      index,
+    const keys = slotKeysOf(text, c.derived);
+    if (!c.required && keys.length > 0 && keys.every((k) => !held.has(k))) return null;
+    const filled = fill(text, c.derived);
+    return outcome(c, index, {
       text: filled.text,
       status: filled.missing.length > 0 ? 'missing' : 'ok',
       missing: filled.missing,
-      printedItems: [],
+    });
+  };
+
+  /** One entry's own words: the model's text if it keeps to the entry, else the advocate's words verbatim. */
+  const ownWords = (
+    own: string | undefined,
+    entry: LedgerFact,
+  ): { words: string; reason?: FallbackReason } => {
+    const text = (own ?? '').trim();
+    if (text !== '' && keepsToFact(text, [entry])) return { words: text };
+    return {
+      words: (entry.raw_span ?? '').trim() || entry.display.trim(),
+      reason: text === '' ? 'not_returned' : 'unverified',
     };
   };
 
+  /**
+   * `source: advocate` (rule 3), as Ajay ruled for T-373: with the fact held
+   * the clause always prints, the model's text when it keeps to the fact,
+   * else the advocate's words verbatim (status `fallback`). MISSING only when
+   * the ledger does not hold the fact. A key with several entries (an own-words
+   * list, e.g. the Magistrate grounds) prints one lettered item per entry,
+   * each checked on its own against its entry.
+   */
   const renderAdvocate = (
     c: SkeletonClause,
     index: number,
     model: ModelClause | undefined,
   ): ClauseOutcome | null => {
-    const entries = c.slot ? (held.get(c.slot) ?? []) : [];
-    if (entries.length === 0 || !model || !c.slot || !model.refs.has(c.slot)) {
-      return c.required ? missingForm(c, index) : null;
-    }
-    const own = model.text.trim();
-    const keep = own !== '' && keepsToFact(own, entries);
-    const words = keep
-      ? own
-      : entries
-          .map((f) => (f.raw_span ?? '').trim() || f.display.trim())
-          .filter((s) => s !== '')
-          .join(' ');
-    return {
-      clause: c,
-      index,
-      text: c.intro ? `${c.intro} ${words}` : words,
-      status: keep ? 'ok' : 'fallback',
-      missing: [],
-      printedItems: [],
-    };
+    const key = c.slot ?? c.from;
+    const entries = key ? (held.get(key) ?? []) : [];
+    if (!key || entries.length === 0) return c.required ? missingForm(c, index) : null;
+    const results = entries.map((f, i) => {
+      const own =
+        entries.length === 1
+          ? model?.text.trim() || model?.items.get(`${key}[0]`)
+          : model?.items.get(`${key}[${i}]`);
+      return ownWords(own, f);
+    });
+    const reasons = results.map((r) => r.reason).filter((r): r is FallbackReason => !!r);
+    const reason: FallbackReason | undefined = reasons.includes('unverified')
+      ? 'unverified'
+      : reasons[0];
+    const text =
+      results.length === 1
+        ? c.intro
+          ? `${c.intro} ${results[0].words}`
+          : results[0].words
+        : [...(c.intro ? [c.intro] : []), ...lettered(results.map((r) => r.words))].join('\n');
+    return outcome(c, index, {
+      text,
+      status: reason ? 'fallback' : 'ok',
+      ...(reason ? { reason } : {}),
+    });
   };
 
+  /**
+   * A list clause with signed sentences per option (the grounds): one item
+   * per ticked option of `from`, from the ledger, whatever the model's items
+   * say. An item with `use_clause` prints that clause's text in place, and
+   * the standalone clause is then left out (Ajay, T-373).
+   */
   const renderList = (
     c: SkeletonClause,
     index: number,
@@ -605,6 +691,7 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
     const lines: string[] = [];
     const missing: string[] = [];
     const printedItems: string[] = [];
+    const usedClauses: string[] = [];
     const done = new Set<string>();
     for (const f of entries) {
       const id = optionIdOf(c.from, f) ?? folded(f.display);
@@ -624,12 +711,13 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
         if (used) {
           line = used.text;
           blanks = used.missing;
+          usedClauses.push(item.use_clause);
         } else {
           blanks = [item.missing_label ?? clauseLabels[item.use_clause] ?? item.use_clause];
           line = missingPlaceholder(blanks[0]);
         }
       } else if (item.text) {
-        const filled = fill(item.text, c.derived, null);
+        const filled = fill(item.text, c.derived);
         line = filled.text;
         blanks = filled.missing;
       } else {
@@ -640,39 +728,42 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
       lines.push(line);
       printedItems.push(`${c.id}.${id}`);
     }
-    const lettered = lines.map(
-      (l, i) => `(${i < 26 ? String.fromCharCode(97 + i) : String(i + 1)}) ${l}`,
-    );
-    return {
-      clause: c,
-      index,
-      text: [...(c.intro ? [c.intro] : []), ...lettered].join('\n'),
+    return outcome(c, index, {
+      text: [...(c.intro ? [c.intro] : []), ...lettered(lines)].join('\n'),
       status: missing.length > 0 ? 'missing' : 'ok',
       missing,
       printedItems,
-    };
+      usedClauses,
+    });
   };
 
-  // First pass: every clause but the lists (a list item may print another clause's text).
+  /** A list with signed sentences per option; an own-words list has none and renders as an advocate clause. */
+  const isOptionList = (c: SkeletonClause): boolean =>
+    Boolean(c.list && c.from && c.items && Object.keys(c.items).length > 0);
+
+  // First pass: every clause but the option lists (an item may print another clause's text).
   const firstPass = new Map<string, ClauseOutcome>();
   const outcomes: ClauseOutcome[] = [];
+  const add = (o: ClauseOutcome | null): void => {
+    if (!o) return;
+    outcomes.push(o);
+    firstPass.set(o.clause.id, o);
+  };
   skeleton.clauses.forEach((c, index) => {
-    if (c.list) return;
+    if (isOptionList(c)) return;
     if (c.when && !holds(c.when)) {
       // Not applicable. A required clause whose facts were not given at all is a blank.
-      if (c.required && unheld(c.when)) outcomes.push(missingForm(c, index));
+      if (c.required && unheld(c.when)) add(missingForm(c, index));
       return;
     }
-    const model = byClause.get(c.id);
-    const o =
-      c.source === 'advocate' ? renderAdvocate(c, index, model) : renderFixed(c, index, model);
-    if (o) {
-      outcomes.push(o);
-      firstPass.set(c.id, o);
-    }
+    add(
+      c.source === 'advocate'
+        ? renderAdvocate(c, index, byClause.get(c.id))
+        : renderFixed(c, index),
+    );
   });
   skeleton.clauses.forEach((c, index) => {
-    if (!c.list) return;
+    if (!isOptionList(c)) return;
     if (c.when && !holds(c.when)) {
       if (c.required && unheld(c.when)) outcomes.push(missingForm(c, index));
       return;
@@ -681,8 +772,15 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
     if (o) outcomes.push(o);
   });
 
-  const printed = new Set<string>(outcomes.flatMap((o) => [o.clause.id, ...o.printedItems]));
+  // A clause a list item printed in place prints once, there (use_clause).
+  const usedInPlace = new Set(outcomes.flatMap((o) => o.usedClauses));
+  const printed = new Set<string>(
+    outcomes
+      .filter((o) => !usedInPlace.has(o.clause.id))
+      .flatMap((o) => [o.clause.id, ...o.printedItems]),
+  );
   const kept = outcomes
+    .filter((o) => !usedInPlace.has(o.clause.id))
     .filter((o) => !(o.clause.skip_if_rendered && printed.has(o.clause.skip_if_rendered)))
     .sort((a, b) => a.clause.order - b.clause.order || a.index - b.index);
 
@@ -699,7 +797,11 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
       clauseId: o.clause.id,
       status: o.status,
       ...(o.missing.length > 0 ? { missing: o.missing } : {}),
+      ...(o.reason ? { reason: o.reason } : {}),
     })),
     dropped,
+    fallbacks: kept
+      .filter((o) => o.reason)
+      .map((o) => ({ clauseId: o.clause.id, reason: o.reason as FallbackReason })),
   };
 }

@@ -1897,6 +1897,14 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     // Rule 3: an own-words paragraph is checked against its fact alone.
     verifier: { ...verifierSources, skeleton: [] },
   });
+  // Ajay (T-373): every own-words fallback is logged. Ids and the reason only, never text.
+  if (process.env.NODE_ENV !== 'test') {
+    for (const f of rendered.fallbacks) {
+      console.warn(
+        `[drafting] D1 own-words fallback (kind=${pack.id}, runId=${input.runId}, clause=${f.clauseId}, reason=${f.reason})`,
+      );
+    }
+  }
 
   // ── No case law on its own (T-148): kept on D1 ────────────────────────────
   const citations = removeUngivenCitations(rendered.body, ledgerCitationSources(ledgerInput.facts));
