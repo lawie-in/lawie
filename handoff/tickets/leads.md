@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- tanvi: T-366 has the slot (T-363 CI run 508 green). Then Shashank's T-363 regression fix (proprietor placeholder), then Vishal T-373 (review round 2 passed; waiting for Ajay's renderer OK), then Kunal T-395, then Mahak T-385. T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
+- tanvi: T-366 has the slot (T-363 CI run 508 green). Then Shashank's T-363 regression fix (proprietor placeholder), then Kunal T-395, Mahak T-385 and Vishal T-373, whichever is ready first (T-373: Ajay's own-words-check conditions being built, then a delta reviewer). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
 
 ## Last done
 
