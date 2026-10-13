@@ -850,6 +850,10 @@ export function promoteDocRuleToTemplateConfig(
     if (typeof raw.help === 'string') field.help = raw.help;
     if (raw.multiple === true) field.multiple = true;
     if (typeof raw.accept === 'string') field.accept = raw.accept;
+    // T-394: field-level data source (`courts_db.*`, `bns_mapping`), verbatim, as the
+    // docs/templates overrides send it. DynamicFormRenderer reads it for court lists
+    // and the section search. Absent on fields that declare none.
+    if (typeof raw.source === 'string') field.source = raw.source;
     return field;
   });
 
