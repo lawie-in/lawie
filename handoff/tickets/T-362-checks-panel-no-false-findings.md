@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay (CLAUSE_CUES is legal content) |
 | Mode   | Full chain |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Unassigned. Priya, 13 Oct 2026 |
+| Status | Stopped, superseded (Arjun, ADR-025, 13 Oct 2026). See the end of this file |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-200, T-279, T-194 |
 
 ## Acceptance criteria
@@ -22,3 +22,5 @@ Anushka's reproduce steps are in the run 3 report; use them as the test cases. A
 ## ADR-025
 
 **Arjun, ADR-025 (13 Oct):** built on T-373; the checks panel reads rendered clause ids. Do not tune CLAUSE_CUES first.
+
+**Stopped as written (Arjun, 13 Oct):** delivered by T-373.

@@ -19,3 +19,7 @@
 7. Tests: CrPC 362→403, "BNS 318(4), BNS 316(2)" are offences, an unknown row shows "Not verified", and the /health SHA matches the file.
 
 This replaces the reseed in T-360 and the parser half of T-361.
+
+## Folded in from T-360 (Arjun, 13 Oct)
+
+Shashank's bugs (b)1–5 in T-360 are part of this ticket: the bulk regex for lists of numbers and "Evidence Act", the parent fallback (156(3)→175(3)), labels on unconverted references, "Not verified" in place of "No mapping found", and labels per reference in the bulk UI. Files are added as needed: sections.routes.ts and the web section-converter page.

@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting data) + Ajay (sign every mapping change) |
 | Mode   | Full chain |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Unassigned. Priya, 13 Oct 2026 |
+| Status | Stopped, superseded (Arjun, ADR-025, 13 Oct 2026). See the end of this file |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-250, T-255, T-275, T-296 |
 
 ## Acceptance criteria
@@ -41,3 +41,5 @@ Files: apps/drafting/src/services/sections.service.ts, routes/sections.routes.ts
 ## ADR-025
 
 **Arjun, ADR-025 (13 Oct):** the reseed is replaced by T-371 (the signed files served from memory). Hold this ticket until T-371 lands, then re-check which of bugs (b)1–5 remain.
+
+**Stopped (Arjun, 13 Oct):** folded into T-371, including bugs (b)1–5. No code reseed step. The founder may still reseed and flush develop tonight as a one-off.

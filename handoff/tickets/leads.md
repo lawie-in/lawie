@@ -33,15 +33,16 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 - T-285 (SSE keep-alive on the four drafting streams; small, drafting only; touches ai.service.ts, so after T-241 and T-245a or when no lead holds it): ready.
 
-## Next ticket for each lead (Priya, 13 Oct 2026; Arjun's ADR-025 order)
+## Next ticket for each lead (Priya, 13 Oct 2026; Arjun's rulings on ADR-025)
 
-NOW (small fixes, in this order, as leads free up): T-370 (today), T-369, T-371, T-372. NEXT (full chain): T-373 (lead A) and T-374 (lead B), once Arjun has written their ACs. Holding: T-359 and T-362 (delivered by T-373/T-374), T-360 and the rest of T-364 (until T-371/T-372). Unchanged: T-363, T-365, T-366, T-367, T-368, T-361 (303(2) row only).
+v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint, timeline tracker and bail checker are hidden behind flags (T-375). Golden set on (founder secrets).
+- vishal: T-342, then T-373 (D1 lead A; T-359's ACs become its tests).
+- shashank: T-356 part 1, then T-371 (folds in his 5 bulk and not-found bugs from T-360; no reseed).
 - kunal: T-354, then T-370 (today), then T-372.
-- shashank: T-356 part 1, then T-371 (it replaces his T-360 trace fix).
-- vishal: T-342, then T-373 (lead A).
-- tanvi: T-357, then T-374 (lead B), then T-363.
-- mahak: T-223, then T-369, then T-365.
-- Next free lead after that: T-361, T-367, T-366, T-368.
+- tanvi: T-357, then T-369, then T-374 (D1 lead B).
+- mahak: T-223, then T-365.
+- Next free lead: T-375 (hide behind flags), then T-363, T-366, T-367, T-368, T-361 (303(2) row only).
+- Stopped: T-359 and T-362 as written (D1 delivers them), T-360 (folded into T-371), T-361's parser half.
 
 ## Merge queue
 
