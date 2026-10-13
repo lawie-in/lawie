@@ -23,3 +23,9 @@ This replaces the reseed in T-360 and the parser half of T-361.
 ## Folded in from T-360 (Arjun, 13 Oct)
 
 Shashank's bugs (b)1–5 in T-360 are part of this ticket: the bulk regex for lists of numbers and "Evidence Act", the parent fallback (156(3)→175(3)), labels on unconverted references, "Not verified" in place of "No mapping found", and labels per reference in the bulk UI. Files are added as needed: sections.routes.ts and the web section-converter page.
+
+## Arjun's answers (13 Oct 2026)
+
+1. Three tool pages, not four: converter, bail checker and timeline. ADR-025's "four" was a slip.
+2. The hard "Not verified — check the Gazette" goes only on unverified, missing or null rows. Verify-flagged offence rows get a one-line caveat that Ajay signs. The raw verify text is never shown.
+3. The wider converter changes the tool only. Draft text stays on the old behaviour until D1, so no ai.service.ts or prompt-assembler.ts change.
