@@ -1341,7 +1341,10 @@ router.post(
                 },
                 res,
               )
-            : await streamGenerateGuided(common, res);
+            : await streamGenerateGuided(
+                { ...common, advocateName: payload.name || undefined },
+                res,
+              );
       } catch (genErr) {
         // T-226: a failed run returns its hold, before the response ends.
         await ink.release();
@@ -1470,10 +1473,13 @@ router.post(
 
       // T-147d: the fact-diff log and the placeholder rate, for a ledger draft.
       // Its own try: a failure here never stops the draft. Ids only in the log line.
-      if (ledger && pack && result.factCheck && !duplicateAttempt) {
+      // T-373 (Arjun B): on D1 the read-only findings come in factDiff, tagged d1.
+      const factOutcome = result.factCheck ?? result.factDiff?.outcome;
+      if (ledger && pack && factOutcome && !duplicateAttempt) {
         try {
           await writeFactCheckLog({
-            outcome: result.factCheck,
+            outcome: factOutcome,
+            path: result.factDiff?.path ?? 'legacy',
             runId,
             documentId: docId,
             userId: payload.sub,
@@ -1546,7 +1552,8 @@ router.post(
         // T-197: the signed disclaimer goes with every finished draft, banner or not.
         disclaimer: FACT_CHECK_DISCLAIMER,
         // T-147d: what the fact verifier needs the advocate to check. Ledger path only.
-        ...('factCheck' in result && result.factCheck
+        // T-373 (Arjun B): never on D1; the panel there is rendered[] only.
+        ...(!result.rendered && 'factCheck' in result && result.factCheck
           ? { factCheck: { banner: result.factCheck.banner } }
           : {}),
         // T-373 (ADR-025 renderer rule 5): the clauses the renderer printed, for the
