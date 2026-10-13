@@ -45,6 +45,7 @@ import Redis from 'ioredis';
 
 import { env } from './config/env';
 import { logger } from './config/logger';
+import { hasUnfilledPlaceholder, isLiveSend } from './placeholders';
 import { sendEmail, type SendEmailFn } from './providers';
 import { safeErrorFields, toSentrySafeError, userIdFromData } from './providers/safe-log';
 import { renderTemplate } from './templates';
@@ -135,6 +136,10 @@ function isDryRun(): boolean {
   return env.EMAIL_DRY_RUN || env.EMAIL_PROVIDER === 'dry-run';
 }
 
+const UNFILLED_PLACEHOLDER_MESSAGE = 'email has unfilled footer placeholders; not sent';
+/** Errors raised by the placeholder guard: rethrown as-is, without the Sentry/log path. */
+const placeholderRefusals = new WeakSet<object>();
+
 export function createProcessor(
   send: SendEmailFn = sendEmail,
   mint: MintVerifyLinkFn = mintVerifyLinkViaAuth,
@@ -177,6 +182,14 @@ export function createProcessor(
       }
 
       const rendered = await renderTemplate(template, renderData);
+      // T-223 review / Ajay: no live send while the footer still has [registered address] or
+      // [PIN] (any template). Dry run is unaffected. Fixed message, ids only, no Sentry.
+      if (isLiveSend() && hasUnfilledPlaceholder(rendered)) {
+        logger.error({ userId, jobId }, 'Email not sent: unfilled footer placeholders');
+        const refusal = new UnrecoverableError(UNFILLED_PLACEHOLDER_MESSAGE);
+        placeholderRefusals.add(refusal);
+        throw refusal;
+      }
       const result = await send({
         to,
         cc: isVerify ? [] : cc,
@@ -200,6 +213,8 @@ export function createProcessor(
       if (isVerify && isDryRun()) logger.info({ userId }, 'verify email sent');
       return { messageId: result.messageId };
     } catch (err) {
+      // Already logged (ids only) where it was raised; no Sentry event, no retry.
+      if (placeholderRefusals.has(err as object)) throw err;
       const errFields = safeErrorFields(err);
       Sentry.addBreadcrumb({
         category: 'email.send.failure',

@@ -138,7 +138,13 @@ export type VerifyEmailTokenResult =
 export async function verifyEmailToken(token: unknown): Promise<VerifyEmailTokenResult> {
   if (typeof token !== 'string' || !TOKEN_RE.test(token)) return { kind: 'expired_or_invalid' };
   const hash = hashVerifyToken(token);
-  const live = { emailVerifyTokenHash: hash, emailVerifyExpires: { $gt: new Date() } };
+  // isActive as in mintVerifyLink: a deactivated account's old link verifies nothing and grants
+  // no bonus; it reads as expired_or_invalid.
+  const live = {
+    emailVerifyTokenHash: hash,
+    emailVerifyExpires: { $gt: new Date() },
+    isActive: { $ne: false },
+  };
   const clearLink = { $unset: { emailVerifyTokenHash: 1, emailVerifyExpires: 1 } };
 
   const verified = await User.findOneAndUpdate(
