@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay |
 | Mode   | Small fix |
-| Status | To do. Ajay ruled yes (13 Oct 2026). Vishal (brief-drafter.ts and the T-373 Drafter side): in T-373 or right after, Arjun to say which. Priya |
+| Status | To do. Ajay ruled yes. Vishal, as its own small ticket right after T-373 merges, not folded in (Arjun, 13 Oct 2026). Priya |
 | Source | T-365 round 1 should-fix |
 
 ## Problem
