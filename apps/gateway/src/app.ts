@@ -51,6 +51,41 @@ app.use((req, _res, next) => {
   next();
 });
 
+// ── T-223 (Arjun, condition 3): no /internal/ path is reachable from outside ─
+// Services mount internal routes (auth /internal/verify-email/mint, drafting
+// /internal/grant-bonus, T-115c /internal/erase-user) at their root, and the proxies forward
+// /api/<svc>/* to that root, so without this rule /api/auth/internal/... would reach them guarded
+// only by the secret. Before every proxy: any path with an `internal` segment gets the plain
+// gateway 404. Case-insensitive; percent-encoding is decoded (repeatedly, for double encoding)
+// and backslashes count as slashes, so %2Finternal%2F and \internal\ are caught too. A path
+// that will not decode is also checked in its raw encoded form. Nothing is logged: the path
+// may carry a token.
+const MAX_DECODE_PASSES = 3;
+
+export function hasInternalSegment(rawUrl: string): boolean {
+  let path = (rawUrl.split('?')[0] ?? '').split('#')[0] ?? '';
+  for (let i = 0; i < MAX_DECODE_PASSES && path.includes('%'); i += 1) {
+    try {
+      path = decodeURIComponent(path);
+    } catch {
+      if (/(^|\/|\\|%2f|%5c)internal(\/|\\|%2f|%5c|;|$)/i.test(path)) return true;
+      break;
+    }
+  }
+  return path
+    .toLowerCase()
+    .split(/[/\\]/)
+    .some((segment) => (segment.split(';')[0] ?? '').trim() === 'internal');
+}
+
+app.use((req, res, next) => {
+  if (hasInternalSegment(req.originalUrl || req.url)) {
+    res.status(404).json({ error: 'Route not found', service: 'gateway' });
+    return;
+  }
+  next();
+});
+
 // ── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'gateway', timestamp: new Date().toISOString() });

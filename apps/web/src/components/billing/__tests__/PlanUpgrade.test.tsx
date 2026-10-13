@@ -22,6 +22,15 @@ jest.mock('@/components/PrivacyUpdatePrompt', () => ({
   usePrivacyDescribedBy: () => undefined,
 }));
 
+// T-223: the verify card replaces the upgrade button for an unverified email user.
+const mockNeedsVerification = jest.fn();
+const mockIsVerificationRequired = jest.fn();
+jest.mock('@/components/VerifyEmailPrompt', () => ({
+  VerifyEmailCard: () => <div data-testid="verify-card">Verify your email</div>,
+  isEmailVerificationRequired: (res: unknown) => mockIsVerificationRequired(res),
+  useNeedsEmailVerification: () => mockNeedsVerification(),
+}));
+
 // Both tiers, so a wrong pick (solo) would be visible.
 const CATALOGUE = {
   subscriptions: [
@@ -60,6 +69,8 @@ const reply = (status: number, body: unknown) => ({
 beforeEach(() => {
   jest.clearAllMocks();
   mockIsPrivacyBlocked.mockReturnValue(false);
+  mockNeedsVerification.mockReturnValue(false);
+  mockIsVerificationRequired.mockResolvedValue(false);
   mockFetchPlans.mockResolvedValue(CATALOGUE);
   // jsdom's location.href setter is not implemented; swap in an object that records it.
   Object.defineProperty(window, 'location', {
@@ -204,6 +215,63 @@ describe('T-370 PlanUpgrade subscribe call', () => {
     await act(async () => button()?.click());
     await flush();
     expect(container.textContent).not.toContain('Failed to start subscription');
+    expect(button()?.disabled).toBe(false);
+  });
+});
+
+describe('T-223 PlanUpgrade email verification', () => {
+  const card = () => container.querySelector('[data-testid="verify-card"]');
+
+  it('shows the verify card and no upgrade button when verification is needed', async () => {
+    mockNeedsVerification.mockReturnValue(true);
+    await mount();
+    expect(card()).not.toBeNull();
+    expect(button()).toBeNull();
+  });
+
+  it('shows the card and no button while the catalogue is still loading', async () => {
+    mockNeedsVerification.mockReturnValue(true);
+    mockFetchPlans.mockReturnValue(new Promise(() => {}));
+    await mount();
+    expect(card()).not.toBeNull();
+    expect(button()).toBeNull();
+  });
+
+  it('shows the card, not the load error, when the catalogue fails', async () => {
+    mockNeedsVerification.mockReturnValue(true);
+    mockFetchPlans.mockRejectedValue(new Error('500'));
+    await mount();
+    expect(card()).not.toBeNull();
+    expect(button()).toBeNull();
+    expect(container.textContent).not.toContain('Could not load plan details');
+  });
+
+  it('shows the card, not the load error, when the plan is missing from the catalogue', async () => {
+    mockNeedsVerification.mockReturnValue(true);
+    mockFetchPlans.mockResolvedValue({ subscriptions: [], topups: [] });
+    await mount();
+    expect(card()).not.toBeNull();
+    expect(container.textContent).not.toContain('Could not load plan details');
+  });
+
+  it('does not show the card for a verified user', async () => {
+    await mount();
+    expect(card()).toBeNull();
+    expect(button()).not.toBeNull();
+  });
+
+  it('a 403 email_verification_required reply means no redirect and no error text', async () => {
+    mockPrivacyFetch.mockResolvedValue(reply(403, { error: 'email_verification_required' }));
+    mockIsVerificationRequired.mockResolvedValue(true);
+    await mount();
+    await act(async () => button()?.click());
+    await flush();
+    expect(mockIsVerificationRequired).toHaveBeenCalledTimes(1);
+    expect(hrefSet).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain('email_verification_required');
+    expect(container.textContent).not.toContain('Failed to start subscription');
+    expect(container.textContent).not.toContain('Network error');
+    expect(container.textContent).not.toContain('No payment link');
     expect(button()?.disabled).toBe(false);
   });
 });

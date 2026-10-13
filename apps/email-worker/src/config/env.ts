@@ -49,6 +49,11 @@ const schema = z.object({
   // Internal service trust
   INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
 
+  // T-223 (Arjun): auth.verifyEmail jobs carry the userId only; the worker asks auth
+  // (POST /internal/verify-email/mint) for the address, name and link. Required in every
+  // mode, dry-run included, so a misconfigured worker fails at start, not on the first job.
+  AUTH_SERVICE_URL: z.string().url('AUTH_SERVICE_URL must be a URL'),
+
   // BullMQ
   EMAIL_QUEUE_PREFIX: z.string().default('lawie'),
   EMAIL_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
@@ -66,7 +71,7 @@ export type EmailProvider = Env['EMAIL_PROVIDER'];
 
 /**
  * Settings each provider needs on top of the common ones (REDIS_URL,
- * INTERNAL_SECRET), when it actually sends. Dry-run (EMAIL_PROVIDER=dry-run
+ * INTERNAL_SECRET, AUTH_SERVICE_URL), when it actually sends. Dry-run (EMAIL_PROVIDER=dry-run
  * or EMAIL_DRY_RUN=true) needs nothing extra.
  */
 export const REQUIRED_BY_PROVIDER: Record<EmailProvider, readonly string[]> = {

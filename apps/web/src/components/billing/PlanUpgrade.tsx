@@ -9,6 +9,11 @@ import {
   privacyFetch,
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
+import {
+  VerifyEmailCard,
+  isEmailVerificationRequired,
+  useNeedsEmailVerification,
+} from '@/components/VerifyEmailPrompt';
 import { fetchPlans, type PlanCycle, type PlanTier, type SubscriptionPlan } from '@/lib/plans';
 
 /**
@@ -44,6 +49,8 @@ export function PlanUpgrade(props: PlanUpgradeProps = {}) {
   const [subscribing, setSubscribing] = useState(false);
   const [subscribeError, setSubscribeError] = useState('');
   const privacyDescribedBy = usePrivacyDescribedBy('subscribe');
+  // T-223 trigger 3: unverified email user -> the verify card replaces the upgrade button.
+  const needsVerification = useNeedsEmailVerification();
 
   const { planId, tierCycle } = selectorOf(props);
 
@@ -79,6 +86,7 @@ export function PlanUpgrade(props: PlanUpgradeProps = {}) {
         body: JSON.stringify({ planId: plan.id }),
       });
       if (isPrivacyBlocked(res)) return; // T-343: prompt or P7 box shown; finally resets
+      if (await isEmailVerificationRequired(res)) return; // T-223: the card shows instead
       const data = await res.json();
       if (!res.ok) {
         setSubscribeError(data.error ?? 'Failed to start subscription. Please try again.');
@@ -97,7 +105,8 @@ export function PlanUpgrade(props: PlanUpgradeProps = {}) {
     }
   }
 
-  if (loadError) {
+  // The verify card replaces the button, so it shows even while the plan loads or failed.
+  if (loadError && !needsVerification) {
     return (
       <p className="mt-4 text-xs text-red-600">
         Could not load plan details. Please refresh the page to upgrade.
@@ -111,15 +120,21 @@ export function PlanUpgrade(props: PlanUpgradeProps = {}) {
       <div className="mt-3">
         <PrivacyBlockedNotice actionKey="subscribe" />
       </div>
-      <button
-        onClick={handleSubscribe}
-        aria-describedby={privacyDescribedBy}
-        disabled={!plan || subscribing}
-        className="mt-4 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
-      >
-        {(!plan || subscribing) && <Loader2 size={12} className="animate-spin" />}
-        {plan ? `Upgrade to ${planName(plan)} — ${planPrice(plan)}` : 'Loading plan…'}
-      </button>
+      {needsVerification ? (
+        <div className="mt-4">
+          <VerifyEmailCard />
+        </div>
+      ) : (
+        <button
+          onClick={handleSubscribe}
+          aria-describedby={privacyDescribedBy}
+          disabled={!plan || subscribing}
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
+        >
+          {(!plan || subscribing) && <Loader2 size={12} className="animate-spin" />}
+          {plan ? `Upgrade to ${planName(plan)} — ${planPrice(plan)}` : 'Loading plan…'}
+        </button>
+      )}
       {plan && (
         <ul className="mt-4 space-y-1.5 text-xs text-slate-500">
           <li>✓ {planInk(plan)}</li>

@@ -291,7 +291,8 @@ describe('authenticateAllowRevoked is confined to /logout', () => {
       .filter((l) => /router\.\w+\(/.test(l) && /\bauthenticate\b/.test(l))
       .map((l) => /router\.\w+\(\s*'([^']+)'/.exec(l)?.[1])
       .sort();
-    expect(plain).toEqual(['/me', '/me/privacy-acceptance']);
+    // T-223: POST /verify-email/resend also needs a live session (the public /verify-email does not).
+    expect(plain).toEqual(['/me', '/me/privacy-acceptance', '/verify-email/resend']);
   });
 
   it('every other router that guards routes uses the session-checking authenticate', () => {

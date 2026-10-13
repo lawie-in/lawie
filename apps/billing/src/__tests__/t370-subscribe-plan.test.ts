@@ -6,12 +6,13 @@
  */
 import './setupDb';
 import { CURRENT_PRIVACY_VERSION } from '@lawie/shared';
-import mongoose from 'mongoose';
+import { Types } from 'mongoose';
 import request from 'supertest';
 
 import app from '../app';
 import { razorpay } from '../config/razorpay';
 import { Subscription } from '../models/Subscription.model';
+import { User } from '../models/User.model';
 
 jest.mock('../config/razorpay', () => ({
   razorpay: {
@@ -36,6 +37,16 @@ function headers(userId: string) {
   };
 }
 
+/** T-223 AC5: /subscribe needs a verified user in the DB for the x-user-id it gets. */
+async function seedVerifiedUser(): Promise<string> {
+  const user = await User.create({
+    email: `t370-${new Types.ObjectId()}@example.com`,
+    plan: 'free',
+    emailVerified: true,
+  });
+  return user._id.toString();
+}
+
 const create = razorpay.subscriptions.create as jest.Mock;
 
 beforeEach(() => {
@@ -52,7 +63,7 @@ afterEach(() => {
 
 describe('T-370 billing: POST /subscribe honours planId', () => {
   it('{planId:"pro_monthly"} creates the Pro subscription, not Solo', async () => {
-    const userId = new mongoose.Types.ObjectId().toString();
+    const userId = await seedVerifiedUser();
     const res = await request(app)
       .post('/subscribe')
       .set(headers(userId))
@@ -75,7 +86,7 @@ describe('T-370 billing: POST /subscribe honours planId', () => {
   it('{planId:"solo_monthly"} still creates Solo', async () => {
     const res = await request(app)
       .post('/subscribe')
-      .set(headers(new mongoose.Types.ObjectId().toString()))
+      .set(headers(await seedVerifiedUser()))
       .send({ planId: 'solo_monthly' });
 
     expect(res.status).toBe(200);
@@ -87,7 +98,7 @@ describe('T-370 billing: POST /subscribe honours planId', () => {
   it('an empty body defaults to Solo, which is why the web app must send a planId', async () => {
     const res = await request(app)
       .post('/subscribe')
-      .set(headers(new mongoose.Types.ObjectId().toString()))
+      .set(headers(await seedVerifiedUser()))
       .send({});
 
     expect(res.status).toBe(200);
@@ -98,7 +109,7 @@ describe('T-370 billing: POST /subscribe honours planId', () => {
   it('an unknown planId is rejected and nothing is created', async () => {
     const res = await request(app)
       .post('/subscribe')
-      .set(headers(new mongoose.Types.ObjectId().toString()))
+      .set(headers(await seedVerifiedUser()))
       .send({ planId: 'unlimited_999' });
 
     expect(res.status).toBe(500);

@@ -74,6 +74,9 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
         currentPrivacyVersion: CURRENT_PRIVACY_VERSION,
         needsPrivacyAcceptance: true,
         summary: SUMMARY,
+        // T-223: /me also reports the verification state (seeded as an unverified email user).
+        emailVerified: false,
+        hasGoogle: false,
       },
     });
     expect(res.headers['cache-control']).toBe('no-store');
@@ -88,6 +91,8 @@ describe('T-343 AC1/AC3 — GET /me for older, current and missing versions', ()
       privacyVersion: CURRENT_PRIVACY_VERSION,
       currentPrivacyVersion: CURRENT_PRIVACY_VERSION,
       needsPrivacyAcceptance: false,
+      emailVerified: false,
+      hasGoogle: false,
     });
     expect(res.body.data).not.toHaveProperty('summary');
   });

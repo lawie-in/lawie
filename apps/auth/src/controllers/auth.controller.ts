@@ -10,6 +10,12 @@ import {
   getPrivacyStatus,
   acceptPrivacy,
 } from '../services/auth.service';
+import {
+  VERIFY_RESEND_LIMITED,
+  VERIFY_RESEND_LIMIT_MESSAGE,
+  requestVerifyEmail,
+  verifyEmailToken,
+} from '../services/verify-email.service';
 import { validateRegister, validateLogin } from '../validators/auth.validator';
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -133,7 +139,77 @@ export async function resetPasswordHandler(
   }
 }
 
-/** T-343 — GET /me: the caller's privacy acceptance state, read from the user record. */
+/** T-223 — the code the web app maps to "this link has expired" plus resend. */
+export const VERIFY_LINK_INVALID = 'verify_link_invalid';
+
+/**
+ * T-223 — POST /verify-email { token } (public: the token is the credential). The token travels
+ * in the body only and is never logged; neither is the body. An expired, used or forged link
+ * is one answer (400), so a caller learns nothing about which it was.
+ */
+export async function verifyEmailHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const token = (req.body as { token?: unknown } | undefined)?.token;
+    const result = await verifyEmailToken(token);
+    if (result.kind === 'verified') {
+      res.status(200).json({ status: 'verified' });
+      return;
+    }
+    if (result.kind === 'already_verified') {
+      res.status(200).json({ status: 'already_verified' });
+      return;
+    }
+    res.status(400).json({ error: VERIFY_LINK_INVALID });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** T-223 — POST /verify-email/resend (signed in). The resend cap lives in requestVerifyEmail. */
+export async function resendVerifyEmailHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const result = await requestVerifyEmail(req.jwtPayload!.sub);
+    switch (result.kind) {
+      case 'queued':
+        res.status(202).json({ status: 'queued' });
+        return;
+      case 'limited':
+        res.setHeader('Retry-After', String(result.retryAfterSeconds));
+        res.status(429).json({
+          error: VERIFY_RESEND_LIMITED,
+          message: VERIFY_RESEND_LIMIT_MESSAGE,
+          retryAfter: result.retryAfterSeconds,
+        });
+        return;
+      case 'already_verified':
+        res.status(409).json({ status: 'already_verified' });
+        return;
+      case 'not_found':
+        res.status(404).json({ error: 'not_found' });
+        return;
+      case 'unavailable':
+        res.status(503).json({ error: 'service_unavailable' });
+        return;
+    }
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * T-343 — GET /me: the caller's privacy acceptance state, read from the user record.
+ * T-223 — plus emailVerified and hasGoogle (the web's verify prompt reads them).
+ */
 export async function getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     res.setHeader('Cache-Control', 'no-store');

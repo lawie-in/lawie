@@ -130,6 +130,14 @@ export function initPassport(): void {
               // failed revoke permanent (the googleId match would skip this branch).
               await deleteAllUserSessions(user._id.toString());
               await user.save();
+              // T-223 AC6: the linked googleId now counts as verified (T-351), so the sign-up
+              // bonus an unverified email user did not get is granted here. The
+              // signupBonusGrantedAt guard keeps it to one grant (a no-op if already granted).
+              // Non-blocking, like the new-user grant below: it never fails the OAuth callback.
+              const linkedUserId = user._id.toString();
+              void grantSignupBonus(linkedUserId).catch(() => {
+                logger.warn({ userId: linkedUserId }, 'Signup bonus after Google link failed');
+              });
             } else {
               // 3. Brand-new user — create account.
               // T-242 — sign-up source, taken (read + deleted) from Redis under the verified
