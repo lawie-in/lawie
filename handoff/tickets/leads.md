@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- kunal: T-393 merged 3b0fdf2; holds the slot until CI on it is green. Then Tanvi T-375 (review passed; unblocks T-385 and T-373), then Mahak T-380 (ready). Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
+- tanvi: T-375 has the slot (T-393 CI run 505 green). Earlier plan: Tanvi T-375 (review passed; unblocks T-385 and T-373), then Mahak T-380 (ready). Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
 
 ## Last done
 
+- kunal: T-393 CI green (run 505, 13 Oct 2026).
 - kunal: T-393 merged 3b0fdf2 (13 Oct 2026). Relation as given or a blank, never S/o for a woman; optional relation question on bail forms. template-engine.service.ts, post-processor.ts, docs/templates bail, 7 packs released.
 - mahak: T-394 CI green (run 504, 13 Oct 2026).
 - mahak: T-394 merged 5708bf3 (13 Oct 2026). Promoter copies field-level source (latent). template-promoter.ts released.
