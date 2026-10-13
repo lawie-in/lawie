@@ -153,45 +153,26 @@ describe('Templates Routes', () => {
     });
   });
 
-  describe('GET /templates/:slug', () => {
-    it('returns 401 without internal secret', async () => {
-      const res = await request(app).get('/templates/bail-application');
-      expect(res.status).toBe(401);
-    });
-
-    it('free user can access free template', async () => {
-      const res = await request(app)
-        .get('/templates/bail-application')
-        .set(internalHeaders('free'));
-      expect(res.status).toBe(200);
-      expect(res.body.template.slug).toBe('bail-application');
-    });
-
-    it('free user gets 403 on pro template', async () => {
-      const res = await request(app).get('/templates/writ-petition').set(internalHeaders('free'));
-      expect(res.status).toBe(403);
-      expect(res.body.error).toContain('Pro plan');
-      expect(res.body.upgradeUrl).toBeDefined();
-    });
-
-    it('pro user can access pro template', async () => {
-      const res = await request(app).get('/templates/writ-petition').set(internalHeaders('pro'));
-      expect(res.status).toBe(200);
-      expect(res.body.template.slug).toBe('writ-petition');
-    });
-
-    it('returns 404 for unknown slug', async () => {
-      const res = await request(app)
-        .get('/templates/nonexistent-slug')
-        .set(internalHeaders('free'));
+  describe('GET /templates/:slug (T-385: route removed, no caller)', () => {
+    it.each([
+      ['bail-application', 'free'],
+      ['writ-petition', 'free'],
+      ['writ-petition', 'pro'],
+      ['nonexistent-slug', 'pro'],
+      ['inactive-template', 'pro'],
+    ] as const)('GET /templates/%s is 404 for a %s user', async (slug, plan) => {
+      const res = await request(app).get(`/templates/${slug}`).set(internalHeaders(plan));
       expect(res.status).toBe(404);
+      expect(res.body.template).toBeUndefined();
     });
 
-    it('returns 404 for inactive template', async () => {
-      const res = await request(app)
-        .get('/templates/inactive-template')
-        .set(internalHeaders('pro'));
-      expect(res.status).toBe(404);
+    it('the plan logic still lives on the list: free sees no pro template', async () => {
+      const free = await request(app).get('/templates').set(internalHeaders('free'));
+      expect(free.body.templates.map((t: { slug: string }) => t.slug)).not.toContain(
+        'writ-petition',
+      );
+      const pro = await request(app).get('/templates').set(internalHeaders('pro'));
+      expect(pro.body.templates.map((t: { slug: string }) => t.slug)).toContain('writ-petition');
     });
   });
 });
