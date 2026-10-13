@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- mahak: T-365 (with T-382, T-387) has the slot (T-379 CI run 502 green). Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk (imports loadSkeleton from T-374; must merge after Mahak's T-365 pack pass, which adds facts_narrative to bail_before_magistrate.json for T-373's Magistrate test, Arjun 13 Oct). T-361 data copy waits on the founder.
+- mahak: T-365 (with T-382, T-387) has the slot (T-379 CI run 502 green). Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
 
 ## Last done
 
