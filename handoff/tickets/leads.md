@@ -58,6 +58,7 @@ Where each lead stopped:
 
 ## Last done
 
+- tanvi: T-410 merged 0a18bda with T-412, T-417, T-418 (13 Oct 2026). Consumer complaint names the chosen Commission; State/National case line; non-Commission courts get signed blanks; 2021 Jurisdiction Rules; NCDRC limit fixed. ai.service.ts back to Vishal.
 - mahak: T-405 CI green (run 518, 13 Oct 2026). Slot to Tanvi T-410.
 - mahak: T-405 merged ac78327 (13 Oct 2026). Internal refactor; buildQuestions uses the shared public-field helper, output pinned unchanged.
 - mahak: T-390 + T-416 CI green (run 517, 13 Oct 2026).

@@ -944,3 +944,12 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Nothing changes on screen (internal refactor).
 
 Quality: nothing to test in the UI — internal refactor, output pinned unchanged
+
+## T-410 (+ T-412, T-417, T-418) — Consumer complaint goes to a Consumer Commission (0a18bda, tanvi, 13 Oct 2026)
+
+- In a consumer complaint, see the Commission you chose named (District, State or National).
+- At a State or National Commission, see "Consumer Complaint No. _____ of <year>".
+- Open an older draft that named a non-Commission court and see "[To be confirmed: Consumer Commission]" and "[To be confirmed: place]", not a wrong court or a criminal case line.
+- See the document called "Consumer Complaint", citing the 2021 Jurisdiction Rules.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
