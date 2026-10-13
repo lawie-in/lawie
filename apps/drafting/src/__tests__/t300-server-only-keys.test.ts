@@ -569,7 +569,7 @@ describe('T-300 advocate name (Ajay: a declared, typed value wins)', () => {
 
   it('declared, empty, no profile: the draft keeps its blank; the annexures print theirs', async () => {
     const ctx = buildPlaceholderContext(defaultBail, form('   '), {});
-    expect(ctx.advocate_name).toBe('____________________');
+    expect(ctx.advocate_name).toBe("[To be confirmed: advocate's name]");
     const html = await annexuresHtml(form('   '));
     expect(html).toContain('[Advocate Name]');
   });
@@ -592,7 +592,7 @@ describe('T-300 advocate name (Ajay: a declared, typed value wins)', () => {
 
   it('not declared, sent by the client, no profile: the client value is not printed', async () => {
     const ctx = buildPlaceholderContext(regular, { ...BASE, advocate_name: FORGED }, {});
-    expect(ctx.advocate_name).toBe('____________________');
+    expect(ctx.advocate_name).toBe("[To be confirmed: advocate's name]");
     const html = await annexuresHtml({
       template_id: 'bail_regular',
       applicant_name: 'Ramesh Kumar',
