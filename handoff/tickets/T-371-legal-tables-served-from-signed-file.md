@@ -41,3 +41,5 @@ Shashank's bugs (b)1–5 in T-360 are part of this ticket: the bulk regex for li
 He answered Shashank's six points. Two change: point 1 (a non-offence BNS section keeps the T-277 line) and the converter example.
 
 **Moved out:** the BNS 61(2) bug is its own ticket, T-383 (Ajay's request). Shashank does it after T-371.
+
+**Ajay approved the legal-content diff (51531fe), with one summary-line change (1363d68).**
