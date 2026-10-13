@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- **Slot free** (CI run 497 on ac0eb57 green). Next ready: Kunal T-372, then Mahak T-365, then Tanvi T-374, then Vishal T-373, Shashank T-383 as each is ready; check with the previous holder first.
+- shashank: T-383 (b1f6be7; reviewer pass, Ajay signed d6ef9ab). Holds the slot now (first ready). Then Kunal T-372, Mahak T-365, Tanvi T-374, Vishal T-373 as each is ready.
 
 ## Last done
 
