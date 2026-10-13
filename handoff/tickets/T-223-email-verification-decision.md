@@ -5,7 +5,7 @@
 | Phase          | 0 — Prep |
 | Owner          | Arjun and Vikram (recommend), Founder (decides), then Lead (build) |
 | Mode           | Decision first |
-| Status         | Explore: mahak (12 Oct 2026). RELEASE GATE. AC below (Priya, 12 Oct 2026, from Arjun's shape). UI and email parts wait on Rajesh's spec and Madhuri's copy (asked 12 Oct) |
+| Status         | Merged into develop_staging 9ae7d51 (mahak, 13 Oct 2026). Dry run until the founder's SES session and the footer address and PIN; T-379 before live sends. Waiting for Anushka on develop |
 | Size           | Decision XS. Build M if yes |
 | Depends on     | T-220 |
 | Gate           | Before v1 go-live, because free drafts can be farmed with throwaway emails |

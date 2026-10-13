@@ -31,9 +31,11 @@ T-208, T-209, T-210, T-197, T-189, T-194, T-227, T-248, T-251, T-200, T-252a, T-
 - Mahak: T-233 + T-271 (export file bugs, privacy polish) in review; third in the queue.
 
 ## Decisions I took for you (all logged in tickets)
+- 13 Oct: Hindi drafts for the five v1 packs stay on today's path, labelled "starting draft", until Ajay signs Hindi wording for the new drafting path (T-386, Arjun's default). English drafts get the new path first.
 Vikram's prices and the two-tranche marketing budget; chatbot design and caps (T-253); CI skips docs-only pushes; converter claim removed; email/password sign-up in this release; T-275 labels for repealed rows; no production reseed until it is merged.
 
 ## Your to-dos (need your logins)
+0c. **GitHub branch protection (admin only, Arjun):** on develop_staging, mark "Web build" as a required check (after T-369 merges), and the golden set once T-376 lands.
 0b. **Develop section reseed (T-360, Shashank):** develop still serves the old CrPC→BNSS table, which caused Anushka's 358–362 failure. Run a clean build, then `seed:sections --force` (docs/seeding.md §7), then delete the Redis keys sections:forward, sections:reverse and sections:loaded_at. Develop only; production waits as noted below.
 0. **New users get describe-first by default (T-356 part 1, merging soon):** on the develop and prod servers, remove `FEATURE_DEFAULT_DESCRIBE_FIRST=off` from the server env file, or set it to `on`. Also set the `feature.describe_first` app setting to `on`, or delete it, if it holds a user-id list. Otherwise the new default is overridden.
 1. **`feature.fact_ledger`** stays as you set it until T-356 part 2 (after T-187 + T-188) turns it on by default. For Anushka's next run, switch it off once so she can test the "off" half.

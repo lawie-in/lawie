@@ -214,8 +214,12 @@ export function assertOverridesCatalogued(dir: string = TEMPLATES_DIR): void {
 
   const missing: string[] = [];
   const invalid: string[] = [];
+  const badNames: string[] = [];
   for (const f of files) {
     const fileId = f.replace(/\.json$/, '');
+    // T-357 AC2: loadTemplateConfig refuses any id that is not a plain id, so
+    // such a file could never be served; fail the boot instead of hiding it.
+    if (!TEMPLATE_ID_PATTERN.test(fileId)) badNames.push(fileId);
     let parsed: unknown;
     try {
       parsed = JSON.parse(readFileSync(join(dir, f), 'utf-8'));
@@ -228,10 +232,16 @@ export function assertOverridesCatalogued(dir: string = TEMPLATES_DIR): void {
       invalid.push(fileId);
       continue;
     }
-    const inner =
-      parsed !== null && typeof parsed === 'object'
-        ? (parsed as { template_id?: unknown }).template_id
-        : undefined;
+    // T-357 AC1: `null`, a primitive or an array is not a template config.
+    if (!isPlainObject(parsed)) {
+      logger.error(
+        { templateId: fileId },
+        'T-350: docs/templates override is unreadable or not valid JSON',
+      );
+      invalid.push(fileId);
+      continue;
+    }
+    const inner = (parsed as { template_id?: unknown }).template_id;
     const id = typeof inner === 'string' ? inner : fileId;
     if (catalogueCategoryFor(id) === undefined) missing.push(id);
   }
@@ -248,6 +258,11 @@ export function assertOverridesCatalogued(dir: string = TEMPLATES_DIR): void {
       `docs/templates override(s) unreadable or not valid JSON: ${invalid.sort().join(', ')}`,
     );
   }
+  if (badNames.length > 0) {
+    problems.push(
+      `docs/templates override file name(s) not a plain template id: ${badNames.sort().join(', ')}`,
+    );
+  }
   if (problems.length > 0) {
     throw new Error(`Template engine: ${problems.join('; ')}`);
   }
@@ -255,6 +270,11 @@ export function assertOverridesCatalogued(dir: string = TEMPLATES_DIR): void {
 
 /** T-350 AC4: the only shape a template id may have (every catalogue and override id fits). */
 const TEMPLATE_ID_PATTERN = /^[a-z0-9_-]+$/;
+
+/** T-357 AC1: a parsed override must be a JSON object (not `null`, a primitive or an array). */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
 
 /** T-350: the read errors that mean "no override file at this path". */
 function isNoOverrideFile(err: unknown): boolean {
@@ -298,13 +318,21 @@ export function loadTemplateConfig(templateId: string): TemplateConfig | null {
     // No override on disk — fall through to the promoter registry.
   }
   if (raw !== null) {
+    let parsed: unknown;
     try {
-      override = JSON.parse(raw) as TemplateConfig;
+      parsed = JSON.parse(raw);
     } catch {
       // No parse message logged or thrown: it can echo the file's content.
       logger.error({ templateId }, 'T-350: docs/templates override is not valid JSON');
       throw new Error(`Template engine: docs/templates override ${templateId} is not valid JSON`);
     }
+    // T-357 AC1: `null`, a primitive or an array is refused the same way, never
+    // silently replaced by the registry config.
+    if (!isPlainObject(parsed)) {
+      logger.error({ templateId }, 'T-350: docs/templates override is not valid JSON');
+      throw new Error(`Template engine: docs/templates override ${templateId} is not valid JSON`);
+    }
+    override = parsed as unknown as TemplateConfig;
   }
   if (override) {
     // T-240: the library category comes from config/catalogue, never from the

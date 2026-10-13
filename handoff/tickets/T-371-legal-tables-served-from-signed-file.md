@@ -23,3 +23,23 @@ This replaces the reseed in T-360 and the parser half of T-361.
 ## Folded in from T-360 (Arjun, 13 Oct)
 
 Shashank's bugs (b)1–5 in T-360 are part of this ticket: the bulk regex for lists of numbers and "Evidence Act", the parent fallback (156(3)→175(3)), labels on unconverted references, "Not verified" in place of "No mapping found", and labels per reference in the bulk UI. Files are added as needed: sections.routes.ts and the web section-converter page.
+
+## Arjun's answers (13 Oct 2026)
+
+1. Three tool pages, not four: converter, bail checker and timeline. ADR-025's "four" was a slip.
+2. The hard "Not verified — check the Gazette" goes only on unverified, missing or null rows. Verify-flagged offence rows get a one-line caveat that Ajay signs. The raw verify text is never shown.
+3. The wider converter changes the tool only. Draft text stays on the old behaviour until D1, so no ai.service.ts or prompt-assembler.ts change.
+
+**Ajay (e3df5a0, T-361 Addendum 1):** the Gazette line shows only on the 4 unverified or null-target rows and on missing sections. A null attribute gets his fixed "Depends on the sub-section…" line. The raw verify text is never shown.
+
+**Ajay (6526597, handoff/legal/T-371-verify-caveat-signed.md):** the signed caveat line for verify-flagged rows. It supersedes e3df5a0 where they differ. Ajay reviews T-371's legal-content-path files before merge.
+
+**Also (Arjun, 13 Oct):** add `apps/drafting/src/config/document-rules/_skeletons/` (the generated skeleton JSON) to legal-content-paths.md in this ticket.
+
+## Ajay (25b3a26, 13 Oct 2026)
+
+He answered Shashank's six points. Two change: point 1 (a non-offence BNS section keeps the T-277 line) and the converter example.
+
+**Moved out:** the BNS 61(2) bug is its own ticket, T-383 (Ajay's request). Shashank does it after T-371.
+
+**Ajay approved the legal-content diff (51531fe), with one summary-line change (1363d68).**

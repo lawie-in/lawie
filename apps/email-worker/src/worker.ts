@@ -17,19 +17,35 @@
  * T-220 AC6: logs and Sentry carry template id, user id (data.userId, when
  * the producer sets it), job id and counts. Never an address or the body.
  *
- * Test seam (T-220 AC4): createProcessor(send) takes the provider send
- * function, and startWorkers({ connection, send }) takes both the Redis
+ * T-223 (Arjun, condition 2): an auth.verifyEmail job carries the userId only.
+ * The processor asks auth (POST AUTH_SERVICE_URL/internal/verify-email/mint,
+ * INTERNAL_SECRET header) for the address, name and a freshly minted link, then
+ * renders and sends. A 409 (already verified, or a Google account) or a 404 (no
+ * such user) completes the job with no send and no Sentry event. The mint
+ * response is never logged, never put in job data, meta, the return value,
+ * failedReason or Sentry. A BullMQ retry mints again; the newest link wins.
+ *
+ * Test seam (T-220 AC4): createProcessor(send, mint) takes the provider send
+ * function and the verify-link mint function, and startWorkers({ connection, send }) takes both the Redis
  * connection and the send function, so a test can force a provider error
  * against its own Redis without jest.mock. Importing this module opens no
  * Redis connection; startWorkers() does, unless one is passed in.
  */
 import { EMAIL_QUEUE_NAMES, type EmailTemplate } from '@lawie/email-client';
+import { INTERNAL_HEADERS } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
-import { Worker, type ConnectionOptions, type Processor, type Job } from 'bullmq';
+import {
+  UnrecoverableError,
+  Worker,
+  type ConnectionOptions,
+  type Processor,
+  type Job,
+} from 'bullmq';
 import Redis from 'ioredis';
 
 import { env } from './config/env';
 import { logger } from './config/logger';
+import { hasUnfilledPlaceholder, isLiveSend } from './placeholders';
 import { sendEmail, type SendEmailFn } from './providers';
 import { safeErrorFields, toSentrySafeError, userIdFromData } from './providers/safe-log';
 import { renderTemplate } from './templates';
@@ -59,25 +75,126 @@ export function isFinalAttempt(job: Job, err?: unknown): boolean {
   return job.attemptsMade + 1 >= (job.opts?.attempts ?? 1);
 }
 
-export function createProcessor(send: SendEmailFn = sendEmail): Processor<EmailJobData> {
+// ── T-223: verify-link mint (auth) ──────────────────────────────────────────
+
+/** What auth's mint route returns. PII and a live credential: never log any of it. */
+export interface MintedVerifyLink {
+  email: string;
+  name: string;
+  link: string;
+}
+
+/**
+ * Asks auth to mint a verify link for userId. Returns null when auth refuses with 409
+ * (already verified, or a Google account) or 404 (no such user): the job is dropped.
+ * Throws a value-free error on any other failure, so BullMQ retries.
+ */
+export type MintVerifyLinkFn = (userId: string) => Promise<MintedVerifyLink | null>;
+
+/** Value-free error for a failed mint call: name + code only, no URL, no body. */
+class VerifyMintError extends Error {
+  readonly code: string;
+  constructor(code: string) {
+    super(`verify-email mint failed: ${code}`);
+    this.name = 'VerifyMintError';
+    this.code = code;
+  }
+}
+
+const MINT_TIMEOUT_MS = 10_000;
+
+export const mintVerifyLinkViaAuth: MintVerifyLinkFn = async (userId) => {
+  const res = await fetch(`${env.AUTH_SERVICE_URL}/internal/verify-email/mint`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      [INTERNAL_HEADERS.SECRET]: env.INTERNAL_SECRET,
+    },
+    body: JSON.stringify({ userId }),
+    signal: AbortSignal.timeout(MINT_TIMEOUT_MS),
+  });
+  if (res.status === 409 || res.status === 404) return null;
+  if (!res.ok) throw new VerifyMintError(`HTTP_${res.status}`);
+  const body = (await res.json().catch(() => null)) as Partial<MintedVerifyLink> | null;
+  if (
+    !body ||
+    typeof body.email !== 'string' ||
+    body.email.length === 0 ||
+    typeof body.link !== 'string' ||
+    body.link.length === 0
+  ) {
+    throw new VerifyMintError('BAD_RESPONSE');
+  }
+  return {
+    email: body.email,
+    name: typeof body.name === 'string' ? body.name : '',
+    link: body.link,
+  };
+};
+
+function isDryRun(): boolean {
+  return env.EMAIL_DRY_RUN || env.EMAIL_PROVIDER === 'dry-run';
+}
+
+const UNFILLED_PLACEHOLDER_MESSAGE = 'email has unfilled footer placeholders; not sent';
+/** Errors raised by the placeholder guard: rethrown as-is, without the Sentry/log path. */
+const placeholderRefusals = new WeakSet<object>();
+
+export function createProcessor(
+  send: SendEmailFn = sendEmail,
+  mint: MintVerifyLinkFn = mintVerifyLinkViaAuth,
+): Processor<EmailJobData> {
   return async (job: Job<EmailJobData>) => {
-    const { template, to, cc, bcc, replyTo, data } = job.data;
+    const { template, cc, bcc, replyTo, data } = job.data;
     const userId = userIdFromData(data);
     const jobId = job.id;
     const attempt = job.attemptsMade + 1;
+    const isVerify = template === 'auth.verifyEmail';
     Sentry.addBreadcrumb({
       category: 'email.send.start',
       level: 'info',
-      data: { jobId, queue: job.queueName, template, userId, attempt, recipientsCount: to.length },
+      data: {
+        jobId,
+        queue: job.queueName,
+        template,
+        userId,
+        attempt,
+        recipientsCount: job.data.to.length,
+      },
     });
 
     try {
-      const rendered = await renderTemplate(template, data);
+      let to = job.data.to;
+      let renderData = data;
+      if (isVerify) {
+        // T-223: the address, name and link come from auth at send time, never from the job.
+        if (!userId) throw new UnrecoverableError('auth.verifyEmail job without a userId');
+        const minted = await mint(userId);
+        if (!minted) {
+          logger.info(
+            { jobId, template, userId },
+            'Verify email not sent: already verified, Google account or no such user',
+          );
+          return { skipped: 'not_eligible' };
+        }
+        to = [minted.email];
+        renderData = { name: minted.name, verifyUrl: minted.link, userId };
+      }
+
+      const rendered = await renderTemplate(template, renderData);
+      // T-223 review / Ajay: no live send while the footer still has [registered address] or
+      // [PIN] (any template). Dry run is unaffected. Fixed message, ids only, no Sentry.
+      if (isLiveSend() && hasUnfilledPlaceholder(rendered)) {
+        logger.error({ userId, jobId }, 'Email not sent: unfilled footer placeholders');
+        const refusal = new UnrecoverableError(UNFILLED_PLACEHOLDER_MESSAGE);
+        placeholderRefusals.add(refusal);
+        throw refusal;
+      }
       const result = await send({
         to,
-        cc,
-        bcc,
-        replyTo,
+        cc: isVerify ? [] : cc,
+        bcc: isVerify ? [] : bcc,
+        replyTo: isVerify ? undefined : replyTo,
         subject: rendered.subject,
         html: rendered.html,
         text: rendered.text,
@@ -92,8 +209,12 @@ export function createProcessor(send: SendEmailFn = sendEmail): Processor<EmailJ
         { jobId, template, userId, queue: job.queueName, messageId: result.messageId },
         'Email sent',
       );
+      // T-223 AC7: in dry run, one line with the userId only (no address, token or link).
+      if (isVerify && isDryRun()) logger.info({ userId }, 'verify email sent');
       return { messageId: result.messageId };
     } catch (err) {
+      // Already logged (ids only) where it was raised; no Sentry event, no retry.
+      if (placeholderRefusals.has(err as object)) throw err;
       const errFields = safeErrorFields(err);
       Sentry.addBreadcrumb({
         category: 'email.send.failure',
@@ -141,12 +262,14 @@ export interface StartWorkersOptions {
   connection?: ConnectionOptions;
   /** Provider send function; defaults to the configured provider. */
   send?: SendEmailFn;
+  /** T-223 verify-link mint function; defaults to the call to auth's internal route. */
+  mint?: MintVerifyLinkFn;
 }
 
 export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const connection = options.connection ?? (defaultConnection() as any);
-  const processor = createProcessor(options.send);
+  const processor = createProcessor(options.send, options.mint);
   const started: Worker[] = [];
   for (const queueName of [EMAIL_QUEUE_NAMES.high, EMAIL_QUEUE_NAMES.low]) {
     const worker = new Worker<EmailJobData>(queueName, processor, {

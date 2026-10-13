@@ -111,7 +111,7 @@ Status: PROPOSED. Not signed. Nothing here is in the repo.
 | bpl_claimed | Fee exemption claimed | select (No; Yes) | no | fee clause |
 | bpl_basis | Basis of the fee exemption claim (as the applicant states it) | textarea | required if exemption claimed | fee clause |
 | earlier_proceedings | Earlier RTI applications, appeals, complaints on this subject | textarea | no | disclosure |
-| advocate_name / advocate_enrolment | Advocate details (if an advocate files) | text | no | system block |
+| advocate_name / advocate_enrollment | Advocate details (if an advocate files) | text | no | system block |
 
 ## _averments
 
@@ -165,3 +165,5 @@ Reviewed by me after an independent review pass; the corrections are in this fil
 | A practising advocate checks the pack before it goes live | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

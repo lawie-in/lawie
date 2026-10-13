@@ -149,7 +149,7 @@ Applicant
 | pleader_name | Advocate who will appear | text | no | representation clause |
 | undertakings_instructed | Undertakings the accused gives | multiselect (Will not dispute identity; Pleader will appear on every date; Will appear in person when directed; Evidence may be taken in absence through pleader) | no | undertakings clause |
 | earlier_applications | Earlier exemption applications (date, result) | textarea | no | disclosure; blank if empty |
-| advocate_name / advocate_enrolment | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -205,3 +205,5 @@ The "Notes" section is the drafter's reasoning, kept for the record; it is not t
 | 228 vs 355 by stage | Approved |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. S = 1 Ink. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

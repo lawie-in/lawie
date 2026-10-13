@@ -20,12 +20,17 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - Grounds render as the fixed signed sentence per ticked option. This is stricter than renderer rule 3 and stays so.
 - `when`, `variants` and `none_values` extend the ADR format. The loader must read them; it must not drop them.
 
+## Version 2, 13 Oct 2026 (supersedes v1 at 0204a7e, SHA `812f10760b0d18edf554b06df764a22058aee4a86baad00516eeef8b728932d5`)
+
+- Grounds `items` now match the pack's ten `grounds_for_bail` options. Removed: cooperation, investigation_complete, willing_mediation, youth_first_time and no_flight_risk, which are not anticipatory options. New signed sentences: business_dispute_civil_in_nature, cooperation_with_investigation, deep_roots_in_community, abuse_of_process, complainant_motive and professional_reputation. deep_roots_in_community needs `local_ties`: with no fact it renders its MISSING blank, and when it renders the `roots` clause is skipped.
+- Slots that are ledger keys, not pack fields, are valid. The ledger is the source under D1. `false_implication_reason`, `civil_dispute_particulars` and `police_action` come from the `_averments` files (anticipatory and Magistrate inherit bail_regular). `facts_narrative` and `additional_context` must be put into the ledger by the brief for every bail pack. If a key is absent, a required clause renders its MISSING form and an optional clause is left out. Nothing is ever invented to fill it.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_anticipatory",
-  "version": 1,
+  "version": 2,
   "none_values": "first_bail_application.equals (T-334)",
   "clauses": [
     {
@@ -138,27 +143,29 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
         "false_implication": {
           "text": "The applicant has been falsely implicated in this case."
         },
-        "no_flight_risk": {
-          "text": "There is no likelihood of the applicant fleeing from justice."
+        "business_dispute_civil_in_nature": {
+          "text": "The dispute between the parties is essentially civil in nature."
         },
         "no_criminal_antecedent": {
           "use_clause": "antecedents"
         },
-        "cooperation": {
+        "cooperation_with_investigation": {
           "text": "The applicant will cooperate with the investigation and the trial."
+        },
+        "deep_roots_in_community": {
+          "text": "The applicant has roots in society: {local_ties}.",
+          "slots": [
+            "local_ties"
+          ]
         },
         "no_evidence_tampering": {
           "text": "There is no likelihood of the applicant tampering with the evidence or influencing any witness."
         },
-        "investigation_complete": {
-          "text": "The charge sheet has been filed, and the custodial interrogation of the applicant is not required.",
-          "requires": {
-            "key": "investigation_status",
-            "in": [
-              "charge_sheet_filed"
-            ]
-          },
-          "missing_label": "Investigation status"
+        "abuse_of_process": {
+          "text": "The criminal process is being used as a means of recovering money in a civil dispute."
+        },
+        "complainant_motive": {
+          "text": "The complaint has been made with an ulterior motive."
         },
         "medical_grounds": {
           "text": "The applicant seeks bail on medical grounds, the applicant suffering from {medical_condition}.",
@@ -166,14 +173,8 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
             "medical_condition"
           ]
         },
-        "willing_mediation": {
-          "text": "The applicant is willing to take part in mediation or counselling."
-        },
-        "youth_first_time": {
-          "text": "The applicant is aged {applicant_age} years.",
-          "slots": [
-            "applicant_age"
-          ]
+        "professional_reputation": {
+          "text": "The applicant's arrest would cause irreparable harm to the applicant's professional reputation."
         }
       }
     },
@@ -289,7 +290,8 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
         "address",
         "local_ties"
       ],
-      "render_if_any_slot": "local_ties"
+      "render_if_any_slot": "local_ties",
+      "skip_if_rendered": "grounds.deep_roots_in_community"
     },
     {
       "id": "medical",
@@ -313,4 +315,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `812f10760b0d18edf554b06df764a22058aee4a86baad00516eeef8b728932d5`
+SHA-256 of the JSON block (between the fences, final newline included): `2a7dbd0d2ad5030ccc85d12df763f0ac3cb437318de58ba0487e36508093efda`

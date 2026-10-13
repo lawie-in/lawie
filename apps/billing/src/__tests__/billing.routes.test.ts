@@ -44,6 +44,15 @@ function internalHeaders(payload: {
   };
 }
 
+/**
+ * T-223 AC5: POST /subscribe and POST /topup/order need a verified user in the DB for the
+ * x-user-id they send. Seeds one (emailVerified true) and returns its id.
+ */
+async function seedVerifiedUser(email: string): Promise<string> {
+  const user = await User.create({ email, plan: 'free', emailVerified: true });
+  return user._id.toString();
+}
+
 describe('Billing Routes', () => {
   // ─── Health ───────────────────────────────────────────────────────────
 
@@ -97,7 +106,7 @@ describe('Billing Routes', () => {
     });
 
     it('returns 400 for unknown SKU', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
+      const userId = await seedVerifiedUser('topup@test.com');
       const headers = internalHeaders({ sub: userId, email: 'topup@test.com', name: 'Test' });
       const res = await request(app).post('/topup/order').set(headers).send({ skuId: 'topup_999' });
       expect(res.status).toBe(400);
@@ -105,7 +114,7 @@ describe('Billing Routes', () => {
     });
 
     it('creates a razorpay order for valid SKU', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
+      const userId = await seedVerifiedUser('topup@test.com');
       const headers = internalHeaders({ sub: userId, email: 'topup@test.com', name: 'Test' });
 
       // Mock razorpay.orders.create
@@ -122,7 +131,7 @@ describe('Billing Routes', () => {
     });
 
     it('returns 500 when razorpay order creation fails', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
+      const userId = await seedVerifiedUser('topup@test.com');
       const headers = internalHeaders({ sub: userId, email: 'topup@test.com', name: 'Test' });
 
       (razorpay as any).orders = {
@@ -153,7 +162,7 @@ describe('Billing Routes', () => {
     });
 
     it('creates subscription and returns payment link with valid headers', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
+      const userId = await seedVerifiedUser('test@example.com');
       const headers = internalHeaders({ sub: userId, email: 'test@example.com', name: 'Test' });
 
       (razorpay.subscriptions.create as jest.Mock).mockResolvedValue({
@@ -170,7 +179,7 @@ describe('Billing Routes', () => {
     });
 
     it('returns 500 when subscription creation throws', async () => {
-      const userId = new mongoose.Types.ObjectId().toString();
+      const userId = await seedVerifiedUser('test@example.com');
       const headers = internalHeaders({ sub: userId, email: 'test@example.com', name: 'Test' });
       (razorpay.subscriptions.create as jest.Mock).mockRejectedValueOnce(
         new Error('Razorpay down'),

@@ -25,6 +25,7 @@ import { tryGrantDailyLoginBonus, grantSignupBonus } from './credit-bonus.servic
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
 import { applyReferralCode } from './referral.service';
 import { createSession, deleteSession, hashToken, SessionMeta } from './session.service';
+import { requestVerifyEmail } from './verify-email.service';
 
 // T-299 (Arjun ruling 2): login must not reveal whether an account exists, by status or by
 // time. One 401 text for unknown email, wrong password and no password on the record; each of
@@ -77,6 +78,21 @@ export async function registerUser(
 
   // Signup bonus — non-blocking, never fails registration
   void grantSignupBonus(user._id.toString());
+
+  // T-223 AC1 — queue the verify email (userId only; the resend cap applies). Fire-and-forget:
+  // it never fails or slows registration. 'limited' or 'unavailable' just means the user resends
+  // from the prompt. Logs the outcome kind and userId only.
+  const newUserId = user._id.toString();
+  void requestVerifyEmail(newUserId)
+    .then((outcome) => {
+      logger.info(
+        { userId: newUserId, outcome: outcome.kind },
+        'Verify email requested at sign-up',
+      );
+    })
+    .catch(() => {
+      logger.warn({ userId: newUserId }, 'Verify email request failed at sign-up');
+    });
 
   // Referral (T-234 / Ajay Addendum 1: no silent drop). Awaited so the response can
   // tell the page whether the code was applied, but it never fails registration.
@@ -252,12 +268,30 @@ export function privacyStatusFor(user: Pick<IUser, 'privacyVersion'>): PrivacySt
   };
 }
 
-export async function getPrivacyStatus(userId: string): Promise<PrivacyStatus> {
-  const user = await User.findById(userId).select('privacyVersion isActive');
+/** GET /me: the T-343 privacy state plus the T-223 verification state. */
+export type MeStatus = PrivacyStatus & {
+  /** T-223: the address has been verified through the emailed link. */
+  emailVerified: boolean;
+  /** T-223: a Google account or a linked googleId (counts as verified, T-351). */
+  hasGoogle: boolean;
+};
+
+export async function getPrivacyStatus(userId: string): Promise<MeStatus> {
+  // googleId is select:false on the schema, so it is asked for explicitly (+googleId).
+  const user = await User.findById(userId).select(
+    'privacyVersion isActive emailVerified authProvider +googleId',
+  );
   if (!user || !user.isActive) {
     throw new AppError(401, 'User not found or inactive');
   }
-  return privacyStatusFor(user);
+  const hasGoogle =
+    user.authProvider === 'google' ||
+    (typeof user.googleId === 'string' && user.googleId.length > 0);
+  return {
+    ...privacyStatusFor(user),
+    emailVerified: user.emailVerified === true,
+    hasGoogle,
+  };
 }
 
 /**
