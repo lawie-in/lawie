@@ -450,3 +450,158 @@ describe('T-363 AC4: proprietor, payee address, invented reasons', () => {
     });
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The pack (round 3): apps/drafting/src/config/document-rules/legal_notice_s138.json
+// ─────────────────────────────────────────────────────────────────────────────
+const RULES_PATH = join(__dirname, '../config/document-rules/legal_notice_s138.json');
+const RULES_RAW = readFileSync(RULES_PATH, 'utf8');
+const RULES = JSON.parse(RULES_RAW) as {
+  prayerTemplate: string;
+  promptInstructions: string[];
+  form_schema: { steps: Array<{ fields: Array<Record<string, unknown>> }> };
+  [k: string]: unknown;
+};
+const packFields = RULES.form_schema.steps.flatMap((s) => s.fields);
+
+describe('T-363 pack: demand and warning wording', () => {
+  it("prayerTemplate is Ajay's two sentences, byte-exact, in two paragraphs", () => {
+    expect(RULES.prayerTemplate).toBe(
+      `${DEMAND_SENTENCE.replace('{cheque_amount}', '{amount}')}\n\n${AC3_LINE}`,
+    );
+  });
+
+  it('the old civil / criminal complaint / amount-in-words demand text is gone', () => {
+    for (const gone of [
+      'at your risk, cost, and consequences',
+      'Criminal Complaint',
+      '{amountInWords}',
+      'civil proceedings',
+    ]) {
+      expect(RULES.prayerTemplate).not.toContain(gone);
+    }
+  });
+
+  it('the AC3 line appears once in the pack outside nothing else', () => {
+    expect(RULES_RAW.split(AC3_LINE)).toHaveLength(2);
+  });
+
+  it('no pack text says the offence is complete on issue, presentation or dishonour', () => {
+    const ban =
+      'Do not state or suggest that any offence is complete when the cheque is issued, presented or dishonoured.';
+    const early =
+      /(offence|crime)[^.]{0,80}(complete|committed|constitut)[^.]{0,80}(issu|present|dishonour)|(issu|present|dishonour)[^.]{0,80}(constitut|amounts? to|is)[^.]{0,60}(an? )?(criminal )?(offence|crime)/i;
+    const texts = [
+      RULES.prayerTemplate.replace(AC3_LINE, ''),
+      ...RULES.promptInstructions.map((t) => t.replace(ban, '')),
+    ];
+    for (const t of texts) expect(t).not.toMatch(early);
+    // "constitutes a criminal offence" style sentences, wherever they sit in the file
+    expect(RULES_RAW.replace(AC3_LINE, '').replace(ban, '')).not.toMatch(
+      /constitutes? (a|an) (criminal )?offence|offence (is|was|has been) (complete|committed)/i,
+    );
+  });
+
+  it("the promptInstructions hold Ajay's line at index 9, and T-136's lines stay at 6 to 8", () => {
+    expect(RULES.promptInstructions[9]).toBe(
+      'Do not state or suggest that any offence is complete when the cheque is issued, presented or dishonoured. On liability, use only the sentence given.',
+    );
+    expect(RULES.promptInstructions[6]).toBe(
+      'The demand for payment and the time allowed for it are added by the system. Do not write a demand in the body.',
+    );
+    expect(RULES.promptInstructions[7]).toBe(
+      'The warning of prosecution is added by the system. Do not write it in the body.',
+    );
+    expect(RULES.promptInstructions[8]).toMatch(/^Give each date the BRIEF gives:/);
+    expect(RULES.promptInstructions).toHaveLength(12);
+  });
+
+  it('the return reason is quoted only as the memo gives it (index 5)', () => {
+    expect(RULES.promptInstructions[5]).toBe(
+      "State the reason for dishonour only as the bank's return memo gives it. Do not add or infer any reason.",
+    );
+  });
+
+  it('no pack text offers a dishonour reason as an example (averments lists excepted)', () => {
+    const examples =
+      /insufficient funds|funds insufficient|account closed|account does not exist|account did not exist/i;
+    const hits = RULES_RAW.split('\n').filter((l) => examples.test(l));
+    expect(hits).toEqual([]);
+  });
+});
+
+describe('T-363 pack: proprietor fields', () => {
+  it.each([
+    [
+      'payee_proprietor',
+      'Name of the proprietor (if your client is a proprietorship firm)',
+      'body',
+    ],
+    [
+      'drawer_proprietor',
+      'Name of the proprietor (if the drawer is a proprietorship firm)',
+      'header',
+    ],
+  ])('%s exists, is optional text, and matches the twin', (id, label, inject) => {
+    const f = packFields.find((x) => x.field_id === id)!;
+    expect(f).toBeDefined();
+    expect(f.label).toBe(label);
+    expect(f.type).toBe('text');
+    expect(f.required).toBe(false);
+    expect(f.inject_into).toEqual([inject]);
+    const t = allFields.find((x) => x.field_id === id)!;
+    expect({
+      label: f.label,
+      type: f.type,
+      required: f.required,
+      inject_into: f.inject_into,
+    }).toEqual({ label: t.label, type: t.type, required: t.required, inject_into: t.inject_into });
+  });
+
+  it('they sit after applicant_name and respondent_name', () => {
+    const ids = packFields.map((f) => f.field_id);
+    expect(ids.indexOf('payee_proprietor')).toBe(ids.indexOf('applicant_name') + 1);
+    expect(ids.indexOf('drawer_proprietor')).toBe(ids.indexOf('respondent_name') + 1);
+  });
+
+  it('the dishonour_reason placeholder matches the twin', () => {
+    const f = packFields.find((x) => x.field_id === 'dishonour_reason')!;
+    expect(f.placeholder).toBe('Quote only as the memo gives it');
+    expect(f.required).toBe(true);
+  });
+
+  it('the brief adds no required blank for them, and invents nothing when empty', () => {
+    const empty = briefWith({});
+    const keys = (b: typeof empty) => b.items.map((i) => i.key);
+    for (const k of ['payee_proprietor', 'drawer_proprietor']) {
+      if (!keys(empty).includes(k)) continue;
+      const it = empty.items.find((i) => i.key === k)!;
+      expect(it.required).toBe(false);
+      expect(it.value).toBeNull();
+      expect(it.source).toBeNull();
+      expect(empty.still_unknown.map((u) => u.key)).not.toContain(k);
+    }
+    expect(empty.still_unknown.map((u) => u.key)).not.toContain('payee_proprietor');
+    expect(empty.still_unknown.map((u) => u.key)).not.toContain('drawer_proprietor');
+    expect(JSON.stringify(empty.confirm_blockers)).not.toMatch(/proprietor/);
+    // the same other blanks as a brief built from the checklist without the two fields
+    const without = buildBrief({
+      kind,
+      checklist: checklist().filter((c) => !/proprietor/.test(c.key)),
+      values: [],
+    });
+    expect(empty.still_unknown.map((u) => u.key)).toEqual(without.still_unknown.map((u) => u.key));
+    expect(empty.can_confirm).toBe(without.can_confirm);
+  });
+
+  it('a proprietor the advocate typed is kept as given', () => {
+    const b = briefWith({ drawer_proprietor: 'Anil Gupta', payee_proprietor: 'Ramesh Jain' });
+    for (const [k, v] of [
+      ['drawer_proprietor', 'Anil Gupta'],
+      ['payee_proprietor', 'Ramesh Jain'],
+    ]) {
+      const it = b.items.find((i) => i.key === k);
+      if (it) expect(it.value).toBe(v);
+    }
+  });
+});

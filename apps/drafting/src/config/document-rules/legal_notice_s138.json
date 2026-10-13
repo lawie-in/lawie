@@ -254,7 +254,7 @@
       "id": "dishonour_details",
       "name": "Dishonour Details",
       "required": true,
-      "description": "Date of dishonour, reason for dishonour (e.g., insufficient funds), bank memo reference"
+      "description": "Date of dishonour, reason for dishonour as the return memo gives it, bank memo reference"
     },
     {
       "id": "underlying_liability",
