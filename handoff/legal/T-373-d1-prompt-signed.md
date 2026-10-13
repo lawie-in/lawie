@@ -41,3 +41,13 @@ Tests (each must fall back; use fictitious names):
 Control (must stay `ok`): a tense or article fix with the same word order, e.g. `applicant arrested on 2 March 2025` → `The applicant was arrested on 2 March 2025.`
 
 With these three changes and the tests in place, the renderer is approved with no further review. I byte-check only the stop-list and kept-words diff.
+
+**21378b9: approved (byte-checked against 4b59ec7).**
+- Removed from `OWN_WORDS_STOP_LIST`: or, either, will, would, shall, can, and the 12 third-person pronouns.
+- `OWN_WORDS_KEPT` is exactly my list.
+- `ownWordsKeptWordChanged` checks in both directions, and `ownWordsReordered` compares content-word stems in order.
+- Both run before the verifier.
+
+The pronouns are now content words, so they also enter the order check. That is correct.
+
+Still to come: dates and amounts in sequence, with the sixth fallback test (`arrested 2 March, released 5 March` → `arrested 5 March, released 2 March`). Logic only. I sign the SHA when it is sent.
