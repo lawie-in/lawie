@@ -6,7 +6,6 @@
  * handoff/legal/T-412-cpa-jurisdiction-rules-signed.md,
  * handoff/legal/T-404-cause-title-fields-signed.md (item c: place).
  */
-import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -390,6 +389,10 @@ describe('T-410 other packs are unaffected', () => {
   });
 });
 
+// Tests never read git refs or the remote; a baseline is a literal or a fixture file (Arjun, 13 Oct 2026).
+const PRE_T410_BODY_PROMPT_CONTEXT: string =
+  "Generate 8-12 numbered paragraphs for a Consumer Complaint under Section 35 of the Consumer Protection Act, 2019. Structure:\nPara 1: Introduce the complainant — {applicant_name}, S/o {father_name}, aged {applicant_age} years, R/o {address} — as a 'consumer' within the meaning of Section 2(7) CPA 2019. Use these EXACT identity details as provided; do NOT invent or substitute any party name, parentage, age, or address.\nPara 2: Identify the Opposite Party and their business.\nPara 3-6: Narrate the facts chronologically — purchase/service, defect/deficiency, attempts to resolve: {deficiency_details}. Mention Invoice No. {invoice_number}, dated {purchase_date}, amount Rs. {consideration_amount}/- paid via {payment_mode}.\nPara 7: Establish that the Opposite Party's conduct amounts to 'deficiency in service' (Section 2(11)) and/or 'defect' (Section 2(10)) and constitutes an 'unfair trade practice' (Section 2(47)).\nPara 8: Territorial jurisdiction: {territorial_basis}\nPara 9: Pecuniary jurisdiction: {pecuniary_basis}. NOTE: Per CPA (Jurisdiction) Notification dated 21 December 2021, District Commission has jurisdiction where value of goods/services paid as consideration does NOT EXCEED Rs. 50 Lakh. State Commission: above Rs. 50 Lakh up to Rs. 2 Crore. National Commission: above Rs. 2 Crore. Do NOT use the old Section 34(1) limits (Rs. 1 Crore) — those were superseded by this notification.\nPara 10: Limitation: {limitation_basis}\nPara 11: State that the complainant is entitled to refund, compensation for mental agony and harassment (Rs. {compensation_claimed}/-), and litigation costs (Rs. {litigation_cost}/-).\nDo NOT generate the prayer or verification — those are template-handled.";
+
 describe('T-412: the 21 December 2021 date', () => {
   function filesUnder(dir: string): string[] {
     return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -424,26 +427,9 @@ describe('T-412: the 21 December 2021 date', () => {
     const current = body.prompt_context as string;
     expect(current).toContain(`Per the ${RULES_CITATION},`);
 
-    let baseline: {
-      document_structure: { sections: { section_id: string; prompt_context?: string }[] };
-    };
-    try {
-      baseline = JSON.parse(
-        execFileSync(
-          'git',
-          ['show', 'origin/develop_staging:docs/templates/consumer_complaint.json'],
-          {
-            cwd: REPO_ROOT,
-            encoding: 'utf8',
-            maxBuffer: 10 * 1024 * 1024,
-          },
-        ),
-      );
-    } catch {
-      throw new Error('origin/develop_staging is not available: fetch it to run this test');
-    }
-    const old = baseline.document_structure.sections.find((s) => s.section_id === 'body')
-      ?.prompt_context as string;
+    // Pinned: the body prompt_context as it stood before T-410 (docs/templates/consumer_complaint.json
+    // at 43dc53fb). No git or origin dependency.
+    const old = PRE_T410_BODY_PROMPT_CONTEXT;
     expect(old).toContain('CPA (Jurisdiction) Notification dated 21 December 2021,');
     // Three signed edits only: T-412 (citation), T-412 Addendum 2 (2df4d04, "these Rules")
     // and Ajay 4e42ef8 (opening drops "Section 35 of").
