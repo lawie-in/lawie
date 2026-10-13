@@ -19,6 +19,7 @@ import {
   requireCatalogueCategory,
   type CatalogueCategoryId,
 } from '../config/catalogue';
+import courtDocuments from '../config/intake/court-documents.json';
 import logger from '../config/logger';
 
 import {
@@ -32,6 +33,19 @@ import {
   resolveOffence,
 } from './bns-offence-resolver';
 import { getTemplateRegistry } from './template-promoter';
+
+/**
+ * T-406 (Ajay, T-404 Addendum 2 item 9): a document that is not filed in court
+ * carries no case nomenclature. Not a court document = listed in Ajay's
+ * `not_court_documents` (read here directly; importing `isCourtDocument` from
+ * intake-brief would be a circular import).
+ */
+const NOT_COURT_DOCUMENTS = new Set<string>(courtDocuments.not_court_documents);
+
+/** T-406: whether a document type may carry a case nomenclature. */
+export function nomenclatureAllowed(templateId: string): boolean {
+  return !NOT_COURT_DOCUMENTS.has(templateId);
+}
 
 /** Sorted list of valid BNS section numbers for system-prompt injection (SCRUM-64). */
 const BNS_VALID_SECTIONS = [...BNS_OFFENCE_KEYS].sort((a, b) => parseFloat(a) - parseFloat(b));
@@ -976,7 +990,9 @@ export function resolveComputedFields(
           designation,
           header,
           city: courtData.city,
-          case_nomenclature: courtData.caseNomenclature,
+          case_nomenclature: nomenclatureAllowed(config.template_id)
+            ? courtData.caseNomenclature
+            : '',
           court_type: courtData.courtType ?? String(formData.court_type ?? ''),
         };
         computed[fieldId] = propMap[prop] ?? '';
@@ -1004,7 +1020,9 @@ export function resolveComputedFields(
     const courtRulesMatch = logic.match(/^court_rules\[(\w+)\]\.(\w+)\s*\|\|\s*'([^']*)'$/);
     if (courtRulesMatch) {
       const [, , prop, defaultVal] = courtRulesMatch;
-      if (courtData && prop === 'case_nomenclature') {
+      if (prop === 'case_nomenclature' && !nomenclatureAllowed(config.template_id)) {
+        computed[fieldId] = '';
+      } else if (courtData && prop === 'case_nomenclature') {
         computed[fieldId] = courtData.caseNomenclature || defaultVal;
       } else {
         computed[fieldId] = defaultVal;
@@ -1534,7 +1552,7 @@ export function buildPlaceholderContext(
     if (formatted !== null) ctx[key] = formatted;
   }
 
-  applyCourtAndAliases(ctx, computed, courtData);
+  applyCourtAndAliases(ctx, computed, courtData, nomenclatureAllowed(config.template_id));
 
   // ── SCRUM-50: Inject court-rule-driven placeholders ───────────────────────
   if (courtData?.courtRule) {
@@ -1562,8 +1580,11 @@ export function buildPlaceholderContext(
     // Case nomenclature — resolve by template type
     // T-177 (AJ-2026-10-09-T177): a family template in a family court takes
     // the family court rule's line, or the placeholder; never the list entry's.
+    // T-406: none on a document that is not filed in court.
     const familyLine = familyCaseNomenclature(rule, config.template_id);
-    if (familyLine !== null) {
+    if (!nomenclatureAllowed(config.template_id)) {
+      // no case nomenclature
+    } else if (familyLine !== null) {
       ctx.case_nomenclature = familyLine.replace(/\{year\}/g, ctx.current_year);
     } else if (rule.case_nomenclature) {
       const templateId = config.template_id;
@@ -1739,6 +1760,7 @@ function applyCourtAndAliases(
   ctx: PlaceholderContext,
   computed: Record<string, string>,
   courtData?: CourtLookupData,
+  allowNomenclature = true,
 ): void {
   const chosen = chosenCourtHeading(courtData);
   if (chosen) {
@@ -1748,7 +1770,7 @@ function applyCourtAndAliases(
   }
   const city = courtData?.city?.trim();
   if (city && (!ctx.court_city || IS_BLANK.test(ctx.court_city))) ctx.court_city = city;
-  if (courtData?.caseNomenclature && !ctx.case_nomenclature) {
+  if (allowNomenclature && courtData?.caseNomenclature && !ctx.case_nomenclature) {
     ctx.case_nomenclature = courtData.caseNomenclature.replace(/\{year\}/g, ctx.current_year);
   }
 
