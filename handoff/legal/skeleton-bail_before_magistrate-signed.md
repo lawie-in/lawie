@@ -25,12 +25,17 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - The pack's `grounds_for_bail` is free text, so `grounds` is now `source: advocate`: the advocate's own words with grammar fixes only, after the signed intro. The option list is removed, and with it prolonged_custody and its `custody_since` slot.
 - Slots that are ledger keys, not pack fields, are valid. The ledger is the source under D1. `false_implication_reason`, `civil_dispute_particulars` and `police_action` come from the `_averments` files (anticipatory and Magistrate inherit bail_regular). `facts_narrative` and `additional_context` must be put into the ledger by the brief for every bail pack. If a key is absent, a required clause renders its MISSING form and an optional clause is left out. Nothing is ever invented to fill it.
 
+## Version 3, 13 Oct 2026 (supersedes v2 at b61aaf9, SHA `f610ebdd928c48f22affcd1325a7280168b64fa51af8f53b7167cd18714e5423`)
+
+- `grounds` gets `list: true` (Arjun's ruling 4). Each ground the ledger holds renders as its own item in the advocate's words, with grammar fixes only, under the signed intro.
+- `medical` loses `skip_if_rendered`, because free-text grounds have no `medical_grounds` item to point at. If the advocate gives a medical condition, it prints once in the `medical` clause.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_before_magistrate",
-  "version": 2,
+  "version": 3,
   "none_values": "first_bail_application.equals (T-334)",
   "clauses": [
     {
@@ -191,6 +196,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "order": 70,
       "required": true,
       "source": "advocate",
+      "list": true,
       "slot": "grounds_for_bail",
       "intro": "The applicant seeks bail on the following grounds:"
     },
@@ -359,8 +365,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "text": "The applicant suffers from {medical_condition}.",
       "slots": [
         "medical_condition"
-      ],
-      "skip_if_rendered": "grounds.medical_grounds"
+      ]
     },
     {
       "id": "sureties",
@@ -386,4 +391,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `f610ebdd928c48f22affcd1325a7280168b64fa51af8f53b7167cd18714e5423`
+SHA-256 of the JSON block (between the fences, final newline included): `683616eb289f1bc08b9a6ee533d447871d5f6940e9899d5262fcf00d930206fe`
