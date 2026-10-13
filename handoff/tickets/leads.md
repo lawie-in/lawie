@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- **HOLD drafting merges (13 Oct, 03:20):** Ajay's e7c0418 changed the signed T-277 block, so t277-bns-offences fails until bns-offences.json matches (Shashank's copy is blocked by a founder-only permission prompt). Ajay is asked to restore the old block and park the new rows in a pending file. No merge that runs the drafting CI job until that lands.
+- Hold lifted (Ajay restored the T-277 block, daa2780; parity checked). Kunal T-372 holds the slot. Then Mahak T-365, Tanvi T-374, Vishal T-373. T-361 data copy waits on the founder (pending rows in handoff/legal/T-361-303-rows-pending-signed.md).
 
 ## Last done
 
