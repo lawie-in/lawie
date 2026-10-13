@@ -1,7 +1,27 @@
 {
   "pack": "bail_before_magistrate",
-  "version": 2,
+  "version": 4,
   "none_values": "first_bail_application.equals (T-334)",
+  "antecedents_none_values": [
+    "none",
+    "nil",
+    "no",
+    "not applicable",
+    "no criminal record",
+    "no criminal antecedents",
+    "no antecedents",
+    "no previous record",
+    "no past record",
+    "no prior record",
+    "no previous criminal record",
+    "no criminal history",
+    "clean record",
+    "koi record nahi",
+    "koi criminal record nahi",
+    "koi aapradhik record nahi",
+    "कोई नहीं",
+    "कोई आपराधिक रिकॉर्ड नहीं"
+  ],
   "clauses": [
     {
       "id": "offence_classification",
@@ -88,7 +108,7 @@
         {
           "when": {
             "key": "antecedents",
-            "in": "none_values"
+            "in": "antecedents_none_values"
           },
           "text": "The applicant has no criminal antecedents."
         },
@@ -132,6 +152,7 @@
       "order": 70,
       "required": true,
       "source": "advocate",
+      "list": true,
       "slot": "grounds_for_bail",
       "intro": "The applicant seeks bail on the following grounds:"
     },
@@ -276,8 +297,7 @@
       "required": false,
       "source": "fixed",
       "text": "The applicant suffers from {medical_condition}.",
-      "slots": ["medical_condition"],
-      "skip_if_rendered": "grounds.medical_grounds"
+      "slots": ["medical_condition"]
     },
     {
       "id": "sureties",

@@ -1,6 +1,6 @@
 /**
  * T-373 (ADR-025 D1, "Renderer" and "Tests"): the code renderer, against the
- * four signed bail skeletons (handoff/legal/skeleton-*-signed.md, v2 b61aaf9)
+ * four signed bail skeletons (handoff/legal/skeleton-*-signed.md, as re-signed at d87355a)
  * and Anushka's run-3 reproduce steps as ledger fixtures. T-359's ACs are
  * this file's tests (ADR-025 unit case (e)). No model, no database.
  *
@@ -23,6 +23,10 @@ import {
   DraftParagraph,
   DraftParagraphsOutput,
   draftFactRefs,
+  OWN_WORDS_STOP_LIST,
+  ownWordsAddedWord,
+  ownWordsAlteredEntity,
+  ownWordsStem,
   packOptionIds,
   renderDraft,
   skeletonTexts,
@@ -53,9 +57,9 @@ import {
 // ── Harness ─────────────────────────────────────────────────────────────────
 
 const SIGNED_SHA: Record<PackId, string> = {
-  bail_regular: '40e2d56dd4f9f51811416d4432ae6cf0b7c00b39bb6fb174890ca4aeceda6248',
-  bail_anticipatory: '2a7dbd0d2ad5030ccc85d12df763f0ac3cb437318de58ba0487e36508093efda',
-  bail_before_magistrate: 'f610ebdd928c48f22affcd1325a7280168b64fa51af8f53b7167cd18714e5423',
+  bail_regular: '604acbe65cd5df1b3981626bd868ceec3f1c62475b212f90d44e4a29fa5380f4',
+  bail_anticipatory: '50b7dd20bcaccdbc10c6bd35094ac754e8605ba8c03dfa5855c372d9eed04d1e',
+  bail_before_magistrate: '0404960987deb50cc19d24ef70535298185aa0c882db8ddc0afa39fbe9794f23',
   default_bail: '1f0384f6c8f2feffa289622b63c9bb8c1b9c698cb5744c9159fc079032349720',
 };
 
@@ -122,6 +126,8 @@ function render(
     result.rendered.find((r) => r.clauseId === id)?.status;
   return { result, skeleton, text, status, ids: result.rendered.map((r) => r.clauseId) };
 }
+
+const KEPT_REPHRASE = 'He is accused in a civil dispute from a failed land-sale agreement.';
 
 const count = (haystack: string, needle: string): number => haystack.split(needle).length - 1;
 
@@ -245,26 +251,22 @@ describe('ADR unit cases', () => {
     expect(text('facts')).not.toContain('Suresh');
   });
 
-  // FINDING (source): "was arrested on" is a banned phrase the advocate's own raw_span contains, so the
-  // renderer lets it through, and the verifier then raises no separate finding for the changed date.
-  it.failing(
-    'GAP: a changed date after the advocate\'s own "was arrested on 5 May 2026" falls back to raw_span',
-    () => {
-      const facts = [
-        ...withoutKey(regularBase(), 'facts_narrative'),
-        fact('facts_narrative', 'He was arrested over a land-sale quarrel.', {
-          raw_span: 'He was arrested on 5 May 2026 over a land-sale quarrel.',
-        }),
-      ];
-      const { text } = render('bail_regular', facts, undefined, {
-        facts: 'He was arrested on 9 May 2026.',
-      });
-      expect(text('facts')).not.toContain('9 May 2026');
-    },
-  );
+  // Was a GAP pinned as it.failing in phase 1; the entity check (ruling 1) runs before keepsToFact now.
+  it('a changed date after the advocate\'s own "was arrested on 5 May 2026" falls back to raw_span', () => {
+    const facts = [
+      ...withoutKey(regularBase(), 'facts_narrative'),
+      fact('facts_narrative', 'He was arrested over a land-sale quarrel.', {
+        raw_span: 'He was arrested on 5 May 2026 over a land-sale quarrel.',
+      }),
+    ];
+    const { text } = render('bail_regular', facts, undefined, {
+      facts: 'He was arrested on 9 May 2026.',
+    });
+    expect(text('facts')).not.toContain('9 May 2026');
+  });
 
   it('(c) a pure rephrase (same date and facts, grammar only) is kept, status ok', () => {
-    const rephrase = 'The dispute is civil and arises from a failed land-sale agreement.';
+    const rephrase = KEPT_REPHRASE;
     const { text, status } = render('bail_regular', regularBase(), undefined, { facts: rephrase });
     expect(status('facts')).toBe('ok');
     expect(text('facts')).toBe(`The brief facts of the case are as follows: ${rephrase}`);
@@ -462,7 +464,7 @@ describe('own-words fallbacks: reasons and the list the caller logs', () => {
 
   it('a kept rephrase and a fixed clause are not fallbacks; rendered[] has no reason for them', () => {
     const { result } = render('bail_regular', regularBase(), undefined, {
-      facts: 'The dispute is civil and arises from a failed land-sale agreement.',
+      facts: KEPT_REPHRASE,
     });
     expect(result.fallbacks).toEqual([]);
     expect(result.rendered.every((r) => r.reason === undefined)).toBe(true);
@@ -479,8 +481,8 @@ describe('own-words fallbacks: reasons and the list the caller logs', () => {
   describe('Magistrate v2 grounds: a plain advocate clause on grounds_for_bail, one lettered item per entry', () => {
     const two = (): LedgerFact[] => [
       ...withoutKey(magistrateBase(), 'grounds_for_bail'),
-      fact('grounds_for_bail', 'She has two young children.', { raw_span: 'she has two kids' }),
-      fact('grounds_for_bail', 'She was not at the place of the incident.', {
+      fact('grounds_for_bail', 'She has two kids.', { raw_span: 'she has two kids' }),
+      fact('grounds_for_bail', 'She was not at the spot.', {
         raw_span: 'she was not at the spot',
       }),
     ];
@@ -497,15 +499,15 @@ describe('own-words fallbacks: reasons and the list the caller logs', () => {
         'bail_before_magistrate',
         two(),
         outputWith([
-          ['grounds_for_bail[0]', 'She has two young children.'],
-          ['grounds_for_bail[1]', 'She was not at the place of the incident.'],
+          ['grounds_for_bail[0]', 'She has two kids.'],
+          ['grounds_for_bail[1]', 'She was not at the spot.'],
         ]),
       );
       expect(text('grounds')).toBe(
         [
           'The applicant seeks bail on the following grounds:',
-          '(a) She has two young children.',
-          '(b) She was not at the place of the incident.',
+          '(a) She has two kids.',
+          '(b) She was not at the spot.',
         ].join('\n'),
       );
     });
@@ -515,11 +517,11 @@ describe('own-words fallbacks: reasons and the list the caller logs', () => {
         'bail_before_magistrate',
         two(),
         outputWith([
-          ['grounds_for_bail[0]', 'She has two young children.'],
+          ['grounds_for_bail[0]', 'She has two kids.'],
           ['grounds_for_bail[1]', "She was at her mother's house in Delhi on 4 May 2026."],
         ]),
       );
-      expect(text('grounds')).toContain('(a) She has two young children.');
+      expect(text('grounds')).toContain('(a) She has two kids.');
       expect(text('grounds')).toContain('(b) she was not at the spot');
       expect(text('grounds')).not.toContain('Delhi');
       expect(status('grounds')).toBe('fallback');
@@ -530,9 +532,9 @@ describe('own-words fallbacks: reasons and the list the caller logs', () => {
       const { text, result } = render(
         'bail_before_magistrate',
         two(),
-        outputWith([['grounds_for_bail[0]', 'She has two young children.']]),
+        outputWith([['grounds_for_bail[0]', 'She has two kids.']]),
       );
-      expect(text('grounds')).toContain('(a) She has two young children.');
+      expect(text('grounds')).toContain('(a) She has two kids.');
       expect(text('grounds')).toContain('(b) she was not at the spot');
       expect(result.fallbacks).toEqual([{ clauseId: 'grounds', reason: 'not_returned' }]);
     });
@@ -549,31 +551,23 @@ describe('own-words fallbacks: reasons and the list the caller logs', () => {
     });
 
     it('every ground the advocate gave is there (T-359 AC2): one lettered item per entry', () => {
-      const o = outputWith([['grounds_for_bail[0]', 'She has two young children.']]);
+      const o = outputWith([['grounds_for_bail[0]', 'She has two kids.']]);
       const { text } = render('bail_before_magistrate', two(), o);
       expect((text('grounds')!.match(/^\([a-z]\) /gm) ?? []).length).toBe(2);
     });
 
-    // FINDING (source): the fact verifier does not catch an added quality of a person ("spotless record");
-    // the D1 prompt forbids it, the renderer cannot. Flips to a normal pass when a check exists.
-    it.failing(
-      'GAP: an added quality ("a spotless record") in an own-words item falls back to raw_span',
-      () => {
-        const o = outputWith([
-          ['grounds_for_bail[0]', 'She has two young children and a spotless record.'],
-        ]);
-        expect(render('bail_before_magistrate', two(), o).text('grounds')).not.toContain(
-          'spotless',
-        );
-      },
-    );
+    // Was a GAP pinned as it.failing in phase 1; the added-word check (ruling 2) now catches it.
+    it('an added quality ("a spotless record") in an own-words item falls back to raw_span', () => {
+      const o = outputWith([['grounds_for_bail[0]', 'She has two kids and a spotless record.']]);
+      expect(render('bail_before_magistrate', two(), o).text('grounds')).not.toContain('spotless');
+    });
 
     it('with one entry it is the intro and the words on one line, as before', () => {
       const { text } = render('bail_before_magistrate', magistrateBase(), undefined, {
-        grounds: 'She has two young children and was not at the place of the incident.',
+        grounds: 'She has two kids and was not at the spot.',
       });
       expect(text('grounds')).toBe(
-        'The applicant seeks bail on the following grounds: She has two young children and was not at the place of the incident.',
+        'The applicant seeks bail on the following grounds: She has two kids and was not at the spot.',
       );
     });
 
@@ -1227,7 +1221,10 @@ describe('Arjun: every rendered string comes from a skeleton, a ledger fact, or 
       'regular, rephrase kept',
       'bail_regular',
       regularBase,
-      { facts: 'The dispute is civil, from a failed land sale agreement dated 2 March 2025.' },
+      {
+        facts:
+          'He is accused in a civil dispute from a failed land sale agreement of 2 March 2025.',
+      },
     ],
     [
       'regular, blanks',
@@ -1259,7 +1256,7 @@ describe('Arjun: every rendered string comes from a skeleton, a ledger fact, or 
       'bail_before_magistrate',
       () => [
         ...withoutKey(magistrateBase(), 'grounds_for_bail'),
-        fact('grounds_for_bail', 'She has two young children.', { raw_span: 'she has two kids' }),
+        fact('grounds_for_bail', 'She has two kids.', { raw_span: 'she has two kids' }),
         fact('grounds_for_bail', 'She was not at the place.', {
           raw_span: 'she was not at the spot',
         }),
@@ -1324,5 +1321,306 @@ describe('d1DrafterFacts: raw_span only for the keys an advocate clause carries'
     expect(out.find((f) => f.key === 'facts_narrative')!.raw_span).toBe(REGULAR_NARRATIVE_RAW);
     expect(out.find((f) => f.key === 'applicant_name')).not.toHaveProperty('raw_span');
     expect(out.find((f) => f.key === 'fir_date')).not.toHaveProperty('raw_span');
+  });
+});
+
+// ── Phase 2: Arjun's rulings 1 and 2 on the advocate's own words ────────────
+
+/** The raw_span the checks below compare against. "was arrested on" is a phrase the pack bans. */
+const RAW = 'He was arrested on Monday after 3 weeks in a land-sale quarrel with Suresh in Patna.';
+const RAW_DATED = 'He was arrested on 5 May 2026 after a land-sale quarrel.';
+
+function withNarrative(raw: string): LedgerFact[] {
+  return [
+    ...withoutKey(regularBase(), 'facts_narrative'),
+    fact('facts_narrative', raw, { raw_span: raw }),
+  ];
+}
+
+describe('ruling 1: a changed date, number, name or place falls back, even with a banned phrase in raw_span', () => {
+  const PREFIX = 'The brief facts of the case are as follows: ';
+
+  it("the unchanged text is kept (the banned phrase is the advocate's own)", () => {
+    const { text, status } = render('bail_regular', withNarrative(RAW), undefined, { facts: RAW });
+    expect(status('facts')).toBe('ok');
+    expect(text('facts')).toBe(`${PREFIX}${RAW}`);
+  });
+
+  it.each([
+    ['date', RAW_DATED, RAW_DATED.replace('5 May 2026', '9 May 2026'), '9 May'],
+    ['number', RAW, RAW.replace('3 weeks', '4 weeks'), '4 weeks'],
+    ['name', RAW, RAW.replace('Suresh', 'Mahesh'), 'Mahesh'],
+    ['place', RAW, RAW.replace('Patna', 'Gaya'), 'Gaya'],
+  ])('a changed %s falls back to the raw_span verbatim', (_k, raw, changed, bad) => {
+    const { text, status, result } = render('bail_regular', withNarrative(raw), undefined, {
+      facts: changed,
+    });
+    expect(status('facts')).toBe('fallback');
+    expect(result.fallbacks).toEqual([{ clauseId: 'facts', reason: 'unverified' }]);
+    expect(text('facts')).toBe(`${PREFIX}${raw}`);
+    expect(text('facts')).not.toContain(bad);
+  });
+
+  it.each([
+    ['date', 'He was arrested on 9 May 2026.', RAW_DATED],
+    ['number', 'He was arrested after 4 weeks.', RAW],
+    ['name', 'He was arrested with Mahesh.', RAW],
+    ['place', 'He was arrested in Gaya.', RAW],
+  ])('ownWordsAlteredEntity: a changed %s is true', (_k, text, raw) => {
+    expect(ownWordsAlteredEntity(text, raw)).toBe(true);
+  });
+
+  it('ownWordsAlteredEntity: the same name, place and number, reordered, are false', () => {
+    expect(
+      ownWordsAlteredEntity('In Patna, Suresh quarrelled; arrested after 3 weeks, on Monday.', RAW),
+    ).toBe(false);
+  });
+
+  it('a sentence-initial capital is not read as a name', () => {
+    expect(ownWordsAlteredEntity('Arrested after a quarrel.', 'arrested after a quarrel')).toBe(
+      false,
+    );
+  });
+
+  it('an invented name is caught by the entity check on its own (the content-word check is separate)', () => {
+    // "Suresh" is in raw_span here, so the added-word check is silent for the name.
+    expect(ownWordsAddedWord('Suresh quarrelled', 'quarrelled with Suresh')).toBe(false);
+    expect(ownWordsAlteredEntity('Suresh quarrelled with Mahesh', 'quarrelled with Suresh')).toBe(
+      true,
+    );
+  });
+
+  // FINDING (source): ownWordsAlteredEntity scans the model text for mid-sentence capitalised words
+  // WITHOUT first taking the dates out of it, so the month of a written date ("5 May 2026", "2 March
+  // 2025") is read as a name that raw_span "lacks" (raw_span's own dates are stripped). Every text that
+  // states a date therefore falls back, even when the date is the advocate's own, unchanged. Safe
+  // (it falls back) but it makes a kept date impossible and inflates the fallback rate. Pinned with
+  // it.failing; flips to a normal pass when the month is excluded from the capitalised-word scan.
+  describe("GAP: an unchanged date is the advocate's own and must be kept", () => {
+    it.failing(
+      'ownWordsAlteredEntity(text with the same dated "5 May 2026", raw_span) is false',
+      () => {
+        expect(ownWordsAlteredEntity(RAW_DATED, RAW_DATED)).toBe(false);
+      },
+    );
+    it.failing(
+      'dates compare by value: "2 March 2025" for "2 Mar 2025" is not an alteration',
+      () => {
+        expect(
+          ownWordsAlteredEntity('The deal of 2 March 2025 failed.', 'deal of 2 Mar 2025 failed'),
+        ).toBe(false);
+      },
+    );
+    it.failing("the renderer keeps a rephrase that states the advocate's own date", () => {
+      const raw = 'He is accused in a dispute that is civil, of 2 Mar 2025, and was arrested.';
+      const { status } = render('bail_regular', withNarrative(raw), undefined, {
+        facts: 'He is accused in a civil dispute of 2 March 2025, and was arrested.',
+      });
+      expect(status('facts')).toBe('ok');
+    });
+    it('a different date is still caught (3 March for 2 Mar), by value', () => {
+      expect(
+        ownWordsAlteredEntity('The deal of 3 March 2025 failed.', 'deal of 2 Mar 2025 failed'),
+      ).toBe(true);
+    });
+  });
+});
+
+describe('ruling 2: a content word the raw_span does not hold falls back', () => {
+  it('a kept rephrase uses raw_span words and stop words only', () => {
+    expect(ownWordsAddedWord(KEPT_REPHRASE, REGULAR_NARRATIVE_RAW)).toBe(false);
+    const { status } = render('bail_regular', regularBase(), undefined, { facts: KEPT_REPHRASE });
+    expect(status('facts')).toBe('ok');
+  });
+
+  it.each([
+    ['an adjective', 'He is accused in a violent dispute from a failed land-sale agreement.'],
+    ['a verb', 'He is accused in a dispute that escalated from a failed land-sale agreement.'],
+    ['a noun', 'He is accused in a dispute over a failed land-sale agreement and property.'],
+    [
+      'an added quality',
+      'He is a respected man accused in a dispute from a failed land-sale agreement.',
+    ],
+  ])('%s that the raw_span lacks falls back to the raw_span', (_k, added) => {
+    const { text, status, result } = render('bail_regular', regularBase(), undefined, {
+      facts: added,
+    });
+    expect(status('facts')).toBe('fallback');
+    expect(result.fallbacks).toEqual([{ clauseId: 'facts', reason: 'unverified' }]);
+    expect(text('facts')).toBe(
+      `The brief facts of the case are as follows: ${REGULAR_NARRATIVE_RAW}`,
+    );
+  });
+
+  it('negation is a content word: adding "not" falls back (it is not on the stop list)', () => {
+    expect(OWN_WORDS_STOP_LIST).not.toContain('not');
+    expect(OWN_WORDS_STOP_LIST).not.toContain('no');
+    expect(ownWordsAddedWord('He was not arrested', 'He was arrested')).toBe(true);
+  });
+
+  it('inflection: the stems of arrest / arrested / arrests / arresting are one', () => {
+    for (const w of ['arrest', 'arrested', 'arrests', 'arresting']) {
+      expect(ownWordsStem(w)).toBe(ownWordsStem('arrest'));
+      expect(ownWordsAddedWord(`He was ${w}`, 'the police arrest him')).toBe(false);
+    }
+  });
+
+  it.each([
+    ['kids', 'kid'],
+    ['disputes', 'dispute'],
+    ['disputed', 'dispute'],
+    ['applied', 'apply'],
+    ['failing', 'failed'],
+    ['sales', 'sale'],
+  ])('inflection: "%s" and "%s" compare equal', (a, b) => {
+    expect(ownWordsStem(a)).toBe(ownWordsStem(b));
+  });
+
+  it('case is ignored', () => {
+    expect(ownWordsAddedWord('CIVIL Dispute', 'a civil dispute')).toBe(false);
+  });
+
+  // Characterisation of the stemmer's limit: it does not handle irregular plurals. That fails safe
+  // (a fallback to the advocate's own words), never a silent pass.
+  it('limit: an irregular plural ("children" for "child") is not the same stem, so it falls back', () => {
+    expect(ownWordsAddedWord('two children', 'a child')).toBe(true);
+  });
+
+  it('every stop-list word is allowed, with nothing else added', () => {
+    for (const w of OWN_WORDS_STOP_LIST) {
+      expect(ownWordsAddedWord(`dispute ${w} dispute`, 'dispute')).toBe(false);
+    }
+  });
+
+  it('words may be dropped: a text that is a subset of raw_span adds nothing', () => {
+    expect(ownWordsAddedWord('dispute', 'the dispute is a civil one')).toBe(false);
+    expect(ownWordsAddedWord('civil dispute', 'the civil dispute')).toBe(false);
+  });
+
+  it('a date is taken out before the words are compared (its month is not a word)', () => {
+    expect(ownWordsAddedWord('Deal of 2 March 2025 failed', 'deal of 2 Mar 2025 failed')).toBe(
+      false,
+    );
+  });
+
+  it('the stop list is data: lower case, no duplicates, no digits, and no word is empty', () => {
+    expect(new Set(OWN_WORDS_STOP_LIST).size).toBe(OWN_WORDS_STOP_LIST.length);
+    for (const w of OWN_WORDS_STOP_LIST) expect(w).toMatch(/^[a-z]+$/);
+  });
+
+  it('a fixed (system-written) clause is never run through the own-words checks', () => {
+    // The opening and prayer carry many words the advocate never typed.
+    const { status } = render('bail_regular', regularBase());
+    expect(status('opening')).toBe('ok');
+  });
+});
+
+describe('antecedents_none_values (Ajay, d87355a)', () => {
+  const none = 'The applicant has no criminal antecedents.';
+  const phrasings = (loadFixtureSkeleton('bail_regular') as unknown as Record<string, string[]>)
+    .antecedents_none_values;
+
+  it('the signed list has 18 phrasings, including "No criminal record"', () => {
+    expect(phrasings).toHaveLength(18);
+    expect(phrasings).toContain('no criminal record');
+  });
+
+  it.each([
+    ['No criminal record'],
+    ['NO CRIMINAL RECORD.'],
+    ['  clean   record '],
+    ['Not applicable'],
+    ['No previous criminal record'],
+    ['koi record nahi'],
+  ])('"%s" prints the none sentence', (given) => {
+    const facts = [...withoutKey(regularBase(), 'antecedents'), fact('antecedents', given)];
+    expect(render('bail_regular', facts).text('antecedents')).toBe(none);
+  });
+
+  it.each(['bail_regular', 'bail_anticipatory'] as const)(
+    '%s: every one of the 18 phrasings prints the none sentence',
+    (packId) => {
+      const base = packId === 'bail_regular' ? regularBase : anticipatoryBase;
+      for (const given of phrasings) {
+        const facts = [...withoutKey(base(), 'antecedents'), fact('antecedents', given)];
+        expect(render(packId, facts).text('antecedents')).toBe(none);
+      }
+    },
+  );
+
+  it('a stated record that only contains a phrasing is not the none sentence', () => {
+    const facts = [
+      ...withoutKey(regularBase(), 'antecedents'),
+      fact('antecedents', 'No criminal record except FIR 12/2019'),
+    ];
+    expect(render('bail_regular', facts).text('antecedents')).toBe(
+      'The criminal antecedents of the applicant are: No criminal record except FIR 12/2019.',
+    );
+  });
+
+  it('skeletonValueLists resolves antecedents_none_values from the skeleton itself, with no averment', () => {
+    const sk = loadFixtureSkeleton('bail_regular');
+    const lists = skeletonValueLists(sk, { banned: [], allowed: [] });
+    expect(lists.antecedents_none_values).toEqual(phrasings);
+  });
+});
+
+describe('a named list that neither the skeleton nor the pack holds fails closed', () => {
+  const ghost = (field: 'in' | 'not_in'): Skeleton => {
+    const sk = JSON.parse(JSON.stringify(loadFixtureSkeleton('bail_regular'))) as Skeleton;
+    const variants = sk.clauses.find((c) => c.id === 'antecedents')!.variants!;
+    (variants[0].when as unknown as Record<string, unknown>).in = undefined;
+    delete (variants[0].when as unknown as Record<string, unknown>).in;
+    (variants[0].when as unknown as Record<string, unknown>)[field] = 'ghost_list';
+    return sk;
+  };
+  const lists = loadAvermentLists('bail_regular');
+
+  function renderSk(sk: Skeleton, facts: LedgerFact[]) {
+    const pack = loadRulePack('bail_regular')!;
+    return renderDraft({
+      skeleton: sk,
+      output: goodOutput(sk, facts),
+      facts,
+      labels: Object.fromEntries(buildChecklist(pack).map((i) => [i.key, i.label])),
+      clauseLabels: Object.fromEntries(pack.mandatoryClauses.map((m) => [m.id, m.title])),
+      optionIds: packOptionIds(pack.facts),
+      valueLists: skeletonValueLists(sk, lists),
+      verifier: { unresolved: [], lists, packText: packTexts(pack), skeleton: [] },
+    });
+  }
+
+  it('the name is left out of the resolved lists', () => {
+    expect(skeletonValueLists(ghost('in'), lists)).not.toHaveProperty('ghost_list');
+  });
+
+  it('"in" a list that is not there never matches, so "None" does not print the none sentence', () => {
+    const r = renderSk(ghost('in'), regularBase());
+    const t = r.paragraphs.find((p) => p.clauseId === 'antecedents')?.text;
+    expect(t).not.toBe('The applicant has no criminal antecedents.');
+  });
+
+  it('"not_in" a list that is not there never matches either', () => {
+    const r = renderSk(ghost('not_in'), [
+      ...withoutKey(regularBase(), 'antecedents'),
+      fact('antecedents', 'FIR 12/2019'),
+    ]);
+    const t = r.paragraphs.find((p) => p.clauseId === 'antecedents')?.text;
+    expect(t).not.toBe('The applicant has no criminal antecedents.');
+  });
+
+  it('none_values pointing at a missing top-level list resolves to nothing', () => {
+    const sk = JSON.parse(JSON.stringify(loadFixtureSkeleton('default_bail'))) as Skeleton;
+    (sk as unknown as Record<string, unknown>).none_values = 'no_such_list';
+    expect(skeletonValueLists(sk, { banned: [], allowed: [] })).not.toHaveProperty('none_values');
+  });
+
+  it('none_values as the T-334 averment reference reads that averment; as an array, the array', () => {
+    const sk = loadFixtureSkeleton('default_bail');
+    const l = skeletonValueLists(sk, loadAvermentLists('default_bail'));
+    expect(l.none_values?.length).toBeGreaterThan(0);
+    const inline = JSON.parse(JSON.stringify(sk)) as Skeleton;
+    (inline as unknown as Record<string, unknown>).none_values = ['zilch'];
+    expect(skeletonValueLists(inline, { banned: [], allowed: [] }).none_values).toEqual(['zilch']);
   });
 });

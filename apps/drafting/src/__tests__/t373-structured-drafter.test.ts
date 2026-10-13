@@ -62,7 +62,7 @@ const pack = loadRulePack('bail_regular')!;
 function cleanFacts(): ReturnType<typeof regularBase> {
   return [
     ...regularBase().filter((f) => f.key !== 'facts_narrative'),
-    fact('facts_narrative', 'The dispute is civil and arises from a failed land-sale agreement.', {
+    fact('facts_narrative', 'It is a civil dispute from a failed land-sale deal.', {
       raw_span: 'it is a civil dispute from a failed land sale deal',
     }),
   ];
@@ -523,6 +523,43 @@ describe('the fallback log', () => {
   it('a draft with no fallback logs none', async () => {
     const { lines } = await runLogged(goodOutput(cleanFacts()));
     expect(lines.filter((l) => /fallback/i.test(l))).toEqual([]);
+  });
+
+  it('the fallback line ends with the counts: fallbacks=N, ownWordsClauses=M, one line per fallback, no text', async () => {
+    const facts = [
+      ...cleanFacts(),
+      fact('additional_context', 'His brother is a witness.', {
+        raw_span: 'his brother is a witness',
+      }),
+    ];
+    const out = goodOutput(facts);
+    out.paragraphs.find((p) => p.clauseId === 'facts')!.text = 'It is a violent dispute.';
+    out.paragraphs.find((p) => p.clauseId === 'further_grounds')!.text =
+      'His brother is a violent witness.';
+    const { r, lines } = await runLogged(out, facts);
+    const fb = lines.filter((l) => /fallback/i.test(l));
+    expect(fb).toHaveLength(2);
+    const own = new Set(skeleton.clauses.filter((c) => c.source === 'advocate').map((c) => c.id));
+    const m = r.result!.rendered!.filter((x) => own.has(x.clauseId)).length;
+    expect(m).toBeGreaterThanOrEqual(2);
+    for (const l of fb) {
+      expect(l).toMatch(
+        new RegExp(
+          `\\(kind=bail_regular, runId=r1, clause=\\w+, reason=unverified, fallbacks=2, ownWordsClauses=${m}\\)$`,
+        ),
+      );
+    }
+    expect(fb.map((l) => /clause=(\w+)/.exec(l)![1]).sort()).toEqual(['facts', 'further_grounds']);
+    for (const l of fb)
+      for (const bad of ['violent', 'brother', 'dispute', ...PII]) expect(l).not.toContain(bad);
+  });
+
+  it('an added content word in the advocate clause is what makes the line (end to end)', async () => {
+    const out = goodOutput(cleanFacts());
+    out.paragraphs.find((p) => p.clauseId === 'facts')!.text =
+      'It is a civil dispute that escalated.';
+    const { lines } = await runLogged(out);
+    expect(lines.filter((l) => /fallback/i.test(l))).toHaveLength(1);
   });
 
   it('the D1 prompt asks for one item per entry of a repeated advocate key', () => {

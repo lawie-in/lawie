@@ -1,6 +1,6 @@
 /**
  * T-373 fixtures. The four skeleton JSON files in this folder are the JSON
- * blocks of Ajay's signed handoff/legal/skeleton-<pack>-signed.md (v2, b61aaf9),
+ * blocks of Ajay's signed handoff/legal/skeleton-<pack>-signed.md (re-signed at d87355a: regular v2, anticipatory v3, Magistrate v4, default_bail unchanged),
  * cut out byte for byte (the test in t373-draft-renderer.test.ts pins their
  * SHA-256 to the one printed in each signed file). The ledgers are Anushka's
  * run-3 reproduce steps (handoff/quality/2026-10-13-run-3-develop-FAIL.md).
@@ -116,7 +116,7 @@ export function regularBase(): LedgerFact[] {
     fact('custody_since', '12 June 2026', { type: 'date', value: '2026-06-12' }),
     fact(
       'facts_narrative',
-      'The dispute is civil, arising from a failed land sale agreement dated 2 March 2025.',
+      'He is accused in a civil dispute from a failed land-sale agreement of 2 March 2025.',
       {
         raw_span: REGULAR_NARRATIVE_RAW,
       },
@@ -143,7 +143,7 @@ export function anticipatoryBase(): LedgerFact[] {
     fact('police_station', 'Sherghati', { type: 'police_station' }),
     ...sections('sections_charged', ['BNS 115(2)', 'BNS 351(2)']),
     choice('currently_in_custody', 'No — apprehends arrest', 'no'),
-    fact('facts_narrative', 'A boundary quarrel with a neighbour led to the complaint.', {
+    fact('facts_narrative', 'It was a boundary quarrel with the neighbour, he fears arrest.', {
       raw_span: 'it was a boundary quarrel with the neighbour, he fears arrest',
     }),
     fact('antecedents', 'None', { value: 'none' }),
@@ -175,20 +175,12 @@ export function magistrateBase(over: { woman?: boolean; bailable?: boolean } = {
       over.woman === false ? 'Male' : 'Female',
       over.woman === false ? 'male' : 'female',
     ),
-    fact(
-      'grounds_for_bail',
-      'She has two young children and was not at the place of the incident.',
-      {
-        raw_span: 'she has two kids, was not at the spot',
-      },
-    ),
-    fact(
-      'facts_narrative',
-      'The complaint concerns a transaction in which the applicant had no part.',
-      {
-        raw_span: 'the complaint is about a deal she had no part in',
-      },
-    ),
+    fact('grounds_for_bail', 'She has two kids and was not at the spot.', {
+      raw_span: 'she has two kids, was not at the spot',
+    }),
+    fact('facts_narrative', 'The complaint is about a deal she had no part in.', {
+      raw_span: 'the complaint is about a deal she had no part in',
+    }),
   ];
 }
 

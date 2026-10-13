@@ -1,7 +1,27 @@
 {
   "pack": "bail_regular",
-  "version": 1,
+  "version": 2,
   "none_values": "first_bail_application.equals (T-334)",
+  "antecedents_none_values": [
+    "none",
+    "nil",
+    "no",
+    "not applicable",
+    "no criminal record",
+    "no criminal antecedents",
+    "no antecedents",
+    "no previous record",
+    "no past record",
+    "no prior record",
+    "no previous criminal record",
+    "no criminal history",
+    "clean record",
+    "koi record nahi",
+    "koi criminal record nahi",
+    "koi aapradhik record nahi",
+    "कोई नहीं",
+    "कोई आपराधिक रिकॉर्ड नहीं"
+  ],
   "clauses": [
     {
       "id": "opening",
@@ -76,7 +96,7 @@
         {
           "when": {
             "key": "antecedents",
-            "in": "none_values"
+            "in": "antecedents_none_values"
           },
           "text": "The applicant has no criminal antecedents."
         },
