@@ -37,3 +37,9 @@ Ajay's v2 Magistrate skeleton (b61aaf9) renders its facts clause from the ledger
 ## Folded in from T-365 AC1 (Priya, 13 Oct 2026)
 
 Ajay's add-on to T-365 AC1: when the advocate's profile has a name, don't tell the model the advocate name is unknown. Drop advocate_name from the unknown, still_unknown and missing lists at these three places in ai.service.ts: drafterBrief's call (~:1079-1084), guidedDrafterBrief's call (~:1565), and the ledger path's ledgerDrafterFacts ({{MISSING}}). With no profile name, keep the blank. Test both cases. Mahak's brief-drafter.ts fix (37807a2) already prints the profile name in the advocate block.
+
+## Arjun (13 Oct 2026): advocate-clause check (bcdf5b7)
+
+1. Yes, and wider than dates: any date, number, name or place in the model text that is not in the `raw_span` → fallback to `raw_span` verbatim. The banned-phrase exemption never rescues an altered entity.
+2. Option (b), advocate clauses only: a content word not in the `raw_span` (after a stop list of connectives, articles, auxiliaries and grammar words) → fallback. Fallback is the advocate's own words, so a false positive costs nothing legal. Log the fallback rate per pack so we can see if Hinglish inflection makes it fire too often; tune the stop list then, not the rule.
+3. On D1 packs, `factCheck.passed` is not computed from the legacy verifier: omit it (null). The read-only findings still go to the fact-diff log, tagged `path: d1`, so Ajay's weekly review can filter them. The panel and any pass/fail shown to the advocate come from `rendered[]` only.
