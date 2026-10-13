@@ -23,11 +23,12 @@ import Redis from 'ioredis';
 
 // ── Template registry (compile-time literal union) ──────────────────────────
 //
-// Founder decision 2026-05-17: only Google OAuth ships in Phase 1, so
-// auth.verifyEmail (Google pre-verifies) and auth.passwordReset (no password)
-// are not on this list. Re-introduce them later if non-OAuth login lands.
+// Email and password sign-up shipped after the 2026-05-17 Google-only decision, so
+// T-223 (12 Oct 2026) adds auth.verifyEmail back. auth.passwordReset is still not
+// on this list (T-223 leaves password reset out of scope).
 export type EmailTemplate =
   | 'auth.welcome'
+  | 'auth.verifyEmail'
   | 'billing.subscriptionConfirmed'
   | 'billing.paymentFailed'
   | 'billing.monthlyInvoice'
@@ -47,6 +48,7 @@ const QUEUE_BY_TIER = {
 /** Template → tier (latency budget). */
 const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
   'auth.welcome': 'low',
+  'auth.verifyEmail': 'high',
   'billing.subscriptionConfirmed': 'high',
   'billing.paymentFailed': 'high',
   'billing.monthlyInvoice': 'low',
@@ -59,8 +61,9 @@ const TIER_BY_TEMPLATE: Record<EmailTemplate, 'high' | 'low'> = {
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-export interface EnqueueEmailInput {
-  template: EmailTemplate;
+/** Every template except auth.verifyEmail: the producer knows and sends the address. */
+export interface EnqueueAddressedEmailInput {
+  template: Exclude<EmailTemplate, 'auth.verifyEmail'>;
   to: string | string[];
   data: Record<string, unknown>;
   cc?: string[];
@@ -71,6 +74,21 @@ export interface EnqueueEmailInput {
   /** Sub-10ms dedupe key. Identical key → BullMQ silently skips the push. */
   idempotencyKey?: string;
 }
+
+/**
+ * T-223 (Arjun, condition 1): the verify-email job carries the userId only. No address, no
+ * token, no link: the worker asks auth (/internal/verify-email/mint) for all three when it
+ * runs the job. No idempotencyKey either: every resend must enqueue its own job (the resend
+ * cap is enforced in auth before enqueueEmail is called).
+ */
+export interface EnqueueVerifyEmailInput {
+  template: 'auth.verifyEmail';
+  userId: string;
+  /** Optional explicit priority; defaults to TIER_BY_TEMPLATE['auth.verifyEmail'] ('high'). */
+  priority?: 'high' | 'low';
+}
+
+export type EnqueueEmailInput = EnqueueAddressedEmailInput | EnqueueVerifyEmailInput;
 
 export interface EnqueueEmailResult {
   jobId: string;
@@ -89,6 +107,26 @@ export async function enqueueEmail(input: EnqueueEmailInput): Promise<EnqueueEma
   const queue = getQueue(queueName);
 
   const jobName = input.template;
+  const opts: JobsOptions = {
+    removeOnComplete: { age: 7 * 24 * 60 * 60, count: 1000 }, // keep 7 days / 1000 most recent
+    removeOnFail: { age: 30 * 24 * 60 * 60 }, // keep 30 days for replay
+    attempts: tier === 'high' ? 5 : 3,
+    backoff: { type: 'exponential', delay: 5_000 },
+  };
+
+  if (input.template === 'auth.verifyEmail') {
+    // No recipient in the job: `to` stays empty and the worker resolves it through auth.
+    const verifyJobData = {
+      template: input.template,
+      to: [] as string[],
+      cc: [] as string[],
+      bcc: [] as string[],
+      data: { userId: input.userId },
+    };
+    const verifyJob = await queue.add(jobName, verifyJobData, opts);
+    return { jobId: String(verifyJob.id ?? jobName), queue: queueName, deduped: false };
+  }
+
   const jobData = {
     template: input.template,
     to: Array.isArray(input.to) ? input.to : [input.to],
@@ -98,12 +136,6 @@ export async function enqueueEmail(input: EnqueueEmailInput): Promise<EnqueueEma
     data: input.data,
   };
 
-  const opts: JobsOptions = {
-    removeOnComplete: { age: 7 * 24 * 60 * 60, count: 1000 }, // keep 7 days / 1000 most recent
-    removeOnFail: { age: 30 * 24 * 60 * 60 }, // keep 30 days for replay
-    attempts: tier === 'high' ? 5 : 3,
-    backoff: { type: 'exponential', delay: 5_000 },
-  };
   if (input.idempotencyKey) {
     opts.jobId = input.idempotencyKey;
   }

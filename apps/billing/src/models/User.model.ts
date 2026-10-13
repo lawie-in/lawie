@@ -17,6 +17,11 @@ export interface IUserBilling extends Document {
   inkAnnualCarry?: number; // annual plan carry bucket (50% rollover capped at 2× monthly allotment)
   inkTopup?: number; // non-expiring top-up bucket (survives cancellation)
   inkSubMonthlyAllotment?: number; // monthly allotment for this user (for carry cap calc)
+  // T-223 — owned by auth. Billing READS these to refuse checkout for an unverified email user;
+  // it never writes them. Interface only, not in the schema below: no defaults may be applied.
+  emailVerified?: boolean;
+  authProvider?: 'email' | 'google';
+  googleId?: string | null;
 }
 
 const UserSchema = new Schema<IUserBilling>(

@@ -182,6 +182,8 @@
             "label": "Date the return memo was received",
             "type": "date",
             "required": false,
+            "question": "Date the return memo was received",
+            "ask_when_empty": true,
             "inject_into": ["body"]
           },
           {
@@ -189,6 +191,8 @@
             "label": "Date the notice is sent",
             "type": "date",
             "required": false,
+            "question": "Date the notice is sent",
+            "ask_when_empty": true,
             "inject_into": ["header"]
           },
           {
