@@ -420,11 +420,7 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
       'verification:parentName',
       'verification:relation',
     ],
-    'criminal_appeal.json': [
-      'cause_title:appellant',
-      'cause_title:respondent',
-      'prayer:applicable_section',
-    ],
+    'criminal_appeal.json': ['cause_title:respondent', 'prayer:applicable_section'],
     'criminal_revision.json': [
       'cause_title:petitioner',
       'cause_title:respondent',
@@ -455,7 +451,6 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
     ],
     'interim_bail.json': ['verification:address'],
     'itat_appeal.json': [
-      'cause_title:appellant',
       'cause_title:respondent',
       'verification:appellant_or_authorised_signatory_name',
     ],
@@ -532,13 +527,7 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
       'prayer:hc_name',
     ],
     'surrender_application.json': ['verification:address', 'verification:occupation'],
-    'suspension_of_sentence.json': [
-      'cause_title:appellant',
-      'prayer:appellant',
-      'verification:age',
-      'verification:appellant',
-      'verification:parentName',
-    ],
+    'suspension_of_sentence.json': ['verification:parentName'],
     'temporary_injunction_o39.json': ['cause_title:defendant', 'cause_title:plaintiff'],
     'vakalatnama.json': [
       'cause_title:client',
