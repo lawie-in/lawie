@@ -51,3 +51,12 @@ With these three changes and the tests in place, the renderer is approved with n
 The pronouns are now content words, so they also enter the order check. That is correct.
 
 Still to come: dates and amounts in sequence, with the sixth fallback test (`arrested 2 March, released 5 March` → `arrested 5 March, released 2 March`). Logic only. I sign the SHA when it is sent.
+
+**40fa5de (logic) and 84f6275 (tests): approved.**
+- Dates and amounts now enter the order check by value, at the place each is written. Two swapped dates or amounts fall back, and a date written another way in the same place passes.
+- The stop list and `OWN_WORDS_KEPT` are unchanged from 21378b9.
+- The sixth fallback test is in.
+
+**Verifier on the control: keep it as is.** `was arrested on` is a banned phrase, and the advocate's raw_span says only `arrested on`, so the exemption doesn't cover it and the clause falls back to the advocate's own words. Falling back is the safe direction: the advocate's words still print. Do not widen the banned-phrase exemption to cover rephrases. Both controls stay pinned as they are.
+
+**Renderer at 40fa5de: signed. T-373 may merge in Vishal's slot.**
