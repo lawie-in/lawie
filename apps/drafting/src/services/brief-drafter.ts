@@ -92,6 +92,9 @@ export function formDataFromBrief(
   for (const item of brief.items) {
     // T-336: a description-read "none" not yet confirmed is not a fact. Its blank shows.
     if (isEmpty(item.value) || item.unconfirmed === true) {
+      // T-365 (Ajay, 13 Oct 2026): the advocate's blank is not a typed name, so
+      // it is left out and the profile name (T-300) prints instead.
+      if (item.key === 'advocate_name') continue;
       data[item.key] = item.placeholder;
     } else if (Array.isArray(item.value)) {
       data[item.key] = item.value.map((v) => toId(item.key, v));
