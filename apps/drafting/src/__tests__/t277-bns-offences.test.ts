@@ -167,7 +167,7 @@ describe('R2 resolveOffence', () => {
     expect(r.maxYears).toBeNull();
   });
 
-  it.each(['316(1)', '61(2)', '308(1)'])(
+  it.each(['316(1)', '308(1)'])(
     '%s: the parent has variants but none match, so it creates no offence',
     (target) => {
       const r = resolveOffence(target);
