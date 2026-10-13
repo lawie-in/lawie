@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- **Slot free** (CI run 498 on 7569b14 green). Next ready: Kunal T-372, then Mahak T-365, Tanvi T-374, Vishal T-373.
+- **HOLD drafting merges (13 Oct, 03:20):** Ajay's e7c0418 changed the signed T-277 block, so t277-bns-offences fails until bns-offences.json matches (Shashank's copy is blocked by a founder-only permission prompt). Ajay is asked to restore the old block and park the new rows in a pending file. No merge that runs the drafting CI job until that lands.
 
 ## Last done
 
