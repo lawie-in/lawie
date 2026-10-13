@@ -49,6 +49,7 @@ import {
   privacyPrecheck,
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
+import { openVerifyInsteadOfPaywall } from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/apiFetch';
 
@@ -316,6 +317,11 @@ function NewDocumentContent() {
             }
           } catch {
             /* non-JSON error body */
+          }
+          // T-223 trigger 2: an unverified email user gets the verify modal, not the paywall.
+          if (res.status === 402 && (await openVerifyInsteadOfPaywall())) {
+            setPhase('form');
+            return;
           }
           if (paywallInfo) {
             setPaywallCost(paywallInfo.cost);

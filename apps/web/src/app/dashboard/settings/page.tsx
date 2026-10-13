@@ -10,6 +10,11 @@ import {
   privacyFetch,
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
+import {
+  VerifyEmailCard,
+  isEmailVerificationRequired,
+  useNeedsEmailVerification,
+} from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
 import { useUsage } from '@/hooks/useUsage';
 
@@ -20,6 +25,8 @@ export default function SettingsPage() {
   const [subscribing, setSubscribing] = useState(false);
   const [subscribeError, setSubscribeError] = useState('');
   const privacyDescribedBy = usePrivacyDescribedBy('subscribe');
+  // T-223 trigger 3: unverified email user -> the verify card replaces the upgrade button.
+  const needsVerification = useNeedsEmailVerification();
 
   if (!user) return null;
 
@@ -31,6 +38,7 @@ export default function SettingsPage() {
     try {
       const res = await privacyFetch('subscribe', '/api/billing/subscribe', { method: 'POST' });
       if (isPrivacyBlocked(res)) return; // T-343: prompt or P7 box shown; finally resets
+      if (await isEmailVerificationRequired(res)) return; // T-223: the card shows instead
       const data = await res.json();
       if (!res.ok) {
         setSubscribeError(data.error ?? 'Failed to start subscription. Please try again.');
@@ -135,15 +143,21 @@ export default function SettingsPage() {
             <div className="mt-3">
               <PrivacyBlockedNotice actionKey="subscribe" />
             </div>
-            <button
-              onClick={handleSubscribe}
-              aria-describedby={privacyDescribedBy}
-              disabled={subscribing}
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
-            >
-              {subscribing && <Loader2 size={12} className="animate-spin" />}
-              Upgrade to Pro — ₹799/month
-            </button>
+            {needsVerification ? (
+              <div className="mt-4">
+                <VerifyEmailCard />
+              </div>
+            ) : (
+              <button
+                onClick={handleSubscribe}
+                aria-describedby={privacyDescribedBy}
+                disabled={subscribing}
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:opacity-60"
+              >
+                {subscribing && <Loader2 size={12} className="animate-spin" />}
+                Upgrade to Pro — ₹799/month
+              </button>
+            )}
             <ul className="mt-4 space-y-1.5 text-xs text-slate-500">
               <li>✓ Unlimited document generations</li>
               <li>✓ All document types (bail, notice, agreements, complaints)</li>
