@@ -8,6 +8,12 @@ type AddCall = { name: string; data: unknown; opts: Record<string, unknown> };
 
 const calls: AddCall[] = [];
 const pending = new Map<string, string>();
+const liveJobs = new Set<string>();
+const mockGetJob = jest.fn(async (id: string) => (liveJobs.has(id) ? { id } : null));
+const mockRemoveDedupKey = jest.fn(async (id: string) => {
+  pending.delete(id);
+  return 1;
+});
 
 jest.mock('bullmq', () => ({
   Queue: jest.fn().mockImplementation(() => ({
@@ -19,8 +25,11 @@ jest.mock('bullmq', () => ({
         if (existing) return { id: existing, name };
         pending.set(dedup.id, String(opts.jobId));
       }
+      liveJobs.add(String(opts.jobId));
       return { id: opts.jobId ?? `auto-${calls.length}`, timestamp: Date.now(), name };
     }),
+    getJob: (id: string) => mockGetJob(id),
+    removeDeduplicationKey: (id: string) => mockRemoveDedupKey(id),
     close: jest.fn(async () => undefined),
   })),
 }));
@@ -39,6 +48,9 @@ beforeAll(() => {
 beforeEach(() => {
   calls.length = 0;
   pending.clear();
+  liveJobs.clear();
+  mockGetJob.mockClear();
+  mockRemoveDedupKey.mockClear();
 });
 afterAll(async () => {
   await disconnectEmailClient();
@@ -102,5 +114,66 @@ describe('T-390 verify-email producer dedupe', () => {
     expect(calls[0].opts.deduplication).toBeUndefined();
     expect(calls[1].opts.jobId).toBeUndefined();
     expect(calls[1].opts.deduplication).toBeUndefined();
+  });
+
+  describe('T-416 orphaned dedup key', () => {
+    const verify = () => enqueueEmail({ template: 'auth.verifyEmail', userId: 'u1' });
+
+    it('hit with a live pending job: deduped, key kept, no second add', async () => {
+      const first = await verify();
+      calls.length = 0;
+      const second = await verify();
+      expect(second).toMatchObject({ deduped: true, jobId: first.jobId });
+      expect(mockGetJob).toHaveBeenCalledWith(first.jobId);
+      expect(mockRemoveDedupKey).not.toHaveBeenCalled();
+      expect(calls).toHaveLength(1);
+    });
+
+    it('a first (non-hit) add does not look up the job or touch the key', async () => {
+      await verify();
+      expect(mockGetJob).not.toHaveBeenCalled();
+      expect(mockRemoveDedupKey).not.toHaveBeenCalled();
+    });
+
+    it('hit but the pending job is gone: removes verify:<userId> once and re-adds with a new jobId', async () => {
+      const first = await verify();
+      liveJobs.delete(first.jobId); // job hash deleted, dedup key left behind
+      calls.length = 0;
+      const r = await verify();
+      expect(mockRemoveDedupKey).toHaveBeenCalledTimes(1);
+      expect(mockRemoveDedupKey).toHaveBeenCalledWith('verify:u1');
+      expect(calls).toHaveLength(2);
+      const [a, b] = calls.map((c) => c.opts.jobId as string);
+      expect(b).toMatch(/^verify-[0-9a-f-]{36}$/);
+      expect(b).not.toBe(a);
+      expect(b).not.toBe(first.jobId);
+      expect(calls[1].opts.deduplication).toEqual({ id: 'verify:u1' });
+      expect(r).toMatchObject({ deduped: false, jobId: b });
+    });
+
+    it('if the second add also dedups, it returns without looping (2 adds max)', async () => {
+      const first = await verify();
+      liveJobs.delete(first.jobId);
+      calls.length = 0;
+      // Key removal is a no-op here, so the retry hits the same stale key again.
+      mockRemoveDedupKey.mockImplementationOnce(async () => 0);
+      const r = await verify();
+      expect(calls).toHaveLength(2);
+      expect(mockRemoveDedupKey).toHaveBeenCalledTimes(1);
+      expect(mockGetJob).toHaveBeenCalledTimes(1);
+      expect(r).toMatchObject({ deduped: true, jobId: first.jobId });
+    });
+
+    it('does not mutate shared opts across calls (each add has its own jobId and dedup)', async () => {
+      const first = await verify();
+      liveJobs.delete(first.jobId);
+      await verify();
+      await verify();
+      const ids = calls.map((c) => c.opts.jobId as string);
+      expect(new Set(ids).size).toBe(ids.length);
+      for (const c of calls) expect(c.opts.deduplication).toEqual({ id: 'verify:u1' });
+      // opts objects passed to add are distinct
+      expect(new Set(calls.map((c) => c.opts)).size).toBe(calls.length);
+    });
   });
 });

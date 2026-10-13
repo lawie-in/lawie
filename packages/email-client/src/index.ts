@@ -98,6 +98,15 @@ export interface EnqueueAddressedEmailInput {
  * `keepLastIfActive` are deliberately not used (the job data is identical, so there is
  * nothing newer to keep).
  *
+ * Retry backoff counts as pending: if the send failed and the job is delayed waiting for its
+ * next attempt, a resend in that window is dropped too (the retry will mint and send). This
+ * costs at most about one wasted resend against the cap, in line with Arjun's T-390 AC2 ruling
+ * (the resend cap stays as is).
+ *
+ * T-416: if the dedup key points at a job that no longer exists (its hash was deleted outside
+ * BullMQ, e.g. a manual DEL / FLUSH or eviction), the orphaned key is removed and the job is
+ * added once more, so a stale key cannot block a user's verify emails.
+ *
  * A fixed jobId such as `verify-<userId>` is NOT used: the completed job is kept 7 days
  * (removeOnComplete), so a fixed id would silently swallow a real later resend. Each add gets
  * a random jobId instead, which is only how a dedup hit is detected (BullMQ returns the
@@ -150,17 +159,33 @@ export async function enqueueEmail(input: EnqueueEmailInput): Promise<EnqueueEma
     };
     // T-390: one pending verify job per user. No ttl: the key is cleared when the job
     // completes or finally fails, so a resend after a send queues normally.
-    const requestedJobId = `verify-${randomUUID()}`;
-    opts.jobId = requestedJobId;
-    opts.deduplication = { id: `verify:${input.userId}` };
-    const verifyJob = await queue.add(jobName, verifyJobData, opts);
-    // On a dedup hit BullMQ adds nothing and returns the id of the job already pending.
-    const verifyJobId = verifyJob.id ?? requestedJobId;
-    return {
-      jobId: String(verifyJobId),
-      queue: queueName,
-      deduped: verifyJobId !== requestedJobId,
+    const deduplicationId = `verify:${input.userId}`;
+    const addVerifyJob = async (): Promise<EnqueueEmailResult> => {
+      const requestedJobId = `verify-${randomUUID()}`;
+      const verifyJob = await queue.add(jobName, verifyJobData, {
+        ...opts,
+        jobId: requestedJobId,
+        deduplication: { id: deduplicationId },
+      });
+      // On a dedup hit BullMQ adds nothing and returns the id of the job already pending.
+      const verifyJobId = verifyJob.id ?? requestedJobId;
+      return {
+        jobId: String(verifyJobId),
+        queue: queueName,
+        deduped: verifyJobId !== requestedJobId,
+      };
     };
+
+    const first = await addVerifyJob();
+    if (!first.deduped) return first;
+
+    // T-416: the dedup key points at a job whose hash is gone (deleted outside BullMQ: manual
+    // DEL / FLUSH, eviction). BullMQ would keep dropping every resend for this user, so drop
+    // the orphaned key and add once more. One retry only, no loop.
+    const pending = await queue.getJob(first.jobId);
+    if (pending) return first;
+    await queue.removeDeduplicationKey(deduplicationId);
+    return addVerifyJob();
   }
 
   const jobData = {

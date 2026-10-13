@@ -50,6 +50,15 @@ let connection: { host: string; port: number; maxRetriesPerRequest: null };
 let q: Queue;
 const saved: Record<string, string | undefined> = {};
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// obliterate() does not delete BullMQ dedup keys (<prefix>:email-high:de:verify:<userId>), so clear them too;
+// otherwise a leftover key from one test would only be healed by the T-416 recovery.
+const resetQueue = async () => {
+  await q.obliterate({ force: true });
+  const client = await q.client;
+  for (const u of ['u1', 'u2', '64b7f0c2a1b2c3d4e5f60790']) {
+    await client.del(`{${PREFIX}}:email-high:de:verify:${u}`);
+  }
+};
 const verify = (userId: string) => enqueueEmail({ template: 'auth.verifyEmail', userId });
 
 beforeAll(async () => {
@@ -86,6 +95,10 @@ afterAll(async () => {
 });
 
 describe('T-390 producer dedupe against real Redis', () => {
+  beforeEach(async () => {
+    await resetQueue();
+  });
+
   it('runs on a real Redis', () => {
     expect(['REDIS_TEST_URL', 'spawned redis-server']).toContain(redis.source);
   });
@@ -105,6 +118,7 @@ describe('T-390 producer dedupe against real Redis', () => {
   });
 
   it('a different user gets its own job', async () => {
+    await verify('u1');
     const other = await verify('u2');
     expect(other.deduped).toBe(false);
     expect(await q.getWaitingCount()).toBe(2);
@@ -113,12 +127,34 @@ describe('T-390 producer dedupe against real Redis', () => {
   });
 
   it('after the user job is removed, a new resend queues', async () => {
+    await verify('u2');
     const pendingJob = (await verify('u1')).jobId;
     await (await q.getJob(pendingJob))!.remove();
     const again = await verify('u1');
     expect(again.deduped).toBe(false);
     expect(again.jobId).not.toBe(pendingJob);
     expect(await q.getWaitingCount()).toBe(2);
+  });
+
+  it('T-416: job hash deleted but dedup key left behind: the next resend is queued and the key moves', async () => {
+    const first = await verify('u1');
+    const deKey = `{${PREFIX}}:email-high:de:verify:u1`;
+    const client = await q.client;
+    expect(await client.get(deKey)).toBe(first.jobId);
+    expect(await client.del(`{${PREFIX}}:email-high:${first.jobId}`)).toBe(1);
+    expect(await q.getJob(first.jobId)).toBeUndefined();
+    expect(await client.get(deKey)).toBe(first.jobId); // orphaned
+
+    const next = await verify('u1');
+    expect(next.deduped).toBe(false);
+    expect(next.jobId).not.toBe(first.jobId);
+    const job = await q.getJob(next.jobId);
+    expect(job).toBeDefined();
+    expect(await job!.getState()).toBe('waiting');
+    expect(await client.get(deKey)).toBe(next.jobId);
+    // and dedup works again against the new job
+    const again = await verify('u1');
+    expect(again).toMatchObject({ deduped: true, jobId: next.jobId });
   });
 
   it('after the user job completes, a new resend queues (dedup key cleared on completion)', async () => {
@@ -140,12 +176,15 @@ describe('T-390 producer dedupe against real Redis', () => {
     expect(after.deduped).toBe(false);
     expect(after.jobId).not.toBe(pendingId);
     expect(await q.getWaitingCount()).toBe(1);
-    await q.obliterate({ force: true });
   });
 });
 
 describe('T-390 held verify jobs: one email per user when the footer is filled', () => {
   const USER = '64b7f0c2a1b2c3d4e5f60790';
+
+  beforeEach(async () => {
+    await resetQueue();
+  });
 
   it('three resends while held leave one waiting job; on release, mint and send run once', async () => {
     const { startWorkers, stopWorkers, workers } = await import('../worker');
