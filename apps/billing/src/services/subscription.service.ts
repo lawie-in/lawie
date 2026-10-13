@@ -11,7 +11,12 @@ import { CouponUsage } from '../models/CouponUsage.model';
 import { Subscription } from '../models/Subscription.model';
 import { User } from '../models/User.model';
 
-import { cancelSubscriptionInk, grantSubscriptionInk, grantTopupInk } from './ink-ledger.service';
+import {
+  cancelSubscriptionInk,
+  grantSubscriptionInk,
+  grantTopupInk,
+  reportManualGrant,
+} from './ink-ledger.service';
 
 export async function createSubscription(
   userId: string,
@@ -155,8 +160,15 @@ export async function handleWebhookEvent(
         logger.warn({ skuId: notes.sku_id }, 'Webhook: unknown top-up SKU');
         return;
       }
-      const razorpayOrderId = (orderEntity?.id as string) ?? '';
-      await grantTopupInk({
+      // T-413: payment.captured carries no order entity, only payment.order_id. Both
+      // siblings must key on the same order id, or each would claim separately.
+      const razorpayOrderId =
+        (orderEntity?.id as string | undefined) ??
+        (paymentEntity?.order_id as string | undefined) ??
+        '';
+      // T-413: grantTopupInk claims the order before granting; it returns 0 when
+      // the order was already granted (a retry or the sibling event).
+      const granted = await grantTopupInk({
         userId: notes.user_id,
         inkUnits: sku.ink * 2, // 1 Ink = 2 ledger units
         amountInr: sku.priceInr,
@@ -165,8 +177,9 @@ export async function handleWebhookEvent(
         topupSkuId: sku.id,
       });
 
-      // Track coupon usage if one was applied to this order
-      if (notes.coupon_code) {
+      // Track coupon usage if one was applied to this order. T-413: behind the
+      // grant's claim, so a retry or the sibling event never counts it twice.
+      if (granted > 0 && notes.coupon_code) {
         try {
           const coupon = await CouponCode.findOneAndUpdate(
             { code: notes.coupon_code },
@@ -182,7 +195,11 @@ export async function handleWebhookEvent(
           }
         } catch (couponErr) {
           logger.error(
-            { couponErr, couponCode: notes.coupon_code },
+            {
+              // T-323 rule: error class only (a duplicate-key message carries the value).
+              errName: couponErr instanceof Error ? couponErr.name : 'unknown',
+              couponCode: notes.coupon_code,
+            },
             'Failed to record coupon usage',
           );
         }
@@ -336,6 +353,9 @@ export async function handleWebhookEvent(
                   { subId, event, errName: err instanceof Error ? err.name : 'unknown' },
                   'subscription grant claim rollback failed; this cycle needs a manual grant',
                 );
+                reportManualGrant('subscription-claim-rollback-no-match', {
+                  razorpaySubscriptionId: subId,
+                });
               }
             } catch (rollbackErr) {
               logger.error(
@@ -346,6 +366,9 @@ export async function handleWebhookEvent(
                 },
                 'subscription grant claim rollback failed; this cycle needs a manual grant',
               );
+              reportManualGrant('subscription-claim-rollback-failed', {
+                razorpaySubscriptionId: subId,
+              });
             }
           }
           throw err;
