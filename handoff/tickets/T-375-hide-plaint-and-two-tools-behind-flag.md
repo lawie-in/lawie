@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web + drafting) |
 | Mode   | Small fix |
-| Status | Building. Tanvi, after T-374. Arjun's ruling on the v1 scope (13 Oct 2026). Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging bb8fd47 (tanvi, 13 Oct 2026). Switches default off: feature.template_civil_plaint, feature.tool_bail_checker, feature.tool_timeline. Waiting for Anushka on develop. Priya |
 | Source | Anushka run 3 FAIL; Arjun's ruling: v1 = bail (4 packs), s.138 notice, converter |
 
 ## Acceptance criteria
