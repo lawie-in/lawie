@@ -73,6 +73,48 @@ export function formatInkCost(n: number | undefined): string | null {
 /** T-372: id of the Ink cost line, which describes the confirm button. */
 export const INK_COST_ID = 'brief-confirm-ink-cost';
 
+/** T-365: the choices that write no fact, folded as the service folds them (T-190). */
+const NOT_KNOWN_ANSWERS = new Set(['not known', 'not given']);
+
+/** T-365: case, spacing and punctuation folded, as the service's `foldAnswer`. */
+function foldAnswer(v: string): string {
+  return v
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/**
+ * T-365 AC2: the option an item answered "Not known" shows as chosen. The
+ * service sends such an item with no value and `asked_empty`, so without this
+ * its row looks empty and unanswered.
+ */
+export function notKnownOption(item: BriefItem): string | undefined {
+  if (!item.asked_empty || (item.kind !== 'choice' && item.kind !== 'choices')) return undefined;
+  return item.options.find((o) => NOT_KNOWN_ANSWERS.has(foldAnswer(o)));
+}
+
+/**
+ * T-365 AC2: what a row answered with no fact ("Not known", "none") shows, so a
+ * row the advocate answered never looks empty. A choice shows the option that
+ * was chosen; a typed field shows the words given. A date field cannot show
+ * words, so it shows nothing. Undefined when the item is not `asked_empty`.
+ */
+export function askedEmptyValue(item: BriefItem, answer?: Value): Value | undefined {
+  if (!item.asked_empty) return undefined;
+  const said = typeof answer === 'string' ? answer : Array.isArray(answer) ? answer[0] : undefined;
+  if (item.kind === 'choice' || item.kind === 'choices') {
+    const folded = said === undefined ? undefined : foldAnswer(said);
+    const option =
+      (folded !== undefined ? item.options.find((o) => foldAnswer(o) === folded) : undefined) ??
+      notKnownOption(item);
+    if (option === undefined) return undefined;
+    return item.kind === 'choices' ? [option] : option;
+  }
+  if (item.kind === 'date' || said === undefined || said.trim() === '') return undefined;
+  return said;
+}
+
 /** Long text and rows of choices take the full width of the card. */
 const WIDE = new Set(['narrative', 'list', 'choice', 'choices']);
 
@@ -123,6 +165,7 @@ function Item({
   needed,
   blocksConfirm,
   onCommit,
+  askedAnswer,
 }: {
   item: BriefItem;
   /** T-147b: the fact ledger, when the service sent one. */
@@ -132,26 +175,34 @@ function Item({
   /** True when Confirm waits for this field while it is empty (T-139): a party's name on a court document. */
   blocksConfirm: boolean;
   onCommit: (value: Value) => void | Promise<EditOutcome | null>;
+  /** T-365 AC2: the advocate's answer, when the service sent this item as `asked_empty`. */
+  askedAnswer?: Value;
 }) {
   const id = fieldId(item.key);
   const entry = ledgerEntryOf(ledger, item.key);
   const onLedger = ledger !== null && entry.type !== undefined;
   const [status, setStatus] = useState<RowStatus | null>(null);
   const [open, setOpen] = useState(false);
+  // T-365 AC2: answered "Not known" or "none", with no fact placed since.
+  const notKnown =
+    isEmptyValue(item.value) && !entry.fact ? askedEmptyValue(item, askedAnswer) : undefined;
 
   // T-147b: the row renders from the ledger. With no fact and nothing outstanding,
   // the brief's own value shows as before.
   const shown: Value | null =
     status && 'typed' in status && status.kind !== 'saving'
       ? status.typed
-      : entry.fact
-        ? fieldValueOf(item, entry.fact)
-        : entry.unresolved
-          ? null
-          : item.value;
+      : notKnown !== undefined
+        ? notKnown
+        : entry.fact
+          ? fieldValueOf(item, entry.fact)
+          : entry.unresolved
+            ? null
+            : item.value;
   const empty = isEmptyValue(shown);
   const heading = item.kind === 'date' && item.meaning ? item.meaning : item.label;
-  const toBeAsked = onLedger && entry.unresolved !== undefined && !entry.fact;
+  const toBeAsked =
+    onLedger && entry.unresolved !== undefined && !entry.fact && notKnown === undefined;
   // A required fact, or one an edited description left unclear (T-150), shows its blank.
   const showBlank = empty && (item.required || item.reask === true || toBeAsked);
   const pleaseCheck = onLedger && entry.fact
@@ -425,6 +476,7 @@ export default function BriefStep({
   onConfirm,
   confirmDescribedBy,
   inkCost,
+  askedAnswers,
 }: {
   brief: Brief;
   /** T-147b: the fact ledger, when the service sent one. Rows render from it. */
@@ -456,6 +508,8 @@ export default function BriefStep({
   confirmDescribedBy?: string;
   /** T-372: the template's Ink cost, shown under the confirm button when positive. */
   inkCost?: number;
+  /** T-365 AC2: the advocate's answers to the items sent as `asked_empty`, by key. */
+  askedAnswers?: Record<string, Value>;
 }) {
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [name, setName] = useState(brief.kind.name);
@@ -652,6 +706,7 @@ export default function BriefStep({
                     }
                     blocksConfirm={brief.kind.court_document && item.party_name && item.required}
                     onCommit={(v) => onValue(item, v)}
+                    askedAnswer={askedAnswers?.[item.key]}
                   />
                 ))}
               </div>
