@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- mahak: T-385 merged 68937a7; holds the slot until CI on it is green. Then Tanvi T-406 (all four reports in, 08:37), then Kunal T-399 (all four reports in, 09:04, 47742e3), then Vishal T-373 (delta reviewer passed 09:14; pull in T-395 and T-406 first), then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), whichever is ready first (T-373: Ajay's own-words-check conditions being built, then a delta reviewer). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
+- tanvi: T-406 holds the slot (T-385 CI green, run 512). Then Kunal T-399 (all four reports in, 09:04, 47742e3), then Vishal T-373 (delta reviewer passed 09:14; pull in T-395 and T-406 first), then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), then Mahak T-390 (reviewer and doc-writer first: it touches auth and a shared package). T-361 data copy waits on the founder.
 
 ## Last done
 
+- mahak: T-385 CI green (run 512, 13 Oct 2026).
 - mahak: T-385 merged 68937a7 (13 Oct 2026). Template configs are served through one public-field projection; nothing looks different to a user. Files released.
 - shashank: T-363 proprietor fix CI green (run 511, 13 Oct 2026).
 - shashank: T-363 proprietor fix merged d9a354c (13 Oct 2026). Blank proprietor answers print clean; s.141 only for company, LLP or partnership drawers; drawer type not pre-selected in the form. Ajay 2c620e3. s.138 files released to T-404.
