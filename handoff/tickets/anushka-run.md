@@ -848,6 +848,6 @@ What a user can now do:
 - The bail checker and timeline tracker are hidden from the Tools page, and their pages show "not found" until switched on.
 - Existing drafts are untouched.
 
-For this run, the founder turns on `feature.tool_timeline`, because T-367 is merged. `feature.tool_bail_checker` stays off until T-361 merges, and `feature.template_civil_plaint` stays off for v1.
+For this run, the founder turns on `feature.tool_timeline` (`yarn workspace @lawie/drafting seed:setting feature.tool_timeline on`; it shows within about 2 minutes), because T-367 is merged. `feature.tool_bail_checker` stays off until T-361 merges, and `feature.template_civil_plaint` stays off for v1.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
