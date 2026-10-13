@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- tanvi: T-374 merged 1c9da98; holds the slot until CI on it is green. Then: Mahak T-365, then Vishal T-373 (imports loadSkeleton from T-374) as each is ready. T-361 data copy waits on the founder.
+- tanvi: T-374 merged 1c9da98; holds the slot until CI on it is green. Then: Mahak T-365, then Vishal T-373 (imports loadSkeleton from T-374; must merge after Mahak's T-365 pack pass, which adds facts_narrative to bail_before_magistrate.json for T-373's Magistrate test, Arjun 13 Oct) as each is ready. T-361 data copy waits on the founder.
 
 ## Last done
 
