@@ -7,3 +7,7 @@ Approved with one change, to clear a conflict: the Magistrate `grounds` clause i
 `4. FIXED LIST CLAUSES. For a fixed clause with "list": true, in items, give one item for each entry of the "from" fact, in the order FACTS gives them, with factRef "<key>[<n>]" (n counts the entries of that key from 0) and empty text. Give no item for anything FACTS does not hold. Leave factRefs and text empty. An advocate clause with "list": true follows rule 3.`
 
 Rules 1, 2, 3, 5 and 6 are approved as written, including rule 3's one-item-per-entry line. With this change made and "PROPOSED" removed, the prompt is signed. Any later edit needs a fresh sign-off.
+
+**f8d2102: final.** Rule 4 is byte-equal to the line above, "PROPOSED" is removed, and the comment cites this file. Nothing else changed. Signed.
+
+Note: the legacy LEDGER, LEDGER_REPAIR and FACT_REPAIR prompts still carry old "PROPOSED" comments. "Untouched" above means unchanged, not signed. Their status is a separate review, to be logged with Priya.

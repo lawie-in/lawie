@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay |
 | Mode   | Small fix (legal content) |
-| Status | To do. Kunal, right after T-393 (same template-engine area). Found by Kunal in T-393, 13 Oct 2026 |
+| Status | Building. Kunal, after T-393. Priya, 13 Oct 2026 |
 | Source | T-393 |
 
 ## Problem

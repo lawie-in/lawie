@@ -63,6 +63,7 @@ const SYSTEM_KEYS = new Set(['court_name', 'court_designation']);
 function formData(key: string, extra: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     applicant_name: 'Ramesh Kumar',
+    applicant_relation: 'S/o',
     applicant_parentage: 'Suresh Kumar',
     applicant_age: '34',
     state: 'bihar',
@@ -113,13 +114,16 @@ describe.each([
 
   it('puts the father and age in the verification, with no custody clause (jail part of criterion 1 not met: follow-up)', () => {
     expect(out.verification).toContain('S/o Suresh Kumar');
+    expect(out.verification).not.toContain('[To be confirmed: relation');
     expect(out.verification).toContain('aged about 34 years, do hereby verify');
     expect(out.verification).not.toMatch(/custody/i);
     expect(all).not.toContain('[To be confirmed: name of jail]');
   });
 
   it('fixture guard: every scenario key is a bail_before_magistrate form field or a system key', () => {
-    const fields = new Set(bail.form_schema.steps.flatMap((st) => st.fields.map((f) => f.field_id)));
+    const fields = new Set(
+      bail.form_schema.steps.flatMap((st) => st.fields.map((f) => f.field_id)),
+    );
     const stray = Object.keys(formData(key)).filter((k) => !fields.has(k) && !SYSTEM_KEYS.has(k));
     expect(stray).toEqual([]);
   });
@@ -148,6 +152,19 @@ describe.each([
       }
     }
   });
+});
+
+describe('T-146 / T-393: the relation is as given, never a default S/o', () => {
+  it.each(['cjm', 'jmfc'])(
+    '%s: with a name and no relation, the relation is the signed blank',
+    (key) => {
+      const out = renderAll(key, { applicant_relation: undefined });
+      expect(out.verification).toContain(
+        'I, Ramesh Kumar, [To be confirmed: relation] Suresh Kumar, aged about 34 years',
+      );
+      expect(out.verification).not.toContain('S/o');
+    },
+  );
 });
 
 describe('T-146 verification: jail, custody clause and date', () => {
@@ -182,15 +199,17 @@ describe('T-146 verification: jail, custody clause and date', () => {
     expect(text).toContain('aged about 34 years, do hereby verify');
   });
 
-  it.each(['yes_judicial', 'Yes — Judicial custody', 'yes — in judicial custody', 'Judicial custody'])(
-    'adds the custody clause for %p',
-    (v) => {
-      const out = renderAll('cjm', { currently_in_custody: v, jail_name: 'Beur Jail' });
-      expect(out.verification).toContain(
-        'aged about 34 years, currently in judicial custody at Beur Jail, do hereby',
-      );
-    },
-  );
+  it.each([
+    'yes_judicial',
+    'Yes — Judicial custody',
+    'yes — in judicial custody',
+    'Judicial custody',
+  ])('adds the custody clause for %p', (v) => {
+    const out = renderAll('cjm', { currently_in_custody: v, jail_name: 'Beur Jail' });
+    expect(out.verification).toContain(
+      'aged about 34 years, currently in judicial custody at Beur Jail, do hereby',
+    );
+  });
 
   it.each([
     'Yes — Police custody',
@@ -274,7 +293,11 @@ describe('T-146 alias order: aliases read the final court-rule value', () => {
     const ctx = buildPlaceholderContext(bail, formData(key), { advocateName: 'A' }, data);
     expect(ctx.case_nomenclature).toMatch(/^Criminal Case No\. _____ of \d{4}$/);
     expect(ctx.caseNomenclature).toBe(ctx.case_nomenclature);
-    const s = { section_id: 'x', type: 'template', template: '{caseNomenclature}|{case_nomenclature}' };
+    const s = {
+      section_id: 'x',
+      type: 'template',
+      template: '{caseNomenclature}|{case_nomenclature}',
+    };
     const [a, b] = renderTemplateSection(s as never, ctx).content.split('|');
     expect(a).toBe(b);
     expect(a).not.toContain('DB Nomenclature');
@@ -284,7 +307,9 @@ describe('T-146 alias order: aliases read the final court-rule value', () => {
 describe('T-146 warnings for aliases', () => {
   function withTemplate(text: string): TemplateConfig {
     const tpl = JSON.parse(JSON.stringify(bail)) as TemplateConfig;
-    const sections = tpl.document_structure.sections.filter((s) => s.type === 'template' && s.template);
+    const sections = tpl.document_structure.sections.filter(
+      (s) => s.type === 'template' && s.template,
+    );
     sections.forEach((s, i) => {
       s.template = i === 0 ? text : 'plain';
     });
@@ -314,7 +339,9 @@ describe('T-146 warnings for aliases', () => {
     // not "none" as the handoff expected. Asserted: the alias itself is never shown.
     const w = leakedPlaceholderWarnings(withTemplate('{courtDesignation}'), {});
     expect(w.map((x) => x.message).join('\n')).not.toContain('{courtDesignation}');
-    expect(w.map((x) => (x.details as { clauseId: string }).clauseId)).toEqual(['court_designation']);
+    expect(w.map((x) => (x.details as { clauseId: string }).clauseId)).toEqual([
+      'court_designation',
+    ]);
   });
 });
 
@@ -541,7 +568,9 @@ describe('T-146 criterion 5: placeholder coverage of every document rule', () =>
   });
 
   it('no other document rule has an unfillable placeholder beyond the recorded list', () => {
-    const { 'bail_before_magistrate.json': _bail, ...others } = unfillable();
+    const others = Object.fromEntries(
+      Object.entries(unfillable()).filter(([file]) => file !== 'bail_before_magistrate.json'),
+    );
     const unexpected: string[] = [];
     for (const [file, keys] of Object.entries(others)) {
       for (const k of keys) {
