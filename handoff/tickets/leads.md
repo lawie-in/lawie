@@ -48,11 +48,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 **PAUSED (founder): the work hour 16:42–17:42 UTC, 13 Oct, is over. Resume only on the founder's command.**
 Hour result: merged T-397 (7e23038) and T-381 (9e3cafa), plus fixes: T-410 CI test fix (37f9736) and T-399 gitleaks allow (28177b7). T-415 done but not merged. T-404 part 1 reviewed, not merged. T-411 server half built.
-Next session's merge queue: Kunal T-415 (bc35be1, all four reports), then Shashank T-404 part 1 (650aaa4, reviewer passed; tester re-run, then merge).
+Next session's merge queue: Kunal T-415 (bc35be1, all four reports), then Shashank T-404 part 1 (f506d75, tester, re-review and Ajay passed; merge only).
 Where each lead stopped:
 - vishal: T-397 merged. Next: T-422, then T-376.
 - mahak: T-381 merged. Next: T-423.
-- shashank: T-404 part 1 on feature/t-404-cause-title-s138 650aaa4, reviewer passed; final tester fix, then merge.
+- shashank: T-404 part 1 on feature/t-404-cause-title-s138 f506d75, ready to merge.
 - kunal: T-415 on fix/t-415-grant-claim-state bc35be1, ready to merge.
 - tanvi: T-411 server half on feature/t-411-consumer-court-picker 41fe294 (built, tested); UI waits for Rajesh's Figma link.
 
