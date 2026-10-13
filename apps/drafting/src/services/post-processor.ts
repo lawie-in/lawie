@@ -15,7 +15,7 @@
  */
 import { DocumentRuleConfig, CourtRuleConfig } from './prompt-assembler';
 import { readFilingChecklist } from './rule-pack.service';
-import { RELATION_BLANK, relationLine } from './template-engine.service';
+import { normaliseRelation, RELATION_BLANK, relationLine } from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -497,7 +497,9 @@ export function generateVerificationClause(
     .replace(
       /{parentRelation}/g,
       relationLine(
-        partyDetails.relation_type ?? partyDetails.relation,
+        [partyDetails.applicant_relation, partyDetails.relation_type, partyDetails.relation].find(
+          (v) => normaliseRelation(v) !== undefined,
+        ),
         partyDetails.fatherName || partyDetails.parentName,
       ),
     )
