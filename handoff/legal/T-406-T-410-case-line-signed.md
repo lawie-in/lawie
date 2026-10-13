@@ -15,3 +15,5 @@ Tests:
 Tanvi's batch: 39 entries, 13 courts × {legal_notice_s138, legal_notice_s80, rent_agreement}. The one change in each entry: the `case_nomenclature` line is removed and left unset. No other key changes, and no court-document entry changes. I checked against the current snapshot (`court-rules-golden.test.ts.snap`): it has 78 `case_nomenclature` lines, and every removed string Tanvi lists appears there.
 
 Signed, on this condition: after regeneration the snapshot diff is removals only, exactly 39 `-` lines and no `+` lines, and 39 `case_nomenclature` lines remain. Any other byte change means a new sign-off.
+
+**Amended condition (13 Oct 2026), replacing the one above.** Jest keeps the key and serialises it as `undefined`. The signed form is: exactly 39 lines change, each from `"case_nomenclature": "<court line>",` to `"case_nomenclature": undefined,`, in the 39 non-court entries Tanvi listed. No other byte changes. 78 `case_nomenclature` lines remain: 39 court-document values unchanged and 39 `undefined`. Signed. Same meaning: no case line prints.
