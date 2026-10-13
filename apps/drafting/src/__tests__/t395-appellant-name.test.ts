@@ -9,7 +9,7 @@
  */
 import './setupEnv';
 
-import { generateVerificationClause } from '../services/post-processor';
+import { familyCourtSeat, generateVerificationClause } from '../services/post-processor';
 import { resolveDocRule } from '../services/prompt-assembler';
 import { loadAllDocRules } from '../services/template-promoter';
 import {
@@ -111,7 +111,17 @@ describe('T-395 legacy path: generateVerificationClause', () => {
   it('never leaves a literal {appellant} when no name is given', () => {
     const out = generateVerificationClause(rule(), {}, 'Court');
     expect(out).not.toContain('{appellant}');
+    expect(out).toContain('[DEPONENT NAME]');
   });
+
+  it.each(['applicant', 'petitioner', 'plaintiff', 'complainant'])(
+    'never prints the %s name as the appellant',
+    (key) => {
+      const out = generateVerificationClause(rule(), { [key]: OTHER }, 'Court');
+      expect(out).not.toContain(OTHER);
+      expect(out).toContain('[DEPONENT NAME]');
+    },
+  );
 });
 
 describe('T-395 cause titles use the appellant name', () => {
@@ -151,5 +161,24 @@ describe('T-395 a client-sent `appellant` cannot override the alias', () => {
     const t = render('suspension_of_sentence', 'verification', kept);
     expect(t).toContain(`I, ${NAME},`);
     expect(t).not.toContain(OTHER);
+  });
+});
+
+describe('T-395 court-number token strip (T-176 C-1) still works', () => {
+  it.each([
+    ['(2)', 'Family Court, (2) Patna'],
+    ['[2]', 'Family Court, [2] Patna'],
+    ['[No.3]', 'Family Court, [No.3] Patna'],
+    ['(IV)', 'Family Court, (IV) Patna'],
+    ['2nd;', 'Family Court, 2nd; Patna'],
+    ['2nd:', 'Family Court, 2nd: Patna'],
+    ['(2nd)', 'Family Court, (2nd) Patna'],
+  ])('%s is a court number: no seat is read', (_token, name) => {
+    expect(familyCourtSeat(name)).toBeNull();
+  });
+
+  it('a plain word is not a court number', () => {
+    expect(familyCourtSeat('Family Court, Patna')).toBe('PATNA');
+    expect(familyCourtSeat('Family Court, (Patna)')).toBe('(PATNA)');
   });
 });
