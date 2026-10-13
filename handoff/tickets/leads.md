@@ -58,6 +58,7 @@ Where each lead stopped:
 
 ## Last done
 
+- mahak: T-405 CI green (run 518, 13 Oct 2026). Slot to Tanvi T-410.
 - mahak: T-405 merged ac78327 (13 Oct 2026). Internal refactor; buildQuestions uses the shared public-field helper, output pinned unchanged.
 - mahak: T-390 + T-416 CI green (run 517, 13 Oct 2026).
 - mahak: T-390 + T-416 merged ed2e18a (13 Oct 2026). Repeated verify-email resends while held send one email with a working link; orphaned dedup keys self-heal. Arjun dropped AC2.
