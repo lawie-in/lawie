@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Ajay (format ruled in T-192). Lead (drafting) |
 | Mode   | Small fix (legal content) |
-| Status | Building: tanvi, with T-350 (12 Oct 2026) |
+| Status | Merged into develop_staging 6be8b14 (tanvi, 12 Oct 2026). Waiting for Anushka on develop |
 
 T-340 makes the template engine print dates as "4 April 2026". Two other paths don't follow it yet:
 - `apps/drafting/src/services/brief-drafter.ts` (`filingDate`) prints DD.MM.YYYY.
