@@ -10,6 +10,7 @@
  * All writes go to the `inkledger` collection (NOT the old `creditledgers`).
  * Requires MongoDB 4.2+ for aggregation-pipeline updates.
  */
+import { settleYearlyDrip } from '@lawie/shared';
 import mongoose from 'mongoose';
 
 import logger from '../config/logger';
@@ -51,8 +52,14 @@ async function writeInkLedgerRow(row: InkLedgerRow): Promise<void> {
   try {
     await conn.db.collection('inkledger').insertOne(row);
   } catch (err) {
-    logger.warn(
-      { err: err instanceof Error ? err.message : err },
+    // T-399: a lost audit row is an error, not a warning. Ids and the error
+    // class only (no driver message, no PII).
+    logger.error(
+      {
+        errName: err instanceof Error ? err.name : 'unknown',
+        reason: row.reason,
+        reference: row.reference,
+      },
       'ink-ledger: ledger insert failed',
     );
   }
@@ -66,6 +73,20 @@ async function writeInkLedgerRow(row: InkLedgerRow): Promise<void> {
  */
 export async function getInkBalance(userId: string): Promise<InkBalance | null> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+
+  // T-399: grant any yearly-plan months that have come due (and zero a plan
+  // past its paid period) before reading. Best effort: never blocks the read.
+  const db = mongoose.connection.db;
+  if (db) {
+    try {
+      await settleYearlyDrip({ db, userId: new mongoose.Types.ObjectId(userId) });
+    } catch (err) {
+      logger.error(
+        { userId, errName: err instanceof Error ? err.name : 'unknown' },
+        'ink-ledger: settleYearlyDrip failed',
+      );
+    }
+  }
 
   const user = await User.findById(new mongoose.Types.ObjectId(userId))
     .select('inkSub inkAnnualCarry inkTopup')
@@ -407,8 +428,9 @@ export async function seedFreeInk(userId: string): Promise<void> {
 }
 
 /**
- * On subscription cancellation: zero out inkSub and inkAnnualCarry.
- * inkTopup survives untouched.
+ * On subscription expiry (end of the paid period): zero out inkSub and
+ * inkAnnualCarry. inkTopup survives untouched. T-399: NOT called on cancel; a
+ * cancelled plan keeps its Ink (and yearly drip) until paidThrough.
  */
 export async function cancelSubscriptionInk(userId: string): Promise<void> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return;
