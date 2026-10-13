@@ -104,22 +104,30 @@ describe('Templates Routes', () => {
       expect(slugs).not.toContain('inactive-template');
     });
 
-    it('strips the document-rules config prefix from a description', async () => {
+    it('returns the signed card line for a known pack id', async () => {
       const res = await request(app).get('/templates').set(internalHeaders('free'));
       const template = res.body.templates.find(
         (t: { slug: string }) => t.slug === 'affidavit-identity',
       );
       expect(template.description).toBe(
-        'Standalone affidavit of identity for KYC, bank, property, government use',
+        "A sworn affidavit confirming a person's identity, for banks, offices and property work.",
       );
     });
 
-    it('leaves a description with no config prefix unchanged', async () => {
+    it('returns an empty description for a slug with no pack', async () => {
       const res = await request(app).get('/templates').set(internalHeaders('free'));
       const template = res.body.templates.find(
         (t: { slug: string }) => t.slug === 'bail-application',
       );
-      expect(template.description).toBe('Standard bail application');
+      expect(template.description).toBe('');
+    });
+
+    it('never returns the old "Document-rules config for" text or a stored description', async () => {
+      const res = await request(app).get('/templates').set(internalHeaders('pro'));
+      const body = JSON.stringify(res.body);
+      expect(body).not.toContain('Document-rules config for');
+      expect(body).not.toContain('Standard bail application');
+      expect(body).not.toContain('Writ petition under Article 226');
     });
   });
 
