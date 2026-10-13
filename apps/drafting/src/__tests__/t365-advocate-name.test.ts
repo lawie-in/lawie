@@ -81,7 +81,7 @@ describe('T-365 AC1 formDataFromBrief', () => {
 
   it('other empty keys still get their placeholder', () => {
     const fd = formDataFromBrief(briefOf('default_bail'), cfg, 'en');
-    expect(fd.advocate_enrolment).toBe('[To be confirmed: bar council enrolment no.]');
+    expect(fd.advocate_enrollment).toBe('[To be confirmed: bar council enrolment no.]');
     expect(fd.applicant_name).toBe('[To be confirmed: applicant name]');
   });
 });

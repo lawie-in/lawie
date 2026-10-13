@@ -88,7 +88,8 @@ describe('resolveEnrollmentNumber', () => {
 
 describe('T-311 draft context (buildPlaceholderContext)', () => {
   const declares = config('criminal_revision'); // declares advocate_name and advocate_enrollment
-  const undeclared = config('default_bail'); // declares advocate_name only
+  const undeclared = config('mandamus'); // declares neither advocate_name nor advocate_enrollment
+  const bail = config('default_bail'); // declares advocate_name and (since T-382) advocate_enrollment
   const BASE = { applicant_name: 'Ramesh Kumar' };
 
   const num = (
@@ -162,7 +163,7 @@ describe('T-311 draft context (buildPlaceholderContext)', () => {
     });
   });
 
-  describe('pack does not declare advocate_enrollment (default_bail)', () => {
+  describe('pack does not declare advocate_enrollment (mandamus)', () => {
     it('profile name and profile number: the profile number', () => {
       expect(
         num(undeclared, {}, { advocateName: PROFILE_NAME, enrollmentNumber: PROFILE_NUM }),
@@ -171,19 +172,35 @@ describe('T-311 draft context (buildPlaceholderContext)', () => {
     it('profile name, no profile number: the blank', () => {
       expect(num(undeclared, {}, { advocateName: PROFILE_NAME })).toBe(DRAFT_BLANK);
     });
-    it('typed name (declared for advocate_name): no profile number, the blank', () => {
+    it('a typed name is not read either (not declared): the profile pairs', () => {
       expect(
         num(
           undeclared,
           { advocate_name: TYPED_NAME },
           { advocateName: PROFILE_NAME, enrollmentNumber: PROFILE_NUM },
         ),
-      ).toBe(DRAFT_BLANK);
+      ).toBe(PROFILE_NUM);
     });
     it('a client advocate_enrollment is ignored: the profile number or the blank', () => {
       const extra = { advocateName: PROFILE_NAME, enrollmentNumber: PROFILE_NUM };
       expect(num(undeclared, { advocate_enrollment: FORGED }, extra)).toBe(PROFILE_NUM);
       expect(num(undeclared, { advocate_enrollment: FORGED }, {})).toBe(DRAFT_BLANK);
+    });
+  });
+
+  describe('default_bail declares advocate_name and advocate_enrollment (T-382)', () => {
+    const extra = { advocateName: PROFILE_NAME, enrollmentNumber: PROFILE_NUM };
+    it('a typed number prints, over the profile number', () => {
+      expect(num(bail, { advocate_enrollment: TYPED_NUM }, extra)).toBe(TYPED_NUM);
+      expect(num(bail, { advocate_name: TYPED_NAME, advocate_enrollment: TYPED_NUM }, extra)).toBe(
+        TYPED_NUM,
+      );
+    });
+    it('typed name (declared), no typed number: no profile number, the blank', () => {
+      expect(num(bail, { advocate_name: TYPED_NAME }, extra)).toBe(DRAFT_BLANK);
+    });
+    it('no typed name, no typed number: the profile number', () => {
+      expect(num(bail, {}, extra)).toBe(PROFILE_NUM);
     });
   });
 
@@ -336,12 +353,20 @@ describe('T-311 annexures (Memo of Parties and Vakalatnama)', () => {
   });
   it('a pack that does not declare advocate_enrollment: a typed one is ignored, the profile pairs', async () => {
     const html = await annexuresHtml(
-      { template_id: 'default_bail', applicant_name: 'R', advocate_enrollment: FORGED },
+      { template_id: 'mandamus', applicant_name: 'R', advocate_enrollment: FORGED },
       PROFILE_NAME,
       PROFILE_NUM,
     );
     expect(html).not.toContain(FORGED);
     printedTwice(html, PROFILE_NUM);
+  });
+  it('default_bail declares advocate_enrollment (T-382): a typed one prints', async () => {
+    const html = await annexuresHtml(
+      { template_id: 'default_bail', applicant_name: 'R', advocate_enrollment: TYPED_NUM },
+      PROFILE_NAME,
+      PROFILE_NUM,
+    );
+    printedTwice(html, TYPED_NUM);
   });
 });
 
