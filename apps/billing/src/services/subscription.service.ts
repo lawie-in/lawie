@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 
+import { addOneMonth } from '@lawie/shared';
+
 import { findPlanByRazorpayId, findSubscriptionPlan, findTopupSku } from '../config/credit-skus';
 import { env } from '../config/env';
 import logger from '../config/logger';
@@ -9,7 +11,12 @@ import { CouponUsage } from '../models/CouponUsage.model';
 import { Subscription } from '../models/Subscription.model';
 import { User } from '../models/User.model';
 
-import { cancelSubscriptionInk, grantSubscriptionInk, grantTopupInk } from './ink-ledger.service';
+import {
+  cancelSubscriptionInk,
+  grantSubscriptionInk,
+  grantTopupInk,
+  reportManualGrant,
+} from './ink-ledger.service';
 
 export async function createSubscription(
   userId: string,
@@ -85,6 +92,27 @@ export async function getSubscriptionStatus(userId: string): Promise<{
 
 const HEX_RE = /^[0-9a-fA-F]+$/;
 
+/**
+ * T-399: the update that puts `fields` back to their values in `before` (the
+ * pre-claim Subscription): $set where a value existed, $unset where it did not.
+ */
+function restoreClaim(
+  before: { get(path: string): unknown },
+  fields: string[],
+): Record<string, Record<string, unknown>> {
+  const $set: Record<string, unknown> = {};
+  const $unset: Record<string, ''> = {};
+  for (const f of fields) {
+    const v = before.get(f);
+    if (v === undefined || v === null) $unset[f] = '';
+    else $set[f] = v;
+  }
+  return {
+    ...(Object.keys($set).length ? { $set } : {}),
+    ...(Object.keys($unset).length ? { $unset } : {}),
+  };
+}
+
 export function verifyWebhookSignature(rawBody: Buffer, signature: unknown): boolean {
   const expectedSignature = crypto
     .createHmac('sha256', env.RAZORPAY_WEBHOOK_SECRET)
@@ -132,8 +160,15 @@ export async function handleWebhookEvent(
         logger.warn({ skuId: notes.sku_id }, 'Webhook: unknown top-up SKU');
         return;
       }
-      const razorpayOrderId = (orderEntity?.id as string) ?? '';
-      await grantTopupInk({
+      // T-413: payment.captured carries no order entity, only payment.order_id. Both
+      // siblings must key on the same order id, or each would claim separately.
+      const razorpayOrderId =
+        (orderEntity?.id as string | undefined) ??
+        (paymentEntity?.order_id as string | undefined) ??
+        '';
+      // T-413: grantTopupInk claims the order before granting; it returns 0 when
+      // the order was already granted (a retry or the sibling event).
+      const granted = await grantTopupInk({
         userId: notes.user_id,
         inkUnits: sku.ink * 2, // 1 Ink = 2 ledger units
         amountInr: sku.priceInr,
@@ -142,8 +177,9 @@ export async function handleWebhookEvent(
         topupSkuId: sku.id,
       });
 
-      // Track coupon usage if one was applied to this order
-      if (notes.coupon_code) {
+      // Track coupon usage if one was applied to this order. T-413: behind the
+      // grant's claim, so a retry or the sibling event never counts it twice.
+      if (granted > 0 && notes.coupon_code) {
         try {
           const coupon = await CouponCode.findOneAndUpdate(
             { code: notes.coupon_code },
@@ -159,7 +195,11 @@ export async function handleWebhookEvent(
           }
         } catch (couponErr) {
           logger.error(
-            { couponErr, couponCode: notes.coupon_code },
+            {
+              // T-323 rule: error class only (a duplicate-key message carries the value).
+              errName: couponErr instanceof Error ? couponErr.name : 'unknown',
+              couponCode: notes.coupon_code,
+            },
             'Failed to record coupon usage',
           );
         }
@@ -186,10 +226,15 @@ export async function handleWebhookEvent(
     case 'subscription.activated':
     case 'subscription.charged': {
       const chargeAt = subPayload?.charge_at as number | undefined;
+      // T-399: current_end is the end of the paid period (paidThrough); Ink and
+      // the yearly drip last until then.
+      const currentStart = subPayload?.current_start as number | undefined;
+      const currentEnd = subPayload?.current_end as number | undefined;
+      const paidCount = subPayload?.paid_count as number | undefined;
       sub.status = 'active';
       sub.currentPeriodStart = new Date();
       if (chargeAt) sub.currentPeriodEnd = new Date(chargeAt * 1000);
-      await sub.save();
+      if (currentEnd) sub.paidThrough = new Date(currentEnd * 1000);
 
       // Resolve plan SKU from Razorpay plan id → grant subscription ink
       const razorpayPlanId =
@@ -205,15 +250,129 @@ export async function handleWebhookEvent(
           );
 
       if (planSku) {
-        await grantSubscriptionInk({
-          userId: sub.userId.toString(),
-          inkUnits: planSku.inkPerCycle * 2, // 1 Ink = 2 ledger units
-          planTier: planSku.tier,
-          billingCycle: planSku.cycle,
-          planRenewsAt: chargeAt ? new Date(chargeAt * 1000) : undefined,
-          razorpaySubscriptionId: subId,
-          amountInr: planSku.priceInr,
-        });
+        sub.planId = planSku.id;
+        sub.billingCycle = planSku.cycle;
+      }
+      await sub.save();
+
+      // T-399 (Arjun): activated and charged both fire on the first payment, and
+      // activated may carry no payment entity. Grant once per paid cycle: only
+      // the call whose conditional update raises lastGrantedPaidCount (Razorpay
+      // paid_count) grants; without paid_count, current_start against
+      // lastGrantedPeriodStart. Absent fields match `$not: { $gte }`, so the
+      // first cycle grants. With neither field, grant as before and warn.
+      //
+      // For a yearly plan the drip-state reset (month 1 is this grant;
+      // settleYearlyDrip grants months 2–12 on anchor + n months) rides in the
+      // same claim update, so nothing is written between the grant and the end
+      // of the handler. Only the grant can fail after the claim, and a failed
+      // grant writes nothing, so restoring the claim (drip fields included)
+      // lets Razorpay's retry grant exactly once.
+      const chargedAt = currentStart ? new Date(currentStart * 1000) : new Date();
+      const dripReset =
+        planSku?.cycle === 'yearly'
+          ? { inkDripAnchor: chargedAt, inkDripNextAt: addOneMonth(chargedAt), inkDripCount: 0 }
+          : {};
+      const dripFields = Object.keys(dripReset);
+      let isNewCycle = true;
+      // How to undo the claim if the grant fails (so a Razorpay retry grants).
+      let rollbackClaim: (() => Promise<{ matchedCount: number }>) | null = null;
+      if (typeof paidCount === 'number') {
+        const claimed = await Subscription.findOneAndUpdate(
+          { _id: sub._id, lastGrantedPaidCount: { $not: { $gte: paidCount } } },
+          {
+            $set: {
+              lastGrantedPaidCount: paidCount,
+              ...(currentStart ? { lastGrantedPeriodStart: new Date(currentStart * 1000) } : {}),
+              // paid_count 0 grants nothing, so it must not reset the drip.
+              ...(paidCount > 0 ? dripReset : {}),
+            },
+          },
+        );
+        isNewCycle = paidCount > 0 && claimed !== null;
+        if (claimed) {
+          rollbackClaim = () =>
+            Subscription.updateOne(
+              { _id: sub._id, lastGrantedPaidCount: paidCount },
+              restoreClaim(claimed, [
+                'lastGrantedPaidCount',
+                'lastGrantedPeriodStart',
+                ...dripFields,
+              ]),
+            );
+        }
+      } else if (currentStart) {
+        const periodStart = new Date(currentStart * 1000);
+        const claimed = await Subscription.findOneAndUpdate(
+          { _id: sub._id, lastGrantedPeriodStart: { $not: { $gte: periodStart } } },
+          { $set: { lastGrantedPeriodStart: periodStart, ...dripReset } },
+        );
+        isNewCycle = claimed !== null;
+        if (claimed) {
+          rollbackClaim = () =>
+            Subscription.updateOne(
+              { _id: sub._id, lastGrantedPeriodStart: periodStart },
+              restoreClaim(claimed, ['lastGrantedPeriodStart', ...dripFields]),
+            );
+        }
+      } else {
+        logger.warn(
+          { subId, event },
+          'subscription webhook has no paid_count or current_start; grant not deduplicated',
+        );
+        // No claim to ride on: reset the drip state here, before the grant.
+        if (dripFields.length) await Subscription.updateOne({ _id: sub._id }, { $set: dripReset });
+      }
+
+      if (planSku && !isNewCycle) {
+        logger.info(
+          { subId, event, paidCount },
+          'subscription cycle already granted, no second grant',
+        );
+      } else if (planSku) {
+        try {
+          await grantSubscriptionInk({
+            userId: sub.userId.toString(),
+            inkUnits: planSku.inkPerCycle * 2, // 1 Ink = 2 ledger units
+            planTier: planSku.tier,
+            billingCycle: planSku.cycle,
+            planRenewsAt: chargeAt ? new Date(chargeAt * 1000) : undefined,
+            razorpaySubscriptionId: subId,
+            amountInr: planSku.priceInr,
+          });
+        } catch (err) {
+          // T-399: undo the cycle claim so Razorpay's retry of this webhook
+          // grants, then fail the webhook so Razorpay retries.
+          if (rollbackClaim) {
+            try {
+              const restored = await rollbackClaim();
+              // No match: another event changed the claim first, so nothing was
+              // restored and this cycle may stay marked as granted.
+              if (restored.matchedCount === 0) {
+                logger.error(
+                  { subId, event, errName: err instanceof Error ? err.name : 'unknown' },
+                  'subscription grant claim rollback failed; this cycle needs a manual grant',
+                );
+                reportManualGrant('subscription-claim-rollback-no-match', {
+                  razorpaySubscriptionId: subId,
+                });
+              }
+            } catch (rollbackErr) {
+              logger.error(
+                {
+                  subId,
+                  event,
+                  errName: rollbackErr instanceof Error ? rollbackErr.name : 'unknown',
+                },
+                'subscription grant claim rollback failed; this cycle needs a manual grant',
+              );
+              reportManualGrant('subscription-claim-rollback-failed', {
+                razorpaySubscriptionId: subId,
+              });
+            }
+          }
+          throw err;
+        }
       } else {
         // Legacy fallback: no plan mapping — set plan=pro without ink grant
         await User.findByIdAndUpdate(sub.userId, { plan: 'pro' });
@@ -225,15 +384,29 @@ export async function handleWebhookEvent(
       break;
     }
 
-    case 'subscription.cancelled':
-    case 'subscription.expired': {
-      sub.status = event === 'subscription.cancelled' ? 'cancelled' : 'expired';
+    // T-399 (Arjun, Ajay): cancel stops the renewal only. The plan, its Ink and
+    // the yearly drip stay until paidThrough; then the expired webhook (or the
+    // lazy settleYearlyDrip) downgrades and zeroes. Billing makes no Razorpay
+    // cancel call today. Any future cancel button MUST use
+    // `cancel_at_cycle_end: 1`, never an immediate cancel.
+    case 'subscription.cancelled': {
+      sub.status = 'cancelled';
       sub.cancelledAt = new Date();
       await sub.save();
+      logger.info({ userId: sub.userId, event }, 'Subscription cancelled; kept until paidThrough');
+      break;
+    }
+
+    case 'subscription.expired': {
+      sub.status = 'expired';
+      sub.cancelledAt = new Date();
+      await sub.save();
+      // T-399: a cancelled sub still inside its paid period also keeps the
+      // plan (same rule as the lazy expiry in settleYearlyDrip).
       const otherActive = await Subscription.findOne({
         userId: sub.userId,
         _id: { $ne: sub._id },
-        status: 'active',
+        $or: [{ status: 'active' }, { status: 'cancelled', paidThrough: { $gte: new Date() } }],
       });
       if (!otherActive) {
         await User.findByIdAndUpdate(sub.userId, {

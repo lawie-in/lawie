@@ -18,6 +18,7 @@
  * `costForTemplate`. Rule files' own `creditsCost` fields are ignored. There is no default price: an id with
  * no entry has no price and is refused, never charged.
  */
+import { settleYearlyDrip } from '@lawie/shared';
 import mongoose, { Types } from 'mongoose';
 
 import { DOC_TYPE_ALIASES, NON_TEMPLATE_PRICES, TEMPLATE_PRICES } from '../config/catalogue';
@@ -75,6 +76,27 @@ function normalizePlanTier(raw: string | undefined): 'free' | 'solo' | 'pro' {
   return 'free';
 }
 
+/**
+ * T-399: grant any yearly-plan months that have come due (and zero a plan past
+ * its paid period) before a balance read or a hold. Best effort: an error is
+ * logged and never blocks the read or the hold. Skips the golden-set fixture
+ * user (T-147e: no inkledger rows for it).
+ */
+async function settleYearlyDripBestEffort(userId: string): Promise<void> {
+  if (isFixtureUser(userId) || !mongoose.Types.ObjectId.isValid(userId)) return;
+  const db = mongoose.connection.db;
+  if (!db) return;
+  try {
+    await settleYearlyDrip({ db, userId: new mongoose.Types.ObjectId(userId) });
+  } catch (err) {
+    // T-288: the error class only, never the driver's message.
+    console.error(
+      '[drafting] settleYearlyDrip failed:',
+      err instanceof Error ? err.name : 'unknown',
+    );
+  }
+}
+
 export async function getCreditBalance(userId: string): Promise<CreditBalance> {
   const empty: CreditBalance = {
     topupCredits: 0,
@@ -90,6 +112,8 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
     billingCycle: 'none',
   };
   if (!mongoose.Types.ObjectId.isValid(userId)) return empty;
+
+  await settleYearlyDripBestEffort(userId);
 
   const u = await User.findById(userId).lean();
   const topup = u?.topupCredits ?? 0;
@@ -470,6 +494,9 @@ export async function holdInk(input: {
   // T-147e: a golden-set run is never held or charged.
   if (isFixtureUser(userId)) return { ok: true, fixture: true };
   if (!mongoose.Types.ObjectId.isValid(userId)) return { ok: false, reason: 'user_not_found' };
+
+  // T-399: a yearly plan's due monthly Ink lands before the hold is judged.
+  await settleYearlyDripBestEffort(userId);
 
   // Close this user's expired holds first, so a crashed run's Ink is back
   // before this one is judged against the balance.

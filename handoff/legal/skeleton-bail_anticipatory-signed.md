@@ -31,12 +31,16 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - Left out on purpose: "no other case" and "no case pending", because they speak to pending cases, not past record.
 - The loader resolves a `when.in` string by looking up the top-level key it names.
 
+## Version 4, 13 Oct 2026 (supersedes SHA `50b7dd20bcaccdbc10c6bd35094ac754e8605ba8c03dfa5855c372d9eed04d1e`)
+
+- v4, 13 Oct 2026: missing_label added per skeleton-missing-labels-pending-signed.md (07bd3b5), signed Ajay. `apprehension` gets `missing_label` "Brief facts and reasons for apprehending arrest". Nothing else changes in any clause.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_anticipatory",
-  "version": 3,
+  "version": 4,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -90,7 +94,8 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "required": true,
       "source": "advocate",
       "slot": "facts_narrative",
-      "intro": "The applicant apprehends arrest in connection with the above FIR. The brief facts and the reasons for that apprehension are as follows:"
+      "intro": "The applicant apprehends arrest in connection with the above FIR. The brief facts and the reasons for that apprehension are as follows:",
+      "missing_label": "Brief facts and reasons for apprehending arrest"
     },
     {
       "id": "chargesheet_filed",
@@ -341,4 +346,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `50b7dd20bcaccdbc10c6bd35094ac754e8605ba8c03dfa5855c372d9eed04d1e`
+SHA-256 of the JSON block (between the fences, final newline included): `bd20c4a0cae5347b49a7999dd9bafd93cfd0baeccefd271635103bc1759bf858`

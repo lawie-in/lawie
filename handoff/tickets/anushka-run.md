@@ -903,3 +903,32 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Nothing looks different. The template list and form work as before, and civil plaint templates stay out of the list while they're switched off.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-406 — No case-number line on non-court documents (43dc53f, tanvi, 13 Oct 2026)
+
+- Nothing changes on screen. A legal notice, deed or agreement can no longer pick up a court case-number line, whichever court is chosen.
+
+Quality: nothing to test in the UI — latent; no current template printed the line
+
+## T-373 — Bail drafts from signed text and your own facts (3e031ac, vishal, 13 Oct 2026)
+
+- Draft a regular, anticipatory, Magistrate or default bail application and get only the facts you gave. Every paragraph is Lawie's signed text filled with your details, or your own words tidied for grammar. Nothing invented is added, and a gap shows as a clearly marked blank.
+- See in the checks list exactly which parts are still missing, by name.
+- Where the tidied wording would change what you said, see your own words used instead, exactly as typed.
+- Draft these applications in Hindi as before; the draft is marked as a starting draft.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-399 — Yearly Ink monthly; cancel keeps Ink to period end (4fe03d7, kunal, 13 Oct 2026)
+
+- On a yearly Solo or Pro plan, get your 50 or 150 Ink every month, not once a year.
+- Cancel any plan and keep your Ink (on yearly, the monthly Ink too) until the end of the period you paid for.
+- See the refund page say so, in Ajay's sentence.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-413 — Payments always credit Ink, never twice (9cf199e, kunal, 13 Oct 2026)
+
+- If a top-up or plan payment goes through but the Ink isn't credited straight away, it's retried until the Ink lands, and it's never credited twice. If it still can't be credited, the team is alerted to add the Ink by hand.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

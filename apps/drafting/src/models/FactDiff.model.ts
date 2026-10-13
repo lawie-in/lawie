@@ -34,6 +34,14 @@ export const FACT_DIFF_ENTITY_TYPES = [
 export const FACT_DIFF_RESOLUTIONS = ['repaired', 'placeholdered', 'stripped', 'flagged'] as const;
 export const FACT_DIFF_PHASES = ['initial', 'after_repair'] as const;
 export const FACT_DIFF_RUN_TYPES = ['real', 'fixture'] as const;
+/**
+ * T-373 (Arjun's ruling B): which drafting path wrote the row. `d1`: a pack
+ * with a signed skeleton, where the verifier ran read-only and nothing was
+ * repaired; `legacy`: every other draft. Rows written before the field
+ * existed read as `legacy`.
+ */
+export const FACT_DIFF_PATHS = ['legacy', 'd1'] as const;
+export type FactDiffPath = (typeof FACT_DIFF_PATHS)[number];
 
 /** 90 days, for rows of real traffic. */
 export const FACT_DIFF_TTL_SECONDS = 90 * 24 * 60 * 60;
@@ -65,6 +73,8 @@ export interface IFactDiff extends Document {
   draftValue: string | null;
   resolution: (typeof FACT_DIFF_RESOLUTIONS)[number];
   phase: (typeof FACT_DIFF_PHASES)[number];
+  /** T-373: the drafting path. `legacy` by default. */
+  path: FactDiffPath;
   createdAt: Date;
 }
 
@@ -91,6 +101,7 @@ const FactDiffSchema = new Schema<IFactDiff>(
     draftValue: { type: String, default: null },
     resolution: { type: String, enum: FACT_DIFF_RESOLUTIONS, required: true },
     phase: { type: String, enum: FACT_DIFF_PHASES, required: true },
+    path: { type: String, enum: FACT_DIFF_PATHS, default: 'legacy' },
   },
   { timestamps: { createdAt: true, updatedAt: false } },
 );

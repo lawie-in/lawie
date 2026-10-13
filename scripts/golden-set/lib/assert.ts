@@ -10,6 +10,7 @@ import {
   Failure,
   Fixture,
   FixtureResult,
+  RenderedExpectation,
   RunEvidence,
 } from './types';
 
@@ -92,7 +93,11 @@ export function evaluate(fixture: Fixture, ev: RunEvidence): FixtureResult {
 
   if (!ev.isolation.ok) {
     for (const p of ev.isolation.problems) {
-      failures.push({ kind: 'isolation', expected: 'every row of this run marked fixture', actual: p });
+      failures.push({
+        kind: 'isolation',
+        expected: 'every row of this run marked fixture',
+        actual: p,
+      });
     }
   }
 
@@ -122,7 +127,9 @@ export function evaluate(fixture: Fixture, ev: RunEvidence): FixtureResult {
   }
 
   for (const nw of e.not_written ?? []) {
-    const hit = ev.factDiffs.find((v) => v.check === 'banned' && v.bannedEntryId === nw.banned_entry_id);
+    const hit = ev.factDiffs.find(
+      (v) => v.check === 'banned' && v.bannedEntryId === nw.banned_entry_id,
+    );
     if (hit) {
       failures.push({
         kind: 'not_written',
@@ -198,7 +205,74 @@ export function evaluate(fixture: Fixture, ev: RunEvidence): FixtureResult {
     }
   }
 
+  if (e.rendered) failures.push(...renderedFailures(e.rendered, ev));
+
   return result(fixture, ev, failures);
+}
+
+/**
+ * T-373 (ADR-025 D1 golden assertion): the renderer's clause statuses, read
+ * from the done event's `rendered[]`. A draft with no `rendered[]` did not
+ * take the D1 path, which fails the expectation on its own.
+ */
+export function renderedFailures(x: RenderedExpectation, ev: RunEvidence): Failure[] {
+  const out: Failure[] = [];
+  const list = ev.rendered;
+  if (!list) {
+    return [
+      {
+        kind: 'rendered',
+        expected: 'a draft printed from the signed skeleton (the done event carries rendered[])',
+        actual: 'no rendered[] in the done event: the draft took the legacy path',
+        why: x.why,
+      },
+    ];
+  }
+  const show = (r: { clauseId: string; status: string; reason?: string }) =>
+    `${r.clauseId || '(no clauseId)'}=${r.status}${r.reason ? ` (${r.reason})` : ''}`;
+  const noId = list.filter((r) => typeof r.clauseId !== 'string' || r.clauseId.length === 0);
+  if (noId.length > 0) {
+    out.push({
+      kind: 'rendered',
+      expected: 'every rendered paragraph has a clauseId',
+      actual: `${noId.length} rendered entr${noId.length === 1 ? 'y has' : 'ies have'} none`,
+      why: x.why,
+    });
+  }
+  for (const status of x.no_status ?? []) {
+    const hits = list.filter((r) => r.status === status);
+    if (hits.length > 0) {
+      out.push({
+        kind: 'rendered',
+        expected: `no clause rendered with status ${status}`,
+        actual: hits.map(show).join(', '),
+        why: x.why,
+      });
+    }
+  }
+  for (const [clauseId, status] of Object.entries(x.status ?? {})) {
+    const r = list.find((c) => c.clauseId === clauseId);
+    if (!r || r.status !== status) {
+      out.push({
+        kind: 'rendered',
+        expected: `clause ${clauseId} rendered with status ${status}`,
+        actual: r ? show(r) : `clause ${clauseId} not rendered`,
+        why: x.why,
+      });
+    }
+  }
+  for (const clauseId of x.not_rendered ?? []) {
+    const r = list.find((c) => c.clauseId === clauseId);
+    if (r) {
+      out.push({
+        kind: 'rendered',
+        expected: `clause ${clauseId} not rendered (no fact for it was given)`,
+        actual: `rendered: ${show(r)}`,
+        why: x.why,
+      });
+    }
+  }
+  return out;
 }
 
 function result(fixture: Fixture, ev: RunEvidence, failures: Failure[]): FixtureResult {

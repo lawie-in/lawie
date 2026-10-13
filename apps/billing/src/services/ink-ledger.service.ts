@@ -10,6 +10,8 @@
  * All writes go to the `inkledger` collection (NOT the old `creditledgers`).
  * Requires MongoDB 4.2+ for aggregation-pipeline updates.
  */
+import { settleYearlyDrip } from '@lawie/shared';
+import * as Sentry from '@sentry/node';
 import mongoose from 'mongoose';
 
 import logger from '../config/logger';
@@ -51,11 +53,42 @@ async function writeInkLedgerRow(row: InkLedgerRow): Promise<void> {
   try {
     await conn.db.collection('inkledger').insertOne(row);
   } catch (err) {
-    logger.warn(
-      { err: err instanceof Error ? err.message : err },
+    // T-399: a lost audit row is an error, not a warning. Ids and the error
+    // class only (no driver message, no PII).
+    logger.error(
+      {
+        errName: err instanceof Error ? err.name : 'unknown',
+        reason: row.reason,
+        reference: row.reference,
+      },
       'ink-ledger: ledger insert failed',
     );
   }
+}
+
+/**
+ * T-413: a "paid but not granted / needs a human" outcome. pino reaches nobody, so
+ * each of these also raises one fixed-message Sentry event, grouped per reason and
+ * per Razorpay id. Scrubbed like the webhook route: no request body, headers, IP or
+ * user. Tags are the reason and the Razorpay id only; no userId, amounts or errors.
+ */
+export function reportManualGrant(
+  reason: string,
+  ids: { razorpayOrderId: string } | { razorpaySubscriptionId: string },
+  level: 'error' | 'warning' = 'error',
+): void {
+  const id = 'razorpayOrderId' in ids ? ids.razorpayOrderId : ids.razorpaySubscriptionId;
+  Sentry.withScope((scope) => {
+    scope.setSDKProcessingMetadata({ normalizedRequest: undefined, ipAddress: undefined });
+    scope.addEventProcessor((event) => {
+      delete event.request;
+      delete event.user;
+      return event;
+    });
+    scope.setFingerprint(['billing-manual-grant', reason, id]);
+    scope.setTags({ reason, ...ids });
+    Sentry.captureMessage(`Billing: ${reason}`, level);
+  });
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────
@@ -66,6 +99,20 @@ async function writeInkLedgerRow(row: InkLedgerRow): Promise<void> {
  */
 export async function getInkBalance(userId: string): Promise<InkBalance | null> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+
+  // T-399: grant any yearly-plan months that have come due (and zero a plan
+  // past its paid period) before reading. Best effort: never blocks the read.
+  const db = mongoose.connection.db;
+  if (db) {
+    try {
+      await settleYearlyDrip({ db, userId: new mongoose.Types.ObjectId(userId) });
+    } catch (err) {
+      logger.error(
+        { userId, errName: err instanceof Error ? err.name : 'unknown' },
+        'ink-ledger: settleYearlyDrip failed',
+      );
+    }
+  }
 
   const user = await User.findById(new mongoose.Types.ObjectId(userId))
     .select('inkSub inkAnnualCarry inkTopup')
@@ -303,11 +350,28 @@ export async function grantSubscriptionInk(input: {
   return newSub;
 }
 
+/** T-413: the ledger row _id that is the claim for one Razorpay order's top-up grant. */
+export function topupClaimId(razorpayOrderId: string): string {
+  return `topup:${razorpayOrderId}`;
+}
+
 /**
  * Grant top-up ink. Increments inkTopup (non-expiring).
- * Idempotent on razorpayOrderId — skips if a ledger row with the same
- * reference already exists.
- * Writes a ledger row and returns the granted inkUnits (or 0 if skipped).
+ *
+ * T-413 (Arjun): claim first, then grant. The claim is the ledger row itself,
+ * inserted BEFORE the $inc with the deterministic `_id` `topup:<razorpayOrderId>`.
+ * `_id` is always unique in MongoDB, so this is a compare-and-set with no new
+ * index: order.paid and payment.captured for the same order (and any Razorpay
+ * retry) race on the same insert and exactly one wins. A loser (duplicate key)
+ * is a no-op. If the $inc throws, the claim row is deleted and the error is
+ * rethrown, so the webhook returns 500 and Razorpay's retry grants once.
+ * A failed claim insert (other than a duplicate) is NOT swallowed: it throws,
+ * nothing was granted, and the retry grants. A failed balanceAfter update after
+ * a successful $inc logs at error level and still returns the grant (it stood).
+ *
+ * Returns the granted inkUnits, or 0 if nothing was granted (already claimed,
+ * invalid or unknown user, no order id). Callers gate per-order side effects
+ * (coupon usage) on a non-zero return.
  */
 export async function grantTopupInk(input: {
   userId: string;
@@ -322,40 +386,98 @@ export async function grantTopupInk(input: {
   if (!mongoose.Types.ObjectId.isValid(userId)) return 0;
   const oid = new mongoose.Types.ObjectId(userId);
 
-  // Idempotency check — if a ledger row for this order already exists, skip
-  const conn = mongoose.connection;
-  if (conn.db) {
-    const existing = await conn.db
-      .collection('inkledger')
-      .findOne({ userId: oid, reference: razorpayOrderId, reason: 'topup_purchase' });
-    if (existing) {
+  if (!razorpayOrderId) {
+    // No key to claim on, so a grant could not be deduplicated.
+    logger.error({ userId, topupSkuId }, 'ink-ledger: topup has no order id; not granted');
+    reportManualGrant('topup-no-order-id', { razorpayOrderId: '' });
+    return 0;
+  }
+
+  const db = mongoose.connection.db;
+  if (!db) throw new Error('ink-ledger: database not connected');
+  const ledger = db.collection<{ _id: string } & Record<string, unknown>>('inkledger');
+
+  // Rows written before T-413 have an ObjectId _id; they still block a re-grant.
+  const legacy = await ledger.findOne({
+    userId: oid,
+    reference: razorpayOrderId,
+    reason: 'topup_purchase',
+  });
+  if (legacy) {
+    logger.warn({ userId, razorpayOrderId }, 'ink-ledger: duplicate topup grant skipped');
+    return 0;
+  }
+
+  const claimId = topupClaimId(razorpayOrderId);
+  try {
+    await ledger.insertOne({
+      _id: claimId,
+      userId: oid,
+      delta: inkUnits,
+      reason: 'topup_purchase',
+      sourceBucket: 'topup',
+      reference: razorpayOrderId,
+      metadata: { razorpayPaymentId, amountInr, topupSkuId },
+      createdAt: new Date(),
+    });
+  } catch (err) {
+    if ((err as { code?: unknown } | null)?.code === 11000) {
       logger.warn({ userId, razorpayOrderId }, 'ink-ledger: duplicate topup grant skipped');
       return 0;
     }
+    throw err;
   }
 
-  const updated = await User.findByIdAndUpdate(
-    oid,
-    { $inc: { inkTopup: inkUnits } },
-    { new: true },
-  ).lean();
-  if (!updated) return 0;
+  const rollbackClaim = async (errName: string): Promise<void> => {
+    try {
+      await ledger.deleteOne({ _id: claimId });
+    } catch (rollbackErr) {
+      logger.error(
+        {
+          userId,
+          razorpayOrderId,
+          errName,
+          rollbackErrName: rollbackErr instanceof Error ? rollbackErr.name : 'unknown',
+        },
+        'ink-ledger: topup claim rollback failed; this order needs a manual grant',
+      );
+      reportManualGrant('topup-claim-rollback-failed', { razorpayOrderId });
+    }
+  };
+
+  let updated;
+  try {
+    updated = await User.findByIdAndUpdate(
+      oid,
+      { $inc: { inkTopup: inkUnits } },
+      { new: true },
+    ).lean();
+  } catch (err) {
+    await rollbackClaim(err instanceof Error ? err.name : 'unknown');
+    throw err;
+  }
+  if (!updated) {
+    await rollbackClaim('UserNotFound');
+    logger.warn({ userId, razorpayOrderId }, 'ink-ledger: topup for unknown user; not granted');
+    reportManualGrant('topup-unknown-user', { razorpayOrderId });
+    return 0;
+  }
 
   const newSub = (updated.inkSub as number | undefined) ?? 0;
   const newCarry = (updated.inkAnnualCarry as number | undefined) ?? 0;
   const newTopup = (updated.inkTopup as number | undefined) ?? inkUnits;
   const totalAfter = newSub + newCarry + newTopup;
 
-  await writeInkLedgerRow({
-    userId: oid,
-    delta: inkUnits,
-    reason: 'topup_purchase',
-    sourceBucket: 'topup',
-    balanceAfter: totalAfter,
-    reference: razorpayOrderId,
-    metadata: { razorpayPaymentId, amountInr, topupSkuId },
-    createdAt: new Date(),
-  });
+  try {
+    await ledger.updateOne({ _id: claimId }, { $set: { balanceAfter: totalAfter } });
+  } catch (err) {
+    // The grant stood; only the audit field is missing. Ids and error class only.
+    logger.error(
+      { userId, razorpayOrderId, errName: err instanceof Error ? err.name : 'unknown' },
+      'ink-ledger: topup granted but ledger balanceAfter update failed',
+    );
+    reportManualGrant('topup-ledger-balance-update-failed', { razorpayOrderId }, 'warning');
+  }
 
   logger.info({ userId, inkUnits, razorpayOrderId }, 'topup ink granted');
 
@@ -407,8 +529,9 @@ export async function seedFreeInk(userId: string): Promise<void> {
 }
 
 /**
- * On subscription cancellation: zero out inkSub and inkAnnualCarry.
- * inkTopup survives untouched.
+ * On subscription expiry (end of the paid period): zero out inkSub and
+ * inkAnnualCarry. inkTopup survives untouched. T-399: NOT called on cancel; a
+ * cancelled plan keeps its Ink (and yearly drip) until paidThrough.
  */
 export async function cancelSubscriptionInk(userId: string): Promise<void> {
   if (!mongoose.Types.ObjectId.isValid(userId)) return;

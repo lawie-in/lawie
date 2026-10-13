@@ -5,7 +5,10 @@
  * Flow:
  *  1. Sign-up or resend calls requestVerifyEmail(userId): resend cap (1/60 s, 5/24 h, Redis),
  *     then enqueue { template: 'auth.verifyEmail', userId } through @lawie/email-client. The job
- *     carries the userId only.
+ *     carries the userId only. The email client keeps at most one pending verify job per user
+ *     (T-390): a resend while the user's job is still waiting (e.g. held by the worker, T-379) or
+ *     being sent is dropped, so the user gets one email whose link works. Once that job has
+ *     finished, a resend queues a new one. The cap below is still consumed by a dropped resend.
  *  2. The email worker calls POST /internal/verify-email/mint, which calls mintVerifyLink(userId):
  *     a fresh random token, sha256(token) + 24 h expiry stored on the user (replacing any older
  *     link, so the newest link wins, including on a BullMQ retry), and { email, name, link }
@@ -189,6 +192,8 @@ export type RequestVerifyEmailResult =
  * Applies the resend cap, then queues the verify email (userId only). Used by register and by
  * the resend route. The enqueue is fire-and-forget (email-client contract: never block the
  * request path); a failed push is logged with the userId only and the user can resend.
+ * Not every call adds a job: the email client drops it when the user already has a verify job
+ * pending (T-390), and this still returns 'queued' because that pending job will send.
  * A refused call (verified, Google, unknown user) does not use up the cap.
  */
 export async function requestVerifyEmail(

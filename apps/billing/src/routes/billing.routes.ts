@@ -1,4 +1,5 @@
 import { requireCurrentPrivacy } from '@lawie/shared';
+import * as Sentry from '@sentry/node';
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 
@@ -226,7 +227,7 @@ router.get('/status', authenticate, async (req: Request, res: Response) => {
 
 // POST /webhook/razorpay — receive Razorpay webhook events
 // Raw body required for HMAC signature verification — mounted before express.json()
-router.post('/webhook/razorpay', (req: Request, res: Response) => {
+router.post('/webhook/razorpay', async (req: Request, res: Response) => {
   const signature = req.headers['x-razorpay-signature'] as string;
 
   if (!signature) {
@@ -274,17 +275,50 @@ router.post('/webhook/razorpay', (req: Request, res: Response) => {
   }
   const payload = parsed as { event: string; payload: Record<string, unknown> };
 
-  // Acknowledge immediately — process async so Razorpay doesn't retry
-  res.json({ status: 'ok' });
-
-  handleWebhookEvent(payload.event, payload.payload).catch((err: unknown) => {
+  // T-413: ack only after the handler succeeds. A thrown error (e.g. a failed Ink
+  // grant) returns 500 so Razorpay retries; T-399's per-cycle claim, rolled back on a
+  // failed grant, makes that retry grant exactly once. Fixed 500 body, nothing from err.
+  try {
+    await handleWebhookEvent(payload.event, payload.payload);
+  } catch (err: unknown) {
     // T-323: no err.message or stack (a duplicate-key message carries the duplicate value).
     const e = err as { name?: unknown; code?: unknown } | null | undefined;
     logger.error(
       { event: payload.event, errorName: e?.name, errorCode: e?.code },
       'Webhook handler error',
     );
-  });
+    // T-413 (Arjun): one Sentry issue per Razorpay event, however many retries. The
+    // event-id header is used only as the fingerprint. Never capture the original err
+    // (its message can carry PII, e.g. E11000 echoes the key); the request (body,
+    // headers, IP) is stripped from the event.
+    const eventIdHeader = req.headers['x-razorpay-event-id'];
+    const errorName = typeof e?.name === 'string' ? e.name : undefined;
+    const errorCode =
+      typeof e?.code === 'string' || typeof e?.code === 'number' ? e.code : undefined;
+    Sentry.withScope((scope) => {
+      scope.setFingerprint([
+        'razorpay-webhook',
+        typeof eventIdHeader === 'string' && eventIdHeader ? eventIdHeader : payload.event,
+      ]);
+      scope.setSDKProcessingMetadata({ normalizedRequest: undefined, ipAddress: undefined });
+      scope.addEventProcessor((event) => {
+        delete event.request;
+        delete event.user;
+        return event;
+      });
+      scope.setTags({ event: payload.event, errorName, errorCode });
+      Sentry.captureException(
+        new Error(
+          `Razorpay webhook handler failed: ${errorName ?? 'unknown'}${
+            errorCode !== undefined ? ` (${errorCode})` : ''
+          }`,
+        ),
+      );
+    });
+    res.status(500).json({ error: 'Internal Server Error' });
+    return;
+  }
+  res.json({ status: 'ok' });
 });
 
 export default router;

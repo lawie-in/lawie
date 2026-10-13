@@ -1,3 +1,4 @@
+import { existsSync } from 'fs';
 import path from 'path';
 
 import * as Sentry from '@sentry/node';
@@ -15,10 +16,27 @@ import { env } from './config/env';
 import logger from './config/logger';
 import { disconnectRedis } from './config/redis';
 import { startHoldSweep, stopHoldSweep } from './services/credits.service';
+import { listRulePackIds, loadSkeleton, SKELETONS_DIR } from './services/rule-pack.service';
 import { primeToolSwitches } from './services/feature-switches';
 import { loadSignedTables } from './services/signed-tables';
 import { getTemplateRegistry } from './services/template-promoter';
 import { runBootSync } from './services/template-seed.service';
+
+/**
+ * T-373 (Arjun, ADR-025 D1): every signed skeleton in `_skeletons/` is loaded once at
+ * boot. `loadSkeleton` validates it against its pack and throws `RulePackError` on an
+ * invalid file, so a bad skeleton stops the start (and /health) instead of failing an
+ * advocate's first draft. No `_skeletons/` directory, or no file for a pack, is not an
+ * error: those packs stay on today's path. Logs pack ids and a count only.
+ */
+function loadSkeletonsAtBoot(): string[] {
+  if (!existsSync(SKELETONS_DIR)) return [];
+  const loaded: string[] = [];
+  for (const packId of listRulePackIds(SKELETONS_DIR)) {
+    if (loadSkeleton(packId) !== null) loaded.push(packId);
+  }
+  return loaded;
+}
 
 async function bootstrap() {
   try {
@@ -30,6 +48,12 @@ async function bootstrap() {
     // SCRUM-78: build the doc-rules → TemplateConfig registry once at boot. Triggers
     // the disk walk, fills the in-memory map, writes mismatch report if any gaps exist.
     getTemplateRegistry();
+    // T-373: an invalid signed skeleton stops the boot, as the template check does.
+    const skeletons = loadSkeletonsAtBoot();
+    logger.info(
+      { skeletonCount: skeletons.length, skeletonPacks: skeletons },
+      'Signed skeletons validated',
+    );
     // SCRUM-80: reconcile the Template Mongo collection with the registry. One-way
     // sync, idempotent. Never blocks the listen call — errors fall back to the
     // in-memory registry serving the catalog.

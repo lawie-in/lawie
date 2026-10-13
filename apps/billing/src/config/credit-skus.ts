@@ -11,7 +11,10 @@
  * Callers multiply by 2 before passing to grantSubscriptionInk / grantTopupInk.
  *
  * Per SCRUM-102 — Ink pricing finalized 2026-06-10 (Pricing Model Finalized doc).
+ * T-399: the Ink numbers come from INK_PER_CYCLE in @lawie/shared (one source
+ * with the yearly drip).
  */
+import { INK_PER_CYCLE } from '@lawie/shared';
 
 export interface SubscriptionPlanSku {
   id: 'solo_monthly' | 'solo_yearly' | 'pro_monthly' | 'pro_yearly';
@@ -33,7 +36,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanSku[] = [
     tier: 'solo',
     cycle: 'monthly',
     priceInr: 799,
-    inkPerCycle: 50,
+    inkPerCycle: INK_PER_CYCLE.solo_monthly,
     razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_SOLO_MONTHLY',
   },
   {
@@ -41,7 +44,9 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanSku[] = [
     tier: 'solo',
     cycle: 'yearly',
     priceInr: 7990,
-    inkPerCycle: 50, // monthly drip — same monthly grant per renewal
+    // Granted every month: at the yearly charge, then 11 lazy monthly drips
+    // (settleYearlyDrip in @lawie/shared, T-399).
+    inkPerCycle: INK_PER_CYCLE.solo_yearly,
     razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_SOLO_YEARLY',
   },
   {
@@ -49,7 +54,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanSku[] = [
     tier: 'pro',
     cycle: 'monthly',
     priceInr: 1999,
-    inkPerCycle: 150,
+    inkPerCycle: INK_PER_CYCLE.pro_monthly,
     razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_PRO_MONTHLY',
   },
   {
@@ -57,7 +62,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanSku[] = [
     tier: 'pro',
     cycle: 'yearly',
     priceInr: 19990,
-    inkPerCycle: 150,
+    inkPerCycle: INK_PER_CYCLE.pro_yearly,
     razorpayPlanIdEnvKey: 'RAZORPAY_PLAN_PRO_YEARLY',
   },
 ];

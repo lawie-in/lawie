@@ -36,12 +36,16 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - Left out on purpose: "no other case" and "no case pending", because they speak to pending cases, not past record.
 - The loader resolves a `when.in` string by looking up the top-level key it names.
 
+## Version 5, 13 Oct 2026 (supersedes SHA `0404960987deb50cc19d24ef70535298185aa0c882db8ddc0afa39fbe9794f23`)
+
+- v5, 13 Oct 2026: missing_label added per skeleton-missing-labels-pending-signed.md (07bd3b5), signed Ajay. `facts` gets `missing_label` "Brief facts of the case"; `grounds` gets `missing_label` "Grounds for bail". Nothing else changes in any clause.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_before_magistrate",
-  "version": 4,
+  "version": 5,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -150,7 +154,8 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "required": true,
       "source": "advocate",
       "slot": "facts_narrative",
-      "intro": "The brief facts of the case are as follows:"
+      "intro": "The brief facts of the case are as follows:",
+      "missing_label": "Brief facts of the case"
     },
     {
       "id": "chargesheet_filed",
@@ -224,7 +229,8 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "source": "advocate",
       "list": true,
       "slot": "grounds_for_bail",
-      "intro": "The applicant seeks bail on the following grounds:"
+      "intro": "The applicant seeks bail on the following grounds:",
+      "missing_label": "Grounds for bail"
     },
     {
       "id": "woman_proviso",
@@ -417,4 +423,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `0404960987deb50cc19d24ef70535298185aa0c882db8ddc0afa39fbe9794f23`
+SHA-256 of the JSON block (between the fences, final newline included): `c52210817dd3a14e6c7f663dc678944334245cc6b4359a1f0eac719bfeba81cd`

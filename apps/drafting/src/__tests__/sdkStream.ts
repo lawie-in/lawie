@@ -55,10 +55,28 @@ export function sdkStreamOf(content: string, usage?: SdkUsage): AsyncIterable<un
 }
 
 /** The SDK module stub: `new Anthropic()` gives a client whose stream is `streamFn`. */
-export function sdkModuleStub(streamFn: (...args: unknown[]) => unknown) {
+export function sdkModuleStub(
+  streamFn: (...args: unknown[]) => unknown,
+  parseFn?: (...args: unknown[]) => unknown,
+) {
   return {
     __esModule: true,
-    default: jest.fn().mockImplementation(() => ({ messages: { stream: streamFn } })),
+    default: jest.fn().mockImplementation(() => ({
+      messages: { stream: streamFn, ...(parseFn ? { parse: parseFn } : {}) },
+    })),
+  };
+}
+
+/**
+ * T-373: what `messages.parse()` resolves to (ADR-025 D1). `parsed` is the
+ * parsed_output the SDK would give; null is a structured answer that did not
+ * parse. Usage is the provider's token counts.
+ */
+export function sdkParseResponse(parsed: unknown, usage: SdkUsage = { input: 4000, output: 800 }) {
+  return {
+    parsed_output: parsed,
+    content: [{ type: 'text', text: parsed === null ? '' : JSON.stringify(parsed) }],
+    usage: { input_tokens: usage.input, output_tokens: usage.output },
   };
 }
 

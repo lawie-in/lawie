@@ -19,7 +19,7 @@ import { normalizeDate } from '@lawie/shared';
 import mongoose from 'mongoose';
 
 import { env } from '../config/env';
-import { FactDiff, IFactDiff } from '../models/FactDiff.model';
+import { FactDiff, FactDiffPath, IFactDiff } from '../models/FactDiff.model';
 import { IPlaceholderRate, PlaceholderRate } from '../models/PlaceholderRate.model';
 import { decrypt, encrypt } from '../utils/encryption';
 
@@ -63,6 +63,12 @@ export interface FactCheckLogInput {
   requiredFactCount: number;
   /** The delivered document, for the placeholder count only. Never stored. */
   deliveredText: string;
+  /**
+   * T-373 (Arjun's ruling B): the drafting path, stored on every row so the
+   * weekly review can filter D1 findings. Passed alongside the outcome, not
+   * on each FactDiffDraft. Defaults to `legacy`.
+   */
+  path?: FactDiffPath;
 }
 
 function objectIdOrNull(id: string | null): mongoose.Types.ObjectId | null {
@@ -99,6 +105,7 @@ export async function writeFactCheckLog(input: FactCheckLogInput): Promise<void>
         draftValue: r.draftValue === null ? null : encrypt(r.draftValue),
         resolution: r.resolution,
         phase: r.phase,
+        path: input.path ?? 'legacy',
       })),
     );
   }
@@ -185,7 +192,9 @@ export function describeDiff(
     case 'section':
     case 'court':
     case 'phrase':
-      return ledgerValue === null ? `${entityType}: "${d}" (no ledger fact)` : `${entityType}: "${l}" vs "${d}"`;
+      return ledgerValue === null
+        ? `${entityType}: "${d}" (no ledger fact)`
+        : `${entityType}: "${l}" vs "${d}"`;
     case 'date': {
       if (ledgerValue === null) return 'date: not in the ledger';
       const a = normalizeDate(l);
@@ -195,7 +204,9 @@ export function describeDiff(
       const [ay, am, ad] = a.value.split('-');
       const [by, bm, bd] = b.value.split('-');
       const parts = [ad !== bd && 'day', am !== bm && 'month', ay !== by && 'year'].filter(Boolean);
-      return parts.length === 0 ? 'date: same day, written differently' : `date: ${parts.join(' and ')} differs`;
+      return parts.length === 0
+        ? 'date: same day, written differently'
+        : `date: ${parts.join(' and ')} differs`;
     }
     case 'amount': {
       if (ledgerValue === null) return `amount: ${digits(d).length} digits, not in the ledger`;
@@ -208,7 +219,8 @@ export function describeDiff(
     case 'name':
     case 'police_station':
     default: {
-      if (ledgerValue === null) return `${entityType}: ${tokens(d).length} tokens, not in the ledger`;
+      if (ledgerValue === null)
+        return `${entityType}: ${tokens(d).length} tokens, not in the ledger`;
       const a = tokens(l).join(' ');
       const b = tokens(d).join(' ');
       return `${entityType}: ${tokens(l).length} tokens vs ${tokens(d).length}, edit distance ${editDistance(a, b)}`;
@@ -279,9 +291,14 @@ export function buildWeeklyFactDiffReport(from: Date, to: Date, data: WeeklyRepo
   out.push('', '## Violations by rule pack and check', '');
   const checks = ['unsupported', 'dropped', 'mutation', 'banned'];
   const packs = [...new Set(data.rows.map((r) => r.rulePack))].sort();
-  out.push(`| Rule pack | ${checks.join(' | ')} | total |`, `|---|${checks.map(() => '---:').join('|')}|---:|`);
+  out.push(
+    `| Rule pack | ${checks.join(' | ')} | total |`,
+    `|---|${checks.map(() => '---:').join('|')}|---:|`,
+  );
   for (const p of packs) {
-    const counts = checks.map((c) => data.rows.filter((r) => r.rulePack === p && r.check === c).length);
+    const counts = checks.map(
+      (c) => data.rows.filter((r) => r.rulePack === p && r.check === c).length,
+    );
     out.push(`| ${cell(p)} | ${counts.join(' | ')} | ${counts.reduce((a, b) => a + b, 0)} |`);
   }
   if (packs.length === 0) out.push('| (none) | 0 | 0 | 0 | 0 | 0 |');
@@ -291,7 +308,9 @@ export function buildWeeklyFactDiffReport(from: Date, to: Date, data: WeeklyRepo
     '| Rule pack | drafts | placeholders per draft | placeholders / required facts | previous week: drafts | per draft | / required |',
     '|---|---:|---:|---:|---:|---:|---:|',
   );
-  const ratePacks = [...new Set([...data.rates, ...data.previousRates].map((r) => r.rulePack))].sort();
+  const ratePacks = [
+    ...new Set([...data.rates, ...data.previousRates].map((r) => r.rulePack)),
+  ].sort();
   for (const p of ratePacks) {
     const now = rateLine(data.rates.filter((r) => r.rulePack === p));
     const before = rateLine(data.previousRates.filter((r) => r.rulePack === p));
@@ -371,7 +390,9 @@ export async function loadWeeklyFactDiffData(from: Date, to: Date): Promise<Week
     repairRan: r.repairRan,
     repairFixed: r.repairFixed,
   });
-  const rates = await PlaceholderRate.find({ ...window, runType: 'real' }).lean<IPlaceholderRate[]>();
+  const rates = await PlaceholderRate.find({ ...window, runType: 'real' }).lean<
+    IPlaceholderRate[]
+  >();
   const previous = await PlaceholderRate.find({
     createdAt: { $gte: prevFrom, $lt: from },
     runType: 'real',
@@ -387,7 +408,12 @@ export async function loadWeeklyFactDiffData(from: Date, to: Date): Promise<Week
       userRef: d.userRef,
       resolution: d.resolution,
       phase: d.phase,
-      diff: describeDiff(d.entityType, d.check, safeDecrypt(d.ledgerValue), safeDecrypt(d.draftValue)),
+      diff: describeDiff(
+        d.entityType,
+        d.check,
+        safeDecrypt(d.ledgerValue),
+        safeDecrypt(d.draftValue),
+      ),
     })),
     rates: rates.map(toRate),
     previousRates: previous.map(toRate),
