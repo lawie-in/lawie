@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-**PAUSED for new development and testing (founder, 13 Oct 2026, 11:22); resume only on the founder's command. Ready merges still go in today: Mahak T-390+T-416, then Mahak T-405, then Tanvi T-410, each after the previous CI is green.** Last merge: Kunal T-413 9cf199e (CI was pending at pause). On resume, Mahak T-390+T-416 is next.
+**PAUSED for new development and testing (founder, 13 Oct 2026, 11:22); resume at 17:40 UTC, 13 Oct (founder, 16:40). Ready merges still go in today: Mahak T-390+T-416, then Mahak T-405, then Tanvi T-410, each after the previous CI is green.** Last merge: Kunal T-413 9cf199e (CI was pending at pause). On resume, Mahak T-390+T-416 is next.
 Where each lead stopped:
 - vishal: T-397 on fix/t-397-legacy-prompt-signoffs e366b39. Developer done; Ajay's byte check and the tester are next.
 - mahak: T-390+T-416 (fix/t-416-verify-dedup-orphan) and T-405 (fix/t-405-public-field-helper) are ready to merge. T-381 on feature/t-381-annexures-card 6cd04ae: built, tester stopped midway, no review yet.
