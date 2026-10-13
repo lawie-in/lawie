@@ -2,7 +2,7 @@
  * T-373 round 3 (commit 91a179b), the parts that need no database:
  *  - unchanged dates are kept, changed dates fall back (withoutDatesKeepCase, keepsToFact)
  *  - the stop list no longer holds causal, temporal or negating words
- *  - withFactsNarrative (fact-ledger.service) and the Magistrate facts clause through the D1 renderer
+ *  - the Magistrate facts clause through the D1 renderer (pinned it.failing until T-365)
  *  - the top-level list name pattern (`<prefix>_none_values`)
  * The ledger-write and FactDiff `path` tests are in t373-round3-ledger.test.ts (they need a database).
  */
@@ -21,13 +21,7 @@ import {
 } from '../services/draft-renderer';
 import { loadAvermentLists } from '../services/averments';
 import { packTexts } from '../services/brief-drafter';
-import {
-  FACTS_NARRATIVE_KEY,
-  ledgerView,
-  overlayBrief,
-  withFactsNarrative,
-} from '../services/fact-ledger.service';
-import { buildChecklist, fixedChecklist } from '../services/intake-brief';
+import { buildChecklist } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 import type { Skeleton } from '../types/skeleton';
 import {
@@ -229,154 +223,31 @@ describe('round 3: the stop list holds no causal, temporal or negating word', ()
   });
 });
 
-// ── withFactsNarrative ──────────────────────────────────────────────────────
+// ── Magistrate facts clause (pending T-365) ────────────────────────────────
 
-describe('round 3: withFactsNarrative copies fixed.facts to facts_narrative', () => {
-  const ADVOCATE = 'she was at home all day, the complaint is a property fight';
-  const NARR = 'She was at home all day and the complaint is a property dispute.';
-  const fixedFacts = (): LedgerFact => fact('fixed.facts', NARR, { raw_span: ADVOCATE });
-  // The packs' own checklist never holds fixed.facts for the Magistrate pack (see the FINDING below),
-  // so the function's contract is tested with the fixed item added, as fixedChecklist makes it.
-  const factsItem = fixedChecklist(true).find((i) => i.key === 'fixed.facts')!;
-  const magChecklist = [...buildChecklist(loadRulePack('bail_before_magistrate')!), factsItem];
-
-  it('copies each fixed.facts fact: key facts_narrative, source user, same raw_span, fixed.facts unchanged', () => {
-    const f = fixedFacts();
-    const out = withFactsNarrative({ facts: [f], unresolved: [] }, magChecklist);
-    const copy = out.facts.find((x) => x.key === FACTS_NARRATIVE_KEY)!;
-    expect(copy).toBeDefined();
-    expect(copy.source).toBe('user');
-    expect(copy.raw_span).toBe(ADVOCATE);
-    expect(copy.display).toBe(NARR);
-    expect(copy.id).not.toBe(f.id);
-    expect(out.facts.filter((x) => x.key === 'fixed.facts')).toEqual([f]);
-  });
-
-  it('replaces an earlier copy and an unresolved entry on the key', () => {
-    const stale = fact(FACTS_NARRATIVE_KEY, 'old words', { raw_span: 'old words' });
-    const out = withFactsNarrative(
-      {
-        facts: [fixedFacts(), stale],
-        unresolved: [
-          { key: FACTS_NARRATIVE_KEY, label: 'x', reason: 'unreadable', raw_span: 'y' } as never,
-        ],
-      },
-      magChecklist,
-    );
-    const copies = out.facts.filter((x) => x.key === FACTS_NARRATIVE_KEY);
-    expect(copies).toHaveLength(1);
-    expect(copies[0].raw_span).toBe(ADVOCATE);
-    expect(out.unresolved.filter((u) => u.key === FACTS_NARRATIVE_KEY)).toEqual([]);
-  });
-
-  it('drops a copy when fixed.facts has gone', () => {
-    const stale = fact(FACTS_NARRATIVE_KEY, 'old words', { raw_span: 'old words' });
-    const out = withFactsNarrative({ facts: [stale], unresolved: [] }, magChecklist);
-    expect(out.facts.filter((x) => x.key === FACTS_NARRATIVE_KEY)).toEqual([]);
-  });
-
-  it('a pack with its own facts_narrative item (bail_regular) is returned unchanged', () => {
-    const state = { facts: [fixedFacts(), ...regularBase()], unresolved: [] };
-    const checklist = [...buildChecklist(loadRulePack('bail_regular')!), factsItem];
-    expect(withFactsNarrative(state, checklist)).toBe(state);
-  });
-
-  it('a checklist with no fixed.facts item (bail_regular, default_bail) is returned unchanged', () => {
-    const state = { facts: [fixedFacts()], unresolved: [] };
-    for (const p of ['bail_regular', 'default_bail']) {
-      expect(withFactsNarrative(state, buildChecklist(loadRulePack(p)!))).toBe(state);
-    }
-  });
-
-  it('nothing to copy and nothing to remove returns the same state', () => {
-    const state = {
-      facts: magistrateBase().filter((f) => f.key !== 'facts_narrative'),
-      unresolved: [],
-    };
-    expect(withFactsNarrative(state, magChecklist)).toBe(state);
-  });
-
-  it('overlayBrief writes the copy: facts_narrative source user, raw_span the advocate text', () => {
-    const { state } = overlayBrief(
-      { facts: [], unresolved: [] },
-      { items: [{ key: 'fixed.facts', value: ADVOCATE, source: 'user' }] },
-      magChecklist,
-      2026,
-    );
-    const fixed = state.facts.find((f) => f.key === 'fixed.facts')!;
-    const copy = state.facts.find((f) => f.key === FACTS_NARRATIVE_KEY)!;
-    expect(fixed).toBeDefined();
-    expect(copy.source).toBe('user');
-    expect(copy.raw_span).toBe(fixed.raw_span);
-    expect(copy.raw_span).toBe(ADVOCATE);
-  });
-
-  it('bail_regular through overlayBrief: no facts_narrative copy, its own item is untouched', () => {
-    const checklist = buildChecklist(loadRulePack('bail_regular')!);
-    const { state } = overlayBrief(
-      { facts: [], unresolved: [] },
-      { items: [{ key: 'facts_narrative', value: ADVOCATE, source: 'user' }] },
-      checklist,
-      2026,
-    );
-    expect(state.facts.filter((f) => f.key === FACTS_NARRATIVE_KEY)).toHaveLength(1);
-    expect(state.facts.some((f) => f.key === 'fixed.facts')).toBe(false);
-  });
-
-  it('ledgerView hides the copy on a Magistrate-style checklist and shows facts_narrative on bail_regular', () => {
-    const stateWithCopy = withFactsNarrative(
-      { facts: [fixedFacts()], unresolved: [] },
-      magChecklist,
-    );
-    const doc = (state: { facts: LedgerFact[]; unresolved: never[] }) =>
-      ({
-        id: 'l1',
-        runType: 'user',
-        documentKind: 'x',
-        versions: [{ version: 1, createdAt: new Date(), reason: 'extract', ...state }],
-      }) as never;
-    const mag = ledgerView(doc({ ...stateWithCopy, unresolved: [] }), magChecklist);
-    expect(mag.facts.map((f) => f.key)).toEqual(['fixed.facts']);
-    const regChecklist = buildChecklist(loadRulePack('bail_regular')!);
-    const reg = ledgerView(doc({ facts: regularBase(), unresolved: [] }), regChecklist);
-    expect(reg.facts.some((f) => f.key === FACTS_NARRATIVE_KEY)).toBe(true);
-  });
-
-  it('the Magistrate facts clause, via the D1 renderer, prints the advocate words and is not blank', () => {
-    const { state } = overlayBrief(
-      { facts: [], unresolved: [] },
-      { items: [{ key: 'fixed.facts', value: ADVOCATE, source: 'user' }] },
-      magChecklist,
-      2026,
-    );
-    const facts = [
-      ...magistrateBase().filter((f) => f.key !== 'facts_narrative'),
-      ...state.facts.filter((f) => f.key === FACTS_NARRATIVE_KEY),
-    ];
-    const { status, text } = render('bail_before_magistrate', facts);
-    expect(status('facts')).not.toBe('missing');
-    expect(text('facts')).not.toContain('{{MISSING');
-    expect(text('facts')).toContain(ADVOCATE);
-  });
-
-  it('without the copy the Magistrate facts clause is blank (MISSING), which is what the copy prevents', () => {
-    const facts = magistrateBase().filter((f) => f.key !== 'facts_narrative');
-    const { status, text } = render('bail_before_magistrate', facts);
-    expect(status('facts')).toBe('missing');
-    expect(text('facts')).toContain('{{MISSING');
-  });
-
-  // FINDING (source): buildChecklist(bail_before_magistrate) holds no `fixed.facts` item, because the pack's
-  // own narrative facts (earlier_bail_applications, antecedents, ...) are part "facts", so intake-brief.ts
-  // does not add the fixed one. withFactsNarrative, overlayBrief and applyEdits all get that checklist
-  // (intake.service.ts:1192 and :1704), so in production the copy is never made and the Magistrate facts
-  // clause is still blank. Pinned with it.failing; it flips to a pass when the copy happens on the real checklist.
+describe('round 3: the Magistrate facts clause', () => {
+  // Arjun option a: the withFactsNarrative copy was removed. Mahak adds a facts_narrative field to the
+  // Magistrate pack in T-365; until then the checklist has no such item and the D1 facts clause prints
+  // MISSING. This test flips to a pass when T-365 lands (then change it.failing to it).
   it.failing(
-    'FINDING: on the real bail_before_magistrate checklist an advocate fixed.facts is copied',
+    'real bail_before_magistrate checklist has facts_narrative and the rendered facts clause is not blank',
     () => {
-      const real = buildChecklist(loadRulePack('bail_before_magistrate')!);
-      const out = withFactsNarrative({ facts: [fixedFacts()], unresolved: [] }, real);
-      expect(out.facts.some((f) => f.key === FACTS_NARRATIVE_KEY)).toBe(true);
+      const checklist = buildChecklist(loadRulePack('bail_before_magistrate')!);
+      const hasItem = checklist.some((i) => i.key === 'facts_narrative');
+      expect(hasItem).toBe(true);
+      const facts = [
+        ...magistrateBase().filter((f) => f.key !== 'facts_narrative'),
+        ...(hasItem
+          ? [
+              fact('facts_narrative', 'She was at home all day.', {
+                raw_span: 'she was at home all day',
+              }),
+            ]
+          : []),
+      ];
+      const { status, text } = render('bail_before_magistrate', facts);
+      expect(status('facts')).not.toBe('missing');
+      expect(text('facts')).not.toContain('{{MISSING');
     },
   );
 });

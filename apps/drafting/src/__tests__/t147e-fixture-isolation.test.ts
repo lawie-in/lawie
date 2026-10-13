@@ -54,8 +54,19 @@ import {
 } from '../services/run-origin';
 import { sdkAnswer } from './sdkStream';
 
+// T-373: these tests drive the legacy (text-stream) path. The signed skeletons are on by default, so the
+// loader is pinned to null here; every lookup is counted so the last test can show the mock was reached.
+const mockSkeletonLookups: string[] = [];
+jest.mock('../services/rule-pack.service', () => ({
+  ...jest.requireActual('../services/rule-pack.service'),
+  loadSkeleton: (packId: string) => {
+    mockSkeletonLookups.push(packId);
+    return null;
+  },
+}));
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('./sdkStream').sdkModuleStub((...args: unknown[]) => mockMessagesStream(...args)),
 );
 // The PDF engine is not what is under test; the export route's Event rows are.
@@ -77,7 +88,12 @@ const CHECKLIST = buildChecklist(PACK);
 const FIRST_GROUND = CHECKLIST.find((i) => i.key === 'grounds_for_bail')!.options[0];
 const court = { state: 'bihar', court_type: 'sessions', court: COURT_ID };
 
-function headers(userId: string, extra: Record<string, string> = {}, role = 'Client', plan = 'free') {
+function headers(
+  userId: string,
+  extra: Record<string, string> = {},
+  role = 'Client',
+  plan = 'free',
+) {
   return {
     'x-internal-secret': INTERNAL_SECRET,
     'x-user-id': userId,
@@ -104,7 +120,8 @@ const EMPTY_READ = JSON.stringify({ outcome: 'read', read: [], conflicts: [], qu
 const EXTRACT = JSON.stringify({
   facts: [{ key: 'police_station', span: 'PS Kotwali', confidence: 0.99 }],
 });
-const DESC = 'Mere client Ramesh ka accident 12/3/26 ko hua tha, PS Kotwali mein FIR 45/26 darj hui.';
+const DESC =
+  'Mere client Ramesh ka accident 12/3/26 ko hua tha, PS Kotwali mein FIR 45/26 darj hui.';
 
 const report = () => CLAUSE_IDS.map((id) => `${id}: 1`).join('\n');
 const answer = (body: string) => `${body}\n\n${CLAUSES_MARKER}\n${report()}`;
@@ -190,7 +207,9 @@ async function runMatter(userId: string, intakeId: string) {
     documentKind: 'bail_regular',
     runType: 'user',
     currentVersion: 1,
-    versions: [{ version: 1, facts: baseFacts(), unresolved: [], createdAt: new Date(), reason: 'extract' }],
+    versions: [
+      { version: 1, facts: baseFacts(), unresolved: [], createdAt: new Date(), reason: 'extract' },
+    ],
   });
 
   mockModel(answer(BAD2), 'Sorry, no.');
@@ -249,7 +268,13 @@ beforeEach(async () => {
     inkAnnualCarry: 0,
     inkTopup: INK_BEFORE,
   });
-  await User.create({ _id: ADMIN, name: 'Admin', email: 'admin@test.com', plan: 'pro', planTier: 'pro' });
+  await User.create({
+    _id: ADMIN,
+    name: 'Admin',
+    email: 'admin@test.com',
+    plan: 'pro',
+    planTier: 'pro',
+  });
 
   fixtureRun = await runMatter(FIX, '11111111-1111-4111-8111-111111111111');
   realRun = await runMatter(REAL, '22222222-2222-4222-8222-222222222222');
@@ -324,7 +349,9 @@ describe('AC4(c): every row written for the fixture user is tagged fixture', () 
     const diffs = await FactDiff.find({ userId: FIX }).lean();
     expect(diffs.length).toBeGreaterThan(0);
     expect(diffs.every((r) => r.runType === 'fixture')).toBe(true);
-    expect((await FactDiff.find({ userId: REAL }).lean()).every((r) => r.runType === 'real')).toBe(true);
+    expect((await FactDiff.find({ userId: REAL }).lean()).every((r) => r.runType === 'real')).toBe(
+      true,
+    );
     // PlaceholderRate has no userId; one row per draft, one of each.
     const rates = await PlaceholderRate.find({}).lean();
     expect(rates.map((r) => r.runType).sort()).toEqual(['fixture', 'real']);
@@ -339,7 +366,8 @@ describe('AC4(c): every row written for the fixture user is tagged fixture', () 
       if (rows.length === 0) continue;
       collectionsWithFixtureRows += 1;
       for (const r of rows) {
-        if (r['runType'] !== 'fixture' && r['runOrigin'] !== 'fixture') unmarked.push(c.collectionName);
+        if (r['runType'] !== 'fixture' && r['runOrigin'] !== 'fixture')
+          unmarked.push(c.collectionName);
       }
     }
     expect(collectionsWithFixtureRows).toBeGreaterThanOrEqual(5);
@@ -358,7 +386,12 @@ describe('AC4(c): every row written for the fixture user is tagged fixture', () 
     const e = new Event({ userId: FIX, type: 'x', runType: 'user' });
     await e.save();
     expect((await Event.findById(e._id).lean())!.runType).toBe('fixture');
-    const g = await Generation.create({ userId: FIX, docType: 'bail_application', tokensUsed: 1, runOrigin: 'user' });
+    const g = await Generation.create({
+      userId: FIX,
+      docType: 'bail_application',
+      tokensUsed: 1,
+      runOrigin: 'user',
+    });
     expect(g.runOrigin).toBe('fixture');
     // and an UPDATE cannot turn it back: save() re-validates
     d.runType = 'user';
@@ -375,9 +408,15 @@ describe('AC4(c): admin aggregates exclude fixture rows', () => {
     expect(res.body.kpis.totalDocs).toBe(1);
     expect(res.body.kpis.totalDocsThisMonth).toBe(1);
     expect(res.body.kpis.aiGenCount).toBe(1);
-    const typed = (res.body.docTypeBreakdown as Array<{ count: number }>).reduce((n, t) => n + t.count, 0);
+    const typed = (res.body.docTypeBreakdown as Array<{ count: number }>).reduce(
+      (n, t) => n + t.count,
+      0,
+    );
     expect(typed).toBe(1);
-    const templated = (res.body.templateUsage as Array<{ count: number }>).reduce((n, t) => n + t.count, 0);
+    const templated = (res.body.templateUsage as Array<{ count: number }>).reduce(
+      (n, t) => n + t.count,
+      0,
+    );
     expect(templated).toBeLessThanOrEqual(1);
     expect(res.body.kpis.aiCostInr).toBeGreaterThanOrEqual(0);
     // the cost is the real user's cost alone
@@ -388,7 +427,7 @@ describe('AC4(c): admin aggregates exclude fixture rows', () => {
     expect(usd[0].c).toBe(realGen.costUsd);
   });
 
-  it('/admin/ai-usage: tokens, cost and generation count are the normal user\'s alone', async () => {
+  it("/admin/ai-usage: tokens, cost and generation count are the normal user's alone", async () => {
     const realGen = (await Generation.findOne({ userId: REAL }).lean())!;
     const fixGen = (await Generation.findOne({ userId: FIX }).lean())!;
     expect(fixGen.tokensUsed).toBeGreaterThan(0); // the fixture row is not empty
@@ -399,21 +438,23 @@ describe('AC4(c): admin aggregates exclude fixture rows', () => {
     expect(res.body.totalCostUsd).toBe(realGen.costUsd);
   });
 
-  it('/admin/overview/kpis: drafts generated counts the normal user\'s draft only', async () => {
+  it("/admin/overview/kpis: drafts generated counts the normal user's draft only", async () => {
     const res = await request(app).get('/admin/overview/kpis').set(admin());
     expect(res.status).toBe(200);
     expect(res.body.draftsGenerated.value).toBe(1);
   });
 
-  it('/admin/overview/activity: one draft in the feed, the normal user\'s', async () => {
+  it("/admin/overview/activity: one draft in the feed, the normal user's", async () => {
     const res = await request(app).get('/admin/overview/activity').set(admin());
     expect(res.status).toBe(200);
-    const drafts = (res.body.items as Array<{ type: string; label: string }>).filter((i) => i.type === 'draft');
+    const drafts = (res.body.items as Array<{ type: string; label: string }>).filter(
+      (i) => i.type === 'draft',
+    );
     expect(drafts).toHaveLength(1);
     expect(drafts[0].label).toContain('Real Advocate');
   });
 
-  it('/admin/documents/exports: only the normal user\'s export, though both were exported', async () => {
+  it("/admin/documents/exports: only the normal user's export, though both were exported", async () => {
     expect(await LawieDocument.countDocuments({ status: 'exported' })).toBe(2);
     const res = await request(app).get('/admin/documents/exports').set(admin());
     expect(res.status).toBe(200);
@@ -445,7 +486,10 @@ describe('AC4(c): admin aggregates exclude fixture rows', () => {
   });
 
   it('the weekly fact-diff report reads real rows only and counts the fixture rows apart', async () => {
-    const data = await loadWeeklyFactDiffData(new Date(Date.now() - 86_400_000), new Date(Date.now() + 86_400_000));
+    const data = await loadWeeklyFactDiffData(
+      new Date(Date.now() - 86_400_000),
+      new Date(Date.now() + 86_400_000),
+    );
     const realDiffs = await FactDiff.countDocuments({ runType: 'real' });
     const fixDiffs = await FactDiff.countDocuments({ runType: 'fixture' });
     expect(realDiffs).toBeGreaterThan(0);
@@ -505,7 +549,7 @@ describe('AC4(a): no fixture matter in any user-facing list', () => {
     expect((await request(app).get(`/${realRun.docId}`).set(headers(REAL))).status).toBe(200);
   });
 
-  it('/documents/usage: the fixture user has used nothing; a normal user\'s count is their own draft only', async () => {
+  it("/documents/usage: the fixture user has used nothing; a normal user's count is their own draft only", async () => {
     const fix = await request(app).get('/usage').set(headers(FIX));
     expect(fix.body.used).toBe(0);
     expect(fix.body.remaining).toBe(FREE_TIER_MONTHLY_LIMIT);
@@ -521,7 +565,10 @@ describe('AC4(a): no fixture matter in any user-facing list', () => {
 
   it('the rating bonus: a fixture draft is not found by the rating route (no Ink for a fixture draft)', async () => {
     await LawieDocument.updateOne({ _id: realRun.docId }, { $set: { runType: 'fixture' } });
-    const res = await request(app).post(`/credits/rate/${realRun.docId}`).set(headers(REAL)).send({ stars: 5 });
+    const res = await request(app)
+      .post(`/credits/rate/${realRun.docId}`)
+      .set(headers(REAL))
+      .send({ stars: 5 });
     expect(res.status).toBe(404);
   });
 });
@@ -552,11 +599,17 @@ const fakeReq = (sub: string, body: Record<string, unknown> = {}, plan = 'free')
 describe('AC4(b): no fixture draft counts against Ink or drops', () => {
   it('the fixture draft charged nothing: no inkledger row, no CreditLedger row, no users row created', async () => {
     const oid = new mongoose.Types.ObjectId(FIX);
-    expect(await mongoose.connection.collection('inkledger').countDocuments({ userId: oid })).toBe(0);
+    expect(await mongoose.connection.collection('inkledger').countDocuments({ userId: oid })).toBe(
+      0,
+    );
     expect(await CreditLedger.countDocuments({ userId: FIX })).toBe(0);
     expect(await User.countDocuments({ _id: FIX })).toBe(0);
     // the same draft by the normal user did charge, so the check above can fail
-    expect(await mongoose.connection.collection('inkledger').countDocuments({ userId: new mongoose.Types.ObjectId(REAL) })).toBeGreaterThan(0);
+    expect(
+      await mongoose.connection
+        .collection('inkledger')
+        .countDocuments({ userId: new mongoose.Types.ObjectId(REAL) }),
+    ).toBeGreaterThan(0);
     const real = (await User.findById(REAL).lean())!;
     expect(real.inkTopup).toBeLessThan(INK_BEFORE);
   });
@@ -567,7 +620,9 @@ describe('AC4(b): no fixture draft counts against Ink or drops', () => {
     expect(r).toEqual({ success: true, reason: 'fixture_run' });
     expect(await mongoose.connection.collection('inkledger').countDocuments({})).toBe(before);
     const topup = (await User.findById(REAL).lean())!.inkTopup;
-    expect((await spendInk({ userId: REAL, costCredits: 1, reason: 'generate' })).success).toBe(true);
+    expect((await spendInk({ userId: REAL, costCredits: 1, reason: 'generate' })).success).toBe(
+      true,
+    );
     expect((await User.findById(REAL).lean())!.inkTopup).toBe(topup! - 2);
   });
 
@@ -627,17 +682,30 @@ describe('AC4(b): no fixture draft counts against Ink or drops', () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     await Generation.deleteMany({});
     await Generation.create([
-      { userId: REAL, docType: 'bail_application', tokensUsed: 1, costUsd: 30, runOrigin: 'fixture' },
+      {
+        userId: REAL,
+        docType: 'bail_application',
+        tokensUsed: 1,
+        costUsd: 30,
+        runOrigin: 'fixture',
+      },
       { userId: FIX, docType: 'bail_application', tokensUsed: 1, costUsd: 30 },
     ]);
     await spendCapCheck(fakeReq(REAL), fakeRes() as never, jest.fn());
     await spendCapCheck(fakeReq(FIX), fakeRes() as never, jest.fn());
     expect(warn).not.toHaveBeenCalled();
 
-    await Generation.create({ userId: REAL, docType: 'bail_application', tokensUsed: 1, costUsd: 30 });
+    await Generation.create({
+      userId: REAL,
+      docType: 'bail_application',
+      tokensUsed: 1,
+      costUsd: 30,
+    });
     await spendCapCheck(fakeReq(REAL), fakeRes() as never, jest.fn());
     expect(warn.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(/exceeded daily cap/);
-    expect(warn.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(/Total daily spend exceeded/);
+    expect(warn.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(
+      /Total daily spend exceeded/,
+    );
   });
 
   it('the fixture user is not subject to the 402: a second fixture draft with no balance still succeeds', async () => {
@@ -647,7 +715,15 @@ describe('AC4(b): no fixture draft counts against Ink or drops', () => {
       documentKind: 'bail_regular',
       runType: 'user',
       currentVersion: 1,
-      versions: [{ version: 1, facts: baseFacts(), unresolved: [], createdAt: new Date(), reason: 'extract' }],
+      versions: [
+        {
+          version: 1,
+          facts: baseFacts(),
+          unresolved: [],
+          createdAt: new Date(),
+          reason: 'extract',
+        },
+      ],
     });
     const res = await request(app)
       .post('/generate-from-brief')
@@ -662,7 +738,7 @@ describe('AC4(b): no fixture draft counts against Ink or drops', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 // Security: a normal user cannot become fixture; the reserved id cannot be reached
 // ═════════════════════════════════════════════════════════════════════════════
-describe('security: no request field makes a normal user\'s run a fixture run', () => {
+describe("security: no request field makes a normal user's run a fixture run", () => {
   const FLAGS = {
     runType: 'fixture',
     run_type: 'fixture',
@@ -686,13 +762,27 @@ describe('security: no request field makes a normal user\'s run a fixture run', 
       documentKind: 'bail_regular',
       runType: 'user',
       currentVersion: 1,
-      versions: [{ version: 1, facts: baseFacts(), unresolved: [], createdAt: new Date(), reason: 'extract' }],
+      versions: [
+        {
+          version: 1,
+          facts: baseFacts(),
+          unresolved: [],
+          createdAt: new Date(),
+          reason: 'extract',
+        },
+      ],
     });
     mockModel(answer(BAD2), 'no');
     const res = await request(app)
       .post('/generate-from-brief')
       .set(headers(REAL, FLAG_HEADERS))
-      .send({ kind: 'bail_regular', values: VALUES, court, ledger_id: String(ledger._id), ...FLAGS });
+      .send({
+        kind: 'bail_regular',
+        values: VALUES,
+        court,
+        ledger_id: String(ledger._id),
+        ...FLAGS,
+      });
     // Either the flags are ignored (200) or refused (400): never honoured.
     expect([200, 400]).toContain(res.status);
     expect(await LawieDocument.countDocuments({ userId: REAL, runType: 'fixture' })).toBe(0);
@@ -720,8 +810,14 @@ describe('security: no request field makes a normal user\'s run a fixture run', 
   });
 
   it('a PATCH or export with the flags cannot flip an existing document to fixture', async () => {
-    await request(app).patch(`/${realRun.docId}`).set(headers(REAL, FLAG_HEADERS)).send({ ...FLAGS, content: 'x' });
-    await request(app).post(`/${realRun.docId}/export/pdf`).set(headers(REAL, FLAG_HEADERS)).send(FLAGS);
+    await request(app)
+      .patch(`/${realRun.docId}`)
+      .set(headers(REAL, FLAG_HEADERS))
+      .send({ ...FLAGS, content: 'x' });
+    await request(app)
+      .post(`/${realRun.docId}/export/pdf`)
+      .set(headers(REAL, FLAG_HEADERS))
+      .send(FLAGS);
     expect((await LawieDocument.findById(realRun.docId).lean())!.runType).toBe('user');
     expect(await Event.countDocuments({ userId: REAL, runType: 'fixture' })).toBe(0);
   });
@@ -750,11 +846,25 @@ describe('security: the reserved id cannot be reached from outside', () => {
     const h = { 'x-user-id': FIX, 'x-user-plan': 'free', 'x-user-role': 'Client' };
     expect((await request(app).get('/').set(h)).status).toBe(401);
     expect((await request(app).post('/generate-from-brief').set(h).send({})).status).toBe(401);
-    expect((await request(app).get('/').set({ ...h, 'x-internal-secret': 'wrong' })).status).toBe(401);
+    expect(
+      (
+        await request(app)
+          .get('/')
+          .set({ ...h, 'x-internal-secret': 'wrong' })
+      ).status,
+    ).toBe(401);
   });
 
-  it('a normal user\'s own id is never read as the fixture id', () => {
-    for (const id of [REAL, ADMIN, '0000000000000000000f147f', '0000000000000000000f147', '', 'null', 'undefined']) {
+  it("a normal user's own id is never read as the fixture id", () => {
+    for (const id of [
+      REAL,
+      ADMIN,
+      '0000000000000000000f147f',
+      '0000000000000000000f147',
+      '',
+      'null',
+      'undefined',
+    ]) {
       expect(isFixtureUser(id)).toBe(false);
       expect(runOriginFor(id)).toBe('user');
     }
@@ -809,5 +919,13 @@ describe('security: the reserved id cannot be reached from outside', () => {
       generatedContent: 'x',
     });
     expect(d.runType).toBe('user');
+  });
+});
+
+describe('T-373: this suite ran the legacy path', () => {
+  it('the skeleton loader was consulted and returned null, so d1SkeletonFor gave null and the drafts above took the legacy text stream', () => {
+    // If the loader mock were removed, bail packs would take D1 (messages.parse) and this stays 0 or the
+    // tests above fail; either way the mock is not silently load-bearing.
+    expect(mockSkeletonLookups.length).toBeGreaterThan(0);
   });
 });

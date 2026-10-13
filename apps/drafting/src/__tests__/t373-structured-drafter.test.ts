@@ -103,6 +103,7 @@ async function run(
     language?: 'en' | 'hi' | 'bilingual';
     loadSkeleton?: ((id: string) => Skeleton | null) | undefined;
     ledger?: boolean;
+    pack?: typeof pack;
   } = {},
 ): Promise<Run> {
   const facts = opts.facts ?? regularBase();
@@ -129,7 +130,7 @@ async function run(
   try {
     out.result = await streamGenerateFromBrief(
       {
-        pack,
+        pack: opts.pack ?? pack,
         templateConfig: loadTemplateConfig('bail_regular')!,
         brief,
         ...(opts.ledger === false
@@ -623,10 +624,22 @@ describe('which requests take the D1 path', () => {
     expect(result!.factDiff).toBeUndefined();
   });
 
-  it('no loadSkeleton at all is the same as null', async () => {
+  it('no loadSkeleton at all uses the real signed skeleton (bail_regular: parse called, no stream)', async () => {
+    mockParse.mockResolvedValue(sdkParseResponse(goodOutput()));
+    const { result, error } = await run({ loadSkeleton: undefined });
+    expect(error).toBeUndefined();
+    expect(mockParse).toHaveBeenCalledTimes(1);
+    expect(mockStream).not.toHaveBeenCalled();
+    expect(result!.rendered).toBeDefined();
+    expect(result!.factCheck).toBeUndefined();
+  });
+
+  it('no loadSkeleton and a pack with no skeleton file stays on the legacy path', async () => {
     mockStream.mockImplementation(async () => sdkAnswer(OLD_BODY, 4000, 800));
-    const { result } = await run({ loadSkeleton: undefined });
+    const noSkeleton = { ...pack, id: 'no_such_pack_skeleton' };
+    const { result } = await run({ loadSkeleton: undefined, pack: noSkeleton });
     expect(mockParse).not.toHaveBeenCalled();
+    expect(mockStream).toHaveBeenCalled();
     expect(result!.rendered).toBeUndefined();
   });
 

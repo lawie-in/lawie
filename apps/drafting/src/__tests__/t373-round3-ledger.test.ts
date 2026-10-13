@@ -1,6 +1,6 @@
 /**
  * T-373 round 3 (commit 91a179b), the parts that write to the database:
- *  - applyEdits carries an edit of fixed.facts to its facts_narrative copy, as one version
+ *  - applyEdits on bail_regular still writes facts_narrative (the Magistrate copy was removed)
  *  - FactDiff `path` (default 'legacy', only 'legacy' | 'd1') and writeFactCheckLog writing it on every row
  * The documents route does not log result.factDiff yet (deferred, not tested here).
  */
@@ -9,16 +9,9 @@ import mongoose from 'mongoose';
 
 import { FACT_DIFF_PATHS, FactDiff } from '../models/FactDiff.model';
 import { writeFactCheckLog } from '../services/fact-diff-log';
-import {
-  applyEdits,
-  createLedger,
-  currentState,
-  FACTS_NARRATIVE_KEY,
-  ledgerView,
-  loadOwnLedger,
-} from '../services/fact-ledger.service';
+import { applyEdits, createLedger, currentState } from '../services/fact-ledger.service';
 import type { FactCheckOutcome, FactDiffDraft } from '../services/fact-verifier';
-import { buildChecklist, fixedChecklist } from '../services/intake-brief';
+import { buildChecklist } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 import { regularBase } from './fixtures/t373';
 
@@ -26,75 +19,9 @@ const USER_ID = '507f1f77bcf86cd7994393a5';
 
 // ── applyEdits and the facts_narrative copy ─────────────────────────────────
 
-describe('round 3: applyEdits carries an edit of fixed.facts to facts_narrative', () => {
+describe('round 3: applyEdits on bail_regular', () => {
   const FIRST = 'she was at home all day, the complaint is a property fight';
-  const SECOND = 'she was away at her sister place, the complaint is a loan matter';
-  const factsItem = fixedChecklist(true).find((i) => i.key === 'fixed.facts')!;
-  // The real Magistrate checklist has no fixed.facts item (see the FINDING in t373-round3.test.ts), so
-  // the item is added here, as fixedChecklist makes it.
-  const magChecklist = [...buildChecklist(loadRulePack('bail_before_magistrate')!), factsItem];
-
-  it('an edit writes the copy in the same version: source user, raw_span the new advocate text, fixed.facts holds the edit', async () => {
-    const doc = await createLedger({
-      userId: USER_ID,
-      documentKind: 'bail_before_magistrate',
-      intakeId: 'i1',
-      state: { facts: [], unresolved: [] },
-    });
-    const first = await applyEdits(doc, magChecklist, [{ key: 'fixed.facts', text: FIRST }], 10);
-    const s1 = currentState(first.doc);
-    expect(s1.facts.find((f) => f.key === FACTS_NARRATIVE_KEY)?.raw_span).toBe(FIRST);
-
-    // A second edit replaces the copy rather than adding a second one.
-    const second = await applyEdits(
-      first.doc,
-      magChecklist,
-      [{ key: 'fixed.facts', text: SECOND }],
-      10,
-    );
-    const s2 = currentState(second.doc);
-    const copies = s2.facts.filter((f) => f.key === FACTS_NARRATIVE_KEY);
-    expect(copies).toHaveLength(1);
-    expect(copies[0].source).toBe('user');
-    expect(copies[0].raw_span).toBe(SECOND);
-    const fixed = s2.facts.filter((f) => f.key === 'fixed.facts');
-    expect(fixed).toHaveLength(1);
-    expect(fixed[0].raw_span).toBe(SECOND);
-    expect(second.doc.currentVersion).toBe(first.doc.currentVersion + 1);
-
-    // The earlier version still holds the earlier words (versions are never touched).
-    const reloaded = (await loadOwnLedger(String(second.doc._id), USER_ID))!;
-    expect(reloaded.versions).toHaveLength(3);
-  });
-
-  it('ledgerView of the stored ledger shows fixed.facts once and not the copy', async () => {
-    const doc = await createLedger({
-      userId: USER_ID,
-      documentKind: 'bail_before_magistrate',
-      intakeId: 'i1',
-      state: { facts: [], unresolved: [] },
-    });
-    const { doc: after } = await applyEdits(
-      doc,
-      magChecklist,
-      [{ key: 'fixed.facts', text: FIRST }],
-      10,
-    );
-    const view = ledgerView(after, magChecklist);
-    expect(view.facts.map((f) => f.key)).toEqual(['fixed.facts']);
-  });
-
-  it('clearing fixed.facts removes the copy', async () => {
-    const doc = await createLedger({
-      userId: USER_ID,
-      documentKind: 'bail_before_magistrate',
-      intakeId: 'i1',
-      state: { facts: [], unresolved: [] },
-    });
-    const a = await applyEdits(doc, magChecklist, [{ key: 'fixed.facts', text: FIRST }], 10);
-    const b = await applyEdits(a.doc, magChecklist, [{ key: 'fixed.facts', text: '' }], 10);
-    expect(currentState(b.doc).facts.filter((f) => f.key === FACTS_NARRATIVE_KEY)).toEqual([]);
-  });
+  const FACTS_NARRATIVE_KEY = 'facts_narrative';
 
   it('bail_regular is unchanged: an edit of facts_narrative writes no copy and no fixed.facts', async () => {
     const checklist = buildChecklist(loadRulePack('bail_regular')!);
