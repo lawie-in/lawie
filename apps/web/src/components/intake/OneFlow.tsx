@@ -35,6 +35,7 @@ import {
   LedgerEditResult,
   NO_RULE_PACK,
   readFactCheckBanner,
+  RenderedClause,
   Value,
   valuesAfter,
   withValue,
@@ -734,7 +735,24 @@ export default function OneFlow({
         const missing = Array.isArray(done.missingClauses)
           ? (done.missingClauses as Array<{ id: string; title: string }>)
           : [];
-        const missingIds = new Set(missing.map((m) => m.id));
+        // T-373: on a D1 pack the service sends the clauses the renderer printed; the
+        // checks panel reads those clause ids. Absent on every other pack.
+        const rendered = Array.isArray(done.rendered)
+          ? (done.rendered as unknown[]).filter(
+              (r): r is RenderedClause =>
+                typeof r === 'object' &&
+                r !== null &&
+                typeof (r as Record<string, unknown>).clauseId === 'string' &&
+                ['ok', 'missing', 'fallback'].includes(
+                  (r as Record<string, unknown>).status as string,
+                ),
+            )
+          : undefined;
+        const missingIds = new Set(
+          rendered
+            ? rendered.filter((r) => r.status === 'missing').map((r) => r.clauseId)
+            : missing.map((m) => m.id),
+        );
         const name = current.kind.name;
         // The draft is written. Nothing the advocate typed is kept on this page any longer.
         reset();
@@ -758,6 +776,7 @@ export default function OneFlow({
           // T-197: sent with every finished draft. Falls back to the banner's own line.
           disclaimer:
             typeof done.disclaimer === 'string' ? done.disclaimer : (factCheck?.disclaimer ?? null),
+          ...(rendered ? { rendered } : {}),
         });
         setPhase('ready');
       } catch {
