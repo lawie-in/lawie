@@ -107,6 +107,7 @@ import {
 } from './llm-usage';
 import { postProcess } from './post-processor';
 import { assemblePrompt, PromptInput } from './prompt-assembler';
+import { loadSkeleton as loadSignedSkeleton } from './rule-pack.service';
 import type { RulePack } from './rule-pack.service';
 import { convertOldReferencesInText } from './sections.service';
 import {
@@ -999,10 +1000,12 @@ export interface BriefGenerateInput {
   runSequence: number;
   runType: RunType;
   /**
-   * T-373 (ADR-025 D1): the pack's signed skeleton source, T-374's
-   * `loadSkeleton` from rule-pack.service.ts once it lands. Injected so tests
-   * can pass a fixture. Absent, or returning null: no skeleton, and the draft
-   * takes today's path unchanged.
+   * T-373 (ADR-025 D1): the pack's signed skeleton source. Absent: T-374's
+   * `loadSkeleton` from rule-pack.service.ts (the `_skeletons/` files).
+   * Injected so tests can pass a fixture or `() => null`. Returning null: no
+   * skeleton, and the draft takes today's path unchanged. A loader throw (a
+   * skeleton file that exists but is not valid) propagates; it never falls
+   * back to today's path.
    */
   loadSkeleton?: LoadSkeleton;
 }
@@ -1612,8 +1615,11 @@ export async function streamGenerateFromBrief(
 // is its own small function so a ruling change touches one place.
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** Until T-374's loader lands no pack has a skeleton. */
-const noSkeleton: LoadSkeleton = () => null;
+/**
+ * The default skeleton source: T-374's loader, read from `_skeletons/<pack>.json`.
+ * Null (no file) is the only switch to today's path (ADR-025 call shape 4).
+ */
+const signedSkeleton: LoadSkeleton = (packId) => loadSignedSkeleton(packId);
 
 /** Output cap for the D1 call (Arjun's D1 call shape). */
 const D1_MAX_TOKENS = 16000;
@@ -1628,7 +1634,7 @@ const D1_ATTEMPTS = 2;
  */
 function d1SkeletonFor(input: BriefGenerateInput): Skeleton | null {
   if (!input.ledger || input.language !== 'en') return null;
-  const skeleton = (input.loadSkeleton ?? noSkeleton)(input.pack.id);
+  const skeleton = (input.loadSkeleton ?? signedSkeleton)(input.pack.id);
   return skeleton && skeleton.clauses.length > 0 ? skeleton : null;
 }
 

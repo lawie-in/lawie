@@ -51,7 +51,6 @@ import {
   BriefItem,
   ChecklistItem,
   dateKindLabel,
-  FIXED_KEYS,
   foldAnswer,
   isNoFactAnswer,
 } from './intake-brief';
@@ -693,45 +692,6 @@ export interface OverlayCounts {
   unreadable: number;
 }
 
-// ── The facts narrative under its skeleton key (T-373, Arjun's ruling A) ────
-
-/** The ledger key the signed skeletons' facts clause reads. */
-export const FACTS_NARRATIVE_KEY = 'facts_narrative';
-
-/** True when the pack's checklist has its own facts_narrative item (bail_regular, bail_anticipatory). */
-function hasOwnFactsNarrative(checklist: readonly ChecklistItem[]): boolean {
-  return checklist.some((i) => lastSegment(i.key) === FACTS_NARRATIVE_KEY);
-}
-
-/**
- * T-373 (Arjun's ruling A, 13 Oct 2026): a pack with no facts_narrative field
- * (bail_before_magistrate) takes its facts narrative from the intake's fixed
- * `fixed.facts` item. Its words are written to the ledger again under
- * `facts_narrative`, source `user`, with the same `raw_span` (the advocate's
- * own text), so the skeleton's facts clause reads them. The copy follows the
- * `fixed.facts` facts every time the state is written: an earlier copy, or
- * an unresolved entry on the key, is replaced. A pack that has the field is
- * unchanged, and so is a checklist with no `fixed.facts` item. Pure.
- */
-export function withFactsNarrative(
-  state: LedgerState,
-  checklist: readonly ChecklistItem[],
-): LedgerState {
-  if (hasOwnFactsNarrative(checklist)) return state;
-  if (!checklist.some((i) => i.key === FIXED_KEYS.facts)) return state;
-  const others = state.facts.filter((f) => f.key !== FACTS_NARRATIVE_KEY);
-  const copies = others
-    .filter((f) => f.key === FIXED_KEYS.facts)
-    .map((f) => ({ ...f, id: newId(), key: FACTS_NARRATIVE_KEY, source: 'user' as FactSource }));
-  const hadCopy = others.length !== state.facts.length;
-  const hadUnresolved = state.unresolved.some((u) => u.key === FACTS_NARRATIVE_KEY);
-  if (copies.length === 0 && !hadCopy && !hadUnresolved) return state;
-  return {
-    facts: [...others, ...copies],
-    unresolved: state.unresolved.filter((u) => u.key !== FACTS_NARRATIVE_KEY),
-  };
-}
-
 /**
  * Arjun (12 Oct 2026), option B: the ledger mirrors the brief that was just
  * built. Called after `holdDescriptionNone` and `carryOver`, so the ledger
@@ -787,8 +747,7 @@ export function overlayBrief(
     if (next) current = next;
     counts.written += 1;
   }
-  // T-373 (Arjun A): the facts narrative under its skeleton key, for a pack with no such field.
-  return { state: withFactsNarrative(current, checklist), counts };
+  return { state: current, counts };
 }
 
 // ── What the API returns ────────────────────────────────────────────────────
@@ -832,14 +791,7 @@ export function ledgerView(
   // T-115a: every version is opened once, encrypted or legacy plain alike.
   const opened = versions.map((v) => openVersion(v));
   const currentOpen = opened[opened.length - 1] ?? { facts: [], unresolved: [] };
-  // T-373 (Arjun A): the facts_narrative copy of fixed.facts is for the Drafter,
-  // not a second fact to show; the brief shows fixed.facts once.
-  const mirror =
-    !hasOwnFactsNarrative(checklist) && checklist.some((i) => i.key === FIXED_KEYS.facts);
-  const shown = mirror
-    ? currentOpen.facts.filter((f) => f.key !== FACTS_NARRATIVE_KEY)
-    : currentOpen.facts;
-  const facts = shown.map((fact) => {
+  const facts = currentOpen.facts.map((fact) => {
     for (let i = versions.length - 1; i > 0; i -= 1) {
       const now = entriesOf(opened[i].facts, fact.key);
       const before = entriesOf(opened[i - 1].facts, fact.key);
@@ -1025,8 +977,6 @@ export async function applyEdits(
     }
   }
   if (!changed) return { doc, results };
-  // T-373 (Arjun A): an edit of fixed.facts carries to its facts_narrative copy.
-  state = withFactsNarrative(state, checklist);
   const after = await appendVersion(doc, state, anyEdit ? 'edit' : 'answer', maxVersions);
   return { doc: after, results };
 }
