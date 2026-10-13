@@ -932,3 +932,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - If a top-up or plan payment goes through but the Ink isn't credited straight away, it's retried until the Ink lands, and it's never credited twice. If it still can't be credited, the team is alerted to add the Ink by hand.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-390 + T-416 — One verify email after held resends (ed2e18a, mahak, 13 Oct 2026)
+
+- Press "resend verification email" several times before emails start going out, and get one email whose link works.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

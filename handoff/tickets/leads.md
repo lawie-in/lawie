@@ -58,6 +58,8 @@ Where each lead stopped:
 
 ## Last done
 
+- mahak: T-390 + T-416 merged ed2e18a (13 Oct 2026). Repeated verify-email resends while held send one email with a working link; orphaned dedup keys self-heal. Arjun dropped AC2.
+- kunal: T-413 CI green (run 516, 13 Oct 2026).
 - kunal: T-413 merged 9cf199e (13 Oct 2026). Payment webhooks ack only after the Ink grant; retries never grant twice; failed grants alert. Arjun's review.
 - kunal: T-399 CI green (run 515, 13 Oct 2026).
 - kunal: T-399 merged 4fe03d7 (13 Oct 2026). Yearly Solo and Pro get their Ink monthly; a cancel keeps Ink to the end of the paid period; refund page in Ajay's sentence. packages/shared released.
