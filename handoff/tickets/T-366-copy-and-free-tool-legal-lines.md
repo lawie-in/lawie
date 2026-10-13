@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web) + Ajay (legal lines) + Madhuri (copy) |
 | Mode   | Small fix |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Ajay signed; ready for a lead. Unassigned. Priya, 13 Oct 2026 |
+| Status | Building. Tanvi, after T-375. Priya, 13 Oct 2026 |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-317, T-306 |
 
 ## Acceptance criteria
