@@ -15,7 +15,7 @@ Of 305 rows, **74 were under the wrong key or named a different offence**: abetm
 
 ## What the lead does (shashank)
 
-1. Replace `apps/drafting/src/config/bns-offences.json` with the JSON block below, byte for byte. SHA-256 of the block text (between the fences, with its final newline): `5f0ac29ad09aaed919826275cf22c425766c8dc7196dd089bfd5c8dacecb07de`.
+1. Replace `apps/drafting/src/config/bns-offences.json` with the JSON block below, byte for byte. SHA-256 of the block text (between the fences, with its final newline): `bc0c62931faf0a343460d8a8fdb94ea91306c019943ec609aaf71a61a3d43e9c`.
 2. **Null handling is required before this file is used.** `timeline.service.ts` does `offence.max_years > maxYears`, which treats `null` as 0 and would pick the shortest BNSS s.187 default-bail period: wrong, and in the dangerous direction. A `null` `max_years` must give no period at all, with the line "Depends on the offence. Check BNSS section 187." `bail-check.service.ts` must show a `null` bailable or cognizable as "Depends. Check the First Schedule." and never as `false`.
 3. **Resolving a target.** A table target resolves to its exact key if there is one (318(4), 303(2), 106(2)); otherwise to its parent row (316(2) to 316, 103(1) to 103, 106(1) to 106, 125(a) to 125, 326(a) to 326); if the parent row has `variants`, use the variant for that sub-section. A target with no row and no parent (the definitions, exceptions and general sections 1 to 46, 100 to 102, 116, 128 to 130 under the old numbers, 167, 169, 330(1), 330(2), 335, 358): bail-check says "This section does not create an offence. Check the Gazette." Do not add definition rows.
 4. Tests that asserted the old titles or attributes: change an expectation only where it encoded a wrong pair or value, and list each for me. Moved golden snapshots are listed for me before merge.
@@ -3090,8 +3090,9 @@ Of 305 rows, **74 were under the wrong key or named a different offence**: abetm
     },
     "303": {
       "title": "Theft",
-      "punishment": "Rigorous imprisonment for not be less than 1 year but which may extend to 5 years and fine. Upon return of the value of property or restoration of the stolen property, shall be punished with community service.",
-      "max_years": 5,
+      "punishment": "Up to 3 years, or fine, or both. On a second or later conviction: rigorous imprisonment of 1 to 5 years, and fine.",
+      "note": "Where the property is worth less than ₹5,000, it is a first conviction, and the property is returned or its value restored, the punishment is community service.",
+      "max_years": 3,
       "bailable": null,
       "cognizable": null,
       "compoundable": true,
@@ -3100,7 +3101,7 @@ Of 305 rows, **74 were under the wrong key or named a different offence**: abetm
       "variants": {
         "303(2)": {
           "offence": "Theft. Where value of property is less than 5,000 rupees.",
-          "punishment": "Rigorous imprisonment for not be less than 1 year but which may extend to 5 years and fine. Upon return of the value of property or restoration of the stolen property, shall be punished with community service.",
+          "punishment": "Community service, where it is a first conviction and the property is returned or its value restored.",
           "cognizable": "yes; no",
           "bailable": "no; yes",
           "compoundable": "yes"
@@ -3109,8 +3110,9 @@ Of 305 rows, **74 were under the wrong key or named a different offence**: abetm
     },
     "303(2)": {
       "title": "Theft",
-      "punishment": "1 to 5 years, and fine; second/subsequent: rigorous 1 to 5 years and fine",
-      "max_years": 5,
+      "punishment": "Up to 3 years, or fine, or both. On a second or later conviction: rigorous imprisonment of 1 to 5 years, and fine.",
+      "note": "Where the property is worth less than ₹5,000, it is a first conviction, and the property is returned or its value restored, the punishment is community service.",
+      "max_years": 3,
       "bailable": null,
       "cognizable": null,
       "compoundable": true,
@@ -3119,7 +3121,7 @@ Of 305 rows, **74 were under the wrong key or named a different offence**: abetm
       "variants": {
         "303(2)": {
           "offence": "Theft. Where value of property is less than 5,000 rupees.",
-          "punishment": "Rigorous imprisonment for not be less than 1 year but which may extend to 5 years and fine. Upon return of the value of property or restoration of the stolen property, shall be punished with community service.",
+          "punishment": "Community service, where it is a first conviction and the property is returned or its value restored.",
           "cognizable": "yes; no",
           "bailable": "no; yes",
           "compoundable": "yes"
@@ -4060,3 +4062,15 @@ Of 305 rows, **74 were under the wrong key or named a different offence**: abetm
 ## T-383 (Shashank, b1f6be7), 13 Oct 2026: approved
 
 BNS 61(2), and IPC 120B mapped to it, resolve to row 61 (criminal conspiracy) under rule 3. A target that splits into variants is the punishing sub-section, not a definition. The attributes stay null, so they show the T-371 "Depends on the sub-section…" line and the caveat. In the timeline it gives "Depends on the offence. Check BNSS section 187." (rule 2): conspiracy takes the punishment of its object offence, so no fixed period applies. The 1888-lookup sweep changed only 61(2).
+
+## Addendum: 303 and 303(2) corrected (T-361 AC2), 13 Oct 2026
+
+The JSON block above now holds the correct theft punishment for rows `303` and `303(2)`. The SHA in step 1 is updated to `bc0c62931faf0a343460d8a8fdb94ea91306c019943ec609aaf71a61a3d43e9c`; the old one was `5f0ac29a…07de`.
+
+- `punishment`: "Up to 3 years, or fine, or both. On a second or later conviction: rigorous imprisonment of 1 to 5 years, and fine." The table had made rigorous imprisonment of 1 to 5 years the first-offence punishment, which was wrong.
+- `max_years`: 3. A first offence ranks at 3 (T-361 AC2).
+- New field `note`: "Where the property is worth less than ₹5,000, it is a first conviction, and the property is returned or its value restored, the punishment is community service." This replaces the T-361 optional note, whose "may be ordered" understated the proviso.
+- Variant `303(2)` `punishment`: "Community service, where it is a first conviction and the property is returned or its value restored."
+- Nothing else changes. Bailable, cognizable, compoundable and verify stay as signed.
+
+The lead copies the block byte for byte. The bail checker shows `note` under the punishment line wherever the row is shown.
