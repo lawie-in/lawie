@@ -121,7 +121,7 @@ describe('T-300 AC2: list A keys, a client value changes nothing', () => {
 
   it('enrollment_number: with no profile value, the blank, never the client value', () => {
     const { clean, attacked } = pair(regular, { enrollment_number: FORGED });
-    expect(attacked.enrollment_number).toBe('____________________');
+    expect(attacked.enrollment_number).toBe("[To be confirmed: advocate's enrolment number]");
     expect(attacked).toEqual(clean);
   });
 

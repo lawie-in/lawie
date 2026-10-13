@@ -372,3 +372,174 @@ describe('T-404 rule 4: the court', () => {
     expect(ctx.caseNomenclature).toBe(COURT_BLANK);
   });
 });
+
+// ── Round 2: Addendum 3 (client address, enrolment, case line, place) ─────────────────────────
+
+const CLIENT_ADDRESS_BLANK = '[To be confirmed: address of the client]';
+const ENROLMENT_BLANK = "[To be confirmed: advocate's enrolment number]";
+const CASE_BLANK = '[To be confirmed: case type and number]';
+const PLACE_BLANK = '[To be confirmed: place]';
+
+describe.each(paths)('T-404 s.138 client address and enrolment: %s', (_n, render) => {
+  it('no client address: the signed blank in the From block, never the label-derived text', () => {
+    const r = render({}, ['applicant_address']);
+    expect(r.header).toContain(`From,\nSuresh Gupta\n${CLIENT_ADDRESS_BLANK}\nThrough:`);
+    expect(r.header).not.toMatch(/MISSING|_____|\{|\}/);
+    expect(r.header).not.toContain('[To be confirmed: payee address]');
+  });
+
+  it('a given client address prints unchanged', () => {
+    expect(render({}).header).toContain('From,\nSuresh Gupta\n12 Karol Bagh, Delhi\nThrough:');
+  });
+
+  it('the closing "Enrollment No." line: the signed blank when none is given', () => {
+    const r = render({}, ['advocate_enrollment']);
+    expect(r.closing).toContain(`Enrollment No. ${ENROLMENT_BLANK}\n`);
+    expect(r.closing).not.toMatch(/Enrollment No\. *(_|\{|\n)/);
+    expect(r.closing).not.toMatch(/MISSING|\[To be confirmed: advocate enrol?lment/i);
+  });
+
+  it('a typed enrolment number prints as typed', () => {
+    const r = render({ advocate_enrollment: 'D/123/2015' });
+    expect(r.closing).toContain('Enrollment No. D/123/2015\n');
+  });
+});
+
+describe('T-404 enrolment: the T-311 resolver order, then the blank', () => {
+  const cfg = () => {
+    clearConfigCache();
+    return loadTemplateConfig(PACK)!;
+  };
+  const form = without(BASE, ['advocate_name', 'advocate_enrollment']);
+
+  it('typed beats the profile', () => {
+    const ctx = buildPlaceholderContext(
+      cfg(),
+      { ...form, advocate_name: 'A. Typed', advocate_enrollment: 'T/1/2000' },
+      { advocateName: 'P. Profile', enrollmentNumber: 'P/9/2010' },
+    );
+    expect(ctx.advocate_enrollment).toBe('T/1/2000');
+    expect(ctx.enrollment_number).toBe('T/1/2000');
+  });
+
+  it('the profile number is used when the name came from the profile', () => {
+    const ctx = buildPlaceholderContext(cfg(), form, {
+      advocateName: 'P. Profile',
+      enrollmentNumber: 'P/9/2010',
+    });
+    expect(ctx.advocate_enrollment).toBe('P/9/2010');
+    expect(ctx.enrollment_number).toBe('P/9/2010');
+  });
+
+  it('the profile number is not used for a typed name: the blank', () => {
+    const ctx = buildPlaceholderContext(
+      cfg(),
+      { ...form, advocate_name: 'A. Typed' },
+      { advocateName: 'P. Profile', enrollmentNumber: 'P/9/2010' },
+    );
+    expect(ctx.enrollment_number).toBe(ENROLMENT_BLANK);
+    expect(ctx.advocate_enrollment).toBe(ENROLMENT_BLANK);
+  });
+
+  it('nothing at all: the blank, never the underscores', () => {
+    const ctx = buildPlaceholderContext(cfg(), form, {});
+    expect(ctx.enrollment_number).toBe(ENROLMENT_BLANK);
+    expect(ctx.advocate_enrollment).toBe(ENROLMENT_BLANK);
+  });
+
+  it('a client enrollment_number is never printed (list A)', () => {
+    const ctx = buildPlaceholderContext(cfg(), { ...form, enrollment_number: 'FORGED/1' }, {});
+    expect(ctx.enrollment_number).toBe(ENROLMENT_BLANK);
+  });
+});
+
+describe('T-404 case line and place when a court is chosen or typed', () => {
+  const { configs, byFile } = loadAllDocRules();
+  const bail = configs.get(
+    byFile.get('bail_before_magistrate.json')!.template_id,
+  ) as TemplateConfig;
+  const form = { applicant_name: 'Ramesh Kumar', state: 'bihar', fir_number: '12/2026' };
+  const court = (nomenclature: string): CourtLookupData => ({
+    designation: 'IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, PATNA',
+    city: 'Patna',
+    caseNomenclature: nomenclature,
+    formattingRulesRef: 'cjm_generic',
+    courtType: 'cjm',
+    courtRule: loadCourtRule('cjm_generic') ?? undefined,
+  });
+
+  // s.138 has no pack default for the case line, so the court's own line (or the blank) is what prints.
+  const s138 = () => {
+    clearConfigCache();
+    return loadTemplateConfig(PACK)!;
+  };
+
+  it('a court with no case line: the case-type blank; the court itself is unchanged', () => {
+    const ctx = buildPlaceholderContext(s138(), form, { advocateName: 'A' }, court(''));
+    expect(ctx.caseNomenclature).toBe(CASE_BLANK);
+    expect(ctx.courtDesignation).toContain('CHIEF JUDICIAL MAGISTRATE, PATNA');
+    expect(ctx.courtDesignation).not.toBe(COURT_BLANK);
+  });
+
+  it('a court with a case line: it prints as before', () => {
+    const ctx = buildPlaceholderContext(
+      s138(),
+      form,
+      { advocateName: 'A' },
+      court('Bail Application No. _____ of {current_year}'),
+    );
+    expect(ctx.caseNomenclature).toBe(`Bail Application No. _____ of ${new Date().getFullYear()}`);
+  });
+
+  it('no court: the place is the blank; with a court the city prints', () => {
+    const none = buildPlaceholderContext(bail, form, { advocateName: 'A' });
+    expect(none.place).toBe(PLACE_BLANK);
+    expect(none.courtPlace).toBe(PLACE_BLANK);
+    const chosen = buildPlaceholderContext(bail, form, { advocateName: 'A' }, court('X'));
+    expect(chosen.place).toBe('Patna');
+    expect(chosen.courtPlace).toBe('Patna');
+  });
+});
+
+describe('T-404 bail twins with no court (bail_regular, bail_anticipatory)', () => {
+  it.each(['bail_regular', 'bail_anticipatory'])(
+    '%s: court, addressing, case line, place',
+    (id) => {
+      clearConfigCache();
+      const cfg = loadTemplateConfig(id)!;
+      const ctx = buildPlaceholderContext(
+        cfg,
+        { applicant_name: 'Ramesh Kumar' },
+        { advocateName: 'A' },
+      );
+      const sec = (sid: string) =>
+        replacePlaceholders(
+          cfg.document_structure.sections.find((s) => s.section_id === sid)!.template as string,
+          ctx,
+        );
+      expect(ctx.court_header).toBe(COURT_BLANK);
+      expect(ctx.court_designation).toBe(COURT_BLANK);
+      expect(ctx.case_nomenclature).toBe(CASE_BLANK);
+      const all = cfg.document_structure.sections
+        .filter((s) => s.type === 'template')
+        .map((s) => replacePlaceholders(s.template as string, ctx))
+        .join('\n');
+      expect(all).toContain(`THE HONOURABLE ${COURT_BLANK},`);
+      expect(all).toContain(`Place: ${PLACE_BLANK}`);
+      expect(all).not.toMatch(/HON'BLE COURT/);
+      expect(sec('advocate_block')).not.toMatch(/Place: *(\n|_)/);
+    },
+  );
+
+  it.each(['bail_regular', 'bail_anticipatory'])('%s: a typed court renders as typed', (id) => {
+    clearConfigCache();
+    const cfg = loadTemplateConfig(id)!;
+    const ctx = buildPlaceholderContext(
+      cfg,
+      { applicant_name: 'Ramesh Kumar', court_name: 'SESSIONS COURT, GAYA' },
+      { advocateName: 'A' },
+    );
+    expect(ctx.court_designation).toBe('SESSIONS COURT, GAYA');
+    expect(ctx.court_header).toBe('IN THE COURT OF SESSIONS COURT, GAYA');
+  });
+});

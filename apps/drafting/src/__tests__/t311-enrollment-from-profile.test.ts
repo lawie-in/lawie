@@ -59,7 +59,7 @@ const TYPED_NAME = 'Adv. Typed Name';
 const PROFILE_NUM = 'PROF/111/2010';
 const TYPED_NUM = 'TYPED/222/2015';
 const TBC = '[To be confirmed: enrolment number]';
-const DRAFT_BLANK = '____________________';
+const DRAFT_BLANK = "[To be confirmed: advocate's enrolment number]";
 const ANNEX_BLANK = '___________';
 const FORGED = 'ZZ-FORGED-ENR-9137';
 
