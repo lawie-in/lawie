@@ -18,6 +18,8 @@
  *   email:low  → digest, draftComplete, monthlyInvoice, lowCredit, referral,
  *                advocatePackInvite, welcome
  */
+import { randomUUID } from 'crypto';
+
 import { Queue, JobsOptions } from 'bullmq';
 import Redis from 'ioredis';
 
@@ -78,8 +80,28 @@ export interface EnqueueAddressedEmailInput {
 /**
  * T-223 (Arjun, condition 1): the verify-email job carries the userId only. No address, no
  * token, no link: the worker asks auth (/internal/verify-email/mint) for all three when it
- * runs the job. No idempotencyKey either: every resend must enqueue its own job (the resend
- * cap is enforced in auth before enqueueEmail is called).
+ * runs the job. No idempotencyKey: the resend cap is enforced in auth before enqueueEmail is
+ * called.
+ *
+ * T-390: at most ONE pending verify job per user (BullMQ deduplication, id `verify:<userId>`,
+ * no ttl). While the worker is held (T-379, unfilled footer), resends used to pile up N jobs,
+ * which on release meant N mints and N emails with only the last link working. Now a resend
+ * that finds the user's job still waiting (or delayed for a retry) is dropped and the result
+ * says `deduped: true`. The token is minted at SEND time, so the one email that goes out
+ * carries the newest, working link.
+ *
+ * The dedup key lives only while that job is waiting / delayed / active: BullMQ deletes it
+ * when the job completes or finally fails (or is removed). A resend after the email has gone
+ * out queues a new job as normal. If a resend arrives while the job is ACTIVE (minting /
+ * sending), it is also dropped: the user gets the email being sent right now, and its link
+ * is valid because nothing mints after it. That is acceptable. `replace` / `extend` /
+ * `keepLastIfActive` are deliberately not used (the job data is identical, so there is
+ * nothing newer to keep).
+ *
+ * A fixed jobId such as `verify-<userId>` is NOT used: the completed job is kept 7 days
+ * (removeOnComplete), so a fixed id would silently swallow a real later resend. Each add gets
+ * a random jobId instead, which is only how a dedup hit is detected (BullMQ returns the
+ * EXISTING job's id on a hit).
  */
 export interface EnqueueVerifyEmailInput {
   template: 'auth.verifyEmail';
@@ -93,7 +115,10 @@ export type EnqueueEmailInput = EnqueueAddressedEmailInput | EnqueueVerifyEmailI
 export interface EnqueueEmailResult {
   jobId: string;
   queue: 'email-high' | 'email-low';
-  /** True when an existing job with the same idempotencyKey already existed. */
+  /**
+   * True when nothing was added: an existing job with the same idempotencyKey already existed,
+   * or (auth.verifyEmail, T-390) the user already had a verify job pending.
+   */
   deduped: boolean;
 }
 
@@ -123,8 +148,19 @@ export async function enqueueEmail(input: EnqueueEmailInput): Promise<EnqueueEma
       bcc: [] as string[],
       data: { userId: input.userId },
     };
+    // T-390: one pending verify job per user. No ttl: the key is cleared when the job
+    // completes or finally fails, so a resend after a send queues normally.
+    const requestedJobId = `verify-${randomUUID()}`;
+    opts.jobId = requestedJobId;
+    opts.deduplication = { id: `verify:${input.userId}` };
     const verifyJob = await queue.add(jobName, verifyJobData, opts);
-    return { jobId: String(verifyJob.id ?? jobName), queue: queueName, deduped: false };
+    // On a dedup hit BullMQ adds nothing and returns the id of the job already pending.
+    const verifyJobId = verifyJob.id ?? requestedJobId;
+    return {
+      jobId: String(verifyJobId),
+      queue: queueName,
+      deduped: verifyJobId !== requestedJobId,
+    };
   }
 
   const jobData = {
