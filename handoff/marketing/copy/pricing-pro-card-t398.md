@@ -60,3 +60,23 @@ Does "Pro" mislead today? On the current card, yes. "Pro" with "Everything in So
 - Either way the card stays on the pricing page only, with no price in any ad or post.
 
 Vikram to confirm plan name/price, then Ajay signs.
+
+
+## Free card
+
+Madhuri, 13 Oct. Re-words the two Free-card lines Meera named. Current lines quoted from `apps/web/src/app/(marketing)/pricing/page.tsx`, read only.
+
+| Line in `pricing/page.tsx` | Current (exact) | After | Chars (after) | Status |
+| --- | --- | --- | --- | --- |
+| 118 | `All templates` | Every document type on Lawie | 28 | Ajay to sign |
+| 115 | `5 Ink — forever` | 5 Ink on sign-up, once your email is verified (lifetime) | 56 | Ajay to sign |
+| 113 | `₹0<small>/lifetime</small>` | No change: `₹0` `/lifetime`. The 5 Ink are a one-time grant, so "lifetime" is true. Ajay to confirm it can stay next to "once your email is verified" | n/a | Ajay to sign |
+
+Where the wording comes from:
+- "Every document type on Lawie" is Ajay's exact phrase in `handoff/legal/T-366-tools-legal-lines-signed.md`, Addendum 2, item 2 (the FAQ free-tier line). It is not in `site-copy-t252-and-help-text-signed.md`; there F2 only says "All document types" goes if Free is gated by type. The condition carries over: it holds only if Free is not gated by type (Tanvi checks); if it is gated, the line goes.
+- "5 Ink on sign-up, once your email is verified (lifetime)" follows Ajay's same file: "5 Ink on sign-up, once your email is verified (lifetime)". Google sign-ups count as verified, so it is true for both sign-up kinds (T-351).
+- Shorter alternates for the plan-alt line if it does not fit at 375 px: `5 Ink once your email is verified (lifetime)` (44) · `5 Ink, once your email is verified` (34).
+
+Knock-on lines (Ajay's T-366 rule: every "5 Ink on sign-up" gets "once your email is verified"). These already contain "5 Ink" next to "free", so "free" is fine, but the verification condition is missing:
+- Pricing hero subline row 7 in `copy/pricing.md`: `Start with 5 free Ink. Buy more when you need it.` and the Free button `Start with 5 free Ink`. Buttons stay short; the condition sits on the card line. Ajay to rule whether the hero needs it too.
+- `copy/pricing.md` row 8 (`5 Ink on sign-up · No card required`) is replaced by the Free-card line above.
