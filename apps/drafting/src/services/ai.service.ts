@@ -53,6 +53,7 @@ import {
   keepsEveryParagraph,
   labelReason,
   MissingClause,
+  missingFromRendered,
   needsStartingDraftLabel,
   packTexts,
   paragraphNumbers,
@@ -1119,6 +1120,8 @@ export async function streamGenerateFromBrief(
         ctx.court_designation || courtData?.designation || null,
         converted,
         input.described,
+        // T-365 AC1: the profile name (T-300) means the advocate name is not unknown.
+        input.advocateName,
       ),
       statedInstructions: provisions
         .map((p) => p.instruction)
@@ -1153,6 +1156,8 @@ export async function streamGenerateFromBrief(
             brief.kind.court_document,
             // T-338: an unresolved optional key with no fact is a visible blank.
             (input.ledger.unresolved ?? []).map((u) => u.key),
+            // T-365 AC1: with a profile name, advocate_name is not missing.
+            input.advocateName,
           ),
           averments: resolveAverments(input.ledger.lists, input.ledger.facts),
         }
@@ -1734,13 +1739,7 @@ function d1FactCheck(body: string, violations: FactViolation[]): FactCheckOutcom
 
 /** The clauses the renderer printed with a blank, for the checks panel and the label. */
 function d1MissingClauses(rendered: readonly RenderedClause[]): MissingClause[] {
-  return rendered
-    .filter((r) => r.status === 'missing')
-    .map((r) => ({
-      id: r.clauseId,
-      title: (r.missing ?? []).join('; ') || r.clauseId,
-      reason: 'reported_missing' as const,
-    }));
+  return missingFromRendered(rendered);
 }
 
 interface D1Context {
@@ -1897,11 +1896,19 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     // Rule 3: an own-words paragraph is checked against its fact alone.
     verifier: { ...verifierSources, skeleton: [] },
   });
-  // Ajay (T-373): every own-words fallback is logged. Ids and the reason only, never text.
+  // Ajay (T-373): every own-words fallback is logged. Ids, the reason and
+  // counts only, never text. Arjun (bcdf5b7): the fallback rate per pack, as
+  // fallbacks out of the own-words clauses printed, in the same line, so the
+  // stop list can be tuned.
   if (process.env.NODE_ENV !== 'test') {
+    const ownIds = new Set(
+      skeleton.clauses.filter((cl) => cl.source === 'advocate').map((cl) => cl.id),
+    );
+    const ownPrinted = rendered.rendered.filter((r) => ownIds.has(r.clauseId)).length;
+    const rate = `fallbacks=${rendered.fallbacks.length}, ownWordsClauses=${ownPrinted}`;
     for (const f of rendered.fallbacks) {
       console.warn(
-        `[drafting] D1 own-words fallback (kind=${pack.id}, runId=${input.runId}, clause=${f.clauseId}, reason=${f.reason})`,
+        `[drafting] D1 own-words fallback (kind=${pack.id}, runId=${input.runId}, clause=${f.clauseId}, reason=${f.reason}, ${rate})`,
       );
     }
   }
@@ -1981,8 +1988,9 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     bodyParaCount,
     missingClauses: missing,
     repaired: false,
-    startingDraft: needsStartingDraftLabel(missing, warnings),
-    labelReason: labelReason(missing, warnings),
+    // T-373: the label reads rendered[] (a clause printed with a blank labels the draft).
+    startingDraft: needsStartingDraftLabel(missing, warnings, rendered.rendered),
+    labelReason: labelReason(missing, warnings, rendered.rendered),
     factCheck,
     rendered: rendered.rendered,
   };
@@ -2003,6 +2011,8 @@ export interface GuidedGenerateInput {
   targetParagraphs: number;
   /** The court the user chose, from the courts data. Absent when the document is not for a court. */
   courtData?: CourtLookupData;
+  /** The advocate's profile name (T-300), when the profile has one. Only read to drop advocate_name from the unknowns (T-365 AC1). */
+  advocateName?: string;
   userId?: string;
   runId: string;
   runSequence: number;
@@ -2025,7 +2035,8 @@ export async function streamGenerateGuided(
   const stopKeepAlive = startSseKeepAlive(res);
   try {
     const userPrompt = buildGuidedDrafterUserPrompt({
-      brief: guidedDrafterBrief(brief, courtData?.designation ?? null),
+      // T-365 AC1: with a profile name, advocate_name is not unknown.
+      brief: guidedDrafterBrief(brief, courtData?.designation ?? null, input.advocateName),
       target: input.targetParagraphs,
       language: input.language,
     });

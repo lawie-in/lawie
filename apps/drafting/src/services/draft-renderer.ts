@@ -25,7 +25,10 @@
  *    model's text is kept only if the fact verifier, run against the fact
  *    alone, finds no value it does not back; when it fails, or the model gave
  *    none, the fact's `raw_span` prints verbatim (status `fallback`, with a
- *    reason the caller logs). MISSING only when the ledger does not hold it.
+ *    reason the caller logs). Before the verifier, the text also falls back
+ *    when it alters a date, number, name or place of the `raw_span`, or adds
+ *    a content word the `raw_span` does not hold (Arjun, bcdf5b7; stop list
+ *    `OWN_WORDS_STOP_LIST`). MISSING only when the ledger does not hold it.
  *    A key with several entries prints one lettered item per entry.
  *
  * Ajay's rulings for T-373: never MISSING when the fact exists; a ground with
@@ -60,7 +63,7 @@ import { factEntriesByKey } from './averments';
 import { readSectionsCharged } from './bns-offence-resolver';
 import { missingPlaceholder } from './brief-drafter';
 import { verifyDraft, VerifierInput } from './fact-verifier';
-import { normalise } from './intake-text';
+import { datesAsWritten, datesInText, normalise } from './intake-text';
 import type { RulePackFact } from './rule-pack.service';
 
 // ── The model's structured output ───────────────────────────────────────────
@@ -291,10 +294,29 @@ function avermentEquals(
 }
 
 /**
- * Resolves every list name the skeleton's conditions use, from the pack's
- * signed averment lists. `none_values` reads the skeleton's own reference
+ * A top-level array of the skeleton itself named `name` (Ajay's re-sign
+ * d87355a: e.g. `antecedents_none_values`), or null. Only scalar entries count;
+ * an array holding anything else is not a value list.
+ */
+function skeletonOwnList(skeleton: Skeleton, name: string): SkeletonValue[] | null {
+  const key = name.trim();
+  if (key === '' || key === 'clauses') return null;
+  const v = (skeleton as unknown as Record<string, unknown>)[key];
+  if (!Array.isArray(v)) return null;
+  const ok = v.every(
+    (x) => typeof x === 'string' || typeof x === 'number' || typeof x === 'boolean',
+  );
+  return ok ? (v as SkeletonValue[]) : null;
+}
+
+/**
+ * Resolves every list name the skeleton's conditions use. In order (Ajay's
+ * re-sign d87355a): a top-level array of the skeleton itself with that name;
+ * then the pack's signed averment lists as before. `none_values` reads the
+ * skeleton's own reference: an array, the name of a top-level array of the
+ * skeleton (`antecedents_none_values`), or an averment reference
  * (`first_bail_application.equals (T-334)`); `<id>.equals` reads that
- * averment. A name that does not resolve is left out, and a condition on it
+ * averment. A name that resolves in neither is left out, and a condition on it
  * then fails closed.
  */
 export function skeletonValueLists(
@@ -309,12 +331,249 @@ export function skeletonValueLists(
   }
   const out: Record<string, SkeletonValue[]> = {};
   for (const name of names) {
-    const ref = name === 'none_values' ? (skeleton.none_values ?? '') : name;
-    const m = /^\s*([a-z0-9_]+)\.equals\b/.exec(ref);
-    const values = m ? avermentEquals(lists, m[1]) : null;
+    let values: SkeletonValue[] | null = null;
+    if (name === 'none_values') {
+      const ref: unknown = (skeleton as unknown as Record<string, unknown>).none_values;
+      if (Array.isArray(ref)) {
+        values = skeletonOwnList(skeleton, 'none_values');
+      } else if (typeof ref === 'string') {
+        values = skeletonOwnList(skeleton, ref);
+        if (!values) {
+          const m = /^\s*([a-z0-9_]+)\.equals\b/.exec(ref);
+          values = m ? avermentEquals(lists, m[1]) : null;
+        }
+      }
+    } else {
+      values = skeletonOwnList(skeleton, name);
+      if (!values) {
+        const m = /^\s*([a-z0-9_]+)\.equals\b/.exec(name);
+        values = m ? avermentEquals(lists, m[1]) : null;
+      }
+    }
     if (values) out[name] = values;
   }
   return out;
+}
+
+// ── The own-words check (Arjun's rulings 1 and 2 on bcdf5b7) ─────────────────
+
+/**
+ * Grammar words a rephrase of the advocate's words may add or drop:
+ * connectives, articles, auxiliaries, pronouns and prepositions. Data, not
+ * wording: nothing here is ever printed. Any other word in the model's text
+ * that is not in the advocate's `raw_span` (compared on simple stems) sends
+ * the clause back to the advocate's words. Arjun: tune this list if the
+ * fallback rate shows it firing too often, not the rule.
+ */
+export const OWN_WORDS_STOP_LIST: readonly string[] = [
+  // articles and determiners
+  'a',
+  'an',
+  'the',
+  'this',
+  'that',
+  'these',
+  'those',
+  'some',
+  'any',
+  'each',
+  'every',
+  'such',
+  // connectives
+  'and',
+  'or',
+  'but',
+  'nor',
+  'so',
+  'yet',
+  'because',
+  'as',
+  'while',
+  'whilst',
+  'although',
+  'though',
+  'however',
+  'therefore',
+  'thus',
+  'hence',
+  'also',
+  'then',
+  'which',
+  'who',
+  'whom',
+  'whose',
+  'where',
+  'when',
+  'whether',
+  'if',
+  'than',
+  'both',
+  'either',
+  'neither',
+  'further',
+  'furthermore',
+  'moreover',
+  // auxiliaries
+  'be',
+  'am',
+  'is',
+  'are',
+  'was',
+  'were',
+  'been',
+  'being',
+  'has',
+  'have',
+  'had',
+  'having',
+  'do',
+  'does',
+  'did',
+  'will',
+  'would',
+  'shall',
+  'should',
+  'may',
+  'might',
+  'can',
+  'could',
+  'must',
+  // pronouns
+  'i',
+  'me',
+  'my',
+  'mine',
+  'we',
+  'us',
+  'our',
+  'ours',
+  'you',
+  'your',
+  'yours',
+  'he',
+  'him',
+  'his',
+  'she',
+  'her',
+  'hers',
+  'it',
+  'its',
+  'they',
+  'them',
+  'their',
+  'theirs',
+  'himself',
+  'herself',
+  'itself',
+  'themselves',
+  'there',
+  'here',
+  // prepositions
+  'of',
+  'in',
+  'on',
+  'at',
+  'to',
+  'from',
+  'by',
+  'with',
+  'for',
+  'about',
+  'into',
+  'onto',
+  'over',
+  'under',
+  'after',
+  'before',
+  'during',
+  'since',
+  'until',
+  'till',
+  'against',
+  'among',
+  'between',
+  'through',
+  'upon',
+  'within',
+  'without',
+  'per',
+  'via',
+  'off',
+  'out',
+  'up',
+  'down',
+  // what splitting on apostrophes leaves ("applicant's", "didn't")
+  's',
+  't',
+];
+
+const STOP_WORDS: ReadonlySet<string> = new Set(OWN_WORDS_STOP_LIST);
+
+/** Words of a text, lower case, split on anything not a letter or digit. An ordinal is its number. */
+function wordsOf(text: string): string[] {
+  return normalise(text)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w !== '')
+    .map((w) => /^(\d+)(?:st|nd|rd|th)$/.exec(w)?.[1] ?? w);
+}
+
+/** A simple stem, so "arrest", "arrested" and "arresting" compare equal (-s, -es, -ed, -ing, -ies). */
+export function ownWordsStem(word: string): string {
+  let s = word.toLowerCase();
+  if (/^\d+$/.test(s)) return s;
+  if (s.length > 4 && s.endsWith('ies')) s = `${s.slice(0, -3)}y`;
+  else if (s.length > 4 && s.endsWith('ied')) s = `${s.slice(0, -3)}y`;
+  else if (s.length > 4 && s.endsWith('ing')) s = s.slice(0, -3);
+  else if (s.length > 3 && s.endsWith('ed')) s = s.slice(0, -2);
+  else if (s.length > 3 && s.endsWith('es')) s = s.slice(0, -2);
+  else if (s.length > 3 && s.endsWith('s') && !s.endsWith('ss')) s = s.slice(0, -1);
+  if (s.length > 3 && s.endsWith('e')) s = s.slice(0, -1);
+  if (s.length > 3 && /([b-df-hj-np-tv-z])\1$/.test(s)) s = s.slice(0, -1);
+  return s;
+}
+
+/** The text with every date it states taken out (lower case), so a month word is not read as a word. */
+function withoutDates(text: string): string {
+  let out = normalise(text);
+  for (const d of datesAsWritten(text)) {
+    const words = normalise(d.words);
+    if (words !== '') out = out.split(words).join(' ');
+  }
+  return out;
+}
+
+/**
+ * Ruling 1: a date, number, name or place in the model's text that the
+ * advocate's `raw_span` does not state. Dates compare by value (so "2 Mar
+ * 2025" is "2 March 2025"); numbers by digits; a capitalised word inside a
+ * sentence (a name or a place) by its stem. No exemption applies.
+ */
+export function ownWordsAlteredEntity(text: string, rawSpan: string): boolean {
+  const rawDates = new Set(datesInText(rawSpan));
+  if (datesInText(text).some((d) => !rawDates.has(d))) return true;
+  const rawWords = wordsOf(withoutDates(rawSpan));
+  const rawStems = new Set(rawWords.map(ownWordsStem));
+  const rawNumbers = new Set(rawWords.filter((w) => /^\d+$/.test(w)));
+  if (wordsOf(withoutDates(text)).some((w) => /^\d+$/.test(w) && !rawNumbers.has(w))) return true;
+  // A capitalised word that does not start a sentence: a name or a place.
+  for (const m of text.matchAll(/(?<![.!?:;]\s|^)(?<=\s|\()(\p{Lu}[\p{L}'-]*)/gu)) {
+    const words = wordsOf(m[1]);
+    if (words.length === 0 || (words.length === 1 && words[0] === 'i')) continue;
+    if (words.some((w) => !rawStems.has(ownWordsStem(w)))) return true;
+  }
+  return false;
+}
+
+/**
+ * Ruling 2 (advocate clauses only): a content word of the model's text, one
+ * not on `OWN_WORDS_STOP_LIST`, whose stem the advocate's `raw_span` does not
+ * hold. Case-insensitive.
+ */
+export function ownWordsAddedWord(text: string, rawSpan: string): boolean {
+  const rawStems = new Set(wordsOf(withoutDates(rawSpan)).map(ownWordsStem));
+  return wordsOf(withoutDates(text)).some(
+    (w) => !STOP_WORDS.has(w) && !rawStems.has(ownWordsStem(w)),
+  );
 }
 
 // ── The renderer ────────────────────────────────────────────────────────────
@@ -622,15 +881,29 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
     });
   };
 
-  /** One entry's own words: the model's text if it keeps to the entry, else the advocate's words verbatim. */
+  /**
+   * One entry's own words: the model's text if it keeps to the entry, else
+   * the advocate's words verbatim. Arjun's rulings (bcdf5b7): an altered date,
+   * number, name or place, or a content word the advocate's `raw_span` does
+   * not hold, falls back before the verifier runs, so its banned-phrase
+   * exemption never rescues it.
+   */
   const ownWords = (
     own: string | undefined,
     entry: LedgerFact,
   ): { words: string; reason?: FallbackReason } => {
     const text = (own ?? '').trim();
-    if (text !== '' && keepsToFact(text, [entry])) return { words: text };
+    const raw = (entry.raw_span ?? '').trim() || entry.display.trim();
+    if (
+      text !== '' &&
+      !ownWordsAlteredEntity(text, raw) &&
+      !ownWordsAddedWord(text, raw) &&
+      keepsToFact(text, [entry])
+    ) {
+      return { words: text };
+    }
     return {
-      words: (entry.raw_span ?? '').trim() || entry.display.trim(),
+      words: raw,
       reason: text === '' ? 'not_returned' : 'unverified',
     };
   };

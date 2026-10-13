@@ -28,6 +28,7 @@ import { AvermentLists, loadAvermentLists } from '../services/averments';
 import {
   briefText,
   clampTarget,
+  missingFromRendered,
   STARTING_DRAFT_FOOTER,
   STARTING_DRAFT_LABEL,
 } from '../services/brief-drafter';
@@ -1438,7 +1439,11 @@ router.post(
         /** False when the document has no rule pack: the label is always on and no clause was checked. */
         rulePack: !guided,
         mandatoryClausesComplete: guided ? null : result.mandatoryClausesComplete,
-        missingClauses: result.missingClauses.map((m) => ({ id: m.id, title: m.title })),
+        // T-373: on a D1 pack the missing clauses are read off the renderer's rendered[].
+        missingClauses: (result.rendered
+          ? missingFromRendered(result.rendered)
+          : result.missingClauses
+        ).map((m) => ({ id: m.id, title: m.title })),
         repaired: result.repaired,
         startingDraft: result.startingDraft,
         startingDraftLabel: result.startingDraft ? STARTING_DRAFT_LABEL : null,
@@ -1450,6 +1455,9 @@ router.post(
         ...('factCheck' in result && result.factCheck
           ? { factCheck: { banner: result.factCheck.banner } }
           : {}),
+        // T-373 (ADR-025 renderer rule 5): the clauses the renderer printed, for the
+        // checks panel. Ids, statuses, blank labels and reasons only; D1 packs only.
+        ...(result.rendered ? { rendered: result.rendered } : {}),
       });
     });
   },
