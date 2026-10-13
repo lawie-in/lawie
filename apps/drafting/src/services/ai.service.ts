@@ -13,6 +13,8 @@
  * This file orchestrates both pipelines and handles streaming.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import { jsonSchemaOutputFormat } from '@anthropic-ai/sdk/helpers/json-schema';
+import type { AutoParseableOutputFormat } from '@anthropic-ai/sdk/lib/parser';
 import type { LedgerFact, LedgerUnresolvedFact } from '@lawie/shared';
 import { Response } from 'express';
 
@@ -20,6 +22,7 @@ import bnsMapping from '../config/bns-mapping.json';
 import { env } from '../config/env';
 import { Court } from '../models/Court.model';
 import type { RunType } from '../models/Generation.model';
+import type { LoadSkeleton, Skeleton } from '../types/skeleton';
 import { startSseKeepAlive } from '../utils/sse-keepalive';
 
 import { APP_SETTING_KEYS, AppSettingMissingError, getAppSetting } from './app-settings.service';
@@ -64,16 +67,38 @@ import {
 } from './brief-drafter';
 import { citationWarnings, removeUngivenCitations } from './citation-check';
 import {
+  buildDraftParagraphsSchema,
+  D1DrafterFact,
+  d1DrafterFacts,
+  draftFactRefs,
+  DraftParagraphsOutput,
+  packOptionIds,
+  readDraftParagraphs,
+  RenderedClause,
+  renderDraft,
+  skeletonTexts,
+  skeletonValueLists,
+} from './draft-renderer';
+import {
+  DRAFTER_D1_SYSTEM_PROMPT,
   DRAFTER_GUIDED_SYSTEM_PROMPT,
   DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT,
   DRAFTER_LEDGER_SYSTEM_PROMPT,
   DRAFTER_PACK_SYSTEM_PROMPT,
   DRAFTER_REPAIR_SYSTEM_PROMPT,
 } from './drafter.prompts';
-import { FactCheckOutcome, splitParagraphs, verifyAndRepair } from './fact-verifier';
+import {
+  FactCheckOutcome,
+  FactDiffDraft,
+  FactViolation,
+  splitParagraphs,
+  verifyAndRepair,
+  verifyDraft,
+} from './fact-verifier';
 import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
   estimateOutputTokens,
+  parseAnthropicMessageUsage,
   parseAnthropicStreamEvent,
   UsageMeter,
   UsageTotals,
@@ -971,6 +996,13 @@ export interface BriefGenerateInput {
   runId: string;
   runSequence: number;
   runType: RunType;
+  /**
+   * T-373 (ADR-025 D1): the pack's signed skeleton source, T-374's
+   * `loadSkeleton` from rule-pack.service.ts once it lands. Injected so tests
+   * can pass a fixture. Absent, or returning null: no skeleton, and the draft
+   * takes today's path unchanged.
+   */
+  loadSkeleton?: LoadSkeleton;
 }
 
 export interface BriefGenerateResult extends TemplateGenerateResult {
@@ -984,6 +1016,12 @@ export interface BriefGenerateResult extends TemplateGenerateResult {
   labelReason: string | null;
   /** T-147d: the fact verifier's outcome. Present only on the ledger path. */
   factCheck?: FactCheckOutcome;
+  /**
+   * T-373 (ADR-025 D1): each clause the renderer printed, in order, with its
+   * status. Present only on a pack with a signed skeleton; the checks panel
+   * is built from this list.
+   */
+  rendered?: RenderedClause[];
 }
 
 /**
@@ -1146,6 +1184,31 @@ export async function streamGenerateFromBrief(
         usageSource: d.usageSource === 'provider' ? 'provider' : 'estimated',
       });
     };
+    // ── T-373 (ADR-025 D1): a pack with a signed skeleton is filled, not written ─
+    // Everything after this point, for such a pack, is in d1GenerateFromBrief.
+    // A pack with no skeleton goes on below exactly as before.
+    const skeleton = d1SkeletonFor(input);
+    if (skeleton && ledgerInput && input.ledger) {
+      return await d1GenerateFromBrief({
+        input,
+        res,
+        skeleton,
+        ledger: input.ledger,
+        ledgerInput,
+        promptInput,
+        brief,
+        formData,
+        ctx,
+        renderedSections,
+        bodyAt,
+        systemText,
+        provisions,
+        meter,
+        recordCall,
+        callInfo: () => ({ aiModel, transport }),
+      });
+    }
+
     try {
       for await (const text of streamLLM(
         ledgerInput ? DRAFTER_LEDGER_SYSTEM_PROMPT : DRAFTER_PACK_SYSTEM_PROMPT,
@@ -1523,6 +1586,398 @@ export async function streamGenerateFromBrief(
   } finally {
     stopKeepAlive();
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// T-373 (ADR-025 D1): THE DRAFTER FILLS A SIGNED SKELETON
+// For a pack with a signed skeleton, on the ledger path, in English: one
+// structured-output call (`messages.parse`, no forced tool; Arjun's D1 call
+// shape), one retry if it returns nothing usable, then the code renderer
+// (draft-renderer.ts). No ===CLAUSES=== trailer, no clause check or clause
+// repair, no model fact repair; the fact verifier runs read-only for the
+// fact-diff log. The checks panel reads the renderer's `rendered[]`. Each step
+// is its own small function so a ruling change touches one place.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Until T-374's loader lands no pack has a skeleton. */
+const noSkeleton: LoadSkeleton = () => null;
+
+/** Output cap for the D1 call (Arjun's D1 call shape). */
+const D1_MAX_TOKENS = 16000;
+
+/** Calls made before giving up on a structured answer: the first and one retry (Arjun, D1 call shape 2). */
+const D1_ATTEMPTS = 2;
+
+/**
+ * The skeleton for this draft, or null for today's path. Only on the ledger
+ * path, and only in English: the signed wording is English, and a Hindi or
+ * bilingual draft stays on today's path until Ajay signs those texts.
+ */
+function d1SkeletonFor(input: BriefGenerateInput): Skeleton | null {
+  if (!input.ledger || input.language !== 'en') return null;
+  const skeleton = (input.loadSkeleton ?? noSkeleton)(input.pack.id);
+  return skeleton && skeleton.clauses.length > 0 ? skeleton : null;
+}
+
+/** The structured call returned no usable answer twice. Classified as an unknown, retryable failure. */
+export class StructuredOutputMissingError extends Error {
+  constructor() {
+    super('The Drafter returned no structured output');
+    this.name = 'StructuredOutputMissingError';
+  }
+}
+
+/** The user prompt for DRAFTER_D1_SYSTEM_PROMPT: DOCUMENT, FACTS and SKELETON. */
+export function buildD1DrafterUserPrompt(
+  documentName: string,
+  facts: readonly D1DrafterFact[],
+  skeleton: Skeleton,
+): string {
+  return [
+    `DOCUMENT: ${documentName.replace(/\s+/g, ' ').trim().slice(0, 160)}`,
+    `FACTS:\n${JSON.stringify(facts, null, 1)}`,
+    `SKELETON:\n${JSON.stringify(skeleton.clauses, null, 1)}`,
+  ].join('\n\n');
+}
+
+/**
+ * The structured-output format for one request. `transform: false`: the SDK's
+ * transform (0.91.0) moves `enum` into the description, which would turn the
+ * clauseId / factRef enums into a hint the API does not enforce. The schema
+ * from buildDraftParagraphsSchema is already strict (every object closed,
+ * every field required), so it is sent as built. `parse` is ours so that a
+ * malformed answer reads as null (one retry follows) instead of throwing and
+ * losing the response's usage.
+ */
+function d1OutputFormat(
+  schema: ReturnType<typeof buildDraftParagraphsSchema>,
+): AutoParseableOutputFormat<DraftParagraphsOutput | null> {
+  const base = jsonSchemaOutputFormat(schema as Parameters<typeof jsonSchemaOutputFormat>[0], {
+    transform: false,
+  });
+  return {
+    type: base.type,
+    schema: base.schema,
+    parse: (content: string) => {
+      try {
+        return readDraftParagraphs(JSON.parse(content));
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
+/**
+ * One D1 call, not streamed (the SSE keep-alive covers the wait). Usage is
+ * read off the response into `usage` (numbers only). Null when the answer is
+ * not usable structured output; throws on an API or network failure.
+ */
+async function callD1Drafter(
+  system: string,
+  user: string,
+  format: AutoParseableOutputFormat<DraftParagraphsOutput | null>,
+  usage: CallUsageDraft,
+): Promise<DraftParagraphsOutput | null> {
+  const model = await getAppSetting(APP_SETTING_KEYS.DRAFTING_MODEL);
+  usage.model = model;
+  usage.transport = 'direct';
+  const message = await directClient.messages.parse({
+    model,
+    max_tokens: D1_MAX_TOKENS,
+    system,
+    messages: [{ role: 'user', content: user }],
+    output_config: { format },
+  });
+  const counts = parseAnthropicMessageUsage(message);
+  if (counts.inputTokens !== undefined || counts.outputTokens !== undefined) {
+    if (counts.inputTokens !== undefined) usage.inputTokens = counts.inputTokens;
+    if (counts.outputTokens !== undefined) usage.outputTokens = counts.outputTokens;
+    usage.usageSource = 'provider';
+  }
+  return message.parsed_output ?? null;
+}
+
+/**
+ * The fact verifier as a read-only check (Arjun, D1 call shape 3): the body
+ * is not changed, nothing is repaired, and every finding is recorded as
+ * `flagged` for the fact-diff log the route writes. No banner: on D1 a ledger
+ * fact with no clause is left out on purpose (T-359), and the banner's notes
+ * say the draft was changed, which it is not.
+ */
+function d1FactCheck(body: string, violations: FactViolation[]): FactCheckOutcome {
+  const records: FactDiffDraft[] = violations.map((v) => ({
+    check: v.check,
+    entityType: v.entityType,
+    bannedEntryId: v.bannedEntryId ?? null,
+    ledgerKey: v.ledgerKey,
+    label: v.label,
+    paragraphIndex: v.paragraphIndex,
+    charOffset: v.charOffset,
+    ledgerValue: v.ledgerValue,
+    draftValue: v.draftValue,
+    resolution: 'flagged',
+    phase: 'initial',
+  }));
+  return {
+    body,
+    passed: violations.length === 0,
+    repairRan: false,
+    repairFixed: false,
+    initial: violations,
+    afterRepair: null,
+    records,
+    banner: null,
+    placeholdersAdded: 0,
+  };
+}
+
+/** The clauses the renderer printed with a blank, for the checks panel and the label. */
+function d1MissingClauses(rendered: readonly RenderedClause[]): MissingClause[] {
+  return rendered
+    .filter((r) => r.status === 'missing')
+    .map((r) => ({
+      id: r.clauseId,
+      title: (r.missing ?? []).join('; ') || r.clauseId,
+      reason: 'reported_missing' as const,
+    }));
+}
+
+interface D1Context {
+  input: BriefGenerateInput;
+  res: Response;
+  skeleton: Skeleton;
+  ledger: NonNullable<BriefGenerateInput['ledger']>;
+  ledgerInput: LedgerDrafterPromptInput;
+  promptInput: DrafterPromptInput;
+  brief: Brief;
+  formData: Record<string, unknown>;
+  ctx: Record<string, string>;
+  renderedSections: RenderedSection[];
+  bodyAt: number;
+  systemText: ReturnType<typeof systemTextAround>;
+  provisions: ReturnType<typeof courtProvisions>;
+  meter: UsageMeter;
+  recordCall: (sectionId: string, d: CallUsageDraft, text: string) => void;
+  callInfo: () => { aiModel?: string; transport?: 'direct' };
+}
+
+/**
+ * The checks on a D1 draft. Kept: unfilled template fields, the citation
+ * checks, the fact-section sanity check, coherence, the court provision, the
+ * removed case citations, and one finding per clause the renderer printed
+ * with a blank. Not run (ADR-025 renderer rule 5): the clause trailer and
+ * findMissingClauses, checkPeriods, and the prose matchers built on nameIsIn
+ * (checkBriefIsUsed, the party-name check) with checkAgainstBrief,
+ * checkOneDocument and the fact-alteration check: the body is signed text
+ * and the advocate's own words, so they would only report false findings.
+ */
+async function d1Warnings(
+  c: D1Context,
+  body: string,
+  removedCitations: Parameters<typeof citationWarnings>[0],
+  missing: readonly MissingClause[],
+): Promise<ValidationWarning[]> {
+  const { templateConfig } = c.input;
+  const warnings: ValidationWarning[] = [];
+  const given = new Map<string, string>();
+  for (const item of c.brief.items) {
+    if (typeof item.value === 'string' && item.value.length > 0) given.set(item.key, item.value);
+  }
+  warnings.push(...leakedPlaceholderWarnings(templateConfig, c.ctx));
+  warnings.push(...(await checkDraftCitations(body)));
+  const facts =
+    given.get('facts_narrative') ?? given.get('facts') ?? given.get('fixed.facts') ?? '';
+  if (templateConfig.category === 'criminal' && facts) {
+    warnings.push(
+      ...checkFactSectionSanity(
+        facts,
+        extractBNSSectionNumbers(body, { includeRangeInner: false }),
+      ),
+    );
+  }
+  const grounds =
+    c.formData.grounds_for_bail ?? c.formData.grounds_for_quashing ?? c.formData.grounds;
+  const groundsGiven = c.brief.items.some(
+    (i) =>
+      ['grounds_for_bail', 'grounds_for_quashing', 'grounds'].includes(i.key) && i.value !== null,
+  );
+  if (groundsGiven && grounds && facts) {
+    for (const m of detectCoherenceMismatches(grounds as string | string[], facts)) {
+      warnings.push({
+        type: 'coherence_mismatch',
+        message: m.warning_message,
+        details: { rule: m.rule_id, ground: m.ground_label },
+      });
+    }
+  }
+  warnings.push(...checkCourtProvisions(body, c.provisions));
+  warnings.push(...citationWarnings(removedCitations));
+  for (const clause of missing) {
+    warnings.push({
+      type: 'missing_clause',
+      message: `This draft does not cover "${clause.title}". Add it before use.`,
+      details: { clauseId: clause.id },
+    });
+  }
+  return warnings;
+}
+
+/** The body for a pack with a signed skeleton: one structured call, then the renderer. */
+async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
+  const { input, res, skeleton, ledger, ledgerInput, promptInput, systemText } = c;
+  const { pack, templateConfig } = input;
+
+  // ── The one structured call, with one retry (Arjun, D1 call shape 1 and 2) ──
+  const format = d1OutputFormat(
+    buildDraftParagraphsSchema(skeleton, draftFactRefs(skeleton, ledger.facts)),
+  );
+  const user = buildD1DrafterUserPrompt(
+    pack.name,
+    d1DrafterFacts(skeleton, ledger.facts),
+    skeleton,
+  );
+  const failed = (err: unknown): GenerationFailedError => {
+    const classified = classifyLlmError(err);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(
+        `[drafting] Drafter structured call failed (kind=${pack.id}, runId=${input.runId}, runSequence=${input.runSequence}, runType=${input.runType}):`,
+        err instanceof Error ? err.name : 'unknown',
+      );
+    }
+    res.write(
+      `event: error\ndata: ${JSON.stringify({
+        section: 'body',
+        reason: classified.userMessage,
+        retryable: classified.retryable,
+        code: classified.code,
+        runId: input.runId,
+      })}\n\n`,
+    );
+    const { aiModel, transport } = c.callInfo();
+    // The route ends the response after the failed Generation row is saved.
+    return new GenerationFailedError(
+      classified.userMessage,
+      classified.code,
+      c.meter.totals(),
+      aiModel,
+      transport,
+    );
+  };
+  let output: DraftParagraphsOutput | null = null;
+  for (let attempt = 0; attempt < D1_ATTEMPTS && output === null; attempt++) {
+    const sectionId = attempt === 0 ? 'body' : 'body_retry';
+    const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
+    try {
+      output = await callD1Drafter(DRAFTER_D1_SYSTEM_PROMPT, user, format, draft);
+      c.recordCall(sectionId, draft, '');
+    } catch (llmErr) {
+      c.recordCall(sectionId, draft, '');
+      throw failed(llmErr);
+    }
+  }
+  // Never a blank draft (Arjun, D1 call shape 2).
+  if (output === null) throw failed(new StructuredOutputMissingError());
+
+  // ── The renderer ──────────────────────────────────────────────────────────
+  const checklist = buildChecklist(pack);
+  const verifierSources = {
+    unresolved: ledger.unresolved ?? [],
+    lists: ledger.lists,
+    packText: packTexts(pack),
+  };
+  const rendered = renderDraft({
+    skeleton,
+    output,
+    facts: ledger.facts,
+    labels: Object.fromEntries(checklist.map((i) => [i.key, i.label])),
+    clauseLabels: Object.fromEntries(pack.mandatoryClauses.map((m) => [m.id, m.title])),
+    optionIds: packOptionIds(pack.facts),
+    valueLists: skeletonValueLists(skeleton, ledger.lists),
+    // Rule 3: an own-words paragraph is checked against its fact alone.
+    verifier: { ...verifierSources, skeleton: [] },
+  });
+
+  // ── No case law on its own (T-148): kept on D1 ────────────────────────────
+  const citations = removeUngivenCitations(rendered.body, ledgerCitationSources(ledgerInput.facts));
+  const body = citations.text;
+
+  // ── The fact verifier, read-only (Arjun, D1 call shape 3) ─────────────────
+  const factCheck = d1FactCheck(
+    body,
+    verifyDraft({
+      ...verifierSources,
+      body,
+      facts: ledger.facts,
+      skeleton: [
+        systemText.before,
+        systemText.after,
+        ...(ledgerInput.facts.court ? [ledgerInput.facts.court] : []),
+        ...(promptInput.statedInstructions ?? []),
+        ...skeletonTexts(skeleton),
+      ],
+    }),
+  );
+
+  // ── The body takes its place among the parts the system wrote ─────────────
+  const renderedSections = c.renderedSections;
+  renderedSections[c.bodyAt] = { ...renderedSections[c.bodyAt], content: body };
+  const { fullText, bodyParaCount } = assembleDocument(renderedSections);
+  c.ctx.body_para_count = String(bodyParaCount);
+  const printed = renderedSections.map((s) =>
+    s.type === 'template' && s.content.includes('{body_para_count}')
+      ? s.content.replace(/\{body_para_count\}/g, String(bodyParaCount))
+      : s.content,
+  );
+  res.write(
+    `event: template_sections\ndata: ${JSON.stringify({
+      sections: renderedSections.map((s, i) => ({
+        section_id: s.section_id,
+        type: s.type,
+        content: printed[i],
+        alignment: s.alignment,
+        style: s.style,
+      })),
+    })}\n\n`,
+  );
+
+  const checklistSource =
+    templateConfig.filing_checklist.length > 0
+      ? templateConfig.filing_checklist
+      : pack.filingChecklist;
+  const filingChecklist = checklistSource.map((item) =>
+    item.replace(/\{(\w+)\}/g, (_m, key: string) => c.ctx[key] ?? '_____'),
+  );
+  if (filingChecklist.length > 0) {
+    res.write(`event: checklist\ndata: ${JSON.stringify({ items: filingChecklist })}\n\n`);
+  }
+
+  // ── The checks panel: from rendered[] (ADR-025 renderer rule 5) ───────────
+  const missing = d1MissingClauses(rendered.rendered);
+  const warnings = await d1Warnings(c, body, citations.removed, missing);
+  if (warnings.length > 0) {
+    res.write(`event: warning\ndata: ${JSON.stringify({ warnings })}\n\n`);
+  }
+
+  const { aiModel, transport } = c.callInfo();
+  return {
+    fullText,
+    sections: renderedSections,
+    filingChecklist,
+    sectionsCited: buildSectionsCited(fullText),
+    mandatoryClausesComplete: missing.length === 0,
+    warnings,
+    usage: c.meter.totals(),
+    aiModel,
+    transport,
+    bodyParaCount,
+    missingClauses: missing,
+    repaired: false,
+    startingDraft: needsStartingDraftLabel(missing, warnings),
+    labelReason: labelReason(missing, warnings),
+    factCheck,
+    rendered: rendered.rendered,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
