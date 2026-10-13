@@ -429,7 +429,8 @@ describe('missing clauses and warnings come from rendered[]', () => {
     expect(fc.body).toContain(raw);
     expect(fc.passed).toBe(false);
     expect(result!.repaired).toBe(false);
-    expect(result!.fullText).not.toMatch(/\[To be confirmed|\{\{MISSING: date/);
+    // Date blanks only: T-393 prints a relation blank for the fixture's missing relation, which is not this test's subject.
+    expect(result!.fullText).not.toMatch(/\[To be confirmed: [^\]]*\bdate|\{\{MISSING: date/);
     expect(mockParse).toHaveBeenCalledTimes(1);
   });
 

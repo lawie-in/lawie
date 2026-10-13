@@ -406,10 +406,10 @@ describe('T-359 through the route (Anushka run 3)', () => {
     expect(r.body).not.toContain('first proviso');
   });
 
-  // FINDING (template, not the skeleton): the Magistrate verification section prints a literal "S/o" before
-  // the blank even for a woman (AC6: no "S/o" for a woman; W/o or D/o as given, else a blank). Seen in the
-  // saved draft of the route run above. Pinned with it.failing; flips to a pass when the relation is fixed.
-  it.failing('AC6 FINDING: a woman applicant is not given "S/o" in the verification', async () => {
+  // T-359 AC6: the Magistrate verification used to print a literal "S/o" before the blank even for a woman.
+  // Fixed by T-393 (relation blank, merged from develop_staging); this was pinned with it.failing and is now
+  // a plain regression test (W/o or D/o as given, else a blank, never "S/o" for a woman).
+  it('AC6: a woman applicant is not given "S/o" in the verification', async () => {
     const r = await generate('bail_before_magistrate', magistrateToday());
     const verification = r.text.split('VERIFICATION')[1] ?? '';
     expect(verification).toContain('Sunita Devi');
