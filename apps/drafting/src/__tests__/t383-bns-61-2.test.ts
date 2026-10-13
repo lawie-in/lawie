@@ -30,7 +30,21 @@ jest.mock('../config/redis', () => {
   return { __esModule: true, default: redis, disconnectRedis: async () => undefined };
 });
 
+// T-375 test setup only: the bail checker and timeline tools are off by default, so this
+// suite turns their switches on. No assertion below is changed.
+jest.mock('../services/app-settings.service', () => {
+  const actual = jest.requireActual('../services/app-settings.service');
+  return {
+    ...actual,
+    getAppSetting: (key: string) =>
+      key === 'feature.tool_bail_checker' || key === 'feature.tool_timeline'
+        ? Promise.resolve('on')
+        : actual.getAppSetting(key),
+  };
+});
+
 import app from '../app';
+import { primeToolSwitches } from '../services/feature-switches';
 import { checkBailEligibility, readBailInputs } from '../services/bail-check.service';
 import { resolveOffence } from '../services/bns-offence-resolver';
 import { calculateTimeline } from '../services/timeline.service';
@@ -49,6 +63,10 @@ const OFFENCES = (
     fs.readFileSync(path.join(__dirname, '..', 'config', 'bns-offences.json'), 'utf-8'),
   ) as { offences: Record<string, Row> }
 ).offences;
+
+beforeAll(async () => {
+  await primeToolSwitches();
+});
 
 describe('T-383 AC1: resolveOffence', () => {
   it('61(2) is the parent row 61, criminal conspiracy, with no period', () => {
