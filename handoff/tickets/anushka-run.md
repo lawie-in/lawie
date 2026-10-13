@@ -897,3 +897,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Pick the drawer type yourself: the form no longer pre-selects "individual".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-385 — Template configs through one public projection (68937a7, mahak, 13 Oct 2026)
+
+- Nothing looks different. The template list and form work as before, and civil plaint templates stay out of the list while they're switched off.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

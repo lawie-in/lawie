@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Arjun |
 | Mode   | Small fix |
-| Status | Building. Mahak, after T-365. Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging 68937a7 (Mahak, 13 Oct 2026). Nothing to test in the UI. Priya |
 | Source | The detail routes return `_source`/`source` (prompt_context, clause notes) to the client |
 
 ## Acceptance criteria

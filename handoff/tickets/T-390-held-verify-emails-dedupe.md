@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (auth) |
 | Mode   | Small fix |
-| Status | To do. Not assigned. Found by Kunal in T-379, 13 Oct 2026. Do before live sends if a lead is free; otherwise after v1 |
+| Status | Building. Mahak, 13 Oct 2026 (before live sends). Found by Kunal in T-379. Priya |
 | Source | T-379 review |
 
 ## Background
