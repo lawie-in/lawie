@@ -105,9 +105,12 @@ export function askedEmptyValue(item: BriefItem, answer?: Value): Value | undefi
   const said = typeof answer === 'string' ? answer : Array.isArray(answer) ? answer[0] : undefined;
   if (item.kind === 'choice' || item.kind === 'choices') {
     const folded = said === undefined ? undefined : foldAnswer(said);
+    // With no matching answer, fall back only when one option alone writes no
+    // fact: with both "Not known" and "Not given" the answer cannot be guessed.
+    const noFact = item.options.filter((o) => NOT_KNOWN_ANSWERS.has(foldAnswer(o)));
     const option =
       (folded !== undefined ? item.options.find((o) => foldAnswer(o) === folded) : undefined) ??
-      notKnownOption(item);
+      (noFact.length === 1 ? noFact[0] : undefined);
     if (option === undefined) return undefined;
     return item.kind === 'choices' ? [option] : option;
   }
