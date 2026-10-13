@@ -38,6 +38,7 @@ import {
   resolveBnsKey,
   resolveOffence,
 } from './bns-offence-resolver';
+import { applyFieldAliases } from './rule-pack.service';
 import { lookupOldToNew } from './sections.service';
 import { fieldSourceOf, loadTemplateConfig, oldLawLine } from './template-engine.service';
 
@@ -323,9 +324,11 @@ async function runPureRules(
     }
   }
 
-  // F4: vakalatnama — bar enrolment number required
+  // F4: vakalatnama — bar enrolment number required. T-382: the pack's key is
+  // advocate_enrollment; a request still carrying the old key reads through
+  // applyFieldAliases.
   if (templateId === 'vakalatnama') {
-    if (!str(formData['advocate_enrolment_no'])) {
+    if (!str(applyFieldAliases(formData)['advocate_enrollment'])) {
       findings.push({
         rule_id: 'F4',
         severity: 'hard',

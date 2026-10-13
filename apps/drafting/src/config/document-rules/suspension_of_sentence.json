@@ -99,7 +99,7 @@
     },
     { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
     {
-      "name": "advocate_enrolment",
+      "name": "advocate_enrollment",
       "label": "Bar Council Enrolment No.",
       "type": "text",
       "required": true

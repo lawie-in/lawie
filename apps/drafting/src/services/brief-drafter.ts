@@ -23,6 +23,7 @@ import type { AvermentCondition, ResolvedAverments } from './averments';
 import { dateKindLabel, PROTECTED_QUESTION_KEY, statedDates } from './intake-brief';
 import type { Brief, BriefItem, ChecklistItem } from './intake-brief';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
+import { applyFieldAliases } from './rule-pack.service';
 import type { RulePack, RulePackClause } from './rule-pack.service';
 import { formatIsoDraftDate } from './template-engine.service';
 import type { RenderedSection, TemplateConfig } from './template-engine.service';
@@ -106,7 +107,8 @@ export function formDataFromBrief(
   if (brief.court.court_type) data.court_type = brief.court.court_type;
   if (brief.court.court) data.court_name = brief.court.court;
   data.language = language;
-  return data;
+  // T-382: a brief item keyed by the old pack key also fills the new one.
+  return applyFieldAliases(data);
 }
 
 // ── What the Drafter is given ───────────────────────────────────────────────

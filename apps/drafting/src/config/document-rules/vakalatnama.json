@@ -78,7 +78,7 @@
     },
     { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
     {
-      "name": "advocate_enrolment",
+      "name": "advocate_enrollment",
       "label": "Bar Council Enrolment No.",
       "type": "text",
       "required": true
@@ -229,7 +229,7 @@
   ],
   "validation_rules": [
     "variant must be one of: criminal_district, civil_district, high_court, supreme_court",
-    "advocate_enrolment must follow Bar Council enrolment format (e.g. 'BIH/1234/2020')",
+    "advocate_enrollment must follow Bar Council enrolment format (e.g. 'BIH/1234/2020')",
     "court_fee_stamp_value must be > 0",
     "execution_date and execution_place must be provided",
     "client_role must be appropriate to variant (no 'Accused' on civil variant; no 'Plaintiff/Defendant' on criminal)"
