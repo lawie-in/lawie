@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead A (drafting) + Ajay (sign) + Arjun (contract) |
 | Mode   | Full chain |
-| Status | Building. Vishal, round 3 pushed 91a179b. Merges after Mahak's T-365. Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging 3e031ac (Vishal, 13 Oct 2026). Ajay signed 17e8b6f. Waiting for Anushka on develop. Priya |
 | Source | ADR-025 (Arjun, 13 Oct 2026, handoff/tickets/ADR-025-structured-drafting-and-signed-data.md) |
 
 ## Acceptance criteria
