@@ -12,6 +12,7 @@ import path from 'path';
 import './setupEnv';
 
 import courtDocuments from '../config/intake/court-documents.json';
+import { isCourtDocument } from '../services/intake-brief';
 import {
   buildPlaceholderContext,
   CourtLookupData,
@@ -128,12 +129,12 @@ describe('T-406 nomenclatureAllowed', () => {
     expect(nomenclatureAllowed(id)).toBe(true);
   });
 
-  it('matches the JSON list exactly (drift guard)', () => {
-    const allowedFromJson = NOT_COURT.filter((id) => nomenclatureAllowed(id));
-    expect(allowedFromJson).toEqual([]);
-    // Any other plausible id outside the list stays allowed.
-    expect(nomenclatureAllowed('legal_notice_not_in_list_x')).toBe(true);
-  });
+  it.each([...NOT_COURT, 'bail_regular', 'consumer_complaint', 'x_new_pack'])(
+    'agrees with isCourtDocument for %s (parity)',
+    (id) => {
+      expect(nomenclatureAllowed(id)).toBe(isCourtDocument(id));
+    },
+  );
 });
 
 describe('T-406 buildPlaceholderContext: no nomenclature for not-court packs', () => {
@@ -211,7 +212,7 @@ describe('T-406 court documents are unaffected', () => {
     expect(ctx.case_nomenclature).toMatch(/Bail/i);
   });
 
-  it.each(['bail_regular', 'bail_anticipatory', 'consumer_complaint'])(
+  it.each(['bail_regular', 'bail_anticipatory'])(
     '%s keeps a nomenclature under every court rule',
     (id) => {
       for (const rule of RULES) {
@@ -225,4 +226,16 @@ describe('T-406 court documents are unaffected', () => {
       }
     },
   );
+});
+
+describe('T-406 consumer_complaint', () => {
+  it('has a case line under consumer_commission_generic', () => {
+    const ctx = buildPlaceholderContext(
+      configFor('consumer_complaint'),
+      { ...FORM, template_id: 'consumer_complaint' },
+      { advocateName: 'ADV', enrollmentNumber: 'ENR-1' },
+      lookupFor('consumer_commission_generic'),
+    );
+    expect(ctx.case_nomenclature).toBeTruthy();
+  });
 });
