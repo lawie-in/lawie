@@ -46,15 +46,15 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-**WORK HOUR 16:42–17:42 UTC, 13 Oct (founder). Paused again at 17:42.** Merge order after Kunal's gitleaks fix (28177b7) CI: Vishal T-397, then Mahak T-381, then Kunal T-415 (doc-writers finishing), then Shashank T-404 part 1.
+**PAUSED (founder): the work hour 16:42–17:42 UTC, 13 Oct, is over. Resume only on the founder's command.**
+Hour result: merged T-397 (7e23038) and T-381 (9e3cafa), plus fixes: T-410 CI test fix (37f9736) and T-399 gitleaks allow (28177b7). T-415 done but not merged. T-404 part 1 reviewed, not merged. T-411 server half built.
+Next session's merge queue: Kunal T-415 (bc35be1, all four reports), then Shashank T-404 part 1 (650aaa4, reviewer passed; tester re-run, then merge).
 Where each lead stopped:
-- vishal: T-397 on fix/t-397-legacy-prompt-signoffs e366b39. Developer done; Ajay's byte check and the tester are next.
-- mahak: T-390+T-416 (fix/t-416-verify-dedup-orphan) and T-405 (fix/t-405-public-field-helper) are ready to merge. T-381 on feature/t-381-annexures-card 6cd04ae: built, tester stopped midway, no review yet.
-- shashank: T-404 part 1 on feature/t-404-cause-title-s138 453c451. Final tester stopped early; a fresh reviewer is next.
-- kunal: T-415 on fix/t-415-grant-claim-state, not started. T-413 CI run 516 was pending.
-- tanvi: T-410 on fix/t-410-consumer-commission-only 734d15e is ready to merge. T-411 not started.
-
-- kunal: T-413 merged 9cf199e; holds the slot until CI on it is green. Then Mahak T-390 + T-416 as one merge (38316a5; all reports in, T-416 delta reviewer passed 10:10), then Mahak T-405 (small fix, tester green, 10:38), then Tanvi T-410 with T-412, T-417 and T-418 (all four reports, Ajay cleared 2df4d04, 11:20), then Shashank T-404 part 1 (fresh tester and reviewer running after merging in T-406). T-361 data copy waits on the founder.
+- vishal: T-397 merged. Next: T-422, then T-376.
+- mahak: T-381 merged. Next: T-423.
+- shashank: T-404 part 1 on feature/t-404-cause-title-s138 650aaa4, reviewer passed; final tester fix, then merge.
+- kunal: T-415 on fix/t-415-grant-claim-state bc35be1, ready to merge.
+- tanvi: T-411 server half on feature/t-411-consumer-court-picker 41fe294 (built, tested); UI waits for Rajesh's Figma link.
 
 ## Last done
 
