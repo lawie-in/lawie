@@ -38,6 +38,7 @@ export interface ISubscription extends Document {
   planId?: string;
   billingCycle?: 'monthly' | 'yearly';
   paidThrough?: Date;
+  inkDripAnchor?: Date; // start of the paid year; drip n is anchor + n months
   inkDripNextAt?: Date;
   inkDripCount?: number;
   lastGrantedPaidCount?: number;
@@ -103,6 +104,7 @@ const SubscriptionSchema = new Schema<ISubscription>(
     planId: String,
     billingCycle: { type: String, enum: ['monthly', 'yearly'] },
     paidThrough: Date,
+    inkDripAnchor: Date,
     inkDripNextAt: Date,
     inkDripCount: Number,
     lastGrantedPaidCount: Number,

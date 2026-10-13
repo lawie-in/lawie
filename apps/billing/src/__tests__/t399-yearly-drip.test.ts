@@ -13,12 +13,19 @@ import './setupDb';
 import './setupEnv';
 import mongoose from 'mongoose';
 
-import { addOneMonth, settleYearlyDrip, YEARLY_DRIP_MAX } from '@lawie/shared';
+import {
+  addMonths,
+  addOneMonth,
+  nextDripAt,
+  settleYearlyDrip,
+  YEARLY_DRIP_MAX,
+} from '@lawie/shared';
 
 import logger from '../config/logger';
 import { Subscription } from '../models/Subscription.model';
 import { User } from '../models/User.model';
 import { getInkBalance, grantSubscriptionInk } from '../services/ink-ledger.service';
+import * as inkLedger from '../services/ink-ledger.service';
 import { handleWebhookEvent } from '../services/subscription.service';
 
 jest.mock('../config/razorpay', () => ({
@@ -172,12 +179,15 @@ describe('T-399 AC2/AC3: yearly purchase across 12 months', () => {
     expect((await dripRows(userId)).length).toBe(11);
   });
 
-  it('ledger rows carry reference sub_drip:<id>:<n>, delta and balanceAfter', async () => {
+  it('ledger rows carry reference sub_drip:<id>:<cycle>:<n>, delta and balanceAfter', async () => {
     const userId = await seedUser({ inkTopup: 4 });
     await buyYearly(userId);
     await settleYearlyDrip({ db: db(), userId, now: months(START, 2) });
     const rows = await dripRows(userId);
-    expect(rows.map((r) => r.reference)).toEqual([`sub_drip:${SUB_ID}:1`, `sub_drip:${SUB_ID}:2`]);
+    expect(rows.map((r) => r.reference)).toEqual([
+      `sub_drip:${SUB_ID}:1:1`,
+      `sub_drip:${SUB_ID}:1:2`,
+    ]);
     expect(rows[0].delta).toBe(100);
     expect(rows[1].balanceAfter).toBe(100 + 4);
   });
@@ -189,9 +199,9 @@ describe('T-399 AC2/AC3: yearly purchase across 12 months', () => {
     const first = await settleYearlyDrip({ db: db(), userId, now });
     expect(first.granted).toBe(3);
     expect((await dripRows(userId)).map((r) => r.reference)).toEqual([
-      `sub_drip:${SUB_ID}:1`,
-      `sub_drip:${SUB_ID}:2`,
-      `sub_drip:${SUB_ID}:3`,
+      `sub_drip:${SUB_ID}:1:1`,
+      `sub_drip:${SUB_ID}:1:2`,
+      `sub_drip:${SUB_ID}:1:3`,
     ]);
     expect((await inkOf(userId)).inkSub).toBe(100);
     const again = await settleYearlyDrip({ db: db(), userId, now });
@@ -208,7 +218,11 @@ describe('T-399 AC2/AC3: yearly purchase across 12 months', () => {
     );
     expect(results.reduce((s, r) => s + r.granted, 0)).toBe(3);
     const refs = (await dripRows(userId)).map((r) => r.reference).sort();
-    expect(refs).toEqual([`sub_drip:${SUB_ID}:1`, `sub_drip:${SUB_ID}:2`, `sub_drip:${SUB_ID}:3`]);
+    expect(refs).toEqual([
+      `sub_drip:${SUB_ID}:1:1`,
+      `sub_drip:${SUB_ID}:1:2`,
+      `sub_drip:${SUB_ID}:1:3`,
+    ]);
     const sub = (await Subscription.findOne({ razorpaySubscriptionId: SUB_ID }).lean())!;
     expect(sub.inkDripCount).toBe(3);
   });
@@ -515,5 +529,345 @@ describe('T-399: ledger insert errors are logged at error level, no PII', () => 
     expect(bal!.totalSpendable).toBe(12);
     expect(errSpy).toHaveBeenCalled();
     expect(JSON.stringify(errSpy.mock.calls)).not.toContain('pii-person');
+  });
+});
+
+describe('T-399: grant rollback', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('a grant that throws restores the claim, the webhook rejects, and the redelivery grants once', async () => {
+    const userId = await seedUser();
+    await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
+    const evt = payload({
+      planId: 'solo_yearly',
+      start: START,
+      end: months(START, 12),
+      paidCount: 1,
+    });
+    jest.spyOn(inkLedger, 'grantSubscriptionInk').mockRejectedValueOnce(new Error('db down'));
+
+    await expect(handleWebhookEvent('subscription.charged', evt)).rejects.toThrow('db down');
+    let sub = (await Subscription.findOne({ razorpaySubscriptionId: SUB_ID }).lean())!;
+    expect(sub.lastGrantedPaidCount).toBeUndefined();
+    expect(sub.lastGrantedPeriodStart).toBeUndefined();
+    expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(0);
+
+    await handleWebhookEvent('subscription.charged', evt); // Razorpay's retry
+    await handleWebhookEvent('subscription.charged', evt); // and a duplicate
+    sub = (await Subscription.findOne({ razorpaySubscriptionId: SUB_ID }).lean())!;
+    expect(sub.lastGrantedPaidCount).toBe(1);
+    expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(1);
+    expect(sub.inkDripCount).toBe(0);
+  });
+
+  it('a rollback restores the PREVIOUS paid_count of a renewal, not nothing', async () => {
+    const userId = await seedUser();
+    await buyYearly(userId, 1);
+    const start2 = months(START, 12);
+    const renewal = payload({
+      planId: 'solo_yearly',
+      start: start2,
+      end: months(start2, 12),
+      paidCount: 2,
+    });
+    jest.spyOn(inkLedger, 'grantSubscriptionInk').mockRejectedValueOnce(new Error('db down'));
+    await expect(handleWebhookEvent('subscription.charged', renewal)).rejects.toThrow();
+    const sub = (await Subscription.findOne({ razorpaySubscriptionId: SUB_ID }).lean())!;
+    expect(sub.lastGrantedPaidCount).toBe(1);
+    expect(sub.lastGrantedPeriodStart).toEqual(START);
+    await handleWebhookEvent('subscription.charged', renewal);
+    expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(2);
+  });
+
+  it('with neither paid_count nor current_start: one grant and one warn log', async () => {
+    const userId = await seedUser();
+    await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
+    const warn = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    await handleWebhookEvent('subscription.charged', payload({ planId: 'solo_monthly' }));
+    expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(1);
+    const dedupeWarns = warn.mock.calls.filter((c) => String(c[1]).includes('not deduplicated'));
+    expect(dedupeWarns).toHaveLength(1);
+  });
+});
+
+describe('T-399: expired webhook with a second, cancelled-but-paid subscription', () => {
+  async function twoSubs(secondPaidThrough: Date) {
+    const userId = await seedUser({
+      plan: 'pro',
+      planTier: 'solo',
+      billingCycle: 'monthly',
+      inkSub: 80,
+      inkAnnualCarry: 10,
+    });
+    await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'active' });
+    await Subscription.create({
+      userId,
+      razorpaySubscriptionId: 'sub_second',
+      status: 'cancelled',
+      paidThrough: secondPaidThrough,
+    });
+    return userId;
+  }
+
+  it('does not downgrade or zero while the other sub is inside its paid period', async () => {
+    const userId = await twoSubs(new Date(Date.now() + 10 * 86_400_000));
+    await handleWebhookEvent('subscription.expired', payload({}));
+    const u = await inkOf(userId);
+    expect(u.plan).toBe('pro');
+    expect(u.inkSub).toBe(80);
+    expect(u.inkAnnualCarry).toBe(10);
+  });
+
+  it('downgrades and zeroes once the other cancelled sub is past its paid period', async () => {
+    const userId = await twoSubs(new Date(Date.now() - 86_400_000));
+    await handleWebhookEvent('subscription.expired', payload({}));
+    const u = await inkOf(userId);
+    expect(u.plan).toBe('free');
+    expect(u.inkSub).toBe(0);
+  });
+});
+
+describe('T-399: anchor-based drip dates (no drift)', () => {
+  const iso = (d: Date | undefined) => d?.toISOString();
+
+  it('addMonths / nextDripAt: anchor + n months, clamped each time; chaining without anchor', () => {
+    const anchor = new Date('2026-01-31T10:00:00Z');
+    expect(iso(addMonths(anchor, 1))).toBe('2026-02-28T10:00:00.000Z');
+    expect(iso(addMonths(anchor, 2))).toBe('2026-03-31T10:00:00.000Z');
+    expect(iso(addMonths(anchor, 3))).toBe('2026-04-30T10:00:00.000Z');
+    expect(iso(addMonths(anchor, 12))).toBe('2027-01-31T10:00:00.000Z');
+    expect(iso(nextDripAt(anchor, 1, new Date('2026-02-28T10:00:00Z')))).toBe(
+      '2026-03-31T10:00:00.000Z',
+    );
+    expect(iso(nextDripAt(null, 1, new Date('2026-02-28T10:00:00Z')))).toBe(
+      '2026-03-28T10:00:00.000Z',
+    );
+  });
+
+  it('a Jan 31 yearly start drips Feb 28, Mar 31, Apr 30', async () => {
+    const userId = await seedUser();
+    const start = new Date('2026-01-31T10:00:00Z');
+    await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
+    await handleWebhookEvent(
+      'subscription.charged',
+      payload({ planId: 'solo_yearly', start, end: addMonths(start, 12), paidCount: 1 }),
+    );
+    const nextAt = async () =>
+      (await Subscription.findOne({ razorpaySubscriptionId: SUB_ID }).lean())!.inkDripNextAt;
+    const sub0 = (await Subscription.findOne({ razorpaySubscriptionId: SUB_ID }).lean())!;
+    expect(sub0.inkDripAnchor).toEqual(start);
+    expect(iso(await nextAt())).toBe('2026-02-28T10:00:00.000Z');
+
+    const at = (s: string) => settleYearlyDrip({ db: db(), userId, now: new Date(s) });
+    expect((await at('2026-02-27T10:00:00Z')).granted).toBe(0);
+    expect((await at('2026-02-28T10:00:00Z')).granted).toBe(1);
+    expect(iso(await nextAt())).toBe('2026-03-31T10:00:00.000Z'); // not Mar 28
+    expect((await at('2026-03-30T10:00:00Z')).granted).toBe(0);
+    expect((await at('2026-03-31T10:00:00Z')).granted).toBe(1);
+    expect(iso(await nextAt())).toBe('2026-04-30T10:00:00.000Z');
+    expect((await at('2026-04-30T10:00:00Z')).granted).toBe(1);
+    expect(iso(await nextAt())).toBe('2026-05-31T10:00:00.000Z');
+  });
+
+  it('a leap-year Jan 31 start drips on Feb 29', async () => {
+    const userId = await seedUser();
+    const start = new Date('2028-01-31T10:00:00Z');
+    await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
+    await handleWebhookEvent(
+      'subscription.charged',
+      payload({ planId: 'solo_yearly', start, end: addMonths(start, 12), paidCount: 1 }),
+    );
+    const r = await settleYearlyDrip({ db: db(), userId, now: new Date('2028-02-29T10:00:00Z') });
+    expect(r.granted).toBe(1);
+  });
+
+  it('a subscription with no anchor still chains month by month', async () => {
+    const userId = await seedUser({ plan: 'pro', planTier: 'solo' });
+    await db()
+      .collection('subscriptions')
+      .insertOne({
+        userId,
+        razorpaySubscriptionId: SUB_ID,
+        status: 'active',
+        billingCycle: 'yearly',
+        planId: 'solo_yearly',
+        paidThrough: new Date('2027-01-31T10:00:00Z'),
+        inkDripNextAt: new Date('2026-02-28T10:00:00Z'),
+        inkDripCount: 0,
+        createdAt: new Date(),
+      });
+    const r = await settleYearlyDrip({ db: db(), userId, now: new Date('2026-03-28T10:00:00Z') });
+    expect(r.granted).toBe(2);
+    const sub = (await Subscription.findOne({ razorpaySubscriptionId: SUB_ID }).lean())!;
+    expect(iso(sub.inkDripNextAt)).toBe('2026-04-28T10:00:00.000Z');
+    const refs = (await dripRows(userId)).map((x) => x.reference);
+    expect(refs).toEqual([`sub_drip:${SUB_ID}:none:1`, `sub_drip:${SUB_ID}:none:2`]);
+  });
+});
+
+describe('T-399: ledger reference carries the paid cycle', () => {
+  it('year 2 writes cycle 2 references, distinct from year 1', async () => {
+    const userId = await seedUser();
+    await buyYearly(userId, 1);
+    await settleYearlyDrip({ db: db(), userId, now: months(START, 2) });
+    const start2 = months(START, 12);
+    await handleWebhookEvent(
+      'subscription.charged',
+      payload({
+        planId: 'solo_yearly',
+        start: start2,
+        end: months(start2, 12),
+        paidCount: 2,
+      }),
+    );
+    await settleYearlyDrip({ db: db(), userId, now: months(start2, 2) });
+    const rows = await dripRows(userId);
+    const refs = rows.map((r) => r.reference);
+    expect(refs).toEqual([
+      `sub_drip:${SUB_ID}:1:1`,
+      `sub_drip:${SUB_ID}:1:2`,
+      `sub_drip:${SUB_ID}:2:1`,
+      `sub_drip:${SUB_ID}:2:2`,
+    ]);
+    expect(new Set(refs).size).toBe(4);
+    expect(rows.map((r) => (r.metadata as { cycle: string }).cycle)).toEqual(['1', '1', '2', '2']);
+  });
+
+  it('cycle falls back to the period start in unix seconds, then the anchor, then none', async () => {
+    const mk = async (extra: Record<string, unknown>, id: string) => {
+      const userId = await seedUser({ email: `${id}@example.com` });
+      await db()
+        .collection('subscriptions')
+        .insertOne({
+          userId,
+          razorpaySubscriptionId: id,
+          status: 'active',
+          billingCycle: 'yearly',
+          planId: 'solo_yearly',
+          paidThrough: months(START, 12),
+          inkDripNextAt: addOneMonth(START),
+          inkDripCount: 0,
+          createdAt: new Date(),
+          ...extra,
+        });
+      await settleYearlyDrip({ db: db(), userId, now: addOneMonth(START) });
+      return (await dripRows(userId))[0].reference;
+    };
+    const unix = secs(START);
+    expect(await mk({ lastGrantedPeriodStart: START }, 'sub_a')).toBe(`sub_drip:sub_a:${unix}:1`);
+    expect(await mk({ inkDripAnchor: START }, 'sub_b')).toBe(`sub_drip:sub_b:${unix}:1`);
+    expect(await mk({}, 'sub_c')).toBe('sub_drip:sub_c:none:1');
+  });
+});
+
+describe('T-399: yearly grant fails after the claim (drip reset is part of the claim)', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  const renewalEvt = () => {
+    const start2 = months(START, 12);
+    return payload({
+      planId: 'solo_yearly',
+      start: start2,
+      end: months(start2, 12),
+      paidCount: 2,
+    });
+  };
+  const subOf = async () =>
+    (await Subscription.findOne({ razorpaySubscriptionId: SUB_ID }).lean())!;
+
+  async function yearOneThenSpend() {
+    const userId = await seedUser();
+    await buyYearly(userId, 1);
+    await settleYearlyDrip({ db: db(), userId, now: months(START, 3) }); // drips 1..3
+    await User.updateOne({ _id: userId }, { $set: { inkSub: 60 } }); // 60 units left
+    return userId;
+  }
+
+  it('a failing renewal grant rejects and restores the claim and the drip fields', async () => {
+    const userId = await yearOneThenSpend();
+    const before = await subOf();
+    expect(before.inkDripCount).toBe(3);
+    jest.spyOn(inkLedger, 'grantSubscriptionInk').mockRejectedValueOnce(new Error('db down'));
+
+    await expect(handleWebhookEvent('subscription.charged', renewalEvt())).rejects.toThrow(
+      'db down',
+    );
+
+    const after = await subOf();
+    expect(after.lastGrantedPaidCount).toBe(1);
+    expect(after.lastGrantedPeriodStart).toEqual(START);
+    expect(after.inkDripAnchor).toEqual(before.inkDripAnchor);
+    expect(after.inkDripNextAt).toEqual(before.inkDripNextAt);
+    expect(after.inkDripCount).toBe(3);
+    // Nothing was granted or carried.
+    const u = await inkOf(userId);
+    expect(u.inkSub).toBe(60);
+    expect(u.inkAnnualCarry).toBe(0);
+    expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(1);
+  });
+
+  it('the retry grants exactly once and the carry is applied once', async () => {
+    const userId = await yearOneThenSpend();
+    const evt = renewalEvt();
+    const start2 = months(START, 12);
+    jest.spyOn(inkLedger, 'grantSubscriptionInk').mockRejectedValueOnce(new Error('db down'));
+    await expect(handleWebhookEvent('subscription.charged', evt)).rejects.toThrow();
+
+    await handleWebhookEvent('subscription.charged', evt); // Razorpay's retry
+    await handleWebhookEvent('subscription.charged', evt); // and a duplicate
+
+    expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(2);
+    const u = await inkOf(userId);
+    expect(u.inkSub).toBe(100);
+    expect(u.inkAnnualCarry).toBe(30); // floor(60 * 0.5), once
+    const sub = await subOf();
+    expect(sub.lastGrantedPaidCount).toBe(2);
+    expect(sub.inkDripCount).toBe(0);
+    expect(sub.inkDripAnchor).toEqual(start2);
+    expect(sub.inkDripNextAt).toEqual(addOneMonth(start2));
+  });
+
+  it('a first purchase that fails once then retries grants once with the drip set', async () => {
+    const userId = await seedUser({ inkSub: 40 });
+    await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
+    const evt = payload({
+      planId: 'solo_yearly',
+      start: START,
+      end: months(START, 12),
+      paidCount: 1,
+    });
+    jest.spyOn(inkLedger, 'grantSubscriptionInk').mockRejectedValueOnce(new Error('db down'));
+    await expect(handleWebhookEvent('subscription.charged', evt)).rejects.toThrow();
+    const failed = await subOf();
+    expect(failed.lastGrantedPaidCount).toBeUndefined();
+    expect(failed.inkDripCount).toBeUndefined();
+    expect(failed.inkDripNextAt).toBeUndefined();
+
+    await handleWebhookEvent('subscription.charged', evt);
+    expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(1);
+    expect((await inkOf(userId)).inkAnnualCarry).toBe(20);
+    const sub = await subOf();
+    expect(sub.inkDripCount).toBe(0);
+    expect(sub.inkDripNextAt).toEqual(addOneMonth(START));
+  });
+
+  it('Subscription.updateOne is not called after a successful paid_count grant', async () => {
+    const userId = await seedUser();
+    await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
+    const spy = jest.spyOn(Subscription, 'updateOne');
+    await handleWebhookEvent(
+      'subscription.charged',
+      payload({
+        planId: 'solo_yearly',
+        start: START,
+        end: months(START, 12),
+        paidCount: 1,
+      }),
+    );
+    expect(spy).not.toHaveBeenCalled();
+    const sub = await subOf();
+    expect(sub.inkDripAnchor).toEqual(START);
+    expect(sub.inkDripNextAt).toEqual(addOneMonth(START));
+    expect(sub.inkDripCount).toBe(0);
   });
 });

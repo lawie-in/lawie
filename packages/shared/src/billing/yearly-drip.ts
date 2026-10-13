@@ -12,8 +12,13 @@
  *   (no rollover); inkAnnualCarry is left alone.
  * - Idempotency is a compare-and-set on the Subscription's inkDripCount. Only
  *   the caller whose CAS wins grants and writes the ledger row, so concurrent
- *   reads grant a month once. The ledger `reference` `sub_drip:<subId>:<n>` is
- *   for audit only (no unique index yet; follow-up ticket).
+ *   reads grant a month once. The ledger `reference`
+ *   `sub_drip:<subId>:<cycle>:<n>` is for audit only (no unique index yet;
+ *   T-409). `cycle` is the Subscription's lastGrantedPaidCount, else its
+ *   lastGrantedPeriodStart (unix seconds), so each paid year's keys differ.
+ * - Drip dates are `inkDripAnchor` (the paid period's start) + n months, each
+ *   clamped to the month's end, so a 31st start does not drift. A Subscription
+ *   without an anchor chains one month from the previous date instead.
  * - Cancel stops renewal, not the drip (Ajay, T-399-yearly-cancel-signed.md):
  *   a cancelled plan drips until `paidThrough`.
  * - After `paidThrough`, a cancelled or expired plan is zeroed and downgraded to
@@ -61,15 +66,35 @@ export interface SettleYearlyDripResult {
   expired: boolean;
 }
 
-/** One calendar month later (UTC), clamped to the last day of a short month. */
-export function addOneMonth(date: Date): Date {
+/** `months` calendar months later (UTC), clamped to the last day of a short month. */
+export function addMonths(date: Date, months: number): Date {
   const d = new Date(date.getTime());
   const day = d.getUTCDate();
   d.setUTCDate(1);
-  d.setUTCMonth(d.getUTCMonth() + 1);
+  d.setUTCMonth(d.getUTCMonth() + months);
   const lastDay = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
   d.setUTCDate(Math.min(day, lastDay));
   return d;
+}
+
+/** One calendar month later (UTC), clamped to the last day of a short month. */
+export function addOneMonth(date: Date): Date {
+  return addMonths(date, 1);
+}
+
+/**
+ * The drip date after drip `count` (1–11) has been granted: anchor + (count + 1)
+ * months when the Subscription has an anchor, else one month after `prev`.
+ */
+export function nextDripAt(anchor: Date | null, count: number, prev: Date): Date {
+  return anchor ? addMonths(anchor, count + 1) : addOneMonth(prev);
+}
+
+/** The paid cycle a drip belongs to, for the ledger reference. */
+function dripCycle(sub: Doc): string {
+  if (typeof sub.lastGrantedPaidCount === 'number') return String(sub.lastGrantedPaidCount);
+  const periodStart = asDate(sub.lastGrantedPeriodStart) ?? asDate(sub.inkDripAnchor);
+  return periodStart ? String(Math.floor(periodStart.getTime() / 1000)) : 'none';
 }
 
 function asDate(v: unknown): Date | null {
@@ -117,8 +142,10 @@ export async function settleYearlyDrip(input: {
   if (sub && units !== undefined && typeof sub.inkDripCount === 'number') {
     let n = sub.inkDripCount;
     let nextAt = asDate(sub.inkDripNextAt);
+    const anchor = asDate(sub.inkDripAnchor);
+    const cycle = dripCycle(sub);
     while (nextAt && nextAt <= now && n < YEARLY_DRIP_MAX) {
-      const following = addOneMonth(nextAt);
+      const following = nextDripAt(anchor, n + 1, nextAt);
       const won = await subs.findOneAndUpdate(
         { _id: sub._id, inkDripCount: n, inkDripNextAt: { $lte: now } },
         { $inc: { inkDripCount: 1 }, $set: { inkDripNextAt: following } },
@@ -144,10 +171,11 @@ export async function settleYearlyDrip(input: {
         reason: 'sub_drip',
         sourceBucket: 'sub',
         balanceAfter: totalUnits(user),
-        reference: `sub_drip:${String(sub.razorpaySubscriptionId)}:${n}`,
+        reference: `sub_drip:${String(sub.razorpaySubscriptionId)}:${cycle}:${n}`,
         metadata: {
           razorpaySubscriptionId: sub.razorpaySubscriptionId,
           planId: sub.planId,
+          cycle,
           dripNumber: n,
         },
         createdAt: new Date(),

@@ -37,6 +37,8 @@ function run(args: string[], mongoUri: string) {
   });
 }
 
+const hostPart = () =>
+  `${mongoose.connection.host}:${mongoose.connection.port}/${mongoose.connection.name}`;
 const uri = () =>
   `mongodb://${mongoose.connection.host}:${mongoose.connection.port}/${mongoose.connection.name}`;
 
@@ -63,6 +65,7 @@ async function seed() {
       paidThrough: new Date(Date.now() + 200 * DAY),
       inkDripNextAt: new Date(Date.now() - 2 * DAY),
       inkDripCount: 0,
+      lastGrantedPaidCount: 1,
       createdAt: new Date(),
     });
   return userId;
@@ -78,6 +81,7 @@ describe('backfill-yearly-drip script', () => {
     expect(r.out).toContain('sub_backfill');
     expect(r.out).toContain('owed now 1');
     expect(r.out).toContain('Dry run: nothing written');
+    expect(r.out).toContain(`Target (dry run, read-only): mongodb://${hostPart()}`);
     expect(r.out).not.toContain('backfill-pii');
     expect(await db().collection('inkledger').countDocuments({})).toBe(0);
     expect((await db().collection('users').findOne({ _id: userId }))!.inkSub).toBe(10);
@@ -96,10 +100,11 @@ describe('backfill-yearly-drip script', () => {
     const r = await run(['--apply'], uri());
     expect(r.code).toBe(0);
     expect(r.out).toContain('drips granted: 1');
+    expect(r.out).toContain(`--apply: WRITING to mongodb://${hostPart()}`);
     const rows = await db().collection('inkledger').find({}).toArray();
     expect(rows).toHaveLength(1);
     expect(rows[0].reason).toBe('sub_drip');
-    expect(rows[0].reference).toBe('sub_drip:sub_backfill:1');
+    expect(rows[0].reference).toBe('sub_drip:sub_backfill:1:1');
     expect((await db().collection('users').findOne({ _id: userId }))!.inkSub).toBe(100);
     expect((await db().collection('subscriptions').findOne({ userId }))!.inkDripCount).toBe(1);
 
@@ -114,5 +119,22 @@ describe('backfill-yearly-drip script', () => {
     expect((await run(['--bogus'], uri())).code).toBe(2);
     expect((await run(['--apply', '--dry-run'], uri())).code).toBe(2);
     expect(await db().collection('inkledger').countDocuments({})).toBe(0);
+  });
+
+  it('prints the redacted host and never the credentials, whatever the connection does', async () => {
+    const host = hostPart();
+    for (const [creds, secrets] of [
+      ['user:s3cretPw', ['s3cretPw']],
+      ['us%40er:p@ss:w0rd', ['p@ss', 'w0rd', 'ss:w0rd']],
+    ] as const) {
+      for (const args of [[], ['--apply']]) {
+        const r = await run(args, `mongodb://${creds}@${host}?authSource=admin&secretParam=zzz`);
+        const all = r.out + r.err;
+        expect(r.out).toContain(`mongodb://${host}`);
+        for (const secret of [...secrets, 'secretParam', 'authSource']) {
+          expect(all).not.toContain(secret);
+        }
+      }
+    }
   });
 });

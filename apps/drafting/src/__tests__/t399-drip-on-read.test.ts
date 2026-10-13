@@ -55,6 +55,7 @@ async function seedBehind(id = OID) {
       paidThrough: new Date(Date.now() + 200 * DAY),
       inkDripNextAt: new Date(Date.now() - 2 * DAY),
       inkDripCount: 0,
+      lastGrantedPaidCount: 1,
       createdAt: new Date(),
     });
 }
@@ -73,7 +74,7 @@ describe('T-399: drip on read (drafting)', () => {
     const r = await rows(OID);
     expect(r).toHaveLength(1);
     expect(r[0].reason).toBe('sub_drip');
-    expect(r[0].reference).toBe('sub_drip:sub_drafting_t399:1');
+    expect(r[0].reference).toBe('sub_drip:sub_drafting_t399:1:1');
     // A second read grants nothing more.
     await getCreditBalance(USER_ID);
     expect(await rows(OID)).toHaveLength(1);

@@ -87,6 +87,27 @@ export async function getSubscriptionStatus(userId: string): Promise<{
 
 const HEX_RE = /^[0-9a-fA-F]+$/;
 
+/**
+ * T-399: the update that puts `fields` back to their values in `before` (the
+ * pre-claim Subscription): $set where a value existed, $unset where it did not.
+ */
+function restoreClaim(
+  before: { get(path: string): unknown },
+  fields: string[],
+): Record<string, Record<string, unknown>> {
+  const $set: Record<string, unknown> = {};
+  const $unset: Record<string, ''> = {};
+  for (const f of fields) {
+    const v = before.get(f);
+    if (v === undefined || v === null) $unset[f] = '';
+    else $set[f] = v;
+  }
+  return {
+    ...(Object.keys($set).length ? { $set } : {}),
+    ...(Object.keys($unset).length ? { $unset } : {}),
+  };
+}
+
 export function verifyWebhookSignature(rawBody: Buffer, signature: unknown): boolean {
   const expectedSignature = crypto
     .createHmac('sha256', env.RAZORPAY_WEBHOOK_SECRET)
@@ -223,7 +244,22 @@ export async function handleWebhookEvent(
       // paid_count) grants; without paid_count, current_start against
       // lastGrantedPeriodStart. Absent fields match `$not: { $gte }`, so the
       // first cycle grants. With neither field, grant as before and warn.
+      //
+      // For a yearly plan the drip-state reset (month 1 is this grant;
+      // settleYearlyDrip grants months 2–12 on anchor + n months) rides in the
+      // same claim update, so nothing is written between the grant and the end
+      // of the handler. Only the grant can fail after the claim, and a failed
+      // grant writes nothing, so restoring the claim (drip fields included)
+      // lets Razorpay's retry grant exactly once.
+      const chargedAt = currentStart ? new Date(currentStart * 1000) : new Date();
+      const dripReset =
+        planSku?.cycle === 'yearly'
+          ? { inkDripAnchor: chargedAt, inkDripNextAt: addOneMonth(chargedAt), inkDripCount: 0 }
+          : {};
+      const dripFields = Object.keys(dripReset);
       let isNewCycle = true;
+      // How to undo the claim if the grant fails (so a Razorpay retry grants).
+      let rollbackClaim: (() => Promise<unknown>) | null = null;
       if (typeof paidCount === 'number') {
         const claimed = await Subscription.findOneAndUpdate(
           { _id: sub._id, lastGrantedPaidCount: { $not: { $gte: paidCount } } },
@@ -231,22 +267,44 @@ export async function handleWebhookEvent(
             $set: {
               lastGrantedPaidCount: paidCount,
               ...(currentStart ? { lastGrantedPeriodStart: new Date(currentStart * 1000) } : {}),
+              // paid_count 0 grants nothing, so it must not reset the drip.
+              ...(paidCount > 0 ? dripReset : {}),
             },
           },
         );
         isNewCycle = paidCount > 0 && claimed !== null;
+        if (claimed) {
+          rollbackClaim = () =>
+            Subscription.updateOne(
+              { _id: sub._id, lastGrantedPaidCount: paidCount },
+              restoreClaim(claimed, [
+                'lastGrantedPaidCount',
+                'lastGrantedPeriodStart',
+                ...dripFields,
+              ]),
+            );
+        }
       } else if (currentStart) {
         const periodStart = new Date(currentStart * 1000);
         const claimed = await Subscription.findOneAndUpdate(
           { _id: sub._id, lastGrantedPeriodStart: { $not: { $gte: periodStart } } },
-          { $set: { lastGrantedPeriodStart: periodStart } },
+          { $set: { lastGrantedPeriodStart: periodStart, ...dripReset } },
         );
         isNewCycle = claimed !== null;
+        if (claimed) {
+          rollbackClaim = () =>
+            Subscription.updateOne(
+              { _id: sub._id, lastGrantedPeriodStart: periodStart },
+              restoreClaim(claimed, ['lastGrantedPeriodStart', ...dripFields]),
+            );
+        }
       } else {
         logger.warn(
           { subId, event },
           'subscription webhook has no paid_count or current_start; grant not deduplicated',
         );
+        // No claim to ride on: reset the drip state here, before the grant.
+        if (dripFields.length) await Subscription.updateOne({ _id: sub._id }, { $set: dripReset });
       }
 
       if (planSku && !isNewCycle) {
@@ -255,22 +313,34 @@ export async function handleWebhookEvent(
           'subscription cycle already granted, no second grant',
         );
       } else if (planSku) {
-        await grantSubscriptionInk({
-          userId: sub.userId.toString(),
-          inkUnits: planSku.inkPerCycle * 2, // 1 Ink = 2 ledger units
-          planTier: planSku.tier,
-          billingCycle: planSku.cycle,
-          planRenewsAt: chargeAt ? new Date(chargeAt * 1000) : undefined,
-          razorpaySubscriptionId: subId,
-          amountInr: planSku.priceInr,
-        });
-        if (planSku.cycle === 'yearly') {
-          // Month 1 is the grant above; settleYearlyDrip grants months 2–12.
-          const chargedAt = currentStart ? new Date(currentStart * 1000) : new Date();
-          await Subscription.updateOne(
-            { _id: sub._id },
-            { $set: { inkDripNextAt: addOneMonth(chargedAt), inkDripCount: 0 } },
-          );
+        try {
+          await grantSubscriptionInk({
+            userId: sub.userId.toString(),
+            inkUnits: planSku.inkPerCycle * 2, // 1 Ink = 2 ledger units
+            planTier: planSku.tier,
+            billingCycle: planSku.cycle,
+            planRenewsAt: chargeAt ? new Date(chargeAt * 1000) : undefined,
+            razorpaySubscriptionId: subId,
+            amountInr: planSku.priceInr,
+          });
+        } catch (err) {
+          // T-399: undo the cycle claim so Razorpay's retry of this webhook
+          // grants, then fail the webhook so Razorpay retries.
+          if (rollbackClaim) {
+            try {
+              await rollbackClaim();
+            } catch (rollbackErr) {
+              logger.error(
+                {
+                  subId,
+                  event,
+                  errName: rollbackErr instanceof Error ? rollbackErr.name : 'unknown',
+                },
+                'subscription grant claim rollback failed; this cycle needs a manual grant',
+              );
+            }
+          }
+          throw err;
         }
       } else {
         // Legacy fallback: no plan mapping — set plan=pro without ink grant
@@ -300,10 +370,12 @@ export async function handleWebhookEvent(
       sub.status = 'expired';
       sub.cancelledAt = new Date();
       await sub.save();
+      // T-399: a cancelled sub still inside its paid period also keeps the
+      // plan (same rule as the lazy expiry in settleYearlyDrip).
       const otherActive = await Subscription.findOne({
         userId: sub.userId,
         _id: { $ne: sub._id },
-        status: 'active',
+        $or: [{ status: 'active' }, { status: 'cancelled', paidThrough: { $gte: new Date() } }],
       });
       if (!otherActive) {
         await User.findByIdAndUpdate(sub.userId, {

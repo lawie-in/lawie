@@ -38,21 +38,36 @@ for (const candidate of [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'
   }
 }
 
-import { YEARLY_DRIP_MAX, addOneMonth, settleYearlyDrip } from '@lawie/shared';
+import { YEARLY_DRIP_MAX, nextDripAt, settleYearlyDrip } from '@lawie/shared';
 import mongoose from 'mongoose';
 /* eslint-enable import/order, import/first */
 
 const USAGE = 'Usage: yarn workspace @lawie/billing backfill:yearly-drip [--apply]';
 
 /** Drips owed at `now`, by the same rule as settleYearlyDrip's loop. */
-function dripsOwed(nextAt: Date, count: number, now: Date): number {
+function dripsOwed(anchor: Date | null, nextAt: Date, count: number, now: Date): number {
   let owed = 0;
   let at = nextAt;
   while (at <= now && count + owed < YEARLY_DRIP_MAX) {
     owed += 1;
-    at = addOneMonth(at);
+    at = nextDripAt(anchor, count + owed, at);
   }
   return owed;
+}
+
+/**
+ * Scheme, host(s) and database of a Mongo URI, never the credentials or the
+ * query string: `mongodb+srv://user:pw@cluster.x.net/lawie?w=1` prints as
+ * `mongodb+srv://cluster.x.net/lawie`.
+ */
+function redactMongoUri(uri: string): string {
+  const scheme = /^[a-z+]+:\/\//i.exec(uri)?.[0];
+  if (!scheme) return '(unparseable MONGO_URI)';
+  // Everything up to the last '@' is credentials (or would be, if malformed):
+  // dropping too much only shortens the output, it never shows a password.
+  const rest = uri.slice(scheme.length);
+  const afterCreds = rest.slice(rest.lastIndexOf('@') + 1);
+  return scheme + afterCreds.split('?')[0];
 }
 
 async function main(): Promise<void> {
@@ -68,6 +83,15 @@ async function main(): Promise<void> {
   if (!mongoUri) {
     console.error('MONGO_URI is not set.');
     process.exit(2);
+  }
+
+  const target = redactMongoUri(mongoUri);
+  if (apply) {
+    console.log('='.repeat(72));
+    console.log(`  --apply: WRITING to ${target}`);
+    console.log('='.repeat(72));
+  } else {
+    console.log(`Target (dry run, read-only): ${target}`);
   }
 
   await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000, autoIndex: false });
@@ -95,7 +119,8 @@ async function main(): Promise<void> {
         console.log(`${String(sub.razorpaySubscriptionId)}: no drip state, skipped`);
         continue;
       }
-      const owed = dripsOwed(nextAt, count, now);
+      const anchor = sub.inkDripAnchor instanceof Date ? sub.inkDripAnchor : null;
+      const owed = dripsOwed(anchor, nextAt, count, now);
       owedTotal += owed;
       console.log(
         `${String(sub.razorpaySubscriptionId)} (${String(sub.planId)}, ${String(sub.status)}): ` +
