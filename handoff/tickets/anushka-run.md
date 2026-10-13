@@ -889,3 +889,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - In a criminal or income-tax appeal, see the appellant's name in the cause title.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-363 fix — s.138 proprietor blanks and s.141 (d9a354c, shashank, 13 Oct 2026)
+
+- Leave the proprietor questions blank and get a clean notice, with no "[To be confirmed …]" text in the header or the subject line.
+- See s.141 cited only for a company, LLP or partnership drawer, never for an individual, HUF or unanswered drawer type.
+- Pick the drawer type yourself: the form no longer pre-selects "individual".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
