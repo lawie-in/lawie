@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web) + Arjun (CI job) |
 | Mode   | Small fix |
-| Status | To do. Small fix (Arjun 616be69): the build fails only when NODE_ENV=development is set, so deploys are not broken. Pin NODE_ENV=production in the web build script and add the CI web job. Tanvi, after T-357 (Arjun, 13 Oct). Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging becba5a (tanvi, 13 Oct 2026). Build script and CI only; nothing to test in the UI. Founder: mark "Web build" as a required check (0c on his list) |
 | Source | Mahak, 13 Oct 2026, while building T-223. Reproduced with all T-223 changes stashed |
 
 ## Problem

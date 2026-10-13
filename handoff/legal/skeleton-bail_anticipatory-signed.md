@@ -25,13 +25,39 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - Grounds `items` now match the pack's ten `grounds_for_bail` options. Removed: cooperation, investigation_complete, willing_mediation, youth_first_time and no_flight_risk, which are not anticipatory options. New signed sentences: business_dispute_civil_in_nature, cooperation_with_investigation, deep_roots_in_community, abuse_of_process, complainant_motive and professional_reputation. deep_roots_in_community needs `local_ties`: with no fact it renders its MISSING blank, and when it renders the `roots` clause is skipped.
 - Slots that are ledger keys, not pack fields, are valid. The ledger is the source under D1. `false_implication_reason`, `civil_dispute_particulars` and `police_action` come from the `_averments` files (anticipatory and Magistrate inherit bail_regular). `facts_narrative` and `additional_context` must be put into the ledger by the brief for every bail pack. If a key is absent, a required clause renders its MISSING form and an optional clause is left out. Nothing is ever invented to fill it.
 
+## Version 3, 13 Oct 2026 (supersedes SHA `2a7dbd0d2ad5030ccc85d12df763f0ac3cb437318de58ba0487e36508093efda`)
+
+- The `antecedents` none variant now matches its own list, `antecedents_none_values`, instead of the T-334 earlier-application list. That list was for earlier bail applications, so "first bail application" would have counted as no antecedents, and "No criminal record" did not match. Matching is on the whole answer, after the T-334 folding (case, spaces and punctuation). Any other answer prints in the "are: {antecedents}" variant.
+- Left out on purpose: "no other case" and "no case pending", because they speak to pending cases, not past record.
+- The loader resolves a `when.in` string by looking up the top-level key it names.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_anticipatory",
-  "version": 2,
+  "version": 3,
   "none_values": "first_bail_application.equals (T-334)",
+  "antecedents_none_values": [
+    "none",
+    "nil",
+    "no",
+    "not applicable",
+    "no criminal record",
+    "no criminal antecedents",
+    "no antecedents",
+    "no previous record",
+    "no past record",
+    "no prior record",
+    "no previous criminal record",
+    "no criminal history",
+    "clean record",
+    "koi record nahi",
+    "koi criminal record nahi",
+    "koi aapradhik record nahi",
+    "कोई नहीं",
+    "कोई आपराधिक रिकॉर्ड नहीं"
+  ],
   "clauses": [
     {
       "id": "opening",
@@ -88,7 +114,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
         {
           "when": {
             "key": "antecedents",
-            "in": "none_values"
+            "in": "antecedents_none_values"
           },
           "text": "The applicant has no criminal antecedents."
         },
@@ -315,4 +341,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `2a7dbd0d2ad5030ccc85d12df763f0ac3cb437318de58ba0487e36508093efda`
+SHA-256 of the JSON block (between the fences, final newline included): `50b7dd20bcaccdbc10c6bd35094ac754e8605ba8c03dfa5855c372d9eed04d1e`

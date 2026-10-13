@@ -5,7 +5,7 @@
 | Phase  | 1 — Describe and draft |
 | Owner  | Lead (drafting) |
 | Mode   | Small fix |
-| Status | To do. After T-349 + T-350. From Tanvi's T-350 review, 12 Oct 2026 |
+| Status | Merged into develop_staging 7158fc4 (tanvi, 13 Oct 2026). Server error handling only; nothing to test in the UI |
 
 ## Acceptance criteria
 
