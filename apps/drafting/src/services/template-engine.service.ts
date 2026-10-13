@@ -2094,6 +2094,19 @@ function consumerPromptRule(
 }
 
 /**
+ * T-410 (Ajay 2a8b722): the rule the Drafter prompt reads, chosen as
+ * buildAISystemPrompt chooses it. consumer_complaint takes consumerPromptRule;
+ * every other template takes the chosen court's rule unchanged.
+ */
+export function drafterPromptCourtRule(
+  templateId: string,
+  courtData?: CourtLookupData,
+): CourtRuleData | undefined {
+  if (templateId !== CONSUMER_COMPLAINT_ID) return courtData?.courtRule;
+  return consumerPromptRule(courtData?.courtRule, courtData) ?? undefined;
+}
+
+/**
  * Build the AI system prompt for config-driven generation.
  * T-410: `courtData` (optional) tells a District from a State Commission for
  * consumer_complaint's localRules.

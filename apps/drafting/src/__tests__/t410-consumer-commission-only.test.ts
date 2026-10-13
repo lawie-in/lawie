@@ -12,8 +12,11 @@ import path from 'path';
 
 import './setupEnv';
 
+// eslint-disable-next-line import/order
+import { drafterPartyDesignationLines } from '../services/ai.service';
 import {
   buildAISystemPrompt,
+  drafterPromptCourtRule,
   buildPlaceholderContext,
   CONSUMER_COMMISSION_BLANK,
   consumerForum,
@@ -549,4 +552,82 @@ describe('T-410 AI system prompt: court-specific rules by level', () => {
       expect(lines).toEqual([`RELATED ACTS: ${signed.join(', ')}`]);
     },
   );
+});
+
+describe('T-410 part 2: drafterPromptCourtRule and the Drafter court rules', () => {
+  const rulesFor = (id?: string): string[] => {
+    const rule = drafterPromptCourtRule('consumer_complaint', id ? lookup(id) : undefined);
+    return [
+      ...(rule?.localRules ?? []),
+      ...drafterPartyDesignationLines(rule, 'consumer_complaint'),
+    ];
+  };
+  const NON_DISTRICT = ['patna_hc', 'mh_sessions_mumbai_city', 'bihar_state_consumer_patna'];
+
+  it('other templates are returned unchanged (bail_regular at a CJM)', () => {
+    const data = lookup('bihar_cjm_patna');
+    expect(drafterPromptCourtRule('bail_regular', data)).toBe(data.courtRule);
+    expect(drafterPromptCourtRule('bail_regular', undefined)).toBeUndefined();
+  });
+
+  it.each([...NON_DISTRICT, 'none'])(
+    '%s: no localRules, only Complainant / Opposite Party',
+    (id) => {
+      const rule = drafterPromptCourtRule(
+        'consumer_complaint',
+        id === 'none' ? undefined : lookup(id),
+      );
+      expect(rule?.localRules ?? []).toEqual([]);
+      expect(rule?.party_designation).not.toHaveProperty('state');
+      expect(new Set(Object.values(rule?.party_designation ?? {}))).toEqual(
+        new Set(['Complainant', 'Opposite Party']),
+      );
+      expect(rule?.party_designation?.petitioner).toBe('Complainant');
+      expect(rule?.party_designation?.respondent).toBe('Opposite Party');
+    },
+  );
+
+  it('patna_dccdrc keeps the District lines and ncdrc_delhi keeps its own', () => {
+    const generic = loadCourtRule('consumer_commission_generic');
+    const ncdrc = loadCourtRule('ncdrc');
+    expect(generic?.localRules?.length).toBeGreaterThan(0);
+    expect(
+      drafterPromptCourtRule('consumer_complaint', lookup('patna_dccdrc'))?.localRules,
+    ).toEqual(generic?.localRules);
+    expect(ncdrc?.localRules?.length).toBeGreaterThan(0);
+    expect(drafterPromptCourtRule('consumer_complaint', lookup('ncdrc_delhi'))?.localRules).toEqual(
+      ncdrc?.localRules,
+    );
+  });
+
+  it.each([...NON_DISTRICT, 'none', 'patna_dccdrc', 'ncdrc_delhi'])(
+    '%s: the Drafter court rules have no "State of" and no "S.H.O."',
+    (id) => {
+      const text = rulesFor(id === 'none' ? undefined : id).join('\n');
+      expect(text).not.toContain('State of');
+      expect(text).not.toContain('S.H.O.');
+      expect(text).toContain('Complainant');
+      expect(text).toContain('Opposite Party');
+    },
+  );
+
+  it.each([...NON_DISTRICT, 'none'])(
+    '%s: no "District Commission" in the Drafter court rules',
+    (id) => {
+      expect(rulesFor(id === 'none' ? undefined : id).join('\n')).not.toContain(
+        'District Commission',
+      );
+    },
+  );
+
+  it('patna_dccdrc: "District Commission" appears in the Drafter court rules', () => {
+    expect(rulesFor('patna_dccdrc').join('\n')).toContain('District Commission');
+  });
+
+  it('the system prompt at patna_dccdrc via the ai.service path has the COURT-SPECIFIC RULES block', () => {
+    const data = lookup('patna_dccdrc');
+    const prompt = buildAISystemPrompt(COMPLAINT, data.courtRule, data);
+    expect(prompt).toContain('COURT-SPECIFIC RULES');
+    expect(prompt).toContain('Court fee as per state Consumer Commission rules');
+  });
 });

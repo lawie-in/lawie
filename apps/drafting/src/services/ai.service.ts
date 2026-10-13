@@ -119,6 +119,7 @@ import {
   sectionContext,
   renderTemplateSection,
   buildAISystemPrompt,
+  drafterPromptCourtRule,
   buildAIUserPrompt,
   assembleDocument,
   detectCoherenceMismatches,
@@ -702,7 +703,7 @@ export async function streamGenerateFromTemplate(
         renderedSections.push(rendered);
       } else if (section.type === 'ai_generated') {
         // Stream AI generation for this section
-        const systemPrompt = buildAISystemPrompt(templateConfig, courtData?.courtRule);
+        const systemPrompt = buildAISystemPrompt(templateConfig, courtData?.courtRule, courtData);
         const userPrompt = buildAIUserPrompt(section, ctx);
 
         let aiText = '';
@@ -1122,7 +1123,8 @@ export async function streamGenerateFromBrief(
 
     // ── What the Drafter is given ─────────────────────────────────────────────
     const parts = systemParts(templateConfig);
-    const courtRule = courtData?.courtRule;
+    // T-410 (Ajay 2a8b722): a consumer_complaint reads the consumer rule, as the system prompt does.
+    const courtRule = drafterPromptCourtRule(templateConfig.template_id, courtData);
     // The provision that follows the court chosen (T-135).
     const provisions = courtProvisions(templateConfig, ctx);
     const promptInput: DrafterPromptInput = {
