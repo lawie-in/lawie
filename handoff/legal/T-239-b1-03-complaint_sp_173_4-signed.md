@@ -134,7 +134,7 @@ Subject line is deliberately neutral: it does not say the officer refused. That 
 | info_to_police_mode | How given | select | no | Approach clause |
 | police_response | What the officer in charge did | textarea | no | Unlocks `police_refusal` |
 | earlier_proceedings | Earlier proceedings ("none" or particulars) | textarea | no | Disclosure clause |
-| advocate_name / advocate_enrolment | Advocate (if sent through counsel) | text | no | Not printed: advocate signature block suppressed for this id (Ajay ruling) |
+| advocate_name / advocate_enrollment | Advocate (if sent through counsel) | text | no | Not printed: advocate signature block suppressed for this id (Ajay ruling) |
 
 ## _averments
 
@@ -206,3 +206,5 @@ The "Notes" and "Verify" sections are the drafter's reasoning, kept for the reco
 | A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

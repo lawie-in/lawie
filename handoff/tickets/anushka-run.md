@@ -732,3 +732,12 @@ What a user can now do:
 - Note for Anushka: develop runs in dry run, so no email arrives and the link can't be opened from an inbox until the founder's SES session. Test the banner, resend limit, prompts and the Google path.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-370 — "Upgrade to Pro" buys Pro (280dd3a, kunal, 13 Oct 2026)
+
+What a user can now do:
+- On Settings, see "Upgrade to Pro" with Pro's real price and monthly Ink, and pay for Pro, not the cheaper plan.
+- On the dashboard, see the same Pro price on the upgrade link. A Pro user sees the plan's monthly Ink instead of "unlimited documents".
+- An unverified email user still sees the verify card instead of the button.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
