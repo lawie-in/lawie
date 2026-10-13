@@ -17,3 +17,11 @@
 ## Ajay (13 Oct 2026)
 
 There are 7 packs, not 3: bail_before_magistrate, bail_cancellation, default_bail, interim_bail, surrender_application, suspension_of_sentence and vakalatnama. Rename the id to `advocate_enrollment`. It's a key-only change with the labels unchanged, and Ajay signs it. preflight.service.ts reads a third spelling, `advocate_enrolment_no` (for Arjun). Arjun decides whether the code also reads the old key for saved drafts.
+
+## Arjun (13 Oct 2026)
+
+- Rename the key to `advocate_enrollment` in the seven packs, as Ajay signed.
+- The code reads the old key for saved drafts: one read-side alias where form data is loaded for a draft (`advocate_enrolment` → `advocate_enrollment`, only when the new key is absent). No write-side alias; new drafts carry the new key only. Same alias map as ADR-025's slot list, so T-374 reuses it.
+- `preflight.service.ts` F4: read `advocate_enrollment` (after the alias). Drop `advocate_enrolment_no`; nothing writes it.
+- Update the five test files that still spell `advocate_enrolment`. One test per pack (AC3) plus one for the alias.
+- Same claim as T-365 AC6's pack edits, so the seven packs change once.

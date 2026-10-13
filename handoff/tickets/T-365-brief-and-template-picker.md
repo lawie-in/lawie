@@ -1,5 +1,0 @@
-
-## Arjun (13 Oct 2026)
-
-- **AC5: option B, the OneFlow preset.** ADR-021 stays: no per-template form on this path. The card links to `/dashboard/new?kind=<template_id>`; `new/page.tsx` reads the param and passes `initialKind` to `OneFlow`, which does exactly what `BrowseTypesStep.onPick` does today (`setPreset`, `chosenKind`, phase `describe`). Unknown or hidden id (T-375 switches): ignore the param, open plain describe. Not option A.
-- **AC6: Ajay's ruling stands.** New top-level `card_description` in each pack, from `handoff/legal/T-365-card-descriptions-signed.md` (de5f324), loaded like any pack field. Cards (`/dashboard/templates`, Browse, DocumentChoiceStep) show `card_description` only; a pack without one shows no description line, never `_meta.description`. `presentDescription` keeps feeding the intake match prompt only (model input, not shown); the regex fix stays. Pack files are legal content: claim them through Priya, after T-374's bail packs and together with T-382's key rename so the seven packs change once.
