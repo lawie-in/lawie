@@ -74,3 +74,10 @@ No other entry moves. Any other byte change needs a new sign-off.
 - **AI prompt receiving a non-Commission court's party designations: fix in T-410 now.** Ruling 4 covers the Drafter input too. The prompt gets Complainant / Opposite Party only. Test: no "State of" or "S.H.O." in the prompt.
 - **`display_name` "Consumer Complaint (District Commission)", and `description` "Section 35 … before District Commission": new ticket.** They should not name a level now that all three Commissions are offered. Wording comes to me.
 - **`ncdrc.json` :13 and :52 say "exceeding Rs. 10 Crore": new ticket, high priority.** That is the Act's original figure. The National Commission's pecuniary jurisdiction under the 2021 Rules (T-412) is above Rs. 2 crore. Signed text for both lines: replace `exceeding Rs. 10 Crore` with `exceeding Rs. 2 Crore (per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021)`. Also check the state commission records for the old Rs. 1 crore / Rs. 10 crore band.
+
+## T-418: consumer_complaint display_name and description (signed 13 Oct 2026)
+
+- `display_name`: `Consumer Complaint`
+- `description`: `Consumer complaint under the Consumer Protection Act, 2019, before the District, State or National Consumer Disputes Redressal Commission`
+
+Neither names one level or cites s.35, because the section depends on the forum (T-410 Addendum 1). The card line from T-365 stays as signed. Tanvi may fold this into T-410.
