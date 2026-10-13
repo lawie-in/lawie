@@ -918,3 +918,11 @@ Quality: nothing to test in the UI — latent; no current template printed the l
 - Draft these applications in Hindi as before; the draft is marked as a starting draft.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-399 — Yearly Ink monthly; cancel keeps Ink to period end (4fe03d7, kunal, 13 Oct 2026)
+
+- On a yearly Solo or Pro plan, get your 50 or 150 Ink every month, not once a year.
+- Cancel any plan and keep your Ink (on yearly, the monthly Ink too) until the end of the period you paid for.
+- See the refund page say so, in Ajay's sentence.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

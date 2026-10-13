@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- kunal: T-399 holds the slot (T-373 CI green, run 514). Then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), then Mahak T-390 + T-416 as one merge (38316a5; all reports in, T-416 delta reviewer passed 10:10), then Mahak T-405 (small fix, tester green, 10:38), then Shashank T-404 part 1 (reviewer passed, Ajay approved, 10:44; doc-writer and one drift test finishing). T-361 data copy waits on the founder.
+- kunal: T-399 merged 4fe03d7; holds the slot until CI on it is green. Then Kunal T-413 (all four reports 09:33, 8a91b5b, stacked on T-399), then Mahak T-390 + T-416 as one merge (38316a5; all reports in, T-416 delta reviewer passed 10:10), then Mahak T-405 (small fix, tester green, 10:38), then Shashank T-404 part 1 (reviewer passed, Ajay approved, 10:44; doc-writer and one drift test finishing). T-361 data copy waits on the founder.
 
 ## Last done
 
+- kunal: T-399 merged 4fe03d7 (13 Oct 2026). Yearly Solo and Pro get their Ink monthly; a cancel keeps Ink to the end of the paid period; refund page in Ajay's sentence. packages/shared released.
 - vishal: T-373 CI green (run 514, 13 Oct 2026).
 - vishal: T-373 merged 3e031ac (13 Oct 2026). Bail drafts (regular, anticipatory, Magistrate, default) from signed text plus the user's own facts; nothing invented; named gaps in the checks list. Ajay signed 17e8b6f. ai.service.ts to Tanvi (T-410); documents.routes.ts to Mahak (T-381); briefTypes, golden files and ci.yml released. Fixtures 19-21 (Shashank) now unblocked.
 - tanvi: T-406 CI green (run 513, attempt 2, 13 Oct 2026).
