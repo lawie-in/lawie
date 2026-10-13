@@ -46,11 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- tanvi: T-357 merged 7158fc4; holds the slot until CI on it is green.
-- tanvi: T-369 (0d6bf6e, small fix tested green). Next, once CI on 7158fc4 is green.
+- tanvi: T-369 merged becba5a; holds the slot until CI on it is green. Then her FIELD_ALIASES export (small, for Mahak), then T-374.
 
 ## Last done
 
+- tanvi: T-369 merged becba5a (13 Oct 2026). CI web build job; ci.yml released to Vishal.
 - tanvi: T-357 merged 7158fc4 (13 Oct 2026). documents.routes.ts and template-engine.service.ts released (order: Kunal T-372, Mahak T-365, Vishal T-373); brief-drafter.ts: Mahak AC1, then Vishal.
 - kunal: T-370 merged 280dd3a (13 Oct 2026). "Upgrade to Pro" buys Pro; labels from /plans.
 - mahak: T-223 CI fix merged 88cbb48 (13 Oct 2026). The real-Redis tests use CI's Redis service. Test only.
