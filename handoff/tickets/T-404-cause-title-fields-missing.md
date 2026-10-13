@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (what each title needs), Rajesh/Meera (questions), then a drafting lead |
 | Mode   | Full chain |
-| Status | Ajay ruled (handoff/legal/T-404-cause-title-fields-signed.md): Alias / Ask / signed Blank per token. Waiting for Rajesh and Meera to word the questions; Ajay signs the labels. Then a drafting lead. s.138 first |
+| Status | Labels signed by Ajay (13 Oct 2026; keys applicant_name, respondent_name, respondent_address; habeas label same as PIL). Shashank after T-363 (he holds legal_notice_s138). s.138 cause title first |
 | Source | T-395 developer report |
 
 ## Problem
