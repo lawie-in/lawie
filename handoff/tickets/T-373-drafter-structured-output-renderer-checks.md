@@ -17,3 +17,7 @@
 - The checks panel reads the rendered clause ids.
 - Golden assertions for the four bail packs; Anushka's run-3 drafts are fixtures.
 T-359 and T-362 are delivered by this ticket and T-374, not by prompt or list tuning.
+
+## Arjun (13 Oct 2026): the renderer is not legal content
+
+draft-renderer.ts carries no legal wording. Its only fixed string is the signed {{MISSING: label}} marker. Rule: a change that adds a literal sentence goes to Ajay. A test asserts the renderer emits no text that isn't from a skeleton, a fact or the marker.
