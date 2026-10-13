@@ -53,8 +53,10 @@ jobs:
           filters: |
             gateway:
               - 'apps/gateway/**'
+            # T-223: auth imports @lawie/email-client at runtime (resolved from its dist).
             auth:
               - 'apps/auth/**'
+              - 'packages/email-client/**'
             drafting:
               - 'apps/drafting/**'
               - 'scripts/golden-set/**'
@@ -131,6 +133,8 @@ jobs:
             mongoms-${{ runner.os }}-7.0.24-
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
+      # T-223: auth resolves @lawie/email-client from its dist (gitignored), so build it first.
+      - run: yarn workspace @lawie/email-client build
       # T-211: download the binary once, serially, before parallel Jest workers race for it. No-op on a cache hit.
       - name: Pre-download Mongo binary
         run: yarn workspace @lawie/auth node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop()).catch(e => { console.error(e); process.exit(1); })"
@@ -223,15 +227,26 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   # ── Test Email worker (T-320) ───────────────────────────────────────────
-  # No Redis or Mongo service: the tests use createApp() (no BullMQ workers) and
-  # src/__tests__/setupEnv.ts sets every env var they read (dry-run provider).
+  # Redis service for the T-220 AC4 retry/replay test (real BullMQ queue, forced provider
+  # error, dry-run provider). No Mongo. src/__tests__/setupEnv.ts sets the other env vars.
   test-email-worker:
     name: Test — Email worker
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.email-worker == 'true' || needs.changes.outputs.shared == 'true'
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
     env:
       NODE_ENV: test
+      REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

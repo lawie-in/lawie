@@ -5,7 +5,9 @@ import { z } from 'zod';
 
 import { env } from '../config/env';
 import { logger } from '../config/logger';
+import { hasUnfilledPlaceholder, isLiveSend } from '../placeholders';
 import { sendEmail } from '../providers';
+import { safeErrorFields, userIdFromData } from '../providers/safe-log';
 import { renderTemplate } from '../templates';
 
 const bodySchema = z.object({
@@ -33,9 +35,16 @@ export async function sendHandler(req: Request, res: Response): Promise<void> {
 
   const { template, to, from, data, cc, bcc, replyTo } = parsed.data;
   const toArray = Array.isArray(to) ? to : [to];
+  const userId = userIdFromData(data);
 
   try {
     const rendered = await renderTemplate(template, data);
+    // T-223 review: no live send while the footer still has [registered address] or [PIN].
+    if (isLiveSend() && hasUnfilledPlaceholder(rendered)) {
+      logger.error({ template, userId }, 'Email not sent via /send: unfilled footer placeholders');
+      res.status(422).json({ error: 'unfilled_placeholders' });
+      return;
+    }
     const result = await sendEmail({
       to: toArray,
       from,
@@ -45,15 +54,20 @@ export async function sendHandler(req: Request, res: Response): Promise<void> {
       subject: rendered.subject,
       html: rendered.html,
       text: rendered.text,
+      meta: { template, userId },
     });
 
+    // T-220 AC6: template id, user id and counts only — never an address.
     logger.info(
-      { template, to: toArray, from, messageId: result.messageId },
+      { template, userId, recipientsCount: toArray.length, messageId: result.messageId },
       'Email sent via /send',
     );
     res.status(202).json({ messageId: result.messageId });
   } catch (err) {
-    logger.error({ err, template, to: toArray }, 'Email send failed via /send');
+    logger.error(
+      { template, userId, recipientsCount: toArray.length, err: safeErrorFields(err) },
+      'Email send failed via /send',
+    );
     res.status(500).json({ error: 'Failed to send email' });
   }
 }

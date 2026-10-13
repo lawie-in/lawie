@@ -13,6 +13,10 @@ import { SendEmailCommand, SESv2Client } from '@aws-sdk/client-sesv2';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 
+import { type EmailSendMeta, fromSesError, safeMeta, safeSendFields } from './safe-log';
+
+export type { EmailSendMeta };
+
 export interface RenderedEmail {
   to: string[];
   cc?: string[];
@@ -23,6 +27,8 @@ export interface RenderedEmail {
   subject: string;
   html: string;
   text: string;
+  /** Non-PII context for logs (template id, user id, job id). Never sent. */
+  meta?: EmailSendMeta;
 }
 
 let cachedClient: SESv2Client | null = null;
@@ -50,20 +56,18 @@ export async function sendEmail(rendered: RenderedEmail): Promise<{ messageId: s
   const cc = env.EMAIL_DEV_REDIRECT_TO ? undefined : rendered.cc;
   const bcc = env.EMAIL_DEV_REDIRECT_TO ? undefined : rendered.bcc;
 
-  // Dry-run path — short-circuit before the SES client is touched. The
-  // worker logs the rendered HTML so a developer can verify the template
-  // without provisioning SES. Stage C flips EMAIL_DRY_RUN=false.
+  // Dry-run path — short-circuit before the SES client is touched. T-220
+  // AC6: log only template id, user id and counts/flags; never an address,
+  // the subject (it can carry a name) or any of the body. Check template
+  // output with the template tests instead.
   if (env.EMAIL_DRY_RUN || env.EMAIL_PROVIDER === 'dry-run') {
     logger.info(
       {
         provider: 'dry-run',
-        to,
-        cc,
-        bcc,
-        subject: rendered.subject,
-        htmlPreview: rendered.html.slice(0, 200),
+        ...safeMeta(rendered.meta),
+        ...safeSendFields({ ...rendered, to, cc, bcc }, Boolean(env.EMAIL_DEV_REDIRECT_TO)),
       },
-      'Dry-run send — no SMTP call made',
+      'Dry-run send — no SES call made',
     );
     return { messageId: null };
   }
@@ -87,6 +91,25 @@ export async function sendEmail(rendered: RenderedEmail): Promise<{ messageId: s
     },
   });
 
-  const result = await getClient().send(cmd);
+  let result;
+  try {
+    result = await getClient().send(cmd);
+  } catch (err) {
+    // SES messages can echo the rejected address (e.g. MessageRejected), so
+    // only the error name, code and HTTP status leave this function.
+    const safe = fromSesError(err);
+    logger.warn(
+      {
+        provider: 'ses',
+        ...safeMeta(rendered.meta),
+        errorName: safe.errorName,
+        code: safe.code,
+        statusCode: safe.statusCode,
+        fault: safe.fault,
+      },
+      'SES send failed',
+    );
+    throw safe;
+  }
   return { messageId: result.MessageId ?? null };
 }

@@ -48,6 +48,14 @@ import NoMatchStep from './NoMatchStep';
 import QuestionsStep from './QuestionsStep';
 
 import { PaywallModal } from '@/components/credits/PaywallModal';
+import {
+  PrivacyBlockedNotice,
+  isPrivacyBlocked,
+  privacyFetch,
+  privacyPrecheck,
+  usePrivacyDescribedBy,
+} from '@/components/PrivacyUpdatePrompt';
+import { openVerifyInsteadOfPaywall } from '@/components/VerifyEmailPrompt';
 import { apiFetch } from '@/lib/apiFetch';
 
 type Phase =
@@ -118,6 +126,7 @@ export default function OneFlow({
   loadingKinds: boolean;
 }) {
   const router = useRouter();
+  const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
   const [phase, setPhase] = useState<Phase>('describe');
   const [description, setDescription] = useState('');
   /** Set when the document was picked from "Browse document types". */
@@ -556,6 +565,8 @@ export default function OneFlow({
     async (retry: boolean) => {
       const current = briefRef.current;
       if (!current) return;
+      // T-343: ask before leaving the brief, so focus stays on the confirm button.
+      if (await privacyPrecheck('generate')) return;
       if (!retry) runId.current = undefined;
       setGenError(null);
       setRepairing(false);
@@ -568,7 +579,7 @@ export default function OneFlow({
       const described = (lastRead.current?.text || description).trim();
 
       try {
-        const res = await apiFetch('/api/documents/generate-from-brief', {
+        const res = await privacyFetch('generate', '/api/documents/generate-from-brief', {
           ...JSON_POST,
           body: JSON.stringify({
             kind,
@@ -587,6 +598,8 @@ export default function OneFlow({
               : {}),
           }),
         });
+        // T-343: privacy re-acceptance needed; the prompt or P7 box is shown. Back to the brief.
+        if (isPrivacyBlocked(res)) return setPhase('brief');
         const header = res.headers.get('X-Run-Id');
         if (header) runId.current = header;
 
@@ -598,6 +611,11 @@ export default function OneFlow({
             balance?: { totalInk?: number; total?: number };
           };
           if (res.status === 402) {
+            // T-223 trigger 2: an unverified email user gets the verify modal, not the paywall.
+            if (await openVerifyInsteadOfPaywall()) {
+              setPhase('brief');
+              return;
+            }
             setPaywall({
               cost: data.cost ?? 1,
               balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
@@ -898,6 +916,7 @@ export default function OneFlow({
     const outstandingRound: 1 | 2 = outstandingOpen[0]?.round ?? nextRound;
     return (
       <>
+        <PrivacyBlockedNotice actionKey="generate" />
         <BriefStep
           brief={brief}
           ledger={ledger}
@@ -925,6 +944,7 @@ export default function OneFlow({
           onEditDescription={editDescription}
           onCancel={cancel}
           onConfirm={() => void generate(false)}
+          confirmDescribedBy={privacyDescribedBy}
         />
         <ChangeDocumentDialog
           open={changeOpen}

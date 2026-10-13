@@ -22,7 +22,7 @@ import { registerUser } from '../services/auth.service';
 import { grantSignupBonus } from '../services/credit-bonus.service';
 import { applyReferralCode } from '../services/referral.service';
 
-import { ledger, makeCode, rawUsers, waitFor, waitForSeed } from './t234-helpers';
+import { ledger, makeCode, rawUsers, waitFor, verifyAndSeed } from './t234-helpers';
 
 const PASSWORD = 'Passw0rdOk';
 const BONUS = 3; // Ink -> 6 units
@@ -38,7 +38,7 @@ const reg = (email: string, extra: Record<string, unknown> = {}) =>
     .send({ email, password: PASSWORD, name: 'Ref Person', ...extra });
 
 async function mkUser(email = 'u@example.com') {
-  return User.create({ email, name: 'U', password: PASSWORD, role: 'Lawyer' });
+  return User.create({ email, name: 'U', password: PASSWORD, role: 'Lawyer', emailVerified: true });
 }
 
 async function expectBalanceAndLedgerAgree(userId: unknown, expectedUnits: number, rows: number) {
@@ -61,7 +61,7 @@ describe('T-298 / Ajay gate — NEW email sign-up with a referral code credits t
     expect(res.body.data.referralApplied).toBe(true);
 
     const u = await User.findOne({ email: 'gate-pw@example.com' }).lean();
-    await waitForSeed(u!._id);
+    await verifyAndSeed(u!._id);
     const rows = await expectBalanceAndLedgerAgree(u!._id, 10 + BONUS * 2, 2);
     const ref = rows.find((r) => r.reason === 'referral_bonus')!;
     expect(ref.delta).toBe(BONUS * 2);
@@ -80,7 +80,7 @@ describe('T-298 / Ajay gate — NEW email sign-up with a referral code credits t
     const res = await reg('def5@example.com', { referralCode: 'DEFAULT5' });
     expect(res.body.data.referralApplied).toBe(true);
     const u = await User.findOne({ email: 'def5@example.com' }).lean();
-    await waitForSeed(u!._id);
+    await verifyAndSeed(u!._id);
     await expectBalanceAndLedgerAgree(u!._id, 20, 2);
   });
 
@@ -89,7 +89,7 @@ describe('T-298 / Ajay gate — NEW email sign-up with a referral code credits t
     const res = await reg('once@example.com', { referralCode: 'ONCEONLY' });
     expect(res.body.data.referralApplied).toBe(true);
     const u = await User.findOne({ email: 'once@example.com' }).lean();
-    await waitForSeed(u!._id);
+    await verifyAndSeed(u!._id);
     expect(await applyReferralCode(u!._id.toString(), 'ONCEONLY')).toBe('already_applied');
     await expectBalanceAndLedgerAgree(u!._id, 10 + BONUS * 2, 2);
     expect((await ReferralCode.findOne({ code: 'ONCEONLY' }).lean())!.uses).toBe(1);
@@ -186,7 +186,7 @@ describe('T-298 c — signup seed and referral are order-independent', () => {
     expect(res.status).toBe(201);
     expect('referralApplied' in res.body.data).toBe(false);
     const u = await User.findOne({ email: 'nocode@example.com' }).lean();
-    await waitForSeed(u!._id);
+    await verifyAndSeed(u!._id);
     await expectBalanceAndLedgerAgree(u!._id, 10, 1);
     expect(u!.role).toBe('Lawyer');
   });
@@ -206,7 +206,7 @@ describe('Ajay Addendum 1 — expired / used-up / unknown code at email sign-up'
       const u = await User.findOne({ email: 'dead@example.com' }).lean();
       expect(u).not.toBeNull();
       expect(u!.referredVia ?? null).toBeNull();
-      await waitForSeed(u!._id);
+      await verifyAndSeed(u!._id);
       const rows = await expectBalanceAndLedgerAgree(u!._id, 10, 1);
       expect(rows[0].reason).toBe('free_seed');
       expect((await ReferralCode.findOne({ code: 'DEADCODE' }).lean())!.uses).toBe(opts.uses ?? 0);
@@ -242,7 +242,7 @@ describe('T-298 / Arjun — maxUses can never be overshot', () => {
 
     const users = await User.find({ email: /^slot\d@example.com$/ }).lean();
     expect(users).toHaveLength(5);
-    for (const u of users) await waitForSeed(u._id);
+    for (const u of users) await verifyAndSeed(u._id);
     const referred = users.filter((u) => u.referredVia);
     const notReferred = users.filter((u) => !u.referredVia);
     expect(referred).toHaveLength(1);

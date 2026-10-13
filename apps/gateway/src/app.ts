@@ -1,7 +1,11 @@
 import http from 'http';
 import type { Socket } from 'net';
 
-import { INTERNAL_HEADERS, createJsonBodyErrorHandler } from '@lawie/shared';
+import {
+  CURRENT_PRIVACY_VERSION,
+  INTERNAL_HEADERS,
+  createJsonBodyErrorHandler,
+} from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import compression from 'compression';
 import cors from 'cors';
@@ -47,6 +51,41 @@ app.use((req, _res, next) => {
   next();
 });
 
+// ── T-223 (Arjun, condition 3): no /internal/ path is reachable from outside ─
+// Services mount internal routes (auth /internal/verify-email/mint, drafting
+// /internal/grant-bonus, T-115c /internal/erase-user) at their root, and the proxies forward
+// /api/<svc>/* to that root, so without this rule /api/auth/internal/... would reach them guarded
+// only by the secret. Before every proxy: any path with an `internal` segment gets the plain
+// gateway 404. Case-insensitive; percent-encoding is decoded (repeatedly, for double encoding)
+// and backslashes count as slashes, so %2Finternal%2F and \internal\ are caught too. A path
+// that will not decode is also checked in its raw encoded form. Nothing is logged: the path
+// may carry a token.
+const MAX_DECODE_PASSES = 3;
+
+export function hasInternalSegment(rawUrl: string): boolean {
+  let path = (rawUrl.split('?')[0] ?? '').split('#')[0] ?? '';
+  for (let i = 0; i < MAX_DECODE_PASSES && path.includes('%'); i += 1) {
+    try {
+      path = decodeURIComponent(path);
+    } catch {
+      if (/(^|\/|\\|%2f|%5c)internal(\/|\\|%2f|%5c|;|$)/i.test(path)) return true;
+      break;
+    }
+  }
+  return path
+    .toLowerCase()
+    .split(/[/\\]/)
+    .some((segment) => (segment.split(';')[0] ?? '').trim() === 'internal');
+}
+
+app.use((req, res, next) => {
+  if (hasInternalSegment(req.originalUrl || req.url)) {
+    res.status(404).json({ error: 'Route not found', service: 'gateway' });
+    return;
+  }
+  next();
+});
+
 // ── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'gateway', timestamp: new Date().toISOString() });
@@ -60,6 +99,18 @@ const onProxyError = (err: Error, _req: express.Request, res: http.ServerRespons
     res.end(JSON.stringify({ error: 'Service unavailable' }));
   }
 };
+
+// ── T-343: accepted privacy version, from the verified `pv` claim only ───────
+// Any client-sent copy was already deleted by the strip middleware above (it is in
+// INTERNAL_HEADERS); removeHeader is a second guard so only the claim can reach a service.
+// A token without a string `pv` (issued before T-343) forwards no header: not accepted.
+function setPrivacyVersionHeader(proxyReq: http.ClientRequest, req: express.Request): void {
+  proxyReq.removeHeader(INTERNAL_HEADERS.USER_PRIVACY_VERSION);
+  const pv = req.jwtPayload?.pv;
+  if (typeof pv === 'string' && pv) {
+    proxyReq.setHeader(INTERNAL_HEADERS.USER_PRIVACY_VERSION, pv);
+  }
+}
 
 // ── Proxy with internal headers (for authenticated routes) ──────────────────
 function createAuthenticatedProxy(target: string) {
@@ -75,6 +126,7 @@ function createAuthenticatedProxy(target: string) {
           proxyReq.setHeader(INTERNAL_HEADERS.USER_EMAIL, expressReq.jwtPayload.email);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_ROLE, expressReq.jwtPayload.role);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_PLAN, expressReq.jwtPayload.plan);
+          setPrivacyVersionHeader(proxyReq, expressReq);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_NAME, expressReq.jwtPayload.name);
         }
       },
@@ -179,6 +231,8 @@ function devBypass(req: express.Request, res: express.Response, next: express.Ne
     name: (req.headers['x-dev-user-name'] as string) ?? 'Dev User',
     role: 'Client',
     plan: (req.headers['x-dev-user-plan'] as string) ?? 'pro',
+    // T-343 (Arjun, Addendum 2.3): the dev user has accepted the current privacy version.
+    pv: CURRENT_PRIVACY_VERSION,
     type: 'access',
   };
   req.tokenHash = 'dev-bypass-no-token-hash';
@@ -237,6 +291,7 @@ app.use(
           proxyReq.setHeader(INTERNAL_HEADERS.USER_EMAIL, expressReq.jwtPayload.email);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_ROLE, expressReq.jwtPayload.role);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_PLAN, expressReq.jwtPayload.plan);
+          setPrivacyVersionHeader(proxyReq, expressReq);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_NAME, expressReq.jwtPayload.name);
         }
       },
@@ -263,6 +318,7 @@ app.use(
           proxyReq.setHeader(INTERNAL_HEADERS.USER_EMAIL, expressReq.jwtPayload.email);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_ROLE, expressReq.jwtPayload.role);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_PLAN, expressReq.jwtPayload.plan);
+          setPrivacyVersionHeader(proxyReq, expressReq);
           proxyReq.setHeader(INTERNAL_HEADERS.USER_NAME, expressReq.jwtPayload.name);
         }
       },

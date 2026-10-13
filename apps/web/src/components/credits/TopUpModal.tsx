@@ -3,6 +3,17 @@
 import { CheckCircle2, Loader2, Tag, Zap, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import {
+  PrivacyBlockedNotice,
+  isPrivacyBlocked,
+  privacyFetch,
+  usePrivacyDescribedBy,
+} from '@/components/PrivacyUpdatePrompt';
+import {
+  VerifyEmailCard,
+  isEmailVerificationRequired,
+  useNeedsEmailVerification,
+} from '@/components/VerifyEmailPrompt';
 import { notifyCreditsChanged } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
 
@@ -37,6 +48,9 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
   const [selectedId, setSelectedId] = useState<string>('topup_mid');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const privacyDescribedBy = usePrivacyDescribedBy('topup');
+  // T-223 trigger 3: unverified email user -> the verify card replaces the pay button.
+  const needsVerification = useNeedsEmailVerification();
 
   // Coupon state
   const [couponInput, setCouponInput] = useState('');
@@ -92,7 +106,7 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
     setSubmitting(true);
     setError('');
     try {
-      const orderRes = await apiFetch('/api/billing/topup/order', {
+      const orderRes = await privacyFetch('topup', '/api/billing/topup/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -100,6 +114,9 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
           ...(coupon ? { couponCode: coupon.code } : {}),
         }),
       });
+      if (isPrivacyBlocked(orderRes)) return setSubmitting(false); // T-343
+      // T-223: billing refused an unverified email user; the card now shows instead of Pay.
+      if (await isEmailVerificationRequired(orderRes)) return setSubmitting(false);
       if (!orderRes.ok) {
         const body = await orderRes.json();
         setError(body.error ?? 'Order creation failed');
@@ -299,6 +316,10 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
           {couponError && <p className="mt-1.5 text-xs text-red-600">{couponError}</p>}
         </div>
 
+        {/* T-343: P7 box above the pay button (only after a privacy block). */}
+        <div className="px-6">
+          <PrivacyBlockedNotice actionKey="topup" />
+        </div>
         {/* Footer: total + CTA */}
         <footer className="flex items-center justify-between rounded-b-2xl border-t border-slate-100 bg-slate-50 px-6 py-4">
           <div>
@@ -322,16 +343,25 @@ export function TopUpModal({ onClose }: { onClose: () => void }) {
               </p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={handlePurchase}
-            disabled={!selected || submitting}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
-            Pay with Razorpay
-          </button>
+          {!needsVerification && (
+            <button
+              type="button"
+              onClick={handlePurchase}
+              aria-describedby={privacyDescribedBy}
+              disabled={!selected || submitting}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+              Pay with Razorpay
+            </button>
+          )}
         </footer>
+        {/* T-223: in place of the pay step; the pack and total stay visible above. */}
+        {needsVerification && (
+          <div className="px-6 pb-4 pt-2">
+            <VerifyEmailCard />
+          </div>
+        )}
         {error && <p className="px-6 pb-4 text-xs text-red-600">{error}</p>}
       </div>
     </div>

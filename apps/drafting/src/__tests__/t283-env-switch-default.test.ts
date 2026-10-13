@@ -77,10 +77,17 @@ describe.each(SWITCHES)('$name switch env default', ({ key, envKey, read }) => {
     expect(await read(USER)).toBe(true);
   });
 
-  it('user-list setting + env on -> only listed users', async () => {
+  it('legacy user-list setting + env on -> code default (on) for everyone, T-356', async () => {
     envOnlyFor(envKey);
     await AppSetting.create({ key, value: `someone, ${USER}` });
     expect(await read(USER)).toBe(true);
+    expect(await read(OTHER)).toBe(true);
+  });
+
+  it('legacy user-list setting + env off -> code default (off) for everyone, T-356', async () => {
+    setEnv('off', 'off');
+    await AppSetting.create({ key, value: `someone, ${USER}` });
+    expect(await read(USER)).toBe(false);
     expect(await read(OTHER)).toBe(false);
   });
 
@@ -185,10 +192,10 @@ describe('env schema validation', () => {
     }
   };
 
-  it('unset keys default to off', () => {
+  it('unset keys: describe-first defaults to on (T-356), fact-ledger to off', () => {
     const r = load(undefined, undefined);
     expect(r.exited).toBe(false);
-    expect(r.loaded!.env.FEATURE_DEFAULT_DESCRIBE_FIRST).toBe('off');
+    expect(r.loaded!.env.FEATURE_DEFAULT_DESCRIBE_FIRST).toBe('on');
     expect(r.loaded!.env.FEATURE_DEFAULT_FACT_LEDGER).toBe('off');
   });
 

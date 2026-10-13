@@ -149,7 +149,7 @@ Applicant
 | compliance_details | Details of compliance / alleged breach | textarea | no | compliance clause |
 | medical_condition | Medical condition (if relevant) | textarea | no | inherited averment |
 | earlier_applications | Earlier modification applications (court, date, result) | textarea | no | disclosure |
-| advocate_name / advocate_enrolment | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -204,3 +204,5 @@ The "Notes" section is the drafter's reasoning, kept for the record; it is not t
 | `court_levels` values | T-240 settles one list; the lead maps these to it |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. S = 1 Ink. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

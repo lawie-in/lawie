@@ -6,23 +6,51 @@
  * per queue so the high-tier queue isn't starved by low-tier backlog.
  *
  * Failure handling:
- *  - Render error                 → permanent fail (no retry)
- *  - SES 4xx (bad recipient etc.) → permanent fail
- *  - SES 5xx / network            → retry with exponential backoff per
- *                                   producer's `attempts` setting
- *  - Sentry breadcrumb on every enqueue / send.start / send.success / send.failure
+ *  - Any thrown error fails the attempt; BullMQ retries with the producer's
+ *    `attempts` / exponential `backoff` (packages/email-client), then keeps
+ *    the job as failed for 30 days for scripts/replay.ts.
+ *  - The processor always rethrows a sanitised error (EmailSendError from the
+ *    provider, or toSentrySafeError: name, code and stack frames, no message),
+ *    so BullMQ's stored failedReason holds no address or template data.
+ *  - Sentry breadcrumb on every send.start / send.success / send.failure
+ *
+ * T-220 AC6: logs and Sentry carry template id, user id (data.userId, when
+ * the producer sets it), job id and counts. Never an address or the body.
+ *
+ * T-223 (Arjun, condition 2): an auth.verifyEmail job carries the userId only.
+ * The processor asks auth (POST AUTH_SERVICE_URL/internal/verify-email/mint,
+ * INTERNAL_SECRET header) for the address, name and a freshly minted link, then
+ * renders and sends. A 409 (already verified, or a Google account) or a 404 (no
+ * such user) completes the job with no send and no Sentry event. The mint
+ * response is never logged, never put in job data, meta, the return value,
+ * failedReason or Sentry. A BullMQ retry mints again; the newest link wins.
+ *
+ * Test seam (T-220 AC4): createProcessor(send, mint) takes the provider send
+ * function and the verify-link mint function, and startWorkers({ connection, send }) takes both the Redis
+ * connection and the send function, so a test can force a provider error
+ * against its own Redis without jest.mock. Importing this module opens no
+ * Redis connection; startWorkers() does, unless one is passed in.
  */
 import { EMAIL_QUEUE_NAMES, type EmailTemplate } from '@lawie/email-client';
+import { INTERNAL_HEADERS } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
-import { Worker, type Processor, type Job } from 'bullmq';
+import {
+  UnrecoverableError,
+  Worker,
+  type ConnectionOptions,
+  type Processor,
+  type Job,
+} from 'bullmq';
 import Redis from 'ioredis';
 
 import { env } from './config/env';
 import { logger } from './config/logger';
-import { sendEmail } from './providers';
+import { hasUnfilledPlaceholder, isLiveSend } from './placeholders';
+import { sendEmail, type SendEmailFn } from './providers';
+import { safeErrorFields, toSentrySafeError, userIdFromData } from './providers/safe-log';
 import { renderTemplate } from './templates';
 
-interface EmailJobData {
+export interface EmailJobData {
   template: EmailTemplate;
   to: string[];
   cc: string[];
@@ -31,61 +59,218 @@ interface EmailJobData {
   data: Record<string, unknown>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const connection = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-}) as any;
+/**
+ * True when BullMQ will NOT retry this job after the current attempt fails.
+ * Mirrors Job.shouldRetryJob() in bullmq 5.x: inside the processor
+ * `attemptsMade` counts the attempts that already finished (it is
+ * incremented in moveToFailed, after the processor throws), so the current
+ * attempt is `attemptsMade + 1`, and BullMQ retries only while
+ * `attemptsMade + 1 < opts.attempts`. A missing `opts.attempts` means one
+ * attempt. An UnrecoverableError is never retried either. (BullMQ also skips
+ * retries for job.discard(), but `discarded` is protected and this worker
+ * never calls discard().)
+ */
+export function isFinalAttempt(job: Job, err?: unknown): boolean {
+  if ((err as { name?: unknown } | undefined)?.name === 'UnrecoverableError') return true;
+  return job.attemptsMade + 1 >= (job.opts?.attempts ?? 1);
+}
 
-const processor: Processor<EmailJobData> = async (job: Job<EmailJobData>) => {
-  const { template, to, cc, bcc, replyTo, data } = job.data;
-  Sentry.addBreadcrumb({
-    category: 'email.send.start',
-    level: 'info',
-    data: {
-      jobId: job.id,
-      queue: job.queueName,
-      template,
-      recipientsCount: to.length,
-    },
-  });
+// ── T-223: verify-link mint (auth) ──────────────────────────────────────────
 
-  try {
-    const rendered = await renderTemplate(template, data);
-    const result = await sendEmail({
-      to,
-      cc,
-      bcc,
-      replyTo,
-      subject: rendered.subject,
-      html: rendered.html,
-      text: rendered.text,
-    });
-    Sentry.addBreadcrumb({
-      category: 'email.send.success',
-      level: 'info',
-      data: { jobId: job.id, template, messageId: result.messageId },
-    });
-    logger.info(
-      { jobId: job.id, template, queue: job.queueName, messageId: result.messageId },
-      'Email sent',
-    );
-    return { messageId: result.messageId };
-  } catch (err) {
-    Sentry.addBreadcrumb({
-      category: 'email.send.failure',
-      level: 'error',
-      data: { jobId: job.id, template, error: (err as Error).message },
-    });
-    Sentry.captureException(err);
-    logger.error({ err, jobId: job.id, template }, 'Email send failed');
-    throw err;
+/** What auth's mint route returns. PII and a live credential: never log any of it. */
+export interface MintedVerifyLink {
+  email: string;
+  name: string;
+  link: string;
+}
+
+/**
+ * Asks auth to mint a verify link for userId. Returns null when auth refuses with 409
+ * (already verified, or a Google account) or 404 (no such user): the job is dropped.
+ * Throws a value-free error on any other failure, so BullMQ retries.
+ */
+export type MintVerifyLinkFn = (userId: string) => Promise<MintedVerifyLink | null>;
+
+/** Value-free error for a failed mint call: name + code only, no URL, no body. */
+class VerifyMintError extends Error {
+  readonly code: string;
+  constructor(code: string) {
+    super(`verify-email mint failed: ${code}`);
+    this.name = 'VerifyMintError';
+    this.code = code;
   }
+}
+
+const MINT_TIMEOUT_MS = 10_000;
+
+export const mintVerifyLinkViaAuth: MintVerifyLinkFn = async (userId) => {
+  const res = await fetch(`${env.AUTH_SERVICE_URL}/internal/verify-email/mint`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      [INTERNAL_HEADERS.SECRET]: env.INTERNAL_SECRET,
+    },
+    body: JSON.stringify({ userId }),
+    signal: AbortSignal.timeout(MINT_TIMEOUT_MS),
+  });
+  if (res.status === 409 || res.status === 404) return null;
+  if (!res.ok) throw new VerifyMintError(`HTTP_${res.status}`);
+  const body = (await res.json().catch(() => null)) as Partial<MintedVerifyLink> | null;
+  if (
+    !body ||
+    typeof body.email !== 'string' ||
+    body.email.length === 0 ||
+    typeof body.link !== 'string' ||
+    body.link.length === 0
+  ) {
+    throw new VerifyMintError('BAD_RESPONSE');
+  }
+  return {
+    email: body.email,
+    name: typeof body.name === 'string' ? body.name : '',
+    link: body.link,
+  };
 };
+
+function isDryRun(): boolean {
+  return env.EMAIL_DRY_RUN || env.EMAIL_PROVIDER === 'dry-run';
+}
+
+const UNFILLED_PLACEHOLDER_MESSAGE = 'email has unfilled footer placeholders; not sent';
+/** Errors raised by the placeholder guard: rethrown as-is, without the Sentry/log path. */
+const placeholderRefusals = new WeakSet<object>();
+
+export function createProcessor(
+  send: SendEmailFn = sendEmail,
+  mint: MintVerifyLinkFn = mintVerifyLinkViaAuth,
+): Processor<EmailJobData> {
+  return async (job: Job<EmailJobData>) => {
+    const { template, cc, bcc, replyTo, data } = job.data;
+    const userId = userIdFromData(data);
+    const jobId = job.id;
+    const attempt = job.attemptsMade + 1;
+    const isVerify = template === 'auth.verifyEmail';
+    Sentry.addBreadcrumb({
+      category: 'email.send.start',
+      level: 'info',
+      data: {
+        jobId,
+        queue: job.queueName,
+        template,
+        userId,
+        attempt,
+        recipientsCount: job.data.to.length,
+      },
+    });
+
+    try {
+      let to = job.data.to;
+      let renderData = data;
+      if (isVerify) {
+        // T-223: the address, name and link come from auth at send time, never from the job.
+        if (!userId) throw new UnrecoverableError('auth.verifyEmail job without a userId');
+        const minted = await mint(userId);
+        if (!minted) {
+          logger.info(
+            { jobId, template, userId },
+            'Verify email not sent: already verified, Google account or no such user',
+          );
+          return { skipped: 'not_eligible' };
+        }
+        to = [minted.email];
+        renderData = { name: minted.name, verifyUrl: minted.link, userId };
+      }
+
+      const rendered = await renderTemplate(template, renderData);
+      // T-223 review / Ajay: no live send while the footer still has [registered address] or
+      // [PIN] (any template). Dry run is unaffected. Fixed message, ids only, no Sentry.
+      if (isLiveSend() && hasUnfilledPlaceholder(rendered)) {
+        logger.error({ userId, jobId }, 'Email not sent: unfilled footer placeholders');
+        const refusal = new UnrecoverableError(UNFILLED_PLACEHOLDER_MESSAGE);
+        placeholderRefusals.add(refusal);
+        throw refusal;
+      }
+      const result = await send({
+        to,
+        cc: isVerify ? [] : cc,
+        bcc: isVerify ? [] : bcc,
+        replyTo: isVerify ? undefined : replyTo,
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+        meta: { template, userId, jobId },
+      });
+      Sentry.addBreadcrumb({
+        category: 'email.send.success',
+        level: 'info',
+        data: { jobId, template, userId, messageId: result.messageId },
+      });
+      logger.info(
+        { jobId, template, userId, queue: job.queueName, messageId: result.messageId },
+        'Email sent',
+      );
+      // T-223 AC7: in dry run, one line with the userId only (no address, token or link).
+      if (isVerify && isDryRun()) logger.info({ userId }, 'verify email sent');
+      return { messageId: result.messageId };
+    } catch (err) {
+      // Already logged (ids only) where it was raised; no Sentry event, no retry.
+      if (placeholderRefusals.has(err as object)) throw err;
+      const errFields = safeErrorFields(err);
+      Sentry.addBreadcrumb({
+        category: 'email.send.failure',
+        level: 'error',
+        data: { jobId, template, userId, attempt, error: errFields },
+      });
+      // Name/code/status only, no original message: this is what Sentry gets
+      // AND what BullMQ stores as failedReason (kept 30 days). Throwing it
+      // still fails the attempt, so BullMQ retries as before.
+      const safeErr = toSentrySafeError(err);
+      // T-353: one Sentry event per dead job, not one per retry. The
+      // breadcrumb above and the log line below still fire on every attempt.
+      const finalAttempt = isFinalAttempt(job, safeErr);
+      if (finalAttempt) {
+        Sentry.captureException(safeErr, {
+          tags: { template, queue: job.queueName },
+          extra: { jobId, userId, attempt, maxAttempts: job.opts?.attempts ?? 1 },
+        });
+      }
+      logger.error(
+        { jobId, template, userId, attempt, finalAttempt, err: errFields },
+        'Email send failed',
+      );
+      throw safeErr;
+    }
+  };
+}
 
 export const workers: Worker[] = [];
 
-export function startWorkers(): void {
+let ownConnection: Redis | null = null;
+
+function defaultConnection(): Redis {
+  if (!ownConnection) {
+    ownConnection = new Redis(env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    });
+  }
+  return ownConnection;
+}
+
+export interface StartWorkersOptions {
+  /** Redis connection for BullMQ; defaults to one built from REDIS_URL. */
+  connection?: ConnectionOptions;
+  /** Provider send function; defaults to the configured provider. */
+  send?: SendEmailFn;
+  /** T-223 verify-link mint function; defaults to the call to auth's internal route. */
+  mint?: MintVerifyLinkFn;
+}
+
+export function startWorkers(options: StartWorkersOptions = {}): Worker[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const connection = options.connection ?? (defaultConnection() as any);
+  const processor = createProcessor(options.send, options.mint);
+  const started: Worker[] = [];
   for (const queueName of [EMAIL_QUEUE_NAMES.high, EMAIL_QUEUE_NAMES.low]) {
     const worker = new Worker<EmailJobData>(queueName, processor, {
       connection,
@@ -95,15 +280,35 @@ export function startWorkers(): void {
     worker.on('completed', (job, result) => {
       logger.debug({ jobId: job.id, queue: queueName, result }, 'Job completed');
     });
+    // T-353: without an 'error' listener a BullMQ/Redis error is emitted
+    // unhandled and reaches process-level handlers with the raw error.
+    worker.on('error', (err) => {
+      logger.error({ queue: queueName, err: safeErrorFields(err) }, 'Worker error');
+    });
     worker.on('failed', (job, err) => {
-      logger.warn({ jobId: job?.id, queue: queueName, err: err.message }, 'Job failed');
+      logger.warn(
+        {
+          jobId: job?.id,
+          queue: queueName,
+          template: job?.data.template,
+          attemptsMade: job?.attemptsMade,
+          err: safeErrorFields(err),
+        },
+        'Job failed',
+      );
     });
     workers.push(worker);
+    started.push(worker);
     logger.info({ queue: queueName, concurrency: env.EMAIL_WORKER_CONCURRENCY }, 'Worker started');
   }
+  return started;
 }
 
 export async function stopWorkers(): Promise<void> {
   await Promise.all(workers.map((w) => w.close()));
-  await connection.quit();
+  workers.length = 0;
+  if (ownConnection) {
+    await ownConnection.quit();
+    ownConnection = null;
+  }
 }

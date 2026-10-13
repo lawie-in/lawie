@@ -1,6 +1,10 @@
 /**
- * Worker env validation — HARD-FAIL on missing required keys per ADR-007 §6.
+ * Worker env validation — HARD-FAIL on missing required keys (T-220 AC8).
  * Optional keys default to sensible Phase-1 values.
+ *
+ * On failure the process prints ONE line to stderr naming every missing or
+ * invalid setting (names only, never a value) and exits 1, so a pm2 crash
+ * loop shows the cause in `pm2 logs lawie-email-worker`.
  */
 import { z } from 'zod';
 
@@ -19,12 +23,13 @@ const schema = z.object({
     .transform((v) => v === 'true'),
 
   // AWS SES (required when EMAIL_PROVIDER === 'ses' AND EMAIL_DRY_RUN is false —
-  // we don't enforce that here; the SES adapter throws if creds are missing).
+  // enforced by validateEnv() below via REQUIRED_BY_PROVIDER).
   AWS_REGION: z.string().default('ap-south-1'),
   AWS_SES_ACCESS_KEY_ID: z.string().optional(),
   AWS_SES_SECRET_ACCESS_KEY: z.string().optional(),
 
-  // SMTP (required when EMAIL_PROVIDER === 'smtp' AND EMAIL_DRY_RUN is false)
+  // SMTP (required when EMAIL_PROVIDER === 'smtp' AND EMAIL_DRY_RUN is false —
+  // enforced by validateEnv() below via REQUIRED_BY_PROVIDER)
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().optional(),
@@ -44,6 +49,11 @@ const schema = z.object({
   // Internal service trust
   INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
 
+  // T-223 (Arjun): auth.verifyEmail jobs carry the userId only; the worker asks auth
+  // (POST /internal/verify-email/mint) for the address, name and link. Required in every
+  // mode, dry-run included, so a misconfigured worker fails at start, not on the first job.
+  AUTH_SERVICE_URL: z.string().url('AUTH_SERVICE_URL must be a URL'),
+
   // BullMQ
   EMAIL_QUEUE_PREFIX: z.string().default('lawie'),
   EMAIL_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
@@ -56,14 +66,103 @@ const schema = z.object({
   SENTRY_DSN: z.string().default(''),
 });
 
-const parsed = schema.safeParse(process.env);
+export type Env = z.infer<typeof schema>;
+export type EmailProvider = Env['EMAIL_PROVIDER'];
 
-if (!parsed.success) {
-  console.error('❌ Email Worker — invalid env:');
-  for (const issue of parsed.error.issues) {
-    console.error(`  • ${issue.path.join('.')}: ${issue.message}`);
+/**
+ * Settings each provider needs on top of the common ones (REDIS_URL,
+ * INTERNAL_SECRET, AUTH_SERVICE_URL), when it actually sends. Dry-run (EMAIL_PROVIDER=dry-run
+ * or EMAIL_DRY_RUN=true) needs nothing extra.
+ */
+export const REQUIRED_BY_PROVIDER: Record<EmailProvider, readonly string[]> = {
+  ses: ['AWS_SES_ACCESS_KEY_ID', 'AWS_SES_SECRET_ACCESS_KEY'],
+  smtp: ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'],
+  'dry-run': [],
+};
+
+export type EnvValidation = { ok: true; env: Env } | { ok: false; message: string };
+
+const isBlank = (v: string | undefined): boolean => v === undefined || v.trim() === '';
+
+/** Reason for an invalid (present but unusable) setting. Never includes the value. */
+function describeIssue(issue: z.ZodIssue): string {
+  switch (issue.code) {
+    case z.ZodIssueCode.too_small:
+      return `must be at least ${String(issue.minimum)} chars`;
+    case z.ZodIssueCode.invalid_enum_value:
+      return `must be one of ${issue.options.join('|')}`;
+    case z.ZodIssueCode.invalid_string:
+      return issue.validation === 'email' ? 'must be an email address' : 'invalid format';
+    case z.ZodIssueCode.invalid_union:
+    case z.ZodIssueCode.invalid_literal:
+      return 'invalid value';
+    case z.ZodIssueCode.invalid_type:
+      return `must be a ${issue.expected}`;
+    default:
+      return 'invalid value';
   }
+}
+
+/**
+ * Pure validation — no exit, no output — so it can be unit-tested with any
+ * env object. Returns the parsed env, or a single-line message that names the
+ * missing/invalid settings without printing any value.
+ */
+export function validateEnv(source: NodeJS.ProcessEnv): EnvValidation {
+  const parsed = schema.safeParse(source);
+  const missing: string[] = [];
+  const invalid: string[] = [];
+  const addMissing = (name: string) => {
+    if (!missing.includes(name)) missing.push(name);
+  };
+
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      const name = issue.path.join('.') || '(root)';
+      if (isBlank(source[name])) addMissing(name);
+      else if (!invalid.some((i) => i.startsWith(`${name} `))) {
+        invalid.push(`${name} (${describeIssue(issue)})`);
+      }
+    }
+  }
+
+  // Provider-specific requirements. If the schema failed, fall back to the
+  // individual fields so a bad REDIS_URL doesn't hide a missing SES key.
+  const providerResult = parsed.success
+    ? { success: true as const, data: parsed.data.EMAIL_PROVIDER }
+    : schema.shape.EMAIL_PROVIDER.safeParse(source.EMAIL_PROVIDER);
+  const dryRunResult = parsed.success
+    ? { success: true as const, data: parsed.data.EMAIL_DRY_RUN }
+    : schema.shape.EMAIL_DRY_RUN.safeParse(source.EMAIL_DRY_RUN);
+  const provider = providerResult.success ? providerResult.data : undefined;
+  const dryRun = dryRunResult.success ? dryRunResult.data : false;
+
+  if (provider && !dryRun) {
+    for (const name of REQUIRED_BY_PROVIDER[provider]) {
+      if (isBlank(source[name])) addMissing(name);
+    }
+  }
+
+  if (parsed.success && missing.length === 0) return { ok: true, env: parsed.data };
+
+  const mode = provider ? `EMAIL_PROVIDER=${provider}${dryRun ? ', EMAIL_DRY_RUN=true' : ''}` : '';
+  const parts: string[] = [];
+  if (missing.length > 0) parts.push(`missing required setting(s): ${missing.join(', ')}`);
+  if (invalid.length > 0) parts.push(`invalid setting(s): ${invalid.join(', ')}`);
+  return {
+    ok: false,
+    message:
+      `[email-worker] FATAL: cannot start${mode ? ` (${mode})` : ''}; ${parts.join('; ')}. ` +
+      'Set them in the env file and restart. No email will be sent until this is fixed.',
+  };
+}
+
+const result = validateEnv(process.env);
+
+if (!result.ok) {
+  // One line on stderr, names only. The logger is not usable yet (it reads env).
+  console.error(result.message);
   process.exit(1);
 }
 
-export const env = parsed.data;
+export const env: Env = result.env;

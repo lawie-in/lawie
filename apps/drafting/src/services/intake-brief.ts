@@ -186,6 +186,14 @@ interface DateKind {
   label: string;
   subject: string[];
   tie?: string[];
+  /**
+   * T-342: a kind added for one pack's own facts. It counts only when the
+   * pack being read has a fact of this kind, so every other reading (and any
+   * reading with no pack) is as before it was added.
+   */
+  pack_only?: boolean;
+  /** T-342: words that stop these words being this kind of date (Ajay: "dishonour memo dated X" is the memo's own date). */
+  not_with?: string[];
   facts: string[];
 }
 
@@ -211,6 +219,116 @@ function hasCue(normText: string, cue: string): boolean {
   return normText.includes(c);
 }
 
+/** Where a cue stands in the text, by the same rule as `hasCue`: [start, end) of each match. */
+function cueSpans(normText: string, cue: string): Array<[number, number]> {
+  const c = normalise(cue);
+  if (c.length === 0) return [];
+  const spans: Array<[number, number]> = [];
+  if (/^[\x20-\x7e]+$/.test(c)) {
+    const body = escapeRegExp(c).replace(/ /g, ' +');
+    for (const m of normText.matchAll(new RegExp(`(?<![a-z0-9])${body}(?![a-z0-9])`, 'g'))) {
+      spans.push([m.index as number, (m.index as number) + m[0].length]);
+    }
+    return spans;
+  }
+  for (let at = normText.indexOf(c); at !== -1; at = normText.indexOf(c, at + 1)) {
+    spans.push([at, at + c.length]);
+  }
+  return spans;
+}
+
+/** The cues of a kind (subject and tie) these normalised words carry. */
+function cuesCarried(normText: string, kind: DateKind): string[] {
+  return [...kind.subject, ...(kind.tie ?? [])].filter((cue) => hasCue(normText, cue));
+}
+
+/** True when every place each cue stands lies inside one of the outer spans. */
+function standsInside(normText: string, cues: string[], outer: Array<[number, number]>): boolean {
+  return cues.every((cue) =>
+    cueSpans(normText, cue).every(([s, e]) => outer.some(([os, oe]) => os <= s && e <= oe)),
+  );
+}
+
+/**
+ * T-342 part 2: longest-cue precedence. Of the kinds whose cues these words
+ * carry, one wins when one of its subject cues holds every cue of every other
+ * kind, each strictly shorter and standing inside that cue where it is written.
+ * "received the return memo" holds "return memo" (dishonour) and "received"
+ * (served), so memo_received wins. Otherwise nothing changes: every kind is
+ * returned and the caller treats the words as ambiguous.
+ */
+function byLongestCue(words: string, kinds: string[]): string[] {
+  if (kinds.length < 2) return kinds;
+  const text = normalise(words);
+  for (const winnerId of kinds) {
+    const winner = DATE_KIND_BY_ID.get(winnerId);
+    if (!winner) continue;
+    for (const cue of winner.subject) {
+      const outer = cueSpans(text, cue);
+      if (outer.length === 0) continue;
+      const length = normalise(cue).length;
+      const holdsAll = kinds
+        .filter((k) => k !== winnerId)
+        .every((otherId) => {
+          const other = DATE_KIND_BY_ID.get(otherId);
+          if (!other) return false;
+          const cues = cuesCarried(text, other);
+          return cues.every((c) => normalise(c).length < length) && standsInside(text, cues, outer);
+        });
+      if (holdsAll) return [winnerId];
+    }
+  }
+  return kinds;
+}
+
+/**
+ * The kinds of date these words give, read for a pack whose date facts have
+ * the kinds in `scope`. A kind not in `scope` is set aside only when every cue
+ * of it stands inside a subject cue of a kind in `scope` (as "till" and "valid
+ * till" of end stand inside "valid till" of cheque_validity); a kind with a cue
+ * of its own (such as "served" in "the notice sent to him was served on X")
+ * still counts, so the clause stays ambiguous. Then longest-cue precedence.
+ * A pack_only kind not in `scope` is never seen at all. With no scope it is
+ * `dateKindsIn` with no pack_only kind: exactly as before T-342.
+ */
+function kindsReadFor(words: string, scope?: ReadonlySet<string>): string[] {
+  const kinds = dateKindsIn(words, scope);
+  if (!scope) return kinds;
+  const text = normalise(words);
+  const inScope = kinds.filter((k) => scope.has(k));
+  const outer = inScope.flatMap((id) => {
+    const kind = DATE_KIND_BY_ID.get(id) as DateKind;
+    return kind.subject.flatMap((cue) => cueSpans(text, cue));
+  });
+  const ownCue = kinds.filter(
+    (id) =>
+      !scope.has(id) &&
+      !standsInside(text, cuesCarried(text, DATE_KIND_BY_ID.get(id) as DateKind), outer),
+  );
+  const counted = [...inScope, ...ownCue];
+  const won = byLongestCue(words, counted);
+  // Precedence only ever picks a kind of this pack. A kind off the pack that
+  // wins leaves the words as ambiguous as they were before T-342.
+  if (won.length === 1 && counted.length > 1 && !scope.has(won[0])) return counted;
+  return won;
+}
+
+/**
+ * The kinds of every date fact on a checklist, including two facts of one
+ * kind (which are always asked): their cues still mark a clause as theirs.
+ */
+function dateKindsOnChecklist(checklist: ChecklistItem[]): Set<string> {
+  const kinds = new Set<string>();
+  for (const i of checklist) {
+    if (i.kind !== 'date') continue;
+    if (i.dateKind) kinds.add(i.dateKind);
+    const name = i.key.slice(i.key.lastIndexOf('.') + 1);
+    const kind = DATE_KIND_OF_FACT.get(name);
+    if (kind) kinds.add(kind.id);
+  }
+  return kinds;
+}
+
 /** True when the words carry a subject cue of this kind and, where it has them, a tie cue. */
 export function carriesDateKind(words: string, kindId: string): boolean {
   const kind = DATE_KIND_BY_ID.get(kindId);
@@ -218,12 +336,18 @@ export function carriesDateKind(words: string, kindId: string): boolean {
   const text = normalise(words);
   if (!kind.subject.some((cue) => hasCue(text, cue))) return false;
   if (kind.tie && kind.tie.length > 0 && !kind.tie.some((cue) => hasCue(text, cue))) return false;
+  if (kind.not_with && kind.not_with.some((cue) => hasCue(text, cue))) return false;
   return true;
 }
 
-/** Every kind of date these words carry a cue for. */
-export function dateKindsIn(words: string): string[] {
-  return DATE_KINDS.filter((k) => carriesDateKind(words, k.id)).map((k) => k.id);
+/**
+ * Every kind of date these words carry a cue for. A pack_only kind (T-342)
+ * counts only when `scope` (the kinds of a pack's date facts) holds it.
+ */
+export function dateKindsIn(words: string, scope?: ReadonlySet<string>): string[] {
+  return DATE_KINDS.filter(
+    (k) => (!k.pack_only || scope?.has(k.id) === true) && carriesDateKind(words, k.id),
+  ).map((k) => k.id);
 }
 
 export function dateKindLabel(kindId: string): string | null {
@@ -245,8 +369,13 @@ export interface StatedDate {
  * cues of exactly one kind gives that date its meaning. This is the same test
  * as T-127, section 6.2, with one more limit: no other kind's cue at all.
  * Anything else has no meaning here and is asked.
+ *
+ * T-342 part 2: given `kinds` (the kinds of one pack's date facts), a kind not
+ * in it counts only when it has a cue of its own, and when several kinds still
+ * match, longest-cue precedence picks one or none (`kindsReadFor`). Without
+ * `kinds` the reading is exactly as before.
  */
-export function statedDates(text: string): StatedDate[] {
+export function statedDates(text: string, kinds?: ReadonlySet<string>): StatedDate[] {
   const clauses = text
     // A full stop ends a clause only before a letter, so "No. 124" and "15.03.2026" stay whole.
     // A comma ends one unless a year follows, so "15th March, 2026" stays whole.
@@ -261,8 +390,8 @@ export function statedDates(text: string): StatedDate[] {
   for (const clause of clauses) {
     const dates = datesInText(clause);
     if (dates.length === 0) continue;
-    const kinds = dates.length === 1 ? dateKindsIn(clause) : [];
-    const kind = kinds.length === 1 ? kinds[0] : null;
+    const found = dates.length === 1 ? kindsReadFor(clause, kinds) : [];
+    const kind = found.length === 1 ? found[0] : null;
     for (const value of dates) {
       const earlier = byDate.get(value);
       if (earlier && earlier.kind !== kind) twice.add(value);
@@ -836,7 +965,19 @@ function checkDate(
   if (inQuote.length > 1) return fail('two_dates_in_quote');
   if (inQuote[0] !== value) return fail('not_in_quote');
   if (!carriesDateKind(quote, item.dateKind)) return fail('no_meaning_in_quote');
-  if (otherKinds.some((k) => carriesDateKind(quote, k))) return fail('two_meanings_in_quote');
+  // T-342 part 2: another checklist kind's cue does not drop the date when this
+  // kind's cue holds it, as "received the return memo" holds "return memo".
+  // The quote is then read as statedDates reads it, so a kind off the checklist
+  // with a cue of its own ("served" in "received the return memo, notice served
+  // on X") still drops it. A quote with no other checklist kind is checked as before.
+  // A pack_only kind (L2, L4, L5 on s138) is always read this way, so "notice
+  // sent ... served on X" never gives L5 (Ajay). Other kinds keep the check
+  // they had before T-342 when no other checklist kind is in the quote.
+  const alsoMatched = otherKinds.filter((k) => carriesDateKind(quote, k));
+  if (alsoMatched.length > 0 || DATE_KIND_BY_ID.get(item.dateKind)?.pack_only === true) {
+    const won = kindsReadFor(quote, new Set([item.dateKind, ...otherKinds]));
+    if (won.length !== 1 || won[0] !== item.dateKind) return fail('two_meanings_in_quote');
+  }
   if (usedQuotes.get(value)?.has(normalise(quote))) return fail('date_used_twice');
   return { ok: true, value };
 }
@@ -948,7 +1089,8 @@ export function datesReadByCode(
     const item = checklist.find((i) => i.key === key);
     if (item?.kind === 'date' && typeof v.value === 'string') placedDates.add(v.value);
   }
-  for (const stated of statedDates(text)) {
+  // T-342 part 2: read for this checklist, so another pack's kinds do not collide.
+  for (const stated of statedDates(text, dateKindsOnChecklist(checklist))) {
     if (stated.kind === null || stated.words === '' || placedDates.has(stated.value)) continue;
     const targets = checklist.filter((i) => i.modelReadable && i.dateKind === stated.kind);
     if (targets.length !== 1) continue;

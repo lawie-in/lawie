@@ -1,17 +1,31 @@
 import crypto from 'crypto';
 
-import { RegisterPayload, LoginPayload, refreshSessionKey } from '@lawie/shared';
+import {
+  RegisterPayload,
+  LoginPayload,
+  refreshSessionKey,
+  sessionKey,
+  getPrivacyVersionSummary,
+} from '@lawie/shared';
 import bcrypt from 'bcryptjs';
 
 import logger from '../config/logger';
 import { AppError } from '../middleware/errorHandler';
-import { User, IUser, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
+import { Session } from '../models/Session.model';
+import {
+  User,
+  IUser,
+  CURRENT_PRIVACY_VERSION,
+  CURRENT_TERMS_VERSION,
+  privacySignupAcceptance,
+} from '../models/User.model';
 import { buildSignupSource, UtmTags } from '../validators/auth.validator';
 
 import { tryGrantDailyLoginBonus, grantSignupBonus } from './credit-bonus.service';
 import { generateTokenPair, verifyRefreshToken } from './jwt.service';
 import { applyReferralCode } from './referral.service';
 import { createSession, deleteSession, hashToken, SessionMeta } from './session.service';
+import { requestVerifyEmail } from './verify-email.service';
 
 // T-299 (Arjun ruling 2): login must not reveal whether an account exists, by status or by
 // time. One 401 text for unknown email, wrong password and no password on the record; each of
@@ -36,6 +50,7 @@ export async function registerUser(
     throw new AppError(409, 'An account with this email already exists');
   }
 
+  const acceptedAt = new Date();
   const user = await User.create({
     email: payload.email,
     password: payload.password,
@@ -46,10 +61,12 @@ export async function registerUser(
     role: 'Lawyer',
     // T-234 — the sign-up form shows the Terms line under the submit button.
     // Server time and server version only; nothing here comes from the request.
-    termsAcceptedAt: new Date(),
+    termsAcceptedAt: acceptedAt,
     termsVersion: CURRENT_TERMS_VERSION,
-    privacyVersion: CURRENT_PRIVACY_VERSION,
     acceptedVia: 'password',
+    // T-343 (Ajay §4) — privacyVersion, privacyAcceptedAt, via 'signup' and the first history
+    // row. Sign-up never shows the re-acceptance prompt.
+    ...privacySignupAcceptance(acceptedAt),
     // T-242 — campaign tags, only on account creation, with the server time. Sanitized again
     // here so a caller that skips the validator can't store a raw value. Never logged.
     signupSource: buildSignupSource({
@@ -61,6 +78,21 @@ export async function registerUser(
 
   // Signup bonus — non-blocking, never fails registration
   void grantSignupBonus(user._id.toString());
+
+  // T-223 AC1 — queue the verify email (userId only; the resend cap applies). Fire-and-forget:
+  // it never fails or slows registration. 'limited' or 'unavailable' just means the user resends
+  // from the prompt. Logs the outcome kind and userId only.
+  const newUserId = user._id.toString();
+  void requestVerifyEmail(newUserId)
+    .then((outcome) => {
+      logger.info(
+        { userId: newUserId, outcome: outcome.kind },
+        'Verify email requested at sign-up',
+      );
+    })
+    .catch(() => {
+      logger.warn({ userId: newUserId }, 'Verify email request failed at sign-up');
+    });
 
   // Referral (T-234 / Ajay Addendum 1: no silent drop). Awaited so the response can
   // tell the page whether the code was applied, but it never fails registration.
@@ -86,6 +118,7 @@ export async function registerUser(
     name: user.name,
     role: user.role,
     plan: user.plan,
+    pv: user.privacyVersion,
   });
 
   await createSession(
@@ -130,6 +163,7 @@ export async function loginUser(
     name: user.name,
     role: user.role,
     plan: user.plan,
+    pv: user.privacyVersion,
   });
 
   await createSession(
@@ -193,6 +227,7 @@ export async function refreshTokens(
     name: user.name,
     role: user.role,
     plan: user.plan,
+    pv: user.privacyVersion,
   });
 
   await createSession(
@@ -203,6 +238,156 @@ export async function refreshTokens(
     meta,
   );
 
+  return tokens;
+}
+
+/** T-343 — what GET /me reports about the user's privacy acceptance. */
+export interface PrivacyStatus {
+  privacyVersion: string | null;
+  currentPrivacyVersion: string;
+  needsPrivacyAcceptance: boolean;
+  /** Ajay's signed one-line summary (P2); present only when needsPrivacyAcceptance. */
+  summary?: string;
+}
+
+/**
+ * T-343 — the prompt shows when the stored privacyVersion is not equal to the current one
+ * (a missing version counts as not accepted) AND the current version has a signed summary
+ * (Ajay §3). Versions are compared with !== only, never as dates.
+ */
+export function privacyStatusFor(user: Pick<IUser, 'privacyVersion'>): PrivacyStatus {
+  const privacyVersion = user.privacyVersion ?? null;
+  const summary = getPrivacyVersionSummary(CURRENT_PRIVACY_VERSION);
+  const needsPrivacyAcceptance =
+    privacyVersion !== CURRENT_PRIVACY_VERSION && summary !== undefined;
+  return {
+    privacyVersion,
+    currentPrivacyVersion: CURRENT_PRIVACY_VERSION,
+    needsPrivacyAcceptance,
+    ...(needsPrivacyAcceptance ? { summary } : {}),
+  };
+}
+
+/** GET /me: the T-343 privacy state plus the T-223 verification state. */
+export type MeStatus = PrivacyStatus & {
+  /** T-223: the address has been verified through the emailed link. */
+  emailVerified: boolean;
+  /** T-223: a Google account or a linked googleId (counts as verified, T-351). */
+  hasGoogle: boolean;
+};
+
+export async function getPrivacyStatus(userId: string): Promise<MeStatus> {
+  // googleId is select:false on the schema, so it is asked for explicitly (+googleId).
+  const user = await User.findById(userId).select(
+    'privacyVersion isActive emailVerified authProvider +googleId',
+  );
+  if (!user || !user.isActive) {
+    throw new AppError(401, 'User not found or inactive');
+  }
+  const hasGoogle =
+    user.authProvider === 'google' ||
+    (typeof user.googleId === 'string' && user.googleId.length > 0);
+  return {
+    ...privacyStatusFor(user),
+    emailVerified: user.emailVerified === true,
+    hasGoogle,
+  };
+}
+
+/**
+ * T-343 — POST /me/privacy-acceptance. Records acceptance of CURRENT_PRIVACY_VERSION with
+ * server values only (version, time, via 'reaccept'); nothing comes from the request body.
+ * Order: (1) atomically take the caller's access session (401 and nothing written if it is
+ * gone), deleting its refresh key and audit row; (2) the conditional update (only when the
+ * stored version differs, so a double submit adds one history row, not two); (3) a new pair,
+ * carrying the new `pv`, via createSession (rotation as /refresh, Arjun's addendum). Logs only
+ * the user id, never tokens.
+ *
+ * T-354 — why this order is kept (Arjun, 12 Oct 2026, option A). Full order: take the access
+ * session (MULTI GET+DEL; 401 if gone) → delete its refresh key and Session row → conditional
+ * updateOne (version + history) → isActive check → createSession. The acceptance is a consent
+ * record, so it is written only by a request whose session we have just proved live and
+ * consumed. Updating first (option B) would let a revoked session record consent in a race.
+ * Do not reorder without a new ruling.
+ *
+ * Failure mode (accepted): if anything after the take throws unexpectedly (a Mongo or Redis
+ * error in the update, the user read or createSession), the request returns 500 and the web
+ * shows P8. The old session is already gone, so the user's next action signs them out
+ * (apiFetch 401 → /refresh 401, its refresh key was deleted → /login). No session leaks (the
+ * old pair is dead, no new pair was issued) and the user is never locked out (logging in
+ * again works and shows the prompt again if the update did not land). This is the same
+ * trade-off as /refresh after its take: a rare sign-out after a DB failure is safe. (If the
+ * refresh-key delete itself is what fails, that key may survive and /refresh can still
+ * rotate it: the user stays signed in and sees the prompt again; still no extra pair.)
+ */
+export async function acceptPrivacy(
+  userId: string,
+  accessToken: string,
+  meta: SessionMeta = {},
+): Promise<{ accessToken: string; refreshToken: string }> {
+  // Review round 1 (must-fix): take the caller's access session atomically FIRST (MULTI GET+DEL,
+  // the /refresh pattern), so two concurrent accepts with one token can't both issue a pair
+  // (T-299 single use). Not taken (already used, revoked, expired): 401, no DB write, nothing
+  // issued. Never log the token or its hash.
+  const redis = (await import('../config/redis')).default;
+  const accessHash = hashToken(accessToken);
+  const accessKey = sessionKey(userId, accessHash);
+  const taken = await redis.multi().get(accessKey).del(accessKey).exec();
+  const [getErr, oldSessionData] = taken?.[0] ?? [];
+  if (getErr || typeof oldSessionData !== 'string') {
+    throw new AppError(401, 'Session expired or revoked. Please log in again.');
+  }
+  // The taken session's refresh key and audit row go too (as deleteSession does).
+  let oldRefreshHash: unknown;
+  try {
+    oldRefreshHash = (JSON.parse(oldSessionData) as { refreshTokenHash?: unknown })
+      .refreshTokenHash;
+  } catch {
+    oldRefreshHash = undefined;
+  }
+  if (typeof oldRefreshHash === 'string' && oldRefreshHash) {
+    await redis.del(refreshSessionKey(userId, oldRefreshHash));
+  }
+  await Session.deleteOne({ userId, jwtTokenHash: accessHash });
+
+  const acceptedAt = new Date();
+  await User.updateOne(
+    { _id: userId, isActive: true, privacyVersion: { $ne: CURRENT_PRIVACY_VERSION } },
+    {
+      $set: {
+        privacyVersion: CURRENT_PRIVACY_VERSION,
+        privacyAcceptedAt: acceptedAt,
+        privacyAcceptedVia: 'reaccept',
+      },
+      $push: {
+        privacyHistory: { version: CURRENT_PRIVACY_VERSION, acceptedAt, via: 'reaccept' },
+      },
+    },
+  );
+
+  const user = await User.findById(userId);
+  if (!user || !user.isActive) {
+    throw new AppError(401, 'User not found or inactive');
+  }
+
+  const tokens = generateTokenPair({
+    sub: user._id.toString(),
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    plan: user.plan,
+    pv: user.privacyVersion,
+  });
+
+  await createSession(
+    user._id.toString(),
+    tokens.accessToken,
+    tokens.refreshToken,
+    { plan: user.plan, email: user.email, role: user.role, name: user.name },
+    meta,
+  );
+
+  logger.info({ userId: user._id.toString() }, 'Privacy version accepted');
   return tokens;
 }
 

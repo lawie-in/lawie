@@ -7,8 +7,12 @@ import {
   logout,
   forgotPassword,
   resetPasswordHandler,
+  getMe,
+  acceptPrivacyHandler,
+  verifyEmailHandler,
+  resendVerifyEmailHandler,
 } from '../controllers/auth.controller';
-import { authenticateAllowRevoked } from '../middleware/authenticate';
+import { authenticate, authenticateAllowRevoked } from '../middleware/authenticate';
 
 const router = Router();
 
@@ -18,5 +22,12 @@ router.post('/refresh', refresh);
 router.post('/logout', authenticateAllowRevoked, logout);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPasswordHandler);
+// T-343 — privacy re-acceptance. Both need a live session (authenticate, not AllowRevoked).
+router.get('/me', authenticate, getMe);
+router.post('/me/privacy-acceptance', authenticate, acceptPrivacyHandler);
+// T-223 — email verification. The link's token goes in the body, never the path. Resend needs a
+// live session (authenticate, like /me); the resend cap is enforced in requestVerifyEmail.
+router.post('/verify-email', verifyEmailHandler);
+router.post('/verify-email/resend', authenticate, resendVerifyEmailHandler);
 
 export default router;

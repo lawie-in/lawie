@@ -14,7 +14,7 @@ import supertest from 'supertest';
 import app from '../app';
 import { User, CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from '../models/User.model';
 
-import { waitForSeed } from './t234-helpers';
+import { verifyAndSeed } from './t234-helpers';
 
 const PASSWORD = 'Passw0rdOk';
 const reg = (email: string, extra: Record<string, unknown> = {}) =>
@@ -45,7 +45,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(u!.termsVersion).toBe('2026-10-12');
     expect(u!.privacyVersion).toBe('2026-10-12b');
     expect(u!.acceptedVia).toBe('password');
-    await waitForSeed(u!._id);
+    await verifyAndSeed(u!._id);
   });
 
   it('ignores terms fields sent by the client', async () => {
@@ -61,7 +61,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(u!.termsVersion).toBe('2026-10-12');
     expect(u!.privacyVersion).toBe('2026-10-12b');
     expect(u!.acceptedVia).toBe('password');
-    await waitForSeed(u!._id);
+    await verifyAndSeed(u!._id);
   });
 
   it('a duplicate-email register (409) does not touch the existing acceptance', async () => {
@@ -78,7 +78,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     expect(after!.termsVersion).toBe('2026-10-12');
     expect(after!.privacyVersion).toBe('2026-10-12b');
     expect(after!.acceptedVia).toBe('password');
-    await waitForSeed(first!._id);
+    await verifyAndSeed(first!._id);
   });
 
   it('users created without the sign-up flow have no acceptance (no schema default)', async () => {
@@ -101,7 +101,7 @@ describe('T-234 AC7 — password register records Terms acceptance', () => {
     const after = await User.findOne({ email: 'loginterms@example.com' }).lean();
     expect(after!.termsAcceptedAt).toEqual(before!.termsAcceptedAt);
     expect(after!.privacyVersion).toBe(before!.privacyVersion);
-    await waitForSeed(before!._id);
+    await verifyAndSeed(before!._id);
   });
 });
 

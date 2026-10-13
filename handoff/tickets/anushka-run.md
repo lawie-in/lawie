@@ -661,3 +661,83 @@ What a user can now do:
 - See category names without underscores.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-351 — no free credits before an email is verified (eae46a9, shashank, 12 Oct 2026)
+
+What a user can now do:
+- Sign up with Google and get the free Ink straight away, as before.
+- Sign up with an email and password and start with no free Ink until the address is verified; the daily bonus waits for that too.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-343 — accept a changed privacy policy (3cbcd78, kunal, 12 Oct 2026)
+
+What a user can now do:
+- After a privacy change, see a short notice of what changed on the next sign-in, with a link to the policy and two choices: Accept or Not now.
+- After Not now, still view, download and export. A new draft or payment asks for acceptance right at the button, and anything typed is kept.
+- Accept and carry on without signing in again. A dismissed notice doesn't come back in the same sign-in.
+- Please also check the notice with a screen reader and with reduced motion switched on (not yet checked).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-331 — admin template usage (d1b4372, mahak, 12 Oct 2026)
+
+What a user can now do:
+- An admin opening document analytics sees which templates are used, by name, with counts and how many were finalised, instead of an empty table.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## Run 3 result (13 Oct 2026): FAIL
+
+Report: `handoff/quality/2026-10-13-run-3-develop-FAIL.md`. Fix tickets: T-359 to T-368. Entries that failed or were blocked stay on the list for the next run, re-tested once their fix merges.
+
+## T-349 + T-350 — dates read naturally; bad links fail cleanly (6be8b14, tanvi, 12 Oct 2026)
+
+What a user can now do:
+- See dates in brief drafts and annexures written like "4 April 2026".
+- An impossible date shows exactly as typed, not changed into another date.
+- A malformed document link gives "not found".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-354 — privacy acceptance fails safely (8e38f59, kunal, 13 Oct 2026)
+
+What a user can now do:
+- Nothing new is visible. If saving the privacy acceptance fails, the user sees the retry message and is asked to sign in again on the next action.
+- Please run a real screen reader over the privacy prompt (T-343). Kunal's check was only a proxy.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-356 part 1 — describe-first for everyone (552076a, shashank, 13 Oct 2026)
+
+What a user can now do:
+- Every user, new or existing, starts a document by describing their case in their own words, without anyone having to switch it on for them.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-342 — cheque-bounce notice reads the key dates (cb8d9e5, vishal, 13 Oct 2026)
+
+What a user can now do:
+- In a cheque-bounce notice, Lawie picks up the cheque's validity date, the date the return memo was received and the date the notice is sent from the description. If the last two are missing, it asks for them, so it can check the deadlines. Nothing changes for other documents.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-223 — verify a new email account (9ae7d51, mahak, 13 Oct 2026)
+
+What a user can now do:
+- Sign up with an email and password, get a "verify your email" link, and receive the 5 free sign-up Ink once they open it.
+- Ask for a new link from the banner if it didn't arrive or has expired, with a clear wait time if they ask too often.
+- When they run out of Ink or try to buy Ink before verifying, see a prompt to verify instead of the payment screen.
+- Sign in with Google and never see any of these prompts.
+- Note for Anushka: develop runs in dry run, so no email arrives and the link can't be opened from an inbox until the founder's SES session. Test the banner, resend limit, prompts and the Google path.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-370 — "Upgrade to Pro" buys Pro (280dd3a, kunal, 13 Oct 2026)
+
+What a user can now do:
+- On Settings, see "Upgrade to Pro" with Pro's real price and monthly Ink, and pay for Pro, not the cheaper plan.
+- On the dashboard, see the same Pro price on the upgrade link. A Pro user sees the plan's monthly Ink instead of "unlimited documents".
+- An unverified email user still sees the verify card instead of the button.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -197,11 +197,11 @@ describe('GET /intake/enabled (ADR-019 §3.11)', () => {
   const get = () => request(app).get('/intake/enabled').set(headers());
   beforeEach(() => _clearAppSettingsCache());
 
-  it('off when the setting is missing', async () => {
-    expect((await get()).body).toEqual({ enabled: false });
+  it('on when the setting is missing (T-356 default)', async () => {
+    expect((await get()).body).toEqual({ enabled: true });
   });
 
-  it('on for everyone, off for no one, or only for listed user ids', async () => {
+  it('on for everyone, off for no one; a user-id list is the default, not a per-user switch', async () => {
     await AppSetting.create({ key: 'feature.describe_first', value: 'on' });
     expect((await get()).body.enabled).toBe(true);
     await AppSetting.updateOne({ key: 'feature.describe_first' }, { value: 'off' });
@@ -215,6 +215,6 @@ describe('GET /intake/enabled (ADR-019 §3.11)', () => {
     expect((await get()).body.enabled).toBe(true);
     await AppSetting.updateOne({ key: 'feature.describe_first' }, { value: 'someoneelse' });
     _clearAppSettingsCache();
-    expect((await get()).body.enabled).toBe(false);
+    expect((await get()).body.enabled).toBe(true);
   });
 });

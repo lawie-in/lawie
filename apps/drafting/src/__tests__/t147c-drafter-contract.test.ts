@@ -1026,7 +1026,7 @@ describe('switch off', () => {
     expect(callOf(0).system).toBe(DRAFTER_PACK_SYSTEM_PROMPT);
   });
 
-  it('switch on for other users only: this user gets the old path', async () => {
+  it('a user-id list is treated as the default (off): the old path for everyone', async () => {
     await AppSetting.updateOne({ key: 'feature.fact_ledger' }, { value: OTHER_USER_ID });
     _clearAppSettingsCache();
     const id = await ledger(baseFacts());

@@ -42,6 +42,14 @@ import { PaywallModal } from '@/components/credits/PaywallModal';
 import PipelineStatus, { PipelineState } from '@/components/draft/PipelineStatus';
 import DynamicFormRenderer from '@/components/form/DynamicFormRenderer';
 import OneFlow from '@/components/intake/OneFlow';
+import {
+  PrivacyBlockedNotice,
+  isPrivacyBlocked,
+  privacyFetch,
+  privacyPrecheck,
+  usePrivacyDescribedBy,
+} from '@/components/PrivacyUpdatePrompt';
+import { openVerifyInsteadOfPaywall } from '@/components/VerifyEmailPrompt';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/apiFetch';
 
@@ -130,6 +138,7 @@ function CategoryChip({
 function NewDocumentContent() {
   const router = useRouter();
   const { user } = useAuth();
+  const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
 
   // Phase: the one flow when the switch is on; otherwise select → form → generating
   const [phase, setPhase] = useState<'loading' | 'one_flow' | 'select' | 'form' | 'generating'>(
@@ -276,7 +285,7 @@ function NewDocumentContent() {
       setGenerationRetryable(true);
 
       try {
-        const res = await apiFetch('/api/documents/generate-from-template', {
+        const res = await privacyFetch('generate', '/api/documents/generate-from-template', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -285,6 +294,8 @@ function NewDocumentContent() {
             ...(lastRunId.current ? { run_id: lastRunId.current } : {}),
           }),
         });
+        // T-343: privacy re-acceptance needed; the prompt or P7 box is shown. Back to the form.
+        if (isPrivacyBlocked(res)) return setPhase('form');
 
         // The server always resolves a run (new or continued) before it
         // starts streaming, so the header is there whether this attempt
@@ -306,6 +317,11 @@ function NewDocumentContent() {
             }
           } catch {
             /* non-JSON error body */
+          }
+          // T-223 trigger 2: an unverified email user gets the verify modal, not the paywall.
+          if (res.status === 402 && (await openVerifyInsteadOfPaywall())) {
+            setPhase('form');
+            return;
           }
           if (paywallInfo) {
             setPaywallCost(paywallInfo.cost);
@@ -434,6 +450,8 @@ function NewDocumentContent() {
   const handleSubmit = useCallback(
     async (formData: Record<string, unknown>) => {
       if (!user || !selectedConfig) return;
+      // T-343: ask before leaving the form, so a privacy block never unmounts (empties) it.
+      if (await privacyPrecheck('generate')) return;
 
       // A fresh submit (not the retry button) means the form changed —
       // T-003 §3.8 has the web page drop the stored run id so this starts a
@@ -579,11 +597,13 @@ function NewDocumentContent() {
           <ArrowLeft size={12} />
           Choose a different template
         </button>
+        <PrivacyBlockedNotice actionKey="generate" />
         <DynamicFormRenderer
           key={selectedConfig.template_id}
           config={selectedConfig}
           onSubmit={handleSubmit}
           onCancel={() => router.push('/dashboard')}
+          submitDescribedBy={privacyDescribedBy}
         />
         {showPaywall && (
           <PaywallModal
