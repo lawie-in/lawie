@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- kunal: T-372 merged 587ce69; holds the slot until CI on it is green. Then Mahak T-365, Tanvi T-374, Vishal T-373 as each is ready. T-361 data copy waits on the founder.
+- kunal: T-372 merged 587ce69; holds the slot until CI on it (run 499) is green. Then Tanvi T-374 (ready, Ajay signed 63707f7), then Mahak T-365, then Vishal T-373 (imports loadSkeleton from T-374) as each is ready. T-361 data copy waits on the founder.
 
 ## Last done
 
