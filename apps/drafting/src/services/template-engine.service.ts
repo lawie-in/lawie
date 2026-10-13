@@ -982,13 +982,12 @@ export function resolveComputedFields(
         computed[fieldId] = propMap[prop] ?? '';
       } else {
         // Fallback when no court data provided (e.g. unit tests without DB)
+        // T-404 Addendum 3 #4: no court at all prints the signed blank, never a made-up court.
         const courtName = String(formData[courtsMatch[1]] ?? '');
         if (prop === 'designation') {
-          computed[fieldId] = courtName || "THE HON'BLE COURT";
+          computed[fieldId] = courtName || COURT_BLANK;
         } else if (prop === 'header') {
-          computed[fieldId] = courtName
-            ? `IN THE COURT OF ${courtName}`
-            : "IN THE COURT OF THE HON'BLE COURT";
+          computed[fieldId] = courtName ? `IN THE COURT OF ${courtName}` : COURT_BLANK;
         } else if (prop === 'city') {
           computed[fieldId] = extractCityFromCourtName(courtName);
         } else if (prop === 'court_type') {
@@ -1003,9 +1002,16 @@ export function resolveComputedFields(
     // Pattern: court_rules[field].property || 'default'
     const courtRulesMatch = logic.match(/^court_rules\[(\w+)\]\.(\w+)\s*\|\|\s*'([^']*)'$/);
     if (courtRulesMatch) {
-      const [, , prop, defaultVal] = courtRulesMatch;
+      const [, courtField, prop, defaultVal] = courtRulesMatch;
       if (courtData && prop === 'case_nomenclature') {
         computed[fieldId] = courtData.caseNomenclature || defaultVal;
+      } else if (
+        !courtData &&
+        prop === 'case_nomenclature' &&
+        !String(formData[courtField] ?? '').trim()
+      ) {
+        // T-404 Addendum 3 #4: no court, so no case line from the template's default.
+        computed[fieldId] = COURT_BLANK;
       } else {
         computed[fieldId] = defaultVal;
       }
@@ -1135,10 +1141,42 @@ function advocateAddressOrBlank(value: string | undefined): string {
  * court from it. Runs after `applyPlaceholderAliases`, so a value wins.
  */
 function applyCourtBlanks(ctx: PlaceholderContext, courtData?: CourtLookupData): void {
-  if (chosenCourtHeading(courtData)) return;
+  if (chosenCourtHeading(courtData)) {
+    // T-404 Addendum 3 #5: a court with no case line of its own.
+    if (!ctx.caseNomenclature?.trim()) ctx.caseNomenclature = CASE_TYPE_BLANK;
+    return;
+  }
   for (const alias of ['courtHeader', 'courtDesignation', 'caseNomenclature']) {
     if (!ctx[alias]?.trim()) ctx[alias] = COURT_BLANK;
   }
+}
+
+/** T-404 Addendum 3 #5: {caseNomenclature} when the court chosen has no case line. */
+export const CASE_TYPE_BLANK = '[To be confirmed: case type and number]';
+
+/** T-404 Addendum 3 #2b: no enrolment number after the T-311 resolver. */
+export const ENROLMENT_BLANK = "[To be confirmed: advocate's enrolment number]";
+
+/**
+ * The blanks the brief and ledger paths put in for a declared field left
+ * empty: `[To be confirmed: <label, lower case>]` (intake-brief `placeholderFor`)
+ * and `{{MISSING: <label>}}` (brief-drafter `missingPlaceholder`). Kept in step
+ * with those two by hand; importing them here would be circular.
+ */
+function labelBlanksFor(config: TemplateConfig, fieldId: string): Set<string> {
+  const field = (config.form_schema?.steps ?? [])
+    .flatMap((s) => s.fields ?? [])
+    .find((f) => f.field_id === fieldId);
+  if (!field?.label) return new Set();
+  const flat = field.label.replace(/\s+/g, ' ').trim();
+  const lowered = flat
+    .split(' ')
+    .map((w) => (/^[A-Z0-9./-]{2,}$/.test(w) ? w : w.toLowerCase()))
+    .join(' ');
+  return new Set([
+    `[To be confirmed: ${lowered}]`,
+    `{{MISSING: ${flat.replace(/[{}]/g, '') || 'detail'}}}`,
+  ]);
 }
 
 /** T-393: the relations Ajay allows (AC6 Addendum 3), as they print. */
@@ -1493,6 +1531,12 @@ export function buildPlaceholderContext(
     extra?.enrollmentNumber,
     advocate.fromProfile,
   );
+  // T-404 Addendum 3 #2b: after the resolver, nothing (or the brief or ledger
+  // blank for the field) prints Ajay's signed blank.
+  const enrollmentOrBlank =
+    enrollment === undefined || labelBlanksFor(config, 'advocate_enrollment').has(enrollment.trim())
+      ? ENROLMENT_BLANK
+      : enrollment;
 
   const now = new Date();
   const ctx: PlaceholderContext = {
@@ -1507,7 +1551,7 @@ export function buildPlaceholderContext(
     // T-311: the declared, typed advocate_enrollment, else the profile number
     // when the name is the profile's (extra.enrollmentNumber). A client
     // `enrollment_number` is list A (T-300).
-    enrollment_number: enrollment ?? '____________________',
+    enrollment_number: enrollmentOrBlank,
 
     // Computed fields
     ...computed,
@@ -1552,8 +1596,8 @@ export function buildPlaceholderContext(
 
   // T-311: a template that declares advocate_enrollment prints
   // {advocate_enrollment} itself (legal_notice_s138, _s80). Same number as
-  // {enrollment_number}; with none, the flattened value (or nothing) stays.
-  if (declaresEnrollment && enrollment !== undefined) ctx.advocate_enrollment = enrollment;
+  // {enrollment_number}; with none, the signed blank (T-404 Addendum 3 #2b).
+  if (declaresEnrollment) ctx.advocate_enrollment = enrollmentOrBlank;
 
   // T-404 rule 3, Addendum 2 #8: the form answer, else the signed blank.
   ctx.advocate_address = advocateAddressOrBlank(ctx.advocate_address);

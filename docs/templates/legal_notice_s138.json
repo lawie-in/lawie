@@ -338,6 +338,15 @@
     "notice_client_name": {
       "logic": "if applicant_name === '[To be confirmed: payee / notice sender]' then '[To be confirmed: name of the client]' else '{notice_client_name_unless_ledger_blank}'"
     },
+    "client_address_unless_form_blank": {
+      "logic": "if applicant_address === '' then '[To be confirmed: address of the client]' else '{applicant_address}'"
+    },
+    "client_address_unless_ledger_blank": {
+      "logic": "if applicant_address === '{{MISSING: Payee Address}}' then '[To be confirmed: address of the client]' else '{client_address_unless_form_blank}'"
+    },
+    "client_address": {
+      "logic": "if applicant_address === '[To be confirmed: payee address]' then '[To be confirmed: address of the client]' else '{client_address_unless_ledger_blank}'"
+    },
     "drawer_addressee_unless_form_blank": {
       "logic": "if drawer_proprietor === '' then '{addressee_name}' else '{drawer_proprietor},\nProprietor,\n{addressee_name},'"
     },
@@ -363,7 +372,7 @@
         "section_id": "header",
         "type": "template",
         "alignment": "left",
-        "template": "LEGAL NOTICE\n(Under Section {ni_act_sections_ref} of the Negotiable Instruments Act, 1881)\n\nDate: {notice_date}\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\n{drawer_addressee}\n{addressee_address}\n\nFrom,\n{notice_client_name}\n{applicant_address}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
+        "template": "LEGAL NOTICE\n(Under Section {ni_act_sections_ref} of the Negotiable Instruments Act, 1881)\n\nDate: {notice_date}\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\n{drawer_addressee}\n{addressee_address}\n\nFrom,\n{notice_client_name}\n{client_address}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
       },
       {
         "section_id": "subject_line",
