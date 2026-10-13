@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay |
 | Mode   | Small fix |
-| Status | To do. Waiting for Ajay's ruling. Then Vishal (brief-drafter.ts and the T-373 Drafter side), after T-373 or folded into it if Arjun agrees. Found by Mahak in the T-365 review, 13 Oct 2026 |
+| Status | To do. Ajay ruled yes (13 Oct 2026). Vishal (brief-drafter.ts and the T-373 Drafter side): in T-373 or right after, Arjun to say which. Priya |
 | Source | T-365 round 1 should-fix |
 
 ## Problem
@@ -21,3 +21,7 @@ Does his T-311 AC1 rule ("a value the advocate typed wins; otherwise the profile
 1. A placeholder or unconfirmed enrolment item doesn't count as typed. The profile number prints.
 2. A number the advocate actually typed still wins.
 3. Tests on the brief path and the D1 Drafter path.
+
+## Ajay (13 Oct 2026)
+
+Yes. An auto-written "[To be confirmed…]" placeholder is never a typed value, the same as the advocate-name ruling in T-365 AC1. An empty or unconfirmed advocate_enrollment falls through to the profile number when the printed name is the profile's, and stays blank otherwise. F4 (T-387) follows automatically, because it reuses the same resolver.
