@@ -272,11 +272,20 @@ export function templateGuard(pick: (req: Request) => unknown): RequestHandler {
       next();
       return;
     }
-    isTemplateEnabled(id)
+    // T-375: the user id (when logged in) keeps the fixture-user rule the same as intake.
+    isTemplateEnabled(id, req.jwtPayload?.sub)
       .then((on) => {
         if (on) next();
         else res.status(404).json(TEMPLATE_NOT_FOUND);
       })
       .catch(() => res.status(404).json(TEMPLATE_NOT_FOUND));
   };
+}
+
+/** T-375: a templateGuard picker that reads one field of a JSON body (undefined if absent). */
+export function bodyField(key: string): (req: Request) => unknown {
+  return (req) =>
+    req.body && typeof req.body === 'object'
+      ? (req.body as Record<string, unknown>)[key]
+      : undefined;
 }
