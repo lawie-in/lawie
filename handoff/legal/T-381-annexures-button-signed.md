@@ -45,3 +45,24 @@ Tests:
 - A complaint pack with both names gives the complainant as the client.
 - A written statement gives the defendant as the client.
 - With no role and no table entry, the blanks print.
+
+## Addendum 2 (13 Oct 2026): single PDF of 7 annexures
+
+These replace the six signed rows above. The Vakalatnama and Memo of Parties strings drop.
+
+| Key | String | Ruling |
+|---|---|---|
+| `annex.button` | Create annexures | Signed |
+| `annex.button_help` | Prepared from the details you entered. | Signed (unchanged) |
+| `annex.success_title` | Annexures created | Signed |
+| `annex.success_note` | Check each annexure and fill in every blank line before filing. | Signed |
+| `annex.download` | Download annexures (PDF) | Signed |
+
+No string names the seven annexures or says they are complete.
+
+**Blanks check: v1 may ship without the T-194 preflight**, on three conditions:
+1. The route refuses to print when the client's name or the opposite party's name is missing, and the card shows the signed `annex.missing_*` state. A party name never prints as `___________`.
+2. Underscore lines remain only for what is filled by hand: signatures, dates, the registry number, and details the brief does not hold. The success note above tells the advocate to fill them in.
+3. Priya logs a follow-up ticket for the server-side blanks check, so the pack gets the T-194 header and dialog.
+
+**Annexure A footer.** Agreed: it goes in T-396 (Kunal) as the T-317 Addendum 4 footer, word for word, and I sign it there.
