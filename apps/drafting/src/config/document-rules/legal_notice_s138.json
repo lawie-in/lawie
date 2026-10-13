@@ -281,17 +281,17 @@
       "description": "Name and enrollment number of advocate"
     }
   ],
-  "prayerTemplate": "I therefore call upon you to pay my client the said amount of Rs. {amount}, being the amount of the said cheque, within fifteen days of receipt of this notice.\n\nIf you fail to pay the said amount within fifteen days of receipt of this notice, an offence punishable under Section 138 of the Negotiable Instruments Act, 1881 will be complete, and my client will initiate proceedings against you.",
+  "prayerTemplate": "I therefore call upon you to pay my client the said amount of Rs. {amount}, being the amount of the said cheque, within fifteen days of receipt of this notice. If you fail to pay the said amount within fifteen days of receipt of this notice, an offence punishable under Section 138 of the Negotiable Instruments Act, 1881 will be complete, and my client will initiate proceedings against you.",
   "verificationTemplate": "",
   "filingChecklist": [
-    "Notice sent within 30 days of receiving information of dishonour",
+    "Send the notice within 30 days of receiving the bank's return memo (Section 138, proviso (b)).",
     "Notice sent by Registered Post AD / Speed Post AD",
     "Copy of notice retained",
     "Postal receipt preserved",
     "Copy of dishonoured cheque",
     "Copy of bank memo / return memo",
     "Wait 15 days from receipt of notice before filing complaint",
-    "File complaint within 30 days after expiry of 15-day notice period"
+    "If payment is not made within 15 days of receipt of the notice, file the complaint within one month after those 15 days end (Section 142(1)(b))."
   ],
   "relevantActs": [
     {
