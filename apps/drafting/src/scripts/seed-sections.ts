@@ -1,4 +1,8 @@
 /**
+ * @deprecated T-371 (ADR-025 D2): the drafting service no longer reads SectionMapping;
+ * it serves the signed files from memory (services/signed-tables.ts). A table change
+ * needs no reseed. Kept until the collection is removed.
+ *
  * Seed script — populates SectionMapping collection from JSON files.
  * Run: npx ts-node src/scripts/seed-sections.ts
  *
