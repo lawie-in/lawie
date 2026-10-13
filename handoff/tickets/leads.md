@@ -47,6 +47,12 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 ## Merge queue
 
 **PAUSED (founder, 13 Oct 2026, 11:22): all work stops for today; resume only on the founder's command.** Last merge: Kunal T-413 9cf199e (CI was pending at pause). On resume, Mahak T-390+T-416 is next.
+Where each lead stopped:
+- vishal: T-397 on fix/t-397-legacy-prompt-signoffs e366b39. Developer done; Ajay's byte check and the tester are next.
+- mahak: T-390+T-416 (fix/t-416-verify-dedup-orphan) and T-405 (fix/t-405-public-field-helper) are ready to merge. T-381 on feature/t-381-annexures-card 6cd04ae: built, tester stopped midway, no review yet.
+- shashank: T-404 part 1 on feature/t-404-cause-title-s138 453c451. Final tester stopped early; a fresh reviewer is next.
+- kunal: T-415 on fix/t-415-grant-claim-state, not started. T-413 CI run 516 was pending.
+- tanvi: T-410 on fix/t-410-consumer-commission-only 734d15e is ready to merge. T-411 not started.
 
 - kunal: T-413 merged 9cf199e; holds the slot until CI on it is green. Then Mahak T-390 + T-416 as one merge (38316a5; all reports in, T-416 delta reviewer passed 10:10), then Mahak T-405 (small fix, tester green, 10:38), then Tanvi T-410 with T-412, T-417 and T-418 (all four reports, Ajay cleared 2df4d04, 11:20), then Shashank T-404 part 1 (fresh tester and reviewer running after merging in T-406). T-361 data copy waits on the founder.
 
