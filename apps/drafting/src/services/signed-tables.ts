@@ -6,9 +6,11 @@
  * parsed and served. No Mongo, no Redis: a table change ships with the file, and no
  * reseed is needed.
  *
- * Loads lazily on first use, so importing app.ts without index.ts (the tests) works.
- * index.ts calls loadSignedTables() at boot so a missing or unreadable file fails
- * fast before the service listens.
+ * When it loads: bns-offence-resolver.ts calls getSignedTables() at module scope, so
+ * the files are read when app.ts is imported (through the sections routes), whether
+ * or not index.ts runs; that is how the tests get them. index.ts then calls
+ * loadSignedTables() in bootstrap() (a no-op once loaded) to log the hashes. A missing
+ * or unreadable file throws at import, so the process exits before it listens.
  */
 import { createHash } from 'crypto';
 import { readFileSync } from 'fs';

@@ -25,6 +25,7 @@ See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths ab
   - `apps/drafting/src/services/signed-tables.ts` (the loader: what is served, and its SHA-256 in `GET /health`)
   - `apps/drafting/src/services/bns-offence-resolver.ts` (T-277 resolver and `readSectionsCharged`)
   - `apps/drafting/src/services/sections.service.ts` (converter lookups, the tool reader, and Ajay's texts `NOT_VERIFIED`, `VERIFY_CAVEAT`, `ATTRIBUTE_DEPENDS`)
+  - `apps/drafting/src/services/bail-check.service.ts` (the bail checker's notes, summary lines and ranking)
   - `apps/drafting/src/services/timeline.service.ts`
   - The three free-tool pages: `apps/web/src/app/tools/section-converter/page.tsx` (including its bulk tab), `apps/web/src/app/tools/bail-checker/page.tsx`, `apps/web/src/app/tools/timeline-tracker/page.tsx`
 - `apps/drafting/src/config/document-rules/_skeletons/` (the generated skeleton JSON per pack, ADR-025 D1; already inside `document-rules/` above). Added by Arjun in T-371, 13 Oct 2026. Each file is generated from Ajay's `handoff/legal/skeleton-<pack>-signed.md`; any change comes with his signed skeleton.

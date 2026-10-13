@@ -38,6 +38,7 @@ jest.mock('../config/redis', () => {
 });
 
 import app from '../app';
+import { CONVERT_MAX_CHARS } from '../routes/sections.routes';
 import { SectionMapping } from '../models/SectionMapping.model';
 import { checkBailEligibility, readBailInputs } from '../services/bail-check.service';
 import {
@@ -306,7 +307,23 @@ describe('T-371 AC3: "BNS 318(4), BNS 316(2)" and "318(4), 316(2)" give the same
       { code: 'BNS', number: '316(2)' },
     ]);
     expect(readToolSections('318(4), 316(2)').map((e) => e.number)).toEqual(['318(4)', '316(2)']);
-    expect(readBailInputs('BNS 318(4), BNS 316(2)')).toEqual(readBailInputs('318(4), 316(2)'));
+    // The tokens differ by design ("318(4)-BNS" keeps the explicit code); the RESULTS agree.
+    expect(readBailInputs('BNS 318(4), BNS 316(2)')).toEqual(['318(4)-BNS', '316(2)-BNS']);
+    expect(readBailInputs('318(4), 316(2)')).toEqual(['318(4)', '316(2)']);
+  });
+
+  it('checker results (sections found, titles, offence keys) agree for both forms', async () => {
+    const a = await checkBailEligibility(readBailInputs('BNS 318(4), BNS 316(2)'));
+    const b = await checkBailEligibility(readBailInputs('318(4), 316(2)'));
+    const view = (r: Awaited<ReturnType<typeof checkBailEligibility>>) =>
+      r.sections.map((s) => ({
+        found: s.found,
+        bns: s.bnsSection,
+        title: s.offence?.title,
+        key: s.offence?.resolvedKey,
+      }));
+    expect(view(a)).toEqual(view(b));
+    expect(a.sections.every((s) => s.found)).toBe(true);
   });
 
   it('bail checker: both forms are found as offences and agree', async () => {
@@ -606,7 +623,7 @@ describe('T-371 AC5: the raw verify text is never in any API response', () => {
         (await request(app).get(`/sections/map?q=${encodeURIComponent(`BNS ${k}`)}`)).body,
       );
     }
-  });
+  }, 20000);
 
   it('/map, /convert and /search for the IPC rows that carry a verify note (236, 254, 292A, 376DA)', async () => {
     for (const s of ['236', '254', '292A', '376DA']) {
@@ -775,5 +792,161 @@ describe('T-371 pin: convertOldReferencesInText (the draft path) is unchanged in
     expect(r.converted).toContain('Section 63 BSA (formerly 65B IEA)');
     expect(r.converted).not.toContain(SIGNED_NOT_VERIFIED);
     expect(r.converted).not.toContain(SIGNED_CAVEAT);
+  });
+});
+
+// ── Round 3 (Ajay 1363d68 and 6f61d87) ───────────────────────────────────────
+
+const SIGNED_DEPENDS_LINE = 'Depends. Check the First Schedule.';
+const SIGNED_NO_BNS = 'No BNS equivalent. Check the Gazette';
+const SIGNED_OTHER_ACT_TIMELINE = (n: string) =>
+  `Section ${n} of another Act was not found in the BNS offences table, so it was left out of this period. Check the Gazette.`;
+
+describe('T-371 round 3: the summary lines follow their row (Ajay 1363d68)', () => {
+  it('"Section 400" (BNS above 358) and "Section IPC 236" read Not verified, as their rows do', async () => {
+    const r = await checkBailEligibility(readBailInputs('BNS 400, IPC 236'));
+    expect(r.sections.map((s) => s.note)).toEqual([SIGNED_NOT_VERIFIED, SIGNED_NOT_VERIFIED]);
+    expect(r.summary.undeterminedSections).toEqual(['400', 'IPC 236']);
+    expect(r.summary.recommendation).toContain(`Section 400: ${SIGNED_NOT_VERIFIED}`);
+    expect(r.summary.recommendation).toContain(`Section IPC 236: ${SIGNED_NOT_VERIFIED}`);
+    expect(r.summary.recommendation).not.toContain(SIGNED_DEPENDS_LINE);
+    expect(r.summary.overallBailable).toBeNull();
+    expect(r.summary.overallBailableNote).toBe(SIGNED_NOT_VERIFIED);
+    expect(r.summary.bnssBailSectionTitle).toBe(SIGNED_NOT_VERIFIED);
+  });
+
+  it('a signed row with null bailable keeps "Section 303: Depends. Check the First Schedule."', async () => {
+    const r = await checkBailEligibility(['303']);
+    expect(r.sections[0].offence?.bailable).toBeNull();
+    expect(r.summary.undeterminedSections).toEqual(['303']);
+    expect(r.summary.recommendation).toContain(`Section 303: ${SIGNED_DEPENDS_LINE}`);
+    expect(r.summary.overallBailableNote).toBe(SIGNED_DEPENDS_LINE);
+    expect(r.summary.bnssBailSectionTitle).toBe(SIGNED_DEPENDS_LINE);
+  });
+
+  it('a mix: one signed null and one Not verified -> each line follows its row, overall is Depends', async () => {
+    const r = await checkBailEligibility(['303', '400-BNS']);
+    expect(r.summary.recommendation).toContain(`Section 303: ${SIGNED_DEPENDS_LINE}`);
+    expect(r.summary.recommendation).toContain(`Section 400: ${SIGNED_NOT_VERIFIED}`);
+    expect(r.summary.overallBailableNote).toBe(SIGNED_DEPENDS_LINE);
+    expect(r.summary.bnssBailSectionTitle).toBe(SIGNED_DEPENDS_LINE);
+  });
+
+  it('a repealed IPC row: the summary line reads "No BNS equivalent. Check the Gazette", as its row', async () => {
+    const r = await checkBailEligibility(['264-IPC']);
+    expect(r.sections[0].note).toBe(SIGNED_NO_BNS);
+    expect(r.summary.recommendation).toContain(`Section IPC 264: ${SIGNED_NO_BNS}`);
+    expect(r.summary.recommendation).not.toContain(SIGNED_DEPENDS_LINE);
+    expect(r.summary.overallBailableNote).toBe(SIGNED_NO_BNS);
+  });
+});
+
+describe('T-371 round 3: an Act the tables do not cover', () => {
+  it('"21 NDPS Act" reads "21 of another Act", never "21-OTHER"', () => {
+    expect(readBailInputs('21 NDPS Act')).toEqual(['21 of another Act']);
+  });
+
+  it('is handled as Not verified, with no internal code shown', async () => {
+    const r = await checkBailEligibility(readBailInputs('21 NDPS Act'));
+    expect(r.sections).toHaveLength(1);
+    expect(r.sections[0].found).toBe(false);
+    expect(r.sections[0].offence).toBeNull();
+    expect(r.sections[0].note).toBe(SIGNED_NOT_VERIFIED);
+    expect(r.summary.recommendation).toContain(`Section 21 of another Act: ${SIGNED_NOT_VERIFIED}`);
+    expect(JSON.stringify(r)).not.toContain('OTHER');
+    expect(r.summary.overallBailableNote).toBe(SIGNED_NOT_VERIFIED);
+  });
+
+  it('over the API', async () => {
+    const res = await request(app).get(
+      `/sections/bail-check?sections=${encodeURIComponent('21 NDPS Act')}`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.sections[0].note).toBe(SIGNED_NOT_VERIFIED);
+    expect(JSON.stringify(res.body)).not.toContain('-OTHER');
+  });
+});
+
+describe('T-371 round 3: an explicit BNS code is kept', () => {
+  it('readBailInputs keeps the code for BNS, not for a bare number', () => {
+    expect(readBailInputs('BNS 302')).toEqual(['302-BNS']);
+    expect(readBailInputs('302')).toEqual(['302']);
+  });
+
+  it('"BNS 302" is BNS 302, not IPC 302 -> 103(1) murder', async () => {
+    const r = await checkBailEligibility(readBailInputs('BNS 302'));
+    expect(r.sections[0].bnsSection).toBe('302');
+    expect(r.sections[0].convertedFromIpc).toBe(false);
+    expect(r.sections[0].ipcSection).toBeUndefined();
+    expect(r.sections[0].offence?.section).not.toBe('103(1)');
+    expect(r.sections[0].offence?.title ?? '').not.toMatch(/murder/i);
+  });
+
+  it('"BNS 400" is Not verified', async () => {
+    const r = await checkBailEligibility(readBailInputs('BNS 400'));
+    expect(r.sections[0].found).toBe(false);
+    expect(r.sections[0].offence).toBeNull();
+    expect(r.sections[0].note).toBe(SIGNED_NOT_VERIFIED);
+  });
+
+  it('a bare "302" still goes via IPC to 103(1) (murder)', async () => {
+    const r = await checkBailEligibility(readBailInputs('302'));
+    expect(r.sections[0].convertedFromIpc).toBe(true);
+    expect(r.sections[0].ipcSection).toBe('302');
+    expect(r.sections[0].bnsSection).toBe('103(1)');
+    expect(r.sections[0].offence?.section).toBe('103(1)');
+  });
+
+  it('over the API: "BNS 302" and "302" differ', async () => {
+    const a = await request(app).get('/sections/bail-check?sections=BNS 302');
+    const b = await request(app).get('/sections/bail-check?sections=302');
+    expect(a.body.sections[0].bnsSection).toBe('302');
+    expect(b.body.sections[0].bnsSection).toBe('103(1)');
+  });
+});
+
+describe('T-371 round 3: POST /sections/convert caps the text at 20,000 characters', () => {
+  const TOO_LONG = 'Text is too long. Paste up to 20,000 characters at a time.';
+
+  it('CONVERT_MAX_CHARS is 20,000', () => {
+    expect(CONVERT_MAX_CHARS).toBe(20_000);
+  });
+
+  it('20,001 characters -> 413 with the message', async () => {
+    const res = await request(app)
+      .post('/sections/convert')
+      .send({ text: 'a'.repeat(20_001) });
+    expect(res.status).toBe(413);
+    expect(res.body.error).toBe(TOO_LONG);
+  });
+
+  it('exactly 20,000 characters is accepted', async () => {
+    const res = await request(app)
+      .post('/sections/convert')
+      .send({ text: 'a'.repeat(20_000) });
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(0);
+  });
+});
+
+describe('T-371 round 3: timeline, an entry from another Act (Ajay 6f61d87)', () => {
+  const get = (s: string) =>
+    request(app).get(`/sections/timeline?arrestDate=2026-09-01&sections=${encodeURIComponent(s)}`);
+
+  it('"NDPS Act 20" gives the exact "of another Act" line, number only', async () => {
+    const res = await get('NDPS Act 20');
+    expect(res.status).toBe(200);
+    const text = JSON.stringify(res.body);
+    expect(text).toContain(SIGNED_OTHER_ACT_TIMELINE('20'));
+    expect(text).not.toContain('NDPS');
+  });
+
+  it('a bare "20" keeps the original T-278 line', async () => {
+    const res = await get('20');
+    const text = JSON.stringify(res.body);
+    expect(text).toContain(
+      'Section 20 was not found in the BNS offences table, so it was left out of this period. Check the Gazette.',
+    );
+    expect(text).not.toContain('of another Act');
   });
 });

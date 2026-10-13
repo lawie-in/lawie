@@ -16,11 +16,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 
 import { SectionMapping } from '../models/SectionMapping.model';
-import {
-  checkBailEligibility,
-  NO_BNS_EQUIVALENT,
-  NOT_IN_IPC_TABLE,
-} from '../services/bail-check.service';
+import { checkBailEligibility, NO_BNS_EQUIVALENT } from '../services/bail-check.service';
 import { NOT_VERIFIED } from '../services/bns-offence-resolver';
 
 // bail-check reads IPC rows through lookupOldToNew; serve them from the signed table itself.
@@ -280,9 +276,8 @@ describe('T-267 seed-sections.ts (real run)', () => {
 // ---------------------------------------------------------------------------
 
 describe('T-267 ruling C: bail-check with the signed table', () => {
-  it('exports the two ruling-C sentences exactly', () => {
+  it('exports the ruling-C sentence exactly', () => {
     expect(NO_BNS_EQUIVALENT).toBe('No BNS equivalent. Check the Gazette');
-    expect(NOT_IN_IPC_TABLE).toBe('Not found in the IPC table. Check the Gazette');
   });
 
   it('264-IPC (null target) is not looked up as BNS 264', async () => {

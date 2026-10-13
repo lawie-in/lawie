@@ -17,6 +17,9 @@ import { calculateTimeline } from '../services/timeline.service';
 
 const router = Router();
 
+/** T-371: most characters POST /sections/convert accepts (413 above this). */
+export const CONVERT_MAX_CHARS = 20_000;
+
 /** "302-IPC" / "302 IPC" → ["302", "IPC"] (same split lookupOldToNew uses). */
 function splitQuery(q: string, allowBrackets: boolean): [string, string] | null {
   const re = allowBrackets ? /^([\w./\s()]+?)[\s-]+(.+)$/ : /^([\w./\s]+?)[\s-]+(.+)$/;
@@ -188,6 +191,12 @@ router.post('/convert', async (req: Request, res: Response): Promise<void> => {
 
   if (!text || typeof text !== 'string') {
     res.status(400).json({ error: 'Missing or invalid "text" field in request body' });
+    return;
+  }
+
+  // T-371 (reviewer): a public route, so the pasted text is capped.
+  if (text.length > CONVERT_MAX_CHARS) {
+    res.status(413).json({ error: 'Text is too long. Paste up to 20,000 characters at a time.' });
     return;
   }
 

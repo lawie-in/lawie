@@ -488,7 +488,13 @@ function ConvertTab() {
       });
 
       if (!res.ok) {
-        setError('Something went wrong. Please try again.');
+        // T-371: the API caps the text at 20,000 characters (413) and says so.
+        const body = await res.json().catch(() => null);
+        setError(
+          res.status === 413 && typeof body?.error === 'string'
+            ? body.error
+            : 'Something went wrong. Please try again.',
+        );
         return;
       }
 

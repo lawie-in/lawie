@@ -91,7 +91,7 @@ export interface BailCheckResult {
      * section resolved and is bailable; null otherwise ("depends").
      */
     overallBailable: boolean | null;
-    /** DEPENDS_FIRST_SCHEDULE when overallBailable is null */
+    /** When overallBailable is null: DEPENDS_FIRST_SCHEDULE, or NOT_VERIFIED when every unknown section is missing / not verified (1363d68) */
     overallBailableNote: string | null;
     /** Charged sections whose bailability is not known (null or unresolved IPC input) */
     undeterminedSections: string[];
@@ -277,19 +277,24 @@ function determineBnssBailSection(
 
 /** Ajay (CLO), T-267 ruling C: a null BNS target is reported, never looked up as BNS. */
 export const NO_BNS_EQUIVALENT = 'No BNS equivalent. Check the Gazette';
-/** Ajay (CLO), T-267: an explicit "NNN-IPC" with no row is never looked up as BNS. */
-export const NOT_IN_IPC_TABLE = 'Not found in the IPC table. Check the Gazette';
+
+/** "21 of another Act": an Act the signed tables do not cover. Shown to the user as is. */
+const OTHER_ACT_TOKEN = /^(\S+) of another Act$/;
 
 /**
  * T-371: the bail checker's input, read with the tools' reader (T-277), so
  * "BNS 318(4), BNS 316(2)" and "318(4), 316(2)" give the same sections. Each entry
- * becomes a checker token: BNS → "318(4)", a bare number → "318(4)" (the IPC guess
- * below still applies), any other code → "420-IPC", "154-CrPC" and so on.
+ * becomes a checker token: a bare number → "318(4)" (the IPC guess below still
+ * applies), a table code → "318(4)-BNS", "420-IPC", "154-CrPC" and so on, and an Act
+ * the tables do not cover → "21 of another Act" (as the timeline route words it; no
+ * internal code is ever shown).
  */
 export function readBailInputs(text: string): string[] {
   return readToolSections(text).map((e) => {
-    if (e.code === null || e.code === 'BNS') return e.number;
-    return `${e.number}-${TABLE_CODE[e.code] ?? 'OTHER'}`;
+    if (e.code === null) return e.number;
+    // An explicit BNS keeps its code, so "BNS 400" is never guessed as IPC 400.
+    const code = TABLE_CODE[e.code];
+    return code ? `${e.number}-${code}` : `${e.number} of another Act`;
   });
 }
 
@@ -303,6 +308,13 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
   const results: SectionResult[] = [];
   /** Charged sections whose bailability is unknown (T-277). */
   const undeterminedSections: string[] = [];
+  /**
+   * Ajay (CLO), T-371 build sign-off (1363d68): the summary line for each entry in
+   * undeterminedSections uses the same text as its row: the row's note (NOT_VERIFIED,
+   * NO_BNS_EQUIVALENT) for a missing or unresolved section, DEPENDS_FIRST_SCHEDULE for
+   * a signed row whose bailable is null. Same index as undeterminedSections.
+   */
+  const undeterminedNotes: string[] = [];
 
   for (const raw of sectionInputs) {
     const input = raw.trim();
@@ -317,7 +329,12 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
     /** An IPC input that did not reach a BNS target. */
     let ipcUnresolved = false;
 
-    if (dashMatch) {
+    if (OTHER_ACT_TOKEN.test(input)) {
+      // T-371: an Act the signed tables do not cover; never looked up as BNS.
+      bnsSection = '';
+      ipcUnresolved = true;
+      note = NOT_VERIFIED;
+    } else if (dashMatch) {
       const [, num, code] = dashMatch;
       const codeUpper = code.toUpperCase();
       if (codeUpper !== 'IPC' && codeUpper !== 'BNS') {
@@ -384,6 +401,7 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
     }
     if (!offence && ipcUnresolved) {
       undeterminedSections.push(displaySection(input, ipcSection, bnsSection));
+      undeterminedNotes.push(note ?? NOT_VERIFIED);
     }
 
     results.push({
@@ -402,6 +420,7 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
   for (const r of foundResults) {
     if (r.offence && r.offence.bailable === null) {
       undeterminedSections.push(displaySection(r.input, r.ipcSection, r.bnsSection));
+      undeterminedNotes.push(DEPENDS_FIRST_SCHEDULE);
     }
   }
 
@@ -452,12 +471,24 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
   );
   // Ajay (round 6): a non-bailable charge with an unknown term names no bail
   // provision, unless a known term (exact, or a parent's court term) is death or life.
-  const bnssBail =
+  // Ajay (1363d68): the overall "unknown" text follows its rows. Any signed row with a
+  // null bailable (or nothing to go on) keeps DEPENDS_FIRST_SCHEDULE; otherwise the
+  // rows are all missing / unresolved, and NOT_VERIFIED (or their one shared note) applies.
+  const overallUnknownNote =
+    undeterminedNotes.length === 0 || undeterminedNotes.includes(DEPENDS_FIRST_SCHEDULE)
+      ? DEPENDS_FIRST_SCHEDULE
+      : undeterminedNotes.includes(NOT_VERIFIED)
+        ? NOT_VERIFIED
+        : undeterminedNotes[0];
+  const bnssBailBase =
     overallBailable === false && anyUnknownTerm && !anyKnownLife
       ? { section: null, title: BAIL_PROVISION_DEPENDS }
       : determineBnssBailSection(overallBailable, courtMaxYears);
-  // Ajay (round 6): one line per section whose bailability is unknown.
-  const dependsLines = undeterminedSections.map((n) => `Section ${n}: ${DEPENDS_FIRST_SCHEDULE}`);
+  const bnssBail =
+    overallBailable === null ? { ...bnssBailBase, title: overallUnknownNote } : bnssBailBase;
+  // Ajay (round 6, 1363d68): one line per section whose bailability is unknown, in the
+  // same text as its row.
+  const dependsLines = undeterminedSections.map((n, i) => `Section ${n}: ${undeterminedNotes[i]}`);
 
   let recommendation: string;
   if (overallBailable === true) {
@@ -490,7 +521,7 @@ export async function checkBailEligibility(sectionInputs: string[]): Promise<Bai
     sections: results,
     summary: {
       overallBailable,
-      overallBailableNote: overallBailable === null ? DEPENDS_FIRST_SCHEDULE : null,
+      overallBailableNote: overallBailable === null ? overallUnknownNote : null,
       undeterminedSections,
       mostSeriousSection: mostSerious?.bnsSection ?? null,
       maxPunishment: mostSerious
