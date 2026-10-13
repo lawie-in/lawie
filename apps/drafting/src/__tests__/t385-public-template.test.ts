@@ -1,4 +1,4 @@
-import { readdirSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import request from 'supertest';
@@ -399,29 +399,49 @@ describe('T-385 (Arjun test b, fallback): the projection keeps every key the for
   // inline config and jest in apps/web cannot import apps/drafting. Instead we assert the
   // projected config keeps every field key the renderer reads (DynamicFormRenderer.tsx
   // FormField, lines 25-56, and its field.* reads) for an override and a promoted pack.
-  const RENDERER_READS = [
-    'field_id',
-    'label',
-    'type',
-    'required',
-    'placeholder',
-    'default',
-    'options',
-    'options_from',
-    'source',
-    'filtered_by',
-    'cascades_to',
-    'show_if',
-    'depends_on',
-    'min_length',
-    'max_length',
-    'min_select',
-    'validation_pattern',
-    'validation_message',
-    'multiple',
-    'accept',
-    'help',
-  ];
+  const RENDERER_FILE = join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    '..',
+    'apps',
+    'web',
+    'src',
+    'components',
+    'form',
+    'DynamicFormRenderer.tsx',
+  );
+
+  /**
+   * Every FormField property the renderer reads, derived from its source: `field.x` and
+   * `f.x` reads, kept only when x is a property of the FormField interface (so `f.name`
+   * and `f.size` of an uploaded file, and `.map`/`.length`, are not counted).
+   */
+  function rendererReads(): string[] {
+    const src = readFileSync(RENDERER_FILE, 'utf8');
+    const iface = /export interface FormField \{([\s\S]*?)\n\}/.exec(src);
+    if (!iface) throw new Error('FormField interface not found in DynamicFormRenderer.tsx');
+    const props = new Set<string>();
+    for (const m of iface[1].matchAll(/^ {2}(\w+)\??:/gm)) props.add(m[1]);
+    const reads = new Set<string>();
+    for (const m of src.matchAll(/\b(?:field|f)\.(\w+)/g)) {
+      if (props.has(m[1])) reads.add(m[1]);
+    }
+    return [...reads].sort();
+  }
+
+  const RENDERER_READS = rendererReads();
+
+  it('the derived renderer-read set is real, not vacuous', () => {
+    expect(RENDERER_READS.length).toBeGreaterThanOrEqual(15);
+    for (const k of ['field_id', 'type', 'label', 'source', 'options', 'required']) {
+      expect(RENDERER_READS).toContain(k);
+    }
+    // an uploaded file's own keys are not field keys
+    expect(RENDERER_READS).not.toContain('name');
+    expect(RENDERER_READS).not.toContain('size');
+  });
 
   it('the allowlist is a superset of the renderer-read keys', () => {
     for (const k of RENDERER_READS) {
