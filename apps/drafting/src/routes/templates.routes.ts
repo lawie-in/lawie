@@ -27,7 +27,7 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
 
   const templates = await Template.find(filter)
     .select(
-      'templateId slug displayName category catalogueCategory courtLevels description planAccess creditsCost icon supportedLanguages',
+      'templateId slug displayName category catalogueCategory courtLevels planAccess creditsCost icon supportedLanguages',
     )
     .lean();
 

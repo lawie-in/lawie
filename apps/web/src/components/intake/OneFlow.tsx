@@ -808,12 +808,16 @@ export default function OneFlow({
   // T-365 AC5: once the list has loaded, a listed `initialKind` is preset exactly
   // as a pick in "Browse document types"; an unknown or unlisted id leaves a
   // plain describe. Runs once; `?kind=` is then dropped so a reload does not
-  // preset again after the advocate changes document.
+  // preset again after the advocate changes document. If the advocate has already
+  // acted before the list arrived (typed, submitted, browsed, picked), their
+  // choice stands and the preset is skipped.
   const initialKindDone = useRef(false);
   useEffect(() => {
     if (initialKindDone.current || !initialKind || loadingKinds) return;
     initialKindDone.current = true;
-    const k = kinds.find((x) => x.template_id === initialKind);
+    const acted =
+      phase !== 'describe' || busy || chosenKind.current !== undefined || description.trim() !== '';
+    const k = acted ? undefined : kinds.find((x) => x.template_id === initialKind);
     if (k) {
       setPreset({ id: k.template_id, name: k.display_name });
       chosenKind.current = k.template_id;
@@ -823,7 +827,7 @@ export default function OneFlow({
     const url = new URL(window.location.href);
     url.searchParams.delete('kind');
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
-  }, [initialKind, kinds, loadingKinds]);
+  }, [initialKind, kinds, loadingKinds, phase, busy, description]);
 
   if (reading === 'loading') return <BriefLoading />;
   if (reading === 'failed') {
