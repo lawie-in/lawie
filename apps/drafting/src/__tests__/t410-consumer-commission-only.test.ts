@@ -445,9 +445,14 @@ describe('T-412: the 21 December 2021 date', () => {
     const old = baseline.document_structure.sections.find((s) => s.section_id === 'body')
       ?.prompt_context as string;
     expect(old).toContain('CPA (Jurisdiction) Notification dated 21 December 2021,');
-    // Two signed edits only: T-412 (citation) and Ajay 4e42ef8 (opening drops "Section 35 of").
+    // Three signed edits only: T-412 (citation), T-412 Addendum 2 (2df4d04, "these Rules")
+    // and Ajay 4e42ef8 (opening drops "Section 35 of").
     const expected = old
       .replace('CPA (Jurisdiction) Notification dated 21 December 2021,', `the ${RULES_CITATION},`)
+      .replace(
+        'those were superseded by this notification.',
+        'those were superseded by these Rules.',
+      )
       .replace(
         'Complaint under Section 35 of the Consumer Protection Act, 2019. Structure:',
         'Complaint under the Consumer Protection Act, 2019. Structure:',
