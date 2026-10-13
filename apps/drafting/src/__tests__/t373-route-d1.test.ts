@@ -297,7 +297,7 @@ describe('T-359 through the route (Anushka run 3)', () => {
       regularBaseWithNarrative(REGULAR_NARRATIVE_ABSOLUTE_RAW),
       (o) => {
         o.paragraphs.find((x) => x.clauseId === 'facts')!.text =
-          'He is accused in a civil dispute from a failed land-sale agreement of 2 March 2025, and was arrested.';
+          'He is accused in a dispute that is civil, from a failed land-sale agreement of 2 March 2025, and was arrested.';
       },
     );
     expect(statusOf(r, 'facts')).toBe('ok');

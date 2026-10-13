@@ -23,11 +23,14 @@ import {
   DraftParagraph,
   DraftParagraphsOutput,
   draftFactRefs,
+  OWN_WORDS_KEPT,
   OWN_WORDS_NEGATORS,
   OWN_WORDS_STOP_LIST,
   ownWordsAddedWord,
   ownWordsAlteredEntity,
   ownWordsDroppedWord,
+  ownWordsKeptWordChanged,
+  ownWordsReordered,
   ownWordsStem,
   packOptionIds,
   renderDraft,
@@ -127,8 +130,9 @@ function render(
 }
 
 // A grammar-only rephrase of REGULAR_NARRATIVE_ABSOLUTE_RAW: every content word, number and date kept ("2 Mar" written "2 March").
+// Content words keep the raw_span's order and the pronoun stays "He" (Ajay's renderer review, 13 Oct 2026): only the month is spelled out.
 const KEPT_REPHRASE =
-  'He is accused in a civil dispute from a failed land-sale agreement of 2 March 2025, and was arrested.';
+  'He is accused in a dispute that is civil, from a failed land-sale agreement of 2 March 2025, and was arrested.';
 
 const count = (haystack: string, needle: string): number => haystack.split(needle).length - 1;
 
@@ -1416,7 +1420,7 @@ describe('ruling 1: a changed date, number, name or place falls back, even with 
     it("the renderer keeps a rephrase that states the advocate's own date", () => {
       const raw = 'He is accused in a dispute that is civil, of 2 Mar 2025, and was arrested.';
       const { status } = render('bail_regular', withNarrative(raw), undefined, {
-        facts: 'He is accused in a civil dispute of 2 March 2025, and was arrested.',
+        facts: 'He is accused in a dispute that is civil, of 2 March 2025, and was arrested.',
       });
       expect(status('facts')).toBe('ok');
     });
@@ -1468,7 +1472,7 @@ describe('ruling 2: a content word the raw_span does not hold falls back', () =>
   it('inflection: the stems of arrest / arrested / arrests / arresting are one', () => {
     for (const w of ['arrest', 'arrested', 'arrests', 'arresting']) {
       expect(ownWordsStem(w)).toBe(ownWordsStem('arrest'));
-      expect(ownWordsAddedWord(`He was ${w}`, 'the police arrest him')).toBe(false);
+      expect(ownWordsAddedWord(`The police ${w}`, 'the police arrest')).toBe(false);
     }
   });
 
@@ -1660,7 +1664,7 @@ describe('ruling 2, other direction: something the raw_span states that the text
   });
 
   it('a faithful rephrase that keeps the negation is kept', () => {
-    kept('The applicant was not named in the FIR.', 'In the FIR, the applicant was not named.');
+    kept('The applicant was not named in the FIR.', 'Applicant was not named in the FIR.');
   });
 
   it('a dropped date falls back', () => {
@@ -1682,7 +1686,7 @@ describe('ruling 2, other direction: something the raw_span states that the text
     for (const amt of ['Rs 800000', '₹8,00,000', 'Rs. 800000', 'INR 8,00,000']) {
       expect(ownWordsDroppedWord(`For the land, he owes the seller ${amt}.`, raw)).toBe(false);
     }
-    kept(raw, 'For the land he owes the seller Rs 8,00,000.');
+    kept(raw, 'He owes to the seller Rs 8,00,000 for the land.');
   });
 
   // FINDING (T-373 round 2, older than the two-way check): ownWordsAlteredEntity / ownWordsAddedWord read
@@ -1719,7 +1723,7 @@ describe('ruling 2, other direction: something the raw_span states that the text
     const raw = 'Usne paisa nahi liya, the deal was a land sale.';
     expect(ownWordsDroppedWord('Usne paisa liya, the deal was a land sale.', raw)).toBe(true);
     fallsBack(raw, 'Usne paisa liya, the deal was a land sale.');
-    kept(raw, 'The deal was a land sale, usne paisa nahi liya.');
+    kept(raw, 'Usne paisa nahi liya, and the deal was a land sale.');
     expect(ownWordsDroppedWord('Usne paisa liya', 'Usne paisa nahin liya')).toBe(true);
   });
 
@@ -1851,8 +1855,8 @@ describe('ruling 2, other direction: something the raw_span states that the text
     });
     it('magistrate: facts and the single grounds entry', () => {
       const { status } = render('bail_before_magistrate', magistrateBase(), undefined, {
-        facts: 'The complaint is about a deal in which she had no part.',
-        grounds: 'She was not at the spot, and has two kids.',
+        facts: 'The complaint is about a deal that she had no part in.',
+        grounds: 'She has two kids and was not at the spot.',
       });
       expect(status('facts')).toBe('ok');
       expect(status('grounds')).toBe('ok');
@@ -1884,11 +1888,11 @@ describe('ruling 2, other direction: something the raw_span states that the text
         'bail_before_magistrate',
         two(),
         outputWith([
-          ['grounds_for_bail[0]', 'Two kids are hers.'],
+          ['grounds_for_bail[0]', 'She has the two kids.'],
           ['grounds_for_bail[1]', 'She was at the spot.'],
         ]),
       );
-      expect(text('grounds')).toContain('(a) Two kids are hers.');
+      expect(text('grounds')).toContain('(a) She has the two kids.');
       expect(text('grounds')).toContain('(b) she was not at the spot');
       expect(text('grounds')).not.toContain('She was at the spot.');
       expect(status('grounds')).toBe('fallback');
@@ -1901,11 +1905,331 @@ describe('ruling 2, other direction: something the raw_span states that the text
         two(),
         outputWith([
           ['grounds_for_bail[0]', 'She has kids.'],
-          ['grounds_for_bail[1]', 'At the spot she was not.'],
+          ['grounds_for_bail[1]', 'She was not there at the spot.'],
         ]),
       );
       expect(text('grounds')).toContain('(a) she has two kids');
-      expect(text('grounds')).toContain('(b) At the spot she was not.');
+      expect(text('grounds')).toContain('(b) She was not there at the spot.');
+    });
+  });
+});
+
+// ── Ajay's renderer review (13 Oct 2026): order, modals, kept words ─────────
+// Fictitious names only. Each case below is the advocate's words verbatim or nothing.
+
+describe("Ajay's renderer review: own-words rephrases that change who did what fall back", () => {
+  const PREFIX = 'The brief facts of the case are as follows: ';
+  const fallsBack = (raw: string, rephrase: string) => {
+    const { text, status, result } = render('bail_regular', withNarrative(raw), undefined, {
+      facts: rephrase,
+    });
+    expect(status('facts')).toBe('fallback');
+    expect(result.fallbacks).toEqual([{ clauseId: 'facts', reason: 'unverified' }]);
+    expect(text('facts')).toBe(`${PREFIX}${raw}`);
+  };
+  const kept = (raw: string, rephrase: string) => {
+    const { text, status, result } = render('bail_regular', withNarrative(raw), undefined, {
+      facts: rephrase,
+    });
+    expect(status('facts')).toBe('ok');
+    expect(result.fallbacks).toEqual([]);
+    expect(text('facts')).toBe(`${PREFIX}${rephrase}`);
+  };
+
+  describe("Ajay's cases, end to end through renderDraft", () => {
+    it('1 order: "Ramesh assaulted Suresh" -> "Suresh assaulted Ramesh" falls back', () => {
+      fallsBack('Ramesh assaulted Suresh', 'Suresh assaulted Ramesh');
+    });
+    it('2 order: the payer and the payee swapped falls back', () => {
+      fallsBack(
+        'the amount was paid by the applicant to the complainant',
+        'the amount was paid by the complainant to the applicant',
+      );
+    });
+    it('3 kept word: "she was at home" -> "he was at home" falls back', () => {
+      fallsBack('she was at home', 'he was at home');
+    });
+    it('4 modal: "cooperates" -> "will cooperate" falls back', () => {
+      fallsBack(
+        'the applicant cooperates with the investigation',
+        'the applicant will cooperate with the investigation',
+      );
+    });
+    it('5 kept word: "and his brother were" -> "or his brother was" falls back', () => {
+      fallsBack(
+        'the applicant and his brother were present',
+        'the applicant or his brother was present',
+      );
+    });
+    it('6 dates in order: "arrested 2 March, released 5 March" with the dates swapped falls back', () => {
+      fallsBack('arrested 2 March, released 5 March', 'arrested 5 March, released 2 March');
+    });
+    it('6 dates in order, with years', () => {
+      fallsBack(
+        'arrested on 2 March 2025 and released on 5 March 2025',
+        'arrested on 5 March 2025 and released on 2 March 2025',
+      );
+    });
+    it('control (Ajay verbatim): none of the own-words checks fires on a tense or article fix', () => {
+      const raw = 'applicant arrested on 2 March 2025';
+      const text = 'The applicant was arrested on 2 March 2025.';
+      expect(ownWordsAlteredEntity(text, raw)).toBe(false);
+      expect(ownWordsAddedWord(text, raw)).toBe(false);
+      expect(ownWordsDroppedWord(text, raw)).toBe(false);
+      expect(ownWordsKeptWordChanged(text, raw)).toBe(false);
+      expect(ownWordsReordered(text, raw)).toBe(false);
+    });
+    // FINDING: Ajay's control text, run end to end in bail_regular, still falls back, but not for an own-words
+    // reason: the fact verifier's banned phrase "was arrested on" (arrested_on) is not in the raw_span, which
+    // says "arrested on". The same fallback happens on 4b59ec7. Characterised here so a change shows.
+    it('control (Ajay verbatim) end to end falls back on the verifier banned phrase "was arrested on", not on own-words', () => {
+      fallsBack(
+        'applicant arrested on 2 March 2025',
+        'The applicant was arrested on 2 March 2025.',
+      );
+    });
+    it('control end to end: a tense or article fix with the same word order stays ok', () => {
+      kept('applicant not named in the FIR', 'The applicant was not named in the FIR.');
+    });
+  });
+
+  describe('ownWordsReordered', () => {
+    it('a swap of two content words is a reorder', () => {
+      expect(ownWordsReordered('Suresh assaulted Ramesh', 'Ramesh assaulted Suresh')).toBe(true);
+    });
+    it('a content word moved elsewhere is a reorder', () => {
+      expect(
+        ownWordsReordered(
+          'In the FIR the applicant was named',
+          'The applicant was named in the FIR',
+        ),
+      ).toBe(true);
+      expect(
+        ownWordsReordered(
+          'Land-sale quarrel started the dispute',
+          'The dispute started the land-sale quarrel',
+        ),
+      ).toBe(true);
+    });
+    it('a passive rewrite is a reorder (fallback accepted by Ajay)', () => {
+      expect(ownWordsReordered('Suresh was assaulted by Ramesh', 'Ramesh assaulted Suresh')).toBe(
+        true,
+      );
+    });
+    it('the same text is not a reorder', () => {
+      expect(ownWordsReordered('Ramesh assaulted Suresh', 'Ramesh assaulted Suresh')).toBe(false);
+    });
+    it('stop words added, dropped or moved keep the order', () => {
+      expect(
+        ownWordsReordered(
+          'The applicant was arrested on 2 March 2025.',
+          'applicant arrested on 2 March 2025',
+        ),
+      ).toBe(false);
+      expect(
+        ownWordsReordered('It was the applicant who had been arrested', 'applicant arrested'),
+      ).toBe(false);
+      expect(ownWordsReordered('Applicant arrested', 'the applicant, who was arrested')).toBe(
+        false,
+      );
+    });
+    it('inflection does not change the sequence (stems)', () => {
+      expect(ownWordsReordered('The police arrested him', 'the police arrest him')).toBe(false);
+    });
+    it('a content word added or dropped is not equal either', () => {
+      expect(ownWordsReordered('Ramesh assaulted', 'Ramesh assaulted Suresh')).toBe(true);
+      expect(ownWordsReordered('Ramesh assaulted Suresh badly', 'Ramesh assaulted Suresh')).toBe(
+        true,
+      );
+    });
+    it('digit grouping does not matter in a plain number', () => {
+      expect(ownWordsReordered('He held 1,200 acres', 'He held 1200 acres')).toBe(false);
+    });
+    it('two swapped dates are a reorder; the same date written another way is not', () => {
+      expect(
+        ownWordsReordered(
+          'arrested 5 March, released 2 March',
+          'arrested 2 March, released 5 March',
+        ),
+      ).toBe(true);
+      expect(
+        ownWordsReordered(
+          'arrested on 5 March 2025, released on 2 March 2025',
+          'arrested on 2 March 2025, released on 5 March 2025',
+        ),
+      ).toBe(true);
+      expect(ownWordsReordered('arrested on 2 March 2025', 'arrested on 2 Mar 2025')).toBe(false);
+      expect(ownWordsReordered('arrested on 2 Mar 2025', 'arrested on 2 March 2025')).toBe(false);
+    });
+    it('a date moved past a content word is a reorder', () => {
+      expect(
+        ownWordsReordered(
+          'On 2 March 2025 the applicant was arrested',
+          'applicant arrested 2 March 2025',
+        ),
+      ).toBe(true);
+    });
+    it('two swapped amounts are a reorder; a regrouped amount at the same place is not', () => {
+      expect(
+        ownWordsReordered(
+          'paid Rs 5,00,000 and owes Rs 8,00,000',
+          'paid Rs 8,00,000 and owes Rs 5,00,000',
+        ),
+      ).toBe(true);
+      expect(ownWordsReordered('He owes Rs 800000', 'He owes Rs 8,00,000')).toBe(false);
+      expect(ownWordsReordered('He owes ₹8,00,000', 'He owes Rs 800000')).toBe(false);
+    });
+    it('regrouped date and amount stay ok through renderDraft', () => {
+      kept('He was arrested on 2 Mar 2025', 'He was arrested on 2 March 2025');
+      kept(
+        'He owes the seller Rs 8,00,000 for the land.',
+        'He owes to the seller Rs 8,00,000 for the land.',
+      );
+    });
+  });
+
+  describe('ownWordsKeptWordChanged', () => {
+    it('lists exactly the words Ajay named', () => {
+      expect([...OWN_WORDS_KEPT].sort()).toEqual(
+        [
+          'he',
+          'him',
+          'his',
+          'himself',
+          'she',
+          'her',
+          'hers',
+          'herself',
+          'they',
+          'them',
+          'their',
+          'themselves',
+          'or',
+          'either',
+        ].sort(),
+      );
+    });
+    it.each([...OWN_WORDS_KEPT])('"%s" added to the text is a change', (w) => {
+      expect(
+        ownWordsKeptWordChanged(`the applicant ${w} was present`, 'the applicant was present'),
+      ).toBe(true);
+    });
+    it.each([...OWN_WORDS_KEPT])('"%s" dropped from the text is a change', (w) => {
+      expect(
+        ownWordsKeptWordChanged('the applicant was present', `the applicant ${w} was present`),
+      ).toBe(true);
+    });
+    it.each([...OWN_WORDS_KEPT])('"%s" kept as written is not a change', (w) => {
+      expect(
+        ownWordsKeptWordChanged(
+          `The applicant ${w} was present.`,
+          `the applicant ${w} was present`,
+        ),
+      ).toBe(false);
+    });
+    it.each([
+      ['she', 'he'],
+      ['him', 'her'],
+      ['his', 'her'],
+      ['they', 'she'],
+      ['their', 'his'],
+      ['and', 'or'],
+    ])('"%s" swapped for "%s" is a change', (a, b) => {
+      expect(ownWordsKeptWordChanged(`x ${b} y`, `x ${a} y`)).toBe(true);
+    });
+    it('"or" for "and" and "and" for "or" both change', () => {
+      expect(
+        ownWordsKeptWordChanged('the applicant or his brother', 'the applicant and his brother'),
+      ).toBe(true);
+      expect(
+        ownWordsKeptWordChanged('the applicant and his brother', 'the applicant or his brother'),
+      ).toBe(true);
+    });
+    it('a text with none of them against a raw_span with none is not a change', () => {
+      expect(ownWordsKeptWordChanged('The applicant was arrested', 'applicant arrested')).toBe(
+        false,
+      );
+    });
+  });
+
+  describe('will / would / shall / can count as content words now', () => {
+    it.each(['will', 'would', 'shall', 'can'])('"%s" is off the stop list', (m) => {
+      expect(OWN_WORDS_STOP_LIST).not.toContain(m);
+    });
+    it.each(['will', 'would', 'shall', 'can'])('"%s" added to the text is an added word', (m) => {
+      expect(ownWordsAddedWord(`the applicant ${m} cooperate`, 'the applicant cooperates')).toBe(
+        true,
+      );
+      fallsBack('the applicant cooperates', `the applicant ${m} cooperate`);
+    });
+    it.each(['will', 'would', 'shall', 'can'])(
+      '"%s" dropped from the text is a dropped word',
+      (m) => {
+        expect(
+          ownWordsDroppedWord('the applicant cooperates', `the applicant ${m} cooperate`),
+        ).toBe(true);
+      },
+    );
+    it('a modal the advocate wrote and the text keeps is ok', () => {
+      kept('the applicant will cooperate', 'The applicant will cooperate.');
+    });
+  });
+
+  describe("it / its / theirs / itself stay on the stop list (characterisation, per Ajay's exact list)", () => {
+    it.each(['it', 'its', 'theirs', 'itself'])('"%s" is a stop word, not a kept word', (w) => {
+      expect(OWN_WORDS_STOP_LIST).toContain(w);
+      expect(OWN_WORDS_KEPT).not.toContain(w);
+    });
+    it('adding "it" or "its" to the text is not caught by any own-words check', () => {
+      const raw = 'the applicant gave the phone to the police';
+      expect(ownWordsAddedWord('The applicant gave it to the police', raw)).toBe(false);
+      expect(ownWordsAddedWord('The applicant gave its phone to the police', raw)).toBe(false);
+      expect(ownWordsKeptWordChanged('the applicant gave it to the police', raw)).toBe(false);
+    });
+  });
+
+  describe('grounds items: a reorder falls back that item alone', () => {
+    const two = (): LedgerFact[] => [
+      ...withoutKey(magistrateBase(), 'grounds_for_bail'),
+      fact('grounds_for_bail', 'She has two kids.', { raw_span: 'she has two kids' }),
+      fact('grounds_for_bail', 'She was not at the spot.', { raw_span: 'she was not at the spot' }),
+    ];
+    const outputWith = (items: Array<[string, string]>): DraftParagraphsOutput => {
+      const o = goodOutput(loadFixtureSkeleton('bail_before_magistrate'), two());
+      const g = o.paragraphs.find((p) => p.clauseId === 'grounds')!;
+      g.text = '';
+      g.items = items.map(([factRef, text]) => ({ factRef, text }));
+      return o;
+    };
+
+    it('item (a) reordered prints its raw_span; item (b) keeps the model rephrase', () => {
+      const { text, status, result } = render(
+        'bail_before_magistrate',
+        two(),
+        outputWith([
+          ['grounds_for_bail[0]', 'Two kids she has.'],
+          ['grounds_for_bail[1]', 'She was not there at the spot.'],
+        ]),
+      );
+      expect(text('grounds')).toContain('(a) she has two kids');
+      expect(text('grounds')).not.toContain('Two kids she has.');
+      expect(text('grounds')).toContain('(b) She was not there at the spot.');
+      expect(status('grounds')).toBe('fallback');
+      expect(result.fallbacks).toEqual([{ clauseId: 'grounds', reason: 'unverified' }]);
+    });
+
+    it('item (b) with a pronoun changed prints its raw_span; item (a) is kept', () => {
+      const { text } = render(
+        'bail_before_magistrate',
+        two(),
+        outputWith([
+          ['grounds_for_bail[0]', 'She has the two kids.'],
+          ['grounds_for_bail[1]', 'He was not at the spot.'],
+        ]),
+      );
+      expect(text('grounds')).toContain('(a) She has the two kids.');
+      expect(text('grounds')).toContain('(b) she was not at the spot');
+      expect(text('grounds')).not.toContain('He was not at the spot.');
     });
   });
 });

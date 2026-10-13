@@ -135,7 +135,7 @@ describe('round 3: an unchanged date is kept, a changed date falls back', () => 
   it("end to end: the renderer keeps a rephrase with the advocate's own date", () => {
     const raw = 'He is accused in a dispute that is civil, of 2 Mar 2025, and was arrested.';
     const { status, result } = render('bail_regular', withNarrative(raw), {
-      facts: 'He is accused in a civil dispute of 2 March 2025, and was arrested.',
+      facts: 'He is accused in a dispute that is civil, of 2 March 2025, and was arrested.',
     });
     expect(status('facts')).toBe('ok');
     expect(result.fallbacks).toEqual([]);
@@ -223,7 +223,7 @@ describe('round 3: the stop list holds no causal, temporal or negating word', ()
       regularBaseWithNarrative(REGULAR_NARRATIVE_ABSOLUTE_RAW),
       {
         facts:
-          'He is accused in a civil dispute, but from a failed land-sale agreement of 2 March 2025, and was arrested.',
+          'He is accused in a dispute that is civil, but from a failed land-sale agreement of 2 March 2025, and was arrested.',
       },
     );
     expect(status('facts')).toBe('ok');
