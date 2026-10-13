@@ -18,3 +18,5 @@ These are should-fixes from T-390's reviewer. The verify-email dedup key has no 
 
 ## Arjun (13 Oct 2026)
 BullMQ needs `maxmemory-policy noeviction` on its Redis; with any eviction, queue state can be corrupted. The founder checks and sets it on prod (morning-report item 0j).
+
+**Arjun (13 Oct, AC5):** dropped. Mahak checked BullMQ 5.77.6: the dedup key is deleted on complete/final-fail/remove only when it has no TTL, so a TTL would make the key outlive a finished job and drop a genuine resend until it expires — a regression — and there is no finite job lifetime to match while T-379 holds. With no TTL the key cannot outlive its job; the only orphan path (job hash deleted outside BullMQ) is AC1's self-heal. My TTL line was wrong for this library; AC1 is the rule.
