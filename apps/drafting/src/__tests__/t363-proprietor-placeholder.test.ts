@@ -94,9 +94,12 @@ function ledgerFact(key: string, display: string): LedgerFact {
 }
 
 function heldFacts(extra: Record<string, string>, omit: string[] = []): LedgerFact[] {
-  return Object.entries({ ...BASE, ...extra })
-    .filter(([k]) => !omit.includes(k))
-    .map(([k, v]) => ledgerFact(k, v));
+  return (
+    Object.entries({ ...BASE, ...extra })
+      .filter(([k]) => !omit.includes(k))
+      // The real ledger holds an enum by the pack's option label (fact-ledger.service.ts).
+      .map(([k, v]) => ledgerFact(k, k === 'respondent_type' ? (TYPE_LABEL[v] ?? v) : v))
+  );
 }
 
 function renderForm(form: Record<string, unknown>) {
