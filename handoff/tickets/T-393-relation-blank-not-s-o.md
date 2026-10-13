@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay |
 | Mode   | Small fix (legal content) |
-| Status | To do. Kunal, after T-379 and before T-388. RELEASE GATE (Anushka run 3, T-359 AC6). Found by Vishal in T-373, 13 Oct 2026 |
+| Status | Building. Kunal, after T-379. RELEASE GATE (Anushka run 3, T-359 AC6). Priya, 13 Oct 2026 |
 | Source | T-359 AC6, Ajay signed dff323f: "the relation defaults to a blank, never S/o" |
 
 ## Problem

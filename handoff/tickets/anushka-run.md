@@ -793,3 +793,11 @@ What a user can now do:
 - See every date written out, like "1 March 2026", and a countdown such as "60-day period · 12 days left".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-379 — Email worker guard (b3d01a7, kunal, 13 Oct 2026)
+
+What a user can now do:
+- Nothing changes on screen. Before real emails are switched on, an unfinished email footer can no longer cause a verification email to go out or invalidate a link the user already has. Their email is held and sent once the footer is filled in.
+- A user whose name or address contains text like "[PIN]" still gets their emails.
+
+Quality: nothing to test in the UI — email-worker start-up and health guard
