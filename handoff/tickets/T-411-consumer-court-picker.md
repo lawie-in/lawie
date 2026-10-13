@@ -1,6 +1,6 @@
 # T-411: court picker shows only courts the template allows
 
-Status: todo (design in: handoff/marketing/consumer-court-picker-spec-t411.md, Rajesh spec, Madhuri strings, 13 Oct; waits for Ajay to sign the level names, the NCDRC label and the no-match line)
+Status: todo (design in: handoff/marketing/consumer-court-picker-spec-t411.md, Rajesh spec, Madhuri strings, 13 Oct; Ajay signed the strings bfe3a57)
 
 Owner: unassigned
 
@@ -17,3 +17,8 @@ T-410 part (a) makes the consumer complaint print "[To be confirmed: Consumer Co
 - Rajesh's design (via Meera): handoff/marketing/consumer-court-picker-spec-t411.md. It adds an always-visible level group (District / State / National Commission (NCDRC)); National has no state select.
 - Ajay signs the level names, the NCDRC label and "No Commission is listed for this state yet."
 - Full chain, because it touches more than one service (drafting and web).
+
+## Ajay's conditions (bfe3a57)
+- The document prints the court record's full Commission name, never the chip text.
+- NCDRC is never pre-selected.
+- The strings are signed as written: the three level names, the NCDRC option, the no-match line and "Which Commission?". The live-region lines need no sign-off.
