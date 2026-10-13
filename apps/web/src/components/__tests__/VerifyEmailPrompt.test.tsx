@@ -690,9 +690,11 @@ describe('T-223 AC4 — callers are wired (OneFlow and new/page are too large to
   });
 
   it('settings: checks the verification 403 for the upgrade call and renders the card', () => {
-    const code = src('app/dashboard/settings/page.tsx');
+    // T-370: the upgrade block moved from settings/page.tsx into <PlanUpgrade />.
+    const code = src('components/billing/PlanUpgrade.tsx');
     expect(code).toContain('await isEmailVerificationRequired(res)');
     expect(code).toContain('<VerifyEmailCard />');
+    expect(src('app/dashboard/settings/page.tsx')).toContain('<PlanUpgrade />');
   });
 
   it('the dashboard layout mounts the banner', () => {

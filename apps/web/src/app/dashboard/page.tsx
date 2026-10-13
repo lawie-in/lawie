@@ -7,6 +7,13 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useUsage } from '@/hooks/useUsage';
 import { apiFetch } from '@/lib/apiFetch';
+import {
+  fetchPlans,
+  formatPlanInk,
+  formatPlanPrice,
+  planName,
+  type SubscriptionPlan,
+} from '@/lib/plans';
 
 interface DocumentSummary {
   _id: string;
@@ -171,9 +178,27 @@ function RecentDocumentsTable() {
   );
 }
 
+/** T-370: the Pro plan from billing's GET /plans; null while loading or if the fetch fails. */
+function useProPlan(): SubscriptionPlan | null {
+  const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchPlans()
+      .then((c) => {
+        if (!cancelled) setPlan(c.subscriptions.find((p) => p.id === 'pro_monthly') ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return plan;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const { data: usage, loading: usageLoading } = useUsage();
+  const proPlan = useProPlan();
 
   if (!user) return null;
 
@@ -239,7 +264,9 @@ export default function DashboardPage() {
         </h1>
         <p className="mt-0.5 text-sm text-slate-500">
           {isPro
-            ? 'Unlimited documents — draft as much as you need'
+            ? proPlan
+              ? `Your Pro plan includes ${formatPlanInk(proPlan)}`
+              : 'Your Pro plan is active'
             : `You have ${usage?.remaining ?? 0} document${usage?.remaining === 1 ? '' : 's'} remaining this month`}
         </p>
       </div>
@@ -249,7 +276,9 @@ export default function DashboardPage() {
         {isPro ? (
           <>
             <div>
-              <p className="text-sm font-semibold text-slate-700">Pro plan — unlimited documents</p>
+              <p className="text-sm font-semibold text-slate-700">
+                {proPlan ? `Pro plan — ${formatPlanInk(proPlan)}` : 'Pro plan'}
+              </p>
               <p className="mt-0.5 text-xs text-slate-400">
                 {docCount} documents drafted this month
               </p>
@@ -282,7 +311,9 @@ export default function DashboardPage() {
               href="/dashboard/settings"
               className="rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600"
             >
-              Upgrade to Pro — ₹799/mo
+              {proPlan
+                ? `Upgrade to ${planName(proPlan)} — ${formatPlanPrice(proPlan, true)}`
+                : 'Upgrade to Pro'}
             </Link>
           </>
         )}
