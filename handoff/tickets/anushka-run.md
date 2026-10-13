@@ -686,3 +686,24 @@ What a user can now do:
 - An admin opening document analytics sees which templates are used, by name, with counts and how many were finalised, instead of an empty table.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## Run 3 result (13 Oct 2026): FAIL
+
+Report: `handoff/quality/2026-10-13-run-3-develop-FAIL.md`. Fix tickets: T-359 to T-368. Entries that failed or were blocked stay on the list for the next run, re-tested once their fix merges.
+
+## T-349 + T-350 — dates read naturally; bad links fail cleanly (6be8b14, tanvi, 12 Oct 2026)
+
+What a user can now do:
+- See dates in brief drafts and annexures written like "4 April 2026".
+- An impossible date shows exactly as typed, not changed into another date.
+- A malformed document link gives "not found".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-354 — privacy acceptance fails safely (8e38f59, kunal, 13 Oct 2026)
+
+What a user can now do:
+- Nothing new is visible. If saving the privacy acceptance fails, the user sees the retry message and is asked to sign in again on the next action.
+- Please run a real screen reader over the privacy prompt (T-343). Kunal's check was only a proxy.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

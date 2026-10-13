@@ -27,6 +27,8 @@ import {
   CourtLookupData,
   CourtRuleData,
   declaredFieldIds,
+  formatDraftDate,
+  formatIsoDraftDate,
   loadTemplateConfig,
   MatterTypeOverride,
   resolveAdvocate,
@@ -175,6 +177,15 @@ function safeEsc(v: unknown, fallback = '___________'): string {
   return esc(str(v, fallback));
 }
 
+/**
+ * T-349: a user date as "4 April 2026" when it is a real ISO date; anything
+ * else (non-ISO, impossible) exactly as entered. Formatted first, then escaped.
+ */
+function safeDateEsc(v: unknown, fallback = '___________'): string {
+  const formatted = typeof v === 'string' ? formatIsoDraftDate(v) : null;
+  return safeEsc(formatted ?? v, fallback);
+}
+
 /** First of `values` that is non-empty after trim (trimmed if a string), else undefined. */
 function firstNonBlank(...values: unknown[]): unknown {
   for (const v of values) {
@@ -296,18 +307,15 @@ function annexureSynopsis(formData: Record<string, unknown>, rules: CourtRules):
 // ── Annexure C — List of Dates ────────────────────────────────────────────────
 
 function annexureListOfDates(formData: Record<string, unknown>): string {
-  const eventDate = safeEsc(
+  const eventDate = safeDateEsc(
     formData.event_date ?? formData.incident_date ?? formData.date_of_incident,
   );
-  const firDate = safeEsc(formData.fir_date ?? formData.date_of_fir);
+  const firDate = safeDateEsc(formData.fir_date ?? formData.date_of_fir);
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
   const ps = safeEsc(formData.police_station ?? formData.ps_name);
-  const arrestDate = safeEsc(formData.date_of_arrest ?? formData.arrest_date);
-  const filingDate = new Date().toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
+  const arrestDate = safeDateEsc(formData.date_of_arrest ?? formData.arrest_date);
+  // T-349: "4 April 2026" (T-340's formatter), local date as before.
+  const filingDate = formatDraftDate(new Date());
 
   const rows: Array<[string, string]> = [
     [eventDate !== '___________' ? eventDate : '___________', 'Date of alleged incident/event'],
@@ -479,11 +487,8 @@ function annexureAffidavit(
     formData.deponent_designation ?? 'the above-named Applicant/Petitioner',
   );
 
-  const today = new Date().toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
+  // T-349: "4 April 2026" (T-340's formatter), local date as before.
+  const today = formatDraftDate(new Date());
   const verifiedAt = firstNonBlank(formData.place, formData.city, formData.district);
   const place = safeEsc(verifiedAt);
   const courtDesig = esc(rules.designation);

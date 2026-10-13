@@ -57,6 +57,22 @@ async function until<T>(
   }
 }
 
+// Poll until the job is in `state`, then return a FRESH copy. getJob() and getState() are two
+// separate Redis reads; the job can change state between them (e.g. the last attempt fails), so
+// the object read before getState() may be a stale snapshot (attemptsMade one too low). Re-reading
+// after the state is confirmed makes the returned fields consistent with that terminal state.
+async function untilState(q: Queue, id: string, state: string, ms: number, what: string) {
+  return until(
+    async () => {
+      const j = await q.getJob(id);
+      if (!j || (await j.getState()) !== state) return undefined;
+      return (await q.getJob(id)) ?? undefined;
+    },
+    ms,
+    what,
+  );
+}
+
 beforeAll(async () => {
   redis = await acquireRedis(); // throws (suite fails) when no Redis is available
   process.env.REDIS_URL = redis.url;
@@ -115,24 +131,10 @@ describe('T-220 AC4 retry then keep as failed, then replay (real Redis)', () => 
 
     const q = new Queue(QUEUE, { connection, prefix: `{${PREFIX}}` });
     try {
-      const failed = await until(
-        async () => {
-          const j = await q.getJob(jobId);
-          return j && (await j.getState()) === 'failed' ? j : undefined;
-        },
-        60_000,
-        'job to exhaust its attempts',
-      );
+      const failed = await untilState(q, jobId, 'failed', 60_000, 'job to exhaust its attempts');
 
       // the raw-error job also exhausts its attempts; its stored failedReason is the sanitised one
-      const rawFailed = await until(
-        async () => {
-          const j = await q.getJob(RAW_JOB);
-          return j && (await j.getState()) === 'failed' ? j : undefined;
-        },
-        30_000,
-        'raw-error job to fail',
-      );
+      const rawFailed = await untilState(q, RAW_JOB, 'failed', 30_000, 'raw-error job to fail');
       expect(rawFailed.failedReason).toBe('MessageRejected in email send'); // name only, message dropped
       const rawStored = dump([rawFailed.failedReason, rawFailed.stacktrace]);
       expect(rawStored).not.toContain('leak@');
@@ -192,14 +194,7 @@ describe('T-220 AC4 retry then keep as failed, then replay (real Redis)', () => 
       // ── phase 3: a dry-run worker re-sends it ───────────────────────────
       const before = parsedLogs().length;
       startWorkers({ connection, send: dryRunSend }); // EMAIL_PROVIDER=dry-run (setupEnv): no mail
-      const done = await until(
-        async () => {
-          const j = await q.getJob(jobId);
-          return j && (await j.getState()) === 'completed' ? j : undefined;
-        },
-        20_000,
-        'replayed job to complete',
-      );
+      const done = await untilState(q, jobId, 'completed', 20_000, 'replayed job to complete');
       expect(done.returnvalue).toEqual({ messageId: null });
       const dry = parsedLogs()
         .slice(before)

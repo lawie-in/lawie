@@ -191,10 +191,14 @@ const configCache = new Map<string, TemplateConfig>();
  * (config/catalogue). Checks the id `loadTemplateConfig` files it under (the
  * file's `template_id`, else its file name) and throws ONE error naming every
  * missing id. A missing or unreadable directory is tolerated (registry-only
- * mode); an override that is not valid JSON is checked by its file name.
+ * mode).
+ *
+ * T-350: an override file that cannot be read or is not valid JSON is not
+ * skipped: it is logged (file-name id only, never its content) and fails the
+ * same check, listed after the uncatalogued ids in the one error.
  *
  * Runs once when this module is first loaded (the engine is imported at boot),
- * so an unknown override id stops the boot instead of a request.
+ * so an unknown or broken override stops the boot instead of a request.
  */
 export function assertOverridesCatalogued(dir: string = TEMPLATES_DIR): void {
   let files: string[];
@@ -209,24 +213,53 @@ export function assertOverridesCatalogued(dir: string = TEMPLATES_DIR): void {
   }
 
   const missing: string[] = [];
+  const invalid: string[] = [];
   for (const f of files) {
     const fileId = f.replace(/\.json$/, '');
-    let id = fileId;
+    let parsed: unknown;
     try {
-      const parsed = JSON.parse(readFileSync(join(dir, f), 'utf-8')) as { template_id?: unknown };
-      if (typeof parsed.template_id === 'string') id = parsed.template_id;
+      parsed = JSON.parse(readFileSync(join(dir, f), 'utf-8'));
     } catch {
-      // Unreadable or invalid JSON: check the file name id.
+      // T-350: no error message logged; a JSON parse message can echo the file's content.
+      logger.error(
+        { templateId: fileId },
+        'T-350: docs/templates override is unreadable or not valid JSON',
+      );
+      invalid.push(fileId);
+      continue;
     }
+    const inner =
+      parsed !== null && typeof parsed === 'object'
+        ? (parsed as { template_id?: unknown }).template_id
+        : undefined;
+    const id = typeof inner === 'string' ? inner : fileId;
     if (catalogueCategoryFor(id) === undefined) missing.push(id);
   }
+  const problems: string[] = [];
   if (missing.length > 0) {
-    throw new Error(
-      `Template engine: no catalogue category in config/catalogue for docs/templates override(s): ${missing
+    problems.push(
+      `no catalogue category in config/catalogue for docs/templates override(s): ${missing
         .sort()
         .join(', ')}`,
     );
   }
+  if (invalid.length > 0) {
+    problems.push(
+      `docs/templates override(s) unreadable or not valid JSON: ${invalid.sort().join(', ')}`,
+    );
+  }
+  if (problems.length > 0) {
+    throw new Error(`Template engine: ${problems.join('; ')}`);
+  }
+}
+
+/** T-350 AC4: the only shape a template id may have (every catalogue and override id fits). */
+const TEMPLATE_ID_PATTERN = /^[a-z0-9_-]+$/;
+
+/** T-350: the read errors that mean "no override file at this path". */
+function isNoOverrideFile(err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException | null)?.code;
+  return code === 'ENOENT' || code === 'ENOTDIR';
 }
 
 assertOverridesCatalogued();
@@ -241,16 +274,37 @@ assertOverridesCatalogued();
  * so the runtime cycle is broken — both files can sit at top-level.
  */
 export function loadTemplateConfig(templateId: string): TemplateConfig | null {
+  // T-350 AC4: a route passes its decoded `:id` straight in, so "../" (sent as
+  // %2F) could reach files outside docs/templates. Anything that is not a plain
+  // template id is "not found", before the filesystem or the registry is touched.
+  if (typeof templateId !== 'string' || !TEMPLATE_ID_PATTERN.test(templateId)) return null;
+
   const cached = configCache.get(templateId);
   if (cached !== undefined) return cached;
 
   // Try the override path first — hand-tuned configs trump anything synthesised.
+  // T-350: only a missing file falls through to the registry. An override that
+  // is there but cannot be read or parsed is logged (id only) and thrown, so a
+  // broken signed override is never silently replaced by the registry text.
   let override: TemplateConfig | null = null;
+  let raw: string | null = null;
   try {
-    const raw = readFileSync(join(TEMPLATES_DIR, `${templateId}.json`), 'utf-8');
-    override = JSON.parse(raw) as TemplateConfig;
-  } catch {
+    raw = readFileSync(join(TEMPLATES_DIR, `${templateId}.json`), 'utf-8');
+  } catch (err) {
+    if (!isNoOverrideFile(err)) {
+      logger.error({ templateId }, 'T-350: docs/templates override is unreadable');
+      throw new Error(`Template engine: docs/templates override ${templateId} is unreadable`);
+    }
     // No override on disk — fall through to the promoter registry.
+  }
+  if (raw !== null) {
+    try {
+      override = JSON.parse(raw) as TemplateConfig;
+    } catch {
+      // No parse message logged or thrown: it can echo the file's content.
+      logger.error({ templateId }, 'T-350: docs/templates override is not valid JSON');
+      throw new Error(`Template engine: docs/templates override ${templateId} is not valid JSON`);
+    }
   }
   if (override) {
     // T-240: the library category comes from config/catalogue, never from the
@@ -1786,7 +1840,7 @@ CRITICAL RULES:
    - Any court header or cause-title block ("IN THE COURT OF..." / "IN THE HIGH COURT OF...") — the cause title is already rendered above by the template engine; a second copy corrupts the document (A7)
    - The prayer clause, verification clause, or advocate block
    - The footer disclaimer ("First draft generated with AI" / "Lawie does not provide legal advice") — it is added to the export footer automatically and must NOT appear in the body (A6)
-7. Use today's date format (DD/MM/YYYY) where needed.${contractRule}
+7. Write any date as D Month YYYY, for example 4 April 2026. Never work out, add or change a date that is not given.${contractRule}
 
 ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
 - Use the EXACT respondent / opposite party name provided in the form data. NEVER substitute, guess, or infer a different entity name (e.g., do NOT replace a retailer name with a manufacturer name).

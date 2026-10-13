@@ -708,3 +708,47 @@ describe('T-343 — privacyFetch on a blocked action', () => {
     expect((globalThis as any).__lastBlocked).toBe(true);
   });
 });
+
+// T-354 — pins today's behaviour (Arjun, option A) when the server's accept fails after it has
+// taken the session: the first press gets a 500 (P8, dialog stays open); the old session is
+// already dead, so the retry's 401 -> refresh 401 signs the user out to /login.
+describe('T-354 AC1 — accept 500, then the retry signs the user out', () => {
+  const ACCEPT = '/api/auth/me/privacy-acceptance';
+  const realLocation = window.location;
+  let replace: jest.Mock;
+
+  beforeEach(() => {
+    replace = jest.fn();
+    delete (window as any).location;
+    (window as any).location = { replace, href: 'http://localhost/dashboard' };
+  });
+  afterEach(() => {
+    (window as any).location = realLocation;
+  });
+
+  it('500 shows P8; the retry gets 401, the refresh gets 401: tokens cleared, sent to /login, no login()', async () => {
+    localStorage.setItem('lawie_access_token', 'A1');
+    localStorage.setItem('lawie_refresh_token', 'R1');
+    handlers[ACCEPT] = (n) => (n === 1 ? { status: 500, body: {} } : { status: 401, body: {} });
+    handlers['/api/auth/refresh'] = { status: 401, body: {} };
+    await h.mount();
+
+    // First press: P8, dialog stays open, nobody signed out yet.
+    await h.click(btnIn(dialog() as HTMLElement, SIGNED.P5) as HTMLElement);
+    expect(dialog()?.querySelector('[role="alert"]')?.textContent).toBe(SIGNED.P8);
+    expect(replace).not.toHaveBeenCalled();
+    expect(callsTo('/api/auth/refresh')).toBe(0);
+    expect(localStorage.getItem('lawie_refresh_token')).toBe('R1');
+
+    // Retry: 401, one refresh that is also 401, then the sign-out redirect.
+    await h.click(btnIn(dialog() as HTMLElement, SIGNED.P5) as HTMLElement);
+    expect(callsTo(ACCEPT)).toBe(2);
+    expect(callsTo('/api/auth/refresh')).toBe(1);
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledWith('/login');
+    expect(localStorage.getItem('lawie_access_token')).toBeNull();
+    expect(localStorage.getItem('lawie_refresh_token')).toBeNull();
+    expect(mockLogin).not.toHaveBeenCalled();
+    expect(liveRegion().textContent).toBe(''); // no P9: nothing was accepted
+  });
+});
