@@ -369,7 +369,9 @@ describe('T-404 rule 4: the court', () => {
     const ctx = buildPlaceholderContext(loadTemplateConfig(PACK)!, BASE, {});
     expect(ctx.courtHeader).toBe(COURT_BLANK);
     expect(ctx.courtDesignation).toBe(COURT_BLANK);
-    expect(ctx.caseNomenclature).toBe(COURT_BLANK);
+    // T-406: s.138 is not filed in court, so it carries no case line, blank or otherwise.
+    expect(ctx.caseNomenclature ?? '').toBe('');
+    expect(ctx.case_nomenclature ?? '').toBe('');
   });
 });
 
@@ -468,14 +470,15 @@ describe('T-404 case line and place when a court is chosen or typed', () => {
     courtRule: loadCourtRule('cjm_generic') ?? undefined,
   });
 
-  // s.138 has no pack default for the case line, so the court's own line (or the blank) is what prints.
-  const s138 = () => {
+  // A court pack with no pack default for the case line, so the court's own line (or the blank) prints.
+  // (T-406: s.138 is not a court document, so these case-line rules run on a court pack instead.)
+  const bailCfg = () => {
     clearConfigCache();
-    return loadTemplateConfig(PACK)!;
+    return loadTemplateConfig('affidavit_in_support')!;
   };
 
   it('a court with no case line: the case-type blank; the court itself is unchanged', () => {
-    const ctx = buildPlaceholderContext(s138(), form, { advocateName: 'A' }, court(''));
+    const ctx = buildPlaceholderContext(bailCfg(), form, { advocateName: 'A' }, court(''));
     expect(ctx.caseNomenclature).toBe(CASE_BLANK);
     expect(ctx.courtDesignation).toContain('CHIEF JUDICIAL MAGISTRATE, PATNA');
     expect(ctx.courtDesignation).not.toBe(COURT_BLANK);
@@ -483,12 +486,36 @@ describe('T-404 case line and place when a court is chosen or typed', () => {
 
   it('a court with a case line: it prints as before', () => {
     const ctx = buildPlaceholderContext(
-      s138(),
+      bailCfg(),
       form,
       { advocateName: 'A' },
       court('Bail Application No. _____ of {current_year}'),
     );
     expect(ctx.caseNomenclature).toBe(`Bail Application No. _____ of ${new Date().getFullYear()}`);
+  });
+
+  it('T-406: s.138 at a court, with or without a case line: no case line, court heading unchanged', () => {
+    clearConfigCache();
+    const cfg = loadTemplateConfig(PACK)!;
+    for (const line of ['', 'Bail Application No. _____ of {current_year}']) {
+      const ctx = buildPlaceholderContext(cfg, form, { advocateName: 'A' }, court(line));
+      expect(ctx.caseNomenclature ?? '').toBe('');
+      expect(ctx.case_nomenclature ?? '').toBe('');
+      expect(ctx.courtDesignation).toContain('CHIEF JUDICIAL MAGISTRATE, PATNA');
+    }
+  });
+
+  it('T-406: not-court packs with no court have no case-line blank; place stays a blank', () => {
+    for (const id of [PACK, 'rent_agreement']) {
+      clearConfigCache();
+      const ctx = buildPlaceholderContext(loadTemplateConfig(id)!, {}, {});
+      expect(ctx.caseNomenclature ?? '').toBe('');
+      expect(ctx.case_nomenclature ?? '').toBe('');
+      expect(ctx.caseNomenclature ?? '').not.toContain('case type and number');
+      // a deed that prints {place} (no shipped not-court template does yet): the signed blank
+      expect(replacePlaceholders('Executed at {place}.', ctx)).toBe(`Executed at ${PLACE_BLANK}.`);
+      expect(replacePlaceholders('{caseNomenclature}', ctx)).not.toContain('[To be confirmed');
+    }
   });
 
   it('no court: the place is the blank; with a court the city prints', () => {
@@ -498,6 +525,52 @@ describe('T-404 case line and place when a court is chosen or typed', () => {
     const chosen = buildPlaceholderContext(bail, form, { advocateName: 'A' }, court('X'));
     expect(chosen.place).toBe('Patna');
     expect(chosen.courtPlace).toBe('Patna');
+  });
+});
+
+describe('T-404 / Ajay 49b5fd2: a deed place of execution never comes from a court city', () => {
+  const { configs } = loadAllDocRules();
+  const chosen: CourtLookupData = {
+    designation: 'IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, PATNA',
+    city: 'Patna',
+    caseNomenclature: 'X',
+    formattingRulesRef: 'cjm_generic',
+    courtType: 'cjm',
+    courtRule: loadCourtRule('cjm_generic') ?? undefined,
+  };
+  const deed = (id: string) => configs.get(id) as TemplateConfig;
+
+  it.each(['lease_deed', 'rent_agreement'])('%s (a): no place and no court: the blank', (id) => {
+    const ctx = buildPlaceholderContext(deed(id), {}, {});
+    expect(replacePlaceholders('executed at {place}.', ctx)).toBe(`executed at ${PLACE_BLANK}.`);
+  });
+
+  it.each(['lease_deed', 'rent_agreement'])(
+    '%s (b): no place but a court chosen: still the blank, the court city does not appear',
+    (id) => {
+      const ctx = buildPlaceholderContext(deed(id), {}, {}, chosen);
+      const out = replacePlaceholders('executed at {place} / {courtPlace}.', ctx);
+      expect(out).not.toContain('Patna');
+      expect(out).toBe(`executed at ${PLACE_BLANK} / ${PLACE_BLANK}.`);
+    },
+  );
+
+  it.each(['lease_deed', 'rent_agreement'])(
+    '%s (b): court_city / state in the form data: still the blank',
+    (id) => {
+      const ctx = buildPlaceholderContext(deed(id), { court_city: 'Patna', state: 'bihar' }, {});
+      expect(replacePlaceholders('{place}', ctx)).toBe(PLACE_BLANK);
+    },
+  );
+
+  it('(c) rent_agreement: the place the advocate typed (execution_place) prints, even with a court', () => {
+    const ctx = buildPlaceholderContext(
+      deed('rent_agreement'),
+      { execution_place: 'Jaipur' },
+      {},
+      chosen,
+    );
+    expect(replacePlaceholders('at {execution_place}', ctx)).toBe('at Jaipur');
   });
 });
 
