@@ -58,6 +58,7 @@ Where each lead stopped:
 
 ## Last done
 
+- tanvi: T-410 CI test fix merged 37f9736 (13 Oct 2026): baseline pinned as a literal. Waiting for CI run 520. Next: Kunal's gitleaks:allow fix.
 - tanvi: T-410 CI RED (run 519): t410 test :447 reads its baseline from origin via git show, so it broke once merged. Test-only fix on fix/t-410-ci-test-baseline, allowed during the pause (red develop_staging comes first).
 - tanvi: T-410 merged 0a18bda with T-412, T-417, T-418 (13 Oct 2026). Consumer complaint names the chosen Commission; State/National case line; non-Commission courts get signed blanks; 2021 Jurisdiction Rules; NCDRC limit fixed. ai.service.ts back to Vishal.
 - mahak: T-405 CI green (run 518, 13 Oct 2026). Slot to Tanvi T-410.
