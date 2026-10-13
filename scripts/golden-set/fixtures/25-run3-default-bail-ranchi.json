@@ -1,0 +1,85 @@
+{
+  "id": "25-run3-default-bail-ranchi",
+  "pack": "default_bail",
+  "title": "Run 3, default bail, Ranchi: 'will furnish bail bonds: No' leaves a blank, no character or roots invented",
+  "risk": "Run 3 T-251: with 'will furnish bail bonds' set to No the draft still said he 'undertakes... to furnish bail bonds', and para 8 invented 'not been convicted of any offence... roots in the community'",
+  "source": "handoff/quality/2026-10-13-run-3-develop-FAIL.md (T-251, T-327, 'Bail drafts as an advocate would file them'); her default bail draft (Ranchi), facts re-made synthetically. T-373 / ADR-025 D1 golden assertion.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Default bail for Sunil Oraon s/o Budhu Oraon, age 29, R/o Hatia, Ranchi. CJM Ranchi. FIR No. 145/2026 dated 2 July 2026, PS Doranda, section BNS 309(4). Arrested on 3 July 2026, first remand on 4 July 2026. Charge sheet not filed. He will not furnish bail bonds right now. No earlier bail application.",
+  "court": {
+    "state": "Jharkhand",
+    "court_type": "cjm",
+    "court": "jharkhand_cjm_ranchi"
+  },
+  "answers": [
+    {
+      "key": "charge_sheet_status",
+      "value": "Not filed"
+    },
+    {
+      "key": "willingness_to_furnish_bond",
+      "value": "No"
+    },
+    {
+      "key": "earlier_bail_applications",
+      "value": "None"
+    }
+  ],
+  "expect": {
+    "absent": [
+      {
+        "any_of": ["undertakes to furnish bail bonds", "furnish bail bonds and sureties as"],
+        "why": "Run 3 T-251: she answered No to 'will furnish bail bonds'; the brief promises a blank"
+      },
+      {
+        "any_of": [
+          "not been convicted",
+          "roots in the community",
+          "roots in society",
+          "no criminal antecedents"
+        ],
+        "why": "Run 3 T-251: para 8 invented these"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["Doranda"],
+        "why": "the police station as given"
+      }
+    ],
+    "exact": [
+      {
+        "any_of": ["Sunil Oraon"],
+        "why": "the applicant's name as given"
+      },
+      {
+        "any_of": ["145/2026"],
+        "why": "the FIR number as given"
+      },
+      {
+        "any_of": ["4 July 2026"],
+        "why": "the first remand date as given, no day count (T-327)"
+      }
+    ],
+    "rendered": {
+      "no_status": ["fallback"],
+      "status": {
+        "willingness": "missing",
+        "applicable_window": "missing",
+        "non_filing": "ok",
+        "earlier_applications": "ok"
+      },
+      "not_rendered": ["indefeasible_right"],
+      "why": "ADR-025 D1: bonds answered No leaves the blank (T-251); the period not given stays a blank (T-327); no entitlement paragraph without the period and expiry"
+    }
+  },
+  "recorded": {
+    "clean": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"applicant_name\", \"value\": \"Sunil Oraon\", \"quote\": \"Sunil Oraon\"}, {\"id\": \"applicant_parentage\", \"value\": \"Budhu Oraon\", \"quote\": \"s/o Budhu Oraon\"}, {\"id\": \"applicant_age\", \"value\": \"29\", \"quote\": \"age 29\"}, {\"id\": \"applicant_address\", \"value\": \"Hatia, Ranchi\", \"quote\": \"R/o Hatia, Ranchi\"}, {\"id\": \"fir_number\", \"value\": \"145/2026\", \"quote\": \"FIR No. 145/2026\"}, {\"id\": \"fir_date\", \"value\": \"2 July 2026\", \"quote\": \"dated 2 July 2026\"}, {\"id\": \"police_station\", \"value\": \"Doranda\", \"quote\": \"PS Doranda\"}, {\"id\": \"offences_alleged\", \"value\": \"BNS 309(4)\", \"quote\": \"section BNS 309(4)\"}, {\"id\": \"arrest_date\", \"value\": \"3 July 2026\", \"quote\": \"Arrested on 3 July 2026\"}, {\"id\": \"remand_date\", \"value\": \"4 July 2026\", \"quote\": \"first remand on 4 July 2026\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"span\": \"Sunil Oraon\", \"confidence\": 0.98}, {\"key\": \"applicant_parentage\", \"span\": \"Budhu Oraon\", \"confidence\": 0.95}, {\"key\": \"applicant_age\", \"span\": \"29\", \"confidence\": 0.95}, {\"key\": \"applicant_address\", \"span\": \"Hatia, Ranchi\", \"confidence\": 0.94}, {\"key\": \"fir_number\", \"span\": \"145/2026\", \"confidence\": 0.97}, {\"key\": \"fir_date\", \"span\": \"2 July 2026\", \"confidence\": 0.95}, {\"key\": \"police_station\", \"span\": \"PS Doranda\", \"confidence\": 0.96}, {\"key\": \"offences_alleged\", \"span\": \"section BNS 309(4)\", \"confidence\": 0.95}, {\"key\": \"arrest_date\", \"span\": \"3 July 2026\", \"confidence\": 0.94}, {\"key\": \"remand_date\", \"span\": \"4 July 2026\", \"confidence\": 0.94}]}",
+      "drafter": "{\"paragraphs\":[\n{\"clauseId\":\"statutory_provision\",\"factRefs\":[\"applicant_name\",\"applicant_address\"],\"text\":\"\",\"items\":[]},\n{\"clauseId\":\"fir\",\"factRefs\":[\"fir_number\",\"fir_date\",\"police_station\",\"offences_alleged\"],\"text\":\"\",\"items\":[]},\n{\"clauseId\":\"custody_dates\",\"factRefs\":[\"arrest_date\",\"remand_date\"],\"text\":\"\",\"items\":[]},\n{\"clauseId\":\"non_filing\",\"factRefs\":[\"charge_sheet_status\"],\"text\":\"\",\"items\":[]},\n{\"clauseId\":\"earlier_applications\",\"factRefs\":[\"earlier_bail_applications\"],\"text\":\"\",\"items\":[]}\n]}"
+    }
+  }
+}

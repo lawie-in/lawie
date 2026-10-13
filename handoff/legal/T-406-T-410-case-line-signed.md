@@ -51,3 +51,43 @@ Tests:
 - Non-Commission court: three blanks, no city, no "State of".
 - District: s.35 heading.
 - State and National: the Act-only heading.
+
+## T-410 build: golden batch and calls (13 Oct 2026)
+
+**Golden batch: signed.** 12 entries, consumer_complaint at the 12 non-Commission courts Tanvi listed. Every change follows Addendum 1:
+- `case_nomenclature`, `court_designation` and `court_header` become `[To be confirmed: Consumer Commission]`.
+- Party labels become Complainant / Opposite Party.
+- Prayer opening and closing come from the consumer rule.
+- `state_respondent` becomes `undefined`.
+- The verification is the consumer text, with `Verified at [To be confirmed: place]`.
+
+No other entry moves. Any other byte change needs a new sign-off.
+
+| # | Call | Ruling |
+|---|---|---|
+| 1 | State Commission designation from the court record's own text (some include the city) | Approved, if every record names the State Consumer Disputes Redressal Commission of that State. |
+| 2 | Act-only heading at a non-Commission court | Approved. The forum is unknown, so no section is cited. |
+| 3 | Place: the Commission's city, else `[To be confirmed: place]` | Approved |
+
+**Out-of-scope items:**
+- **`related_acts` "21 Dec 2021": fix in T-410 now** (same file). Use the T-412 Rules name. Widen the T-412 test to catch every form of the date ("21 Dec", "21.12.2021", "21/12/2021"), not just "21 December 2021".
+- **AI prompt receiving a non-Commission court's party designations: fix in T-410 now.** Ruling 4 covers the Drafter input too. The prompt gets Complainant / Opposite Party only. Test: no "State of" or "S.H.O." in the prompt.
+- **`display_name` "Consumer Complaint (District Commission)", and `description` "Section 35 … before District Commission": new ticket.** They should not name a level now that all three Commissions are offered. Wording comes to me.
+- **`ncdrc.json` :13 and :52 say "exceeding Rs. 10 Crore": new ticket, high priority.** That is the Act's original figure. The National Commission's pecuniary jurisdiction under the 2021 Rules (T-412) is above Rs. 2 crore. Signed text for both lines: replace `exceeding Rs. 10 Crore` with `exceeding Rs. 2 Crore (per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021)`. Also check the state commission records for the old Rs. 1 crore / Rs. 10 crore band.
+
+## T-418: consumer_complaint display_name and description (signed 13 Oct 2026)
+
+- `display_name`: `Consumer Complaint`
+- `description`: `Consumer complaint under the Consumer Protection Act, 2019, before the District, State or National Consumer Disputes Redressal Commission`
+
+Neither names one level or cites s.35, because the section depends on the forum (T-410 Addendum 1). The card line from T-365 stays as signed. Tanvi may fold this into T-410.
+
+## T-410 / T-417: Tanvi's wording questions (13 Oct 2026)
+
+1. **ncdrc.json :52: signed as:** `Pecuniary jurisdiction: NCDRC hears complaints where value exceeds Rs. 2 Crore (per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021).` :13 stays as signed. The State Commission audit is clean (36 of 36 records show Rs. 50 lakh to 2 crore).
+2. **Prompt opening, signed:** replace `for a Consumer Complaint under Section 35 of the Consumer Protection Act, 2019` with `for a Consumer Complaint under the Consumer Protection Act, 2019`. The rest of the prompt is unchanged, including the s.2 definition references in Para 7.
+3. **District localRules in the prompt: fix in T-410.** It belongs with ruling 4 and the party-designation fix. The generic consumer rule's District-worded localRules (the Rs. 50 lakh line, the District fee) go to the prompt only when the forum is a District Commission. A State Commission gets its own rule's lines. A non-Commission court gets none. Test: the State and non-Commission prompts contain no "District Commission".
+
+**Item 3 amended: (a).** A State Commission gets no localRules for now, because all 36 point to the District-worded generic rule. Its pecuniary band comes from its own court record (Rs. 50 lakh to Rs. 2 crore, already audited). Signed State fee lines would need verified fee figures, so that waits for a separate ticket if it is ever wanted. The test stays: no "District Commission" in the State or non-Commission prompts.
+
+**Test scope (item 3).** The RELATED ACTS line is exempt from the no-"District Commission" test, because it names all three bands and the Rules in full, which is correct for every forum. The test must also check that this line is byte-equal to the signed related_acts text, so nothing else can hide in it.

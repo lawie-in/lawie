@@ -903,3 +903,18 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Nothing looks different. The template list and form work as before, and civil plaint templates stay out of the list while they're switched off.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-406 — No case-number line on non-court documents (43dc53f, tanvi, 13 Oct 2026)
+
+- Nothing changes on screen. A legal notice, deed or agreement can no longer pick up a court case-number line, whichever court is chosen.
+
+Quality: nothing to test in the UI — latent; no current template printed the line
+
+## T-373 — Bail drafts from signed text and your own facts (3e031ac, vishal, 13 Oct 2026)
+
+- Draft a regular, anticipatory, Magistrate or default bail application and get only the facts you gave. Every paragraph is Lawie's signed text filled with your details, or your own words tidied for grammar. Nothing invented is added, and a gap shows as a clearly marked blank.
+- See in the checks list exactly which parts are still missing, by name.
+- Where the tidied wording would change what you said, see your own words used instead, exactly as typed.
+- Draft these applications in Hindi as before; the draft is marked as a starting draft.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

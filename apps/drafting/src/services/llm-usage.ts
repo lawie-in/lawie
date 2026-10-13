@@ -46,6 +46,21 @@ export function parseAnthropicStreamEvent(event: unknown): ParsedStreamFragment 
   return {};
 }
 
+/**
+ * T-373: the usage of a non-streamed call (`messages.create` / `messages.parse`,
+ * the D1 structured-output call). The response carries the final counts on
+ * `usage`; there are no stream events, so nothing reaches parseAnthropicStreamEvent.
+ * Numbers only: the message content is never read here.
+ */
+export function parseAnthropicMessageUsage(message: unknown): ParsedStreamFragment {
+  const usage = (message as { usage?: { input_tokens?: unknown; output_tokens?: unknown } } | null)
+    ?.usage;
+  const out: ParsedStreamFragment = {};
+  if (typeof usage?.input_tokens === 'number') out.inputTokens = usage.input_tokens;
+  if (typeof usage?.output_tokens === 'number') out.outputTokens = usage.output_tokens;
+  return out;
+}
+
 // ── Estimation fallback (D5) ─────────────────────────────────────────────────
 //
 // Used only when a provider reports no usage at all for a call. Rows priced

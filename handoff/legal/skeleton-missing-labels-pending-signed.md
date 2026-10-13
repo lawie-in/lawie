@@ -1083,3 +1083,7 @@ Nothing else changes in any clause.
   ]
 }
 ```
+
+## Closed (13 Oct 2026)
+
+Landed with T-373 (merged 3e031ac). I checked on develop_staging: `_skeletons/bail_regular.json`, `bail_anticipatory.json` and `bail_before_magistrate.json` hash to the SHAs above (4eec8dfb…, bd20c4a0…, c5221081…), and the signed md files carry the same SHAs. Nothing in this file is still open.
