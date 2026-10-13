@@ -33,19 +33,20 @@ Claim record for the three dev leads. Priya is the only writer. Leads read it fr
 
 - T-285 (SSE keep-alive on the four drafting streams; small, drafting only; touches ai.service.ts, so after T-241 and T-245a or when no lead holds it): ready.
 
-## Next ticket for each lead (Priya, 13 Oct 2026; Anushka run 3 FAIL fixes)
+## Next ticket for each lead (Priya, 13 Oct 2026; Arjun's rulings on ADR-025)
 
-Each lead takes this after the current row is merged and released. Files are claimed then, as usual.
-- vishal: T-342, then T-359 (invented facts; check the overlap with T-187/T-188 first), then T-187 + T-188.
-- shashank: T-356 part 1, then T-360 (converter numbers).
-- kunal: T-354, then T-364 (Ink and plan display).
-- tanvi: T-349 + T-350, T-357, then T-363 (s.138).
-- mahak: T-223, then T-365 (brief and template picker).
-- Next free lead, in this order: T-369 (web production build fails; a deploy blocker, goes first), T-362, T-361, T-367, T-366, T-368.
+v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint, timeline tracker and bail checker are hidden behind flags (T-375). Golden set on (founder secrets).
+- vishal: T-342, then T-373 (D1 lead A; T-359's ACs become its tests).
+- shashank: T-356 part 1, then T-371 (folds in his 5 bulk and not-found bugs from T-360; no reseed).
+- kunal: T-354, then T-370 (today), then T-372.
+- tanvi: T-357, then T-369, then T-374 (D1 lead B).
+- mahak: T-223, then T-365.
+- Next free lead: T-376 (real-model golden set, required check), T-375 (hide behind switches), then T-366, T-367, T-368, T-361 (303(2) row only). T-363 stays with Tanvi after T-374 unless a lead is free sooner (Arjun: build it now, on today's path).
+- Stopped: T-359 and T-362 as written (D1 delivers them), T-360 (folded into T-371), T-361's parser half.
 
 ## Merge queue
 
-- kunal: T-354 (tests green, small fix, Arjun ruled option A). Next, once CI on bd26efa is green.
+- kunal: T-354 (tests green, small fix, Arjun ruled option A). Holds the slot now (CI run 487 on bd26efa green).
 - shashank: T-356 part 1 (152df3b, small fix tested green; release gate). After kunal (T-354 unblocks Mahak's T-223), ahead of vishal and tanvi T-357.
 - vishal: T-342 (round 2 review passed, tests green, Ajay signed 59eff64 at 54951db). Merges once the _meta.signed line is in. After kunal T-354; check with the slot holder first.
 - tanvi: T-357 (c741f59, small fix tested green). After vishal; check with the slot holder first.

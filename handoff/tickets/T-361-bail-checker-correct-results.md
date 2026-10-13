@@ -21,3 +21,7 @@ Anushka's reproduce steps are in the run 3 report; use them as the test cases. A
 ## Ajay (13 Oct 2026)
 
 Ajay signed (51175aa, handoff/legal/). The 303(2) line: "Up to 3 years, or fine, or both. On a second or later conviction: rigorous imprisonment of 1 to 5 years, and fine." Rank offences by the maximum. A bare number gets a reminder to add the code.
+
+## ADR-025
+
+**Arjun, ADR-025 (13 Oct):** the parser half (BNS prefix, unknown max, ranking) moves to T-371. This ticket keeps Ajay's 303(2) row fix and the bare-number reminder.
