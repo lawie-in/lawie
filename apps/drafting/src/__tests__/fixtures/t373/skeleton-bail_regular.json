@@ -1,6 +1,6 @@
 {
   "pack": "bail_regular",
-  "version": 2,
+  "version": 3,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -74,7 +74,8 @@
       "required": true,
       "source": "advocate",
       "slot": "facts_narrative",
-      "intro": "The brief facts of the case are as follows:"
+      "intro": "The brief facts of the case are as follows:",
+      "missing_label": "Brief facts of the case"
     },
     {
       "id": "chargesheet_filed",

@@ -1,6 +1,6 @@
 {
   "pack": "bail_before_magistrate",
-  "version": 4,
+  "version": 5,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -86,7 +86,8 @@
       "required": true,
       "source": "advocate",
       "slot": "facts_narrative",
-      "intro": "The brief facts of the case are as follows:"
+      "intro": "The brief facts of the case are as follows:",
+      "missing_label": "Brief facts of the case"
     },
     {
       "id": "chargesheet_filed",
@@ -154,7 +155,8 @@
       "source": "advocate",
       "list": true,
       "slot": "grounds_for_bail",
-      "intro": "The applicant seeks bail on the following grounds:"
+      "intro": "The applicant seeks bail on the following grounds:",
+      "missing_label": "Grounds for bail"
     },
     {
       "id": "woman_proviso",

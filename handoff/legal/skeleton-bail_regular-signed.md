@@ -26,12 +26,16 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - Left out on purpose: "no other case" and "no case pending", because they speak to pending cases, not past record.
 - The loader resolves a `when.in` string by looking up the top-level key it names.
 
+## Version 3, 13 Oct 2026 (supersedes SHA `604acbe65cd5df1b3981626bd868ceec3f1c62475b212f90d44e4a29fa5380f4`)
+
+- v3, 13 Oct 2026: missing_label added per skeleton-missing-labels-pending-signed.md (07bd3b5), signed Ajay. `facts` gets `missing_label` "Brief facts of the case". Nothing else changes in any clause.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_regular",
-  "version": 2,
+  "version": 3,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -122,7 +126,8 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "required": true,
       "source": "advocate",
       "slot": "facts_narrative",
-      "intro": "The brief facts of the case are as follows:"
+      "intro": "The brief facts of the case are as follows:",
+      "missing_label": "Brief facts of the case"
     },
     {
       "id": "chargesheet_filed",
@@ -402,4 +407,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `604acbe65cd5df1b3981626bd868ceec3f1c62475b212f90d44e4a29fa5380f4`
+SHA-256 of the JSON block (between the fences, final newline included): `4eec8dfb4ea8f7fac728675df30c032e8f8555b75cdfeaf1f59b5f7acc7c843b`
