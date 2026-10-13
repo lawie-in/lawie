@@ -25,3 +25,5 @@ There are 7 packs, not 3: bail_before_magistrate, bail_cancellation, default_bai
 - `preflight.service.ts` F4: read `advocate_enrollment` (after the alias). Drop `advocate_enrolment_no`; nothing writes it.
 - Update the five test files that still spell `advocate_enrolment`. One test per pack (AC3) plus one for the alias.
 - Same claim as T-365 AC6's pack edits, so the seven packs change once.
+
+**Ajay (48f35e1):** the key in the vakalatnama validation rule text is renamed too; the word "enrolment" in prose stays. His 46 T-239 batch-1 specs now use advocate_enrollment.
