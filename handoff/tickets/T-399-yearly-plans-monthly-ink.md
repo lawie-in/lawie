@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (billing); Arjun confirms the design, Vikram the numbers |
 | Mode   | Full chain (billing) |
-| Status | To do. Arjun to confirm the bug first. Found by Ajay while signing T-398, 13 Oct 2026. Until fixed: the pricing page's yearly toggle stays off and no yearly line is published |
+| Status | Confirmed by Arjun (13 Oct 2026). Kunal, after T-395, full chain. Yearly toggle off until merged. Founder: were any yearly plans sold? (morning report 0g) |
 | Source | Ajay, T-398 sign-off (handoff/legal/T-398-pro-card-signed.md) |
 
 ## Problem
