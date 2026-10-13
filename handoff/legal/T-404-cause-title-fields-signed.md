@@ -81,3 +81,13 @@ Still to word (next brief): `governing_act`, `primary_statute`, `route`, `state`
 | 5 | A court is chosen but has no nomenclature | `[To be confirmed: case type and number]` |
 
 **Rule 1, clarified.** The registry's number blank inside a signed case line ("Bail Application No. _____ of 2026") is the filing convention and is allowed. Rule 1 bans `_____` only where a token or field value should print.
+
+**71f1e98: approved.** The blanks are byte-equal to Addendum 3. The bail no-court header and Drafter input change as listed. The golden snapshot does not move, because the no-court path never runs there.
+
+| # | Question | Ruling |
+|---|---|---|
+| a | Bail case line with no court | `[To be confirmed: case type and number]`. The case line is not the court, and the pack's default "Criminal Miscellaneous Case" is a guess. |
+| b | `THE HONOURABLE [To be confirmed: court],` | Keep it. The blank sits where the court's name goes. |
+| c | `Place:` with no city | `[To be confirmed: place]`, wherever place prints: the `Place:` line and "Verified at {place}". |
+
+Tests: no court gives (a) and (c) and no court name in the body.
