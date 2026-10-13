@@ -19,3 +19,15 @@
 3. Tests cover a yearly purchase across 12 months, cancel mid-year, and a renewal.
 4. If any yearly plan has already been sold, the founder learns how many, and those users get the missing Ink.
 5. Ajay releases the HELD yearly lines once the fix is merged and tested.
+
+## Arjun (13 Oct 2026): confirmed, and the mechanism
+
+**Confirmed.** Ink is granted only inside the `subscription.activated` / `subscription.charged` webhook cases (`subscription.service.ts:186-214`). A yearly Razorpay subscription is charged once a year, so `solo_yearly` / `pro_yearly` get `inkPerCycle` (50 / 150) once a year. The "monthly drip" comment in `credit-skus.ts` describes nothing that exists. There is no job runtime in billing (D5 puts repeatable jobs in email-worker, which must not touch billing data).
+
+**Mechanism: lazy drip, no scheduler.** The Subscription row gets `inkDripNextAt` (set at purchase to charge date + 1 month) and `inkDripCount` (0–11). Every balance read and every hold (`getInkBalance`, the `enforceCredits` hold path) first calls `settleYearlyDrip(userId)`: if the subscription is yearly and active and `inkDripNextAt <= now`, grant one month's `inkPerCycle` with the same reset rule as a monthly renewal, write a ledger row with a unique key `sub_drip:<razorpaySubscriptionId>:<n>` (idempotent under concurrent reads), advance `inkDripNextAt` by one month and `inkDripCount` by one; repeat while behind, never past 11. The yearly `subscription.charged` resets the counters and applies the annual carry as today. Cancel/expire stops the drip. Why lazy: Ink matters only when it is spent, every spend goes through the hold, and it needs no job runtime, cron or clock skew handling; a balance shown on the dashboard is therefore always current when the user is there.
+
+**Tests (AC3):** yearly purchase then 12 monthly reads → 12 grants, the 13th read grants nothing; a read 3 months late grants 3 at once, idempotently; cancel mid-year → no further grant; renewal → counters reset and the carry applies; two concurrent reads → one ledger row. One test proves the bug on today's code first (AC1).
+
+**AC4:** a one-off script `apps/billing/scripts/backfill-yearly-drip.ts` that lists yearly subscriptions and grants the months elapsed since purchase through the same `settleYearlyDrip`. The lead runs it once with the founder's count; dry-run mode prints, `--apply` writes.
+
+Billing lead (Kunal holds billing): Priya assigns and claims `subscription.service.ts`, `ink-ledger.service.ts`, `Subscription.model.ts`, `enforceCredits` (shared), the new script and tests.
