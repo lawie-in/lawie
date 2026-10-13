@@ -64,6 +64,8 @@ Vikram to confirm plan name/price, then Ajay signs.
 
 ## Free card
 
+**Signed by Ajay, 13 Oct 2026** (`handoff/legal/T-398-pro-card-signed.md`): `₹0` without `/lifetime`; Ink line `5 Ink on sign-up, once your email is verified (lifetime)` with the two 375 px alternates in the order above; `Every document type on Lawie`; hero `Start with 5 free Ink once your email is verified. Buy more when you need it.`; Free button `Start with 5 free Ink` stays. Rows below that say "Ajay to sign" are now signed. The yearly Pro lines are held by Ajay until the yearly Ink grant is settled.
+
 Madhuri, 13 Oct. Re-words the two Free-card lines Meera named. Current lines quoted from `apps/web/src/app/(marketing)/pricing/page.tsx`, read only.
 
 | Line in `pricing/page.tsx` | Current (exact) | After | Chars (after) | Status |
