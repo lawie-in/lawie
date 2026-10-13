@@ -13,7 +13,8 @@ These are should-fixes from T-390's reviewer. The verify-email dedup key has no 
 1. On a dedup hit, the producer looks up the pending job. If it's gone, it removes the dedup key and adds the job again.
 2. A test deletes the job hash and checks that the next resend is queued.
 3. The t390 real-Redis producer tests obliterate the queue in beforeEach, so they don't depend on the order they run in.
+5. The dedup key carries a TTL no longer than the job's own lifetime, so it can never outlive its job even without eviction (Arjun, 13 Oct).
 4. The doc comment names the delayed-retry case: a resend is dropped while the pending job is in backoff. That costs at most about one wasted resend, in line with Arjun's AC2 ruling.
 
-## Question for Arjun
-Is the prod Redis on `maxmemory-policy noeviction`? If not, he decides whether that changes too.
+## Arjun (13 Oct 2026)
+BullMQ needs `maxmemory-policy noeviction` on its Redis; with any eviction, queue state can be corrupted. The founder checks and sets it on prod (morning-report item 0j).
