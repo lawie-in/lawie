@@ -29,3 +29,4 @@ See also `.claude/docs/golden-snapshots.md` — most of the court-rules paths ab
   - `apps/drafting/src/services/timeline.service.ts`
   - The three free-tool pages: `apps/web/src/app/tools/section-converter/page.tsx` (including its bulk tab), `apps/web/src/app/tools/bail-checker/page.tsx`, `apps/web/src/app/tools/timeline-tracker/page.tsx`
 - `apps/drafting/src/config/document-rules/_skeletons/` (the generated skeleton JSON per pack, ADR-025 D1; already inside `document-rules/` above). Added by Arjun in T-371, 13 Oct 2026. Each file is generated from Ajay's `handoff/legal/skeleton-<pack>-signed.md`; any change comes with his signed skeleton.
+- `apps/drafting/src/services/brief-party-fields.ts` (maps brief parties into the Memo of Parties and the Vakalatnama, and carries Ajay's signed per-pack client-role table, T-381 Addendum 3, cbe423f). Added by Priya at Ajay's request, 13 Oct 2026. Any edit decides who signs a Vakalatnama, so it needs Ajay's sign-off.
