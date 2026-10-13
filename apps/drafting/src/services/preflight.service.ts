@@ -39,7 +39,15 @@ import {
   resolveOffence,
 } from './bns-offence-resolver';
 import { lookupOldToNew } from './sections.service';
-import { fieldSourceOf, loadTemplateConfig, oldLawLine } from './template-engine.service';
+import {
+  clientFormData,
+  declaredFieldIds,
+  fieldSourceOf,
+  loadTemplateConfig,
+  oldLawLine,
+  resolveAdvocate,
+  resolveEnrollmentNumber,
+} from './template-engine.service';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -80,6 +88,38 @@ const BNSS_BAIL_SECTIONS = new Set(['478', '479', '480', '481', '482', '483', '4
 
 function str(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
+}
+
+/**
+ * T-387: the profile values the renderer would use — the JWT name and the
+ * profile's enrolment number. Both optional; absent means an empty profile.
+ */
+export interface PreflightProfile {
+  advocateName?: string;
+  enrollmentNumber?: string;
+}
+
+/**
+ * T-387: the enrolment number the draft will print, by the same steps as
+ * buildPlaceholderContext (T-311): a typed advocate_enrollment wins; else the
+ * profile number, only when the printed name is also the profile's; else
+ * undefined. No config means nothing is rendered, so nothing is printed.
+ */
+function printedEnrollmentNumber(
+  templateId: string,
+  rawFormData: Record<string, unknown>,
+  profile?: PreflightProfile,
+): string | undefined {
+  const config = loadTemplateConfig(templateId);
+  if (!config) return undefined;
+  const { kept: formData } = clientFormData(config, rawFormData);
+  const advocate = resolveAdvocate(formData, { name: profile?.advocateName }, config);
+  const declaresEnrollment = declaredFieldIds(config).has('advocate_enrollment');
+  return resolveEnrollmentNumber(
+    declaresEnrollment ? formData.advocate_enrollment : undefined,
+    profile?.enrollmentNumber,
+    advocate.fromProfile,
+  );
 }
 
 function num(v: unknown): number | null {
@@ -200,6 +240,7 @@ function nearMatch(a: string, b: string): boolean {
 async function runPureRules(
   templateId: string,
   formData: Record<string, unknown>,
+  profile?: PreflightProfile,
 ): Promise<PreflightFinding[]> {
   const findings: PreflightFinding[] = [];
   const today = new Date();
@@ -323,9 +364,13 @@ async function runPureRules(
     }
   }
 
-  // F4: vakalatnama — bar enrolment number required
+  // F4: vakalatnama — bar enrolment number required. T-387 (Ajay, 13 Oct
+  // 2026): F4 checks the number the draft will print, resolved as
+  // buildPlaceholderContext does (T-311), on the same un-aliased form data the
+  // renderer reads, so a body carrying only the old T-382 key resolves as the
+  // draft would.
   if (templateId === 'vakalatnama') {
-    if (!str(formData['advocate_enrolment_no'])) {
+    if (!str(printedEnrollmentNumber(templateId, formData, profile))) {
       findings.push({
         rule_id: 'F4',
         severity: 'hard',
@@ -559,16 +604,21 @@ async function runLLMChecks(
  * @param templateId  The template being generated (e.g. "bail_anticipatory")
  * @param formData    The advocate-submitted form data
  * @param userId      For telemetry (optional)
+ * @param profile     T-387: the profile's advocate name (JWT) and enrolment
+ *                    number, so F4 resolves the number the vakalatnama will
+ *                    print exactly as the renderer does (optional; absent
+ *                    means an empty profile)
  * @returns PreflightResult — verdict, questions, optional hard-block reason
  */
 export async function preflightCheck(
   templateId: string,
   formData: Record<string, unknown>,
   userId?: string,
+  profile?: PreflightProfile,
 ): Promise<PreflightResult> {
   // Run pure rules + Haiku in parallel (ADR-018: run alongside each other)
   const [ruleFindings, llmResult] = await Promise.all([
-    runPureRules(templateId, formData),
+    runPureRules(templateId, formData, profile),
     runLLMChecks(templateId, formData),
   ]);
 

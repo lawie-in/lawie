@@ -1,4 +1,5 @@
 {
+  "card_description": "A demand notice under Section 138 of the Negotiable Instruments Act, 1881 after a cheque is dishonoured.",
   "_meta": {
     "description": "Document-rules config for legal_notice_s138 — drives prompt, validation, mandatory clauses",
     "owner": "Ajay (CLO)",

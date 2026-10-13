@@ -1,4 +1,5 @@
 {
+  "card_description": "A legal notice asking a tenant to vacate.",
   "_meta": {
     "description": "Document-rules config for legal_notice_eviction — quit/eviction notice under state Rent Control Acts or Transfer of Property Act Section 106",
     "owner": "Ajay (CLO)",

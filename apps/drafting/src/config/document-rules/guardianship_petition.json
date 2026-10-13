@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Welfare-of-minor doctrine is paramount and non-negotiable in prompt instructions."
   },
   "template_id": "guardianship_petition",
+  "card_description": "A petition to be appointed guardian of a minor and for the minor's custody.",
   "docType": "guardianship_petition",
   "title": "Petition for Appointment as Guardian and Custody of Minor",
   "displayName": "Guardianship Petition (GWA 1890 / HMGA 1956)",

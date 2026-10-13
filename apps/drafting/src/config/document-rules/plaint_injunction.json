@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Three-fold test (prima facie / balance of convenience / irreparable injury) for interim is non-negotiable."
   },
   "template_id": "plaint_injunction",
+  "card_description": "A plaint in a suit for permanent injunction.",
   "docType": "plaint_injunction",
   "title": "Plaint — Suit for Permanent Injunction (with Order 39 Application)",
   "displayName": "Plaint for Permanent Injunction (S.38 SRA)",

@@ -383,14 +383,14 @@ describe.each(PACKS)('T-190 buildQuestions on %s', (packId) => {
     const want = expectedOrder(packId).filter((k) => optional.includes(k));
     expect(optional).toEqual(want);
     // not-asked optional items stay out
-    for (const k of [
-      'custody_since',
-      'advocate_enrollment',
-      'additional_context',
-      'next_hearing_date',
-    ]) {
+    for (const k of ['custody_since', 'additional_context', 'next_hearing_date']) {
       expect(keys).not.toContain(k);
     }
+    // advocate_enrollment is optional (not asked) in bail_regular and bail_anticipatory; interim_bail
+    // and bail_before_magistrate mark it required, so it is asked there (T-382 key-only rename).
+    const enr = cl.find((i) => i.key === 'advocate_enrollment')!;
+    if (enr.required) expect(keys).toContain('advocate_enrollment');
+    else expect(keys).not.toContain('advocate_enrollment');
     for (const k of keys) {
       const own = signedRows().find((s) => s.key === k);
       const item = q.find((x) => x.key === k)!;

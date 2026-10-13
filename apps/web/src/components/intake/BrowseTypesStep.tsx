@@ -11,6 +11,8 @@ import { useMemo, useState } from 'react';
 import type { KindSummary } from './briefTypes';
 import { h1, input, linkButton, sub, tagPlain } from './ui';
 
+import { groupByCatalogueCategory } from '@/lib/catalogueGroups';
+
 /**
  * A documents-list row with its T-240 library category. The service always
  * sends these with GET /api/documents/template-configs; they are optional here
@@ -29,6 +31,12 @@ const readableCategory = (id: string) => {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 };
 const catalogueName = (k: CatalogueKind) => k.catalogueCategoryName ?? readableCategory(k.category);
+/** T-365 AC4: the same category grouping the templates library uses. */
+const kindCategory = (k: CatalogueKind) => ({
+  id: catalogueId(k),
+  name: catalogueName(k),
+  order: k.catalogueCategoryOrder ?? Number.MAX_SAFE_INTEGER,
+});
 
 export default function BrowseTypesStep({
   kinds,
@@ -46,20 +54,7 @@ export default function BrowseTypesStep({
   const [category, setCategory] = useState('all');
 
   // Catalogue categories (T-240) that have a document, in T-239 order.
-  const categories = useMemo(() => {
-    const byId = new Map<string, { id: string; name: string; order: number }>();
-    for (const k of kinds) {
-      const id = catalogueId(k);
-      if (!byId.has(id)) {
-        byId.set(id, {
-          id,
-          name: catalogueName(k),
-          order: k.catalogueCategoryOrder ?? Number.MAX_SAFE_INTEGER,
-        });
-      }
-    }
-    return Array.from(byId.values()).sort((a, b) => a.order - b.order);
-  }, [kinds]);
+  const categories = useMemo(() => groupByCatalogueCategory(kinds, kindCategory), [kinds]);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -68,9 +63,13 @@ export default function BrowseTypesStep({
         (category === 'all' || catalogueId(k) === category) &&
         (q === '' ||
           k.display_name.toLowerCase().includes(q) ||
-          k.description.toLowerCase().includes(q)),
+          (k.description ?? '').toLowerCase().includes(q)),
     );
   }, [kinds, query, category]);
+
+  // T-365 AC4: matches grouped under a heading per category, as in the library.
+  // A search keeps the grouping and drops the groups with no match.
+  const shownGroups = useMemo(() => groupByCatalogueCategory(shown, kindCategory), [shown]);
 
   const chip = (on: boolean) =>
     `focus-visible:ring-brand-teal inline-flex min-h-[40px] items-center rounded-full border px-3.5 text-sm focus:outline-none focus-visible:ring-2 ${
@@ -129,23 +128,40 @@ export default function BrowseTypesStep({
         </p>
       )}
 
-      <ul className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {shown.map((k) => (
-          <li key={k.template_id}>
-            <button
-              type="button"
-              onClick={() => onPick(k)}
-              className="border-brand-line focus-visible:ring-brand-teal flex h-full w-full flex-col gap-2 rounded-xl border bg-white p-4 text-left hover:shadow-sm focus:outline-none focus-visible:ring-2"
-            >
-              <span className="text-brand-navy font-semibold">{k.display_name}</span>
-              <span className="text-brand-muted text-sm">{k.description}</span>
-              <span className="mt-auto pt-1">
-                <span className={tagPlain}>{catalogueName(k)}</span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-5 space-y-8">
+        {shownGroups.map((g) => {
+          const headingId = `browse-category-${g.id}`;
+          return (
+            <section key={g.id} aria-labelledby={headingId}>
+              <h2
+                id={headingId}
+                className="text-brand-muted mb-3 text-xs font-semibold uppercase tracking-wider"
+              >
+                {g.name}
+              </h2>
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {g.items.map((k) => (
+                  <li key={k.template_id}>
+                    <button
+                      type="button"
+                      onClick={() => onPick(k)}
+                      className="border-brand-line focus-visible:ring-brand-teal flex h-full w-full flex-col gap-2 rounded-xl border bg-white p-4 text-left hover:shadow-sm focus:outline-none focus-visible:ring-2"
+                    >
+                      <span className="text-brand-navy font-semibold">{k.display_name}</span>
+                      {k.description && (
+                        <span className="text-brand-muted text-sm">{k.description}</span>
+                      )}
+                      <span className="mt-auto pt-1">
+                        <span className={tagPlain}>{g.name}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
 
       {!loading && shown.length === 0 && (
         <p className="text-brand-muted mt-6 text-sm">No document has that name.</p>

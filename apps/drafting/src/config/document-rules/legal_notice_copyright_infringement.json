@@ -1,4 +1,5 @@
 {
+  "card_description": "A legal notice to stop copyright infringement under the Copyright Act, 1957.",
   "_meta": {
     "description": "Document-rules config for legal_notice_copyright_infringement — cease & desist under Copyright Act, 1957; includes DMCA-style takedown for digital infringement",
     "owner": "Ajay (CLO)",

@@ -35,7 +35,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { PaywallModal } from '@/components/credits/PaywallModal';
@@ -137,6 +137,8 @@ function CategoryChip({
 
 function NewDocumentContent() {
   const router = useRouter();
+  // T-365 AC5: "Use template →" in the library links here with ?kind=<template_id>.
+  const initialKind = useSearchParams().get('kind') ?? undefined;
   const { user } = useAuth();
   const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
 
@@ -212,7 +214,7 @@ function NewDocumentContent() {
       if (!q) return true;
       return (
         t.display_name.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
+        (t.description ?? '').toLowerCase().includes(q) ||
         t.template_id.toLowerCase().includes(q)
       );
     });
@@ -553,7 +555,12 @@ function NewDocumentContent() {
   }
   if (phase === 'one_flow') {
     return (
-      <OneFlow kinds={templates} loadingKinds={loadingTemplates} guidedInkCost={guidedInkCost} />
+      <OneFlow
+        kinds={templates}
+        loadingKinds={loadingTemplates}
+        guidedInkCost={guidedInkCost}
+        initialKind={initialKind}
+      />
     );
   }
 
@@ -710,7 +717,9 @@ function NewDocumentContent() {
                   >
                     <Icon size={18} className={colors.color} />
                     <p className="mt-2 text-sm font-semibold text-slate-800">{t.display_name}</p>
-                    <p className="mt-0.5 text-xs text-slate-400">{t.description}</p>
+                    {t.description && (
+                      <p className="mt-0.5 text-xs text-slate-400">{t.description}</p>
+                    )}
                     <div className="mt-2 flex items-center gap-2">
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
                         {t.catalogueCategoryName}

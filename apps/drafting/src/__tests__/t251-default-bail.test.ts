@@ -528,7 +528,7 @@ const BASE_GIVEN: Given = {
   charge_sheet_status: 'Not filed',
   application_date: '2026-08-10',
   advocate_name: 'Test Advocate',
-  advocate_enrolment: 'D/123/2015',
+  advocate_enrollment: 'D/123/2015',
 };
 
 const BODY =

@@ -44,6 +44,8 @@ interface DocRuleSource {
   title?: string;
   displayName?: string;
   description?: string;
+  /** T-365 AC6: the signed, user-facing card line (Ajay). Cards show only this. */
+  card_description?: string;
   category?: string;
   creditsCost?: number;
   court_levels?: string[];
@@ -66,6 +68,13 @@ interface DocRuleSource {
   form_schema?: unknown;
   [key: string]: unknown;
 }
+
+/**
+ * T-365 AC6: a promoted config may carry the pack's signed card line. Kept off
+ * TemplateConfig (template-engine.service.ts) so the engine type is untouched;
+ * read it through utils/cardDescription#cardDescriptionFor.
+ */
+export type PromotedTemplateConfig = TemplateConfig & { card_description?: string };
 
 export interface PromoterOutput {
   config: TemplateConfig;
@@ -787,6 +796,14 @@ export function promoteDocRuleToTemplateConfig(
         ? rule._meta.description
         : '';
 
+  // T-365 AC6: the card line comes only from the pack's signed `card_description`.
+  // No fallback to `description` or `_meta.description` (internal notes, unsigned).
+  // `description` above stays as-is: the intake match prompt still reads it.
+  const card_description =
+    typeof rule.card_description === 'string' && rule.card_description.length > 0
+      ? rule.card_description
+      : undefined;
+
   // form_schema → single synthetic step
   const { fields: rawFields, shape } = normaliseFormSchema(rule.form_schema, mismatches);
   const formFields: FormField[] = rawFields.map(({ field_id, raw, required }) => {
@@ -861,7 +878,7 @@ export function promoteDocRuleToTemplateConfig(
         .filter((s) => s.length > 0)
     : [];
 
-  const config: TemplateConfig & {
+  const config: PromotedTemplateConfig & {
     creditsCost?: number;
     _source?: Record<string, unknown>;
   } = {
@@ -893,6 +910,9 @@ export function promoteDocRuleToTemplateConfig(
       status: 'active',
     },
   };
+
+  // T-365 AC6: set only when the pack has a non-empty signed line.
+  if (card_description !== undefined) config.card_description = card_description;
 
   // Preserve fields the engine doesn't model yet but downstream consumers (SCRUM-80
   // / SCRUM-81 golden-PDF compare / billing credit math) need to read.

@@ -1,4 +1,5 @@
 {
+  "card_description": "A legal notice about defamatory statements.",
   "_meta": {
     "description": "Document-rules config for legal_notice_defamation — pre-litigation notice for defamation (civil tort or criminal under BNS 356)",
     "owner": "Ajay (CLO)",

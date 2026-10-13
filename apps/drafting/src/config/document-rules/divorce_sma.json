@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off."
   },
   "template_id": "divorce_sma",
+  "card_description": "A contested divorce petition under the Special Marriage Act, 1954.",
   "docType": "divorce_sma",
   "title": "Petition for Divorce under Special Marriage Act, 1954",
   "displayName": "Divorce Petition (SMA, contested)",

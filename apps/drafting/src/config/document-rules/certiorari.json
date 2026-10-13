@@ -7,6 +7,7 @@
     "batch": "B8b"
   },
   "template_id": "certiorari",
+  "card_description": "A writ petition asking the High Court or Supreme Court to quash an order.",
   "title": "Writ Petition — Certiorari (Article 226/32)",
   "category": "writ",
   "creditsCost": 2,
