@@ -3,7 +3,8 @@
  * bar enrolment number is `advocate_enrollment` (was `advocate_enrolment`) in seven packs.
  * A stored draft or a brief item that still carries the old key reads as the new key
  * (applyFieldAliases: old -> new only when new is absent, never mutating). Preflight F4
- * (vakalatnama) reads the new key. Puppeteer is mocked, as in t311.
+ * (vakalatnama) reads the new key only and does not alias (T-387: it checks the number the
+ * draft prints, so an old-key-only value is not counted). Puppeteer is mocked, as in t311.
  */
 import './setupEnv';
 import './setupDb';
@@ -195,8 +196,17 @@ describe('T-382 preflight F4 (vakalatnama)', () => {
   ])('%s: hard F4', async (_l, v) => {
     expectHardF4(await hits({ [NEW]: v }));
   });
-  it('only the old key: no F4 (aliased)', async () => {
-    expectNoF4(await hits({ [OLD]: OLD_NUM }));
+  it('only the old key and no profile: hard F4 (F4 no longer aliases, T-387)', async () => {
+    expectHardF4(await hits({ [OLD]: OLD_NUM }));
+  });
+  it('only the old key, profile name and number, no typed name: no F4 (the profile number prints)', async () => {
+    const res = await preflightCheck(
+      'vakalatnama',
+      { applicant_name: 'R', [OLD]: OLD_NUM },
+      undefined,
+      { advocateName: 'Adv. Profile', enrollmentNumber: 'PROF/9/2000' },
+    );
+    expectNoF4(res);
   });
   it('advocate_enrolment_no alone: hard F4 (that read is gone)', async () => {
     expectHardF4(await hits({ advocate_enrolment_no: NUM }));
