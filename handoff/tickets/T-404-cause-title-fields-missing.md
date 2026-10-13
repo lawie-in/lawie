@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Ajay (what each title needs), Rajesh/Meera (questions), then a drafting lead |
 | Mode   | Full chain |
-| Status | To do. Waiting for Ajay. The s.138 notice is v1, so its cause title comes first. Found by Kunal's T-395 scan, 13 Oct 2026 |
+| Status | Ajay ruled (handoff/legal/T-404-cause-title-fields-signed.md): Alias / Ask / signed Blank per token. Waiting for Rajesh and Meera to word the questions; Ajay signs the labels. Then a drafting lead. s.138 first |
 | Source | T-395 developer report |
 
 ## Problem
