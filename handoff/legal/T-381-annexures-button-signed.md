@@ -118,3 +118,13 @@ Tests:
 - missing named `Add {what} to this draft, then try again.`, where `{what}` is `the client's name` or `the opposite party's name`, or both joined with `and`
 
 No cost, "free" or disclaimer wording, as Mahak listed.
+
+## Addendum 4 (13 Oct 2026): Mahak's two calls after the server build
+
+1. **"State of {state}, through the concerned authority" under every respondent: (a) now, (b) as a ticket.** For now, brief drafts store `court_type` only. `state` is stored only for the State rows (bail and criminal), so today's output does not change. In T-396 (Kunal), the memo prints the State line only when the counterpart is the State, never under a private respondent. The same applies to form drafts that already set `state`; that is an existing bug.
+2. **Refusing ambiguous, caveat and no-row cases: accepted for v1.** A refusal is safer than a guessed client. The message must not say a name is missing when only the side is unknown. For these cases, `{what}` is `the client's role`, which gives "Add the client's role to this draft, then try again." Priya: please log a follow-up to offer the client_role question on such drafts.
+
+**Extra detail rows, signed:**
+- cat_oa: client address ← `applicant_office_address`
+- mact_claim: client age ← `victim_age_at_accident`
+- counter_affidavit and rejoinder_affidavit: client age and address ← `deponent_age` and `deponent_address` (the deponent is the client in both)
