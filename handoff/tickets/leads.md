@@ -41,7 +41,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 - kunal: T-354, then T-370 (today), then T-372.
 - tanvi: T-357, then T-369 (ci.yml after Mahak's T-223 merges), then T-374 (D1 lead B).
 - mahak: T-223, then T-365 (with T-382 folded into AC6: the 7 enrolment packs change once, after T-374 releases the bail packs), then T-380 (web test typecheck).
-- Next free lead: T-381 (annexures button), T-379 (T-223 follow-ups; before live sends), T-377 (verify link referrer and logs, after T-223), T-376 (real-model golden set, required check), T-375 (hide behind switches), then T-366, T-367, T-368, T-361 (303(2) row only). T-363 stays with Tanvi after T-374 unless a lead is free sooner (Arjun: build it now, on today's path).
+- Next free lead: T-381 (annexures button), T-384 (date rows "Not known"), T-379 (T-223 follow-ups; before live sends), T-377 (verify link referrer and logs, after T-223), T-376 (real-model golden set, required check), T-375 (hide behind switches), then T-366, T-367, T-368, T-361 (303(2) row only). T-363 stays with Tanvi after T-374 unless a lead is free sooner (Arjun: build it now, on today's path).
 - Stopped: T-359 and T-362 as written (D1 delivers them), T-360 (folded into T-371), T-361's parser half.
 
 ## Merge queue
