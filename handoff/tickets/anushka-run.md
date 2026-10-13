@@ -858,3 +858,34 @@ What a user can now do:
 - Nothing changes on screen. This is test files and typecheck config only.
 
 Quality: nothing to test in the UI — test files and typecheck config only
+
+## T-363 — s.138 notice (7f99f96, shashank, 13 Oct 2026)
+
+Re-tests run 3's s.138 failures (T-192).
+
+What a user can now do:
+- See a warning on the brief when the notice date is more than 30 days after the return memo, and choose to continue with those dates or change them.
+- Describe dates in words, such as "fifteenth September 2026", and have them filled in. Write the year with word dates, or the brief asks for it.
+- Get a notice that states the real position: the offence arises if the amount isn't paid within 15 days of receiving the notice, not when the cheque is issued.
+- Get a notice that keeps the proprietor and the payee's address when given, and states the return reason only as the memo gives it.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-366 — Site copy and free-tool legal lines (78318a3, tanvi, 13 Oct 2026)
+
+Re-tests run 3's copy failures (T-317, T-306).
+
+What a user can now do:
+- Read FAQ and About pages that describe what Lawie does today: 5 free Ink once your email is verified, every document type, PDF and DOCX export, and BNS/BNSS/BSA section numbers on criminal drafts.
+- See the bail checker card on the Tools page cite S.478 BNSS.
+- See a home page tab title that matches the signed-in pages.
+- See "once your email is verified" wherever 5 free Ink is offered.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-395 — Appellant name in suspension and appeals (a242a7f, kunal, 13 Oct 2026)
+
+- In an application for suspension of sentence, see the verification read "I, <appellant's name>, …, aged about <age> years" instead of blanks.
+- In a criminal or income-tax appeal, see the appellant's name in the cause title.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

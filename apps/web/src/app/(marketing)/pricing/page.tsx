@@ -39,7 +39,7 @@ const pricingFaq = [
   {
     question: 'What is Ink?',
     answer:
-      "Ink is Lawie's credit unit. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. The Free plan gives you 5 Ink (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.",
+      "Ink is Lawie's credit unit. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. The Free plan gives you 5 Ink on sign-up, once your email is verified (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.",
   },
 ];
 
@@ -112,7 +112,7 @@ export default function PricingPage() {
               <div className="plan-price">
                 ₹0<small>/lifetime</small>
               </div>
-              <div className="plan-alt">5 Ink — forever</div>
+              <div className="plan-alt">5 Ink, lifetime, once email verified</div>
               <ul>
                 <li>
                   <Check strokeWidth={2} /> All templates
