@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import BriefStep, { BriefLoadError, BriefLoading } from './BriefStep';
 import {
+  askedEmptyAnswers,
   Brief,
   BriefCourt,
   BriefItem,
@@ -56,6 +57,7 @@ import {
   usePrivacyDescribedBy,
 } from '@/components/PrivacyUpdatePrompt';
 import { openVerifyInsteadOfPaywall } from '@/components/VerifyEmailPrompt';
+import { notifyCreditsChanged } from '@/hooks/useCredits';
 import { apiFetch } from '@/lib/apiFetch';
 
 type Phase =
@@ -121,9 +123,12 @@ function openQuestions(
 export default function OneFlow({
   kinds,
   loadingKinds,
+  guidedInkCost,
 }: {
   kinds: KindSummary[];
   loadingKinds: boolean;
+  /** T-372: the Ink cost of a draft with no rule pack (the guided draft). */
+  guidedInkCost?: number;
 }) {
   const router = useRouter();
   const privacyDescribedBy = usePrivacyDescribedBy('generate'); // T-343
@@ -150,6 +155,8 @@ export default function OneFlow({
   const [changeOpen, setChangeOpen] = useState(false);
   const [briefMessage, setBriefMessage] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  /** T-365 AC2: what the advocate answered on each item the service sends as `asked_empty`. */
+  const [askedAnswers, setAskedAnswers] = useState<Record<string, Value>>({});
   /** T-147b, section 6: the first reading of a brief is on its way, or it failed. */
   const [reading, setReading] = useState<'loading' | 'failed' | null>(null);
   const lastReadBody = useRef<Record<string, unknown> | null>(null);
@@ -190,6 +197,7 @@ export default function OneFlow({
     (next: Brief) => {
       valuesRef.current = valuesAfter(next, valuesRef.current);
       courtRef.current = next.court;
+      setAskedAnswers(askedEmptyAnswers(next, valuesRef.current));
       setBrief(next);
     },
     [setBrief],
@@ -484,6 +492,8 @@ export default function OneFlow({
                   value: isEmptyValue(value) ? null : value,
                   source: 'user',
                   please_check: false,
+                  // T-365: a new answer replaces an earlier "Not known" until the service says otherwise.
+                  asked_empty: undefined,
                 }
               : i,
           ),
@@ -707,6 +717,15 @@ export default function OneFlow({
             retryable: true,
           });
           return;
+        }
+
+        // T-372: the draft is done and paid for. Apply the new Ink balance it carries,
+        // or have every balance widget refetch when it carries none.
+        const totalInk = (done.balance as { totalInk?: unknown } | undefined)?.totalInk;
+        if (typeof totalInk === 'number' && Number.isFinite(totalInk)) {
+          notifyCreditsChanged({ totalInk });
+        } else {
+          notifyCreditsChanged();
         }
 
         const missing = Array.isArray(done.missingClauses)
@@ -945,6 +964,12 @@ export default function OneFlow({
           onCancel={cancel}
           onConfirm={() => void generate(false)}
           confirmDescribedBy={privacyDescribedBy}
+          inkCost={
+            (brief.kind.id ?? NO_RULE_PACK) === NO_RULE_PACK
+              ? guidedInkCost
+              : kinds.find((k) => k.template_id === brief.kind.id)?.credits_cost
+          }
+          askedAnswers={askedAnswers}
         />
         <ChangeDocumentDialog
           open={changeOpen}

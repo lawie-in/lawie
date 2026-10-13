@@ -4,11 +4,21 @@ import { useRouter } from 'next/navigation';
 
 import { PlanUpgrade } from '@/components/billing/PlanUpgrade';
 import { useAuth } from '@/context/AuthContext';
-import { useUsage } from '@/hooks/useUsage';
+import { useCredits } from '@/hooks/useCredits';
+
+/**
+ * T-372 (ADR-025 D3): Ink is the only entitlement shown. The line is left out
+ * while the balance is loading or unknown, never showing the empty default's 0.
+ * Its own component, so the balance is fetched only where the line can show.
+ */
+function InkBalanceLine() {
+  const { balance, loaded } = useCredits();
+  if (!loaded || !Number.isFinite(balance.totalInk)) return null;
+  return <p className="mt-1 text-sm text-slate-600">{`You have ${balance.totalInk} Ink`}</p>;
+}
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
-  const { data: usage } = useUsage();
   const router = useRouter();
 
   if (!user) return null;
@@ -82,10 +92,7 @@ export default function SettingsPage() {
                 <p className="text-xs text-slate-400">Next billing cycle — managed via Razorpay</p>
               </>
             ) : (
-              <p className="mt-1 text-sm text-slate-600">
-                {usage?.used ?? 0} of {usage?.limit ?? 3} documents used —{' '}
-                <span className="font-medium">{usage?.remaining ?? 3} remaining</span>
-              </p>
+              <InkBalanceLine />
             )}
           </div>
           {isPro && (

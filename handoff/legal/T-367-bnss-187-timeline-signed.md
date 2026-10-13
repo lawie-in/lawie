@@ -21,3 +21,32 @@ Signed: Ajay (CLO), 13 Oct 2026 IST.
 | R3 | `Last day for the charge sheet: {date}. If none is filed by then, default bail is available from {date+1}.` |
 
 Dates are printed as `4 April 2026`. Tests pin R1 to R3 and the worked example, including a leap-year February.
+
+## Addendum 1: Shashank's seven points, 13 Oct 2026
+
+| # | Ruling and exact text |
+|---|---|
+| 1 | Input label: `Date of first remand`. Help text below it: `The date the Magistrate first ordered the accused into custody. This is day 1.` Start milestone: `Day 1: first remand`. Remove "All custody periods begin from this date". |
+| 2 | Yes. The 40/60-day police window uses the same day-1 rule: its last day is first remand + 39 or + 59 days. |
+| 3 | OK. With no fixed period, show `Depends on the offence. Check BNSS section 187.` and no police-custody date. |
+| 4 | Milestone label: `Last day for police custody (day {40/60})`. "Police Custody Limit" reads as if police custody could last 40 or 60 days, so it goes. |
+| 5 | Remove the remand breakdown. A "days 1 to 15 police, then judicial" layout suggests police custody must come first and all in one go; R1 already says it may be in parts at any time in the window. |
+| 6 | Remove both unsigned lines: the "Default bail accrues…" line and the "stringent conditions" sentence. R2 and R3 say it. |
+| 7 | Replace the Legal Reference item with exactly: `BNSS 187(3): if the investigation is not completed within 60 or 90 days, the accused is to be released on bail if prepared to and does furnish bail (default bail).` |
+
+The worked example stands: first remand on 1 January 2026 gives a last day of 1 March 2026 (police window: 9 February 2026, the 40th day), and default bail from 2 March 2026.
+
+## Addendum 2: remaining labels, 13 Oct 2026
+
+| # | Where | Exact text |
+|---|---|---|
+| 1 | Start milestone description | `The date the Magistrate first ordered the accused into custody. This is day 1.` (the same as the input help text) |
+| 2 | defaultBailExplanation | Replace every variant with R2 followed by R3. Drop the unsigned sentences, including "indefeasible right" and the "&lt; 10 years" wording. |
+| 3a | Milestone | `Last day for the charge sheet (day {60/90})` |
+| 3b | Milestone | `Default bail available from (day {61/91})` |
+| 3c | Page day label | `Day {61/91}: default bail (BNSS 187(3))` |
+| 3d | Section heading | `Default bail (BNSS 187(3))` |
+| 3e | bnssSectionTitle | `BNSS 187(3): detention limit before the charge sheet` |
+| 3f | Page disclaimer | `This tracker counts dates from the date you enter. It is not legal advice. Check the remand orders and the BNSS before relying on it.` |
+
+"Chargesheet" is spelt `charge sheet` everywhere on this page.

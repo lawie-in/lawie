@@ -741,3 +741,37 @@ What a user can now do:
 - An unverified email user still sees the verify card instead of the button.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-371 — section converter and bail checker read the signed tables (ac0eb57, shashank, 13 Oct 2026)
+
+Re-tests run 3 failures T-250, T-275, T-296 and T-277.
+
+What a user can now do:
+- Convert an old IPC, CrPC or Evidence Act section and get the right new section, such as CrPC 362 to BNSS 403, without anyone reloading data.
+- Paste a list like "Sections 420, 406 and 120B IPC" into the bulk converter and get every one converted, each with its own label.
+- Look up a sub-section such as CrPC 156(3) and get BNSS 175(3).
+- See "Not verified — check the Gazette" when a section cannot be confirmed, instead of "No mapping found".
+- In the bail checker, type "BNS 318(4)" or "318(4)" and get the same answer. Offences whose classification is not one simple line show a short note to check the First Schedule. A section with no known maximum no longer counts as the most serious.
+- Known gap: BNS 61(2) (the target of 120B) is fixed in T-383, and the 303(2) row in T-361.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-383 — criminal conspiracy shows correctly (7569b14, shashank, 13 Oct 2026)
+
+What a user can now do:
+- Look up IPC 120B or BNS 61(2) in the converter or the bail checker and see it as criminal conspiracy, not "not an offence".
+- In the bail checker, see a section that isn't found named plainly ("Section 400"), not as the raw code "400-BNS".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-372 — Ink cost and balance (587ce69, kunal, 13 Oct 2026)
+
+Re-tests run 3 failures T-227 and T-190 ("Not known").
+
+What a user can now do:
+- See the Ink balance on the dashboard and settings instead of a "documents used" counter or a monthly allowance.
+- See "Uses N Ink" under "Confirm brief and continue" before drafting, for every document type and for a draft with no type.
+- See the header Ink balance drop as soon as a draft finishes.
+- On the brief, press "Not known" or "None" and see it stay selected.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

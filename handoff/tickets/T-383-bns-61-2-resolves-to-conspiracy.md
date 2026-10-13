@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay |
 | Mode   | Small fix |
-| Status | To do. Shashank, after T-371 (he holds bns-offence-resolver.ts). Ajay asked for its own ticket, 13 Oct 2026 |
+| Status | Merged into develop_staging 7569b14 (shashank, 13 Oct 2026). Ajay signed d6ef9ab. Waiting for Anushka on develop |
 | Source | Ajay (25b3a26), while answering T-371 |
 
 ## Acceptance criteria

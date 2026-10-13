@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
+import { useCredits } from '@/hooks/useCredits';
 import { useUsage } from '@/hooks/useUsage';
 import { apiFetch } from '@/lib/apiFetch';
 import {
@@ -199,12 +200,18 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { data: usage, loading: usageLoading } = useUsage();
   const proPlan = useProPlan();
+  const { balance, loaded: creditsLoaded } = useCredits();
 
   if (!user) return null;
 
   const isPro = user.plan === 'pro';
   const docCount = usage?.used ?? 0;
   const lastName = getLastName(user.name);
+  // T-372 (ADR-025 D3): Ink is the only entitlement shown. The line is left out
+  // while the balance is loading or unknown (e.g. the fetch failed), so the
+  // empty default's 0 is never shown as a balance.
+  const inkLine =
+    creditsLoaded && Number.isFinite(balance.totalInk) ? `You have ${balance.totalInk} Ink` : null;
 
   // While usage is loading we don't yet know whether to show the first-time
   // empty state or the populated dashboard. Render a neutral loading screen
@@ -220,15 +227,14 @@ export default function DashboardPage() {
 
   // ── Empty state — free user, 0 documents ──────────────────────────────────
   if (!isPro && docCount === 0) {
-    const freeLimit = usage?.limit ?? 3;
     return (
       <div>
         <h1 className="text-2xl font-bold text-slate-900">
           Welcome to Lawie, <span className="text-amber-500">Advocate {lastName}</span>
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          {/* T-152: one text node so the spaces around N can't be lost, and singular for N = 1. */}
-          {`You have ${freeLimit} free document${freeLimit === 1 ? '' : 's'} this month. Let's draft your first one.`}
+          {/* T-152: one text node so the spaces around N can't be lost. */}
+          {inkLine ? `${inkLine}. Let's draft your first one.` : "Let's draft your first one."}
         </p>
 
         <div className="mt-16 flex flex-col items-center text-center">
@@ -246,9 +252,7 @@ export default function DashboardPage() {
           >
             Start drafting →
           </Link>
-          <p className="mt-3 text-xs text-slate-400">
-            Free plan: {usage?.limit ?? 3} documents/month — no credit card required
-          </p>
+          <p className="mt-3 text-xs text-slate-400">No credit card required</p>
         </div>
       </div>
     );
@@ -262,13 +266,15 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold text-slate-900">
           {getGreeting()}, <span className="text-amber-500">Advocate {lastName}</span>
         </h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          {isPro
-            ? proPlan
-              ? `Your Pro plan includes ${formatPlanInk(proPlan)}`
-              : 'Your Pro plan is active'
-            : `You have ${usage?.remaining ?? 0} document${usage?.remaining === 1 ? '' : 's'} remaining this month`}
-        </p>
+        {(isPro || inkLine) && (
+          <p className="mt-0.5 text-sm text-slate-500">
+            {isPro
+              ? proPlan
+                ? `Your Pro plan includes ${formatPlanInk(proPlan)}`
+                : 'Your Pro plan is active'
+              : inkLine}
+          </p>
+        )}
       </div>
 
       {/* Usage / Pro banner */}
@@ -289,27 +295,10 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <div className="flex items-center gap-3">
-              {/* Usage dots */}
-              <div className="flex items-center gap-1.5">
-                {Array.from({ length: usage?.limit ?? 3 }).map((_, i) => (
-                  <span
-                    key={i}
-                    className={`h-5 w-5 rounded-full border-2 transition-colors ${
-                      i < docCount
-                        ? 'border-amber-500 bg-amber-500'
-                        : 'border-amber-300 bg-transparent'
-                    }`}
-                  />
-                ))}
-              </div>
-              <p className="text-sm text-slate-600">
-                {docCount} of {usage?.limit ?? 3} documents used
-              </p>
-            </div>
+            {/* T-372 (ADR-025): the documents-used counter is hidden; the link keeps its place on the right. */}
             <Link
               href="/dashboard/settings"
-              className="rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600"
+              className="ml-auto rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600"
             >
               {proPlan
                 ? `Upgrade to ${planName(proPlan)} — ${formatPlanPrice(proPlan, true)}`

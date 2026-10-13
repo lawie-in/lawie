@@ -241,6 +241,8 @@ export interface KindSummary {
   category: string;
   description: string;
   plan_access: 'free' | 'pro';
+  /** T-372: the template's Ink cost, from the template-configs API when sent. */
+  credits_cost?: number;
 }
 
 export interface Finding {
@@ -353,6 +355,21 @@ export function valuesAfter(brief: Brief, previous: GivenValue[]): GivenValue[] 
           brief.unplaced.some((u) => sameValue(u.value, v.value)))),
   );
   return [...placed, ...kept];
+}
+
+/**
+ * T-365 AC2: the advocate's own answer to each item the service marks
+ * `asked_empty` ("Not known", "none"). The service sends such an item with no
+ * value; `valuesAfter` keeps the answer, so the row can still show it.
+ */
+export function askedEmptyAnswers(brief: Brief, values: GivenValue[]): Record<string, Value> {
+  const out: Record<string, Value> = {};
+  for (const item of brief.items) {
+    if (!item.asked_empty) continue;
+    const given = values.find((v) => v.key === item.key && !isEmptyValue(v.value));
+    if (given) out[item.key] = given.value;
+  }
+  return out;
 }
 
 /** Set, replace or clear one value the user typed. The new value carries no "Please check" mark. */
