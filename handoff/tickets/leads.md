@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- kunal: T-354 (tests green, small fix, Arjun ruled option A). Next, once CI on bd26efa is green.
+- kunal: T-354 (tests green, small fix, Arjun ruled option A). Holds the slot now (CI run 487 on bd26efa green).
 - shashank: T-356 part 1 (152df3b, small fix tested green; release gate). After kunal (T-354 unblocks Mahak's T-223), ahead of vishal and tanvi T-357.
 - vishal: T-342 (round 2 review passed, tests green, Ajay signed 59eff64 at 54951db). Merges once the _meta.signed line is in. After kunal T-354; check with the slot holder first.
 - tanvi: T-357 (c741f59, small fix tested green). After vishal; check with the slot holder first.
