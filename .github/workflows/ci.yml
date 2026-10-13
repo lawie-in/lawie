@@ -290,7 +290,6 @@ jobs:
           cache: 'yarn'
       - run: yarn install --frozen-lockfile
       - run: yarn workspace @lawie/shared build
-      # App source only: tsconfig.typecheck.json excludes **/__tests__/** (test-file type errors: T-380).
       - name: Typecheck
         run: yarn workspace @lawie/web tsc --noEmit -p tsconfig.typecheck.json
       - name: Build
@@ -333,7 +332,9 @@ jobs:
           filters: |
             golden:
               - 'apps/drafting/src/services/drafter.prompts.ts'
+              - 'apps/drafting/src/services/draft-renderer.ts'
               - 'apps/drafting/src/config/document-rules/**'
+              - 'apps/drafting/src/types/skeleton.ts'
               - 'packages/shared/src/utils/normalize/**'
               - 'scripts/golden-set/**'
       - name: Decide whether the golden set runs

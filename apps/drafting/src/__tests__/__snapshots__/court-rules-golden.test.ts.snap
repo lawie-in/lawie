@@ -2844,7 +2844,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) allahabad_hc legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Misc. Bail Application No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "Prayagraj",
   "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
@@ -2877,7 +2877,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) allahabad_hc legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Misc. Bail Application No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "Prayagraj",
   "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
@@ -2910,7 +2910,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) allahabad_hc rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Misc. Bail Application No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "Prayagraj",
   "court_designation": "HIGH COURT OF JUDICATURE AT ALLAHABAD",
@@ -3042,7 +3042,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) bihar_district legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Patna",
   "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
@@ -3075,7 +3075,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) bihar_district legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Patna",
   "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
@@ -3108,7 +3108,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) bihar_district rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Patna",
   "court_designation": "DISTRICT & SESSIONS JUDGE, PATNA",
@@ -3240,7 +3240,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) cjm_generic legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "cjm",
   "court_city": "Patna",
   "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
@@ -3273,7 +3273,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) cjm_generic legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "cjm",
   "court_city": "Patna",
   "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
@@ -3306,7 +3306,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) cjm_generic rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "cjm",
   "court_city": "Patna",
   "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
@@ -3438,7 +3438,7 @@ COMPLAINANT",
 
 exports[`court-rules-golden — placeholder context per (court × template) consumer_commission_generic legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Consumer Complaint No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "consumer_commission",
   "court_city": "Patna",
   "court_designation": "DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
@@ -3471,7 +3471,7 @@ COMPLAINANT",
 
 exports[`court-rules-golden — placeholder context per (court × template) consumer_commission_generic legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Consumer Complaint No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "consumer_commission",
   "court_city": "Patna",
   "court_designation": "DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
@@ -3504,7 +3504,7 @@ COMPLAINANT",
 
 exports[`court-rules-golden — placeholder context per (court × template) consumer_commission_generic rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Consumer Complaint No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "consumer_commission",
   "court_city": "Patna",
   "court_designation": "DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
@@ -3636,7 +3636,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_district legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Application No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "New Delhi",
   "court_designation": "ADDITIONAL SESSIONS JUDGE, NEW DELHI",
@@ -3669,7 +3669,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_district legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Application No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "New Delhi",
   "court_designation": "ADDITIONAL SESSIONS JUDGE, NEW DELHI",
@@ -3702,7 +3702,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_district rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Application No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "New Delhi",
   "court_designation": "ADDITIONAL SESSIONS JUDGE, NEW DELHI",
@@ -3834,7 +3834,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_hc legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Appln. No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "New Delhi",
   "court_designation": "HIGH COURT OF DELHI AT NEW DELHI",
@@ -3867,7 +3867,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_hc legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Appln. No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "New Delhi",
   "court_designation": "HIGH COURT OF DELHI AT NEW DELHI",
@@ -3900,7 +3900,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) delhi_hc rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Appln. No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "New Delhi",
   "court_designation": "HIGH COURT OF DELHI AT NEW DELHI",
@@ -4032,7 +4032,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Civil Suit No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Patna",
   "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
@@ -4065,7 +4065,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Civil Suit No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Patna",
   "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
@@ -4098,7 +4098,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Civil Suit No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Patna",
   "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
@@ -4230,7 +4230,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_district legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Ranchi",
   "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
@@ -4263,7 +4263,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_district legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Ranchi",
   "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
@@ -4296,7 +4296,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_district rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Ranchi",
   "court_designation": "DISTRICT & SESSIONS JUDGE, RANCHI",
@@ -4428,7 +4428,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_hc legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "Ranchi",
   "court_designation": "HIGH COURT OF JHARKHAND AT RANCHI",
@@ -4461,7 +4461,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_hc legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "Ranchi",
   "court_designation": "HIGH COURT OF JHARKHAND AT RANCHI",
@@ -4494,7 +4494,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jharkhand_hc rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "Ranchi",
   "court_designation": "HIGH COURT OF JHARKHAND AT RANCHI",
@@ -4626,7 +4626,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jmfc_generic legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "jmfc",
   "court_city": "Patna",
   "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
@@ -4659,7 +4659,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jmfc_generic legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "jmfc",
   "court_city": "Patna",
   "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
@@ -4692,7 +4692,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jmfc_generic rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "jmfc",
   "court_city": "Patna",
   "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
@@ -4824,7 +4824,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) patna_hc legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "Patna",
   "court_designation": "HIGH COURT OF JUDICATURE AT PATNA",
@@ -4857,7 +4857,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) patna_hc legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "Patna",
   "court_designation": "HIGH COURT OF JUDICATURE AT PATNA",
@@ -4890,7 +4890,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) patna_hc rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Cr. Misc. No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "high_court",
   "court_city": "Patna",
   "court_designation": "HIGH COURT OF JUDICATURE AT PATNA",
@@ -5022,7 +5022,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) sessions_generic legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Application No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "sessions",
   "court_city": "Mumbai",
   "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
@@ -5055,7 +5055,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) sessions_generic legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Application No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "sessions",
   "court_city": "Mumbai",
   "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
@@ -5088,7 +5088,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) sessions_generic rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Bail Application No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "sessions",
   "court_city": "Mumbai",
   "court_designation": "SESSIONS FOR GREATER BOMBAY AT MUMBAI",
@@ -5220,7 +5220,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) up_district legal_notice_s80 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Agra",
   "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",
@@ -5253,7 +5253,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) up_district legal_notice_s138 resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Agra",
   "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",
@@ -5286,7 +5286,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) up_district rent_agreement resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Miscellaneous Case No. _____ of 2026",
+  "case_nomenclature": undefined,
   "courtType": "district_court",
   "court_city": "Agra",
   "court_designation": "DISTRICT & SESSIONS JUDGE, AGRA",

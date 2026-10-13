@@ -1,0 +1,111 @@
+{
+  "id": "23-run3-regular-bail-patna",
+  "pack": "bail_regular",
+  "title": "Run 3, regular bail, Patna: every ground she gave and no other, each section once",
+  "risk": "Run 3 T-189: the draft dropped her main ground (a civil dispute from a failed land-sale agreement of 2 Mar 2025), invented 'already undergone prolonged custody' after three weeks, and printed 318(4) twice",
+  "source": "handoff/quality/2026-10-13-run-3-develop-FAIL.md (T-189, T-241, 'Bail drafts as an advocate would file them'); her regular bail draft (Patna), facts re-made synthetically. T-373 / ADR-025 D1 golden assertion.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Regular bail for my client Ramesh Prasad s/o Suresh Prasad, age 45, R/o Rajendra Nagar, Patna. Sessions Court Patna. FIR No. 233/2026 dated 1 Sept 2026, PS Kadamkuan, sections BNS 318(4), BNS 316(2), BNS 318(4). He has been in judicial custody since 18 Sept 2026. Facts: the complainant paid him Rs 8,00,000 under a land-sale agreement of 2 Mar 2025; the sale failed because the land was under a family partition suit, and he has offered to return the money. Grounds: the dispute is civil, it arises from the failed land-sale agreement of 2 Mar 2025. He is falsely implicated. Charge sheet has been filed. No earlier bail application.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "sessions",
+    "court": "bihar_sessions_patna"
+  },
+  "answers": [
+    {
+      "key": "currently_in_custody",
+      "value": "Yes — Judicial custody"
+    },
+    {
+      "key": "investigation_status",
+      "value": "Charge sheet filed"
+    },
+    {
+      "key": "grounds_for_bail",
+      "value": "Falsely implicated due to enmity / mistaken identity"
+    },
+    {
+      "key": "earlier_bail_applications",
+      "value": "None"
+    }
+  ],
+  "expect": {
+    "absent": [
+      {
+        "any_of": ["prolonged custody", "already undergone"],
+        "why": "Run 3 T-189: 'already undergone prolonged custody' was invented; he had been in custody three weeks"
+      },
+      {
+        "any_of": [
+          "roots in society",
+          "roots in the community",
+          "law-abiding",
+          "no criminal antecedents",
+          "no criminal history"
+        ],
+        "why": "Run 3: roots, character and antecedents were never given"
+      },
+      {
+        "any_of": [
+          "318(4), BNS 316(2), BNS 318(4)",
+          "318(4), 316(2), and 318(4)",
+          "316(2) and 318(4)"
+        ],
+        "why": "Run 3 T-189: each section once (ADR-025 renderer rule 4)"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["land-sale agreement"],
+        "why": "Run 3 T-189: her main ground, the civil dispute from the failed land-sale agreement, must be in the draft"
+      },
+      {
+        "any_of": ["Kadamkuan"],
+        "why": "the police station as given"
+      }
+    ],
+    "exact": [
+      {
+        "any_of": ["Ramesh Prasad"],
+        "why": "the applicant's name as given"
+      },
+      {
+        "any_of": ["233/2026"],
+        "why": "the FIR number as given"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "earlier_bail_applications",
+        "display": "None",
+        "why": "the answer on the questions step"
+      }
+    ],
+    "rendered": {
+      "no_status": ["fallback"],
+      "status": {
+        "facts": "ok",
+        "grounds": "ok",
+        "further_grounds": "ok",
+        "earlier_applications": "ok",
+        "antecedents": "missing"
+      },
+      "not_rendered": ["roots", "cooperated", "no_recovery"],
+      "why": "ADR-025 D1: every ground she gave in her words or the signed list, and no other; antecedents a blank (T-359); no clause for roots, cooperation or recovery she never gave"
+    }
+  },
+  "recorded": {
+    "clean": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"applicant_name\", \"value\": \"Ramesh Prasad\", \"quote\": \"Ramesh Prasad\"}, {\"id\": \"father_name\", \"value\": \"Suresh Prasad\", \"quote\": \"s/o Suresh Prasad\"}, {\"id\": \"applicant_age\", \"value\": \"45\", \"quote\": \"age 45\"}, {\"id\": \"address\", \"value\": \"Rajendra Nagar, Patna\", \"quote\": \"R/o Rajendra Nagar, Patna\"}, {\"id\": \"fir_number\", \"value\": \"233/2026\", \"quote\": \"FIR No. 233/2026\"}, {\"id\": \"fir_date\", \"value\": \"1 Sept 2026\", \"quote\": \"dated 1 Sept 2026\"}, {\"id\": \"police_station\", \"value\": \"Kadamkuan\", \"quote\": \"PS Kadamkuan\"}, {\"id\": \"sections_charged\", \"value\": [\"BNS 318(4)\", \"BNS 316(2)\", \"BNS 318(4)\"], \"quote\": \"sections BNS 318(4), BNS 316(2), BNS 318(4)\"}, {\"id\": \"custody_since\", \"value\": \"18 Sept 2026\", \"quote\": \"since 18 Sept 2026\"}, {\"id\": \"earlier_bail_applications\", \"value\": \"None\", \"quote\": \"No earlier bail application\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"span\": \"Ramesh Prasad\", \"confidence\": 0.98}, {\"key\": \"father_name\", \"span\": \"Suresh Prasad\", \"confidence\": 0.95}, {\"key\": \"applicant_age\", \"span\": \"45\", \"confidence\": 0.95}, {\"key\": \"address\", \"span\": \"Rajendra Nagar, Patna\", \"confidence\": 0.94}, {\"key\": \"fir_number\", \"span\": \"233/2026\", \"confidence\": 0.97}, {\"key\": \"fir_date\", \"span\": \"1 Sept 2026\", \"confidence\": 0.95}, {\"key\": \"police_station\", \"span\": \"PS Kadamkuan\", \"confidence\": 0.96}, {\"key\": \"sections_charged\", \"span\": \"BNS 318(4), BNS 316(2), BNS 318(4)\", \"confidence\": 0.95}, {\"key\": \"custody_since\", \"span\": \"18 Sept 2026\", \"confidence\": 0.94}, {\"key\": \"earlier_bail_applications\", \"span\": \"No earlier bail application\", \"confidence\": 0.93}, {\"key\": \"facts_narrative\", \"span\": \"the complainant paid him Rs 8,00,000 under a land-sale agreement of 2 Mar 2025; the sale failed because the land was under a family partition suit, and he has offered to return the money.\", \"confidence\": 0.9}, {\"key\": \"additional_context\", \"span\": \"the dispute is civil, it arises from the failed land-sale agreement of 2 Mar 2025.\", \"confidence\": 0.9}]}",
+      "drafter": "{\"paragraphs\": [{\"clauseId\": \"opening\", \"factRefs\": [\"applicant_name\", \"applicant_age\", \"address\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"fir_details\", \"factRefs\": [\"fir_number\", \"fir_date\", \"police_station\", \"sections_charged\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"custody_status\", \"factRefs\": [\"currently_in_custody\", \"custody_since\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"facts\", \"factRefs\": [\"facts_narrative\"], \"text\": \"the complainant paid him Rs 8,00,000 under a land-sale agreement of 2 Mar 2025; the sale failed because the land was under a family partition suit, and he has offered to return the money.\", \"items\": []}, {\"clauseId\": \"earlier_applications\", \"factRefs\": [\"earlier_bail_applications\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"grounds\", \"factRefs\": [], \"text\": \"\", \"items\": [{\"factRef\": \"grounds_for_bail[0]\", \"text\": \"\"}]}, {\"clauseId\": \"further_grounds\", \"factRefs\": [\"additional_context\"], \"text\": \"The dispute is civil; it arises from the failed land-sale agreement of 2 Mar 2025.\", \"items\": []}, {\"clauseId\": \"no_flight_risk\", \"factRefs\": [], \"text\": \"\", \"items\": []}]}"
+    },
+    "run3": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"applicant_name\", \"value\": \"Ramesh Prasad\", \"quote\": \"Ramesh Prasad\"}, {\"id\": \"father_name\", \"value\": \"Suresh Prasad\", \"quote\": \"s/o Suresh Prasad\"}, {\"id\": \"applicant_age\", \"value\": \"45\", \"quote\": \"age 45\"}, {\"id\": \"address\", \"value\": \"Rajendra Nagar, Patna\", \"quote\": \"R/o Rajendra Nagar, Patna\"}, {\"id\": \"fir_number\", \"value\": \"233/2026\", \"quote\": \"FIR No. 233/2026\"}, {\"id\": \"fir_date\", \"value\": \"1 Sept 2026\", \"quote\": \"dated 1 Sept 2026\"}, {\"id\": \"police_station\", \"value\": \"Kadamkuan\", \"quote\": \"PS Kadamkuan\"}, {\"id\": \"sections_charged\", \"value\": [\"BNS 318(4)\", \"BNS 316(2)\", \"BNS 318(4)\"], \"quote\": \"sections BNS 318(4), BNS 316(2), BNS 318(4)\"}, {\"id\": \"custody_since\", \"value\": \"18 Sept 2026\", \"quote\": \"since 18 Sept 2026\"}, {\"id\": \"earlier_bail_applications\", \"value\": \"None\", \"quote\": \"No earlier bail application\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"span\": \"Ramesh Prasad\", \"confidence\": 0.98}, {\"key\": \"father_name\", \"span\": \"Suresh Prasad\", \"confidence\": 0.95}, {\"key\": \"applicant_age\", \"span\": \"45\", \"confidence\": 0.95}, {\"key\": \"address\", \"span\": \"Rajendra Nagar, Patna\", \"confidence\": 0.94}, {\"key\": \"fir_number\", \"span\": \"233/2026\", \"confidence\": 0.97}, {\"key\": \"fir_date\", \"span\": \"1 Sept 2026\", \"confidence\": 0.95}, {\"key\": \"police_station\", \"span\": \"PS Kadamkuan\", \"confidence\": 0.96}, {\"key\": \"sections_charged\", \"span\": \"BNS 318(4), BNS 316(2), BNS 318(4)\", \"confidence\": 0.95}, {\"key\": \"custody_since\", \"span\": \"18 Sept 2026\", \"confidence\": 0.94}, {\"key\": \"earlier_bail_applications\", \"span\": \"No earlier bail application\", \"confidence\": 0.93}, {\"key\": \"facts_narrative\", \"span\": \"the complainant paid him Rs 8,00,000 under a land-sale agreement of 2 Mar 2025; the sale failed because the land was under a family partition suit, and he has offered to return the money.\", \"confidence\": 0.9}, {\"key\": \"additional_context\", \"span\": \"the dispute is civil, it arises from the failed land-sale agreement of 2 Mar 2025.\", \"confidence\": 0.9}]}",
+      "drafter": "{\"paragraphs\": [{\"clauseId\": \"opening\", \"factRefs\": [\"applicant_name\", \"applicant_age\", \"address\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"fir_details\", \"factRefs\": [\"fir_number\", \"fir_date\", \"police_station\", \"sections_charged\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"custody_status\", \"factRefs\": [\"currently_in_custody\", \"custody_since\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"facts\", \"factRefs\": [\"facts_narrative\"], \"text\": \"the complainant paid him Rs 8,00,000 under a land-sale agreement of 2 Mar 2025; the sale failed because the land was under a family partition suit, and he has offered to return the money.\", \"items\": []}, {\"clauseId\": \"earlier_applications\", \"factRefs\": [\"earlier_bail_applications\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"grounds\", \"factRefs\": [], \"text\": \"\", \"items\": [{\"factRef\": \"grounds_for_bail[0]\", \"text\": \"\"}]}, {\"clauseId\": \"further_grounds\", \"factRefs\": [\"additional_context\"], \"text\": \"The dispute is civil; it arises from the failed land-sale agreement of 2 Mar 2025. The applicant has already undergone prolonged custody and has deep roots in society.\", \"items\": []}, {\"clauseId\": \"no_flight_risk\", \"factRefs\": [], \"text\": \"\", \"items\": []}]}"
+    }
+  }
+}

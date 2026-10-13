@@ -42,19 +42,19 @@ const PACKS = ['bail_regular', 'bail_anticipatory', 'bail_before_magistrate', 'd
 /** SHA-256 of each signed md FILE, pinned (computed 13 Oct 2026), and of the json block + "\n". */
 const SIGNED: Record<string, { version: number; mdSha: string; blockSha: string }> = {
   bail_regular: {
-    version: 2,
-    mdSha: 'f6b7711ad8bdcb00fa34cd1b837ab98d428f77e04d6afc4d36061ea4029c132d',
-    blockSha: '604acbe65cd5df1b3981626bd868ceec3f1c62475b212f90d44e4a29fa5380f4',
+    version: 3,
+    mdSha: '74c0aa4dc5dc5fe5a465cbbd163316923e71bc851f15488db7b607ea4a18c6bb',
+    blockSha: '4eec8dfb4ea8f7fac728675df30c032e8f8555b75cdfeaf1f59b5f7acc7c843b',
   },
   bail_anticipatory: {
-    version: 3,
-    mdSha: '68b9d2ca53e9883e0ef81f5610c51311a233dd8c79563fa7f158e0afd929733e',
-    blockSha: '50b7dd20bcaccdbc10c6bd35094ac754e8605ba8c03dfa5855c372d9eed04d1e',
+    version: 4,
+    mdSha: '5639ce4ad42c05e18d9a467038076f12d201a4de3e8880a7a79f1222c0d14913',
+    blockSha: 'bd20c4a0cae5347b49a7999dd9bafd93cfd0baeccefd271635103bc1759bf858',
   },
   bail_before_magistrate: {
-    version: 4,
-    mdSha: 'c9d01e6ee53f2b7d21ab66b892eb037e16065fc0178a2780c9f65937a7a78f4c',
-    blockSha: '0404960987deb50cc19d24ef70535298185aa0c882db8ddc0afa39fbe9794f23',
+    version: 5,
+    mdSha: '3ef120ed16a7fd68791d3ba964c4e69e5b74421878204968e4fddf52c87827a0',
+    blockSha: 'c52210817dd3a14e6c7f663dc678944334245cc6b4359a1f0eac719bfeba81cd',
   },
   default_bail: {
     version: 1,

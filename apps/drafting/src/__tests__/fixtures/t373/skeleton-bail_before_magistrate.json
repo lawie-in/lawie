@@ -1,0 +1,323 @@
+{
+  "pack": "bail_before_magistrate",
+  "version": 5,
+  "none_values": "first_bail_application.equals (T-334)",
+  "antecedents_none_values": [
+    "none",
+    "nil",
+    "no",
+    "not applicable",
+    "no criminal record",
+    "no criminal antecedents",
+    "no antecedents",
+    "no previous record",
+    "no past record",
+    "no prior record",
+    "no previous criminal record",
+    "no criminal history",
+    "clean record",
+    "koi record nahi",
+    "koi criminal record nahi",
+    "koi aapradhik record nahi",
+    "कोई नहीं",
+    "कोई आपराधिक रिकॉर्ड नहीं"
+  ],
+  "clauses": [
+    {
+      "id": "offence_classification",
+      "order": 10,
+      "required": true,
+      "source": "fixed",
+      "variants": [
+        {
+          "when": {
+            "key": "offence_classification",
+            "in": ["Bailable"]
+          },
+          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under Section 478 of the Bharatiya Nagarik Suraksha Sanhita, 2023, the offence alleged being bailable.",
+          "slots": ["applicant_name", "applicant_age", "applicant_address"]
+        },
+        {
+          "when": {
+            "key": "offence_classification",
+            "in": ["Non-bailable (within Magistrate's powers)"]
+          },
+          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
+          "slots": ["applicant_name", "applicant_age", "applicant_address"]
+        }
+      ],
+      "missing_label": "Offence Classification"
+    },
+    {
+      "id": "fir_particulars",
+      "order": 20,
+      "required": true,
+      "source": "fixed",
+      "text": "FIR No. {fir_number} dated {fir_date} was registered at Police Station {police_station} under {offences_alleged}.",
+      "slots": ["fir_number", "fir_date", "police_station", "offences_alleged"]
+    },
+    {
+      "id": "custody",
+      "order": 30,
+      "required": false,
+      "source": "fixed",
+      "text": "The applicant is lodged in {jail}.",
+      "slots": ["jail"]
+    },
+    {
+      "id": "arrested_on",
+      "order": 31,
+      "required": false,
+      "source": "fixed",
+      "text": "The applicant was arrested on {arrest_date}.",
+      "slots": ["arrest_date"]
+    },
+    {
+      "id": "days_in_custody",
+      "order": 32,
+      "required": false,
+      "source": "fixed",
+      "text": "The applicant has been in custody for {days_in_custody} days.",
+      "slots": ["days_in_custody"]
+    },
+    {
+      "id": "facts",
+      "order": 40,
+      "required": true,
+      "source": "advocate",
+      "slot": "facts_narrative",
+      "intro": "The brief facts of the case are as follows:",
+      "missing_label": "Brief facts of the case"
+    },
+    {
+      "id": "chargesheet_filed",
+      "order": 50,
+      "required": false,
+      "source": "fixed",
+      "when": {
+        "key": "investigation_status",
+        "in": ["charge_sheet_filed"]
+      },
+      "text": "The charge sheet has been filed in this case."
+    },
+    {
+      "id": "antecedents",
+      "order": 60,
+      "required": true,
+      "source": "fixed",
+      "variants": [
+        {
+          "when": {
+            "key": "antecedents",
+            "in": "antecedents_none_values"
+          },
+          "text": "The applicant has no criminal antecedents."
+        },
+        {
+          "when": {
+            "key": "antecedents",
+            "present": true
+          },
+          "text": "The criminal antecedents of the applicant are: {antecedents}.",
+          "slots": ["antecedents"]
+        }
+      ],
+      "missing_label": "Criminal antecedents"
+    },
+    {
+      "id": "earlier_applications",
+      "order": 65,
+      "required": true,
+      "source": "fixed",
+      "variants": [
+        {
+          "when": {
+            "key": "earlier_bail_applications",
+            "in": "none_values"
+          },
+          "text": "No other bail application has been made by the applicant in this matter."
+        },
+        {
+          "when": {
+            "key": "earlier_bail_applications",
+            "present": true
+          },
+          "text": "The earlier bail applications in this matter are: {earlier_bail_applications}.",
+          "slots": ["earlier_bail_applications"]
+        }
+      ],
+      "missing_label": "Earlier bail applications in this matter"
+    },
+    {
+      "id": "grounds",
+      "order": 70,
+      "required": true,
+      "source": "advocate",
+      "list": true,
+      "slot": "grounds_for_bail",
+      "intro": "The applicant seeks bail on the following grounds:",
+      "missing_label": "Grounds for bail"
+    },
+    {
+      "id": "woman_proviso",
+      "order": 72,
+      "required": false,
+      "source": "fixed",
+      "when": {
+        "all_of": [
+          {
+            "key": "applicant_sex",
+            "in": ["female"]
+          },
+          {
+            "key": "offence_classification",
+            "in": ["Non-bailable (within Magistrate's powers)"]
+          }
+        ]
+      },
+      "text": "It is submitted that the applicant is a woman, and under the first proviso to Section 480(1) of the BNSS this Hon'ble Court may release her on bail even where the offence falls within clause (i) or (ii) of that sub-section."
+    },
+    {
+      "id": "further_grounds",
+      "order": 75,
+      "required": false,
+      "source": "advocate",
+      "slot": "additional_context"
+    },
+    {
+      "id": "false_implication_reason",
+      "order": 76,
+      "required": false,
+      "source": "advocate",
+      "slot": "false_implication_reason",
+      "intro": "The applicant has been falsely implicated on account of"
+    },
+    {
+      "id": "not_named_in_fir",
+      "order": 80,
+      "required": false,
+      "source": "fixed",
+      "when": {
+        "key": "named_in_fir",
+        "in": ["no"]
+      },
+      "text": "The applicant is not named in the FIR."
+    },
+    {
+      "id": "no_recovery",
+      "order": 81,
+      "required": false,
+      "source": "fixed",
+      "when": {
+        "key": "recovery_status",
+        "in": "no_recovery.equals"
+      },
+      "text": "Nothing has been recovered from the applicant."
+    },
+    {
+      "id": "recovery_stated",
+      "order": 82,
+      "required": false,
+      "source": "advocate",
+      "when": {
+        "key": "recovery_status",
+        "not_in": "no_recovery.equals"
+      },
+      "slot": "recovery_status",
+      "intro": "As to recovery:"
+    },
+    {
+      "id": "cooperated",
+      "order": 83,
+      "required": false,
+      "source": "fixed",
+      "when": {
+        "key": "cooperated_with_investigation",
+        "in": ["yes"]
+      },
+      "text": "The applicant has cooperated with the investigation."
+    },
+    {
+      "id": "s35_notice",
+      "order": 84,
+      "required": false,
+      "source": "fixed",
+      "when": {
+        "key": "s35_notice_status",
+        "in": ["not_served"]
+      },
+      "text": "No notice under Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023 was served on the applicant before arrest."
+    },
+    {
+      "id": "parity",
+      "order": 85,
+      "required": false,
+      "source": "fixed",
+      "text": "A co-accused has been granted bail by {co_accused_bail_court} by order dated {co_accused_bail_date}.",
+      "slots": ["co_accused_bail_court", "co_accused_bail_date"],
+      "render_if_any_slot": "co_accused_bail_court"
+    },
+    {
+      "id": "occupation",
+      "order": 86,
+      "required": false,
+      "source": "fixed",
+      "text": "The applicant's occupation is {applicant_occupation}.",
+      "slots": ["applicant_occupation"]
+    },
+    {
+      "id": "sole_breadwinner",
+      "order": 87,
+      "required": false,
+      "source": "fixed",
+      "when": {
+        "key": "sole_earning_member",
+        "in": ["yes"]
+      },
+      "text": "The applicant is the only earning member of the family."
+    },
+    {
+      "id": "dependants",
+      "order": 88,
+      "required": false,
+      "source": "fixed",
+      "text": "{dependants} depend on the applicant.",
+      "slots": ["dependants"]
+    },
+    {
+      "id": "triple_test",
+      "order": 89,
+      "required": false,
+      "source": "fixed",
+      "text": "The applicant resides at {applicant_address} and has roots in society: {local_ties}.",
+      "slots": ["applicant_address", "local_ties"],
+      "render_if_any_slot": "local_ties"
+    },
+    {
+      "id": "medical",
+      "order": 90,
+      "required": false,
+      "source": "fixed",
+      "text": "The applicant suffers from {medical_condition}.",
+      "slots": ["medical_condition"]
+    },
+    {
+      "id": "sureties",
+      "order": 92,
+      "required": false,
+      "source": "fixed",
+      "when": {
+        "key": "sureties_available",
+        "in": ["Yes"]
+      },
+      "text": "Sureties are available."
+    },
+    {
+      "id": "undertakings",
+      "order": 95,
+      "required": true,
+      "source": "fixed",
+      "text": "If released on bail, the applicant undertakes not to abscond, not to tamper with the evidence or influence any witness, to appear before the Court on every date fixed, and to abide by every condition the Court may impose."
+    }
+  ]
+}

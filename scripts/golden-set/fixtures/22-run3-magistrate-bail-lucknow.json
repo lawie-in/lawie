@@ -1,0 +1,107 @@
+{
+  "id": "22-run3-magistrate-bail-lucknow",
+  "pack": "bail_before_magistrate",
+  "title": "Run 3, Magistrate bail, Lucknow: no character or antecedents invented, earlier applications stated once",
+  "risk": "Run 3 T-241 and T-341: the Magistrate bail draft invented 'woman of good character' and 'no prior criminal antecedents', and both stated 'no earlier application' and left a blank on the same point",
+  "source": "handoff/quality/2026-10-13-run-3-develop-FAIL.md (T-241, T-341, 'Bail drafts as an advocate would file them'); her Magistrate bail draft (Lucknow), facts re-made synthetically. T-373 / ADR-025 D1 golden assertion.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Magistrate bail chahiye, CJM Lucknow. Applicant Pooja Devi w/o Rajesh Kumar, umar 31 saal, R/o 14 Indira Nagar Lucknow. FIR No. 512/2026 dated 20 Sept 2026, PS Gomti Nagar, section 318(4) BNS. Arrested on 26 Sept 2026, District Jail Lucknow mein hai. Facts: the complainant says she took Rs 1,50,000 from him for a job and did not return it; she says it was a loan and she has repaid Rs 60,000. Grounds: she is a woman with a 4 year old daughter; the dispute is about a loan, civil in nature. No bail application filed earlier.",
+  "court": {
+    "state": "Uttar Pradesh",
+    "court_type": "cjm",
+    "court": "up_cjm_lucknow"
+  },
+  "answers": [
+    {
+      "key": "currently_in_custody",
+      "value": "Yes — Judicial custody"
+    },
+    {
+      "key": "offence_classification",
+      "value": "Non-bailable (within Magistrate's powers)"
+    },
+    {
+      "key": "applicant_sex",
+      "value": "Female"
+    }
+  ],
+  "expect": {
+    "absent": [
+      {
+        "any_of": ["good character", "of good conduct"],
+        "why": "Run 3 T-241: 'woman of good character' was never given"
+      },
+      {
+        "any_of": [
+          "no prior criminal antecedents",
+          "no criminal antecedents",
+          "no criminal history",
+          "no previous criminal record"
+        ],
+        "why": "Run 3 T-241: antecedents were never given; the clause must be a blank (T-359)"
+      },
+      {
+        "any_of": ["roots in society", "roots in the community", "law-abiding"],
+        "why": "Run 3: roots and character were never given"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["Gomti Nagar"],
+        "why": "the police station as given"
+      }
+    ],
+    "exact": [
+      {
+        "any_of": ["Pooja Devi"],
+        "why": "the applicant's name as given"
+      },
+      {
+        "any_of": ["512/2026"],
+        "why": "the FIR number as given"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "earlier_bail_applications",
+        "display": "No bail application filed earlier",
+        "why": "Run 3 T-341: her words, read from the description"
+      },
+      {
+        "key": "applicant_sex",
+        "display": "Female",
+        "why": "the answer on the questions step"
+      },
+      {
+        "key": "facts_narrative",
+        "display": "Rs 1,50,000",
+        "why": "T-365 / Arjun: a Magistrate brief with facts holds facts_narrative in the ledger"
+      }
+    ],
+    "rendered": {
+      "no_status": ["fallback"],
+      "status": {
+        "earlier_applications": "ok",
+        "antecedents": "missing",
+        "grounds": "ok",
+        "facts": "ok"
+      },
+      "not_rendered": ["triple_test", "cooperated", "no_recovery", "sureties"],
+      "why": "ADR-025 D1: earlier applications stated once and not also a blank (T-341); antecedents a blank (T-359); her ground in her words; no clause for roots, cooperation, recovery or sureties she never gave. Her facts in her words, not a blank (T-365 added the pack's facts_narrative field)."
+    }
+  },
+  "recorded": {
+    "clean": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"applicant_name\", \"value\": \"Pooja Devi\", \"quote\": \"Pooja Devi\"}, {\"id\": \"applicant_parentage\", \"value\": \"Rajesh Kumar\", \"quote\": \"w/o Rajesh Kumar\"}, {\"id\": \"applicant_age\", \"value\": \"31\", \"quote\": \"umar 31 saal\"}, {\"id\": \"applicant_address\", \"value\": \"14 Indira Nagar Lucknow\", \"quote\": \"R/o 14 Indira Nagar Lucknow\"}, {\"id\": \"fir_number\", \"value\": \"512/2026\", \"quote\": \"FIR No. 512/2026\"}, {\"id\": \"fir_date\", \"value\": \"20 Sept 2026\", \"quote\": \"dated 20 Sept 2026\"}, {\"id\": \"police_station\", \"value\": \"Gomti Nagar\", \"quote\": \"PS Gomti Nagar\"}, {\"id\": \"offences_alleged\", \"value\": \"318(4) BNS\", \"quote\": \"section 318(4) BNS\"}, {\"id\": \"arrest_date\", \"value\": \"26 Sept 2026\", \"quote\": \"Arrested on 26 Sept 2026\"}, {\"id\": \"jail\", \"value\": \"District Jail Lucknow\", \"quote\": \"District Jail Lucknow\"}, {\"id\": \"earlier_bail_applications\", \"value\": \"None\", \"quote\": \"No bail application filed earlier\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"span\": \"Pooja Devi\", \"confidence\": 0.98}, {\"key\": \"applicant_parentage\", \"span\": \"Rajesh Kumar\", \"confidence\": 0.95}, {\"key\": \"applicant_age\", \"span\": \"31\", \"confidence\": 0.95}, {\"key\": \"applicant_address\", \"span\": \"14 Indira Nagar Lucknow\", \"confidence\": 0.94}, {\"key\": \"fir_number\", \"span\": \"512/2026\", \"confidence\": 0.97}, {\"key\": \"fir_date\", \"span\": \"20 Sept 2026\", \"confidence\": 0.95}, {\"key\": \"police_station\", \"span\": \"PS Gomti Nagar\", \"confidence\": 0.96}, {\"key\": \"offences_alleged\", \"span\": \"section 318(4) BNS\", \"confidence\": 0.95}, {\"key\": \"arrest_date\", \"span\": \"26 Sept 2026\", \"confidence\": 0.94}, {\"key\": \"jail\", \"span\": \"District Jail Lucknow\", \"confidence\": 0.94}, {\"key\": \"earlier_bail_applications\", \"span\": \"No bail application filed earlier\", \"confidence\": 0.93}, {\"key\": \"facts_narrative\", \"span\": \"the complainant says she took Rs 1,50,000 from him for a job and did not return it; she says it was a loan and she has repaid Rs 60,000.\", \"confidence\": 0.9}, {\"key\": \"grounds_for_bail\", \"span\": \"she is a woman with a 4 year old daughter; the dispute is about a loan, civil in nature.\", \"confidence\": 0.9}]}",
+      "drafter": "{\"paragraphs\": [{\"clauseId\": \"offence_classification\", \"factRefs\": [\"offence_classification\", \"applicant_name\", \"applicant_age\", \"applicant_address\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"fir_particulars\", \"factRefs\": [\"fir_number\", \"fir_date\", \"police_station\", \"offences_alleged\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"custody\", \"factRefs\": [\"jail\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"arrested_on\", \"factRefs\": [\"arrest_date\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"facts\", \"factRefs\": [\"facts_narrative\"], \"text\": \"The complainant says she took Rs 1,50,000 from him for a job and did not return it; she says it was a loan and she has repaid Rs 60,000.\", \"items\": []}, {\"clauseId\": \"earlier_applications\", \"factRefs\": [\"earlier_bail_applications\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"grounds\", \"factRefs\": [], \"text\": \"\", \"items\": [{\"factRef\": \"grounds_for_bail[0]\", \"text\": \"She is a woman with a 4 year old daughter; the dispute is about a loan, civil in nature.\"}]}, {\"clauseId\": \"woman_proviso\", \"factRefs\": [\"applicant_sex\", \"offence_classification\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"undertakings\", \"factRefs\": [], \"text\": \"\", \"items\": []}]}"
+    },
+    "run3": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"applicant_name\", \"value\": \"Pooja Devi\", \"quote\": \"Pooja Devi\"}, {\"id\": \"applicant_parentage\", \"value\": \"Rajesh Kumar\", \"quote\": \"w/o Rajesh Kumar\"}, {\"id\": \"applicant_age\", \"value\": \"31\", \"quote\": \"umar 31 saal\"}, {\"id\": \"applicant_address\", \"value\": \"14 Indira Nagar Lucknow\", \"quote\": \"R/o 14 Indira Nagar Lucknow\"}, {\"id\": \"fir_number\", \"value\": \"512/2026\", \"quote\": \"FIR No. 512/2026\"}, {\"id\": \"fir_date\", \"value\": \"20 Sept 2026\", \"quote\": \"dated 20 Sept 2026\"}, {\"id\": \"police_station\", \"value\": \"Gomti Nagar\", \"quote\": \"PS Gomti Nagar\"}, {\"id\": \"offences_alleged\", \"value\": \"318(4) BNS\", \"quote\": \"section 318(4) BNS\"}, {\"id\": \"arrest_date\", \"value\": \"26 Sept 2026\", \"quote\": \"Arrested on 26 Sept 2026\"}, {\"id\": \"jail\", \"value\": \"District Jail Lucknow\", \"quote\": \"District Jail Lucknow\"}, {\"id\": \"earlier_bail_applications\", \"value\": \"None\", \"quote\": \"No bail application filed earlier\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"span\": \"Pooja Devi\", \"confidence\": 0.98}, {\"key\": \"applicant_parentage\", \"span\": \"Rajesh Kumar\", \"confidence\": 0.95}, {\"key\": \"applicant_age\", \"span\": \"31\", \"confidence\": 0.95}, {\"key\": \"applicant_address\", \"span\": \"14 Indira Nagar Lucknow\", \"confidence\": 0.94}, {\"key\": \"fir_number\", \"span\": \"512/2026\", \"confidence\": 0.97}, {\"key\": \"fir_date\", \"span\": \"20 Sept 2026\", \"confidence\": 0.95}, {\"key\": \"police_station\", \"span\": \"PS Gomti Nagar\", \"confidence\": 0.96}, {\"key\": \"offences_alleged\", \"span\": \"section 318(4) BNS\", \"confidence\": 0.95}, {\"key\": \"arrest_date\", \"span\": \"26 Sept 2026\", \"confidence\": 0.94}, {\"key\": \"jail\", \"span\": \"District Jail Lucknow\", \"confidence\": 0.94}, {\"key\": \"earlier_bail_applications\", \"span\": \"No bail application filed earlier\", \"confidence\": 0.93}, {\"key\": \"facts_narrative\", \"span\": \"the complainant says she took Rs 1,50,000 from him for a job and did not return it; she says it was a loan and she has repaid Rs 60,000.\", \"confidence\": 0.9}, {\"key\": \"grounds_for_bail\", \"span\": \"she is a woman with a 4 year old daughter; the dispute is about a loan, civil in nature.\", \"confidence\": 0.9}]}",
+      "drafter": "{\"paragraphs\": [{\"clauseId\": \"offence_classification\", \"factRefs\": [\"offence_classification\", \"applicant_name\", \"applicant_age\", \"applicant_address\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"fir_particulars\", \"factRefs\": [\"fir_number\", \"fir_date\", \"police_station\", \"offences_alleged\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"custody\", \"factRefs\": [\"jail\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"arrested_on\", \"factRefs\": [\"arrest_date\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"facts\", \"factRefs\": [\"facts_narrative\"], \"text\": \"The complainant says she took Rs 1,50,000 from him for a job and did not return it; she says it was a loan and she has repaid Rs 60,000.\", \"items\": []}, {\"clauseId\": \"earlier_applications\", \"factRefs\": [\"earlier_bail_applications\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"grounds\", \"factRefs\": [], \"text\": \"\", \"items\": [{\"factRef\": \"grounds_for_bail[0]\", \"text\": \"She is a woman of good character with no prior criminal antecedents; the dispute is about a loan, civil in nature.\"}]}, {\"clauseId\": \"woman_proviso\", \"factRefs\": [\"applicant_sex\", \"offence_classification\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"undertakings\", \"factRefs\": [], \"text\": \"\", \"items\": []}]}"
+    }
+  }
+}
