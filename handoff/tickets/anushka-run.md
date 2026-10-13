@@ -870,3 +870,15 @@ What a user can now do:
 - Get a notice that keeps the proprietor and the payee's address when given, and states the return reason only as the memo gives it.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-366 — Site copy and free-tool legal lines (78318a3, tanvi, 13 Oct 2026)
+
+Re-tests run 3's copy failures (T-317, T-306).
+
+What a user can now do:
+- Read FAQ and About pages that describe what Lawie does today: 5 free Ink once your email is verified, every document type, PDF and DOCX export, and BNS/BNSS/BSA section numbers on criminal drafts.
+- See the bail checker card on the Tools page cite S.478 BNSS.
+- See a home page tab title that matches the signed-in pages.
+- See "once your email is verified" wherever 5 free Ink is offered.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay (signs moved goldens) |
 | Mode   | Small fix, with a reviewer (moves golden snapshots) |
-| Status | To do. Tanvi, after T-366. Ajay's ruling: T-404 Addendum 2 (fe05dfe), item 9. Found by Shashank, 13 Oct 2026 |
+| Status | Building. Tanvi, after T-366. Priya, 13 Oct 2026 |
 | Source | court-rules-golden.test.ts.snap (~:2878): a bail case nomenclature shows on legal_notice_s138 under HC courts |
 
 ## Problem
