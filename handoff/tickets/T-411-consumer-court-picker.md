@@ -1,6 +1,6 @@
 # T-411: court picker shows only courts the template allows
 
-Status: todo (needs Rajesh's design via Meera; split from T-410, 13 Oct 2026)
+Status: todo (design in: handoff/marketing/consumer-court-picker-spec-t411.md, Rajesh spec, Madhuri strings, 13 Oct; waits for Ajay to sign the level names, the NCDRC label and the no-match line)
 
 Owner: unassigned
 
@@ -14,5 +14,6 @@ T-410 part (a) makes the consumer complaint print "[To be confirmed: Consumer Co
 4. Other templates' pickers are unchanged.
 
 ## Gates
-- Rajesh's design (via Meera), since this is a UI change.
+- Rajesh's design (via Meera): handoff/marketing/consumer-court-picker-spec-t411.md. It adds an always-visible level group (District / State / National Commission (NCDRC)); National has no state select.
+- Ajay signs the level names, the NCDRC label and "No Commission is listed for this state yet."
 - Full chain, because it touches more than one service (drafting and web).
