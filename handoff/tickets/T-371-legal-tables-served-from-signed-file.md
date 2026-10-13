@@ -31,3 +31,5 @@ Shashank's bugs (b)1–5 in T-360 are part of this ticket: the bulk regex for li
 3. The wider converter changes the tool only. Draft text stays on the old behaviour until D1, so no ai.service.ts or prompt-assembler.ts change.
 
 **Ajay (e3df5a0, T-361 Addendum 1):** the Gazette line shows only on the 4 unverified or null-target rows and on missing sections. A null attribute gets his fixed "Depends on the sub-section…" line. The raw verify text is never shown.
+
+**Ajay (6526597, handoff/legal/T-371-verify-caveat-signed.md):** the signed caveat line for verify-flagged rows. It supersedes e3df5a0 where they differ. Ajay reviews T-371's legal-content-path files before merge.
