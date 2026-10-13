@@ -18,3 +18,6 @@
 1. Both use the relation as given (S/o, D/o, W/o, H/o). Otherwise they print Ajay's blank, the same rule as T-393.
 2. The golden snapshots that move (about 13 hits) go to Ajay, who signs before the merge (`.claude/docs/golden-snapshots.md`).
 3. Tests for a woman applicant, with and without a relation answer.
+
+## Also (T-381 reviewer, 13 Oct)
+Form drafts store the court-picker State id ("bihar"), so the Memo prints "State of bihar". Map the id to its display name in the annexures path, together with Ajay's State-line change.
