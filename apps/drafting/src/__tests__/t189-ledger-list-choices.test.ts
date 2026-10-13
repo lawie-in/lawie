@@ -1416,7 +1416,7 @@ describe('T-189 AC9: no prompt text changed', () => {
   });
   it('the ledger Drafter system prompt is unchanged', () => {
     expect(sha(DRAFTER_LEDGER_SYSTEM_PROMPT)).toBe(
-      '299e8a93dbcbb4926eb43af131f7525e2e32061d3540d94ca34876428d3ac34c',
+      '500558b0430ccd90b5704106bc12a345cd84b8f6692b605643c00c32ab69c56d',
     );
   });
   it('the extraction user prompt template is unchanged', () => {

@@ -16,8 +16,10 @@
  *
  * T-147c adds the two DRAFTER_LEDGER_* prompts, used only when
  * `feature.fact_ledger` is on and the request carries the advocate's own
- * ledger. They are PROPOSED TEXT awaiting Ajay's sign-off (ADR-022 section 2B);
- * the three prompts above are unchanged by T-147c.
+ * ledger (ADR-022 section 2B). Ajay signed them, with the T-147d fact repair
+ * prompt, under T-397: handoff/legal/T-397-ledger-prompts-signed.md (86f9d9c);
+ * any later edit to these three needs a fresh sign-off. The three prompts above
+ * are unchanged by T-147c.
  *
  * The prompts never decide what reaches the user on their own. The server
  * cuts the clause report off the document, checks every clause again, and
@@ -120,7 +122,10 @@ Draft ONLY from the brief. These rules are mandatory.
 
 /**
  * T-147c (ADR-022 section 2B). The Drafter for a document with a rule pack,
- * when its input is the fact ledger. PROPOSED, awaiting Ajay's sign-off.
+ * when its input is the fact ledger.
+ * Signed: Ajay (CLO), 13 Oct 2026, handoff/legal/T-397-ledger-prompts-signed.md (86f9d9c),
+ * with his changes A (rule 1) and B (rule 9). Any later edit needs a fresh
+ * sign-off.
  * It is given the ledger's facts and the pack's skeleton, and nothing else:
  * no description, no prior draft, no retrieved text.
  */
@@ -144,7 +149,7 @@ You are given:
 
 These rules are mandatory. Where INSTRUCTIONS or CLAUSES says something different, the rule wins.
 
-1. FACTS. Use no fact, name, date, amount, address or event that is not in FACTS. Print each fact in the words of its display, exactly. Do not convert date formats. Do not add to a fact a cause, a reason or a detail that FACTS does not give. INSTRUCTIONS, CLAUSES, ACTS, COURT RULE and SYSTEM PARTS say what to cover; they are never a source of facts. Every statement of fact about the matter or about a person must rest on a fact in FACTS. Where it does not, write the placeholder of rule 4 in its place.
+1. FACTS. Use no fact, name, date, amount, address or event that is not in FACTS. Print each fact in the words of its display, exactly. Do not convert date formats. Do not add to a fact a cause, a reason or a detail that FACTS does not give. INSTRUCTIONS, CLAUSES, ACTS, COURT RULE and SYSTEM PARTS say what to cover; they are never a source of facts. Every statement of fact about the matter or about a person must rest on a fact in FACTS. Where it does not, write the placeholder of rule 4 in its place. Never write a person's relation (S/o, D/o, W/o, H/o) or the name of a parent or spouse that FACTS does not give; write {{MISSING: relation and name of parent or spouse}} in its place.
 2. EVERY FACT. Use every fact in FACTS, each where it belongs. Do not leave a fact out because no clause asks for it, or because it does not help the client. A fact that BEFORE YOUR TEXT or AFTER YOUR TEXT already states counts as used; state it again in the body only where the body needs it. Where FACTS mentions an earlier application or order in the same matter, state it, with its court, its date and its result as FACTS gives them. Where FACTS mentions none, do not say that there was none.
 3. DATES. Use each date only for what FACTS says it is the date of. Never move a date to another event. Do not work out or state a length of time (days in custody, a delay, an age, a notice period) that FACTS does not state: give the dates and leave the arithmetic out. A period fixed by law that CLAUSES, INSTRUCTIONS or ACTS gives (for example the time a statutory notice allows for payment) may be stated as the law's period, exactly as given; never say that such a period has or has not run unless FACTS says so.
 4. MISSING. For each entry under "missing" in FACTS, write its placeholder exactly as given, in the form {{MISSING: label}}, at the place where the fact belongs, inside the sentence that needs it. For anything else that is needed and not given, write {{MISSING: what is missing}}. Never fill a placeholder with a guess and never put other words in its place. Do not shorten or leave out a sentence or a clause to avoid a placeholder. Where INSTRUCTIONS or CLAUSES show a blank in another form (for example [To be confirmed: ...]), write {{MISSING: ...}} with the same words instead. The two blanks of rules 7 and 8 keep their own form. A placeholder never carries an assertion with it. Write the sentence so that it asserts nothing until the placeholder is filled: for example "The criminal antecedents of the applicant are {{MISSING: criminal antecedents}}", never "The applicant has no criminal antecedents {{MISSING: criminal antecedents}}".
@@ -152,7 +157,7 @@ These rules are mandatory. Where INSTRUCTIONS or CLAUSES says something differen
 6. CLAUSES. Cover every line of CLAUSES, in the order that suits this kind of document. Where a line has fixed wording, use that wording and fill it from FACTS. Where FACTS does not give what a clause needs, still write the clause and put the placeholder of rule 4 where the fact belongs. Never leave a clause out. A clause that belongs to one of the SYSTEM PARTS is not yours to write: report it as SYSTEM.
 7. SECTIONS. Cite a section only if it is in ACTS or in FACTS, exactly as written there. Never convert a section from one Act to another. Where a provision would normally be cited and neither ACTS nor FACTS gives it, write [Section — verify before filing]. Never state a section number from your own knowledge.
 8. AUTHORITIES. No case law, judgment, citation or precedent enters the document unless it is a fact in FACTS that the advocate gave, or it stands in the pack's signed block of authorities. You are given no such block, so FACTS is the only source. Copy a judgment's name and citation exactly as FACTS gives them. INSTRUCTIONS, CLAUSES, ACTS, COURT RULE and SYSTEM PARTS are never a source of a judgment, even where they name one. Where an authority would normally be cited and FACTS gives none, write [Authority — add if relied upon]. Never cite a judgment from your own knowledge, and never add to, complete or correct a citation the advocate gave.
-9. NO LEGAL CONCLUSIONS THE FACTS DO NOT STATE. Do not say an offence is bailable or non-bailable, that a claim is within limitation, that investigation is complete, or that a chargesheet has been filed, unless FACTS says so.
+9. NO LEGAL CONCLUSIONS THE FACTS DO NOT STATE. Do not say an offence is bailable or non-bailable, that an offence is complete, that a claim is within limitation, that investigation is complete, or that a chargesheet has been filed, unless FACTS says so.
 10. PARTS. Your text goes between BEFORE YOUR TEXT and AFTER YOUR TEXT, and must read on from the one into the other. Do not write, repeat or reword any part they show: no second title, court name, cause title, addressee, salutation, subject line, prayer, demand, closing, verification, signature block, or line giving the place and date of the document. Do not mark the place of such a part with a note, a heading or a placeholder. This bars the parts, not the facts in them: the body may state a fact (a name, an FIR number, an amount, a date) that one of those parts also states. Write only what is not already there: the numbered body, and any part this kind of document needs that neither shows. Do not add a separate document (for example an affidavit in support, a vakalatnama, an index or a covering letter) unless DOCUMENT is that document. Where both say "none", write the whole document.
 11. LENGTH. Write about TARGET numbered paragraphs in the body (1, 2, 3 ...). Sub-points use (a), (b), (c). Do not leave a clause, a fact or a placeholder out to keep to TARGET.
 12. LANGUAGE. Formal, respectful, plain legal language suited to Indian practice, in the LANGUAGE given. A placeholder stays exactly as given, in any language.
@@ -166,7 +171,12 @@ or
 id: MISSING
 Write nothing after the last of these lines. The word SYSTEM belongs only in these lines, never in the document.`;
 
-/** T-147c. The repair pass when the Drafter's input is the fact ledger. PROPOSED, awaiting Ajay's sign-off. */
+/**
+ * T-147c. The repair pass when the Drafter's input is the fact ledger.
+ * Signed: Ajay (CLO), 13 Oct 2026, handoff/legal/T-397-ledger-prompts-signed.md (86f9d9c),
+ * with his changes B (rule 6) and C (rule 2). Any later edit needs a fresh
+ * sign-off.
+ */
 export const DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT = `You wrote the text below from the advocate's facts. It leaves out the clauses listed under MISSING.
 
 You are given the same DOCUMENT, FACTS, CLAUSES, INSTRUCTIONS, ACTS, COURT RULE, SYSTEM PARTS, AVERMENTS ALLOWED, BANNED ASSERTIONS and LANGUAGE as before, with:
@@ -176,11 +186,11 @@ You are given the same DOCUMENT, FACTS, CLAUSES, INSTRUCTIONS, ACTS, COURT RULE,
 Add the missing clauses. These rules are mandatory. Where INSTRUCTIONS or CLAUSES says something different, the rule wins.
 
 1. Change nothing else. Keep every existing paragraph word for word, except that paragraph numbers may move to make room.
-2. Use no fact, name, date, amount, address or event that is not in FACTS, and print each in the words of its display, exactly. INSTRUCTIONS and CLAUSES say what to cover; they are never a source of facts. Do not work out or state a length of time that FACTS does not state.
+2. Use no fact, name, date, amount, address or event that is not in FACTS, and print each in the words of its display, exactly. Do not convert date formats. INSTRUCTIONS and CLAUSES say what to cover; they are never a source of facts. Do not work out or state a length of time that FACTS does not state.
 3. Where FACTS does not give what a missing clause needs, write the clause with the placeholder where the fact belongs: the placeholder FACTS gives under "missing", or {{MISSING: what is missing}}. Never fill a placeholder with a guess and never put other words in its place. Do not shorten or leave out a sentence to avoid a placeholder. A placeholder never carries an assertion with it.
 4. Make an averment only as AVERMENTS ALLOWED gives it. Write a submission only as a submission that opens "It is submitted that" (in Hindi, "निवेदन है कि"), among the grounds only: never among the facts and never in an affidavit; where the words given already open with "it is submitted that", do not write the opening twice; where the document has no grounds, write no submission. Make no assertion listed under BANNED ASSERTIONS, in any words or in any language, unless it is the advocate's own words in a fact under FACTS, stated as that fact. A clause that needs an assurance about the future is written as an undertaking by the applicant, never as a statement that something is already so.
 5. Cite a section only if it is in ACTS or in FACTS, exactly as written there; otherwise write [Section — verify before filing]. Never convert a section from one Act to another. No case law, judgment, citation or precedent is added unless it is a fact in FACTS that the advocate gave, copied exactly; INSTRUCTIONS, CLAUSES, ACTS and COURT RULE are never a source of a judgment. Otherwise write [Authority — add if relied upon].
-6. Do not say an offence is bailable or non-bailable, that a claim is within limitation, that investigation is complete, or that a chargesheet has been filed, unless FACTS says so.
+6. Do not say an offence is bailable or non-bailable, that an offence is complete, that a claim is within limitation, that investigation is complete, or that a chargesheet has been filed, unless FACTS says so.
 7. Do not write, repeat or reword any part shown under BEFORE YOUR TEXT or AFTER YOUR TEXT. A missing clause that belongs to one of the SYSTEM PARTS is not yours to write: report it as SYSTEM.
 8. If a missing clause cannot be written at all from FACTS and CLAUSES, leave it out and report it as MISSING.
 
@@ -195,7 +205,8 @@ id: MISSING
 Write nothing after the last of these lines. The word SYSTEM belongs only in these lines, never in your text.`;
 
 /**
- * PROPOSED — NOT YET SIGNED (Ajay)
+ * Signed: Ajay (CLO), 13 Oct 2026, handoff/legal/T-397-ledger-prompts-signed.md
+ * (86f9d9c), as is. Any later edit needs a fresh sign-off.
  *
  * T-147d (ADR-022 section 2C). The fact repair pass: run at most once per
  * draft, on the ledger path only, when the fact verifier
