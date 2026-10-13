@@ -24,3 +24,7 @@ Confirmed: nothing in the web reads pack-level `_source`, `prompt_context` or cl
 2. `GET /templates/:slug` has no caller: remove the route. `GET /templates` (list) stays, trimmed to the card keys through the same helper.
 3. Field-level `source` not promoted from rule packs (bail_anticipatory declares `bns_mapping`, the renderer never sees it): a real bug on a v1 pack. Priya logs it as its own ticket, next after T-365 for whoever is free; not in T-385.
 4. The list route's `metadata` (created_by, reviewed_at): trim it in T-385, same helper.
+
+## Arjun (13 Oct 2026)
+
+T-385 removes `GET /templates/:slug`, which has no caller. The template-configs detail route sends an allowlist projection (Mahak's proposal). Field-level `source` reaching the form is T-394.
