@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- shashank: T-383 merged 7569b14; holds the slot until CI on it is green. Then Kunal T-372, Mahak T-365, Tanvi T-374, Vishal T-373 as each is ready.
+- **Slot free** (CI run 498 on 7569b14 green). Next ready: Kunal T-372, then Mahak T-365, Tanvi T-374, Vishal T-373.
 
 ## Last done
 
+- shashank: T-383 CI green (run 498, 13 Oct 2026).
 - shashank: T-383 merged 7569b14 (13 Oct 2026). BNS 61(2) is criminal conspiracy; bail checker display form.
 - shashank: T-371 merged ac0eb57 (13 Oct 2026). Signed tables served from memory; converter and bail checker fixes.
 - tanvi: FIELD_ALIASES export merged 56cc60d (13 Oct 2026), for Mahak's T-382 alias.
