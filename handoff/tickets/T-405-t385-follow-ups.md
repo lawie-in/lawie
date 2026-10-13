@@ -5,7 +5,7 @@
 | Phase  | 5 — After v1 |
 | Owner  | Lead (drafting) |
 | Mode   | Small fix |
-| Status | To do. Not assigned. From T-385's reviewer, 13 Oct 2026. No leak; clean-up only |
+| Status | Building. Mahak, while T-390 waits for the slot. Priya, 13 Oct 2026 |
 | Source | T-385 review (01503b2) |
 
 ## Acceptance criteria
