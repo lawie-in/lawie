@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Binding vs non-binding language must be UNAMBIGUOUS. Specifically carve out which clauses bind (typically confidentiality, exclusivity, dispute resolution, governing law)."
   },
   "template_id": "mou",
+  "card_description": "A Memorandum of Understanding recording what the parties intend to agree.",
   "docType": "mou",
   "title": "Memorandum of Understanding (MOU)",
   "displayName": "Memorandum of Understanding",

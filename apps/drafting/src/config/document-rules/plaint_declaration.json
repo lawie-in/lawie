@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Consequential relief paragraph is non-negotiable per Anathula Sudhakar."
   },
   "template_id": "plaint_declaration",
+  "card_description": "A plaint in a suit for declaration under Section 34 of the Specific Relief Act, 1963.",
   "docType": "plaint_declaration",
   "title": "Plaint — Suit for Declaration u/s 34 Specific Relief Act",
   "displayName": "Plaint for Declaration (S.34 SRA)",

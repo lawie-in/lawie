@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Stamp duty schedules vary by state — list state-wise references but do NOT hardcode rates. Suraj Lamp disclaimer mandatory when user proposes GPA-cum-sale shortcut."
   },
   "template_id": "sale_deed",
+  "card_description": "A sale deed of immovable property under the Transfer of Property Act, 1882.",
   "docType": "sale_deed",
   "title": "Sale Deed (Transfer of Property Act, 1882 — S.54-55)",
   "displayName": "Sale Deed (Immovable Property)",

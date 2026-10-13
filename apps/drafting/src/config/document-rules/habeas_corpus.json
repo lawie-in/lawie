@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Sunil Batra, A.K. Roy, Rekha v. Tamil Nadu cites mandatory."
   },
   "template_id": "habeas_corpus",
+  "card_description": "A writ petition for habeas corpus against unlawful detention.",
   "docType": "habeas_corpus",
   "title": "Petition for Writ of Habeas Corpus under Article 226 / 32",
   "displayName": "Habeas Corpus Petition",

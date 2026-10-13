@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Revision is supervisory, not appellate — must be flagged."
   },
   "template_id": "criminal_revision",
+  "card_description": "A criminal revision petition under the BNSS against an order of a lower criminal court.",
   "docType": "criminal_revision",
   "title": "Criminal Revision Petition under BNSS",
   "displayName": "Criminal Revision (S.438 BNSS / S.442 BNSS)",

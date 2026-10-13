@@ -261,7 +261,7 @@ const ANT_GIVEN: Given = {
   facts_narrative: 'An FIR was registered against the applicant.',
   grounds_for_bail: [],
   advocate_name: 'Test Advocate',
-  advocate_enrolment: 'D/123/2015',
+  advocate_enrollment: 'D/123/2015',
 };
 
 const MAG_GIVEN: Given = {
@@ -285,7 +285,7 @@ const MAG_GIVEN: Given = {
   grounds_for_bail: 'The applicant seeks bail.',
   sureties_available: 'Yes',
   advocate_name: 'Test Advocate',
-  advocate_enrolment: 'D/123/2015',
+  advocate_enrollment: 'D/123/2015',
   // No antecedents, no residence detail beyond the address, nothing on a charge sheet.
 };
 

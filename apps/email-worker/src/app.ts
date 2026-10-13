@@ -3,6 +3,7 @@ import express from 'express';
 
 import { env } from './config/env';
 import { logger } from './config/logger';
+import { anyTemplateUnfilled, isLiveSend } from './placeholders';
 import { sendHandler } from './routes/send';
 
 /**
@@ -15,6 +16,19 @@ export function createApp() {
   app.use(express.json());
 
   app.get('/health', (_req, res) => {
+    // T-379: in live mode the workers do not start while a footer placeholder is unfilled
+    // (worker.ts startWorkers), so report that as unhealthy. Dry run stays 200.
+    if (isLiveSend() && anyTemplateUnfilled()) {
+      res.status(503).json({
+        status: 'unhealthy',
+        reason: 'unfilled_footer_placeholders',
+        service: 'email-worker',
+        provider: env.EMAIL_PROVIDER,
+        dryRun: env.EMAIL_DRY_RUN,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
     res.json({
       status: 'ok',
       service: 'email-worker',

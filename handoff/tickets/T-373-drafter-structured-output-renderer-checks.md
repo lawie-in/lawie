@@ -52,3 +52,9 @@ Ajay's add-on to T-365 AC1: when the advocate's profile has a name, don't tell t
 ## Arjun (13 Oct 2026): Magistrate facts, second ruling (c10f763)
 
 Option (a). `bail_before_magistrate.json` gets a `facts_narrative` textarea, the same field definition as `bail_regular` (label, placeholder, part `facts`, position after the sections step). Ajay signs it; it is a copy of wording he already signed. Mahak adds it in her one pack pass (T-365 AC6 + T-382 touch this file already) so the seven packs still change once. Vishal removes the `fixed.facts` copy code (dead once the field exists), keeps the real-checklist test pinned, and builds against a fixture copy of the pack until Mahak's merge. Not (b2): no silent checklist rule across packs.
+
+## Arjun (13 Oct 2026): loader default
+
+1. An invalid skeleton file fails loudly, no legacy fallback. Also validate every `_skeletons/*.json` at boot (shape + clause ids against the pack) so an invalid file fails the service start and /health, not the advocate's first draft. Missing file → `null` → legacy path, unchanged.
+2. Legacy suites: mock the loader to `null` in setup only, and each such suite asserts once that it ran the legacy path, so the mock is never silently load-bearing. New route-level D1 tests on the four real skeletons, including the T-359 AC fixtures.
+3. The enrolment pair is intentionally not in `SLOT_ALIASES`: it is a stored-key rewrite in `FIELD_ALIASES` (T-382), and after T-382 every pack spells `advocate_enrollment`, so skeleton slots resolve directly.

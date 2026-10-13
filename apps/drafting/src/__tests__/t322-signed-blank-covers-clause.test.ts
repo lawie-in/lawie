@@ -316,7 +316,7 @@ const ANT_GIVEN: Given = {
   facts_narrative: 'An FIR was registered against the applicant.',
   grounds_for_bail: [],
   advocate_name: 'Test Advocate',
-  advocate_enrolment: 'D/123/2015',
+  advocate_enrollment: 'D/123/2015',
 };
 const MAG_GIVEN: Given = {
   applicant_name: 'Deepak Ravidas',
@@ -339,7 +339,7 @@ const MAG_GIVEN: Given = {
   grounds_for_bail: 'The applicant seeks bail.',
   sureties_available: 'Yes',
   advocate_name: 'Test Advocate',
-  advocate_enrolment: 'D/123/2015',
+  advocate_enrollment: 'D/123/2015',
 };
 const DB_GIVEN: Given = {
   applicant_name: 'Deepak Ravidas',
@@ -355,7 +355,7 @@ const DB_GIVEN: Given = {
   charge_sheet_status: 'Not filed',
   application_date: '2026-08-10',
   advocate_name: 'Test Advocate',
-  advocate_enrolment: 'D/123/2015',
+  advocate_enrollment: 'D/123/2015',
 };
 
 const EA =

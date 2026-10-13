@@ -21,3 +21,8 @@
 2. Yes: the legacy `POST /generate` with docType `plaint` is closed too when the flag is off (same 404 as the template path). One switch, no back door.
 3. Public `GET /sections/features` → `{ tool_timeline, tool_bail_checker }` is approved; no gateway change. Rules: it returns only those two booleans, never the AppSetting list; `Cache-Control: public, max-age=60`; the page flag is UX only — the tool APIs themselves still 404 when off, server-side.
 Off/on through T-356's reader; anything but `on` is off.
+
+## Arjun (13 Oct 2026, part 1)
+
+1. Not fail-closed on a Mongo outage: that would make the tools die with Mongo, which is what T-371 AC2 exists to prevent. Rule: `toolGuard` keeps the last successfully read value in memory and refreshes it every 60 s; if the refresh fails it keeps serving the last value and logs once. Only with no successful read since boot (cold start, Mongo down) is the switch off (404). The per-request path still touches no Mongo or Redis.
+2. Close them too. `applyAnswers` and `updateBrief` reject a hidden kind with the same 404 through the exported guard, so no brief can be started or continued for a hidden kind and dead-end at generate. Priya extends the claim with `intake.routes.ts` for those two handlers only.

@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { apiFetch } from '@/lib/apiFetch';
+import { groupByCatalogueCategory } from '@/lib/catalogueGroups';
 
 interface TemplateSummary {
   template_id: string;
@@ -59,28 +60,12 @@ function categoryColors(order: number): CategoryColors {
   return CATEGORY_PALETTE[(Math.max(order, 1) - 1) % CATEGORY_PALETTE.length];
 }
 
-interface CategoryGroup {
-  id: string;
-  name: string;
-  order: number;
-  items: TemplateSummary[];
-}
-
-/** Templates grouped by catalogue category, in T-239 order. */
-function groupByCatalogueCategory(templates: TemplateSummary[]): CategoryGroup[] {
-  const groups = new Map<string, CategoryGroup>();
-  for (const t of templates) {
-    const group = groups.get(t.catalogueCategory) ?? {
-      id: t.catalogueCategory,
-      name: t.catalogueCategoryName,
-      order: t.catalogueCategoryOrder,
-      items: [],
-    };
-    group.items.push(t);
-    groups.set(t.catalogueCategory, group);
-  }
-  return Array.from(groups.values()).sort((a, b) => a.order - b.order);
-}
+/** The T-240 library category the service sent with a template. */
+const templateCategory = (t: TemplateSummary) => ({
+  id: t.catalogueCategory,
+  name: t.catalogueCategoryName,
+  order: t.catalogueCategoryOrder,
+});
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
@@ -95,7 +80,7 @@ export default function TemplatesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const grouped = groupByCatalogueCategory(templates);
+  const grouped = groupByCatalogueCategory(templates, templateCategory);
 
   return (
     <div>
@@ -145,7 +130,8 @@ export default function TemplatesPage() {
                     return (
                       <Link
                         key={t.template_id}
-                        href="/dashboard/new"
+                        // T-365 AC5: open the one flow with this document already chosen.
+                        href={`/dashboard/new?kind=${encodeURIComponent(t.template_id)}`}
                         className={`group rounded-xl border border-t-[3px] border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md ${colors.border}`}
                       >
                         <div className="flex items-start justify-between">
@@ -159,9 +145,11 @@ export default function TemplatesPage() {
                         <p className="mt-2 text-sm font-semibold text-slate-800">
                           {t.display_name}
                         </p>
-                        <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
-                          {t.description}
-                        </p>
+                        {t.description && (
+                          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+                            {t.description}
+                          </p>
+                        )}
                         <div className="mt-3 flex items-center justify-between">
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${colors.badge}`}
