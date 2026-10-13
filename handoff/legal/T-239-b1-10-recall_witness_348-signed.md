@@ -146,7 +146,7 @@ Applicant
 | why_essential | Why the evidence is needed | textarea | yes | reasons, submission unlock |
 | reason_not_asked_earlier | Why not put earlier | textarea | no | averment unlock |
 | earlier_applications | Earlier applications to summon / recall (date, result) | textarea | no | disclosure |
-| advocate_name / advocate_enrolment | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -198,3 +198,5 @@ The "Notes" section is the drafter's reasoning, kept for the record; it is not t
 | When the Prosecutor files, the verification block is left out | Condition: the lead builds it and tests it |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. S = 1 Ink. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

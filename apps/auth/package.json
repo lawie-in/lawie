@@ -12,6 +12,7 @@
     "lint": "eslint 'src/**/*.ts' --fix"
   },
   "dependencies": {
+    "@lawie/email-client": "1.0.0",
     "@lawie/shared": "1.0.0",
     "@sentry/node": "^10.50.0",
     "bcryptjs": "^2.4.3",

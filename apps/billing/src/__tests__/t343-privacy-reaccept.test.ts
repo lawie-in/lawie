@@ -27,10 +27,10 @@ jest.mock('../config/razorpay', () => ({
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET as string;
 const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET as string;
 
-function headers(privacyVersion?: string) {
+function headers(privacyVersion?: string, userId = new mongoose.Types.ObjectId().toString()) {
   const h: Record<string, string> = {
     'x-internal-secret': INTERNAL_SECRET,
-    'x-user-id': new mongoose.Types.ObjectId().toString(),
+    'x-user-id': userId,
     'x-user-email': 't343@example.com',
     'x-user-name': 'T343',
     'x-user-plan': 'free',
@@ -41,6 +41,12 @@ function headers(privacyVersion?: string) {
 }
 
 const BLOCKED = { error: 'privacy_reaccept_required' };
+
+/** T-223 AC5: a request that reaches the handler needs a verified user for its x-user-id. */
+async function seedVerifiedUser(): Promise<string> {
+  const user = await User.create({ email: 't343@example.com', plan: 'free', emailVerified: true });
+  return user._id.toString();
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -80,7 +86,10 @@ describe('T-343 billing: user-started payments need the current privacy version'
 
     it('is not blocked when the current version has no signed summary', async () => {
       jest.spyOn(privacyConstants, 'getPrivacyVersionSummary').mockReturnValue(undefined);
-      const res = await request(app).post(path).set(headers()).send(body);
+      const res = await request(app)
+        .post(path)
+        .set(headers(undefined, await seedVerifiedUser()))
+        .send(body);
       expect(res.body).not.toEqual(BLOCKED);
       expect(res.status).not.toBe(403);
     });
@@ -90,7 +99,7 @@ describe('T-343 billing: user-started payments need the current privacy version'
     (razorpay.orders.create as jest.Mock).mockResolvedValue({ id: 'order_343' });
     const res = await request(app)
       .post('/topup/order')
-      .set(headers(CURRENT_PRIVACY_VERSION))
+      .set(headers(CURRENT_PRIVACY_VERSION, await seedVerifiedUser()))
       .send({ skuId: 'topup_max' });
     expect(res.status).toBe(200);
     expect(res.body.data.orderId).toBe('order_343');
@@ -101,7 +110,9 @@ describe('T-343 billing: user-started payments need the current privacy version'
       id: 'sub_343',
       short_url: 'https://rzp.io/343',
     });
-    const res = await request(app).post('/subscribe').set(headers(CURRENT_PRIVACY_VERSION));
+    const res = await request(app)
+      .post('/subscribe')
+      .set(headers(CURRENT_PRIVACY_VERSION, await seedVerifiedUser()));
     expect(res.status).toBe(200);
     expect(res.body.data.subscriptionId).toBe('sub_343');
   });

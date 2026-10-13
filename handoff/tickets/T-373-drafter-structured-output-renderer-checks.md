@@ -17,3 +17,11 @@
 - The checks panel reads the rendered clause ids.
 - Golden assertions for the four bail packs; Anushka's run-3 drafts are fixtures.
 T-359 and T-362 are delivered by this ticket and T-374, not by prompt or list tuning.
+
+## Arjun (13 Oct 2026): the renderer is not legal content
+
+draft-renderer.ts carries no legal wording. Its only fixed string is the signed {{MISSING: label}} marker. Rule: a change that adds a literal sentence goes to Ajay. A test asserts the renderer emits no text that isn't from a skeleton, a fact or the marker.
+
+## Arjun (13 Oct 2026): facts_narrative for bail_before_magistrate
+
+Ajay's v2 Magistrate skeleton (b61aaf9) renders its facts clause from the ledger key `facts_narrative`. Populating the ledger is the T-373 ledger path (brief-drafter.ts, after T-357), not T-374: the brief puts the facts narrative into the ledger for bail_before_magistrate exactly as it does for bail_regular, source `user`. A test: a Magistrate brief with facts produces a ledger with `facts_narrative`, and the rendered facts clause is not blank.

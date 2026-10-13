@@ -106,7 +106,28 @@ export const loggerOptions: pino.LoggerOptions = {
   timestamp: pino.stdTimeFunctions.isoTime,
   hooks: { logMethod: maskLogArgs },
   redact: {
-    paths: ['email', 'password', 'phone', '*.email', '*.password', '*.phone'],
+    // T-223: verify-email credentials (the token, its hash, the link) as well as PII. `url` is
+    // top-level only: errorHandler logs req.url as the path with the query stripped (T-242), which
+    // never carries the token, and `*.url` would blank it.
+    paths: [
+      'email',
+      'password',
+      'phone',
+      'token',
+      'link',
+      'url',
+      'verifyUrl',
+      'emailVerifyTokenHash',
+      'emailVerifyExpires',
+      '*.email',
+      '*.password',
+      '*.phone',
+      '*.token',
+      '*.link',
+      '*.verifyUrl',
+      '*.emailVerifyTokenHash',
+      '*.emailVerifyExpires',
+    ],
     censor: REDACT_CENSOR,
   },
   serializers: {

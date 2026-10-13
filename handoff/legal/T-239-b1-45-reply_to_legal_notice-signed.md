@@ -110,7 +110,7 @@ No statute or section is cited. If the notice being answered cites a provision, 
 | client_further_facts | Further facts the client instructs | textarea | no | client's own statement |
 | counter_demand | Counter-demand or counter-claim, if any | textarea | no | separate paragraph |
 | earlier_proceedings | Earlier notices, replies and proceedings on this matter | textarea | no | disclosure |
-| advocate_name / advocate_enrolment / advocate_address | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment / advocate_address | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -162,3 +162,5 @@ Reviewed by me after an independent review pass; the corrections are in this fil
 | A practising advocate checks the pack before it goes live | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

@@ -177,7 +177,7 @@ Reuse every key of `legal_notice_s138` step 3 unchanged (`cheque_number`, `chequ
 | payment_after_notice | Payment made after notice? ("none", part — give amount, full) | text | yes | Unlocks `non_payment` |
 | demands_made / drawer_assurances / cheque_delivery / relationship_particulars | As parent | textarea | no | Parent averments |
 | earlier_proceedings | Other complaint / suit on the same cheque or debt ("none" or particulars) | textarea | no | Disclosure clause |
-| advocate_name / advocate_enrolment | Advocate | text | yes | Signature block |
+| advocate_name / advocate_enrollment | Advocate | text | yes | Signature block |
 
 No `offence_date` key: the offence is under the NI Act on any date (see Notes). Approved (Ajay). New complaint, so procedure is fixed to BNSS and BSA (T-245): no `fir_date`, no `procedure_code`; code sets `PROCEDURE CODE: BNSS and BSA`. The five limitation dates above are form questions only; nothing computes from them.
 
@@ -324,3 +324,5 @@ The "Notes" and "Verify" sections are the drafter's reasoning, kept for the reco
 | A practising advocate checks the pack before it goes live (pack `_meta` rule) | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

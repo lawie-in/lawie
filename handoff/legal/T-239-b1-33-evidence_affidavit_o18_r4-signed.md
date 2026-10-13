@@ -115,7 +115,7 @@ Deponent
 | facts_stated | Facts the witness states (one row per fact: statement; basis: personal knowledge / information / records) | list of rows | yes | numbered paragraphs, never invented |
 | documents_referred | Documents referred to (one row per document: description; date) | list of rows | no | documents clause |
 | earlier_proceedings | Other proceedings on the same matter (court, number, stage) | textarea | no | disclosure |
-| advocate_name / advocate_enrolment | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -171,3 +171,5 @@ Reviewed by me after an independent review pass; the corrections are in this fil
 | A practising advocate checks the pack before it goes live | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

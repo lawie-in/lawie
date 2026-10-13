@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web + billing) |
 | Mode   | Small fix |
-| Status | Built, waiting to merge after T-223 (kunal, a804570, tester green). Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging 280dd3a (kunal, 13 Oct 2026). Waiting for Anushka on develop |
 | Source | ADR-025 (Arjun, 13 Oct 2026, handoff/tickets/ADR-025-structured-drafting-and-signed-data.md) |
 
 ## Acceptance criteria
