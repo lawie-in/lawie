@@ -53,6 +53,7 @@ import {
   showsVerifyCaveat,
   VERIFY_CAVEAT,
 } from '../services/bns-offence-resolver';
+import { primeToolSwitches } from '../services/feature-switches';
 import { preflightCheck } from '../services/preflight.service';
 import {
   ADD_THE_CODE,
@@ -103,6 +104,23 @@ function expectNoRawVerify(body: unknown): void {
   for (const v of RAW_VERIFY) expect(text).not.toContain(v.slice(0, 60));
   expect(text).not.toContain('"verify"');
 }
+
+// T-375 test setup only: the bail checker and timeline tools are off by default, so these
+// suites turn their switches on. No assertion below depends on this beyond the tools answering.
+jest.mock('../services/app-settings.service', () => {
+  const actual = jest.requireActual('../services/app-settings.service');
+  return {
+    ...actual,
+    getAppSetting: (key: string) =>
+      key === 'feature.tool_bail_checker' || key === 'feature.tool_timeline'
+        ? Promise.resolve('on')
+        : actual.getAppSetting(key),
+  };
+});
+
+beforeAll(async () => {
+  await primeToolSwitches();
+});
 
 beforeEach(() => {
   redisCalls.length = 0;
