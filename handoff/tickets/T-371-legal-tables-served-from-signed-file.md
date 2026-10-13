@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay (legal-content-paths) |
 | Mode   | Small fix |
-| Status | To do. Ordered by Arjun (NOW 1(c), ADR-025 D2). Priya, 13 Oct 2026 |
+| Status | Merged into develop_staging ac0eb57 (shashank, 13 Oct 2026). Ajay signed 7421624. Waiting for Anushka on develop |
 | Source | ADR-025 (Arjun, 13 Oct 2026, handoff/tickets/ADR-025-structured-drafting-and-signed-data.md) |
 
 ## Acceptance criteria
