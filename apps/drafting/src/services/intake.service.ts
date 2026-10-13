@@ -13,6 +13,7 @@ import { Event } from '../models/Event.model';
 import type { IFactLedger } from '../models/FactLedger.model';
 import { LlmAuxCall, LlmAuxPurpose } from '../models/LlmAuxCall.model';
 import { presentDescription } from '../utils/presentDescription';
+import { PublicFormFieldKey, publicFormField } from '../utils/publicTemplateConfig';
 
 import { AppSettingMissingError, APP_SETTING_KEYS, getAppSetting } from './app-settings.service';
 import { AuxCallError, AuxCallUsage, callAuxModel } from './aux-llm';
@@ -566,6 +567,21 @@ function questionPriority(f: FormField): number {
   return 1;
 }
 
+/**
+ * T-405: the public field keys an intake question carries besides field_id,
+ * question (the label) and type. A subset of the shared PUBLIC_FORM_FIELD_KEYS
+ * (checked by `satisfies`), and the key order of the JSON it sends.
+ */
+const INTAKE_QUESTION_FIELD_KEYS = [
+  'options',
+  'options_from',
+  'source',
+  'filtered_by',
+  'placeholder',
+  'help',
+  'min_select',
+] as const satisfies readonly (PublicFormFieldKey & keyof IntakeQuestion)[];
+
 export function buildQuestions(config: TemplateConfig, missing: string[]): IntakeQuestion[] {
   const order = new Map(allFields(config).map((f, i) => [f.field_id, i]));
   const byId = new Map(allFields(config).map((f) => [f.field_id, f]));
@@ -578,20 +594,21 @@ export function buildQuestions(config: TemplateConfig, missing: string[]): Intak
         order.get(a.field_id)! - order.get(b.field_id)!,
     )
     .slice(0, QUESTION_LIMITS.perRound)
-    .map((f) => ({
-      field_id: f.field_id,
-      question: f.label,
-      type: f.type,
-      ...(f.options && f.options.length > 0
-        ? { options: f.options.map((o) => ({ id: o.id, label: o.label })) }
-        : {}),
-      ...(f.options_from ? { options_from: f.options_from } : {}),
-      ...(f.source ? { source: f.source } : {}),
-      ...(f.filtered_by ? { filtered_by: f.filtered_by } : {}),
-      ...(f.placeholder ? { placeholder: f.placeholder } : {}),
-      ...(f.help ? { help: f.help } : {}),
-      ...(f.min_select ? { min_select: f.min_select } : {}),
-    }));
+    .map((f) => {
+      // T-405: the value projection (and the options' {id,label} shape) comes
+      // from the shared public-field helper; intake picks which of those keys
+      // it sends, in this order, and only when set (options: non-empty).
+      const pub = publicFormField(f);
+      const question: IntakeQuestion = { field_id: f.field_id, question: f.label, type: f.type };
+      const extra = question as unknown as Record<string, unknown>;
+      for (const key of INTAKE_QUESTION_FIELD_KEYS) {
+        const value = pub[key];
+        if (key === 'options' ? Array.isArray(value) && value.length > 0 : value) {
+          extra[key] = value;
+        }
+      }
+      return question;
+    });
 }
 
 /**
