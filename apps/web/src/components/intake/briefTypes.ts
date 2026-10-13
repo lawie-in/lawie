@@ -241,6 +241,8 @@ export interface KindSummary {
   category: string;
   description: string;
   plan_access: 'free' | 'pro';
+  /** T-372: the template's Ink cost, from the template-configs API when sent. */
+  credits_cost?: number;
 }
 
 export interface Finding {
