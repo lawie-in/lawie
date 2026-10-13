@@ -107,3 +107,14 @@ Tests:
 - One pack per row group.
 - Each flip or caveat gives blanks.
 - An answered client_role overrides the table.
+
+**Remaining card strings: signed** (13 Oct 2026). Two edits for consistency:
+- title `Annexures`
+- loading `Preparing your annexures…` (edited)
+- error `We couldn't create the annexures. Please try again.` (edited, as Mahak suggested)
+- retry `Try again`
+- missing title `Party details are missing`
+- missing body `Add the names and roles of the parties to this draft, then try again.`
+- missing named `Add {what} to this draft, then try again.`, where `{what}` is `the client's name` or `the opposite party's name`, or both joined with `and`
+
+No cost, "free" or disclaimer wording, as Mahak listed.
