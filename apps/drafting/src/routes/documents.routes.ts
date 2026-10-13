@@ -791,7 +791,11 @@ router.post('/preflight', authenticate, async (req: Request, res: Response): Pro
 
   try {
     const userId = req.jwtPayload?.sub;
-    const result = await preflightCheck(template_id, form_data, userId);
+    const result = await preflightCheck(template_id, form_data, userId, {
+      advocateName: req.jwtPayload?.name || undefined,
+      enrollmentNumber:
+        userId && template_id === 'vakalatnama' ? await profileEnrollmentNumber(userId) : undefined,
+    });
 
     // Strip internal meta before sending to client
     const { _meta, ...clientResult } = result;
