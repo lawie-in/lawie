@@ -21,6 +21,7 @@ import {
   NO_BNS_EQUIVALENT,
   NOT_IN_IPC_TABLE,
 } from '../services/bail-check.service';
+import { NOT_VERIFIED } from '../services/bns-offence-resolver';
 
 // bail-check reads IPC rows through lookupOldToNew; serve them from the signed table itself.
 jest.mock('../services/sections.service', () => {
@@ -303,7 +304,10 @@ describe('T-267 ruling C: bail-check with the signed table', () => {
     }
   });
 
-  it('the unverified rows (null target) report no equivalent, never a guessed section', async () => {
+  // T-371 (Ajay, T-361 Addendum 1): the 4 unverified rows now read NOT_VERIFIED. A
+  // signed repealed row (264, 377) keeps "No BNS equivalent". Intent kept: no offence,
+  // no guessed BNS section.
+  it('the unverified rows (null target) read Not verified, never a guessed section', async () => {
     for (const input of [
       '236-IPC',
       '254-IPC',
@@ -313,15 +317,16 @@ describe('T-267 ruling C: bail-check with the signed table', () => {
       const { sections } = await checkBailEligibility([input]);
       expect(sections[0].found).toBe(false);
       expect(sections[0].offence).toBeNull();
-      expect(sections[0].note).toBe('No BNS equivalent. Check the Gazette');
+      expect(sections[0].note).toBe(NOT_VERIFIED);
+      expect(sections[0].bnsSection).toBe('');
     }
   });
 
   // Round 4: the dash regex now allows a two-letter suffix.
-  it('376DA-IPC (two-letter suffix) reports no equivalent like the other null rows', async () => {
+  it('376DA-IPC (two-letter suffix) reads Not verified like the other unverified rows', async () => {
     const { sections } = await checkBailEligibility(['376DA-IPC']);
     expect(sections[0].found).toBe(false);
-    expect(sections[0].note).toBe('No BNS equivalent. Check the Gazette');
+    expect(sections[0].note).toBe(NOT_VERIFIED);
   });
 
   it('376DB-IPC resolves to 70(2) from the table, never treated as BNS 376', async () => {
@@ -337,10 +342,10 @@ describe('T-267 ruling C: bail-check with the signed table', () => {
     expect(sections[0].note).toBeUndefined();
   });
 
-  it('999-IPC (no row) says it is not in the IPC table', async () => {
+  it('999-IPC (no row) reads Not verified (T-371 replaces "Not found in the IPC table")', async () => {
     const { sections } = await checkBailEligibility(['999-IPC']);
     expect(sections[0].found).toBe(false);
-    expect(sections[0].note).toBe('Not found in the IPC table. Check the Gazette');
+    expect(sections[0].note).toBe(NOT_VERIFIED);
     expect(sections[0].bnsSection).not.toBe('999');
   });
 

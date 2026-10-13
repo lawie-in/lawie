@@ -21,21 +21,43 @@ interface MappingResult {
   new_title?: string | null;
   mapping_type?: string;
   notes?: string;
+  /** T-371: false when the section has no row in the signed table. */
+  found?: boolean;
+  /** T-371: a missing section, or an unverified / null-target row. */
+  not_verified?: boolean;
+  /** T-371: the server's label (Ajay's signed texts). */
+  label?: string | null;
+  /** T-371: Ajay's caveat for a verify-flagged BNS offence row. */
+  caveat?: string;
+  /** T-371: the parent row used for a sub-section, e.g. "156" for "156(3)". */
+  via_parent?: string;
+}
+
+/** T-371: one reference read from the pasted text, with its label. */
+interface ConvertReference {
+  original: string;
+  old_code: string;
+  old_section: string;
+  new_code: string;
+  new_section: string | null;
+  mapping_type: string;
+  converted: boolean;
+  not_verified: boolean;
+  label: string | null;
+  caveat?: string;
+  via_parent?: string;
 }
 
 interface ConvertResult {
   original: string;
   converted: string;
-  conversions: Array<{
-    original: string;
-    replacement: string;
-    section: string;
-    oldCode: string;
-    newCode: string;
-    newSection: string;
-  }>;
+  conversions: Array<{ original: string; replacement: string }>;
+  references?: ConvertReference[];
   count: number;
 }
+
+/** Ajay (CLO), T-360: exact text for a section not in the signed table. Same as the API. */
+const NOT_VERIFIED = 'Not verified — check the Gazette';
 
 type Tab = 'search' | 'convert';
 
@@ -169,27 +191,17 @@ function SearchTab() {
       setReverseResults(null);
 
       try {
-        // Try auto-detect format first: "302 IPC", "103 BNS", "302-IPC"
-        const match = q.match(
-          /^(\d+[A-Z]?(?:\([a-z0-9]+\))?)\s*[-\s]\s*(IPC|CrPC|IEA|BNS|BNSS|BSA)$/i,
-        );
-
-        let res: Response;
-        if (match) {
-          res = await fetch(
-            `${API_URL}/api/sections/map?section=${encodeURIComponent(match[1])}&code=${encodeURIComponent(match[2])}`,
-          );
-        } else {
-          // Try as old-format "302-IPC"
-          res = await fetch(`${API_URL}/api/sections/map?old=${encodeURIComponent(q)}`);
-        }
+        // T-371: the server reads the query ("302 IPC", "IPC 302", "BNS 318(4)",
+        // "65B Evidence Act") with the shared reader; no client-side parsing.
+        const res = await fetch(`${API_URL}/api/sections/map?q=${encodeURIComponent(q)}`);
 
         if (!res.ok) {
-          if (res.status === 404) {
-            setError(`No mapping found for "${q}". Check the section number and code.`);
-          } else {
-            setError('Something went wrong. Please try again.');
-          }
+          const body = await res.json().catch(() => null);
+          setError(
+            res.status === 400 && typeof body?.error === 'string'
+              ? body.error
+              : 'Something went wrong. Please try again.',
+          );
           return;
         }
 
@@ -331,7 +343,10 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
   const repealedNoSection = repealed && missingNewSection;
   // Any other row without a new section is shown exactly like an 'unverified' row.
   const displayType = missingNewSection && !repealed ? 'unverified' : mapping.mapping_type;
-  const unverified = displayType === 'unverified';
+  // T-371: a missing section, or an unverified / null-target row (API or derived).
+  const unverified = mapping.not_verified === true || displayType === 'unverified';
+  // T-371: a new → old lookup with no row: the old side is the unknown one.
+  const reverseMissing = !!reverse && mapping.found === false;
   const hasNoSection = repealedNoSection || unverified;
   // Each title sits under its own section number; blank or missing titles render nothing.
   // Placeholder rows: the box line replaces the seed's "No equivalent in old code" title.
@@ -339,8 +354,11 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
   // No new-title line when the new box shows 'None' or 'Check the Gazette'.
   const newTitle = hasNoSection ? null : mapping.new_title?.trim() || null;
   // Unknown or 'direct' types get no badge; a raw mapping_type is never shown.
+  // T-371: a Not verified row shows only Ajay's line, so no separate badge.
   const mappingTypeBadge =
-    displayType && Object.prototype.hasOwnProperty.call(MAPPING_TYPE_BADGES, displayType)
+    !unverified &&
+    displayType &&
+    Object.prototype.hasOwnProperty.call(MAPPING_TYPE_BADGES, displayType)
       ? MAPPING_TYPE_BADGES[displayType]
       : undefined;
 
@@ -361,11 +379,15 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
               {mapping.old_code_full || mapping.old_code}
             </p>
-            <p className="text-2xl font-bold text-slate-900">
-              {placeholderOld
-                ? `No equivalent in the ${oldCodeDisplay}`
-                : `Section ${mapping.old_section}`}
-            </p>
+            {reverseMissing ? (
+              <p className="text-base font-semibold text-amber-800">{NOT_VERIFIED}</p>
+            ) : (
+              <p className="text-2xl font-bold text-slate-900">
+                {placeholderOld
+                  ? `No equivalent in the ${oldCodeDisplay}`
+                  : `Section ${mapping.old_section}`}
+              </p>
+            )}
             {oldTitle && <p className="mt-1 break-words text-sm text-slate-600">{oldTitle}</p>}
           </div>
 
@@ -379,13 +401,13 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
               {mapping.new_code_full || mapping.new_code}
             </p>
-            <p className="text-2xl font-bold text-slate-900">
-              {repealedNoSection
-                ? 'None'
-                : unverified
-                  ? 'Check the Gazette'
-                  : `Section ${mapping.new_section}`}
-            </p>
+            {unverified && !reverseMissing ? (
+              <p className="text-base font-semibold text-amber-800">{NOT_VERIFIED}</p>
+            ) : (
+              <p className="text-2xl font-bold text-slate-900">
+                {repealedNoSection ? 'None' : `Section ${mapping.new_section}`}
+              </p>
+            )}
             {newTitle && <p className="mt-1 break-words text-sm text-slate-600">{newTitle}</p>}
           </div>
         </div>
@@ -399,8 +421,13 @@ function MappingCard({ mapping, reverse }: { mapping: MappingResult; reverse?: b
           </div>
         )}
 
+        {/* T-371: Ajay's caveat for a verify-flagged BNS offence row */}
+        {mapping.caveat && !unverified && (
+          <p className="mt-2 text-xs text-amber-800">{mapping.caveat}</p>
+        )}
+
         {/* Notes */}
-        {mapping.notes && (
+        {mapping.notes && !unverified && (
           <p className="mt-2 text-xs text-slate-500">
             <span className="font-medium">Note:</span> {mapping.notes}
           </p>
@@ -542,6 +569,44 @@ function ConvertTab() {
               {result.converted}
             </p>
           </div>
+
+          {/* T-371 / T-360: one line per reference read, converted or not, with its label */}
+          {result.references && result.references.length > 0 && (
+            <div className="border-t border-slate-100 px-6 py-4">
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                References found
+              </h4>
+              <ul className="space-y-2">
+                {result.references.map((r, i) => (
+                  <li key={i} className="text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-slate-700">
+                        {r.old_code} {r.old_section}
+                      </span>
+                      <ArrowLeftRight className="h-3 w-3 shrink-0 text-slate-400" />
+                      {r.not_verified ? (
+                        <span className="font-medium text-amber-800">{NOT_VERIFIED}</span>
+                      ) : r.new_section === null ? (
+                        <span className="font-medium text-slate-700">None</span>
+                      ) : (
+                        <span className="font-medium text-blue-700">
+                          {r.new_code} {r.new_section}
+                        </span>
+                      )}
+                      {r.label && !r.not_verified && (
+                        <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                          {r.label}
+                        </span>
+                      )}
+                    </div>
+                    {r.caveat && !r.not_verified && (
+                      <p className="mt-0.5 text-xs text-amber-800">{r.caveat}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Conversion Details */}
           {result.conversions.length > 0 && (

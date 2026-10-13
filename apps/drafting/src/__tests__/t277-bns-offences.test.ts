@@ -22,9 +22,9 @@ import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
-import { SectionMapping } from '../models/SectionMapping.model';
 import { checkBailEligibility } from '../services/bail-check.service';
 import {
+  ATTRIBUTE_DEPENDS,
   BNS_CLASSIFICATION,
   BNS_OFFENCE_KEYS,
   citationResolves,
@@ -33,7 +33,7 @@ import {
   WITH_COURT_PERMISSION,
 } from '../services/bns-offence-resolver';
 import { preflightCheck } from '../services/preflight.service';
-import { getSectionDetail, invalidateCache } from '../services/sections.service';
+import { getSectionDetail } from '../services/sections.service';
 import {
   buildAISystemPrompt,
   buildAIUserPrompt,
@@ -287,8 +287,10 @@ describe('R3 null and non-"yes"/"no" are Depends, never false', () => {
     const o = sections[0].offence;
     expect(o?.bailable).toBeNull();
     expect(o?.cognizable).toBeNull();
-    expect(o?.bailableNote).toBe(DEPENDS_SCHEDULE);
-    expect(o?.cognizableNote).toBe(DEPENDS_SCHEDULE);
+    // T-371 (Ajay, T-361 Addendum 1): ATTRIBUTE_DEPENDS replaces the R3 line on a
+    // null attribute. The summary line (overallBailableNote) keeps the R3 text.
+    expect(o?.bailableNote).toBe(ATTRIBUTE_DEPENDS);
+    expect(o?.cognizableNote).toBe(ATTRIBUTE_DEPENDS);
     expect(summary.overallBailable).toBeNull();
     expect(summary.overallBailableNote).toBe(DEPENDS_SCHEDULE);
     expect(summary.bnssBailSection).toBeNull();
@@ -299,7 +301,7 @@ describe('R3 null and non-"yes"/"no" are Depends, never false', () => {
     const { sections, summary } = await checkBailEligibility(['81']);
     expect(sections[0].offence?.bailable).toBeNull();
     expect(sections[0].offence?.cognizable).toBeNull();
-    expect(sections[0].offence?.bailableNote).toBe(DEPENDS_SCHEDULE);
+    expect(sections[0].offence?.bailableNote).toBe(ATTRIBUTE_DEPENDS);
     expect(summary.overallBailable).toBeNull();
   });
 
@@ -318,8 +320,8 @@ describe('R3 null and non-"yes"/"no" are Depends, never false', () => {
       expect(o?.bailable).toBe(OFFENCES[key].bailable);
       expect(o?.cognizable).toBe(OFFENCES[key].cognizable);
       expect(o?.maxYears).toBe(OFFENCES[key].max_years);
-      if (OFFENCES[key].bailable === null) expect(o?.bailableNote).toBe(DEPENDS_SCHEDULE);
-      if (OFFENCES[key].cognizable === null) expect(o?.cognizableNote).toBe(DEPENDS_SCHEDULE);
+      if (OFFENCES[key].bailable === null) expect(o?.bailableNote).toBe(ATTRIBUTE_DEPENDS);
+      if (OFFENCES[key].cognizable === null) expect(o?.cognizableNote).toBe(ATTRIBUTE_DEPENDS);
     }
   });
 
@@ -699,27 +701,7 @@ describe('R5 citation whitelists', () => {
 // ── Q4: parent row sets the court level only ─────────────────────────────────
 
 describe('Q4 parent row sets the court level only', () => {
-  beforeEach(async () => {
-    await SectionMapping.insertMany([
-      {
-        oldCode: 'IPC',
-        oldCodeFull: 'Indian Penal Code, 1860',
-        newCode: 'BNS',
-        newCodeFull: 'Bharatiya Nyaya Sanhita, 2023',
-        oldSection: '302',
-        newSection: '103(1)',
-        oldTitle: 'Punishment for murder',
-        newTitle: 'Punishment for murder',
-        mappingType: 'direct',
-        effectiveDate: new Date('2024-07-01'),
-      },
-    ]);
-    invalidateCache();
-  });
-
-  afterEach(() => {
-    invalidateCache();
-  });
+  // T-371: IPC 302 -> BNS 103(1) now comes from the signed ipc-to-bns.json; no seeding.
 
   it('302-IPC -> 103(1): court is Court of Session (signed value), maxYears is null (no period)', async () => {
     const { sections, summary } = await checkBailEligibility(['302-IPC']);
@@ -753,23 +735,19 @@ describe('Q4 parent row sets the court level only', () => {
 // ── sections.service: null is not 'no' / 'Magistrate' ───────────────────────
 
 describe('sections.service null handling', () => {
-  afterEach(() => {
-    invalidateCache();
-  });
-
   it('a null compoundable is null with the Depends note, not "no"', async () => {
     expect(OFFENCES['351'].compoundable).toBeNull();
     const d = await getSectionDetail('351', 'BNS');
     expect(d?.compoundable).toBeNull();
-    expect(d?.compoundable_note).toBe(DEPENDS_SCHEDULE);
+    expect(d?.compoundable_note).toBe(ATTRIBUTE_DEPENDS);
   });
 
   it('null bailable and cognizable are null with the Depends note (63)', async () => {
     const d = await getSectionDetail('63', 'BNS');
     expect(d?.bailable).toBeNull();
     expect(d?.cognizable).toBeNull();
-    expect(d?.bailable_note).toBe(DEPENDS_SCHEDULE);
-    expect(d?.cognizable_note).toBe(DEPENDS_SCHEDULE);
+    expect(d?.bailable_note).toBe(ATTRIBUTE_DEPENDS);
+    expect(d?.cognizable_note).toBe(ATTRIBUTE_DEPENDS);
   });
 
   it('a null max_years gives max_years null and triable_by null, not "Magistrate"', async () => {
@@ -810,10 +788,6 @@ describe('sections.service null handling', () => {
 describe('Q7 compoundable with the Court permission', () => {
   const PERMISSION = "Compoundable with the Court's permission";
   const TARGETS = ['82(1)', '117(2)', '125(a)', '125(b)', '316(2)', '316(4)'];
-
-  afterEach(() => {
-    invalidateCache();
-  });
 
   it('the table has exactly these six permission variants and no permission row', () => {
     const found: string[] = [];

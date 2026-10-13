@@ -1,12 +1,36 @@
-import logger from '../config/logger';
-import { ISectionMapping, MappingType, SectionMapping } from '../models/SectionMapping.model';
-import { cacheHGet, cacheHSetBulk, cacheDel, cacheSet, cacheExists } from '../utils/cache';
+import type { MappingType } from '../models/SectionMapping.model';
 
 import {
+  attributeNotes,
   BNS_OFFENCE_KEYS,
+  caveatForBnsSection,
   getOffenceRow,
+  NOT_VERIFIED,
+  outsideBnsRange,
+  parentSection,
+  readToolSections,
   ResolutionKind,
+  ResolvedOffence,
+  resolveBnsKey,
   resolveOffence,
+  showsVerifyCaveat,
+  TABLE_CODE,
+  VERIFY_CAVEAT,
+} from './bns-offence-resolver';
+import { getSignedTables, MappingFileMeta, SectionRow } from './signed-tables';
+
+// T-371: Ajay's tool texts and the tools' reader live in the resolver (one module the
+// bail checker, timeline and converter share); re-exported here for the converter.
+export {
+  ATTRIBUTE_DEPENDS,
+  attributeNotes,
+  caveatForBnsSection,
+  MOST_SERIOUS_CANNOT_BE_DETERMINED,
+  NOT_VERIFIED,
+  readToolSections,
+  showsVerifyCaveat,
+  TABLE_CODE,
+  VERIFY_CAVEAT,
 } from './bns-offence-resolver';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -75,55 +99,28 @@ function resolveCode(input: string): string | null {
   return CODE_ALIASES[input.trim().toUpperCase()] ?? CODE_ALIASES[upper] ?? null;
 }
 
-// ── Redis cache ─────────────────────────────────────────────────────────────
-// Mappings change rarely (CLO validation only). Cache all active mappings in
-// Redis for fast lookup across service instances. TTL = 1 hour; refreshed on
-// startup + explicit invalidation.
+// ── Data source (T-371, ADR-025 D2) ──────────────────────────────────────────
+// Every read comes from the signed files in memory (signed-tables.ts). Mongo's
+// SectionMapping collection and the Redis `sections:*` cache are no longer read:
+// a table change ships with the file, and no reseed is needed.
 
-const CACHE_PREFIX = 'sections';
-const FORWARD_HASH = `${CACHE_PREFIX}:forward`; // HSET field = oldCode:oldSection
-const REVERSE_HASH = `${CACHE_PREFIX}:reverse`; // HSET field = newCode:newSection
-const LOADED_KEY = `${CACHE_PREFIX}:loaded_at`;
-const CACHE_TTL = 3600; // 1 hour
-
-async function isCacheLoaded(): Promise<boolean> {
-  return cacheExists(LOADED_KEY);
-}
-
+/**
+ * @deprecated T-371: the tables are served from the signed files in memory. Kept as a
+ * no-op so existing callers compile; nothing is cached any more.
+ */
 export async function refreshCache(): Promise<void> {
-  const docs = await SectionMapping.find({ isActive: true }).lean<ISectionMapping[]>();
-
-  // Build forward and reverse maps in memory
-  const forwardMap = new Map<string, ISectionMapping>();
-  const reverseMap = new Map<string, ISectionMapping[]>();
-
-  for (const doc of docs) {
-    if (!doc.isNewProvision) {
-      forwardMap.set(`${doc.oldCode}:${doc.oldSection}`, doc);
-    }
-    if (doc.newSection) {
-      const rKey = `${doc.newCode}:${doc.newSection}`;
-      const existing = reverseMap.get(rKey) ?? [];
-      existing.push(doc);
-      reverseMap.set(rKey, existing);
-    }
-  }
-
-  // Write to Redis using the generic bulk utility
-  await cacheHSetBulk(FORWARD_HASH, forwardMap, CACHE_TTL);
-  await cacheHSetBulk(REVERSE_HASH, reverseMap, CACHE_TTL);
-  await cacheSet(LOADED_KEY, new Date().toISOString(), CACHE_TTL);
-
-  logger.info({ count: docs.length }, 'Section mappings cached in Redis');
+  getSignedTables();
 }
 
-async function ensureCache(): Promise<void> {
-  const loaded = await isCacheLoaded();
-  if (!loaded) await refreshCache();
-}
-
+/** @deprecated T-371: no cache to invalidate. Kept as a no-op so existing callers compile. */
 export async function invalidateCache(): Promise<void> {
-  await cacheDel(FORWARD_HASH, REVERSE_HASH, LOADED_KEY);
+  // Nothing to do: the signed tables are read once from the files.
+}
+
+function metaFor(code: string): MappingFileMeta | undefined {
+  return getSignedTables().mappingTables.find(
+    (t) => t.meta.old_code === code || t.meta.new_code === code,
+  )?.meta;
 }
 
 // ── Lookup functions ─────────────────────────────────────────────────────────
@@ -155,8 +152,7 @@ export async function lookupOldToNew(
     resolvedCode = resolved;
   }
 
-  await ensureCache();
-  const doc = await cacheHGet<ISectionMapping>(FORWARD_HASH, `${resolvedCode}:${section}`);
+  const doc = getSignedTables().forward.get(`${resolvedCode}:${section}`);
   if (!doc) return null;
   return {
     old_code: doc.oldCode,
@@ -201,8 +197,7 @@ export async function lookupNewToOld(
     resolvedCode = resolved;
   }
 
-  await ensureCache();
-  const docs = await cacheHGet<ISectionMapping[]>(REVERSE_HASH, `${resolvedCode}:${section}`);
+  const docs = getSignedTables().reverse.get(`${resolvedCode}:${section}`);
   if (!docs || docs.length === 0) return null;
 
   return docs.map((doc) => ({
@@ -246,28 +241,30 @@ export async function autoLookup(
 }
 
 /**
- * Get all mappings for a given code pair.
+ * Get all mappings for a given code pair, from the signed file in memory.
+ * Same shape as before T-371 (rows use the old SectionMapping field names).
  */
 export async function getAllMappings(code: string): Promise<{
   meta: CodeMeta;
-  mappings: ISectionMapping[];
-  newProvisions: ISectionMapping[];
+  mappings: SectionRow[];
+  newProvisions: SectionRow[];
 } | null> {
   const resolved = resolveCode(code);
   if (!resolved) return null;
 
-  // Determine query: if old code, query by oldCode; if new code, query by newCode
-  const filter: Record<string, unknown> = { isActive: true };
+  let docs: SectionRow[];
   if (OLD_CODES.has(resolved)) {
-    filter.oldCode = resolved;
+    docs = rowsWhere((r) => r.oldCode === resolved);
   } else if (NEW_CODES.has(resolved)) {
-    filter.newCode = resolved;
+    docs = rowsWhere((r) => r.newCode === resolved);
   } else {
     return null;
   }
-
-  const docs = await SectionMapping.find(filter).sort({ oldSection: 1 }).lean<ISectionMapping[]>();
   if (docs.length === 0) return null;
+  // Same order Mongo gave: { oldSection: 1 }.
+  docs = [...docs].sort((a, b) =>
+    a.oldSection < b.oldSection ? -1 : a.oldSection > b.oldSection ? 1 : 0,
+  );
 
   const mappings = docs.filter((d) => !d.isNewProvision);
   const newProvisions = docs.filter((d) => d.isNewProvision);
@@ -287,6 +284,10 @@ export async function getAllMappings(code: string): Promise<{
     mappings,
     newProvisions,
   };
+}
+
+function rowsWhere(pred: (r: SectionRow) => boolean): SectionRow[] {
+  return getSignedTables().mappingTables.flatMap((t) => t.rows.filter(pred));
 }
 
 // ── Section details (SCRUM-83 — rich result card) ──────────────────────────
@@ -316,8 +317,13 @@ export interface SectionDetail {
   compoundable_note: string | null;
   /** T-277: "This section does not create an offence. Check the Gazette." */
   offence_note: string | null;
-  /** T-277: the table's verify note, when present. */
-  verify: string | null;
+  /**
+   * T-371 (Ajay, 6526597): VERIFY_CAVEAT for a verify-flagged offence row, else null.
+   * The row's raw `verify` text is never served.
+   */
+  caveat: string | null;
+  /** T-371: NOT_VERIFIED for a missing section or an unverified / null-target row. */
+  label: string | null;
   related: Array<{ code: string; section: string; title: string }>;
   mapping: {
     old_code: string;
@@ -331,6 +337,20 @@ export interface SectionDetail {
     mapping_type: MappingType;
     notes?: string;
   } | null;
+}
+
+function attributeNotesSnake(offence: ResolvedOffence | undefined): {
+  bailable_note: string | null;
+  cognizable_note: string | null;
+  compoundable_note: string | null;
+} {
+  if (!offence) return { bailable_note: null, cognizable_note: null, compoundable_note: null };
+  const n = attributeNotes(offence);
+  return {
+    bailable_note: n.bailableNote,
+    cognizable_note: n.cognizableNote,
+    compoundable_note: n.compoundableNote,
+  };
 }
 
 const STATUTE_LABEL: Record<string, string> = {
@@ -409,6 +429,12 @@ export async function getSectionDetail(
   // Title — prefer the offence metadata, fall back to the mapping doc, then ''.
   const title = offence?.title ?? (isNew ? mapping?.new_title : mapping?.old_title) ?? '';
 
+  // T-371: missing section, or an unverified / null-target mapping row.
+  const detailNotVerified = isOld
+    ? !mapping || isNotVerifiedRow(mapping.mapping_type, mapping.new_section)
+    : !mapping &&
+      (resolved !== 'BNS' || (!resolveBnsKey(trimmedSection) && outsideBnsRange(trimmedSection)));
+
   // Related sections — derive from same BNS chapter when offence metadata
   // is available. Skipped for old codes / non-BNS for now.
   const related: SectionDetail['related'] = [];
@@ -441,11 +467,10 @@ export async function getSectionDetail(
     bare_section_text: null,
     resolution: resolvedOffence?.kind ?? null,
     resolved_key: offence?.key ?? null,
-    bailable_note: offence?.bailableNote ?? null,
-    cognizable_note: offence?.cognizableNote ?? null,
-    compoundable_note: offence?.compoundableNote ?? null,
+    ...attributeNotesSnake(offence),
     offence_note: resolvedOffence?.note ?? null,
-    verify: offence?.verify ?? null,
+    caveat: offence && showsVerifyCaveat(offence) ? VERIFY_CAVEAT : null,
+    label: detailNotVerified ? NOT_VERIFIED : null,
     related,
     mapping,
   };
@@ -490,36 +515,36 @@ export async function searchSections(
   // Escape regex metacharacters in the user query — keeps the typeahead safe
   // against advocates pasting "(2)" or "/" into the input.
   const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const sectionFilter = { $regex: `^${escaped}`, $options: 'i' };
-  const titleFilter = { $regex: escaped, $options: 'i' };
+  const sectionRe = new RegExp(`^${escaped}`, 'i');
+  const titleRe = new RegExp(escaped, 'i');
 
-  const codeFilter: Record<string, unknown> = isNew ? { newCode: resolved } : { oldCode: resolved };
-  const fieldNamePrefix = isNew ? 'new' : 'old';
+  // Same filters and order as the retired Mongo queries, over the in-memory rows.
+  const inCode = rowsWhere((r) => (isNew ? r.newCode === resolved : r.oldCode === resolved));
+  const sectionOf = (r: SectionRow): string | null => (isNew ? r.newSection : r.oldSection);
+  const titleOf = (r: SectionRow): string | null => (isNew ? r.newTitle : r.oldTitle);
 
   // Two-stage search so prefix hits always win against title-only hits when we
   // cap at `limit` results.
-  const prefixDocs = await SectionMapping.find({
-    isActive: true,
-    ...codeFilter,
-    [`${fieldNamePrefix}Section`]: sectionFilter,
-  })
-    .limit(limit)
-    .lean<ISectionMapping[]>();
+  const prefixDocs = inCode
+    .filter((r) => {
+      const sec = sectionOf(r);
+      return sec !== null && sectionRe.test(sec);
+    })
+    .slice(0, limit);
 
   let docs = prefixDocs;
   if (docs.length < limit) {
     const remaining = limit - docs.length;
-    const seenIds = new Set(docs.map((d) => String(d._id)));
-    const titleDocs = await SectionMapping.find({
-      isActive: true,
-      ...codeFilter,
-      [`${fieldNamePrefix}Title`]: titleFilter,
-    })
-      .limit(remaining + docs.length) // pad so we can dedupe
-      .lean<ISectionMapping[]>();
+    const seen = new Set(docs);
+    const titleDocs = inCode
+      .filter((r) => {
+        const title = titleOf(r);
+        return title !== null && titleRe.test(title);
+      })
+      .slice(0, remaining + docs.length); // pad so we can dedupe
     for (const d of titleDocs) {
       if (docs.length >= limit) break;
-      if (seenIds.has(String(d._id))) continue;
+      if (seen.has(d)) continue;
       docs = docs.concat(d);
     }
   }
@@ -600,4 +625,346 @@ export async function convertOldReferencesInText(text: string): Promise<{
   }
 
   return { converted, conversions };
+}
+
+// ── T-371: free tools (converter single + bulk) ──────────────────────────────
+// Ajay's texts (NOT_VERIFIED, VERIFY_CAVEAT, ATTRIBUTE_DEPENDS) are in the resolver.
+
+/**
+ * T-360 / T-361 Addendum 1: a mapping row that shows NOT_VERIFIED. `unverified` rows
+ * (IPC 236, 254, 292A, 376DA) and any other row with no target, except repealed rows,
+ * which show "None" (Ajay, T-296 round 2).
+ */
+export function isNotVerifiedRow(type: MappingType, newSection: string | null): boolean {
+  if (type === 'unverified') return true;
+  return newSection === null && type !== 'repealed' && type !== 'repealed_no_equivalent';
+}
+
+/** Badge per mapping type: Ajay's signed converter copy (T-296 addendum). */
+export const MAPPING_TYPE_LABELS: Partial<Record<MappingType, string>> = {
+  partial: 'Partial mapping — verify scope',
+  repealed: 'Repealed — no equivalent',
+  repealed_no_equivalent: 'Repealed — no equivalent',
+  merged: 'Merged with other sections — verify scope',
+  split: 'Split across several sections — check which one applies',
+};
+
+function labelFor(type: MappingType, newSection: string | null): string | null {
+  if (isNotVerifiedRow(type, newSection)) return NOT_VERIFIED;
+  return MAPPING_TYPE_LABELS[type] ?? null;
+}
+
+// ── Single lookup for the converter ──────────────────────────────────────────
+
+export interface ToolMapping extends LookupResult {
+  /** False when the section has no row (NOT_VERIFIED). */
+  found: boolean;
+  /** True for a missing section or an unverified / null-target row. */
+  not_verified: boolean;
+  /** NOT_VERIFIED, the signed mapping-type badge, or null. */
+  label: string | null;
+  /** VERIFY_CAVEAT when the BNS section's offence row carries a verify note. */
+  caveat?: string;
+  /** Parent row used for a sub-section ("156" for "156(3)"). */
+  via_parent?: string;
+}
+
+export interface ToolReverseMapping extends ReverseLookupResult {
+  found: boolean;
+  not_verified: boolean;
+  label: string | null;
+  caveat?: string;
+}
+
+/** "498a" → "498A", "156 (3)" → "156(3)", "103(1)(A)" → "103(1)(a)". */
+function normaliseSection(raw: string): string {
+  const s = raw.replace(/\s+/g, '');
+  const i = s.indexOf('(');
+  const head = i < 0 ? s : s.slice(0, i);
+  const tail = i < 0 ? '' : s.slice(i);
+  return head.toUpperCase() + tail.toLowerCase();
+}
+
+function toolResult(
+  row: SectionRow,
+  oldSection: string,
+  newSection: string | null,
+  viaParent?: string,
+): ToolMapping {
+  const notVerified = isNotVerifiedRow(row.mappingType, newSection);
+  const caveat =
+    !notVerified && row.newCode === 'BNS' && newSection
+      ? caveatForBnsSection(newSection)
+      : undefined;
+  return {
+    old_code: row.oldCode,
+    old_code_full: row.oldCodeFull,
+    old_section: oldSection,
+    old_title: row.oldTitle,
+    new_code: row.newCode,
+    new_code_full: row.newCodeFull,
+    new_section: notVerified ? null : newSection,
+    new_title: notVerified ? null : row.newTitle,
+    mapping_type: row.mappingType,
+    notes: row.notes || undefined,
+    found: true,
+    not_verified: notVerified,
+    label: labelFor(row.mappingType, newSection),
+    ...(caveat ? { caveat } : {}),
+    ...(viaParent ? { via_parent: viaParent } : {}),
+  };
+}
+
+function notVerifiedOld(meta: MappingFileMeta, section: string): ToolMapping {
+  return {
+    old_code: meta.old_code,
+    old_code_full: meta.old_code_full,
+    old_section: section,
+    old_title: '',
+    new_code: meta.new_code,
+    new_code_full: meta.new_code_full,
+    new_section: null,
+    new_title: null,
+    mapping_type: 'unverified',
+    found: false,
+    not_verified: true,
+    label: NOT_VERIFIED,
+  };
+}
+
+/**
+ * T-371 / T-360: old → new for the converter (single and bulk). Returns null only for
+ * a code that is not IPC, CrPC or IEA. A sub-section with no row of its own uses its
+ * parent row (Ajay, T-360): a `direct` parent carries the sub-section across
+ * (CrPC 156(3) → BNSS 175(3)); any other parent gives the parent's mapping and label.
+ * A section with no row, or a direct parent whose target already has a sub-section,
+ * is NOT_VERIFIED. Drafts keep lookupOldToNew (no parent fallback).
+ */
+export function mapOldForTool(sectionRaw: string, code: string): ToolMapping | null {
+  const resolved = resolveCode(code);
+  if (!resolved || !OLD_CODES.has(resolved)) return null;
+  const meta = metaFor(resolved);
+  if (!meta) return null;
+  const section = normaliseSection(sectionRaw);
+  const { forward } = getSignedTables();
+
+  const exact = forward.get(`${resolved}:${section}`);
+  if (exact) return toolResult(exact, section, exact.newSection);
+
+  for (let p = parentSection(section); p; p = parentSection(p)) {
+    const row = forward.get(`${resolved}:${p}`);
+    if (!row) continue;
+    if (row.mappingType === 'direct') {
+      // Carry "(3)" across only onto a whole-section target.
+      if (row.newSection && !row.newSection.includes('(')) {
+        return toolResult(row, section, row.newSection + section.slice(p.length), p);
+      }
+      if (row.newSection) return notVerifiedOld(meta, section);
+    }
+    return toolResult(row, section, row.newSection, p);
+  }
+  return notVerifiedOld(meta, section);
+}
+
+/** T-371: new → old for the converter. Null only for a code that is not BNS, BNSS or BSA. */
+export function mapNewForTool(sectionRaw: string, code: string): ToolReverseMapping[] | null {
+  const resolved = resolveCode(code);
+  if (!resolved || !NEW_CODES.has(resolved)) return null;
+  const meta = metaFor(resolved);
+  if (!meta) return null;
+  const section = normaliseSection(sectionRaw);
+  const { reverse } = getSignedTables();
+  const exact = reverse.get(`${resolved}:${section}`);
+  if (!exact || exact.length === 0) {
+    // T-371 Addendum 1 point 6: a bare section with only sub-section rows ("103" →
+    // 103(1), 103(2) …) lists those rows, each with its own label.
+    const prefix = `${resolved}:${section}(`;
+    const children = [...reverse.entries()]
+      .filter(([key]) => key.startsWith(prefix))
+      .sort(([a], [b]) => a.localeCompare(b, 'en', { numeric: true }))
+      .flatMap(([, rows]) => rows.map((row) => reverseResult(row, row.newSection ?? section)));
+    if (children.length > 0) return children;
+  }
+  const rows = exact;
+  if (!rows || rows.length === 0) {
+    return [
+      {
+        new_code: meta.new_code,
+        new_code_full: meta.new_code_full,
+        new_section: section,
+        old_code: meta.old_code,
+        old_code_full: meta.old_code_full,
+        old_section: '',
+        old_title: '',
+        new_title: null,
+        mapping_type: 'unverified',
+        found: false,
+        not_verified: true,
+        label: NOT_VERIFIED,
+      },
+    ];
+  }
+  return rows.map((doc) => reverseResult(doc, section));
+}
+
+function reverseResult(doc: SectionRow, section: string): ToolReverseMapping {
+  const caveat = doc.newCode === 'BNS' ? caveatForBnsSection(section) : undefined;
+  return {
+    new_code: doc.newCode,
+    new_code_full: doc.newCodeFull,
+    new_section: section,
+    old_code: doc.oldCode,
+    old_code_full: doc.oldCodeFull,
+    old_section: doc.oldSection,
+    old_title: doc.oldTitle,
+    new_title: doc.newTitle,
+    mapping_type: doc.mappingType,
+    notes: doc.notes || undefined,
+    found: true,
+    not_verified: false,
+    label: MAPPING_TYPE_LABELS[doc.mappingType] ?? null,
+    ...(caveat ? { caveat } : {}),
+  };
+}
+
+export type ToolQueryResult =
+  | { direction: 'old_to_new'; result: ToolMapping }
+  | { direction: 'new_to_old'; results: ToolReverseMapping[] }
+  | { error: string };
+
+/** Shown when a converter query has no code the tables cover. */
+/** Ajay (CLO), T-371 Addendum 1 point 5. */
+export const ADD_THE_CODE =
+  'Enter a section number and its code, for example IPC 302 or BNS 103(1).';
+
+/**
+ * T-371: the converter's free-text lookup ("302 IPC", "IPC 302", "BNS 318(4)",
+ * "65B Evidence Act"), read with readToolSections. The first section read is looked up.
+ */
+export function mapQueryForTool(query: string): ToolQueryResult {
+  const read = readToolSections(query)[0];
+  // The T-277 reader drops what is never a section (4+ digit runs, dates). A query
+  // like "9999 IPC" is still a section to report as NOT_VERIFIED, so read the plain
+  // "<number> <code>" / "<code> <number>" forms as a fallback.
+  const entry: { number: string; code: string | undefined } | undefined = read
+    ? { number: read.number, code: read.code ? TABLE_CODE[read.code] : undefined }
+    : plainQuery(query);
+  const code = entry?.code;
+  if (!entry || !code) return { error: ADD_THE_CODE };
+  if (OLD_CODES.has(code)) {
+    const result = mapOldForTool(entry.number, code);
+    return result ? { direction: 'old_to_new', result } : { error: ADD_THE_CODE };
+  }
+  const results = mapNewForTool(entry.number, code);
+  return results ? { direction: 'new_to_old', results } : { error: ADD_THE_CODE };
+}
+
+function plainQuery(query: string): { number: string; code: string | undefined } | undefined {
+  const q = query.trim();
+  const numberFirst = q.match(/^(\d+[A-Za-z]{0,2}(?:\([0-9A-Za-z]+\))*)[\s-]+(.+)$/);
+  if (numberFirst)
+    return { number: numberFirst[1], code: resolveCode(numberFirst[2]) ?? undefined };
+  const codeFirst = q.match(/^(.+?)[\s-]+(\d+[A-Za-z]{0,2}(?:\([0-9A-Za-z]+\))*)$/);
+  if (codeFirst) return { number: codeFirst[2], code: resolveCode(codeFirst[1]) ?? undefined };
+  return undefined;
+}
+
+// ── Bulk converter ───────────────────────────────────────────────────────────
+
+export interface ToolReference {
+  /** The reference as read, e.g. "420 IPC". */
+  original: string;
+  old_code: string;
+  old_section: string;
+  new_code: string;
+  new_section: string | null;
+  mapping_type: MappingType;
+  /** True when the text now carries the new section. */
+  converted: boolean;
+  not_verified: boolean;
+  /** NOT_VERIFIED, the signed badge, or null. */
+  label: string | null;
+  caveat?: string;
+  via_parent?: string;
+}
+
+export interface ToolConversion {
+  converted: string;
+  conversions: Array<{ original: string; replacement: string }>;
+  references: ToolReference[];
+}
+
+const NUM = String.raw`\d{1,3}[A-Z]{0,2}(?:\([0-9A-Za-z]+\))*`;
+const SEP = String.raw`(?:\s*(?:,|&|\/)\s*(?:and\s+)?|\s+(?:and|or)\s+)`;
+const OLD_CODE_NAME = String.raw`I\.?P\.?C\.?|Cr\.?\s?P\.?\s?C\.?|I\.?E\.?A\.?|Indian\s+Penal\s+Code|Code\s+of\s+Criminal\s+Procedure|(?:Indian\s+)?Evidence\s+Act`;
+/** A run of section numbers ending in an old-law code: "Sections 420, 406 and 120B IPC". */
+const OLD_CITATION = new RegExp(
+  String.raw`(?:(?:Sections?|Secs?\.?|Ss?\.|u\/s\.?)\s*)?${NUM}(?:${SEP}${NUM})*\s+(?:of\s+)?(?:the\s+)?(?:${OLD_CODE_NAME})(?![A-Za-z])`,
+  'gi',
+);
+
+function joinList(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+/**
+ * T-371 / T-360: the bulk converter, for the /convert route and the web bulk tab only.
+ * Reads lists ("Sections 420, 406 and 120B IPC") and "Evidence Act" with
+ * readToolSections, and labels every reference, converted or not. Drafts keep
+ * convertOldReferencesInText unchanged.
+ */
+export function convertReferencesForTool(text: string): ToolConversion {
+  const references: ToolReference[] = [];
+  const conversions: ToolConversion['conversions'] = [];
+  const spans: Array<{ index: number; text: string; replacement: string | null }> = [];
+
+  for (const m of text.matchAll(OLD_CITATION)) {
+    const spanText = m[0];
+    const refs: Array<{ number: string; result: ToolMapping }> = [];
+    for (const e of readToolSections(spanText)) {
+      const code = e.code ? TABLE_CODE[e.code] : undefined;
+      if (!code || !OLD_CODES.has(code)) continue;
+      const result = mapOldForTool(e.number, code);
+      if (result) refs.push({ number: e.number, result });
+    }
+    if (refs.length === 0) continue;
+
+    for (const { number, result: r } of refs) {
+      references.push({
+        original: `${number} ${r.old_code}`,
+        old_code: r.old_code,
+        old_section: r.old_section,
+        new_code: r.new_code,
+        new_section: r.new_section,
+        mapping_type: r.mapping_type,
+        converted: r.new_section !== null,
+        not_verified: r.not_verified,
+        label: r.label,
+        ...(r.caveat ? { caveat: r.caveat } : {}),
+        ...(r.via_parent ? { via_parent: r.via_parent } : {}),
+      });
+    }
+
+    // Leave the span as written unless at least one reference converts.
+    if (!refs.some((x) => x.result.new_section !== null)) continue;
+    const replacement = joinList(
+      refs.map(({ number, result: r }) =>
+        r.new_section !== null
+          ? `Section ${r.new_section} ${r.new_code} (formerly ${number} ${r.old_code})`
+          : `Section ${number} ${r.old_code}`,
+      ),
+    );
+    spans.push({ index: m.index ?? 0, text: spanText, replacement });
+    conversions.push({ original: spanText, replacement });
+  }
+
+  let converted = text;
+  for (let i = spans.length - 1; i >= 0; i--) {
+    const s = spans[i];
+    if (s.replacement === null) continue;
+    converted =
+      converted.slice(0, s.index) + s.replacement + converted.slice(s.index + s.text.length);
+  }
+  return { converted, conversions, references };
 }
