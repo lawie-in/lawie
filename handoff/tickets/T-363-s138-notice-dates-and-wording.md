@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Ajay (notice wording) |
 | Mode   | Full chain |
-| Status | Building. Shashank, after T-367. Priya, 13 Oct 2026 |
+| Status | Reviewed and tested; Ajay approved. Merges after Mahak's T-380. Shashank, 13 Oct 2026 |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-192 |
 
 ## Acceptance criteria

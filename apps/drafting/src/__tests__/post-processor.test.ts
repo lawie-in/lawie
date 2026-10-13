@@ -95,7 +95,10 @@ describe('Layer 2 — Post-Processor', () => {
       const docRule = resolveDocRule('bail_regular');
       const result = generateVerificationClause(docRule, {}, 'JMFC Ranchi');
       expect(result).toContain('[DEPONENT NAME]');
-      expect(result).toContain('[PARENT NAME]');
+      // T-393 (Ajay, T-359 AC6): with no relation and no name, the signed blank prints.
+      expect(result).toContain('[To be confirmed: relation and name of parent or spouse]');
+      expect(result).not.toContain('[PARENT NAME]');
+      expect(result).not.toContain('S/o');
       expect(result).toContain('[AGE]');
     });
 

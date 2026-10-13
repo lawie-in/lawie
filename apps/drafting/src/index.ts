@@ -17,6 +17,7 @@ import logger from './config/logger';
 import { disconnectRedis } from './config/redis';
 import { startHoldSweep, stopHoldSweep } from './services/credits.service';
 import { listRulePackIds, loadSkeleton, SKELETONS_DIR } from './services/rule-pack.service';
+import { primeToolSwitches } from './services/feature-switches';
 import { loadSignedTables } from './services/signed-tables';
 import { getTemplateRegistry } from './services/template-promoter';
 import { runBootSync } from './services/template-seed.service';
@@ -57,6 +58,9 @@ async function bootstrap() {
     // sync, idempotent. Never blocks the listen call — errors fall back to the
     // in-memory registry serving the catalog.
     await runBootSync();
+    // T-375: read the two tool switches once, so the first requests see their real
+    // value. Never throws; a failed read leaves them off until a later refresh.
+    await primeToolSwitches();
     app.listen(env.PORT, () => {
       logger.info(`📝 Drafting Service running on http://localhost:${env.PORT}`);
       logger.info(`   Environment: ${env.NODE_ENV}`);
