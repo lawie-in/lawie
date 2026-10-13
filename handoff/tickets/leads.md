@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- kunal: T-372 merged 587ce69; holds the slot until CI on it (run 499) is green. Then Tanvi T-374 (ready, Ajay signed 63707f7), then Mahak T-365, then Vishal T-373 (imports loadSkeleton from T-374) as each is ready. T-361 data copy waits on the founder.
+- tanvi: T-374 has the slot (T-372 CI run 499 green). After T-374's CI is green: Mahak T-365, then Vishal T-373 (imports loadSkeleton from T-374) as each is ready. T-361 data copy waits on the founder.
 
 ## Last done
 
+- kunal: T-372 CI green (run 499, 13 Oct 2026).
 - kunal: T-372 merged 587ce69 (13 Oct 2026). Ink cost on Confirm, balance on done, no documents counter; T-365 AC2. documents.routes.ts, OneFlow.tsx, new/page.tsx, settings, briefTypes released (Mahak next, then Vishal).
 - shashank: T-383 CI green (run 498, 13 Oct 2026).
 - shashank: T-383 merged 7569b14 (13 Oct 2026). BNS 61(2) is criminal conspiracy; bail checker display form.
