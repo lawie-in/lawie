@@ -27,3 +27,9 @@ There are 7 packs, not 3: bail_before_magistrate, bail_cancellation, default_bai
 - Same claim as T-365 AC6's pack edits, so the seven packs change once.
 
 **Ajay (48f35e1):** the key in the vakalatnama validation rule text is renamed too; the word "enrolment" in prose stays. His 46 T-239 batch-1 specs now use advocate_enrollment.
+
+## Arjun (13 Oct 2026, Mahak's three)
+
+- (a) `GET /templates` card_description: request-time registry lookup by template_id. No new model field, no seed: seeds go stale (see T-360). Same for `GET /templates/:id`.
+- (b) One alias map, exported from `services/rule-pack.service.ts` (where I put it for Tanvi, T-374). Whoever lands first creates it; the other imports. No second copy, no new config file.
+- (c) The alias is applied wherever stored data enters the pipeline through the same helper: `readFormInputs` for drafts, and the brief path only if it loads a stored intake's form data from before the deploy through another function (Mahak checks). Same helper, never a second map. No write-side alias.
