@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) + Arjun |
 | Mode   | Small fix |
-| Status | To do. Unassigned. Found by Mahak in T-365 Explore, 13 Oct 2026 |
+| Status | Mahak, stacked after T-365 on the same routes. Arjun: strip pack-level _source, prompt_context and clause notes; the field-level `source` in form_schema stays (the web uses it) |
 | Source | The detail routes return `_source`/`source` (prompt_context, clause notes) to the client |
 
 ## Acceptance criteria
