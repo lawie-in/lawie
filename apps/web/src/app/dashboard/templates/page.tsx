@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { apiFetch } from '@/lib/apiFetch';
+import { groupByCatalogueCategory } from '@/lib/catalogueGroups';
 
 interface TemplateSummary {
   template_id: string;
@@ -59,28 +60,12 @@ function categoryColors(order: number): CategoryColors {
   return CATEGORY_PALETTE[(Math.max(order, 1) - 1) % CATEGORY_PALETTE.length];
 }
 
-interface CategoryGroup {
-  id: string;
-  name: string;
-  order: number;
-  items: TemplateSummary[];
-}
-
-/** Templates grouped by catalogue category, in T-239 order. */
-function groupByCatalogueCategory(templates: TemplateSummary[]): CategoryGroup[] {
-  const groups = new Map<string, CategoryGroup>();
-  for (const t of templates) {
-    const group = groups.get(t.catalogueCategory) ?? {
-      id: t.catalogueCategory,
-      name: t.catalogueCategoryName,
-      order: t.catalogueCategoryOrder,
-      items: [],
-    };
-    group.items.push(t);
-    groups.set(t.catalogueCategory, group);
-  }
-  return Array.from(groups.values()).sort((a, b) => a.order - b.order);
-}
+/** The T-240 library category the service sent with a template. */
+const templateCategory = (t: TemplateSummary) => ({
+  id: t.catalogueCategory,
+  name: t.catalogueCategoryName,
+  order: t.catalogueCategoryOrder,
+});
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
@@ -95,7 +80,7 @@ export default function TemplatesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const grouped = groupByCatalogueCategory(templates);
+  const grouped = groupByCatalogueCategory(templates, templateCategory);
 
   return (
     <div>
