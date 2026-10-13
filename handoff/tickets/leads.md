@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- shashank: T-356 part 1 (152df3b, small fix tested green; release gate). Next, once CI on 8e38f59 is green.
+- shashank: T-356 part 1 (152df3b, small fix tested green; release gate). Holds the slot now (CI run 488 on 8e38f59 green).
 - kunal: T-370 (a804570, tester green). Straight after mahak T-223 merges (shares settings/page.tsx); pull her merge and re-test first.
 - vishal: T-342 (round 2 review passed, tests green, Ajay signed 59eff64 at 54951db). Merges once the _meta.signed line is in. After kunal T-354; check with the slot holder first.
 - tanvi: T-357 (c741f59, small fix tested green). After vishal; check with the slot holder first.
