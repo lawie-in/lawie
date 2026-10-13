@@ -51,3 +51,26 @@ Tests:
 - Non-Commission court: three blanks, no city, no "State of".
 - District: s.35 heading.
 - State and National: the Act-only heading.
+
+## T-410 build: golden batch and calls (13 Oct 2026)
+
+**Golden batch: signed.** 12 entries, consumer_complaint at the 12 non-Commission courts Tanvi listed. Every change follows Addendum 1:
+- `case_nomenclature`, `court_designation` and `court_header` become `[To be confirmed: Consumer Commission]`.
+- Party labels become Complainant / Opposite Party.
+- Prayer opening and closing come from the consumer rule.
+- `state_respondent` becomes `undefined`.
+- The verification is the consumer text, with `Verified at [To be confirmed: place]`.
+
+No other entry moves. Any other byte change needs a new sign-off.
+
+| # | Call | Ruling |
+|---|---|---|
+| 1 | State Commission designation from the court record's own text (some include the city) | Approved, if every record names the State Consumer Disputes Redressal Commission of that State. |
+| 2 | Act-only heading at a non-Commission court | Approved. The forum is unknown, so no section is cited. |
+| 3 | Place: the Commission's city, else `[To be confirmed: place]` | Approved |
+
+**Out-of-scope items:**
+- **`related_acts` "21 Dec 2021": fix in T-410 now** (same file). Use the T-412 Rules name. Widen the T-412 test to catch every form of the date ("21 Dec", "21.12.2021", "21/12/2021"), not just "21 December 2021".
+- **AI prompt receiving a non-Commission court's party designations: fix in T-410 now.** Ruling 4 covers the Drafter input too. The prompt gets Complainant / Opposite Party only. Test: no "State of" or "S.H.O." in the prompt.
+- **`display_name` "Consumer Complaint (District Commission)", and `description` "Section 35 … before District Commission": new ticket.** They should not name a level now that all three Commissions are offered. Wording comes to me.
+- **`ncdrc.json` :13 and :52 say "exceeding Rs. 10 Crore": new ticket, high priority.** That is the Act's original figure. The National Commission's pecuniary jurisdiction under the 2021 Rules (T-412) is above Rs. 2 crore. Signed text for both lines: replace `exceeding Rs. 10 Crore` with `exceeding Rs. 2 Crore (per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021)`. Also check the state commission records for the old Rs. 1 crore / Rs. 10 crore band.
