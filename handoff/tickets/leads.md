@@ -46,7 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- Slot free (T-365 CI run 503 green). Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
+- mahak: T-394 has the slot (ready first). Kunal T-393 next. Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
 
 ## Last done
 
