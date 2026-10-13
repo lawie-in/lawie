@@ -41,14 +41,15 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 - kunal: T-354, then T-370 (today), then T-372.
 - tanvi: T-357, then T-369 (ci.yml after Mahak's T-223 merges), then T-374 (D1 lead B).
 - mahak: T-223, then T-365.
-- Next free lead: T-377 (verify link referrer and logs, after T-223), T-376 (real-model golden set, required check), T-375 (hide behind switches), then T-366, T-367, T-368, T-361 (303(2) row only). T-363 stays with Tanvi after T-374 unless a lead is free sooner (Arjun: build it now, on today's path).
+- Next free lead: T-379 (T-223 follow-ups; before live sends), T-377 (verify link referrer and logs, after T-223), T-376 (real-model golden set, required check), T-375 (hide behind switches), then T-366, T-367, T-368, T-361 (303(2) row only). T-363 stays with Tanvi after T-374 unless a lead is free sooner (Arjun: build it now, on today's path).
 - Stopped: T-359 and T-362 as written (D1 delivers them), T-360 (folded into T-371), T-361's parser half.
 
 ## Merge queue
 
 - kunal: T-370 (a804570, tester green). Straight after mahak T-223 merges (shares settings/page.tsx); pull her merge and re-test first.
 - vishal: T-342 merged cb8d9e5; holds the slot until CI on it is green.
-- tanvi: T-357 (c741f59, small fix tested green). Next, once CI on cb8d9e5 is green.
+- mahak: T-223 (f11c6b1, full chain, review round 2 passed; release gate). Next, once CI on cb8d9e5 is green. It unblocks Kunal's T-370.
+- tanvi: T-357 (c741f59, small fix tested green). After mahak T-223.
 
 ## Last done
 
