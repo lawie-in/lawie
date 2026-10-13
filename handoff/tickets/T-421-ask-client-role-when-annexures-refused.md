@@ -13,3 +13,6 @@ T-381 refuses to make the annexures pack when the client's side is unknown. The 
 1. When the pack is refused because the client's side is unknown, the card asks the client_role question in Ajay's signed wording.
 2. The answer is saved on the draft. The pack then generates without the user re-drafting.
 3. Tests cover the refused path, the answer, and the successful pack.
+
+## Also (T-381 reviewer, 13 Oct)
+hasParty hides the card on ambiguous, caveat or no-row packs, so the signed "client's role" message can't be reached from the UI. Accepted for v1. In this ticket, show the card whenever any party field is present, so the question can be asked.
