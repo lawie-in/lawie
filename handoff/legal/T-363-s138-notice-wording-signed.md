@@ -38,3 +38,11 @@ Do not add the 15-day computation or any date difference to the notice (T-192).
    "Within next 30 days" goes: the Act says one month.
 
 **Pack diff faeaafa: approved, 13 Oct 2026.** prayerTemplate is byte-exact: the demand line, then the AC3 line, with nothing after it. The memo-reason instruction and the no-offence line are in. The two proprietor fields are optional. The placeholder is "Quote only as the memo gives it". Also approved, to land with it: mandatoryClauses > dishonour_details description `Date of dishonour, reason for dishonour as the return memo gives it, bank memo reference`. No example reason may appear anywhere in this pack.
+
+## Addendum 4 (13 Oct 2026): unanswered proprietor and drawer type
+
+**Diff 321eb72 (`fix/t-363-proprietor-placeholder`): approved.** drawer_addressee and payee_client now treat the brief blank "[To be confirmed: …]" and the ledger blank "{{MISSING: …}}" as empty. This follows the standing rule from T-365 and T-392 that a placeholder is never a typed value. With no proprietor, the header is option (c): the firm, then its address, with no blank and no "Proprietor," line. A proprietor who is given prints as before. No signed wording changed.
+
+Condition: the test must take the blank string from the same generator the brief and ledger paths use, not a literal copy. If a label changes, the test must go red and must not pass silently.
+
+**ni_act_sections_ref guard: required.** Section 141 (offences by companies, including firms) applies only when the drawer is a company or firm. If respondent_type is empty or a placeholder, print `138 read with Section 142`. Never cite s.141 without knowing the drawer type. Leaving s.141 out of the notice does no harm, but citing it against an individual is wrong. Test: drawer type left as its placeholder gives no "141".
