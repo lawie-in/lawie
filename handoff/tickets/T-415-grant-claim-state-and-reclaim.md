@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | Todo. Kunal, after T-413. Priya, 13 Oct 2026 |
+| Status | Building. Kunal, full chain. Priya, 13 Oct 2026 |
 | Owner | Kunal (build), Arjun (call) |
-| Mode | Small fix (billing only) |
+| Mode | Full chain (billing grant logic; Kunal, 13 Oct) |
 
 ## Why
 From T-413's review (Arjun). A claim is written before the grant. If the process dies between the two, the claim stays taken, every retry is a no-op, and the user never gets the Ink.
