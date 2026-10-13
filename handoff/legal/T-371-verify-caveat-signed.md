@@ -42,3 +42,5 @@ Approved, on one change:
 | Bail checker summary line for a section whose row is missing or unverified (e.g. IPC 236) | `Depends. Check the First Schedule.` | `Not verified — check the Gazette` (the same as the row) |
 
 Rule: a summary line uses the same text as the row it summarises. Where the row is signed and its attribute is null, the summary keeps the T-277 line `Depends. Check the First Schedule.` Merge once this one line changes, with a test that pins it. No re-review is needed beyond the diff of that line.
+
+**b1494f9: approved for merge, 13 Oct 2026.** The summary lines now use the same text as their rows: `Not verified — check the Gazette`; the T-277 "Depends. Check the First Schedule." for signed null rows; the T-278 "No BNS equivalent. Check the Gazette" for repealed rows. The overall note follows the same rule. The 6f61d87 timeline line is pinned. An explicit "BNS 302" is no longer read as IPC 302. No other wording changed.
