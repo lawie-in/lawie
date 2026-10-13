@@ -24,7 +24,9 @@ export type SkeletonValue = string | number | boolean;
  * a signed list held elsewhere. Names in the signed skeletons: `none_values`
  * (the skeleton's own `none_values`, i.e. the T-334 `first_bail_application`
  * equals list) and `<averment id>.equals` (that averment's signed list, e.g.
- * `no_recovery.equals`). A name that cannot be resolved fails closed.
+ * `no_recovery.equals`), and a `<prefix>_none_values` name for a list the
+ * skeleton holds at its top level (e.g. `antecedents_none_values`, d87355a).
+ * A name that cannot be resolved fails closed.
  */
 export type SkeletonValueSet = SkeletonValue[] | string;
 
@@ -121,6 +123,12 @@ export interface Skeleton {
    * `first_bail_application.equals (T-334)`.
    */
   none_values?: string;
+  /**
+   * Ajay's re-sign d87355a: the antecedents "none" phrasings, a list the
+   * skeleton holds itself. A list name matching `<prefix>_none_values`
+   * (T-374's loader validation) reads the skeleton's own top-level list first.
+   */
+  antecedents_none_values?: string[];
   /** The pack's mandatory clause ids this skeleton covers (ADR-025 slot list), when the loader gives them. */
   mandatoryClauses?: string[];
   clauses: SkeletonClause[];

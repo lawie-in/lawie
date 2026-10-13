@@ -21,6 +21,7 @@ import { Response } from 'express';
 import bnsMapping from '../config/bns-mapping.json';
 import { env } from '../config/env';
 import { Court } from '../models/Court.model';
+import type { FactDiffPath } from '../models/FactDiff.model';
 import type { RunType } from '../models/Generation.model';
 import type { LoadSkeleton, Skeleton } from '../types/skeleton';
 import { startSseKeepAlive } from '../utils/sse-keepalive';
@@ -1015,8 +1016,15 @@ export interface BriefGenerateResult extends TemplateGenerateResult {
   startingDraft: boolean;
   /** The line shown with a labelled draft (T-127, section 7.3). */
   labelReason: string | null;
-  /** T-147d: the fact verifier's outcome. Present only on the ledger path. */
+  /** T-147d: the fact verifier's outcome. Present only on the legacy ledger path; never on D1. */
   factCheck?: FactCheckOutcome;
+  /**
+   * T-373 (Arjun's ruling B): on a D1 pack the read-only verifier's findings,
+   * for the fact-diff log only, tagged with the path to pass to
+   * writeFactCheckLog. Nothing here is shown to the advocate: the panel and the
+   * label read `rendered`. Absent on every other draft.
+   */
+  factDiff?: { outcome: FactCheckOutcome; path: FactDiffPath };
   /**
    * T-373 (ADR-025 D1): each clause the renderer printed, in order, with its
    * status. Present only on a pack with a signed skeleton; the checks panel
@@ -1991,7 +1999,8 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     // T-373: the label reads rendered[] (a clause printed with a blank labels the draft).
     startingDraft: needsStartingDraftLabel(missing, warnings, rendered.rendered),
     labelReason: labelReason(missing, warnings, rendered.rendered),
-    factCheck,
+    // Arjun B: no factCheck on D1; the findings go to the fact-diff log tagged d1.
+    factDiff: { outcome: factCheck, path: 'd1' },
     rendered: rendered.rendered,
   };
 }

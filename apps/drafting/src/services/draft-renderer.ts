@@ -293,6 +293,9 @@ function avermentEquals(
   );
 }
 
+/** A skeleton top-level list name the loader accepts (T-374 validation). */
+const SKELETON_LIST_NAME = /^(?:[a-z0-9]+_)*none_values$/;
+
 /**
  * A top-level array of the skeleton itself named `name` (Ajay's re-sign
  * d87355a: e.g. `antecedents_none_values`), or null. Only scalar entries count;
@@ -300,7 +303,8 @@ function avermentEquals(
  */
 function skeletonOwnList(skeleton: Skeleton, name: string): SkeletonValue[] | null {
   const key = name.trim();
-  if (key === '' || key === 'clauses') return null;
+  // Tanvi (T-374): only a `<prefix>_none_values` name, as her loader validates.
+  if (!SKELETON_LIST_NAME.test(key)) return null;
   const v = (skeleton as unknown as Record<string, unknown>)[key];
   if (!Array.isArray(v)) return null;
   const ok = v.every(
@@ -359,7 +363,12 @@ export function skeletonValueLists(
 
 /**
  * Grammar words a rephrase of the advocate's words may add or drop:
- * connectives, articles, auxiliaries, pronouns and prepositions. Data, not
+ * connectives, articles, auxiliaries, pronouns and prepositions. A word that
+ * adds meaning is not here (round 3): no causal word ("because", "therefore",
+ * "so", "hence", "thus", "if"), no temporal word ("after", "before", "since",
+ * "until", "till", "during", "while", "when", "then", "yet") and no negating
+ * one ("not", "no", "nor", "neither", "without", "against"), so adding one
+ * falls back. Data, not
  * wording: nothing here is ever printed. Any other word in the model's text
  * that is not in the advocate's `raw_span` (compared on simple stems) sends
  * the clause back to the advocate's words. Arjun: tune this list if the
@@ -383,33 +392,20 @@ export const OWN_WORDS_STOP_LIST: readonly string[] = [
   'and',
   'or',
   'but',
-  'nor',
-  'so',
-  'yet',
-  'because',
   'as',
-  'while',
-  'whilst',
   'although',
   'though',
   'however',
-  'therefore',
-  'thus',
-  'hence',
   'also',
-  'then',
   'which',
   'who',
   'whom',
   'whose',
   'where',
-  'when',
   'whether',
-  'if',
   'than',
   'both',
   'either',
-  'neither',
   'further',
   'furthermore',
   'moreover',
@@ -483,19 +479,11 @@ export const OWN_WORDS_STOP_LIST: readonly string[] = [
   'onto',
   'over',
   'under',
-  'after',
-  'before',
-  'during',
-  'since',
-  'until',
-  'till',
-  'against',
   'among',
   'between',
   'through',
   'upon',
   'within',
-  'without',
   'per',
   'via',
   'off',
@@ -543,6 +531,25 @@ function withoutDates(text: string): string {
 }
 
 /**
+ * The text with every date it states blanked out, case kept, so the month of
+ * a date ("5 May 2026") is not read as a capitalised name. Dates are compared
+ * by value, separately.
+ */
+function withoutDatesKeepCase(text: string): string {
+  let out = text;
+  for (const d of datesAsWritten(text)) {
+    const words = d.words.toLowerCase();
+    if (words.trim() === '') continue;
+    // Every place the date is written, found case-insensitively and blanked to the same length.
+    for (let at = out.toLowerCase().indexOf(words); at >= 0; ) {
+      out = out.slice(0, at) + ' '.repeat(words.length) + out.slice(at + words.length);
+      at = out.toLowerCase().indexOf(words, at + words.length);
+    }
+  }
+  return out;
+}
+
+/**
  * Ruling 1: a date, number, name or place in the model's text that the
  * advocate's `raw_span` does not state. Dates compare by value (so "2 Mar
  * 2025" is "2 March 2025"); numbers by digits; a capitalised word inside a
@@ -556,7 +563,8 @@ export function ownWordsAlteredEntity(text: string, rawSpan: string): boolean {
   const rawNumbers = new Set(rawWords.filter((w) => /^\d+$/.test(w)));
   if (wordsOf(withoutDates(text)).some((w) => /^\d+$/.test(w) && !rawNumbers.has(w))) return true;
   // A capitalised word that does not start a sentence: a name or a place.
-  for (const m of text.matchAll(/(?<![.!?:;]\s|^)(?<=\s|\()(\p{Lu}[\p{L}'-]*)/gu)) {
+  const scanned = withoutDatesKeepCase(text);
+  for (const m of scanned.matchAll(/(?<![.!?:;]\s|^)(?<=\s|\()(\p{Lu}[\p{L}'-]*)/gu)) {
     const words = wordsOf(m[1]);
     if (words.length === 0 || (words.length === 1 && words[0] === 'i')) continue;
     if (words.some((w) => !rawStems.has(ownWordsStem(w)))) return true;
@@ -839,9 +847,17 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
   /** Rule 3: the model's own-words text passes the verifier against the referenced fact alone. */
   const keepsToFact = (text: string, entries: readonly LedgerFact[]): boolean => {
     const spans = entries.map((f) => folded(f.raw_span ?? ''));
+    const spanDates = new Set(entries.flatMap((f) => datesInText(f.raw_span ?? '')));
     const violations = verifyDraft({ ...input.verifier, body: text, facts: entries });
     return !violations.some((v) => {
       if (!REJECTING_CHECKS.has(v.check)) return false;
+      // A date the advocate's raw_span states, by value ("2 March 2025" for "2 Mar
+      // 2025"): ruling 1 has already compared every date of the text with the
+      // raw_span, and the verifier does not read dates inside a narrative fact.
+      if (v.check === 'unsupported' && v.entityType === 'date' && v.draftValue) {
+        const said = datesInText(v.draftValue);
+        if (said.length > 0 && said.every((d) => spanDates.has(d))) return false;
+      }
       // A banned phrase the advocate wrote is the advocate's own words, stated as that fact.
       if (
         v.check === 'banned' &&
