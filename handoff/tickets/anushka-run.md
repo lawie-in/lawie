@@ -801,3 +801,22 @@ What a user can now do:
 - A user whose name or address contains text like "[PIN]" still gets their emails.
 
 Quality: nothing to test in the UI — email-worker start-up and health guard
+
+## T-365 + T-382 + T-387 — Brief picker, enrolment, pre-filing check (492426a, mahak, 13 Oct 2026)
+
+Re-tests run 3 failures on the brief, enrolment and pre-filing check.
+
+T-365, what a user can now do:
+- Leave the advocate name empty and see their own profile name on the draft.
+- Browse document types grouped by category, the same way as the templates library.
+- Press "Use template" and start describing with that document already chosen.
+- See a short, plain description on every document card, with no internal notes.
+- On a bail application before a Magistrate, give the brief facts of the case, as in regular bail.
+
+T-382, what a user can now do:
+- Type a Bar Council enrolment number on a bail, surrender, suspension or vakalatnama form and see it printed on the draft.
+
+T-387, what a user can now do:
+- Pass the vakalatnama pre-filing check using the enrolment number saved in the profile, without typing it again.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
