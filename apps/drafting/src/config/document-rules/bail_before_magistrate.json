@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
   },
   "template_id": "bail_before_magistrate",
+  "card_description": "A regular bail application before a Magistrate.",
   "docType": "bail_before_magistrate",
   "parentDocType": "bail_application",
   "title": "Bail Application before Magistrate",

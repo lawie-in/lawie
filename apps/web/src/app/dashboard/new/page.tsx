@@ -211,7 +211,7 @@ function NewDocumentContent() {
       if (!q) return true;
       return (
         t.display_name.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
+        (t.description ?? '').toLowerCase().includes(q) ||
         t.template_id.toLowerCase().includes(q)
       );
     });
@@ -706,7 +706,9 @@ function NewDocumentContent() {
                   >
                     <Icon size={18} className={colors.color} />
                     <p className="mt-2 text-sm font-semibold text-slate-800">{t.display_name}</p>
-                    <p className="mt-0.5 text-xs text-slate-400">{t.description}</p>
+                    {t.description && (
+                      <p className="mt-0.5 text-xs text-slate-400">{t.description}</p>
+                    )}
                     <div className="mt-2 flex items-center gap-2">
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
                         {t.catalogueCategoryName}

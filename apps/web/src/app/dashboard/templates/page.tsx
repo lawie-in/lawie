@@ -144,9 +144,11 @@ export default function TemplatesPage() {
                         <p className="mt-2 text-sm font-semibold text-slate-800">
                           {t.display_name}
                         </p>
-                        <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
-                          {t.description}
-                        </p>
+                        {t.description && (
+                          <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+                            {t.description}
+                          </p>
+                        )}
                         <div className="mt-3 flex items-center justify-between">
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${colors.badge}`}

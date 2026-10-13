@@ -8,6 +8,7 @@
     "note": "A practising advocate checks this pack before it goes live, in particular the default-bail periods (60 and 90 days), which the pack leaves to the advocate to state."
   },
   "template_id": "default_bail",
+  "card_description": "An application for default bail when the police report is not filed within the period the law allows.",
   "docType": "default_bail",
   "parentDocType": "bail_application",
   "title": "Default Bail Application",

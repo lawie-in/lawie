@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Northern Railway, Kamlesh Verma, Lily Thomas cites mandatory."
   },
   "template_id": "review_petition",
+  "card_description": "A petition asking the same court to review its own order.",
   "docType": "review_petition",
   "title": "Review Petition under Order 47 Rule 1 CPC / Article 137",
   "displayName": "Review Petition",

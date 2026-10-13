@@ -7,6 +7,7 @@
     "batch": "B8b"
   },
   "template_id": "interim_application",
+  "card_description": "An interim application in a pending case.",
   "title": "Interim Application (IA) for Interim Relief During Pendency",
   "category": "writ",
   "creditsCost": 2,

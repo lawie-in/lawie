@@ -3,7 +3,7 @@ import { Router, Request, Response } from 'express';
 import { catalogueCategory } from '../config/catalogue';
 import { authenticate } from '../middleware/authenticate';
 import { Template } from '../models/Template.model';
-import { presentDescription } from '../utils/presentDescription';
+import { cardDescriptionFor } from '../utils/cardDescription';
 
 const router = Router();
 
@@ -44,7 +44,8 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
   res.json({
     templates: templates.map((template) => ({
       ...template,
-      description: presentDescription(template.description),
+      // T-365 AC6: the signed card line only; '' when the pack has none.
+      description: cardDescriptionFor(template.templateId),
     })),
     plan,
   });
@@ -74,7 +75,11 @@ router.get('/:slug', authenticate, async (req: Request, res: Response): Promise<
     return;
   }
 
-  res.json({ template: { ...template, description: presentDescription(template.description) } });
+  // T-365 AC6: drop the stored (internal) description before the spread, then
+  // set the signed card line, so the old text cannot come back through the spread.
+  const { description: _internalDescription, ...rest } = template;
+  void _internalDescription;
+  res.json({ template: { ...rest, description: cardDescriptionFor(template.templateId) } });
 });
 
 export default router;

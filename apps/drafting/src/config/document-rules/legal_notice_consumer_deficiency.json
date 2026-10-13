@@ -1,4 +1,5 @@
 {
+  "card_description": "A legal notice asking a seller or service provider to remedy a defect or deficiency.",
   "_meta": {
     "description": "Document-rules config for legal_notice_consumer_deficiency — pre-CPA-2019 notice demanding cure of deficiency in service/goods before filing consumer complaint",
     "owner": "Ajay (CLO)",

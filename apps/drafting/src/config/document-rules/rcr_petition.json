@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off."
   },
   "template_id": "rcr_petition",
+  "card_description": "A petition for restitution of conjugal rights.",
   "docType": "rcr_petition",
   "title": "Petition for Restitution of Conjugal Rights",
   "displayName": "RCR Petition (s.9 HMA / s.22 SMA)",

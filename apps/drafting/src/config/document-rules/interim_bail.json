@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
   },
   "template_id": "interim_bail",
+  "card_description": "An application for bail for a short period while a bail application is pending.",
   "docType": "interim_bail",
   "parentDocType": "bail_application",
   "title": "Interim Bail Application",

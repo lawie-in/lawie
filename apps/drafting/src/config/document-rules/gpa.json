@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Suraj Lamp warning must appear prominently when GPA includes power to sell. Authentication / notarisation / registration requirements differ for property powers vs general powers."
   },
   "template_id": "gpa",
+  "card_description": "A General Power of Attorney letting a person act generally for the grantor.",
   "docType": "gpa",
   "title": "General Power of Attorney (Powers of Attorney Act, 1882)",
   "displayName": "General Power of Attorney (GPA)",

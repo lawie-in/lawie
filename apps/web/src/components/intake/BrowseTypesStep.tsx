@@ -63,7 +63,7 @@ export default function BrowseTypesStep({
         (category === 'all' || catalogueId(k) === category) &&
         (q === '' ||
           k.display_name.toLowerCase().includes(q) ||
-          k.description.toLowerCase().includes(q)),
+          (k.description ?? '').toLowerCase().includes(q)),
     );
   }, [kinds, query, category]);
 
@@ -148,7 +148,9 @@ export default function BrowseTypesStep({
                       className="border-brand-line focus-visible:ring-brand-teal flex h-full w-full flex-col gap-2 rounded-xl border bg-white p-4 text-left hover:shadow-sm focus:outline-none focus-visible:ring-2"
                     >
                       <span className="text-brand-navy font-semibold">{k.display_name}</span>
-                      <span className="text-brand-muted text-sm">{k.description}</span>
+                      {k.description && (
+                        <span className="text-brand-muted text-sm">{k.description}</span>
+                      )}
                       <span className="mt-auto pt-1">
                         <span className={tagPlain}>{g.name}</span>
                       </span>

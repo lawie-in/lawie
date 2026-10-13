@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Pioneer Urban concurrent-remedy cite mandatory. State-RERA mapping required in indian-courts.json — see note."
   },
   "template_id": "rera_complaint",
+  "card_description": "A complaint before the State Real Estate Regulatory Authority under Section 31 of the RERA Act, 2016.",
   "docType": "rera_complaint",
   "title": "Complaint under Section 31 of the Real Estate (Regulation and Development) Act, 2016",
   "displayName": "RERA Complaint (S.31 RERA)",
