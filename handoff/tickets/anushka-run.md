@@ -755,3 +755,11 @@ What a user can now do:
 - Known gap: BNS 61(2) (the target of 120B) is fixed in T-383, and the 303(2) row in T-361.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-383 — criminal conspiracy shows correctly (7569b14, shashank, 13 Oct 2026)
+
+What a user can now do:
+- Look up IPC 120B or BNS 61(2) in the converter or the bail checker and see it as criminal conspiracy, not "not an offence".
+- In the bail checker, see a section that isn't found named plainly ("Section 400"), not as the raw code "400-BNS".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
