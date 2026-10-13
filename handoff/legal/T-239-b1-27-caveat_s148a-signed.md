@@ -121,7 +121,7 @@ Value: the empty string `""` (a caveat has no verification). The block below is 
 | claimed_right_basis | Why the caveator claims a right to appear on the hearing | textarea | yes | right-to-appear clause; averment unlock |
 | expected_application_nature | What the application is expected to ask for | textarea | no | expected application clause |
 | earlier_proceedings | Earlier caveats and proceedings on the same matter (court, date, result) | textarea | no | disclosure clause; averment unlock |
-| advocate_name / advocate_enrolment | Advocate details | text | yes | signature block |
+| advocate_name / advocate_enrollment | Advocate details | text | yes | signature block |
 
 ## _averments
 
@@ -180,3 +180,5 @@ Reviewed by me after an independent review pass; the corrections are in this fil
 | A practising advocate checks the pack before it goes live | Condition |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).

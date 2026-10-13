@@ -20,12 +20,22 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - Grounds render as the fixed signed sentence per ticked option. This is stricter than renderer rule 3 and stays so.
 - `when`, `variants` and `none_values` extend the ADR format. The loader must read them; it must not drop them.
 
+## Version 2, 13 Oct 2026 (supersedes v1 at 0204a7e, SHA `728374339fa5a0f3f8354608cab5a226979bc9ba4b9e8cc33123571652ad320e`)
+
+- The pack's `grounds_for_bail` is free text, so `grounds` is now `source: advocate`: the advocate's own words with grammar fixes only, after the signed intro. The option list is removed, and with it prolonged_custody and its `custody_since` slot.
+- Slots that are ledger keys, not pack fields, are valid. The ledger is the source under D1. `false_implication_reason`, `civil_dispute_particulars` and `police_action` come from the `_averments` files (anticipatory and Magistrate inherit bail_regular). `facts_narrative` and `additional_context` must be put into the ledger by the brief for every bail pack. If a key is absent, a required clause renders its MISSING form and an optional clause is left out. Nothing is ever invented to fill it.
+
+## Version 3, 13 Oct 2026 (supersedes v2 at b61aaf9, SHA `f610ebdd928c48f22affcd1325a7280168b64fa51af8f53b7167cd18714e5423`)
+
+- `grounds` gets `list: true` (Arjun's ruling 4). Each ground the ledger holds renders as its own item in the advocate's words, with grammar fixes only, under the signed intro.
+- `medical` loses `skip_if_rendered`, because free-text grounds have no `medical_grounds` item to point at. If the advocate gives a medical condition, it prints once in the `medical` clause.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_before_magistrate",
-  "version": 1,
+  "version": 3,
   "none_values": "first_bail_application.equals (T-334)",
   "clauses": [
     {
@@ -185,58 +195,10 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "id": "grounds",
       "order": 70,
       "required": true,
-      "source": "fixed",
+      "source": "advocate",
       "list": true,
-      "intro": "The applicant seeks bail on the following grounds:",
-      "from": "grounds_for_bail",
-      "items": {
-        "false_implication": {
-          "text": "The applicant has been falsely implicated in this case."
-        },
-        "no_flight_risk": {
-          "text": "There is no likelihood of the applicant fleeing from justice."
-        },
-        "no_criminal_antecedent": {
-          "use_clause": "antecedents"
-        },
-        "cooperation": {
-          "text": "The applicant will cooperate with the investigation and the trial."
-        },
-        "no_evidence_tampering": {
-          "text": "There is no likelihood of the applicant tampering with the evidence or influencing any witness."
-        },
-        "prolonged_custody": {
-          "text": "The applicant has been in custody since {custody_since}.",
-          "slots": [
-            "custody_since"
-          ]
-        },
-        "investigation_complete": {
-          "text": "The charge sheet has been filed, and the custodial interrogation of the applicant is not required.",
-          "requires": {
-            "key": "investigation_status",
-            "in": [
-              "charge_sheet_filed"
-            ]
-          },
-          "missing_label": "Investigation status"
-        },
-        "medical_grounds": {
-          "text": "The applicant seeks bail on medical grounds, the applicant suffering from {medical_condition}.",
-          "slots": [
-            "medical_condition"
-          ]
-        },
-        "willing_mediation": {
-          "text": "The applicant is willing to take part in mediation or counselling."
-        },
-        "youth_first_time": {
-          "text": "The applicant is aged {applicant_age} years.",
-          "slots": [
-            "applicant_age"
-          ]
-        }
-      }
+      "slot": "grounds_for_bail",
+      "intro": "The applicant seeks bail on the following grounds:"
     },
     {
       "id": "woman_proviso",
@@ -403,8 +365,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "text": "The applicant suffers from {medical_condition}.",
       "slots": [
         "medical_condition"
-      ],
-      "skip_if_rendered": "grounds.medical_grounds"
+      ]
     },
     {
       "id": "sureties",
@@ -430,4 +391,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `728374339fa5a0f3f8354608cab5a226979bc9ba4b9e8cc33123571652ad320e`
+SHA-256 of the JSON block (between the fences, final newline included): `683616eb289f1bc08b9a6ee533d447871d5f6940e9899d5262fcf00d930206fe`

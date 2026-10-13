@@ -162,7 +162,7 @@ Applicant
 | property_not_required_reason | Why the property need not stay in custody | textarea | no | submission unlock |
 | earlier_applications | Earlier applications for release (court, date, result) | textarea | no | mandatory disclosure; blank if empty |
 | advocate_name | Advocate name | text | yes | signature block |
-| advocate_enrolment | Bar Council enrolment no. | text | yes | signature block |
+| advocate_enrollment | Bar Council enrolment no. | text | yes | signature block |
 
 `governing_provision` is computed by code from `procedure_code` + `produced_before_court`; not a form field.
 
@@ -224,3 +224,5 @@ The "Notes" section is the drafter's reasoning, kept for the record; it is not t
 | Which of 497 / 503 by whether the property was produced before the court | Approved; sub-sections stay out |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST. S = 1 Ink. Any other wording comes back to me.
+
+13 Oct 2026, T-382: the field key `advocate_enrolment` is renamed to `advocate_enrollment`. This changes the key only; the wording and labels are unchanged (Ajay).
