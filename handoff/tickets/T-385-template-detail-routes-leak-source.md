@@ -28,3 +28,7 @@ Confirmed: nothing in the web reads pack-level `_source`, `prompt_context` or cl
 ## Arjun (13 Oct 2026)
 
 T-385 removes `GET /templates/:slug`, which has no caller. The template-configs detail route sends an allowlist projection (Mahak's proposal). Field-level `source` reaching the form is T-394.
+
+## Added (Priya, 13 Oct 2026, from Tanvi's T-375 review)
+
+GET /templates (gateway /api/templates) still lists the six plaint rows from Mongo while `feature.template_civil_plaint` is off. After T-375 merges, apply the same filter using `hiddenTemplateIds` / `isTemplateEnabled` from feature-switches.ts. `/templates/:slug` is removed in this ticket anyway. Add a test.
