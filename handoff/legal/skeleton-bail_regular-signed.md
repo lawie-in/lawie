@@ -13,6 +13,13 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 - Title, prayer, verification and the advocate block stay code-assembled (ADR-021). The verification relation comes from a ledger key, or a blank (T-359 AC6).
 - Any change to this JSON needs a fresh sign-off. The loader's hash test pins the SHA below.
 
+## Re-sign, 13 Oct 2026 (supersedes 07706c2)
+
+- Clause ids renamed to this pack's ids in ADR-025's mandatoryClauses list (40a4e6e). Wording, order, slots and conditions unchanged. Old SHA `03a11bd864dbf325fa1be70401473a08e96719d6cb8ab2c698c26e720eaa816a`.
+- The undertakings clause takes the pack's flight-risk / undertakings id: it is a future undertaking, not a fact, so it stays `source: fixed`.
+- Grounds render as the fixed signed sentence per ticked option. This is stricter than renderer rule 3 and stays so.
+- `when`, `variants` and `none_values` extend the ADR format. The loader must read them; it must not drop them.
+
 ## Skeleton JSON
 
 ```json
@@ -34,7 +41,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       ]
     },
     {
-      "id": "fir",
+      "id": "fir_details",
       "order": 20,
       "required": true,
       "source": "fixed",
@@ -47,7 +54,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       ]
     },
     {
-      "id": "custody",
+      "id": "custody_status",
       "order": 30,
       "required": true,
       "source": "fixed",
@@ -359,7 +366,7 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
       "skip_if_rendered": "grounds.medical_grounds"
     },
     {
-      "id": "undertakings",
+      "id": "no_flight_risk",
       "order": 95,
       "required": true,
       "source": "fixed",
@@ -369,4 +376,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `03a11bd864dbf325fa1be70401473a08e96719d6cb8ab2c698c26e720eaa816a`
+SHA-256 of the JSON block (between the fences, final newline included): `40e2d56dd4f9f51811416d4432ae6cf0b7c00b39bb6fb174890ca4aeceda6248`
