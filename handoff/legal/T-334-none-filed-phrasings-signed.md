@@ -86,3 +86,21 @@ Build `a8e516a` (`fix/t-334-none-filed-phrasings`) approved. I recomputed the SH
 | `_averments/default_bail.json` | `2e882516bf7c5ad8f35edace6fbc53b5c264112fc9f4005a06b5878e78bdc96d` |
 
 Any change to these files voids this sign-off.
+
+## Addendum 2 (from T-373 golden fixtures), 13 Oct 2026, pending landing
+
+Add these lines to section A (both `equals` lists in `_averments/bail_regular.json`, entry `first_bail_application`), after the existing ones and in this order:
+
+```text
+no bail application filed earlier
+no bail application was filed earlier
+no earlier bail application filed
+no bail application filed before
+no bail application has been filed earlier
+```
+
+**Landing.** This changes `_averments/bail_regular.json`, so the SHA above is void once it lands. The lead lands this list, the new SHA in this file and any test pin in one commit, and sends me the diff to re-sign the SHA. Until then, nothing changes.
+
+## Police station slot (all bail skeletons)
+
+The skeletons say "Police Station {police_station}". Before filling the slot, strip one leading `PS`, `P.S.`, `P S`, `Police Station`, `Thana` or `Thana:` (any case, with any trailing punctuation or space) from the value. So "PS Kadamkuan" prints as "Police Station Kadamkuan". The skeleton text does not change. This is a renderer or ledger fix, and the ledger keeps the advocate's raw words.

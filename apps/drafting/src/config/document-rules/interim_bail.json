@@ -26,8 +26,15 @@
   "form_schema": [
     { "name": "applicant_name", "label": "Applicant Name", "type": "text", "required": true },
     {
+      "name": "applicant_relation",
+      "label": "Relation to the person named below",
+      "type": "select",
+      "options": ["Son of (S/o)", "Daughter of (D/o)", "Wife of (W/o)", "Husband of (H/o)"],
+      "required": false
+    },
+    {
       "name": "applicant_parentage",
-      "label": "Father's / Husband's Name",
+      "label": "Name of father, mother or spouse",
       "type": "text",
       "required": true
     },
@@ -291,7 +298,7 @@
     }
   ],
   "prayerTemplate": "PRAYER\n\nIn the light of the facts and circumstances stated above, it is most respectfully prayed that this Hon'ble Court may graciously be pleased to:\n\na) Grant interim bail to the applicant {applicant} for a period of {duration_sought_days} days, pending the disposal of the main Bail Application No. {main_bail_application_number} of [YEAR];\nb) Direct release of the applicant on furnishing personal bond and sureties to the satisfaction of the trial court;\nc) Pass any other order(s) as this Hon'ble Court may deem fit and proper in the interest of justice.\n\nAnd for this act of kindness, the applicant shall ever pray.",
-  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, S/o {parentName}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
+  "verificationTemplate": "VERIFICATION\n\nI, {applicant}, {parentRelation}, aged about {age} years, resident of {address}, do hereby verify that the contents of paragraphs 1 to {lastParagraph} of the above application are true and correct to the best of my knowledge and belief. No part of it is false and nothing material has been concealed therein.\n\nVerified at {place} on this {date}.\n\nDeponent",
   "prompt_context": "Draft an Interim Bail Application under the inherent powers of the Court read with BNSS Section 480/483. Interim bail is a short-duration release pending adjudication of the main regular bail / anticipatory bail application. The Hon'ble Supreme Court in Lal Kamlendra Pratap Singh v. State of U.P. (2009) 4 SCC 437 recognised the power of courts to grant interim bail. The application must establish: (1) pendency of a main bail application; (2) compelling urgency that cannot await the main hearing; (3) specific period sought; (4) undertakings of cooperation and surrender at end of interim period. Reference BNS section numbers for offences (never IPC). The application must be tight — interim bail is an exceptional remedy and the court must be satisfied of urgency.",
   "promptInstructions": [
     "Draft an Interim Bail Application invoking inherent powers read with Section 480/483 BNSS, 2023.",
