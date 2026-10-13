@@ -384,15 +384,12 @@ export const OWN_WORDS_STOP_LIST: readonly string[] = [
   'these',
   'those',
   'some',
-  'any',
   'each',
-  'every',
   'such',
   // connectives
   'and',
   'or',
   'but',
-  'as',
   'although',
   'though',
   'however',
@@ -428,12 +425,7 @@ export const OWN_WORDS_STOP_LIST: readonly string[] = [
   'will',
   'would',
   'shall',
-  'should',
-  'may',
-  'might',
   'can',
-  'could',
-  'must',
   // pronouns
   'i',
   'me',
@@ -624,6 +616,9 @@ export function stripPoliceStationPrefix(value: string): string {
   return v;
 }
 
+/** A currency amount as the verifier reads one: a marker (₹, Rs, INR) and a figure. */
+const AMOUNT_RE = /(?:₹|\b(?:rs|inr)\b\.?)\s*(\d[\d,]*(?:\.\d+)?)/giu;
+
 /**
  * The sums of money a text states, by value: "Rs 8,00,000", "Rs. 800000" and
  * "₹8,00,000" are all 800000 (Indian or international digit grouping). Only
@@ -631,7 +626,7 @@ export function stripPoliceStationPrefix(value: string): string {
  */
 export function amountsInText(text: string): number[] {
   const out: number[] = [];
-  for (const m of text.matchAll(/(?:₹|\b(?:rs|inr)\b\.?)\s*(\d[\d,]*(?:\.\d+)?)/giu)) {
+  for (const m of text.matchAll(AMOUNT_RE)) {
     const n = Number(m[1].replace(/,/g, ''));
     if (Number.isFinite(n)) out.push(n);
   }
@@ -678,6 +673,67 @@ export function statedByValueIn(
     }
     return false;
   };
+}
+
+/**
+ * The negating words of the advocate's own words (English and Hinglish).
+ * Matching data only, never printed: one dropped from the model's text
+ * reverses the meaning, so it falls back.
+ */
+export const OWN_WORDS_NEGATORS: readonly string[] = [
+  'not',
+  'no',
+  'nor',
+  'never',
+  'neither',
+  'without',
+  'nahi',
+  'nahin',
+];
+
+/** The text with every currency amount ("Rs 8,00,000", "₹800000") blanked out. */
+function withoutAmounts(text: string): string {
+  return text.replace(AMOUNT_RE, ' ');
+}
+
+/**
+ * The other direction of ruling 2 (T-373 review round 2): something the
+ * advocate's `raw_span` states that the model's text leaves out. True when
+ * (a) a raw_span content word (not on `OWN_WORDS_STOP_LIST`) has no stem
+ * match in the text, (b) a raw_span date (by value), amount (by value) or
+ * other number is missing from the text, or (c) a raw_span negating word is
+ * missing. A grammar-only rephrase keeps every content word and passes.
+ */
+export function ownWordsDroppedWord(text: string, rawSpan: string): boolean {
+  // (b) dates and amounts by value: "2 March 2025" keeps "2 Mar 2025", "Rs 800000" keeps "Rs 8,00,000".
+  const textDates = new Set(datesInText(text));
+  if (datesInText(rawSpan).some((d) => !textDates.has(d))) return true;
+  const textAmounts = new Set(amountsInText(text));
+  if (amountsInText(rawSpan).some((a) => !textAmounts.has(a))) return true;
+  // Amounts are compared by value above, so their currency marker and figure leave the word check.
+  const words = (t: string) => wordsOf(withoutDates(withoutAmounts(t)));
+  const textWords = words(text);
+  const textSet = new Set(textWords);
+  const textStems = new Set(textWords.map(ownWordsStem));
+  // A figure is compared without its digit grouping, so "800000" keeps "8,00,000".
+  const digits = (t: string) => words(t.replace(/(?<=\d),(?=\d)/g, () => ''));
+  const textNumbers = new Set(digits(text).filter((w) => /^\d+$/.test(w)));
+  for (const w of digits(rawSpan)) {
+    if (/^\d+$/.test(w)) {
+      if (!textNumbers.has(w)) return true;
+    }
+  }
+  for (const w of words(rawSpan)) {
+    if (/^\d+$/.test(w)) continue;
+    // (c) a negating word must be kept as written.
+    if (OWN_WORDS_NEGATORS.includes(w)) {
+      if (!textSet.has(w)) return true;
+      continue;
+    }
+    // (a) a content word must be kept, compared on its stem.
+    if (!STOP_WORDS.has(w) && !textStems.has(ownWordsStem(w))) return true;
+  }
+  return false;
 }
 
 // ── The renderer ────────────────────────────────────────────────────────────
@@ -1008,6 +1064,7 @@ export function renderDraft(input: DraftRenderInput): DraftRenderResult {
       text !== '' &&
       !ownWordsAlteredEntity(text, raw) &&
       !ownWordsAddedWord(text, raw) &&
+      !ownWordsDroppedWord(text, raw) &&
       keepsToFact(text, [entry])
     ) {
       return { words: text };
