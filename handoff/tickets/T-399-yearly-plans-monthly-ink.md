@@ -60,3 +60,11 @@ Today `cancelSubscriptionInk` zeroes the balance immediately on cancel. That is 
 ## Ajay (13 Oct 2026): refunds
 
 The refund policy allows no refunds, full or partial, on any plan. Every cancel, monthly or yearly, keeps the Ink until the paid period ends, and today's immediate zeroing is a defect fixed here. No refund ticket. Statutory exceptions (failed service, double charge) are handled case by case through contact@lawie.in, not in code.
+
+## Arjun (13 Oct 2026): where the drip lives (Kunal's Explore)
+
+**(a) `packages/shared`.** One function, `settleYearlyDrip({ db, userId, now })`, working on the raw `users`, `subscriptions` and `inkledgers` collections, with the SKU Ink numbers moved to a shared constant (`INK_PER_CYCLE` keyed by sku id; billing's `credit-skus.ts` imports it so there is one source). Drafting calls it at the top of `getCreditBalance` and `holdInk`; billing calls it from `getInkBalance` and the webhook handler. Not (b): two copies of money logic drift. Not (c): a network hop on every hold. This is a `packages/shared` change: Priya claims it for Kunal (one lead at a time), and the shared build runs before drafting/billing tests as CI does.
+
+**Idempotency:** compare-and-set on the Subscription counter — `findOneAndUpdate({ _id, inkDripCount: n }, { $inc: { inkDripCount: 1 }, $set: { inkDripNextAt } })`; only the caller that wins writes the grant and the ledger row. Keep the ledger `key` (`sub_drip:<subId>:<n>`) for audit, but the CAS is the guard, so no unique index migration now.
+
+**Also fix in T-399 (all real bugs):** (1) `subscription.activated` and `subscription.charged` both fire on the first payment, so the grant and the yearly carry run twice — store the Razorpay `payment_id` of the last grant on the Subscription and grant only when it is new; one test. (2) The cancel path downgrades the plan to free at once — move that to `paidThrough` with the Ink. (3) `inkledger` writes swallow errors — log them at error level with the key; the unique index is a follow-up ticket (migration), Priya logs it.
