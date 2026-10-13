@@ -1069,3 +1069,49 @@ export function buildRulePackReport(result: RulePackLoadResult, generatedOn: str
   lines.push('');
   return lines.join('\n');
 }
+
+// ---------------------------------------------------------------------------
+// Field aliases (T-382)
+// ---------------------------------------------------------------------------
+
+/**
+ * One-direction rewrite map for stored form-data keys: old key -> new key.
+ *
+ * Per Arjun's ruling (13 Oct 2026, 8cfbce3, handoff/tickets/T-374-*.md,
+ * "two alias maps, not one"): `FIELD_ALIASES` (T-382) rewrites a stored key
+ * on read, in one direction only. It is NOT the skeleton slot lookup:
+ * `SLOT_ALIASES` (ADR-025 L102) resolves a skeleton slot against a pack's own
+ * key in either direction, never writes to form data, and lands separately
+ * with T-374.
+ */
+export const FIELD_ALIASES: Readonly<Record<string, string>> = Object.freeze({
+  advocate_enrolment: 'advocate_enrollment',
+});
+
+/**
+ * Returns a shallow copy of `data` where, for each `old -> new` pair in
+ * {@link FIELD_ALIASES}, the value under `old` is copied to `new` when `old`
+ * is present and `new` is absent. Presence means an own property, so an
+ * explicit `undefined`/`null` under `new` counts as present and is not
+ * overwritten.
+ *
+ * Never deletes `old`, never overwrites `new`, never mutates `data`.
+ *
+ * Non-object input: `null` or `undefined` yields a new empty object `{}`;
+ * any other non-object (string, number, boolean) or an array is returned
+ * unchanged (same reference, not copied).
+ */
+export function applyFieldAliases(data: Record<string, unknown>): Record<string, unknown> {
+  if (data === null || data === undefined) return {};
+  if (typeof data !== 'object' || Array.isArray(data)) return data;
+  const out: Record<string, unknown> = { ...data };
+  for (const [oldKey, newKey] of Object.entries(FIELD_ALIASES)) {
+    if (
+      Object.prototype.hasOwnProperty.call(out, oldKey) &&
+      !Object.prototype.hasOwnProperty.call(out, newKey)
+    ) {
+      out[newKey] = out[oldKey];
+    }
+  }
+  return out;
+}
