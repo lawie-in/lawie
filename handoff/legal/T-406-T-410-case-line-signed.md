@@ -81,3 +81,9 @@ No other entry moves. Any other byte change needs a new sign-off.
 - `description`: `Consumer complaint under the Consumer Protection Act, 2019, before the District, State or National Consumer Disputes Redressal Commission`
 
 Neither names one level or cites s.35, because the section depends on the forum (T-410 Addendum 1). The card line from T-365 stays as signed. Tanvi may fold this into T-410.
+
+## T-410 / T-417: Tanvi's wording questions (13 Oct 2026)
+
+1. **ncdrc.json :52: signed as:** `Pecuniary jurisdiction: NCDRC hears complaints where value exceeds Rs. 2 Crore (per the Consumer Protection (Jurisdiction of the District Commission, the State Commission and the National Commission) Rules, 2021).` :13 stays as signed. The State Commission audit is clean (36 of 36 records show Rs. 50 lakh to 2 crore).
+2. **Prompt opening, signed:** replace `for a Consumer Complaint under Section 35 of the Consumer Protection Act, 2019` with `for a Consumer Complaint under the Consumer Protection Act, 2019`. The rest of the prompt is unchanged, including the s.2 definition references in Para 7.
+3. **District localRules in the prompt: fix in T-410.** It belongs with ruling 4 and the party-designation fix. The generic consumer rule's District-worded localRules (the Rs. 50 lakh line, the District fee) go to the prompt only when the forum is a District Commission. A State Commission gets its own rule's lines. A non-Commission court gets none. Test: the State and non-Commission prompts contain no "District Commission".
