@@ -46,6 +46,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
+- **HOLD (13 Oct, 01:13): develop_staging CI red on 9ae7d51 (T-223, run 491: Auth and Email worker). Only Mahak's fix merges. Everyone else waits for a green run.**
 - kunal: T-370 (a804570, tester green). Next, once CI on 9ae7d51 is green; pull T-223 in and re-test first.
 - mahak: T-223 merged 9ae7d51; holds the slot until CI on it is green.
 - tanvi: T-357 (c741f59, small fix tested green). After kunal T-370.
