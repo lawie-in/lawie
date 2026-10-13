@@ -120,6 +120,7 @@ jobs:
           - 6379:6379
     env:
       NODE_ENV: test
+      REDIS_TEST_URL: redis://localhost:6379
       # T-211: one pinned Mongo binary in one absolute dir, shared by the pre-download step and the tests.
       MONGOMS_VERSION: '7.0.24'
       MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-binaries
@@ -252,6 +253,7 @@ jobs:
     env:
       NODE_ENV: test
       REDIS_URL: redis://localhost:6379
+      REDIS_TEST_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

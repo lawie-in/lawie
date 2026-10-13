@@ -7,6 +7,7 @@
     "notes": "Service Agreement / Independent Contractor / Consulting Agreement. Distinguish from employment via control test (Dharangadhara Chemical Works v. Workmen AIR 1957 SC 264). No employer-employee relation. GST applies on service supply. TDS u/s 194J / 194C on payments."
   },
   "template_id": "service_agreement",
+  "card_description": "An agreement for services by a contractor or service provider.",
   "title": "Service / Independent Contractor Agreement",
   "category": "corporate",
   "creditsCost": 1,

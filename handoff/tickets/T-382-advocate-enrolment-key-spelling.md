@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting config) + Ajay (pack JSON is legal content) |
 | Mode   | Small fix |
-| Status | Mahak, together with T-365 AC6: one claim on the pack files, not blocked by T-374 after all: Tanvi's loader doesn't edit the bail_*.json packs (13 Oct). Arjun's b8099fb. Rename in 7 packs, a read-side alias for saved drafts, and preflight reads the new key |
+| Status | Merged into develop_staging 492426a (mahak, with T-365/T-382/T-387, 13 Oct 2026). Waiting for Anushka on develop. Priya |
 | Source | default_bail, bail_before_magistrate and interim_bail spell `advocate_enrolment`; the code reads `advocate_enrollment` |
 
 ## Acceptance criteria
@@ -33,3 +33,7 @@ There are 7 packs, not 3: bail_before_magistrate, bail_cancellation, default_bai
 - (a) `GET /templates` card_description: request-time registry lookup by template_id. No new model field, no seed: seeds go stale (see T-360). Same for `GET /templates/:id`.
 - (b) One alias map, exported from `services/rule-pack.service.ts` (where I put it for Tanvi, T-374). Whoever lands first creates it; the other imports. No second copy, no new config file.
 - (c) The alias is applied wherever stored data enters the pipeline through the same helper: `readFormInputs` for drafts, and the brief path only if it loads a stored intake's form data from before the deploy through another function (Mahak checks). Same helper, never a second map. No write-side alias.
+
+## Arjun (13 Oct 2026)
+
+"(after the alias)" was loose wording. The alias is for stored drafts, not request bodies. Preflight F4 reads a fresh request body, which after the rename only ever carries `advocate_enrollment`, so T-387 AC2 is right.

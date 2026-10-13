@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. 'No prima facie case' standard non-negotiable; not a mini-trial."
   },
   "template_id": "discharge_application",
+  "card_description": "An application under the BNSS to discharge the accused before charges are framed.",
   "docType": "discharge_application",
   "title": "Application for Discharge under BNSS",
   "displayName": "Discharge Application",

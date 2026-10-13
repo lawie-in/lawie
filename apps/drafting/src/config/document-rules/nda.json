@@ -7,6 +7,7 @@
     "notes": "NDA / Confidentiality Agreement is enforceable under Indian Contract Act if consideration + lawful object. Remedies: injunction (Specific Relief Act S.36-42) + damages. Confidentiality survives termination - not hit by S.27. Niranjan Shankar Golikari recognised trade secret protection."
   },
   "template_id": "nda",
+  "card_description": "A non-disclosure agreement to keep shared information confidential.",
   "title": "Non-Disclosure Agreement (NDA)",
   "category": "corporate",
   "creditsCost": 1,

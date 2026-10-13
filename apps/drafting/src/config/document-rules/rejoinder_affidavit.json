@@ -7,6 +7,7 @@
     "notes": "Petitioner's rejoinder to counter-affidavit. Limited scope — addresses NEW pleas in counter, not re-arguing petition. With leave of court."
   },
   "template_id": "rejoinder_affidavit",
+  "card_description": "A rejoinder affidavit replying to the respondent's counter affidavit.",
   "title": "Rejoinder Affidavit (Petitioner's Reply to Counter)",
   "category": "procedural",
   "creditsCost": 1,

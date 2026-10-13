@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Post-trial proviso (due diligence) is non-negotiable."
   },
   "template_id": "amendment_of_pleadings",
+  "card_description": "An application under Order 6 Rule 17 CPC to amend a plaint or written statement.",
   "docType": "amendment_of_pleadings",
   "title": "Application for Amendment of Pleadings (Order 6 R.17 CPC)",
   "displayName": "Amendment of Pleadings Application (Order 6 R.17 CPC)",

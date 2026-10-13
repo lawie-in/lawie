@@ -87,3 +87,7 @@ Build `59eff64` (`fix/t-342-s138-date-meanings`) is approved: kinds `memo_receiv
 - "received the memo" counts as L4. Approved, because in an s138 pack the memo is the return memo.
 - A bare "validity" with a cheque word counts as L2. Approved and fail-safe: L2 can only shorten the 3-month window (the computation caps it), so a misread can never pass a late presentation.
 - `date-meanings.json` `_meta.signed` may cite this section.
+
+## Re-sign for T-363, 13 Oct 2026
+
+`_averments/legal_notice_s138.json` is re-signed at SHA-256 `f85eb9a1a170382681d69881f6703ef3fea9b69344b5781c4a9dff94e4a564bd` (was `80905077…fb9d`). The only change is three memo phrasings after "account closed": `account does not exist`, `account did not exist`, `no such account` (branch fix/t-363-s138-notice, 16d3b44). It flows into ni_complaint_s138, as intended.

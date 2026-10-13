@@ -7,6 +7,7 @@
     "change_protocol": "All edits require CLO sign-off. Vishal may flag missing fields by Jira ticket; he must not author legal content unilaterally."
   },
   "template_id": "surrender_application",
+  "card_description": "An application by an accused to surrender before the court.",
   "docType": "surrender_application",
   "parentDocType": "criminal_application",
   "title": "Surrender Application",
@@ -78,7 +79,7 @@
     },
     { "name": "advocate_name", "label": "Advocate Name", "type": "text", "required": true },
     {
-      "name": "advocate_enrolment",
+      "name": "advocate_enrollment",
       "label": "Bar Council Enrolment No.",
       "type": "text",
       "required": true
