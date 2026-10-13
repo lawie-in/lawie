@@ -851,3 +851,10 @@ What a user can now do:
 For this run, the founder turns on `feature.tool_timeline` (`yarn workspace @lawie/drafting seed:setting feature.tool_timeline on`; it shows within about 2 minutes), because T-367 is merged. `feature.tool_bail_checker` stays off until T-361 merges, and `feature.template_civil_plaint` stays off for v1.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-380 — Web tests typecheck (9349b6a, mahak, 13 Oct 2026)
+
+What a user can now do:
+- Nothing changes on screen. This is test files and typecheck config only.
+
+Quality: nothing to test in the UI — test files and typecheck config only

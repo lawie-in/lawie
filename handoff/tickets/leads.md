@@ -46,10 +46,11 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-- mahak: T-380 has the slot (T-375 CI run 506 green). Then Shashank T-363 (review passed, Ajay approved). Earlier plan: Tanvi T-375 (review passed; unblocks T-385 and T-373), then Mahak T-380 (ready). Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
+- mahak: T-380 merged 9349b6a; holds the slot until CI on it is green. Then Shashank T-363 (review passed, Ajay approved). Earlier plan: Tanvi T-375 (review passed; unblocks T-385 and T-373), then Mahak T-380 (ready). Then, as each is ready: Tanvi T-375, Shashank T-363, Kunal T-393, Vishal T-373 (first ready goes first; none needs another of the four, except that Vishal builds on Tanvi's documents.routes.ts hunk). T-373 imports loadSkeleton from T-374 and needs Mahak's facts_narrative (Arjun, 13 Oct). T-361 data copy waits on the founder.
 
 ## Last done
 
+- mahak: T-380 merged 9349b6a (13 Oct 2026). Web test files now typechecked in CI (export {} needed in any web test with no import or export). Released the 5 test files and tsconfig.typecheck.json.
 - tanvi: T-375 CI green (run 506, 13 Oct 2026).
 - tanvi: T-375 merged bb8fd47 (13 Oct 2026). v1 scope switches: plaints, bail checker and timeline tracker hidden by default (feature.template_civil_plaint, feature.tool_bail_checker, feature.tool_timeline; anything but 'on' is off). documents.routes.ts (incl. legacy /generate and /preflight guards; preflight handler re-indented) released to Mahak T-385 and Vishal T-373; t240 setup-only flag spy.
 - kunal: T-393 CI green (run 505, 13 Oct 2026).
