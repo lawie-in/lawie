@@ -41,8 +41,11 @@ let root: Root;
 
 function respond(r: Reply) {
   // A thenable that rejects only when awaited, so no unhandled rejection before the card awaits it.
-  if (r.throws)
-    return { then: (_ok: unknown, fail: (e: Error) => void) => fail(new Error('network')) };
+  if (r.throws) {
+    return {
+      then: (_ok: unknown, fail: (e: Error) => void) => fail(new Error('network')),
+    } as unknown as Promise<never>;
+  }
   const blob = new Blob(['%PDF']);
   return Promise.resolve({
     status: r.status,
