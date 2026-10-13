@@ -42,7 +42,7 @@ Vikram's prices and the two-tranche marketing budget; chatbot design and caps (T
 0. **New users get describe-first by default (T-356 part 1, merging soon):** on the develop and prod servers, remove `FEATURE_DEFAULT_DESCRIBE_FIRST=off` from the server env file, or set it to `on`. Also set the `feature.describe_first` app setting to `on`, or delete it, if it holds a user-id list. Otherwise the new default is overridden.
 1. **`feature.fact_ledger`** stays as you set it until T-356 part 2 (after T-187 + T-188) turns it on by default. For Anushka's next run, switch it off once so she can test the "off" half.
 2. **SES and DNS for T-220** (the "policy changed" email and verification mail). Once T-223 merges, the develop email worker also needs `AUTH_SERVICE_URL` set (step 7 of the email doc, Arjun).
-3. **The registered address, with PIN code,** for the privacy policy, invoices and the footer of the verification email (T-223; no verification email goes out until it is filled).
+3. **The registered address, with PIN code,** for the privacy policy, invoices and the footer of the verification email (T-223; no verification email goes out until it is filled). Going live for email (T-379): fill the footer, then restart the email worker. Until then the worker holds every email in the queue and its /health returns 503.
 4. **Rotate `INTERNAL_SECRET`** after T-229 merges.
 5. **Production section reseed** (your database), only after T-250 + T-255 and T-275 are merged; develop first.
 6. The rest of the list below, when you choose.
