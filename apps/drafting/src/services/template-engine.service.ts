@@ -1103,6 +1103,44 @@ export const RELATION_ONLY_BLANK = '[To be confirmed: relation]';
 /** T-393 (Ajay, T-359 AC6 Addendum 2): the name part, when only the relation is given. */
 export const PARENT_NAME_BLANK = '[To be confirmed: name of parent or spouse]';
 
+/** T-404 rule 3 (Ajay, 13 Oct 2026): no advocate name from the form or the profile. */
+export const ADVOCATE_NAME_BLANK = "[To be confirmed: advocate's name]";
+
+/** T-404 rule 3, Addendum 2 #8: no advocate address in the form (the profile has none yet). */
+export const ADVOCATE_ADDRESS_BLANK = "[To be confirmed: advocate's address]";
+
+/** T-404 rule 4: what {courtHeader}, {courtDesignation} and {caseNomenclature} print with no court. */
+export const COURT_BLANK = '[To be confirmed: court]';
+
+/** The ledger path's blank for a fact it does not hold (`missingPlaceholder`). */
+const LEDGER_BLANK = /^\{\{MISSING: [^}]*\}\}$/;
+
+/**
+ * T-404 rule 3: the advocate address as typed, else the signed blank. Empty,
+ * whitespace only, or a blank the brief or ledger path put in for the field
+ * (`[To be confirmed: …]`, `{{MISSING: …}}`) counts as not given (rule 2).
+ */
+function advocateAddressOrBlank(value: string | undefined): string {
+  const v = value?.trim() ?? '';
+  if (v === '' || /^\[To be confirmed: [^\]]*\]$/.test(v) || LEDGER_BLANK.test(v)) {
+    return ADVOCATE_ADDRESS_BLANK;
+  }
+  return value as string;
+}
+
+/**
+ * T-404 rule 4: with no court chosen, {courtHeader}, {courtDesignation} and
+ * {caseNomenclature} print the signed blank, never `_____`. Only the camelCase
+ * tokens: `court_designation` stays as it was, since the Drafter is told the
+ * court from it. Runs after `applyPlaceholderAliases`, so a value wins.
+ */
+function applyCourtBlanks(ctx: PlaceholderContext, courtData?: CourtLookupData): void {
+  if (chosenCourtHeading(courtData)) return;
+  for (const alias of ['courtHeader', 'courtDesignation', 'caseNomenclature']) {
+    if (!ctx[alias]?.trim()) ctx[alias] = COURT_BLANK;
+  }
+}
+
 /** T-393: the relations Ajay allows (AC6 Addendum 3), as they print. */
 export type PartyRelation = 'S/o' | 'D/o' | 'W/o' | 'H/o';
 
@@ -1464,7 +1502,8 @@ export function buildPlaceholderContext(
     current_year: String(now.getFullYear()),
 
     // Advocate details: the declared, typed name, else the user profile (T-300)
-    advocate_name: advocate.name ?? '____________________',
+    // T-404 rule 3: with neither, Ajay's signed blank.
+    advocate_name: advocate.name ?? ADVOCATE_NAME_BLANK,
     // T-311: the declared, typed advocate_enrollment, else the profile number
     // when the name is the profile's (extra.enrollmentNumber). A client
     // `enrollment_number` is list A (T-300).
@@ -1515,6 +1554,9 @@ export function buildPlaceholderContext(
   // {advocate_enrollment} itself (legal_notice_s138, _s80). Same number as
   // {enrollment_number}; with none, the flattened value (or nothing) stays.
   if (declaresEnrollment && enrollment !== undefined) ctx.advocate_enrollment = enrollment;
+
+  // T-404 rule 3, Addendum 2 #8: the form answer, else the signed blank.
+  ctx.advocate_address = advocateAddressOrBlank(ctx.advocate_address);
 
   // SCRUM-54 B2: Capitalise state name (form sends lowercase stateId like "bihar")
   if (ctx.state) {
@@ -1640,6 +1682,7 @@ export function buildPlaceholderContext(
   // T-146: aliases are set after the SCRUM-50 court-rule block, so an alias
   // such as {caseNomenclature} reads the same value as {case_nomenclature}.
   applyPlaceholderAliases(ctx);
+  applyCourtBlanks(ctx, courtData);
 
   // Recursive placeholder pass — resolve {token} references that may exist inside
   // ctx values themselves (e.g. caseNomenclature from courts DB contains "{current_year}"
