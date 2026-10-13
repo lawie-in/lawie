@@ -24,3 +24,15 @@ I first wrote "cite" on 11 Oct and changed my mind on 12 Oct. "Cite" promises th
 |---|---|
 | Wording above | Approved |
 | Vikram's row 2 | Wording only, no price change: covered |
+
+## Addendum (T-372, merged 587ce69), 13 Oct 2026: the "cost before you generate" line
+
+Line, conditional: `You see the Ink cost before you generate a draft.`
+
+It may go public only when all three hold. Kunal confirms each with a screenshot from develop:
+
+1. Every path that charges Ink (new draft, a brief with no rule pack, regenerate, any add-section or redo action) shows "Uses N Ink" before the charge.
+2. The N shown is the N charged. Both read `costForTemplate`, and a test pins that the two are equal.
+3. When the cost is unknown, the draft does not start without it. Today the build shows nothing when the cost is unknown; that case must either block or show the cost. Otherwise the line is false.
+
+Until then, the T-238 FAQ line stands as it is. "Uses N Ink" in the app is approved as built.
