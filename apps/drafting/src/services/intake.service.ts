@@ -9,6 +9,7 @@
 import crypto from 'crypto';
 
 import { env } from '../config/env';
+import logger from '../config/logger';
 import redis from '../config/redis';
 import { Event } from '../models/Event.model';
 import type { IFactLedger } from '../models/FactLedger.model';
@@ -103,11 +104,11 @@ export { datesInText, normalise, parseModelJson } from './intake-text';
 export const DESCRIBE_FIRST_SETTING = 'feature.describe_first';
 
 /**
- * `feature.describe_first`: "on" for everyone, "off" for no one, or a
- * comma-separated list of user ids (the founder's account first, per §3.11).
- * Unset (no AppSetting doc): falls back to FEATURE_DEFAULT_DESCRIBE_FIRST
- * (default off). Never throws: any other problem reading it means off, so the
- * gallery shows.
+ * `feature.describe_first`: the admin setting is "on" (everyone) or "off" (no
+ * one, the kill switch). T-356: the user-id list form is retired. No
+ * AppSetting doc, or any other value (a legacy list, a typo), falls back to
+ * FEATURE_DEFAULT_DESCRIBE_FIRST (default on). Never throws: any other problem
+ * reading it means off, so the gallery shows.
  */
 export async function isDescribeFirstEnabled(userId: string): Promise<boolean> {
   return isSwitchOn(DESCRIBE_FIRST_SETTING, userId);
@@ -115,14 +116,21 @@ export async function isDescribeFirstEnabled(userId: string): Promise<boolean> {
 
 /**
  * T-147b: `feature.fact_ledger`, read the same way as `feature.describe_first`.
- * Unset (no AppSetting doc): falls back to FEATURE_DEFAULT_FACT_LEDGER
- * (default off). Off: the brief works exactly as before, with no extraction
- * call and no ledger. On: the extraction pass runs and the ledger is written.
+ * No AppSetting doc, or a value other than "on"/"off": falls back to
+ * FEATURE_DEFAULT_FACT_LEDGER (default off until T-356 part 2). Off: the brief
+ * works exactly as before, with no extraction call and no ledger. On: the
+ * extraction pass runs and the ledger is written.
  */
 export async function isFactLedgerEnabled(userId: string): Promise<boolean> {
   return isSwitchOn(FACT_LEDGER_SETTING, userId);
 }
 
+/**
+ * T-356 (Arjun's rule): a switch's admin setting is 'on' or 'off', nothing
+ * else. Missing doc → the env default. Any other value is treated as missing
+ * and logs one warning naming the setting, never the value (a legacy value may
+ * hold user ids). `userId` only matters for the fixture-user rule.
+ */
 async function isSwitchOn(setting: string, userId: string): Promise<boolean> {
   // T-147e: the golden set runs the describe-first ledger path whatever the
   // switches say for users. Only the reserved fixture user; see run-origin.ts.
@@ -130,11 +138,12 @@ async function isSwitchOn(setting: string, userId: string): Promise<boolean> {
   try {
     const raw = (await getAppSetting(setting)).trim();
     if (raw === 'on') return true;
-    if (raw === 'off' || raw === '') return false;
-    return raw
-      .split(',')
-      .map((s) => s.trim())
-      .includes(userId);
+    if (raw === 'off') return false;
+    logger.warn(
+      { setting },
+      "T-356: feature switch setting is not 'on' or 'off'; using the code default",
+    );
+    return envDefaultFor(setting);
   } catch (err) {
     // T-283: no AppSetting doc at all → the env default for this switch. Any
     // other read error (Mongo down, etc.) stays off: fail closed.
@@ -144,9 +153,9 @@ async function isSwitchOn(setting: string, userId: string): Promise<boolean> {
 }
 
 /**
- * T-283: the env fallback for a switch whose AppSetting doc is missing. Read
- * from `env` at call time (not captured at import) so tests can replace it.
- * 'on' means on for everyone; env has no user-id list form.
+ * T-283: the env fallback for a switch whose AppSetting doc is missing, or
+ * (T-356) holds a value other than 'on'/'off'. Read from `env` at call time
+ * (not captured at import) so tests can replace it. 'on' means on for everyone.
  */
 function envDefaultFor(setting: string): boolean {
   if (setting === DESCRIBE_FIRST_SETTING) return env.FEATURE_DEFAULT_DESCRIBE_FIRST === 'on';
