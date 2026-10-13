@@ -1,0 +1,98 @@
+{
+  "id": "24-run3-anticipatory-bail-gaya",
+  "pack": "bail_anticipatory",
+  "title": "Run 3, anticipatory bail, Gaya: no roots, character or flight claims, a boundary quarrel stays a boundary quarrel",
+  "risk": "Run 3 T-241: the anticipatory bail draft invented 'law-abiding citizen with roots in his community', 'no history of fleeing... ties to his village and his business', and called a boundary quarrel a 'business dispute'",
+  "source": "handoff/quality/2026-10-13-run-3-develop-FAIL.md (T-241, T-237, 'Bail drafts as an advocate would file them'); her anticipatory bail draft (Gaya), facts re-made synthetically. T-373 / ADR-025 D1 golden assertion.",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Anticipatory bail for Mahesh Yadav s/o Ganesh Yadav, age 52, R/o village Belaganj, Gaya. Sessions Court Gaya. FIR No. 87/2026 dated 25 Sept 2026, PS Belaganj, sections BNS 115(2), BNS 352. Facts: there was a boundary quarrel with his neighbour over a mud wall between their fields, and the neighbour has lodged this FIR to pressure him. He apprehends arrest. Grounds: he is falsely implicated. No earlier bail application.",
+  "court": {
+    "state": "Bihar",
+    "court_type": "sessions",
+    "court": "bihar_sessions_gaya"
+  },
+  "answers": [
+    {
+      "key": "currently_in_custody",
+      "value": "No — apprehends arrest"
+    },
+    {
+      "key": "grounds_for_bail",
+      "value": "Falsely implicated due to enmity / business dispute"
+    },
+    {
+      "key": "earlier_bail_applications",
+      "value": "None"
+    }
+  ],
+  "expect": {
+    "absent": [
+      {
+        "any_of": [
+          "law-abiding",
+          "roots in his community",
+          "roots in the community",
+          "roots in society"
+        ],
+        "why": "Run 3 T-241: 'law-abiding citizen with roots in his community' was invented"
+      },
+      {
+        "any_of": ["no history of fleeing", "ties to his village", "ties to his business"],
+        "why": "Run 3 T-241: flight-risk facts were invented"
+      },
+      {
+        "any_of": ["business dispute"],
+        "why": "Run 3 T-241: it was a boundary quarrel, not a business dispute"
+      },
+      {
+        "any_of": ["no criminal antecedents", "no criminal history"],
+        "why": "antecedents were never given; the clause must be a blank (T-359)"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["boundary quarrel"],
+        "why": "her own words for the dispute"
+      },
+      {
+        "any_of": ["Belaganj"],
+        "why": "the police station as given"
+      }
+    ],
+    "exact": [
+      {
+        "any_of": ["Mahesh Yadav"],
+        "why": "the applicant's name as given"
+      },
+      {
+        "any_of": ["87/2026"],
+        "why": "the FIR number as given"
+      }
+    ],
+    "rendered": {
+      "no_status": ["fallback"],
+      "status": {
+        "apprehension": "ok",
+        "antecedents": "missing",
+        "earlier_applications": "ok",
+        "grounds": "ok"
+      },
+      "not_rendered": ["roots", "cooperated", "occupation", "civil_dispute"],
+      "why": "ADR-025 D1: her facts in her words; antecedents a blank (T-359); no clause for roots, cooperation, occupation or a civil dispute she never claimed"
+    }
+  },
+  "recorded": {
+    "clean": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"applicant_name\", \"value\": \"Mahesh Yadav\", \"quote\": \"Mahesh Yadav\"}, {\"id\": \"father_name\", \"value\": \"Ganesh Yadav\", \"quote\": \"s/o Ganesh Yadav\"}, {\"id\": \"applicant_age\", \"value\": \"52\", \"quote\": \"age 52\"}, {\"id\": \"address\", \"value\": \"village Belaganj, Gaya\", \"quote\": \"R/o village Belaganj, Gaya\"}, {\"id\": \"fir_number\", \"value\": \"87/2026\", \"quote\": \"FIR No. 87/2026\"}, {\"id\": \"fir_date\", \"value\": \"25 Sept 2026\", \"quote\": \"dated 25 Sept 2026\"}, {\"id\": \"police_station\", \"value\": \"Belaganj\", \"quote\": \"PS Belaganj\"}, {\"id\": \"sections_charged\", \"value\": [\"BNS 115(2)\", \"BNS 352\"], \"quote\": \"sections BNS 115(2), BNS 352\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"span\": \"Mahesh Yadav\", \"confidence\": 0.98}, {\"key\": \"father_name\", \"span\": \"Ganesh Yadav\", \"confidence\": 0.95}, {\"key\": \"applicant_age\", \"span\": \"52\", \"confidence\": 0.95}, {\"key\": \"address\", \"span\": \"village Belaganj, Gaya\", \"confidence\": 0.94}, {\"key\": \"fir_number\", \"span\": \"87/2026\", \"confidence\": 0.97}, {\"key\": \"fir_date\", \"span\": \"25 Sept 2026\", \"confidence\": 0.95}, {\"key\": \"police_station\", \"span\": \"PS Belaganj\", \"confidence\": 0.96}, {\"key\": \"sections_charged\", \"span\": \"BNS 115(2), BNS 352\", \"confidence\": 0.95}, {\"key\": \"facts_narrative\", \"span\": \"there was a boundary quarrel with his neighbour over a mud wall between their fields, and the neighbour has lodged this FIR to pressure him.\", \"confidence\": 0.9}]}",
+      "drafter": "{\"paragraphs\":[\n{\"clauseId\":\"opening\",\"factRefs\":[\"applicant_name\",\"applicant_age\",\"address\"],\"text\":\"\",\"items\":[]},\n{\"clauseId\":\"fir_details\",\"factRefs\":[\"fir_number\",\"fir_date\",\"police_station\",\"sections_charged\"],\"text\":\"\",\"items\":[]},\n{\"clauseId\":\"apprehension\",\"factRefs\":[\"facts_narrative\"],\"text\":\"There was a boundary quarrel with his neighbour over a mud wall between their fields, and the neighbour has lodged this FIR to pressure him.\",\"items\":[]},\n{\"clauseId\":\"earlier_applications\",\"factRefs\":[\"earlier_bail_applications\"],\"text\":\"\",\"items\":[]},\n{\"clauseId\":\"grounds\",\"factRefs\":[],\"text\":\"\",\"items\":[{\"factRef\":\"grounds_for_bail[0]\",\"text\":\"\"}]},\n{\"clauseId\":\"no_flight_risk\",\"factRefs\":[],\"text\":\"\",\"items\":[]}\n]}"
+    },
+    "run3": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"applicant_name\", \"value\": \"Mahesh Yadav\", \"quote\": \"Mahesh Yadav\"}, {\"id\": \"father_name\", \"value\": \"Ganesh Yadav\", \"quote\": \"s/o Ganesh Yadav\"}, {\"id\": \"applicant_age\", \"value\": \"52\", \"quote\": \"age 52\"}, {\"id\": \"address\", \"value\": \"village Belaganj, Gaya\", \"quote\": \"R/o village Belaganj, Gaya\"}, {\"id\": \"fir_number\", \"value\": \"87/2026\", \"quote\": \"FIR No. 87/2026\"}, {\"id\": \"fir_date\", \"value\": \"25 Sept 2026\", \"quote\": \"dated 25 Sept 2026\"}, {\"id\": \"police_station\", \"value\": \"Belaganj\", \"quote\": \"PS Belaganj\"}, {\"id\": \"sections_charged\", \"value\": [\"BNS 115(2)\", \"BNS 352\"], \"quote\": \"sections BNS 115(2), BNS 352\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"span\": \"Mahesh Yadav\", \"confidence\": 0.98}, {\"key\": \"father_name\", \"span\": \"Ganesh Yadav\", \"confidence\": 0.95}, {\"key\": \"applicant_age\", \"span\": \"52\", \"confidence\": 0.95}, {\"key\": \"address\", \"span\": \"village Belaganj, Gaya\", \"confidence\": 0.94}, {\"key\": \"fir_number\", \"span\": \"87/2026\", \"confidence\": 0.97}, {\"key\": \"fir_date\", \"span\": \"25 Sept 2026\", \"confidence\": 0.95}, {\"key\": \"police_station\", \"span\": \"PS Belaganj\", \"confidence\": 0.96}, {\"key\": \"sections_charged\", \"span\": \"BNS 115(2), BNS 352\", \"confidence\": 0.95}, {\"key\": \"facts_narrative\", \"span\": \"there was a boundary quarrel with his neighbour over a mud wall between their fields, and the neighbour has lodged this FIR to pressure him.\", \"confidence\": 0.9}]}",
+      "drafter": "{\"paragraphs\": [{\"clauseId\": \"opening\", \"factRefs\": [\"applicant_name\", \"applicant_age\", \"address\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"fir_details\", \"factRefs\": [\"fir_number\", \"fir_date\", \"police_station\", \"sections_charged\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"apprehension\", \"factRefs\": [\"facts_narrative\"], \"text\": \"There was a business dispute with his neighbour, and the neighbour has lodged this FIR to pressure him. He is a law-abiding citizen with roots in his community.\", \"items\": []}, {\"clauseId\": \"earlier_applications\", \"factRefs\": [\"earlier_bail_applications\"], \"text\": \"\", \"items\": []}, {\"clauseId\": \"grounds\", \"factRefs\": [], \"text\": \"\", \"items\": [{\"factRef\": \"grounds_for_bail[0]\", \"text\": \"\"}]}, {\"clauseId\": \"no_flight_risk\", \"factRefs\": [], \"text\": \"\", \"items\": []}]}"
+    }
+  }
+}

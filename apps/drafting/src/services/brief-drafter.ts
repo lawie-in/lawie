@@ -20,6 +20,7 @@ import type { LedgerFact } from '@lawie/shared';
 
 import { factEntriesByKey, loadAvermentLists } from './averments';
 import type { AvermentCondition, ResolvedAverments } from './averments';
+import type { RenderedClause } from './draft-renderer';
 import { dateKindLabel, PROTECTED_QUESTION_KEY, statedDates } from './intake-brief';
 import type { Brief, BriefItem, ChecklistItem } from './intake-brief';
 import { datesAsWritten, datesInText, normalise } from './intake-text';
@@ -168,17 +169,33 @@ export function drafterBrief(
   courtLine: string | null,
   converted?: Record<string, unknown>,
   described?: string | null,
+  profileAdvocateName?: string | null,
 ): DrafterBrief {
   return {
-    ...briefParts(brief, courtLine, converted),
+    ...briefParts(brief, courtLine, converted, profileAdvocateName),
     described: typeof described === 'string' && described.trim() !== '' ? described.trim() : null,
   };
+}
+
+/**
+ * T-365 AC1 (Ajay's add-on, folded into T-373 by Priya, 13 Oct 2026): when the
+ * advocate's profile has a name, the advocate name is not unknown, so it is
+ * left out of what the Drafter is told is unknown or missing. The advocate
+ * block prints the profile name (T-300). With no profile name the blank stays.
+ */
+export function knownAdvocateName(key: string, profileAdvocateName?: string | null): boolean {
+  return (
+    typeof profileAdvocateName === 'string' &&
+    profileAdvocateName.trim() !== '' &&
+    lastSegment(key) === 'advocate_name'
+  );
 }
 
 function briefParts(
   brief: Brief,
   courtLine: string | null,
   converted?: Record<string, unknown>,
+  profileAdvocateName?: string | null,
 ): BriefParts {
   const out: BriefParts = {
     document: brief.kind.name,
@@ -189,7 +206,9 @@ function briefParts(
     numbers: [],
     asked_for: [],
     other: brief.unplaced.map((u) => ({ what: u.label, value: u.value })),
-    unknown: brief.still_unknown.map((u) => ({ what: u.label, blank: u.placeholder })),
+    unknown: brief.still_unknown
+      .filter((u) => !knownAdvocateName(u.key, profileAdvocateName))
+      .map((u) => ({ what: u.label, blank: u.placeholder })),
   };
   for (const item of brief.items) {
     if (isEmpty(item.value)) continue;
@@ -197,7 +216,9 @@ function briefParts(
     // confirmed, is not a fact. It is listed as unknown, so the Drafter writes
     // its blank even though the advocate's description appears to give it.
     if (item.unconfirmed === true) {
-      out.unknown.push({ what: item.label, blank: item.placeholder });
+      if (!knownAdvocateName(item.key, profileAdvocateName)) {
+        out.unknown.push({ what: item.label, blank: item.placeholder });
+      }
       continue;
     }
     const value = shown(item, converted);
@@ -363,6 +384,7 @@ export function ledgerDrafterFacts(
   courtLine: string | null,
   courtDocument: boolean,
   unresolvedKeys: readonly string[] = [],
+  profileAdvocateName?: string | null,
 ): LedgerDrafterFacts {
   const held = factEntriesByKey(facts);
   const unresolved = new Set(
@@ -379,6 +401,8 @@ export function ledgerDrafterFacts(
     })),
     missing: checklist
       .filter((i) => (i.required || unresolved.has(i.key)) && !held.has(i.key))
+      // T-365 AC1: a profile name means the advocate name is not missing.
+      .filter((i) => !knownAdvocateName(i.key, profileAdvocateName))
       .map((i) => ({ key: i.key, label: i.label, write: missingPlaceholder(i.label) })),
   };
 }
@@ -2391,8 +2415,15 @@ export interface GuidedDrafterBrief extends BriefParts {
  * The confirmed brief as the Drafter reads it when there is no rule pack. It
  * has no "described": the prompt for these documents does not name it (T-145).
  */
-export function guidedDrafterBrief(brief: Brief, courtLine: string | null): GuidedDrafterBrief {
-  return { ...briefParts(brief, courtLine), sections_given: sectionsGiven(textValues(brief)) };
+export function guidedDrafterBrief(
+  brief: Brief,
+  courtLine: string | null,
+  profileAdvocateName?: string | null,
+): GuidedDrafterBrief {
+  return {
+    ...briefParts(brief, courtLine, undefined, profileAdvocateName),
+    sections_given: sectionsGiven(textValues(brief)),
+  };
 }
 
 /**
@@ -2480,15 +2511,44 @@ export function briefText(brief: Brief): string {
 export function needsStartingDraftLabel(
   missing: MissingClause[],
   warnings: ValidationWarning[],
+  rendered?: readonly RenderedClause[],
 ): boolean {
-  return missing.length > 0 || warnings.length > 0;
+  return withRenderedMissing(missing, rendered).length > 0 || warnings.length > 0;
 }
 
-/** The line shown with a labelled draft (T-127, section 7.3). */
-export function labelReason(
+/**
+ * T-373 (ADR-025 renderer rule 5): on a D1 pack the clauses missing are the
+ * renderer's `rendered[]` entries with status `missing`, each with the labels
+ * of the blanks it printed. The one place this is derived: the checks panel,
+ * the label and the done event all read it.
+ */
+export function missingFromRendered(rendered: readonly RenderedClause[]): MissingClause[] {
+  return rendered
+    .filter((r) => r.status === 'missing')
+    .map((r) => ({
+      id: r.clauseId,
+      title: (r.missing ?? []).join('; ') || r.clauseId,
+      reason: 'reported_missing' as const,
+    }));
+}
+
+/** `missing` plus each `rendered[]` missing clause not already in it. Without `rendered`, `missing` as given. */
+function withRenderedMissing(
   missing: MissingClause[],
+  rendered: readonly RenderedClause[] | undefined,
+): MissingClause[] {
+  if (!rendered) return missing;
+  const ids = new Set(missing.map((m) => m.id));
+  return [...missing, ...missingFromRendered(rendered).filter((m) => !ids.has(m.id))];
+}
+
+/** The line shown with a labelled draft (T-127, section 7.3). On a D1 pack, `rendered` is read too. */
+export function labelReason(
+  missingGiven: MissingClause[],
   warnings: ValidationWarning[],
+  rendered?: readonly RenderedClause[],
 ): string | null {
+  const missing = withRenderedMissing(missingGiven, rendered);
   if (missing.length > 0) {
     return `This draft does not cover: ${missing.map((m) => m.title).join('; ')}. Add them before use.`;
   }

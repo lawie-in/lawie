@@ -276,6 +276,20 @@ export interface DraftResult {
    * Null when the service sent none; the web app keeps no copy of the text.
    */
   disclaimer?: string | null;
+  /**
+   * T-373 (ADR-025 D1): the clauses the renderer printed, as the service sent them.
+   * Present only for a D1 pack; the checks panel is then built from this list.
+   */
+  rendered?: RenderedClause[];
+}
+
+/** T-373: one clause the D1 renderer printed, with its status. */
+export interface RenderedClause {
+  clauseId: string;
+  status: 'ok' | 'missing' | 'fallback';
+  /** The labels of the blanks left in the clause. */
+  missing?: string[];
+  reason?: 'not_returned' | 'unverified';
 }
 
 /** T-147d: the fact verifier's banner, printed as the service sent it. */

@@ -63,3 +63,46 @@ Still to word (next brief): `governing_act`, `primary_statute`, `route`, `state`
 | 7 | rera `state` from the court picker; more respondents | Ask. Don't fill it from the picker: the Authority is not a court, and the ruling is "never inferred". Also add an optional question, `Other respondents (names, addresses)`, one per line, numbered after the promoter. If unanswered, it prints nothing. |
 | 8 | Advocate address with no profile field | Enough for now: the form answer, else `[To be confirmed: advocate's address]`. The "A from profile" part waits until the profile has an address field. |
 | 9 | Golden snapshot: s138 shows a bail case nomenclature under HC courts | A notice is not filed in court, so no case nomenclature may print on any `legal_notice_*`. Out of T-404 scope: raise it with Priya as its own ticket. The snapshot changes when the fix lands, under the golden-snapshot rules. |
+
+## Addendum 3 (13 Oct 2026): T-404 part 1, Shashank's ac3e651 (s138 twin and template engine)
+
+**ac3e651: approved.**
+- The s138 header prints the five signed blanks on the form, brief and ledger paths.
+- A notice with every field filled renders byte-identical to before.
+- A court pack with no court prints `[To be confirmed: court]`.
+
+| # | Question | Ruling |
+|---|---|---|
+| 1 | Subject line and "(Counsel for …)" use the client blank too | Yes. Every place the client's name prints uses the one blank, `[To be confirmed: name of the client]`. A literal `{applicant_name}` or `_____` is never acceptable. |
+| 2a | Client's address in "From," | `[To be confirmed: address of the client]` |
+| 2b | Advocate's enrolment number | `[To be confirmed: advocate's enrolment number]`. The T-311 resolver order applies first: typed number, then the profile number (only when the printed name came from the profile), then this blank. |
+| 3 | "IN THE COURT OF [To be confirmed: court]" for a pack with no court and no twin | Accepted for now. The pack keeps its own prefix. |
+| 4 | Bail twins print "THE HON'BLE COURT" when there is no court | Yes, change it to `[To be confirmed: court]`. "THE HON'BLE COURT" hides a missing court instead of flagging it. The Drafter may receive the blank but must never fill in a court name, so add a test: no court given means no court name in the body. The bail golden diff comes to me, and it must change only that line. |
+| 5 | A court is chosen but has no nomenclature | `[To be confirmed: case type and number]` |
+
+**Rule 1, clarified.** The registry's number blank inside a signed case line ("Bail Application No. _____ of 2026") is the filing convention and is allowed. Rule 1 bans `_____` only where a token or field value should print.
+
+**71f1e98: approved.** The blanks are byte-equal to Addendum 3. The bail no-court header and Drafter input change as listed. The golden snapshot does not move, because the no-court path never runs there.
+
+| # | Question | Ruling |
+|---|---|---|
+| a | Bail case line with no court | `[To be confirmed: case type and number]`. The case line is not the court, and the pack's default "Criminal Miscellaneous Case" is a guess. |
+| b | `THE HONOURABLE [To be confirmed: court],` | Keep it. The blank sits where the court's name goes. |
+| c | `Place:` with no city | `[To be confirmed: place]`, wherever place prints: the `Place:` line and "Verified at {place}". |
+
+Tests: no court gives (a) and (c) and no court name in the body.
+
+**2be946d: approved.** The bail no-court case line and both place lines match the file, and a typed or chosen court renders byte-identical. The consumer_complaint twin's `Place:` and `Verified at` lines taking the place blank with no court is also approved.
+
+| # | Question | Ruling (part 2 is fine) |
+|---|---|---|
+| a | Empty city line under `THE HONOURABLE [To be confirmed: court],`, and consumer's bare `AT ` | Leave the line out when there is no city. Never print an empty line or a bare `AT`. Consumer's cause title and addressing clause belong to T-410 Addendum 1 (Tanvi), which already leaves out the city there. Don't edit those lines in T-404; check with Priya that the claims don't overlap. |
+| b | Packs with no twin print the court blank for caseNomenclature | Make them match: with no court, `caseNomenclature` prints `[To be confirmed: case type and number]` in every pack, and the court blank stays for the court itself. |
+
+**Bail twins' own case-line defaults (existing behaviour; T-404 part 2).** Yes. bail_regular and bail_anticipatory take the chosen court's case line for that pack when the court record has one. When it has none, they print `[To be confirmed: case type and number]`. The twin defaults go: "Criminal Case No." is wrong for a bail application at most courts, and a generic "Anticipatory Bail Application" line is a guess at the court's practice. Part 1 may merge as is, because this is not a regression. Send me the part 2 golden diff: only `case_nomenclature` on the bail twins should move.
+
+**After the T-406 merge (f4603d0): approved.**
+1. A pack on the not-court list prints no case line and no case-type blank. T-406 wins.
+2. The 12 deeds and agreements print `[To be confirmed: place]` for the place of execution when no place is given. Approved. A deed's place of execution is where the parties sign, so it may come only from a place or execution field the advocate filled. It never comes from a court's city, even if one is somehow chosen.
+
+Test: a deed with no place field gives the blank, and no court city appears.

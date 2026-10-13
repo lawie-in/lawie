@@ -18,3 +18,8 @@ T-379 holds verify-email jobs in the queue while the email footer is unfilled. W
 2. A resend that is held, not sent, doesn't use up the user's resend cap. Or Arjun rules the cap stays as it is, and this item is dropped.
 3. Tests cover both.
 4. Fix the header comment at line 2 of `apps/auth/src/__tests__/t223-resend-cap-real-redis.test.ts`; it still describes the old Redis order (Kunal, T-379).
+
+**Arjun (13 Oct, AC2):** option B, drop AC2. The hold is a configuration state (footer unfilled) that must never be true in production; the resend cap is an abuse limit, not a delivery promise, and AC1's dedupe already means one email per user when the hold lifts. No cross-service "held" signal. Condition: the held state is visible — email-worker /health reports it and T-379's log line fires once — so nobody is silently capped in prod.
+
+## Arjun (13 Oct 2026, via Mahak)
+AC2 dropped: the resend cap stays as it is. His condition, that the held state is visible, is already met: email-worker /health returns 503 unfilled_footer_placeholders, and the hold is logged once at boot.
