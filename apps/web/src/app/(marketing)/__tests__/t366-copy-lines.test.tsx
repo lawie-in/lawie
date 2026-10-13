@@ -42,7 +42,7 @@ const norm = (s: string) => s.replace(/\s+/g, ' ');
 const FAQ_FREE =
   '5 Ink on sign-up, once your email is verified (lifetime). Every document type on Lawie, PDF and DOCX export. Criminal drafts use BNS, BNSS and BSA section numbers.';
 const FAQ_COST =
-  'Lawie has a free tier that includes 5 Ink (lifetime). Paid plans add Ink every month; see the pricing page for current plans.';
+  'Lawie has a free tier that includes 5 Ink (lifetime), once your email is verified. Paid plans add more Ink; see the pricing page for current plans.';
 
 // Every sentence-ish window that mentions "5 Ink" must say "verified" within it.
 function fiveInkMentions(text: string): string[] {
@@ -60,6 +60,8 @@ describe('T-366 FAQ (AC1)', () => {
     const text = norm(render(<FaqPage />));
     expect(text).toContain(FAQ_FREE);
     expect(text).toContain(FAQ_COST);
+    expect(FAQ_COST).not.toContain('every month');
+    expect(text).not.toContain('Paid plans add Ink every month');
   });
 
   it('no longer claims court formatting, BNS validation or plan prices', () => {
@@ -124,6 +126,7 @@ describe('T-366 every 5-Ink sign-up promise says verified (AC5)', () => {
     ['home', () => <HomePage />],
     ['about', () => <AboutPage />],
     ['pricing', () => <PricingPage />],
+    ['faq', () => <FaqPage />],
   ])('%s page', (_name, make) => {
     const text = norm(render(make()));
     const mentions = fiveInkMentions(text);

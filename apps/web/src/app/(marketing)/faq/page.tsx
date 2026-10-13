@@ -45,7 +45,7 @@ const pricingFaq = [
   {
     question: 'How much does Lawie cost?',
     answer:
-      'Lawie has a free tier that includes 5 Ink (lifetime). Paid plans add Ink every month; see the pricing page for current plans.',
+      'Lawie has a free tier that includes 5 Ink (lifetime), once your email is verified. Paid plans add more Ink; see the pricing page for current plans.',
   },
   {
     question: "What's included in the free tier?",
