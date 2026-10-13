@@ -22,3 +22,7 @@ When the left-out token carries a code of BNSS or BSA (any position, e.g. "BNSS 
 `{Code} {n} was not found in the BNS offences table, so it was left out of this period. Check the Gazette.`
 
 `{Code}` is `BNSS` or `BSA`. A bare number, text, or another Act's reference ("NDPS Act 20") keeps `Section {n} was not found in the BNS offences table, so it was left out of this period. Check the Gazette.`
+
+## Addendum (T-371), 13 Oct 2026
+
+Another Act's reference (for example "NDPS Act 20") now reads exactly: `Section {n} of another Act was not found in the BNS offences table, so it was left out of this period. Check the Gazette.` Here `{n}` is the number alone, and the user's raw text is not echoed. This replaces the "Section {n}" line for that case only, because a bare "Section 20" would wrongly suggest BNS 20 is missing. Bare numbers and plain text keep the original line.

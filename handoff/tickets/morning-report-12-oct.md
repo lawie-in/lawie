@@ -31,6 +31,7 @@ T-208, T-209, T-210, T-197, T-189, T-194, T-227, T-248, T-251, T-200, T-252a, T-
 - Mahak: T-233 + T-271 (export file bugs, privacy polish) in review; third in the queue.
 
 ## Decisions I took for you (all logged in tickets)
+- 13 Oct: Hindi drafts for the five v1 packs stay on today's path, labelled "starting draft", until Ajay signs Hindi wording for the new drafting path (T-386, Arjun's default). English drafts get the new path first.
 Vikram's prices and the two-tranche marketing budget; chatbot design and caps (T-253); CI skips docs-only pushes; converter claim removed; email/password sign-up in this release; T-275 labels for repealed rows; no production reseed until it is merged.
 
 ## Your to-dos (need your logins)
