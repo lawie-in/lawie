@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { isBailTemplate, NOT_OFFERED_SUFFIX, SAVED_TYPE_NAMES } from './bailCourts';
 import type { BriefCourt } from './briefTypes';
 import ConsumerLevelGroup, {
   CONSUMER_COURT_LABEL,
@@ -28,6 +29,8 @@ import { input, label, linkButton, small, tagError } from './ui';
 
 import { apiFetch } from '@/lib/apiFetch';
 
+export { NOT_OFFERED_SUFFIX };
+
 interface Option {
   id: string;
   name: string;
@@ -44,34 +47,6 @@ async function getList<T>(
 
 /** Above this many courts the picker gets a box to narrow the list. */
 const SEARCH_FROM = 8;
-
-/**
- * T-425 (Ajay 69c8cbe): the bail packs, by exact id. For these the three lists are asked
- * for with `template=<id>`, so the server leaves out courts where the pack does not lie.
- * Must match BAIL_TEMPLATE_IDS in apps/drafting/src/routes/courts.routes.ts.
- */
-const BAIL_TEMPLATE_IDS: ReadonlySet<string> = new Set([
-  'bail_regular',
-  'bail_anticipatory',
-  'bail_before_magistrate',
-  'default_bail',
-  'interim_bail',
-  'bail_cancellation',
-]);
-
-/** T-425: added to a saved choice the scoped list no longer offers. */
-export const NOT_OFFERED_SUFFIX = ' (not offered for this document)';
-
-/** T-425: names for a saved court type the scoped /types list leaves out. */
-const SAVED_TYPE_NAMES: Record<string, string> = {
-  cjm: 'Chief Judicial Magistrate',
-  jmfc: 'Judicial Magistrate First Class',
-  district_court: 'District Court',
-  civil_court: 'Civil Court (Senior Division)',
-  consumer_commission: 'Consumer Commission',
-  supreme_court: 'Supreme Court',
-  tribunal: 'Tribunal',
-};
 
 interface SavedCourt {
   id: string;
@@ -104,7 +79,7 @@ export default function CourtPicker({
   templateId?: string;
 }) {
   const consumer = templateId === CONSUMER_TEMPLATE_ID;
-  const bail = templateId !== undefined && BAIL_TEMPLATE_IDS.has(templateId);
+  const bail = isBailTemplate(templateId);
   const [states, setStates] = useState<Option[]>([]);
   const [statesLoaded, setStatesLoaded] = useState(false);
   const [types, setTypes] = useState<Option[]>([]);
@@ -120,6 +95,9 @@ export default function CourtPicker({
   );
   const [live, setLive] = useState('');
   const focusNext = useRef<string | null>(null);
+  // T-425: saved court ids whose by-id lookup failed. Not asked again on Retry or a list
+  // reload; the saved id itself shows instead of a name.
+  const lookupFailed = useRef<Set<string>>(new Set());
 
   // T-411: after a level change, move focus to the first control that appeared.
   useEffect(() => {
@@ -252,16 +230,20 @@ export default function CourtPicker({
   useEffect(() => {
     if (!courtNotOffered || !court.court || saved?.id === court.court) return;
     const id = court.court;
+    if (lookupFailed.current.has(id)) return;
     let off = false;
     apiFetch(`/api/courts/${encodeURIComponent(id)}`)
       .then(async (res) => {
-        if (off || !res.ok) return;
+        if (!res.ok) throw new Error('court');
         const data = (await res.json()) as { court?: { name?: string; state?: string } };
-        if (off || !data.court?.name) return;
-        setSaved({ id, name: data.court.name, state: data.court.state ?? '' });
+        if (!data.court?.name) throw new Error('court');
+        if (!off) setSaved({ id, name: data.court.name, state: data.court.state ?? '' });
       })
-      // Only the label is lost: the saved id still shows.
-      .catch(() => {});
+      // Only the label is lost: the saved id still shows. A failure is about the id, so it
+      // is remembered even if this run was superseded.
+      .catch(() => {
+        lookupFailed.current.add(id);
+      });
     return () => {
       off = true;
     };

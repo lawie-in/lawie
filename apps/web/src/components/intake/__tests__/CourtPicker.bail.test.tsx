@@ -295,3 +295,42 @@ describe('CourtPicker, bail packs: a saved court the pack does not offer (AC3)',
     expect(container.textContent).not.toContain(NOT_OFFERED_SUFFIX);
   });
 });
+
+describe('CourtPicker, bail packs: a failed by-id lookup is remembered', () => {
+  it('Retry reloads the lists but does not ask for the same saved court again', async () => {
+    const SAVED: BriefCourt = {
+      state: 'bihar',
+      court_type: 'civil_court',
+      court: 'bihar_civil_patna',
+    };
+    const typesUrl = '/api/courts/types?state=bihar&template=bail_regular';
+    routes = {
+      '/api/courts/states?template=bail_regular': { states: [{ id: 'bihar', name: 'Bihar' }] },
+      // The type list fails at first, so the Retry button shows; the court list and the
+      // (also failing) by-id lookup have already run by then.
+      '/api/courts?state=bihar&type=civil_court&template=bail_regular': { courts: [] },
+    };
+    await mount({ templateId: 'bail_regular', initial: SAVED });
+    const byId = () => paths().filter((p) => p === '/api/courts/bihar_civil_patna').length;
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(byId()).toBe(1);
+    const coursBefore = paths().filter((p) => p.startsWith('/api/courts?')).length;
+
+    routes[typesUrl] = { types: [{ id: 'sessions', label: 'Sessions Court' }] };
+    const retry = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Retry',
+    )!;
+    act(() => retry.click());
+    await flush();
+
+    // The lists were asked for again, the failed by-id lookup was not.
+    expect(paths().filter((p) => p.startsWith('/api/courts?')).length).toBeGreaterThan(coursBefore);
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(byId()).toBe(1);
+    expect(optionTexts(sel('brief-court-court'))).toEqual([
+      'Choose',
+      `bihar_civil_patna${NOT_OFFERED_SUFFIX}`,
+    ]);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});
