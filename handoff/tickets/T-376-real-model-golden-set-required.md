@@ -40,3 +40,8 @@ Ruling: **(c)** — move `golden-set` into its own workflow file, `.github/workf
 - Not (a): it would stop "CI — Test" cancelling superseded runs on `develop_staging` for no reason. Not (b): same problem, and it changes the run-cancel behaviour every lead depends on.
 
 Claim: `.github/workflows/golden-set.yml` is a new CI file under the root-config claim Vishal already holds for T-376; Priya adds the path to his row.
+
+## Arjun (14 Oct, 11:14 UTC) — path filter and branch protection
+
+1. Add `apps/drafting/src/config/sections/**` to the golden path filter. AC1 names it and the directory exists; the filter in d1200ac is missing it. Nothing else to add.
+2. No branch protection requires the old golden job check today: the job has never run (secrets unset, gate skips), and the only required check we asked the founder for is "Web build". AC1's "required check" is a founder action that comes *after* he sets `GOLDEN_SET_ANTHROPIC_API_KEY` / `GOLDEN_SET_MONGODB_URI`, and it must name the job in the new `golden-set.yml` workflow, not the old `ci.yml` one. Priya puts that on his list as one item: "set the two golden secrets, then require the `golden-set` check from the Golden Set workflow on `develop_staging`".
