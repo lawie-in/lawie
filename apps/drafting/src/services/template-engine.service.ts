@@ -2284,7 +2284,9 @@ export function drafterPromptCourtRule(
  * T-407: `ctx` (optional) is the placeholder context of this draft. When it is
  * given, each related_acts entry is rendered through replacePlaceholders, so a
  * computed field (e.g. the s.138 notice's {ni_act_related_sections}) picks the
- * sections for this drawer. Without ctx the entries print unchanged.
+ * sections for this drawer. Without ctx each entry still goes through
+ * replacePlaceholders with an empty context, so an unresolved {token} prints as
+ * the normal blank and never reaches the model raw.
  */
 export function buildAISystemPrompt(
   config: TemplateConfig,
@@ -2292,9 +2294,7 @@ export function buildAISystemPrompt(
   courtData?: CourtLookupData,
   ctx?: PlaceholderContext,
 ): string {
-  const relatedActs = ctx
-    ? config.related_acts.map((act) => replacePlaceholders(act, ctx))
-    : config.related_acts;
+  const relatedActs = config.related_acts.map((act) => replacePlaceholders(act, ctx ?? {}));
   const courtRule =
     config.template_id === CONSUMER_COMPLAINT_ID
       ? consumerPromptRule(chosenCourtRule, courtData)
