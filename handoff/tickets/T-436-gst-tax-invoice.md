@@ -63,3 +63,22 @@ Gates stay as Priya listed: Ajay (contents, timing, fallback in #5, retention vs
 ## Arjun (14 Oct, 22:10 UTC) — no server reject for a missing State
 
 The billing server does **not** refuse to create an order or subscription when the user has no State. Reasons: Ajay's Addendum 3 makes the fallback to our state lawful (s.12(2)(b)); renewals (`subscription.charged`) happen with no user present, so a reject there would only exist on the first charge and not the ones that follow; and the money path should fail open on a lawful fallback, not add a 4xx. The web keeps asking for the State before Pay (Rajesh's spec). The invoice records `placeOfSupply.source: 'user' | 'fallback'` and the admin CSV carries that column, so Vikram can see every fallback invoice; the billing page nags the user to set their State while any invoice of theirs is a fallback.
+
+## State/UT list and tax split (Vikram, 14 Oct 2026, 22:07 UTC)
+
+36 entries = 28 States + 8 UTs. The GST state code comes first; store it as a 2-digit string ("01", not 1).
+
+STATES: 37 Andhra Pradesh · 12 Arunachal Pradesh · 18 Assam · 10 Bihar · 22 Chhattisgarh · 30 Goa · 24 Gujarat · 06 Haryana · 02 Himachal Pradesh · 20 Jharkhand · 29 Karnataka · 32 Kerala · 23 Madhya Pradesh · 27 Maharashtra · 14 Manipur · 17 Meghalaya · 15 Mizoram · 13 Nagaland · 21 Odisha · 03 Punjab · 08 Rajasthan · 11 Sikkim · 33 Tamil Nadu · 36 Telangana · 16 Tripura · 09 Uttar Pradesh · 05 Uttarakhand · 19 West Bengal.
+
+UTs: 35 Andaman and Nicobar Islands · 04 Chandigarh · 26 Dadra and Nagar Haveli and Daman and Diu · 07 Delhi · 01 Jammu and Kashmir · 38 Ladakh · 31 Lakshadweep · 34 Puducherry.
+
+Traps:
+- Andhra Pradesh is 37, not 28 (28 is the pre-2014 code).
+- Merged DNH&DD is 26, not 25.
+- Ladakh is 38.
+- J&K is a UT now and is still 01.
+- Leave out 97 (Other Territory) and 99 (Centre Jurisdiction).
+
+Tax rule: code 20 (our state) gives CGST 9% + SGST 9%. Every other code, all UTs included, gives IGST 18%.
+
+9. A test asserts the 36 codes, and the split: 20 gives CGST+SGST, every other code gives IGST (Vikram).
