@@ -40,7 +40,24 @@ export interface IDocument extends Document {
   checklistState: boolean[]; // per-item checked state (parallel array)
 
   version: number;
-  isDeleted: boolean; // soft delete — never hard delete
+  /**
+   * Hides the document from every read. T-115b: set together with
+   * `deletion.requestedAt` when the owner deletes it; the row itself is then
+   * erased (services/document-erase.service.ts).
+   */
+  isDeleted: boolean;
+  /**
+   * T-115b — the delete marker. Set on `DELETE /documents/:id`, before any
+   * erase step, and kept until the row itself is removed (the last step). The
+   * sweep finishes any document that still has it. `intakeIds` / `ledgerIds`
+   * are the links to the FactLedger and LlmAuxCall rows, saved before the
+   * steps that remove them, so a re-run still finds those rows. Ids only.
+   */
+  deletion?: {
+    requestedAt: Date;
+    intakeIds: string[];
+    ledgerIds: Types.ObjectId[];
+  };
 
   /** T-003 §3.8 — the run that produced this document, and which attempt within it. */
   runId?: string;
@@ -159,6 +176,18 @@ const DocumentSchema = new Schema<IDocument>(
       type: Boolean,
       default: false,
     },
+    // T-115b — no default: unset on every live document.
+    deletion: {
+      type: new Schema(
+        {
+          requestedAt: { type: Date, required: true },
+          intakeIds: { type: [String], default: [] },
+          ledgerIds: { type: [Schema.Types.ObjectId], default: [] },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
 
     runId: { type: String, default: undefined },
     runSequence: { type: Number, default: undefined },
@@ -177,5 +206,7 @@ DocumentSchema.plugin(fixtureOriginPlugin('runType'));
 DocumentSchema.index({ userId: 1, createdAt: -1 });
 DocumentSchema.index({ docType: 1 });
 DocumentSchema.index({ isDeleted: 1 });
+// T-115b — the erase sweep finds unfinished deletes by this.
+DocumentSchema.index({ 'deletion.requestedAt': 1 }, { sparse: true });
 
 export const LawieDocument = mongoose.model<IDocument>('Document', DocumentSchema);
