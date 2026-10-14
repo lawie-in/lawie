@@ -16,3 +16,5 @@ The four `live.*` lines name no forum, so they need no legal sign-off.
 Conditions:
 - The chips name only the level. The court record supplies the full Commission name that prints in the document (T-410 Addendum 1), never the chip text.
 - The NCDRC option is never pre-selected (ADR-021 rule 3, as the spec says).
+
+**Court select label in consumer mode (14 Oct 2026): `Consumer Commission`.** Not "Forum Name": "Forum" is the 1986 Act's term, and the 2019 Act calls them Commissions. Not a bare "Commission", which is too vague out of context. The same label replaces "Forum Name" wherever the template uses it.
