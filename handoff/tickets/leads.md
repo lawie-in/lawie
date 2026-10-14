@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- tanvi: T-425 part 1 merged 2d0b93b2 (14 Oct 2026). Brief bail court lists: Sessions, criminal District, HC and benches, CJM/JMFC (not anticipatory); no Consumer Commission, SC, tribunals, civil. courts.routes.ts, CourtPicker.tsx released. Part 2 building.
 - kunal: T-388 CI green (run 534). DynamicFormRenderer.tsx released to Tanvi (T-425 part 2).
 - kunal: T-388 merged 0ad6869 (14 Oct 2026). 'Uses N Ink' under every Ink-spending button, charged exactly that; unknown cost blocks with Meera's line; no made-up '1 Ink'. DynamicFormRenderer to Tanvi (T-425 part 2) after CI. Next T-115b.
 - shashank: T-404 part 2 CI green (run 533; golden-set run 4 passed).
