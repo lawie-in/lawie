@@ -334,7 +334,7 @@
               }
             ],
             "required": false,
-            "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS served on the applicant?",
+            "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?",
             "ask_when_empty": true
           },
           {
@@ -575,7 +575,7 @@
         "high_court": "483",
         "high_court_bench": "483"
       },
-      "instruction": "This application is made under {governing_provision}. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482."
+      "instruction": "This application is made under {governing_provision}. Cite only this one provision as the provision under which bail is sought. {do_not_cite}."
     },
     "bail_type_label": {
       "logic": "'Regular Bail'"

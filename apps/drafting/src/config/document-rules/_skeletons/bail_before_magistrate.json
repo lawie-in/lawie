@@ -1,6 +1,6 @@
 {
   "pack": "bail_before_magistrate",
-  "version": 7,
+  "version": 6,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",

@@ -1,6 +1,6 @@
 {
   "pack": "bail_regular",
-  "version": 5,
+  "version": 4,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",

@@ -32,18 +32,14 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 
 ## Version 4, 14 Oct 2026 (supersedes SHA `4eec8dfb4ea8f7fac728675df30c032e8f8555b75cdfeaf1f59b5f7acc7c843b`)
 
-- v4, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addendum 1 ruling 2 (2992891), signed Ajay. The hard-coded `Section N of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{governing_provision}` (slot `governing_provision`). Nothing else changes in any clause.
-
-## Version 5, 14 Oct 2026 (supersedes SHA `bcf84af7d66c3da48d3053a2dbc44b5cb979d1c23ccddb570559aa3e0d4d43c8`)
-
-- v5, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addendum 2 (d5a3005), signed Ajay. The `s35_notice` clause's `Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{notice_provision}` (slot `notice_provision`, Addendum 2 ruling 1): BNSS `Section 35(3) of the BNSS`; CrPC `Section 41A of the CrPC`; no choice `[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]`. Nothing else changes in any clause.
+- v4, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addenda 1, 2 and 3 (2992891, d5a3005, 8e3167e), signed Ajay. The opening clause's `Section 483 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{governing_provision}` (slot `governing_provision`; court-keyed 437/439 → 480/483, Addendum 1 ruling 2). The `s35_notice` clause's `Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{notice_provision}` (slot `notice_provision`, Addendum 2 ruling 1): BNSS `Section 35(3) of the BNSS`; CrPC `Section 41A of the CrPC`; no choice `[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]`. Nothing else changes in any clause.
 
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_regular",
-  "version": 5,
+  "version": 4,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",

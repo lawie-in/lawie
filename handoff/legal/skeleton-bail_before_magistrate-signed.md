@@ -42,18 +42,14 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 
 ## Version 6, 14 Oct 2026 (supersedes SHA `c52210817dd3a14e6c7f663dc678944334245cc6b4359a1f0eac719bfeba81cd`)
 
-- v6, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addendum 1 ruling 2 (2992891), signed Ajay. The hard-coded `Section N of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{governing_provision}` (slot `governing_provision`). The women's proviso becomes `{women_proviso}` (slot `women_proviso`): BNSS `the first proviso to Section 480(1) of the BNSS`; CrPC `the first proviso to Section 437(1) of the CrPC`; no choice `the first proviso to [To be confirmed: Section 437(1) of the CrPC or Section 480(1) of the BNSS]`. Nothing else changes in any clause.
-
-## Version 7, 14 Oct 2026 (supersedes SHA `99a7b4a396f214b0a4b333c3c7c8deb6f6258d26518ac8f69ac814850ddc9451`)
-
-- v7, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addendum 2 (d5a3005), signed Ajay. The bailable variant's `Section 478 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{governing_provision}` (Addendum 2 ruling 4: pair CrPC 436 → BNSS 478). The `s35_notice` clause's `Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{notice_provision}` (slot `notice_provision`, Addendum 2 ruling 1): BNSS `Section 35(3) of the BNSS`; CrPC `Section 41A of the CrPC`; no choice `[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]`. Nothing else changes in any clause.
+- v6, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addenda 1, 2 and 3 (2992891, d5a3005, 8e3167e), signed Ajay. The non-bailable variant's `Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023` (Addendum 1 ruling 2) and the bailable variant's `Section 478 of the Bharatiya Nagarik Suraksha Sanhita, 2023` (Addendum 2 ruling 4, pair CrPC 436 → BNSS 478; classification unknown gives the Addendum 3 ruling 5 blank) become `{governing_provision}` (slot `governing_provision`). The women's proviso becomes `{women_proviso}` (slot `women_proviso`): BNSS `the first proviso to Section 480(1) of the BNSS`; CrPC `the first proviso to Section 437(1) of the CrPC`; no choice `the first proviso to [To be confirmed: Section 437(1) of the CrPC or Section 480(1) of the BNSS]`. The `s35_notice` clause's `Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{notice_provision}` (slot `notice_provision`, Addendum 2 ruling 1): BNSS `Section 35(3) of the BNSS`; CrPC `Section 41A of the CrPC`; no choice `[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]`. Nothing else changes in any clause.
 
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_before_magistrate",
-  "version": 7,
+  "version": 6,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",

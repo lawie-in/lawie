@@ -299,7 +299,7 @@
               }
             ],
             "required": false,
-            "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS served on the applicant?",
+            "question": "Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?",
             "ask_when_empty": true
           },
           {
@@ -601,7 +601,7 @@
         { "number": "20", "description": "Monetary reliefs" },
         { "number": "22", "description": "Compensation orders" }
       ],
-      "note": "When bail application involves BNS 85/80 (domestic violence/dowry), reference PWDVA provisions in the grounds."
+      "note": "When the bail application involves cruelty or dowry death, reference PWDVA provisions in the grounds."
     }
   ],
   "promptInstructions": [
