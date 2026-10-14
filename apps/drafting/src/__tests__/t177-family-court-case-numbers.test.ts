@@ -158,7 +158,7 @@ describe('T-177 family court case numbers', () => {
       },
     );
 
-    it('a non-family court (sessions, bail_regular) still renders its old case number', () => {
+    it('a non-family court (sessions, bail_regular) still renders its bail case line', () => {
       const sessions = courts.find((c) => c.courtId === 'bihar_sessions_patna')!;
       const rule = JSON.parse(
         readFileSync(
@@ -167,7 +167,7 @@ describe('T-177 family court case numbers', () => {
         ),
       );
       const txt = renderCauseTitle('bail_regular', sessions, rule);
-      expect(txt).toContain(`Criminal Miscellaneous Case No. _____ of ${year}`);
+      expect(txt).toContain(`Bail Application No. _____ of ${year}`);
       // T-393 (Ajay, T-359 AC6): with no relation and no name given, the cause
       // title carries that one signed blank. The case number carries no placeholder.
       const relationBlank = '[To be confirmed: relation and name of parent or spouse]';
