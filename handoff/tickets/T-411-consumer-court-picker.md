@@ -22,3 +22,6 @@ T-410 part (a) makes the consumer complaint print "[To be confirmed: Consumer Co
 - The document prints the court record's full Commission name, never the chip text.
 - NCDRC is never pre-selected.
 - The strings are signed as written: the three level names, the NCDRC option, the no-match line and "Which Commission?". The live-region lines need no sign-off.
+
+## Founder, 14 Oct 2026: no Figma
+We have no Figma subscription. Rajesh's written spec (handoff/marketing/consumer-court-picker-spec-t411.md) and Madhuri's strings are the design for this ticket. The web build goes ahead against the spec, with no Figma link needed.
