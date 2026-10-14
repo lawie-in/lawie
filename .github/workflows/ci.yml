@@ -5,7 +5,8 @@ on:
   # GitHub skips only when every changed file matches; a change with code and docs still runs.
   # docs/ is deliberately not ignored: docs/templates holds runtime JSON (template overrides, read by t139).
   push:
-    branches: [develop, develop_staging]
+    # T-439 (Merge slot v2, rule 2): lead branches get CI on push, before they merge.
+    branches: [develop, develop_staging, 'feature/**', 'fix/**']
     paths-ignore:
       - 'handoff/**'
       - '.claude/**'
