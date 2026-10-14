@@ -65,6 +65,7 @@ T-208, T-209, T-210, T-197, T-189, T-194, T-227, T-248, T-251, T-200, T-252a, T-
 8. **GitHub branch protection on `develop_staging`** (Arjun's v2 safety addendum): block force pushes, restrict deletions. Settings > Branches; needs your login.
 9. **T-436 GST invoice: set the 7 GST_* values on develop (and prod before launch)** (env config only, never in the repo; Arjun has the key names; values from your GST certificate). Billing won't issue invoices without them; payments are recorded and wait until then. Also send a clean signature image for the invoice. Or send the values to Arjun and he sets them.
 10. **T-115c: set DRAFTING_SERVICE_URL and BILLING_SERVICE_URL for auth** on develop (and prod later). They default to localhost, so account erase can't reach drafting and billing without them.
+11. **Registered address for the email footer** (Arjun, from T-358). The auth email footer still has [registered address]/[PIN] placeholders, so the worker sends no legally footed email: no verify emails and no T-358 deletion notices. Send the registered address with the GST values, as env config, never in the repo. Until then the T-358 sweep is inert: no notice means no deletion.
 
 ---
 
