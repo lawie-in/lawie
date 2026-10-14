@@ -13,7 +13,7 @@ import { evaluate, skipped } from '../lib/assert';
 import { estimateCost, RUN_LIMITS } from '../lib/cost';
 import { checkComposition, checkFixture, loadFixtures } from '../lib/fixtures';
 import { renderFixture, renderSummary, summarise } from '../lib/report';
-import { purposeOf, stubParsedMessage } from '../lib/modules';
+import { purposeOf, stubEvents, stubParsedMessage, systemText } from '../lib/modules';
 import { Fixture, RunEvidence, SEEDED_PACKS } from '../lib/types';
 import * as dp from '../../../apps/drafting/src/services/drafter.prompts';
 
@@ -301,6 +301,67 @@ describe('the parse stub (T-373): messages.parse answered from the recorded repl
     expect(purposeOf(dp.DRAFTER_D1_SYSTEM_PROMPT)).toBe('drafter');
     expect(purposeOf(dp.DRAFTER_FACT_REPAIR_SYSTEM_PROMPT)).toBe('fact_repair');
     expect(purposeOf('something else')).toBe('other');
+  });
+});
+
+describe('system as text blocks (T-437): the fake reads string and block-array alike', () => {
+  const blocks = [
+    {
+      type: 'text' as const,
+      text: dp.DRAFTER_D1_SYSTEM_PROMPT,
+      cache_control: { type: 'ephemeral', ttl: '1h' },
+    },
+  ];
+  const messages = [{ role: 'user', content: 'hello there' }];
+  const inputOf = (events: unknown[]) =>
+    (events[0] as { message: { usage: { input_tokens: number } } }).message.usage.input_tokens;
+
+  it('systemText returns a string as is and joins the blocks text', () => {
+    expect(systemText('plain')).toBe('plain');
+    expect(
+      systemText([
+        { type: 'text', text: 'abc' },
+        { type: 'text', text: 'def', cache_control: { type: 'ephemeral' } },
+      ]),
+    ).toBe('abcdef');
+    expect(systemText([])).toBe('');
+  });
+  it('a D1 request with a block-array system is classified drafter', () => {
+    expect(purposeOf(systemText(blocks))).toBe('drafter');
+    expect(purposeOf(systemText(blocks))).toBe(purposeOf(dp.DRAFTER_D1_SYSTEM_PROMPT));
+  });
+  it('stubEvents estimates the same numeric input tokens for blocks as for the string', () => {
+    const fromString = inputOf(
+      stubEvents('x', { model: 'm', max_tokens: 1, system: dp.DRAFTER_D1_SYSTEM_PROMPT, messages }),
+    );
+    const fromBlocks = inputOf(
+      stubEvents('x', { model: 'm', max_tokens: 1, system: blocks, messages }),
+    );
+    expect(typeof fromBlocks).toBe('number');
+    expect(Number.isNaN(fromBlocks)).toBe(false);
+    expect(fromBlocks).toBe(fromString);
+  });
+  it('stubParsedMessage estimates the same numeric input tokens for blocks as for the string', () => {
+    type Msg = { usage: Record<string, unknown> };
+    const s = stubParsedMessage('{"a":1}', {
+      system: dp.DRAFTER_D1_SYSTEM_PROMPT,
+      messages,
+    } as never) as Msg;
+    const b = stubParsedMessage('{"a":1}', { system: blocks, messages } as never) as Msg;
+    expect(typeof b.usage.input_tokens).toBe('number');
+    expect(b.usage.input_tokens).toBe(s.usage.input_tokens);
+  });
+  it('the stub reports no cached usage fields', () => {
+    const ev = stubEvents('x', { model: 'm', max_tokens: 1, system: blocks, messages });
+    const usages = [
+      (ev[0] as { message: { usage: object } }).message.usage,
+      (stubParsedMessage('{"a":1}', { system: blocks, messages } as never) as { usage: object })
+        .usage,
+    ];
+    for (const u of usages) {
+      expect(u).not.toHaveProperty('cache_creation_input_tokens');
+      expect(u).not.toHaveProperty('cache_read_input_tokens');
+    }
   });
 });
 

@@ -96,3 +96,54 @@ Vikram checked the GST registration certificate (REG-06) itself: proprietorship,
 - 5b and 5c are unblocked. `{supplier_legal_name}` and the trade name are printed exactly as on REG-06; `{supplier_state}` is Jharkhand.
 - Invoices print the principal place of business exactly as on REG-06. Vikram corrected his earlier address: the PIN differs from the first one he sent. A test pins the config address to the certificate text.
 - Invoices are issued only for supplies on or after the registration's effective date. The founder's test top-up came before that date, a second reason it needs no invoice (closed in Addendum 1).
+
+## Addendum 3 (T-436): no State on file (Arjun's fallback #5, Priya, 14 Oct 2026)
+
+**Acceptable.** It is the rule itself, not a workaround. Under IGST Act s.12(2)(b), for an unregistered recipient the place of supply is the recipient's location only where an address is on record; otherwise it is the supplier's location. With no State on file, the place of supply is Jharkhand: CGST + SGST.
+
+When it applies: any charge where we have no State on record at the moment of invoicing. That covers renewals or top-ups by users who paid before the State question existed (none today, per Vikram), and edge cases where checkout did not capture it.
+
+Conditions:
+1. New checkouts still ask the State before the first payment (§3). The fallback is never the default path.
+2. Never guess the State (no IP, no phone prefix, no card data).
+3. Once the user gives a State on the billing page, it applies from the next invoice. Past invoices stay as issued; they were correct when made. No re-issue and no credit note for this.
+4. The invoice shows the place of supply as "Jharkhand (20)" in that case, like any other.
+
+## Addendum 4 (T-436): privacy summary, invoice email, Patna → Ranchi (Priya, 14 Oct 2026)
+
+**1. Signed privacy summary** for the new CURRENT_PRIVACY_VERSION (T-343 string P2, byte-exact):
+`We now ask for your State to issue GST tax invoices, and we explain how you can close your account and how long we keep your data.`
+It covers the T-436 change and the T-115c changes, which are not yet in an accepted version. The version id and "Last updated" are the T-436 merge date. Fix the comment in packages/shared/src/constants/privacy.ts ("Bump this when Last updated changes") to: bump when the policy adds data, a purpose or a recipient, with Ajay's sign-off. A Last-updated-only change (as in T-115c) does not bump.
+
+**2. Invoice email:** Madhuri drafts it and I sign it. Conditions: a link to the invoice only; no case content, no amount breakdown beyond the total; the sender name is the trade name.
+
+**3. Patna, Bihar is wrong everywhere it names us.** The registered place of business is Ranchi, Jharkhand. Must-fix, in T-436:
+| Where | Today | Signed text |
+|---|---|---|
+| Terms §12 | "exclusive jurisdiction of the courts at Patna, Bihar" | `exclusive jurisdiction of the courts at Ranchi, Jharkhand` (the rest of §12 unchanged; the Consumer Commission sentence stays) |
+| Contact page address block | "Registered Address / Lawie (Sole Proprietorship) / [Street address placeholder] / Patna, Bihar — [PIN]" | Label `Based in`, then `Lawie (Sole Proprietorship)` / `Ranchi, Jharkhand`. No street line, per Addendum 1. Placeholders in brackets must never be public. |
+| Email footer (email-worker verifyEmail.tsx:55 and any shared footer) | "Lawie (Sole Proprietorship), [registered address], Patna, Bihar [PIN]" | `Lawie (Sole Proprietorship), Ranchi, Jharkhand` |
+
+Test: no public page or email contains "Patna, Bihar" naming Lawie, or any "[...placeholder]" / "[PIN]" text. Sample drafts (e.g. a party's address in the seed PDFs) are unaffected.
+
+## Addendum 5 (T-436): invoice email (Madhuri's draft, handoff/marketing/copy/invoice-email-t436.md) and the number format, 14 Oct 2026
+
+| # | Question | Ruling |
+|---|---|---|
+| 1 | Footer address | `Lawie (Sole Proprietorship), Ranchi, Jharkhand` (Addendum 4). |
+| 2 | Footer line 2 | Change to: `You are receiving this because a payment was made on your Lawie account.` |
+| 3 | "invoice" vs "GST tax invoice" | The email may say "invoice". The PDF itself is headed `Tax Invoice` (credit notes: `Credit Note`). Use subject (A) `Your Lawie invoice {invoiceNumber}` and button (A) `Download invoice (PDF)`. |
+| 4 | Number and amount in the body | Yes. The amount line reads `Thank you for your payment of {amount} (including GST) on {date}.` Total only, no tax breakdown. If `{name}` is empty: `Hello,`. |
+
+Rest of the draft (preheader, body, help line, footer lines 3–4) **approved as written**. No case content and no attachment, as drafted.
+
+**Invoice number format:** the law fixes the limits, not the pattern: max 16 characters (letters, digits, "-" and "/"), unique per financial year (April–March), consecutive with no gaps, and credit notes in their own series. `LAW/2026-27/0001` was an example. Arjun's `FY25-26/000123` style is equally lawful (14 characters). His choice; the FY in it must be the real one (an invoice dated October 2026 is FY 2026-27). Not a legal override.
+
+## Addendum 6 (T-436 a): Kunal's build points, 14 Oct 2026
+
+| # | Point | Ruling |
+|---|---|---|
+| 1 | Credit-note number `LAW-CN/2026-27/0001` is 19 characters, over the 16 limit | My example was wrong. `LCN/2026-27/0001` (16 characters) is approved. |
+| 2 | PDF amounts as "Rs. 1,999.00" (no ₹ glyph) | Approved. The law requires the value, not the symbol. |
+| 3 | Legacy subscription with no matching plan prints "Lawie subscription — Pro, {period}" | No: that guesses the plan. Print the plan only from the charge's own record; if it is unknown, `Lawie subscription — {period}`. (No subscription has been charged yet, per Vikram, so this should never fire.) |
+| — | Street address removed from the public supplier endpoint, kept on the PDF | Approved, per Addendum 1. |

@@ -24,6 +24,11 @@ const envSchema = z.object({
   // Shared secret — downstream services validate this header from the gateway
   INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
 
+  // T-115c — auth calls these services' /internal/* routes (account close and erase).
+  // Same defaults as the gateway and credit-bonus.service.
+  DRAFTING_SERVICE_URL: z.string().default('http://localhost:4002'),
+  BILLING_SERVICE_URL: z.string().default('http://localhost:4003'),
+
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   SENTRY_DSN: z.string().default(''),
 });

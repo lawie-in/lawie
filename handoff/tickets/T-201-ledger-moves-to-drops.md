@@ -37,7 +37,7 @@ All balances are whole numbers of drops, where 1 Ink = 100 drops.
 - The total of all balances after migration equals 50 times the total before.
 - Plan grants per cycle: Solo 5,000 drops, Pro 15,000 drops. Free is 500 drops for life.
 - Top-ups: 300, 1,000 and 2,800 drops for 65, 199 and 499 rupees.
-- Annual carry-over rules are unchanged: 50 percent carries, capped at twice the monthly grant.
+- Annual carry-over removed by T-433 (47d5d011, 14 Oct 2026): unused plan Ink does not carry over; top-up Ink never expires.
 - Old ledger rows keep their history. New rows are in drops and carry a unit marker.
 - APIs return drops. No decimal balance appears anywhere.
 - The migration is run against a backup copy before production.

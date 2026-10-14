@@ -27,7 +27,13 @@ import {
 import type { DraftParagraphsOutput } from '../services/draft-renderer';
 import type { Skeleton } from '../types/skeleton';
 import { fact, loadFixtureSkeleton, regularBase, REGULAR_NARRATIVE_RAW } from './fixtures/t373';
-import { sdkAnswer, SdkStreamParams, sdkParseResponse } from './sdkStream';
+import {
+  sdkAnswer,
+  SdkStreamParams,
+  sdkParseResponse,
+  expectCachedSystem,
+  systemText,
+} from './sdkStream';
 
 const mockStream = jest.fn();
 const mockParse = jest.fn();
@@ -162,7 +168,7 @@ const parseCall = (n = 0) =>
   mockParse.mock.calls[n][0] as {
     model: string;
     max_tokens: number;
-    system: string;
+    system: unknown;
     messages: Array<{ role: string; content: string }>;
     output_config: { format: { type: string; schema: any; parse: (s: string) => unknown } };
     [k: string]: unknown;
@@ -180,7 +186,7 @@ describe('the structured call (Arjun, D1 call shape 1)', () => {
     const call = parseCall();
     expect(call.max_tokens).toBe(16000);
     expect(call.model).toBe('claude-sonnet-4-5-20250929');
-    expect(call.system).toBe(DRAFTER_D1_SYSTEM_PROMPT);
+    expectCachedSystem(call.system, DRAFTER_D1_SYSTEM_PROMPT);
     expect(call.output_config.format.type).toBe('json_schema');
     expect(call).not.toHaveProperty('tools');
     expect(call).not.toHaveProperty('tool_choice');
@@ -288,7 +294,7 @@ describe('the result of a D1 draft', () => {
     mockParse.mockResolvedValue(sdkParseResponse(goodOutput()));
     const { result } = await run();
     expect(result!.fullText).not.toContain('CLAUSES');
-    expect(parseCall().system).not.toContain('===CLAUSES===');
+    expect(systemText(parseCall().system)).not.toContain('===CLAUSES===');
   });
 });
 
@@ -354,7 +360,7 @@ describe('null parsed_output: one retry, then an error and no draft', () => {
     const a = parseCall(0);
     const b = parseCall(1);
     expect(b.messages).toEqual(a.messages);
-    expect(b.system).toBe(a.system);
+    expect(b.system).toEqual(a.system);
     expect(b.max_tokens).toBe(a.max_tokens);
     expect(b.output_config.format.schema).toEqual(a.output_config.format.schema);
   });
@@ -742,7 +748,7 @@ describe('which requests take the D1 path', () => {
     const { result } = await run({ loadSkeleton: () => null });
     expect(mockParse).not.toHaveBeenCalled();
     const call = mockStream.mock.calls[0][0] as SdkStreamParams;
-    expect(call.system).toBe(DRAFTER_LEDGER_SYSTEM_PROMPT);
+    expectCachedSystem(call.system, DRAFTER_LEDGER_SYSTEM_PROMPT);
     expect(call.max_tokens).toBe(8192);
     expect(result!.rendered).toBeUndefined();
     // Non-D1: the old verifier result is still returned as factCheck, and there is no factDiff.

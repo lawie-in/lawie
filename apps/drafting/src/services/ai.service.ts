@@ -84,6 +84,7 @@ import {
 } from './draft-renderer';
 import {
   DRAFTER_D1_SYSTEM_PROMPT,
+  DRAFTER_FACT_REPAIR_SYSTEM_PROMPT,
   DRAFTER_GUIDED_SYSTEM_PROMPT,
   DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT,
   DRAFTER_LEDGER_SYSTEM_PROMPT,
@@ -100,9 +101,14 @@ import {
 } from './fact-verifier';
 import { Brief, buildChecklist, FIXED_KEYS } from './intake-brief';
 import {
+  CacheUsage,
+  cacheCounts,
+  CallUsage,
   estimateOutputTokens,
+  hasUsage,
   parseAnthropicMessageUsage,
   parseAnthropicStreamEvent,
+  ParsedStreamFragment,
   UsageMeter,
   UsageTotals,
 } from './llm-usage';
@@ -155,13 +161,71 @@ const directClient = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
  * the caller (the pipeline, via UsageMeter) falls back to estimating output
  * tokens from the accumulated text when it's still 'none' after the call.
  */
-export interface CallUsageDraft {
+export interface CallUsageDraft extends CacheUsage {
+  /** Uncached input only (T-437); cache writes/reads are the CacheUsage fields. */
   inputTokens: number;
   outputTokens: number;
   usageSource: 'provider' | 'none';
   /** Resolved model id and transport for this call — same for every call in one request. */
   model?: string;
   transport?: 'direct';
+}
+
+/** Copies the counts a provider fragment carries onto a draft (numbers only). */
+function applyUsage(usage: CallUsageDraft, f: ParsedStreamFragment): void {
+  if (!hasUsage(f)) return;
+  if (f.inputTokens !== undefined) usage.inputTokens = f.inputTokens;
+  if (f.outputTokens !== undefined) usage.outputTokens = f.outputTokens;
+  if (f.cacheCreationInputTokens !== undefined)
+    usage.cacheCreationInputTokens = f.cacheCreationInputTokens;
+  if (f.cacheReadInputTokens !== undefined) usage.cacheReadInputTokens = f.cacheReadInputTokens;
+  if (f.cacheCreation1hInputTokens !== undefined)
+    usage.cacheCreation1hInputTokens = f.cacheCreation1hInputTokens;
+  if (f.cacheCreation5mInputTokens !== undefined)
+    usage.cacheCreation5mInputTokens = f.cacheCreation5mInputTokens;
+  usage.usageSource = 'provider';
+}
+
+/**
+ * The UsageMeter record for one finished (or failed) call. Output falls back
+ * to an estimate from the text when the provider reported nothing. Cache
+ * counts are carried only when non-zero.
+ */
+function callUsageOf(sectionId: string, d: CallUsageDraft, text: string): CallUsage {
+  return {
+    sectionId,
+    inputTokens: d.inputTokens,
+    outputTokens: d.usageSource === 'provider' ? d.outputTokens : estimateOutputTokens(text),
+    usageSource: d.usageSource === 'provider' ? 'provider' : 'estimated',
+    ...cacheCounts(d),
+  };
+}
+
+// ── Prompt caching (T-437, Arjun 14 Oct, option A) ───────────────────────────
+//
+// A call whose system prompt is a constant (the same bytes for every request)
+// sends it as one text block carrying the call's single cache breakpoint, 1h
+// TTL. The text is exactly the constant: nothing is added, nothing per request
+// ever goes in it — case facts, ledger, brief and skeleton stay in `messages`.
+// A call whose system text varies per request (the template pipeline's
+// buildAISystemPrompt, the legacy assemblePrompt) is sent as a plain string,
+// uncached.
+
+export const SYSTEM_CACHE_TTL = '1h' as const;
+
+export type CachedSystemBlocks = Anthropic.TextBlockParam[];
+
+/** The system prompt as one cached block. Pure: same text in, same bytes out. */
+export function cachedSystemBlocks(text: string): CachedSystemBlocks {
+  return [{ type: 'text', text, cache_control: { type: 'ephemeral', ttl: SYSTEM_CACHE_TTL } }];
+}
+
+export interface StreamLLMOptions {
+  /**
+   * T-437: send `systemPrompt` as one cached block. Only for a system prompt
+   * that is a constant — never for text built per request.
+   */
+  cacheSystem?: boolean;
 }
 
 /**
@@ -177,6 +241,7 @@ export async function* streamLLM(
   userPrompt: string,
   maxTokens: number,
   usage?: CallUsageDraft,
+  options: StreamLLMOptions = {},
 ): AsyncGenerator<string> {
   // Model lives in the AppSetting Mongo collection — NOT in env or in the
   // codebase (per founder instruction 2026-05-11). If unset, getAppSetting
@@ -197,17 +262,13 @@ export async function* streamLLM(
   const stream = await directClient.messages.stream({
     model,
     max_tokens: maxTokens,
-    system: systemPrompt,
+    system: options.cacheSystem ? cachedSystemBlocks(systemPrompt) : systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
   });
   for await (const event of stream) {
     const fragment = parseAnthropicStreamEvent(event);
     if (fragment.text) yield fragment.text;
-    if (usage && (fragment.inputTokens !== undefined || fragment.outputTokens !== undefined)) {
-      if (fragment.inputTokens !== undefined) usage.inputTokens = fragment.inputTokens;
-      if (fragment.outputTokens !== undefined) usage.outputTokens = fragment.outputTokens;
-      usage.usageSource = 'provider';
-    }
+    if (usage) applyUsage(usage, fragment);
   }
 }
 
@@ -464,29 +525,19 @@ export async function streamGenerateDocument(
     const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
 
     try {
+      // T-437: not cached. This system prompt is built per doc type x court
+      // rule, not one constant (see the prompt-caching note at streamLLM).
       for await (const text of streamLLM(systemPrompt, userPrompt, 4096, draft)) {
         rawText += text;
         res.write(`data: ${JSON.stringify({ text })}\n\n`);
       }
-      meter.record({
-        sectionId: 'legacy',
-        inputTokens: draft.inputTokens,
-        outputTokens:
-          draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(rawText),
-        usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
-      });
+      meter.record(callUsageOf('legacy', draft, rawText));
     } catch (llmErr) {
       // Mirrors the config-driven pipeline's per-section handling below — SSE
       // headers are already on the wire so a 5xx status isn't possible; emit a
       // structured `event: error` instead. `draft` carries whatever was
       // captured before the failure so the route can still record it.
-      meter.record({
-        sectionId: 'legacy',
-        inputTokens: draft.inputTokens,
-        outputTokens:
-          draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(rawText),
-        usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
-      });
+      meter.record(callUsageOf('legacy', draft, rawText));
       const classified = classifyLlmError(llmErr);
       if (process.env.NODE_ENV !== 'test') {
         console.error(
@@ -720,19 +771,15 @@ export async function streamGenerateFromTemplate(
         const draft: CallUsageDraft = { inputTokens: 0, outputTokens: 0, usageSource: 'none' };
 
         try {
+          // T-437: not cached. buildAISystemPrompt renders related_acts through
+          // this draft's placeholder context (T-407), so it varies per request.
           for await (const text of streamLLM(systemPrompt, userPrompt, 8192, draft)) {
             aiText += text;
             res.write(`data: ${JSON.stringify({ text })}\n\n`);
           }
           aiModel = draft.model;
           transport = draft.transport;
-          meter.record({
-            sectionId: section.section_id,
-            inputTokens: draft.inputTokens,
-            outputTokens:
-              draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(aiText),
-            usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
-          });
+          meter.record(callUsageOf(section.section_id, draft, aiText));
         } catch (llmErr) {
           // AI provider / network failure mid-stream. SSE headers are
           // already on the wire so we CAN'T set a 5xx status — emit a structured
@@ -742,13 +789,7 @@ export async function streamGenerateFromTemplate(
           // throwing, so the caller can still record a Generation row for it.
           aiModel = draft.model;
           transport = draft.transport;
-          meter.record({
-            sectionId: section.section_id,
-            inputTokens: draft.inputTokens,
-            outputTokens:
-              draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(aiText),
-            usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
-          });
+          meter.record(callUsageOf(section.section_id, draft, aiText));
           const classified = classifyLlmError(llmErr);
           if (process.env.NODE_ENV !== 'test') {
             console.error(
@@ -1392,12 +1433,7 @@ export async function streamGenerateFromBrief(
     const recordCall = (sectionId: string, d: CallUsageDraft, text: string): void => {
       aiModel = d.model ?? aiModel;
       transport = d.transport ?? transport;
-      meter.record({
-        sectionId,
-        inputTokens: d.inputTokens,
-        outputTokens: d.usageSource === 'provider' ? d.outputTokens : estimateOutputTokens(text),
-        usageSource: d.usageSource === 'provider' ? 'provider' : 'estimated',
-      });
+      meter.record(callUsageOf(sectionId, d, text));
     };
     // ── T-373 (ADR-025 D1): a pack with a signed skeleton is filled, not written ─
     // Everything after this point, for such a pack, is in d1GenerateFromBrief.
@@ -1433,6 +1469,7 @@ export async function streamGenerateFromBrief(
           : buildDrafterUserPrompt(promptInput),
         8192,
         draft,
+        { cacheSystem: true },
       )) {
         raw += text;
         // The clause report after the document is for the server, never for the user.
@@ -1497,6 +1534,7 @@ export async function streamGenerateFromBrief(
             : buildRepairUserPrompt(promptInput, output.body, missingIds),
           8192,
           repairDraft,
+          { cacheSystem: true },
         )) {
           repairRaw += text;
         }
@@ -1579,7 +1617,11 @@ export async function streamGenerateFromBrief(
             usageSource: 'none',
           };
           try {
-            for await (const text of streamLLM(system, user, 8192, factDraft)) factRaw += text;
+            // T-437: cached only when it is the constant fact-repair prompt.
+            for await (const text of streamLLM(system, user, 8192, factDraft, {
+              cacheSystem: system === DRAFTER_FACT_REPAIR_SYSTEM_PROMPT,
+            }))
+              factRaw += text;
             recordCall('fact_repair', factDraft, factRaw);
             return factRaw;
           } catch (factErr) {
@@ -1904,16 +1946,13 @@ async function callD1Drafter(
   const message = await directClient.messages.parse({
     model,
     max_tokens: D1_MAX_TOKENS,
-    system,
+    // T-437: cached only when it is the constant D1 prompt; the facts and
+    // the skeleton are in the user message.
+    system: system === DRAFTER_D1_SYSTEM_PROMPT ? cachedSystemBlocks(system) : system,
     messages: [{ role: 'user', content: user }],
     output_config: { format },
   });
-  const counts = parseAnthropicMessageUsage(message);
-  if (counts.inputTokens !== undefined || counts.outputTokens !== undefined) {
-    if (counts.inputTokens !== undefined) usage.inputTokens = counts.inputTokens;
-    if (counts.outputTokens !== undefined) usage.outputTokens = counts.outputTokens;
-    usage.usageSource = 'provider';
-  }
+  applyUsage(usage, parseAnthropicMessageUsage(message));
   return message.parsed_output ?? null;
 }
 
@@ -2283,16 +2322,12 @@ export async function streamGenerateGuided(
     const recordCall = (): void => {
       aiModel = draft.model ?? aiModel;
       transport = draft.transport ?? transport;
-      meter.record({
-        sectionId: 'body',
-        inputTokens: draft.inputTokens,
-        outputTokens:
-          draft.usageSource === 'provider' ? draft.outputTokens : estimateOutputTokens(raw),
-        usageSource: draft.usageSource === 'provider' ? 'provider' : 'estimated',
-      });
+      meter.record(callUsageOf('body', draft, raw));
     };
     try {
-      for await (const text of streamLLM(DRAFTER_GUIDED_SYSTEM_PROMPT, userPrompt, 8192, draft)) {
+      for await (const text of streamLLM(DRAFTER_GUIDED_SYSTEM_PROMPT, userPrompt, 8192, draft, {
+        cacheSystem: true,
+      })) {
         raw += text;
         res.write(`data: ${JSON.stringify({ text })}\n\n`);
       }

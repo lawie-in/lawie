@@ -108,9 +108,10 @@ describe('Privacy page §1 bullet', () => {
 });
 
 describe('Last updated', () => {
-  it('stays 12 October 2026 (Ajay: the version, not the date, changes to 2026-10-12b)', () => {
-    expect(pageSource).toContain("const PRIVACY_LAST_UPDATED = '12 October 2026';");
+  it('is 14 October 2026 (T-115c: §3, §5, §7, §9 changed that day)', () => {
+    expect(pageSource).toContain("const PRIVACY_LAST_UPDATED = '14 October 2026';");
     const el = renderPage();
-    expect(el.textContent).toContain('12 October 2026');
+    expect(el.textContent).toContain('14 October 2026');
+    expect(el.textContent).not.toContain('12 October 2026');
   });
 });

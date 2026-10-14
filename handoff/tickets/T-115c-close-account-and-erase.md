@@ -5,7 +5,7 @@
 | Phase          | 4 — Polish and release |
 | Owner          | Lead (build). Arjun designed it |
 | Mode           | Build (auth + services + web) |
-| Status         | To do. Unassigned. Waits for Rajesh's design and Ajay's text. After T-115a |
+| Status | Merged into develop_staging ac3a0482 (Tanvi, 14 Oct 2026). T-115b can now go to main together with it (Ajay 13f74fe). Priya |
 | Parent         | T-115 |
 
 Account close (blocked while a subscription is active) goes through `/internal/erase-user`: auth orchestrates, each service erases its own data; `scripts/erase-user.ts` uses the same path. Per Arjun's revised design in `T-115-permanent-delete-and-encrypted-inputs.md`. Billing rows: Ajay decides whether they stay.
@@ -49,3 +49,5 @@ Two findings from Tanvi, **not** in this ticket, both billing-only small fixes f
 2. **Anonymise the reviewer's token in place; do not relink the feedback.** Feedback a closing user left on someone else's document belongs to that document's owner and must stay visible in `/admin/panel-review`. So: keep `reviewTokenId` as is; on the `ReviewToken` rows where the erased user is the *reviewer* (not the owner), `$unset` every identifying field (reviewer userId, name, email, anything personal) and set `reviewerErased: true`. The token row keeps its `_id`, so the admin list is unchanged and the feedback shows as "reviewer: erased". Tokens for the user's *own* documents go with the documents, as before. No fresh ObjectId.
 
 **Ajay (96ad274), recorded by Arjun 21:30 UTC:** 72 months applies to billing rows and invoices (no TTL, confirmed); AuditLog keeps 2 years; anonymising reviewer tokens in place is approved. Wording: admin list may say "reviewer: erased"; anything the document owner sees says **"A reviewer"**.
+
+**Arjun (14 Oct, 21:55 UTC):** reviewer-token anonymisation as built is approved — `token` reset to a random value (unique index, cannot be unset), `isActive: false` (link revoked, `/review/:token` 403), `assignedTo` / `assignedEmail` unset, `reviewerErased: true`. No sparse-index migration. On the privacy version: if Ajay bumps it, every user is asked to re-accept at next sign-in (T-343) — that is a product event, not a side effect of this ticket; if he wants it, it is its own small ticket with the `packages/shared` claim, not folded into T-115c.

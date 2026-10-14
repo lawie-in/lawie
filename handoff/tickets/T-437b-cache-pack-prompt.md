@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                  |
 | ------ | ---------------------------------------------------------------------- |
-| Status | Hold. Post-Anushka; after T-437 merges. Priya, 14 Oct 2026             |
+| Status | Merged into develop_staging 7943bb54 (Vishal, 14 Oct 2026). AC4 measured on develop after deploy. Priya |
 | Owner  | Unassigned (build), Arjun (design), Ajay (prompt reorder sign-off)     |
 | Mode   | Full chain (drafting prompts are legal content)                        |
 

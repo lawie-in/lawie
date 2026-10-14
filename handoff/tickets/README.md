@@ -18,6 +18,10 @@ Local ticket files, one per ticket. Founder decision on 3 Oct 2026: no Jira or N
 - Close or park: superseded, pre-v1 scope, or unassigned and untouched for 3+ days. Arjun confirms each batch.
 - The number reported to the founder is **open tickets that are v1-scoped and assigned**, not the raw open count.
 
+## What ships when
+
+`handoff/tickets/v1-scope.md` labels every open ticket **V1** (before launch), **V1.1** (soon after) or **later** (enhancements). Priya owns it; Arjun and Ajay confirm; the founder has the last word.
+
 ## Branch flow (founder, 11 Oct 2026)
 
 - Cut every ticket branch from `develop_staging`. Merge finished work back into `develop_staging`.

@@ -1135,3 +1135,43 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - A criminal revision prayer names "Section 438 read with Section 442" (or 440) for the forum chosen. Where the forum isn't known, it shows a clear "To be confirmed" blank instead of "_____".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-433 — No yearly Ink carry (47d5d011, shashank, 14 Oct 2026)
+
+- The pricing page and the Terms say plan Ink is fresh each month, unused plan Ink does not carry over, and top-up Ink never expires.
+- The pricing page says the Ink cost is shown before you generate.
+- On a yearly plan, Ink resets to the monthly amount each month, with nothing banked.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-384 — "Not known" dates (3ceb2fc8, kunal, 14 Oct 2026)
+
+- A date row answered "Not known" shows "Not known" instead of an empty date box.
+- Press "Change" to set the date after all.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-437 — Prompt caching (7943bb54, vishal, 14 Oct 2026)
+
+- Drafting is unchanged for advocates.
+- An admin can see cache tokens, cache cost, net saving and cache hit share on the AI cost panel.
+- Draft cost now matches what the provider charges. Check first that cache_write_usd_per_mtok is set to the 1-hour price (pre-run checklist).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-115c — Close your account (ac3a0482, tanvi, 14 Oct 2026)
+
+- Close your account from Settings. Confirm with your password, or, for a Google-only account, type your email after a sign-in within the last 15 minutes.
+- With an active plan, you're told to cancel it first, and nothing changes.
+- Once you confirm, you're signed out everywhere, and your account, profile and documents are erased. Payment records are kept for tax. Feedback you gave on other people's documents stays, without your name.
+- If erasing takes longer, you're told it will be finished for you.
+- The privacy policy describes all of this.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-436 part (a) — GST tax invoices, server side (6cca6f0d, kunal, 14 Oct 2026)
+
+- Nothing new on screen yet. Every payment now produces a GST tax invoice on Lawie's side, and the admin can export the month's invoices for GST filing.
+- The invoice list, the email and the download ship in part (c); the State picker ships in part (b).
+
+Quality: nothing to test in the UI — server-side only; the invoice list, email and download ship in part c
