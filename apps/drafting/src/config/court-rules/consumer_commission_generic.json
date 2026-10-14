@@ -37,10 +37,7 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, the Complainant herein above named, do hereby verify that the contents of the above complaint are true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nCOMPLAINANT",
-  "supported_languages": [
-    "en",
-    "hi"
-  ],
+  "supported_languages": ["en", "hi"],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",

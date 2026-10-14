@@ -71,6 +71,18 @@ const FIRST_GROUND = buildChecklist(PACK).find((i) => i.key === 'grounds_for_bai
 
 const court = { state: 'bihar', court_type: 'sessions', court: COURT_ID };
 
+/** T-381: what a bail_regular brief draft seals in formInputsEnc (party inputs, court_type, state). */
+const SEALED_FORM_INPUTS = {
+  template_id: 'bail_regular',
+  source: 'brief',
+  applicant_name: 'Ram Kumar',
+  father_name: 'Shri Hari Kumar',
+  applicant_age: '32',
+  address: '123 Main St, Patna',
+  court_type: 'sessions',
+  state: 'bihar',
+};
+
 /** Every required fact of a regular bail application, as the user confirmed it. */
 const VALUES = [
   {
@@ -335,7 +347,8 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     });
     expect(doc!.title).toContain('DISTRICT & SESSIONS JUDGE, PATNA');
     // Case details are not in the unencrypted field. The brief is stored encrypted.
-    expect(readFormInputs(doc!)).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    // T-381: the sealed inputs hold the party inputs, court_type, and state (a State row).
+    expect(readFormInputs(doc!)).toEqual(SEALED_FORM_INPUTS);
     expect(doc!).not.toHaveProperty('formInputs');
     expect(doc!.brief).not.toContain('Ram Kumar');
     const savedBrief = JSON.parse(decrypt(doc!.brief!)) as { kind: string; values: unknown[] };
@@ -956,7 +969,7 @@ describe('POST /generate-from-brief — T-136 — described', () => {
     expect(doc!.brief).not.toContain(MARKER);
     const savedBrief = JSON.parse(decrypt(doc!.brief!)) as { described?: string };
     expect(savedBrief.described).toBe(DESCRIBED);
-    expect(readFormInputs(doc!)).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    expect(readFormInputs(doc!)).toEqual(SEALED_FORM_INPUTS);
     expect(doc!).not.toHaveProperty('formInputs');
     expect(JSON.stringify({ ...doc, brief: undefined, generatedContent: undefined })).not.toContain(
       MARKER,

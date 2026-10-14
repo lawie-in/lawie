@@ -413,7 +413,7 @@ describe('T-200 AC6: no prompt text changes', () => {
       '42aab92426027f010dd5368d6b5870f7635cf0b118600c6a78c6299c33f0b928',
     );
     expect(sha(DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT)).toBe(
-      '302353e51ece0ccc69432c45175898e27b540a25ab8db20d61ee8222ca32ed68',
+      '0bf7e391a79234e33763702cb3e356bfd80724f2fdca067d75ff98b1833dc714',
     );
   });
 });

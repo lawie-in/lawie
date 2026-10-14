@@ -311,23 +311,59 @@
     "ni_act_sections_ref": {
       "logic": "if respondent_type === 'company' then '138 read with Sections 141 and 142' else '{ni_act_sections_ref_unless_partnership}'"
     },
+    "addressee_name_unless_form_blank": {
+      "logic": "if respondent_name === '' then '[To be confirmed: name of the addressee]' else '{respondent_name}'"
+    },
+    "addressee_name_unless_ledger_blank": {
+      "logic": "if respondent_name === '{{MISSING: Drawer / Noticee}}' then '[To be confirmed: name of the addressee]' else '{addressee_name_unless_form_blank}'"
+    },
+    "addressee_name": {
+      "logic": "if respondent_name === '[To be confirmed: drawer / noticee]' then '[To be confirmed: name of the addressee]' else '{addressee_name_unless_ledger_blank}'"
+    },
+    "addressee_address_unless_form_blank": {
+      "logic": "if respondent_address === '' then '[To be confirmed: address of the addressee]' else '{respondent_address}'"
+    },
+    "addressee_address_unless_ledger_blank": {
+      "logic": "if respondent_address === '{{MISSING: Drawer Address}}' then '[To be confirmed: address of the addressee]' else '{addressee_address_unless_form_blank}'"
+    },
+    "addressee_address": {
+      "logic": "if respondent_address === '[To be confirmed: drawer address]' then '[To be confirmed: address of the addressee]' else '{addressee_address_unless_ledger_blank}'"
+    },
+    "notice_client_name_unless_form_blank": {
+      "logic": "if applicant_name === '' then '[To be confirmed: name of the client]' else '{applicant_name}'"
+    },
+    "notice_client_name_unless_ledger_blank": {
+      "logic": "if applicant_name === '{{MISSING: Payee / Notice Sender}}' then '[To be confirmed: name of the client]' else '{notice_client_name_unless_form_blank}'"
+    },
+    "notice_client_name": {
+      "logic": "if applicant_name === '[To be confirmed: payee / notice sender]' then '[To be confirmed: name of the client]' else '{notice_client_name_unless_ledger_blank}'"
+    },
+    "client_address_unless_form_blank": {
+      "logic": "if applicant_address === '' then '[To be confirmed: address of the client]' else '{applicant_address}'"
+    },
+    "client_address_unless_ledger_blank": {
+      "logic": "if applicant_address === '{{MISSING: Payee Address}}' then '[To be confirmed: address of the client]' else '{client_address_unless_form_blank}'"
+    },
+    "client_address": {
+      "logic": "if applicant_address === '[To be confirmed: payee address]' then '[To be confirmed: address of the client]' else '{client_address_unless_ledger_blank}'"
+    },
     "drawer_addressee_unless_form_blank": {
-      "logic": "if drawer_proprietor === '' then '{respondent_name}' else '{drawer_proprietor},\nProprietor,\n{respondent_name},'"
+      "logic": "if drawer_proprietor === '' then '{addressee_name}' else '{drawer_proprietor},\nProprietor,\n{addressee_name},'"
     },
     "drawer_addressee_unless_ledger_blank": {
-      "logic": "if drawer_proprietor === '{{MISSING: Name of the proprietor (if the drawer is a proprietorship firm)}}' then '{respondent_name}' else '{drawer_addressee_unless_form_blank}'"
+      "logic": "if drawer_proprietor === '{{MISSING: Name of the proprietor (if the drawer is a proprietorship firm)}}' then '{addressee_name}' else '{drawer_addressee_unless_form_blank}'"
     },
     "drawer_addressee": {
-      "logic": "if drawer_proprietor === '[To be confirmed: name of the proprietor (if the drawer is a proprietorship firm)]' then '{respondent_name}' else '{drawer_addressee_unless_ledger_blank}'"
+      "logic": "if drawer_proprietor === '[To be confirmed: name of the proprietor (if the drawer is a proprietorship firm)]' then '{addressee_name}' else '{drawer_addressee_unless_ledger_blank}'"
     },
     "payee_client_unless_form_blank": {
-      "logic": "if payee_proprietor === '' then '{applicant_name}' else '{applicant_name}, through its proprietor {payee_proprietor}'"
+      "logic": "if payee_proprietor === '' then '{notice_client_name}' else '{notice_client_name}, through its proprietor {payee_proprietor}'"
     },
     "payee_client_unless_ledger_blank": {
-      "logic": "if payee_proprietor === '{{MISSING: Name of the proprietor (if your client is a proprietorship firm)}}' then '{applicant_name}' else '{payee_client_unless_form_blank}'"
+      "logic": "if payee_proprietor === '{{MISSING: Name of the proprietor (if your client is a proprietorship firm)}}' then '{notice_client_name}' else '{payee_client_unless_form_blank}'"
     },
     "payee_client": {
-      "logic": "if payee_proprietor === '[To be confirmed: name of the proprietor (if your client is a proprietorship firm)]' then '{applicant_name}' else '{payee_client_unless_ledger_blank}'"
+      "logic": "if payee_proprietor === '[To be confirmed: name of the proprietor (if your client is a proprietorship firm)]' then '{notice_client_name}' else '{payee_client_unless_ledger_blank}'"
     }
   },
   "document_structure": {
@@ -336,7 +372,7 @@
         "section_id": "header",
         "type": "template",
         "alignment": "left",
-        "template": "LEGAL NOTICE\n(Under Section {ni_act_sections_ref} of the Negotiable Instruments Act, 1881)\n\nDate: {notice_date}\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\n{drawer_addressee}\n{respondent_address}\n\nFrom,\n{applicant_name}\n{applicant_address}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
+        "template": "LEGAL NOTICE\n(Under Section {ni_act_sections_ref} of the Negotiable Instruments Act, 1881)\n\nDate: {notice_date}\nBy Registered Post A.D. / Speed Post / UPC\n\nTo,\n{drawer_addressee}\n{addressee_address}\n\nFrom,\n{notice_client_name}\n{client_address}\nThrough: {advocate_name}, Advocate\n{advocate_address}"
       },
       {
         "section_id": "subject_line",
@@ -362,7 +398,7 @@
         "section_id": "closing",
         "type": "template",
         "alignment": "left",
-        "template": "A copy of this notice is retained in my office for record and further legal action.\n\nYours faithfully,\n\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {advocate_enrollment}\n{advocate_address}\n\n(Counsel for {applicant_name})"
+        "template": "A copy of this notice is retained in my office for record and further legal action.\n\nYours faithfully,\n\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {advocate_enrollment}\n{advocate_address}\n\n(Counsel for {notice_client_name})"
       }
     ]
   },

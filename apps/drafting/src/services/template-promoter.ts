@@ -712,7 +712,7 @@ function synthesiseDocumentStructure(rule: DocRuleSource): DocumentSection[] {
       type: 'template',
       alignment: 'right',
       template:
-        'THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {court_city}\nDate: {current_date}',
+        'THROUGH:\n\n_________________________\n{advocate_name}\nAdvocate\nEnrollment No. {enrollment_number}\n\nPlace: {place}\nDate: {current_date}',
     });
     return sections;
   }

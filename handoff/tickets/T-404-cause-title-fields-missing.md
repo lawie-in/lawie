@@ -1,16 +1,17 @@
 # T-404 — Cause-title fields with no question in the form
 
-| Field  | Value |
-| ------ | ----- |
-| Phase  | 4 — Polish and release |
+| Field  | Value                                                                        |
+| ------ | ---------------------------------------------------------------------------- |
+| Phase  | 4 — Polish and release                                                       |
 | Owner  | Ajay (what each title needs), Rajesh/Meera (questions), then a drafting lead |
-| Mode   | Full chain |
-| Status | Building. Shashank, after T-363. Labels signed by Ajay. Priya, 13 Oct 2026 |
-| Source | T-395 developer report |
+| Mode   | Full chain                                                                   |
+| Status | Part 1 merged 680b41c; part 2 building. Shashank, 14 Oct 2026 |
+| Source | T-395 developer report                                                       |
 
 ## Problem
 
 Some cause-title tokens have no source in the form at all, so they always print a blank:
+
 - the `legal_notice_*` cause titles: applicant, respondent and addresses. Most aren't covered by t146;
 - slp `hc_case_no` and `hc_name`;
 - `respondents_list` in pil, habeas and rera;
@@ -38,10 +39,13 @@ Some cause-title tokens have no source in the form at all, so they always print 
 - Shashank sends his open questions straight to Ajay.
 
 ## For part 2 (T-404 part 1 reviewer, 13 Oct)
+
 With no court, the ledger path hands the Drafter "[To be confirmed: court]" instead of its own "{{MISSING: court}}". The fix is in apps/drafting/src/services/ai.service.ts :1081/:1114. That's legal content, so Ajay signs it. ai.service.ts goes Vishal (T-373), then Tanvi (T-410), then whoever takes this. Priya sequences it.
 
 ## For part 2 (Ajay, 13 Oct)
+
 An optional "Place of execution" question, with the help text "City or town where the document will be signed.", on 11 deeds: affidavit_identity, gift_deed, joint_development_agreement, lease_deed, license_agreement, mortgage_deed, mou, partition_deed, release_deed, sale_deed and will.
 
 ## Part 1 after merging in T-406 (Shashank, 13 Oct)
+
 Not-court packs get no case-line blank, since T-406 wins. Deeds never take a court city as their place (49b5fd2; Ajay signed the golden batch ff33740, 36 verification_text lines). s.138 fixtures 19–21 are folded in. A fresh tester and reviewer are running.

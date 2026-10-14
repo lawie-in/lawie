@@ -17,7 +17,7 @@ import {
 const PROFILE = 'Abhi';
 const TYPED = 'R. Sharma';
 const TBC = '[To be confirmed: advocate name]';
-const BLANK = '____________________';
+const BLANK = "[To be confirmed: advocate's name]";
 const PACKS = ['default_bail', 'bail_before_magistrate', 'interim_bail'] as const;
 
 function config(id: string): TemplateConfig {
