@@ -33,3 +33,23 @@ The four section numbers (438, 440, 442 and the discharge sections) agree across
 - Patna HC: https://app.vaquill.ai/cases/BRHC010996852025
 - BNSS revision sections: https://lexibal.com/bnss-section-440-sessions-judge-powers-revision/ ; https://vakeel360.com/crpc-to-bnss/section-401-high-courts-power-of-revision ; https://lexibal.com/?p=45910
 - BNSS discharge sections: https://blog.ipleaders.in/difference-between-discharge-and-acquittal-under-crpc-and-bnss/ ; https://bhattandjoshiassociates.com/continuity-of-crpc-discharge-and-framing-of-charges-under-bnss-supreme-court-judgment-in-dr-anand-rai-v-state-of-madhya-pradesh/
+
+## T-429 scoping follow-ups (14 Oct 2026, Vishal's flags), all must-fix
+
+1. **discharge_application :243 (the Para 10 instruction on NI Act director prosecutions) and :333 (the S.M.S. Pharmaceuticals key citation):** put both under the same s.138 gate as the NI Act entry. With no NI Act s.138 charge, neither reaches the model.
+2. **:251 "S.438 BNSS revision to HC by State":** replace with `Revision against the discharge order lies under S.438 read with S.440 (Sessions Judge) or S.442 (High Court) BNSS.` This matches the T-430 table.
+3. **The same strings in other packs:** quashing_528_bnss :293-297 and criminal_revision :250-252 take the T-430 descriptions word for word (438 calling for records, 440 Sessions Judge, 442 High Court). Fold this into T-429 if the claim allows, or Priya opens a small ticket.
+
+**s.138 gate test: OK.** Use NFKC and a case-insensitive match for "Negotiable Instruments" or "N.I. Act" / "NI Act" (optional dots and spaces), plus a "138" token. A blank or placeholder charge drops the entry.
+
+## T-428 golden (14 Oct 2026, Shashank)
+
+**Signed: entries 1–5 and 8–16 as listed.** Only `case_nomenclature` changes. Not signed: 6–7.
+
+| # | Question | Ruling |
+|---|---|---|
+| a | district_court_generic gets the REG and ANT lines | **No, keep the blank.** It is the civil district court, and T-425 removes it from every bail pack. My T-426 "`*_district`" means the state criminal-side records, not this one. Drop entries 6–7 from the batch. |
+| b | Supreme Court bail lines | **Do it in T-428.** Both become `[To be confirmed: case type and number]`. T-425 also stops offering bail packs at the SC. |
+| c | high_court_generic blank without `{year}` | **OK.** Exempt the exact blank string from the `{year}` data test, and nothing else. |
+
+Any other byte in the snapshot needs a fresh sign-off.

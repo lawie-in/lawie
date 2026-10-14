@@ -31,6 +31,7 @@ import ConsumerLevelGroup, {
   type ConsumerLevel,
   type LevelChangeHow,
 } from '../intake/ConsumerLevelGroup';
+import InkCostLine, { inkCostState } from '../intake/InkCostLine';
 
 // ── Types (mirrored from backend template-engine types) ─────────────────────
 
@@ -106,7 +107,18 @@ interface DynamicFormRendererProps {
   submitting?: boolean;
   /** T-343: aria-describedby for the Generate (last-step) button, e.g. the privacy P7 box. */
   submitDescribedBy?: string;
+  /** T-388: what "Generate document" charges (template-configs `credits_cost`). */
+  inkCost?: number;
+  /** T-388: the cost is being fetched. */
+  inkCostLoading?: boolean;
+  /** T-388: fetches the cost again when it could not be worked out. */
+  onInkCostRetry?: () => void;
+  /** T-388: the template id, for the Sentry report only. */
+  templateId?: string;
 }
+
+/** T-388: id of the Ink cost line under "Generate document". */
+export const SUBMIT_INK_COST_ID = 'form-submit-ink-cost';
 
 // ── Helper: evaluate show_if / depends_on expressions ──────────────────────
 //
@@ -1262,6 +1274,10 @@ export default function DynamicFormRenderer({
   onCancel,
   submitting = false,
   submitDescribedBy,
+  inkCost,
+  inkCostLoading = false,
+  onInkCostRetry,
+  templateId,
 }: DynamicFormRendererProps) {
   const steps = config.form_schema.steps;
   const [step, setStep] = useState(0);
@@ -1428,9 +1444,16 @@ export default function DynamicFormRenderer({
   }, [visibleFields, formData, fieldErrors]);
 
   const isLastStep = step === steps.length - 1;
+  // T-388 (Arjun): "Generate document" charges, so it waits for a known cost.
+  // "Next" charges nothing and is not held.
+  const costBlocked = isLastStep && inkCostState(inkCost, inkCostLoading) !== 'known';
+  const submitDescribedByIds = isLastStep
+    ? [submitDescribedBy, SUBMIT_INK_COST_ID].filter(Boolean).join(' ')
+    : undefined;
 
   function handleNext() {
     if (isLastStep) {
+      if (costBlocked) return;
       onSubmit(formData);
     } else {
       setStep((s) => s + 1);
@@ -1573,8 +1596,8 @@ export default function DynamicFormRenderer({
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="mt-4 flex items-center justify-between">
+      {/* Navigation (T-388: top-aligned, so the Ink cost line under the button moves nothing) */}
+      <div className="mt-4 flex items-start justify-between">
         <button
           type="button"
           onClick={() => (step === 0 ? onCancel() : setStep((s) => s - 1))}
@@ -1584,26 +1607,39 @@ export default function DynamicFormRenderer({
           {step === 0 ? 'Cancel' : 'Back'}
         </button>
 
-        <button
-          type="button"
-          disabled={!canAdvance || submitting}
-          onClick={handleNext}
-          aria-describedby={isLastStep ? submitDescribedBy : undefined}
-          className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-            isLastStep ? 'bg-slate-900 hover:bg-slate-700' : 'bg-amber-500 hover:bg-amber-600'
-          }`}
-        >
-          {submitting ? (
-            'Generating…'
-          ) : isLastStep ? (
-            'Generate document'
-          ) : (
-            <>
-              Next
-              <ChevronRight size={14} />
-            </>
+        <div className="flex flex-col items-stretch gap-1 sm:items-end">
+          <button
+            type="button"
+            disabled={!canAdvance || submitting || costBlocked}
+            aria-disabled={costBlocked ? 'true' : undefined}
+            onClick={handleNext}
+            aria-describedby={submitDescribedByIds}
+            className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              isLastStep ? 'bg-slate-900 hover:bg-slate-700' : 'bg-amber-500 hover:bg-amber-600'
+            }`}
+          >
+            {submitting ? (
+              'Generating…'
+            ) : isLastStep ? (
+              'Generate document'
+            ) : (
+              <>
+                Next
+                <ChevronRight size={14} />
+              </>
+            )}
+          </button>
+          {isLastStep && (
+            <InkCostLine
+              id={SUBMIT_INK_COST_ID}
+              cost={inkCost}
+              loading={inkCostLoading}
+              onRetry={onInkCostRetry}
+              kind={templateId ?? config.template_id ?? 'unknown'}
+              action="submit"
+            />
           )}
-        </button>
+        </div>
       </div>
     </div>
   );

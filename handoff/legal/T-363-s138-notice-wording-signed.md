@@ -75,3 +75,10 @@ Part 2 (template-path related_acts and the twin) comes to me after T-404 part 2.
 **discharge_application, separate ruling (new ticket).** Its relevantActs list NI Act s.138 and s.141 for every discharge. They matter only when the case charged is a cheque case. Otherwise the model may draft cheque or vicarious-liability grounds into an unrelated discharge. Rule: the NI Act entry reaches the model only when the charged sections include NI Act s.138. Test: a discharge on a BNS charge gets no NI Act entry.
 
 Also on that pack, **verify** (no change until signed): the BNSS revision entries. The pack says "S.438 Revisional powers of HC" and "S.442 Revisional powers of Court of Session". I believe s.442 is the High Court's revision power and the Sessions power is elsewhere, but I have not checked the Gazette text.
+
+**T-407 part 2, twin 1a933b6: approved (14 Oct 2026).**
+- `ni_act_related_sections` uses the same allow-list as the guard: `company` or `partnership` give `138, 139, 141, 142`, and everything else gives `138, 139, 142`.
+- `related_acts[0]` now reads `Negotiable Instruments Act 1881 — Sections {ni_act_related_sections}`.
+- No other wording changed.
+
+T-407 is closed from my side.
