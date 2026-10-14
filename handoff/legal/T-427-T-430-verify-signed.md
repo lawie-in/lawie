@@ -41,3 +41,15 @@ The four section numbers (438, 440, 442 and the discharge sections) agree across
 3. **The same strings in other packs:** quashing_528_bnss :293-297 and criminal_revision :250-252 take the T-430 descriptions word for word (438 calling for records, 440 Sessions Judge, 442 High Court). Fold this into T-429 if the claim allows, or Priya opens a small ticket.
 
 **s.138 gate test: OK.** Use NFKC and a case-insensitive match for "Negotiable Instruments" or "N.I. Act" / "NI Act" (optional dots and spaces), plus a "138" token. A blank or placeholder charge drops the entry.
+
+## T-428 golden (14 Oct 2026, Shashank)
+
+**Signed: entries 1–5 and 8–16 as listed.** Only `case_nomenclature` changes. Not signed: 6–7.
+
+| # | Question | Ruling |
+|---|---|---|
+| a | district_court_generic gets the REG and ANT lines | **No, keep the blank.** It is the civil district court, and T-425 removes it from every bail pack. My T-426 "`*_district`" means the state criminal-side records, not this one. Drop entries 6–7 from the batch. |
+| b | Supreme Court bail lines | **Do it in T-428.** Both become `[To be confirmed: case type and number]`. T-425 also stops offering bail packs at the SC. |
+| c | high_court_generic blank without `{year}` | **OK.** Exempt the exact blank string from the `{year}` data test, and nothing else. |
+
+Any other byte in the snapshot needs a fresh sign-off.
