@@ -1069,3 +1069,12 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Start a court document before choosing a court and see a blank case line to fill in later, not a guessed one.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-388 — Ink cost under every charging button (0ad6869, kunal, 14 Oct 2026)
+
+- See "Uses N Ink" under every button that spends Ink, including Try again and "generate anyway".
+- Be charged exactly that number.
+- If the cost can't be worked out, the button stays off with "We could not work out the Ink cost for this. Try again in a moment." and a Try again link.
+- Out of Ink shows the real cost, never a made-up "1 Ink".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- kunal: T-388 merged 0ad6869 (14 Oct 2026). 'Uses N Ink' under every Ink-spending button, charged exactly that; unknown cost blocks with Meera's line; no made-up '1 Ink'. DynamicFormRenderer to Tanvi (T-425 part 2) after CI. Next T-115b.
 - shashank: T-404 part 2 CI green (run 533; golden-set run 4 passed).
 - shashank: T-404 part 2 merged 1e58ce0 (14 Oct 2026). Place of execution asked on deeds; bail case line from the court rule or a blank; no-court case-type blank. template-engine, rule-pack and s.138 JSONs released to Vishal (T-407 part 2). Next T-428.
 - vishal: T-407 part 1 CI green (run 532).
