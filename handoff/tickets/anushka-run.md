@@ -1119,3 +1119,19 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Draft before any other High Court or the Supreme Court and see a clear "[To be confirmed: case type and number]" instead of a guessed line.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-432 — Template form keeps your answers (09a12b63, kunal, 14 Oct 2026)
+
+- Fill in a template form, then get sent off to accept the privacy update, top up Ink, verify your email, or press "Edit form". When you come back, you're on the same step with every answer still there.
+- On a phone, the Generate button sits clearly apart from Cancel.
+- When the Ink cost can't be worked out, the notice shows once, with a "Check the cost again" link that can't be mistaken for "Try again".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-429 — Discharge and revision sections (8240327c, vishal, 14 Oct 2026)
+
+- Draft a discharge application on a BNS charge: the draft no longer drags in cheque-bounce law or company-director case law. On a cheque-bounce charge, it is still there.
+- Discharge, quashing and criminal revision drafts show the right revision section for the forum: Section 440 for the Sessions Judge, Section 442 for the High Court.
+- A criminal revision prayer names "Section 438 read with Section 442" (or 440) for the forum chosen. Where the forum isn't known, it shows a clear "To be confirmed" blank instead of "_____".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

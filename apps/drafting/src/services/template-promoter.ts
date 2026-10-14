@@ -26,6 +26,7 @@ import logger from '../config/logger';
 
 import { costForTemplate } from './credits.service';
 import type {
+  ComputedField,
   DocumentSection,
   FieldOption,
   FormField,
@@ -398,6 +399,33 @@ function normaliseValidationRules(raw: unknown, mismatches: string[]): Validatio
     mandatory_sections: [],
     fact_alteration_check: false,
   };
+}
+
+// ── Computed fields (T-429) ─────────────────────────────────────────────────
+
+/**
+ * T-429 (Ajay c55d390 / 00d9401): the rule file's own `computed_fields`, when
+ * it is a plain object, carried into the template config so buildPlaceholderContext
+ * evaluates them on both the template and the brief path (criminal_revision's
+ * {applicable_section} from revisional_forum). An entry without a string
+ * `logic` is skipped and reported, since resolveComputedFields reads `logic`.
+ * A file without the key gets `{}`, as before.
+ */
+function readComputedFields(raw: unknown, mismatches: string[]): TemplateConfig['computed_fields'] {
+  const out: TemplateConfig['computed_fields'] = {};
+  if (raw === undefined) return out;
+  if (!isPlainObject(raw)) {
+    mismatches.push('computed_fields: not an object; ignored');
+    return out;
+  }
+  for (const [id, def] of Object.entries(raw)) {
+    if (isPlainObject(def) && typeof def.logic === 'string') {
+      out[id] = { ...(def as unknown as ComputedField) };
+    } else {
+      mismatches.push(`computed_fields.${id}: no string 'logic'; skipped`);
+    }
+  }
+  return out;
 }
 
 // ── Document-structure synthesis (SCRUM-84) ─────────────────────────────────
@@ -898,7 +926,7 @@ export function promoteDocRuleToTemplateConfig(
     },
     supported_languages: ['en'],
     form_schema: { steps: [step] },
-    computed_fields: {},
+    computed_fields: readComputedFields(rule.computed_fields, mismatches),
     document_structure: { sections: synthesiseDocumentStructure(rule) },
     related_acts: relatedActs,
     special_prayer_additions: [],
