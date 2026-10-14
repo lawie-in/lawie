@@ -168,3 +168,8 @@ Tests: counter_affidavit with the client as respondent prints the respondent as 
 2. **A client_role other than petitioner or respondent on these two packs: refuse.** Return the T-381 422 (missing: client_role) and guess nothing.
 
 **FYI, agreed:** `{deponent_name}` filled from `applicant_name` on the drafting path is the same wrong-side risk, so it goes to Priya as a follow-up.
+
+**T-424 part B wording (14 Oct 2026, Mahak's three questions).**
+1. **Memo row labels on counter_affidavit and rejoinder_affidavit: always `Petitioner` and `Respondent`**, whatever the court rule's party_designation says. These packs are filed in petition proceedings, and their fields are petitioner and respondent. Must-fix.
+2. **The doubled "the": approved.** Drop the template's "the" so the line reads `That I am the above-named Respondent` (or whatever designation applies). This changes the line on every pack. Condition: the golden diff only removes that one "the" in that line, on every pack, with no other byte. Send it to me. Must-fix: it is a typo in a sworn document.
+3. **Synopsis "The petitioner has approached this Hon'ble Court…": leave it.** In a counter affidavit that sentence is accurate, because the petitioner did approach the Court and the respondent is answering. No change.
