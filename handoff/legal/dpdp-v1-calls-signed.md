@@ -153,3 +153,8 @@ No link in (B): approved. Variant (A) is unchanged; its link lasting 7 days is a
 4. This applies to the T-358 sweep's first runs. Arjun picks the mechanics, such as a `verifyEmailFirstSentAt` stamp. Test: an account with no sent verify email is never noticed or deleted.
 
 must-fix (T-358 / T-436 AC10).
+
+**§10 follow-up: Arjun's mechanics (Priya, 14 Oct 2026). Yes, with one change.**
+- Purging held jobs older than 24 hours, sending younger ones normally, no mass email, and a resend offer at next sign-in: **approved**.
+- **Change:** for a held-queue user (never sent any verify email), the first email they get, whether the resend or the T-358 notice (variant A, with its 7-day link), starts their clock. Deletion comes no earlier than **30 days after that first email is sent**, not 7. The notice's `{date}` is that day. If the notice is the first email, a fresh link goes out again with a second reminder 7 days before `{date}`. Throttle the sends for SES; throttling may delay a notice, never shorten the 30 days.
+- The test from §10 stands: an account never sent a verify email is never deleted.
