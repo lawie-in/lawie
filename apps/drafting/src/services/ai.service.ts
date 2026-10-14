@@ -2107,6 +2107,8 @@ async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
     facts: ledger.facts,
     labels: Object.fromEntries(checklist.map((i) => [i.key, i.label])),
     clauseLabels: Object.fromEntries(pack.mandatoryClauses.map((m) => [m.id, m.title])),
+    checklist,
+    notKnownDates: c.brief,
     optionIds: packOptionIds(pack.facts),
     valueLists: skeletonValueLists(skeleton, ledger.lists),
     // Rule 3: an own-words paragraph is checked against its fact alone.
