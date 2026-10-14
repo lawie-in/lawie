@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                     |
 | ------ | ------------------------------------------------------------------------- |
-| Status | Todo. Mahak, right after T-381. From T-381's reviewer, 13 Oct 2026. Priya |
+| Status | Merged c9ba205, waiting for Anushka on develop. Mahak, 14 Oct 2026 |
 | Owner  | Mahak (build), Ajay (State name text)                                     |
 | Mode   | Small fix (drafting)                                                      |
 

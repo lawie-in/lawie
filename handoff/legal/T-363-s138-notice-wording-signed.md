@@ -69,3 +69,9 @@ Still open: the pack's default (with the founder) and the prompt-side s.141 (T-4
 Condition: a test on the brief path with the labels as the advocate sees them. "Company / LLP" and "Partnership Firm" keep s.141. "Individual", "HUF", the brief blank and the ledger blank drop it.
 
 Part 2 (template-path related_acts and the twin) comes to me after T-404 part 2.
+
+**T-407 delta 1b7aa27: approved.** `packForDrawer` now applies only to the s.138 notice pack, and `s141Applies` uses the guard's exact test, with no trim. discharge_application is left unchanged in T-407.
+
+**discharge_application, separate ruling (new ticket).** Its relevantActs list NI Act s.138 and s.141 for every discharge. They matter only when the case charged is a cheque case. Otherwise the model may draft cheque or vicarious-liability grounds into an unrelated discharge. Rule: the NI Act entry reaches the model only when the charged sections include NI Act s.138. Test: a discharge on a BNS charge gets no NI Act entry.
+
+Also on that pack, **verify** (no change until signed): the BNSS revision entries. The pack says "S.438 Revisional powers of HC" and "S.442 Revisional powers of Court of Session". I believe s.442 is the High Court's revision power and the Sessions power is elsewhere, but I have not checked the Gazette text.

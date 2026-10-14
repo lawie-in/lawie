@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release                                                              |
 | Owner  | Lead (drafting) + Ajay                                                              |
 | Mode   | Small fix (legal content; moves goldens)                                            |
-| Status | To do. Kunal, after T-395. Found in T-393's review, 13 Oct 2026                     |
+| Status | Merged 9096c39, waiting for Anushka on develop. Kunal, 14 Oct 2026 |
 | Source | Ajay's T-359 AC6 addendum, point 1 (it names the memo of parties and the affidavit) |
 
 ## Problem
