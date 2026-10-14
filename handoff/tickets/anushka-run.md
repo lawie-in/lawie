@@ -1168,3 +1168,10 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The privacy policy describes all of this.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-436 part (a) — GST tax invoices, server side (6cca6f0d, kunal, 14 Oct 2026)
+
+- Nothing new on screen yet. Every payment now produces a GST tax invoice on Lawie's side, and the admin can export the month's invoices for GST filing.
+- The invoice list, the email and the download ship in part (c); the State picker ships in part (b).
+
+Quality: nothing to test in the UI — server-side only; the invoice list, email and download ship in part c

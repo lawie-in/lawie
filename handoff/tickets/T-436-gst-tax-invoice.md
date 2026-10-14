@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                        |
 | ------ | ---------------------------------------------------------------------------- |
-| Status | Doing. Kunal; Explore first, files to Priya (incl. packages/shared privacy version constant). Priya, 14 Oct 2026 |
+| Status | Part (a) merged into develop_staging 6cca6f0d (Kunal, 14 Oct 2026). Parts (b) and (c): Shashank, after T-440. AC10 (Ranchi, purge, resend-all): Kunal. Priya |
 | Owner  | Lead (build), Vikram (requirements), Ajay (contents/wording), Arjun (mechanism), Rajesh (any new checkout fields) |
 | Mode   | Full chain (billing + web; email-worker if invoices are emailed by us)       |
 
