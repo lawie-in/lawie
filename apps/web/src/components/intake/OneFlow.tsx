@@ -125,12 +125,18 @@ export default function OneFlow({
   kinds,
   loadingKinds,
   guidedInkCost,
+  inkCostLoading = false,
+  onInkCostRetry,
   initialKind,
 }: {
   kinds: KindSummary[];
   loadingKinds: boolean;
   /** T-372: the Ink cost of a draft with no rule pack (the guided draft). */
   guidedInkCost?: number;
+  /** T-388: the Ink costs (template-configs) are being fetched. */
+  inkCostLoading?: boolean;
+  /** T-388: fetches the Ink costs again when they could not be worked out. */
+  onInkCostRetry?: () => void;
   /** T-365 AC5: a template_id from `?kind=` (the templates library); preset once if listed. */
   initialKind?: string;
 }) {
@@ -630,10 +636,16 @@ export default function OneFlow({
               setPhase('brief');
               return;
             }
-            setPaywall({
-              cost: data.cost ?? 1,
-              balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
-            });
+            // T-388: the paywall shows the server's cost, never a made-up one.
+            // Without a cost there is no paywall; the service's own line is shown.
+            if (typeof data.cost === 'number' && Number.isFinite(data.cost) && data.cost > 0) {
+              setPaywall({
+                cost: data.cost,
+                balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
+              });
+            } else if (data.message) {
+              setBriefMessage(data.message);
+            }
             setPhase('brief');
             return;
           }
@@ -936,9 +948,23 @@ export default function OneFlow({
     );
   }
 
+  // T-372 / T-388: the one Ink cost of this brief, shown under Confirm and
+  // under "Try again", from the same template-configs price.
+  const briefKind = brief ? (brief.kind.id ?? NO_RULE_PACK) : undefined;
+  const inkCost =
+    briefKind === undefined
+      ? undefined
+      : briefKind === NO_RULE_PACK
+        ? guidedInkCost
+        : kinds.find((k) => k.template_id === briefKind)?.credits_cost;
+
   if (phase === 'generating') {
     return (
       <GeneratingStep
+        inkCost={inkCost}
+        inkCostLoading={inkCostLoading}
+        onInkCostRetry={onInkCostRetry}
+        kind={briefKind}
         documentName={brief?.kind.name ?? 'document'}
         repairing={repairing}
         error={genError}
@@ -1010,11 +1036,7 @@ export default function OneFlow({
           onCancel={cancel}
           onConfirm={() => void generate(false)}
           confirmDescribedBy={privacyDescribedBy}
-          inkCost={
-            (brief.kind.id ?? NO_RULE_PACK) === NO_RULE_PACK
-              ? guidedInkCost
-              : kinds.find((k) => k.template_id === brief.kind.id)?.credits_cost
-          }
+          inkCost={inkCost}
           askedAnswers={askedAnswers}
         />
         <ChangeDocumentDialog

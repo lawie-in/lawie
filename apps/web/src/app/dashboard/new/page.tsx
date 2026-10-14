@@ -41,6 +41,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { PaywallModal } from '@/components/credits/PaywallModal';
 import PipelineStatus, { PipelineState } from '@/components/draft/PipelineStatus';
 import DynamicFormRenderer from '@/components/form/DynamicFormRenderer';
+import { inkCostState } from '@/components/intake/InkCostLine';
 import OneFlow from '@/components/intake/OneFlow';
 import {
   PrivacyBlockedNotice,
@@ -67,6 +68,8 @@ interface TemplateSummary {
   icon: string;
   plan_access: 'free' | 'pro';
   supported_languages: string[];
+  /** T-372 / T-388: what a draft of this template charges, from the service's price function. */
+  credits_cost?: number;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -151,6 +154,8 @@ function NewDocumentContent() {
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [guidedInkCost, setGuidedInkCost] = useState<number | undefined>(); // T-372
+  // T-388: the template-configs fetch (which carries the Ink costs) is in flight.
+  const [inkCostLoading, setInkCostLoading] = useState(true);
   const [selectedConfig, setSelectedConfig] = useState<TemplateConfig | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
 
@@ -221,27 +226,46 @@ function NewDocumentContent() {
   }, [templates, query, categoryFilter]);
 
   // ── Fetch template list on mount ──────────────────────────────────────────
-  useEffect(() => {
-    async function fetchTemplates() {
-      try {
-        const res = await apiFetch('/api/documents/template-configs');
-        if (res.ok) {
-          const data = await res.json();
-          setTemplates(data.templates ?? []);
-          setGuidedInkCost(data.guided_credits_cost);
-        } else if (res.status === 503) {
+  // T-388: also the "Try again" under an unknown Ink cost (`initial` false),
+  // which fetches the costs again without touching the page's error line.
+  const fetchTemplates = useCallback(async (initial: boolean) => {
+    setInkCostLoading(true);
+    try {
+      const res = await apiFetch('/api/documents/template-configs');
+      if (res.ok) {
+        const data = await res.json();
+        setTemplates(data.templates ?? []);
+        setGuidedInkCost(data.guided_credits_cost);
+      } else if (initial) {
+        if (res.status === 503) {
           setError('Service temporarily unavailable. Please try again in a moment.');
         } else {
           setError('Failed to load templates. Please refresh the page.');
         }
-      } catch {
-        setError('Could not connect to Lawie. Check your connection and refresh.');
-      } finally {
-        setLoadingTemplates(false);
       }
+      // A retry that fails leaves the cost unknown; the notice under the button says so.
+    } catch {
+      if (initial) setError('Could not connect to Lawie. Check your connection and refresh.');
+    } finally {
+      setInkCostLoading(false);
+      if (initial) setLoadingTemplates(false);
     }
-    fetchTemplates();
   }, []);
+
+  useEffect(() => {
+    void fetchTemplates(true);
+  }, [fetchTemplates]);
+
+  const retryInkCost = useCallback(() => {
+    void fetchTemplates(false);
+  }, [fetchTemplates]);
+
+  // T-388: what a draft of the selected template charges; the same number the
+  // service charges (template-configs credits_cost, from costForTemplate).
+  const templateInkCost = templates.find(
+    (t) => t.template_id === selectedConfig?.template_id,
+  )?.credits_cost;
+  const templateInkCostKnown = inkCostState(templateInkCost, inkCostLoading) === 'known';
 
   // ── Select a template → fetch full config ─────────────────────────────────
   const handleSelectTemplate = useCallback(async (templateId: string) => {
@@ -282,6 +306,12 @@ function NewDocumentContent() {
   const runGeneration = useCallback(
     async (formData: Record<string, unknown>) => {
       if (!selectedConfig) return;
+      // T-388 (Arjun): nothing that charges starts while the cost is not known.
+      // Every caller ends here, including the fail-open preflight paths.
+      if (!templateInkCostKnown) {
+        setPhase('form');
+        return;
+      }
 
       setPipelineState('drafting');
       setError('');
@@ -440,7 +470,7 @@ function NewDocumentContent() {
         setPipelineState('generation_failed');
       }
     },
-    [selectedConfig],
+    [selectedConfig, templateInkCostKnown],
   );
 
   // ── Retry handler (generation_failed card) ────────────────────────────────
@@ -454,6 +484,9 @@ function NewDocumentContent() {
   const handleSubmit = useCallback(
     async (formData: Record<string, unknown>) => {
       if (!user || !selectedConfig) return;
+      // T-388: an unknown cost blocks before the preflight. The notice under
+      // "Generate document" comes with DynamicFormRenderer (after T-411).
+      if (!templateInkCostKnown) return;
       // T-343: ask before leaving the form, so a privacy block never unmounts (empties) it.
       if (await privacyPrecheck('generate')) return;
 
@@ -511,7 +544,7 @@ function NewDocumentContent() {
         await runGeneration(formData);
       }
     },
-    [user, selectedConfig, runGeneration],
+    [user, selectedConfig, runGeneration, templateInkCostKnown],
   );
 
   // ── Proceed anyway (soft-warn override) ───────────────────────────────────
@@ -559,6 +592,8 @@ function NewDocumentContent() {
         kinds={templates}
         loadingKinds={loadingTemplates}
         guidedInkCost={guidedInkCost}
+        inkCostLoading={inkCostLoading}
+        onInkCostRetry={retryInkCost}
         initialKind={initialKind}
       />
     );
@@ -588,6 +623,10 @@ function NewDocumentContent() {
           generationError={generationError}
           generationRetryable={generationRetryable}
           onRetry={handleRetry}
+          inkCost={templateInkCost}
+          inkCostLoading={inkCostLoading}
+          onInkCostRetry={retryInkCost}
+          templateId={selectedConfig?.template_id}
         />
       </div>
     );

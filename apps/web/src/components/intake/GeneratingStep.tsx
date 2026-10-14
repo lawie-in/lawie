@@ -7,7 +7,11 @@
  */
 import { AlertTriangle, Check } from 'lucide-react';
 
+import InkCostLine, { inkCostState } from './InkCostLine';
 import { card, linkButton, primaryButton } from './ui';
+
+/** T-388: id of the Ink cost line under "Try again". */
+export const RETRY_INK_COST_ID = 'generating-retry-ink-cost';
 
 function Step({ state, children }: { state: 'done' | 'now'; children: React.ReactNode }) {
   return (
@@ -35,14 +39,28 @@ export default function GeneratingStep({
   error,
   onRetry,
   onBackToBrief,
+  inkCost,
+  inkCostLoading = false,
+  onInkCostRetry,
+  kind = 'unknown',
 }: {
   documentName: string;
   repairing: boolean;
   error: { reason: string; retryable: boolean } | null;
   onRetry: () => void;
   onBackToBrief: () => void;
+  /** T-388: what "Try again" charges, from the same price as Confirm. */
+  inkCost?: number;
+  /** T-388: the cost is being fetched. */
+  inkCostLoading?: boolean;
+  /** T-388: fetches the cost again when it could not be worked out. */
+  onInkCostRetry?: () => void;
+  /** T-388: the document kind id, for the Sentry report only. */
+  kind?: string;
 }) {
   if (error) {
+    // T-388 (Arjun): "Try again" charges, so it waits for a known cost.
+    const retryBlocked = inkCostState(inkCost, inkCostLoading) !== 'known';
     return (
       <div className="mx-auto w-full max-w-[720px]">
         <div className={`${card} flex flex-col gap-4`} role="alert">
@@ -63,9 +81,26 @@ export default function GeneratingStep({
               Back to the brief
             </button>
             {error.retryable && (
-              <button type="button" onClick={onRetry} className={primaryButton}>
-                Try again
-              </button>
+              <div className="flex flex-col items-stretch gap-1 sm:items-end">
+                <button
+                  type="button"
+                  onClick={retryBlocked ? undefined : onRetry}
+                  disabled={retryBlocked}
+                  aria-disabled={retryBlocked ? 'true' : undefined}
+                  aria-describedby={RETRY_INK_COST_ID}
+                  className={primaryButton}
+                >
+                  Try again
+                </button>
+                <InkCostLine
+                  id={RETRY_INK_COST_ID}
+                  cost={inkCost}
+                  loading={inkCostLoading}
+                  onRetry={onInkCostRetry}
+                  kind={kind}
+                  action="retry"
+                />
+              </div>
             )}
           </div>
         </div>
