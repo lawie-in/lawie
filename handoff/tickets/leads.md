@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- vishal: T-407 part 2 merged 5489513c (14 Oct 2026). Template-form s.138 notices: no s.141 for individual, HUF or unknown drawer. T-407 closed. template-engine buildAISystemPrompt, rule-pack readSections, s.138 JSONs released. Next T-429.
 - tanvi: T-425 part 2 CI green (run 536). T-425 done.
 - tanvi: T-425 part 2 merged a7674bdb (14 Oct 2026). Classic bail form lists only bail courts; old disallowed court kept and marked. DynamicFormRenderer.tsx, CourtPicker.tsx, bailCourts.ts released. Next T-115c.
 - tanvi: T-425 part 1 CI green (run 535).
