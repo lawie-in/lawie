@@ -1,0 +1,118 @@
+name: Golden set — Drafting (real model)
+
+# ── Golden set (T-147e, T-376) ───────────────────────────────────────────────
+# Runs on pushes to develop_staging (we merge by push, founder 11 Oct) that change the
+# Drafter prompt, the renderer, a rule pack or the normalizer, nightly, and on demand.
+# Why a separate workflow (Arjun, 14 Oct): it needs its own concurrency. In ci.yml a
+# later push to the same branch cancels the older run; a real golden-set run costs money,
+# so it must never be cancelled by a later push. One group per commit, no cancelling.
+# The dry run (recorded replies, in-memory DB) runs whenever the job runs. The real run
+# needs two secrets, referenced by name only; without them it is skipped with a notice
+# and the job stays green. A real run writes fixture rows (runType "fixture") to the
+# database given by GOLDEN_SET_MONGODB_URI and costs money: see scripts/golden-set/README.md.
+
+on:
+  # Same docs-only skip as ci.yml (T-249); the paths filter below decides whether the golden set runs.
+  push:
+    branches: [develop_staging]
+    paths-ignore:
+      - 'handoff/**'
+      - '.claude/**'
+      - '**/*.md'
+  schedule:
+    - cron: '30 20 * * *' # 02:00 IST
+  workflow_dispatch:
+
+concurrency:
+  group: golden-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  golden-set:
+    name: Golden set — Drafting (real model)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_ENV: test
+    steps:
+      # Nightly runs test develop_staging (what goes into develop next); '' means the event's own ref.
+      # On push, full history so paths-filter can diff github.event.before..github.sha locally.
+      # fetch-depth is quoted: an unquoted 0 is falsy in an expression and `&& 0 || 1` would give 1.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
+          fetch-depth: ${{ github.event_name == 'push' && '0' || '1' }}
+      # Push: git diff over the pushed range. Not run when 'before' is all zeros (no range to diff).
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        with:
+          base: ${{ github.event.before }}
+          filters: |
+            golden:
+              - 'apps/drafting/src/services/drafter.prompts.ts'
+              - 'apps/drafting/src/services/draft-renderer.ts'
+              - 'apps/drafting/src/config/document-rules/**'
+              - 'apps/drafting/src/config/sections/**'
+              - 'apps/drafting/src/types/skeleton.ts'
+              - 'packages/shared/src/utils/normalize/**'
+              - 'scripts/golden-set/**'
+      - name: Decide whether the golden set runs
+        id: gate
+        # Only whether each secret is set ('true' / 'false'), never its value.
+        env:
+          HAS_KEY: ${{ secrets.GOLDEN_SET_ANTHROPIC_API_KEY != '' }}
+          HAS_URI: ${{ secrets.GOLDEN_SET_MONGODB_URI != '' }}
+          EVENT: ${{ github.event_name }}
+          GOLDEN_CHANGED: ${{ steps.filter.outputs.golden }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          # schedule / workflow_dispatch always run. push runs only when the golden paths changed.
+          # A push with an all-zero 'before' (new branch) is skipped: no range to diff (Arjun, 14 Oct).
+          if [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "push" ] && [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Golden set skipped: this push has no previous commit to diff against. Run it from workflow_dispatch if needed."
+          elif [ "$EVENT" = "push" ] && [ "$GOLDEN_CHANGED" = "true" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Golden set not needed: no change to the Drafter prompt, the rule packs or the normalizer."
+          fi
+          if [ "$HAS_KEY" = "true" ] && [ "$HAS_URI" = "true" ]; then
+            echo "secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "secrets=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+      - if: steps.gate.outputs.run == 'true'
+        run: yarn install --frozen-lockfile
+      - if: steps.gate.outputs.run == 'true'
+        run: yarn workspace @lawie/shared build
+      - name: Golden set — dry run (recorded replies, no cost)
+        if: steps.gate.outputs.run == 'true'
+        run: yarn workspace @lawie/drafting golden:set --dry-run
+      - name: Golden set — skipped, secrets not set
+        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets != 'true'
+        run: echo "::notice::Golden set real run skipped — GOLDEN_SET_ANTHROPIC_API_KEY and GOLDEN_SET_MONGODB_URI are not set for this repository."
+      - name: Golden set — real model
+        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true'
+        # The secrets reach this step only: not install, not the dry run.
+        env:
+          GOLDEN_SET_ANTHROPIC_API_KEY: ${{ secrets.GOLDEN_SET_ANTHROPIC_API_KEY }}
+          GOLDEN_SET_MONGODB_URI: ${{ secrets.GOLDEN_SET_MONGODB_URI }}
+        run: yarn workspace @lawie/drafting golden:set --real --calibrate --out "$RUNNER_TEMP/golden-set"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true'
+        with:
+          name: golden-set-results
+          path: ${{ runner.temp }}/golden-set
+          retention-days: 30
