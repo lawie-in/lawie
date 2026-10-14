@@ -1168,9 +1168,10 @@ describe('T-381 B: a brief draft seals the party data', () => {
       father_name: 'Shri Hari Kumar',
       applicant_age: '32',
       address: '123 Main St, Patna',
-      client_role: 'applicant',
+      // T-423 AC1: state is the Court row's display name. AC2: the raw client_role sent
+      // above is not a bail_regular brief item, so it is not sealed (the table row fixes the client).
       court_type: 'sessions',
-      state: 'bihar',
+      state: 'Bihar',
     });
     // The encrypted value holds none of it in the clear.
     expect(String(row.formInputsEnc)).not.toContain('Ram Kumar');
