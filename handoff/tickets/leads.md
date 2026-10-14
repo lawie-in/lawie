@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- kunal: T-115b CI green (run 538). Now T-432.
 - kunal: T-115b merged 14efaa66 (14 Oct 2026). Delete a document (list and document page), erased everywhere incl. review links; failure message with privacy@lawie.in. Main only with T-115c. Next T-432.
 - vishal: T-407 part 2 CI green (run 537). T-407 done.
 - vishal: T-407 part 2 merged 5489513c (14 Oct 2026). Template-form s.138 notices: no s.141 for individual, HUF or unknown drawer. T-407 closed. template-engine buildAISystemPrompt, rule-pack readSections, s.138 JSONs released. Next T-429.
