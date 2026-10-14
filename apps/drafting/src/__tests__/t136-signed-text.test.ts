@@ -62,17 +62,26 @@ describe('criterion 1: the two Drafter prompts are part 2, A and A2, character f
     'Cite a judgment only if INSTRUCTIONS names it, with its citation exactly as INSTRUCTIONS gives it; otherwise write [Authority — add if relied upon].';
   const NEW_R5_LAST =
     'Cite a judgment only if the advocate named it, in their own words under "described" or in another part of the BRIEF, with its name and citation exactly as given there; INSTRUCTIONS, CLAUSES, ACTS and COURT RULE are never a source of a judgment. Otherwise write [Authority — add if relied upon].';
+  // T-422 (Ajay's signed T-397 change B): "that an offence is complete," added to
+  // PACK rule 8 and REPAIR rule 6.
+  const OLD_B = 'bailable or non-bailable, that a claim is within limitation,';
+  const NEW_B =
+    'bailable or non-bailable, that an offence is complete, that a claim is within limitation,';
   const replaceOnce = (text: string, from: string, to: string): string => {
     expect(text.split(from)).toHaveLength(2); // present exactly once in the signed text
     return text.replace(from, () => to);
   };
 
-  it('DRAFTER_PACK_SYSTEM_PROMPT is A of part 2 with Ajay’s T-148 rule 7', () => {
-    expect(DRAFTER_PACK_SYSTEM_PROMPT).toBe(replaceOnce(signedA, OLD_RULE_7, NEW_RULE_7));
+  it('DRAFTER_PACK_SYSTEM_PROMPT is A of part 2 with Ajay’s T-148 rule 7 and T-397 change B', () => {
+    expect(DRAFTER_PACK_SYSTEM_PROMPT).toBe(
+      replaceOnce(replaceOnce(signedA, OLD_RULE_7, NEW_RULE_7), OLD_B, NEW_B),
+    );
   });
 
-  it('DRAFTER_REPAIR_SYSTEM_PROMPT is A2 of part 2 with Ajay’s T-148 repair rule 5', () => {
-    expect(DRAFTER_REPAIR_SYSTEM_PROMPT).toBe(replaceOnce(signedA2, OLD_R5_LAST, NEW_R5_LAST));
+  it('DRAFTER_REPAIR_SYSTEM_PROMPT is A2 of part 2 with Ajay’s T-148 repair rule 5 and T-397 change B', () => {
+    expect(DRAFTER_REPAIR_SYSTEM_PROMPT).toBe(
+      replaceOnce(replaceOnce(signedA2, OLD_R5_LAST, NEW_R5_LAST), OLD_B, NEW_B),
+    );
   });
 
   it('are not the prompts of part 1 (released together, the later text)', () => {
