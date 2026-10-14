@@ -7,17 +7,44 @@
  * POST /internal/grant-bonus
  *   Called by the auth service after a referral code is applied at signup.
  *   Creates or increments the BonusCredit record for the user.
+ *
+ * POST /internal/erase-user { userId, email?, dryRun? }  (T-115c)
+ *   Called by auth when an account is closed. Erases what drafting holds for
+ *   the user (services/account-erase.service.ts). Idempotent; dryRun counts
+ *   and changes nothing.
+ *     200 { ok: true, dryRun, counts }
+ *     400 bad body, 401 bad secret, 403 the golden-set fixture user
+ *     500 { ok: false, error: 'erase_failed', failedAt, counts }: auth retries
+ *   The email is used only to match ReviewToken.assignedEmail; never logged
+ *   or echoed.
  */
+import crypto from 'crypto';
+
 import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 
 import { BonusCredit } from '../models/BonusCredit.model';
+import { eraseAccount } from '../services/account-erase.service';
+import { isFixtureUser } from '../services/run-origin';
 
 const router = Router();
 
-function requireInternalSecret(req: Request, res: Response, next: () => void): void {
+/**
+ * Constant-time, as auth's internalSecretMatches: both sides hashed to 32
+ * bytes first, so the length does not leak either. False when no secret is
+ * configured. Read at call time, as before (tests set it on process.env).
+ */
+export function internalSecretMatches(provided: unknown): boolean {
   const secret = process.env.INTERNAL_SECRET;
-  if (!secret || req.headers['x-internal-secret'] !== secret) {
+  if (!secret) return false;
+  if (typeof provided !== 'string' || provided.length === 0) return false;
+  const a = crypto.createHash('sha256').update(provided, 'utf8').digest();
+  const b = crypto.createHash('sha256').update(secret, 'utf8').digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
+function requireInternalSecret(req: Request, res: Response, next: () => void): void {
+  if (!internalSecretMatches(req.headers['x-internal-secret'])) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
@@ -47,6 +74,50 @@ router.post(
     );
 
     res.status(200).json({ success: true, userId, bonus });
+  },
+);
+
+// POST /internal/erase-user (T-115c)
+router.post(
+  '/internal/erase-user',
+  requireInternalSecret,
+  async (req: Request, res: Response): Promise<void> => {
+    res.set('Cache-Control', 'no-store');
+    const body = (req.body ?? {}) as { userId?: unknown; email?: unknown; dryRun?: unknown };
+    const { userId, email, dryRun } = body;
+
+    if (typeof userId !== 'string' || !mongoose.Types.ObjectId.isValid(userId)) {
+      res.status(400).json({ error: 'valid userId is required' });
+      return;
+    }
+    // A string "true" must never be read as false and erase for real.
+    if (dryRun !== undefined && typeof dryRun !== 'boolean') {
+      res.status(400).json({ error: 'dryRun must be a boolean' });
+      return;
+    }
+    if (email !== undefined && (typeof email !== 'string' || email.length > 200)) {
+      res.status(400).json({ error: 'email must be a string' });
+      return;
+    }
+    if (isFixtureUser(userId)) {
+      res.status(403).json({ error: 'refused' });
+      return;
+    }
+
+    const normalisedEmail =
+      typeof email === 'string' && email.trim() !== '' ? email.trim().toLowerCase() : undefined;
+    const result = await eraseAccount({ userId, email: normalisedEmail, dryRun: dryRun === true });
+
+    if (!result.ok) {
+      res.status(500).json({
+        ok: false,
+        error: 'erase_failed',
+        failedAt: result.failedAt,
+        counts: result.counts,
+      });
+      return;
+    }
+    res.status(200).json({ ok: true, dryRun: result.dryRun, counts: result.counts });
   },
 );
 
