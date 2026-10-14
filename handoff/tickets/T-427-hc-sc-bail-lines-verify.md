@@ -2,7 +2,7 @@
 
 | Field  | Value                                   |
 | ------ | --------------------------------------- |
-| Status | Todo. Ajay verifies. Priya, 14 Oct 2026 |
+| Status | Done 03b3e6e. Jharkhand/Allahabad/HC generic lines built in T-428 (Shashank); no bail at SC goes into T-425 (Tanvi); Patna stays; Delhi still on Ajay's list. Priya, 14 Oct 2026 |
 | Owner  | Ajay (verification; from T-426, 2fcf6c4) |
 | Mode   | Verification; any change gets its own build ticket |
 
