@@ -1366,6 +1366,8 @@ export async function streamGenerateFromBrief(
             (input.ledger.unresolved ?? []).map((u) => u.key),
             // T-365 AC1: with a profile name, advocate_name is not missing.
             input.advocateName,
+            // T-440: a date answered "Not known" (asked_empty) is missing, with its blank.
+            brief,
           ),
           averments: resolveAverments(input.ledger.lists, input.ledger.facts),
         }

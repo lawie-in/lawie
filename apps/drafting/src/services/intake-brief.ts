@@ -361,6 +361,18 @@ export function dateKindLabel(kindId: string): string | null {
   return DATE_KIND_BY_ID.get(kindId)?.label ?? null;
 }
 
+/**
+ * T-440 (Ajay, a9bc957, Q2): what a date item's blank names, as the brief's
+ * `meaning` is worked out: the kind's label when the item has a kind, else the
+ * item's own label. Null for an item that is not a date.
+ */
+export function dateMeaningOf(
+  item: Pick<ChecklistItem, 'kind' | 'label'> & { dateKind?: string | null },
+): string | null {
+  if (item.kind !== 'date') return null;
+  return (item.dateKind ? dateKindLabel(item.dateKind) : null) ?? item.label;
+}
+
 export interface StatedDate {
   value: string;
   /** The kind of date the user's words give it, or null when they give none or more than one. */
@@ -507,15 +519,22 @@ function isPartyName(name: string, kind: ValueKind, part: BriefPart): boolean {
   return PARTY_ROLE.test(name) && !name.includes('_');
 }
 
-function placeholderFor(label: string): string {
-  // Lower case, except for words written in capitals such as FIR.
-  const lowered = label
+/**
+ * A label as it is written after "To be confirmed: ": lower case, except for
+ * words written in capitals such as FIR. T-440 (Ajay, a9bc957, Q2): the ledger
+ * path's `{{MISSING: …}}` blank for a date uses the same words.
+ */
+export function blankLabel(label: string): string {
+  return label
     .replace(/\s+/g, ' ')
     .trim()
     .split(' ')
     .map((w) => (/^[A-Z0-9./-]{2,}$/.test(w) ? w : w.toLowerCase()))
     .join(' ');
-  return `[To be confirmed: ${lowered}]`;
+}
+
+function placeholderFor(label: string): string {
+  return `[To be confirmed: ${blankLabel(label)}]`;
 }
 
 export const FIXED_KEYS = {
@@ -1435,8 +1454,7 @@ export function buildBrief(input: BuildBriefInput): Brief {
     .filter((item) => !(hidden.has(item.key) && !placed.has(item.key)))
     .map((item) => {
       const given = placed.get(item.key);
-      const kindLabel = item.kind === 'date' && item.dateKind ? dateKindLabel(item.dateKind) : null;
-      const meaning = item.kind === 'date' ? (kindLabel ?? item.label) : undefined;
+      const meaning = dateMeaningOf(item) ?? undefined;
       // T-150, Rule B: a regular bail for a client not in custody. Warn, never block.
       const custodyWarning =
         item.kind === 'choice' &&
