@@ -132,6 +132,15 @@
       }
     ]
   },
+  "computed_fields": {
+    "applicable_section": {
+      "logic": "value_map[revisional_forum] || '[To be confirmed: section of the BNSS]'",
+      "value_map": {
+        "high_court_s438_bnss": "438 read with Section 442",
+        "sessions_court_s442_bnss": "438 read with Section 440"
+      }
+    }
+  },
   "mandatory_clauses": [
     {
       "id": "parties_paragraph",
