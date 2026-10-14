@@ -99,3 +99,4 @@ Tax rule: code 20 (our state) gives CGST 9% + SGST 9%. Every other code, all UTs
 
 - The invoice number format is Ajay's: LAW/2026-27/0001 (max 16 chars). The counter has one row per FY and is allocated only for a confirmed payment.
 - Credit notes appear in the user's Invoices list, marked "Credit note" and linked to the original invoice.
+- Invoice email signed (Ajay 9528d82, GST file Addendum 5): footer "Ranchi, Jharkhand"; line 2 "…a payment was made on your Lawie account."; the email says "invoice" and the PDF is headed "Tax Invoice"; subject A and button A; body shows the number and "{amount} (including GST)"; "Hello," when there is no name. Ajay: the number format is not a legal call (it must be ≤16 chars, per FY, gapless, and use the right FY), so LAW/2026-27/0001 stands as Arjun agreed.
