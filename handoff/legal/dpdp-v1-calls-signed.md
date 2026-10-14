@@ -144,3 +144,12 @@ No link in (B): approved. Variant (A) is unchanged; its link lasting 7 days is a
 - Footer: the same as (A).
 
 `{date}` and timing as in (A): the later of sign-up + 30 days and notice + 7 days, `D Month YYYY`, deleted no earlier than the end of that day IST. A request to keep the account received before then stops the deletion.
+
+### 10. Held verify emails (since T-379) and T-358 start (Priya, 14 Oct 2026)
+
+1. **Purge the held queue; do not send weeks-late emails.** A stale email with an old (likely expired) link is confusing and reads as a phishing attempt.
+2. **Each affected user gets one fresh verify email**, the normal one with a new link, once the footer is fixed (T-436 AC10).
+3. **T-358 clock for them:** the users who never received any verify email were not at fault. For them, the 30 days run from the day that fresh email is actually sent, not from sign-up: notice at day 23, deletion no earlier than day 30, end of day IST. Users who did receive a verify email keep the normal rule (Addendum §8).
+4. This applies to the T-358 sweep's first runs. Arjun picks the mechanics, such as a `verifyEmailFirstSentAt` stamp. Test: an account with no sent verify email is never noticed or deleted.
+
+must-fix (T-358 / T-436 AC10).
