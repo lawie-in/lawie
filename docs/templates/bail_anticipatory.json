@@ -70,7 +70,7 @@
                 "label": "CrPC and Evidence Act"
               }
             ],
-            "required": true,
+            "required": false,
             "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS.",
             "inject_into": [
               "ai_prompt"
@@ -548,7 +548,7 @@
       {
         "section_id": "body",
         "type": "ai_generated",
-        "prompt_context": "Generate 8-12 numbered paragraphs for an Anticipatory Bail application under Section 482 BNSS. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Sections {sections_charged} of BNS, 2023. State that the applicant APPREHENDS arrest and has NOT been arrested yet. Paragraphs 2-4 should narrate the facts: {facts_narrative}. Subsequent paragraphs should establish grounds: {grounds_for_bail}. Include reference to: (i) Article 21 of Constitution, (ii) Sushila Aggarwal v. State (2020) 5 SCC 1 on conditions for anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation. Do NOT generate the prayer clause or verification — those are template-handled.",
+        "prompt_context": "Generate 8-12 numbered paragraphs for an Anticipatory Bail application under {governing_provision}. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Section(s) {sections_charged}, as written in the FIR. State that the applicant APPREHENDS arrest and has NOT been arrested yet. Paragraphs 2-4 should narrate the facts: {facts_narrative}. Subsequent paragraphs should establish grounds: {grounds_for_bail}. Include reference to: (i) Article 21 of Constitution, (ii) Sushila Aggarwal v. State (2020) 5 SCC 1 on conditions for anticipatory bail, (iii) that custodial interrogation is not necessary as applicant is willing to join investigation. Do NOT generate the prayer clause or verification — those are template-handled.",
         "numbering": "numeric",
         "min_paragraphs": 8,
         "max_paragraphs": 12

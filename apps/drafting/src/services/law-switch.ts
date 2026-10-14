@@ -2,8 +2,9 @@
  * T-245a: the old/new criminal law switch for the bail packs (pure, no I/O).
  *
  * LEGAL CONTENT. Every string here is Ajay's, byte for byte, from
- * handoff/legal/T-245-old-new-law-switch-signed.md (345bd24) and its
- * Addendum 1 (2992891, 14 Oct 2026). Any other wording goes back to him.
+ * handoff/legal/T-245-old-new-law-switch-signed.md (345bd24), its
+ * Addendum 1 (2992891) and Addendum 2 (d5a3005), 14 Oct 2026. Any other
+ * wording goes back to him.
  *
  * The rule:
  * - The law of the offence follows the date of the offence: before 1 July 2024
@@ -56,6 +57,7 @@ const PAIRS: Readonly<
     magistrate: { crpc: '437', bnss: '480' },
     sessions_or_hc: { crpc: '439', bnss: '483' },
   },
+  // The bailable variant takes its own pair (Addendum 2 #4); see BAILABLE_PAIR.
   bail_before_magistrate: { any: { crpc: '437', bnss: '480' } },
   bail_anticipatory: { any: { crpc: '438', bnss: '482' } },
   interim_bail: {
@@ -70,6 +72,9 @@ const PAIRS: Readonly<
   default_bail: { any: { crpc: '167(2)', bnss: '187(3)' } },
 };
 
+/** Addendum 2 #4: bail_before_magistrate, offence bailable: CrPC 436 → BNSS 478. */
+const BAILABLE_PAIR: Pair = { crpc: '436', bnss: '478' };
+
 /**
  * Addendum 1 #4: the court is unknown in a two-pair pack. Signed for
  * bail_regular and interim_bail only (both have the 437/439 → 480/483 pairs).
@@ -80,6 +85,20 @@ const COURT_UNKNOWN: Readonly<Record<ProcedureCode | 'none', string>> = {
   none: '[To be confirmed: Section 437 or 439 of the CrPC, or Section 480 or 483 of the BNSS]',
 };
 const COURT_UNKNOWN_SIGNED: ReadonlySet<LawSwitchPack> = new Set(['bail_regular', 'interim_bail']);
+
+/** Addendum 2 #2: bail_cancellation with the court unknown. No "480(5)" (verify stands). */
+const CANCELLATION_COURT_UNKNOWN: Readonly<Record<ProcedureCode | 'none', string>> = {
+  BNSS: '[To be confirmed: Section 480 or Section 483(3) of the BNSS]',
+  CrPC: '[To be confirmed: Section 437(5) or Section 439(2) of the CrPC]',
+  none: '[To be confirmed: Section 437(5) or 439(2) of the CrPC, or Section 480 or 483(3) of the BNSS]',
+};
+
+/** Addendum 2 #1: the notice to appear (BNSS 35(3) / CrPC 41A), every pack. */
+const NOTICE_PROVISION: Readonly<Record<ProcedureCode | 'none', string>> = {
+  BNSS: 'Section 35(3) of the BNSS',
+  CrPC: 'Section 41A of the CrPC',
+  none: '[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]',
+};
 
 /** Addendum 1 #2: the women's proviso in bail_before_magistrate, three variants. */
 const WOMEN_PROVISO: Readonly<Record<ProcedureCode | 'none', string>> = {
@@ -195,6 +214,12 @@ export interface LawSwitchInput {
   offenceDate?: unknown;
   /** The court for the pair; for single-pair packs it is not read. */
   court?: BailCourt | null;
+  /**
+   * bail_before_magistrate only: true when the offence is bailable (the
+   * skeleton's `Bailable` variant), giving the 436 → 478 pair. Otherwise the
+   * pack's 437 → 480 pair.
+   */
+  offenceBailable?: boolean | null;
 }
 
 export interface LawSwitchResult {
@@ -204,15 +229,14 @@ export interface LawSwitchResult {
   forcedByFirDate: boolean;
   /** IPC / BNS from the offence date; null when no date is given. */
   offenceLaw: OffenceLaw | null;
-  /**
-   * What `{governing_provision}` prints. Null only where Ajay has signed no
-   * text for the case: bail_cancellation with the court unknown.
-   */
-  governingProvision: string | null;
+  /** What `{governing_provision}` prints. */
+  governingProvision: string;
   /** `{GOVERNING_PROVISION}`: the same, upper-cased as a whole (Addendum 1). */
-  governingProvisionUpper: string | null;
+  governingProvisionUpper: string;
   /** bail_before_magistrate only: the women's proviso phrase (Addendum 1 #2). */
   womenProviso: string | null;
+  /** `{notice_provision}`: the notice to appear, BNSS 35(3) / CrPC 41A (Addendum 2 #1). */
+  noticeProvision: string;
   /**
    * The derived case-details lines for the Drafter: `PROCEDURE CODE: ...` and
    * `GOVERNING PROVISION: ...`. Empty with no procedure code (the P-text blank applies).
@@ -234,11 +258,13 @@ export function lawSwitch(input: LawSwitchInput): LawSwitchResult {
 
   const pairs = PAIRS[templateId];
   let pair: Pair | null = null;
-  if ('any' in pairs) pair = pairs.any;
+  if (templateId === 'bail_before_magistrate' && input.offenceBailable === true) {
+    pair = BAILABLE_PAIR;
+  } else if ('any' in pairs) pair = pairs.any;
   else if (input.court === 'magistrate') pair = pairs.magistrate;
   else if (input.court === 'sessions_or_hc') pair = pairs.sessions_or_hc;
 
-  let governingProvision: string | null;
+  let governingProvision: string;
   if (pair !== null) {
     governingProvision =
       procedureCode === null
@@ -247,7 +273,8 @@ export function lawSwitch(input: LawSwitchInput): LawSwitchResult {
   } else if (COURT_UNKNOWN_SIGNED.has(templateId)) {
     governingProvision = COURT_UNKNOWN[procedureCode ?? 'none'];
   } else {
-    governingProvision = null;
+    // bail_cancellation is the only other two-pair pack.
+    governingProvision = CANCELLATION_COURT_UNKNOWN[procedureCode ?? 'none'];
   }
 
   const womenProviso =
@@ -256,7 +283,7 @@ export function lawSwitch(input: LawSwitchInput): LawSwitchResult {
   const lines: string[] = [];
   if (procedureCode !== null) {
     lines.push(`PROCEDURE CODE: ${PROCEDURE_CODE_OPTIONS[procedureCode]}`);
-    if (governingProvision !== null) lines.push(`GOVERNING PROVISION: ${governingProvision}`);
+    lines.push(`GOVERNING PROVISION: ${governingProvision}`);
   }
 
   return {
@@ -264,8 +291,9 @@ export function lawSwitch(input: LawSwitchInput): LawSwitchResult {
     forcedByFirDate,
     offenceLaw,
     governingProvision,
-    governingProvisionUpper: governingProvision === null ? null : governingProvision.toUpperCase(),
+    governingProvisionUpper: governingProvision.toUpperCase(),
     womenProviso,
+    noticeProvision: NOTICE_PROVISION[procedureCode ?? 'none'],
     lines,
   };
 }

@@ -1,6 +1,6 @@
 {
   "pack": "bail_before_magistrate",
-  "version": 6,
+  "version": 7,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -36,11 +36,12 @@
               "Bailable"
             ]
           },
-          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under Section 478 of the Bharatiya Nagarik Suraksha Sanhita, 2023, the offence alleged being bailable.",
+          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under {governing_provision}, the offence alleged being bailable.",
           "slots": [
             "applicant_name",
             "applicant_age",
-            "applicant_address"
+            "applicant_address",
+            "governing_provision"
           ]
         },
         {
@@ -289,7 +290,10 @@
           "not_served"
         ]
       },
-      "text": "No notice under Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023 was served on the applicant before arrest."
+      "text": "No notice under {notice_provision} was served on the applicant before arrest.",
+      "slots": [
+        "notice_provision"
+      ]
     },
     {
       "id": "parity",

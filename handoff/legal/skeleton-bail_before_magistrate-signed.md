@@ -44,12 +44,16 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 
 - v6, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addendum 1 ruling 2 (2992891), signed Ajay. The hard-coded `Section N of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{governing_provision}` (slot `governing_provision`). The women's proviso becomes `{women_proviso}` (slot `women_proviso`): BNSS `the first proviso to Section 480(1) of the BNSS`; CrPC `the first proviso to Section 437(1) of the CrPC`; no choice `the first proviso to [To be confirmed: Section 437(1) of the CrPC or Section 480(1) of the BNSS]`. Nothing else changes in any clause.
 
+## Version 7, 14 Oct 2026 (supersedes SHA `99a7b4a396f214b0a4b333c3c7c8deb6f6258d26518ac8f69ac814850ddc9451`)
+
+- v7, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addendum 2 (d5a3005), signed Ajay. The bailable variant's `Section 478 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{governing_provision}` (Addendum 2 ruling 4: pair CrPC 436 → BNSS 478). The `s35_notice` clause's `Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{notice_provision}` (slot `notice_provision`, Addendum 2 ruling 1): BNSS `Section 35(3) of the BNSS`; CrPC `Section 41A of the CrPC`; no choice `[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]`. Nothing else changes in any clause.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_before_magistrate",
-  "version": 6,
+  "version": 7,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -85,11 +89,12 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
               "Bailable"
             ]
           },
-          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under Section 478 of the Bharatiya Nagarik Suraksha Sanhita, 2023, the offence alleged being bailable.",
+          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under {governing_provision}, the offence alleged being bailable.",
           "slots": [
             "applicant_name",
             "applicant_age",
-            "applicant_address"
+            "applicant_address",
+            "governing_provision"
           ]
         },
         {
@@ -338,7 +343,10 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
           "not_served"
         ]
       },
-      "text": "No notice under Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023 was served on the applicant before arrest."
+      "text": "No notice under {notice_provision} was served on the applicant before arrest.",
+      "slots": [
+        "notice_provision"
+      ]
     },
     {
       "id": "parity",

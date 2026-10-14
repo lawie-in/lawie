@@ -72,7 +72,7 @@
                 "label": "CrPC and Evidence Act"
               }
             ],
-            "required": true,
+            "required": false,
             "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS.",
             "inject_into": [
               "ai_prompt"
@@ -575,7 +575,7 @@
         "high_court": "483",
         "high_court_bench": "483"
       },
-      "instruction": "This application is made under Section {value} of the Bharatiya Nagarik Suraksha Sanhita, 2023. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482."
+      "instruction": "This application is made under {governing_provision}. Cite only this one provision as the provision under which bail is sought. Do not cite Section 481 or Section 482."
     },
     "bail_type_label": {
       "logic": "'Regular Bail'"
@@ -616,7 +616,7 @@
       {
         "section_id": "body",
         "type": "ai_generated",
-        "prompt_context": "Generate 7-10 numbered paragraphs for a {bail_type_label} application. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Sections {sections_charged} of BNS, 2023. Paragraphs 2-3 should narrate the facts based on: {facts_narrative}. Subsequent paragraphs should establish the grounds for bail: {grounds_for_bail}. Reference Article 21 of Constitution. Use formal legal language. Do NOT generate the prayer clause or verification — those are template-handled.",
+        "prompt_context": "Generate 7-10 numbered paragraphs for a {bail_type_label} application. Paragraph 1 must mention FIR No. {fir_number} dated {fir_date}, registered at PS {police_station}, under Section(s) {sections_charged}, as written in the FIR. Paragraphs 2-3 should narrate the facts based on: {facts_narrative}. Subsequent paragraphs should establish the grounds for bail: {grounds_for_bail}. Reference Article 21 of Constitution. Use formal legal language. Do NOT generate the prayer clause or verification — those are template-handled.",
         "numbering": "numeric",
         "min_paragraphs": 7,
         "max_paragraphs": 12

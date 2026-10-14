@@ -72,7 +72,7 @@
       "label": "This application is under",
       "type": "select",
       "options": ["BNSS and BSA", "CrPC and Evidence Act"],
-      "required": true,
+      "required": false,
       "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS."
     },
     { "name": "police_station", "label": "Police Station", "type": "text", "required": true },

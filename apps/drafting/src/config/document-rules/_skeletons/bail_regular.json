@@ -1,6 +1,6 @@
 {
   "pack": "bail_regular",
-  "version": 4,
+  "version": 5,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -292,7 +292,10 @@
           "not_served"
         ]
       },
-      "text": "No notice under Section 35 of the Bharatiya Nagarik Suraksha Sanhita, 2023 was served on the applicant before arrest."
+      "text": "No notice under {notice_provision} was served on the applicant before arrest.",
+      "slots": [
+        "notice_provision"
+      ]
     },
     {
       "id": "parity",
