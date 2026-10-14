@@ -1213,7 +1213,7 @@ describe('T-381 C: POST /documents/:id/annexures-pack from a brief draft (AC3)',
     expect(a).toContain('Memo of Parties');
     expect(a).toContain('<strong>Ram Kumar</strong>');
     expect(a).toContain('Age: 32 years');
-    expect(a).toContain('S/o / D/o / W/o: Shri Hari Kumar');
+    expect(a).toContain('[To be confirmed: relation] Shri Hari Kumar');
     expect(a).toContain('123 Main St, Patna');
 
     const e = vakalatnama();
@@ -1235,7 +1235,7 @@ describe('T-381 C: POST /documents/:id/annexures-pack from a brief draft (AC3)',
     const a = memo();
     expect(a).toContain('<strong>Jai Mehta</strong>');
     expect(a).toContain('Age: 44 years');
-    expect(a).toContain('S/o / D/o / W/o: Shri Mehta Senior');
+    expect(a).toContain('[To be confirmed: relation] Shri Mehta Senior');
     expect(a).toContain('12 Lake Road, Patna');
     expect(a).toContain('<strong>Kiran Bose</strong>');
     expect(a).not.toContain('State of');
