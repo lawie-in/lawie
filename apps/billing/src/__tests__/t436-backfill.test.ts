@@ -169,13 +169,10 @@ describe('backfill-invoices script (AC14)', () => {
     expect(r.out).not.toContain('20AAAAA0000A1Z5');
     expect(await db().collection('invoices').countDocuments({})).toBe(0);
     expect(await db().collection('invoicecounters').countDocuments({})).toBe(0);
-    // Dry run builds no indexes either (mongoose's autoCreate may still make the empty
-    // collection; that is reported as a note, not asserted).
-    for (const name of ['invoices', 'invoicecounters']) {
-      if ((await db().listCollections({ name }).toArray()).length === 0) continue;
-      const idx = await db().collection(name).indexes();
-      expect(idx.map((i) => i.name)).toEqual(['_id_']);
-    }
+    // Dry run creates no collections at all (autoCreate/autoIndex are off), so no indexes either.
+    const names = (await db().listCollections().toArray()).map((c) => c.name);
+    expect(names).not.toContain('invoices');
+    expect(names).not.toContain('invoicecounters');
   });
 
   it('an explicit --dry-run also writes nothing', async () => {

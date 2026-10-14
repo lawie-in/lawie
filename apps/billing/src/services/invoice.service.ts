@@ -213,15 +213,32 @@ export async function recordCreditNoteForRefund(r: ProcessedRefund): Promise<IIn
     );
     return null;
   }
-  if (r.amount > original.draft.amount) {
+  const filter = { kind: 'credit_note' as const, refundId: r.refundId };
+  // A retry of a refund already recorded: return its row, no re-check.
+  const existing = await Invoice.findOne(filter);
+  if (existing) return existing;
+
+  // Partial refunds: this one plus every other credit note against the same
+  // invoice must not exceed what was invoiced.
+  const others = await Invoice.aggregate<{ total: number }>([
+    {
+      $match: {
+        kind: 'credit_note',
+        originalInvoiceId: original._id,
+        refundId: { $ne: r.refundId },
+      },
+    },
+    { $group: { _id: null, total: { $sum: '$draft.amount' } } },
+  ]);
+  const alreadyCredited = others[0]?.total ?? 0;
+  if (alreadyCredited + r.amount > original.draft.amount) {
     logger.error(
       { refundId: r.refundId, paymentId: r.paymentId },
-      'credit note: refund exceeds the invoiced amount; not recorded, check by hand',
+      'credit note: refund exceeds the invoiced amount (with earlier credit notes); not recorded, check by hand',
     );
     return null;
   }
 
-  const filter = { kind: 'credit_note' as const, refundId: r.refundId };
   try {
     const row = await Invoice.findOneAndUpdate(
       filter,
@@ -347,6 +364,11 @@ async function buildContent(
  * Writes the number the counter holds for `invoiceId` onto that row (with its
  * content), then frees the series. Safe to run twice or concurrently: both
  * writes are conditional.
+ *
+ * If the row did not take the number (it is gone, or a concurrent issue gave
+ * it a different one), the number is given back before the series is freed:
+ * the series lock (`pendingInvoiceId`) is still held, so nothing has been
+ * allocated after it and `seq - 1` is exact. No gap either way.
  */
 async function finalizeAllocation(
   counter: IInvoiceCounter,
@@ -355,12 +377,7 @@ async function finalizeAllocation(
 ): Promise<boolean> {
   const row = await Invoice.findById(invoiceId);
   let wrote = false;
-  if (!row) {
-    logger.error(
-      { invoiceId: String(invoiceId), fy: counter.fy, series: counter.series, seq: counter.seq },
-      'invoice: allocated number has no invoice row; number left unused, check by hand',
-    );
-  } else if (row.state === 'issuing') {
+  if (row?.state === 'issuing') {
     const original =
       row.kind === 'credit_note' && row.originalInvoiceId
         ? await Invoice.findById(row.originalInvoiceId)
@@ -368,32 +385,60 @@ async function finalizeAllocation(
     const content = await buildContent(row, seller, original);
     const issuedAt = counter.pendingIssuedAt ?? new Date();
     const number = formatInvoiceNumber(row.kind as InvoiceKind, counter.fy, counter.seq);
-    if (number.length > INVOICE_NUMBER_MAX_LENGTH) throw new InvoiceSeriesExhaustedError();
-    const res = await Invoice.updateOne(
-      { _id: row._id, state: 'issuing' },
-      {
-        $set: {
-          ...content,
-          number,
-          fy: counter.fy,
-          seq: counter.seq,
-          issuedAt,
-          state: 'issued',
+    if (number.length <= INVOICE_NUMBER_MAX_LENGTH) {
+      const res = await Invoice.updateOne(
+        { _id: row._id, state: 'issuing' },
+        {
+          $set: {
+            ...content,
+            number,
+            fy: counter.fy,
+            seq: counter.seq,
+            issuedAt,
+            state: 'issued',
+          },
         },
-      },
+      );
+      wrote = res.modifiedCount === 1;
+    }
+  }
+
+  // Did the row end up with this number (by this call or a concurrent one)?
+  const used =
+    wrote ||
+    (await Invoice.exists({
+      _id: invoiceId,
+      state: 'issued',
+      fy: counter.fy,
+      seq: counter.seq,
+    })) !== null;
+
+  if (used) {
+    await InvoiceCounter.updateOne(
+      { _id: counter._id, pendingInvoiceId: invoiceId },
+      { $set: { pendingInvoiceId: null, pendingIssuedAt: null } },
     );
-    wrote = res.modifiedCount === 1;
-  } else if (row.fy !== counter.fy || row.seq !== counter.seq) {
-    logger.error(
+    return wrote;
+  }
+
+  const returned = await InvoiceCounter.updateOne(
+    { _id: counter._id, pendingInvoiceId: invoiceId, seq: counter.seq },
+    { $inc: { seq: -1 }, $set: { pendingInvoiceId: null, pendingIssuedAt: null } },
+  );
+  if (returned.modifiedCount === 1) {
+    logger.warn(
       { invoiceId: String(invoiceId), fy: counter.fy, series: counter.series, seq: counter.seq },
-      'invoice: row issued under another number; allocated number left unused, check by hand',
+      'invoice: allocated number not taken by its row; number given back',
     );
   }
-  await InvoiceCounter.updateOne(
-    { _id: counter._id, pendingInvoiceId: invoiceId },
-    { $set: { pendingInvoiceId: null, pendingIssuedAt: null } },
-  );
-  return wrote;
+  if (
+    row?.state === 'issuing' &&
+    formatInvoiceNumber(row.kind as InvoiceKind, counter.fy, counter.seq).length >
+      INVOICE_NUMBER_MAX_LENGTH
+  ) {
+    throw new InvoiceSeriesExhaustedError();
+  }
+  return false;
 }
 
 /** Finishes whatever allocation is pending on (fy, series). Returns false if none was. */
@@ -424,9 +469,9 @@ export async function issueInvoice(
   // that one, never allocate a second.
   const held = await InvoiceCounter.findOne({ pendingInvoiceId: id });
   if (held) {
-    await finalizeAllocation(held, id, seller);
+    if (await finalizeAllocation(held, id, seller)) return 'issued';
     const after = await Invoice.findById(id).select('state').lean();
-    return after?.state === 'issued' ? 'issued' : 'not_found';
+    return after?.state === 'issued' ? 'already_issued' : 'not_found';
   }
 
   const row = await Invoice.findById(id);
@@ -452,6 +497,13 @@ export async function issueInvoice(
 
   const series = row.kind as InvoiceKind;
   for (let attempt = 0; attempt < ALLOCATE_ATTEMPTS; attempt += 1) {
+    // Re-check right before allocating: a concurrent issue (the sibling event,
+    // a retry overlapping the sweep) may have issued or dropped the row since
+    // it was read. finalizeAllocation gives the number back if one still slips
+    // through.
+    const current = await Invoice.findById(row._id).select('state').lean();
+    if (!current) return 'not_found';
+    if (current.state === 'issued') return 'already_issued';
     const issuedAt = new Date();
     const fy = financialYear(issuedAt);
     let counter: IInvoiceCounter | null = null;
@@ -485,7 +537,9 @@ export async function issueInvoice(
       );
       return 'issued';
     }
-    return 'already_issued';
+    // Not written by this call; the number went back if the row did not take it.
+    const after = await Invoice.findById(row._id).select('state').lean();
+    return after?.state === 'issued' ? 'already_issued' : 'not_found';
   }
   throw new InvoiceSeriesBusyError();
 }

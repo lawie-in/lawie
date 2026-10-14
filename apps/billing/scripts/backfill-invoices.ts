@@ -136,8 +136,13 @@ async function main(): Promise<void> {
   }
   console.log(`GST_EFFECTIVE_FROM: ${effectiveFrom.toISOString()}`);
 
-  // Dry run: no index builds either. Apply: the unique indexes must exist.
-  await mongoose.connect(env.MONGO_URI, { serverSelectionTimeoutMS: 5000, autoIndex: apply });
+  // Dry run creates nothing: no collections (autoCreate) and no index builds
+  // (autoIndex). Apply: the collections and unique indexes must exist.
+  await mongoose.connect(env.MONGO_URI, {
+    serverSelectionTimeoutMS: 5000,
+    autoIndex: apply,
+    autoCreate: apply,
+  });
   try {
     if (apply) await Promise.all([Invoice.init(), InvoiceCounter.init()]);
     const db = mongoose.connection.db;

@@ -73,6 +73,39 @@ describe('gateway: /api/billing/public/supplier is public (T-436)', () => {
   });
 });
 
+describe('gateway: only the exact supplier path is proxied (SF4)', () => {
+  it.each([
+    '/api/billing/public/supplier/x',
+    '/api/billing/public/supplier/x/y',
+    '/api/billing/public/supplier/..%2Finvoices',
+  ])('%s is 404 and never reaches billing', async (path) => {
+    const res = await request(app).get(path);
+    expect(res.status).toBe(404);
+    expect(seen).toHaveLength(0);
+  });
+
+  // Not under the public mount (Express matches whole path segments), so it falls to the
+  // authenticated /api/billing mount: 401 without a token, never proxied (not 404 as the
+  // handoff expected; reported to the lead).
+  it('/api/billing/public/supplierx is not public: 401 without a token and never reaches billing', async () => {
+    const res = await request(app).get('/api/billing/public/supplierx');
+    expect(res.status).toBe(401);
+    expect(seen).toHaveLength(0);
+  });
+
+  it.each([
+    ['/api/billing/public/supplier', '/public/supplier'],
+    ['/api/billing/public/supplier/', '/public/supplier'],
+    ['/api/billing/public/supplier?x=1', '/public/supplier?x=1'],
+    ['/api/billing/public/supplier/?x=1', '/public/supplier?x=1'],
+  ])('%s still passes (upstream sees %s)', async (path, upstreamUrl) => {
+    const res = await request(app).get(path);
+    expect(res.status).toBe(200);
+    expect(seen).toHaveLength(1);
+    expect(seen[0].url).toBe(upstreamUrl);
+  });
+});
+
 describe('gateway: everything else T-436 added under /api/billing stays behind auth', () => {
   it.each([
     '/api/billing/invoices',

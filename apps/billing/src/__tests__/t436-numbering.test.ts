@@ -12,6 +12,7 @@ type FakeableAPI = NonNullable<
     : never
 >;
 
+import logger from '../config/logger';
 import { Invoice } from '../models/Invoice.model';
 import { InvoiceCounter } from '../models/InvoiceCounter.model';
 import {
@@ -22,7 +23,15 @@ import {
 } from '../services/invoice.service';
 import { runInvoiceSweep } from '../services/invoice-sweep.service';
 
-import { refundPayload, seedSub, seedUser, subPayload, webhook } from './t436-helpers';
+import {
+  orderPaidPayload,
+  paymentCapturedPayload,
+  refundPayload,
+  seedSub,
+  seedUser,
+  subPayload,
+  webhook,
+} from './t436-helpers';
 
 // T-436 AC3: per-FY sequential numbers, no gaps, no reuse, FY rolls on 1 April IST,
 // allocated only on a confirmed payment.
@@ -211,7 +220,7 @@ describe('the pending counter (crash between allocating and writing)', () => {
     expect(o.number).toBe('LAW/2026-27/0004');
   });
 
-  it('a pending number whose invoice row is gone is released, not reused (logged for a human)', async () => {
+  it('a pending number whose invoice row is gone is given back: no gap, logged for a human', async () => {
     jest.useFakeTimers({ ...FAKE_DATE_ONLY, now: new Date('2026-10-14T06:00:00Z') });
     await InvoiceCounter.create({
       fy: '2026-27',
@@ -220,8 +229,178 @@ describe('the pending counter (crash between allocating and writing)', () => {
       pendingInvoiceId: new mongoose.Types.ObjectId(),
       pendingIssuedAt: new Date('2026-10-14T05:00:00Z'),
     });
+    const warn = jest.spyOn(logger, 'warn');
     const id = await record('pay_after');
     expect(await issueInvoice(id)).toBe('issued');
-    expect((await Invoice.findById(id).lean())!.number).toBe('LAW/2026-27/0006');
+    expect((await Invoice.findById(id).lean())!.number).toBe('LAW/2026-27/0005');
+    const c = (await InvoiceCounter.findOne({ series: 'invoice' }).lean())!;
+    expect(c.seq).toBe(5);
+    expect(c.pendingInvoiceId ?? null).toBeNull();
+    expect(warn.mock.calls.some((x) => String(x[1]).includes('number given back'))).toBe(true);
+  });
+});
+
+describe('no gap when two issues of one row race (reviewer must-fix)', () => {
+  it('the second call finds the row issued after the first finished between its read and its $inc: one invoice, next number is seq+1', async () => {
+    jest.useFakeTimers({ ...FAKE_DATE_ONLY, now: new Date('2026-10-14T06:00:00Z') });
+    const id = await record('pay_race');
+    const warn = jest.spyOn(logger, 'warn');
+    let releaseFirst!: () => void;
+    const firstPaused = new Promise<void>((r) => (releaseFirst = r));
+    let resumeSecond!: () => void;
+    const secondMayGo = new Promise<void>((r) => (resumeSecond = r));
+    const origInc = InvoiceCounter.findOneAndUpdate.bind(InvoiceCounter);
+    let paused = false;
+    // Call A is held at its counter $inc, i.e. after it has read the row as 'issuing'.
+    const incSpy = jest.spyOn(InvoiceCounter, 'findOneAndUpdate').mockImplementation(((
+      ...args: unknown[]
+    ) => {
+      if (!paused) {
+        paused = true;
+        releaseFirst();
+        return secondMayGo.then(() => (origInc as (...a: unknown[]) => unknown)(...args));
+      }
+      return (origInc as (...a: unknown[]) => unknown)(...args);
+    }) as never);
+
+    const a = issueInvoice(id);
+    await firstPaused; // A has read state 'issuing' and is about to $inc
+    // B runs to completion in the gap and issues the row.
+    const bOutcome = await issueInvoice(id);
+    expect(bOutcome).toBe('issued');
+    resumeSecond();
+    const aOutcome = await a;
+    expect(aOutcome).toBe('already_issued');
+    // A's $inc did allocate (it was past its re-check); finalize gave the number back.
+    expect(warn.mock.calls.some((x) => String(x[1]).includes('number given back'))).toBe(true);
+
+    expect(await Invoice.countDocuments({ state: 'issued' })).toBe(1);
+    const row = (await Invoice.findById(id).lean())!;
+    expect(row.number).toBe('LAW/2026-27/0001');
+    const c = (await InvoiceCounter.findOne({ series: 'invoice' }).lean())!;
+    expect(c.seq).toBe(1);
+    expect(c.pendingInvoiceId ?? null).toBeNull();
+    incSpy.mockRestore();
+    // The next issued number is 0002: no hole at 0002 or elsewhere.
+    const next = await record('pay_next');
+    await issueInvoice(next);
+    expect((await Invoice.findById(next).lean())!.number).toBe('LAW/2026-27/0002');
+  });
+
+  it('even if the re-check is fooled (row read as issuing, but issued meanwhile), the allocated number is given back with a warning', async () => {
+    jest.useFakeTimers({ ...FAKE_DATE_ONLY, now: new Date('2026-10-14T06:00:00Z') });
+    const id = await record('pay_race2');
+    const other = await record('pay_race2_other');
+    const warn = jest.spyOn(logger, 'warn');
+    const origInc = InvoiceCounter.findOneAndUpdate.bind(InvoiceCounter);
+    let done = false;
+    // Issue the row under 0001 via a rival just after A's counter $inc would be chosen:
+    // simulate by letting a rival finish between A's re-check and A's $inc.
+    jest.spyOn(InvoiceCounter, 'findOneAndUpdate').mockImplementation((async (
+      ...args: unknown[]
+    ) => {
+      if (!done) {
+        done = true;
+        await mongoose.connection.db!.collection('invoices').updateOne(
+          { _id: id },
+          {
+            $set: {
+              state: 'issued',
+              number: 'LAW/2026-27/9001',
+              fy: '2026-27',
+              seq: 9001,
+              issuedAt: new Date(),
+            },
+          },
+        );
+      }
+      return (origInc as (...a: unknown[]) => unknown)(...args);
+    }) as never);
+    const outcome = await issueInvoice(id);
+    expect(outcome).toBe('already_issued');
+    jest.restoreAllMocks();
+    const c = (await InvoiceCounter.findOne({ series: 'invoice' }).lean())!;
+    expect(c.seq).toBe(0);
+    expect(c.pendingInvoiceId ?? null).toBeNull();
+    expect(warn.mock.calls.some((x) => String(x[1]).includes('number given back'))).toBe(true);
+    await issueInvoice(other);
+    expect((await Invoice.findById(other).lean())!.number).toBe('LAW/2026-27/0001');
+  });
+
+  it('the row vanishing between the re-check and the $inc gives the number back (row gone)', async () => {
+    jest.useFakeTimers({ ...FAKE_DATE_ONLY, now: new Date('2026-10-14T06:00:00Z') });
+    const id = await record('pay_vanish');
+    const other = await record('pay_vanish_other');
+    const warn = jest.spyOn(logger, 'warn');
+    const origInc = InvoiceCounter.findOneAndUpdate.bind(InvoiceCounter);
+    let done = false;
+    jest.spyOn(InvoiceCounter, 'findOneAndUpdate').mockImplementation((async (
+      ...args: unknown[]
+    ) => {
+      if (!done) {
+        done = true;
+        await mongoose.connection.db!.collection('invoices').deleteOne({ _id: id });
+      }
+      return (origInc as (...a: unknown[]) => unknown)(...args);
+    }) as never);
+    expect(await issueInvoice(id)).toBe('not_found');
+    jest.restoreAllMocks();
+    const c = (await InvoiceCounter.findOne({ series: 'invoice' }).lean())!;
+    expect(c.seq).toBe(0);
+    expect(c.pendingInvoiceId ?? null).toBeNull();
+    expect(warn.mock.calls.some((x) => String(x[1]).includes('number given back'))).toBe(true);
+    await issueInvoice(other);
+    expect((await Invoice.findById(other).lean())!.number).toBe('LAW/2026-27/0001');
+  });
+
+  it('a row that is already gone at the start allocates nothing', async () => {
+    const id = new mongoose.Types.ObjectId();
+    expect(await issueInvoice(id)).toBe('not_found');
+    expect(await InvoiceCounter.countDocuments({})).toBe(0);
+  });
+
+  it('an out-of-range number is given back before the exhausted error is thrown', async () => {
+    jest.useFakeTimers({ ...FAKE_DATE_ONLY, now: new Date('2026-10-14T06:00:00Z') });
+    await InvoiceCounter.create({ fy: '2026-27', series: 'invoice', seq: MAX_INVOICE_SEQ });
+    const id = await record('pay_over');
+    // Force an allocation of 10000 (5 digits, 17 characters) past the counter's own guard.
+    jest.spyOn(InvoiceCounter, 'findOneAndUpdate').mockImplementation((async () => {
+      await InvoiceCounter.collection.updateOne(
+        { fy: '2026-27', series: 'invoice' },
+        { $set: { seq: MAX_INVOICE_SEQ + 1, pendingInvoiceId: id, pendingIssuedAt: new Date() } },
+      );
+      return InvoiceCounter.findOne({ fy: '2026-27', series: 'invoice' });
+    }) as never);
+    await expect(issueInvoice(id)).rejects.toBeInstanceOf(InvoiceSeriesExhaustedError);
+    jest.restoreAllMocks();
+    const c = (await InvoiceCounter.findOne({ series: 'invoice' }).lean())!;
+    expect(c.seq).toBe(MAX_INVOICE_SEQ);
+    expect(c.pendingInvoiceId ?? null).toBeNull();
+    expect((await Invoice.findById(id).lean())!.state).toBe('issuing');
+  });
+});
+
+describe('concurrent sibling webhooks (order.paid + payment.captured)', () => {
+  it('several payments, both events each, all at once: numbers contiguous, counter = max, no pending lock', async () => {
+    jest.useFakeTimers({ ...FAKE_DATE_ONLY, now: new Date('2026-10-14T06:00:00Z') });
+    const userId = String(await seedUser());
+    const N = 5;
+    const calls: Promise<unknown>[] = [];
+    for (let i = 0; i < N; i += 1) {
+      const o = { userId, orderId: `order_c${i}`, paymentId: `pay_c${i}`, amount: 19900 };
+      calls.push(webhook('order.paid', orderPaidPayload(o)));
+      calls.push(webhook('payment.captured', paymentCapturedPayload(o)));
+    }
+    await Promise.all(calls);
+    await runInvoiceSweep(new Date(Date.now() + 5 * 60 * 1000));
+    await runInvoiceSweep(new Date(Date.now() + 5 * 60 * 1000));
+    const rows = await Invoice.find({ kind: 'invoice' }).lean();
+    expect(rows).toHaveLength(N);
+    expect(rows.every((r) => r.state === 'issued')).toBe(true);
+    const seqs = rows.map((r) => r.seq!).sort((a, b) => a - b);
+    expect(seqs).toEqual(Array.from({ length: N }, (_, i) => i + 1));
+    const c = (await InvoiceCounter.findOne({ series: 'invoice' }).lean())!;
+    expect(c.seq).toBe(Math.max(...seqs));
+    expect(c.pendingInvoiceId ?? null).toBeNull();
   });
 });

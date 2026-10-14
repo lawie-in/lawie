@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import logger from '../config/logger';
 import { Invoice } from '../models/Invoice.model';
 import { InvoiceCounter } from '../models/InvoiceCounter.model';
+import { recordCreditNoteForRefund } from '../services/invoice.service';
 import { runInvoiceSweep } from '../services/invoice-sweep.service';
 
 import {
@@ -160,6 +161,50 @@ describe('credit note on refund.processed (AC7)', () => {
     expect(await Invoice.countDocuments({ kind: 'credit_note' })).toBe(0);
     expect(await InvoiceCounter.countDocuments({ series: 'credit_note' })).toBe(0);
     expect(error.mock.calls.some((c) => String(c[1]).includes('exceeds'))).toBe(true);
+  });
+
+  it('several partial refunds within the invoiced total all pass; one that would exceed it is rejected and nothing is recorded', async () => {
+    await invoiceFor(); // 79900
+    await webhook('refund.processed', refundPayload({ refundId: 'rfnd_p1', amount: 50000 }));
+    await webhook('refund.processed', refundPayload({ refundId: 'rfnd_p2', amount: 29900 }));
+    expect(await Invoice.countDocuments({ kind: 'credit_note', state: 'issued' })).toBe(2);
+    const seqBefore = (await InvoiceCounter.findOne({ series: 'credit_note' }).lean())!.seq;
+    const error = jest.spyOn(logger, 'error');
+    const res = await webhook(
+      'refund.processed',
+      refundPayload({ refundId: 'rfnd_p3', amount: 1 }),
+    );
+    expect(res.status).toBe(200);
+    expect(await Invoice.countDocuments({ kind: 'credit_note' })).toBe(2);
+    expect(await Invoice.countDocuments({ refundId: 'rfnd_p3' })).toBe(0);
+    expect((await InvoiceCounter.findOne({ series: 'credit_note' }).lean())!.seq).toBe(seqBefore);
+    expect(error.mock.calls.some((c) => String(c[1]).includes('exceeds'))).toBe(true);
+  });
+
+  it('a partial refund whose cumulative total exceeds the invoice is rejected even though it alone is smaller', async () => {
+    await invoiceFor();
+    await webhook('refund.processed', refundPayload({ refundId: 'rfnd_q1', amount: 60000 }));
+    await webhook('refund.processed', refundPayload({ refundId: 'rfnd_q2', amount: 30000 }));
+    const credited = await Invoice.find({ kind: 'credit_note' }).lean();
+    expect(credited.map((c) => c.refundId)).toEqual(['rfnd_q1']);
+  });
+
+  it('a retried refundId returns its existing credit note, even once the invoice is fully credited', async () => {
+    await invoiceFor();
+    await webhook('refund.processed', refundPayload({ refundId: 'rfnd_r1', amount: 79900 }));
+    const first = (await Invoice.findOne({ refundId: 'rfnd_r1' }).lean())!;
+    const rec = await recordCreditNoteForRefund({
+      refundId: 'rfnd_r1',
+      paymentId: 'pay_t436',
+      amount: 79900,
+      processedAt: new Date(),
+    });
+    expect(String(rec!._id)).toBe(String(first._id));
+    expect(await Invoice.countDocuments({ kind: 'credit_note' })).toBe(1);
+    expect((await webhook('refund.processed', refundPayload({ refundId: 'rfnd_r1' }))).status).toBe(
+      200,
+    );
+    expect(await Invoice.countDocuments({ kind: 'credit_note' })).toBe(1);
   });
 
   it('a refund that is not processed, or has no usable entity, records nothing', async () => {
