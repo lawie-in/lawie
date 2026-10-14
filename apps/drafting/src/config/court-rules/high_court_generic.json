@@ -22,8 +22,8 @@
     "state": "State of __________"
   },
   "case_nomenclature": {
-    "anticipatory_bail": "_____ No. _____ of {year}",
-    "regular_bail": "_____ No. _____ of {year}",
+    "anticipatory_bail": "[To be confirmed: case type and number]",
+    "regular_bail": "[To be confirmed: case type and number]",
     "quashing": "_____ No. _____ of {year}",
     "criminal_appeal": "_____ No. _____ of {year}",
     "criminal_writ": "_____ No. _____ of {year}",

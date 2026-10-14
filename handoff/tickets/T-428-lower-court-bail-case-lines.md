@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                    |
 | ------ | ------------------------------------------------------------------------ |
-| Status | Todo. Shashank, right after T-404 part 2 merges. Priya, 14 Oct 2026      |
+| Status | Merged into develop_staging 3649e73b (Shashank, 14 Oct 2026). Priya     |
 | Owner  | Shashank (build), Ajay (signed 2fcf6c4)                                  |
 | Mode   | Small fix (legal content: court-rules data; Ajay's text only)            |
 
