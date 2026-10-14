@@ -1143,3 +1143,10 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - On a yearly plan, Ink resets to the monthly amount each month, with nothing banked.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-384 — "Not known" dates (3ceb2fc8, kunal, 14 Oct 2026)
+
+- A date row answered "Not known" shows "Not known" instead of an empty date box.
+- Press "Change" to set the date after all.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
