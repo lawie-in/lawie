@@ -157,11 +157,11 @@ describe('tripwire: every registered template vs TEMPLATE_FOOTERS', () => {
   it.each(ids)(
     '%s renders a placeholder exactly when templateHasUnfilledFooter says so',
     async (id) => {
+      mockUnfilledFooter = false; // real strings on both sides of the comparison
       const rendered = renderReal(id, SENTINEL);
       const hasPlaceholder = [rendered.html, rendered.text].some(
         (part) => part.includes('[registered address]') || part.includes('[PIN]'),
       );
-      mockUnfilledFooter = false; // compare the real render with the real footer strings
       const flagged = await inEnv(DRY, async ({ ph }) => ph.templateHasUnfilledFooter(id as never));
       expect(hasPlaceholder).toBe(flagged);
     },

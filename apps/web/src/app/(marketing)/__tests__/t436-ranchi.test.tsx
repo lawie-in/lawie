@@ -2,6 +2,8 @@
 // wrong everywhere it names us. The registered place of business is Ranchi, Jharkhand. No public
 // page may carry "Patna, Bihar" or a bracketed placeholder. Not covered here, by design: sample
 // drafts, and the "Patna bar review" input hint on admin/referral-codes (not a public page, not us).
+import * as fs from 'fs';
+import * as path from 'path';
 import { act, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
@@ -148,4 +150,39 @@ describe('T-436 AC4: tools page (async, flags fetched; fetch mocked, no network)
     expect(text).not.toContain('Patna');
     expect(text).not.toMatch(/\[[^\]]*(PIN|placeholder|registered address)[^\]]*\]/i);
   });
+});
+
+describe('T-436 AC4: source sweep over everything under (marketing)', () => {
+  const ROOT = path.resolve(__dirname, '..');
+  function files(dir: string): string[] {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      if (e.name === '__tests__' || e.name === 'node_modules') return [];
+      const full = path.join(dir, e.name);
+      return e.isDirectory() ? files(full) : [full];
+    });
+  }
+  const all = files(ROOT).filter((f) => /\.(tsx?|css|md|json|html)$/.test(f));
+
+  it('finds the marketing pages and the layout (so the sweep is not vacuous)', () => {
+    const rel = all.map((f) => path.relative(ROOT, f));
+    expect(rel).toEqual(
+      expect.arrayContaining(['layout.tsx', 'page.tsx', 'terms/page.tsx', 'contact/page.tsx']),
+    );
+  });
+
+  // layout.tsx is covered here rather than rendered: it needs next/font/google, which Jest cannot load.
+  it.each(all.map((f) => [path.relative(ROOT, f), f]))(
+    '%s has no Patna, Bihar or placeholder text',
+    (_rel, f) => {
+      const src = fs.readFileSync(f, 'utf8');
+      for (const bad of [
+        'Patna, Bihar',
+        '[PIN]',
+        '[Street address placeholder]',
+        '[registered address]',
+      ]) {
+        expect(src).not.toContain(bad);
+      }
+    },
+  );
 });
