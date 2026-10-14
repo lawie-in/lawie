@@ -32,3 +32,4 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 | 14 Oct 2026 | T-440 (Shashank) | ai.service.ts :676/:1268 never pass extra.notKnownDates to buildPlaceholderContext. No user can reach it (brief drafts never take the template route). Wire it or comment it. |
 | 14 Oct 2026 | T-440 (Shashank) | blankLabel is copied 3 times (intake-brief, template-engine blankWords, s138BlankLabel). Merge into one, minding the intake-brief/s138 import cycle. |
 | 14 Oct 2026 | T-440 (Shashank) | The guided drafter prompt lacks Ajay's not-known line (unreachable today; guided has no pack). Take it to Ajay before any pack-less brief can carry 'Not known'. |
+| 14 Oct 2026 | T-437 fix (Vishal) | scripts/golden-set/__tests__/harness.test.ts runs in no CI job or workspace script, which is why the T-437 break showed only in the dry run. Add a CI step or a script. |
