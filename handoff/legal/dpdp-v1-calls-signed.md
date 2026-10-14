@@ -47,3 +47,65 @@ Conditions:
 2. A partial erase is never left in place. The server retries until it completes, and logs the failure with ids only, no content.
 3. The account is signed out and cannot be used once closing has started, even if the erase failed.
 4. `{support email}` is the address in the Privacy Policy.
+
+## T-115c: erase list and Privacy Policy text (signed 14 Oct 2026)
+
+### 1. User fields the runbook missed (Tanvi's list)
+
+Erase all of them: signupSource, yearsOfExperience, privacyHistory, emailVerifyToken*, passwordResetExpires, lastLoginAt, referralInkCode, and the terms/privacy consent stamps. Keep nothing on the User record. A hard delete of the whole User document (if Arjun rules it) is preferred and satisfies this.
+
+- Consent stamps go too. Once the account is erased there is nothing left to prove consent for. The erasure record holds the user id, time and reason code only, no email and no name.
+- What survives erasure: payment records and tax invoices (tax law), which keep only what the invoice itself prints. Nothing else.
+- Test: after closing, no collection holds the user's email, name or any field above under that user id, except the billing/invoice records.
+
+### 2. Privacy Policy (legal content: Tanvi ships these in T-115c, byte-exact)
+
+Must-fix: the current §7 line "Lawie does not yet have a delete button; we erase on request" becomes false the moment T-115c ships.
+
+**§7, replace the paragraph starting "Write to privacy@lawie.in" with:**
+`You can close your account and erase your data from Settings, and delete any single document from the document itself. You can also write to <a>privacy@lawie.in</a> from your account email and we will do it for you. Erasure covers our database and session store, and we remove what we can find of your data in our error reports (Sentry). Backup copies are erased within 7 days. We keep payment records and tax invoices for as long as tax law requires; an invoice keeps the name and State printed on it. Erasure cannot reach data already sent to Helicone (see §5) or copies you have downloaded.`
+(The link keeps its current mailto markup. If T-115b has not merged when T-115c ships, drop `, and delete any single document from the document itself` until it does.)
+
+**§9, change these bullets:**
+- `Everything else (account, case details, drafts): while your account exists, until you ask us to erase it.` becomes
+  `Everything else (account, case details, drafts): until you close your account or delete the document. Backup copies are erased within 7 days after that.`
+- Add: `Emails we could not send: up to 30 days.` (T-220 facts).
+- Payment bullet becomes:
+  `Payment records and tax invoices: for as long as GST law requires (72 months from the due date of the annual return for the year of the invoice), even after you close your account.`
+  This is the same text as GST ruling 5d (T-436). Whichever ticket merges first ships it; the other checks it is already there.
+- T-358's signed line (`If you do not verify your email address within 30 days of signing up, we delete your account and everything in it.`) goes into §9 with T-358, not T-115c, unless T-358 has already merged.
+
+Unchanged: sessions, fact-list records, waitlist.
+Parked: "Server logs: until we delete them" names no period (DPDP s.8(7)); Arjun to give a log retention period, then I sign a line.
+
+Bump the Privacy Policy "Last updated" date in the merge.
+
+### 3. T-115b merging before T-115c (Priya, 14 Oct 2026)
+
+The gap is acceptable on develop_staging and develop. Users only see main, and nothing reaches main without the founder's release after Anushka's PASS.
+
+Condition: T-115b goes to main only with T-115c, or with this interim line. In that case, replace `Lawie does not yet have a delete button; we erase on request.` in §7 with:
+`You can delete any single document from the document itself. To erase your account, write to us from your account email and we will do it.`
+No change in T-115b itself.
+
+### 4. T-115c: two more calls (Tanvi, 14 Oct 2026)
+
+| # | Item | Ruling |
+|---|---|---|
+| 1 | Kept inkledger rows `admin_grant` (reference = admin's free-text reason) and `referral_bonus` (reference = referral code) | **Blank the reference on erase.** Free text can name the person, and the referral code links back to them. Keep type, amount and date only. Payment and tax rows are unaffected. |
+| 2 | Review feedback the erased user left on another owner's document | **Keep the feedback; it belongs to the document owner's file. Remove the reviewer's identity:** name, email and token go, and the feedback shows the reviewer as `A reviewer`. The feedback text itself is not scanned or edited. |
+
+Test: after erasure, no inkledger reference and no review record holds the erased user's email, name or referral code.
+
+### 5. T-115c FYI (Tanvi, 14 Oct 2026)
+
+| # | Item | Ruling | Kind |
+|---|---|---|---|
+| 1 | `payment` and `account_delete` audit rows auto-expire after 2 years | The audit rows need not last 72 months. The 72-month duty (CGST Act s.36), and the Privacy §9 line, attach to the tax records: invoices, credit notes and the billing/Ink payment ledger. **Condition:** those stores have no TTL shorter than 72 months; Arjun confirms. If the audit row is the only payment record anywhere, its TTL becomes 72 months. `account_delete` rows: 2 years is fine. | must-fix only if the condition fails |
+| 2 | Stripped reviewer feedback ("A reviewer") drops out of the admin panel-review list | Not a legal issue. The admin tooling is Priya's call. | none |
+
+Arjun's reading (14 Oct 2026) is **confirmed**: the 72 months attach to billing's own rows (payments, subscriptions, top-ups, T-436 invoices and credit notes), which carry no TTL. The auth AuditLog stays an operational log with its 2-year TTL. No audit-trail ticket.
+Reviewer feedback is anonymised in place: approved. The internal marker may be `reviewer: erased` in the admin list. Anything the document owner sees shows `A reviewer` (§4).
+
+**Condition met (Arjun, 14 Oct 2026, every model checked read-only).** Billing and ledger rows (Subscription, CouponCode, CouponUsage, CreditLedger/Ink ledger) and the T-436 invoice store have no TTL. The only TTLs are AuditLog (2 years), Consent (12 months after the latest decision), Session and FactDiff (90 days, matching Privacy §9). §5(1) is closed.
+Parked: the billing rows are kept forever, not "72 months". A sweep that deletes them once the 72 months have run would match §9 and DPDP s.8(7).

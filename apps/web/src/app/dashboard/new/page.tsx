@@ -40,7 +40,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 
 import { PaywallModal } from '@/components/credits/PaywallModal';
 import PipelineStatus, { PipelineState } from '@/components/draft/PipelineStatus';
-import DynamicFormRenderer from '@/components/form/DynamicFormRenderer';
+import DynamicFormRenderer, { type FormSnapshot } from '@/components/form/DynamicFormRenderer';
 import { NOT_STARTED_LINE, inkCostState } from '@/components/intake/InkCostLine';
 import OneFlow from '@/components/intake/OneFlow';
 import {
@@ -187,6 +187,16 @@ function NewDocumentContent() {
   // (edited form = a new run). The server works out the sequence; we never
   // send one.
   const lastRunId = useRef<string | undefined>(undefined);
+  // T-432: the form's answers, step and Commission level, kept so that every
+  // return to the form (privacy block, paywall, verify-email bounce, "Edit
+  // form") shows it as the advocate left it. In memory only, like OneFlow:
+  // never written to browser storage. Dropped on a template change, on
+  // Cancel, and once a draft is written.
+  const formSnapshot = useRef<(FormSnapshot & { templateId: string }) | null>(null);
+  const clearFormAnswers = useCallback(() => {
+    formSnapshot.current = null;
+    pendingFormData.current = null;
+  }, []);
 
   // ── Search + filter pipeline ──────────────────────────────────────────────
   // Catalogue categories (T-240) with counts, derived from the live template
@@ -226,7 +236,7 @@ function NewDocumentContent() {
   }, [templates, query, categoryFilter]);
 
   // ── Fetch template list on mount ──────────────────────────────────────────
-  // T-388: also the "Try again" under an unknown Ink cost (`initial` false),
+  // T-388: also the "Check the cost again" link under an unknown Ink cost (`initial` false),
   // which fetches the costs again without touching the page's error line.
   const fetchTemplates = useCallback(async (initial: boolean) => {
     setInkCostLoading(true);
@@ -268,24 +278,28 @@ function NewDocumentContent() {
   const templateInkCostKnown = inkCostState(templateInkCost, inkCostLoading) === 'known';
 
   // ── Select a template → fetch full config ─────────────────────────────────
-  const handleSelectTemplate = useCallback(async (templateId: string) => {
-    setLoadingConfig(true);
-    try {
-      const res = await apiFetch(`/api/documents/template-configs/${templateId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedConfig(data.config);
-        setPhase('form');
-      } else {
-        const data = await res.json();
-        setError(data.error ?? 'Failed to load template');
+  const handleSelectTemplate = useCallback(
+    async (templateId: string) => {
+      clearFormAnswers(); // T-432: a new template starts empty.
+      setLoadingConfig(true);
+      try {
+        const res = await apiFetch(`/api/documents/template-configs/${templateId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSelectedConfig(data.config);
+          setPhase('form');
+        } else {
+          const data = await res.json();
+          setError(data.error ?? 'Failed to load template');
+        }
+      } catch {
+        setError('Network error loading template');
+      } finally {
+        setLoadingConfig(false);
       }
-    } catch {
-      setError('Network error loading template');
-    } finally {
-      setLoadingConfig(false);
-    }
-  }, []);
+    },
+    [clearFormAnswers],
+  );
 
   // ── Is the one flow switched on for this user? (ADR-021 §3.11) ────────────
   useEffect(() => {
@@ -308,10 +322,10 @@ function NewDocumentContent() {
       if (!selectedConfig) return;
       // T-388 (Arjun): nothing that charges starts while the cost is not known.
       // Every caller ends here, including the fail-open preflight paths. The
-      // advocate stays on this screen and sees the notice: going back to the
-      // form would remount it empty at step 1, away from the notice under
-      // "Generate document". "Try again" here waits for the cost (its own
-      // notice and retry link) and then drafts from the saved inputs.
+      // advocate stays on this screen and sees the notice here ("Edit form"
+      // goes back to the form with the answers kept, T-432). "Try again" here
+      // waits for the cost (its own notice and "Check the cost again" link)
+      // and then drafts from the saved inputs.
       if (!templateInkCostKnown) {
         // The card says the draft did not start; the cost notice is the line
         // under its "Try again", so it is not repeated (and cannot go stale) here.
@@ -464,6 +478,8 @@ function NewDocumentContent() {
         setParagraphCount(paraCount > 0 ? paraCount : undefined);
         setWarningCount(warnCount > 0 ? warnCount : undefined);
         setPipelineState('ready');
+        // T-432: the draft is written; the typed answers are no longer held.
+        clearFormAnswers();
         // A run ends at its first completed attempt — generating again is a
         // new run. The server would start one anyway (a completed run never
         // gets reused), but clearing here keeps the client's picture honest.
@@ -478,7 +494,7 @@ function NewDocumentContent() {
         setPipelineState('generation_failed');
       }
     },
-    [selectedConfig, templateInkCostKnown],
+    [selectedConfig, templateInkCostKnown, clearFormAnswers],
   );
 
   // ── Retry handler (generation_failed card) ────────────────────────────────
@@ -563,6 +579,7 @@ function NewDocumentContent() {
   }, [runGeneration]);
 
   // ── Edit form (go back from soft-warn or hard-block) ─────────────────────
+  // T-432: the form is shown again from formSnapshot, so nothing is lost.
   const handleEditForm = useCallback(() => {
     setPhase('form');
   }, []);
@@ -642,11 +659,16 @@ function NewDocumentContent() {
 
   // ── Render: Form phase ────────────────────────────────────────────────────
   if (phase === 'form' && selectedConfig) {
+    // T-432: seed the form from the last snapshot of this template, if any.
+    const seed =
+      formSnapshot.current?.templateId === selectedConfig.template_id ? formSnapshot.current : null;
+    const templateIdForSnapshot: string = selectedConfig.template_id;
     return (
       <div>
         <button
           type="button"
           onClick={() => {
+            clearFormAnswers(); // T-432
             setPhase('select');
             setSelectedConfig(null);
           }}
@@ -660,12 +682,21 @@ function NewDocumentContent() {
           key={selectedConfig.template_id}
           config={selectedConfig}
           onSubmit={handleSubmit}
-          onCancel={() => router.push('/dashboard')}
+          onCancel={() => {
+            clearFormAnswers(); // T-432
+            router.push('/dashboard');
+          }}
           submitDescribedBy={privacyDescribedBy}
           inkCost={templateInkCost}
           inkCostLoading={inkCostLoading}
           onInkCostRetry={retryInkCost}
           templateId={selectedConfig.template_id}
+          initialValues={seed?.values}
+          initialStep={seed?.step}
+          initialLevel={seed?.level}
+          onStateChange={(values, step, level) => {
+            formSnapshot.current = { templateId: templateIdForSnapshot, values, step, level };
+          }}
         />
         {showPaywall && (
           <PaywallModal

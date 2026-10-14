@@ -22,8 +22,8 @@
     "state": "State through the S.H.O., P.S. {policeStation}"
   },
   "case_nomenclature": {
-    "regular_bail": "Criminal Case No. _____ of {year}",
-    "default_bail": "Criminal Case No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "default_bail": "Bail Application No. _____ of {year}",
     "complaint_case": "Complaint Case No. _____ of {year}",
     "misc_criminal": "Criminal Misc. No. _____ of {year}",
     "remand_application": "Remand Application No. _____ of {year}",

@@ -359,7 +359,7 @@ describe('T-404 rule 4: the court', () => {
     expect(ctx.court_designation).toBe(ctx.courtDesignation);
     expect(ctx.courtHeader).toBeTruthy();
     expect(ctx.courtHeader).not.toContain('court]');
-    expect(ctx.caseNomenclature).toBe(`Criminal Case No. _____ of ${new Date().getFullYear()}`);
+    expect(ctx.caseNomenclature).toBe(`Bail Application No. _____ of ${new Date().getFullYear()}`);
     for (const k of ['courtHeader', 'courtDesignation', 'caseNomenclature']) {
       expect(ctx[k]).not.toBe(COURT_BLANK);
     }

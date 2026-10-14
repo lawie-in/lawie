@@ -25,3 +25,27 @@ Ajay condition 5 on T-242: deleting an account must remove the whole User docume
 - Failed email jobs: kept up to 30 days (T-220), already in Ajay's text.
 
 | Status | Todo. Tanvi, after T-425. Spec handoff/marketing/close-account-spec-t115c.md; Ajay text a84e298. Priya, 14 Oct 2026 |
+
+## Arjun (14 Oct, 20:30 UTC) — Tanvi's five questions
+
+1. **Hard-delete the User document** as the last step (Ajay T-242 cond. 5 allows it). No placeholder email, no partial-index migration on a database with no backups. The `account_delete` AuditLog row (userId, type, time) and the stripped audit rows are the record that the account existed; `erasure.stage` lives on the User doc until that last step, and the final state is the AuditLog row, so the sweep treats "no User doc + account_delete row" as done. Billing rows keep the `userId` ObjectId as an opaque reference — nothing joins back. Re-registering the same email later makes a new account, as designed.
+2. **Yes**: store `authAt` on the Session at login and at OAuth callback, carry it unchanged through `/refresh`, and check `authAt` within 15 minutes for Google-only users. Password users re-prove with the password, no time check.
+3. **Yes**: wrong password on close → **403 `{ error: 'wrong_password' }`**, never 401, so `apiFetch` does not refresh-and-retry. Put the close endpoint behind the same rate limit as login (it is a bcrypt compare on a known account; without the limit it is a password oracle). One 403 text; no "account not found" variant.
+4. **Auth calls billing**, never reads the subscriptions collection (design decision 10: each service owns its data). Billing adds `GET /internal/subscription-status/:userId` (internal secret) returning `{ active: boolean, status }`. Block (409 `subscription_active`) on any subscription in `active`, `authenticated`, `pending`, `halted` or `paused` — every state Razorpay may still charge from. Allowed: `created`, `cancelled`, `completed`, `expired`, none. Billing down → 503, not 409; the user retries.
+5. **Yes** to all: `apps/auth/src/scripts/erase-user.ts`; refuse `role: Admin` and `GOLDEN_SET_USER_ID`; 200 when every step is done, 202 `{ status: 'pending' }` when locked and the sweep finishes it (same contract as T-115b). A repeat DELETE while pending → 202; after the User doc is gone → the normal 401 (no session), which is correct.
+
+## Arjun (14 Oct, 21:05 UTC) — Tanvi's two confirms
+
+1. **Yes, fail closed**: a subscription status not in the allowed list blocks the close with 409. An unknown status is a state we have not reasoned about, and the cost of blocking is a support mail, the cost of erasing a user who is still being charged is a refund fight.
+2. **Keep Redis strict.** Drafting erases its Redis keys first; if Redis is down the internal route returns 500, auth leaves `erasure.stage` where it is and answers 202 pending, the sweep retries. Do not log-and-continue: the keys are part of the erase promise even though they are ids only and expire within 2 days. Redis down means the product is down anyway (sessions, holds).
+
+Two findings from Tanvi, **not** in this ticket, both billing-only small fixes for Priya to create as must-fix (money path / security):
+- `Subscription.model.ts` status enum lacks `pending`, `halted`, `completed`. A Razorpay webhook that moves a subscription to one of those will fail Mongoose validation on save; under T-413 that is a 500 and Razorpay retries forever. Add the three values (and `expired` if missing), plus a test that every status Razorpay documents saves.
+- Billing's internal-secret middleware compares with a plain `!==`. Use `crypto.timingSafeEqual` on equal-length buffers (same pattern as auth/drafting if they already have it; if they do not, fix all three in one ticket — the lead checks).
+
+## Arjun (14 Oct, 21:30 UTC) — Tanvi's two calls (AuditLog TTL, reviewer tokens)
+
+1. **AuditLog TTL stays 2 years; nothing changes in T-115c.** The AuditLog is an operational log, not the tax record. Ajay's 72-month retention attaches to billing's own rows — payments, subscriptions, top-ups and the T-436 invoices — which have no TTL and survive the erase (decision 10). The `account_delete` row and the sweep's "done" marker only need to outlive the sweep; two years is plenty. The lead adds one line to the report: "tax retention = billing rows, not AuditLog", and Ajay confirms that reading of his rule (Priya asks). If Ajay wants an audit trail kept 72 months, that is a new small ticket (a `retainUntil` field and a partial TTL index), not this one.
+2. **Anonymise the reviewer's token in place; do not relink the feedback.** Feedback a closing user left on someone else's document belongs to that document's owner and must stay visible in `/admin/panel-review`. So: keep `reviewTokenId` as is; on the `ReviewToken` rows where the erased user is the *reviewer* (not the owner), `$unset` every identifying field (reviewer userId, name, email, anything personal) and set `reviewerErased: true`. The token row keeps its `_id`, so the admin list is unchanged and the feedback shows as "reviewer: erased". Tokens for the user's *own* documents go with the documents, as before. No fresh ObjectId.
+
+**Ajay (96ad274), recorded by Arjun 21:30 UTC:** 72 months applies to billing rows and invoices (no TTL, confirmed); AuditLog keeps 2 years; anonymising reviewer tokens in place is approved. Wording: admin list may say "reviewer: erased"; anything the document owner sees says **"A reviewer"**.

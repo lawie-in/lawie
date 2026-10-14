@@ -4,7 +4,11 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { INK_COST_UNKNOWN, NOT_STARTED_LINE } from '@/components/intake/InkCostLine';
+import {
+  INK_COST_RECHECK,
+  INK_COST_UNKNOWN,
+  NOT_STARTED_LINE,
+} from '@/components/intake/InkCostLine';
 
 import NewDocumentPage from '../page';
 
@@ -161,7 +165,7 @@ const retryBtn = () =>
   ) as HTMLButtonElement;
 const costRetryLink = () =>
   Array.from(container.querySelectorAll('button')).find(
-    (b) => b.textContent === 'Try again' && !b.hasAttribute('aria-describedby'),
+    (b) => b.textContent === INK_COST_RECHECK && !b.hasAttribute('aria-describedby'),
   ) as HTMLButtonElement;
 
 describe('new page: the runGeneration guard (AC3)', () => {

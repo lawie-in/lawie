@@ -108,3 +108,18 @@ Until the founder's morning report, nobody asks the founder anything or tags him
 - **Relay times (founder, 11 Oct 2026, night):** the `ts` on every relay post or ticket comment is the real time from `date -u +%Y-%m-%dT%H:%M:%S.000Z`, pasted as is. Never type a time by hand. The board shows it in the reader's local time (IST for the founder).
 - **No `cd` before git (founder, 11 Oct 2026, night):** a command that changes directory and then runs git always asks for permission, whatever the allow rules say. Use `git -C /home/user/lawie-wt/<lead> <subcommand>` with absolute paths, one command per call, and no `&&` chains or pipes around `git commit`, `merge` or `push`. Leads put this in every crew handoff packet.
 
+
+## Merge slot v2 — the slot is the push, not the CI wait (Arjun, 14 Oct 2026, 21:20 UTC; founder: "resolve ASAP")
+
+**Why.** The last 12 pushes to `develop_staging` were all green and each CI run takes 8–13 minutes. The queue made every lead wait for the previous lead's CI, then run the full local suite, then push: 25–35 minutes per merge, five leads, so most of the day was spent waiting on green runs. Of the 23 merge commits in the last 24 hours, 15 were `git pull` noise ("Merge branch 'develop_staging' of … into develop_staging"), each starting a CI run of its own.
+
+**Rules, effective now. Where they differ from section 4 above, these win.**
+
+1. **A slot ends when the push lands, not when CI is green.** Priya hands the next slot the moment the previous lead reports "pushed <sha>". Nobody waits for another lead's CI.
+2. **CI runs on every lead branch.** `ci.yml` `on.push.branches` gains `feature/**` and `fix/**` (same `paths-ignore`, same per-ref concurrency). "Ready to merge" means: your branch tip includes `origin/develop_staging` from within the last hour **and** CI on that tip is green. That green run is the proof the merge will be green; the slot only has to repeat it when the merge brings in new code.
+3. **In the slot:** `git fetch origin`; merge `origin/develop_staging` into your branch; if the merge brought code into a workspace you touched or into `packages/shared`, run that workspace's `build` and its **targeted** tests (the ticket's test files), not the full suite — CI runs the full suite on `develop_staging`; `git merge --no-ff` into `develop_staging`; push; report the sha. Target: under 10 minutes.
+4. **Red `develop_staging` after this.** Per-ref concurrency means a later push can cancel an earlier run; the newest run covers both. If it is red: the lead whose workspace failed fixes it; if two leads merged inside one run window and both touched that workspace, the later one bisects first by re-running CI on their own branch tip (`workflow_dispatch`). The rule "never push a merge on top of a red `develop_staging` other than the fix" stands.
+5. **No `git pull` noise.** Before any merge: `git fetch origin` then `git merge --ff-only origin/develop_staging` on your local `develop_staging`. A "Merge branch 'develop_staging' of …" commit means someone ran `git pull` on a diverged branch; it costs a CI run and a queue slot. Leads put `--ff-only` in every crew packet.
+6. **Priya's queue stays first-ready-first-merged**, but she may hand two slots back to back the instant the first push lands, and she does not hold a slot for a lead whose branch CI is not green.
+
+**One small fix to make rule 2 true:** add the two branch globs to `ci.yml` (10 minutes, CI file = root config claim, next free lead, small-fix mode). Until it merges, rule 2's "CI green on the tip" is satisfied by the lead's own targeted tests + build on the merged tip, as today.

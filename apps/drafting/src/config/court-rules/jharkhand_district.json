@@ -22,8 +22,8 @@
     "state": "State of Jharkhand"
   },
   "case_nomenclature": {
-    "regular_bail": "Criminal Miscellaneous Case No. _____ of {year}",
-    "anticipatory_bail": "Criminal Miscellaneous Case No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "civil_suit": "Civil Suit No. _____ of {year}",
     "execution": "Execution Case No. _____ of {year}",
     "misc_criminal": "Criminal Misc. No. _____ of {year}",

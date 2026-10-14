@@ -136,7 +136,7 @@ describe.each([
 
   it('leaves no underscore blank except the case number and signature lines', () => {
     const stripped = all
-      .replace(/Criminal Case No\. _____ of \d{4}/, '')
+      .replace(/Bail Application No\. _____ of \d{4}/, '')
       .replace(/___ day of __________, 20___/, '')
       .replace(/^[ \t]*_{3,}[ \t]*$/gm, '')
       .replace(/Enrollment No\. _{3,}/, '');
@@ -291,7 +291,7 @@ describe('T-146 alias order: aliases read the final court-rule value', () => {
   it.each(['cjm', 'jmfc'])('{caseNomenclature} equals {case_nomenclature} for %s', (key) => {
     const data = { ...courtData(key), caseNomenclature: 'DB Nomenclature No. __ of {year}' };
     const ctx = buildPlaceholderContext(bail, formData(key), { advocateName: 'A' }, data);
-    expect(ctx.case_nomenclature).toMatch(/^Criminal Case No\. _____ of \d{4}$/);
+    expect(ctx.case_nomenclature).toMatch(/^Bail Application No\. _____ of \d{4}$/);
     expect(ctx.caseNomenclature).toBe(ctx.case_nomenclature);
     const s = {
       section_id: 'x',

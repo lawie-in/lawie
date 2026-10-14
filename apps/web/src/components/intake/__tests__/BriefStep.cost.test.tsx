@@ -4,7 +4,7 @@ import { createRoot, Root } from 'react-dom/client';
 
 import BriefStep, { INK_COST_ID, formatInkCost } from '../BriefStep';
 import type { Brief } from '../briefTypes';
-import { INK_COST_LOADING, INK_COST_UNKNOWN } from '../InkCostLine';
+import { INK_COST_LOADING, INK_COST_RECHECK, INK_COST_UNKNOWN } from '../InkCostLine';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -182,11 +182,11 @@ describe('BriefStep Confirm and the Ink cost (T-388, AC1 and AC3)', () => {
     expect(opts.tags).toEqual({ kind: 'legal_notice_s138', action: 'confirm' });
   });
 
-  it('unknown: Try again calls onInkCostRetry', () => {
+  it('unknown: the re-fetch link calls onInkCostRetry', () => {
     const onInkCostRetry = jest.fn();
     mount({ inkCost: undefined, onInkCostRetry });
     const retry = Array.from(container.querySelectorAll('button')).find(
-      (b) => b.textContent === 'Try again',
+      (b) => b.textContent === INK_COST_RECHECK,
     ) as HTMLButtonElement;
     click(retry);
     expect(onInkCostRetry).toHaveBeenCalledTimes(1);
