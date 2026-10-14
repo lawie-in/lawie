@@ -139,6 +139,27 @@ Lawie uses per-environment dotenv files. Secrets never live in git.
 
 All variable names are declared in `.env.example`. Each service validates its env vars at boot via Zod — misconfiguration fails fast with a clear error message.
 
+### Closing and erasing an account (T-115c)
+
+Users close their account from Settings. Auth then locks the account, ends every session, and calls `POST /internal/erase-user` on drafting and billing (header `x-internal-secret`), erases its own data, and hard-deletes the User. It returns 200 when done or 202 when pending; a 10-minute sweep in auth finishes pending erasures. Billing also exposes `GET /internal/subscription-status/:userId`.
+
+Auth needs `DRAFTING_SERVICE_URL` and `BILLING_SERVICE_URL`. They default to `http://localhost:4002` and `http://localhost:4003`, so set them in every deployed environment.
+
+Operator script, for support or a stuck erase:
+
+```bash
+yarn workspace @lawie/auth erase-user <userId> [--dry-run|--resume]
+```
+
+Exit codes: 0 done, 1 failed, 2 refused (Admin or golden-set user), 3 pending.
+
+Kept on purpose: billing payment, top-up and plan rows (tax, 72 months) and subscriptions. Reviewer feedback on other people's documents is kept but anonymised.
+
+Manual operator steps (nothing alerts on these yet):
+
+- Watch Sentry and auth logs for erase failures.
+- Check auth logs for the sweep's stuck-erase warning (logged at 5 or more attempts) and run the script with `--resume` for that user.
+
 ### Pre-commit secret scanning
 
 ```bash
