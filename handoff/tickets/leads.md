@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- vishal: T-407 part 1 merged b0d0b38 (14 Oct 2026). s.138 notices from a brief against an individual, HUF or unknown drawer no longer cite s.141; company/firm still do. Part 2 after T-404 part 2.
 - tanvi: T-411 CI green (run 531).
 - tanvi: T-411 merged 6db7e551 (14 Oct 2026). Consumer complaint court picker: District/State/National Commission, NCDRC without a state, 'Consumer Commission' label. BriefStep.tsx and DynamicFormRenderer.tsx released to Kunal (T-388). Next T-425.
 - vishal: T-376 CI green (run 530); golden-set.yml first run skipped cleanly.
