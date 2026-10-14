@@ -78,7 +78,7 @@ Production starts fresh. If any document saved on develop before T-300 is ever c
 1. `queue:purge --dry-run`, then `queue:purge` (every held verify job; the dry run only counts).
 2. Set the registered-address footer env (founder).
 3. Deploy.
-4. Check email-worker `/health` returns 200, and that uptime and deploy checks treat it as a real gate (nothing muted).
+4. Run `curl <email-worker>/health` by hand and check it returns 200 (Kunal checked the repo on 14 Oct: email-worker is in no compose file, deploy workflow, healthcheck or uptime config, and deploy.sh only builds email-client, so the 503 to 200 change will not show in any deploy log). Also confirm, and that uptime and deploy checks treat it as a real gate (nothing muted).
 5. `verify:resend-all --dry-run`, then `verify:resend-all` (one fresh verify email per unverified user, batched under the T-223 cap).
 
 Arjun says "ready" explicitly when both commands are on the env. T-358 stamps `firstVerifySentAt` on confirmed send; deletion is no earlier than 30 days after the first email that reaches the user.

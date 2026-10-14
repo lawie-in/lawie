@@ -65,12 +65,13 @@ Where each lead stopped:
 
 **v2 rule 7 (founder 21:45, written by Arjun): no CI wait by default. Hold the next slot for green only after a merge touching .github/workflows/**, packages/shared/**, root config or a backfill/migration script. Now: T-439b (workflow), so T-433 pushes once run 548 is green.**
 
-**RED (updated 23:35 UTC): run 567 on e44534c3. Drafting is GREEN again (Vishal's harness fix worked). Test — Auth is RED: t115c-script-and-google.test.ts, 2 tests 'a locked account is refused by Google sign-in' fail with 'v is not a function' (globalThis.__verify not set on CI), from Tanvi's T-115c ac3a0482. Tanvi fixes it as a small fix from origin (rule 4). Nobody pushes until her fix is green; Kunal's T-436 (a) is next, then Shashank's T-440.**
+**Red run 567 fixed: Tanvi pushed d61a99b2 (test-only, 23:38 UTC). Slot order: Kunal T-436 (a) (shared + yarn.lock, so the next slot waits for its CI), then Shashank T-440, then Mahak T-424, then Kunal AC10.**
 
 **REBALANCE (founder, 14 Oct 23:20 UTC): Kunal, Mahak and Tanvi now run on Sonnet; Vishal and Shashank on Opus. The harder tickets (multi-part, money, legal drafting) go to Vishal and Shashank. T-436 parts (b) and (c) move from Kunal to Shashank after T-440 merges. T-431 moves from Mahak to Vishal. The QUEUE on each row wins over older 'then …' text. packages/shared order (Arjun): Kunal keeps it for T-364 right after T-436 (a). Shashank's T-436 (b) AC8 privacy bump touches shared only after T-364 merges; he does AC10 and the non-shared parts first.**
 
 ## Last done
 
+- tanvi: red run 567 fixed, d61a99b2 (14 Oct 2026). t115c-script-and-google.test.ts mocks ../config/env with its own Google values; verified with the vars unset (18/18; full auth 974). T-358 resumes.
 - tanvi: T-115c merged ac3a0482 (14 Oct 2026). Close account from Settings (password, or Google re-sign-in plus typed email); cancel an active plan first; signed out everywhere; account, profile and documents erased; payment records kept for tax; reviewer feedback kept unnamed. All T-115c files released (billing app.ts and auth /me to Kunal for T-436). Next T-358.
 - vishal: T-437 merged 7943bb54 (14 Oct 2026). Prompt caching (option A); admin AI cost panel shows cache tokens, cache cost, net saving, hit share; draft cost matches the provider. cache_write_usd_per_mtok = 1-hour price. ai.service, llm-usage, models, admin routes, ai-config page released. AC4 on develop after deploy.
 - kunal: T-384 merged 3ceb2fc8 (14 Oct 2026). A date answered 'Not known' shows a chip and a 'Change' link (Rajesh option b). Web files released. Next T-436.
