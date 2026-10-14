@@ -103,3 +103,6 @@ Test: after erasure, no inkledger reference and no review record holds the erase
 |---|---|---|---|
 | 1 | `payment` and `account_delete` audit rows auto-expire after 2 years | The audit rows need not last 72 months. The 72-month duty (CGST Act s.36), and the Privacy §9 line, attach to the tax records: invoices, credit notes and the billing/Ink payment ledger. **Condition:** those stores have no TTL shorter than 72 months; Arjun confirms. If the audit row is the only payment record anywhere, its TTL becomes 72 months. `account_delete` rows: 2 years is fine. | must-fix only if the condition fails |
 | 2 | Stripped reviewer feedback ("A reviewer") drops out of the admin panel-review list | Not a legal issue. The admin tooling is Priya's call. | none |
+
+Arjun's reading (14 Oct 2026) is **confirmed**: the 72 months attach to billing's own rows (payments, subscriptions, top-ups, T-436 invoices and credit notes), which carry no TTL. The auth AuditLog stays an operational log with its 2-year TTL. No audit-trail ticket.
+Reviewer feedback is anonymised in place: approved. The internal marker may be `reviewer: erased` in the admin list. Anything the document owner sees shows `A reviewer` (§4).
