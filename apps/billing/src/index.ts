@@ -1,3 +1,4 @@
+// T-439 probe: paths-filter check, throwaway branch, never merged.
 import path from 'path';
 
 import * as Sentry from '@sentry/node';
