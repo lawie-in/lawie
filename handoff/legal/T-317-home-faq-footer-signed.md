@@ -61,3 +61,10 @@ Annexures (vakalatnama, memo of parties and the like) are filled from a template
 T-318 golden move approved: 78 lines in court-rules-golden.test.ts.snap, each the Addendum 4 annexure footer swap and nothing else.
 
 **Addendum 5 (14 Oct 2026, T-396): the Annexure A footer.** The Memo of Parties takes the same footer as the other six annexures, word for word: `Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.` That makes seven annexure footers, all identical, and none says "generated with AI". Brief drafts carry no relation key, so the memo prints the full T-359 AC6 relation blank, which is correct. The 13 memo golden entries come to me before the merge. Each must add only this footer and the relation blank.
+
+**Addendum 5, scope widened (14 Oct 2026, Kunal's T-396 memo goldens).** Three more changes are allowed in the 13 entries, each under an existing signed rule:
+- (a) The affidavit line carries the relation, as T-359 AC6 point 1 requires (memo and affidavit).
+- (b) The State prints as its proper name, not the court-picker id: `State of Jharkhand`, not `State of jharkhand`. Condition: the name comes from the court record's State display name, never from title-casing the id, so `uttar_pradesh` gives `Uttar Pradesh`. Test: one multi-word State.
+- (c) A draft with a parent or spouse name but no relation prints the T-393 name-only blank, `[To be confirmed: relation] <name>`. The full blank prints only when there is no name.
+
+Any other change in the 13 entries needs a fresh sign-off.
