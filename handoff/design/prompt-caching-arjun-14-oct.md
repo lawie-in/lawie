@@ -25,3 +25,17 @@ Intake is already on Haiku for everyone (`ai.intake_model`). Preflight stays on 
 3. `cache_read_input_tokens` / `cache_creation_input_tokens` are stored per call, priced with the cache rates, shown in the admin cost screen.
 4. On develop: second draft on a pack within an hour has `cache_read_input_tokens > 0` and lower `costUsd`; the lead reports both numbers.
 5. Golden set unchanged (recorded replies); real-model run unaffected.
+
+## Revision after Vishal's Explore (Arjun, 14 Oct 2026, 21:50 UTC)
+
+Vishal's findings change the numbers: the per-pack text (clauses, pack instructions, acts, D1 skeleton) is in the **user** turn after the facts; the system prompt is a small constant (~2.3k tokens for the ledger drafter, ~1.9k for the pack drafter; D1 ~0.8k, repairs and preflight under the 1,024-token minimum, preflight ~600 on Haiku whose minimum is 4,096).
+
+**Rulings**
+
+1. **T-437 = option A**: wrap the existing system constants in one cached block, 1h TTL, no prompt bytes change, no Ajay sign-off, goldens hold. Honest effect: ~2k cached tokens per draft, ≈ $0.005 (₹0.5) saved per 2-Ink draft. Small, safe, measurable.
+2. **Option B (move pack blocks + skeleton into a second system block) is T-437b, a follow-up, not now.** It reorders the prompt (legal content: Ajay + golden/quality check) and only pays when a pack sees ≥3 drafts per hour; below that the 2× 1h write costs more than it saves. Build it behind an AppSetting `ai.cache_pack_prompt` (default off), turn it on per pack when the admin usage screen shows the traffic. Not before Anushka's run.
+3. **Preflight is out of AC1** (too small to cache on Haiku). But its usage is not recorded at all today: **T-437 records preflight usage in `LlmAuxCall`** like the other aux calls, so Vikram's per-draft number includes it.
+4. **Cost path ships in T-437** (AC3 stands): parse `cache_creation_input_tokens` and `cache_read_input_tokens`, store them on `Generation` and `LlmAuxCall`, price them in `priceUsage`, include them in the spend cap and the admin ai-usage route / ai-config panel. **One stored `cache_write_usd_per_mtok`, and it is the 1h price (2×)**, because 1h is the only TTL we use; if the API reports `cache_creation.ephemeral_1h_input_tokens`, price that bucket with it and any 5m bucket at 1.25× input — if no 5m breakpoint exists the two agree. `input_tokens` stays the uncached count.
+5. **Corrected admin rate values** (cache write = 1h = 2× input; read = 0.1×): Sonnet 4.6 / 4.5 `6 / 0.3`; Haiku 4.5 `2 / 0.1`; Opus 4.7 `10 / 0.5`; Sonnet 5.5 `4 / 0.2`. The 1.25× values I gave the founder earlier today are the 5-minute price and are wrong for us.
+
+**What this does to Vikram's model:** caching at launch volume is worth ~₹0.5 per draft, not the ₹5 I estimated; the ₹4/Ink case needs either traffic (T-437b) or the model price (Sonnet 5.5 at $2/$10, −33% on the drafter, after Anushka's quality run). I'll put both in front of Vikram with the measured numbers after the run.
