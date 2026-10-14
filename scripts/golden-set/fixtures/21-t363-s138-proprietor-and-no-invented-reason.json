@@ -1,0 +1,64 @@
+{
+  "id": "21-t363-s138-proprietor-and-no-invented-reason",
+  "pack": "legal_notice_s138",
+  "title": "s.138 notice: no invented return reason, drawer firm and branch kept (T-363 AC4)",
+  "risk": "Run 3 s.138 FAIL: the notice invented 'the account did not exist' where the advocate gave no reason. The proprietor and payee address are asserted in apps/drafting t363 on the twin; this harness cannot, see the ticket report",
+  "source": "handoff/quality/2026-10-13-run-3-develop-FAIL.md (T-192 and s.138 notice entries); handoff/legal/T-363-s138-notice-wording-signed.md",
+  "review": "drafted by dev from Anushka's reports, not yet reviewed by Anushka",
+  "ajay": null,
+  "language": "en",
+  "description": "Mere client Kumar Steel Works, 14 Industrial Area, Faridabad. Gupta Electricals ke proprietor Anil Gupta, 22 Chandni Chowk, Delhi ne 85,000 ka cheque diya, no. 556201, date 10 Sept 2026, State Bank of India Chandni Chowk. 25 Sept 2026 ko lagaya, 27 Sept 2026 ko return ho gaya. Memo mein kya reason likha hai, yaad nahi. Supply ka paisa tha.",
+  "court": null,
+  "expect": {
+    "absent": [
+      {
+        "any_of": [
+          "account did not exist",
+          "account does not exist",
+          "no such account",
+          "account closed",
+          "funds insufficient",
+          "insufficient funds"
+        ],
+        "why": "AC4: no return reason the advocate did not give"
+      }
+    ],
+    "not_written": [
+      {
+        "banned_entry_id": "memo_remark_other_words",
+        "why": "AC4: a remark other than the memo's stays banned (includes the 3 new phrasings)"
+      }
+    ],
+    "present": [
+      {
+        "any_of": ["Gupta Electricals"],
+        "why": "AC4: the drawer firm"
+      },
+      {
+        "any_of": ["85,000", "85000"],
+        "why": "the amount"
+      }
+    ],
+    "exact": [
+      {
+        "any_of": ["Chandni Chowk"],
+        "why": "drawee branch and drawer address kept"
+      }
+    ],
+    "ledger": [
+      {
+        "key": "cheque_amount",
+        "why": "read from the description",
+        "display": "Rs 85,000"
+      }
+    ],
+    "allow_violations": []
+  },
+  "recorded": {
+    "clean": {
+      "reception": "{\"outcome\": \"read\", \"read\": [{\"id\": \"applicant_name\", \"value\": \"Kumar Steel Works\", \"quote\": \"Kumar Steel Works\"}, {\"id\": \"respondent_name\", \"value\": \"Gupta Electricals\", \"quote\": \"Gupta Electricals ke proprietor\"}, {\"id\": \"cheque_amount\", \"value\": \"85000\", \"quote\": \"85,000 ka cheque\"}, {\"id\": \"cheque_number\", \"value\": \"556201\", \"quote\": \"no. 556201\"}, {\"id\": \"drawee_bank\", \"value\": \"State Bank of India\", \"quote\": \"State Bank of India\"}, {\"id\": \"drawee_branch\", \"value\": \"Chandni Chowk\", \"quote\": \"State Bank of India Chandni Chowk\"}], \"conflicts\": [], \"questions\": []}",
+      "extract": "{\"facts\": [{\"key\": \"applicant_name\", \"span\": \"Kumar Steel Works\", \"confidence\": 0.97}, {\"key\": \"respondent_name\", \"span\": \"Gupta Electricals\", \"confidence\": 0.9}, {\"key\": \"cheque_amount\", \"span\": \"85,000\", \"confidence\": 0.97}, {\"key\": \"drawee_bank\", \"span\": \"State Bank of India\", \"confidence\": 0.95}, {\"key\": \"drawee_branch\", \"span\": \"Chandni Chowk\", \"confidence\": 0.94}, {\"key\": \"presentation_date\", \"span\": \"25 Sept 2026\", \"confidence\": 0.92}, {\"key\": \"dishonour_date\", \"span\": \"27 Sept 2026\", \"confidence\": 0.91}, {\"key\": \"cheque_number\", \"span\": \"556201\", \"confidence\": 0.95}, {\"key\": \"cheque_date\", \"span\": \"10 Sept 2026\", \"confidence\": 0.95}]}",
+      "drafter": "1. That you, Gupta Electricals, issued to my client Kumar Steel Works a cheque no. 556201 dated 10 September 2026 for Rs 85,000 drawn on State Bank of India, Chandni Chowk.\n\n2. That my client presented the said cheque on 25 September 2026, and it was returned unpaid on 27 September 2026.\n\n3. That the amount of Rs 85,000 remains unpaid.\n\n4. That my client therefore calls upon you to pay the said amount.\n"
+    }
+  }
+}
