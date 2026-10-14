@@ -59,3 +59,5 @@ Annexures (vakalatnama, memo of parties and the like) are filled from a template
 2. When a PDF prints `STARTING_DRAFT_FOOTER` (brief-drafter.ts), it does not also print the generic export footer. The starting-draft line is the more specific one.
 
 T-318 golden move approved: 78 lines in court-rules-golden.test.ts.snap, each the Addendum 4 annexure footer swap and nothing else.
+
+**Addendum 5 (14 Oct 2026, T-396): the Annexure A footer.** The Memo of Parties takes the same footer as the other six annexures, word for word: `Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.` That makes seven annexure footers, all identical, and none says "generated with AI". Brief drafts carry no relation key, so the memo prints the full T-359 AC6 relation blank, which is correct. The 13 memo golden entries come to me before the merge. Each must add only this footer and the relation blank.
