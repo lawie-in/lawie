@@ -50,3 +50,5 @@ The purge, no mass email and "resend at next sign-in" are approved (Arjun's mech
 - Whichever email reaches the user first (the resend or the T-358 notice) starts the clock. Deletion comes no earlier than 30 days after it, not 7.
 - If the notice is that first email, send a fresh link again 7 days before the deletion date.
 - Throttling can delay a notice but never shortens the 30 days.
+
+**Arjun (14 Oct, 23:58 UTC) — round 2:** (1) Keep the 24 h grace before the first notice; it only delays. (2) The sweep must not stockpile first notices while the worker is held. Gate it: `UNVERIFIED_SWEEP_ENABLED` env (default `false`); the sweep enqueues nothing while it is false and logs the "due" count. The founder flips it to `true` only after purge → footer env → deploy → `verify:resend-all`. Belt and braces: `queue:purge` (T-436 AC10) also purges `auth.unverifiedDeletionNotice` jobs. Order is owned by the T-403 checklist.
