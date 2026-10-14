@@ -114,3 +114,11 @@ Parked: the billing rows are kept forever, not "72 months". A sweep that deletes
 
 1. §3 sentence **signed** as reworded: `Our database is MongoDB Atlas, in India (Mumbai). Our session store is Redis Cloud, which may store data outside India.` The §5 Atlas row reads "India (Mumbai)".
 2. **Keep CURRENT_PRIVACY_VERSION; no re-accept prompt.** T-115c adds no new data and no new purpose. It adds a way to erase and states the retention periods, which is in users' favour, so bump "Last updated" only. The version bump (with a signed summary) comes with T-436, when we start collecting the State (and optional GSTIN) for invoices: that is new data for a new purpose.
+
+### 7. T-115c review notes (Tanvi, 14 Oct 2026)
+
+| # | Item | Ruling | Kind |
+|---|---|---|---|
+| 1 | Sent-email jobs (with the address) stay in Redis 7 days and are not erased on close | Add to §9, after the failed-emails bullet: `Emails we have sent: up to 7 days, even after you close your account.` Erasing them on close as well is better; parked. | must-fix (the §9 line) |
+| 2 | §7 "we remove what we can find … in our error reports (Sentry)" is a manual runbook step | Keep the wording only if every self-serve close tells the operator automatically (user id only, no email) and the Sentry step is done within 7 days. If that alert is not in T-115c, the sentence comes out of §7 until it is. | must-fix (one or the other) |
+| 3 | Partial-failure message says "Please try again", but the account is already locked and signed out | Replace the signed T-115c failure line with: `We couldn't finish erasing your data. Your account is closed and you have been signed out. We will finish erasing it; if you have any questions, write to us at {support email}.` The conditions stand: the server retries until complete, and no "closed" success message shows until every part is done. | must-fix |

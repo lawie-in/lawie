@@ -5,9 +5,15 @@ import { fixtureOriginPlugin, RUN_ORIGINS, RunOrigin } from '../services/run-ori
 
 export interface IGenerationCall {
   sectionId: string;
+  /** Uncached input only (T-437). */
   inputTokens: number;
   outputTokens: number;
   usageSource: 'provider' | 'estimated';
+  /** T-437 — present only when the call wrote to / read from the prompt cache. */
+  cacheCreationInputTokens?: number;
+  cacheReadInputTokens?: number;
+  cacheCreation1hInputTokens?: number;
+  cacheCreation5mInputTokens?: number;
 }
 
 /** T-110 — what kind of attempt a row is. Revisions arrive with T-205. */
@@ -25,7 +31,9 @@ export function effectiveRunType(row: { runType?: RunType | null }): RunType {
 export interface IGeneration extends Document {
   userId: Types.ObjectId;
   docType: DocType;
+  /** T-437: every token processed — input + output + cache writes + cache reads. */
   tokensUsed: number;
+  /** Includes cache write and read cost (T-437). */
   costUsd: number;
 
   /** T-003 — all fields below are optional/defaulted so pre-T-003 rows stay valid. */
@@ -40,14 +48,27 @@ export interface IGeneration extends Document {
   transport?: 'direct' | 'helicone';
   /** One per ai_generated section (config-driven pipeline) or one entry for the legacy pipeline. */
   llmCalls: number;
+  /** Uncached input only (T-437); cache tokens are the fields below. */
   inputTokens: number;
   outputTokens: number;
+  /** T-437 — prompt-cache writes (all TTLs) and reads, summed over the calls. 0 on rows before T-437. */
+  cacheCreationInputTokens?: number;
+  cacheReadInputTokens?: number;
+  /** T-437 — the 1h / 5m split of cacheCreationInputTokens, when the API reported it. */
+  cacheCreation1hInputTokens?: number;
+  cacheCreation5mInputTokens?: number;
+  /** T-437 — the cache part of costUsd, so the admin screen can show it without re-pricing. */
+  cacheWriteCostUsd?: number;
+  cacheReadCostUsd?: number;
   usageSource?: 'provider' | 'estimated' | 'mixed';
   /** 'rate_missing' means costUsd is 0 only because no rate was configured — tokens are still real. */
   costStatus?: 'priced' | 'rate_missing';
   /** Rate copied onto the row at save time, so a later rate change doesn't rewrite history. */
   rateInputUsdPerMTok?: number;
   rateOutputUsdPerMTok?: number;
+  /** T-437 — the cache rates used (configured, or the fallback multipliers of the input rate). */
+  rateCacheWriteUsdPerMTok?: number;
+  rateCacheReadUsdPerMTok?: number;
   paragraphCount: number;
   durationMs?: number;
   /** §3.8 — identifies one draft across retries; pair unique with runSequence. */
@@ -76,6 +97,10 @@ const GenerationCallSchema = new Schema<IGenerationCall>(
     inputTokens: { type: Number, required: true, min: 0 },
     outputTokens: { type: Number, required: true, min: 0 },
     usageSource: { type: String, enum: ['provider', 'estimated'], required: true },
+    cacheCreationInputTokens: { type: Number, default: undefined, min: 0 },
+    cacheReadInputTokens: { type: Number, default: undefined, min: 0 },
+    cacheCreation1hInputTokens: { type: Number, default: undefined, min: 0 },
+    cacheCreation5mInputTokens: { type: Number, default: undefined, min: 0 },
   },
   { _id: false },
 );
@@ -126,6 +151,12 @@ const GenerationSchema = new Schema<IGeneration>(
       default: 0,
       min: 0,
     },
+    cacheCreationInputTokens: { type: Number, default: 0, min: 0 },
+    cacheReadInputTokens: { type: Number, default: 0, min: 0 },
+    cacheCreation1hInputTokens: { type: Number, default: undefined, min: 0 },
+    cacheCreation5mInputTokens: { type: Number, default: undefined, min: 0 },
+    cacheWriteCostUsd: { type: Number, default: 0, min: 0 },
+    cacheReadCostUsd: { type: Number, default: 0, min: 0 },
     usageSource: {
       type: String,
       enum: ['provider', 'estimated', 'mixed'],
@@ -138,6 +169,8 @@ const GenerationSchema = new Schema<IGeneration>(
     },
     rateInputUsdPerMTok: { type: Number, default: undefined, min: 0 },
     rateOutputUsdPerMTok: { type: Number, default: undefined, min: 0 },
+    rateCacheWriteUsdPerMTok: { type: Number, default: undefined, min: 0 },
+    rateCacheReadUsdPerMTok: { type: Number, default: undefined, min: 0 },
     paragraphCount: {
       type: Number,
       default: 0,

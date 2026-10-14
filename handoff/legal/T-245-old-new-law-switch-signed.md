@@ -96,3 +96,26 @@ No change: `synopsis`, `list_of_dates`, `production_of_documents`, `vakalatnama`
 | T-239 batch 1 criminal specs use these keys and texts (AC6) | Approved; I apply them in each spec |
 
 Signed: Ajay (CLO), 12 Oct 2026 IST, on the conditions above. Any other wording comes back to me.
+
+## Addendum 1: T-245a build rulings (Vishal, 14 Oct 2026)
+
+`{governing_provision}` renders, byte-exact, as one of:
+- BNSS: `Section {n} of the Bharatiya Nagarik Suraksha Sanhita, 2023`
+- CrPC: `Section {n} of the Code of Criminal Procedure, 1973`
+- no choice: `[To be confirmed: Section {crpc} of the CrPC or Section {bnss} of the BNSS]`
+In an all-caps heading it is upper-cased as a whole.
+
+| # | Point | Ruling | Kind |
+|---|---|---|---|
+| 1 | Where the heading's provision goes | **(A) approved**: `(Under {governing_provision})` in each pack's own cause-title format, and in the application heading for bail_regular / bail_anticipatory. No court-rule change. | — |
+| 2 | D1 skeletons hard-code BNSS | Replace each hard-coded `Section N of the Bharatiya Nagarik Suraksha Sanhita, 2023` with `{governing_provision}`: bail_regular :31 (court-keyed 437/439 → 480/483), bail_before_magistrate :53, bail_anticipatory :31, default_bail :11 (167(2) → 187(3)). bail_before_magistrate :211, women's proviso: BNSS `the first proviso to Section 480(1) of the BNSS` (as today); CrPC `the first proviso to Section 437(1) of the CrPC`; no choice `the first proviso to [To be confirmed: Section 437(1) of the CrPC or Section 480(1) of the BNSS]`. | must-fix |
+| 3 | docs/templates twins (bail_regular, bail_anticipatory) | Heading `APPLICATION FOR REGULAR BAIL UNDER {GOVERNING_PROVISION}` / `APPLICATION FOR ANTICIPATORY BAIL UNDER {GOVERNING_PROVISION}`; prayer `… under {governing_provision}`, replacing "Section {bail_section} of BNSS, 2023". **Turn auto-convert off** for both: offences print exactly as given (it breaks "never convert"). Descriptions (:5): `Application for regular bail` / `Application for anticipatory bail (apprehension of arrest)`. | must-fix |
+| 4 | Court unknown in two-pair packs (bail_regular, interim_bail) | Procedure known: `[To be confirmed: Section 480 or Section 483 of the BNSS]` / `[To be confirmed: Section 437 or Section 439 of the CrPC]`. Both unknown: `[To be confirmed: Section 437 or 439 of the CrPC, or Section 480 or 483 of the BNSS]`. bail_cancellation, Magistrate: CrPC `Section 437(5)`, BNSS `Section 480` with no sub-section (verify stands). | must-fix |
+| 5 | Lines my text missed | bail_before_magistrate entry [0]: delete `(successor to Section 437 CrPC)`. Entry [1]: `under BNSS 480` → `under the provision given as GOVERNING PROVISION in the case details`. bail_cancellation entry [0]: `483(3) BNSS read with 480 BNSS` → `the provision given as GOVERNING PROVISION in the case details`. Form labels `(BNS sections)` → `(as written in the FIR)`. | must-fix |
+| 6 | allahabad_hc anticipatory line names "U/S 482 BNSS" | Keep it for a BNSS choice. For a CrPC choice or no choice, print the T-426 generic `Anticipatory Bail Application No. _____ of {year}` (the court's old-law form is verify). Moved goldens to me. | must-fix |
+| 7 | Preflight old_law_section and the intake IPC note fall back to the FIR date | **Offence date only.** With no offence date, no finding and no note: the S-text blank handles it. The FIR date is never a stand-in for the offence date. | must-fix |
+| 8 | procedure_code cannot be shown conditionally | Always ask it, with help text `Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS.` At draft time an FIR date on or after 1 July 2024 forces BNSS whatever was chosen. | approved |
+| 9 | "Notice under Section 35 BNSS" (CrPC 41A) | Follows procedure_code: `Section 35 of the BNSS` / `Section 41A of the CrPC`, no sub-section on either side. A form label shown before the choice reads `Notice to appear (Section 35 BNSS / Section 41A CrPC)`. | must-fix |
+| — | offence_date in every pack; fir_date required? | offence_date goes in every Group A and B pack (signed table), optional. fir_date stays optional: an unknown date gives the blank, never a block. | — |
+
+Golden entries moved by 2, 3, 4 and 6 come to me before merge.

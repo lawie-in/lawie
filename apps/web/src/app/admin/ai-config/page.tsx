@@ -28,6 +28,13 @@ interface AiUsage {
   totalCostInr: number;
   generationCount: number;
   avgCostPerGenInr: number;
+  /** T-437 — prompt cache. Optional so an older drafting service still renders. */
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+  cacheReadCostInr?: number;
+  cacheWriteCostInr?: number;
+  cacheSavingsInr?: number;
+  cacheHitSharePct?: number;
 }
 
 const REQUIRED_KEYS: Array<{ key: string; help: string; required: boolean }> = [
@@ -271,6 +278,49 @@ export default function AiConfigPage() {
               <p className="mt-1 text-xl font-bold text-slate-900">
                 {aiUsage.totalTokens.toLocaleString('en-IN')}
               </p>
+            </div>
+          </div>
+          {/* T-437: prompt cache — its cost is already inside Total cost. */}
+          <div className="mt-4 grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 sm:grid-cols-4">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Cache reads
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {(aiUsage.cacheReadTokens ?? 0).toLocaleString('en-IN')}
+              </p>
+              <p className="text-xs text-slate-500">
+                ₹{(aiUsage.cacheReadCostInr ?? 0).toLocaleString('en-IN')}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Cache writes
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {(aiUsage.cacheWriteTokens ?? 0).toLocaleString('en-IN')}
+              </p>
+              <p className="text-xs text-slate-500">
+                ₹{(aiUsage.cacheWriteCostInr ?? 0).toLocaleString('en-IN')}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Cache hit share
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {aiUsage.cacheHitSharePct ?? 0}%
+              </p>
+              <p className="text-xs text-slate-500">of input tokens</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Cache saving
+              </p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                ₹{(aiUsage.cacheSavingsInr ?? 0).toLocaleString('en-IN')}
+              </p>
+              <p className="text-xs text-slate-500">net of write cost</p>
             </div>
           </div>
         </section>

@@ -159,3 +159,16 @@ Conditions:
 
 **Prompt line, signed (all paths):**
 `A date marked as not known is unknown: copy its blank exactly as given, never state or infer the date, and do not say whether any period, deadline or limitation that depends on it is met or missed.`
+
+### T-440 build sign-offs (Shashank, 14 Oct 2026)
+
+1. **Placement approved**: last sentence of the DATES rule in brief rule 3, brief repair rule 2, ledger rule 3 and ledger repair rule 2; appended to template system rule 7. Re-pinning the t136 and t397 hashes is approved for this change only. I byte-check the prompt delta before merge (send the SHA).
+2. **Template user-prompt block signed as is:** heading `DATES MARKED AS NOT KNOWN:`, then one line per date, `- [To be confirmed: {date-meaning label}]`.
+3. **D1 skeleton path: yes, in T-440.** The same lower-case date-meaning blank, and the same signed line added to the D1 system prompt. The D1 skeleton labels follow Q2 (lower case after "To be confirmed: "). The D1 prompt delta and any D1 golden come to me for a byte check.
+4. Noted: the s.138 `Date:` line and the lower-case check blanks behave as ruled (Q1, Q2). No court-rules golden moved.
+
+### T-440 D1 points (Shashank, 14 Oct 2026)
+
+(a) Signed line appended to the end of D1 rule 3 (ADVOCATE CLAUSES): **approved.**
+
+(b) `arrested_on` in bail_regular, bail_before_magistrate and default_bail: **print the line with the blank when the arrest date is answered "Not known"**: `The applicant was arrested on [To be confirmed: date of arrest].` A bail application presupposes the arrest; only its date is unknown, and the advocate must fill it (in default bail, the custody period runs from it). Q4's "leave it out" applies only to an optional date left empty, where the fact itself may not exist. An unanswered or empty arrest date still leaves the clause out. The D1 path must match the brief and ledger paths. Nothing computes a custody period from an unknown date (49a8eaa condition 1).

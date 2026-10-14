@@ -82,3 +82,21 @@ Traps:
 Tax rule: code 20 (our state) gives CGST 9% + SGST 9%. Every other code, all UTs included, gives IGST 18%.
 
 9. A test asserts the 36 codes, and the split: 20 gives CGST+SGST, every other code gives IGST (Vikram).
+
+## Arjun (14 Oct, 22:15 UTC) — Kunal's three Explore calls
+
+1. **New field `User.gstStateCode`** (2-digit GST state code as a string, e.g. `"10"`), not a reuse of `User.state` — that is free-text Bar Council state, nothing writes it, and a tax field must be exact. Auth: `PATCH /me` accepts `gstStateCode` validated against the signed list of GST state codes (Ajay's State collection, AC8), `GET /me` returns it; billing reads it from the user record at invoice time. `User.state` is untouched.
+2. **`/admin/billing/invoices.csv`** — under the billing service's admin routes, so the gateway proxy and the admin auth are the ones billing already has; no new top-level admin namespace.
+3. **Public endpoint, not build env**: `GET /api/billing/public/supplier` returns the five supplier values (GSTIN, legal name, trade name, address, state code) from billing's env — the same values that print on the invoice, so Terms 5b/5c and the invoice can never disagree. `Cache-Control: public, max-age=3600`. Not `NEXT_PUBLIC_*`: that needs a web rebuild to change and can drift from the invoice.
+
+## Ajay, 14 Oct 2026 (0668cd3, GST file Addendum 4)
+
+- AC8 signed summary for CURRENT_PRIVACY_VERSION: "We now ask for your State to issue GST tax invoices, and we explain how you can close your account and how long we keep your data." Also fix the "bump when Last updated changes" comment in packages/shared/src/constants/privacy.ts.
+- AC10 (must-fix): Patna is wrong. Terms §12 courts become Ranchi, Jharkhand. The contact page and the email footer (email-worker verifyEmail.tsx) say "Ranchi, Jharkhand". Remove the live "[PIN]" and placeholder text. Use the exact strings from Ajay's file.
+- The invoice email (Madhuri, link only, no case content) goes to Ajay to sign.
+
+## Settled, 14 Oct 2026 (Priya, Arjun agreed)
+
+- The invoice number format is Ajay's: LAW/2026-27/0001 (max 16 chars). The counter has one row per FY and is allocated only for a confirmed payment.
+- Credit notes appear in the user's Invoices list, marked "Credit note" and linked to the original invoice.
+- Invoice email signed (Ajay 9528d82, GST file Addendum 5): footer "Ranchi, Jharkhand"; line 2 "…a payment was made on your Lawie account."; the email says "invoice" and the PDF is headed "Tax Invoice"; subject A and button A; body shows the number and "{amount} (including GST)"; "Hello," when there is no name. Ajay: the number format is not a legal call (it must be ≤16 chars, per FY, gapless, and use the right FY), so LAW/2026-27/0001 stands as Arjun agreed.

@@ -145,8 +145,11 @@ router.get(
         documentId: t.documentId,
         documentTitle: docMap.get(String(t.documentId))?.title ?? '(deleted)',
         documentType: docMap.get(String(t.documentId))?.docType ?? null,
-        assignedTo: t.assignedTo,
-        assignedEmail: t.assignedEmail,
+        // T-115c: a reviewer who erased their account has no name or email left; the admin
+        // page shows "reviewer: erased" for these rows.
+        assignedTo: t.reviewerErased ? null : t.assignedTo,
+        assignedEmail: t.reviewerErased ? null : t.assignedEmail,
+        reviewerErased: t.reviewerErased === true,
         expiresAt: t.expiresAt,
         isActive: t.isActive,
         isUsed: t.isUsed,
@@ -200,7 +203,9 @@ router.get(
       const docMeta = docMap.get(String(t.documentId));
       return {
         token: t.token,
-        assignedTo: t.assignedTo,
+        // T-115c: see GET /admin/review-tokens above.
+        assignedTo: t.reviewerErased ? null : t.assignedTo,
+        reviewerErased: t.reviewerErased === true,
         documentId: t.documentId,
         documentTitle: docMeta?.title ?? '(deleted)',
         documentType: docMeta?.docType ?? null,

@@ -36,7 +36,7 @@ import { buildChecklist } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 import { readFormInputs } from '../utils/case-details';
 import { decrypt } from '../utils/encryption';
-import { SdkStreamParams, sdkAnswer } from './sdkStream';
+import { SdkStreamParams, sdkAnswer, expectCachedSystem, systemText } from './sdkStream';
 const mockMessagesStream = jest.fn();
 jest.mock('@anthropic-ai/sdk', () =>
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -139,7 +139,7 @@ function mockModel(...contents: string[]) {
 
 function bodyOf(fetchMock: jest.Mock, n: number) {
   const p = fetchMock.mock.calls[n][0] as SdkStreamParams;
-  return { ...p, messages: [{ role: 'system', content: p.system }, ...p.messages] };
+  return { ...p, messages: [{ role: 'system', content: systemText(p.system) }, ...p.messages] };
 }
 
 /** The last `event: name` payload in an SSE response body. */
@@ -240,6 +240,7 @@ describe('POST /generate-from-brief — a draft that passes', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const sent = bodyOf(fetchMock, 0).messages;
     expect(sent[0].content).toBe(DRAFTER_PACK_SYSTEM_PROMPT);
+    expectCachedSystem(bodyOf(fetchMock, 0).system, DRAFTER_PACK_SYSTEM_PROMPT);
     expect(sent[1].content).toContain('"date_of": "Date of FIR"');
     expect(sent[1].content).toContain('"date": "10 March 2026"');
     expect(sent[1].content).toContain('SYSTEM PARTS:\n- cause title');
@@ -421,6 +422,7 @@ describe('POST /generate-from-brief — a mandatory clause is missing', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const repair = bodyOf(fetchMock, 1).messages;
     expect(repair[0].content).toBe(DRAFTER_REPAIR_SYSTEM_PROMPT);
+    expectCachedSystem(bodyOf(fetchMock, 1).system, DRAFTER_REPAIR_SYSTEM_PROMPT);
     expect(repair[1].content).toContain('MISSING: no_flight_risk');
     expect(repair[1].content).toContain('<document>\n1. That the applicant Ram Kumar');
 
@@ -740,6 +742,7 @@ describe('POST /generate-from-brief — no rule pack', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const sent = bodyOf(fetchMock, 0).messages;
     expect(sent[0].content).toBe(DRAFTER_GUIDED_SYSTEM_PROMPT);
+    expectCachedSystem(bodyOf(fetchMock, 0).system, DRAFTER_GUIDED_SYSTEM_PROMPT);
     expect(sent[1].content.startsWith('MODE: strict\n\nTARGET: 15\n\nLANGUAGE: en\n\nBRIEF:')).toBe(
       true,
     );
