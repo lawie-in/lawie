@@ -118,3 +118,22 @@ Test: a deed with no place field gives the blank, and no court city appears.
 - Help: `City or town where the document will be signed.`
 
 `{place}` prints the answer, and with no answer, the blank.
+
+**Part 2, place of execution (14 Oct 2026, Shashank's three questions):**
+1. **affidavit_identity: keep it required.** An affidavit states where it is sworn, so the place cannot be optional there. Use the signed label `Place of execution` and the signed help text. My "optional" ruling covers only the deeds that had no place question.
+2. **Guided brief: yes, add `ask_when_empty`** on `execution_place` for all 12 packs, so the brief asks for it. The blank stays as the fallback when the advocate skips it.
+3. **rent_agreement: align the label and help** to `Place of execution` / `City or town where the document will be signed.` and keep it required, as it already is.
+
+**Part 2, bail case line: golden batch signed (14 Oct 2026).** All 6 entries move to `[To be confirmed: case type and number]` as listed (cjm and jmfc anticipatory; consumer anticipatory and regular; district anticipatory and regular). Only `case_nomenclature` moves.
+
+| # | Question | Ruling |
+|---|---|---|
+| a | District courts' criminal list lines (Crl. Misc. Case No., CRLMC No. and so on) | Keep the blank for now. Those lines are not verified as each court's bail line. |
+| b | CJM/JMFC bail_regular prints "Criminal Case No." | Leave it. A bail application before a Magistrate is often filed in the main case, so it is defensible. It goes on the verification ticket below. |
+| c | Sessions: the rule's "Criminal Miscellaneous Case No." wins over the list's "Bail Application No." | OK, as before. It also goes on the verification ticket. |
+
+**New finding: two pairings should not be offered at all (new ticket, Priya).**
+1. **Anticipatory bail at a Magistrate (CJM/JMFC).** Anticipatory bail lies only before a Court of Session or a High Court (s.482 BNSS, formerly s.438 CrPC). The picker must not offer Magistrate courts for bail_anticipatory.
+2. **Any bail pack at a Consumer Commission.** A Commission is not a criminal court. Filter on `court_levels`.
+
+A verification ticket is also needed: per-court bail case lines, covering points a to c.

@@ -2,7 +2,7 @@
 
 | Field  | Value                                                    |
 | ------ | -------------------------------------------------------- |
-| Status | Todo. Vishal, after T-397. From Ajay, 13 Oct 2026. Priya |
+| Status | Merged d2565d8, waiting for Anushka on develop. Vishal, 14 Oct 2026 |
 | Owner  | Vishal (build), Ajay (signs byte-exact)                  |
 | Mode   | Small fix (legal content: drafter.prompts.ts)            |
 
