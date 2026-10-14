@@ -62,6 +62,7 @@ T-208, T-209, T-210, T-197, T-189, T-194, T-227, T-248, T-251, T-200, T-252a, T-
 5. **Production section reseed** (your database), only after T-250 + T-255 and T-275 are merged; develop first.
 6. The rest of the list below, when you choose.
 7. **Delete the branch `fix/t-439-probe-billing`** (Kunal's throwaway CI probe; the git proxy won't let him delete it). Cleanup only.
+8. **GitHub branch protection on `develop_staging`** (Arjun's v2 safety addendum): block force pushes, restrict deletions. Settings > Branches; needs your login.
 
 ---
 
