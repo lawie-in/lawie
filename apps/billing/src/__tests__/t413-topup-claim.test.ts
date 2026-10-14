@@ -99,7 +99,10 @@ describe('T-413 top-up claim-first', () => {
       const user = await mkUser();
       const body = paymentCaptured(user._id);
       const results = await Promise.all([post(body), post(body), post(body)]);
-      expect(results.map((r) => r.status)).toEqual([200, 200, 200]);
+      // T-415: a loser that sees the winner's claim still pending gets 500 (Razorpay
+      // retries); one that sees it granted gets 200. Never a second grant.
+      expect(results.every((r) => r.status === 200 || r.status === 500)).toBe(true);
+      expect(results.some((r) => r.status === 200)).toBe(true);
       expect(await topup(user._id)).toBe(UNITS);
       expect(await ledger().countDocuments({ userId: user._id })).toBe(1);
     });
@@ -123,7 +126,13 @@ describe('T-413 top-up claim-first', () => {
     it('the pair delivered concurrently grants once', async () => {
       const user = await mkUser();
       const res = await Promise.all([post(orderPaid(user._id)), post(paymentCaptured(user._id))]);
-      expect(res.map((r) => r.status)).toEqual([200, 200]);
+      // T-415: the loser may see the claim pending and get 500; still exactly one grant.
+      expect(res.every((r) => r.status === 200 || r.status === 500)).toBe(true);
+      expect(res.some((r) => r.status === 200)).toBe(true);
+      expect(await topup(user._id)).toBe(UNITS);
+      expect(await ledger().countDocuments({ userId: user._id })).toBe(1);
+      // The retry of whichever lost is a no-op once the winner marked granted.
+      expect((await post(paymentCaptured(user._id))).status).toBe(200);
       expect(await topup(user._id)).toBe(UNITS);
     });
 
@@ -191,12 +200,14 @@ describe('T-413 top-up claim-first', () => {
       expect(await topup(user._id)).toBe(UNITS);
     });
 
-    it('balanceAfter update fails after a good $inc -> error log, grant stands, 200', async () => {
+    it('mark-granted update fails after a good $inc -> error log, grant stands, 200; claim left pending', async () => {
       const user = await mkUser();
       const errSpy = jest.spyOn(logger, 'error');
       jest
         .spyOn(mongoose.mongo.Collection.prototype, 'updateOne')
-        .mockRejectedValueOnce(new Error('ZZSECRET'));
+        .mockRejectedValueOnce(new Error('ZZSECRET'))
+        .mockRejectedValueOnce(new Error('ZZSECRET'))
+        .mockRejectedValueOnce(new Error('ZZSECRET')); // MARK_GRANTED_ATTEMPTS = 3
       const body = paymentCaptured(user._id);
       const res = await post(body);
       expect(res.status).toBe(200);
@@ -205,8 +216,11 @@ describe('T-413 top-up claim-first', () => {
         errSpy.mock.calls.some((c) => String(c[1]).includes('balanceAfter update failed')),
       ).toBe(true);
       expect(JSON.stringify(errSpy.mock.calls)).not.toContain('ZZSECRET');
-      // A retry finds the claim taken: no second grant.
-      expect((await post(body)).status).toBe(200);
+      expect(await ledger().findOne({ _id: topupClaimId(ORDER) as never })).toMatchObject({
+        state: 'pending',
+      });
+      // T-415: an immediate retry sees the claim pending and fresh: 500, Ink granted once.
+      expect((await post(body)).status).toBe(500);
       expect(await topup(user._id)).toBe(UNITS);
     });
   });

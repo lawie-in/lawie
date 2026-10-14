@@ -12,10 +12,14 @@ import { Subscription } from '../models/Subscription.model';
 import { User } from '../models/User.model';
 
 import {
+  CLAIM_STALE_MS,
   cancelSubscriptionInk,
+  GrantClaimBusyError,
   grantSubscriptionInk,
   grantTopupInk,
+  newClaimToken,
   reportManualGrant,
+  retryOnThrow,
 } from './ink-ledger.service';
 
 export async function createSubscription(
@@ -274,18 +278,50 @@ export async function handleWebhookEvent(
           ? { inkDripAnchor: chargedAt, inkDripNextAt: addOneMonth(chargedAt), inkDripCount: 0 }
           : {};
       const dripFields = Object.keys(dripReset);
+      // T-415: the claim carries a state, a timestamp and this attempt's token.
+      // A claim on the same cycle that is still 'pending' after CLAIM_STALE_MS (its
+      // attempt died) is re-claimed by the same conditional update; 'granted', or
+      // no state (pre-T-415), never is.
+      const claimToken = newClaimToken();
+      const claimNow = new Date();
+      const staleBefore = new Date(claimNow.getTime() - CLAIM_STALE_MS);
+      const claimFields = ['grantClaimState', 'grantClaimedAt', 'grantClaimToken'];
+      const pendingClaim = (grants: boolean) => ({
+        grantClaimState: grants ? 'pending' : 'granted',
+        grantClaimedAt: claimNow,
+        grantClaimToken: claimToken,
+      });
+      const staleOn = (field: string, value: unknown) => ({
+        [field]: value,
+        grantClaimState: 'pending',
+        grantClaimedAt: { $lt: staleBefore },
+      });
+      // After a lost claim: is the same cycle still pending in another attempt?
+      const pendingElsewhere = async (field: string, value: unknown): Promise<boolean> =>
+        (await Subscription.exists({
+          _id: sub._id,
+          [field]: value,
+          grantClaimState: 'pending',
+        })) !== null;
       let isNewCycle = true;
       // How to undo the claim if the grant fails (so a Razorpay retry grants).
       let rollbackClaim: (() => Promise<{ matchedCount: number }>) | null = null;
       if (typeof paidCount === 'number') {
         const claimed = await Subscription.findOneAndUpdate(
-          { _id: sub._id, lastGrantedPaidCount: { $not: { $gte: paidCount } } },
+          {
+            _id: sub._id,
+            $or: [
+              { lastGrantedPaidCount: { $not: { $gte: paidCount } } },
+              staleOn('lastGrantedPaidCount', paidCount),
+            ],
+          },
           {
             $set: {
               lastGrantedPaidCount: paidCount,
               ...(currentStart ? { lastGrantedPeriodStart: new Date(currentStart * 1000) } : {}),
               // paid_count 0 grants nothing, so it must not reset the drip.
               ...(paidCount > 0 ? dripReset : {}),
+              ...pendingClaim(paidCount > 0 && !!planSku),
             },
           },
         );
@@ -293,27 +329,44 @@ export async function handleWebhookEvent(
         if (claimed) {
           rollbackClaim = () =>
             Subscription.updateOne(
-              { _id: sub._id, lastGrantedPaidCount: paidCount },
+              { _id: sub._id, lastGrantedPaidCount: paidCount, grantClaimToken: claimToken },
               restoreClaim(claimed, [
                 'lastGrantedPaidCount',
                 'lastGrantedPeriodStart',
                 ...dripFields,
+                ...claimFields,
               ]),
             );
+        } else if (
+          planSku &&
+          paidCount > 0 &&
+          (await pendingElsewhere('lastGrantedPaidCount', paidCount))
+        ) {
+          throw new GrantClaimBusyError();
         }
       } else if (currentStart) {
         const periodStart = new Date(currentStart * 1000);
         const claimed = await Subscription.findOneAndUpdate(
-          { _id: sub._id, lastGrantedPeriodStart: { $not: { $gte: periodStart } } },
-          { $set: { lastGrantedPeriodStart: periodStart, ...dripReset } },
+          {
+            _id: sub._id,
+            $or: [
+              { lastGrantedPeriodStart: { $not: { $gte: periodStart } } },
+              staleOn('lastGrantedPeriodStart', periodStart),
+            ],
+          },
+          {
+            $set: { lastGrantedPeriodStart: periodStart, ...dripReset, ...pendingClaim(!!planSku) },
+          },
         );
         isNewCycle = claimed !== null;
         if (claimed) {
           rollbackClaim = () =>
             Subscription.updateOne(
-              { _id: sub._id, lastGrantedPeriodStart: periodStart },
-              restoreClaim(claimed, ['lastGrantedPeriodStart', ...dripFields]),
+              { _id: sub._id, lastGrantedPeriodStart: periodStart, grantClaimToken: claimToken },
+              restoreClaim(claimed, ['lastGrantedPeriodStart', ...dripFields, ...claimFields]),
             );
+        } else if (planSku && (await pendingElsewhere('lastGrantedPeriodStart', periodStart))) {
+          throw new GrantClaimBusyError();
         }
       } else {
         logger.warn(
@@ -330,6 +383,7 @@ export async function handleWebhookEvent(
           'subscription cycle already granted, no second grant',
         );
       } else if (planSku) {
+        let grantFailed = false;
         try {
           await grantSubscriptionInk({
             userId: sub.userId.toString(),
@@ -341,6 +395,7 @@ export async function handleWebhookEvent(
             amountInr: planSku.priceInr,
           });
         } catch (err) {
+          grantFailed = true;
           // T-399: undo the cycle claim so Razorpay's retry of this webhook
           // grants, then fail the webhook so Razorpay retries.
           if (rollbackClaim) {
@@ -372,6 +427,34 @@ export async function handleWebhookEvent(
             }
           }
           throw err;
+        }
+        // T-415: mark the claim granted, only if this attempt still owns it.
+        if (!grantFailed && rollbackClaim) {
+          try {
+            // A pending claim left behind would be re-claimed and granted again, so retry.
+            const marked = await retryOnThrow(() =>
+              Subscription.updateOne(
+                { _id: sub._id, grantClaimToken: claimToken },
+                { $set: { grantClaimState: 'granted' } },
+              ).exec(),
+            );
+            if (marked.matchedCount === 0) {
+              logger.error(
+                { subId, event, paidCount },
+                'subscription grant claim was re-claimed during this grant; check for a double grant',
+              );
+              reportManualGrant('subscription-grant-superseded', { razorpaySubscriptionId: subId });
+            }
+          } catch (markErr) {
+            // The grant stood; do not 500 (a retry could grant again once the claim is stale).
+            logger.error(
+              { subId, event, errName: markErr instanceof Error ? markErr.name : 'unknown' },
+              'subscription granted but claim not marked granted; claim left pending',
+            );
+            reportManualGrant('subscription-mark-granted-failed', {
+              razorpaySubscriptionId: subId,
+            });
+          }
         }
       } else {
         // Legacy fallback: no plan mapping — set plan=pro without ink grant

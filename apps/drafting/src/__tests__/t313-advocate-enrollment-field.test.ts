@@ -133,7 +133,7 @@ const PROFILE_NAME = 'Adv. Profile Name';
 const PROFILE_NUM = 'PROF/111/2010';
 const TYPED_NUM = 'D/123/2020';
 const TBC = '[To be confirmed: enrolment number]';
-const DRAFT_BLANK = '____________________';
+const DRAFT_BLANK = "[To be confirmed: advocate's enrolment number]";
 const ANNEX_BLANK = '___________';
 const BASE = { applicant_name: 'Ramesh Kumar' };
 

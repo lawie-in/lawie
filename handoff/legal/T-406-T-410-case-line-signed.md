@@ -1,12 +1,13 @@
 # T-406 and T-410: case-number line on documents (Ajay, CLO, 13 Oct 2026)
 
-| Ticket | Question | Ruling |
-|---|---|---|
-| T-406 | Scope of the guard: A (all 32 `not_court_documents`) or B (`legal_notice_*` only) | **A.** A notice, deed, agreement or rent agreement is not filed in court, so none of them prints a case-number line or a court nomenclature. Same root cause, one guard, on the signed `not_court_documents` list. |
-| T-406 | The 39 golden entries that move (26 notice, 13 rent_agreement) | I sign them as one batch. Each change must only remove the case-number line, with no other byte moved. Send me the snapshot diff. |
-| T-410 | consumer_complaint at a court that is not a Consumer Commission | **Consumer Commission only.** The court picker for this pack offers only the District, State and National Commissions. If an older draft still carries another court, print `[To be confirmed: Consumer Commission]` in place of the court and the case line. Never a criminal or bail case line, and never a guessed Commission. Generation is not blocked: the blank shows up in the checks panel. |
+| Ticket | Question                                                                          | Ruling                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------ | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-406  | Scope of the guard: A (all 32 `not_court_documents`) or B (`legal_notice_*` only) | **A.** A notice, deed, agreement or rent agreement is not filed in court, so none of them prints a case-number line or a court nomenclature. Same root cause, one guard, on the signed `not_court_documents` list.                                                                                                                                                                                   |
+| T-406  | The 39 golden entries that move (26 notice, 13 rent_agreement)                    | I sign them as one batch. Each change must only remove the case-number line, with no other byte moved. Send me the snapshot diff.                                                                                                                                                                                                                                                                    |
+| T-410  | consumer_complaint at a court that is not a Consumer Commission                   | **Consumer Commission only.** The court picker for this pack offers only the District, State and National Commissions. If an older draft still carries another court, print `[To be confirmed: Consumer Commission]` in place of the court and the case line. Never a criminal or bail case line, and never a guessed Commission. Generation is not blocked: the blank shows up in the checks panel. |
 
 Tests:
+
 - T-406: every `not_court_documents` pack, at any court, prints no case-number line.
 - T-410: consumer_complaint with a non-consumer court gives the blank, with no "Bail", "Crl." or "Criminal" in the cause title.
 
@@ -23,16 +24,21 @@ Signed, on this condition: after regeneration the snapshot diff is removals only
 **1. Cause title and addressing clause: yes, use the tokens.** Set `court_levels` to `["consumer_commission"]` (drop `district_court`).
 
 `docs/templates/consumer_complaint.json` cause_title (:262). Everything from `IN THE MATTER OF:` on stays byte-identical:
+
 ```
 {court_header}\n\n{case_nomenclature}\n\nIN THE MATTER OF:\n\n{applicant_name}\nS/o / W/o {father_name}\nAge: {applicant_age} years\nR/o {address}\n                                              ... Complainant\n\nVersus\n\n{respondent_name}\n                                              ... Opposite Party
 ```
+
 addressing_clause (:274):
+
 ```
 TO,\nTHE HONOURABLE PRESIDENT AND MEMBERS,\n{court_designation},\n{court_city}\n\nMOST RESPECTFULLY SHOWETH:
 ```
+
 At a court that is not a Commission: `{court_header}`, `{case_nomenclature}` and `{court_designation}` each print `[To be confirmed: Consumer Commission]`. The `{court_city}` line is left out, so the addressing clause never names a city the advocate did not choose for a Commission.
 
 **2. The 36 State Commissions.** "First Appeal No." is an appeal line and is wrong for a complaint. "DISTRICT" is wrong for a State Commission. For consumer_complaint at a State Commission:
+
 - designation and header: `STATE CONSUMER DISPUTES REDRESSAL COMMISSION` with the State from the court record
 - case line: `Consumer Complaint No. _____ of {current_year}`
 
@@ -47,6 +53,7 @@ The State Commission rule's appeal line stays for appeal packs.
 **Logged for review (not T-410):** the body prompt's pecuniary note cites a "Notification dated 21 December 2021". The date is **verify**. Priya, please log it as its own ticket for me.
 
 Tests:
+
 - State Commission: no "First Appeal" and no "DISTRICT".
 - Non-Commission court: three blanks, no city, no "State of".
 - District: s.35 heading.
@@ -55,6 +62,7 @@ Tests:
 ## T-410 build: golden batch and calls (13 Oct 2026)
 
 **Golden batch: signed.** 12 entries, consumer_complaint at the 12 non-Commission courts Tanvi listed. Every change follows Addendum 1:
+
 - `case_nomenclature`, `court_designation` and `court_header` become `[To be confirmed: Consumer Commission]`.
 - Party labels become Complainant / Opposite Party.
 - Prayer opening and closing come from the consumer rule.
@@ -63,13 +71,14 @@ Tests:
 
 No other entry moves. Any other byte change needs a new sign-off.
 
-| # | Call | Ruling |
-|---|---|---|
-| 1 | State Commission designation from the court record's own text (some include the city) | Approved, if every record names the State Consumer Disputes Redressal Commission of that State. |
-| 2 | Act-only heading at a non-Commission court | Approved. The forum is unknown, so no section is cited. |
-| 3 | Place: the Commission's city, else `[To be confirmed: place]` | Approved |
+| #   | Call                                                                                  | Ruling                                                                                          |
+| --- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1   | State Commission designation from the court record's own text (some include the city) | Approved, if every record names the State Consumer Disputes Redressal Commission of that State. |
+| 2   | Act-only heading at a non-Commission court                                            | Approved. The forum is unknown, so no section is cited.                                         |
+| 3   | Place: the Commission's city, else `[To be confirmed: place]`                         | Approved                                                                                        |
 
 **Out-of-scope items:**
+
 - **`related_acts` "21 Dec 2021": fix in T-410 now** (same file). Use the T-412 Rules name. Widen the T-412 test to catch every form of the date ("21 Dec", "21.12.2021", "21/12/2021"), not just "21 December 2021".
 - **AI prompt receiving a non-Commission court's party designations: fix in T-410 now.** Ruling 4 covers the Drafter input too. The prompt gets Complainant / Opposite Party only. Test: no "State of" or "S.H.O." in the prompt.
 - **`display_name` "Consumer Complaint (District Commission)", and `description` "Section 35 … before District Commission": new ticket.** They should not name a level now that all three Commissions are offered. Wording comes to me.

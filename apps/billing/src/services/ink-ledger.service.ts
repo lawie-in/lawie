@@ -10,6 +10,8 @@
  * All writes go to the `inkledger` collection (NOT the old `creditledgers`).
  * Requires MongoDB 4.2+ for aggregation-pipeline updates.
  */
+import { randomUUID } from 'crypto';
+
 import { settleYearlyDrip } from '@lawie/shared';
 import * as Sentry from '@sentry/node';
 import mongoose from 'mongoose';
@@ -356,20 +358,72 @@ export function topupClaimId(razorpayOrderId: string): string {
 }
 
 /**
+ * T-415 (Arjun): a grant claim still `pending` after this long is presumed dead
+ * (process crash, or an attempt that outlived Razorpay's timeout) and a retry may
+ * re-claim it by CAS. Shared by the top-up and subscription claims.
+ */
+export const CLAIM_STALE_MS = 60_000;
+
+/** T-415: one id per claim / re-claim, so only the attempt that owns the claim marks it. */
+export function newClaimToken(): string {
+  return randomUUID();
+}
+
+/** T-415: attempts at the mark-granted write before a manual-grant signal. */
+export const MARK_GRANTED_ATTEMPTS = 3;
+
+/**
+ * T-415: run `fn`, retrying immediately (no sleep) when it throws, up to
+ * MARK_GRANTED_ATTEMPTS calls in total; rethrows the last error. A resolved
+ * result (including matchedCount 0) is returned as is, never retried.
+ */
+export async function retryOnThrow<R>(fn: () => Promise<R>): Promise<R> {
+  let lastErr: unknown;
+  for (let i = 0; i < MARK_GRANTED_ATTEMPTS; i += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr;
+}
+
+/**
+ * T-415: thrown when a retry finds a grant claim `pending` and younger than
+ * CLAIM_STALE_MS. Another attempt owns it and may still fail, so the webhook
+ * returns 500 and Razorpay retries later (then: granted -> no-op, or stale -> re-claim)
+ * rather than a 200 that would end Razorpay's retries while the grant is unsettled.
+ */
+export class GrantClaimBusyError extends Error {
+  constructor() {
+    super('grant claim is pending in another attempt');
+    this.name = 'GrantClaimBusyError';
+  }
+}
+
+/**
  * Grant top-up ink. Increments inkTopup (non-expiring).
  *
  * T-413 (Arjun): claim first, then grant. The claim is the ledger row itself,
  * inserted BEFORE the $inc with the deterministic `_id` `topup:<razorpayOrderId>`.
  * `_id` is always unique in MongoDB, so this is a compare-and-set with no new
  * index: order.paid and payment.captured for the same order (and any Razorpay
- * retry) race on the same insert and exactly one wins. A loser (duplicate key)
- * is a no-op. If the $inc throws, the claim row is deleted and the error is
- * rethrown, so the webhook returns 500 and Razorpay's retry grants once.
- * A failed claim insert (other than a duplicate) is NOT swallowed: it throws,
- * nothing was granted, and the retry grants. A failed balanceAfter update after
- * a successful $inc logs at error level and still returns the grant (it stood).
+ * retry) race on the same insert and exactly one wins. If the $inc throws, the
+ * claim row is deleted and the error is rethrown, so the webhook returns 500 and
+ * Razorpay's retry grants once. A failed claim insert (other than a duplicate) is
+ * NOT swallowed: it throws, nothing was granted, and the retry grants.
  *
- * Returns the granted inkUnits, or 0 if nothing was granted (already claimed,
+ * T-415 (Arjun): the claim row carries `state` ('pending' on claim, 'granted'
+ * after the $inc), `claimedAt` and `claimToken`. A loser of the insert reads the row:
+ * - no state (pre-T-415 row) or 'granted' -> no-op, returns 0;
+ * - 'pending', claimedAt older than CLAIM_STALE_MS -> re-claim by CAS on the
+ *   token and claimedAt it read (new token, new claimedAt); only the winner grants;
+ * - 'pending' and fresh -> throws GrantClaimBusyError (route 500, Razorpay retries).
+ * Rollback and the mark-granted step match on this attempt's token, so a slow
+ * attempt never deletes or marks a claim another attempt has re-claimed.
+ *
+ * Returns the granted inkUnits, or 0 if nothing was granted (already granted,
  * invalid or unknown user, no order id). Callers gate per-order side effects
  * (coupon usage) on a non-zero return.
  */
@@ -399,6 +453,7 @@ export async function grantTopupInk(input: {
 
   // Rows written before T-413 have an ObjectId _id; they still block a re-grant.
   const legacy = await ledger.findOne({
+    _id: { $ne: topupClaimId(razorpayOrderId) },
     userId: oid,
     reference: razorpayOrderId,
     reason: 'topup_purchase',
@@ -409,6 +464,7 @@ export async function grantTopupInk(input: {
   }
 
   const claimId = topupClaimId(razorpayOrderId);
+  const claimToken = newClaimToken();
   try {
     await ledger.insertOne({
       _id: claimId,
@@ -418,19 +474,42 @@ export async function grantTopupInk(input: {
       sourceBucket: 'topup',
       reference: razorpayOrderId,
       metadata: { razorpayPaymentId, amountInr, topupSkuId },
+      state: 'pending',
+      claimedAt: new Date(),
+      claimToken,
       createdAt: new Date(),
     });
   } catch (err) {
-    if ((err as { code?: unknown } | null)?.code === 11000) {
+    if ((err as { code?: unknown } | null)?.code !== 11000) throw err;
+    const existing = await ledger.findOne({ _id: claimId });
+    // Gone between the insert and the read: a rollback just freed it. Retry later.
+    if (!existing) throw new GrantClaimBusyError();
+    if (existing.state !== 'pending') {
+      // 'granted', or a T-413 row with no state: counts as granted.
       logger.warn({ userId, razorpayOrderId }, 'ink-ledger: duplicate topup grant skipped');
       return 0;
     }
-    throw err;
+    const claimedAt = existing.claimedAt as Date | undefined;
+    const now = new Date();
+    if (claimedAt instanceof Date && now.getTime() - claimedAt.getTime() <= CLAIM_STALE_MS) {
+      logger.warn({ userId, razorpayOrderId }, 'ink-ledger: topup claim pending elsewhere; retry');
+      throw new GrantClaimBusyError();
+    }
+    const reclaimed = await ledger.updateOne(
+      { _id: claimId, state: 'pending', claimedAt, claimToken: existing.claimToken },
+      { $set: { claimedAt: now, claimToken } },
+    );
+    if (reclaimed.matchedCount === 0) {
+      // Another retry re-claimed it (or it was granted) between the read and the CAS.
+      throw new GrantClaimBusyError();
+    }
+    logger.warn({ userId, razorpayOrderId }, 'ink-ledger: stale topup claim re-claimed');
   }
 
   const rollbackClaim = async (errName: string): Promise<void> => {
     try {
-      await ledger.deleteOne({ _id: claimId });
+      // Only this attempt's claim; a re-claimer's claim is not ours to free.
+      await ledger.deleteOne({ _id: claimId, state: 'pending', claimToken });
     } catch (rollbackErr) {
       logger.error(
         {
@@ -468,15 +547,32 @@ export async function grantTopupInk(input: {
   const newTopup = (updated.inkTopup as number | undefined) ?? inkUnits;
   const totalAfter = newSub + newCarry + newTopup;
 
+  // T-415: mark granted, only if this attempt still owns the claim.
   try {
-    await ledger.updateOne({ _id: claimId }, { $set: { balanceAfter: totalAfter } });
+    // A pending claim left behind would be re-claimed and granted again, so retry.
+    const marked = await retryOnThrow(() =>
+      ledger.updateOne(
+        { _id: claimId, claimToken },
+        { $set: { state: 'granted', grantedAt: new Date(), balanceAfter: totalAfter } },
+      ),
+    );
+    if (marked.matchedCount === 0) {
+      // This attempt was slower than CLAIM_STALE_MS and a retry re-claimed the order:
+      // both may have granted. Needs a human check.
+      logger.error(
+        { userId, razorpayOrderId },
+        'ink-ledger: topup claim was re-claimed during this grant; check for a double grant',
+      );
+      reportManualGrant('topup-grant-superseded', { razorpayOrderId });
+    }
   } catch (err) {
-    // The grant stood; only the audit field is missing. Ids and error class only.
+    // The grant stood, but the claim is still pending: once stale, a retry could
+    // re-claim and grant again. Ids and error class only.
     logger.error(
       { userId, razorpayOrderId, errName: err instanceof Error ? err.name : 'unknown' },
-      'ink-ledger: topup granted but ledger balanceAfter update failed',
+      'ink-ledger: topup granted but ledger balanceAfter update failed; claim left pending',
     );
-    reportManualGrant('topup-ledger-balance-update-failed', { razorpayOrderId }, 'warning');
+    reportManualGrant('topup-mark-granted-failed', { razorpayOrderId });
   }
 
   logger.info({ userId, inkUnits, razorpayOrderId }, 'topup ink granted');
