@@ -45,6 +45,40 @@ async function getList<T>(
 /** Above this many courts the picker gets a box to narrow the list. */
 const SEARCH_FROM = 8;
 
+/**
+ * T-425 (Ajay 69c8cbe): the bail packs, by exact id. For these the three lists are asked
+ * for with `template=<id>`, so the server leaves out courts where the pack does not lie.
+ * Must match BAIL_TEMPLATE_IDS in apps/drafting/src/routes/courts.routes.ts.
+ */
+const BAIL_TEMPLATE_IDS: ReadonlySet<string> = new Set([
+  'bail_regular',
+  'bail_anticipatory',
+  'bail_before_magistrate',
+  'default_bail',
+  'interim_bail',
+  'bail_cancellation',
+]);
+
+/** T-425: added to a saved choice the scoped list no longer offers. */
+export const NOT_OFFERED_SUFFIX = ' (not offered for this document)';
+
+/** T-425: names for a saved court type the scoped /types list leaves out. */
+const SAVED_TYPE_NAMES: Record<string, string> = {
+  cjm: 'Chief Judicial Magistrate',
+  jmfc: 'Judicial Magistrate First Class',
+  district_court: 'District Court',
+  civil_court: 'Civil Court (Senior Division)',
+  consumer_commission: 'Consumer Commission',
+  supreme_court: 'Supreme Court',
+  tribunal: 'Tribunal',
+};
+
+interface SavedCourt {
+  id: string;
+  name: string;
+  state: string;
+}
+
 /** T-411: the level a stored court belongs to, when it can be told from the court alone. */
 function initialLevel(court: BriefCourt): ConsumerLevel | null {
   if (
@@ -70,10 +104,14 @@ export default function CourtPicker({
   templateId?: string;
 }) {
   const consumer = templateId === CONSUMER_TEMPLATE_ID;
+  const bail = templateId !== undefined && BAIL_TEMPLATE_IDS.has(templateId);
   const [states, setStates] = useState<Option[]>([]);
+  const [statesLoaded, setStatesLoaded] = useState(false);
   const [types, setTypes] = useState<Option[]>([]);
+  const [typesLoaded, setTypesLoaded] = useState(false);
   const [courts, setCourts] = useState<Option[]>([]);
   const [courtsLoaded, setCourtsLoaded] = useState(false);
+  const [saved, setSaved] = useState<SavedCourt | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [filter, setFilter] = useState('');
@@ -108,7 +146,13 @@ export default function CourtPicker({
     };
   }, [consumer, level, court.court, court.state, court.court_type, attempt]);
 
-  const scope = consumer && level ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}` : '';
+  const scope = consumer
+    ? level
+      ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}`
+      : ''
+    : bail
+      ? `template=${encodeURIComponent(templateId as string)}`
+      : '';
 
   useEffect(() => {
     setFailed(false);
@@ -117,13 +161,18 @@ export default function CourtPicker({
       return;
     }
     let off = false;
+    setStatesLoaded(false);
     getList(`/api/courts/states${scope ? `?${scope}` : ''}`, (d) =>
       ((d.states as Array<{ id: string; name: string }>) ?? []).map((s) => ({
         id: s.id,
         name: s.name,
       })),
     )
-      .then((list) => !off && setStates(list))
+      .then((list) => {
+        if (off) return;
+        setStates(list);
+        setStatesLoaded(true);
+      })
       .catch(() => !off && setFailed(true));
     return () => {
       off = true;
@@ -133,21 +182,28 @@ export default function CourtPicker({
   useEffect(() => {
     if (consumer || !court.state) {
       setTypes([]);
+      setTypesLoaded(false);
       return;
     }
     let off = false;
-    getList(`/api/courts/types?state=${encodeURIComponent(court.state)}`, (d) =>
+    setTypesLoaded(false);
+    const typesPath = `/api/courts/types?state=${encodeURIComponent(court.state)}`;
+    getList(scope ? `${typesPath}&${scope}` : typesPath, (d) =>
       ((d.types as Array<{ id: string; label: string }>) ?? []).map((t) => ({
         id: t.id,
         name: t.label,
       })),
     )
-      .then((list) => !off && setTypes(list))
+      .then((list) => {
+        if (off) return;
+        setTypes(list);
+        setTypesLoaded(true);
+      })
       .catch(() => !off && setFailed(true));
     return () => {
       off = true;
     };
-  }, [court.state, attempt, consumer]);
+  }, [court.state, attempt, consumer, scope]);
 
   useEffect(() => {
     let path: string;
@@ -168,6 +224,7 @@ export default function CourtPicker({
         return;
       }
       path = `/api/courts?state=${encodeURIComponent(court.state)}&type=${encodeURIComponent(court.court_type)}`;
+      if (scope) path = `${path}&${scope}`;
     }
     let off = false;
     setCourtsLoaded(false);
@@ -188,6 +245,28 @@ export default function CourtPicker({
     };
   }, [court.state, court.court_type, attempt, consumer, level, scope]);
 
+  // T-425 (AC3): a bail brief saved with a court this pack no longer offers keeps it. Ask
+  // for that court by id only to name it in the list; the choice itself is never changed.
+  const courtNotOffered =
+    bail && !!court.court && courtsLoaded && !courts.some((c) => c.id === court.court);
+  useEffect(() => {
+    if (!courtNotOffered || !court.court || saved?.id === court.court) return;
+    const id = court.court;
+    let off = false;
+    apiFetch(`/api/courts/${encodeURIComponent(id)}`)
+      .then(async (res) => {
+        if (off || !res.ok) return;
+        const data = (await res.json()) as { court?: { name?: string; state?: string } };
+        if (off || !data.court?.name) return;
+        setSaved({ id, name: data.court.name, state: data.court.state ?? '' });
+      })
+      // Only the label is lost: the saved id still shows.
+      .catch(() => {});
+    return () => {
+      off = true;
+    };
+  }, [courtNotOffered, court.court, saved?.id]);
+
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   if (failed) {
@@ -206,6 +285,22 @@ export default function CourtPicker({
     q === ''
       ? courts
       : courts.filter((c) => c.id === court.court || c.name.toLowerCase().includes(q));
+  const savedName = saved && saved.id === court.court ? saved : null;
+  const keptState =
+    bail && court.state && statesLoaded && !states.some((s) => s.id === court.state)
+      ? { id: court.state, name: `${savedName?.state || court.state}${NOT_OFFERED_SUFFIX}` }
+      : null;
+  const keptType =
+    bail && court.court_type && typesLoaded && !types.some((t) => t.id === court.court_type)
+      ? {
+          id: court.court_type,
+          name: `${SAVED_TYPE_NAMES[court.court_type] ?? court.court_type}${NOT_OFFERED_SUFFIX}`,
+        }
+      : null;
+  const keptCourt =
+    courtNotOffered && court.court
+      ? { id: court.court, name: `${savedName?.name ?? court.court}${NOT_OFFERED_SUFFIX}` }
+      : null;
   const gap = missing ? '!border-brand-error !border-2' : '';
 
   if (consumer) {
@@ -346,6 +441,7 @@ export default function CourtPicker({
             className={`${input} mt-1.5 ${missing && !court.state ? gap : ''}`}
           >
             <option value="">Choose</option>
+            {keptState && <option value={keptState.id}>{keptState.name}</option>}
             {states.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -369,6 +465,7 @@ export default function CourtPicker({
             }`}
           >
             <option value="">Choose</option>
+            {keptType && <option value={keptType.id}>{keptType.name}</option>}
             {types.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
@@ -406,6 +503,7 @@ export default function CourtPicker({
             }`}
           >
             <option value="">Choose</option>
+            {keptCourt && <option value={keptCourt.id}>{keptCourt.name}</option>}
             {shown.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -419,7 +517,7 @@ export default function CourtPicker({
           <span className={tagError}>Needed to continue</span>
         </p>
       )}
-      {court.court_type && courts.length === 0 && states.length > 0 && (
+      {court.court_type && !keptType && courts.length === 0 && states.length > 0 && (
         <p className={`${small} mt-2`}>No court of this type is listed for this state yet.</p>
       )}
     </div>
