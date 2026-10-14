@@ -108,4 +108,25 @@ describe('GeneratingStep Try again Ink cost', () => {
     mount({ inkCost: 4, retryable: false });
     expect(container.querySelector(`#${RETRY_INK_COST_ID}`)).toBeNull();
   });
+
+  it.each([
+    ['known', { inkCost: 4 }],
+    ['unknown', { inkCost: undefined }],
+    ['loading', { inkCost: undefined, inkCostLoading: true }],
+  ])('%s: no role="alert" sits inside another role="alert"', (_n, extra) => {
+    mount(extra);
+    const alerts = Array.from(container.querySelectorAll('[role="alert"]'));
+    expect(alerts.length).toBeGreaterThanOrEqual(1);
+    for (const a of alerts) {
+      expect(a.parentElement?.closest('[role="alert"]')).toBeNull();
+    }
+    // the error message is itself an alert, and the card around it is not
+    expect(container.querySelector('h1')?.closest('[role="alert"]')).not.toBeNull();
+    expect(
+      container
+        .querySelector('h1')
+        ?.closest('[role="alert"]')
+        ?.contains(container.querySelector(`#${RETRY_INK_COST_ID}`)),
+    ).toBe(false);
+  });
 });

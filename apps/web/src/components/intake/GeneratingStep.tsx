@@ -63,8 +63,9 @@ export default function GeneratingStep({
     const retryBlocked = inkCostState(inkCost, inkCostLoading) !== 'known';
     return (
       <div className="mx-auto w-full max-w-[720px]">
-        <div className={`${card} flex flex-col gap-4`} role="alert">
-          <div className="flex items-start gap-3">
+        {/* T-388: the alert is the message only, so it does not wrap the Ink cost line's own alert. */}
+        <div className={`${card} flex flex-col gap-4`}>
+          <div className="flex items-start gap-3" role="alert">
             <AlertTriangle size={20} className="text-brand-error mt-0.5 flex-none" aria-hidden />
             <div>
               <h1 className="font-heading text-brand-navy text-xl font-semibold">

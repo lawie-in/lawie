@@ -17,8 +17,18 @@ import * as Sentry from '@sentry/nextjs';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
-import { formatInkCost } from './BriefStep';
 import { linkButton } from './ui';
+
+/**
+ * T-372: the line saying what a draft costs. Wording final (Meera, design):
+ * "Uses 1 Ink" / "Uses N Ink"; Ink takes no s. Null when there is no positive
+ * cost to show. T-388: lives here, so BriefStep imports it one way; BriefStep
+ * re-exports it for existing imports.
+ */
+export function formatInkCost(n: number | undefined): string | null {
+  if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) return null;
+  return `Uses ${n} Ink`;
+}
 
 /** Arjun's notice, word for word. Do not reword. */
 export const INK_COST_UNKNOWN =

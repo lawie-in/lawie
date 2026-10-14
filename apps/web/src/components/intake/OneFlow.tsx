@@ -46,6 +46,7 @@ import DescribeStep from './DescribeStep';
 import DocumentChoiceStep, { NONE_OF_THESE } from './DocumentChoiceStep';
 import DraftReadyStep from './DraftReadyStep';
 import GeneratingStep from './GeneratingStep';
+import { inkCostState } from './InkCostLine';
 import NoMatchStep from './NoMatchStep';
 import QuestionsStep from './QuestionsStep';
 
@@ -120,6 +121,24 @@ function openQuestions(
   for (const q of questions) if (q.confirm && confirmOpen(q.key, brief, ledger)) open.add(q.key);
   return questions.filter((q) => open.has(q.key) && (round === undefined || q.round === round));
 }
+
+/**
+ * T-372 / T-388: what a draft of this kind charges, from template-configs
+ * (`credits_cost`, or `guided_credits_cost` with no rule pack). Shown under
+ * Confirm and "Try again", and checked before the draft starts.
+ */
+function inkCostOf(
+  kindId: string,
+  kinds: KindSummary[],
+  guidedInkCost: number | undefined,
+): number | undefined {
+  return kindId === NO_RULE_PACK
+    ? guidedInkCost
+    : kinds.find((k) => k.template_id === kindId)?.credits_cost;
+}
+
+/** T-388 (Meera, final): a 402 that carries neither a cost nor a line of its own. */
+export const NOT_STARTED_LINE = "We couldn't start this just now. Please try again in a moment.";
 
 export default function OneFlow({
   kinds,
@@ -585,6 +604,10 @@ export default function OneFlow({
     async (retry: boolean) => {
       const current = briefRef.current;
       if (!current) return;
+      // T-388 (Arjun): nothing that charges starts while the Ink cost is not
+      // known. Confirm and "Try again" are off then too; this is the backstop.
+      const cost = inkCostOf(current.kind.id ?? NO_RULE_PACK, kinds, guidedInkCost);
+      if (inkCostState(cost, inkCostLoading) !== 'known') return;
       // T-343: ask before leaving the brief, so focus stays on the confirm button.
       if (await privacyPrecheck('generate')) return;
       if (!retry) runId.current = undefined;
@@ -643,8 +666,8 @@ export default function OneFlow({
                 cost: data.cost,
                 balance: data.balance?.totalInk ?? data.balance?.total ?? 0,
               });
-            } else if (data.message) {
-              setBriefMessage(data.message);
+            } else {
+              setBriefMessage(data.message ?? NOT_STARTED_LINE);
             }
             setPhase('brief');
             return;
@@ -795,7 +818,7 @@ export default function OneFlow({
         setGenError({ reason: 'Lost the connection to the drafting service.', retryable: true });
       }
     },
-    [description, reset, update],
+    [description, reset, update, kinds, guidedInkCost, inkCostLoading],
   );
 
   // ── Moving between the screens ────────────────────────────────────────────
@@ -951,12 +974,7 @@ export default function OneFlow({
   // T-372 / T-388: the one Ink cost of this brief, shown under Confirm and
   // under "Try again", from the same template-configs price.
   const briefKind = brief ? (brief.kind.id ?? NO_RULE_PACK) : undefined;
-  const inkCost =
-    briefKind === undefined
-      ? undefined
-      : briefKind === NO_RULE_PACK
-        ? guidedInkCost
-        : kinds.find((k) => k.template_id === briefKind)?.credits_cost;
+  const inkCost = briefKind === undefined ? undefined : inkCostOf(briefKind, kinds, guidedInkCost);
 
   if (phase === 'generating') {
     return (
@@ -1037,6 +1055,9 @@ export default function OneFlow({
           onConfirm={() => void generate(false)}
           confirmDescribedBy={privacyDescribedBy}
           inkCost={inkCost}
+          inkCostLoading={inkCostLoading}
+          onInkCostRetry={onInkCostRetry}
+          inkCostKind={briefKind}
           askedAnswers={askedAnswers}
         />
         <ChangeDocumentDialog

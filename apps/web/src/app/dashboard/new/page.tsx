@@ -41,7 +41,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { PaywallModal } from '@/components/credits/PaywallModal';
 import PipelineStatus, { PipelineState } from '@/components/draft/PipelineStatus';
 import DynamicFormRenderer from '@/components/form/DynamicFormRenderer';
-import { inkCostState } from '@/components/intake/InkCostLine';
+import { INK_COST_UNKNOWN, inkCostState } from '@/components/intake/InkCostLine';
 import OneFlow from '@/components/intake/OneFlow';
 import {
   PrivacyBlockedNotice,
@@ -307,9 +307,15 @@ function NewDocumentContent() {
     async (formData: Record<string, unknown>) => {
       if (!selectedConfig) return;
       // T-388 (Arjun): nothing that charges starts while the cost is not known.
-      // Every caller ends here, including the fail-open preflight paths.
+      // Every caller ends here, including the fail-open preflight paths. The
+      // advocate stays on this screen and sees the notice: going back to the
+      // form would remount it empty at step 1, away from the notice under
+      // "Generate document". "Try again" here waits for the cost (its own
+      // notice and retry link) and then drafts from the saved inputs.
       if (!templateInkCostKnown) {
-        setPhase('form');
+        setGenerationError(INK_COST_UNKNOWN);
+        setGenerationRetryable(true);
+        setPipelineState('generation_failed');
         return;
       }
 
@@ -484,8 +490,8 @@ function NewDocumentContent() {
   const handleSubmit = useCallback(
     async (formData: Record<string, unknown>) => {
       if (!user || !selectedConfig) return;
-      // T-388: an unknown cost blocks before the preflight. The notice under
-      // "Generate document" comes with DynamicFormRenderer (after T-411).
+      // T-388: an unknown cost blocks before the preflight. "Generate document"
+      // is off then and the notice is under it (DynamicFormRenderer).
       if (!templateInkCostKnown) return;
       // T-343: ask before leaving the form, so a privacy block never unmounts (empties) it.
       if (await privacyPrecheck('generate')) return;
@@ -654,6 +660,10 @@ function NewDocumentContent() {
           onSubmit={handleSubmit}
           onCancel={() => router.push('/dashboard')}
           submitDescribedBy={privacyDescribedBy}
+          inkCost={templateInkCost}
+          inkCostLoading={inkCostLoading}
+          onInkCostRetry={retryInkCost}
+          templateId={selectedConfig.template_id}
         />
         {showPaywall && (
           <PaywallModal
