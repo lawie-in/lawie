@@ -21,7 +21,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 
-import { CLIENT_ROLE_TABLE, ClientRoleRow, storesState } from './brief-party-fields';
+import { CaseSide, CLIENT_ROLE_TABLE, ClientRoleRow, storesState } from './brief-party-fields';
 import { renderPdf } from './pdf-export.service';
 import {
   chosenCourtHeading,
@@ -291,6 +291,41 @@ function relationOf(formData: Record<string, unknown>): string {
   return esc(relationLine(relKey && formData[relKey], parentName));
 }
 
+// ── T-424 (Addendum 5): counter and rejoinder affidavits ────────────────────
+
+/**
+ * The client's side on a pack whose parties print under their own roles
+ * (brief-party-fields SIDED_PACKS), as the resolver set it; null on every
+ * other pack. On such a pack the parties are petitioner_name and
+ * respondent_name, the client is the deponent (deponent_*), and the applicant
+ * and generic party keys are never read.
+ */
+function clientSideOf(formData: Record<string, unknown>): CaseSide | null {
+  const v = formData.client_side;
+  return v === 'petitioner' || v === 'respondent' ? v : null;
+}
+
+/** Ajay, T-424 44bf8a5: the deponent's designation, by the client's side. */
+const SIDED_DESIGNATION: Readonly<Record<CaseSide, string>> = {
+  respondent: 'the above-named Respondent',
+  petitioner: 'the above-named Petitioner',
+};
+
+/** The client's name: the deponent on a sided pack, else the applicant side. */
+function clientNameOf(formData: Record<string, unknown>): unknown {
+  return clientSideOf(formData) ? formData.deponent_name : applicantNameOf(formData);
+}
+
+/** The client's address: the deponent's on a sided pack, else the applicant's. */
+function clientAddressOf(formData: Record<string, unknown>): unknown {
+  return clientSideOf(formData) ? formData.deponent_address : applicantAddressOf(formData);
+}
+
+/** The deponent's relation line on a sided pack: deponent_father_name only. */
+function deponentRelationOf(formData: Record<string, unknown>): string {
+  return esc(relationLine(undefined, formData.deponent_father_name));
+}
+
 const COURTS_FILE = join(__dirname, '..', 'config', 'courts', 'indian-courts.json');
 let stateNames: Map<string, string> | null = null;
 
@@ -320,8 +355,11 @@ function annexureMemoOfParties(
   rules: CourtRules,
   pageBreak: boolean,
 ): string {
-  const applicant = safeEsc(applicantNameOf(formData));
-  const respondent = safeEsc(respondentNameOf(formData));
+  // T-424 (Addendum 5): each party under its own role; the client's details
+  // only on the client's row.
+  const side = clientSideOf(formData);
+  const applicant = safeEsc(side ? formData.petitioner_name : applicantNameOf(formData));
+  const respondent = safeEsc(side ? formData.respondent_name : respondentNameOf(formData));
   // T-396 AC3 (T-381 Addendum 4 point 1): the State line only when the State
   // is the counterpart (storesState: State rows and withState rows).
   const templateId = String(formData.template_id ?? formData.doc_type ?? '').trim();
@@ -336,10 +374,12 @@ function annexureMemoOfParties(
   // T-149: a signed document type uses the signed labels; others as before.
   const signed = signedPartyLabels(rules, String(formData.template_id ?? formData.doc_type ?? ''));
   const applicantLabel = esc(
-    signed?.petitioner ??
-      rules.party_designation.applicant ??
-      rules.party_designation.petitioner ??
-      'Applicant',
+    side
+      ? (signed?.petitioner ?? rules.party_designation.petitioner ?? 'Petitioner')
+      : (signed?.petitioner ??
+          rules.party_designation.applicant ??
+          rules.party_designation.petitioner ??
+          'Applicant'),
   );
   const respondentLabel = esc(
     signed?.respondent ??
@@ -347,6 +387,24 @@ function annexureMemoOfParties(
       rules.party_designation.opposite_party ??
       'Respondent',
   );
+
+  const clientDetails = (age: string, relation: string, addr: string): string => `<br>
+        ${age !== '___________' ? `Age: ${age} years<br>` : ''}
+        ${relation}<br>
+        ${addr !== '___________' ? addr : '___________'}`;
+  const deponentDetails = side
+    ? clientDetails(
+        safeEsc(formData.deponent_age),
+        deponentRelationOf(formData),
+        safeEsc(formData.deponent_address),
+      )
+    : '';
+  const firstRowDetails = side
+    ? side === 'petitioner'
+      ? deponentDetails
+      : ''
+    : clientDetails(applicantAge, applicantRelation, applicantAddr);
+  const secondRowDetails = side === 'respondent' ? deponentDetails : '';
 
   return `
 <div class="${pageBreak ? 'page-break' : ''}">
@@ -359,16 +417,13 @@ function annexureMemoOfParties(
     <tr>
       <td>${applicantLabel}</td>
       <td>
-        <strong>${applicant}</strong><br>
-        ${applicantAge !== '___________' ? `Age: ${applicantAge} years<br>` : ''}
-        ${applicantRelation}<br>
-        ${applicantAddr !== '___________' ? applicantAddr : '___________'}
+        <strong>${applicant}</strong>${firstRowDetails}
       </td>
     </tr>
     <tr>
       <td>${respondentLabel}</td>
       <td>
-        <strong>${respondent}</strong>${
+        <strong>${respondent}</strong>${secondRowDetails}${
           stateIsCounterpart
             ? `<br>
         ${state !== '___________' ? `State of ${state}, through the concerned authority` : '___________'}`
@@ -389,7 +444,10 @@ function annexureMemoOfParties(
 // ── Annexure B — Synopsis ─────────────────────────────────────────────────────
 
 function annexureSynopsis(formData: Record<string, unknown>, rules: CourtRules): string {
-  const applicant = safeEsc(applicantNameOf(formData));
+  // T-424: on a sided pack the "Applicant/Petitioner" line is the petitioner.
+  const applicant = safeEsc(
+    clientSideOf(formData) ? formData.petitioner_name : applicantNameOf(formData),
+  );
   const courtDesig = esc(rules.designation);
   const docType = safeEsc(formData.template_id ?? formData.doc_type ?? 'Application');
   const sections = str(formData.sections_charged ?? formData.bns_sections ?? formData.sections, '');
@@ -463,7 +521,8 @@ function annexureListOfDates(formData: Record<string, unknown>): string {
 
 function annexureIndexOfDocuments(formData: Record<string, unknown>): string {
   const firNo = safeEsc(formData.fir_number ?? formData.fir_no ?? formData.complaint_number);
-  const applicant = safeEsc(applicantNameOf(formData));
+  // T-424: "Affidavit of" the deponent, who is the client on a sided pack.
+  const applicant = safeEsc(clientNameOf(formData));
 
   const stdDocs: Array<[string, string, string]> = [
     ['1', 'Memo of Parties', 'Annexure A'],
@@ -505,8 +564,9 @@ function annexureIndexOfDocuments(formData: Record<string, unknown>): string {
 // ── Annexure E — Vakalatnama ──────────────────────────────────────────────────
 
 function annexureVakalatnama(formData: Record<string, unknown>, rules: CourtRules): string {
-  const applicant = safeEsc(applicantNameOf(formData));
-  const applicantAddr = safeEsc(applicantAddressOf(formData));
+  // T-424: the client appoints the advocate; on a sided pack, the deponent.
+  const applicant = safeEsc(clientNameOf(formData));
+  const applicantAddr = safeEsc(clientAddressOf(formData));
   const advocateName = safeEsc(formData.advocate_name);
   const enrollmentNo = safeEsc(formData.enrollment_number);
   const courtDesig = esc(rules.designation);
@@ -591,13 +651,18 @@ function annexureAffidavit(
   rules: CourtRules,
   bodyParaCount: number,
 ): string {
-  const deponent = safeEsc(applicantNameOf(formData));
-  const deponentAge = safeEsc(applicantAgeOf(formData));
-  const deponentRelation = relationOf(formData);
-  const deponentAddr = safeEsc(applicantAddressOf(formData));
-  const designation = safeEsc(
-    formData.deponent_designation ?? 'the above-named Applicant/Petitioner',
-  );
+  // T-424 (Ajay, 44bf8a5): on a sided pack the deponent is the client, and the
+  // designation follows the client's side; an explicit one still wins.
+  const side = clientSideOf(formData);
+  const deponentName = side ? formData.deponent_name : applicantNameOf(formData);
+  const designationText =
+    formData.deponent_designation ??
+    (side ? SIDED_DESIGNATION[side] : 'the above-named Applicant/Petitioner');
+  const deponent = safeEsc(deponentName);
+  const deponentAge = safeEsc(side ? formData.deponent_age : applicantAgeOf(formData));
+  const deponentRelation = side ? deponentRelationOf(formData) : relationOf(formData);
+  const deponentAddr = safeEsc(side ? formData.deponent_address : applicantAddressOf(formData));
+  const designation = safeEsc(designationText);
 
   // T-349: "4 April 2026" (T-340's formatter), local date as before.
   const today = formatDraftDate(new Date());
@@ -608,10 +673,8 @@ function annexureAffidavit(
   // Build verification text from court_rules.verification_format — fill placeholders
   const verificationText = esc(
     rules.verification_format
-      .replace('{deponent_name}', () => str(applicantNameOf(formData)))
-      .replace('{designation}', () =>
-        str(formData.deponent_designation ?? 'the above-named Applicant/Petitioner'),
-      )
+      .replace('{deponent_name}', () => str(deponentName))
+      .replace('{designation}', () => str(designationText))
       .replace('{body_para_count}', () => String(bodyParaCount))
       .replace('{place}', () => str(verifiedAt))
       .replace('{date}', () => today),
