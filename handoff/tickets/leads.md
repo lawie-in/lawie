@@ -67,6 +67,7 @@ Where each lead stopped:
 
 ## Last done
 
+- vishal: T-437 merged 7943bb54 (14 Oct 2026). Prompt caching (option A); admin AI cost panel shows cache tokens, cache cost, net saving, hit share; draft cost matches the provider. cache_write_usd_per_mtok = 1-hour price. ai.service, llm-usage, models, admin routes, ai-config page released. AC4 on develop after deploy.
 - kunal: T-384 merged 3ceb2fc8 (14 Oct 2026). A date answered 'Not known' shows a chip and a 'Change' link (Rajesh option b). Web files released. Next T-436.
 - CI: run 550 GREEN on 47d5d011 (T-433 tip; full matrix, so it covers T-428, T-432, T-439, T-439b, T-429, T-433). Runs 540-548 were cancelled and superseded by it.
 - kunal: T-439b merged 1ea52c97 (14 Oct 2026). develop/develop_staging pushes test the full matrix again; lead branches test their own diff. ci.yml released.

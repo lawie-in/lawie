@@ -1150,3 +1150,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Press "Change" to set the date after all.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-437 — Prompt caching (7943bb54, vishal, 14 Oct 2026)
+
+- Drafting is unchanged for advocates.
+- An admin can see cache tokens, cache cost, net saving and cache hit share on the AI cost panel.
+- Draft cost now matches what the provider charges. Check first that cache_write_usd_per_mtok is set to the 1-hour price (pre-run checklist).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
