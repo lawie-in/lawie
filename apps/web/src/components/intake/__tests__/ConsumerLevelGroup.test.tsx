@@ -19,6 +19,7 @@ import ConsumerLevelGroup, {
 let container: HTMLDivElement;
 let root: Root;
 const changes: ConsumerLevel[] = [];
+const hows: string[] = [];
 
 function Harness({ initial = null }: { initial?: ConsumerLevel | null }) {
   const [value, setValue] = useState<ConsumerLevel | null>(initial);
@@ -26,8 +27,9 @@ function Harness({ initial = null }: { initial?: ConsumerLevel | null }) {
     <ConsumerLevelGroup
       id="lvl"
       value={value}
-      onChange={(l) => {
+      onChange={(l, how) => {
         changes.push(l);
+        hows.push(how);
         setValue(l);
       }}
     />
@@ -47,6 +49,7 @@ const tabs = () => chips().map((c) => c.getAttribute('tabindex'));
 
 beforeEach(() => {
   changes.length = 0;
+  hows.length = 0;
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -144,6 +147,34 @@ describe('ConsumerLevelGroup', () => {
     key(chips()[0], ' ');
     expect(changes).toEqual(['district']);
     expect(checked()).toEqual(['true', 'false', 'false']);
+  });
+
+  it('reports "arrow" for every arrow key', () => {
+    mount('district');
+    key(chips()[0], 'ArrowRight');
+    key(chips()[1], 'ArrowDown');
+    key(chips()[2], 'ArrowLeft');
+    key(chips()[1], 'ArrowUp');
+    expect(changes).toEqual(['state', 'national', 'state', 'district']);
+    expect(hows).toEqual(['arrow', 'arrow', 'arrow', 'arrow']);
+  });
+
+  it('reports "activate" for click, Space and Enter', () => {
+    mount();
+    act(() => chips()[0].click());
+    key(chips()[1], ' ');
+    key(chips()[2], 'Enter');
+    expect(changes).toEqual(['district', 'state', 'national']);
+    expect(hows).toEqual(['activate', 'activate', 'activate']);
+  });
+
+  it('Enter selects the focused chip without moving focus', () => {
+    mount();
+    chips()[1].focus();
+    key(chips()[1], 'Enter');
+    expect(changes).toEqual(['state']);
+    expect(checked()).toEqual(['false', 'true', 'false']);
+    expect(document.activeElement).toBe(chips()[1]);
   });
 
   it('ignores other keys', () => {

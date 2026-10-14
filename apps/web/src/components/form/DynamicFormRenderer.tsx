@@ -29,6 +29,7 @@ import ConsumerLevelGroup, {
   NCDRC_OPTION_LABEL,
   NCDRC_STATE_ID,
   type ConsumerLevel,
+  type LevelChangeHow,
 } from '../intake/ConsumerLevelGroup';
 
 // ── Types (mirrored from backend template-engine types) ─────────────────────
@@ -919,9 +920,11 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
     }
     if (statesFetched.current === query) return;
     statesFetched.current = query;
+    let off = false;
     fetch(`${API_URL}/api/courts/states${query ? `?${query}` : ''}`)
       .then((r) => r.json())
       .then((data) => {
+        if (off) return;
         if (data.states) {
           setStates(
             data.states.map((s: { id: string; name: string }) => ({ id: s.id, label: s.name })),
@@ -929,6 +932,12 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
         }
       })
       .catch(() => {});
+    return () => {
+      // A stale response (the level changed, or unmount) is dropped; forget the key so
+      // the next run fetches again rather than skipping.
+      off = true;
+      statesFetched.current = null;
+    };
   }, [consumer, level, query]);
 
   // Fetch court types when state changes
@@ -1284,12 +1293,24 @@ export default function DynamicFormRenderer({
   const [live, setLive] = useState('');
   const focusNext = useRef<string | null>(null);
   const courtFieldIds = useMemo(() => {
-    const ids: { state?: string; type?: string; court?: string } = {};
+    const ids: {
+      state?: string;
+      type?: string;
+      court?: string;
+      stateField?: FormField;
+      courtField?: FormField;
+    } = {};
     for (const s of steps) {
       for (const f of s.fields) {
-        if (f.source === 'courts_db.states') ids.state = f.field_id;
+        if (f.source === 'courts_db.states') {
+          ids.state = f.field_id;
+          ids.stateField = f;
+        }
         if (f.source === 'courts_db.court_types') ids.type = f.field_id;
-        if (f.source === 'courts_db.courts') ids.court = f.field_id;
+        if (f.source === 'courts_db.courts') {
+          ids.court = f.field_id;
+          ids.courtField = f;
+        }
       }
     }
     return ids;
@@ -1308,7 +1329,7 @@ export default function DynamicFormRenderer({
     consumer ? { templateId: config.template_id, level } : undefined,
   );
 
-  const onLevel = (next: ConsumerLevel) => {
+  const onLevel = (next: ConsumerLevel, how: LevelChangeHow) => {
     if (next === level) return;
     const { state: sId, type: tId, court: cId } = courtFieldIds;
     const hadChoice =
@@ -1327,7 +1348,10 @@ export default function DynamicFormRenderer({
     });
     const shown = next === 'national' ? LIVE_NATIONAL_SHOWN : LIVE_STATE_SHOWN;
     setLive(hadChoice ? `${LIVE_CLEARED} ${shown}` : shown);
-    focusNext.current = next === 'national' ? 'dfr-consumer-court' : 'dfr-consumer-state';
+    // Arrow keys keep focus on the chip (radio pattern); click, Space or Enter moves it on.
+    if (how === 'activate') {
+      focusNext.current = next === 'national' ? 'dfr-consumer-court' : 'dfr-consumer-state';
+    }
   };
 
   // Build a map of field_id → cascades_to for cascade resets
@@ -1414,7 +1438,7 @@ export default function DynamicFormRenderer({
   }
 
   function renderConsumerCourt() {
-    const { state: sId, type: tId, court: cId } = courtFieldIds;
+    const { state: sId, type: tId, court: cId, stateField, courtField } = courtFieldIds;
     const national = level === 'national';
     const stateValue = sId ? String(formData[sId] ?? '') : '';
     const courtValue = cId ? String(formData[cId] ?? '') : '';
@@ -1436,6 +1460,7 @@ export default function DynamicFormRenderer({
                   className="block text-xs font-medium text-slate-600"
                 >
                   State
+                  {stateField?.required && <span className="ml-0.5 text-red-400">*</span>}
                 </label>
                 <select
                   id="dfr-consumer-state"
@@ -1459,6 +1484,9 @@ export default function DynamicFormRenderer({
                     </option>
                   ))}
                 </select>
+                {stateField && (
+                  <FieldFooter field={stateField} errorMessage={fieldErrors[stateField.field_id]} />
+                )}
               </div>
             )}
             {cId && (
@@ -1468,6 +1496,7 @@ export default function DynamicFormRenderer({
                   className="block text-xs font-medium text-slate-600"
                 >
                   {CONSUMER_COURT_LABEL}
+                  {courtField?.required && <span className="ml-0.5 text-red-400">*</span>}
                 </label>
                 <select
                   id="dfr-consumer-court"
@@ -1484,6 +1513,9 @@ export default function DynamicFormRenderer({
                   ))}
                 </select>
                 {chosen && <p className="mt-1 text-xs text-slate-600">{chosen.label}</p>}
+                {courtField && (
+                  <FieldFooter field={courtField} errorMessage={fieldErrors[courtField.field_id]} />
+                )}
               </div>
             )}
           </div>

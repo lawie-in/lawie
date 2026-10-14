@@ -89,6 +89,17 @@ async function choose(id: string, value: string) {
   await flush();
 }
 
+async function press(el: Element, k: string) {
+  act(() => {
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  });
+  await flush();
+}
+const checkedNames = () =>
+  Array.from(container.querySelectorAll<HTMLElement>('[role="radio"]'))
+    .filter((c) => c.getAttribute('aria-checked') === 'true')
+    .map((c) => c.textContent);
+
 beforeEach(() => {
   held = {};
   holdPaths = new Set();
@@ -355,6 +366,109 @@ describe('CourtPicker, consumer_complaint', () => {
   it('shows the missing flag when the court is needed', async () => {
     await mount({ templateId: 'consumer_complaint', missing: true });
     expect(container.textContent).toContain('Needed to continue');
+  });
+});
+
+describe('CourtPicker, consumer_complaint keyboard and reload', () => {
+  const STATE_LOOKUP = `/api/courts?${CONSUMER}&level=state&state=delhi`;
+
+  it('two ArrowRights from District reach National, keep focus on the chip and announce', async () => {
+    await mount({ templateId: 'consumer_complaint' });
+    chip('District Commission').focus();
+    await press(document.activeElement!, 'ArrowRight');
+    expect(checkedNames()).toEqual(['State Commission']);
+    expect(document.activeElement).toBe(chip('State Commission'));
+    expect(live()).toBe('State select shown.');
+    await press(document.activeElement!, 'ArrowRight');
+    expect(checkedNames()).toEqual(['National Commission (NCDRC)']);
+    expect(document.activeElement).toBe(chip('National Commission (NCDRC)'));
+    expect(document.activeElement).not.toBe(sel('brief-court-court'));
+    expect(live()).toBe('No state needed. Commission select shown.');
+    expect(container.querySelector('[role="status"]')!.getAttribute('aria-live')).toBe('polite');
+  });
+
+  it.each([['Enter'], [' ']])(
+    'key %j on a chip moves focus to the first new control',
+    async (k) => {
+      await mount({ templateId: 'consumer_complaint' });
+      chip('District Commission').focus();
+      await press(document.activeElement!, k);
+      expect(checkedNames()).toEqual(['District Commission']);
+      expect(document.activeElement).toBe(sel('brief-court-state'));
+      chip('National Commission (NCDRC)').focus();
+      await press(document.activeElement!, k);
+      expect(document.activeElement).toBe(sel('brief-court-court'));
+      chip('State Commission').focus();
+      await press(document.activeElement!, k);
+      expect(document.activeElement).toBe(sel('brief-court-state'));
+    },
+  );
+
+  it('an arrow after a state was chosen still clears the state and court, and announces it', async () => {
+    await mount({ templateId: 'consumer_complaint' });
+    await pick('District Commission');
+    await choose('brief-court-state', 'delhi');
+    await choose('brief-court-court', 'dcdrc_new_delhi');
+    chip('District Commission').focus();
+    await press(document.activeElement!, 'ArrowRight');
+    expect(last).toEqual({ state: null, court_type: 'consumer_commission', court: null });
+    expect(sel('brief-court-state')!.value).toBe('');
+    expect(sel('brief-court-court')!.value).toBe('');
+    expect(sel('brief-court-court')!.disabled).toBe(true);
+    expect(document.activeElement).toBe(chip('State Commission'));
+    expect(live()).toBe('State and Commission cleared. State select shown.');
+    await choose('brief-court-state', 'delhi');
+    chip('State Commission').focus();
+    await press(document.activeElement!, 'ArrowRight');
+    expect(last).toEqual({ state: 'india', court_type: 'tribunal', court: null });
+    expect(document.activeElement).toBe(chip('National Commission (NCDRC)'));
+    expect(live()).toBe('State and Commission cleared. No state needed. Commission select shown.');
+  });
+
+  it('a saved District court reloads on District by asking which list it is on', async () => {
+    await mount({
+      templateId: 'consumer_complaint',
+      initial: { state: 'delhi', court_type: 'consumer_commission', court: 'dcdrc_new_delhi' },
+    });
+    expect(paths()).toContain(STATE_LOOKUP);
+    expect(checkedNames()).toEqual(['District Commission']);
+    expect(paths()).toContain(DISTRICT_STATES);
+    expect(sel('brief-court-state')!.value).toBe('delhi');
+    expect(sel('brief-court-court')!.value).toBe('dcdrc_new_delhi');
+  });
+
+  it('a saved State court reloads on State', async () => {
+    await mount({
+      templateId: 'consumer_complaint',
+      initial: { state: 'delhi', court_type: 'consumer_commission', court: 'scdrc_delhi' },
+    });
+    expect(checkedNames()).toEqual(['State Commission']);
+    expect(sel('brief-court-court')!.value).toBe('scdrc_delhi');
+  });
+
+  it('when the level lookup fails, Retry repeats it and the level is restored', async () => {
+    delete routes[STATE_LOOKUP];
+    await mount({
+      templateId: 'consumer_complaint',
+      initial: { state: 'delhi', court_type: 'consumer_commission', court: 'scdrc_delhi' },
+    });
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(container.querySelector('[role="radio"]')).toBeNull();
+    const lookups = () => paths().filter((p) => p === STATE_LOOKUP).length;
+    expect(lookups()).toBe(1);
+    routes[STATE_LOOKUP] = {
+      courts: [{ courtId: 'scdrc_delhi', name: 'State Commission, Delhi' }],
+    };
+    const retry = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Retry',
+    )!;
+    act(() => retry.click());
+    await flush();
+    // The lookup and, once the level is known, the court list share this URL.
+    expect(lookups()).toBeGreaterThan(1);
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(checkedNames()).toEqual(['State Commission']);
+    expect(sel('brief-court-court')!.value).toBe('scdrc_delhi');
   });
 });
 

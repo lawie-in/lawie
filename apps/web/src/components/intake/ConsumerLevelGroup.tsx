@@ -14,6 +14,13 @@ import { label as labelClass } from './ui';
 
 export type ConsumerLevel = 'district' | 'state' | 'national';
 
+/**
+ * How a level was chosen. 'arrow': arrow keys moved the selection; focus stays on the
+ * chip (WAI-ARIA radio pattern). 'activate': click, Space or Enter; the picker may move focus
+ * to the first new control.
+ */
+export type LevelChangeHow = 'arrow' | 'activate';
+
 export const CONSUMER_LEVELS: ReadonlyArray<{ id: ConsumerLevel; name: string }> = [
   { id: 'district', name: 'District Commission' },
   { id: 'state', name: 'State Commission' },
@@ -57,7 +64,7 @@ export default function ConsumerLevelGroup({
   /** Prefix for element ids; the label is `${id}-label`, chips `${id}-<level>`. */
   id: string;
   value: ConsumerLevel | null;
-  onChange: (level: ConsumerLevel) => void;
+  onChange: (level: ConsumerLevel, how: LevelChangeHow) => void;
 }) {
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
   const selectedIndex = CONSUMER_LEVELS.findIndex((l) => l.id === value);
@@ -68,7 +75,7 @@ export default function ConsumerLevelGroup({
     const n = CONSUMER_LEVELS.length;
     const to = (from + delta + n) % n;
     refs.current[to]?.focus();
-    onChange(CONSUMER_LEVELS[to].id);
+    onChange(CONSUMER_LEVELS[to].id, 'arrow');
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -84,8 +91,11 @@ export default function ConsumerLevelGroup({
         move(index, -1);
         break;
       case ' ':
+      case 'Enter':
+        // Enter is handled here (not left to the native button click) so it always
+        // counts as an activation, the same as click and Space.
         e.preventDefault();
-        onChange(CONSUMER_LEVELS[index].id);
+        onChange(CONSUMER_LEVELS[index].id, 'activate');
         break;
       default:
         break;
@@ -115,7 +125,7 @@ export default function ConsumerLevelGroup({
               role="radio"
               aria-checked={on}
               tabIndex={index === tabbable ? 0 : -1}
-              onClick={() => onChange(level.id)}
+              onClick={() => onChange(level.id, 'activate')}
               onKeyDown={(e) => onKeyDown(e, index)}
               className={chip(on)}
             >

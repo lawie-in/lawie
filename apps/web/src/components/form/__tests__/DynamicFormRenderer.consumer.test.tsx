@@ -13,7 +13,11 @@ const NCDRC_LABEL = 'National Consumer Disputes Redressal Commission (NCDRC), Ne
 const NO_MATCH = 'No Commission is listed for this state yet.';
 const Q = 'template=consumer_complaint';
 
-function configOf(templateId: string): TemplateConfig {
+type FieldPatch = Record<string, unknown>;
+function configOf(
+  templateId: string,
+  patch: { state?: FieldPatch; court?: FieldPatch } = {},
+): TemplateConfig {
   return {
     template_id: templateId,
     display_name: 'Test form',
@@ -30,6 +34,7 @@ function configOf(templateId: string): TemplateConfig {
               type: 'dropdown_search',
               source: 'courts_db.states',
               required: true,
+              ...patch.state,
             },
             {
               field_id: 'court_type',
@@ -44,6 +49,7 @@ function configOf(templateId: string): TemplateConfig {
               type: 'dropdown_search',
               source: 'courts_db.courts',
               required: true,
+              ...patch.court,
             },
           ],
         },
@@ -105,11 +111,15 @@ const paths = () => fetchMock.mock.calls.map((c) => strip(c[0] as string));
 async function flush() {
   for (let i = 0; i < 5; i++) await act(async () => {});
 }
-async function mount(templateId: string, onSubmit: jest.Mock = jest.fn()) {
+async function mount(
+  templateId: string,
+  onSubmit: jest.Mock = jest.fn(),
+  patch: { state?: FieldPatch; court?: FieldPatch } = {},
+) {
   act(() => {
     root.render(
       <DynamicFormRenderer
-        config={configOf(templateId)}
+        config={configOf(templateId, patch)}
         onSubmit={onSubmit}
         onCancel={jest.fn()}
       />,
@@ -126,6 +136,16 @@ async function pick(name: string) {
   act(() => chip(name).click());
   await flush();
 }
+async function press(el: Element, k: string) {
+  act(() => {
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  });
+  await flush();
+}
+const checkedNames = () =>
+  radios()
+    .filter((c) => c.getAttribute('aria-checked') === 'true')
+    .map((c) => c.textContent);
 async function choose(id: string, value: string) {
   const s = sel(id)!;
   act(() => {
@@ -165,10 +185,14 @@ describe('DynamicFormRenderer, consumer_complaint court block', () => {
     await mount('consumer_complaint');
     await pick('District Commission');
     expect(paths()).toContain(`/api/courts/states?${Q}&level=district`);
-    expect(container.querySelector('label[for="dfr-consumer-state"]')!.textContent).toBe('State');
-    expect(container.querySelector('label[for="dfr-consumer-court"]')!.textContent).toBe(
-      'Consumer Commission',
-    );
+    // The required marker is a child span, so the label reads 'State*' / 'Consumer Commission*'.
+    const stateLabel = container.querySelector('label[for="dfr-consumer-state"]')!;
+    const courtLabel = container.querySelector('label[for="dfr-consumer-court"]')!;
+    expect(stateLabel.textContent).toBe('State*');
+    expect(stateLabel.textContent!.startsWith('State')).toBe(true);
+    expect(stateLabel.querySelector('span.text-red-400')!.textContent).toBe('*');
+    expect(courtLabel.textContent).toBe('Consumer Commission*');
+    expect(courtLabel.querySelector('span.text-red-400')!.textContent).toBe('*');
     expect(optionTexts(sel('dfr-consumer-state')!)).toEqual(['Choose', 'Delhi', 'Kerala']);
     expect(sel('dfr-consumer-court')!.disabled).toBe(true);
     await choose('dfr-consumer-state', 'delhi');
@@ -301,6 +325,134 @@ describe('DynamicFormRenderer, consumer_complaint court block', () => {
     await pick('National Commission (NCDRC)');
     expect(paths()).toContain(`/api/courts?${Q}&level=national`);
     expect(container.textContent).not.toContain(NO_MATCH);
+  });
+});
+
+describe('DynamicFormRenderer, consumer_complaint keyboard', () => {
+  it('two ArrowRights from District reach National, keep focus on the chip and announce', async () => {
+    await mount('consumer_complaint');
+    chip('District Commission').focus();
+    await press(document.activeElement!, 'ArrowRight');
+    expect(checkedNames()).toEqual(['State Commission']);
+    expect(document.activeElement).toBe(chip('State Commission'));
+    expect(live()).toBe('State select shown.');
+    await press(document.activeElement!, 'ArrowRight');
+    expect(checkedNames()).toEqual(['National Commission (NCDRC)']);
+    expect(document.activeElement).toBe(chip('National Commission (NCDRC)'));
+    expect(document.activeElement).not.toBe(sel('dfr-consumer-court'));
+    expect(live()).toBe('No state needed. Commission select shown.');
+    expect(container.querySelector('[role="status"]')!.getAttribute('aria-live')).toBe('polite');
+  });
+
+  it.each([['Enter'], [' ']])(
+    'key %j on a chip moves focus to the first new control',
+    async (k) => {
+      await mount('consumer_complaint');
+      chip('District Commission').focus();
+      await press(document.activeElement!, k);
+      expect(checkedNames()).toEqual(['District Commission']);
+      expect(document.activeElement).toBe(sel('dfr-consumer-state'));
+      chip('National Commission (NCDRC)').focus();
+      await press(document.activeElement!, k);
+      expect(document.activeElement).toBe(sel('dfr-consumer-court'));
+      chip('State Commission').focus();
+      await press(document.activeElement!, k);
+      expect(document.activeElement).toBe(sel('dfr-consumer-state'));
+    },
+  );
+
+  it('an arrow after a state was chosen still clears the state and court, and announces it', async () => {
+    await mount('consumer_complaint');
+    await pick('District Commission');
+    await choose('dfr-consumer-state', 'delhi');
+    await choose('dfr-consumer-court', 'dcdrc_new_delhi');
+    chip('District Commission').focus();
+    await press(document.activeElement!, 'ArrowRight');
+    expect(sel('dfr-consumer-state')!.value).toBe('');
+    expect(sel('dfr-consumer-court')!.value).toBe('');
+    expect(sel('dfr-consumer-court')!.disabled).toBe(true);
+    expect(document.activeElement).toBe(chip('State Commission'));
+    expect(live()).toBe('State and Commission cleared. State select shown.');
+    await choose('dfr-consumer-state', 'delhi');
+    chip('State Commission').focus();
+    await press(document.activeElement!, 'ArrowRight');
+    expect(document.activeElement).toBe(chip('National Commission (NCDRC)'));
+    expect(sel('dfr-consumer-court')!.value).toBe('');
+    expect(live()).toBe('State and Commission cleared. No state needed. Commission select shown.');
+  });
+});
+
+describe('DynamicFormRenderer, consumer_complaint states fetch and required fields', () => {
+  it('drops a stale states response when the level changes quickly', async () => {
+    const districtStates = `/api/courts/states?${Q}&level=district`;
+    holdPaths.add(districtStates);
+    await mount('consumer_complaint');
+    await pick('District Commission');
+    // District list still in flight; the user moves on to State.
+    await pick('State Commission');
+    expect(optionTexts(sel('dfr-consumer-state')!)).toEqual(['Choose', 'Delhi']);
+    // The first (District) response arrives after the second: Kerala must not appear.
+    act(() => held[districtStates]());
+    await flush();
+    expect(checkedNames()).toEqual(['State Commission']);
+    expect(optionTexts(sel('dfr-consumer-state')!)).toEqual(['Choose', 'Delhi']);
+  });
+
+  it('shows the * marker on State and Consumer Commission when required', async () => {
+    await mount('consumer_complaint');
+    await pick('District Commission');
+    for (const id of ['dfr-consumer-state', 'dfr-consumer-court']) {
+      expect(container.querySelector(`label[for="${id}"] span.text-red-400`)!.textContent).toBe(
+        '*',
+      );
+    }
+  });
+
+  it('shows no marker when the fields are not required', async () => {
+    await mount('consumer_complaint', jest.fn(), {
+      state: { required: false },
+      court: { required: false },
+    });
+    await pick('District Commission');
+    expect(container.querySelector('label[for="dfr-consumer-state"] span')).toBeNull();
+    expect(container.querySelector('label[for="dfr-consumer-court"] span')).toBeNull();
+    expect(container.querySelector('label[for="dfr-consumer-state"]')!.textContent).toBe('State');
+    expect(container.querySelector('label[for="dfr-consumer-court"]')!.textContent).toBe(
+      'Consumer Commission',
+    );
+  });
+
+  it('shows the field error under the State and Consumer Commission selects', async () => {
+    await mount('consumer_complaint', jest.fn(), {
+      state: { validation_pattern: '^delhi$', validation_message: 'State not accepted' },
+      court: { validation_pattern: '^none$', validation_message: 'Commission not accepted' },
+    });
+    await pick('District Commission');
+    expect(container.textContent).not.toContain('State not accepted');
+    await choose('dfr-consumer-state', 'kerala');
+    const stateErr = Array.from(container.querySelectorAll('p.text-red-500')).find(
+      (p) => p.textContent === 'State not accepted',
+    )!;
+    expect(stateErr).toBeDefined();
+    expect(sel('dfr-consumer-state')!.parentElement!.contains(stateErr)).toBe(true);
+    await choose('dfr-consumer-state', 'delhi');
+    expect(container.textContent).not.toContain('State not accepted');
+    await choose('dfr-consumer-court', 'dcdrc_new_delhi');
+    const courtErr = Array.from(container.querySelectorAll('p.text-red-500')).find(
+      (p) => p.textContent === 'Commission not accepted',
+    )!;
+    expect(courtErr).toBeDefined();
+    expect(sel('dfr-consumer-court')!.parentElement!.contains(courtErr)).toBe(true);
+  });
+
+  it('shows the field help under the selects while there is no error', async () => {
+    await mount('consumer_complaint', jest.fn(), {
+      state: { help: 'State help' },
+      court: { help: 'Court help' },
+    });
+    await pick('District Commission');
+    expect(sel('dfr-consumer-state')!.parentElement!.textContent).toContain('State help');
+    expect(sel('dfr-consumer-court')!.parentElement!.textContent).toContain('Court help');
   });
 });
 

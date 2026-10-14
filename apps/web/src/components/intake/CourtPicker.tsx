@@ -22,6 +22,7 @@ import ConsumerLevelGroup, {
   NCDRC_OPTION_LABEL,
   NCDRC_STATE_ID,
   type ConsumerLevel,
+  type LevelChangeHow,
 } from './ConsumerLevelGroup';
 import { input, label, linkButton, small, tagError } from './ui';
 
@@ -105,7 +106,7 @@ export default function CourtPicker({
     return () => {
       off = true;
     };
-  }, [consumer, level, court.court, court.state, court.court_type]);
+  }, [consumer, level, court.court, court.state, court.court_type, attempt]);
 
   const scope = consumer && level ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}` : '';
 
@@ -209,7 +210,7 @@ export default function CourtPicker({
 
   if (consumer) {
     const national = level === 'national';
-    const onLevel = (next: ConsumerLevel) => {
+    const onLevel = (next: ConsumerLevel, how: LevelChangeHow) => {
       if (next === level) return;
       const hadChoice = national
         ? court.court !== null
@@ -225,7 +226,10 @@ export default function CourtPicker({
       );
       const shown = next === 'national' ? LIVE_NATIONAL_SHOWN : LIVE_STATE_SHOWN;
       setLive(hadChoice ? `${LIVE_CLEARED} ${shown}` : shown);
-      focusNext.current = next === 'national' ? 'brief-court-court' : 'brief-court-state';
+      // Arrow keys keep focus on the chip (radio pattern); click, Space or Enter moves it on.
+      if (how === 'activate') {
+        focusNext.current = next === 'national' ? 'brief-court-court' : 'brief-court-state';
+      }
     };
     const optionName = (c: Option) => (c.id === NCDRC_COURT_ID ? NCDRC_OPTION_LABEL : c.name);
     const chosen = court.court ? courts.find((c) => c.id === court.court) : undefined;
