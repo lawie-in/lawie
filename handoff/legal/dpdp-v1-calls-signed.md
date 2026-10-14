@@ -109,3 +109,8 @@ Reviewer feedback is anonymised in place: approved. The internal marker may be `
 
 **Condition met (Arjun, 14 Oct 2026, every model checked read-only).** Billing and ledger rows (Subscription, CouponCode, CouponUsage, CreditLedger/Ink ledger) and the T-436 invoice store have no TTL. The only TTLs are AuditLog (2 years), Consent (12 months after the latest decision), Session and FactDiff (90 days, matching Privacy §9). §5(1) is closed.
 Parked: the billing rows are kept forever, not "72 months". A sweep that deletes them once the 72 months have run would match §9 and DPDP s.8(7).
+
+### 6. T-115c privacy page checks (Tanvi, 14 Oct 2026)
+
+1. §3 sentence **signed** as reworded: `Our database is MongoDB Atlas, in India (Mumbai). Our session store is Redis Cloud, which may store data outside India.` The §5 Atlas row reads "India (Mumbai)".
+2. **Keep CURRENT_PRIVACY_VERSION; no re-accept prompt.** T-115c adds no new data and no new purpose. It adds a way to erase and states the retention periods, which is in users' favour, so bump "Last updated" only. The version bump (with a signed summary) comes with T-436, when we start collecting the State (and optional GSTIN) for invoices: that is new data for a new purpose.
