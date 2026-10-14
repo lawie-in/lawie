@@ -5,6 +5,8 @@
  * this file, which never touches a prompt string, can be reviewed and
  * changed independently. See handoff/design/T-003-token-usage-design.md.
  */
+import logger from '../config/logger';
+
 import { getAppSetting } from './app-settings.service';
 
 // ── Pure stream-event parsers ────────────────────────────────────────────────
@@ -300,7 +302,12 @@ export function priceCacheUsage(
     const key = model ?? '(unknown model)';
     if (!warnedMissingCacheRate.has(key)) {
       warnedMissingCacheRate.add(key);
-      console.warn(
+      logger.warn(
+        {
+          model: key,
+          cacheWriteFallbackMultiplier: CACHE_WRITE_1H_FALLBACK_MULTIPLIER,
+          cacheReadFallbackMultiplier: CACHE_READ_FALLBACK_MULTIPLIER,
+        },
         `[llm-usage] ai.rates for ${key} has no cache_write_usd_per_mtok and/or cache_read_usd_per_mtok; ` +
           `pricing cache tokens at ${CACHE_WRITE_1H_FALLBACK_MULTIPLIER}x (write) / ${CACHE_READ_FALLBACK_MULTIPLIER}x (read) the input rate`,
       );

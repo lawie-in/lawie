@@ -1944,9 +1944,9 @@ async function callD1Drafter(
   const message = await directClient.messages.parse({
     model,
     max_tokens: D1_MAX_TOKENS,
-    // T-437: `system` is DRAFTER_D1_SYSTEM_PROMPT, a constant; the facts and
+    // T-437: cached only when it is the constant D1 prompt; the facts and
     // the skeleton are in the user message.
-    system: cachedSystemBlocks(system),
+    system: system === DRAFTER_D1_SYSTEM_PROMPT ? cachedSystemBlocks(system) : system,
     messages: [{ role: 'user', content: user }],
     output_config: { format },
   });
