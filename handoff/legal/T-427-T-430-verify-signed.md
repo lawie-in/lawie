@@ -53,3 +53,38 @@ The four section numbers (438, 440, 442 and the discharge sections) agree across
 | c | high_court_generic blank without `{year}` | **OK.** Exempt the exact blank string from the `{year}` data test, and nothing else. |
 
 Any other byte in the snapshot needs a fresh sign-off.
+
+## T-429 build notes (Vishal, 14 Oct 2026): criminal_revision and discharge
+
+| # | Item | Ruling | Kind |
+|---|---|---|---|
+| 1 | discharge `key_citations` (:333) | No runtime reads it and it never reaches the model or the user, so no gate. If it is ever wired in, it comes back to me first. | none |
+| 2 | Para 10 (:243) gated on the brief and template paths | Approved. | none |
+| 3 | criminal_revision revision lines | Sections inverted (S.442 is the High Court, S.440 the Sessions Judge). Replace with the text below. | must-fix (T-429) |
+| 4 | discharge :251, whole line replaced by the signed sentence | Approved. | none |
+
+### criminal_revision.json signed text (byte-exact)
+
+- :3 description: `Document-rules config for criminal_revision — Criminal Revision Petition u/S.438 read with S.440 BNSS (Sessions Judge) or S.442 BNSS (High Court) — revisional jurisdiction`
+- :13 displayName: `Criminal Revision (S.438 read with S.440 / S.442 BNSS)`
+- :152 description: `S.438 read with S.440 BNSS (Sessions Judge) or S.438 read with S.442 BNSS (High Court)`
+- :213: `Draft a Criminal Revision Petition under S.438 BNSS (calling for records; was S.397 CrPC) read with S.440 BNSS (Sessions Judge's powers of revision; was S.399 CrPC) or S.442 BNSS (High Court's powers of revision; was S.401 CrPC).`
+- :214: `BNSS provisions: S.438 — the High Court or a Sessions Judge may call for and examine the record; S.440 — Sessions Judge's powers of revision; S.441 — powers of an Additional Sessions Judge; S.442 — High Court's powers of revision; S.443 — High Court's power to withdraw or transfer revision cases.`
+  (S.439 and S.527 dropped: verify.)
+- :230: `Para 6: Whether appeal lay — where an appeal lies and none was brought, no revision at the instance of the party who could have appealed (S.442 BNSS; was S.401(4) CrPC); revision is residual.`
+  (Today it cites "S.438(4)", which I cannot verify exists. Do not use it.)
+- :241: `Choice of forum: Where the impugned order is by a Magistrate — revision lies to the Sessions Judge (S.438 read with S.440 BNSS) or to the High Court (S.438 read with S.442 BNSS), not both (S.438(3) BNSS). Where the impugned order is by a Sessions Court — revision lies to the High Court. Strategic — Sessions revision may be quicker; the High Court also has inherent powers (S.528 BNSS).`
+- sections array (:249–262):
+  - S.438: `Calling for records to exercise powers of revision — High Court or Sessions Judge (was S.397 CrPC)`
+  - S.438(2), S.438(3): unchanged.
+  - S.438(4): delete the row.
+  - S.439: delete the row (verify).
+  - S.440: `Sessions Judge's powers of revision (was S.399 CrPC)`
+  - S.441: `Powers of an Additional Sessions Judge (was S.400 CrPC)`
+  - S.442: `High Court's powers of revision (was S.401 CrPC)`
+  - S.443: `High Court's power to withdraw or transfer revision cases (was S.402 CrPC)`
+  - S.528: unchanged.
+- :32 option values `high_court_s438_bnss` / `sessions_court_s442_bnss`: the keys may stay, but neither key text may reach the model or the printed draft. Map them to `High Court (S.438 read with S.442 BNSS)` / `Sessions Judge (S.438 read with S.440 BNSS)` wherever they are shown or sent. If the select shows raw keys today, use these as its labels.
+
+Test: no string in criminal_revision.json pairs "S.442" with Sessions, or "S.440" with "refer", and no "S.438(4)" remains.
+Sources checked: secondary texts for S.438, S.440, S.442, S.443 and S.441's heading. S.439 is still verify.
