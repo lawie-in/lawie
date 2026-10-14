@@ -27,3 +27,7 @@ Founder ruling, 14 Oct 2026, relayed by Vikram: plan Ink (monthly, and the yearl
 
 - Remove "Unused Ink rolls over" from the upgrade modal (apps/web/src/components/credits/UpgradeSuccessModal.tsx).
 - Add the expiry line to Terms §6 and the pricing FAQ, word for word from handoff/legal/T-433-ink-expiry-wording-signed.md.
+
+## Also (Ajay 74fe979, T-388 AC4 cleared)
+
+Add Ajay's approved "cost before you generate" line to the pricing FAQ's "What is Ink?" answer in the same edit as the T-433 expiry string (both strings are in the same answer; merge both, word for word).
