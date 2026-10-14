@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web + drafting) + Ajay (public line) |
 | Mode   | Small fix |
-| Status | To do. Kunal, after T-379. Ajay's conditions for the public line (3c535be), 13 Oct 2026 |
+| Status | Merged 0ad6869, waiting for Anushka on develop. AC4 public line waits on Ajay's screenshot OK. Kunal, 14 Oct 2026 |
 | Source | Ajay's review of T-372 |
 
 ## Acceptance criteria

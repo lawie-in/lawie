@@ -2,7 +2,12 @@
 import { act } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 
-import BriefStep, { DATE_CHECK_CHANGE, DATE_CHECK_CONTINUE, DATE_CHECK_ID } from '../BriefStep';
+import BriefStep, {
+  DATE_CHECK_CHANGE,
+  DATE_CHECK_CONTINUE,
+  DATE_CHECK_ID,
+  INK_COST_ID,
+} from '../BriefStep';
 import type { Brief, BriefItem } from '../briefTypes';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -83,6 +88,7 @@ describe('BriefStep date check (T-363 AC1)', () => {
           onEditDescription={noop}
           onCancel={noop}
           onConfirm={onConfirm}
+          inkCost={1}
         />,
       );
     });
@@ -112,6 +118,7 @@ describe('BriefStep date check (T-363 AC1)', () => {
     expect(button(DATE_CHECK_CHANGE)).toBeDefined();
     expect(confirm().getAttribute('aria-disabled')).toBe('true');
     expect(confirm().getAttribute('aria-describedby') ?? '').toContain(DATE_CHECK_ID);
+    expect(confirm().getAttribute('aria-describedby') ?? '').toContain(INK_COST_ID);
   });
 
   it('clicking Confirm while held does not confirm', () => {

@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release                                                       |
 | Owner  | Ajay (what each title needs), Rajesh/Meera (questions), then a drafting lead |
 | Mode   | Full chain                                                                   |
-| Status | Part 1 merged 680b41c; part 2 building. Shashank, 14 Oct 2026 |
+| Status | Part 1 merged 680b41c; part 2 merged 1e58ce0. Waiting for Anushka on develop. Shashank, 14 Oct 2026 |
 | Source | T-395 developer report                                                       |
 
 ## Problem
