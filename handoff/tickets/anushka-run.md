@@ -1158,3 +1158,13 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Draft cost now matches what the provider charges. Check first that cache_write_usd_per_mtok is set to the 1-hour price (pre-run checklist).
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-115c — Close your account (ac3a0482, tanvi, 14 Oct 2026)
+
+- Close your account from Settings. Confirm with your password, or, for a Google-only account, type your email after a sign-in within the last 15 minutes.
+- With an active plan, you're told to cancel it first, and nothing changes.
+- Once you confirm, you're signed out everywhere, and your account, profile and documents are erased. Payment records are kept for tax. Feedback you gave on other people's documents stays, without your name.
+- If erasing takes longer, you're told it will be finished for you.
+- The privacy policy describes all of this.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
