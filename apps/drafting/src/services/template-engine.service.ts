@@ -2281,12 +2281,20 @@ export function drafterPromptCourtRule(
  * Build the AI system prompt for config-driven generation.
  * T-410: `courtData` (optional) tells a District from a State Commission for
  * consumer_complaint's localRules.
+ * T-407: `ctx` (optional) is the placeholder context of this draft. When it is
+ * given, each related_acts entry is rendered through replacePlaceholders, so a
+ * computed field (e.g. the s.138 notice's {ni_act_related_sections}) picks the
+ * sections for this drawer. Without ctx each entry still goes through
+ * replacePlaceholders with an empty context, so an unresolved {token} prints as
+ * the normal blank and never reaches the model raw.
  */
 export function buildAISystemPrompt(
   config: TemplateConfig,
   chosenCourtRule?: CourtRuleData | null,
   courtData?: CourtLookupData,
+  ctx?: PlaceholderContext,
 ): string {
+  const relatedActs = config.related_acts.map((act) => replacePlaceholders(act, ctx ?? {}));
   const courtRule =
     config.template_id === CONSUMER_COMPLAINT_ID
       ? consumerPromptRule(chosenCourtRule, courtData)
@@ -2324,7 +2332,7 @@ ANTI-HALLUCINATION GUARDRAILS (MANDATORY):
 - NEVER invent witness names, case numbers, dates, or factual assertions not present in the user's form data.
 - All dates must be reproduced EXACTLY as provided — do not convert formats.
 
-RELATED ACTS: ${config.related_acts.join(', ')}${courtRule?.localRules?.length ? `\n\nCOURT-SPECIFIC RULES (MANDATORY — these override generic conventions):\n${courtRule.localRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}` : ''}${
+RELATED ACTS: ${relatedActs.join(', ')}${courtRule?.localRules?.length ? `\n\nCOURT-SPECIFIC RULES (MANDATORY — these override generic conventions):\n${courtRule.localRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}` : ''}${
     courtRule?.party_designation
       ? `\n\nPARTY DESIGNATIONS FOR THIS COURT:\n${partyDesignationsPromptLines(
           courtRule,

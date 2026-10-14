@@ -22,3 +22,5 @@ When the Ink cost cannot be known, the action **blocks**. It does not go ahead w
 - Reason: AC2 says the shown N equals the charged N. A charge whose price we could not show breaks that promise, and it is exactly what Ajay's public line ("you see the Ink cost before you generate") cannot survive. A notice does not make an unpriced charge priced.
 - "Cannot be known" only happens when the price function fails (bug, bad kind, outage). That is an error, not a user state: the button is disabled, the user sees "We could not work out the Ink cost for this. Try again in a moment." with a retry, and the failure goes to Sentry with the document kind and action — no document content, no PII.
 - Same rule on all three paths (Confirm, regenerate, add-section). No "proceed anyway" option in v1.
+
+AC4 cleared by Ajay (74fe979). The public line ships with T-433 (same pricing FAQ answer). Standing rule (Ajay): any future regenerate or add-section ticket must carry the cost line and the block.

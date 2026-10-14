@@ -25,7 +25,7 @@ Before any real user's facts go into a Fact Ledger, a written rule says how long
   - `FactLedger` keeps every version of the advocate's facts. An earlier version is never changed. Each fact holds its `raw_span`: the advocate's own words, which name the client, the accused, places and amounts. This is personal data under the DPDP Act 2023.
   - `LlmAuxCall` gets a new purpose, `intake_extract`. These rows hold numbers and ids only, but each one links to a `userId` and an `intakeId`.
   - The extraction output is cached in Redis with the other intake calls. That cache entry holds the same facts as the ledger.
-- Today nothing is ever hard-deleted. Documents are only flagged `isDeleted` (T-302, finding 2). T-115 (permanent delete) still needs a design from Arjun.
+- (Out of date from 14 Oct: T-115b hard-deletes a document the user deletes; T-115c erases a closed account.) Today nothing is ever hard-deleted. Documents are only flagged `isDeleted` (T-302, finding 2). T-115 (permanent delete) still needs a design from Arjun.
 - T-302's retention rule covers uploads only, not the ledger.
 - Cost work (T-004, T-108) reads `LlmAuxCall` numbers, so the rule must say whether those rows are deleted or only unlinked from the user.
 

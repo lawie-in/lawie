@@ -1094,3 +1094,10 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - An older draft's court that is no longer offered stays, marked "(not offered for this document)".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-407 part 2 — No s.141 on the template form for an individual drawer (5489513c, vishal, 14 Oct 2026)
+
+- Draft a cheque-bounce notice from the template form against an individual, a HUF, or a drawer whose type isn't given: the draft no longer cites the section that makes companies and their officers liable.
+- For a company or a partnership firm it still does.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
