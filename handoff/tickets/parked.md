@@ -12,3 +12,4 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 | 14 Oct 2026 | T-425 part 2 (Tanvi) | Classic form: a kept (not-offered) court can show the saved court's state name when the draft's state differs. DFR has no draft loading yet. |
 | 14 Oct 2026 | T-425 part 2 (Tanvi) | Possibly one extra court lookup on a state/type change; no wrong value. |
 | 14 Oct 2026 | T-436 (Ajay) | Optional customer GSTIN on invoices (B2B input credit). Ajay, parked. |
+| 14 Oct 2026 | T-436 (Ajay) | Class 3 DSC on invoice PDFs instead of a scanned signature. Ajay, parked. |

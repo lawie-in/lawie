@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                        |
 | ------ | ---------------------------------------------------------------------------- |
-| Status | Todo, gated. Waits on Ajay's ruling, Arjun's mechanism call, the founder's GST details. Pre-v1 blocker for charging anyone. Priya, 14 Oct 2026 |
+| Status | Ready, gates clear (Ajay 9201297 + Addenda 1-2 2a31eed; Arjun design; founder GST details with Vikram, env config only). Next free lead. Priya, 14 Oct 2026 |
 | Owner  | Lead (build), Vikram (requirements), Ajay (contents/wording), Arjun (mechanism), Rajesh (any new checkout fields) |
 | Mode   | Full chain (billing + web; email-worker if invoices are emailed by us)       |
 
