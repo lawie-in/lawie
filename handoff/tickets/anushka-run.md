@@ -1087,3 +1087,10 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The classic bail form is not changed yet (part 2).
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-425 part 2 — Classic bail form shows only bail courts (a7674bdb, tanvi, 14 Oct 2026)
+
+- On the standard bail form, the court list shows only courts that hear bail (same rule as part 1).
+- An older draft's court that is no longer offered stays, marked "(not offered for this document)".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

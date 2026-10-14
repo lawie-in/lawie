@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                  |
 | ------ | ---------------------------------------------------------------------- |
-| Status | Part 1 merged 2d0b93b2; part 2 (classic bail form) building. Tanvi, 14 Oct 2026 |
+| Status | Part 1 merged 2d0b93b2, part 2 merged a7674bdb. Waiting for Anushka on develop. Tanvi, 14 Oct 2026 |
 | Owner  | Tanvi (build), Ajay (rule, 477fcaa)                                    |
 | Mode   | Small fix (web + courts route) unless Explore finds more than one service |
 
