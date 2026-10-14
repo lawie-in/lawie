@@ -10,7 +10,8 @@
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "lint": "eslint 'src/**/*.ts' --fix",
-    "erase-user": "ts-node --transpile-only src/scripts/erase-user.ts"
+    "erase-user": "ts-node --transpile-only src/scripts/erase-user.ts",
+    "verify:resend-all": "ts-node --transpile-only scripts/verify-resend-all.ts"
   },
   "dependencies": {
     "@lawie/email-client": "1.0.0",
