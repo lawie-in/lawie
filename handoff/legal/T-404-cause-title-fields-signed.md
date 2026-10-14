@@ -118,3 +118,8 @@ Test: a deed with no place field gives the blank, and no court city appears.
 - Help: `City or town where the document will be signed.`
 
 `{place}` prints the answer, and with no answer, the blank.
+
+**Part 2, place of execution (14 Oct 2026, Shashank's three questions):**
+1. **affidavit_identity: keep it required.** An affidavit states where it is sworn, so the place cannot be optional there. Use the signed label `Place of execution` and the signed help text. My "optional" ruling covers only the deeds that had no place question.
+2. **Guided brief: yes, add `ask_when_empty`** on `execution_place` for all 12 packs, so the brief asks for it. The blank stays as the fallback when the advocate skips it.
+3. **rent_agreement: align the label and help** to `Place of execution` / `City or town where the document will be signed.` and keep it required, as it already is.
