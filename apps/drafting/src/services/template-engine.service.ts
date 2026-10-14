@@ -560,6 +560,33 @@ export function matterTypeFor(templateId: string): string | null {
   return MATTER_TYPE_BY_TEMPLATE.get(templateId) ?? null;
 }
 
+/**
+ * The court rule's `case_nomenclature` key for a document type, or undefined
+ * (bail packs, quashing, writs; the mapping the court-rule block has used since
+ * SCRUM-50).
+ */
+function ruleCaseNomenclatureKey(templateId: string): string | undefined {
+  if (templateId.includes('anticipatory')) return 'anticipatory_bail';
+  if (templateId.includes('bail')) return 'regular_bail';
+  if (templateId.includes('quashing')) return 'quashing';
+  if (templateId.includes('writ')) return 'civil_writ';
+  return undefined;
+}
+
+/**
+ * The court rule's own case line for a document type, with `{year}` not yet
+ * filled in. Undefined when there is no rule, the document type has no key, or
+ * the rule has no non-empty line under that key.
+ */
+function ruleCaseLineFor(
+  rule: Pick<CourtRuleData, 'case_nomenclature'> | undefined,
+  templateId: string,
+): string | undefined {
+  const key = ruleCaseNomenclatureKey(templateId);
+  const line = key ? rule?.case_nomenclature?.[key] : undefined;
+  return typeof line === 'string' && line.trim() !== '' ? line : undefined;
+}
+
 /** T-177: the family court rule's id (config/court-rules/family_court.json). */
 const FAMILY_COURT_RULE_ID = 'family_court';
 
@@ -1100,19 +1127,21 @@ export function resolveComputedFields(
     // Pattern: court_rules[field].property || 'default'
     const courtRulesMatch = logic.match(/^court_rules\[(\w+)\]\.(\w+)\s*\|\|\s*'([^']*)'$/);
     if (courtRulesMatch) {
-      const [, courtField, prop, defaultVal] = courtRulesMatch;
+      const [, , prop, defaultVal] = courtRulesMatch;
       if (prop === 'case_nomenclature' && !nomenclatureAllowed(config.template_id)) {
         computed[fieldId] = '';
-      } else if (courtData && prop === 'case_nomenclature') {
-        computed[fieldId] = courtData.caseNomenclature || defaultVal;
-      } else if (
-        !courtData &&
-        prop === 'case_nomenclature' &&
-        !String(formData[courtField] ?? '').trim()
-      ) {
-        // T-404 Addendum 3 #4, 2957f50 (a): no court, so no case line from the
-        // template's default; the case-type blank instead.
-        computed[fieldId] = CASE_TYPE_BLANK;
+      } else if (prop === 'case_nomenclature') {
+        // T-404 part 2 (Ajay, 6f567e6): the chosen court's rule line for this
+        // pack, else the case-type blank. Never the courts list's court-wide
+        // line ("Civil Suit No.", "O.A. No." ...) and never the pack's own
+        // default. No court record (none chosen, or only a typed name) is the
+        // blank too (Addendum 3 #4, 2957f50 (a)).
+        // `{year}` becomes `{current_year}`, which the recursive pass fills in.
+        computed[fieldId] =
+          ruleCaseLineFor(courtData?.courtRule, config.template_id)?.replace(
+            /\{year\}/g,
+            '{current_year}',
+          ) ?? CASE_TYPE_BLANK;
       } else {
         computed[fieldId] = defaultVal;
       }
@@ -1236,8 +1265,9 @@ function advocateAddressOrBlank(value: string | undefined): string {
 }
 
 /**
- * T-404 rule 4: with no court chosen, {courtHeader}, {courtDesignation} and
- * {caseNomenclature} print the signed blank, never `_____`. Only the camelCase
+ * T-404 rule 4: with no court chosen, {courtHeader} and {courtDesignation}
+ * print the court blank and {caseNomenclature} the case-type blank (2be946d
+ * (b)), never `_____`. Only the camelCase
  * tokens: `court_designation` stays as it was, since the Drafter is told the
  * court from it. Runs after `applyPlaceholderAliases`, so a value wins.
  * T-406: a document not filed in court (`allowNomenclature` false) gets no
@@ -1255,9 +1285,13 @@ function applyCourtBlanks(
     }
     return;
   }
-  for (const alias of ['courtHeader', 'courtDesignation', 'caseNomenclature']) {
-    if (alias === 'caseNomenclature' && !allowNomenclature) continue;
+  for (const alias of ['courtHeader', 'courtDesignation']) {
     if (!ctx[alias]?.trim()) ctx[alias] = COURT_BLANK;
+  }
+  // T-404 2be946d (b): with no court, the case line is the case-type blank in
+  // every court pack; the court blank is for the court itself.
+  if (allowNomenclature && !ctx.caseNomenclature?.trim()) {
+    ctx.caseNomenclature = CASE_TYPE_BLANK;
   }
   // T-404 (2957f50, c): "Place:" / "Verified at" with no court and no city.
   for (const alias of ['place', 'courtPlace']) {
@@ -1273,8 +1307,10 @@ export const PLACE_BLANK = '[To be confirmed: place]';
 
 /**
  * T-404 (Ajay, 49b5fd2): the place fields a not-court pack may declare for its
- * place of execution. Of the 32 `not_court_documents`, only rent_agreement
- * declares one (`execution_place`).
+ * place of execution. rent_agreement and the 11 deeds (affidavit_identity,
+ * gift_deed, joint_development_agreement, lease_deed, license_agreement,
+ * mortgage_deed, mou, partition_deed, release_deed, sale_deed, will) declare
+ * `execution_place` (T-404 part 2, Ajay 687c19f).
  */
 const NOT_COURT_PLACE_FIELDS = ['execution_place'];
 
@@ -1812,20 +1848,9 @@ export function buildPlaceholderContext(
       // no case nomenclature
     } else if (familyLine !== null) {
       ctx.case_nomenclature = familyLine.replace(/\{year\}/g, ctx.current_year);
-    } else if (rule.case_nomenclature) {
-      const templateId = config.template_id;
-      // Map template_id to case_nomenclature key
-      const nomenKey = templateId.includes('anticipatory')
-        ? 'anticipatory_bail'
-        : templateId.includes('bail')
-          ? 'regular_bail'
-          : templateId.includes('quashing')
-            ? 'quashing'
-            : templateId.includes('writ')
-              ? 'civil_writ'
-              : undefined;
-      const nomen = nomenKey ? rule.case_nomenclature[nomenKey] : undefined;
-      if (typeof nomen === 'string' && nomen) {
+    } else {
+      const nomen = ruleCaseLineFor(rule, config.template_id);
+      if (nomen !== undefined) {
         ctx.case_nomenclature = nomen.replace(/\{year\}/g, ctx.current_year);
       }
     }

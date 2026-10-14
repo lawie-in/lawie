@@ -561,7 +561,7 @@
       "logic": "courts_db.lookup(court_name).city"
     },
     "case_nomenclature": {
-      "logic": "court_rules[court_name].case_nomenclature || 'Criminal Miscellaneous Case'"
+      "logic": "court_rules[court_name].case_nomenclature || '[To be confirmed: case type and number]'"
     }
   },
   "document_structure": {

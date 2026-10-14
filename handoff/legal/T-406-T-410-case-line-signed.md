@@ -100,3 +100,15 @@ Neither names one level or cites s.35, because the section depends on the forum 
 **Item 3 amended: (a).** A State Commission gets no localRules for now, because all 36 point to the District-worded generic rule. Its pecuniary band comes from its own court record (Rs. 50 lakh to Rs. 2 crore, already audited). Signed State fee lines would need verified fee figures, so that waits for a separate ticket if it is ever wanted. The test stays: no "District Commission" in the State or non-Commission prompts.
 
 **Test scope (item 3).** The RELATED ACTS line is exempt from the no-"District Commission" test, because it names all three bands and the Rules in full, which is correct for every forum. The test must also check that this line is byte-equal to the signed related_acts text, so nothing else can hide in it.
+
+## T-425 scope (14 Oct 2026, Tanvi's two questions)
+
+1. **Bail packs:** bail_regular, bail_anticipatory, bail_before_magistrate, default_bail, interim_bail and bail_cancellation. None of the six may be offered at a Consumer Commission, NCDRC or the Supreme Court. suspension_of_sentence is not in this filter: it goes to the appellate court, which can be the Supreme Court.
+2. **bail_anticipatory:** a Court of Session and the High Courts (including their benches) only. On district records:
+   - Keep the state `*_district` records. These are District and Sessions Courts on the criminal side, and they carry bail lines.
+   - Keep `sessions_generic`.
+   - Drop `district_court_generic` (the civil district court) and the Magistrate records (cjm, jmfc).
+
+   If a record's type can't tell a civil court from a Sessions court, keep it rather than block a valid filing. The T-426 generic case line covers it.
+
+**T-425, tribunals and civil courts (14 Oct 2026): drop them.** No tribunal (family court, NCLT, CAT, DRT, ITAT, labour court) and no civil court has power to grant or cancel bail under the BNSS. The five non-anticipatory bail packs keep only Sessions, the criminal-side `*_district` records, the High Courts and their benches, and CJM/JMFC. Must-fix. Test: one tribunal record and civil_court are absent for each of the five packs.
