@@ -15,6 +15,7 @@
 import { ChevronLeft, ChevronRight, IndianRupee, Paperclip, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { isBailTemplate, NOT_OFFERED_SUFFIX, SAVED_TYPE_NAMES } from '../intake/bailCourts';
 import ConsumerLevelGroup, {
   CONSUMER_COURT_LABEL,
   CONSUMER_COURT_TYPE,
@@ -904,23 +905,44 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 /**
  * T-411: an optional template scope. For consumer_complaint the lists are filtered by the
  * Commission level (part 1 server API); with no scope everything behaves as before.
+ * T-425: for the six bail packs the three lists are asked for with `template=<id>`.
  */
 export interface CourtsScope {
   templateId?: string;
   level?: ConsumerLevel | null;
+  /** T-425 (AC3): the form field holding the court, so a saved court can be kept. */
+  courtFieldId?: string;
+}
+
+interface SavedCourt {
+  id: string;
+  name: string;
+  state: string;
 }
 
 export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsScope) {
   const [states, setStates] = useState<FieldOption[]>([]);
+  const [statesLoaded, setStatesLoaded] = useState(false);
   const [courtTypes, setCourtTypes] = useState<FieldOption[]>([]);
+  const [typesLoaded, setTypesLoaded] = useState(false);
   const [courts, setCourts] = useState<FieldOption[]>([]);
   const [courtsLoaded, setCourtsLoaded] = useState(false);
+  const [saved, setSaved] = useState<SavedCourt | null>(null);
+  // T-425: saved court ids whose by-id lookup failed; not asked again.
+  const lookupFailed = useRef<Set<string>>(new Set());
 
   const stateId = String(formData.state ?? '');
   const courtType = String(formData.court_type ?? '');
+  const courtId = scope?.courtFieldId ? String(formData[scope.courtFieldId] ?? '') : '';
   const consumer = scope?.templateId === CONSUMER_TEMPLATE_ID;
+  const bail = isBailTemplate(scope?.templateId);
   const level = consumer ? (scope?.level ?? null) : null;
-  const query = consumer && level ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}` : '';
+  const query =
+    consumer && level
+      ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}`
+      : bail
+        ? `template=${encodeURIComponent(scope?.templateId as string)}`
+        : '';
 
   // Fetch states once on mount (once per level in consumer mode)
   const statesFetched = useRef<string | null>(null);
@@ -928,11 +950,13 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
     if (consumer && (!level || level === 'national')) {
       statesFetched.current = null;
       setStates([]);
+      setStatesLoaded(false);
       return;
     }
     if (statesFetched.current === query) return;
     statesFetched.current = query;
     let off = false;
+    setStatesLoaded(false);
     fetch(`${API_URL}/api/courts/states${query ? `?${query}` : ''}`)
       .then((r) => r.json())
       .then((data) => {
@@ -941,6 +965,7 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
           setStates(
             data.states.map((s: { id: string; name: string }) => ({ id: s.id, label: s.name })),
           );
+          setStatesLoaded(true);
         }
       })
       .catch(() => {});
@@ -957,24 +982,34 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
     if (consumer) {
       // The level replaces the court type in consumer mode.
       setCourtTypes([]);
+      setTypesLoaded(false);
       return;
     }
     if (!stateId) {
       setCourtTypes([]);
+      setTypesLoaded(false);
       setCourts([]);
       return;
     }
-    fetch(`${API_URL}/api/courts/types?state=${encodeURIComponent(stateId)}`)
+    const typesPath = `${API_URL}/api/courts/types?state=${encodeURIComponent(stateId)}`;
+    let off = false;
+    setTypesLoaded(false);
+    fetch(query ? `${typesPath}&${query}` : typesPath)
       .then((r) => r.json())
       .then((data) => {
+        if (off) return;
         if (data.types) {
           setCourtTypes(
             data.types.map((t: { id: string; label: string }) => ({ id: t.id, label: t.label })),
           );
+          setTypesLoaded(true);
         }
       })
       .catch(() => {});
-  }, [stateId, consumer]);
+    return () => {
+      off = true;
+    };
+  }, [stateId, consumer, query]);
 
   // Fetch courts when state + court_type change
   useEffect(() => {
@@ -992,9 +1027,11 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
     } else {
       if (!stateId || !courtType) {
         setCourts([]);
+        setCourtsLoaded(false);
         return;
       }
       path = `${API_URL}/api/courts?state=${encodeURIComponent(stateId)}&type=${encodeURIComponent(courtType)}`;
+      if (query) path = `${path}&${query}`;
     }
     let off = false;
     setCourtsLoaded(false);
@@ -1019,7 +1056,59 @@ export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsS
     };
   }, [stateId, courtType, consumer, level, query]);
 
-  return { states, courtTypes, courts, courtsLoaded };
+  // T-425 (AC3): a bail form holding a court this pack no longer offers keeps it. Ask for
+  // that court by id only to name it in the list; the value itself is never changed.
+  const courtNotOffered =
+    bail && courtId !== '' && courtsLoaded && !courts.some((c) => c.id === courtId);
+  useEffect(() => {
+    if (!courtNotOffered || saved?.id === courtId) return;
+    const id = courtId;
+    if (lookupFailed.current.has(id)) return;
+    let off = false;
+    fetch(`${API_URL}/api/courts/${encodeURIComponent(id)}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('court');
+        const data = (await res.json()) as { court?: { name?: string; state?: string } };
+        if (!data.court?.name) throw new Error('court');
+        if (!off) setSaved({ id, name: data.court.name, state: data.court.state ?? '' });
+      })
+      // Only the label is lost: the saved id still shows. A failure is about the id, so it
+      // is remembered even if this run was superseded.
+      .catch(() => {
+        lookupFailed.current.add(id);
+      });
+    return () => {
+      off = true;
+    };
+  }, [courtNotOffered, courtId, saved?.id]);
+
+  const savedName = saved && saved.id === courtId ? saved : null;
+  const keptStateLabel =
+    bail && stateId && statesLoaded && !states.some((s) => s.id === stateId)
+      ? `${savedName?.state || stateId}${NOT_OFFERED_SUFFIX}`
+      : null;
+  const keptTypeLabel =
+    bail && courtType && typesLoaded && !courtTypes.some((t) => t.id === courtType)
+      ? `${SAVED_TYPE_NAMES[courtType] ?? courtType}${NOT_OFFERED_SUFFIX}`
+      : null;
+  const keptCourtLabel = courtNotOffered
+    ? `${savedName?.name ?? courtId}${NOT_OFFERED_SUFFIX}`
+    : null;
+
+  const shownStates = useMemo(
+    () => (keptStateLabel ? [{ id: stateId, label: keptStateLabel }, ...states] : states),
+    [keptStateLabel, stateId, states],
+  );
+  const shownTypes = useMemo(
+    () => (keptTypeLabel ? [{ id: courtType, label: keptTypeLabel }, ...courtTypes] : courtTypes),
+    [keptTypeLabel, courtType, courtTypes],
+  );
+  const shownCourts = useMemo(
+    () => (keptCourtLabel ? [{ id: courtId, label: keptCourtLabel }, ...courts] : courts),
+    [keptCourtLabel, courtId, courts],
+  );
+
+  return { states: shownStates, courtTypes: shownTypes, courts: shownCourts, courtsLoaded };
 }
 
 export function resolveOptions(
@@ -1340,9 +1429,15 @@ export default function DynamicFormRenderer({
   });
 
   // Courts data from API — cascading dropdowns (SCRUM-50)
+  // T-425: the bail packs ask for their lists with template=<id> and keep a saved court.
+  const bail = isBailTemplate(config.template_id);
   const courtsData = useCourtsData(
     formData,
-    consumer ? { templateId: config.template_id, level } : undefined,
+    consumer
+      ? { templateId: config.template_id, level }
+      : bail
+        ? { templateId: config.template_id, courtFieldId: courtFieldIds.court }
+        : undefined,
   );
 
   const onLevel = (next: ConsumerLevel, how: LevelChangeHow) => {

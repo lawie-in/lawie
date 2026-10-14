@@ -9,12 +9,14 @@ const router = Router();
  * T-411: template-scoped court lists.
  *
  * Optional query params, accepted by GET /courts, GET /courts/types and GET /courts/states:
- *   - `template`: a template id. Only templates in TEMPLATE_COURT_FILTER narrow the list.
+ *   - `template`: a template id. Only templates in TEMPLATE_COURT_FILTER narrow the list
+ *     (consumer_complaint, T-411; the six bail packs, T-425).
  *     A missing or unknown template (or one sent more than once) means no filter, i.e.
  *     exactly the pre-T-411 result. Templates' `court_levels` are NOT honoured in general:
  *     the packs use a free vocabulary for them ('transactional', 'magistrate', ...).
  *   - `level`: only read when `template` is in the map; ignored otherwise. For
  *     consumer_complaint one of `district` | `state` | `national` (anything else is a 400).
+ *     The bail packs have no levels: any non-empty `level` with them is a 400.
  *     Levels are classified with consumerForum() from the template engine, so the picker
  *     and the drafted document agree on what a District/State/National Commission is.
  *
@@ -39,6 +41,11 @@ interface TemplateCourtFilter {
   levels: readonly string[];
   /** Levels whose courts are not tied to a state; `state` is ignored for them. */
   stateless: readonly string[];
+  /**
+   * T-425: true when GET /courts still narrows by `type` inside the scope (the generic
+   * state + type + court picker). False for consumer_complaint, where the level decides.
+   */
+  keepsType: boolean;
   /** The court's level, or null if it has none. */
   levelOf: (court: {
     designation: string;
@@ -47,13 +54,64 @@ interface TemplateCourtFilter {
   }) => string | null;
 }
 
+/**
+ * T-425 (Ajay 477fcaa, 03b3e6e, 69c8cbe; legal content): the bail packs, by exact id. No
+ * prefix matching: suspension_of_sentence is deliberately not here.
+ */
+const BAIL_TEMPLATE_IDS = [
+  'bail_regular',
+  'bail_anticipatory',
+  'bail_before_magistrate',
+  'default_bail',
+  'interim_bail',
+  'bail_cancellation',
+] as const;
+
+/**
+ * The courts that can grant or cancel bail (Ajay 1eb5e9e). An allow-list: anything not
+ * named here is dropped, so every tribunal (incl. NCDRC), civil_court, consumer_commission
+ * and supreme_court is out, and so is any court type added later until it is listed.
+ * Kept: every sessions, high_court and high_court_bench record (whatever its
+ * formattingRulesRef; a record that cannot be told apart is kept), and district_court
+ * records on a state `<x>_district` ref (District and Sessions, criminal side).
+ * district_court on district_court_generic (civil) is dropped.
+ */
+const BAIL_SUPERIOR_COURTS = [
+  { courtType: { $in: ['sessions', 'high_court', 'high_court_bench'] } },
+  { courtType: 'district_court', formattingRulesRef: { $regex: '^[a-z]+_district$' } },
+];
+
+/** The Magistrate courts: allowed for every bail pack except bail_anticipatory. */
+const BAIL_MAGISTRATE_COURTS = [{ courtType: { $in: ['cjm', 'jmfc'] } }];
+
+/**
+ * bail_anticipatory lies before Sessions or the High Court only (s.482 BNSS), so no
+ * cjm/jmfc. The other five packs also allow the Magistrate courts.
+ */
+function bailFilter(id: (typeof BAIL_TEMPLATE_IDS)[number]): TemplateCourtFilter {
+  return {
+    filter: {
+      $or:
+        id === 'bail_anticipatory'
+          ? BAIL_SUPERIOR_COURTS
+          : [...BAIL_SUPERIOR_COURTS, ...BAIL_MAGISTRATE_COURTS],
+    },
+    levels: [],
+    stateless: [],
+    keepsType: true,
+    levelOf: () => null,
+  };
+}
+
 const TEMPLATE_COURT_FILTER: ReadonlyMap<string, TemplateCourtFilter> = new Map([
+  ...BAIL_TEMPLATE_IDS.map((id) => [id, bailFilter(id)] as const),
   [
     'consumer_complaint',
     {
       filter: { $or: [{ courtType: 'consumer_commission' }, { formattingRulesRef: 'ncdrc' }] },
       levels: ['district', 'state', 'national'],
       stateless: ['national'],
+      keepsType: false,
       levelOf: (court) =>
         consumerForum({
           designation: court.designation,
@@ -77,6 +135,10 @@ function templateScope(req: Request): TemplateScope {
   const spec = TEMPLATE_COURT_FILTER.get(template);
   if (!spec) return { kind: 'none' };
   if (level === undefined || level === '') return { kind: 'scoped', spec, level: null };
+  if (spec.levels.length === 0) {
+    // T-425: the bail packs have no levels, so any `level` is a 400 as for a bad one.
+    return { kind: 'error', message: `level is not accepted for template ${template}` };
+  }
   if (typeof level !== 'string' || !spec.levels.includes(level)) {
     return { kind: 'error', message: `level must be one of ${spec.levels.join('|')}` };
   }
@@ -89,11 +151,15 @@ async function scopedCourts(
   level: string | null,
   state: unknown,
   fields: string,
+  type?: unknown,
 ) {
   const filter: Record<string, unknown> = { isActive: true, ...spec.filter };
   const stateless = level !== null && spec.stateless.includes(level);
   if (!stateless && typeof state === 'string' && state) {
     filter.stateId = state;
+  }
+  if (spec.keepsType && typeof type === 'string' && type) {
+    filter.courtType = type;
   }
   const courts = await Court.find(filter)
     .select(`${fields} designation courtType formattingRulesRef`)
@@ -170,6 +236,7 @@ router.get('/types', async (req: Request, res: Response): Promise<void> => {
 
   const TYPE_LABELS: Record<string, string> = {
     high_court: 'High Court',
+    high_court_bench: 'High Court Bench',
     sessions: 'Sessions Court',
     district_court: 'District Court',
     cjm: 'Chief Judicial Magistrate',
@@ -192,8 +259,9 @@ const LIST_FIELDS =
  * Returns courts matching state and court type filters.
  * All parameters optional — returns all active courts if none provided.
  * With a scoped template (see TEMPLATE_COURT_FILTER above) only that template's courts are
- * returned, `type` is ignored, and `state` is ignored for a stateless level, e.g.
- * /courts?template=consumer_complaint&level=national returns just NCDRC.
+ * returned. For consumer_complaint `type` is ignored, and `state` is ignored for a stateless
+ * level, e.g. /courts?template=consumer_complaint&level=national returns just NCDRC. For the
+ * bail packs (T-425) `state` and `type` narrow within the scope as without a template.
  */
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   const scope = templateScope(req);
@@ -202,7 +270,13 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     return;
   }
   if (scope.kind === 'scoped') {
-    const courts = await scopedCourts(scope.spec, scope.level, req.query.state, LIST_FIELDS);
+    const courts = await scopedCourts(
+      scope.spec,
+      scope.level,
+      req.query.state,
+      LIST_FIELDS,
+      req.query.type,
+    );
     res.json({ courts });
     return;
   }

@@ -93,7 +93,7 @@ describe('BriefStep consumer court (T-411 AC9)', () => {
   });
 
   it('another template keeps the court type select and the old state URL', async () => {
-    await mount(briefOf('bail_regular', none));
+    await mount(briefOf('suspension_of_sentence', none));
     expect(container.querySelector('[role="radiogroup"]')).toBeNull();
     expect(container.querySelector('#brief-court-type')).not.toBeNull();
     expect(paths()).toEqual(['/api/courts/states']);
@@ -121,7 +121,7 @@ describe('BriefStep consumer court (T-411 AC9)', () => {
   });
 
   it('a non-consumer brief with the court blocked focuses the state select, not a group', async () => {
-    await mount(briefOf('bail_regular', none));
+    await mount(briefOf('suspension_of_sentence', none));
     click(messageButton());
     expect(document.activeElement).toBe(container.querySelector('#brief-court-state'));
   });

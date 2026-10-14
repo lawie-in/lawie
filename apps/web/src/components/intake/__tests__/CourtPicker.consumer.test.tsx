@@ -473,7 +473,7 @@ describe('CourtPicker, consumer_complaint keyboard and reload', () => {
 });
 
 describe('CourtPicker, other templates', () => {
-  it.each([['bail_regular'], [undefined]])(
+  it.each([['suspension_of_sentence'], [undefined]])(
     'templateId %p: court type select, old URLs without template, no level group',
     async (templateId) => {
       await mount({ templateId });
