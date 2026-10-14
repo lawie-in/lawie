@@ -47,7 +47,7 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-**RESUMED 16:11 UTC, 14 Oct (founder: 'Continue now'). T-408 CI green (run 527). Merge queue: Mahak T-423, Kunal T-396, Vishal T-376, Shashank T-404 part 2, each after the previous CI is green.** Previous stop points (11:28): Stop points: Kunal T-415 merged (CI green), T-396 ready fcb2f05 (all four reports). Shashank T-404 part 1 merged (CI green), part 2 on feature/t-404-part2 14b8721 (tester green, review pass; full suite + doc-writer left). Vishal T-422 merged (CI green), T-376 ready 31e1fc8. Mahak T-423 ready a131ad4, T-424 Explore done. Tanvi T-408 merged b7b12cff (CI running at stop), T-411 server + UI pushed 273440ee (UI tests + review left). Hour targets: Targets: Kunal merge T-415, then T-396. Shashank merge T-404 part 1, then start part 2. Vishal T-422 merged, then T-376. Mahak T-423 merged. Tanvi T-411 UI if the Figma link lands; otherwise T-408 (Explore, then build). Merge order: T-415, then T-404 part 1, then first-ready.
+**RESUMED 18:20 UTC, 14 Oct (founder: 'continue'). T-411 CI green (run 531). Merge queue: Vishal T-407 part 1, Shashank T-404 part 2 (first-ready), then Kunal T-388.** Earlier pause 17:35 (usage limit): Today's second round merged T-423, T-396, T-376, T-411 (CI running). Ready: Vishal T-407 part 1, Shashank T-404 part 2. Kunal T-388 round 2 next. T-358, T-115b, T-115c are v1 must-fixes (Ajay a84e298), unassigned, waiting on Rajesh's specs.** Earlier: RESUMED 16:11 UTC, 14 Oct (founder: 'Continue now'). T-408 CI green (run 527). Merge queue: Mahak T-423, Kunal T-396, Vishal T-376, Shashank T-404 part 2, each after the previous CI is green.** Previous stop points (11:28): Stop points: Kunal T-415 merged (CI green), T-396 ready fcb2f05 (all four reports). Shashank T-404 part 1 merged (CI green), part 2 on feature/t-404-part2 14b8721 (tester green, review pass; full suite + doc-writer left). Vishal T-422 merged (CI green), T-376 ready 31e1fc8. Mahak T-423 ready a131ad4, T-424 Explore done. Tanvi T-408 merged b7b12cff (CI running at stop), T-411 server + UI pushed 273440ee (UI tests + review left). Hour targets: Targets: Kunal merge T-415, then T-396. Shashank merge T-404 part 1, then start part 2. Vishal T-422 merged, then T-376. Mahak T-423 merged. Tanvi T-411 UI if the Figma link lands; otherwise T-408 (Explore, then build). Merge order: T-415, then T-404 part 1, then first-ready.
 
 **Next session merge queue (Priya, 11:08 14 Oct):** 1. Mahak T-423 (fix/t-423-brief-seal, ready). 2. Kunal T-396 (fcb2f05, ready, all four reports). 3. Vishal T-376 (after Arjun's concurrency answer). Each waits for the previous merge's CI to go green. Tanvi's T-408 goes at 11:14 today if ready; if not, it's first next session.
 Previous hour (13 Oct, 16:42–17:42):
@@ -63,6 +63,8 @@ Where each lead stopped:
 
 ## Last done
 
+- tanvi: T-411 CI green (run 531).
+- tanvi: T-411 merged 6db7e551 (14 Oct 2026). Consumer complaint court picker: District/State/National Commission, NCDRC without a state, 'Consumer Commission' label. BriefStep.tsx and DynamicFormRenderer.tsx released to Kunal (T-388). Next T-425.
 - vishal: T-376 CI green (run 530); golden-set.yml first run skipped cleanly.
 - vishal: T-376 merged b5961c1 (14 Oct 2026). Real-model golden set runs on drafting prompt/pack/section changes and nightly, in its own golden-set.yml. Green after the founder's secrets. Next T-407 part 1 merge.
 - kunal: T-396 CI green (run 529). Now T-388.
