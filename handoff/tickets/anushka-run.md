@@ -1008,3 +1008,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - This is the check for your T-313 and T-318.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-415 — Stuck Ink credits finish on retry (42703a4, kunal, 14 Oct 2026)
+
+- If a payment's Ink credit gets stuck part-way, Razorpay's next retry finishes it, and it's never credited twice.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

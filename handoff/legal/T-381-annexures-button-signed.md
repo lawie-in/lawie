@@ -136,3 +136,12 @@ No cost, "free" or disclaimer wording, as Mahak listed.
 - cat_oa: client address ← `applicant_office_address`
 - mact_claim: client age ← `victim_age_at_accident`
 - counter_affidavit and rejoinder_affidavit: client age and address ← `deponent_age` and `deponent_address` (the deponent is the client in both)
+
+**Addendum 4: the State line for 5 packs (14 Oct 2026, Kunal's T-396).** Drop the line, as built, for bail_cancellation, criminal_appeal, criminal_revision, itat_appeal and writ_petition_criminal. The State is not always a party in these:
+
+- In itat_appeal the counterpart is the tax authority.
+- In bail_cancellation the respondent is the accused.
+- In criminal_appeal and criminal_revision it depends on who files.
+- In writ_petition_criminal the respondents come from the advocate's list.
+
+A State printed where it is not a party is wrong, and the advocate can name it in the respondent fields. Only the 10 bail and quashing packs keep the line.

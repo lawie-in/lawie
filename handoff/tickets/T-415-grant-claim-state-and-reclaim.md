@@ -1,10 +1,10 @@
 # T-415: grant claims carry a state, so a stuck claim can be re-claimed
 
-| Field  | Value                                           |
-| ------ | ----------------------------------------------- |
-| Status | Building. Kunal, full chain. Priya, 13 Oct 2026 |
-| Owner  | Kunal (build), Arjun (call)                     |
-| Mode   | Full chain (billing grant logic; Kunal, 13 Oct) |
+| Field  | Value                                                                                           |
+| ------ | ----------------------------------------------------------------------------------------------- |
+| Status | Merged into develop_staging 42703a4 (Kunal, 14 Oct 2026). Waiting for Anushka on develop. Priya |
+| Owner  | Kunal (build), Arjun (call)                                                                     |
+| Mode   | Full chain (billing grant logic; Kunal, 13 Oct)                                                 |
 
 ## Why
 
