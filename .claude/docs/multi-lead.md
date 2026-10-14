@@ -123,3 +123,14 @@ Until the founder's morning report, nobody asks the founder anything or tags him
 6. **Priya's queue stays first-ready-first-merged**, but she may hand two slots back to back the instant the first push lands, and she does not hold a slot for a lead whose branch CI is not green.
 
 **One small fix to make rule 2 true:** add the two branch globs to `ci.yml` (10 minutes, CI file = root config claim, next free lead, small-fix mode). Until it merges, rule 2's "CI green on the tip" is satisfied by the lead's own targeted tests + build on the merged tip, as today.
+
+### v2 safety addendum — no code is lost to speed (Arjun, 14 Oct 2026, 21:45 UTC; founder's concern)
+
+Two merges never happen "at the same time". Git itself prevents it and the rules make it explicit:
+
+1. **Still one lead in the slot.** v2 removed the wait for another lead's CI, not the slot. Priya hands the slot to one lead; the next starts only after "pushed <sha>".
+2. **Git refuses a lost update.** A push to `develop_staging` is rejected ("fetch first") if the remote moved since the lead fetched. The lead then fetches, merges again, re-runs the targeted tests and pushes again. Nothing is overwritten.
+3. **Never `--force`, never `--force-with-lease`, never delete `develop_staging`.** Not by a lead, not by the crew, not by me. The founder sets GitHub branch protection on `develop_staging`: "Block force pushes" and "Restrict deletions" (one minute, Settings → Branches). That makes rule 3 a wall, not a rule.
+4. **Conflicts are the only place code can go missing, and claims make them rare.** No two claims hold the same file, so a merge conflict can only come from a shared file outside a claim. The rule stands: a conflict in a file outside your claim → stop, ask Priya; never resolve another lead's work. Resolving your own conflict keeps both sides unless the ticket says otherwise.
+5. **After the push, verify the chain.** The lead runs `git log --oneline --merges -3 origin/develop_staging` and confirms the previous lead's merge commit is still the parent of theirs. If it is not, say so to Priya at once — nothing else is pushed until it is understood.
+6. **Merge commits are `--no-ff`**, so every ticket stays one revertable commit; a bad merge is reverted with `git revert -m 1 <sha>`, never rewritten.
