@@ -51,6 +51,7 @@ import {
   partyInputKeys,
   pickPartyInputs,
   readStoredBrief,
+  SIDED_PACKS,
   storesState,
 } from '../services/brief-party-fields';
 import { buildAnnexuresPack } from '../services/annexures.service';
@@ -238,7 +239,13 @@ describe('T-381 A: one pack per row group (Addendum 3)', () => {
       'parties.respondent_name': 'Mohan Lal',
       'parties.petitioner_name': 'Nita Lal',
     });
-    expect(r.fields).toEqual({ applicant_name: 'Mohan Lal', respondent_name: 'Nita Lal' });
+    // T-424 (Addendum 5): each party under its own role; the client is also the deponent.
+    expect(r.fields).toEqual({
+      respondent_name: 'Mohan Lal',
+      petitioner_name: 'Nita Lal',
+      deponent_name: 'Mohan Lal',
+      client_side: 'respondent',
+    });
     expect(r.clientName).toBe('Mohan Lal');
     expect(r.counterpartName).toBe('Nita Lal');
   });
@@ -248,7 +255,12 @@ describe('T-381 A: one pack per row group (Addendum 3)', () => {
       'parties.petitioner_name': 'Nita Lal',
       'parties.respondent_name': 'Mohan Lal',
     });
-    expect(r.fields).toEqual({ applicant_name: 'Nita Lal', respondent_name: 'Mohan Lal' });
+    expect(r.fields).toEqual({
+      petitioner_name: 'Nita Lal',
+      respondent_name: 'Mohan Lal',
+      deponent_name: 'Nita Lal',
+      client_side: 'petitioner',
+    });
   });
 
   it('consumer complaint: applicant_name is the complainant, respondent_name the Opposite Party', () => {
@@ -610,7 +622,14 @@ describe('T-381 A: client details come only from the matching role (Addendum 1 a
     (id) => {
       const client = CLIENT_ROLE_TABLE[id].client!;
       const r = mapPartyFields(id, { [client]: 'Named Client', ...GENERIC });
-      if (GENERIC_ROWS.includes(id)) {
+      if (id in SIDED_PACKS) {
+        // T-424: the client under its own role and as the deponent; no generic value, no applicant_* key.
+        expect(r.fields).toEqual({
+          [client]: 'Named Client',
+          deponent_name: 'Named Client',
+          client_side: SIDED_PACKS[id],
+        });
+      } else if (GENERIC_ROWS.includes(id)) {
         expect(r.fields).toEqual({
           applicant_name: 'Named Client',
           applicant_address: 'GENERIC ADDRESS',
@@ -728,11 +747,16 @@ describe('T-381 A: the four signed detail rows (Addendum 4)', () => {
         'deponent.deponent_age': '52',
         'deponent.deponent_address': '9 Court Lane',
       });
+      // T-424: the detail rows fill deponent_age / deponent_address; each party under its own role.
+      const clientSide = SIDED_PACKS[id];
+      const otherSide = clientSide === 'respondent' ? 'petitioner' : 'respondent';
       expect(r.fields).toEqual({
-        applicant_name: 'Deponent One',
-        respondent_name: 'Other Side',
-        applicant_age: '52',
-        applicant_address: '9 Court Lane',
+        [`${clientSide}_name`]: 'Deponent One',
+        [`${otherSide}_name`]: 'Other Side',
+        deponent_name: 'Deponent One',
+        deponent_age: '52',
+        deponent_address: '9 Court Lane',
+        client_side: clientSide,
       });
     },
   );
