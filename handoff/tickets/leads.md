@@ -65,6 +65,7 @@ Where each lead stopped:
 
 ## Last done
 
+- vishal: T-429 merged 8240327c (14 Oct 2026). Discharge drafts on a BNS charge drop NI Act and director case law; revision sections 440/442 by forum; criminal revision prayer names s.438 read with 440/442 or a to-be-confirmed blank. Discharge, quashing and criminal_revision packs and template-promoter released. Next T-437.
 - kunal: T-439 merged 82ad70ec (14 Oct 2026). CI runs on feature/** and fix/** (paths-filter base per Arjun); branch run 541. ci.yml released. Nothing to test in the UI. Next T-384.
 - kunal: T-432 merged 09a12b63 (14 Oct 2026). Template form keeps every answer on return (privacy, paywall, verify email, Edit form); phone button row; single cost notice with "Check the cost again". CI run 540 pending (on top of T-428 run 539). Next T-439.
 - shashank: T-428 merged 3649e73b (14 Oct 2026). Lower-court bail case lines (Ajay 2fcf6c4); Jharkhand/Allahabad HC AB heading; other HCs/SC show the to-be-confirmed blank. CI pending. Court-rules files released. Next T-433 (merge waits on the founder's yearly-carry confirmation). Merge slot to Kunal T-432 once CI is green.

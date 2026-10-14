@@ -1127,3 +1127,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - When the Ink cost can't be worked out, the notice shows once, with a "Check the cost again" link that can't be mistaken for "Try again".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-429 — Discharge and revision sections (8240327c, vishal, 14 Oct 2026)
+
+- Draft a discharge application on a BNS charge: the draft no longer drags in cheque-bounce law or company-director case law. On a cheque-bounce charge, it is still there.
+- Discharge, quashing and criminal revision drafts show the right revision section for the forum: Section 440 for the Sessions Judge, Section 442 for the High Court.
+- A criminal revision prayer names "Section 438 read with Section 442" (or 440) for the forum chosen. Where the forum isn't known, it shows a clear "To be confirmed" blank instead of "_____".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
