@@ -63,3 +63,9 @@ Condition: the test must take the blank string from the same generator the brief
 - No signed wording changed.
 
 Still open: the pack's default (with the founder) and the prompt-side s.141 (T-407).
+
+**T-407 part 1, fe5df17 (ai.service.ts): approved (14 Oct 2026).** `s141Applies` is an allow-list of the option ids `company` and `partnership` only. For every other drawer type, `packForDrawer` drops NI Act s.141 from the pack before the Drafter, repair, ledger and verifier prompts read it. Other acts and sections are kept, the cached pack is not changed, and no wording changes.
+
+Condition: a test on the brief path with the labels as the advocate sees them. "Company / LLP" and "Partnership Firm" keep s.141. "Individual", "HUF", the brief blank and the ledger blank drop it.
+
+Part 2 (template-path related_acts and the twin) comes to me after T-404 part 2.
