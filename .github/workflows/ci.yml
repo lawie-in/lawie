@@ -16,16 +16,13 @@ on:
       - 'handoff/**'
       - '.claude/**'
       - '**/*.md'
-  # T-147e: the golden set runs nightly against the real model (job golden-set).
-  schedule:
-    - cron: '30 20 * * *' # 02:00 IST
   workflow_dispatch:
 
 concurrency:
-  # T-147e: the nightly run has its own group, so a push to develop or develop_staging cannot cancel a
-  # real golden-set run. Every other run is grouped by github.ref, so each branch (and each PR) cancels
-  # only its own older runs: a push to develop_staging never cancels a develop run, or the reverse.
-  group: ${{ github.workflow }}-${{ github.event_name == 'schedule' && 'schedule' || github.ref }}
+  # Runs are grouped by github.ref, so each branch (and each PR) cancels only its own older runs:
+  # a push to develop_staging never cancels a develop run, or the reverse. The real-model golden set
+  # lives in golden-set.yml with its own group, so nothing here can cancel it (T-376, Arjun 14 Oct).
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -36,8 +33,6 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
-    # The nightly run is the golden set only; every other job needs this one and skips with it.
-    if: github.event_name != 'schedule'
     outputs:
       gateway: ${{ steps.filter.outputs.gateway }}
       auth: ${{ steps.filter.outputs.auth }}
@@ -305,81 +300,3 @@ jobs:
         with:
           flags: web
           token: ${{ secrets.CODECOV_TOKEN }}
-
-  # ── Golden set (T-147e) ──────────────────────────────────────────────────
-  # Pre-merge gate on PRs that change the Drafter prompt, a rule pack or the
-  # normalizer, and nightly. The dry run (recorded replies, in-memory DB) runs
-  # whenever the job runs. The real run needs two secrets, referenced by name
-  # only; without them it is skipped with a notice and the job stays green.
-  # A real run writes fixture rows (runType "fixture") to the database given
-  # by GOLDEN_SET_MONGODB_URI and costs money: see scripts/golden-set/README.md.
-  golden-set:
-    name: Golden set — Drafting (real model)
-    runs-on: ubuntu-latest
-    if: github.event_name != 'push'
-    timeout-minutes: 45
-    env:
-      NODE_ENV: test
-    steps:
-      # Nightly runs test develop_staging (what goes into develop next); '' means the event's own ref.
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
-      - uses: dorny/paths-filter@v3
-        id: filter
-        if: github.event_name == 'pull_request'
-        with:
-          filters: |
-            golden:
-              - 'apps/drafting/src/services/drafter.prompts.ts'
-              - 'apps/drafting/src/services/draft-renderer.ts'
-              - 'apps/drafting/src/config/document-rules/**'
-              - 'apps/drafting/src/types/skeleton.ts'
-              - 'packages/shared/src/utils/normalize/**'
-              - 'scripts/golden-set/**'
-      - name: Decide whether the golden set runs
-        id: gate
-        # Only whether each secret is set ('true' / 'false'), never its value.
-        env:
-          HAS_KEY: ${{ secrets.GOLDEN_SET_ANTHROPIC_API_KEY != '' }}
-          HAS_URI: ${{ secrets.GOLDEN_SET_MONGODB_URI != '' }}
-        run: |
-          if [ "${{ github.event_name }}" != "pull_request" ] || [ "${{ steps.filter.outputs.golden }}" = "true" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Golden set not needed: no change to the Drafter prompt, the rule packs or the normalizer."
-          fi
-          if [ "$HAS_KEY" = "true" ] && [ "$HAS_URI" = "true" ]; then
-            echo "secrets=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "secrets=false" >> "$GITHUB_OUTPUT"
-          fi
-      - uses: actions/setup-node@v4
-        if: steps.gate.outputs.run == 'true'
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
-      - if: steps.gate.outputs.run == 'true'
-        run: yarn install --frozen-lockfile
-      - if: steps.gate.outputs.run == 'true'
-        run: yarn workspace @lawie/shared build
-      - name: Golden set — dry run (recorded replies, no cost)
-        if: steps.gate.outputs.run == 'true'
-        run: yarn workspace @lawie/drafting golden:set --dry-run
-      - name: Golden set — skipped, secrets not set
-        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets != 'true'
-        run: echo "::notice::Golden set real run skipped — GOLDEN_SET_ANTHROPIC_API_KEY and GOLDEN_SET_MONGODB_URI are not set for this repository (or this PR comes from a fork)."
-      - name: Golden set — real model
-        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true'
-        # The secrets reach this step only: not install, not the dry run.
-        env:
-          GOLDEN_SET_ANTHROPIC_API_KEY: ${{ secrets.GOLDEN_SET_ANTHROPIC_API_KEY }}
-          GOLDEN_SET_MONGODB_URI: ${{ secrets.GOLDEN_SET_MONGODB_URI }}
-        run: yarn workspace @lawie/drafting golden:set --real --calibrate --out "$RUNNER_TEMP/golden-set"
-      - uses: actions/upload-artifact@v4
-        if: always() && steps.gate.outputs.run == 'true' && steps.gate.outputs.secrets == 'true'
-        with:
-          name: golden-set-results
-          path: ${{ runner.temp }}/golden-set
-          retention-days: 30

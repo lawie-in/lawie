@@ -73,7 +73,7 @@ describe('T-318 server PDF footer', () => {
 });
 
 describe('T-318 annexure footers', () => {
-  it('all 6 footers are exactly the signed annexure line, with no AI wording', async () => {
+  it('all 7 footers are exactly the signed annexure line, with no AI wording', async () => {
     const puppeteer = jest.requireMock('puppeteer') as { launch: jest.Mock };
     const page = (await (await puppeteer.launch()).newPage()) as { setContent: jest.Mock };
     let html = '';
@@ -92,8 +92,8 @@ describe('T-318 annexure footers', () => {
       bodyParaCount: 8,
     });
     expect(html).not.toBe('');
-    expect(countOf(html, 'class="disclaimer"')).toBe(6);
-    expect(countOf(html, `<div class="disclaimer">${ANNEXURE_LINE}</div>`)).toBe(6);
+    expect(countOf(html, 'class="disclaimer"')).toBe(7);
+    expect(countOf(html, `<div class="disclaimer">${ANNEXURE_LINE}</div>`)).toBe(7);
     expect(html).not.toMatch(/AI-assisted/i);
     expect(html).not.toContain('generated with AI');
   });

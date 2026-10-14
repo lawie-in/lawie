@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release                                                                                                      |
 | Owner  | Lead (CI + drafting tests)                                                                                                  |
 | Mode   | Small fix                                                                                                                   |
-| Status | To do. Vishal, after T-397 (13 Oct 2026). It goes green only after the founder adds the two secrets (morning item 3). Priya |
+| Status | Merged b5961c1 (CI part); AC2-4 wait on the founder's secrets (morning report 0c). Vishal, 14 Oct 2026 |
 | Source | Anushka run 3 FAIL; ADR-025 D4                                                                                              |
 
 ## Acceptance criteria
