@@ -26,3 +26,12 @@ Checked `apps/auth` (`registerUser`, User and Session models) and the gateway/dr
 - Nothing gates `emailVerified: false` anywhere (no check in the gateway, drafting or auth middleware). An unverified account can log in and create documents, so it can hold case details like any other account.
 
 Ruling: T-358 is a small ticket **after T-115c**, not a separate delete path. A daily sweep in auth selects users with `emailVerified: false` and `createdAt` older than 30 days and runs the same erase orchestration T-115c builds (auth → drafting → billing `/internal/erase-user`). Nothing new to design. Until then the manual erase runbook (T-235) covers a request. Ajay decides whether the policy needs a line for the 30-day unverified deletion; parking is his call knowing the above.
+
+## Arjun (14 Oct, 23:20 UTC) — Tanvi's six calls
+
+1. **Auth sweep**, hourly tick + a run at boot, same pattern as the T-115c erase sweep. Auth owns accounts; a BullMQ repeatable in the email-worker would put account logic in the worker. ADR-025 D5 ("no job runtime") was about billing; this is the auth sweep the 14 Oct note described.
+2. **userId-only job**, like T-223: the worker calls a new auth internal route to get the address at send time. No email address in Redis.
+3. **Stamp `unverifiedNoticeSentAt` on a confirmed send** (the worker reports the outcome to auth, as T-223 does), not at enqueue. **Hold deletions until the notice has actually been sent.** The `[registered address]` / `[PIN]` footer placeholders mean no notice can send today — that is a founder item (his GST/address details, same as T-436's env values); the sweep is simply inert until then. Log a count of "due but notice unsent" so it is visible.
+4. **Yes**: notice at `createdAt ≥ 23 days`; delete when `createdAt ≥ 30 days` **and** `unverifiedNoticeSentAt ≤ now − 7 days`. Pre-T-223 accounts get the notice first and a working link; no one is deleted without 7 days' warning.
+5. **Include `isActive: false` unverified accounts**, except rows that already carry an `erasure` stage (the erase sweep owns those).
+6. **Yes** to the conditional lock: the lock's `updateOne` re-checks `emailVerified: false` and the age inside the filter, so a user who verifies mid-sweep is never locked. **Keep the billing-status guard** (defence in depth; checkout requires verification today but that may change) — on a 409 from it, log and skip the row, never loop.
