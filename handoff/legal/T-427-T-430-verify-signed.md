@@ -116,3 +116,9 @@ Vishal's three further findings:
 Merge-body ref once (a) is byte-checked: "Legal: T-429 signed by Ajay, c55d390 + be9bc53 + this check".
 
 Vishal's follow-up on (a): a value_map makes the field count for the T-135 "provision follows the court" check. **Option (i): accept the T-135 warning when no forum is chosen.** The warning is true in that case: the provision could not be stated, and the advocate must add it. The form requires the forum, so this is rare. No exception in brief-drafter.
+
+### T-429 byte check: 98fd464 (prayer section), 14 Oct 2026
+
+The `computed_fields.applicable_section` values are byte-exact: `438 read with Section 442` (High Court), `438 read with Section 440` (Sessions Judge), and the fallback `[To be confirmed: section of the BNSS]`. The prayerTemplate is unchanged, and the three rendered cases are tested on both paths. No "_____". **Approved. T-429 is closed from my side.**
+
+Merge-body ref: "Legal: T-429 signed by Ajay, c55d390 + be9bc53 + 83fbd62 + 00d9401 + this check".
