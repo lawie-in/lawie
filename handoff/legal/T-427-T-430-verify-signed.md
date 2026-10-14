@@ -114,3 +114,5 @@ Vishal's three further findings:
 | c | Para 7 "only one revision (to either HC or Sessions, not both)" | Correct in substance. The S.438(3) bar is on a further application by the same person; "by the same person" would be more exact. | parked |
 
 Merge-body ref once (a) is byte-checked: "Legal: T-429 signed by Ajay, c55d390 + be9bc53 + this check".
+
+Vishal's follow-up on (a): a value_map makes the field count for the T-135 "provision follows the court" check. **Option (i): accept the T-135 warning when no forum is chosen.** The warning is true in that case: the provision could not be stated, and the advocate must add it. The form requires the forum, so this is rare. No exception in brief-drafter.
