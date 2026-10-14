@@ -33,7 +33,7 @@ String, exactly: `We could not work out the Ink cost for this. Try again in a mo
 | Element | Inline `<p>` in the cost line's slot, under the button, in place of `Uses N Ink`. Not a toast: it must stay on screen next to the button and not time out |
 | Role | `role="alert"` (assertive; the action did not start, so the user must hear it). Mounted when the state becomes unknown, so it is announced once |
 | Style | `text-sm`, `text-brand-error` on white (about 5.5:1) with a lucide `alert-circle` icon, 16 px, `aria-hidden`. Colour is not the only signal: the icon and the words carry it. May wrap to 3 lines at 375 px; no truncation |
-| Button | Disabled. Use `disabled` plus `aria-disabled="true"` and the existing disabled look (`opacity-40`). It stays 44 px or more high and in place; the layout does not jump |
+| Button | Disabled. Use `aria-disabled="true"` only (as Confirm does today), kept in the tab order, not the `disabled` attribute and the existing disabled look (`opacity-40`). It stays 44 px or more high and in place; the layout does not jump |
 | Retry | A `linkButton` labelled exactly `Try again` (44 px) after the notice re-fetches the cost. If it works, the notice clears and the button enables. The action button stays disabled until the cost is known; there is no "proceed anyway" |
 | Same on all paths | Regenerate, add-section and generate (Confirm) all use this one notice and this one behaviour. Nothing starts, nothing is charged |
 | Never | No "free" or "no charge" wording, no promise about the balance, no estimate in its place |
