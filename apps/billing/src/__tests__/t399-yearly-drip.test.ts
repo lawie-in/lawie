@@ -471,9 +471,15 @@ describe('T-399: double grant on the first payment (paid_count)', () => {
 
   it('concurrent charged events with the same paid_count give one grant', async () => {
     const userId = await setup();
-    await Promise.all(
+    // T-415: a loser that finds the winner's claim still pending throws
+    // GrantClaimBusyError (the route turns it into 500 so Razorpay retries).
+    const results = await Promise.allSettled(
       Array.from({ length: 4 }, () => handleWebhookEvent('subscription.charged', evt(1))),
     );
+    for (const r of results) {
+      if (r.status === 'rejected') expect(r.reason).toBeInstanceOf(inkLedger.GrantClaimBusyError);
+    }
+    expect(results.some((r) => r.status === 'fulfilled')).toBe(true);
     expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(1);
     expect((await inkOf(userId)).inkAnnualCarry).toBe(20);
   });
@@ -851,7 +857,7 @@ describe('T-399: yearly grant fails after the claim (drip reset is part of the c
     expect(sub.inkDripNextAt).toEqual(addOneMonth(START));
   });
 
-  it('Subscription.updateOne is not called after a successful paid_count grant', async () => {
+  it('after a successful paid_count grant, Subscription.updateOne is called once, only to mark the claim granted', async () => {
     const userId = await seedUser();
     await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
     const spy = jest.spyOn(Subscription, 'updateOne');
@@ -864,8 +870,11 @@ describe('T-399: yearly grant fails after the claim (drip reset is part of the c
         paidCount: 1,
       }),
     );
-    expect(spy).not.toHaveBeenCalled();
+    // T-415: the only call is the mark-granted write; no rollback, no drip rewrite.
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect((spy.mock.calls[0] as unknown[])[1]).toEqual({ $set: { grantClaimState: 'granted' } });
     const sub = await subOf();
+    expect(sub.grantClaimState).toBe('granted');
     expect(sub.inkDripAnchor).toEqual(START);
     expect(sub.inkDripNextAt).toEqual(addOneMonth(START));
     expect(sub.inkDripCount).toBe(0);
