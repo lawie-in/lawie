@@ -548,10 +548,11 @@ describe('T-407 F: buildAISystemPrompt RELATED ACTS per drawer (config path)', (
     expect(line).toContain('Sections 138, 139, 141, 142');
   });
 
-  it('without ctx the entries are unchanged (the literal placeholder, no 141 digits)', () => {
+  it('without ctx the unknown token renders as blanks (no raw placeholder, no 141 digits)', () => {
     const config = loadTemplateConfig(PACK_ID)!;
     const line = relatedLine(buildAISystemPrompt(config));
-    expect(line).toContain('{ni_act_related_sections}');
+    expect(line).toContain('Sections _____');
+    expect(line).not.toContain('{');
     expect(line).not.toContain('141');
   });
 
@@ -592,20 +593,17 @@ async function templatePromptsFor(drawer: unknown): Promise<string> {
 }
 
 describe('T-407 G: streamGenerateFromTemplate on the s.138 config (end to end)', () => {
-  it.each(CFG_NO_S141.filter(([n]) => !n.startsWith('option label')))(
-    'drawer %s: no stream call has 141 anywhere',
-    async (_n, d) => {
-      const text = await templatePromptsFor(d);
-      expect(mockMessagesStream).toHaveBeenCalled();
-      expect(text).toContain('Sections 138, 139, 142');
-      // The BNS whitelist line lists BNS s.141 (a different Act, unrelated to the NI Act);
-      // it is the only other place the digits appear, so it is set aside by name.
-      const hits = text
-        .split('\n')
-        .filter((l) => l.includes('141') && !l.startsWith('BNS SECTION WHITELIST'));
-      expect(hits).toEqual([]);
-    },
-  );
+  it.each(CFG_NO_S141)('drawer %s: no stream call has 141 anywhere', async (_n, d) => {
+    const text = await templatePromptsFor(d);
+    expect(mockMessagesStream).toHaveBeenCalled();
+    expect(text).toContain('Sections 138, 139, 142');
+    // The BNS whitelist line lists BNS s.141 (a different Act, unrelated to the NI Act);
+    // it is the only other place the digits appear, so it is set aside by name.
+    const hits = text
+      .split('\n')
+      .filter((l) => l.includes('141') && !l.startsWith('BNS SECTION WHITELIST'));
+    expect(hits).toEqual([]);
+  });
 
   it.each(CFG_S141)('drawer %s: the prompt names 141', async (_n, d) => {
     const text = await templatePromptsFor(d);
@@ -623,6 +621,6 @@ describe('T-407 H: ni_act_related_sections and ni_act_sections_ref use the same 
     expect(related).not.toContain('{');
     expect(ref).not.toContain('{');
     expect(related.includes('141')).toBe(ref.includes('141'));
-    expect(related.includes('141')).toBe(d === 'company' || d === 'partnership');
+    expect(related.includes('141')).toBe(s141Applies(d));
   });
 });
