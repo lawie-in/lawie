@@ -16,7 +16,7 @@ import { env } from './config/env';
 import logger from './config/logger';
 import { disconnectRedis } from './config/redis';
 import { startHoldSweep, stopHoldSweep } from './services/credits.service';
-import { startDocumentEraseSweep } from './services/document-erase.service';
+import { startDocumentEraseSweep, stopDocumentEraseSweep } from './services/document-erase.service';
 import { primeToolSwitches } from './services/feature-switches';
 import { listRulePackIds, loadSkeleton, SKELETONS_DIR } from './services/rule-pack.service';
 import { loadSignedTables } from './services/signed-tables';
@@ -81,6 +81,7 @@ bootstrap();
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received — shutting down gracefully');
   stopHoldSweep();
+  stopDocumentEraseSweep();
   await disconnectRedis();
   process.exit(0);
 });

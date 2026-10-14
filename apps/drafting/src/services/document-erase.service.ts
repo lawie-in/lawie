@@ -12,7 +12,7 @@
  *
  *   1. links: save the intake ids and ledger ids on the marker, before the
  *      steps that remove or unset what they are read from
- *   2. reviewfeedbacks, reviewtokens: deleted by documentId
+ *   2. reviewtokens, then reviewfeedbacks: deleted by documentId
  *   3. factdiffs: deleted by documentId and by ledgerId (deleteFactDiffsFor)
  *   4. factledgers, llmauxcalls: deleted through the saved intake/ledger ids
  *   5. generations, usagelogs, templateusages (documentId) and events (docId):
@@ -180,11 +180,13 @@ export async function eraseDocument(documentId: string): Promise<EraseResult> {
     if (saved === null) return { done: true, counts };
     const { intakeIds, ledgerIds } = await erasableLinks(docId, saved);
 
-    step = 'reviewfeedbacks';
-    counts.reviewfeedbacks = (await ReviewFeedback.deleteMany({ documentId: docId })).deletedCount;
-
+    // Tokens before feedback: once the tokens are gone no new feedback can be posted,
+    // so a feedback POST cannot land between the two steps and leave an orphan row.
     step = 'reviewtokens';
     counts.reviewtokens = (await ReviewToken.deleteMany({ documentId: docId })).deletedCount;
+
+    step = 'reviewfeedbacks';
+    counts.reviewfeedbacks = (await ReviewFeedback.deleteMany({ documentId: docId })).deletedCount;
 
     step = 'factdiffs';
     let diffs = await deleteFactDiffsFor({ documentId });

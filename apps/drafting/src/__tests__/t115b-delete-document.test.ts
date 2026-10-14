@@ -168,6 +168,24 @@ describe('DELETE /documents/:id (T-115b)', () => {
       expect((await del(doc._id)).status).toBe(200);
     });
 
+    it('deletes ReviewToken before ReviewFeedback', async () => {
+      const doc = await makeDoc();
+      await seedChildren(doc._id as Types.ObjectId, 'intake-order');
+      const order: string[] = [];
+      const tok = ReviewToken.deleteMany.bind(ReviewToken);
+      const fb = ReviewFeedback.deleteMany.bind(ReviewFeedback);
+      jest.spyOn(ReviewToken, 'deleteMany').mockImplementation(((...a: unknown[]) => {
+        order.push('token');
+        return tok(...(a as Parameters<typeof tok>));
+      }) as never);
+      jest.spyOn(ReviewFeedback, 'deleteMany').mockImplementation(((...a: unknown[]) => {
+        order.push('feedback');
+        return fb(...(a as Parameters<typeof fb>));
+      }) as never);
+      expect((await del(doc._id)).status).toBe(200);
+      expect(order).toEqual(['token', 'feedback']);
+    });
+
     it('erases the document row last (children already gone when the row is deleted)', async () => {
       const doc = await makeDoc();
       const s = await seedChildren(doc._id as Types.ObjectId, 'intake-last');
@@ -199,8 +217,9 @@ describe('DELETE /documents/:id (T-115b)', () => {
       expect(pending!.isDeleted).toBe(true);
       expect(pending!.deletion?.requestedAt).toBeInstanceOf(Date);
 
-      // Document row is last: it is still there; reviewfeedbacks (before the failed step) are gone.
-      expect(await col(ReviewFeedback).countDocuments({ documentId: s.docId })).toBe(0);
+      // Document row is last: it is still there. reviewtokens runs BEFORE reviewfeedbacks, so the
+      // failed token step stops the run before feedback is touched: both rows are still there.
+      expect(await col(ReviewFeedback).countDocuments({ documentId: s.docId })).toBe(1);
       expect(await col(ReviewToken).countDocuments({ documentId: s.docId })).toBe(1);
 
       // Repeat while pending, failing again: 202.
@@ -212,6 +231,20 @@ describe('DELETE /documents/:id (T-115b)', () => {
       expect(third.status).toBe(200);
       expect(await LawieDocument.countDocuments({ _id: doc._id })).toBe(0);
       expect((await del(doc._id)).status).toBe(404);
+    });
+
+    it('a failure at reviewfeedbacks leaves tokens already gone, then 202, 200 and the sweep finish', async () => {
+      const doc = await makeDoc();
+      const s = await seedChildren(doc._id as Types.ObjectId, 'intake-fb');
+      jest.spyOn(ReviewFeedback, 'deleteMany').mockRejectedValueOnce(new Error('boom'));
+      const first = await del(doc._id);
+      expect(first.status).toBe(202);
+      expect((await LawieDocument.findById(doc._id).lean())!.isDeleted).toBe(true);
+      expect(await col(ReviewToken).countDocuments({ documentId: s.docId })).toBe(0);
+      expect(await col(ReviewFeedback).countDocuments({ documentId: s.docId })).toBe(1);
+      expect(await runDocumentEraseSweep()).toEqual({ found: 1, finished: 1, pending: 0 });
+      expect(await childCounts(s)).toEqual({ ledger: 0, aux: 0, diff: 0, token: 0, feedback: 0 });
+      expect(await LawieDocument.countDocuments({ _id: doc._id })).toBe(0);
     });
 
     it('the sweep finishes a pending erase (crash mid-erase, restart)', async () => {
