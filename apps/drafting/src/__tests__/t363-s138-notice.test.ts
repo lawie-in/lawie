@@ -68,6 +68,14 @@ const B2_TEXT =
   'Notice not in time: the notice is sent on 30 October 2026, after 15 October 2026, the last of the 30 days from receipt of the return memo on 15 September 2026. Check the dates before sending.';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// T-440 Q1 (Ajay, a9bc957): with no notice date the header's Date line is this blank, not
+// today. It is the one blank these fixtures may print: it is removed before the no-blank checks.
+const DATE_BLANK_LINE = 'Date: [To be confirmed: date the notice is sent]';
+const withoutDateBlank = (s: string): string => {
+  expect(s.split(DATE_BLANK_LINE).length - 1).toBeLessThanOrEqual(1);
+  return s.replace(DATE_BLANK_LINE, '');
+};
+
 describe('T-363 AC1: the brief warns when the notice is outside 30 days', () => {
   it("Anushka's case (memo 15 Sep 2026, notice 30 Oct 2026) gives date_check B2 with the signed words", () => {
     const b = briefWith({ memo_received_date: '2026-09-15', notice_sent_date: '2026-10-30' });
@@ -412,7 +420,7 @@ describe('T-363 AC4: proprietor, payee address, invented reasons', () => {
       const h = render('header', form);
       expect(h).toContain('To,\nDemo Traders\n5 Lajpat Nagar, Delhi\n');
       expect(h).not.toMatch(/Proprietor/);
-      expect(h).not.toMatch(/MISSING|To be confirmed|\{|_____/);
+      expect(withoutDateBlank(h)).not.toMatch(/MISSING|To be confirmed|\{|_____/);
     }
   });
 

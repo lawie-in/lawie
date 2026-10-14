@@ -1414,9 +1414,10 @@ describe('T-189 AC9: no prompt text changed', () => {
       'c052d071b9a866609626d6439e78ba364981d83e9517bf3e4b694a91f82e142f',
     );
   });
-  it('the ledger Drafter system prompt is unchanged', () => {
+  // T-440: re-pinned with Ajay's signed not-known date line at the end of the DATES rule (a9bc957, 4b46053).
+  it('the ledger Drafter system prompt is as re-pinned in T-440', () => {
     expect(sha(DRAFTER_LEDGER_SYSTEM_PROMPT)).toBe(
-      '500558b0430ccd90b5704106bc12a345cd84b8f6692b605643c00c32ab69c56d',
+      '874b2b129f8ceadd811fb822aa55e741c4c907e5ba3cb60bdb2b8b55dd2ef99a',
     );
   });
   it('the extraction user prompt template is unchanged', () => {

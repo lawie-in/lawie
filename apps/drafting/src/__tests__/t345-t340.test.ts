@@ -189,10 +189,12 @@ describe('T-340: actual output, every template (AC2)', () => {
     return renderTemplateSection(section, buildPlaceholderContext(c, data)).content;
   }
 
-  it('the legal_notice_s138 header prints "Date: 4 April 2026" when notice_sent_date is blank', () => {
+  // T-440 Q1 (Ajay, a9bc957): the notice date no longer falls back to today.
+  it('the legal_notice_s138 header prints the date blank, not today, when notice_sent_date is blank', () => {
     jest.useFakeTimers().setSystemTime(NOW);
     const t = s138Header({});
-    expect(t).toContain('Date: 4 April 2026');
+    expect(t).toContain('Date: [To be confirmed: date the notice is sent]');
+    expect(t).not.toContain('4 April 2026');
     expect(t).not.toMatch(/04 April/);
   });
 
