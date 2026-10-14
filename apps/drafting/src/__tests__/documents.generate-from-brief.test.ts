@@ -80,7 +80,8 @@ const SEALED_FORM_INPUTS = {
   applicant_age: '32',
   address: '123 Main St, Patna',
   court_type: 'sessions',
-  state: 'bihar',
+  // T-423 AC1: the Court row's display name, not the picker id.
+  state: 'Bihar',
 };
 
 /** Every required fact of a regular bail application, as the user confirmed it. */
