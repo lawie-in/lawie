@@ -63,7 +63,7 @@ T-208, T-209, T-210, T-197, T-189, T-194, T-227, T-248, T-251, T-200, T-252a, T-
 6. The rest of the list below, when you choose.
 7. **Delete the branch `fix/t-439-probe-billing`** (Kunal's throwaway CI probe; the git proxy won't let him delete it). Cleanup only.
 8. **GitHub branch protection on `develop_staging`** (Arjun's v2 safety addendum): block force pushes, restrict deletions. Settings > Branches; needs your login.
-9. **T-436 GST invoice: set the 5 GST_* values on develop** (env config only, never in the repo; Arjun has the key names; values from your GST certificate). Billing won't issue invoices without them. Also send a clean signature image for the invoice. Or send the values to Arjun and he sets them.
+9. **T-436 GST invoice: set the 7 GST_* values on develop (and prod before launch)** (env config only, never in the repo; Arjun has the key names; values from your GST certificate). Billing won't issue invoices without them; payments are recorded and wait until then. Also send a clean signature image for the invoice. Or send the values to Arjun and he sets them.
 10. **T-115c: set DRAFTING_SERVICE_URL and BILLING_SERVICE_URL for auth** on develop (and prod later). They default to localhost, so account erase can't reach drafting and billing without them.
 
 ---
