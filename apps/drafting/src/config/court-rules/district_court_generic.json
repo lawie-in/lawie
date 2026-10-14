@@ -27,7 +27,9 @@
     "execution": "Execution Case No. _____ of {year}",
     "misc_civil": "Misc. Case No. _____ of {year}",
     "rent_suit": "Rent Suit No. _____ of {year}",
-    "consumer_complaint": "Consumer Complaint No. _____ of {year}"
+    "consumer_complaint": "Consumer Complaint No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}"
   },
   "para_numbering": {
     "style": "numeric",
@@ -41,10 +43,7 @@
     "tone": "assertive"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby verify that the contents of the above plaint/application are true and correct to my knowledge. The documents annexed herewith are true copies of their respective originals.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": [
-    "en",
-    "hi"
-  ],
+  "supported_languages": ["en", "hi"],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",

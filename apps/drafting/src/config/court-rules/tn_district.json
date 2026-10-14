@@ -24,8 +24,8 @@
     "state": "State of Tamil Nadu"
   },
   "case_nomenclature": {
-    "regular_bail": "Crl. M.P. No. _____ of {year}",
-    "anticipatory_bail": "Crl. O.P. (A.B.) No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "S.C. No. _____ of {year}",
     "special_sessions_case": "Spl. Sessions Case No. _____ of {year}",
     "calendar_case": "C.C. No. _____ of {year}",

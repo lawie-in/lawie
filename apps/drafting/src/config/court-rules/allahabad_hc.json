@@ -36,7 +36,7 @@
     "state": "State of U.P. through Principal Secretary, Home Department, Lucknow"
   },
   "case_nomenclature": {
-    "anticipatory_bail": "Criminal Misc. Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Criminal Misc. Anticipatory Bail Application U/S 482 BNSS No. _____ of {year}",
     "regular_bail": "Criminal Misc. Bail Application No. _____ of {year}",
     "quashing": "Application U/S 528 BNSS No. _____ of {year}",
     "criminal_appeal": "Criminal Appeal No. _____ of {year}",
@@ -58,10 +58,7 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly affirm and declare that the contents of paragraphs 1 to {body_para_count} of the above application are true and correct to my knowledge and belief. No part of it is false and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": [
-    "en",
-    "hi"
-  ],
+  "supported_languages": ["en", "hi"],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",

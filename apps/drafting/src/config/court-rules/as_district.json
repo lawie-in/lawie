@@ -24,8 +24,8 @@
     "state": "State of Assam through the Principal Secretary, Home Department, Government of Assam, Dispur (Guwahati)"
   },
   "case_nomenclature": {
-    "regular_bail": "Crl. Misc. (Bail) No. _____ of {year}",
-    "anticipatory_bail": "Crl. Misc. (A.B.) No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
+    "anticipatory_bail": "Anticipatory Bail Application No. _____ of {year}",
     "sessions_case": "Sessions Case No. _____ of {year}",
     "calendar_case": "G.R. Case No. _____ of {year}",
     "civil_suit": "Title Suit No. _____ of {year}",
