@@ -96,3 +96,15 @@ Vikram checked the GST registration certificate (REG-06) itself: proprietorship,
 - 5b and 5c are unblocked. `{supplier_legal_name}` and the trade name are printed exactly as on REG-06; `{supplier_state}` is Jharkhand.
 - Invoices print the principal place of business exactly as on REG-06. Vikram corrected his earlier address: the PIN differs from the first one he sent. A test pins the config address to the certificate text.
 - Invoices are issued only for supplies on or after the registration's effective date. The founder's test top-up came before that date, a second reason it needs no invoice (closed in Addendum 1).
+
+## Addendum 3 (T-436): no State on file (Arjun's fallback #5, Priya, 14 Oct 2026)
+
+**Acceptable.** It is the rule itself, not a workaround. Under IGST Act s.12(2)(b), for an unregistered recipient the place of supply is the recipient's location only where an address is on record; otherwise it is the supplier's location. With no State on file, the place of supply is Jharkhand: CGST + SGST.
+
+When it applies: any charge where we have no State on record at the moment of invoicing. That covers renewals or top-ups by users who paid before the State question existed (none today, per Vikram), and edge cases where checkout did not capture it.
+
+Conditions:
+1. New checkouts still ask the State before the first payment (§3). The fallback is never the default path.
+2. Never guess the State (no IP, no phone prefix, no card data).
+3. Once the user gives a State on the billing page, it applies from the next invoice. Past invoices stay as issued; they were correct when made. No re-issue and no credit note for this.
+4. The invoice shows the place of supply as "Jharkhand (20)" in that case, like any other.
