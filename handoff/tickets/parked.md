@@ -16,3 +16,4 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 | 14 Oct 2026 | T-115c (Ajay) | Privacy §9 server-log retention has no period. Arjun to give one, Ajay signs the line. |
 | 14 Oct 2026 | Arjun (post-v1) | SES bounce/complaint webhook to an app suppression list (SCRUM-77 §7; code has only the EMAIL_CONFIGURATION_SET hook, no handler). For v1 the SES account-level suppression list covers it. |
 | 14 Oct 2026 | T-115b (Kunal) | POST /review/:token/feedback can race the erase within one Mongo round trip; claim the token atomically (findOneAndUpdate isUsed:false to true), which also closes the existing double-submit. |
+| 14 Oct 2026 | Ajay ef06e89 | Privacy §3/§5: the Atlas row may say 'India (Mumbai)' (Arjun confirmed). Ships with the next privacy-page change: Tanvi's T-115c. |
