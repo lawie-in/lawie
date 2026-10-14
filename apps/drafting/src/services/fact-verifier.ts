@@ -28,8 +28,9 @@
  * advocate's description.
  *
  * Not legal content: the checks are code. The repair prompt is in
- * `drafter.prompts.ts` (PROPOSED, not yet signed). The banner wording is a
- * plain functional string awaiting Priya, Madhuri and Rajesh.
+ * `drafter.prompts.ts` (signed: Ajay (CLO), 13 Oct 2026,
+ * handoff/legal/T-397-ledger-prompts-signed.md, 86f9d9c). The banner wording
+ * is a plain functional string awaiting Priya, Madhuri and Rajesh.
  */
 import { createHash } from 'crypto';
 

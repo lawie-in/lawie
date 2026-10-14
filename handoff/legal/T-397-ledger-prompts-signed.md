@@ -38,3 +38,7 @@ with
 - No other prompt text moved.
 
 The same B wording for PACK, REPAIR and GUIDED is T-422, with its own sign-off.
+
+## T-422 (14 Oct 2026): change B carried to PACK, REPAIR and GUIDED
+
+**3d50bc7: approved after a byte check.** `, that an offence is complete,` is inserted after "bailable or non-bailable" in PACK rule 8, REPAIR rule 6 and GUIDED rule 5. The rest of each line is unchanged. The comment in fact-verifier.ts now cites this file, and no prompt text there changes. Any later edit to these prompts needs a fresh sign-off.
