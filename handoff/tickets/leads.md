@@ -63,7 +63,7 @@ Where each lead stopped:
 
 **MERGE SLOT v2: founder-approved (to Priya in chat 21:30 UTC, to Arjun 21:35 UTC, 14 Oct). Rules: .claude/docs/multi-lead.md 'Merge slot v2'. Queue: first-ready.**
 
-**Founder, 14 Oct 21:45 UTC: Priya decides per merge whether to wait for CI; in most cases don't wait (small fixes never). Hold only for a merge that is risky on its own. Arjun's T-439b hold released; T-433 merges now.**
+**v2 rule 7 (founder 21:45, written by Arjun): no CI wait by default. Hold the next slot for green only after a merge touching .github/workflows/**, packages/shared/**, root config or a backfill/migration script. Now: T-439b (workflow), so T-433 pushes once run 548 is green.**
 
 ## Last done
 
