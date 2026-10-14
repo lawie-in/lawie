@@ -87,3 +87,12 @@ The gap is acceptable on develop_staging and develop. Users only see main, and n
 Condition: T-115b goes to main only with T-115c, or with this interim line. In that case, replace `Lawie does not yet have a delete button; we erase on request.` in §7 with:
 `You can delete any single document from the document itself. To erase your account, write to us from your account email and we will do it.`
 No change in T-115b itself.
+
+### 4. T-115c: two more calls (Tanvi, 14 Oct 2026)
+
+| # | Item | Ruling |
+|---|---|---|
+| 1 | Kept inkledger rows `admin_grant` (reference = admin's free-text reason) and `referral_bonus` (reference = referral code) | **Blank the reference on erase.** Free text can name the person, and the referral code links back to them. Keep type, amount and date only. Payment and tax rows are unaffected. |
+| 2 | Review feedback the erased user left on another owner's document | **Keep the feedback; it belongs to the document owner's file. Remove the reviewer's identity:** name, email and token go, and the feedback shows the reviewer as `A reviewer`. The feedback text itself is not scanned or edited. |
+
+Test: after erasure, no inkledger reference and no review record holds the erased user's email, name or referral code.
