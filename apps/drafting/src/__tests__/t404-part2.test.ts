@@ -67,7 +67,7 @@ describe('T-404 part 2: bail twins case line', () => {
 
   it('bail_regular at a court whose rule has a regular_bail line prints that line', () => {
     const rule = loadCourtRule('cjm_generic')!;
-    expect(rule.case_nomenclature?.regular_bail).toBe('Criminal Case No. _____ of {year}');
+    expect(rule.case_nomenclature?.regular_bail).toBe('Bail Application No. _____ of {year}');
     const court: CourtLookupData = {
       designation: 'IN THE COURT OF CHIEF JUDICIAL MAGISTRATE, PATNA',
       city: 'Patna',
@@ -77,18 +77,19 @@ describe('T-404 part 2: bail twins case line', () => {
       courtRule: rule,
     };
     const ctx = buildPlaceholderContext(cfg('bail_regular'), form, { advocateName: 'A' }, court);
-    expect(ctx.caseNomenclature).toBe(`Criminal Case No. _____ of ${year}`);
+    expect(ctx.caseNomenclature).toBe(`Bail Application No. _____ of ${year}`);
   });
 
-  it('bail_anticipatory at a district civil court with no rule line prints the case-type blank', () => {
-    const rule = loadCourtRule('district_court_generic')!;
+  it('bail_anticipatory at a court whose rule has no anticipatory line prints the case-type blank', () => {
+    // cjm_generic carries a regular_bail line but deliberately no anticipatory_bail (T-428).
+    const rule = loadCourtRule('cjm_generic')!;
     expect(rule.case_nomenclature?.anticipatory_bail).toBeUndefined();
     const court: CourtLookupData = {
       designation: 'IN THE COURT OF DISTRICT JUDGE, PATNA',
       city: 'Patna',
       caseNomenclature: 'Civil Suit No. _____ of {year}',
-      formattingRulesRef: 'district_court_generic',
-      courtType: 'district_court',
+      formattingRulesRef: 'cjm_generic',
+      courtType: 'cjm',
       courtRule: rule,
     };
     const ctx = buildPlaceholderContext(

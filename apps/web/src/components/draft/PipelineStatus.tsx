@@ -397,6 +397,10 @@ function SoftWarnCard({
 }) {
   const blocked = costBlocked(cost);
   const proceed = blocked ? undefined : onProceedAnyway;
+  // T-432: while the cost is loading or unknown the card shows one cost line
+  // (under the first button) and both charging buttons point at it. Once the
+  // cost is known each button keeps its own "Uses N Ink" line.
+  const skipDescribedBy = blocked ? SOFT_WARN_INK_COST_ID : SOFT_WARN_SKIP_INK_COST_ID;
   const questionText = questions[0] ?? 'Please review the flagged inputs before generating.';
 
   return (
@@ -490,15 +494,16 @@ function SoftWarnCard({
         </button>
       </div>
 
-      <div className="mt-3 flex items-center justify-between pl-10">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pl-10">
         <div className="flex flex-col items-start gap-1">
           <button
             type="button"
             onClick={proceed}
             disabled={blocked}
             aria-disabled={blocked ? 'true' : undefined}
-            aria-describedby={SOFT_WARN_SKIP_INK_COST_ID}
+            aria-describedby={skipDescribedBy}
             style={{
+              whiteSpace: 'nowrap',
               fontSize: '12px',
               color: '#633806',
               background: 'none',
@@ -511,16 +516,18 @@ function SoftWarnCard({
           >
             Skip and generate anyway
           </button>
-          {/* Same card: the unknown state is reported once, by the line above. */}
-          <InkCostLine
-            id={SOFT_WARN_SKIP_INK_COST_ID}
-            cost={cost.inkCost}
-            loading={cost.inkCostLoading ?? false}
-            onRetry={cost.onInkCostRetry}
-            kind={cost.templateId ?? 'unknown'}
-            action="soft_warn"
-            report={false}
-          />
+          {/* T-432: only in the known state; blocked, the notice above is the one line. */}
+          {!blocked && (
+            <InkCostLine
+              id={SOFT_WARN_SKIP_INK_COST_ID}
+              cost={cost.inkCost}
+              loading={cost.inkCostLoading ?? false}
+              onRetry={cost.onInkCostRetry}
+              kind={cost.templateId ?? 'unknown'}
+              action="soft_warn"
+              report={false}
+            />
+          )}
         </div>
         <span style={{ fontSize: '11px', color: '#633806' }}>Verifier paused — pick one</span>
       </div>
@@ -747,7 +754,8 @@ function GenerationFailedCard({
           <div style={{ fontSize: '13px', color: '#791F1F', lineHeight: 1.55, marginBottom: 10 }}>
             {generationError ?? 'The AI service returned an error mid-draft. Please try again.'}
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {/* T-432: start-aligned, so "Edit form" does not stretch to the retry column's height. */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             {generationRetryable !== false && onRetry && (
               <div className="flex flex-col items-stretch gap-1">
                 <button

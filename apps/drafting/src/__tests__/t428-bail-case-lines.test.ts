@@ -1,0 +1,96 @@
+/**
+ * T-428 (Ajay: 2fcf6c4, 03b3e6e, e512365): signed bail case lines for lower courts and
+ * three high courts. Supreme Court bail lines are the case-type blank; patna_hc and
+ * delhi_hc are unchanged versus develop_staging.
+ */
+import { execFileSync } from 'child_process';
+import { join } from 'path';
+import {
+  buildPlaceholderContext,
+  clearConfigCache,
+  loadCourtRule,
+  loadTemplateConfig,
+  type CourtLookupData,
+  type TemplateConfig,
+} from '../services/template-engine.service';
+
+const BLANK = '[To be confirmed: case type and number]';
+const REPO_ROOT = join(__dirname, '../../../..');
+const RULES_REL = 'apps/drafting/src/config/court-rules';
+const form = { applicant_name: 'Ramesh Kumar', state: 'bihar', fir_number: '12/2026' };
+const year = String(new Date().getFullYear());
+
+function line(ruleId: string, courtType: string, template: string): unknown {
+  const court: CourtLookupData = {
+    designation: 'IN THE COURT OF TEST',
+    city: 'Patna',
+    caseNomenclature: 'Courts-list line No. 99',
+    formattingRulesRef: ruleId,
+    courtType,
+    courtRule: loadCourtRule(ruleId) ?? undefined,
+  };
+  const cfg = loadTemplateConfig(template) as TemplateConfig;
+  return buildPlaceholderContext(cfg, form, { advocateName: 'A' }, court).caseNomenclature;
+}
+
+function developStagingRule(id: string): { case_nomenclature: unknown } {
+  const out = execFileSync('git', ['show', `origin/develop_staging:${RULES_REL}/${id}.json`], {
+    cwd: REPO_ROOT,
+    encoding: 'utf-8',
+  });
+  return JSON.parse(out);
+}
+
+beforeEach(() => clearConfigCache());
+
+describe('T-428 bail case lines', () => {
+  it('district court (bihar_district): regular and anticipatory lines', () => {
+    expect(line('bihar_district', 'district_court', 'bail_regular')).toBe(
+      `Bail Application No. _____ of ${year}`,
+    );
+    expect(line('bihar_district', 'district_court', 'bail_anticipatory')).toBe(
+      `Anticipatory Bail Application No. _____ of ${year}`,
+    );
+  });
+
+  it('cjm_generic: regular line; anticipatory prints the case-type blank', () => {
+    expect(line('cjm_generic', 'cjm', 'bail_regular')).toBe(
+      `Bail Application No. _____ of ${year}`,
+    );
+    expect(line('cjm_generic', 'cjm', 'bail_anticipatory')).toBe(BLANK);
+  });
+
+  it('district_court_generic keeps the case-type blank for bail (Ajay e512365)', () => {
+    expect(line('district_court_generic', 'district_court', 'bail_regular')).toBe(BLANK);
+    expect(line('district_court_generic', 'district_court', 'bail_anticipatory')).toBe(BLANK);
+  });
+
+  it('jharkhand_hc: anticipatory A.B.A.', () => {
+    expect(line('jharkhand_hc', 'high_court', 'bail_anticipatory')).toBe(
+      `A.B.A. No. _____ of ${year}`,
+    );
+  });
+
+  it('allahabad_hc: exact anticipatory line', () => {
+    expect(line('allahabad_hc', 'high_court', 'bail_anticipatory')).toBe(
+      `Criminal Misc. Anticipatory Bail Application U/S 482 BNSS No. _____ of ${year}`,
+    );
+  });
+
+  it('supreme_court: bail lines are the case-type blank (Ajay e512365)', () => {
+    const cn = loadCourtRule('supreme_court')!.case_nomenclature as Record<string, string>;
+    expect(cn.regular_bail).toBe(BLANK);
+    expect(cn.anticipatory_bail).toBe(BLANK);
+  });
+
+  it('high_court_generic: both bail lines are the case-type blank', () => {
+    const cn = loadCourtRule('high_court_generic')!.case_nomenclature as Record<string, string>;
+    expect(cn.regular_bail).toBe(BLANK);
+    expect(cn.anticipatory_bail).toBe(BLANK);
+  });
+
+  it.each(['patna_hc', 'delhi_hc'])('%s is unchanged versus develop_staging', (id) => {
+    const rule = loadCourtRule(id)!;
+    expect(rule.case_nomenclature).toEqual(developStagingRule(id).case_nomenclature);
+  });
+});

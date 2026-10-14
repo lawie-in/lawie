@@ -2,7 +2,12 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import InkCostLine, { INK_COST_LOADING, INK_COST_UNKNOWN, inkCostState } from '../InkCostLine';
+import InkCostLine, {
+  INK_COST_LOADING,
+  INK_COST_RECHECK,
+  INK_COST_UNKNOWN,
+  inkCostState,
+} from '../InkCostLine';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -106,11 +111,11 @@ describe('InkCostLine unknown', () => {
     expect(alert.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
     expect(container.textContent).not.toMatch(/Uses \d+ Ink/);
   });
-  it('has a "Try again" button (type=button) that calls onRetry', () => {
+  it('has a "Check the cost again" button (type=button) that calls onRetry', () => {
     const onRetry = jest.fn();
     render({ cost: undefined, onRetry });
     const btn = container.querySelector('button') as HTMLButtonElement;
-    expect(btn.textContent).toBe('Try again');
+    expect(btn.textContent).toBe(INK_COST_RECHECK);
     expect(btn.type).toBe('button');
     act(() => btn.click());
     expect(onRetry).toHaveBeenCalledTimes(1);

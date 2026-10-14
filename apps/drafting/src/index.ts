@@ -16,6 +16,7 @@ import { env } from './config/env';
 import logger from './config/logger';
 import { disconnectRedis } from './config/redis';
 import { startHoldSweep, stopHoldSweep } from './services/credits.service';
+import { startDocumentEraseSweep, stopDocumentEraseSweep } from './services/document-erase.service';
 import { primeToolSwitches } from './services/feature-switches';
 import { listRulePackIds, loadSkeleton, SKELETONS_DIR } from './services/rule-pack.service';
 import { loadSignedTables } from './services/signed-tables';
@@ -68,6 +69,7 @@ async function bootstrap() {
     // T-226: close expired Ink holds every 5 minutes (unref'd timer). Kept
     // out of app.ts, which the tests import.
     startHoldSweep();
+    startDocumentEraseSweep(); // T-115b: finish unfinished document erases, at boot and every 5 min
   } catch (error) {
     logger.error({ error }, 'Failed to start drafting service');
     process.exit(1);
@@ -79,6 +81,7 @@ bootstrap();
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received — shutting down gracefully');
   stopHoldSweep();
+  stopDocumentEraseSweep();
   await disconnectRedis();
   process.exit(0);
 });

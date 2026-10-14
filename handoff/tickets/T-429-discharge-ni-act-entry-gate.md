@@ -2,7 +2,7 @@
 
 | Field  | Value                                                             |
 | ------ | ----------------------------------------------------------------- |
-| Status | Todo. Vishal, after T-407. Priya, 14 Oct 2026                     |
+| Status | Merged into develop_staging 8240327c (Vishal, 14 Oct 2026). Waiting for Anushka on develop. Priya |
 | Owner  | Vishal (build), Ajay (ruling 0864b04, T-363 file)                 |
 | Mode   | Small fix (legal content: pack related_acts / prompt input)       |
 

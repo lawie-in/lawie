@@ -79,9 +79,7 @@ describe('T-171 High Court routing (AJ-2026-10-08-T171-A1)', () => {
     });
     it('formatCauseTitle prints both lines end to end', () => {
       const draft = 'IN THE HIGH COURT OF SOMEWHERE\n\nbody';
-      expect(formatCauseTitle(draft, resolveCourtRule('high_court', name))).toBe(
-        `${name}\n\nbody`,
-      );
+      expect(formatCauseTitle(draft, resolveCourtRule('high_court', name))).toBe(`${name}\n\nbody`);
       expect(formatCauseTitle(draft, resolveCourtRule('high_court', ''))).toBe(
         'IN THE HIGH COURT OF __________\n\nbody',
       );
@@ -109,7 +107,7 @@ describe('T-171 High Court routing (AJ-2026-10-08-T171-A1)', () => {
         'All petitions must be filed through an advocate enrolled with a State Bar Council, or by the party in person.',
       );
     });
-    it("localRules[5]", () => {
+    it('localRules[5]', () => {
       expect(rule.localRules[5]).toBe("Follow the High Court's current e-filing directions.");
     });
     it('e-filing flags are false', () => {
@@ -117,9 +115,17 @@ describe('T-171 High Court routing (AJ-2026-10-08-T171-A1)', () => {
       expect(rule.eFilingMandatory).toBe(false);
     });
     it('every case_nomenclature value', () => {
-      const values = Object.values(rule.case_nomenclature);
-      expect(values).toHaveLength(10);
-      for (const v of values) expect(v).toBe('_____ No. _____ of {year}');
+      const entries = Object.entries(rule.case_nomenclature) as [string, string][];
+      expect(entries).toHaveLength(10);
+      const bail = ['regular_bail', 'anticipatory_bail'];
+      for (const [k, v] of entries) {
+        expect(v).toBe(
+          bail.includes(k)
+            ? '[To be confirmed: case type and number]'
+            : '_____ No. _____ of {year}',
+        );
+      }
+      expect(entries.filter(([k]) => bail.includes(k))).toHaveLength(2);
     });
     it('party_designation.state', () => {
       expect(rule.party_designation.state).toBe('State of __________');
@@ -151,9 +157,7 @@ describe('T-171 High Court routing (AJ-2026-10-08-T171-A1)', () => {
         'High Court of Judicature at Allahabad, Lucknow Bench',
       )!;
       expect(rule.courtId).toBe('allahabad_hc');
-      expect(rule.designation).toBe(
-        'IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD, LUCKNOW BENCH',
-      );
+      expect(rule.designation).toBe('IN THE HIGH COURT OF JUDICATURE AT ALLAHABAD, LUCKNOW BENCH');
     });
 
     it('accepted risk: bare "Allahabad High Court" prints AT ALLAHABAD', () => {
@@ -172,9 +176,9 @@ describe('T-171 High Court routing (AJ-2026-10-08-T171-A1)', () => {
       expect(headingFor('High Court of Jharkhand')).toBe(JH);
       expect(headingFor('Jharkhand High Court, Ranchi')).toBe(JH);
       expect(headingFor('High Court of Judicature at Allahabad')).toBe(AL);
-      expect(
-        headingFor('High Court of Judicature at Allahabad - Principal Seat, Prayagraj'),
-      ).toBe(AL);
+      expect(headingFor('High Court of Judicature at Allahabad - Principal Seat, Prayagraj')).toBe(
+        AL,
+      );
     });
 
     it('guard: Orissa never gets district_court_generic, prints the entered name', () => {
