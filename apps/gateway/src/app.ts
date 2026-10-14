@@ -190,6 +190,27 @@ app.use(
     on: { error: onProxyError },
   }),
 );
+// T-436: /api/billing/public/supplier: the GST supplier details from billing's
+// env (legal name, trade name, GSTIN, State). No JWT, same as /plans.
+// Exact path only: a sub-path (/api/billing/public/supplier/x) would be
+// rewritten to /public/supplierx, so it 404s here instead.
+app.use(
+  '/api/billing/public/supplier',
+  (req, res, next) => {
+    if (req.path !== '/') {
+      res.status(404).json({ error: 'Route not found', service: 'gateway' });
+      return;
+    }
+    next();
+  },
+  publicRateLimiter,
+  createProxyMiddleware({
+    target: env.BILLING_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/': '/public/supplier' },
+    on: { error: onProxyError },
+  }),
+);
 
 // ── PUBLIC sample PDFs — landing page download buttons, no JWT required ──────
 app.use(
