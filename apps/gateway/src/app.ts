@@ -190,6 +190,18 @@ app.use(
     on: { error: onProxyError },
   }),
 );
+// T-436: /api/billing/public/supplier: the GST supplier details from billing's
+// env (legal name, trade name, GSTIN, State). No JWT, same as /plans.
+app.use(
+  '/api/billing/public/supplier',
+  publicRateLimiter,
+  createProxyMiddleware({
+    target: env.BILLING_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/': '/public/supplier' },
+    on: { error: onProxyError },
+  }),
+);
 
 // ── PUBLIC sample PDFs — landing page download buttons, no JWT required ──────
 app.use(
