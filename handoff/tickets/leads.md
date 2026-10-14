@@ -67,7 +67,7 @@ Where each lead stopped:
 
 **RED: develop_staging, run 561 (T-437 7943bb54, golden-set dry run). Nobody pushes until Vishal's fix/t-437-golden-dry-run lands green. Kunal's T-436 (a) is next after that.**
 
-**REBALANCE (founder, 14 Oct 23:20 UTC): Kunal, Mahak and Tanvi now run on Sonnet; Vishal and Shashank on Opus. The harder tickets (multi-part, money, legal drafting) go to Vishal and Shashank. T-436 parts (b) and (c) move from Kunal to Shashank after T-440 merges. T-431 moves from Mahak to Vishal. The QUEUE on each row wins over older 'then …' text.**
+**REBALANCE (founder, 14 Oct 23:20 UTC): Kunal, Mahak and Tanvi now run on Sonnet; Vishal and Shashank on Opus. The harder tickets (multi-part, money, legal drafting) go to Vishal and Shashank. T-436 parts (b) and (c) move from Kunal to Shashank after T-440 merges. T-431 moves from Mahak to Vishal. The QUEUE on each row wins over older 'then …' text. packages/shared order (Arjun): Kunal keeps it for T-364 right after T-436 (a). Shashank's T-436 (b) AC8 privacy bump touches shared only after T-364 merges; he does AC10 and the non-shared parts first.**
 
 ## Last done
 
