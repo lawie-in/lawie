@@ -33,12 +33,12 @@ const count = (hay: string, needle: string) => hay.split(needle).length - 1;
 describe('T-397 AC2: signed text pinned byte for byte', () => {
   it('LEDGER prompt hash is the signed one', () => {
     expect(sha(DRAFTER_LEDGER_SYSTEM_PROMPT)).toBe(
-      '500558b0430ccd90b5704106bc12a345cd84b8f6692b605643c00c32ab69c56d',
+      '874b2b129f8ceadd811fb822aa55e741c4c907e5ba3cb60bdb2b8b55dd2ef99a',
     );
   });
   it('LEDGER_REPAIR prompt hash is the signed one', () => {
     expect(sha(DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT)).toBe(
-      '0bf7e391a79234e33763702cb3e356bfd80724f2fdca067d75ff98b1833dc714',
+      'a0075fbbd1c0b56d8e32164739557fdd7f95230abded0d1b00eaadd91cf9d677',
     );
   });
   it('FACT_REPAIR prompt hash is unchanged (signed as is)', () => {
@@ -114,19 +114,21 @@ describe('T-397 AC3: PROPOSED is gone', () => {
 describe('T-397: prompts outside the review are unchanged', () => {
   // Baseline: drafter.prompts.ts at 4f7ffed, the parent of the T-397 change.
   // PACK, REPAIR and GUIDED were re-pinned in T-422 (Ajay's signed change B applied to them);
-  // D1 is untouched.
-  it('PACK, REPAIR, GUIDED hashes are as signed in T-422; D1 hash is as before', () => {
+  // T-440 (Ajay, a9bc957 and 4b46053): the signed not-known date line was added to PACK,
+  // REPAIR, LEDGER, LEDGER_REPAIR and D1 (end of rule 3), so those five were re-pinned
+  // (re-pinning approved for T-440 only). GUIDED is unchanged.
+  it('PACK, REPAIR, D1 hashes are as re-pinned in T-440; GUIDED is as signed in T-422', () => {
     expect(sha(DRAFTER_PACK_SYSTEM_PROMPT)).toBe(
-      'c1fe88981f0322f7548fa6de479cd22e2cb76d051e48b365db8efe36a996ec56',
+      '28257542afb486fb1b4fc388c6c8f474cf6070536749d24ef149fa709d41e41e',
     );
     expect(sha(DRAFTER_REPAIR_SYSTEM_PROMPT)).toBe(
-      '9baa36b21113bb52d1d8cc3a18a0a69eb2b3de111b3a807f6c74199b9e21dae0',
+      '1679478acb0396cc7daf52fd3703d0bac0ba1caaf683f5d03975cbee9a263e07',
     );
     expect(sha(DRAFTER_GUIDED_SYSTEM_PROMPT)).toBe(
       'df9483c61babd16c0dc96bb5eb5720f62e64bddcd7df2b7d6c3145b38449ef6c',
     );
     expect(sha(DRAFTER_D1_SYSTEM_PROMPT)).toBe(
-      '69ba56505e34947ef33b5cc446eaa59e14b188fe9e6ff0fa4cd22d91672add87',
+      '55aa15b13adeb0f2061e5441d2dfad7e214fe8b1e5a64cf9370dd0945816537d',
     );
   });
 });

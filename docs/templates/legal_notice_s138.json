@@ -294,13 +294,16 @@
   },
   "computed_fields": {
     "notice_date_unless_form_blank": {
-      "logic": "if notice_sent_date === '' then '{current_date}' else '{notice_sent_date}'"
+      "logic": "if notice_sent_date === '' then '[To be confirmed: date the notice is sent]' else '{notice_sent_date}'"
+    },
+    "notice_date_unless_not_known": {
+      "logic": "if notice_sent_date === 'Not known' then '[To be confirmed: date the notice is sent]' else '{notice_date_unless_form_blank}'"
     },
     "notice_date_unless_ledger_blank": {
-      "logic": "if notice_sent_date === '{{MISSING: Date the notice is sent}}' then '{current_date}' else '{notice_date_unless_form_blank}'"
+      "logic": "if notice_sent_date === '{{MISSING: date the notice is sent}}' then '[To be confirmed: date the notice is sent]' else '{notice_date_unless_not_known}'"
     },
     "notice_date": {
-      "logic": "if notice_sent_date === '[To be confirmed: date the notice is sent]' then '{current_date}' else '{notice_date_unless_ledger_blank}'"
+      "logic": "if notice_sent_date === '[To be confirmed: date the notice is sent]' then '[To be confirmed: date the notice is sent]' else '{notice_date_unless_ledger_blank}'"
     },
     "payment_deadline_days": {
       "logic": "'15'"
