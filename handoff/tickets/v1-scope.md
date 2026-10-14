@@ -1,8 +1,8 @@
 # V1 scope: what ships at launch, what comes after
 
-Priya, 14 Oct 2026, at the founder's request. **Proposal: Arjun confirms the technical calls, Ajay the legal ones, the founder has the last word.** Rule used (Arjun, 14 Oct): a ticket is V1 only if it is a user-visible bug, wrong money/Ink/data, a security or data-protection must-fix, a legal must-fix (Ajay), a release gate, or a go-live prerequisite. Everything else is later.
+Priya, 14 Oct 2026, at the founder's request. **Arjun confirmed the technical calls and Ajay the legal ones (14 Oct, 23:40 UTC); the founder has the last word.** Rule used (Arjun, 14 Oct): a ticket is V1 only if it is a user-visible bug, wrong money/Ink/data, a security or data-protection must-fix, a legal must-fix (Ajay), a release gate, or a go-live prerequisite. Everything else is later.
 
-Open tickets today: **101** = **42 V1** + **30 V1.1** + **29 later**. Done and closed tickets are not listed. The board carries the same label as the `release` field on each ticket.
+Open tickets today: **101** = **43 V1** + **29 V1.1** + **29 later**. Done and closed tickets are not listed.
 
 - **V1**: must be done before launch (T-403).
 - **V1.1**: small improvements and rare edge cases; ship in the weeks after launch.
@@ -18,8 +18,10 @@ Must be done and merged (and Anushka passed) before T-403.
 | T-115 | Permanent delete, and encrypt saved case details | doing | - | privacy, money, legal or wrong-data must-fix (Arjun's rule) |
 | T-116 | Complete the legal-content list | todo | - | release gate or go-live prerequisite |
 | T-171 | Unmatched High Court falls back to Patna HC rules | todo | - | a draft or export is wrong, or Ajay's legal condition |
+| T-172 | Annexure text with '$&' is mangled by String.replace | todo | - | Arjun: wrong text in a filed document is a user-visible bug (one-line fix) |
 | T-187 | Retention and deletion rule for the Fact Ledger and intake_extract row | todo | arjun | a draft or export is wrong, or Ajay's legal condition |
 | T-188 | Unresolved ledger items past the question cap are never silently guess | todo | arjun | a draft or export is wrong, or Ajay's legal condition |
+| T-193 | Bail packs warn when the applicant is under 18 | todo | - | Ajay: an under-18 applicant gets a draft for the wrong forum (JJ Board) |
 | T-198 | Rent agreement keeps both fathers' names | review | ajay | a draft or export is wrong, or Ajay's legal condition |
 | T-220 | Emails actually reach users | review | founder | email, sign-in or data-protection basics |
 | T-221 | Forgot password works end to end | todo | shashank | email, sign-in or data-protection basics |
@@ -32,9 +34,8 @@ Must be done and merged (and Anushka passed) before T-403.
 | T-235 | Privacy policy covers Google sign-in data and where data is stored | review | ajay | release gate or go-live prerequisite |
 | T-236 | Re-check mandatory clauses after citations are removed | todo | - | a draft or export is wrong, or Ajay's legal condition |
 | T-238 | Pricing page says every document costs 1 Ink | review | mahak | the price and Ink a user sees must match what is charged |
-| T-243 | Waitlist form before go-live | todo | rajesh | release gate or go-live prerequisite |
 | T-244 | Sign-in tokens must not travel in the OAuth redirect URL | todo | arjun | email, sign-in or data-protection basics |
-| T-245 | Criminal packs cite IPC/CrPC for offences before 1 July 2024 | doing | vishal | privacy, money, legal or wrong-data must-fix (Arjun's rule) |
+| T-245 | Criminal packs cite IPC/CrPC for offences before 1 July 2024 | doing | vishal | T-245a in progress. T-245b is V1 for every criminal pack in the launch catalogue (Ajay); packs not in the launch catalogue are V1.1 |
 | T-247 | Server log rotation and retention; email-worker stops logging recipien | todo | arjun | email, sign-in or data-protection basics |
 | T-252 | Public site copy says only what the product does | todo | meera | release gate or go-live prerequisite |
 | T-254 | Sample PDFs: pull them now, regenerate with fictional values, Ajay sig | todo | - | release gate or go-live prerequisite |
@@ -74,12 +75,11 @@ Not blocking. Weekly review with Arjun picks what to pull forward.
 | T-157 | '/' state lines in Bihar, Jharkhand, sessions_generic and other courts | hold | - | old rule-pack sweep (quality polish) |
 | T-158 | Party labels for revisions, complaints, appeals, either-party applicat | hold | - | old rule-pack sweep (quality polish) |
 | T-160 | Addressing clause repeats the city | hold | - | old rule-pack sweep (quality polish) |
-| T-172 | Annexure text with '$&' is mangled by String.replace | todo | - | improvement or rare edge case; safe to ship after launch |
 | T-191 | Code computes the default-bail threshold | todo | - | improvement or rare edge case; safe to ship after launch |
-| T-193 | Bail packs warn when the applicant is under 18 | todo | - | improvement or rare edge case; safe to ship after launch |
 | T-195 | Allowed texts for banned entries with no allowed partner | hold | - | old rule-pack sweep (quality polish) |
 | T-207 | none_contain unlock test for averments | hold | - | old rule-pack sweep (quality polish) |
 | T-231 | The verifier recognises sections cited together | review | ajay | improvement or rare edge case; safe to ship after launch |
+| T-243 | Waitlist form before go-live | todo | rajesh | Arjun: V1.1 unless launch is waitlist-gated (founder decides) |
 | T-246 | Self-host the Google Font in LogoSplash | hold | - | parked should-fix items |
 | T-261 | Clause repair after check 3, and an abbreviation-aware sentence splitt | todo | ajay | improvement or rare edge case; safe to ship after launch |
 | T-262 | Rename the review_petition option id from s413 to s403, with a read-ti | hold | - | parked should-fix items |
@@ -130,8 +130,8 @@ Parked on purpose. None of these is a launch task.
 | T-435 | Post-v1 legacy billing cleanup | hold | - | after-v1 cleanup and extensions |
 | T-437b | Cache the pack prompt behind a switch | hold | - | after-v1 cleanup and extensions |
 
-## Calls that need a decision
+## Open for the founder
 
-- Ajay to confirm these are V1 or V1.1: T-236, T-392, T-245b (the remaining packs), T-193 (under-18 warning), T-191 (default-bail threshold), T-231, T-261.
-- Arjun to confirm: T-113, T-232, T-377, T-247, T-172, T-434.
-- Founder: T-243 (waitlist form) and T-252 (public site copy) are marked V1 because the tickets say "before go-live" and "blocks paid marketing". If you launch without a waitlist or paid marketing, they move to V1.1.
+- T-243 (waitlist form): Arjun's view is V1.1 unless launch is waitlist-gated. Placed V1.1 here; tell me if launch is gated by a waitlist.
+- T-252 (public site copy only says what the product does): V1 whatever the marketing plan, because claims on the public site are Ajay's domain (Arjun).
+- T-245b: V1 for every criminal pack in the launch catalogue; packs outside it are V1.1 (Ajay). Which packs are in the launch catalogue is still to be listed.
