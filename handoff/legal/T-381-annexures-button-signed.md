@@ -145,3 +145,16 @@ No cost, "free" or disclaimer wording, as Mahak listed.
 - In writ_petition_criminal the respondents come from the advocate's list.
 
 A State printed where it is not a party is wrong, and the advocate can name it in the respondent fields. Only the 10 bail and quashing packs keep the line.
+
+## Addendum 5 (14 Oct 2026, T-424): counter and rejoinder affidavits
+
+The rows already exist in Addendum 3 and are confirmed here, with the detail rows from Addendum 4:
+
+| Pack | Client (deponent) | Counterpart | Client's side in the Memo |
+|---|---|---|---|
+| counter_affidavit | parties.respondent_name (age and address ← deponent_age, deponent_address) | parties.petitioner_name | Respondent |
+| rejoinder_affidavit | parties.petitioner_name (age and address ← deponent_age, deponent_address) | parties.respondent_name | Petitioner |
+
+**Side rule.** The Memo prints each party under its own role in the case: the petitioner as petitioner, the respondent as respondent. The client is never printed as "applicant" or moved to the filer's side because the client is filing the affidavit. An answered `client_role` overrides the row. If the side cannot be told, the draft is refused with the T-381 422 response and nothing is guessed.
+
+Tests: counter_affidavit with the client as respondent prints the respondent as deponent and on the respondent side; rejoinder_affidavit is the mirror case.
