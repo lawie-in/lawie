@@ -31,3 +31,19 @@ Neither dialog says "permanently" or "immediately". If deleted data stays in bac
 `Backup copies are erased within 7 days.`
 
 It is true now and stays true after backups are turned on. If the retention period ever rises above 7 days, this line needs a fresh sign-off. Failed email jobs kept for up to 30 days (T-220) belong in the Privacy Policy's retention section, not in the dialogs.
+
+## T-115b and T-115c: when erasing fails partway (signed 14 Oct 2026)
+
+The backup line is above: `Backup copies are erased within 7 days.`
+
+**T-115b, delete document fails:**
+`We couldn't finish deleting this document. Please try again. If this keeps happening, write to us at {support email}.`
+
+**T-115c, close account fails:**
+`We couldn't finish closing your account. Some of your data may not be erased yet. Please try again, or write to us at {support email} and we will finish it.`
+
+Conditions:
+1. A success message ("deleted" or "closed") shows only once every part of the erase is done.
+2. A partial erase is never left in place. The server retries until it completes, and logs the failure with ids only, no content.
+3. The account is signed out and cannot be used once closing has started, even if the erase failed.
+4. `{support email}` is the address in the Privacy Policy.
