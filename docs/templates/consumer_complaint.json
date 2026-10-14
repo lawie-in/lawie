@@ -50,7 +50,7 @@
           },
           {
             "field_id": "court_name",
-            "label": "Forum Name",
+            "label": "Consumer Commission",
             "type": "dropdown_search",
             "source": "courts_db.courts",
             "filtered_by": [

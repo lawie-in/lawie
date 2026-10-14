@@ -1029,3 +1029,28 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - In bail packs, repair rounds and guided drafts, Lawie no longer states on its own that an offence is complete; it says so only when the brief does.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-423 — State name and accepted values on brief annexures (c9ba205, mahak, 14 Oct 2026)
+
+- Create annexures for a bail draft made from a brief and see "State of Bihar" on the Memo of Parties, not "State of bihar".
+- Party names on the annexures come only from what the brief accepted.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-396 — Memo of Parties and affidavit: relation and parties (9096c39, kunal, 14 Oct 2026)
+
+- The Memo of Parties and the affidavit show W/o, D/o, H/o or S/o as chosen, or a clear blank, never a guessed S/o.
+- The plaintiff, defendant, complainant or accused is named, with the petitioner's address and age.
+- "State of …, through the concerned authority" appears only where the State is the other side, and the State is written properly.
+- The Memo carries the usual Lawie footer.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-411 — Consumer Commission picker (6db7e551, tanvi, 14 Oct 2026)
+
+- When drafting a consumer complaint, choose District, State or National Commission and see only Consumer Commissions.
+- Choose NCDRC with no state.
+- The field reads "Consumer Commission".
+- It works by keyboard and screen reader. Other documents' court pickers are unchanged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
