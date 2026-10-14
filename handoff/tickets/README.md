@@ -9,6 +9,15 @@ Local ticket files, one per ticket. Founder decision on 3 Oct 2026: no Jira or N
 - These files still hold the full detail of each ticket.
 - Founder rule, 8 Oct 2026: Priya owns the Status line in every `T-*.md`. Each time a ticket's state changes (building, PR open, merged, done), Priya updates that line, and only that line, in the branch the ticket lives on. The dev lead commits and pushes.
 
+## Follow-ups and the parked list (Arjun, 14 Oct 2026)
+
+- Only a **must-fix** becomes a new ticket: a user-visible bug, wrong money/Ink/data, a security issue, or something Ajay says is legally wrong.
+- Every other "should" from a reviewer or Ajay either goes into the current ticket (if the lead can take it in the same chain without extending the claim) or becomes one line in `handoff/tickets/parked.md`. Priya owns that file.
+- A reviewer's should-fix never fails a review on its own.
+- Priya and Arjun go through the parked list once a week. Most of it dies there.
+- Close or park: superseded, pre-v1 scope, or unassigned and untouched for 3+ days. Arjun confirms each batch.
+- The number reported to the founder is **open tickets that are v1-scoped and assigned**, not the raw open count.
+
 ## Branch flow (founder, 11 Oct 2026)
 
 - Cut every ticket branch from `develop_staging`. Merge finished work back into `develop_staging`.
