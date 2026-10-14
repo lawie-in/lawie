@@ -307,8 +307,9 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   # ── Golden set (T-147e) ──────────────────────────────────────────────────
-  # Pre-merge gate on PRs that change the Drafter prompt, a rule pack or the
-  # normalizer, and nightly. The dry run (recorded replies, in-memory DB) runs
+  # On pushes to develop_staging (we merge by push, founder 11 Oct) and PRs that
+  # change the Drafter prompt, a rule pack or the normalizer, and nightly (T-376).
+  # The dry run (recorded replies, in-memory DB) runs
   # whenever the job runs. The real run needs two secrets, referenced by name
   # only; without them it is skipped with a notice and the job stays green.
   # A real run writes fixture rows (runType "fixture") to the database given
@@ -316,19 +317,24 @@ jobs:
   golden-set:
     name: Golden set — Drafting (real model)
     runs-on: ubuntu-latest
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' || github.ref == 'refs/heads/develop_staging'
     timeout-minutes: 45
     env:
       NODE_ENV: test
     steps:
       # Nightly runs test develop_staging (what goes into develop next); '' means the event's own ref.
+      # On push, full history so paths-filter can diff github.event.before..github.sha locally.
+      # fetch-depth is quoted: an unquoted 0 is falsy in an expression and `&& 0 || 1` would give 1.
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'schedule' && 'develop_staging' || '' }}
+          fetch-depth: ${{ github.event_name == 'push' && '0' || '1' }}
+      # PRs: changed files from the API (base ''). Push: git diff between the pushed range.
       - uses: dorny/paths-filter@v3
         id: filter
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
         with:
+          base: ${{ github.event_name == 'push' && github.event.before || '' }}
           filters: |
             golden:
               - 'apps/drafting/src/services/drafter.prompts.ts'
@@ -343,8 +349,17 @@ jobs:
         env:
           HAS_KEY: ${{ secrets.GOLDEN_SET_ANTHROPIC_API_KEY != '' }}
           HAS_URI: ${{ secrets.GOLDEN_SET_MONGODB_URI != '' }}
+          EVENT: ${{ github.event_name }}
+          GOLDEN_CHANGED: ${{ steps.filter.outputs.golden }}
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
-          if [ "${{ github.event_name }}" != "pull_request" ] || [ "${{ steps.filter.outputs.golden }}" = "true" ]; then
+          # schedule / workflow_dispatch always run. pull_request / push run when the golden paths
+          # changed. A push with an all-zero 'before' (new branch) runs too: no range to diff, so safe default.
+          if [ "$EVENT" = "schedule" ] || [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "push" ] && [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif { [ "$EVENT" = "pull_request" ] || [ "$EVENT" = "push" ]; } && [ "$GOLDEN_CHANGED" = "true" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
