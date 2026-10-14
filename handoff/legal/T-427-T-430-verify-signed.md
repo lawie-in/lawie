@@ -75,7 +75,7 @@ Any other byte in the snapshot needs a fresh sign-off.
   (Today it cites "S.438(4)", which I cannot verify exists. Do not use it.)
 - :241: `Choice of forum: Where the impugned order is by a Magistrate — revision lies to the Sessions Judge (S.438 read with S.440 BNSS) or to the High Court (S.438 read with S.442 BNSS), not both (S.438(3) BNSS). Where the impugned order is by a Sessions Court — revision lies to the High Court. Strategic — Sessions revision may be quicker; the High Court also has inherent powers (S.528 BNSS).`
 - sections array (:249–262):
-  - S.438: `Calling for records to exercise powers of revision — High Court or Sessions Judge (was S.397 CrPC)`
+  - S.438: as T-430: `Calling for records to exercise powers of revision (was S.397 CrPC)` (already in 2fa47a1).
   - S.438(2), S.438(3): unchanged.
   - S.438(4): delete the row.
   - S.439: delete the row (verify).
@@ -88,3 +88,15 @@ Any other byte in the snapshot needs a fresh sign-off.
 
 Test: no string in criminal_revision.json pairs "S.442" with Sessions, or "S.440" with "refer", and no "S.438(4)" remains.
 Sources checked: secondary texts for S.438, S.440, S.442, S.443 and S.441's heading. S.439 is still verify.
+
+### T-429 byte check: 2fa47a1 (fix/t-429-discharge-ni-act-gate), 14 Oct 2026
+
+| Item | Result |
+|---|---|
+| discharge :251 | Byte-exact with the signed sentence. Approved. |
+| S.438 / S.440 / S.442 rows in discharge, quashing_528_bnss and criminal_revision | Byte-exact with the T-430 table. Approved. |
+| NI Act gate (`niS138Charged`) | Approved. It needs both the NI Act name and 138, so "S.138" of another Act does not turn the NI material on. A blank or placeholder gives false. |
+| Other revision lines in discharge and quashing | None left (grepped S.436–443). |
+| criminal_revision :3, :13, :152, :213, :214, :230, :241, the S.438(4)/S.439/S.441/S.443 rows, :32 labels | Not in 2fa47a1. Must ship in T-429 as signed above, then a byte check of that delta. |
+
+Merge-body ref once the delta passes: "Legal: T-429 signed by Ajay, c55d390 + this check".
