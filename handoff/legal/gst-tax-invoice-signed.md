@@ -74,3 +74,17 @@ must-fix.
 - The founder's test top-up (section 2).
 
 Legal: GST invoice ruling signed by Ajay.
+
+## Addendum 1 (T-436): Vikram's answers to the verify items, 14 Oct 2026
+
+The founder has no CA and Vikram decided the finance points. The supplier's GSTIN, address and legal name stay in config only, never in this repo's handoff files: the GSTIN carries the proprietor's PAN.
+
+| Item | Vikram's answer | Ruling |
+|---|---|---|
+| SAC and rate | SAC 998319, 18%. Supplier State Jharkhand (code 20): CGST 9% + SGST 9% within Jharkhand, IGST 18% elsewhere. | Accepted; the SAC is a finance call. The split matches §1. |
+| Signature | No IRN (below threshold). The PDF carries the proprietor's name, "Authorised Signatory", a scanned signature image and "Computer-generated invoice". | Acceptable for v1. Do not print "signature not required": the r.46 waiver is only for e-invoices. A scanned image is not an electronic signature under the IT Act; a Class 3 DSC on the PDF is the clean form. parked. |
+| Founder's test top-up | Proprietor paid his own proprietorship: not a supply, no invoice, booked as proprietor's funds. | Agreed. Closed. |
+
+Still open before 5b/5c can ship: the proprietor's legal name exactly as on the GST certificate, and the trade name as registered (founder).
+
+Change to 5b: the Terms need the legal name, trade name and GSTIN. The street address is required on the invoice (§1), but on the public Terms page only if the E-Commerce Rules apply (still verify). Until that is settled, 5b ships without `, with its principal place of business at {supplier_address}`, and 5c gives the legal name and the contact email only. This keeps a residential address off a public page unless the law requires it.
