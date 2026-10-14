@@ -39,6 +39,7 @@ import {
   resolveBnsKey,
   resolveOffence,
 } from './bns-offence-resolver';
+import { offenceLawFor } from './law-switch';
 import {
   cacheCounts,
   effectiveCacheRates,
@@ -321,15 +322,20 @@ async function runPureRules(
   const sections = parseSectionsCharged(templateId, formData['sections_charged']);
   // `sections` comes from the T-277 reader, already deduped on (code, number).
   const matchedAliases = await bnsMatchedAliasIndices(sections);
+  // T-245a (Ajay, Addendum 1 ruling 7, 2992891): the old-law finding follows the
+  // offence date only. It is raised only when the offence date is given and is on
+  // or after 1 July 2024. No offence date: no finding (the S-text blank handles it);
+  // the FIR date is never a stand-in for the offence date.
+  const offenceIsBns = offenceLawFor(formData['offence_date']) === 'BNS';
   for (const [i, e] of sections.entries()) {
     // T-295 (Priya's soft decision; Arjun's ruling: the T-277 reader, not a per-part
     // loop): an IPC / CrPC / IEA entry is a SOFT warning carrying Ajay's signed line.
     // Never a section_whitelist finding; an old-law number never goes through the BNS
-    // whitelist. T-245 will make this date-aware.
+    // whitelist. T-245a: date-aware, on the offence date only (see above).
     // T-324: an IPC alias on a BNS entry the T-267 table maps it to gets no finding.
     const oldLine = oldLawLine(e.code, e.number);
     if (oldLine) {
-      if (!matchedAliases.has(i)) {
+      if (offenceIsBns && !matchedAliases.has(i)) {
         findings.push({ rule_id: 'old_law_section', severity: 'soft', question: oldLine });
       }
     } else if (e.code === null) {

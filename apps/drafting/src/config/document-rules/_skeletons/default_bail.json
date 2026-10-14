@@ -1,6 +1,6 @@
 {
   "pack": "default_bail",
-  "version": 1,
+  "version": 2,
   "none_values": "first_bail_application.equals (T-334)",
   "clauses": [
     {
@@ -8,10 +8,11 @@
       "order": 10,
       "required": true,
       "source": "fixed",
-      "text": "The applicant, {applicant_name}, resident of {applicant_address}, submits this application for release on bail under Section 187(3) of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
+      "text": "The applicant, {applicant_name}, resident of {applicant_address}, submits this application for release on bail under {governing_provision}.",
       "slots": [
         "applicant_name",
-        "applicant_address"
+        "applicant_address",
+        "governing_provision"
       ]
     },
     {

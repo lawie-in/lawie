@@ -40,12 +40,16 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 
 - v5, 13 Oct 2026: missing_label added per skeleton-missing-labels-pending-signed.md (07bd3b5), signed Ajay. `facts` gets `missing_label` "Brief facts of the case"; `grounds` gets `missing_label` "Grounds for bail". Nothing else changes in any clause.
 
+## Version 6, 14 Oct 2026 (supersedes SHA `c52210817dd3a14e6c7f663dc678944334245cc6b4359a1f0eac719bfeba81cd`)
+
+- v6, 14 Oct 2026: T-245a, per handoff/legal/T-245-old-new-law-switch-signed.md Addendum 1 ruling 2 (2992891), signed Ajay. The hard-coded `Section N of the Bharatiya Nagarik Suraksha Sanhita, 2023` becomes `{governing_provision}` (slot `governing_provision`). The women's proviso becomes `{women_proviso}` (slot `women_proviso`): BNSS `the first proviso to Section 480(1) of the BNSS`; CrPC `the first proviso to Section 437(1) of the CrPC`; no choice `the first proviso to [To be confirmed: Section 437(1) of the CrPC or Section 480(1) of the BNSS]`. Nothing else changes in any clause.
+
 ## Skeleton JSON
 
 ```json
 {
   "pack": "bail_before_magistrate",
-  "version": 5,
+  "version": 6,
   "none_values": "first_bail_application.equals (T-334)",
   "antecedents_none_values": [
     "none",
@@ -95,11 +99,12 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
               "Non-bailable (within Magistrate's powers)"
             ]
           },
-          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023.",
+          "text": "The applicant, {applicant_name}, aged {applicant_age} years, resident of {applicant_address}, submits this application for bail under {governing_provision}.",
           "slots": [
             "applicant_name",
             "applicant_age",
-            "applicant_address"
+            "applicant_address",
+            "governing_provision"
           ]
         }
       ],
@@ -253,7 +258,10 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
           }
         ]
       },
-      "text": "It is submitted that the applicant is a woman, and under the first proviso to Section 480(1) of the BNSS this Hon'ble Court may release her on bail even where the offence falls within clause (i) or (ii) of that sub-section."
+      "text": "It is submitted that the applicant is a woman, and under {women_proviso} this Hon'ble Court may release her on bail even where the offence falls within clause (i) or (ii) of that sub-section.",
+      "slots": [
+        "women_proviso"
+      ]
     },
     {
       "id": "further_grounds",

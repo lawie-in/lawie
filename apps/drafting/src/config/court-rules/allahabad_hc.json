@@ -37,6 +37,7 @@
   },
   "case_nomenclature": {
     "anticipatory_bail": "Criminal Misc. Anticipatory Bail Application U/S 482 BNSS No. _____ of {year}",
+    "anticipatory_bail_crpc_or_no_choice": "Anticipatory Bail Application No. _____ of {year}",
     "regular_bail": "Criminal Misc. Bail Application No. _____ of {year}",
     "quashing": "Application U/S 528 BNSS No. _____ of {year}",
     "criminal_appeal": "Criminal Appeal No. _____ of {year}",

@@ -1302,8 +1302,10 @@ const IPC_WORD =
   /(?<![a-z0-9])(ipc|i\.\s?p\.\s?c\.?|indian penal code|भा\.\s?दं\.\s?सं\.?|भारतीय दंड संहिता)(?![a-z0-9])/;
 
 /**
- * The date of the offence or occurrence, else the date of the FIR, as the
- * brief gives it. Null when neither is given.
+ * The date of the offence or occurrence, as the brief gives it. Null when it is
+ * not given. T-245a (Ajay, Addendum 1 ruling 7, 2992891): offence date only. The
+ * FIR date is never a stand-in for it: with no offence date there is no note
+ * (the S-text blank handles it). The name is kept so the caller is unchanged.
  */
 function offenceOrFirDate(
   checklist: ChecklistItem[],
@@ -1317,15 +1319,14 @@ function offenceOrFirDate(
     }
     return null;
   };
-  const offence = dateOf(
+  return dateOf(
     (i) =>
       i.dateKind === 'incident' ||
       /(^|_)(offen[cs]e|occurrence|incident)(_|$)/.test(lastSegment(i.key)),
   );
-  return offence ?? dateOf((i) => i.dateKind === 'fir' || lastSegment(i.key) === 'fir_date');
 }
 
-/** The sections item cites the IPC and the matter is dated on or after 1 July 2024. */
+/** The sections item cites the IPC and the offence is dated on or after 1 July 2024. */
 function needsIpcNote(
   item: ChecklistItem,
   value: string | string[],

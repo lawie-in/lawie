@@ -2,7 +2,7 @@
   "template_id": "bail_anticipatory",
   "display_name": "Anticipatory Bail Application",
   "category": "criminal",
-  "description": "Application for anticipatory bail under Section 482 BNSS, 2023 (apprehension of arrest)",
+  "description": "Application for anticipatory bail (apprehension of arrest)",
   "icon": "shield",
   "plan_access": "free",
   "applicable_courts": {
@@ -39,12 +39,41 @@
           },
           {
             "field_id": "fir_date",
-            "label": "FIR Date",
+            "label": "Date of FIR, or of the complaint if no FIR",
             "type": "date",
-            "required": true,
+            "required": false,
             "inject_into": [
               "body_para_1",
               "prayer"
+            ]
+          },
+          {
+            "field_id": "offence_date",
+            "label": "Date of the alleged offence (or of the offence of conviction)",
+            "type": "date",
+            "required": false,
+            "inject_into": [
+              "ai_prompt"
+            ]
+          },
+          {
+            "field_id": "procedure_code",
+            "label": "This application is under",
+            "type": "dropdown",
+            "options": [
+              {
+                "id": "bnss_and_bsa",
+                "label": "BNSS and BSA"
+              },
+              {
+                "id": "crpc_and_evidence_act",
+                "label": "CrPC and Evidence Act"
+              }
+            ],
+            "required": true,
+            "help": "Matters only for a case that began before 1 July 2024. For an FIR on or after that date, Lawie uses the BNSS.",
+            "inject_into": [
+              "ai_prompt"
             ]
           },
           {
@@ -63,7 +92,7 @@
             "type": "multi_select_search",
             "source": "bns_mapping",
             "required": true,
-            "auto_convert_old": true,
+            "auto_convert_old": false,
             "inject_into": [
               "body_para_1",
               "ai_prompt"
@@ -508,7 +537,7 @@
         "section_id": "application_heading",
         "type": "template",
         "alignment": "center",
-        "template": "APPLICATION FOR ANTICIPATORY BAIL UNDER SECTION 482 OF THE BHARATIYA NAGARIK SURAKSHA SANHITA, 2023"
+        "template": "APPLICATION FOR ANTICIPATORY BAIL UNDER {GOVERNING_PROVISION}"
       },
       {
         "section_id": "addressing_clause",
@@ -528,7 +557,7 @@
         "section_id": "prayer",
         "type": "template",
         "alignment": "left",
-        "template": "PRAYER\n\n{prayer_opening}\n\na) Grant Anticipatory Bail to the {party_label_petitioner}, {applicant_name}, in the event of arrest in connection with FIR No. {fir_number} dated {fir_date}, PS {police_station}, under Section 482 of BNSS, 2023, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Direct that in the event of arrest, the {party_label_petitioner} shall be released on bail forthwith;\n\nc) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\n{prayer_closing}"
+        "template": "PRAYER\n\n{prayer_opening}\n\na) Grant Anticipatory Bail to the {party_label_petitioner}, {applicant_name}, in the event of arrest in connection with FIR No. {fir_number} dated {fir_date}, PS {police_station}, under {governing_provision}, on such terms and conditions as this Hon'ble Court may deem fit;\n\nb) Direct that in the event of arrest, the {party_label_petitioner} shall be released on bail forthwith;\n\nc) Pass such other orders as this Hon'ble Court may deem fit and proper in the facts and circumstances of the case, in the interest of justice.\n\n{prayer_closing}"
       },
       {
         "section_id": "verification",
@@ -571,7 +600,7 @@
       "CrPC",
       "IEA"
     ],
-    "auto_convert_old_to_new": true,
+    "auto_convert_old_to_new": false,
     "mandatory_sections": [
       "cause_title",
       "application_heading",
