@@ -199,11 +199,11 @@ describe('Computed Fields Resolution', () => {
     expect(computed.court_city).toBe('Patna');
   });
 
-  test('resolves case_nomenclature with default fallback', () => {
+  test('case_nomenclature with a typed court and no record is the case-type blank, not a default', () => {
     const computed = resolveComputedFields(config, {
       court_name: 'Test Court',
     });
-    expect(computed.case_nomenclature).toBe('Criminal Miscellaneous Case');
+    expect(computed.case_nomenclature).toBe('[To be confirmed: case type and number]');
   });
 });
 

@@ -340,11 +340,12 @@ describe('T-404 rule 4: the court', () => {
     courtRule: loadCourtRule('cjm_generic') ?? undefined,
   };
 
-  it('no court chosen: the three camelCase tokens print the signed blank', () => {
+  it('no court chosen: courtHeader and courtDesignation print the court blank, caseNomenclature the case-type blank', () => {
     const ctx = buildPlaceholderContext(bail, form, { advocateName: 'A' });
     expect(ctx.courtHeader).toBe(COURT_BLANK);
     expect(ctx.courtDesignation).toBe(COURT_BLANK);
-    expect(ctx.caseNomenclature).toBe(COURT_BLANK);
+    // T-404 2be946d (b): the case line is the case-type blank, not the court blank.
+    expect(ctx.caseNomenclature).toBe('[To be confirmed: case type and number]');
   });
 
   it('no court chosen: snake_case court_designation is not given the blank', () => {
