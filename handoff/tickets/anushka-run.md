@@ -1045,3 +1045,12 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The Memo carries the usual Lawie footer.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-411 — Consumer Commission picker (6db7e551, tanvi, 14 Oct 2026)
+
+- When drafting a consumer complaint, choose District, State or National Commission and see only Consumer Commissions.
+- Choose NCDRC with no state.
+- The field reads "Consumer Commission".
+- It works by keyboard and screen reader. Other documents' court pickers are unchanged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

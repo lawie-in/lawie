@@ -53,6 +53,15 @@ The board is shared by link, so anyone on the team — not only the four session
   ticket) is where a scope change is explained. Changing `goal` or `title` without a comment saying
   why leaves the lead guessing what moved.
 
+## 2a. Follow-ups and the parked list (Arjun, 14 Oct 2026)
+
+- Only a **must-fix** becomes a new ticket: a user-visible bug, wrong money/Ink/data, a security issue, or something Ajay says is legally wrong.
+- Every other "should" from a reviewer or Ajay either goes into the current ticket (if the lead can take it in the same chain without extending the claim) or becomes one line in `handoff/tickets/parked.md`. Priya owns that file.
+- A reviewer's should-fix never fails a review on its own.
+- Priya and Arjun go through the parked list once a week. Most of it dies there.
+- Close or park: superseded, pre-v1 scope, or unassigned and untouched for 3+ days. Arjun confirms each batch.
+- The number reported to the founder is **open tickets that are v1-scoped and assigned**, not the raw open count.
+
 ## 3. What you do not do
 
 - **You do not supervise running sessions.** You cannot see into a lead's session, interrupt it, or
