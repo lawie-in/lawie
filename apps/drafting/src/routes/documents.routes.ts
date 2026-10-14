@@ -63,6 +63,7 @@ import { currentState, loadOwnLedger } from '../services/fact-ledger.service';
 import { FACT_CHECK_DISCLAIMER } from '../services/fact-verifier';
 import { bodyField, hiddenTemplateIds, templateGuard } from '../services/feature-switches';
 import { isCourtDocument, namesSupremeCourt, buildChecklist } from '../services/intake-brief';
+import type { BriefItem } from '../services/intake-brief';
 import {
   INTAKE_LIMITS,
   isDescribeFirstEnabled,
@@ -1144,6 +1145,23 @@ function kindAsTemplateId(req: Request, _res: Response, next: NextFunction): voi
   next();
 }
 
+/**
+ * T-423: the values the brief accepted, as [{key, value}] for pickPartyInputs.
+ * Only items with a value, not answered "Not known" (asked_empty) and not
+ * waiting for the advocate to confirm (unconfirmed). Never the raw request values.
+ */
+function acceptedBriefValues(items: BriefItem[]): Array<{ key: string; value: string | string[] }> {
+  const out: Array<{ key: string; value: string | string[] }> = [];
+  for (const item of items) {
+    if (item.asked_empty || item.unconfirmed) continue;
+    const v = item.value;
+    if (v === null || v === undefined) continue;
+    if (Array.isArray(v) ? v.length === 0 : v.trim() === '') continue;
+    out.push({ key: item.key, value: v });
+  }
+  return out;
+}
+
 async function describeFirstOnly(req: Request, res: Response, next: NextFunction): Promise<void> {
   if (!(await isDescribeFirstEnabled(req.jwtPayload!.sub))) {
     res.status(404).json({ error: 'not_enabled' });
@@ -1442,13 +1460,15 @@ router.post(
             : undefined,
           courtName: brief.court.court ?? '',
           // T-381: the party inputs the annexures pack needs (the pack's own role
-          // fields, by last segment) and the court labels from brief.court:
-          // court_type always, state only on a State row (Ajay, Addendum 4). Case
-          // details, so sealed like every other write (T-115a). The brief is encrypted below.
+          // fields, by last segment) and the court labels: court_type always,
+          // state only on a State row (Ajay, Addendum 4). Case details, so sealed
+          // like every other write (T-115a). The brief is encrypted below.
+          // T-423: party inputs only from values the brief accepted, and the
+          // State's display name from the Court row (never the picker id).
           formInputsEnc: sealFormInputs({
-            ...pickPartyInputs(recordId, values),
+            ...pickPartyInputs(recordId, acceptedBriefValues(brief.items)),
             ...(brief.court.court_type ? { court_type: brief.court.court_type } : {}),
-            ...(brief.court.state && storesState(recordId) ? { state: brief.court.state } : {}),
+            ...(courtData?.state && storesState(recordId) ? { state: courtData.state } : {}),
             template_id: recordId,
             source: 'brief',
           }),
@@ -1857,10 +1877,7 @@ router.get(
     let courtDocument = false;
     let hasParty = false;
     try {
-      const { packId, mapped, briefCourtDocument } = partyMappingOf(
-        doc,
-        readFormInputs(doc) ?? {},
-      );
+      const { packId, mapped, briefCourtDocument } = partyMappingOf(doc, readFormInputs(doc) ?? {});
       courtDocument =
         packId === GUIDED_ID
           ? briefCourtDocument === true
@@ -2116,8 +2133,7 @@ function partyMappingOf(
   formData: Record<string, unknown>,
 ): { packId: string; mapped: PartyFieldsResult; briefCourtDocument?: boolean } {
   const packId =
-    doc.rulePackId ||
-    (typeof formData.template_id === 'string' ? formData.template_id.trim() : '');
+    doc.rulePackId || (typeof formData.template_id === 'string' ? formData.template_id.trim() : '');
   const fromBrief =
     formData.source === 'brief' && typeof doc.brief === 'string' && doc.brief !== '';
   const sealed = hasPartyInputs(packId, formData);
