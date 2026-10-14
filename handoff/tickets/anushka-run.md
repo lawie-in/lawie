@@ -1101,3 +1101,12 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - For a company or a partnership firm it still does.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-115b — Delete a document (14efaa66, kunal, 14 Oct 2026)
+
+- Delete a document from My documents, or from the bottom of the document page, after one confirm.
+- See it leave the list at once. After that it can't be opened, exported, or read through a review link.
+- See "Document deleted." only once everything is erased; if the erase is still finishing, see "Deleting the document." and it completes on its own.
+- If it fails, see a message with privacy@lawie.in to write to.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
