@@ -22,6 +22,7 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 
 import app from '../app';
+import logger from '../config/logger';
 import { spendCapCheck } from '../middleware/spendCap';
 import { AppSetting } from '../models/AppSetting.model';
 import { Generation } from '../models/Generation.model';
@@ -300,20 +301,22 @@ describe('priceCacheUsage (AC3)', () => {
     expect(p.cacheWriteUsd).toBe(0);
   });
 
+  const quietLogger = () => jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
+
   it('no cache tokens: zero cost and no warning even with no cache rates', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const warn = quietLogger();
     expect(priceCacheUsage({}, BARE_RATE, 'm-none')).toEqual({ cacheWriteUsd: 0, cacheReadUsd: 0 });
     expect(warn).not.toHaveBeenCalled();
   });
 
   it('configured cache rates: no warning', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const warn = quietLogger();
     priceCacheUsage({ cacheReadInputTokens: 10 }, FULL_RATE, 'm-configured');
     expect(warn).not.toHaveBeenCalled();
   });
 
   it('missing cache rates fall back to write 2x and read 0.1x the input rate, and warn once per model', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const warn = quietLogger();
     const first = priceCacheUsage(
       { cacheCreationInputTokens: 1_000_000, cacheReadInputTokens: 1_000_000 },
       BARE_RATE,
@@ -324,14 +327,21 @@ describe('priceCacheUsage (AC3)', () => {
     priceCacheUsage({ cacheReadInputTokens: 5 }, BARE_RATE, 'model-warn-once');
     priceCacheUsage({ cacheCreationInputTokens: 5 }, BARE_RATE, 'model-warn-once');
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(String(warn.mock.calls[0][0])).toContain('model-warn-once');
+    expect(warn.mock.calls[0][0]).toEqual({
+      model: 'model-warn-once',
+      cacheWriteFallbackMultiplier: 2,
+      cacheReadFallbackMultiplier: 0.1,
+    });
+    expect(String(warn.mock.calls[0][1])).toContain('model-warn-once');
     // A different model warns again.
     priceCacheUsage({ cacheReadInputTokens: 5 }, BARE_RATE, 'model-warn-other');
     expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn.mock.calls[1][0]).toMatchObject({ model: 'model-warn-other' });
+    expect(String(warn.mock.calls[1][1])).toContain('model-warn-other');
   });
 
   it('only one cache rate missing: that one falls back, the configured one is kept', () => {
-    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    quietLogger();
     const writeOnly = effectiveCacheRates({ ...BARE_RATE, cacheWriteUsdPerMTok: 9 });
     expect(writeOnly.cacheWriteUsdPerMTok).toBe(9);
     expect(writeOnly.cacheReadUsdPerMTok).toBeCloseTo(0.3, 9);
@@ -438,7 +448,7 @@ describe('recordGeneration with cache tokens (AC3)', () => {
   });
 
   it('with no cache rate configured it stores the fallback rates it priced with', async () => {
-    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
     await setRate({ input_usd_per_mtok: 3, output_usd_per_mtok: 15 });
     await recordGeneration(genInput({ runId: 'run-t437-fallback' }));
     const g = await Generation.findOne({ runId: 'run-t437-fallback' }).lean();
