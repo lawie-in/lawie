@@ -96,3 +96,10 @@ No change in T-115b itself.
 | 2 | Review feedback the erased user left on another owner's document | **Keep the feedback; it belongs to the document owner's file. Remove the reviewer's identity:** name, email and token go, and the feedback shows the reviewer as `A reviewer`. The feedback text itself is not scanned or edited. |
 
 Test: after erasure, no inkledger reference and no review record holds the erased user's email, name or referral code.
+
+### 5. T-115c FYI (Tanvi, 14 Oct 2026)
+
+| # | Item | Ruling | Kind |
+|---|---|---|---|
+| 1 | `payment` and `account_delete` audit rows auto-expire after 2 years | The audit rows need not last 72 months. The 72-month duty (CGST Act s.36), and the Privacy §9 line, attach to the tax records: invoices, credit notes and the billing/Ink payment ledger. **Condition:** those stores have no TTL shorter than 72 months; Arjun confirms. If the audit row is the only payment record anywhere, its TTL becomes 72 months. `account_delete` rows: 2 years is fine. | must-fix only if the condition fails |
+| 2 | Stripped reviewer feedback ("A reviewer") drops out of the admin panel-review list | Not a legal issue. The admin tooling is Priya's call. | none |
