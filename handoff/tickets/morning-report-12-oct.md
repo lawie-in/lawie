@@ -86,7 +86,7 @@ T-227 (shown price = charged price), T-249 (CI skips docs-only pushes), T-248 (t
 3. **Razorpay dashboard:** confirm the plans charge exactly ₹799, ₹7,990, ₹1,999 and ₹19,990.
 4. **Is the live site publicly reachable today?** The converter page's false claim is being removed; I treat it as live until I know.
 5. **Cash on hand** (to confirm the ₹1,00,000 marketing budget at launch) and **GST status** with a CA (the pricing page says prices include tax).
-6. **Facts only you can confirm:** Atlas region; Redis Cloud region; Sentry region; whether we have a zero-retention agreement with Anthropic; whether to move off Atlas M0 for backups before v1; pm2 log rotation on the server.
+6. **Facts only you can confirm:** ~~Atlas region~~ (done 14 Oct: lawie-dev, M0, AWS Mumbai, Mongo 8.0; Arjun via Atlas); Redis Cloud region; Sentry region; whether we have a zero-retention agreement with Anthropic; whether to move off Atlas M0 for backups before v1; pm2 log rotation on the server.
 7. **Grievance Officer's name** for the privacy policy §11.
 8. **A practising advocate to review each template batch** before it goes live (Ajay's condition).
 9. **Describe-first for all users:** done by T-356 part 1 (default on). Fact ledger follows in part 2.
