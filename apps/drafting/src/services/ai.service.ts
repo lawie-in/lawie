@@ -1056,11 +1056,66 @@ export function drafterPartyDesignationLines(
   return lines;
 }
 
+// ── T-407: no s.141 to the model unless the drawer is a company or firm ──────
+// Ajay's ruling 2 (handoff/legal/T-363-s138-notice-wording-signed.md,
+// Addendum 4, table row 2): s.141 NI Act (offences by companies) is taken out
+// of what the model is given unless the drawer is a company or a partnership
+// firm, on the same test as the shipped ni_act_sections_ref guard
+// (docs/templates/legal_notice_s138.json computed_fields): only the option ids
+// `company` ("Company / LLP") and `partnership`. Individual, HUF (ruling 1:
+// verify, until then no s.141), unknown, empty and any placeholder blank
+// ("[To be confirmed: ...]", "{{MISSING: ...}}") are not on the list.
+
+/** The drawer types for which s.141 NI Act may reach the model (allow-list). */
+const S141_DRAWER_TYPES: ReadonlySet<string> = new Set(['company', 'partnership']);
+
+/**
+ * T-407: true only when the drawer type is exactly the option id `company` or
+ * `partnership` (after trim). Anything else, including a non-string, an empty
+ * value or a placeholder blank, is false: s.141 is never cited without
+ * knowing the drawer type (Ajay, T-363 Addendum 4).
+ */
+export function s141Applies(respondentType: unknown): boolean {
+  return typeof respondentType === 'string' && S141_DRAWER_TYPES.has(respondentType.trim());
+}
+
+/** "141", "S. 141", "Section 141", "Sec. 141": the section number alone, no sub-section. */
+const NI_ACT_S141 = /^(?:s(?:ec(?:tion)?)?\.?\s*)?141$/i;
+
+function isNiAct(actName: string): boolean {
+  return /negotiable\s+instruments/i.test(actName);
+}
+
+/**
+ * T-407: the pack as the model is to be given it for this drawer. Applies to
+ * any pack whose relevantActs hold s.141 of the Negotiable Instruments Act
+ * (today only legal_notice_s138), not to a pack id: a pack without that entry
+ * is returned as it is. When `s141Applies(values.respondent_type)` is false,
+ * the result is a shallow copy whose relevantActs drop s.141 from every NI Act
+ * entry; every other act and section is kept, in order. The pack passed in
+ * (the loader's cached object) is never changed. Ajay's ruling 2,
+ * handoff/legal/T-363-s138-notice-wording-signed.md.
+ */
+export function packForDrawer(pack: RulePack, values: Record<string, unknown>): RulePack {
+  const hasS141 = pack.relevantActs.some(
+    (a) => isNiAct(a.act) && a.sections.some((s) => NI_ACT_S141.test(s.number.trim())),
+  );
+  if (!hasS141 || s141Applies(values.respondent_type)) return pack;
+  return {
+    ...pack,
+    relevantActs: pack.relevantActs.map((a) =>
+      isNiAct(a.act)
+        ? { ...a, sections: a.sections.filter((s) => !NI_ACT_S141.test(s.number.trim())) }
+        : a,
+    ),
+  };
+}
+
 export async function streamGenerateFromBrief(
   input: BriefGenerateInput,
   res: Response,
 ): Promise<BriefGenerateResult> {
-  const { pack, templateConfig, courtData } = input;
+  const { pack: loadedPack, templateConfig, courtData } = input;
   // T-147c: with the ledger, everything the system writes and every check reads
   // the ledger's displays; without it, the brief exactly as before.
   const brief = input.ledger ? ledgerSkeletonBrief(input.brief, input.ledger.facts) : input.brief;
@@ -1087,6 +1142,13 @@ export async function streamGenerateFromBrief(
     { advocateName: input.advocateName, enrollmentNumber: input.enrollmentNumber },
     courtData,
   );
+
+  // T-407 (Ajay's ruling 2, handoff/legal/T-363-s138-notice-wording-signed.md):
+  // every prompt, repair, ledger and check below reads this pack, never
+  // input.pack. formData.respondent_type is the drawer type as the template's
+  // own guard reads it: the brief's label turned back into its option id, or
+  // the brief / ledger blank when not given.
+  const pack = packForDrawer(loadedPack, formData);
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -1210,6 +1272,7 @@ export async function streamGenerateFromBrief(
     if (skeleton && ledgerInput && input.ledger) {
       return await d1GenerateFromBrief({
         input,
+        pack,
         res,
         skeleton,
         ledger: input.ledger,
@@ -1761,6 +1824,8 @@ function d1MissingClauses(rendered: readonly RenderedClause[]): MissingClause[] 
 
 interface D1Context {
   input: BriefGenerateInput;
+  /** T-407: the pack for this drawer (packForDrawer), read instead of input.pack. */
+  pack: RulePack;
   res: Response;
   skeleton: Skeleton;
   ledger: NonNullable<BriefGenerateInput['ledger']>;
@@ -1841,8 +1906,8 @@ async function d1Warnings(
 
 /** The body for a pack with a signed skeleton: one structured call, then the renderer. */
 async function d1GenerateFromBrief(c: D1Context): Promise<BriefGenerateResult> {
-  const { input, res, skeleton, ledger, ledgerInput, promptInput, systemText } = c;
-  const { pack, templateConfig } = input;
+  const { input, pack, res, skeleton, ledger, ledgerInput, promptInput, systemText } = c;
+  const { templateConfig } = input;
 
   // ── The one structured call, with one retry (Arjun, D1 call shape 1 and 2) ──
   const format = d1OutputFormat(
