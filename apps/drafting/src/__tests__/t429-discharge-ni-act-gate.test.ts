@@ -9,10 +9,12 @@
  * C  prompt renderers with the gated pack
  * D  streamGenerateFromBrief and streamGenerateFromTemplate end to end, stubbed model
  * E  the signed strings in the three packs (S.438 / S.440 / S.442, :251 sentence)
+ * F  criminal_revision: every signed string, Ajay's named regex check, option labels
+ * G  criminal_revision {applicable_section} from revisional_forum (template and brief paths)
  */
 import './setupEnv';
 
-import { readFileSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import { Response } from 'express';
@@ -37,7 +39,12 @@ import {
 import { buildBrief, buildChecklist, type GivenValue } from '../services/intake-brief';
 import { loadAvermentLists } from '../services/averments';
 import { loadRulePack, type RulePack } from '../services/rule-pack.service';
-import { loadTemplateConfig } from '../services/template-engine.service';
+import {
+  buildPlaceholderContext,
+  loadTemplateConfig,
+  renderTemplateSection,
+} from '../services/template-engine.service';
+import { promoteDocRuleToTemplateConfig } from '../services/template-promoter';
 import { SdkStreamParams, sdkAnswer } from './sdkStream';
 
 const mockMessagesStream = jest.fn();
@@ -572,5 +579,306 @@ describe('T-429 E: the signed strings (T-430, ea02c86)', () => {
     const out = packForCharge(pack, { offences_charged: BNS_ONLY });
     const gone = pack.relevantActs.filter((a) => !out.relevantActs.includes(a));
     expect(gone.map((a) => a.act)).toEqual(['Negotiable Instruments Act, 1881']);
+  });
+});
+
+// ── F ────────────────────────────────────────────────────────────────────
+type RevisionRaw = {
+  _meta: { description: string };
+  displayName: string;
+  form_schema?: unknown;
+  formSchema?: unknown;
+  mandatory_clauses: Array<{ id: string; description: string }>;
+  prompt_context: { promptInstructions: string[] };
+  relevantActs: Array<{ act: string; sections: Array<{ number: string; description: string }> }>;
+  [k: string]: unknown;
+};
+const revisionRaw = (): RevisionRaw =>
+  JSON.parse(readFileSync(join(RULES_DIR, 'criminal_revision.json'), 'utf8')) as RevisionRaw;
+
+const REV_DESCRIPTION =
+  'Document-rules config for criminal_revision — Criminal Revision Petition u/S.438 read with S.440 BNSS (Sessions Judge) or S.442 BNSS (High Court) — revisional jurisdiction';
+const REV_DISPLAY_NAME = 'Criminal Revision (S.438 read with S.440 / S.442 BNSS)';
+const REV_JURISDICTION_DESC =
+  'S.438 read with S.440 BNSS (Sessions Judge) or S.438 read with S.442 BNSS (High Court)';
+const REV_INSTR_DRAFT =
+  "Draft a Criminal Revision Petition under S.438 BNSS (calling for records; was S.397 CrPC) read with S.440 BNSS (Sessions Judge's powers of revision; was S.399 CrPC) or S.442 BNSS (High Court's powers of revision; was S.401 CrPC).";
+const REV_INSTR_BNSS =
+  "BNSS provisions: S.438 — the High Court or a Sessions Judge may call for and examine the record; S.440 — Sessions Judge's powers of revision; S.441 — powers of an Additional Sessions Judge; S.442 — High Court's powers of revision; S.443 — High Court's power to withdraw or transfer revision cases.";
+const REV_INSTR_PARA6 =
+  'Para 6: Whether appeal lay — where an appeal lies and none was brought, no revision at the instance of the party who could have appealed (S.442 BNSS; was S.401(4) CrPC); revision is residual.';
+const REV_INSTR_FORUM =
+  'Choice of forum: Where the impugned order is by a Magistrate — revision lies to the Sessions Judge (S.438 read with S.440 BNSS) or to the High Court (S.438 read with S.442 BNSS), not both (S.438(3) BNSS). Where the impugned order is by a Sessions Court — revision lies to the High Court. Strategic — Sessions revision may be quicker; the High Court also has inherent powers (S.528 BNSS).';
+
+const REV_SECTIONS: Array<[string, string]> = [
+  ['S.438', 'Calling for records to exercise powers of revision (was S.397 CrPC)'],
+  ['S.440', "Sessions Judge's powers of revision (was S.399 CrPC)"],
+  ['S.441', 'Powers of an Additional Sessions Judge (was S.400 CrPC)'],
+  ['S.442', "High Court's powers of revision (was S.401 CrPC)"],
+  ['S.443', "High Court's power to withdraw or transfer revision cases (was S.402 CrPC)"],
+];
+
+const HC_ID = 'high_court_s438_bnss';
+const SESSIONS_ID = 'sessions_court_s442_bnss';
+const HC_LABEL = 'High Court (S.438 read with S.442 BNSS)';
+const SESSIONS_LABEL = 'Sessions Judge (S.438 read with S.440 BNSS)';
+
+describe('T-429 F: criminal_revision signed strings (c55d390)', () => {
+  const raw = revisionRaw;
+
+  it('_meta.description, displayName and the jurisdictional_basis_paragraph description', () => {
+    expect(raw()._meta.description).toBe(REV_DESCRIPTION);
+    expect(raw().displayName).toBe(REV_DISPLAY_NAME);
+    const clause = raw().mandatory_clauses.filter((c) => c.id === 'jurisdictional_basis_paragraph');
+    expect(clause).toHaveLength(1);
+    expect(clause[0].description).toBe(REV_JURISDICTION_DESC);
+  });
+
+  it.each([
+    ['Draft a Criminal Revision Petition', REV_INSTR_DRAFT],
+    ['BNSS provisions', REV_INSTR_BNSS],
+    ['Para 6', REV_INSTR_PARA6],
+    ['Choice of forum', REV_INSTR_FORUM],
+  ])('instruction "%s" is the signed text, once', (_n, text) => {
+    expect(raw().prompt_context.promptInstructions.filter((l) => l === text)).toHaveLength(1);
+    const startsWith = raw().prompt_context.promptInstructions.filter((l) =>
+      l.startsWith(text.slice(0, 12)),
+    );
+    expect(startsWith).toEqual([text]);
+  });
+
+  it('the loaded pack carries the same four instructions', () => {
+    const loaded = loadRulePack('criminal_revision') as RulePack;
+    for (const t of [REV_INSTR_DRAFT, REV_INSTR_BNSS, REV_INSTR_PARA6, REV_INSTR_FORUM]) {
+      expect(loaded.draftingInstructions).toContain(t);
+    }
+  });
+
+  it('sections array: S.438(2), S.438(3), S.528 unchanged; S.438(4) and S.439 rows gone', () => {
+    const bnssAct = raw().relevantActs.find((a) => /Nagarik Suraksha/.test(a.act))!;
+    const rows = bnssAct.sections;
+    const nums = rows.map((r) => r.number);
+    expect(nums).toEqual([
+      'S.438',
+      'S.438(2)',
+      'S.438(3)',
+      'S.440',
+      'S.441',
+      'S.442',
+      'S.443',
+      'S.528',
+    ]);
+    expect(nums).not.toContain('S.438(4)');
+    expect(nums).not.toContain('S.439');
+    const byNum = new Map(rows.map((r) => [r.number, r.description]));
+    expect(byNum.get('S.438(2)')).toBe('Bar on revision against interlocutory orders');
+    expect(byNum.get('S.438(3)')).toBe('Bar on second revision — one revision only');
+    expect(byNum.get('S.528')).toBe('Inherent powers of HC — concurrent / residual');
+  });
+
+  it.each(REV_SECTIONS)('section %s description is word for word', (num, desc) => {
+    const rows = raw()
+      .relevantActs.flatMap((a) => a.sections)
+      .filter((r) => r.number === num);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].description).toBe(desc);
+  });
+
+  it("Ajay's named test: no S.442 with Sessions, no S.440 with refer, no S.438(4)", () => {
+    const strings: string[] = [];
+    const walk = (v: unknown): void => {
+      if (typeof v === 'string') strings.push(v);
+      else if (Array.isArray(v)) v.forEach(walk);
+      else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+    };
+    walk(raw());
+    expect(strings.length).toBeGreaterThan(50);
+    for (const s of strings) {
+      // Sessions Judge pairs with S.440; "S.442" next to Sessions is only legal where the
+      // string says the High Court, or "Sessions Court" is the impugned order's court.
+      expect(s).not.toMatch(/S\.442[^.;]*\(Sessions/i);
+      expect(s).not.toMatch(/Sessions[^.;]*\(S\.442/i);
+      expect(s).not.toMatch(/S\.442 BNSS \(Sessions/i);
+      expect(s).not.toMatch(/S\.440[^.;]*\brefer/i);
+      expect(s).not.toMatch(/\brefer[^.;]*S\.440/i);
+      expect(s).not.toContain('S.438(4)');
+      expect(s).not.toContain("Sessions Judge's reference to HC");
+      expect(s).not.toContain('S.439');
+    }
+  });
+
+  it('the revisional_forum field has {id,label} options with the signed labels', () => {
+    const cfg = loadTemplateConfig('criminal_revision')!;
+    const field = cfg.form_schema.steps
+      .flatMap((s) => s.fields)
+      .find((f) => f.field_id === 'revisional_forum')!;
+    expect(field).toBeDefined();
+    expect(field.options).toEqual([
+      { id: HC_ID, label: HC_LABEL },
+      { id: SESSIONS_ID, label: SESSIONS_LABEL },
+    ]);
+  });
+
+  it('the raw option JSON is {id,label} objects', () => {
+    const text = readFileSync(join(RULES_DIR, 'criminal_revision.json'), 'utf8');
+    const m = text.match(/"id":\s*"revisional_forum"[\s\S]*?"options":\s*(\[[\s\S]*?\])\s*\}/);
+    expect(m).not.toBeNull();
+    expect(JSON.parse((m as RegExpMatchArray)[1])).toEqual([
+      { id: HC_ID, label: HC_LABEL },
+      { id: SESSIONS_ID, label: SESSIONS_LABEL },
+    ]);
+  });
+
+  it('no drafting instruction or relevant act in the loaded pack names the raw option keys', () => {
+    const loaded = loadRulePack('criminal_revision') as RulePack;
+    const text = JSON.stringify([loaded.draftingInstructions, loaded.relevantActs]);
+    expect(text).not.toContain(HC_ID);
+    expect(text).not.toContain(SESSIONS_ID);
+  });
+});
+
+// ── G ────────────────────────────────────────────────────────────────────
+const TBC_SECTION = '[To be confirmed: section of the BNSS]';
+/** The paragraph that carries {applicable_section}; other fields may be blank in these fixtures. */
+const jurisdictionPara = (prayer: string) =>
+  prayer.split('\n\n').find((p) => p.includes('Bharatiya Nagarik Suraksha Sanhita')) ?? '';
+const prayerLine = (v: string) =>
+  `under Section ${v} of the Bharatiya Nagarik Suraksha Sanhita, 2023`;
+
+function renderedPrayer(formData: Record<string, unknown>): string {
+  const cfg = loadTemplateConfig('criminal_revision')!;
+  const section = cfg.document_structure.sections.find((s) => s.section_id === 'prayer');
+  if (!section) throw new Error('no prayer section');
+  const ctx = buildPlaceholderContext(cfg, formData);
+  return renderTemplateSection(section, ctx).content;
+}
+
+describe('T-429 G: criminal_revision {applicable_section} (00d9401)', () => {
+  const FORUM_CASES: Array<[string, unknown, string]> = [
+    ['high court id', HC_ID, '438 read with Section 442'],
+    ['sessions id', SESSIONS_ID, '438 read with Section 440'],
+    ['empty', '', TBC_SECTION],
+    ['blank', '   ', TBC_SECTION],
+    ['unknown', 'family_court_s999', TBC_SECTION],
+    ['absent', undefined, TBC_SECTION],
+  ];
+
+  describe('(i) the promoted config', () => {
+    it('carries computed_fields.applicable_section with the signed value_map', () => {
+      const cfg = loadTemplateConfig('criminal_revision')!;
+      const cf = cfg.computed_fields.applicable_section;
+      expect(cf).toBeDefined();
+      expect(cf.logic).toBe(
+        "value_map[revisional_forum] || '[To be confirmed: section of the BNSS]'",
+      );
+      expect(cf.value_map).toEqual({
+        [HC_ID]: '438 read with Section 442',
+        [SESSIONS_ID]: '438 read with Section 440',
+      });
+    });
+
+    it('the prayer template uses {applicable_section}', () => {
+      const cfg = loadTemplateConfig('criminal_revision')!;
+      const prayer = cfg.document_structure.sections.find((s) => s.section_id === 'prayer');
+      expect(prayer?.template).toContain('Section {applicable_section} of the Bharatiya Nagarik');
+    });
+
+    it('promoteDocRuleToTemplateConfig skips a computed field with no string logic', () => {
+      const rule = {
+        ...revisionRaw(),
+        computed_fields: { bad: { value_map: {} }, ok: { logic: "'x'" } },
+      };
+      const { config, mismatches } = promoteDocRuleToTemplateConfig(
+        rule as never,
+        'criminal_revision.json',
+      );
+      expect(Object.keys(config.computed_fields)).toEqual(['ok']);
+      expect(mismatches.join('\n')).toContain('computed_fields.bad');
+    });
+  });
+
+  describe('(ii) template path: buildPlaceholderContext + prayer section', () => {
+    it.each(FORUM_CASES)('forum %s', (_n, forum, expected) => {
+      const text = renderedPrayer(forum === undefined ? {} : { revisional_forum: forum });
+      expect(text).toContain(prayerLine(expected));
+      expect(jurisdictionPara(text)).not.toContain('_____');
+      expect(text).not.toContain('{applicable_section}');
+      expect(text).not.toContain(HC_ID);
+      expect(text).not.toContain(SESSIONS_ID);
+    });
+
+    it('the two forums print different sections, and not the other one', () => {
+      const hc = renderedPrayer({ revisional_forum: HC_ID });
+      const ss = renderedPrayer({ revisional_forum: SESSIONS_ID });
+      expect(hc).not.toContain('Section 440');
+      expect(ss).not.toContain('Section 442');
+    });
+  });
+
+  describe('(iii) brief path: formDataFromBrief', () => {
+    const pack = () => loadRulePack('criminal_revision') as RulePack;
+    const briefWith = (values: GivenValue[]) =>
+      buildBrief({
+        kind: { id: 'criminal_revision', name: 'Criminal Revision', court_document: true },
+        checklist: buildChecklist(pack()),
+        values,
+      });
+    const cfg = () => loadTemplateConfig('criminal_revision')!;
+
+    it.each([
+      ['label HC', HC_LABEL, HC_ID, '438 read with Section 442'],
+      ['label Sessions', SESSIONS_LABEL, SESSIONS_ID, '438 read with Section 440'],
+    ])('%s', (_n, given, id, expected) => {
+      const data = formDataFromBrief(
+        briefWith([{ key: 'revisional_forum', value: given, source: 'user' }]),
+        cfg(),
+        'en',
+      );
+      expect(data.revisional_forum).toBe(id);
+      const text = renderedPrayer(data);
+      expect(text).toContain(prayerLine(expected));
+      expect(jurisdictionPara(text)).not.toContain('_____');
+    });
+
+    it('unanswered item: the blank is not a forum, the prayer prints the signed blank', () => {
+      const brief = briefWith([]);
+      expect(brief.items.some((i) => i.key === 'revisional_forum')).toBe(true);
+      const data = formDataFromBrief(brief, cfg(), 'en');
+      const text = renderedPrayer(data);
+      expect(text).toContain(prayerLine(TBC_SECTION));
+      expect(jurisdictionPara(text)).not.toContain('_____');
+      expect(text).not.toContain(HC_ID);
+      expect(text).not.toContain(SESSIONS_ID);
+    });
+
+    it('ledger skeleton, unanswered: the MISSING blank is not a forum either', () => {
+      const data = formDataFromBrief(ledgerSkeletonBrief(briefWith([]), []), cfg(), 'en');
+      const text = renderedPrayer(data);
+      expect(text).toContain(prayerLine(TBC_SECTION));
+      expect(jurisdictionPara(text)).not.toContain('_____');
+    });
+  });
+
+  describe('(iv) other packs are unchanged', () => {
+    it('rule files other than criminal_revision declaring computed_fields (the premise)', () => {
+      const declaring = readdirSync(RULES_DIR)
+        .filter((n) => n.endsWith('.json'))
+        .filter((n) => 'computed_fields' in JSON.parse(readFileSync(join(RULES_DIR, n), 'utf8')))
+        .map((n) => n.replace(/\.json$/, ''));
+      expect(declaring).toEqual(['criminal_revision']);
+    });
+
+    it.each(['discharge_application', 'quashing_528_bnss', 'bail_regular', 'legal_notice_s138'])(
+      '%s: promoted from a rule file without computed_fields gets {} (or its own template)',
+      (id) => {
+        const raw = JSON.parse(readFileSync(join(RULES_DIR, `${id}.json`), 'utf8')) as Record<
+          string,
+          unknown
+        >;
+        expect(raw.computed_fields).toBeUndefined();
+        const { config } = promoteDocRuleToTemplateConfig(raw as never, `${id}.json`);
+        expect(config.computed_fields).toEqual({});
+      },
+    );
   });
 });
