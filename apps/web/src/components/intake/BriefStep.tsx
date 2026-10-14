@@ -606,6 +606,14 @@ export default function BriefStep({
       return;
     }
     if (courtNeeded) {
+      // T-411: a consumer complaint asks for the Commission level first.
+      const levelGroup = document.querySelector('[aria-labelledby="brief-court-level-label"]');
+      if (levelGroup && !levelGroup.querySelector('[aria-checked="true"]')) {
+        const chip = levelGroup.querySelector<HTMLElement>('[role="radio"][tabindex="0"]');
+        chip?.scrollIntoView({ block: 'center' });
+        chip?.focus();
+        return;
+      }
       const el = ['brief-court-state', 'brief-court-type', 'brief-court-court']
         .map((id) => document.getElementById(id) as HTMLSelectElement | null)
         .find((s) => s && !s.disabled && s.value === '');
@@ -722,7 +730,12 @@ export default function BriefStep({
               Court
             </h2>
             <p className={`${small} mb-3`}>You choose this. We never fill it in.</p>
-            <CourtPicker court={brief.court} onChange={onCourt} missing={courtNeeded} />
+            <CourtPicker
+              court={brief.court}
+              onChange={onCourt}
+              missing={courtNeeded}
+              templateId={brief.kind.id ?? undefined}
+            />
           </section>
         )}
 

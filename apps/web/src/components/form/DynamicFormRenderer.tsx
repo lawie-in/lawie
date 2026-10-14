@@ -15,6 +15,23 @@
 import { ChevronLeft, ChevronRight, IndianRupee, Paperclip, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import ConsumerLevelGroup, {
+  CONSUMER_COURT_LABEL,
+  CONSUMER_COURT_TYPE,
+  CONSUMER_NO_MATCH,
+  CONSUMER_TEMPLATE_ID,
+  LIVE_CLEARED,
+  LIVE_COURT_SHOWN,
+  LIVE_NATIONAL_SHOWN,
+  LIVE_STATE_SHOWN,
+  NCDRC_COURT_ID,
+  NCDRC_COURT_TYPE,
+  NCDRC_OPTION_LABEL,
+  NCDRC_STATE_ID,
+  type ConsumerLevel,
+  type LevelChangeHow,
+} from '../intake/ConsumerLevelGroup';
+
 // ── Types (mirrored from backend template-engine types) ─────────────────────
 
 export interface FieldOption {
@@ -872,22 +889,42 @@ function StepIndicator({ steps, currentStep }: { steps: FormStep[]; currentStep:
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-export function useCourtsData(formData: Record<string, unknown>) {
+/**
+ * T-411: an optional template scope. For consumer_complaint the lists are filtered by the
+ * Commission level (part 1 server API); with no scope everything behaves as before.
+ */
+export interface CourtsScope {
+  templateId?: string;
+  level?: ConsumerLevel | null;
+}
+
+export function useCourtsData(formData: Record<string, unknown>, scope?: CourtsScope) {
   const [states, setStates] = useState<FieldOption[]>([]);
   const [courtTypes, setCourtTypes] = useState<FieldOption[]>([]);
   const [courts, setCourts] = useState<FieldOption[]>([]);
+  const [courtsLoaded, setCourtsLoaded] = useState(false);
 
   const stateId = String(formData.state ?? '');
   const courtType = String(formData.court_type ?? '');
+  const consumer = scope?.templateId === CONSUMER_TEMPLATE_ID;
+  const level = consumer ? (scope?.level ?? null) : null;
+  const query = consumer && level ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}` : '';
 
-  // Fetch states once on mount
-  const statesFetched = useRef(false);
+  // Fetch states once on mount (once per level in consumer mode)
+  const statesFetched = useRef<string | null>(null);
   useEffect(() => {
-    if (statesFetched.current) return;
-    statesFetched.current = true;
-    fetch(`${API_URL}/api/courts/states`)
+    if (consumer && (!level || level === 'national')) {
+      statesFetched.current = null;
+      setStates([]);
+      return;
+    }
+    if (statesFetched.current === query) return;
+    statesFetched.current = query;
+    let off = false;
+    fetch(`${API_URL}/api/courts/states${query ? `?${query}` : ''}`)
       .then((r) => r.json())
       .then((data) => {
+        if (off) return;
         if (data.states) {
           setStates(
             data.states.map((s: { id: string; name: string }) => ({ id: s.id, label: s.name })),
@@ -895,10 +932,21 @@ export function useCourtsData(formData: Record<string, unknown>) {
         }
       })
       .catch(() => {});
-  }, []);
+    return () => {
+      // A stale response (the level changed, or unmount) is dropped; forget the key so
+      // the next run fetches again rather than skipping.
+      off = true;
+      statesFetched.current = null;
+    };
+  }, [consumer, level, query]);
 
   // Fetch court types when state changes
   useEffect(() => {
+    if (consumer) {
+      // The level replaces the court type in consumer mode.
+      setCourtTypes([]);
+      return;
+    }
     if (!stateId) {
       setCourtTypes([]);
       setCourts([]);
@@ -914,32 +962,52 @@ export function useCourtsData(formData: Record<string, unknown>) {
         }
       })
       .catch(() => {});
-  }, [stateId]);
+  }, [stateId, consumer]);
 
   // Fetch courts when state + court_type change
   useEffect(() => {
-    if (!stateId || !courtType) {
-      setCourts([]);
-      return;
+    let path: string;
+    if (consumer) {
+      if (!level || (level !== 'national' && !stateId)) {
+        setCourts([]);
+        setCourtsLoaded(false);
+        return;
+      }
+      path =
+        level === 'national'
+          ? `${API_URL}/api/courts?${query}`
+          : `${API_URL}/api/courts?${query}&state=${encodeURIComponent(stateId)}`;
+    } else {
+      if (!stateId || !courtType) {
+        setCourts([]);
+        return;
+      }
+      path = `${API_URL}/api/courts?state=${encodeURIComponent(stateId)}&type=${encodeURIComponent(courtType)}`;
     }
-    fetch(
-      `${API_URL}/api/courts?state=${encodeURIComponent(stateId)}&type=${encodeURIComponent(courtType)}`,
-    )
+    let off = false;
+    setCourtsLoaded(false);
+    fetch(path)
       .then((r) => r.json())
       .then((data) => {
+        if (off) return;
         if (data.courts) {
           setCourts(
             data.courts.map((c: { courtId: string; name: string }) => ({
               id: c.courtId,
-              label: c.name,
+              // T-411: signed UI label for NCDRC; the record's name still prints.
+              label: consumer && c.courtId === NCDRC_COURT_ID ? NCDRC_OPTION_LABEL : c.name,
             })),
           );
+          setCourtsLoaded(true);
         }
       })
       .catch(() => {});
-  }, [stateId, courtType]);
+    return () => {
+      off = true;
+    };
+  }, [stateId, courtType, consumer, level, query]);
 
-  return { states, courtTypes, courts };
+  return { states, courtTypes, courts, courtsLoaded };
 }
 
 export function resolveOptions(
@@ -1219,8 +1287,72 @@ export default function DynamicFormRenderer({
     return initial;
   });
 
+  // T-411: a consumer complaint picks the Commission level first.
+  const consumer = config.template_id === CONSUMER_TEMPLATE_ID;
+  const [level, setLevel] = useState<ConsumerLevel | null>(null);
+  const [live, setLive] = useState('');
+  const focusNext = useRef<string | null>(null);
+  const courtFieldIds = useMemo(() => {
+    const ids: {
+      state?: string;
+      type?: string;
+      court?: string;
+      stateField?: FormField;
+      courtField?: FormField;
+    } = {};
+    for (const s of steps) {
+      for (const f of s.fields) {
+        if (f.source === 'courts_db.states') {
+          ids.state = f.field_id;
+          ids.stateField = f;
+        }
+        if (f.source === 'courts_db.court_types') ids.type = f.field_id;
+        if (f.source === 'courts_db.courts') {
+          ids.court = f.field_id;
+          ids.courtField = f;
+        }
+      }
+    }
+    return ids;
+  }, [steps]);
+
+  useEffect(() => {
+    if (!focusNext.current) return;
+    const el = document.getElementById(focusNext.current);
+    focusNext.current = null;
+    el?.focus();
+  });
+
   // Courts data from API — cascading dropdowns (SCRUM-50)
-  const courtsData = useCourtsData(formData);
+  const courtsData = useCourtsData(
+    formData,
+    consumer ? { templateId: config.template_id, level } : undefined,
+  );
+
+  const onLevel = (next: ConsumerLevel, how: LevelChangeHow) => {
+    if (next === level) return;
+    const { state: sId, type: tId, court: cId } = courtFieldIds;
+    const hadChoice =
+      level === 'national'
+        ? Boolean(cId && formData[cId])
+        : Boolean((sId && formData[sId]) || (cId && formData[cId]));
+    setLevel(next);
+    // Changing the level clears the state and court below it. The court type (and the
+    // state, for NCDRC) are set from the level, so required checks still pass.
+    setFormData((prev) => {
+      const out = { ...prev };
+      if (sId) out[sId] = next === 'national' ? NCDRC_STATE_ID : '';
+      if (tId) out[tId] = next === 'national' ? NCDRC_COURT_TYPE : CONSUMER_COURT_TYPE;
+      if (cId) out[cId] = '';
+      return out;
+    });
+    const shown = next === 'national' ? LIVE_NATIONAL_SHOWN : LIVE_STATE_SHOWN;
+    setLive(hadChoice ? `${LIVE_CLEARED} ${shown}` : shown);
+    // Arrow keys keep focus on the chip (radio pattern); click, Space or Enter moves it on.
+    if (how === 'activate') {
+      focusNext.current = next === 'national' ? 'dfr-consumer-court' : 'dfr-consumer-state';
+    }
+  };
 
   // Build a map of field_id → cascades_to for cascade resets
   const cascadeMap = useMemo(() => {
@@ -1305,6 +1437,96 @@ export default function DynamicFormRenderer({
     }
   }
 
+  function renderConsumerCourt() {
+    const { state: sId, type: tId, court: cId, stateField, courtField } = courtFieldIds;
+    const national = level === 'national';
+    const stateValue = sId ? String(formData[sId] ?? '') : '';
+    const courtValue = cId ? String(formData[cId] ?? '') : '';
+    const courtDisabled = !level || (!national && !stateValue);
+    const chosen = courtsData.courts.find((c) => c.id === courtValue);
+    const selectClass = `${inputClasses} min-h-[44px] disabled:bg-slate-100`;
+    return (
+      <div key="consumer-court" className="col-span-full">
+        <ConsumerLevelGroup id="dfr-consumer-level" value={level} onChange={onLevel} />
+        <p aria-live="polite" role="status" className="sr-only">
+          {live}
+        </p>
+        {level && (
+          <div className={`mt-4 grid grid-cols-1 gap-4 ${national ? '' : 'sm:grid-cols-2'}`}>
+            {!national && sId && (
+              <div>
+                <label
+                  htmlFor="dfr-consumer-state"
+                  className="block text-xs font-medium text-slate-600"
+                >
+                  State
+                  {stateField?.required && <span className="ml-0.5 text-red-400">*</span>}
+                </label>
+                <select
+                  id="dfr-consumer-state"
+                  value={stateValue}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData((prev) => {
+                      const out = { ...prev, [sId]: v };
+                      if (tId) out[tId] = CONSUMER_COURT_TYPE;
+                      if (cId) out[cId] = '';
+                      return out;
+                    });
+                    if (v) setLive(LIVE_COURT_SHOWN);
+                  }}
+                  className={selectClass}
+                >
+                  <option value="">Choose</option>
+                  {courtsData.states.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                {stateField && (
+                  <FieldFooter field={stateField} errorMessage={fieldErrors[stateField.field_id]} />
+                )}
+              </div>
+            )}
+            {cId && (
+              <div>
+                <label
+                  htmlFor="dfr-consumer-court"
+                  className="block text-xs font-medium text-slate-600"
+                >
+                  {CONSUMER_COURT_LABEL}
+                  {courtField?.required && <span className="ml-0.5 text-red-400">*</span>}
+                </label>
+                <select
+                  id="dfr-consumer-court"
+                  value={courtValue}
+                  disabled={courtDisabled}
+                  onChange={(e) => setField(cId, e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="">Choose</option>
+                  {courtsData.courts.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                {chosen && <p className="mt-1 text-xs text-slate-600">{chosen.label}</p>}
+                {courtField && (
+                  <FieldFooter field={courtField} errorMessage={fieldErrors[courtField.field_id]} />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        {!national && stateValue && courtsData.courtsLoaded && courtsData.courts.length === 0 && (
+          <p className="mt-2 text-xs text-slate-500">{CONSUMER_NO_MATCH}</p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6">
@@ -1318,7 +1540,13 @@ export default function DynamicFormRenderer({
         <h2 className="mb-4 text-sm font-semibold text-slate-700">{currentStep.title}</h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {visibleFields.map((field) => {
+          {visibleFields.map((field, fieldIndex) => {
+            if (consumer && field.source?.startsWith('courts_db.')) {
+              // T-411: one consumer block replaces the state / court type / court fields.
+              const first = visibleFields.findIndex((f) => f.source?.startsWith('courts_db.'));
+              if (fieldIndex !== first) return null;
+              return renderConsumerCourt();
+            }
             const options = resolveOptions(field, formData, config, courtsData);
             const value = formData[field.field_id];
 
