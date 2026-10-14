@@ -13,6 +13,7 @@ import type { LedgerFact } from '@lawie/shared';
 
 import {
   drafterBrief,
+  guidedDrafterBrief,
   formDataFromBrief,
   isNotKnownDate,
   ledgerDrafterFacts,
@@ -41,6 +42,7 @@ import {
   loadTemplateConfig,
   replacePlaceholders,
 } from '../services/template-engine.service';
+import { missingAsBlanks } from '../utils/missingAsBlanks';
 import { fact, loadFixtureSkeleton, regularBase } from './fixtures/t373';
 
 // Ajay's signed line, typed here as signed (a9bc957), so a reword of the constant fails.
@@ -195,10 +197,10 @@ describe('D1 path', () => {
 
   it('AC1: "Not known" prints the arrested_on clause with the blank', () => {
     const t = render(regularBase(), arrestNotKnown());
-    expect(t).toContain('The applicant was arrested on ');
-    expect(t).toMatch(/\{\{MISSING: date of arrest\}\}|\[To be confirmed: date of arrest\]/);
-    expect(t).not.toContain('_____');
-    expect(t).not.toMatch(/arrested on \./);
+    // Ajay 69ac17a (b): exactly this, once the ledger token is printed as a blank.
+    expect(missingAsBlanks(t!)).toBe(
+      'The applicant was arrested on [To be confirmed: date of arrest].',
+    );
   });
 
   it('merely empty leaves the clause out', () => {
@@ -322,5 +324,19 @@ describe('Q2 and AC2: the s.138 checks', () => {
     expect(r.b.text.startsWith(S138_LINE_TEXTS.B5)).toBe(true);
     expect(r.b.text).toContain('[To be confirmed: date the return memo was received]');
     expect(r.b.text).not.toMatch(/\d{4}/);
+  });
+});
+
+describe('guided path (no pack)', () => {
+  it('carries no not_known entry: asked_empty only comes from pack ask_when_empty facts', () => {
+    const b = buildBrief({
+      kind: { id: 'guided', name: 'Guided', court_document: false },
+      checklist: [],
+      values: [user('arrest_date', 'Not known')],
+    });
+    expect(notKnownDateKeys(b)).toEqual([]);
+    const g = guidedDrafterBrief(b, null);
+    expect(g.unknown.some((u) => u.not_known)).toBe(false);
+    expect(JSON.stringify(g)).not.toContain('not_known');
   });
 });
