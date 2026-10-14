@@ -56,6 +56,7 @@ jobs:
               - 'apps/drafting/src/services/drafter.prompts.ts'
               - 'apps/drafting/src/services/draft-renderer.ts'
               - 'apps/drafting/src/config/document-rules/**'
+              - 'apps/drafting/src/config/sections/**'
               - 'apps/drafting/src/types/skeleton.ts'
               - 'packages/shared/src/utils/normalize/**'
               - 'scripts/golden-set/**'
