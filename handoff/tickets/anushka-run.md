@@ -1014,3 +1014,12 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - If a payment's Ink credit gets stuck part-way, Razorpay's next retry finishes it, and it's never credited twice.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-404 part 1 — Marked blanks, not gaps (680b41c, shashank, 14 Oct 2026)
+
+- Generate a s.138 notice without every party detail and get clearly marked "[To be confirmed: ...]" blanks to fill in, not "_____".
+- See a marked blank, not an empty gap, for the advocate's name, address and enrolment number when the profile lacks them.
+- Start a draft before choosing a court and see "[To be confirmed: court]", with no court name invented.
+- Draft a bail application with the court, case type and place each flagged for confirmation, not guessed.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

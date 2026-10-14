@@ -55,12 +55,14 @@ Where each lead stopped:
 
 - vishal: T-397 merged. Next: T-422, then T-376.
 - mahak: T-381 merged. Next: T-423.
-- shashank: T-404 part 1 on feature/t-404-cause-title-s138 f506d75, ready to merge.
+- shashank: T-404 part 1 merged 680b41c; part 2 building.
 - kunal: T-415 on fix/t-415-grant-claim-state bc35be1, ready to merge.
 - tanvi: T-411 server half on feature/t-411-consumer-court-picker 41fe294 (built, tested); UI waits for Rajesh's Figma link.
 
 ## Last done
 
+- shashank: T-404 part 1 merged 680b41c (14 Oct 2026). s.138 notice, advocate and court gaps print '[To be confirmed: ...]', never '_____' or an invented court; bail court, case type and place flagged. Part 2 building.
+- kunal: T-415 CI green (run 524).
 - kunal: T-415 merged 42703a4 (14 Oct 2026). A stuck Ink grant is finished by Razorpay's next retry, never twice.
 - mahak: T-381 CI green (run 523, 13 Oct 2026).
 - mahak: T-381 merged 9e3cafa (13 Oct 2026). Create annexures: one PDF with Vakalatnama, Memo of Parties and the rest, party names filled; missing names are named, never blank. Ajay Addenda 1-4. Unblocks Anushka T-313, T-318.
