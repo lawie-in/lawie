@@ -25,3 +25,5 @@ Two reasons, both expected. (1) `ci.yml` job `golden-set` has `if: github.event_
 ## Arjun (13 Oct 2026)
 
 The golden-set job has `if: github.event_name != 'push'` and path filters only on pull_request, so with merge-by-push it never runs. Fix: run it on push to develop_staging when the golden paths have changed since github.event.before, plus nightly. The secrets gate stays.
+
+**Arjun (14 Oct, concurrency):** the `golden-set` job gets its own concurrency group, `golden-${{ github.sha }}`, with `cancel-in-progress: false`; every other job keeps the per-ref group with cancel. A paid real run is never cancelled by the next push; the next push starts its own golden run only if its golden paths changed. Belongs in T-376 with the push trigger.
