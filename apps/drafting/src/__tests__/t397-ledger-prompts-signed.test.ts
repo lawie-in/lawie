@@ -67,6 +67,19 @@ describe("T-397 AC2: Ajay's changes A, B and C are present in the right prompt",
     expect(r6).toContain(B_NEW);
   });
 
+  it('B (T-422): PACK, REPAIR and GUIDED carry the signed wording exactly once', () => {
+    const signed =
+      'bailable or non-bailable, that an offence is complete, that a claim is within limitation,';
+    for (const p of [
+      DRAFTER_PACK_SYSTEM_PROMPT,
+      DRAFTER_REPAIR_SYSTEM_PROMPT,
+      DRAFTER_GUIDED_SYSTEM_PROMPT,
+    ]) {
+      expect(count(p, signed)).toBe(1);
+      expect(p).not.toContain('bailable or non-bailable, that a claim is within limitation,');
+    }
+  });
+
   it('B: the old wording without "an offence is complete" is gone from both', () => {
     expect(DRAFTER_LEDGER_SYSTEM_PROMPT).not.toContain(B_OLD);
     expect(DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT).not.toContain(B_OLD);
@@ -100,15 +113,17 @@ describe('T-397 AC3: PROPOSED is gone', () => {
 
 describe('T-397: prompts outside the review are unchanged', () => {
   // Baseline: drafter.prompts.ts at 4f7ffed, the parent of the T-397 change.
-  it('PACK, REPAIR, GUIDED and D1 hashes are as before', () => {
+  // PACK, REPAIR and GUIDED were re-pinned in T-422 (Ajay's signed change B applied to them);
+  // D1 is untouched.
+  it('PACK, REPAIR, GUIDED hashes are as signed in T-422; D1 hash is as before', () => {
     expect(sha(DRAFTER_PACK_SYSTEM_PROMPT)).toBe(
-      '2db4baabd467aaece3f56bf2e6fff4c79cfbcfeda5a18e7f755299bab8218065',
+      'c1fe88981f0322f7548fa6de479cd22e2cb76d051e48b365db8efe36a996ec56',
     );
     expect(sha(DRAFTER_REPAIR_SYSTEM_PROMPT)).toBe(
-      '42aab92426027f010dd5368d6b5870f7635cf0b118600c6a78c6299c33f0b928',
+      '9baa36b21113bb52d1d8cc3a18a0a69eb2b3de111b3a807f6c74199b9e21dae0',
     );
     expect(sha(DRAFTER_GUIDED_SYSTEM_PROMPT)).toBe(
-      '852a3da1b12694691b2f0280d0d25e899f0fca4c44d2a2b6cca97bf1c9bb375e',
+      'df9483c61babd16c0dc96bb5eb5720f62e64bddcd7df2b7d6c3145b38449ef6c',
     );
     expect(sha(DRAFTER_D1_SYSTEM_PROMPT)).toBe(
       '69ba56505e34947ef33b5cc446eaa59e14b188fe9e6ff0fa4cd22d91672add87',

@@ -1023,3 +1023,9 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Draft a bail application with the court, case type and place each flagged for confirmation, not guessed.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-422 — No 'offence complete' claims in bail packs, repairs, guided drafts (d2565d8, vishal, 14 Oct 2026)
+
+- In bail packs, repair rounds and guided drafts, Lawie no longer states on its own that an offence is complete; it says so only when the brief does.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
