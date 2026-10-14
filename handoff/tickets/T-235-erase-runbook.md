@@ -1,5 +1,8 @@
 # Manual erase of one user: runbook (Arjun, 12 Oct 2026)
 
+> **Stale (Priya, 14 Oct 2026):** T-115c changed the erase flow (auth-orchestrated, new erase-user exit codes, reviewer feedback anonymised). Until this file is rewritten, follow the "Closing and erasing an account" section of the root README.md.
+
+
 This meets T-235's go-live condition: Arjun confirms a manual erase can be run today.
 - **Who runs it:** the founder. Only he holds the production Atlas, Redis and Razorpay credentials.
 - **It can't be undone:** we have no backups.
