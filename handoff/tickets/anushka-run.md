@@ -1029,3 +1029,10 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - In bail packs, repair rounds and guided drafts, Lawie no longer states on its own that an offence is complete; it says so only when the brief does.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-423 — State name and accepted values on brief annexures (c9ba205, mahak, 14 Oct 2026)
+
+- Create annexures for a bail draft made from a brief and see "State of Bihar" on the Memo of Parties, not "State of bihar".
+- Party names on the annexures come only from what the brief accepted.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
