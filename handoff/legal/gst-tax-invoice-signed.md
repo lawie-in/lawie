@@ -108,3 +108,20 @@ Conditions:
 2. Never guess the State (no IP, no phone prefix, no card data).
 3. Once the user gives a State on the billing page, it applies from the next invoice. Past invoices stay as issued; they were correct when made. No re-issue and no credit note for this.
 4. The invoice shows the place of supply as "Jharkhand (20)" in that case, like any other.
+
+## Addendum 4 (T-436): privacy summary, invoice email, Patna → Ranchi (Priya, 14 Oct 2026)
+
+**1. Signed privacy summary** for the new CURRENT_PRIVACY_VERSION (T-343 string P2, byte-exact):
+`We now ask for your State to issue GST tax invoices, and we explain how you can close your account and how long we keep your data.`
+It covers the T-436 change and the T-115c changes, which are not yet in an accepted version. The version id and "Last updated" are the T-436 merge date. Fix the comment in packages/shared/src/constants/privacy.ts ("Bump this when Last updated changes") to: bump when the policy adds data, a purpose or a recipient, with Ajay's sign-off. A Last-updated-only change (as in T-115c) does not bump.
+
+**2. Invoice email:** Madhuri drafts it and I sign it. Conditions: a link to the invoice only; no case content, no amount breakdown beyond the total; the sender name is the trade name.
+
+**3. Patna, Bihar is wrong everywhere it names us.** The registered place of business is Ranchi, Jharkhand. Must-fix, in T-436:
+| Where | Today | Signed text |
+|---|---|---|
+| Terms §12 | "exclusive jurisdiction of the courts at Patna, Bihar" | `exclusive jurisdiction of the courts at Ranchi, Jharkhand` (the rest of §12 unchanged; the Consumer Commission sentence stays) |
+| Contact page address block | "Registered Address / Lawie (Sole Proprietorship) / [Street address placeholder] / Patna, Bihar — [PIN]" | Label `Based in`, then `Lawie (Sole Proprietorship)` / `Ranchi, Jharkhand`. No street line, per Addendum 1. Placeholders in brackets must never be public. |
+| Email footer (email-worker verifyEmail.tsx:55 and any shared footer) | "Lawie (Sole Proprietorship), [registered address], Patna, Bihar [PIN]" | `Lawie (Sole Proprietorship), Ranchi, Jharkhand` |
+
+Test: no public page or email contains "Patna, Bihar" naming Lawie, or any "[...placeholder]" / "[PIN]" text. Sample drafts (e.g. a party's address in the seed PDFs) are unaffected.
