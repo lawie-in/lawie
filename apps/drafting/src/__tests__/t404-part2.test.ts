@@ -106,3 +106,37 @@ describe('T-404 part 2: bail twins case line', () => {
     expect(ctx.caseNomenclature).toBe(CASE_TYPE_BLANK);
   });
 });
+
+describe('T-404 part 2: {place} on a not-court deed', () => {
+  const PLACE_BLANK = '[To be confirmed: place]';
+  const sale = () => loadTemplateConfig('sale_deed') as TemplateConfig;
+  const patna: CourtLookupData = {
+    designation: 'IN THE COURT OF DISTRICT JUDGE, PATNA',
+    city: 'Patna',
+    caseNomenclature: 'Civil Suit No. _____ of {year}',
+    formattingRulesRef: 'district_court_generic',
+    courtType: 'district_court',
+    courtRule: loadCourtRule('district_court_generic') ?? undefined,
+  };
+
+  it('sale_deed with a chosen court (Patna) and execution_place Gaya: place is Gaya, no Patna', () => {
+    const ctx = buildPlaceholderContext(
+      sale(),
+      { execution_place: 'Gaya' },
+      { advocateName: 'A' },
+      patna,
+    );
+    expect(ctx.place).toBe('Gaya');
+    expect(ctx.place).not.toContain('Patna');
+  });
+
+  it('sale_deed with a chosen court and execution_place empty: place is the blank, not the court city', () => {
+    const ctx = buildPlaceholderContext(
+      sale(),
+      { execution_place: '' },
+      { advocateName: 'A' },
+      patna,
+    );
+    expect(ctx.place).toBe(PLACE_BLANK);
+  });
+});
