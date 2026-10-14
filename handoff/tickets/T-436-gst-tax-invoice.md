@@ -88,3 +88,9 @@ Tax rule: code 20 (our state) gives CGST 9% + SGST 9%. Every other code, all UTs
 1. **New field `User.gstStateCode`** (2-digit GST state code as a string, e.g. `"10"`), not a reuse of `User.state` — that is free-text Bar Council state, nothing writes it, and a tax field must be exact. Auth: `PATCH /me` accepts `gstStateCode` validated against the signed list of GST state codes (Ajay's State collection, AC8), `GET /me` returns it; billing reads it from the user record at invoice time. `User.state` is untouched.
 2. **`/admin/billing/invoices.csv`** — under the billing service's admin routes, so the gateway proxy and the admin auth are the ones billing already has; no new top-level admin namespace.
 3. **Public endpoint, not build env**: `GET /api/billing/public/supplier` returns the five supplier values (GSTIN, legal name, trade name, address, state code) from billing's env — the same values that print on the invoice, so Terms 5b/5c and the invoice can never disagree. `Cache-Control: public, max-age=3600`. Not `NEXT_PUBLIC_*`: that needs a web rebuild to change and can drift from the invoice.
+
+## Ajay, 14 Oct 2026 (0668cd3, GST file Addendum 4)
+
+- AC8 signed summary for CURRENT_PRIVACY_VERSION: "We now ask for your State to issue GST tax invoices, and we explain how you can close your account and how long we keep your data." Also fix the "bump when Last updated changes" comment in packages/shared/src/constants/privacy.ts.
+- AC10 (must-fix): Patna is wrong. Terms §12 courts become Ranchi, Jharkhand. The contact page and the email footer (email-worker verifyEmail.tsx) say "Ranchi, Jharkhand". Remove the live "[PIN]" and placeholder text. Use the exact strings from Ajay's file.
+- The invoice email (Madhuri, link only, no case content) goes to Ajay to sign.
