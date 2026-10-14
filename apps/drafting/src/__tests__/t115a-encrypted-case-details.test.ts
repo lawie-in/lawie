@@ -280,7 +280,17 @@ describe('T-115a AC1/AC4 A: a new document holds no plain case details', () => {
       expect(text).not.toContain(secret);
     }
     expectSealedChecklist(row, '555/2026');
-    expect(readRaw(row)).toEqual({ template_id: 'bail_regular', source: 'brief' });
+    // T-381: the sealed inputs now hold the pack's party inputs, court_type, and (a State row) state.
+    expect(readRaw(row)).toEqual({
+      template_id: 'bail_regular',
+      source: 'brief',
+      applicant_name: 'Zorbaxx Brief Applicant',
+      father_name: 'Shri Quillon Brief Father',
+      applicant_age: '32',
+      address: '88 Wrenfield Brief Lane, Patna',
+      court_type: 'sessions',
+      state: 'bihar',
+    });
   });
 
   it('POST /generate (legacy)', async () => {
@@ -318,7 +328,8 @@ describe('T-115a AC1 B: annexures-pack reads legacy plain and new encrypted alik
     applicant_name: 'Zorbaxx Annexure Applicant',
   };
 
-  async function packFormData(docFields: Record<string, unknown>): Promise<unknown> {
+  /** Inserts a bail_regular draft row and posts the pack request. */
+  async function postPack(docFields: Record<string, unknown>) {
     mockBuildPack.mockResolvedValue(Buffer.from('%PDF'));
     const now = new Date();
     const ins = await rawDocs().insertOne({
@@ -333,9 +344,13 @@ describe('T-115a AC1 B: annexures-pack reads legacy plain and new encrypted alik
       updatedAt: now,
       ...docFields,
     });
-    const res = await request(app)
+    return request(app)
       .post(`/${String(ins.insertedId)}/annexures-pack`)
       .set(headers());
+  }
+
+  async function packFormData(docFields: Record<string, unknown>): Promise<unknown> {
+    const res = await postPack(docFields);
     expect(res.status).toBe(200);
     expect(mockBuildPack).toHaveBeenCalledTimes(1);
     return (mockBuildPack.mock.calls[0][0] as { formData: unknown }).formData;
@@ -363,8 +378,12 @@ describe('T-115a AC1 B: annexures-pack reads legacy plain and new encrypted alik
     expect(seen[1]).toBe(seen[0]);
   });
 
-  it('a row with neither field reads as empty case details', async () => {
-    expect(await packFormData({})).toEqual({});
+  it('a row with neither field reads as empty case details, so the pack refuses (T-381)', async () => {
+    // Empty details have no client name: 422, and nothing is rendered.
+    const res = await postPack({});
+    expect(res.status).toBe(422);
+    expect(res.body).toEqual({ error: 'party_details_missing', missing: ['client_role'] });
+    expect(mockBuildPack).not.toHaveBeenCalled();
   });
 });
 

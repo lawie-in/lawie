@@ -1,12 +1,12 @@
 # T-381 — Generate the Vakalatnama and Memo of Parties from a draft
 
-| Field  | Value                                                                                                                  |
-| ------ | ---------------------------------------------------------------------------------------------------------------------- |
-| Phase  | 4 — Polish and release                                                                                                 |
-| Owner  | Lead (web + drafting)                                                                                                  |
-| Mode   | Full chain                                                                                                             |
-| Status | Building. Mahak (Explore first; documents.routes.ts after T-373 merges; button design from Rajesh). Priya, 13 Oct 2026 |
-| Source | Anushka run 3: no Vakalatnama or Memo of Parties was produced                                                          |
+| Field  | Value                                                                                           |
+| ------ | ----------------------------------------------------------------------------------------------- |
+| Phase  | 4 — Polish and release                                                                          |
+| Owner  | Lead (web + drafting)                                                                           |
+| Mode   | Full chain                                                                                      |
+| Status | Merged into develop_staging 9e3cafa (Mahak, 13 Oct 2026). Waiting for Anushka on develop. Priya |
+| Source | Anushka run 3: no Vakalatnama or Memo of Parties was produced                                   |
 
 ## Acceptance criteria
 

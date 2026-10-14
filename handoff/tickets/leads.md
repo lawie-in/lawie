@@ -47,19 +47,25 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-**WORK HOUR 16:42–17:42 UTC, 13 Oct (founder). Paused again at 17:42.** Merge order after Kunal's gitleaks fix (28177b7) CI: Vishal T-397, then Mahak T-381, then Kunal T-415 (doc-writers finishing), then Shashank T-404 part 1.
+**WORK HOUR 10:28–11:28 UTC, 14 Oct (founder). Everyone stops at 11:28.** Targets: Kunal merge T-415, then T-396. Shashank merge T-404 part 1, then start part 2. Vishal T-422 merged, then T-376. Mahak T-423 merged. Tanvi T-411 UI if the Figma link lands; otherwise T-408 (Explore, then build). Merge order: T-415, then T-404 part 1, then first-ready.
+Previous hour (13 Oct, 16:42–17:42):
+Hour result: merged T-397 (7e23038) and T-381 (9e3cafa), plus fixes: T-410 CI test fix (37f9736) and T-399 gitleaks allow (28177b7). T-415 done but not merged. T-404 part 1 reviewed, not merged. T-411 server half built.
+Next session's merge queue: Kunal T-415 (bc35be1, all four reports), then Shashank T-404 part 1 (f506d75, tester, re-review and Ajay passed; merge only).
 Where each lead stopped:
 
-- vishal: T-397 on fix/t-397-legacy-prompt-signoffs e366b39. Developer done; Ajay's byte check and the tester are next.
-- mahak: T-390+T-416 (fix/t-416-verify-dedup-orphan) and T-405 (fix/t-405-public-field-helper) are ready to merge. T-381 on feature/t-381-annexures-card 6cd04ae: built, tester stopped midway, no review yet.
-- shashank: T-404 part 1 on feature/t-404-cause-title-s138 453c451. Final tester stopped early; a fresh reviewer is next.
-- kunal: T-415 on fix/t-415-grant-claim-state, not started. T-413 CI run 516 was pending.
-- tanvi: T-410 on fix/t-410-consumer-commission-only 734d15e is ready to merge. T-411 not started.
-
-- kunal: T-413 merged 9cf199e; holds the slot until CI on it is green. Then Mahak T-390 + T-416 as one merge (38316a5; all reports in, T-416 delta reviewer passed 10:10), then Mahak T-405 (small fix, tester green, 10:38), then Tanvi T-410 with T-412, T-417 and T-418 (all four reports, Ajay cleared 2df4d04, 11:20), then Shashank T-404 part 1 (fresh tester and reviewer running after merging in T-406). T-361 data copy waits on the founder.
+- vishal: T-397 merged. Next: T-422, then T-376.
+- mahak: T-381 merged. Next: T-423.
+- shashank: T-404 part 1 on feature/t-404-cause-title-s138 f506d75, ready to merge.
+- kunal: T-415 on fix/t-415-grant-claim-state bc35be1, ready to merge.
+- tanvi: T-411 server half on feature/t-411-consumer-court-picker 41fe294 (built, tested); UI waits for Rajesh's Figma link.
 
 ## Last done
 
+- mahak: T-381 CI green (run 523, 13 Oct 2026).
+- mahak: T-381 merged 9e3cafa (13 Oct 2026). Create annexures: one PDF with Vakalatnama, Memo of Parties and the rest, party names filled; missing names are named, never blank. Ajay Addenda 1-4. Unblocks Anushka T-313, T-318.
+- vishal: T-397 CI green (run 522).
+- vishal: T-397 merged 7e23038 (13 Oct 2026). Legacy prompts: no invented S/o or relative, no 'offence complete' claims, dates kept as entered. Ajay 05c7e44.
+- kunal: T-399 gitleaks:allow fix CI green (run 521).
 - kunal: T-399 gitleaks:allow fix merged 28177b7 (13 Oct 2026), after run 520 went green. Comment-only; commit hooks pass on T-399's lines.
 - tanvi: T-410 CI test fix CI green (run 520).
 - tanvi: T-410 CI test fix merged 37f9736 (13 Oct 2026): baseline pinned as a literal. Waiting for CI run 520. Next: Kunal's gitleaks:allow fix.

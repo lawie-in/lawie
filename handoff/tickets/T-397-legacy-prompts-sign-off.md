@@ -1,16 +1,17 @@
 # T-397 — Ajay signs the legacy LEDGER, LEDGER_REPAIR and FACT_REPAIR prompts
 
-| Field  | Value |
-| ------ | ----- |
-| Phase  | 4 — Polish and release |
-| Owner  | Ajay (review). Vishal applies any changes; he holds drafter.prompts.ts |
-| Mode   | Legal review; then a small fix if Ajay lists changes |
-| Status | Ajay signed (handoff/legal/T-397-ledger-prompts-signed.md): 3 exact changes, and the 3 PROPOSED comments dropped. Vishal, as its own small fix right after T-373 merges (Priya, 13 Oct 2026, same call as Arjun's on T-392) |
-| Source | Ajay, after signing the T-373 D1 prompt (f8d2102) |
+| Field  | Value                                                                                                          |
+| ------ | -------------------------------------------------------------------------------------------------------------- |
+| Phase  | 4 — Polish and release                                                                                         |
+| Owner  | Ajay (review). Vishal applies any changes; he holds drafter.prompts.ts                                         |
+| Mode   | Legal review; then a small fix if Ajay lists changes                                                           |
+| Status | Merged into develop_staging 7e23038 (Vishal, 13 Oct 2026). Ajay 05c7e44. Waiting for Anushka on develop. Priya |
+| Source | Ajay, after signing the T-373 D1 prompt (f8d2102)                                                              |
 
 ## Why it matters for v1
 
 After T-373, the legacy ledger path still drafts:
+
 - the s.138 notice (v1);
 - Hindi bail drafts (T-386, v1 stays on today's path);
 - every pack without a signed skeleton.
