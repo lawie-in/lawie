@@ -5,9 +5,23 @@
  * court type, court. The court is never free text and is never filled in for
  * the advocate (ADR-021, rule 3).
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BriefCourt } from './briefTypes';
+import ConsumerLevelGroup, {
+  CONSUMER_COURT_TYPE,
+  CONSUMER_NO_MATCH,
+  CONSUMER_TEMPLATE_ID,
+  LIVE_CLEARED,
+  LIVE_COURT_SHOWN,
+  LIVE_NATIONAL_SHOWN,
+  LIVE_STATE_SHOWN,
+  NCDRC_COURT_ID,
+  NCDRC_COURT_TYPE,
+  NCDRC_OPTION_LABEL,
+  NCDRC_STATE_ID,
+  type ConsumerLevel,
+} from './ConsumerLevelGroup';
 import { input, label, linkButton, small, tagError } from './ui';
 
 import { apiFetch } from '@/lib/apiFetch';
@@ -29,27 +43,79 @@ async function getList<T>(
 /** Above this many courts the picker gets a box to narrow the list. */
 const SEARCH_FROM = 8;
 
+/** T-411: the level a stored court belongs to, when it can be told from the court alone. */
+function initialLevel(court: BriefCourt): ConsumerLevel | null {
+  if (
+    court.court === NCDRC_COURT_ID ||
+    (court.state === NCDRC_STATE_ID && court.court_type === NCDRC_COURT_TYPE)
+  ) {
+    return 'national';
+  }
+  return null;
+}
+
 export default function CourtPicker({
   court,
   onChange,
   missing,
+  templateId,
 }: {
   court: BriefCourt;
   onChange: (court: BriefCourt) => void;
   /** True when Confirm is off because the court is not chosen yet. */
   missing: boolean;
+  /** T-411: the brief's template. consumer_complaint switches on the Commission level group. */
+  templateId?: string;
 }) {
+  const consumer = templateId === CONSUMER_TEMPLATE_ID;
   const [states, setStates] = useState<Option[]>([]);
   const [types, setTypes] = useState<Option[]>([]);
   const [courts, setCourts] = useState<Option[]>([]);
+  const [courtsLoaded, setCourtsLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [filter, setFilter] = useState('');
+  const [level, setLevel] = useState<ConsumerLevel | null>(() =>
+    consumer ? initialLevel(court) : null,
+  );
+  const [live, setLive] = useState('');
+  const focusNext = useRef<string | null>(null);
+
+  // T-411: after a level change, move focus to the first control that appeared.
+  useEffect(() => {
+    if (!focusNext.current) return;
+    const el = document.getElementById(focusNext.current);
+    focusNext.current = null;
+    el?.focus();
+  });
+
+  // T-411: a brief reloaded with a District or State Commission already chosen. The
+  // stored court does not name its level, so ask the server which list it is on.
+  useEffect(() => {
+    if (!consumer || level || !court.court || !court.state) return;
+    if (court.court_type !== CONSUMER_COURT_TYPE) return;
+    let off = false;
+    getList(
+      `/api/courts?template=${CONSUMER_TEMPLATE_ID}&level=state&state=${encodeURIComponent(court.state)}`,
+      (d) => ((d.courts as Array<{ courtId: string }>) ?? []).map((c) => c.courtId),
+    )
+      .then((ids) => !off && setLevel(ids.includes(court.court as string) ? 'state' : 'district'))
+      .catch(() => !off && setFailed(true));
+    return () => {
+      off = true;
+    };
+  }, [consumer, level, court.court, court.state, court.court_type]);
+
+  const scope = consumer && level ? `template=${CONSUMER_TEMPLATE_ID}&level=${level}` : '';
 
   useEffect(() => {
-    let off = false;
     setFailed(false);
-    getList('/api/courts/states', (d) =>
+    if (consumer && (!level || level === 'national')) {
+      setStates([]);
+      return;
+    }
+    let off = false;
+    getList(`/api/courts/states${scope ? `?${scope}` : ''}`, (d) =>
       ((d.states as Array<{ id: string; name: string }>) ?? []).map((s) => ({
         id: s.id,
         name: s.name,
@@ -60,10 +126,10 @@ export default function CourtPicker({
     return () => {
       off = true;
     };
-  }, [attempt]);
+  }, [attempt, consumer, level, scope]);
 
   useEffect(() => {
-    if (!court.state) {
+    if (consumer || !court.state) {
       setTypes([]);
       return;
     }
@@ -79,28 +145,46 @@ export default function CourtPicker({
     return () => {
       off = true;
     };
-  }, [court.state, attempt]);
+  }, [court.state, attempt, consumer]);
 
   useEffect(() => {
-    if (!court.state || !court.court_type) {
-      setCourts([]);
-      return;
+    let path: string;
+    if (consumer) {
+      if (!level || (level !== 'national' && !court.state)) {
+        setCourts([]);
+        setCourtsLoaded(false);
+        return;
+      }
+      path =
+        level === 'national'
+          ? `/api/courts?${scope}`
+          : `/api/courts?${scope}&state=${encodeURIComponent(court.state ?? '')}`;
+    } else {
+      if (!court.state || !court.court_type) {
+        setCourts([]);
+        setCourtsLoaded(false);
+        return;
+      }
+      path = `/api/courts?state=${encodeURIComponent(court.state)}&type=${encodeURIComponent(court.court_type)}`;
     }
     let off = false;
-    getList(
-      `/api/courts?state=${encodeURIComponent(court.state)}&type=${encodeURIComponent(court.court_type)}`,
-      (d) =>
-        ((d.courts as Array<{ courtId: string; name: string }>) ?? []).map((c) => ({
-          id: c.courtId,
-          name: c.name,
-        })),
+    setCourtsLoaded(false);
+    getList(path, (d) =>
+      ((d.courts as Array<{ courtId: string; name: string }>) ?? []).map((c) => ({
+        id: c.courtId,
+        name: c.name,
+      })),
     )
-      .then((list) => !off && setCourts(list))
+      .then((list) => {
+        if (off) return;
+        setCourts(list);
+        setCourtsLoaded(true);
+      })
       .catch(() => !off && setFailed(true));
     return () => {
       off = true;
     };
-  }, [court.state, court.court_type, attempt]);
+  }, [court.state, court.court_type, attempt, consumer, level, scope]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
@@ -121,6 +205,125 @@ export default function CourtPicker({
       ? courts
       : courts.filter((c) => c.id === court.court || c.name.toLowerCase().includes(q));
   const gap = missing ? '!border-brand-error !border-2' : '';
+
+  if (consumer) {
+    const national = level === 'national';
+    const onLevel = (next: ConsumerLevel) => {
+      if (next === level) return;
+      const hadChoice = national
+        ? court.court !== null
+        : court.state !== null || court.court !== null;
+      setLevel(next);
+      setFilter('');
+      // Changing the level clears the state and court below it. court_type (and the
+      // state, for NCDRC) are still set so the confirm gate sees a full court once picked.
+      onChange(
+        next === 'national'
+          ? { state: NCDRC_STATE_ID, court_type: NCDRC_COURT_TYPE, court: null }
+          : { state: null, court_type: CONSUMER_COURT_TYPE, court: null },
+      );
+      const shown = next === 'national' ? LIVE_NATIONAL_SHOWN : LIVE_STATE_SHOWN;
+      setLive(hadChoice ? `${LIVE_CLEARED} ${shown}` : shown);
+      focusNext.current = next === 'national' ? 'brief-court-court' : 'brief-court-state';
+    };
+    const optionName = (c: Option) => (c.id === NCDRC_COURT_ID ? NCDRC_OPTION_LABEL : c.name);
+    const chosen = court.court ? courts.find((c) => c.id === court.court) : undefined;
+    const courtDisabled = !level || (!national && !court.state);
+
+    return (
+      <div>
+        <ConsumerLevelGroup id="brief-court-level" value={level} onChange={onLevel} />
+        <p aria-live="polite" role="status" className="sr-only">
+          {live}
+        </p>
+        {level && (
+          <div className={`mt-4 grid grid-cols-1 gap-4 ${national ? '' : 'sm:grid-cols-2'}`}>
+            {!national && (
+              <div>
+                <label htmlFor="brief-court-state" className={label}>
+                  State
+                </label>
+                <select
+                  id="brief-court-state"
+                  value={court.state ?? ''}
+                  onChange={(e) => {
+                    onChange({
+                      state: e.target.value || null,
+                      court_type: CONSUMER_COURT_TYPE,
+                      court: null,
+                    });
+                    if (e.target.value) setLive(LIVE_COURT_SHOWN);
+                  }}
+                  className={`${input} mt-1.5 ${missing && !court.state ? gap : ''}`}
+                >
+                  <option value="">Choose</option>
+                  {states.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div>
+              <label htmlFor="brief-court-court" className={label}>
+                Commission
+              </label>
+              {courts.length > SEARCH_FROM && (
+                <input
+                  type="search"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  placeholder="Type to narrow the list"
+                  aria-label="Narrow the list of courts"
+                  className={`${input} mt-1.5`}
+                />
+              )}
+              <select
+                id="brief-court-court"
+                value={court.court ?? ''}
+                disabled={courtDisabled}
+                onChange={(e) =>
+                  onChange(
+                    national
+                      ? {
+                          state: NCDRC_STATE_ID,
+                          court_type: NCDRC_COURT_TYPE,
+                          court: e.target.value || null,
+                        }
+                      : {
+                          state: court.state,
+                          court_type: CONSUMER_COURT_TYPE,
+                          court: e.target.value || null,
+                        },
+                  )
+                }
+                className={`${input} mt-1.5 disabled:bg-slate-100 ${
+                  missing && !courtDisabled && !court.court ? gap : ''
+                }`}
+              >
+                <option value="">Choose</option>
+                {shown.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {optionName(c)}
+                  </option>
+                ))}
+              </select>
+              {chosen && <p className={`${small} mt-1.5`}>{optionName(chosen)}</p>}
+            </div>
+          </div>
+        )}
+        {missing && (
+          <p className="mt-2">
+            <span className={tagError}>Needed to continue</span>
+          </p>
+        )}
+        {!national && court.state && courtsLoaded && courts.length === 0 && (
+          <p className={`${small} mt-2`}>{CONSUMER_NO_MATCH}</p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>
