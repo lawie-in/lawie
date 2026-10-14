@@ -67,6 +67,8 @@ Where each lead stopped:
 
 ## Last done
 
+- CI: run 550 GREEN on 47d5d011 (T-433 tip; full matrix, so it covers T-428, T-432, T-439, T-439b, T-429, T-433). Runs 540-548 were cancelled and superseded by it.
+- kunal: T-439b merged 1ea52c97 (14 Oct 2026). develop/develop_staging pushes test the full matrix again; lead branches test their own diff. ci.yml released.
 - shashank: T-433 merged 47d5d011 (14 Oct 2026). Yearly carry removed (kept at 0); pricing/Terms say plan Ink is fresh monthly and top-up never expires. Billing ink-ledger, UpgradeSuccessModal, terms, pricing released. Next T-440.
 - vishal: T-429 merged 8240327c (14 Oct 2026). Discharge drafts on a BNS charge drop NI Act and director case law; revision sections 440/442 by forum; criminal revision prayer names s.438 read with 440/442 or a to-be-confirmed blank. Discharge, quashing and criminal_revision packs and template-promoter released. Next T-437.
 - kunal: T-439 merged 82ad70ec (14 Oct 2026). CI runs on feature/** and fix/** (paths-filter base per Arjun); branch run 541. ci.yml released. Nothing to test in the UI. Next T-384.
