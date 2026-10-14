@@ -204,7 +204,7 @@ router.get(
         documentId: t.documentId,
         documentTitle: docMeta?.title ?? '(deleted)',
         documentType: docMeta?.docType ?? null,
-        status: fb ? 'submitted' : (t.isActive && t.expiresAt > new Date() ? 'pending' : 'expired'),
+        status: fb ? 'submitted' : t.isActive && t.expiresAt > new Date() ? 'pending' : 'expired',
         verdict: fb?.overallVerdict ?? null,
         submittedAt: fb?.submittedAt ?? null,
         comments: fb?.comments ?? null,
@@ -262,7 +262,8 @@ router.get('/review/:token', async (req: Request, res: Response): Promise<void> 
     return;
   }
 
-  const doc = await LawieDocument.findById(rt.documentId).lean();
+  // T-115b: a document pending erase is hidden, so it gets the same answer as a missing one.
+  const doc = await LawieDocument.findOne({ _id: rt.documentId, isDeleted: { $ne: true } }).lean();
   if (!doc) {
     res.status(404).json({ error: 'Document no longer available' });
     return;
@@ -307,6 +308,15 @@ router.post('/review/:token/feedback', async (req: Request, res: Response): Prom
   }
   if (rt.isUsed) {
     res.status(409).json({ error: 'Feedback already submitted for this link' });
+    return;
+  }
+
+  // T-115b: no feedback for a document that is missing or pending erase (same 404 as GET).
+  const doc = await LawieDocument.findOne({ _id: rt.documentId, isDeleted: { $ne: true } })
+    .select('_id')
+    .lean();
+  if (!doc) {
+    res.status(404).json({ error: 'Document no longer available' });
     return;
   }
 

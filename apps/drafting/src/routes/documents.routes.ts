@@ -53,6 +53,7 @@ import {
   settleInk,
   wasInkSettled,
 } from '../services/credits.service';
+import { eraseDocument } from '../services/document-erase.service';
 import {
   factDiffRunType,
   FactDiffRunType,
@@ -1991,6 +1992,57 @@ router.patch(
     }
 
     res.json({ version: doc.version, status: doc.status, updatedAt: doc.updatedAt });
+  },
+);
+
+// DELETE /documents/:id — T-115b: hard delete, owner only (Arjun, T-115 decision 11).
+// Marks and hides the document first, then erases it (services/document-erase.service.ts).
+// 200 only once every step is done; 202 { status: 'pending' } when a step failed (the
+// document is already hidden and the sweep finishes it). Another user's id, an unknown
+// id or a finished erase is 404. Logs ids and the error name only.
+router.delete(
+  '/:id',
+  validateObjectId,
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    const payload = req.jwtPayload!;
+    const own = { _id: req.params.id, userId: payload.sub };
+    let found: unknown;
+    try {
+      found = await LawieDocument.findOneAndUpdate(
+        { ...own, isDeleted: { $ne: true } },
+        { $set: { isDeleted: true, 'deletion.requestedAt': new Date() } },
+        { new: true, projection: { _id: 1 } },
+      ).lean();
+      // A repeat while an erase is still pending re-runs it.
+      if (!found) {
+        found = await LawieDocument.findOne({ ...own, 'deletion.requestedAt': { $exists: true } })
+          .select('_id')
+          .lean();
+      }
+    } catch (err) {
+      logger.error(
+        {
+          documentId: req.params.id,
+          collection: 'documents',
+          errName: err instanceof Error ? err.name : 'UnknownError',
+        },
+        'Delete document: could not mark the document',
+      );
+      res.status(500).json({ error: 'Could not delete this document' });
+      return;
+    }
+    if (!found) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    const result = await eraseDocument(req.params.id);
+    if (!result.done) {
+      res.status(202).json({ status: 'pending' });
+      return;
+    }
+    res.status(200).json({ status: 'deleted' });
   },
 );
 

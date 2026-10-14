@@ -129,6 +129,8 @@ Source: Vikram, vikram-gtm-decisions.md (12 Oct 2026). Cut from the ₹1,45,000 
 
 **When money can be spent:** no rupee before go-live. T2 is released only if, by the end of Week 2, there are at least 250 sign-ups, at least 8 paying users and a blended CAC of ₹3,000 or less. Otherwise paid stops and bar demos continue.
 
+**Spend after month 1 (Vikram, 14 Oct 2026):** my proposed ₹55k/month for months 2–6 is on hold, not refused, pending the founder's cash on hand. The ₹1,00,000 launch budget and the Week 2 gate above stand as written. Any spend after month 1 needs blended CAC (marketing ÷ new paying users) at or under ₹2,000.
+
 **Offers:** bar-demo code +5 Ink (new accounts, expires 14 days after the demo, up to 50 uses) and ambassador code +3 Ink (new accounts, 60 days, up to 100 uses) are approved. Say "+5 Ink" / "+3 Ink", never "free drafts"; Ajay checks the wording; a lead confirms `passport.ts` applies the code on Google sign-in. First-month Solo discount: rejected. Offers go only in bar-demo and ambassador copy.
 
 ## 9. Open items (to Priya)
