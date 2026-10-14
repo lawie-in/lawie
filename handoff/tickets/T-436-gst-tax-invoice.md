@@ -127,3 +127,5 @@ Tax rule: code 20 (our state) gives CGST 9% + SGST 9%. Every other code, all UTs
 - There is no billing page: invoices live on `/dashboard/settings`.
 - Billing has no SIGTERM handler, so the invoice sweep is never stopped (the timer is unref'd). Allocation retries have no backoff (reviewer should-fix, parked with Priya). One billing test failed once and not on 7 reruns (parked, unnamed).
 - `yarn.lock` has a hand-sorted pdfkit block; run `yarn install --frozen-lockfile` before pushing.
+
+**Arjun (14 Oct, 23:58 UTC) — AC10 purge covers the T-358 notice too:** `queue:purge` removes held `auth.unverifiedDeletionNotice` jobs as well as verify jobs. Prod order (T-403): purge dry-run → purge → set footer env → deploy → `verify:resend-all` dry-run → `verify:resend-all` → set `UNVERIFIED_SWEEP_ENABLED=true` → deploy auth.
