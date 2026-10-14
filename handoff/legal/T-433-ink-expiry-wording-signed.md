@@ -37,3 +37,7 @@ Test: no web string anywhere contains "rolls over", "roll over" or "carry over" 
 - Web files sit outside T-433's Arjun scope (`apps/billing` only): Priya extends the claim or cuts a web ticket.
 
 Legal: T-433 wording signed by Ajay.
+
+## Addendum 1: verify closed (14 Oct 2026)
+
+Vikram checked Razorpay (read-only): one payment ever, the founder's own test top-up. No subscription has been charged, so no user has seen the rollover line and no yearly carry was banked. No notice is needed. The condition is closed.
