@@ -23,3 +23,5 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 | 14 Oct 2026 | T-429 (Vishal) | template-promoter readComputedFields shallow-copies value_map, which is shared with the cached rule JSON; deep-copy it. |
 | 14 Oct 2026 | T-384 (Meera/Rajesh) | Let the advocate choose 'Not known' on a date row from the brief itself; T-384 covers only a date already answered 'Not known'. |
 | 14 Oct 2026 | T-384 (Meera/Rajesh) | The 'Change' link on a 'Not known' date needs an accessible name with the row label, e.g. 'Change {row label}'. Low priority. |
+| 14 Oct 2026 | T-437 (Vishal) | The admin AI cost screen leaves out LlmAuxCall cost (intake and preflight). |
+| 14 Oct 2026 | T-437 (Vishal) | Preflight LlmAuxCall rows have no intakeId, so they don't join to a draft. |
