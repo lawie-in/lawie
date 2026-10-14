@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- kunal: T-396 merged 9096c39 (14 Oct 2026). Memo and affidavit: relation as given or a blank, wider party roles, State line only against the State, Lawie footer on the Memo. annexures.service.ts and annexures.test.ts released to Mahak (T-424) once CI is green. Next T-388.
 - mahak: T-423 CI green (run 528).
 - mahak: T-423 merged c9ba205 (14 Oct 2026). Annexures from a brief: Memo prints the State's proper name; party names only from brief-accepted values. Now T-424.
 - tanvi: T-408 CI green (run 527).

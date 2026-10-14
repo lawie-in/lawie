@@ -1036,3 +1036,12 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - Party names on the annexures come only from what the brief accepted.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-396 — Memo of Parties and affidavit: relation and parties (9096c39, kunal, 14 Oct 2026)
+
+- The Memo of Parties and the affidavit show W/o, D/o, H/o or S/o as chosen, or a clear blank, never a guessed S/o.
+- The plaintiff, defendant, complainant or accused is named, with the petitioner's address and age.
+- "State of …, through the concerned authority" appears only where the State is the other side, and the State is written properly.
+- The Memo carries the usual Lawie footer.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
