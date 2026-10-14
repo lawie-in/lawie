@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (web + billing read) |
 | Mode   | Small fix |
-| Status | To do. RELEASE GATE for main (Anushka FAIL). Unassigned. Priya, 13 Oct 2026 |
+| Status | Narrowed by Arjun 14 Oct: AC1, AC2, AC4 done (T-372, T-388, T-370). Left: AC3, one plan price source in packages/shared. Full chain. Next free lead AFTER Kunal's T-436 part (a) merges and releases packages/shared. Priya |
 | Source | Anushka run 3 FAIL, 13 Oct 2026 (handoff/quality/2026-10-13-run-3-develop-FAIL.md). Failed entries: T-227, T-238 |
 
 ## Acceptance criteria
