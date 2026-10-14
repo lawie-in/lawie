@@ -63,6 +63,7 @@ Where each lead stopped:
 
 ## Last done
 
+- shashank: T-404 part 2 merged 1e58ce0 (14 Oct 2026). Place of execution asked on deeds; bail case line from the court rule or a blank; no-court case-type blank. template-engine, rule-pack and s.138 JSONs released to Vishal (T-407 part 2). Next T-428.
 - vishal: T-407 part 1 CI green (run 532).
 - vishal: T-407 part 1 merged b0d0b38 (14 Oct 2026). s.138 notices from a brief against an individual, HUF or unknown drawer no longer cite s.141; company/firm still do. Part 2 after T-404 part 2.
 - tanvi: T-411 CI green (run 531).

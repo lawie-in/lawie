@@ -1061,3 +1061,11 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - For a company or a partnership firm it still does.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-404 part 2 — Place of execution and bail case lines (1e58ce0, shashank, 14 Oct 2026)
+
+- Type the city or town where a deed will be signed and see it printed in the deed, never a court's city.
+- Get a bail application whose case line is the court's own bail line or a clear "[To be confirmed: case type and number]" blank, never a civil suit or consumer complaint number.
+- Start a court document before choosing a court and see a blank case line to fill in later, not a guessed one.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
