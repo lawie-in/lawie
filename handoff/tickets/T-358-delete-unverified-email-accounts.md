@@ -43,3 +43,10 @@ Ruling: T-358 is a small ticket **after T-115c**, not a separate delete path. A 
 - The 30 days count from the user's first sent verify email, not from sign-up. An account that never had a verify email sent is never noticed and never deleted.
 - The queue of verify emails held since T-379 is purged (weeks-late emails with stale links look like phishing). Each affected user then gets one fresh verify email once the footer is fixed; the 30 days start from that email.
 - Arjun owns the mechanics.
+
+## Ajay, 14 Oct 2026 (9e42eea) — change to the above
+
+The purge, no mass email and "resend at next sign-in" are approved (Arjun's mechanics). One change for held-queue users:
+- Whichever email reaches the user first (the resend or the T-358 notice) starts the clock. Deletion comes no earlier than 30 days after it, not 7.
+- If the notice is that first email, send a fresh link again 7 days before the deletion date.
+- Throttling can delay a notice but never shortens the 30 days.
