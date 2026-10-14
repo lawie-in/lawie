@@ -26,3 +26,8 @@ Separately (parked, for Priya): unverified accounts can create documents, althou
 - Buttons: `Close account and erase` / `Cancel`
 
 Neither dialog says "permanently" or "immediately". If deleted data stays in backups, Arjun gives the backup period, and I sign one added line: `Copies in our backups are erased within {N} days.`
+
+**Backup line (14 Oct 2026, Arjun's facts).** There are no backups today, and once Atlas Cloud Backup is on, daily snapshots will be kept for 7 days. Both dialogs (T-115b and T-115c) add this line at the end of the body:
+`Backup copies are erased within 7 days.`
+
+It is true now and stays true after backups are turned on. If the retention period ever rises above 7 days, this line needs a fresh sign-off. Failed email jobs kept for up to 30 days (T-220) belong in the Privacy Policy's retention section, not in the dialogs.
