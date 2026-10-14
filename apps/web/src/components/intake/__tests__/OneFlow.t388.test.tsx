@@ -5,7 +5,7 @@ import { TextDecoder as NodeTextDecoder, TextEncoder as NodeTextEncoder } from '
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { INK_COST_UNKNOWN } from '../InkCostLine';
+import { INK_COST_RECHECK, INK_COST_UNKNOWN } from '../InkCostLine';
 import OneFlow from '../OneFlow';
 import type { Brief, KindSummary } from '../briefTypes';
 
@@ -264,7 +264,7 @@ describe('OneFlow Try again when the cost cannot be known', () => {
     expect(mockPrivacyFetch).not.toHaveBeenCalled();
   });
 
-  it('the notice "Try again" asks the page to fetch the cost again', async () => {
+  it('the notice "Check the cost again" link asks the page to fetch the cost again', async () => {
     await toBrief(2);
     await confirm(failedStream());
     await act(async () => {
@@ -273,7 +273,7 @@ describe('OneFlow Try again when the cost cannot be known', () => {
       );
     });
     const costRetry = Array.from(container.querySelectorAll('button')).find(
-      (b) => b.textContent === 'Try again' && !b.hasAttribute('aria-describedby'),
+      (b) => b.textContent === INK_COST_RECHECK && !b.hasAttribute('aria-describedby'),
     ) as HTMLButtonElement;
     await act(async () => costRetry.click());
     expect(onInkCostRetry).toHaveBeenCalledTimes(1);
