@@ -25,3 +25,5 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 | 14 Oct 2026 | T-384 (Meera/Rajesh) | The 'Change' link on a 'Not known' date needs an accessible name with the row label, e.g. 'Change {row label}'. Low priority. |
 | 14 Oct 2026 | T-437 (Vishal) | The admin AI cost screen leaves out LlmAuxCall cost (intake and preflight). |
 | 14 Oct 2026 | T-437 (Vishal) | Preflight LlmAuxCall rows have no intakeId, so they don't join to a draft. |
+| 14 Oct 2026 | T-115c (Tanvi) | The auth erase sweep sorts on lastAttemptAt+requestedAt with no matching index (in-memory sort over pending erasures). Add the index. |
+| 14 Oct 2026 | T-115c (Tanvi) | The 'erase keeps failing' warning has no alert. Tie it to Ajay's parked operator-alert item. |
