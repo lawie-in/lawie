@@ -4,3 +4,4 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 
 | Date | Source | What |
 | ---- | ------ | ---- |
+| 14 Oct 2026 | T-411 review (Tanvi) | DynamicFormRenderer: a failed courts/states fetch is swallowed silently (no Retry alert, unlike CourtPicker); pre-existing, all templates. |

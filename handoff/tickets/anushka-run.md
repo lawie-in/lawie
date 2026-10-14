@@ -1045,3 +1045,19 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - The Memo carries the usual Lawie footer.
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-411 — Consumer Commission picker (6db7e551, tanvi, 14 Oct 2026)
+
+- When drafting a consumer complaint, choose District, State or National Commission and see only Consumer Commissions.
+- Choose NCDRC with no state.
+- The field reads "Consumer Commission".
+- It works by keyboard and screen reader. Other documents' court pickers are unchanged.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-407 part 1 — No s.141 for an individual drawer (b0d0b38, vishal, 14 Oct 2026)
+
+- Draft a cheque-bounce notice from a brief against an individual, a HUF, or a drawer whose type isn't known: the draft no longer cites the section that makes companies and their officers liable.
+- For a company or a partnership firm it still does.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -1,0 +1,35 @@
+# T-427 (HC and SC bail lines) and T-430 (discharge pack, BNSS entries) (Ajay, CLO, 14 Oct 2026)
+
+Checked against court orders and status pages found by web search (sources below). These are not Gazette or registry rules. Where a line is not shown by a court record, it does not ship.
+
+## T-427: High Court and Supreme Court bail case lines
+
+| Court rule | Now | Ruling | Kind |
+|---|---|---|---|
+| patna_hc, regular and anticipatory | `Cr. Misc. No. _____ of {year}` | **Keep.** Patna HC bail and anticipatory bail orders are headed "Criminal Miscellaneous No." | n/a |
+| jharkhand_hc, anticipatory | `Cr. Misc. No.` | **Change to `A.B.A. No. _____ of {year}`.** Jharkhand HC anticipatory bail orders use A.B.A. | Must-fix |
+| jharkhand_hc, regular | `Cr. Misc. No.` | **Change to `Bail Application No. _____ of {year}`.** The court's regular bail case type is not confirmed, so the T-426 generic line applies. | Must-fix |
+| allahabad_hc, anticipatory | `Criminal Misc. Bail Application No.` (the regular line) | **Change to `Criminal Misc. Anticipatory Bail Application U/S 482 BNSS No. _____ of {year}`**, the form on the court's status portal. | Must-fix |
+| allahabad_hc, regular | `Criminal Misc. Bail Application No.` | Keep. | n/a |
+| delhi_hc, both | `Bail Appln. No.` | Keep, unchanged. Not checked against a record this round, so it stays on the verify list. | Verify |
+| high_court_generic, both | `_____ No. _____ of {year}` | **Change to `[To be confirmed: case type and number]`.** A blank case type breaks T-404 Rule 1. | Must-fix |
+| supreme_court, both | `Bail Application No.` / `SLP (Crl.) No.` | **Bail packs must not be offered at the Supreme Court.** Bail reaches the Court by special leave petition, which is a different document. Add this to T-425's picker filter. Until then, `case_nomenclature` prints `[To be confirmed: case type and number]`. | Must-fix |
+
+## T-430: discharge_application relevantActs (BNSS)
+
+| Entry now | Ruling | Kind |
+|---|---|---|
+| `S.438 Revisional powers of HC` | **Change to** `S.438 Calling for records to exercise powers of revision (was S.397 CrPC)` | Must-fix |
+| `S.442 Revisional powers of Court of Session` (wrong: s.442 is the High Court's) | **Change to** `S.442 High Court's powers of revision (was S.401 CrPC)` | Must-fix |
+| (missing) | **Add** `S.440 Sessions Judge's powers of revision (was S.399 CrPC)` | Must-fix |
+| S.250, S.262, S.268 discharge entries | Checked: 250 ← CrPC 227, 262 ← CrPC 239, 268 ← CrPC 245. Keep. | n/a |
+
+The four section numbers (438, 440, 442 and the discharge sections) agree across independent sources. I have not read the Gazette text, and the descriptions above say only what each section is for.
+
+## Sources consulted (not cited in product text)
+
+- Jharkhand HC A.B.A.: https://www.verdictum.in/app-lite/jharkhand-high-court/abhay-kumar-mishra-v-the-state-of-jharkhand-2026jhhc18476-anticipatory-bail-1616745 ; https://order.law/library/courts/high-court-of-jharkhand/2024/september/jhhc010132452024/shubham-kumar-singh-v-the-state-of-jharkhand
+- Allahabad HC: https://allahabadhighcourt.in/apps/status_ccms/index.php/view-case-detail/1106184
+- Patna HC: https://app.vaquill.ai/cases/BRHC010996852025
+- BNSS revision sections: https://lexibal.com/bnss-section-440-sessions-judge-powers-revision/ ; https://vakeel360.com/crpc-to-bnss/section-401-high-courts-power-of-revision ; https://lexibal.com/?p=45910
+- BNSS discharge sections: https://blog.ipleaders.in/difference-between-discharge-and-acquittal-under-crpc-and-bnss/ ; https://bhattandjoshiassociates.com/continuity-of-crpc-discharge-and-framing-of-charges-under-bnss-supreme-court-judgment-in-dr-anand-rai-v-state-of-madhya-pradesh/
