@@ -3141,7 +3141,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) cjm_generic bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: case type and number]",
   "courtType": "cjm",
   "court_city": "Patna",
   "court_designation": "CHIEF JUDICIAL MAGISTRATE, PATNA",
@@ -3339,7 +3339,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) consumer_commission_generic bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Consumer Complaint No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: case type and number]",
   "courtType": "consumer_commission",
   "court_city": "Patna",
   "court_designation": "DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
@@ -3372,7 +3372,7 @@ COMPLAINANT",
 
 exports[`court-rules-golden — placeholder context per (court × template) consumer_commission_generic bail_regular resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Consumer Complaint No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: case type and number]",
   "courtType": "consumer_commission",
   "court_city": "Patna",
   "court_designation": "DISTRICT CONSUMER DISPUTES REDRESSAL COMMISSION, PATNA",
@@ -3933,7 +3933,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Civil Suit No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: case type and number]",
   "courtType": "district_court",
   "court_city": "Patna",
   "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
@@ -3966,7 +3966,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) district_court_generic bail_regular resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Civil Suit No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: case type and number]",
   "courtType": "district_court",
   "court_city": "Patna",
   "court_designation": "CIVIL JUDGE (SENIOR DIVISION), PATNA",
@@ -4527,7 +4527,7 @@ DEPONENT",
 
 exports[`court-rules-golden — placeholder context per (court × template) jmfc_generic bail_anticipatory resolves placeholders deterministically 1`] = `
 {
-  "case_nomenclature": "Criminal Case No. _____ of 2026",
+  "case_nomenclature": "[To be confirmed: case type and number]",
   "courtType": "jmfc",
   "court_city": "Patna",
   "court_designation": "JUDICIAL MAGISTRATE FIRST CLASS, PATNA",
