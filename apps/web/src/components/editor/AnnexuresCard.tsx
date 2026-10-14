@@ -56,7 +56,11 @@ function isMissingField(v: unknown): v is MissingField {
 }
 
 /** The order the missing items are named in: role, client's name, opposite party's name. */
-const MISSING_ORDER: readonly MissingField[] = ['client_role', 'client_name', 'opposite_party_name'];
+const MISSING_ORDER: readonly MissingField[] = [
+  'client_role',
+  'client_name',
+  'opposite_party_name',
+];
 
 /**
  * The missing-details line: names each field the route listed, in MISSING_ORDER,
@@ -178,7 +182,10 @@ export default function AnnexuresCard({ docId, title }: AnnexuresCardProps) {
     <div role="region" aria-labelledby={titleId} className={card}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
         <div className="min-w-0">
-          <h2 id={titleId} className="text-brand-navy flex items-center gap-2 text-base font-semibold">
+          <h2
+            id={titleId}
+            className="text-brand-navy flex items-center gap-2 text-base font-semibold"
+          >
             <FileText size={16} aria-hidden="true" />
             {ANNEX_STRINGS.region_label}
           </h2>

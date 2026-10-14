@@ -410,7 +410,9 @@ export function mapPartyFields(
       ...advocate,
       ...clientFields(clientName, tableRow.details, flat),
       // State rows: respondent_name is not set; the pack prints the State as today.
-      ...(cp.kind === 'field' && counterpartName !== '' ? { respondent_name: counterpartName } : {}),
+      ...(cp.kind === 'field' && counterpartName !== ''
+        ? { respondent_name: counterpartName }
+        : {}),
     },
     clientName,
     counterpartName,

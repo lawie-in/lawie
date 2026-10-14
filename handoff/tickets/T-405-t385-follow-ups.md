@@ -1,12 +1,12 @@
 # T-405 — T-385 follow-ups: wider test loop, one shared field allowlist
 
-| Field  | Value |
-| ------ | ----- |
-| Phase  | 5 — After v1 |
-| Owner  | Lead (drafting) |
-| Mode   | Small fix |
+| Field  | Value                                                                                      |
+| ------ | ------------------------------------------------------------------------------------------ |
+| Phase  | 5 — After v1                                                                               |
+| Owner  | Lead (drafting)                                                                            |
+| Mode   | Small fix                                                                                  |
 | Status | Merged into develop_staging ac78327 (Mahak, 13 Oct 2026). Nothing to test in the UI. Priya |
-| Source | T-385 review (01503b2) |
+| Source | T-385 review (01503b2)                                                                     |
 
 ## Acceptance criteria
 

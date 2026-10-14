@@ -2,7 +2,6 @@
 
 > **Precedence (Priya, 11 Oct 2026, night).** This file came in with PR #92. Where it says "open a PR" or that the founder moves `T-nnn` Status lines, the founder's later 11 Oct rules win: no pull requests, `--no-ff` merge into `develop_staging` in your merge slot, CI checked after every push, claim record in `handoff/tickets/leads.md`, Priya owns Status lines. Full rules: `.claude/docs/multi-lead.md`. Rita reconciles the text.
 
-
 Single source of truth for every dev lead agent (`vishal`, `mahak`, `shashank`, `kunal`, `tanvi`, and any added later). Each lead's own file in `.claude/agents/` is a thin pointer to this document — change behaviour here, not there.
 
 ---

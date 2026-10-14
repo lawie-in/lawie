@@ -1,12 +1,12 @@
 # T-399 — Yearly plans grant Ink every month, not once a year
 
-| Field  | Value |
-| ------ | ----- |
-| Phase  | 4 — Polish and release |
-| Owner  | Lead (billing); Arjun confirms the design, Vikram the numbers |
-| Mode   | Full chain (billing) |
+| Field  | Value                                                                                           |
+| ------ | ----------------------------------------------------------------------------------------------- |
+| Phase  | 4 — Polish and release                                                                          |
+| Owner  | Lead (billing); Arjun confirms the design, Vikram the numbers                                   |
+| Mode   | Full chain (billing)                                                                            |
 | Status | Merged into develop_staging 4fe03d7 (Kunal, 13 Oct 2026). Waiting for Anushka on develop. Priya |
-| Source | Ajay, T-398 sign-off (handoff/legal/T-398-pro-card-signed.md) |
+| Source | Ajay, T-398 sign-off (handoff/legal/T-398-pro-card-signed.md)                                   |
 
 ## Problem
 
