@@ -63,7 +63,7 @@ Where each lead stopped:
 
 **MERGE SLOT v2: founder-approved (to Priya in chat 21:30 UTC, to Arjun 21:35 UTC, 14 Oct). Rules: .claude/docs/multi-lead.md 'Merge slot v2'. Queue: first-ready.**
 
-**v2 EXCEPTION (Arjun, 21:40 UTC): Kunal's T-439b takes the next slot; the slot after it waits until T-439b's develop_staging CI is green (first full-tree run since T-432). Then v2 as normal.**
+**Founder, 14 Oct 21:45 UTC: Priya decides per merge whether to wait for CI; in most cases don't wait (small fixes never). Hold only for a merge that is risky on its own. Arjun's T-439b hold released; T-433 merges now.**
 
 ## Last done
 
