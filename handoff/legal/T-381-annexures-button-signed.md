@@ -158,3 +158,13 @@ The rows already exist in Addendum 3 and are confirmed here, with the detail row
 **Side rule.** The Memo prints each party under its own role in the case: the petitioner as petitioner, the respondent as respondent. The client is never printed as "applicant" or moved to the filer's side because the client is filing the affidavit. An answered `client_role` overrides the row. If the side cannot be told, the draft is refused with the T-381 422 response and nothing is guessed.
 
 Tests: counter_affidavit with the client as respondent prints the respondent as deponent and on the respondent side; rejoinder_affidavit is the mirror case.
+
+**Addendum 5, part B (14 Oct 2026, Mahak's T-424 questions).**
+1. **Deponent designation: signed.**
+   - counter_affidavit: `the above-named Respondent`
+   - rejoinder_affidavit: `the above-named Petitioner`
+
+   The designation follows the resolved client side, so an answered `client_role` of respondent or petitioner gives the matching word. An explicit `deponent_designation` (for example "Respondent No. 2") still wins. The deponent is never called "Applicant" on these two packs.
+2. **A client_role other than petitioner or respondent on these two packs: refuse.** Return the T-381 422 (missing: client_role) and guess nothing.
+
+**FYI, agreed:** `{deponent_name}` filled from `applicant_name` on the drafting path is the same wrong-side risk, so it goes to Priya as a follow-up.

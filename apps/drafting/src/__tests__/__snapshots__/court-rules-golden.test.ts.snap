@@ -33,7 +33,7 @@ exports[`court-rules-golden — annexures pack HTML per court allahabad_hc rende
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -41,7 +41,7 @@ exports[`court-rules-golden — annexures pack HTML per court allahabad_hc rende
       <td>Opposite Party</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -50,6 +50,7 @@ exports[`court-rules-golden — annexures pack HTML per court allahabad_hc rende
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -174,7 +175,7 @@ exports[`court-rules-golden — annexures pack HTML per court allahabad_hc rende
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -244,7 +245,7 @@ exports[`court-rules-golden — annexures pack HTML per court bihar_district ren
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -252,7 +253,7 @@ exports[`court-rules-golden — annexures pack HTML per court bihar_district ren
       <td>Opposite Party</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -261,6 +262,7 @@ exports[`court-rules-golden — annexures pack HTML per court bihar_district ren
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -385,7 +387,7 @@ exports[`court-rules-golden — annexures pack HTML per court bihar_district ren
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -455,7 +457,7 @@ exports[`court-rules-golden — annexures pack HTML per court cjm_generic render
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -463,7 +465,7 @@ exports[`court-rules-golden — annexures pack HTML per court cjm_generic render
       <td>Complainant</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -472,6 +474,7 @@ exports[`court-rules-golden — annexures pack HTML per court cjm_generic render
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -596,7 +599,7 @@ exports[`court-rules-golden — annexures pack HTML per court cjm_generic render
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -666,7 +669,7 @@ exports[`court-rules-golden — annexures pack HTML per court consumer_commissio
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -674,7 +677,7 @@ exports[`court-rules-golden — annexures pack HTML per court consumer_commissio
       <td>Opposite Party</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -683,6 +686,7 @@ exports[`court-rules-golden — annexures pack HTML per court consumer_commissio
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -807,7 +811,7 @@ exports[`court-rules-golden — annexures pack HTML per court consumer_commissio
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -877,7 +881,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -885,7 +889,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
       <td>Respondent</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -894,6 +898,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -1018,7 +1023,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_district ren
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -1088,7 +1093,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_hc renders a
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -1096,7 +1101,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_hc renders a
       <td>Respondent</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -1105,6 +1110,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_hc renders a
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -1229,7 +1235,7 @@ exports[`court-rules-golden — annexures pack HTML per court delhi_hc renders a
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -1299,7 +1305,7 @@ exports[`court-rules-golden — annexures pack HTML per court district_court_gen
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -1307,7 +1313,7 @@ exports[`court-rules-golden — annexures pack HTML per court district_court_gen
       <td>Defendant</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -1316,6 +1322,7 @@ exports[`court-rules-golden — annexures pack HTML per court district_court_gen
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -1440,7 +1447,7 @@ exports[`court-rules-golden — annexures pack HTML per court district_court_gen
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -1510,7 +1517,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_district
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -1518,7 +1525,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_district
       <td>Opposite Party</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -1527,6 +1534,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_district
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -1651,7 +1659,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_district
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -1721,7 +1729,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_hc rende
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -1729,7 +1737,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_hc rende
       <td>Respondent</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -1738,6 +1746,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_hc rende
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -1862,7 +1871,7 @@ exports[`court-rules-golden — annexures pack HTML per court jharkhand_hc rende
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -1932,7 +1941,7 @@ exports[`court-rules-golden — annexures pack HTML per court jmfc_generic rende
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -1940,7 +1949,7 @@ exports[`court-rules-golden — annexures pack HTML per court jmfc_generic rende
       <td>Complainant</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -1949,6 +1958,7 @@ exports[`court-rules-golden — annexures pack HTML per court jmfc_generic rende
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -2073,7 +2083,7 @@ exports[`court-rules-golden — annexures pack HTML per court jmfc_generic rende
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -2143,7 +2153,7 @@ exports[`court-rules-golden — annexures pack HTML per court patna_hc renders a
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -2151,7 +2161,7 @@ exports[`court-rules-golden — annexures pack HTML per court patna_hc renders a
       <td>Respondent</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -2160,6 +2170,7 @@ exports[`court-rules-golden — annexures pack HTML per court patna_hc renders a
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -2284,7 +2295,7 @@ exports[`court-rules-golden — annexures pack HTML per court patna_hc renders a
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -2354,7 +2365,7 @@ exports[`court-rules-golden — annexures pack HTML per court sessions_generic r
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -2362,7 +2373,7 @@ exports[`court-rules-golden — annexures pack HTML per court sessions_generic r
       <td>Opposite Party</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -2371,6 +2382,7 @@ exports[`court-rules-golden — annexures pack HTML per court sessions_generic r
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -2495,7 +2507,7 @@ exports[`court-rules-golden — annexures pack HTML per court sessions_generic r
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
@@ -2565,7 +2577,7 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
       <td>
         <strong>GOLDEN_APPLICANT</strong><br>
         Age: 30 years<br>
-        S/o / D/o / W/o: GOLDEN_FATHER<br>
+        [To be confirmed: relation] GOLDEN_FATHER<br>
         GOLDEN_ADDRESS, RANCHI
       </td>
     </tr>
@@ -2573,7 +2585,7 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
       <td>Opposite Party</td>
       <td>
         <strong>GOLDEN_RESPONDENT</strong><br>
-        State of jharkhand, through the concerned authority
+        State of Jharkhand, through the concerned authority
       </td>
     </tr>
   </table>
@@ -2582,6 +2594,7 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
     <p><strong>GOLDEN_ADV</strong></p>
     <p>Bar Enrolment No.: ___________</p>
   </div>
+  <div class="disclaimer">Draft prepared by Lawie from the details you entered. Check it before filing. Lawie does not provide legal advice.</div>
 </div>
 
 <div class="page-break">
@@ -2706,7 +2719,7 @@ exports[`court-rules-golden — annexures pack HTML per court up_district render
   <br>
   <p style="text-align:center"><strong>AFFIDAVIT OF GOLDEN_APPLICANT</strong></p>
   <br>
-  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
+  <p>I, <strong>GOLDEN_APPLICANT</strong>, aged about 30 years, [To be confirmed: relation] GOLDEN_FATHER, resident of GOLDEN_ADDRESS, RANCHI, do hereby solemnly affirm and state on oath as under:</p>
   <br>
   <p class="indent">1. That I am the the above-named Applicant/Petitioner in the accompanying matter and am well acquainted with the facts of the case.</p>
   <p class="indent">2. That the facts stated in the accompanying petition/application are true and correct to the best of my knowledge and belief.</p>
