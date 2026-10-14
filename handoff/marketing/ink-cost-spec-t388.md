@@ -34,7 +34,7 @@ String, exactly: `We could not work out the Ink cost for this. Try again in a mo
 | Role | `role="alert"` (assertive; the action did not start, so the user must hear it). Mounted when the state becomes unknown, so it is announced once |
 | Style | `text-sm`, `text-brand-error` on white (about 5.5:1) with a lucide `alert-circle` icon, 16 px, `aria-hidden`. Colour is not the only signal: the icon and the words carry it. May wrap to 3 lines at 375 px; no truncation |
 | Button | Disabled. Use `aria-disabled="true"` only (as Confirm does today), kept in the tab order, not the `disabled` attribute and the existing disabled look (`opacity-40`). It stays 44 px or more high and in place; the layout does not jump |
-| Retry | A `linkButton` labelled exactly `Try again` (44 px) after the notice re-fetches the cost. If it works, the notice clears and the button enables. The action button stays disabled until the cost is known; there is no "proceed anyway" |
+| Retry | A `linkButton` labelled exactly `Check the cost again` (not "Try again": on a retry card a disabled "Try again" button already retries the draft, T-432) (44 px) after the notice re-fetches the cost. If it works, the notice clears and the button enables. The action button stays disabled until the cost is known; there is no "proceed anyway" |
 | Same on all paths | Regenerate, add-section and generate (Confirm) all use this one notice and this one behaviour. Nothing starts, nothing is charged |
 | Never | No "free" or "no charge" wording, no promise about the balance, no estimate in its place |
 
@@ -61,4 +61,4 @@ String, exactly: `We could not work out the Ink cost for this. Try again in a mo
 ## Open questions
 
 - Regenerate and add-section do not exist in `apps/web` yet (no match in the web source). The placements above assume a button on the draft screen; Priya's flow decides where.
-- The loading line is my proposal; Madhuri to word. Notice and "Try again" are final (Arjun).
+- The loading line is my proposal; Madhuri to word. Notice is final (Arjun). Link label is "Check the cost again" (Meera, T-432).
