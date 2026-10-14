@@ -1168,9 +1168,10 @@ describe('T-381 B: a brief draft seals the party data', () => {
       father_name: 'Shri Hari Kumar',
       applicant_age: '32',
       address: '123 Main St, Patna',
-      client_role: 'applicant',
+      // T-423 AC1: state is the Court row's display name. AC2: the raw client_role sent
+      // above is not a bail_regular brief item, so it is not sealed (the table row fixes the client).
       court_type: 'sessions',
-      state: 'bihar',
+      state: 'Bihar',
     });
     // The encrypted value holds none of it in the clear.
     expect(String(row.formInputsEnc)).not.toContain('Ram Kumar');
@@ -1213,7 +1214,7 @@ describe('T-381 C: POST /documents/:id/annexures-pack from a brief draft (AC3)',
     expect(a).toContain('Memo of Parties');
     expect(a).toContain('<strong>Ram Kumar</strong>');
     expect(a).toContain('Age: 32 years');
-    expect(a).toContain('S/o / D/o / W/o: Shri Hari Kumar');
+    expect(a).toContain('[To be confirmed: relation] Shri Hari Kumar');
     expect(a).toContain('123 Main St, Patna');
 
     const e = vakalatnama();
@@ -1235,7 +1236,7 @@ describe('T-381 C: POST /documents/:id/annexures-pack from a brief draft (AC3)',
     const a = memo();
     expect(a).toContain('<strong>Jai Mehta</strong>');
     expect(a).toContain('Age: 44 years');
-    expect(a).toContain('S/o / D/o / W/o: Shri Mehta Senior');
+    expect(a).toContain('[To be confirmed: relation] Shri Mehta Senior');
     expect(a).toContain('12 Lake Road, Patna');
     expect(a).toContain('<strong>Kiran Bose</strong>');
     expect(a).not.toContain('State of');

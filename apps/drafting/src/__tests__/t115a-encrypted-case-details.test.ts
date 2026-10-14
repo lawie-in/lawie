@@ -289,7 +289,7 @@ describe('T-115a AC1/AC4 A: a new document holds no plain case details', () => {
       applicant_age: '32',
       address: '88 Wrenfield Brief Lane, Patna',
       court_type: 'sessions',
-      state: 'bihar',
+      state: 'Bihar',
     });
   });
 

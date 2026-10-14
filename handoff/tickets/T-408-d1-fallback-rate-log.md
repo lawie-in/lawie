@@ -5,7 +5,7 @@
 | Phase  | 4 — Polish and release |
 | Owner  | Lead (drafting) |
 | Mode   | Small fix |
-| Status | To do. Not assigned (Vishal after T-373 if nobody else is free). From T-373 review round 2, 13 Oct 2026 |
+| Status | Merged b7b12cff. Nothing to test in the UI (logs only). Tanvi, 14 Oct 2026 |
 | Source | T-373 reviewer should-fix; Arjun wants the per-pack fallback rate readable from logs |
 
 ## Acceptance criteria
