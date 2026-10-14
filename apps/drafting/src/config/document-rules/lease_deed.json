@@ -274,7 +274,8 @@
         "label": "Place of execution",
         "type": "text",
         "required": false,
-        "help": "City or town where the document will be signed."
+        "help": "City or town where the document will be signed.",
+        "ask_when_empty": true
       },
       {
         "id": "witness_1_name_address",

@@ -96,8 +96,9 @@
       "name": "execution_place",
       "label": "Place of execution",
       "type": "text",
-      "required": false,
-      "help": "City or town where the document will be signed."
+      "required": true,
+      "help": "City or town where the document will be signed.",
+      "ask_when_empty": true
     },
     {
       "name": "stamp_paper_value",
