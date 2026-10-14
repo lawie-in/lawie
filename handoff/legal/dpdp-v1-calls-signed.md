@@ -106,3 +106,6 @@ Test: after erasure, no inkledger reference and no review record holds the erase
 
 Arjun's reading (14 Oct 2026) is **confirmed**: the 72 months attach to billing's own rows (payments, subscriptions, top-ups, T-436 invoices and credit notes), which carry no TTL. The auth AuditLog stays an operational log with its 2-year TTL. No audit-trail ticket.
 Reviewer feedback is anonymised in place: approved. The internal marker may be `reviewer: erased` in the admin list. Anything the document owner sees shows `A reviewer` (§4).
+
+**Condition met (Arjun, 14 Oct 2026, every model checked read-only).** Billing and ledger rows (Subscription, CouponCode, CouponUsage, CreditLedger/Ink ledger) and the T-436 invoice store have no TTL. The only TTLs are AuditLog (2 years), Consent (12 months after the latest decision), Session and FactDiff (90 days, matching Privacy §9). §5(1) is closed.
+Parked: the billing rows are kept forever, not "72 months". A sweep that deletes them once the 72 months have run would match §9 and DPDP s.8(7).
