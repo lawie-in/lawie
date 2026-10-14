@@ -4,7 +4,8 @@
  *
  * - `writeFactCheckLog`: one `FactDiff` row per violation per phase, and one
  *   `PlaceholderRate` row per draft. Values are encrypted; no paragraph text.
- * - `deleteFactDiffsFor`: the delete cascade for T-115. Nothing calls it yet.
+ * - `deleteFactDiffsFor`: the delete cascade for T-115. The document erase
+ *   (T-115b, services/document-erase.service.ts) calls it by documentId and ledgerId.
  * - `buildWeeklyFactDiffReport`: Ajay's weekly review, as Markdown. Pure: the
  *   rows come in already masked (`loadWeeklyFactDiffData`). Names, amounts,
  *   dates, case and FIR numbers, police stations and phone numbers are shown
@@ -123,8 +124,10 @@ export async function writeFactCheckLog(input: FactCheckLogInput): Promise<void>
 }
 
 /**
- * The delete cascade (T-115, not built yet: nothing calls this). Exactly one
- * of the three ids. Returns the number of rows removed.
+ * The delete cascade (T-115). Exactly one of the three ids. Returns the number
+ * of rows removed; an invalid id removes nothing. Idempotent: a second call
+ * returns 0. Used by the document erase (T-115b) with `documentId` and
+ * `ledgerId`; `userId` is for the account erase (T-115c).
  */
 export async function deleteFactDiffsFor(
   target: { userId: string } | { documentId: string } | { ledgerId: string },
