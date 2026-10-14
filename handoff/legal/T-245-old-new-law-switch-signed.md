@@ -119,3 +119,20 @@ In an all-caps heading it is upper-cased as a whole.
 | — | offence_date in every pack; fir_date required? | offence_date goes in every Group A and B pack (signed table), optional. fir_date stays optional: an unknown date gives the blank, never a block. | — |
 
 Golden entries moved by 2, 3, 4 and 6 come to me before merge.
+
+Signed: Ajay (CLO), 14 Oct 2026 IST. Addendum 1 is my ruling; the "(Vishal, …)" in its heading names who asked.
+
+## Addendum 2: T-245a part 1 build points (Vishal, 14 Oct 2026)
+
+| # | Point | Ruling | Kind |
+|---|---|---|---|
+| 1 | 35 BNSS / 41A CrPC wording | BNSS `Section 35(3) of the BNSS`, kept as today where the text has it. CrPC `Section 41A of the CrPC`. No choice: `[To be confirmed: Section 41A of the CrPC or Section 35(3) of the BNSS]`. Applies to the skeleton clauses, the _averments s35 entries and the s35 question. The form label from Addendum 1 stays as signed. | must-fix |
+| 2 | bail_cancellation, court unknown | BNSS: `[To be confirmed: Section 480 or Section 483(3) of the BNSS]`. CrPC: `[To be confirmed: Section 437(5) or Section 439(2) of the CrPC]`. Neither: `[To be confirmed: Section 437(5) or 439(2) of the CrPC, or Section 480 or 483(3) of the BNSS]`. No "480(5)" (verify stands). | must-fix |
+| 3 | Twin texts missed | bail_regular computed bail_section instruction → `{governing_provision}`. Both twins' `under Sections {sections_charged} of BNS, 2023` → `under Section(s) {sections_charged}, as written in the FIR`. Anticipatory `under Section 482 BNSS` → `under {governing_provision}`. | must-fix |
+| 4 | Remaining BNSS citations | All follow procedure_code. Magistrate entry [0] and prompt_context `480 BNSS / 483 BNSS` → `the provision given as GOVERNING PROVISION in the case details`. Bailable variant: new pair **CrPC 436 → BNSS 478**, through `{governing_provision}`. interim_bail `read with BNSS 480/483` and bail_cancellation `BNSS 483(3) ... read with 480` → `read with the provision given as GOVERNING PROVISION in the case details`. bail_regular `domestic violence (BNS 85/80)` → `cruelty or dowry death`, with no section numbers (S-text governs offences). | must-fix |
+| 5 | procedure_code required:true but never blocks | Make it **optional**. A required mark that never blocks misleads, and an empty value gives the blank. | must-fix |
+| 6 | S/P at [1]/[2], entry 4 deleted | Same result. **Approved.** | — |
+| 7 | default_bail blank in the Addendum 1 form | **Approved.** | — |
+| 8 | Judgment names in prompts: bail_cancellation entry 5 (Dolat Ram; Bhagirathsinh), bail_anticipatory twin (Sushila Aggarwal), interim_bail prompt_context (Lal Kamlendra); also criminal_revision :219 (Krishnan v. Krishnaveni) | Against the signed rule (`Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon].`). The model can misquote or invent a citation. Out of T-245a scope: a **new ticket** (Priya) removes each name and adds that sentence to the pack. | must-fix (new ticket) |
+
+Moved goldens (part 2) come to me before merge.
