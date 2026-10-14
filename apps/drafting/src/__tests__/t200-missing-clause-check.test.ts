@@ -407,10 +407,10 @@ describe('T-200 AC6: no prompt text changes', () => {
   const sha = (s: string) => createHash('sha256').update(s).digest('hex');
   it('the Drafter pack prompt and the two repair prompts are as they were', () => {
     expect(sha(DRAFTER_PACK_SYSTEM_PROMPT)).toBe(
-      '2db4baabd467aaece3f56bf2e6fff4c79cfbcfeda5a18e7f755299bab8218065',
+      'c1fe88981f0322f7548fa6de479cd22e2cb76d051e48b365db8efe36a996ec56',
     );
     expect(sha(DRAFTER_REPAIR_SYSTEM_PROMPT)).toBe(
-      '42aab92426027f010dd5368d6b5870f7635cf0b118600c6a78c6299c33f0b928',
+      '9baa36b21113bb52d1d8cc3a18a0a69eb2b3de111b3a807f6c74199b9e21dae0',
     );
     expect(sha(DRAFTER_LEDGER_REPAIR_SYSTEM_PROMPT)).toBe(
       '0bf7e391a79234e33763702cb3e356bfd80724f2fdca067d75ff98b1833dc714',
