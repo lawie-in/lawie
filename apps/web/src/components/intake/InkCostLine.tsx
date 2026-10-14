@@ -8,7 +8,8 @@
  * - loading: the cost is being worked out; the button is off.
  * - known: "Uses N Ink" (formatInkCost, the Confirm line of T-372); the button is on.
  * - unknown: the cost could not be worked out; the action blocks (Arjun, 14 Oct
- *   2026). The notice and "Try again" are final; there is no proceed path.
+ *   2026). The notice and the re-fetch link ("Check the cost again",
+ *   INK_COST_RECHECK) are final; there is no proceed path.
  *
  * The caller disables its button from `inkCostState` and points the button's
  * `aria-describedby` at this line's id in every state.
@@ -33,6 +34,13 @@ export function formatInkCost(n: number | undefined): string | null {
 /** Arjun's notice, word for word. Do not reword. */
 export const INK_COST_UNKNOWN =
   'We could not work out the Ink cost for this. Try again in a moment.';
+
+/**
+ * T-432 (Meera, approved): the link under the unknown notice that fetches the
+ * cost again. Distinct from the charging "Try again" buttons, so only one
+ * control on a card is called "Try again".
+ */
+export const INK_COST_RECHECK = 'Check the cost again';
 
 /**
  * T-388 (Meera, final): a draft that could not start, e.g. a 402 with neither
@@ -120,7 +128,7 @@ export default function InkCostLine({
       </p>
       {onRetry && (
         <button type="button" onClick={onRetry} className={linkButton}>
-          Try again
+          {INK_COST_RECHECK}
         </button>
       )}
     </div>

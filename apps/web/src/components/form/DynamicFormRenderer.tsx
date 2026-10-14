@@ -116,6 +116,31 @@ interface DynamicFormRendererProps {
   onInkCostRetry?: () => void;
   /** T-388: the template id, for the Sentry report only. */
   templateId?: string;
+  /**
+   * T-432: answers to start from, read on mount only (merged over the schema
+   * defaults). The page passes back the last snapshot when it shows the form
+   * again, so a return from the privacy block, the paywall, the verify-email
+   * bounce or "Edit form" keeps what was typed. Held in memory by the caller;
+   * never written to browser storage.
+   */
+  initialValues?: Record<string, unknown>;
+  /** T-432: the step to start on, read on mount only (clamped to the schema). */
+  initialStep?: number;
+  /** T-432: the consumer Commission level to start with, read on mount only. */
+  initialLevel?: ConsumerLevel | null;
+  /** T-432: called with the answers, step and level whenever any of them changes. */
+  onStateChange?: (
+    values: Record<string, unknown>,
+    step: number,
+    level: ConsumerLevel | null,
+  ) => void;
+}
+
+/** T-432: what the form reports through `onStateChange`, for the caller to hold. */
+export interface FormSnapshot {
+  values: Record<string, unknown>;
+  step: number;
+  level: ConsumerLevel | null;
 }
 
 /** T-388: id of the Ink cost line under "Generate document". */
@@ -1367,9 +1392,17 @@ export default function DynamicFormRenderer({
   inkCostLoading = false,
   onInkCostRetry,
   templateId,
+  initialValues,
+  initialStep,
+  initialLevel,
+  onStateChange,
 }: DynamicFormRendererProps) {
   const steps = config.form_schema.steps;
-  const [step, setStep] = useState(0);
+  // T-432: seeded on mount only; with no seed this starts at step 1 as before.
+  const [step, setStep] = useState(() => {
+    if (typeof initialStep !== 'number' || !Number.isInteger(initialStep)) return 0;
+    return Math.min(Math.max(initialStep, 0), steps.length - 1);
+  });
   const [formData, setFormData] = useState<Record<string, unknown>>(() => {
     // Initialize with defaults from the schema. Array-shaped fields (checkbox group,
     // multi-select, file) get `[]`, scalar fields get '' unless the config supplies a default.
@@ -1389,12 +1422,15 @@ export default function DynamicFormRenderer({
         }
       }
     }
-    return initial;
+    // T-432: a returning advocate's answers win over the defaults.
+    return initialValues ? { ...initial, ...initialValues } : initial;
   });
 
   // T-411: a consumer complaint picks the Commission level first.
   const consumer = config.template_id === CONSUMER_TEMPLATE_ID;
-  const [level, setLevel] = useState<ConsumerLevel | null>(null);
+  const [level, setLevel] = useState<ConsumerLevel | null>(() =>
+    consumer ? (initialLevel ?? null) : null,
+  );
   const [live, setLive] = useState('');
   const focusNext = useRef<string | null>(null);
   const courtFieldIds = useMemo(() => {
@@ -1420,6 +1456,15 @@ export default function DynamicFormRenderer({
     }
     return ids;
   }, [steps]);
+
+  // T-432: hand every change to the caller, which holds it in memory so the
+  // form can be shown again as it was. The ref keeps a new callback identity
+  // from re-running this.
+  const onStateChangeRef = useRef(onStateChange);
+  onStateChangeRef.current = onStateChange;
+  useEffect(() => {
+    onStateChangeRef.current?.(formData, step, level);
+  }, [formData, step, level]);
 
   useEffect(() => {
     if (!focusNext.current) return;
@@ -1691,12 +1736,14 @@ export default function DynamicFormRenderer({
         </div>
       </div>
 
-      {/* Navigation (T-388: top-aligned, so the Ink cost line under the button moves nothing) */}
-      <div className="mt-4 flex items-start justify-between">
+      {/* Navigation (T-388: top-aligned, so the Ink cost line under the button moves nothing).
+          T-432: stacked at phone width (Generate and its cost line above Cancel/Back, with a
+          real gap); a row from sm up, as before. */}
+      <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-start sm:justify-between">
         <button
           type="button"
           onClick={() => (step === 0 ? onCancel() : setStep((s) => s - 1))}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          className="flex items-center gap-1.5 self-start rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
         >
           <ChevronLeft size={14} />
           {step === 0 ? 'Cancel' : 'Back'}
@@ -1709,7 +1756,7 @@ export default function DynamicFormRenderer({
             aria-disabled={costBlocked ? 'true' : undefined}
             onClick={handleNext}
             aria-describedby={submitDescribedByIds}
-            className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`flex items-center justify-center gap-1.5 rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               isLastStep ? 'bg-slate-900 hover:bg-slate-700' : 'bg-amber-500 hover:bg-amber-600'
             }`}
           >

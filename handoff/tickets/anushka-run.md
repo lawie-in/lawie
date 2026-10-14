@@ -1094,3 +1094,36 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - An older draft's court that is no longer offered stays, marked "(not offered for this document)".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-407 part 2 — No s.141 on the template form for an individual drawer (5489513c, vishal, 14 Oct 2026)
+
+- Draft a cheque-bounce notice from the template form against an individual, a HUF, or a drawer whose type isn't given: the draft no longer cites the section that makes companies and their officers liable.
+- For a company or a partnership firm it still does.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-115b — Delete a document (14efaa66, kunal, 14 Oct 2026)
+
+- Delete a document from My documents, or from the bottom of the document page, after one confirm.
+- See it leave the list at once. After that it can't be opened, exported, or read through a review link.
+- See "Document deleted." only once everything is erased; if the erase is still finishing, see "Deleting the document." and it completes on its own.
+- If it fails, see a message with privacy@lawie.in to write to.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-428 — Bail case lines by court (3649e73b, shashank, 14 Oct 2026)
+
+- Draft a bail or anticipatory bail application in a district or sessions court and see that court's own bail case line, with the number and year to fill in.
+- Draft a bail application before a Magistrate and see the bail line, not a criminal case number.
+- Draft before the Jharkhand or Allahabad High Court and see that court's own anticipatory bail heading.
+- Draft before any other High Court or the Supreme Court and see a clear "[To be confirmed: case type and number]" instead of a guessed line.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-432 — Template form keeps your answers (09a12b63, kunal, 14 Oct 2026)
+
+- Fill in a template form, then get sent off to accept the privacy update, top up Ink, verify your email, or press "Edit form". When you come back, you're on the same step with every answer still there.
+- On a phone, the Generate button sits clearly apart from Cancel.
+- When the Ink cost can't be worked out, the notice shows once, with a "Check the cost again" link that can't be mistaken for "Try again".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

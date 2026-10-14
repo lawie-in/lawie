@@ -3,7 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
 import GeneratingStep, { RETRY_INK_COST_ID } from '../GeneratingStep';
-import { INK_COST_LOADING, INK_COST_UNKNOWN } from '../InkCostLine';
+import { INK_COST_LOADING, INK_COST_RECHECK, INK_COST_UNKNOWN } from '../InkCostLine';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -81,10 +81,10 @@ describe('GeneratingStep Try again Ink cost', () => {
     });
   });
 
-  it('unknown: the cost-line "Try again" fetches the cost again, not the charge', () => {
+  it('unknown: the cost-line "Check the cost again" link fetches the cost again, not the charge', () => {
     mount({ inkCost: undefined });
     const costRetry = Array.from(container.querySelectorAll('button')).find(
-      (b) => b.textContent === 'Try again' && !b.hasAttribute('aria-describedby'),
+      (b) => b.textContent === INK_COST_RECHECK && !b.hasAttribute('aria-describedby'),
     ) as HTMLButtonElement;
     act(() => costRetry.click());
     expect(onInkCostRetry).toHaveBeenCalledTimes(1);

@@ -22,8 +22,8 @@
     "state": "State of Jharkhand through the Principal Secretary, Home Department, Government of Jharkhand, Ranchi"
   },
   "case_nomenclature": {
-    "anticipatory_bail": "Cr. Misc. No. _____ of {year}",
-    "regular_bail": "Cr. Misc. No. _____ of {year}",
+    "anticipatory_bail": "A.B.A. No. _____ of {year}",
+    "regular_bail": "Bail Application No. _____ of {year}",
     "quashing": "Cr. Misc. No. _____ of {year}",
     "criminal_appeal": "Cr. Appeal No. _____ of {year}",
     "criminal_writ": "W.P.(Cr.) No. _____ of {year}",
@@ -44,10 +44,7 @@
     "tone": "humble"
   },
   "verification_format": "I, {deponent_name}, {designation}, do hereby solemnly affirm and state that the contents of paragraphs 1 to {body_para_count} of the above petition are true and correct to the best of my knowledge and belief and nothing material has been concealed therefrom.\n\nVerified at {place} on this {date}.\n\nDEPONENT",
-  "supported_languages": [
-    "en",
-    "hi"
-  ],
+  "supported_languages": ["en", "hi"],
   "formattingPreferences": {
     "numberingStyle": "numeric",
     "paragraphStyle": "numbered",
