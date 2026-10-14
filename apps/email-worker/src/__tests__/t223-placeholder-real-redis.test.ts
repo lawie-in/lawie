@@ -1,11 +1,12 @@
 /**
  * T-223 review round 2 / T-379, real Redis and a real BullMQ worker in LIVE mode (EMAIL_PROVIDER=ses,
  * EMAIL_DRY_RUN=false, dummy keys; the provider send is a stub, nothing is sent).
- * While the static footer of auth.verifyEmail still has [registered address] / [PIN]:
+ * With an unfilled footer INJECTED for auth.verifyEmail (T-436 filled the real one; the placeholders
+ * module is wrapped so templateHasUnfilledFooter/anyTemplateUnfilled report [registered address] / [PIN]):
  *  - startWorkers starts nothing (returns []), so the job stays queued ("waiting"), not failed;
  *  - mint is never called (the user's verify token is not rotated), send is never called;
  *  - no Sentry event, and the stored job and the logs hold no address, name, link or footer text.
- * With the footer check stubbed to "filled", the same live mode completes a job and sends once.
+ * With the real, filled footer the same live mode completes a job and sends once (verify emails send again).
  *
  * Runs against REDIS_TEST_URL if set (loopback), else a private redis-server (never REDIS_URL).
  */
@@ -25,14 +26,14 @@ jest.mock('@sentry/node', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),
 }));
-let mockFooterFilled = false;
+let mockFooterUnfilled = false; // T-436: the real footer is filled; tests inject an unfilled one
 jest.mock('../placeholders', () => {
   const actual = jest.requireActual('../placeholders');
   return {
     ...actual,
-    anyTemplateUnfilled: () => (mockFooterFilled ? false : actual.anyTemplateUnfilled()),
+    anyTemplateUnfilled: () => mockFooterUnfilled || actual.anyTemplateUnfilled(),
     templateHasUnfilledFooter: (id: string) =>
-      mockFooterFilled ? false : actual.templateHasUnfilledFooter(id),
+      (mockFooterUnfilled && id === 'auth.verifyEmail') || actual.templateHasUnfilledFooter(id),
   };
 });
 const mockRender = jest.fn();
@@ -107,7 +108,7 @@ describe('T-223 placeholder guard through real Redis, live mode', () => {
     const send = jest.fn(async () => ({ messageId: 'never' }));
     const mint = jest.fn(async () => ({ email: LEAK_ADDRESS, name: LEAK_NAME, link: LINK }));
     mockRender.mockResolvedValue(real);
-    mockFooterFilled = false;
+    mockFooterUnfilled = true;
 
     const { jobId, queue } = await enqueueEmail({ template: 'auth.verifyEmail', userId: USER_ID });
     const q = new Queue(queue, { connection, prefix: `{${PREFIX}}` });
@@ -152,12 +153,12 @@ describe('T-223 placeholder guard through real Redis, live mode', () => {
     }
   });
 
-  it('with the footer check stubbed to filled, the same live mode completes and sends once', async () => {
+  it('with the real filled footer (T-436), the same live mode completes and sends once', async () => {
     const { startWorkers, stopWorkers } = await import('../worker');
     const send = jest.fn(async () => ({ messageId: 'live-ok' }));
     const mint = jest.fn(async () => ({ email: LEAK_ADDRESS, name: LEAK_NAME, link: LINK }));
-    mockRender.mockResolvedValue({ subject: 'Verify', html: '<p>filled</p>', text: 'filled' });
-    mockFooterFilled = true;
+    mockRender.mockResolvedValue(real); // the real, filled footer
+    mockFooterUnfilled = false;
 
     const { jobId, queue } = await enqueueEmail({
       template: 'auth.verifyEmail',
@@ -171,7 +172,7 @@ describe('T-223 placeholder guard through real Redis, live mode', () => {
       expect(mint).toHaveBeenCalledTimes(1);
       expect(done.returnvalue).toEqual({ messageId: 'live-ok' });
     } finally {
-      mockFooterFilled = false;
+      mockFooterUnfilled = false;
       await stopWorkers();
       await q.close();
     }
