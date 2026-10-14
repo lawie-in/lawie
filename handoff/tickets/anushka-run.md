@@ -1135,3 +1135,18 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - A criminal revision prayer names "Section 438 read with Section 442" (or 440) for the forum chosen. Where the forum isn't known, it shows a clear "To be confirmed" blank instead of "_____".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-433 — No yearly Ink carry (47d5d011, shashank, 14 Oct 2026)
+
+- The pricing page and the Terms say plan Ink is fresh each month, unused plan Ink does not carry over, and top-up Ink never expires.
+- The pricing page says the Ink cost is shown before you generate.
+- On a yearly plan, Ink resets to the monthly amount each month, with nothing banked.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-384 — "Not known" dates (3ceb2fc8, kunal, 14 Oct 2026)
+
+- A date row answered "Not known" shows "Not known" instead of an empty date box.
+- Press "Change" to set the date after all.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

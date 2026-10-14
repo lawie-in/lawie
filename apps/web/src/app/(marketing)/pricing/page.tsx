@@ -39,7 +39,7 @@ const pricingFaq = [
   {
     question: 'What is Ink?',
     answer:
-      "Ink is Lawie's credit unit. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. The Free plan gives you 5 Ink on sign-up, once your email is verified (lifetime). Solo and Pro plans refill Ink every month. You can also buy top-up packs anytime.",
+      "Ink is Lawie's credit unit. Most documents use 2 Ink; short documents, such as most notices and affidavits, use 1. You're charged only after a draft is generated; a failed generation is not charged. You see the Ink cost before you generate a draft. The Free plan gives you 5 Ink on sign-up, once your email is verified (lifetime). Solo and Pro plans give you fresh Ink every month; plan Ink left unused at the end of the month does not carry over. You can also buy top-up packs anytime, and top-up Ink never expires.",
   },
 ];
 

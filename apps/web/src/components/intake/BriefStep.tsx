@@ -110,7 +110,9 @@ export function notKnownOption(item: BriefItem): string | undefined {
  * T-365 AC2: what a row answered with no fact ("Not known", "none") shows, so a
  * row the advocate answered never looks empty. A choice shows the option that
  * was chosen; a typed field shows the words given. A date field cannot show
- * words, so it shows nothing. Undefined when the item is not `asked_empty`.
+ * words, so it gives nothing here: `isNotKnownDate` flags it instead and the
+ * row shows a "Not known" chip (T-384). Undefined when the item is not
+ * `asked_empty`.
  */
 export function askedEmptyValue(item: BriefItem, answer?: Value): Value | undefined {
   if (!item.asked_empty) return undefined;
@@ -128,6 +130,16 @@ export function askedEmptyValue(item: BriefItem, answer?: Value): Value | undefi
   }
   if (item.kind === 'date' || said === undefined || said.trim() === '') return undefined;
   return said;
+}
+
+/**
+ * T-384: a date row the advocate answered "Not known" (or "Not given"). A date
+ * input cannot show words, so the row shows a "Not known" chip in its place.
+ */
+export function isNotKnownDate(item: BriefItem, answer?: Value): boolean {
+  if (!item.asked_empty || item.kind !== 'date') return false;
+  const said = typeof answer === 'string' ? answer : Array.isArray(answer) ? answer[0] : undefined;
+  return said !== undefined && NOT_KNOWN_ANSWERS.has(foldAnswer(said));
 }
 
 /** Long text and rows of choices take the full width of the card. */
@@ -195,6 +207,8 @@ function Item({
   // T-365 AC2: answered "Not known" or "none", with no fact placed since.
   const notKnown =
     isEmptyValue(item.value) && !entry.fact ? askedEmptyValue(item, askedAnswer) : undefined;
+  // T-384: a date answered "Not known" shows a chip, so it is neither blank nor "To be asked".
+  const notKnownDate = isEmptyValue(item.value) && !entry.fact && isNotKnownDate(item, askedAnswer);
 
   // T-147b: the row renders from the ledger. With no fact and nothing outstanding,
   // the brief's own value shows as before.
@@ -211,9 +225,13 @@ function Item({
   const empty = isEmptyValue(shown);
   const heading = item.kind === 'date' && item.meaning ? item.meaning : item.label;
   const toBeAsked =
-    onLedger && entry.unresolved !== undefined && !entry.fact && notKnown === undefined;
+    onLedger &&
+    entry.unresolved !== undefined &&
+    !entry.fact &&
+    notKnown === undefined &&
+    !notKnownDate;
   // A required fact, or one an edited description left unclear (T-150), shows its blank.
-  const showBlank = empty && (item.required || item.reask === true || toBeAsked);
+  const showBlank = empty && !notKnownDate && (item.required || item.reask === true || toBeAsked);
   const pleaseCheck =
     onLedger && entry.fact
       ? entry.fact.source === 'user' || item.note !== undefined
@@ -342,6 +360,8 @@ function Item({
           className={look}
           placeholder={showBlank ? 'Not given' : undefined}
           words={entry.type === 'amount'}
+          notKnownDate={notKnownDate}
+          notKnownLabel={heading}
           describedBy={
             [
               required ? `${id}-required` : '',

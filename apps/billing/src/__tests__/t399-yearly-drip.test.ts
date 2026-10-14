@@ -388,7 +388,7 @@ describe('T-399: cancel at cycle end (Ajay, Arjun)', () => {
 });
 
 describe('T-399: yearly renewal', () => {
-  it('a renewal resets the counters, applies the annual carry once, and a redelivery grants nothing', async () => {
+  it('a renewal resets the counters, carries nothing (T-433), and a redelivery grants nothing', async () => {
     const userId = await seedUser();
     await buyYearly(userId, 1);
     await settleYearlyDrip({ db: db(), userId, now: months(START, 5) }); // 5 drips
@@ -407,7 +407,7 @@ describe('T-399: yearly renewal', () => {
 
     const u = await inkOf(userId);
     expect(u.inkSub).toBe(100);
-    expect(u.inkAnnualCarry).toBe(30); // floor(60 * 0.5), once
+    expect(u.inkAnnualCarry).toBe(0); // T-433: the 60 unspent Ink expires, no carry
     const sub = (await Subscription.findOne({ razorpaySubscriptionId: SUB_ID }).lean())!;
     expect(sub.inkDripCount).toBe(0);
     expect(sub.inkDripNextAt).toEqual(addOneMonth(start2));
@@ -417,7 +417,7 @@ describe('T-399: yearly renewal', () => {
     // The new year drips again.
     const r = await settleYearlyDrip({ db: db(), userId, now: addOneMonth(start2) });
     expect(r.granted).toBe(1);
-    expect((await inkOf(userId)).inkAnnualCarry).toBe(30);
+    expect((await inkOf(userId)).inkAnnualCarry).toBe(0);
   });
 });
 
@@ -425,7 +425,7 @@ describe('T-399: double grant on the first payment (paid_count)', () => {
   // NOTE: Arjun changed the key from lastPaymentId to the subscription entity's
   // paid_count (stored as lastGrantedPaidCount).
   async function setup() {
-    const userId = await seedUser({ inkSub: 40 }); // yearly carry would be 20 on a first grant
+    const userId = await seedUser({ inkSub: 40 }); // 40 unspent; T-433: none of it is carried on a first grant
     await Subscription.create({ userId, razorpaySubscriptionId: SUB_ID, status: 'created' });
     return userId;
   }
@@ -446,7 +446,7 @@ describe('T-399: double grant on the first payment (paid_count)', () => {
     expect(rows).toHaveLength(1);
     const u = await inkOf(userId);
     expect(u.inkSub).toBe(100);
-    expect(u.inkAnnualCarry).toBe(20); // carried once, not 20 + 50
+    expect(u.inkAnnualCarry).toBe(0); // T-433: nothing carried, by either event
   });
 
   it('charged with paid_count 2 gives a second grant', async () => {
@@ -481,7 +481,7 @@ describe('T-399: double grant on the first payment (paid_count)', () => {
     }
     expect(results.some((r) => r.status === 'fulfilled')).toBe(true);
     expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(1);
-    expect((await inkOf(userId)).inkAnnualCarry).toBe(20);
+    expect((await inkOf(userId)).inkAnnualCarry).toBe(0);
   });
 });
 
@@ -812,7 +812,7 @@ describe('T-399: yearly grant fails after the claim (drip reset is part of the c
     expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(1);
   });
 
-  it('the retry grants exactly once and the carry is applied once', async () => {
+  it('the retry grants exactly once and carries nothing', async () => {
     const userId = await yearOneThenSpend();
     const evt = renewalEvt();
     const start2 = months(START, 12);
@@ -825,7 +825,7 @@ describe('T-399: yearly grant fails after the claim (drip reset is part of the c
     expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(2);
     const u = await inkOf(userId);
     expect(u.inkSub).toBe(100);
-    expect(u.inkAnnualCarry).toBe(30); // floor(60 * 0.5), once
+    expect(u.inkAnnualCarry).toBe(0); // T-433: the 60 unspent Ink expires, no carry
     const sub = await subOf();
     expect(sub.lastGrantedPaidCount).toBe(2);
     expect(sub.inkDripCount).toBe(0);
@@ -851,7 +851,7 @@ describe('T-399: yearly grant fails after the claim (drip reset is part of the c
 
     await handleWebhookEvent('subscription.charged', evt);
     expect((await ledger(userId)).filter((r) => r.reason === 'sub_renewal')).toHaveLength(1);
-    expect((await inkOf(userId)).inkAnnualCarry).toBe(20);
+    expect((await inkOf(userId)).inkAnnualCarry).toBe(0);
     const sub = await subOf();
     expect(sub.inkDripCount).toBe(0);
     expect(sub.inkDripNextAt).toEqual(addOneMonth(START));

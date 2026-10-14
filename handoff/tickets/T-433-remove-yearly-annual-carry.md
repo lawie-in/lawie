@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                 |
 | ------ | --------------------------------------------------------------------- |
-| Status | Building (Shashank). Founder ruling via Vikram 14 Oct, recorded in T-399 16ed9d26 (Arjun). Merge in his slot. Priya |
+| Status | Merged into develop_staging 47d5d011 (Shashank, 14 Oct 2026). Priya |
 | Owner  | Shashank (build), Arjun (details), Vikram (ruling)                    |
 | Mode   | Small fix (billing only)                                              |
 

@@ -322,11 +322,10 @@ describe('cancelSubscriptionInk', () => {
   });
 });
 
-// ── Test 6 — Annual carry: grantSubscriptionInk carries 50% capped at 2× ─
+// ── Test 6 — No annual carry (T-433): plan Ink expires, yearly included ───
 
-describe('grantSubscriptionInk — annual carry', () => {
-  it('carries 50% of remaining inkSub into inkAnnualCarry on yearly renewal', async () => {
-    // 40 units remaining in sub; 50% = 20 carry; new allotment = 100 units; cap = 200
+describe('grantSubscriptionInk — no annual carry (T-433)', () => {
+  it('leaves inkAnnualCarry at 0 on a yearly grant with leftover inkSub', async () => {
     const user = await createUser({ inkSub: 40, inkAnnualCarry: 0 });
 
     const granted = await grantSubscriptionInk({
@@ -336,18 +335,16 @@ describe('grantSubscriptionInk — annual carry', () => {
       billingCycle: 'yearly',
     });
 
-    expect(granted).toBe(100); // new inkSub
+    expect(granted).toBe(100);
 
     const updated = await User.findById(user._id).lean();
     expect(updated!.inkSub).toBe(100);
-    expect(updated!.inkAnnualCarry).toBe(20); // 50% of 40
+    expect(updated!.inkAnnualCarry).toBe(0); // was 20 before T-433
     expect(updated!.inkSubMonthlyAllotment).toBe(100);
   });
 
-  it('caps carry at 2× the new monthly allotment', async () => {
-    // 500 units remaining in sub; 50% = 250 carry; new allotment = 100; cap = 200
-    // → carry should be capped at 200
-    const user = await createUser({ inkSub: 500, inkAnnualCarry: 0 });
+  it('keeps carry 0, drops old sub Ink and leaves inkTopup unchanged on a yearly grant', async () => {
+    const user = await createUser({ inkSub: 500, inkAnnualCarry: 0, inkTopup: 37 });
 
     await grantSubscriptionInk({
       userId: user._id.toString(),
@@ -357,11 +354,13 @@ describe('grantSubscriptionInk — annual carry', () => {
     });
 
     const updated = await User.findById(user._id).lean();
-    expect(updated!.inkAnnualCarry).toBe(200); // capped at 2 × 100
+    expect(updated!.inkAnnualCarry).toBe(0);
+    expect(updated!.inkSub).toBe(100); // exactly the new allotment, old 500 expired
+    expect(updated!.inkTopup).toBe(37); // top-up Ink never expires
   });
 
-  it('accumulates carry with existing annualCarry (still capped)', async () => {
-    // Existing carry = 150; new carry = 50% of 80 = 40; total = 190; cap = 200 → 190
+  it('never increases a seeded carry on a yearly grant', async () => {
+    // Legacy value seeded directly; the grant must neither add to it nor cap it.
     const user = await createUser({ inkSub: 80, inkAnnualCarry: 150 });
 
     await grantSubscriptionInk({
@@ -372,7 +371,38 @@ describe('grantSubscriptionInk — annual carry', () => {
     });
 
     const updated = await User.findById(user._id).lean();
-    expect(updated!.inkAnnualCarry).toBe(190); // 150 + 40 = 190 (under cap of 200)
+    expect(updated!.inkAnnualCarry).toBe(150); // exactly as seeded
+    expect(updated!.inkSub).toBe(100);
+  });
+
+  it('does not push a seeded carry above the old 2x cap either', async () => {
+    const user = await createUser({ inkSub: 500, inkAnnualCarry: 190 });
+
+    await grantSubscriptionInk({
+      userId: user._id.toString(),
+      inkUnits: 100,
+      planTier: 'pro',
+      billingCycle: 'yearly',
+    });
+
+    const updated = await User.findById(user._id).lean();
+    expect(updated!.inkAnnualCarry).toBe(190);
+  });
+
+  it('ledger balanceAfter on a yearly grant is new sub + topup, with no carry added', async () => {
+    const user = await createUser({ inkSub: 60, inkAnnualCarry: 0, inkTopup: 10 });
+
+    await grantSubscriptionInk({
+      userId: user._id.toString(),
+      inkUnits: 100,
+      planTier: 'solo',
+      billingCycle: 'yearly',
+    });
+
+    const rows = await inkLedgerRows(user._id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].delta).toBe(100);
+    expect(rows[0].balanceAfter).toBe(110); // 100 sub + 0 carry + 10 topup (was 130 with carry)
   });
 
   it('does NOT carry on monthly renewal', async () => {

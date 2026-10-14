@@ -47,10 +47,13 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
-          # T-439: workflow_dispatch diffs against its merge-base with main (in practice, tests everything);
-          # develop/develop_staging pushes diff against github.event.before (base == pushed branch);
-          # every other ref diffs against its merge-base with develop_staging. Ignored on pull_request.
-          base: ${{ github.event_name == 'workflow_dispatch' && 'main' || ((github.ref_name == 'develop' || github.ref_name == 'develop_staging') && github.ref_name || 'develop_staging') }}
+          # T-439b: workflow_dispatch and develop/develop_staging pushes diff against their merge-base
+          # with main (in practice, the full matrix); every other ref diffs against its merge-base with
+          # develop_staging. Ignored on pull_request.
+          # cancel-in-progress loses nothing on develop/develop_staging only because those runs test the
+          # full matrix: the newest run covers the cancelled one's changes. Don't narrow their base
+          # without changing cancel-in-progress.
+          base: ${{ (github.event_name == 'workflow_dispatch' || github.ref_name == 'develop' || github.ref_name == 'develop_staging') && 'main' || 'develop_staging' }}
           filters: |
             gateway:
               - 'apps/gateway/**'

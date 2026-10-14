@@ -14,7 +14,7 @@ export interface IUserBilling extends Document {
   earnedCredits?: number;
   // New Ink system fields (SCRUM-101) — integer units ×2, all default to 0
   inkSub?: number; // subscription bucket (resets each billing cycle)
-  inkAnnualCarry?: number; // annual plan carry bucket (50% rollover capped at 2× monthly allotment)
+  inkAnnualCarry?: number; // annual plan carry: never created or increased; an existing value is left as is (T-433)
   inkTopup?: number; // non-expiring top-up bucket (survives cancellation)
   inkSubMonthlyAllotment?: number; // monthly allotment for this user (for carry cap calc)
   // T-223 — owned by auth. Billing READS these to refuse checkout for an unverified email user;

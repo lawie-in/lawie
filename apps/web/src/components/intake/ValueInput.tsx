@@ -7,10 +7,10 @@
  * Text is committed when the field loses focus, so the brief is worked out
  * again once per edit and not once per keystroke. Choices commit at once.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { dateInWords, LIST_MAX, NARRATIVE_MAX, TEXT_MAX, Value, ValueKind } from './briefTypes';
-import { input, small } from './ui';
+import { input, linkButton, small } from './ui';
 
 function asText(value: Value | null): string {
   if (value === null) return '';
@@ -34,6 +34,8 @@ export default function ValueInput({
   describedBy,
   invalid,
   words = false,
+  notKnownDate = false,
+  notKnownLabel = '',
 }: {
   id: string;
   kind: ValueKind;
@@ -50,12 +52,33 @@ export default function ValueInput({
    * keyboard. An amount always does, so no numeric keypad is offered for it.
    */
   words?: boolean;
+  /**
+   * T-384: a date row answered "Not known". It shows a "Not known" chip and a
+   * "Change" link in place of the date input, until the advocate presses Change.
+   */
+  notKnownDate?: boolean;
+  /** T-384: the row's label, for the "Change" link's aria-label. */
+  notKnownLabel?: string;
 }) {
   const [text, setText] = useState(asText(value));
   // The service's answer replaces what is on screen (it may tidy a value).
   useEffect(() => {
     setText(asText(value));
   }, [value]);
+
+  // T-384: true once "Change" is pressed on a Not-known date, so the input shows.
+  const [changing, setChanging] = useState(false);
+  const dateRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    // Once the row is no longer Not known (a date was saved), forget the swap,
+    // so a later Not-known answer shows the chip again.
+    if (!notKnownDate) setChanging(false);
+  }, [notKnownDate]);
+  useEffect(() => {
+    // Focus after the swap, not autoFocus. focus() does not open the date picker;
+    // it opens only on the advocate's own tap or key.
+    if (changing) dateRef.current?.focus();
+  }, [changing]);
 
   const commitText = (raw: string) => {
     if (raw === asText(value)) return;
@@ -103,10 +126,28 @@ export default function ValueInput({
     );
   }
 
+  if (kind === 'date' && notKnownDate && !changing) {
+    // Static chip, not a button: it takes no focus and is the row's value, not news.
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <span className={chip(true)}>Not known</span>
+        <button
+          type="button"
+          className={linkButton}
+          aria-label={`Change ${notKnownLabel}, now Not known`}
+          onClick={() => setChanging(true)}
+        >
+          Change
+        </button>
+      </div>
+    );
+  }
+
   if (kind === 'date') {
     return (
       <div>
         <input
+          ref={dateRef}
           id={id}
           type="date"
           value={/^\d{4}-\d{2}-\d{2}$/.test(text) ? text : ''}

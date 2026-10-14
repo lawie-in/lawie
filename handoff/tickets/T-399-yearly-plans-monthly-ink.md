@@ -34,7 +34,7 @@ Billing lead (Kunal holds billing): Priya assigns and claims `subscription.servi
 
 ## Vikram (13 Oct 2026)
 
-The numbers don't change, only the timing: solo_yearly ₹7,990 gives 50 Ink/month (600 a year), pro_yearly ₹19,990 gives 150 Ink/month (1,800 a year). Drips follow the monthly reset rule. The capped annual carry stays, but is never advertised. "Save 2 months" is true once the drip ships.
+The numbers don't change, only the timing: solo_yearly ₹7,990 gives 50 Ink/month (600 a year), pro_yearly ₹19,990 gives 150 Ink/month (1,800 a year). Drips follow the monthly reset rule. The annual carry was removed by T-433 (47d5d011, 14 Oct 2026); nothing is banked. "Save 2 months" is true once the drip ships.
 
 Open (Arjun + Ajay): "cancel stops the drip" on a prepaid year is a refund-policy question. Finance's position: cancel means no renewal, and the drip runs to the end of the paid period, unless the unused months are refunded.
 
