@@ -71,7 +71,16 @@ import {
   isFactLedgerEnabled,
   updateBrief,
 } from '../services/intake.service';
-import { getModelRates, priceUsage, RateLookup } from '../services/llm-usage';
+import {
+  CacheUsage,
+  cacheCounts,
+  effectiveCacheRates,
+  getModelRates,
+  priceCacheUsage,
+  priceUsage,
+  RateLookup,
+  totalTokens,
+} from '../services/llm-usage';
 import {
   blanksInContent,
   contentToHtml,
@@ -180,13 +189,16 @@ async function profileEnrollmentNumber(userId: string): Promise<string | undefin
  * are still real either way (T-003 §3.6).
  */
 async function priceGeneration(
-  usage: { inputTokens: number; outputTokens: number },
+  usage: { inputTokens: number; outputTokens: number } & CacheUsage,
   aiModel: string | undefined,
-): Promise<{ costUsd: number; rate: RateLookup }> {
-  if (!aiModel) return { costUsd: 0, rate: { costStatus: 'rate_missing', rate: null } };
+): Promise<{ costUsd: number; cacheWriteUsd: number; cacheReadUsd: number; rate: RateLookup }> {
+  const none = { cacheWriteUsd: 0, cacheReadUsd: 0 };
+  if (!aiModel) return { costUsd: 0, ...none, rate: { costStatus: 'rate_missing', rate: null } };
   const rate = await getModelRates(aiModel);
-  const costUsd = rate.costStatus === 'priced' ? priceUsage(usage, rate.rate) : 0;
-  return { costUsd, rate };
+  if (rate.costStatus !== 'priced') return { costUsd: 0, ...none, rate };
+  // T-437: costUsd includes the cache cost; the split is kept for the admin screen.
+  const costUsd = priceUsage(usage, rate.rate, aiModel);
+  return { costUsd, ...priceCacheUsage(usage, rate.rate, aiModel), rate };
 }
 
 export interface RecordGenerationInput {
@@ -197,7 +209,8 @@ export interface RecordGenerationInput {
   documentId?: mongoose.Types.ObjectId;
   aiModel?: string;
   transport?: 'direct';
-  usage: {
+  /** T-437: inputTokens is uncached input; cache counts are the optional CacheUsage fields. */
+  usage: CacheUsage & {
     inputTokens: number;
     outputTokens: number;
     llmCalls: number;
@@ -227,7 +240,11 @@ export interface RecordGenerationInput {
 export async function recordGeneration(
   input: RecordGenerationInput,
 ): Promise<{ duplicate: boolean }> {
-  const { costUsd, rate } = await priceGeneration(input.usage, input.aiModel);
+  const { costUsd, cacheWriteUsd, cacheReadUsd, rate } = await priceGeneration(
+    input.usage,
+    input.aiModel,
+  );
+  const cacheRates = rate.costStatus === 'priced' ? effectiveCacheRates(rate.rate) : undefined;
   try {
     await Generation.create({
       userId: input.userId,
@@ -237,9 +254,11 @@ export async function recordGeneration(
       documentId: input.documentId,
       aiModel: input.aiModel,
       transport: input.transport,
-      tokensUsed: input.usage.inputTokens + input.usage.outputTokens,
+      // T-437: tokensUsed counts every token processed, cache writes and reads included.
+      tokensUsed: totalTokens(input.usage),
       inputTokens: input.usage.inputTokens,
       outputTokens: input.usage.outputTokens,
+      ...cacheCounts(input.usage),
       llmCalls: input.usage.llmCalls,
       usageSource: input.usage.usageSource,
       calls: input.usage.calls,
@@ -253,6 +272,16 @@ export async function recordGeneration(
       costStatus: rate.costStatus,
       rateInputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.inputUsdPerMTok : undefined,
       rateOutputUsdPerMTok: rate.costStatus === 'priced' ? rate.rate.outputUsdPerMTok : undefined,
+      // T-437: present only when the generation used the cache, so a row without
+      // cache activity is written exactly as before (the schema defaults the costs to 0).
+      ...(cacheWriteUsd > 0 || cacheReadUsd > 0
+        ? {
+            cacheWriteCostUsd: cacheWriteUsd,
+            cacheReadCostUsd: cacheReadUsd,
+            rateCacheWriteUsdPerMTok: cacheRates?.cacheWriteUsdPerMTok,
+            rateCacheReadUsdPerMTok: cacheRates?.cacheReadUsdPerMTok,
+          }
+        : {}),
     });
     return { duplicate: false };
   } catch (dbErr) {
