@@ -61,7 +61,7 @@ Where each lead stopped:
 - kunal: T-415 on fix/t-415-grant-claim-state bc35be1, ready to merge.
 - tanvi: T-411 server half on feature/t-411-consumer-court-picker 41fe294 (built, tested); UI waits for Rajesh's Figma link.
 
-**MERGE SLOT v2 (Arjun, multi-lead.md): waiting on the founder's confirmation before the slot ends at the push. Until then the old rule holds: the next merge waits for the previous CI to be green. Queue: first-ready (T-432 merged 09a12b63 under v2 before the founder's confirmation). Never run a bare git pull; use --ff-only.**
+**MERGE SLOT v2: founder-approved (to Priya in chat 21:30 UTC, to Arjun 21:35 UTC, 14 Oct). Rules: .claude/docs/multi-lead.md 'Merge slot v2'. Queue: first-ready.**
 
 ## Last done
 
