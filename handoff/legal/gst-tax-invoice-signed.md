@@ -138,3 +138,12 @@ Test: no public page or email contains "Patna, Bihar" naming Lawie, or any "[...
 Rest of the draft (preheader, body, help line, footer lines 3–4) **approved as written**. No case content and no attachment, as drafted.
 
 **Invoice number format:** the law fixes the limits, not the pattern: max 16 characters (letters, digits, "-" and "/"), unique per financial year (April–March), consecutive with no gaps, and credit notes in their own series. `LAW/2026-27/0001` was an example. Arjun's `FY25-26/000123` style is equally lawful (14 characters). His choice; the FY in it must be the real one (an invoice dated October 2026 is FY 2026-27). Not a legal override.
+
+## Addendum 6 (T-436 a): Kunal's build points, 14 Oct 2026
+
+| # | Point | Ruling |
+|---|---|---|
+| 1 | Credit-note number `LAW-CN/2026-27/0001` is 19 characters, over the 16 limit | My example was wrong. `LCN/2026-27/0001` (16 characters) is approved. |
+| 2 | PDF amounts as "Rs. 1,999.00" (no ₹ glyph) | Approved. The law requires the value, not the symbol. |
+| 3 | Legacy subscription with no matching plan prints "Lawie subscription — Pro, {period}" | No: that guesses the plan. Print the plan only from the charge's own record; if it is unknown, `Lawie subscription — {period}`. (No subscription has been charged yet, per Vikram, so this should never fire.) |
+| — | Street address removed from the public supplier endpoint, kept on the PDF | Approved, per Addendum 1. |
