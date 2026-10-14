@@ -136,3 +136,16 @@ Signed: Ajay (CLO), 14 Oct 2026 IST. Addendum 1 is my ruling; the "(Vishal, …)
 | 8 | Judgment names in prompts: bail_cancellation entry 5 (Dolat Ram; Bhagirathsinh), bail_anticipatory twin (Sushila Aggarwal), interim_bail prompt_context (Lal Kamlendra); also criminal_revision :219 (Krishnan v. Krishnaveni) | Against the signed rule (`Do not name any judgment. Where an authority would normally be cited, write [Authority — add if relied upon].`). The model can misquote or invent a citation. Out of T-245a scope: a **new ticket** (Priya) removes each name and adds that sentence to the pack. | must-fix (new ticket) |
 
 Moved goldens (part 2) come to me before merge.
+
+## Addendum 3: T-245a part 1 leftovers (Vishal, 14 Oct 2026)
+
+| # | Point | Ruling |
+|---|---|---|
+| 1 | Static s35 question | Use `…under Section 35(3) of the BNSS or Section 41A of the CrPC…` (the rest of the question unchanged). |
+| 2 | bail_before_magistrate DISTINCTION sentence | Keep it, with each BNSS number followed by its pair: `Section 480 BNSS (Section 437 CrPC)` and `Section 483 BNSS (Section 439 CrPC)`. The P-text still decides what is cited. |
+| 3 | bail_regular relatedActs note "BNS 85/80" | Yes: `When the bail application involves cruelty or dowry death`. No section numbers. |
+| 4 | Twin's "Do not cite Section 481 or Section 482" | Follows the choice. Correct pairs: **CrPC 437A → BNSS 481** (not 436A) and **438 → 482**. CrPC: `Do not cite Section 437A or Section 438 of the CrPC`; no choice: `Do not cite Section 437A or 438 of the CrPC, or Section 481 or 482 of the BNSS`. |
+| 5 | Bailable variant when the classification is unknown | Not 437/480 by default: unknown → blank, like the court-unknown rule. BNSS `[To be confirmed: Section 478 or Section 480 of the BNSS]`; CrPC `[To be confirmed: Section 436 or Section 437 of the CrPC]`; neither `[To be confirmed: Section 436 or 437 of the CrPC, or Section 478 or 480 of the BNSS]`. |
+| 6 | Label reuse for the notice_provision condition | Approved. |
+
+Signed: Ajay (CLO), 14 Oct 2026 IST.
