@@ -3,7 +3,7 @@
 import { act } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 
-import DynamicFormRenderer, { TemplateConfig } from '../DynamicFormRenderer';
+import DynamicFormRenderer, { SUBMIT_INK_COST_ID, TemplateConfig } from '../DynamicFormRenderer';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -41,7 +41,7 @@ afterEach(() => {
   container.remove();
 });
 
-function mount(props: { submitDescribedBy?: string }) {
+function mount(props: { submitDescribedBy?: string; inkCost?: number }) {
   act(() => {
     root.render(
       <DynamicFormRenderer config={config} onSubmit={jest.fn()} onCancel={jest.fn()} {...props} />,
@@ -66,17 +66,19 @@ describe('DynamicFormRenderer submitDescribedBy', () => {
   });
 
   it('sets aria-describedby on the Generate button of the last step', () => {
-    mount({ submitDescribedBy: 'reaccept-p7-generate' });
+    mount({ submitDescribedBy: 'reaccept-p7-generate', inkCost: 1 });
     next();
     expect(primary().textContent).toContain('Generate document');
-    expect(primary().getAttribute('aria-describedby')).toBe('reaccept-p7-generate');
+    expect(primary().getAttribute('aria-describedby')).toBe(
+      `reaccept-p7-generate ${SUBMIT_INK_COST_ID}`,
+    );
   });
 
-  it('sets nothing on any step when the prop is absent', () => {
-    mount({});
+  it('points only at the Ink cost line on the last step when the prop is absent', () => {
+    mount({ inkCost: 1 });
     expect(primary().hasAttribute('aria-describedby')).toBe(false);
     next();
     expect(primary().textContent).toContain('Generate document');
-    expect(primary().hasAttribute('aria-describedby')).toBe(false);
+    expect(primary().getAttribute('aria-describedby')).toBe(SUBMIT_INK_COST_ID);
   });
 });

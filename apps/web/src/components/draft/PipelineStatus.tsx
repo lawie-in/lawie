@@ -19,6 +19,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import InkCostLine, { inkCostState } from '@/components/intake/InkCostLine';
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type PipelineState =
@@ -55,6 +57,37 @@ export interface PipelineStatusProps {
   generationRetryable?: boolean;
   /** Called when advocate clicks "Try again" in the generation-failed card */
   onRetry?: () => void;
+  /** T-388: what a draft of this template charges (template-configs `credits_cost`). */
+  inkCost?: number;
+  /** T-388: the cost is being fetched. */
+  inkCostLoading?: boolean;
+  /** T-388: fetches the cost again when it could not be worked out. */
+  onInkCostRetry?: () => void;
+  /** T-388: the template id, for the Sentry report only. */
+  templateId?: string;
+}
+
+/** T-388: ids of the Ink cost lines under the buttons that charge. */
+export const SOFT_WARN_INK_COST_ID = 'soft-warn-ink-cost';
+export const SOFT_WARN_SKIP_INK_COST_ID = 'soft-warn-skip-ink-cost';
+export const FAILED_RETRY_INK_COST_ID = 'generation-failed-retry-ink-cost';
+
+/** T-388: what a card needs to show the cost and block on an unknown one. */
+interface InkCostProps {
+  inkCost?: number;
+  inkCostLoading?: boolean;
+  onInkCostRetry?: () => void;
+  templateId?: string;
+}
+
+/** T-388 (Arjun): a button that charges waits for a known cost. */
+function costBlocked({ inkCost, inkCostLoading = false }: InkCostProps): boolean {
+  return inkCostState(inkCost, inkCostLoading) !== 'known';
+}
+
+/** The disabled look (`opacity-40`) for the inline-styled buttons below. */
+function blockedStyle(blocked: boolean): React.CSSProperties {
+  return blocked ? { opacity: 0.4, cursor: 'not-allowed' } : {};
 }
 
 // ── Progress bar ──────────────────────────────────────────────────────────────
@@ -188,7 +221,14 @@ function ElapsedTimer({ running }: { running: boolean }) {
   }, [running]);
 
   return (
-    <span style={{ fontSize: '13px', fontWeight: 500, color: '#534AB7', fontVariantNumeric: 'tabular-nums' }}>
+    <span
+      style={{
+        fontSize: '13px',
+        fontWeight: 500,
+        color: '#534AB7',
+        fontVariantNumeric: 'tabular-nums',
+      }}
+    >
       {secs}s
     </span>
   );
@@ -347,12 +387,16 @@ function SoftWarnCard({
   onProceedAnyway,
   onEditForm,
   state,
+  cost,
 }: {
   questions: string[];
   onProceedAnyway?: () => void;
   onEditForm?: () => void;
   state: PipelineState;
+  cost: InkCostProps;
 }) {
+  const blocked = costBlocked(cost);
+  const proceed = blocked ? undefined : onProceedAnyway;
   const questionText = questions[0] ?? 'Please review the flagged inputs before generating.';
 
   return (
@@ -383,9 +427,7 @@ function SoftWarnCard({
           <div style={{ fontSize: '14px', fontWeight: 500, color: '#412402', marginBottom: 4 }}>
             Ek baat dhyan mein aayi — confirm kar lein?
           </div>
-          <div style={{ fontSize: '13px', color: '#633806', lineHeight: 1.55 }}>
-            {questionText}
-          </div>
+          <div style={{ fontSize: '13px', color: '#633806', lineHeight: 1.55 }}>{questionText}</div>
           {questions.length > 1 && (
             <ul className="mt-2 space-y-1">
               {questions.slice(1).map((q, i) => (
@@ -401,21 +443,36 @@ function SoftWarnCard({
       <ProgressBar state={state} />
 
       <div className="mt-3 flex flex-col gap-2 pl-10">
-        <button
-          onClick={onProceedAnyway}
-          style={{
-            textAlign: 'left',
-            fontSize: '13px',
-            padding: '8px 12px',
-            borderRadius: '8px',
-            border: '0.5px solid #BA7517',
-            background: '#fff',
-            color: '#412402',
-            cursor: 'pointer',
-          }}
-        >
-          Looks correct — generate anyway
-        </button>
+        <div className="flex flex-col items-stretch gap-1">
+          <button
+            type="button"
+            onClick={proceed}
+            disabled={blocked}
+            aria-disabled={blocked ? 'true' : undefined}
+            aria-describedby={SOFT_WARN_INK_COST_ID}
+            style={{
+              textAlign: 'left',
+              fontSize: '13px',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '0.5px solid #BA7517',
+              background: '#fff',
+              color: '#412402',
+              cursor: 'pointer',
+              ...blockedStyle(blocked),
+            }}
+          >
+            Looks correct — generate anyway
+          </button>
+          <InkCostLine
+            id={SOFT_WARN_INK_COST_ID}
+            cost={cost.inkCost}
+            loading={cost.inkCostLoading ?? false}
+            onRetry={cost.onInkCostRetry}
+            kind={cost.templateId ?? 'unknown'}
+            action="soft_warn"
+          />
+        </div>
         <button
           onClick={onEditForm}
           style={{
@@ -434,33 +491,44 @@ function SoftWarnCard({
       </div>
 
       <div className="mt-3 flex items-center justify-between pl-10">
-        <button
-          onClick={onProceedAnyway}
-          style={{
-            fontSize: '12px',
-            color: '#633806',
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            borderBottom: '0.5px solid #633806',
-          }}
-        >
-          Skip and generate anyway
-        </button>
+        <div className="flex flex-col items-start gap-1">
+          <button
+            type="button"
+            onClick={proceed}
+            disabled={blocked}
+            aria-disabled={blocked ? 'true' : undefined}
+            aria-describedby={SOFT_WARN_SKIP_INK_COST_ID}
+            style={{
+              fontSize: '12px',
+              color: '#633806',
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              borderBottom: '0.5px solid #633806',
+              ...blockedStyle(blocked),
+            }}
+          >
+            Skip and generate anyway
+          </button>
+          {/* Same card: the unknown state is reported once, by the line above. */}
+          <InkCostLine
+            id={SOFT_WARN_SKIP_INK_COST_ID}
+            cost={cost.inkCost}
+            loading={cost.inkCostLoading ?? false}
+            onRetry={cost.onInkCostRetry}
+            kind={cost.templateId ?? 'unknown'}
+            action="soft_warn"
+            report={false}
+          />
+        </div>
         <span style={{ fontSize: '11px', color: '#633806' }}>Verifier paused — pick one</span>
       </div>
     </div>
   );
 }
 
-function DraftingCard({
-  templateName,
-  state,
-}: {
-  templateName?: string;
-  state: PipelineState;
-}) {
+function DraftingCard({ templateName, state }: { templateName?: string; state: PipelineState }) {
   return (
     <div
       style={{
@@ -513,9 +581,10 @@ function ReadyCard({
   warningCount?: number;
   onOpenEditor?: () => void;
 }) {
-  const citedLabel =
-    sectionsCited && sectionsCited.length > 0 ? sectionsCited.join(', ') : 'none';
-  const warnLabel = warningCount ? `${warningCount} warning${warningCount > 1 ? 's' : ''}` : 'No warnings';
+  const citedLabel = sectionsCited && sectionsCited.length > 0 ? sectionsCited.join(', ') : 'none';
+  const warnLabel = warningCount
+    ? `${warningCount} warning${warningCount > 1 ? 's' : ''}`
+    : 'No warnings';
 
   return (
     <div
@@ -609,7 +678,8 @@ function HardBlockCard({
             Cannot generate this draft
           </div>
           <div style={{ fontSize: '13px', color: '#791F1F', lineHeight: 1.55, marginBottom: 8 }}>
-            {hardBlockReason ?? 'A required field is missing or contains an error. Please review the form.'}
+            {hardBlockReason ??
+              'A required field is missing or contains an error. Please review the form.'}
           </div>
           <button
             onClick={onEditForm}
@@ -637,12 +707,15 @@ function GenerationFailedCard({
   generationRetryable,
   onRetry,
   onEditForm,
+  cost,
 }: {
   generationError?: string;
   generationRetryable?: boolean;
   onRetry?: () => void;
   onEditForm?: () => void;
+  cost: InkCostProps;
 }) {
+  const blocked = costBlocked(cost);
   return (
     <div
       style={{
@@ -672,26 +745,40 @@ function GenerationFailedCard({
             Drafting could not finish
           </div>
           <div style={{ fontSize: '13px', color: '#791F1F', lineHeight: 1.55, marginBottom: 10 }}>
-            {generationError ??
-              'The AI service returned an error mid-draft. Please try again.'}
+            {generationError ?? 'The AI service returned an error mid-draft. Please try again.'}
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {generationRetryable !== false && onRetry && (
-              <button
-                onClick={onRetry}
-                style={{
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  padding: '7px 12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: '#A32D2D',
-                  color: '#fff',
-                  cursor: 'pointer',
-                }}
-              >
-                Try again
-              </button>
+              <div className="flex flex-col items-stretch gap-1">
+                <button
+                  type="button"
+                  onClick={blocked ? undefined : onRetry}
+                  disabled={blocked}
+                  aria-disabled={blocked ? 'true' : undefined}
+                  aria-describedby={FAILED_RETRY_INK_COST_ID}
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    padding: '7px 12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#A32D2D',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    ...blockedStyle(blocked),
+                  }}
+                >
+                  Try again
+                </button>
+                <InkCostLine
+                  id={FAILED_RETRY_INK_COST_ID}
+                  cost={cost.inkCost}
+                  loading={cost.inkCostLoading ?? false}
+                  onRetry={cost.onInkCostRetry}
+                  kind={cost.templateId ?? 'unknown'}
+                  action="retry"
+                />
+              </div>
             )}
             <button
               onClick={onEditForm}
@@ -734,7 +821,12 @@ export default function PipelineStatus({
   generationError,
   generationRetryable,
   onRetry,
+  inkCost,
+  inkCostLoading,
+  onInkCostRetry,
+  templateId,
 }: PipelineStatusProps) {
+  const cost: InkCostProps = { inkCost, inkCostLoading, onInkCostRetry, templateId };
   const stepLabel =
     state === 'verifying'
       ? 'Step 2 of 5 — verifying inputs'
@@ -761,7 +853,7 @@ export default function PipelineStatus({
         {stepLabel}
       </span>
 
-      {(state === 'verifying') && <VerifyingCard state={state} />}
+      {state === 'verifying' && <VerifyingCard state={state} />}
 
       {state === 'soft_warn' && (
         <SoftWarnCard
@@ -769,12 +861,11 @@ export default function PipelineStatus({
           onProceedAnyway={onProceedAnyway}
           onEditForm={onEditForm}
           state={state}
+          cost={cost}
         />
       )}
 
-      {state === 'drafting' && (
-        <DraftingCard templateName={templateName} state={state} />
-      )}
+      {state === 'drafting' && <DraftingCard templateName={templateName} state={state} />}
 
       {state === 'ready' && (
         <ReadyCard
@@ -795,6 +886,7 @@ export default function PipelineStatus({
           generationRetryable={generationRetryable}
           onRetry={onRetry}
           onEditForm={onEditForm}
+          cost={cost}
         />
       )}
     </div>
