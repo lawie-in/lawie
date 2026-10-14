@@ -125,3 +125,16 @@ It covers the T-436 change and the T-115c changes, which are not yet in an accep
 | Email footer (email-worker verifyEmail.tsx:55 and any shared footer) | "Lawie (Sole Proprietorship), [registered address], Patna, Bihar [PIN]" | `Lawie (Sole Proprietorship), Ranchi, Jharkhand` |
 
 Test: no public page or email contains "Patna, Bihar" naming Lawie, or any "[...placeholder]" / "[PIN]" text. Sample drafts (e.g. a party's address in the seed PDFs) are unaffected.
+
+## Addendum 5 (T-436): invoice email (Madhuri's draft, handoff/marketing/copy/invoice-email-t436.md) and the number format, 14 Oct 2026
+
+| # | Question | Ruling |
+|---|---|---|
+| 1 | Footer address | `Lawie (Sole Proprietorship), Ranchi, Jharkhand` (Addendum 4). |
+| 2 | Footer line 2 | Change to: `You are receiving this because a payment was made on your Lawie account.` |
+| 3 | "invoice" vs "GST tax invoice" | The email may say "invoice". The PDF itself is headed `Tax Invoice` (credit notes: `Credit Note`). Use subject (A) `Your Lawie invoice {invoiceNumber}` and button (A) `Download invoice (PDF)`. |
+| 4 | Number and amount in the body | Yes. The amount line reads `Thank you for your payment of {amount} (including GST) on {date}.` Total only, no tax breakdown. If `{name}` is empty: `Hello,`. |
+
+Rest of the draft (preheader, body, help line, footer lines 3–4) **approved as written**. No case content and no attachment, as drafted.
+
+**Invoice number format:** the law fixes the limits, not the pattern: max 16 characters (letters, digits, "-" and "/"), unique per financial year (April–March), consecutive with no gaps, and credit notes in their own series. `LAW/2026-27/0001` was an example. Arjun's `FY25-26/000123` style is equally lawful (14 characters). His choice; the FY in it must be the real one (an invoice dated October 2026 is FY 2026-27). Not a legal override.
