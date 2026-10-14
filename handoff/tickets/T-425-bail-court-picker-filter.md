@@ -12,3 +12,5 @@
 2. For every bail pack, the picker offers no Consumer Commission.
 3. A draft that already has a disallowed court is not silently changed; the picker shows the allowed list on the next edit.
 4. Tests pin both rules.
+
+5. Also (Ajay T-427, 03b3e6e): no bail pack offers the Supreme Court.

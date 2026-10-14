@@ -12,3 +12,5 @@
 2. High Court and Supreme Court files are untouched (T-427).
 3. Golden/court-rules snapshot moves are only these lines; Ajay signs them.
 4. Before Tanvi's T-425 (picker filter) touches the same files; T-425 merges these in.
+
+5. Also (Ajay T-427, 03b3e6e): Jharkhand HC anticipatory "A.B.A. No.", regular generic; Allahabad anticipatory "Criminal Misc. Anticipatory Bail Application U/S 482 BNSS No."; high_court_generic the case-type blank. Patna unchanged.

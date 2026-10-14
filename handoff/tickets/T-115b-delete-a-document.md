@@ -13,3 +13,5 @@ Hard delete at once for a document (no 30-day purge job), per Arjun's revised de
 ## Acceptance criteria
 
 See the slice list and acceptance criteria in `T-115-permanent-delete-and-encrypted-inputs.md` (Arjun, 12 Oct 2026, revised design). Gate before v1 go-live.
+
+| Status | Todo. Kunal, after T-388. Spec handoff/marketing/delete-document-spec-t115b.md; Ajay text a84e298. Priya, 14 Oct 2026 |
