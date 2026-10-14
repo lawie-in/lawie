@@ -27,6 +27,7 @@ Vikram, 14 Oct 2026, founder-approved: Lawie is GST-registered (sole proprietors
 6. Invoice emailed and downloadable from the billing page; stored for Ajay's retention period; no case content on it.
 7. Monthly CSV export of all invoices and credit notes for GSTR-1, to Vikram.
 8. Bump CURRENT_PRIVACY_VERSION so users get the re-accept prompt, because the State (place of supply) is new data collected (Ajay fc0d74d, dpdp file §6). Ajay signs the change summary when the build is ready.
+   Claim note (Arjun): T-436's claim includes the privacy version constant in packages/shared (one holder at a time), and its full chain covers the re-acceptance flow (T-343). T-115c does not touch it.
 
 ## Ajay's ruling (9201297, handoff/legal/gst-tax-invoice-signed.md)
 
