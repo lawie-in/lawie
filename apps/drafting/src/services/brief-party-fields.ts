@@ -407,8 +407,9 @@ function deponentFields(
 
 /**
  * Addendum 5: a sided pack. The side is an answered client_role (petitioner or
- * respondent), else the signed row's. Any other answered role cannot be told
- * as a side here, so it is refused with client_role. Each party prints under
+ * respondent), else the signed row's. Any other non-empty client_role, an
+ * unrecognised value included, is refused with client_role (Ajay, T-424
+ * 44bf8a5); only an empty one falls back to the row. Each party prints under
  * its own role; the client is also the deponent.
  */
 function mapSidedPack(
@@ -417,8 +418,10 @@ function mapSidedPack(
   advocate: Record<string, string>,
 ): PartyFieldsResult {
   const tableRow = CLIENT_ROLE_TABLE[templateId];
-  const role = answeredRole(flat);
-  if (role !== null && role !== 'petitioner' && role !== 'respondent') {
+  const answered = answeredRole(flat);
+  const role: CaseSide | null =
+    answered === 'petitioner' || answered === 'respondent' ? answered : null;
+  if (text(flat.client_role) !== '' && role === null) {
     return {
       fields: advocate,
       clientName: '',

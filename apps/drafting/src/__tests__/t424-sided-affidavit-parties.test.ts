@@ -180,24 +180,39 @@ describe('T-424 AC2: where the side cannot be told, refuse', () => {
       'an unusable client_role %p -> client_role, no guess',
       (role) => {
         const r = mapPartyFields(id, { ...PEOPLE, client_role: role });
-        // Ajay T-424 44bf8a5: any client_role other than petitioner/respondent is refused.
-        // A string that is not a client_role option id at all is not an answer, so the row decides
-        // (pinned as built; reported to the lead).
-        if (role === 'Not A Role') {
-          // not an option id: not "answered", so the row decides
-          expect(r.clientSide).toBe(rowSide);
-          expect(r.missing).toEqual([]);
-        } else {
-          expect(r.missing).toEqual(['client_role']);
-          expect(r.clientSide).toBeNull();
-          expect(r.clientName).toBe('');
-          expect(r.fields).not.toHaveProperty('deponent_name');
-          expect(r.fields).not.toHaveProperty('petitioner_name');
-          expect(r.fields).not.toHaveProperty('respondent_name');
-          expect(r.fields).not.toHaveProperty('client_side');
-        }
+        // Ajay T-424 44bf8a5: any non-empty client_role other than petitioner/respondent,
+        // including unrecognised text, is refused.
+        expect(r.missing).toEqual(['client_role']);
+        expect(r.clientSide).toBeNull();
+        expect(r.clientName).toBe('');
+        expect(r.fields).not.toHaveProperty('deponent_name');
+        expect(r.fields).not.toHaveProperty('petitioner_name');
+        expect(r.fields).not.toHaveProperty('respondent_name');
+        expect(r.fields).not.toHaveProperty('client_side');
       },
     );
+
+    it.each(['', '   '])(
+      'an empty or whitespace-only client_role %p -> the row decides',
+      (role) => {
+        const r = mapPartyFields(id, { ...PEOPLE, client_role: role });
+        expect(r.fields).toEqual(expected(rowSide));
+        expect(r.clientSide).toBe(rowSide);
+        expect(r.basis).toBe('table');
+        expect(r.missing).toEqual([]);
+      },
+    );
+
+    it('a label with surrounding whitespace is accepted', () => {
+      const side = other(rowSide);
+      const r = mapPartyFields(id, {
+        ...PEOPLE,
+        client_role: side === 'respondent' ? ' Respondent ' : ' Petitioner ',
+      });
+      expect(r.fields).toEqual(expected(side));
+      expect(r.clientSide).toBe(side);
+      expect(r.missing).toEqual([]);
+    });
   });
 
   it('counter_affidavit, client_role=respondent, no petitioner -> [opposite_party_name]', () => {
