@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 
-import { INK_COST_LOADING, INK_COST_UNKNOWN } from '../../intake/InkCostLine';
+import { INK_COST_LOADING, INK_COST_RECHECK, INK_COST_UNKNOWN } from '../../intake/InkCostLine';
 import DynamicFormRenderer, { SUBMIT_INK_COST_ID, TemplateConfig } from '../DynamicFormRenderer';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -130,12 +130,12 @@ describe('DynamicFormRenderer Ink cost (T-388)', () => {
     expect(mockCapture.mock.calls[0][1].tags).toEqual({ kind: 'config_tpl', action: 'submit' });
   });
 
-  it('unknown: Try again calls onInkCostRetry', () => {
+  it('unknown: the re-fetch link calls onInkCostRetry', () => {
     const onInkCostRetry = jest.fn();
     mount({ inkCost: undefined, onInkCostRetry });
     toLastStep();
     const retry = Array.from(container.querySelectorAll('button')).find(
-      (b) => b.textContent === 'Try again',
+      (b) => b.textContent === INK_COST_RECHECK,
     ) as HTMLButtonElement;
     act(() => retry.click());
     expect(onInkCostRetry).toHaveBeenCalledTimes(1);
