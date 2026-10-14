@@ -27,6 +27,65 @@ function requireAdmin(req: Request, res: Response, next: () => void): void {
   next();
 }
 
+// ── Prompt-cache totals (T-437) ───────────────────────────────────────────
+//
+// Summed into the same $group as the cost. Rows written before T-437 have no
+// cache fields and count as 0. "Uncached equivalent" is what the cache tokens
+// would have cost at the row's own input rate, so the saving is net of the
+// write premium (a negative number means the cache cost more than it saved).
+
+const sumOrZero = (field: string) => ({ $sum: { $ifNull: [`$${field}`, 0] } });
+const sumTimesInputRate = (field: string) => ({
+  $sum: {
+    $multiply: [{ $ifNull: [`$${field}`, 0] }, { $ifNull: ['$rateInputUsdPerMTok', 0] }],
+  },
+});
+
+const CACHE_GROUP_FIELDS = {
+  inputTokens: sumOrZero('inputTokens'),
+  cacheWriteTokens: sumOrZero('cacheCreationInputTokens'),
+  cacheReadTokens: sumOrZero('cacheReadInputTokens'),
+  cacheWriteCostUsd: sumOrZero('cacheWriteCostUsd'),
+  cacheReadCostUsd: sumOrZero('cacheReadCostUsd'),
+  /** Σ tokens × input rate per MTok; divided by 1e6 in cacheSummary. */
+  cacheWriteAtInputRate: sumTimesInputRate('cacheCreationInputTokens'),
+  cacheReadAtInputRate: sumTimesInputRate('cacheReadInputTokens'),
+};
+
+interface CacheGroupRow {
+  inputTokens?: number;
+  cacheWriteTokens?: number;
+  cacheReadTokens?: number;
+  cacheWriteCostUsd?: number;
+  cacheReadCostUsd?: number;
+  cacheWriteAtInputRate?: number;
+  cacheReadAtInputRate?: number;
+}
+
+function cacheSummary(row: CacheGroupRow | undefined, usdInrRate: number) {
+  const input = row?.inputTokens ?? 0;
+  const write = row?.cacheWriteTokens ?? 0;
+  const read = row?.cacheReadTokens ?? 0;
+  const writeUsd = row?.cacheWriteCostUsd ?? 0;
+  const readUsd = row?.cacheReadCostUsd ?? 0;
+  const uncachedUsd =
+    ((row?.cacheWriteAtInputRate ?? 0) + (row?.cacheReadAtInputRate ?? 0)) / 1_000_000;
+  const savingsUsd = uncachedUsd - writeUsd - readUsd;
+  const allInput = input + write + read;
+  return {
+    cacheWriteTokens: write,
+    cacheReadTokens: read,
+    cacheWriteCostUsd: writeUsd,
+    cacheReadCostUsd: readUsd,
+    cacheWriteCostInr: Math.round(writeUsd * usdInrRate),
+    cacheReadCostInr: Math.round(readUsd * usdInrRate),
+    cacheSavingsUsd: savingsUsd,
+    cacheSavingsInr: Math.round(savingsUsd * usdInrRate),
+    /** Share of all input tokens (uncached + written + read) served from the cache, 0-100. */
+    cacheHitSharePct: allInput > 0 ? Math.round((read / allInput) * 1000) / 10 : 0,
+  };
+}
+
 // ── GET /admin/documents/analytics ────────────────────────────────────────
 
 router.get(
@@ -119,6 +178,7 @@ router.get(
             totalTokens: { $sum: '$tokensUsed' },
             totalCostUsd: { $sum: '$costUsd' },
             count: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 0, 1] } },
+            ...CACHE_GROUP_FIELDS,
           },
         },
       ]),
@@ -136,8 +196,11 @@ router.get(
     const tmplMap = new Map(templates.map((t) => [t.templateId, t]));
 
     const aiCost = (
-      aiCostAgg as Array<{ totalTokens?: number; totalCostUsd?: number; count?: number }>
+      aiCostAgg as Array<
+        { totalTokens?: number; totalCostUsd?: number; count?: number } & CacheGroupRow
+      >
     )[0];
+    const aiCache = cacheSummary(aiCost, usdInrRate);
     const costUsd = aiCost?.totalCostUsd ?? 0;
     const costInr = Math.round(costUsd * usdInrRate);
     const genCount = aiCost?.count ?? 0;
@@ -157,6 +220,12 @@ router.get(
         aiCostInr: costInr,
         aiGenCount: genCount,
         avgCostPerGenInr: genCount > 0 ? Math.round(costInr / genCount) : 0,
+        // T-437: prompt-cache tokens and their cost (already inside aiCostInr).
+        aiCacheReadTokens: aiCache.cacheReadTokens,
+        aiCacheWriteTokens: aiCache.cacheWriteTokens,
+        aiCacheReadCostInr: aiCache.cacheReadCostInr,
+        aiCacheWriteCostInr: aiCache.cacheWriteCostInr,
+        aiCacheHitSharePct: aiCache.cacheHitSharePct,
       },
       docTypeBreakdown: topDocTypes,
       templateUsage: (templateAgg as Array<{ _id: string; count: number; finalised: number }>).map(
@@ -254,13 +323,16 @@ router.get(
             totalTokens: { $sum: '$tokensUsed' },
             totalCostUsd: { $sum: '$costUsd' },
             count: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 0, 1] } },
+            ...CACHE_GROUP_FIELDS,
           },
         },
       ]),
       getUsdInrRate(),
     ]);
 
-    const row = (agg as Array<{ totalTokens?: number; totalCostUsd?: number; count?: number }>)[0];
+    const row = (
+      agg as Array<{ totalTokens?: number; totalCostUsd?: number; count?: number } & CacheGroupRow>
+    )[0];
     const costUsd = row?.totalCostUsd ?? 0;
     const costInr = Math.round(costUsd * usdInrRate);
     const count = row?.count ?? 0;
@@ -272,6 +344,8 @@ router.get(
       totalCostInr: costInr,
       generationCount: count,
       avgCostPerGenInr: count > 0 ? Math.round(costInr / count) : 0,
+      // T-437: the cache part of the cost above, and what it saved.
+      ...cacheSummary(row, usdInrRate),
     });
   },
 );

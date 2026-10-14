@@ -1127,3 +1127,34 @@ Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
 - When the Ink cost can't be worked out, the notice shows once, with a "Check the cost again" link that can't be mistaken for "Try again".
 
 Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-429 — Discharge and revision sections (8240327c, vishal, 14 Oct 2026)
+
+- Draft a discharge application on a BNS charge: the draft no longer drags in cheque-bounce law or company-director case law. On a cheque-bounce charge, it is still there.
+- Discharge, quashing and criminal revision drafts show the right revision section for the forum: Section 440 for the Sessions Judge, Section 442 for the High Court.
+- A criminal revision prayer names "Section 438 read with Section 442" (or 440) for the forum chosen. Where the forum isn't known, it shows a clear "To be confirmed" blank instead of "_____".
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-433 — No yearly Ink carry (47d5d011, shashank, 14 Oct 2026)
+
+- The pricing page and the Terms say plan Ink is fresh each month, unused plan Ink does not carry over, and top-up Ink never expires.
+- The pricing page says the Ink cost is shown before you generate.
+- On a yearly plan, Ink resets to the monthly amount each month, with nothing banked.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-384 — "Not known" dates (3ceb2fc8, kunal, 14 Oct 2026)
+
+- A date row answered "Not known" shows "Not known" instead of an empty date box.
+- Press "Change" to set the date after all.
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)
+
+## T-437 — Prompt caching (7943bb54, vishal, 14 Oct 2026)
+
+- Drafting is unchanged for advocates.
+- An admin can see cache tokens, cache cost, net saving and cache hit share on the AI cost panel.
+- Draft cost now matches what the provider charges. Check first that cache_write_usd_per_mtok is set to the 1-hour price (pre-run checklist).
+
+Quality: Anushka tests on develop before prod (founder, 8 Oct 2026)

@@ -60,7 +60,7 @@ import { DRAFTER_FACT_REPAIR_SYSTEM_PROMPT } from '../services/drafter.prompts';
 import { buildChecklist } from '../services/intake-brief';
 import { loadRulePack } from '../services/rule-pack.service';
 import { decrypt } from '../utils/encryption';
-import { SdkStreamParams, sdkAnswer } from './sdkStream';
+import { SdkStreamParams, sdkAnswer, expectCachedSystem, systemText } from './sdkStream';
 
 // T-373: these tests drive the legacy (text-stream) path. The signed skeletons are on by default, so the
 // loader is pinned to null here; every lookup is counted so the last test can show the mock was reached.
@@ -1431,9 +1431,9 @@ function mockModel(...contents: string[]) {
   mockMessagesStream.mockReset();
   for (const c of contents) mockMessagesStream.mockResolvedValueOnce(sdkAnswer(c, 4000, 800));
 }
-function callOf(n: number): { system: string; user: string } {
+function callOf(n: number): { system: unknown; user: string } {
   const p = mockMessagesStream.mock.calls[n][0] as SdkStreamParams;
-  return { system: p.system, user: p.messages[0].content };
+  return { system: p.system as unknown, user: p.messages[0].content };
 }
 function event(text: string, name: string): Record<string, any> | null {
   const blocks = text.split('\n\n').filter((b) => b.startsWith(`event: ${name}\n`));
@@ -1592,7 +1592,7 @@ describe('the route: the verifier sits between the Drafter and the advocate', ()
     expect(res.status).toBe(200);
     expect(mockMessagesStream).toHaveBeenCalledTimes(2);
     const { system, user } = callOf(1);
-    expect(system).toBe(DRAFTER_FACT_REPAIR_SYSTEM_PROMPT);
+    expectCachedSystem(system, DRAFTER_FACT_REPAIR_SYSTEM_PROMPT);
     expect(user).toContain('[[P0]]');
     expect(user).not.toContain('[[P1]]');
     expect(user).not.toContain('[[P2]]');
@@ -1726,7 +1726,7 @@ describe('AC8: the existing checks still run', () => {
     const res = await post(id);
     expect(res.status).toBe(200);
     expect(mockMessagesStream).toHaveBeenCalledTimes(2);
-    expect(callOf(1).system).not.toBe(DRAFTER_FACT_REPAIR_SYSTEM_PROMPT);
+    expect(systemText(callOf(1).system)).not.toBe(DRAFTER_FACT_REPAIR_SYSTEM_PROMPT);
     expect(event(res.text, 'done')!.factCheck).toEqual({ banner: null });
   });
 });
@@ -1759,7 +1759,8 @@ describe('switch off: the verifier is not there', () => {
     mockModel(answer(CLEAN), answer(CLEAN));
     await post();
     await post(id);
-    expect(callOf(1).system).toBe(callOf(0).system);
+    expect(callOf(1).system).toEqual(callOf(0).system);
+    expect(JSON.stringify(callOf(1).system)).toBe(JSON.stringify(callOf(0).system));
     expect(callOf(1).user).toBe(callOf(0).user);
   });
 

@@ -137,3 +137,38 @@ Test: a deed with no place field gives the blank, and no court city appears.
 2. **Any bail pack at a Consumer Commission.** A Commission is not a criminal court. Filter on `court_levels`.
 
 A verification ticket is also needed: per-court bail case lines, covering points a to c.
+
+## Addendum: dates answered "Not known" (T-384, Priya, 14 Oct 2026)
+
+Printed draft: a date answered "Not known" prints `[To be confirmed: {field label in lower case}]`, for example `[To be confirmed: date of the invoice]`. Never an empty string, never "_____" (rule 1), never a date the model guesses. **must-fix**: today it prints a blank.
+
+Conditions:
+1. Nothing is computed from an unknown date. Any day count, deadline or limitation that depends on it (e.g. "within 30 days of …", "the notice was served on …") prints `[To be confirmed: …]` for that date and makes no statement that the period is met or missed.
+2. The prompt tells the model the date is not known and must not be stated or inferred.
+3. On screen: Madhuri's "Not known" chip and "Change" link are approved as written.
+4. Test: one date field answered "Not known" yields the label blank in the printed draft, and no other date appears in its place.
+
+### T-440 build questions (Shashank, 14 Oct 2026)
+
+| # | Question | Ruling |
+|---|---|---|
+| Q1 | s.138 notice `Date: {notice_date}` falls back to today's date when the notice date is blank / "Not known" / already the blank | **No fallback to today.** It prints `[To be confirmed: date the notice is sent]`. A wrong date on a s.138 notice can put it outside the 30-day window, so the advocate fills it when the notice is sent. Amends the T-192 fallback; golden to me. A typed date still prints as typed. |
+| Q2 | One label for all paths | **The date-meaning label wins**, lower case after `To be confirmed: ` on every path (template, brief, ledger). The signed T-192 check lines become lower case too (e.g. `[To be confirmed: date the notice is sent]`); goldens to me. |
+| Q3 | Supersedes T-190 condition 4 for dates only? | **Yes.** Dates only. Other optional facts answered "Not known" keep T-190 cond. 4 (no fact, no forced blank), as t338 pins. |
+| Q4 | Empty optional date on the template path | **Only where the template prints that date anyway.** If the line is printed regardless, the empty date prints the label blank instead of nothing. If the line is printed only when the date is given (e.g. "reply, if any"), it stays omitted: a blank there would assert a fact, such as that a reply exists. No prompt note for an empty optional date; the note is for dates answered "Not known". |
+
+**Prompt line, signed (all paths):**
+`A date marked as not known is unknown: copy its blank exactly as given, never state or infer the date, and do not say whether any period, deadline or limitation that depends on it is met or missed.`
+
+### T-440 build sign-offs (Shashank, 14 Oct 2026)
+
+1. **Placement approved**: last sentence of the DATES rule in brief rule 3, brief repair rule 2, ledger rule 3 and ledger repair rule 2; appended to template system rule 7. Re-pinning the t136 and t397 hashes is approved for this change only. I byte-check the prompt delta before merge (send the SHA).
+2. **Template user-prompt block signed as is:** heading `DATES MARKED AS NOT KNOWN:`, then one line per date, `- [To be confirmed: {date-meaning label}]`.
+3. **D1 skeleton path: yes, in T-440.** The same lower-case date-meaning blank, and the same signed line added to the D1 system prompt. The D1 skeleton labels follow Q2 (lower case after "To be confirmed: "). The D1 prompt delta and any D1 golden come to me for a byte check.
+4. Noted: the s.138 `Date:` line and the lower-case check blanks behave as ruled (Q1, Q2). No court-rules golden moved.
+
+### T-440 D1 points (Shashank, 14 Oct 2026)
+
+(a) Signed line appended to the end of D1 rule 3 (ADVOCATE CLAUSES): **approved.**
+
+(b) `arrested_on` in bail_regular, bail_before_magistrate and default_bail: **print the line with the blank when the arrest date is answered "Not known"**: `The applicant was arrested on [To be confirmed: date of arrest].` A bail application presupposes the arrest; only its date is unknown, and the advocate must fill it (in default bail, the custody period runs from it). Q4's "leave it out" applies only to an optional date left empty, where the fact itself may not exist. An unanswered or empty arrest date still leaves the clause out. The D1 path must match the brief and ledger paths. Nothing computes a custody period from an unknown date (49a8eaa condition 1).

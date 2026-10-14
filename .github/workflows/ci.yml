@@ -5,7 +5,8 @@ on:
   # GitHub skips only when every changed file matches; a change with code and docs still runs.
   # docs/ is deliberately not ignored: docs/templates holds runtime JSON (template overrides, read by t139).
   push:
-    branches: [develop, develop_staging]
+    # T-439 (Merge slot v2, rule 2): lead branches get CI on push, before they merge.
+    branches: [develop, develop_staging, 'feature/**', 'fix/**']
     paths-ignore:
       - 'handoff/**'
       - '.claude/**'
@@ -46,6 +47,13 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          # T-439b: workflow_dispatch and develop/develop_staging pushes diff against their merge-base
+          # with main (in practice, the full matrix); every other ref diffs against its merge-base with
+          # develop_staging. Ignored on pull_request.
+          # cancel-in-progress loses nothing on develop/develop_staging only because those runs test the
+          # full matrix: the newest run covers the cancelled one's changes. Don't narrow their base
+          # without changing cancel-in-progress.
+          base: ${{ (github.event_name == 'workflow_dispatch' || github.ref_name == 'develop' || github.ref_name == 'develop_staging') && 'main' || 'develop_staging' }}
           filters: |
             gateway:
               - 'apps/gateway/**'

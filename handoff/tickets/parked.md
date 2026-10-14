@@ -18,3 +18,12 @@ Should-fixes and nice-to-haves that are not tickets (Arjun's rule, 14 Oct 2026; 
 | 14 Oct 2026 | T-115b (Kunal) | POST /review/:token/feedback can race the erase within one Mongo round trip; claim the token atomically (findOneAndUpdate isUsed:false to true), which also closes the existing double-submit. |
 | 14 Oct 2026 | Ajay ef06e89 | Privacy §3/§5: the Atlas row may say 'India (Mumbai)' (Arjun confirmed). Ships with the next privacy-page change: Tanvi's T-115c. |
 | 14 Oct 2026 | T-429 (Ajay 83fbd62) | criminal_revision Para 7: say the S.438(3) BNSS bar is on a further revision 'by the same person'. |
+| 14 Oct 2026 | T-115c (Ajay 41616be) | Billing/ledger rows have no TTL. Add a sweep that deletes them after 72 months (Privacy §9, DPDP s.8(7)). Tax retention is the billing rows, not AuditLog (Arjun). |
+| 14 Oct 2026 | T-433 (Shashank) | Terms §6 still says 'short ones use 1'; T-238 signed 'short documents' wherever the Ink line appears. Needs Ajay's word; ships with the next terms-page change. |
+| 14 Oct 2026 | T-429 (Vishal) | template-promoter readComputedFields shallow-copies value_map, which is shared with the cached rule JSON; deep-copy it. |
+| 14 Oct 2026 | T-384 (Meera/Rajesh) | Let the advocate choose 'Not known' on a date row from the brief itself; T-384 covers only a date already answered 'Not known'. |
+| 14 Oct 2026 | T-384 (Meera/Rajesh) | The 'Change' link on a 'Not known' date needs an accessible name with the row label, e.g. 'Change {row label}'. Low priority. |
+| 14 Oct 2026 | T-437 (Vishal) | The admin AI cost screen leaves out LlmAuxCall cost (intake and preflight). |
+| 14 Oct 2026 | T-437 (Vishal) | Preflight LlmAuxCall rows have no intakeId, so they don't join to a draft. |
+| 14 Oct 2026 | T-115c (Tanvi) | The auth erase sweep sorts on lastAttemptAt+requestedAt with no matching index (in-memory sort over pending erasures). Add the index. |
+| 14 Oct 2026 | T-115c (Tanvi) | The 'erase keeps failing' warning has no alert. Tie it to Ajay's parked operator-alert item. |

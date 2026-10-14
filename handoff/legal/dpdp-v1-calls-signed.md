@@ -96,3 +96,29 @@ No change in T-115b itself.
 | 2 | Review feedback the erased user left on another owner's document | **Keep the feedback; it belongs to the document owner's file. Remove the reviewer's identity:** name, email and token go, and the feedback shows the reviewer as `A reviewer`. The feedback text itself is not scanned or edited. |
 
 Test: after erasure, no inkledger reference and no review record holds the erased user's email, name or referral code.
+
+### 5. T-115c FYI (Tanvi, 14 Oct 2026)
+
+| # | Item | Ruling | Kind |
+|---|---|---|---|
+| 1 | `payment` and `account_delete` audit rows auto-expire after 2 years | The audit rows need not last 72 months. The 72-month duty (CGST Act s.36), and the Privacy §9 line, attach to the tax records: invoices, credit notes and the billing/Ink payment ledger. **Condition:** those stores have no TTL shorter than 72 months; Arjun confirms. If the audit row is the only payment record anywhere, its TTL becomes 72 months. `account_delete` rows: 2 years is fine. | must-fix only if the condition fails |
+| 2 | Stripped reviewer feedback ("A reviewer") drops out of the admin panel-review list | Not a legal issue. The admin tooling is Priya's call. | none |
+
+Arjun's reading (14 Oct 2026) is **confirmed**: the 72 months attach to billing's own rows (payments, subscriptions, top-ups, T-436 invoices and credit notes), which carry no TTL. The auth AuditLog stays an operational log with its 2-year TTL. No audit-trail ticket.
+Reviewer feedback is anonymised in place: approved. The internal marker may be `reviewer: erased` in the admin list. Anything the document owner sees shows `A reviewer` (§4).
+
+**Condition met (Arjun, 14 Oct 2026, every model checked read-only).** Billing and ledger rows (Subscription, CouponCode, CouponUsage, CreditLedger/Ink ledger) and the T-436 invoice store have no TTL. The only TTLs are AuditLog (2 years), Consent (12 months after the latest decision), Session and FactDiff (90 days, matching Privacy §9). §5(1) is closed.
+Parked: the billing rows are kept forever, not "72 months". A sweep that deletes them once the 72 months have run would match §9 and DPDP s.8(7).
+
+### 6. T-115c privacy page checks (Tanvi, 14 Oct 2026)
+
+1. §3 sentence **signed** as reworded: `Our database is MongoDB Atlas, in India (Mumbai). Our session store is Redis Cloud, which may store data outside India.` The §5 Atlas row reads "India (Mumbai)".
+2. **Keep CURRENT_PRIVACY_VERSION; no re-accept prompt.** T-115c adds no new data and no new purpose. It adds a way to erase and states the retention periods, which is in users' favour, so bump "Last updated" only. The version bump (with a signed summary) comes with T-436, when we start collecting the State (and optional GSTIN) for invoices: that is new data for a new purpose.
+
+### 7. T-115c review notes (Tanvi, 14 Oct 2026)
+
+| # | Item | Ruling | Kind |
+|---|---|---|---|
+| 1 | Sent-email jobs (with the address) stay in Redis 7 days and are not erased on close | Add to §9, after the failed-emails bullet: `Emails we have sent: up to 7 days, even after you close your account.` Erasing them on close as well is better; parked. | must-fix (the §9 line) |
+| 2 | §7 "we remove what we can find … in our error reports (Sentry)" is a manual runbook step | Keep the wording only if every self-serve close tells the operator automatically (user id only, no email) and the Sentry step is done within 7 days. If that alert is not in T-115c, the sentence comes out of §7 until it is. | must-fix (one or the other) |
+| 3 | Partial-failure message says "Please try again", but the account is already locked and signed out | Replace the signed T-115c failure line with: `We couldn't finish erasing your data. Your account is closed and you have been signed out. We will finish erasing it; if you have any questions, write to us at {support email}.` The conditions stand: the server retries until complete, and no "closed" success message shows until every part is done. | must-fix |

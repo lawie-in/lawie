@@ -2,7 +2,7 @@
 
 | Field  | Value                                                                 |
 | ------ | --------------------------------------------------------------------- |
-| Status | Todo. Shashank, after T-428. Priya, 14 Oct 2026                       |
+| Status | Merged into develop_staging 47d5d011 (Shashank, 14 Oct 2026). Priya |
 | Owner  | Shashank (build), Arjun (details), Vikram (ruling)                    |
 | Mode   | Small fix (billing only)                                              |
 
