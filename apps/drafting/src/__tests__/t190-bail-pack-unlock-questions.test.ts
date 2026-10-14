@@ -113,6 +113,16 @@ function signedRows(): Signed[] {
     tenA,
     tenB,
   );
+  // T-245a: Ajay moved the s35 label and question on purpose
+  // (handoff/legal/T-245-old-new-law-switch-signed.md, Addendum 1 #9 at 2992891 for the label,
+  // Addendum 3 #1 at 8e3167e for the question: "...under Section 35(3) of the BNSS or Section 41A
+  // of the CrPC..." with the rest unchanged). The T-190 ticket table still has the old text.
+  const s35 = rows.find((r) => r.key === 's35_notice_status');
+  if (!s35) throw new Error('no s35_notice_status row in T-190');
+  if (s35.label !== 'Notice under Section 35 BNSS') throw new Error('T-190 s35 label changed');
+  s35.label = 'Notice to appear (Section 35 BNSS / Section 41A CrPC)';
+  s35.question =
+    'Before the arrest, was a notice of appearance under Section 35(3) of the BNSS or Section 41A of the CrPC served on the applicant?';
   return rows;
 }
 const SIGNED = signedRows();
@@ -517,7 +527,7 @@ describe('T-190 buildQuestions: exact lists, alwaysAsk, 240-character rule, conf
     const worded = new Map([
       [PROTECTED, longModel],
       ['fir_number', longModel],
-      ['fir_date', 'On what date was the FIR registered?'],
+      ['police_station', 'At which police station was the FIR registered?'],
     ]);
     const q = buildQuestions(brief, worded, new Set(), new Set(), { checklist: cl });
     const prot = q.find((x) => x.key === PROTECTED)!;
@@ -527,8 +537,9 @@ describe('T-190 buildQuestions: exact lists, alwaysAsk, 240-character rule, conf
     expect(fir.question).not.toBe(longModel);
     expect(fir.question.length).toBeLessThanOrEqual(240);
     expect(fir.source).toBeUndefined();
-    expect(q.find((x) => x.key === 'fir_date')!.question).toBe(
-      'On what date was the FIR registered?',
+    // T-245a: fir_date is optional now and is not asked here; police_station is still required.
+    expect(q.find((x) => x.key === 'police_station')!.question).toBe(
+      'At which police station was the FIR registered?',
     );
   });
 
@@ -979,10 +990,15 @@ describe('T-190 pack text and averment files are unchanged where they must be', 
   const sha = (s: Buffer | string) => createHash('sha256').update(s).digest('hex');
   const PINNED: Record<string, string> = {
     // bail_regular and bail_anticipatory re-pinned for T-334 (Ajay, T-334 Addendum 1, signed 9b484ee).
-    bail_regular: '14bc53c396b5241ea09c874a5c0a09ccf12c68ed29adabb725dc055db1590b04',
+    // T-245a: re-pinned (Ajay, Addenda 1 #9 and 2 #1): the two s35 entries carry the new label
+    // and {{notice_provision}}. The develop_staging copy is still the T-334 file until this merges.
+    bail_regular: 'df163457bd78cd19698d968d8e80a278fd738590aa779018c6ab25202f1fa923',
     interim_bail: '8951ebda37020b9527672013595fabc1c1a7c80470d8ceade8f33c4883d3bf66',
     bail_before_magistrate: '6519fdc6a96efbe03d98f71f6f67ab55633e9634e28b6dbffe321e72c50efa56',
     bail_anticipatory: '270a841d242ef26fc74859cfa94b4bf6feb414bbf0a01ffb32f1a7ae8caa83de',
+  };
+  const BEFORE_T245A: Record<string, string> = {
+    bail_regular: '14bc53c396b5241ea09c874a5c0a09ccf12c68ed29adabb725dc055db1590b04',
   };
   it.each(Object.keys(PINNED))(
     'T-199 AC5: _averments/%s.json hash is the one Ajay signed (origin/develop_staging)',
@@ -1002,7 +1018,9 @@ describe('T-190 pack text and averment files are unchanged where they must be', 
       } catch {
         upstream = null; // no such ref here (shallow clone): the pinned hash stands
       }
-      if (upstream) expect(sha(upstream)).toBe(PINNED[id]);
+      if (upstream) {
+        expect([PINNED[id], BEFORE_T245A[id]].filter(Boolean)).toContain(sha(upstream));
+      }
     },
   );
 });
@@ -1356,9 +1374,10 @@ describe('T-190 round 2 (Ajay): a displaced REQUIRED alwaysAsk key reaches the D
     const id = res.body.ledger.ledger_id as string;
     const unresolved = (res.body.ledger.unresolved as Array<{ key: string }>).map((u) => u.key);
     expect(res.body.ledger.facts).toEqual([]);
-    const required = CL.filter((i) => i.required && !i.partyName).map((i) => i.key);
-    // the always set is the required non-party keys that came back unresolved, in brief order
-    const always = required.filter((k) => unresolved.includes(k));
+    // the always set is the non-party keys that came back unresolved, in brief order.
+    // T-245a (Ajay, Addendum 1, last row): fir_date is optional now, so it is no longer a
+    // required key, but it comes back unresolved here and still takes a place in the cap.
+    const always = CL.filter((i) => !i.partyName && unresolved.includes(i.key)).map((i) => i.key);
     expect(always.length).toBeGreaterThanOrEqual(9); // party name (1) + alwaysAsk (>= 9) fill the cap
 
     const q = (res.body.questions as Q[]).map((x) => x.key);
@@ -1375,7 +1394,9 @@ describe('T-190 round 2 (Ajay): a displaced REQUIRED alwaysAsk key reaches the D
       facts: unknown[];
       missing: Array<{ key: string; label: string; write: string }>;
     };
-    for (const k of displaced) {
+    expect(displaced.some((k) => item(k).required)).toBe(true);
+    // only a displaced REQUIRED key is a {{MISSING: label}}; an optional one is simply not asked
+    for (const k of displaced.filter((k) => item(k).required)) {
       const m = facts.missing.find((x) => x.key === k);
       expect(m).toBeDefined();
       expect(m!.write).toBe(`{{MISSING: ${item(k).label}}}`);

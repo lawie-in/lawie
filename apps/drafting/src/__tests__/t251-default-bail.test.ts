@@ -628,8 +628,13 @@ describe('AC2 (wiring): the draft built from the brief, model stubbed', () => {
     const out = await draftWith(BODY, FULL_GIVEN);
     const blanks = findBlanks(out.sectionText('prayer'));
     expect(blanks.map((b) => b.text)).toEqual([GP_BLANK]);
-    // And in the whole document, once more than zero.
-    expect(findBlanks(out.fullText).filter((b) => b.text === GP_BLANK)).toHaveLength(1);
+    // And in the whole document: T-245a (Ajay, Addendum 1 ruling 1, 2992891) adds
+    // "(Under {governing_provision})" to the cause title, so the blank is counted twice,
+    // once in the cause title and once in the prayer.
+    const all = findBlanks(out.fullText).filter((b) => b.text === GP_BLANK);
+    expect(all).toHaveLength(2);
+    expect(all[0].context).toMatch(/^\(Under \[To be confirmed: /);
+    expect(all[1].context).toContain('default bail under [To be confirmed: ');
   });
 
   it('a Drafter body that names the judgments gets them removed, blanked, and one message added', async () => {
@@ -1025,7 +1030,7 @@ describe('buildPlaceholderContext: {governing_provision}', () => {
     expect(prayer.content).not.toContain('To be confirmed: Section 167(2)');
   });
 
-  it('no other pack or template uses {governing_provision}', () => {
+  it('{governing_provision} is used by the six T-245a bail packs and the two docs/templates twins, and no other pack or template', () => {
     const dirs = [RULES_DIR, join(__dirname, '..', '..', '..', '..', 'docs', 'templates')];
     const users: string[] = [];
     for (const dir of dirs) {
@@ -1034,7 +1039,17 @@ describe('buildPlaceholderContext: {governing_provision}', () => {
           users.push(`${dir.split('/').slice(-2).join('/')}/${f}`);
       }
     }
-    expect(users).toEqual([expect.stringMatching(/document-rules\/default_bail\.json$/)]);
+    // T-245a (Ajay, Addendum 1 rulings 1-3, 2992891): the six packs and the two twins.
+    expect(users.sort()).toEqual([
+      'config/document-rules/bail_anticipatory.json',
+      'config/document-rules/bail_before_magistrate.json',
+      'config/document-rules/bail_cancellation.json',
+      'config/document-rules/bail_regular.json',
+      'config/document-rules/default_bail.json',
+      'config/document-rules/interim_bail.json',
+      'docs/templates/bail_anticipatory.json',
+      'docs/templates/bail_regular.json',
+    ]);
   });
 
   it('another pack does NOT get ctx.governing_provision set (the default is default_bail’s own)', () => {
@@ -1055,7 +1070,12 @@ describe('buildPlaceholderContext: {governing_provision}', () => {
   it('bail_regular’s prayer does not print the default-bail blank', () => {
     const bail = loadTemplateConfig('bail_regular')!;
     const raw = JSON.stringify(bail);
-    expect(raw).not.toContain('governing_provision');
+    // T-245a (Addendum 1 ruling 3): bail_regular's own templates now read {governing_provision}
+    // (and {GOVERNING_PROVISION} in the heading). What must stay out is default_bail's blank.
+    expect(raw).toContain('{governing_provision}');
+    expect(raw).not.toContain(GP_BLANK);
+    expect(raw).not.toContain('167(2)');
+    expect(raw).not.toContain('187(3)');
     const ctx = buildPlaceholderContext(bail, {
       applicant_name: 'Ramesh Mahto',
       fir_number: '214/2026',
@@ -1065,7 +1085,6 @@ describe('buildPlaceholderContext: {governing_provision}', () => {
       .filter((s) => s.type === 'template')
       .map((s) => s.template ?? '')
       .join('\n');
-    expect(rendered).not.toContain('{governing_provision}');
     expect(rendered).not.toContain(GP_BLANK);
     expect(ctx.applicant_name).toBe('Ramesh Mahto');
   });

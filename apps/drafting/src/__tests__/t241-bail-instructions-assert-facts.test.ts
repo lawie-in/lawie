@@ -117,12 +117,14 @@ describe('T-241 AC1: the signed text is in the packs, word for word', () => {
   const ant = raw('bail_anticipatory');
   const mag = raw('bail_before_magistrate');
 
+  // T-245a (Ajay, Addendum 2 #6, d5a3005): the S-text and P-text sit at [1] and [2] of each
+  // pack, so every T-241 entry moved down by two (and the "never IPC" entry, after all of these, is deleted).
   it.each([
-    ['bail_anticipatory', 1, SIGNED_ANT_1],
-    ['bail_anticipatory', 2, SIGNED_ANT_2],
-    ['bail_before_magistrate', 3, SIGNED_MAG_3],
-    ['bail_before_magistrate', 4, SIGNED_MAG_4],
-    ['bail_before_magistrate', 6, SIGNED_MAG_6],
+    ['bail_anticipatory', 3, SIGNED_ANT_1],
+    ['bail_anticipatory', 4, SIGNED_ANT_2],
+    ['bail_before_magistrate', 5, SIGNED_MAG_3],
+    ['bail_before_magistrate', 6, SIGNED_MAG_4],
+    ['bail_before_magistrate', 8, SIGNED_MAG_6],
   ] as const)('%s promptInstructions[%i] is the signed string, exactly once', (id, i, text) => {
     const ins = raw(id).promptInstructions;
     expect(ins[i]).toBe(text);
@@ -157,10 +159,10 @@ describe('T-241 AC1: the signed text is in the packs, word for word', () => {
     expect(Object.keys(t!).sort()).toEqual(['description', 'id', 'name', 'required']);
   });
 
-  it('entry counts are unchanged: anticipatory 9 instructions / 8 clauses; magistrate 11 / 9', () => {
-    expect(ant.promptInstructions).toHaveLength(9);
+  it('entry counts: anticipatory 10 instructions / 8 clauses; magistrate 12 / 9 (T-245a: +S-text, +P-text, -"never IPC" entry)', () => {
+    expect(ant.promptInstructions).toHaveLength(10);
     expect(ant.mandatoryClauses).toHaveLength(8);
-    expect(mag.promptInstructions).toHaveLength(11);
+    expect(mag.promptInstructions).toHaveLength(12);
     expect(mag.mandatoryClauses).toHaveLength(9);
   });
 

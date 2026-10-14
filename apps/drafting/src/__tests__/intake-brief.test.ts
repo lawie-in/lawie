@@ -185,7 +185,12 @@ describe('the checklist', () => {
   it('gives the model one line per readable fact: id | what | kind | required | allowed values', () => {
     const lines = checklistLines(BAIL);
     expect(lines).toContain('fir_number | FIR Number | text | required');
-    expect(lines).toContain('fir_date | Date of FIR | date | required');
+    // T-245a (Addendum 1, last row): fir_date is optional; offence_date and procedure_code are new.
+    expect(lines).toContain('fir_date | Date of FIR | date | optional');
+    expect(item(BAIL, 'offence_date')).toMatchObject({ kind: 'date', required: false });
+    expect(lines).toContain(
+      'procedure_code | This application is under | choice | optional | BNSS and BSA; CrPC and Evidence Act',
+    );
     expect(lines.find((l) => l.startsWith('currently_in_custody |'))).toMatch(
       /\| choice \| required \| Yes — Judicial custody; Yes — Police custody; No — anticipating arrest$/,
     );
@@ -540,7 +545,8 @@ describe('the brief', () => {
   it('lists the required facts that are missing, each with the blank the draft will use', () => {
     const b = buildBrief({ kind: bailKind, checklist: BAIL, values });
     const unknown = new Map(b.still_unknown.map((u) => [u.key, u.placeholder]));
-    expect(unknown.get('fir_date')).toBe('[To be confirmed: date of FIR]');
+    // T-245a: fir_date is optional now; an unknown date gives the blank in the draft, never a block.
+    expect(unknown.has('fir_date')).toBe(false);
     expect(unknown.get('police_station')).toBe('[To be confirmed: police station]');
     expect(unknown.has('applicant_name')).toBe(false);
     // An optional fact is never "still unknown".
@@ -701,7 +707,6 @@ describe('questions (T-127, section 2.5)', () => {
     expect(q.map((x) => x.key)).toEqual([
       'applicant_name',
       'fir_number',
-      'fir_date',
       'sections_charged',
       'police_station',
       'currently_in_custody',
@@ -709,6 +714,7 @@ describe('questions (T-127, section 2.5)', () => {
       'grounds_for_bail',
       'father_name',
       'applicant_age',
+      'address',
     ]);
   });
 
@@ -730,7 +736,8 @@ describe('questions (T-127, section 2.5)', () => {
   it('uses the model’s wording, but only the code decides which questions are asked', () => {
     const worded = wordedQuestions({
       questions: [
-        { id: 'fir_date', question: 'On what date was the FIR registered?' },
+        { id: 'police_station', question: 'At which police station was the FIR registered?' },
+        { id: 'fir_date', question: 'On what date was the FIR registered?' }, // optional now (T-245a)
         { id: 'applicant_name', question: 'x' }, // too short to be a question
         { id: 'court', question: 'Which court will this be filed in?' }, // not on the checklist
         { id: 'custody_since', question: 'Since when is he in custody?' }, // optional
@@ -739,7 +746,8 @@ describe('questions (T-127, section 2.5)', () => {
     });
     const q = buildQuestions(briefWith([]), worded);
     const byKey = new Map(q.map((x) => [x.key, x.question]));
-    expect(byKey.get('fir_date')).toBe('On what date was the FIR registered?');
+    expect(byKey.get('police_station')).toBe('At which police station was the FIR registered?');
+    expect(byKey.has('fir_date')).toBe(false);
     expect(byKey.get('applicant_name')).toBe(`Please give: ${item(BAIL, 'applicant_name').label}.`);
     expect(byKey.has('court')).toBe(false);
     expect(byKey.has('custody_since')).toBe(false);
@@ -747,7 +755,8 @@ describe('questions (T-127, section 2.5)', () => {
 
   it('a question carries what the screen needs to take the answer', () => {
     const q = buildQuestions(briefWith([]), new Map());
-    expect(q.find((x) => x.key === 'fir_date')).toMatchObject({ kind: 'date', label: 'FIR Date' });
+    expect(q.find((x) => x.key === 'police_station')).toMatchObject({ label: 'Police Station' });
+    expect(q.find((x) => x.key === 'fir_date')).toBeUndefined(); // optional since T-245a
     expect(q.find((x) => x.key === 'currently_in_custody')?.options).toHaveLength(3);
   });
 

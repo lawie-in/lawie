@@ -40,6 +40,7 @@ import {
 import { loadAvermentLists } from '../services/averments';
 import { packTexts } from '../services/brief-drafter';
 import { buildChecklist } from '../services/intake-brief';
+import { lawSwitch, type LawSwitchInput } from '../services/law-switch';
 import { loadRulePack } from '../services/rule-pack.service';
 import type { Skeleton } from '../types/skeleton';
 import {
@@ -136,12 +137,39 @@ const KEPT_REPHRASE =
 
 const count = (haystack: string, needle: string): number => haystack.split(needle).length - 1;
 
+/**
+ * T-245a: the derived facts the skeletons' {governing_provision}, {women_proviso} and
+ * {notice_provision} slots read, taken from lawSwitch. Wiring them into the D1 renderer is
+ * part 2 (waits for T-440); the tests that use this helper say what they pin by literal
+ * signed strings (Ajay, Addenda 1-3), not by lawSwitch output.
+ */
+function lawFacts(input: LawSwitchInput): LedgerFact[] {
+  const r = lawSwitch(input);
+  return [
+    fact('governing_provision', r.governingProvision),
+    fact('notice_provision', r.noticeProvision),
+    ...(r.womenProviso === null ? [] : [fact('women_proviso', r.womenProviso)]),
+  ];
+}
+
 // ── The skeleton fixtures are the signed ones ───────────────────────────────
 
 describe('fixtures: the signed skeletons', () => {
+  // T-245a: the SHA-256 line printed under each signed md block is the hash of the block (Ajay,
+  // v4/v5/v6/v2); the pinned values are the same as t374-skeletons SIGNED.blockSha.
+  const T245A_BLOCK_SHA: Record<string, string> = {
+    bail_regular: 'd09d7bac30fd495f9c8c4e6db3898525ee0f0977c286df3c65c909d5ebfda54d',
+    bail_anticipatory: 'dec4efbdfddd47d120627506a9e34f96d536da96d238efe7d24eefa71a804e3a',
+    bail_before_magistrate: '7f8a6c1eee3a299769df4cf3ecca8e962ce381c96022a05a30c4fb5c056d1a14',
+    default_bail: '1abd4b802a904b54c53dc1bfbbf43ee6ce5749b2abb0a61cc46bf8a431ad5dc6',
+  };
   it.each(PACK_IDS)('%s: the signed md block hashes to the SHA-256 Ajay printed', (p) => {
     expect(createHash('sha256').update(signedJsonBlock(p)).digest('hex')).toBe(signedPrintedSha(p));
     expect(signedPrintedSha(p)).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it.each(PACK_IDS)('%s: the printed SHA-256 is the pinned T-245a block hash', (p) => {
+    expect(signedPrintedSha(p)).toBe(T245A_BLOCK_SHA[p]);
   });
 
   it.each(PACK_IDS)('%s: the fixture JSON file equals the signed block by value', (p) => {
@@ -1098,7 +1126,14 @@ describe('T-359 ACs from Anushka run-3 reproduce steps', () => {
   });
 
   it('AC7 Magistrate, woman, non-bailable: the BNSS 480(1) first proviso line, Ajay\'s wording ("may")', () => {
-    const { text } = render('bail_before_magistrate', magistrateBase());
+    const { text } = render('bail_before_magistrate', [
+      ...magistrateBase(),
+      ...lawFacts({
+        templateId: 'bail_before_magistrate',
+        procedureCode: 'BNSS and BSA',
+        offenceBailable: false,
+      }),
+    ]);
     expect(text('woman_proviso')).toBe(
       "It is submitted that the applicant is a woman, and under the first proviso to Section 480(1) of the BNSS this Hon'ble Court may release her on bail even where the offence falls within clause (i) or (ii) of that sub-section.",
     );
@@ -1114,14 +1149,21 @@ describe('T-359 ACs from Anushka run-3 reproduce steps', () => {
   });
 
   it('AC7 Magistrate: bailable offence is under Section 478; non-bailable under Section 480', () => {
-    expect(
-      render('bail_before_magistrate', magistrateBase({ bailable: true })).text(
-        'offence_classification',
-      ),
-    ).toContain('Section 478');
-    expect(
-      render('bail_before_magistrate', magistrateBase()).text('offence_classification'),
-    ).toContain('Section 480');
+    // Addendum 2 ruling 4 (d5a3005): bailable CrPC 436 -> BNSS 478; non-bailable 437 -> 480.
+    const lawed = (bailable: boolean) => [
+      ...magistrateBase({ bailable }),
+      ...lawFacts({
+        templateId: 'bail_before_magistrate',
+        procedureCode: 'BNSS and BSA',
+        offenceBailable: bailable,
+      }),
+    ];
+    expect(render('bail_before_magistrate', lawed(true)).text('offence_classification')).toContain(
+      'under Section 478 of the Bharatiya Nagarik Suraksha Sanhita, 2023, the offence alleged being bailable.',
+    );
+    expect(render('bail_before_magistrate', lawed(false)).text('offence_classification')).toContain(
+      'under Section 480 of the Bharatiya Nagarik Suraksha Sanhita, 2023.',
+    );
   });
 
   it('AC7 Magistrate: no classification fact gives the blank, not a guessed section', () => {
@@ -1137,7 +1179,14 @@ describe('T-359 ACs from Anushka run-3 reproduce steps', () => {
 
 describe('rendered[]', () => {
   it('lists each printed clause once, in order, with ok / missing / fallback', () => {
-    const facts = withoutKey(regularBase(), 'fir_date');
+    const facts = [
+      ...withoutKey(regularBase(), 'fir_date'),
+      ...lawFacts({
+        templateId: 'bail_regular',
+        procedureCode: 'BNSS and BSA',
+        court: 'sessions_or_hc',
+      }),
+    ];
     const { result } = render('bail_regular', facts, undefined, {
       facts: 'Arrested on 5 May 2026.',
     });
@@ -1521,7 +1570,14 @@ describe('ruling 2: a content word the raw_span does not hold falls back', () =>
 
   it('a fixed (system-written) clause is never run through the own-words checks', () => {
     // The opening and prayer carry many words the advocate never typed.
-    const { status } = render('bail_regular', regularBase());
+    const { status } = render('bail_regular', [
+      ...regularBase(),
+      ...lawFacts({
+        templateId: 'bail_regular',
+        procedureCode: 'BNSS and BSA',
+        court: 'sessions_or_hc',
+      }),
+    ]);
     expect(status('opening')).toBe('ok');
   });
 });

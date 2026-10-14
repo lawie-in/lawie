@@ -435,4 +435,4 @@ Signed: Ajay (CLO), 13 Oct 2026 IST. ADR-025 D1, T-374. Built from my signed tex
 }
 ```
 
-SHA-256 of the JSON block (between the fences, final newline included): `c52210817dd3a14e6c7f663dc678944334245cc6b4359a1f0eac719bfeba81cd`
+SHA-256 of the JSON block (between the fences, final newline included): `7f8a6c1eee3a299769df4cf3ecca8e962ce381c96022a05a30c4fb5c056d1a14`
