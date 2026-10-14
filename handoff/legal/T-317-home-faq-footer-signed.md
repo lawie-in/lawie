@@ -70,3 +70,11 @@ T-318 golden move approved: 78 lines in court-rules-golden.test.ts.snap, each th
 - (c) A draft with a parent or spouse name but no relation prints the T-393 name-only blank, `[To be confirmed: relation] <name>`. The full blank prints only when there is no name.
 
 Any other change in the 13 entries needs a fresh sign-off.
+
+**T-396 memo golden: signed (14 Oct 2026).** 13 entries (court-rules-golden, on T-404), each with exactly four changes:
+1. The memo relation line becomes the T-393 name-only blank, `[To be confirmed: relation] <name>`.
+2. The State line uses the State's display name (`State of Jharkhand`, and so on for each court).
+3. The Addendum 5 footer is added to the memo.
+4. The affidavit line carries the same relation blank.
+
+Any other byte change needs a new sign-off.
