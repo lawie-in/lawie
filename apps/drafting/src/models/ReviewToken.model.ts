@@ -13,14 +13,21 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IReviewToken extends Document {
-  token: string;                  // 32-char URL-safe random token
-  documentId: Types.ObjectId;     // ref to LawieDocument
-  assignedTo: string;             // advocate name (display only)
-  assignedEmail?: string;         // advocate email (display only — no auth use)
-  expiresAt: Date;                // hard expiry (default +14 days)
-  isActive: boolean;              // founder can revoke
-  isUsed: boolean;                // flipped true on first feedback submission
-  createdBy: Types.ObjectId;      // founder userId
+  token: string; // 32-char URL-safe random token
+  documentId: Types.ObjectId; // ref to LawieDocument
+  // advocate name (display only). Absent once the reviewer erased their account (T-115c).
+  assignedTo?: string;
+  assignedEmail?: string; // advocate email (display only — no auth use)
+  expiresAt: Date; // hard expiry (default +14 days)
+  isActive: boolean; // founder can revoke
+  isUsed: boolean; // flipped true on first feedback submission
+  createdBy: Types.ObjectId; // founder userId
+  /**
+   * T-115c (Arjun) — the reviewer closed their Lawie account. Their name and email are unset,
+   * the link string replaced and the link revoked; the row stays so the document owner keeps
+   * the feedback. Admin pages show "reviewer: erased". Absent on every other token.
+   */
+  reviewerErased?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,6 +74,8 @@ const ReviewTokenSchema = new Schema<IReviewToken>(
       type: Schema.Types.ObjectId,
       required: true,
     },
+    // T-115c — no default: absent means the reviewer has not erased their account.
+    reviewerErased: { type: Boolean },
   },
   { timestamps: true },
 );

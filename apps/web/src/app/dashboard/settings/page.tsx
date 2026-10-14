@@ -1,8 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useRef, useState } from 'react';
 
+import ConfirmCloseAccountDialog from '@/components/account/ConfirmCloseAccountDialog';
 import { PlanUpgrade } from '@/components/billing/PlanUpgrade';
+import { secondaryButton } from '@/components/intake/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useCredits } from '@/hooks/useCredits';
 
@@ -11,6 +14,12 @@ import { useCredits } from '@/hooks/useCredits';
  * while the balance is loading or unknown, never showing the empty default's 0.
  * Its own component, so the balance is fetched only where the line can show.
  */
+/** T-115c — secondaryButton in the error colour (Rajesh's spec §1); no new colours. */
+const closeButtonClass = secondaryButton.replace(
+  'border-brand-navy text-brand-navy',
+  'border-brand-error text-brand-error',
+);
+
 function InkBalanceLine() {
   const { balance, loaded } = useCredits();
   if (!loaded || !Number.isFinite(balance.totalInk)) return null;
@@ -20,6 +29,8 @@ function InkBalanceLine() {
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [closeOpen, setCloseOpen] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   if (!user) return null;
 
@@ -115,6 +126,34 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* T-115c — Close account (Rajesh's spec §1): below Plan, above Sign out, apart from both
+          so it is not hit by mistake. Strings: Madhuri, dpdp-ui-strings-t115.md B. */}
+      <section
+        aria-labelledby="close-account-heading"
+        className="mt-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <h2 id="close-account-heading" className="text-sm font-semibold text-slate-700">
+          Close account
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Close your Lawie account. You will be asked to confirm first.
+        </p>
+        <button
+          ref={closeButtonRef}
+          type="button"
+          onClick={() => setCloseOpen(true)}
+          className={`${closeButtonClass} mt-4 w-full sm:w-auto`}
+        >
+          Close account
+        </button>
+      </section>
+      {closeOpen && (
+        <ConfirmCloseAccountDialog
+          onClose={() => setCloseOpen(false)}
+          fallbackFocusRef={closeButtonRef}
+        />
+      )}
 
       {/* Sign out */}
       <div className="mt-8 border-t border-slate-200 pt-6">

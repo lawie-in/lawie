@@ -181,7 +181,7 @@ router.get(
           .limit(15)
           .lean(),
         ReviewToken.find({ isUsed: true, updatedAt: { $gte: since } })
-          .select('assignedTo documentId updatedAt')
+          .select('assignedTo documentId updatedAt reviewerErased')
           .sort({ updatedAt: -1 })
           .limit(15)
           .lean(),
@@ -242,7 +242,7 @@ router.get(
     for (const r of recentReviews) {
       items.push({
         type: 'review',
-        label: `${r.assignedTo} submitted review`,
+        label: `${r.reviewerErased ? 'reviewer: erased' : r.assignedTo} submitted review`,
         detail: 'Ready to file',
         at: r.updatedAt,
       });

@@ -200,7 +200,8 @@ router.get(
       accessToken,
       refreshToken,
       { plan: user.plan, email: user.email, role: user.role, name: user.name },
-      { ip: req.ip, userAgent: req.headers['user-agent'] },
+      // T-115c — a Google sign-in proves the user now (authAt, Arjun ruling 2).
+      { ip: req.ip, userAgent: req.headers['user-agent'], authAt: new Date().toISOString() },
     );
 
     // SCRUM-73 — daily login bonus, non-blocking on the OAuth hot path.
