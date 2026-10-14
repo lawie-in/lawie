@@ -94,3 +94,8 @@ Tax rule: code 20 (our state) gives CGST 9% + SGST 9%. Every other code, all UTs
 - AC8 signed summary for CURRENT_PRIVACY_VERSION: "We now ask for your State to issue GST tax invoices, and we explain how you can close your account and how long we keep your data." Also fix the "bump when Last updated changes" comment in packages/shared/src/constants/privacy.ts.
 - AC10 (must-fix): Patna is wrong. Terms §12 courts become Ranchi, Jharkhand. The contact page and the email footer (email-worker verifyEmail.tsx) say "Ranchi, Jharkhand". Remove the live "[PIN]" and placeholder text. Use the exact strings from Ajay's file.
 - The invoice email (Madhuri, link only, no case content) goes to Ajay to sign.
+
+## Settled, 14 Oct 2026 (Priya, Arjun agreed)
+
+- The invoice number format is Ajay's: LAW/2026-27/0001 (max 16 chars). The counter has one row per FY and is allocated only for a confirmed payment.
+- Credit notes appear in the user's Invoices list, marked "Credit note" and linked to the original invoice.
