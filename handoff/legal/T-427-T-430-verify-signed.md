@@ -100,3 +100,17 @@ Sources checked: secondary texts for S.438, S.440, S.442, S.443 and S.441's head
 | criminal_revision :3, :13, :152, :213, :214, :230, :241, the S.438(4)/S.439/S.441/S.443 rows, :32 labels | Not in 2fa47a1. Must ship in T-429 as signed above, then a byte check of that delta. |
 
 Merge-body ref once the delta passes: "Legal: T-429 signed by Ajay, c55d390 + this check".
+
+### T-429 byte check: bc00d27 (criminal_revision delta), 14 Oct 2026
+
+All signed strings from the c55d390 section are byte-exact: :3, :13, :152, :213, :214, :230, :241, the S.441/S.443 rows, the deleted S.438(4)/S.439 rows and the two option labels. The ids stay and are never sent or printed. **Approved.**
+
+Vishal's three further findings:
+
+| # | Item | Ruling | Kind |
+|---|---|---|---|
+| a | prayerTemplate "under Section {applicable_section} of the Bharatiya Nagarik Suraksha Sanhita, 2023" prints "_____": no field fills it | Fill `{applicable_section}` from `revisional_forum`: `high_court_s438_bnss` → `438 read with Section 442`; `sessions_court_s442_bnss` → `438 read with Section 440`. Printed: "…under Section 438 read with Section 442 of the Bharatiya Nagarik Suraksha Sanhita, 2023…". If the forum is somehow empty: `[To be confirmed: section of the BNSS]`, never "_____" (T-404 rule 1). Test both forums plus the empty case. | must-fix (T-429) |
+| b | S.528 row "Inherent powers of HC — concurrent / residual" | Correct as is. | none |
+| c | Para 7 "only one revision (to either HC or Sessions, not both)" | Correct in substance. The S.438(3) bar is on a further application by the same person; "by the same person" would be more exact. | parked |
+
+Merge-body ref once (a) is byte-checked: "Legal: T-429 signed by Ajay, c55d390 + be9bc53 + this check".
