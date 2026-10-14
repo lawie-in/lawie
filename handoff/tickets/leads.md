@@ -46,7 +46,8 @@ v1 scope (Arjun): bail (4 packs), the s.138 notice and the converter. The plaint
 
 ## Merge queue
 
-**PAUSED (founder): the work hour 16:42–17:42 UTC, 13 Oct, is over. Resume only on the founder's command.**
+**WORK HOUR 10:28–11:28 UTC, 14 Oct (founder). Everyone stops at 11:28.** Targets: Kunal merge T-415, then T-396. Shashank merge T-404 part 1, then start part 2. Vishal T-422 merged, then T-376. Mahak T-423 merged. Tanvi T-411 UI if the Figma link lands; otherwise T-408 (Explore, then build). Merge order: T-415, then T-404 part 1, then first-ready.
+Previous hour (13 Oct, 16:42–17:42):
 Hour result: merged T-397 (7e23038) and T-381 (9e3cafa), plus fixes: T-410 CI test fix (37f9736) and T-399 gitleaks allow (28177b7). T-415 done but not merged. T-404 part 1 reviewed, not merged. T-411 server half built.
 Next session's merge queue: Kunal T-415 (bc35be1, all four reports), then Shashank T-404 part 1 (f506d75, tester, re-review and Ajay passed; merge only).
 Where each lead stopped:
